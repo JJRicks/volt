@@ -152,12 +152,23 @@ public final class ModelRegistryTest {
         check(ModelRegistry.reported(ultra)&&ReportInvite.model(ultra).isEmpty()&&!ReportInvite.model(ultraSibling).isEmpty(),"The UT5 Ultra X is reported; its unreported siblings are still offered");
         check(ModelRegistry.driveModeLabelProduct(ultra)==0,"The UT5 Ultra X's drive-mode codes stay unnamed until an owner reports them");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
+        // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
+        DeviceDescriptor xt5=advertised("24162"),xt5Sibling=advertised("24161");
+        check(ModelRegistry.modelName(xt5).equals("XT5 Pro")&&ModelRegistry.modelLine(xt5).equals("XT5 Pro")&&ModelRegistry.photo(xt5).isEmpty()
+            &&!ModelRegistry.showsPhoto(xt5),"XT5 Pro name and line, without a photo");
+        check(ModelRegistry.reported(xt5)&&ReportInvite.model(xt5).isEmpty()&&!ReportInvite.model(xt5Sibling).isEmpty(),"The XT5 Pro is reported; its siblings are still offered");
+        check(ModelRegistry.driveModeLabelProduct(xt5)==25462&&ModelRegistry.driveModeLabelProduct(xt5Sibling)==0,"XT5 Pro drive modes use the GT5 Max names; its sibling stays raw");
+        check(ModelRegistry.modelName(xt5Sibling).isEmpty()&&ModelRegistry.ownerPhoto("XT5 Pro").isEmpty(),"Another 2416 ID stays unnamed; an XT5 Pro answer has no photo to show");
+        for(String f:new String[]{"lock","maximum_speed","charge_limit","cruise_control","traction_control"}){
+            ModelRegistry.Rule named=ModelRegistry.rule(f,xt5,null,null),plain=ModelRegistry.rule(f,xt5Sibling,null,null);
+            check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,"Naming the XT5 Pro changes no rule: "+f);
+        }
     }
 
     /** Photos bundled ahead of their Model ID: listed NAVEE models, shown on nothing yet, each ready to use once its ID is known. */
     private static void waitingPhotos() throws java.io.IOException {
         Set<String> keys=new HashSet<>();keys.add("ut5max");
-        for(String[] known:ModelRegistry.knownModels().values()){keys.add(known[1]);
+        for(String[] known:ModelRegistry.knownModels().values()){if(!known[1].isEmpty())keys.add(known[1]);
             check(!ModelRegistry.WAITING_PHOTOS.containsKey(known[0])&&!ModelRegistry.WAITING_PHOTOS.containsValue(known[1]),"A model known by Model ID still waits: "+known[0]);}
         for(java.util.Map.Entry<String,String> w:ModelRegistry.WAITING_PHOTOS.entrySet()){
             check(w.getKey().equals(NaveeModels.exact(w.getKey())),"A waiting photo is not a listed NAVEE model: "+w.getKey());
@@ -237,7 +248,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==13,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro, GT5 Max and UT5 Ultra X, the regional unions and control tables");
+        check(ModelRegistry.VERSION==14,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro, GT5 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");

@@ -35,7 +35,7 @@ import java.util.Set;
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=13;
+    public static final int VERSION=14;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -110,6 +110,8 @@ public final class ModelRegistry {
         KNOWN.put("23452",new Known("ST3 Pro","st3pro"));
         KNOWN.put("25462",new Known("GT5 Max","gt5max","cruise_control"));
         KNOWN.put("25852",new Known("UT5 Ultra X","ut5ultrax"));
+        // No photo yet: Volt names it and keeps its owners from being asked again.
+        KNOWN.put("24162",new Known("XT5 Pro",""));
     }
     /**
      * Photos bundled before Volt knows their model's advertised Model ID, by NaveeModels name; nothing shows them yet.
@@ -836,19 +838,21 @@ public final class ModelRegistry {
     public static Double ratedWh(DeviceDescriptor d){return ut5Max(d)?716.04:null;}
     public static boolean showsPhoto(DeviceDescriptor d){return !photo(d).isEmpty();}
     /** Exact advertised Model IDs Volt already has a compatibility report for; extend it each release. */
-    static final Set<String> REPORTED=new HashSet<>(java.util.Arrays.asList("22131","23452","25462","25852"));
+    static final Set<String> REPORTED=new HashSet<>(java.util.Arrays.asList("22131","23452","24162","25462","25852"));
     /** True when Volt needs no new compatibility report for this model (the UT5 MAX is the reference). */
     public static boolean reported(DeviceDescriptor d){return ut5Max(d)||d!=null&&REPORTED.contains(d.rulePid());}
     /** Bundled photo key ("ut5max", "n65i") for this model, or "" for none. */
     public static String photo(DeviceDescriptor d){if(ut5Max(d))return "ut5max";Known t=known(d);return t!=null?t.photo:ownerPhoto(ownerModel(d));}
     public static int chargeReferenceProduct(DeviceDescriptor d){return ut5Max(d)?2538:-1;}
     /**
-     * Models whose drive-mode codes Volt names: the UT5 MAX (2538) and the GT5 Max (25462) from owner reports, and the
-     * N65i (22131), assumed by the maintainer to match the GT5 Max until an owner reports otherwise; 0 keeps raw codes.
+     * Models whose drive-mode codes Volt names: the UT5 MAX (2538), the GT5 Max (25462) and the XT5 Pro (24162, same
+     * codes) from owner reports, and the N65i (22131), assumed by the maintainer to match the GT5 Max until an owner
+     * reports otherwise; 0 keeps raw codes.
      */
     public static int driveModeLabelProduct(DeviceDescriptor d){
         if(ut5Max(d))return 2538;if(known(d)==null)return 0;
-        return "25462".equals(d.rulePid())||"22131".equals(d.rulePid())?25462:0;
+        // The XT5 Pro (24162) reported the same codes in a closed cycle: 11 Walk, 2 Drive, 3 Sport.
+        return "25462".equals(d.rulePid())||"22131".equals(d.rulePid())||"24162".equals(d.rulePid())?25462:0;
     }
     public static int rangeFollowProduct(DeviceDescriptor d){return ut5Max(d)?2538:0;}
     public static String modelName(DeviceDescriptor d){if(ut5Max(d))return "UT5 MAX";Known t=known(d);return t!=null?t.name:ownerModel(d);}
