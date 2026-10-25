@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Name the XT5 Pro (Model ID 24162), from an owner's compatibility report, and stop asking its owners for one. Its drive modes read WALK, DRIVE and SPORT (codes 11, 2 and 3, a full cycle the owner reported). Its controls are not verified; they follow the official app's map for its model group as before.
 - An ST3 Pro owner's compatibility report (Model ID 23452, US) confirmed the model, so its owners are no longer asked for one.
 - Experimental controls also list a control Volt hasn't mapped for your model (it can't tell whether the official app offers it there), when your scooter reports it. On the ST3 Pro, which reports traction control on, and on Group S models and the GT5 Max, traction control can now be tried.
 
