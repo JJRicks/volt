@@ -134,6 +134,32 @@ public final class RouteSpeedScaleTest {
             RouteSpeedScale gpsLoaded = RouteSpeedScale.of(store.load("gps").points);
             check(RouteSpeedScale.GPS.equals(gpsLoaded.source) && Math.abs(gpsLoaded.kmh(5) - 18) < 1e-9, "GPS m/s converted to km/h");
             check(gpsLoaded.kmh(0) == 0.0 && gpsLoaded.color(0) == RouteSpeedScale.LOW, "Recorded stop stays a stop");
+            check(RouteSpeedScale.powerTopWatts(store.load("gps").points) == RouteSpeedScale.MIN_TOP_W, "No power: the minimum power scale");
+
+            // Route power: a 2–3.4 kW dual-motor ride with braking and one 9 kW spike scales to its own 3,500 W, not 2,000 W.
+            store.start("power", 1700000000000L, 1000, "mounted");
+            b.setLength(0);
+            for (int i = 0; i < 40; i++) {
+                long mono = 1000 + i * 1000, wall = 1700000000000L + mono;
+                double watts = i == 20 ? 9000 : i == 30 ? -900 : 2000 + (i % 10) * 150;
+                b.append(PhoneRideStore.row("TELEMETRY", wall, mono, 30, watts, 80, mono, mono, mono));
+                b.append(PhoneRideStore.row("GPS", wall, mono, 43.82 + i * .00004, -111.78, 3, 8.0, .2, 1500, 4));
+            }
+            store.appendBatch("power", b.toString(), "");
+            store.stop("power", 1700000041000L, 41000);
+            double powerTop = RouteSpeedScale.powerTopWatts(store.load("power").points);
+            check(powerTop == 3500, "Route power scales to the ride's robust peak: " + powerTop);
+            check("3,500 W".equals(RouteSpeedScale.wattsLabel(powerTop)), "Power legend label");
+            store.start("gentle", 1700000000000L, 1000, "mounted");
+            b.setLength(0);
+            for (int i = 0; i < 10; i++) {
+                long mono = 1000 + i * 1000, wall = 1700000000000L + mono;
+                b.append(PhoneRideStore.row("TELEMETRY", wall, mono, 15, 300, 80, mono, mono, mono));
+                b.append(PhoneRideStore.row("GPS", wall, mono, 43.82 + i * .00004, -111.78, 3, 4.0, .2, 1500, 4));
+            }
+            store.appendBatch("gentle", b.toString(), "");
+            store.stop("gentle", 1700000011000L, 11000);
+            check(RouteSpeedScale.powerTopWatts(store.load("gentle").points) == 1000, "A gentle ride keeps the 1,000 W minimum");
         } finally {
             delete(dir);
         }

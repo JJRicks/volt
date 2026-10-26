@@ -22,6 +22,7 @@ import java.util.Locale;
 final class RouteSpeedScale {
     static final String SCOOTER = "scooter", GPS = "GPS";
     static final double STEP_KMH = 5, MIN_TOP_KMH = 10, MAX_TOP_KMH = 120;
+    static final double STEP_W = 500, MIN_TOP_W = 1000, MAX_TOP_W = 20000;
     /** Same blue → yellow sequential ramp as route power and elevation; gray marks missing data. */
     static final int LOW = 0xff23499b, HIGH = 0xffffd246, NO_DATA = 0xff808080;
 
@@ -98,10 +99,28 @@ final class RouteSpeedScale {
         return count;
     }
 
-    private static double top(Double[] values) {
+    /**
+     * Top of the route power ramp for one ride: the same robust 95th percentile, of power magnitude (braking
+     * included), rounded up to 500 W with at least 1,000 W. A fixed 2,000 W painted a 3 kW dual-motor ride solid yellow.
+     */
+    static double powerTopWatts(List<PhoneRideStore.Point> points) {
+        Double[] watts = new Double[points.size()];
+        for (int i = 0; i < watts.length; i++) {
+            Double w = points.get(i).powerW;
+            watts[i] = usable(w) ? Math.abs(w) : null;
+        }
+        return top(watts, STEP_W, MIN_TOP_W, MAX_TOP_W);
+    }
+
+    /** "3,500 W". */
+    static String wattsLabel(double watts) { return String.format(Locale.US, "%,.0f W", watts); }
+
+    private static double top(Double[] values) { return top(values, STEP_KMH, MIN_TOP_KMH, MAX_TOP_KMH); }
+
+    private static double top(Double[] values, double step, double minimum, double maximum) {
         int moving = 0;
         for (Double v : values) if (v != null && v > 0) moving++;
-        if (moving == 0) return MIN_TOP_KMH;
+        if (moving == 0) return minimum;
         double[] sorted = new double[moving];
         int k = 0;
         for (Double v : values) if (v != null && v > 0) sorted[k++] = v;
@@ -109,10 +128,10 @@ final class RouteSpeedScale {
         double q1 = percentile(sorted, .25), q3 = percentile(sorted, .75), p95 = percentile(sorted, .95);
         // Identical quartiles (a held governor limit) would cap at q3 and clip every faster point.
         double robust = q3 > q1 ? Math.min(p95, q3 + 3 * (q3 - q1)) : p95;
-        double top = Math.ceil(robust / STEP_KMH) * STEP_KMH;
-        // A constant speed sits just below the top instead of on the clipped end.
-        if (top <= robust) top += STEP_KMH;
-        return Math.max(MIN_TOP_KMH, Math.min(MAX_TOP_KMH, top));
+        double top = Math.ceil(robust / step) * step;
+        // A constant value sits just below the top instead of on the clipped end.
+        if (top <= robust) top += step;
+        return Math.max(minimum, Math.min(maximum, top));
     }
 
     private static double percentile(double[] sorted, double p) {

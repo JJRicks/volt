@@ -44,6 +44,7 @@ public final class RouteMapView extends View {
     private final Map<String, Long> failed = new HashMap<String, Long>();
     private final Consumer<PhoneRideStore.Point> selection;
     private final int powerLow, powerHigh;
+    private final double powerTopW;
     /** Computed once per ride so inline, expanded, panned and zoomed views share colours. */
     private final RouteSpeedScale speedScale;
     private double elevationLow = Double.POSITIVE_INFINITY, elevationHigh = Double.NEGATIVE_INFINITY;
@@ -76,6 +77,7 @@ public final class RouteMapView extends View {
         powerLow = RouteSpeedScale.LOW;
         powerHigh = RouteSpeedScale.HIGH;
         speedScale = RouteSpeedScale.of(points);
+        powerTopW = RouteSpeedScale.powerTopWatts(points);
         provider = new MapTiles(ui.context, tileUrl);
         maximumTileZoom = MapSource.maximumTileZoom(tileUrl);
         setMinimumHeight(ui.dp(290));
@@ -478,7 +480,7 @@ public final class RouteMapView extends View {
         Double value = "grade".equals(metric) ? p.gradePercent : "accel".equals(metric) ? p.gpsAccelerationMps2
                 : "elevation".equals(metric) ? p.relativeAltitudeM : p.powerW;
         if (value == null) return Color.rgb(128, 128, 128);
-        if ("power".equals(metric)) return blend(powerLow, powerHigh, Math.min(1, Math.abs(value) / 2000));
+        if ("power".equals(metric)) return blend(powerLow, powerHigh, Math.min(1, Math.abs(value) / powerTopW));
         if ("elevation".equals(metric)) {
             return blend(powerLow, powerHigh, elevationHigh > elevationLow ? (value - elevationLow) / (elevationHigh - elevationLow) : .5);
         }

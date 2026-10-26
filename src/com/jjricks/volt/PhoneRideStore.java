@@ -569,7 +569,10 @@ public final class PhoneRideStore {
         int segment = 0, pressureIndex = 0, telemetryIndex = 0;
         double distance = 0, ascent = 0, descent = 0;
         boolean hasDistance = false, hasElevation = false, breakNext = false;
+        // One elevation baseline per ride: a GPS dropout (an overpass, a tunnel) splits the route but must not re-zero
+        // elevation. GPS height is absolute; barometer heights share their stream's baseline until that stream restarts.
         Double elevationAnchor = null, gpsBaseline = null, pressureBaseline = null;
+        int pressureBaselineEpoch = -1;
         String anchorSource = "", filterSource = "";
         Double filterElevation = null, filterCheckpoint = null; long filterMono = -1, filterCheckpointMono = -1; int rejectedElevation = 0;
         double segmentDistance = 0;
@@ -602,8 +605,7 @@ public final class PhoneRideStore {
                 positions.clear();
                 segmentDistance = 0;
                 elevationAnchor = null;
-                gpsBaseline = null;
-                pressureBaseline = null; filterElevation = null; filterSource = "";
+                filterElevation = null; filterSource = "";
             } else {
                 boolean moving =
                         (q.speed != null && q.speed >= 1)
@@ -626,7 +628,10 @@ public final class PhoneRideStore {
                     && pressure.epoch == q.epoch
                     && q.mono >= pressure.mono
                     && q.mono - pressure.mono <= 3000) {
-                if (pressureBaseline == null) pressureBaseline = pressure.altitude;
+                if (pressureBaseline == null || pressure.epoch != pressureBaselineEpoch) {
+                    pressureBaseline = pressure.altitude;
+                    pressureBaselineEpoch = pressure.epoch;
+                }
                 relative = pressure.altitude - pressureBaseline;
                 source = "barometer";
             } else if (q.alt != null

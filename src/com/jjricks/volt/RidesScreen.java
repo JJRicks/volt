@@ -1329,7 +1329,7 @@ public final class RidesScreen implements AppScreen {
                 : "accel".equals(metric) ? "GPS acceleration · blue −2 → gray 0 → orange +2 m/s² · gray dashed: missing"
                 : "elevation".equals(metric) ? elevationLegend(track)
                 : "speed".equals(metric) ? speedLegend(RouteSpeedScale.of(track.points))
-                : "Power magnitude · blue 0 → yellow 2,000 W · gray: missing";
+                : "Power magnitude · blue 0 → yellow " + RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points)) + " · gray: missing";
     }
     private void syncMapControls(PhoneRide ride) {
         String metric = ride.map.metric(); int selected = 0;
@@ -1789,7 +1789,7 @@ public final class RidesScreen implements AppScreen {
                     top = top == null ? point.relativeAltitudeM : Math.max(top, point.relativeAltitudeM);
                 }
                 title = "Elev."; colors = new int[]{low, high}; labels = new String[]{height(bottom), height(top)};
-            } else { title = "Power"; colors = new int[]{low, high}; labels = new String[]{"0", "2,000 W"}; }
+            } else { title = "Power"; colors = new int[]{low, high}; labels = new String[]{"0", RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points))}; }
             setContentDescription(mapLegend(track, metric)); requestLayout(); invalidate();
         }
         private float textSize() { return ui.sp(11.5f); }
