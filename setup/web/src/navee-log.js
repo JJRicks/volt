@@ -182,6 +182,38 @@ export class LogRecorder {
     if (!/^\d{9,11}\.\d{1,9}$/.test(start)) throw new SetupError('clock', 'The phone did not provide a valid capture time.');
     this.start = start; this.cursor = start; this.floor = nanos(start); this.edge = this.floor;
     this.seen = new Map(); this.rows = []; this.hidden = 0; this.bytes = 0; this.full = false; this.next = 1;
+    // Folded: "Write success" echoes marked onto their command as " (ok)", and repeats of a routine read.
+    this.folded = 0; this.reads = new Set(); this.echoes = new Map();
+  }
+  // NAVEE logs every frame twice (sent, then "Write success") and polls status (read 0x70) every few
+  // seconds. Fold the echo into its command and keep only the first of each identical read.
+  fold(text) {
+    const echo = /^Write success: (\[[0-9a-f ]+\])$/.exec(text);
+    if (echo) {
+      for (let i = this.rows.length - 1; i >= Math.max(0, this.rows.length - 40); i--) {
+        const row = this.rows[i];
+        if (row.note || row.acked || (row.text !== `Send write command: ${echo[1]}` && row.text !== `Send read command: ${echo[1]}`)) continue;
+        this.rows[i] = { ...row, id: this.next++, text: `${row.text} (ok)`, acked: true }; this.bytes += 5;
+        return true;
+      }
+      const pending = this.echoes.get(echo[1]) || 0;
+      if (pending) { this.echoes.set(echo[1], pending - 1); return true; }
+      return false;
+    }
+    // NAVEE's "sendCmd cmd=0X6F, value=0X05,0X01" restates the frame it just logged; the frame row stays.
+    const command = /^sendCmd cmd=0X([0-9A-F]{2}), value=((?:0X[0-9A-F]{2},?)+)$/.exec(text);
+    if (command) {
+      const cmd = parseInt(command[1], 16), values = command[2].split(',').map(x => parseInt(x.slice(2), 16));
+      return this.rows.slice(-3).some(row => {
+        const frame = !row.note && /^Send write command: /.test(row.text) ? decodeFrame(hexBytes(row.text)) : null;
+        return frame && frame.cmd === cmd && frame.payload.length === values.length && frame.payload.every((b, i) => b === values[i]);
+      });
+    }
+    const read = /^Send read command: (\[[0-9a-f ]+\])$/.exec(text);
+    if (!read) return false;
+    if (!this.reads.has(read[1])) { this.reads.add(read[1]); return false; }
+    this.echoes.set(read[1], (this.echoes.get(read[1]) || 0) + 1);
+    return true;
   }
   // Returns how many timestamped rows the poll held and how many were new.
   ingest(output) {
@@ -207,6 +239,7 @@ export class LogRecorder {
       const message = NAVEE.exec(row[2]);
       const kept = message ? classify(message[1]) : null;
       if (kept === null) { this.hidden = Math.min(LIMITS.hidden, this.hidden + 1); continue; }
+      if (this.fold(kept)) { this.folded = Math.min(LIMITS.hidden, this.folded + 1); continue; }
       if (this.add(row[1], kept, false)) added++;
     }
     return { lines, fresh, added };

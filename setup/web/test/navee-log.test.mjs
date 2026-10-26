@@ -276,3 +276,25 @@ test('fuzzed garbage around allowlisted prefixes never yields an unsafe kept row
   }
   assert(keptCount > 100, `fuzz exercised kept rows: ${keptCount}`);
 });
+test('write confirmations fold into their command and repeated routine reads collapse', () => {
+  const r = new LogRecorder(START);
+  const cruise = frame(0x52, [1]), status = '[55 aa 00 70 6f fe fd]', units = frame(0x55, [1]);
+  r.ingest([line(`Send write command: ${cruise}`, '1800000001.000'), line(`Send read command: ${status}`, '1800000001.010'),
+    line(`Write success: ${cruise}`, '1800000001.020'), line(`Write success: ${status}`, '1800000001.030'),
+    line(`Send read command: ${status}`, '1800000002.000'), line(`Write success: ${status}`, '1800000002.010'),
+    line(`Send read command: ${status}`, '1800000003.000'), line(`Write success: ${status}`, '1800000003.010'),
+    line(`Send write command: ${units}`, '1800000004.000'), line(`Write success: ${frame(0x55, [0])}`, '1800000004.100')].join('\n'));
+  assert.deepEqual(r.rows.map(x => x.text), [`Send write command: ${cruise} (ok)`, `Send read command: ${status} (ok)`,
+    `Send write command: ${units}`, `Write success: ${frame(0x55, [0])}`]);
+  assert.equal(r.folded, 6); assert.equal(r.hidden, 0);
+  // A confirmed row is still safe to send and the body still matches the server format.
+  assert(r.rows.every(x => safeText(x.text)));
+  assert.equal(JSON.parse(submission({ ...base(r), rows: r.rows })).rows[0].endsWith('(ok)'), true);
+  // NAVEE's sendCmd restatement of the frame just logged folds; one that doesn't match stays.
+  const s = new LogRecorder(START);
+  s.ingest([line(`Send write command: ${frame(0x6f, [5, 1])}`, '1800000005.000'), line('sendCmd cmd=0X6F, value=0X05,0X01', '1800000005.001'),
+    line('sendCmd cmd=0X6F, value=0X05,0X00', '1800000005.002'), line('sendCmd cmd=0X54, value=0X01', '1800000005.003')].join('\n'));
+  assert.deepEqual(s.rows.map(x => x.text), [`Send write command: ${frame(0x6f, [5, 1])}`, 'sendCmd cmd=0X6F, value=0X05,0X00', 'sendCmd cmd=0X54, value=0X01']);
+  // Confirmation replaces the row object so the live list re-renders it.
+  assert.equal(new Set(r.rows.map(x => x.id)).size, r.rows.length);
+});

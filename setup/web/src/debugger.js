@@ -135,7 +135,8 @@ function rowItem(row, removable) {
 }
 function counts(recorder) {
   $('kept-count').textContent = plural(recorder.rows.length, 'line kept', 'lines kept');
-  $('hidden-count').textContent = `${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden`;
+  $('hidden-count').textContent = `${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden` +
+    (recorder.folded ? ` · ${plural(recorder.folded, 'routine read or confirmation', 'routine reads and confirmations')} folded` : '');
 }
 // Live list: kept, redacted rows only, newest at the bottom.
 function renderLive(recorder) {
@@ -159,7 +160,7 @@ function body() {
   const { recorder, facts, startedAt, durationS } = capture;
   return submission({ model: modelName(), description: $('description').value, contact: $('contact').value,
     naveeVersion: facts.naveeVersion, android: facts.android, phone: facts.phone, startedAt, durationS,
-    hidden: recorder.hidden, rows: recorder.rows });
+    hidden: Math.min(recorder.hidden + recorder.folded, 1_000_000), rows: recorder.rows });
 }
 function renderReview() {
   const { recorder, facts, startedAt, durationS } = capture;
@@ -170,7 +171,7 @@ function renderReview() {
   $('sum-recording').textContent = `${Math.floor(durationS / 60)} min ${durationS % 60} s, started ${startedAt.slice(0, 19).replace('T', ' ')} UTC`;
   $('review-rows').replaceChildren(...recorder.rows.map(row => rowItem(row, true)));
   const navee = recorder.rows.filter(row => !row.note).length;
-  $('review-counts').textContent = `${plural(recorder.rows.length, 'line', 'lines')} will be sent (times are UTC). ${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden; only that count is sent.`;
+  $('review-counts').textContent = `${plural(recorder.rows.length, 'line', 'lines')} will be sent (times are UTC). “(ok)” means NAVEE confirmed the command was written. ${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden${recorder.folded ? ` and ${plural(recorder.folded, 'repeat', 'repeats')} folded` : ''}; only those counts are sent.`;
   if (!navee) message('notice', 'No NAVEE Bluetooth lines were kept, so there’s nothing to send. Check that NAVEE connects to your scooter while recording, then try again.');
   $('send').disabled = !navee || !$('send-consent').checked || !!sentId;
 }
