@@ -41,8 +41,9 @@ import com.jjricks.volt.ScooterProfiles;
  * checker's Email to Volt) end on the email sheet: Include diagnostics is ticked by default, Preview
  * shows the exact file, and Open email attaches it through the private provider with a read grant
  * for that intent only. The file holds the simulator's command and connection events but none of the
- * fixture's serial, MAC, owner key or name; unticking sends the plain email and is remembered. Every
- * email is intercepted in-process and never sent.
+ * fixture's serial, MAC, owner key or name; unticking sends the plain email and is remembered. Each
+ * email's file is its own snapshot at its own URI: a later report never changes or reaches an earlier
+ * one, and old snapshots are pruned. Every email is intercepted in-process and never sent.
  */
 public final class ReportDiagnosticsValidation extends Instrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
@@ -54,6 +55,8 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
     private int assertions;
     private final ArrayList<String> screenshots = new ArrayList<>();
     private final AtomicReference<Intent> started = new AtomicReference<>();
+    private Uri attachedUri, firstUri;
+    private String firstFile;
 
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
@@ -83,6 +86,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
             provider();
             reportIssue();
             checkerEmail();
+            pruning();
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -131,6 +135,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
                 && file.contains("\"simulated\": true") && file.contains("\"reason\": \"CONNECT_TIMEOUT\"") && file.contains("\"readings\": [")
                 && file.contains("\"model\": \"" + Build.MANUFACTURER + " " + Build.MODEL + "\""), "The file lacks the logs, readings or phone");
         noSecrets(file, "Report an issue's file");
+        firstUri = attachedUri; firstFile = file;
         require(!sheetShowing() && settings().getAll().get("report_diagnostics") == null, "Open email did not close the sheet, or stored a choice nobody made");
 
         // Unticked: the plain email, and the choice is remembered.
@@ -189,6 +194,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
                         && mail.getStringExtra(Intent.EXTRA_TEXT).startsWith("Scooter model, from the owner: GT3 Pro\n")
                         && mail.getStringExtra(Intent.EXTRA_TEXT).contains("\"format\": \"volt-compat-report-v1\""), "The report email changed");
                 noSecrets(file, "the checker's file"); noSecrets(mail.getStringExtra(Intent.EXTRA_TEXT), "the report email");
+                laterReport(file);
             } else {
                 main(() -> sheet("diagnostics-row").performClick()); settle();
                 require(!checked(), "Unticking did not untick in the checker's sheet");
@@ -244,7 +250,7 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         require(Intent.ACTION_SEND.equals(mail.getAction()) && to != null && to.length == 1 && ADDRESS.equals(to[0]), flow + ": not an ACTION_SEND to the alias");
         Uri uri = mail.getParcelableExtra(Intent.EXTRA_STREAM);
         require(uri != null && "content".equals(uri.getScheme()) && (getTargetContext().getPackageName() + ".diagnostics").equals(uri.getAuthority())
-                && "/volt-diagnostics.json".equals(uri.getPath()), flow + ": the attachment is not the provider's file: " + uri);
+                && uri.getPath() != null && uri.getPath().matches("/[0-9a-f]{32}/volt-diagnostics\\.json"), flow + ": the attachment is not one of the provider's snapshots: " + uri);
         ClipData clip = mail.getClipData();
         require(clip != null && clip.getItemCount() == 1 && uri.equals(clip.getItemAt(0).getUri()), flow + ": the grant does not name the attachment");
         int flags = mail.getFlags();
@@ -262,7 +268,68 @@ public final class ReportDiagnosticsValidation extends Instrumentation {
         try (InputStream in = getTargetContext().getContentResolver().openInputStream(uri)) { byte[] b = new byte[8192]; int n; while ((n = in.read(b)) > 0) out.write(b, 0, n); }
         String file = new String(out.toByteArray(), StandardCharsets.UTF_8);
         require(file.startsWith("{\n  \"format\": \"volt-diagnostics-v1\""), flow + ": the attachment is not volt-diagnostics-v1");
+        attachedUri = uri;
         return file;
+    }
+
+    /**
+     * Report B after report A: B is a new snapshot at a new URI, A's URI still yields exactly A's bytes, and A's
+     * grant (that one URI, no prefix) names nothing B's URI shares. Paths beside a real snapshot are refused.
+     */
+    private void laterReport(String second) throws Exception {
+        require(firstUri != null && attachedUri != null && !firstUri.equals(attachedUri), "The second report reused the first report's URI: " + attachedUri);
+        require(!second.equals(firstFile) && second.contains("\"compatibility_report\": {") && !firstFile.contains("\"compatibility_report\": {"), "The two reports' files are not distinct");
+        require(read(firstUri).equals(firstFile), "After the second report, the first report's URI no longer yields the first file");
+        require(read(attachedUri).equals(second), "The second report's URI does not yield the second file");
+        String authority = getTargetContext().getPackageName() + ".diagnostics", firstId = firstUri.getPathSegments().get(0);
+        for (String path : new String[]{"volt-diagnostics.json", firstId, firstId + "/other.json", firstId.toUpperCase(Locale.ROOT) + "/volt-diagnostics.json",
+                firstId.substring(1) + "/volt-diagnostics.json", firstId + "/volt-diagnostics.json/x", "../" + firstId + "/volt-diagnostics.json",
+                "0123456789abcdef0123456789abcdef/volt-diagnostics.json"}) {
+            Uri bad = Uri.parse("content://" + authority + "/" + path);
+            boolean served;
+            try (InputStream in = getTargetContext().getContentResolver().openInputStream(bad)) { served = in != null; } catch (Exception refused) { served = false; }
+            require(!served, "The provider served a path that is not a snapshot: " + bad);
+        }
+        Uri withQuery = firstUri.buildUpon().appendQueryParameter("x", "1").build();
+        boolean served;
+        try (InputStream in = getTargetContext().getContentResolver().openInputStream(withQuery)) { served = in != null; } catch (Exception refused) { served = false; }
+        require(!served, "The provider served a snapshot URI with a query");
+    }
+
+    /** Snapshots older than a day, and all but the newest ten, are pruned on the next write; the new one stays. */
+    private void pruning() throws Exception {
+        File dir = new File(getTargetContext().getCacheDir(), "diagnostics");
+        require(dir.isDirectory(), "No snapshot folder");
+        // Start from just these fixtures; the reports above are checked already.
+        for (File f : dir.listFiles()) require(f.delete(), "Could not clear " + f.getName());
+        long now = System.currentTimeMillis();
+        String stale = "00000000000000000000000000000000";
+        File old = new File(dir, stale + ".json");
+        try (FileOutputStream out = new FileOutputStream(old)) { out.write('{'); }
+        require(old.setLastModified(now - 25L * 60 * 60 * 1000), "Could not age a snapshot");
+        for (int i = 0; i < 12; i++) {
+            File f = new File(dir, String.format(Locale.ROOT, "%032x", 0x100 + i) + ".json");
+            try (FileOutputStream out = new FileOutputStream(f)) { out.write('{'); }
+            require(f.setLastModified(now - (20 - i) * 60_000L), "Could not date a snapshot");
+        }
+        File leftover = new File(dir, "volt-diagnostics.json");
+        try (FileOutputStream out = new FileOutputStream(leftover)) { out.write('{'); }
+        Class<?> provider = Class.forName("com.jjricks.volt.DiagnosticsProvider");
+        Method write = provider.getDeclaredMethod("write", Context.class, String.class); write.setAccessible(true);
+        Uri fresh = (Uri) write.invoke(null, getTargetContext(), "{\"fresh\": true}");
+        require("{\"fresh\": true}".equals(read(fresh)), "The fresh snapshot is not readable after pruning");
+        String[] names = dir.list(); int snapshots = 0;
+        for (String name : names) if (name.matches("[0-9a-f]{32}\\.json")) snapshots++;
+        require(!old.exists() && !leftover.exists(), "A day-old snapshot or the old fixed file survived pruning");
+        require(snapshots == 11, "Pruning kept " + snapshots + " snapshots, not the newest ten plus the fresh one");
+        for (int i = 0; i < 12; i++)
+            require(new File(dir, String.format(Locale.ROOT, "%032x", 0x100 + i) + ".json").exists() == (i >= 2), "Pruning dropped a newer snapshot or kept an older one (" + i + ")");
+    }
+
+    private String read(Uri uri) throws Exception {
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        try (InputStream in = getTargetContext().getContentResolver().openInputStream(uri)) { byte[] b = new byte[8192]; int n; while ((n = in.read(b)) > 0) out.write(b, 0, n); }
+        return new String(out.toByteArray(), StandardCharsets.UTF_8);
     }
     private Intent mail() {
         long end = SystemClock.uptimeMillis() + 10000;
