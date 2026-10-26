@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.8.0 — 2026-10-25
 
 - A charge recording no longer ends the moment the charger stops by itself below 99%, as an overheating charger can. It waits up to 30 minutes, marked as a charger stop (the notification says so), and continues the same recording when charging resumes; time spent waiting doesn't count against the recording or its learned curve. Charge recordings shows how often and how long the charger stopped, and the export lists the stops as `charger_pauses`. A charger still off after 30 minutes ends the recording as before.
 - A phone ride's elevation no longer drops back to its starting height after a GPS dropout, such as under an overpass or through a short tunnel, which broke the elevation chart and painted false steep grades on the map. The route still splits at the dropout, but elevation keeps the ride's own baseline: the barometer's, or GPS height's when there is no barometer reading, as an owner reported.
