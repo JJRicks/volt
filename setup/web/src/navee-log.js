@@ -226,7 +226,8 @@ export class LogRecorder {
 export function logcatCommand(uid, cursor, count) {
   if (!/^\d{5}$/.test(String(uid)) || !/^\d{9,11}\.\d{1,9}$/.test(cursor) || !Number.isInteger(count) || count < 1 || count > 1000)
     throw new Error('Invalid logcat request');
-  return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -m ${count} -s com.navee.ucaret:V '*:S'`;
+  // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
+  return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -s com.navee.ucaret:V '*:S' | head -n ${count}`;
 }
 function field(value, max, pattern = /^[\x20-\x7e]*$/) {
   const text = String(value ?? '').trim();

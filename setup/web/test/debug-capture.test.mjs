@@ -85,7 +85,7 @@ test('recording polls filtered NAVEE rows until Stop, then cleans up before revi
   assert.match(arm.opts.input, new RegExp(`while \\[ "\\$i" -lt ${WATCH_SECONDS} \\]; do`));
   assert.match(arm.opts.input, /volt-owner-capture\.lock/);
   const logs = f.calls.filter(c => c.op === 'logs').map(c => c.command);
-  assert.equal(logs[0], "logcat --uid=10123 -d -v epoch -t '1800000000.000000000' -m 100 -s com.navee.ucaret:V '*:S'");
+  assert.equal(logs[0], "logcat --uid=10123 -d -v epoch -t '1800000000.000000000' -s com.navee.ucaret:V '*:S' | head -n 100");
   assert.match(logs[1], /-t '1800000004\.100'/);
   assert.equal(f.calls.find(c => c.op === 'logs').opts.maxBytes, 1024 * 1024);
 });
@@ -129,10 +129,10 @@ test('oversized replies shrink the batch, crowded batches drain before pausing',
   let f;
   const seen = [];
   f = fixture({ logs: (n, command) => {
-    seen.push(Number(/-m (\d+)/.exec(command)[1]));
+    seen.push(Number(/\| head -n (\d+)$/.exec(command)[1]));
     if (n === 0) throw new SetupError('oversize', 'too big');
     if (n === 4) f.session.stop();
-    // A full batch (lines >= -m) is polled again immediately.
+    // A full batch (lines >= the head -n bound) is polled again immediately.
     return n === 1 ? Array.from({ length: 10 }, (_, i) => write(`1800000004.${String(i).padStart(3, '0')}`)).join('\n') : '';
   } });
   await f.session.begin();

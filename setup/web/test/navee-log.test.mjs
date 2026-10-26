@@ -219,7 +219,7 @@ test('notes are labelled local text, ordered by time and held to the same rules'
 });
 test('clock and logcat command are strict', () => {
   assert.equal(clock('1800000000.1'), '08:00:00.100'); assert.equal(clock('1800000000.123456789'), '08:00:00.123');
-  assert.equal(logcatCommand(10123, '1800000000.125', 100), "logcat --uid=10123 -d -v epoch -t '1800000000.125' -m 100 -s com.navee.ucaret:V '*:S'");
+  assert.equal(logcatCommand(10123, '1800000000.125', 100), "logcat --uid=10123 -d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S' | head -n 100");
   for (const args of [['10123;x', '1800000000.125', 1], [10123, "1'; reboot", 1], [10123, '1800000000.125', 0], [10123, '1800000000.125', 1001], [1, '1800000000.125', 1]])
     assert.throws(() => logcatCommand(...args));
 });

@@ -79,7 +79,7 @@ export class DebugCaptureSession extends CaptureSession {
       }
     };
     return {
-      naveeVersion: await read(`dumpsys package ${PACKAGE} | grep -m 1 -o 'versionName=[^ ]*'`, /^versionName=([0-9A-Za-z._+-]{1,40})$/),
+      naveeVersion: await read(`dumpsys package ${PACKAGE} 2>/dev/null | grep -m 1 -o 'versionName=[^ ]*'`, /^versionName=([0-9A-Za-z._+-]{1,40})$/),
       android: await read('getprop ro.build.version.release', /^([0-9A-Za-z._-]{1,40})$/),
       phone: await read('getprop ro.product.model', /^([\x20-\x7e]{1,80})$/)
     };

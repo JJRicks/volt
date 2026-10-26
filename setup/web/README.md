@@ -260,7 +260,7 @@ lock format is unchanged; only the watchdog bound is a parameter
 (`guardScript(token, watchSeconds = 120)`): 600 s here, 120 s for owner capture.
 Recording is user-stopped and ends automatically after nine minutes, a minute
 before the watchdog, with a visible countdown. Every ~2 s it reads
-`logcat --uid=<NAVEE uid> -d -v epoch -t <last row time> -m <batch> -s com.navee.ucaret:V '*:S'`
+`logcat --uid=<NAVEE uid> -d -v epoch -t <last row time> -s com.navee.ucaret:V '*:S' | head -n <batch>` (logcat refuses `-m` with `-t`)
 (1 MiB response bound; oversize replies shrink the batch). Rows at the boundary
 timestamp are deduplicated by a 64-bit digest and occurrence count, so raw text
 is never retained. Before cleanup it reads NAVEE's `versionName`, Android's
