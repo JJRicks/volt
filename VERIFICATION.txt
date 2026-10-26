@@ -1,3 +1,34 @@
+VOLT 1.8.1 — ST3 PRO OWNER-VERIFIED CONTROLS AND CLEARER REFUSALS (versionCode 50)
+October 26, 2026
+
+- Full pure-Java suites, the owner-capture guard and the pinned Shizuku
+  dependency check pass on the release tree. The suites cover the ST3 Pro's
+  owner-verified rules (dashboard units, turn signal sound and range estimate
+  verified; traction control an ordinary verified control there only, with the
+  official 0x5f encoding; a sibling ID unchanged) and its Experimental controls
+  and Help verify lists.
+- run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
+  off): all 61 steps, each run alone with --only from a shared queue across four
+  freshly booted disposable emulators, plus motion-polish on its own emulator.
+  All passed, including the guided tests with the new refusal check (after a
+  rejected try the sheet says the scooter most likely doesn't support it and
+  the button reads Try again).
+- Three steps passed only on a rerun, all failing with the timing and load
+  signatures seen before, on code identical to builds where they had passed:
+  compat-controls (a confirmation sheet not yet shown after 30 s, on one
+  emulator; passed on another), backups (the password window did not gain focus,
+  on the same emulator; passed alone on another) and motion-polish (a cell
+  border pixel comparison while four emulators ran; passed alone).
+- The release APK is signed with the project identity. Its certificate matches
+  the 1.8.0 release, and the signature and zip alignment verify. Its dex,
+  resources and manifest are identical to the build the sweep ran.
+- Physical scope: no new physical validation by Volt's developer for this
+  release. The ST3 Pro rules come from an owner's compatibility report (three
+  traction control tries read back and restored, seen twice; units, turn sound
+  and range estimate seen). Automated checks sent no real scooter commands.
+
+--- Previous verification ---
+
 VOLT 1.8.0 — DIAGNOSTICS IN REPORTS, MORE MODELS, RIDE AND CHARGE FIXES (versionCode 49)
 October 25, 2026
 
