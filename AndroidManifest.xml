@@ -34,6 +34,9 @@
         <provider android:name="rikka.shizuku.ShizukuProvider" android:authorities="com.jjricks.volt.shizuku"
             android:multiprocess="false" android:enabled="true" android:exported="true"
             android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+        <!-- Report emails' diagnostics file only (cache/diagnostics); readable through a send intent's one-time grant. -->
+        <provider android:name=".DiagnosticsProvider" android:authorities="com.jjricks.volt.diagnostics"
+            android:exported="false" android:grantUriPermissions="true" />
         <activity android:name=".ShizukuSetupActivity" android:exported="false" android:resizeableActivity="true" />
         <activity android:name=".BackupActivity" android:exported="false" android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"

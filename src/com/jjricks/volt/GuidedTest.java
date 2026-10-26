@@ -69,6 +69,10 @@ final class GuidedTest {
     private String note="";
     /** TestJournal.TEST for an older guided test, else an Experimental controls try (EXPERIMENTAL or VERIFY), and its layer. */
     private String kind=TestJournal.TEST,layer="";
+    /** Sees each journalled outcome as it is added (BleController's command log); never changes the test. */
+    interface Observer { void outcome(GuidedTest test,Outcome outcome,int code,boolean writeInFlight,boolean restoring); }
+    private Observer observer;
+    void observe(Observer o){observer=o;}
     /** A try starts from the value the owner saw in its sheet; any other baseline ends it with nothing written. */
     private Integer expectedBaseline;
     private static final long READ_WAIT_MS=10000;
@@ -402,7 +406,7 @@ final class GuidedTest {
     }
     private void outstanding(String why,long nowMs){phase=Phase.OUTSTANDING;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
     private void conflict(String why,long nowMs){phase=Phase.CONFLICT;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
-    private void add(Outcome o,int code,long nowMs){TestJournal.append(entry,o.token(code),Math.max(0,Math.min(24L*3600*1000,nowMs-approvedMs)));}
+    private void add(Outcome o,int code,long nowMs){TestJournal.append(entry,o.token(code),Math.max(0,Math.min(24L*3600*1000,nowMs-approvedMs)));if(observer!=null)observer.outcome(this,o,code,awaitingWrite(),restoring());}
     /** Commit failures after a write leave the earlier phase in the journal, which replays as OUTSTANDING. */
     private void save(long nowMs){try{commit(nowMs);}catch(IOException|IllegalArgumentException kept){}}
     private void commit(long nowMs) throws IOException{

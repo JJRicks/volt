@@ -2315,13 +2315,17 @@ public final class MainActivity extends Activity implements ScreenHost {
         dialog.dismiss();if(scooterService!=null&&!scooterService.simulating())rememberModel(scooter,choice,false);
         java.util.function.Consumer<DriveModeSurvey> send=modes->{
             if(destroyed)return;
-            ScooterProfiles.Profile now=scooterService==null?null:scooterService.profiles.active();
-            if(now==null||!now.id.equals(scooter)){toast("The scooter changed, so Volt didn't open the report.");return;}
-            if(email(ReportInvite.subject(model),ReportInvite.body(report,choice,modes,model))){
+            java.util.function.BooleanSupplier same=()->{
+                ScooterProfiles.Profile current=scooterService==null?null:scooterService.profiles.active();
+                if(current==null||!current.id.equals(scooter)){toast("The scooter changed, so Volt didn't open the report.");return false;}
+                return true;
+            };
+            if(!same.getAsBoolean())return;
+            showEmailSheet(ReportInvite.subject(model),ReportInvite.body(report,choice,modes,model),report,same,()->{
                 // Its tries now travel with a report the owner is sending: they keep their results but may be pruned.
                 if(scooterService!=null)scooterService.ble.markReported(report);
                 if(!model.isEmpty())preferences.edit().putString(ReportInvite.PREFIX+model,"sent").apply();toast("Your email app has the report. Thanks for helping!");
-            }else toast("No email app could open the report.");
+            });
         };
         BleController ble=scooterService==null?null:scooterService.ble;
         // Optional: the owner names each drive mode the scooter reports (DriveModeStep); skipping still sends the report.
@@ -2417,7 +2421,101 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void addressLine(LinearLayout box){
         TextView to=design.caption("To "+ReportInvite.ADDRESS);to.setPadding(0,design.dp(10),0,0);to.setTextIsSelectable(true);box.addView(to);
     }
-    @Override public boolean emailVolt(String subject,String body){return email(subject,body);}
+    /** More › Report an issue: the email sheet, with the finished compatibility check's report in the file when there is one. */
+    @Override public boolean emailVolt(String subject,String body){
+        if(reportDialog!=null&&reportDialog.isShowing())return true;
+        CompatibilityReport report=scooterService==null?null:scooterService.ble.compatibilityReport(AppVersion.name(this));
+        showEmailSheet(subject,body,report,null,null);return true;
+    }
+    /** app_settings: whether report emails carry the diagnostics file; on until the owner unticks it, then remembered. */
+    static final String REPORT_DIAGNOSTICS="report_diagnostics";
+    static final String DIAGNOSTICS_NOTE="Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names.";
+    private static final String INCLUDE_FULL="Include diagnostics",INCLUDE_SHORT="Diagnostics";
+    /** The open diagnostics preview, over the email sheet. */
+    private Dialog diagnosticsPreview;
+    /**
+     * The last step of both report emails, before the email app opens: Include diagnostics, what the file holds, and
+     * Preview, which shows it exactly. The file is built once, here, so what the owner previews is what is attached.
+     * ready is asked again on Open email (false closes the sheet, sending nothing); sent runs once the email app opened.
+     */
+    private void showEmailSheet(String subject,String body,CompatibilityReport report,java.util.function.BooleanSupplier ready,Runnable sent){
+        final String bundle=scooterService==null?null:scooterService.diagnosticsBundle(report);
+        Dialog[] self={null};
+        LinearLayout content=sheetContent("Email Volt",null,()->{if(self[0]!=null)self[0].dismiss();});
+        TextView to=design.caption("To "+ReportInvite.ADDRESS);to.setTextIsSelectable(true);to.setPadding(design.dp(4),0,design.dp(4),design.dp(12));content.addView(to);
+        LinearLayout card=design.card();card.setTag("diagnostics-card");
+        LinearLayout line=row();line.setGravity(Gravity.CENTER_VERTICAL);line.setMinimumHeight(design.dp(48));line.setTag("diagnostics-row");
+        android.widget.CheckBox include=new android.widget.CheckBox(dialogContext());include.setTag("diagnostics-include");
+        include.setButtonTintList(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled},new int[]{android.R.attr.state_checked},new int[]{}},new int[]{design.dim,design.accent,design.muted}));
+        include.setChecked(bundle!=null&&preferences.getBoolean(REPORT_DIAGNOSTICS,true));include.setEnabled(bundle!=null);
+        include.setClickable(false);include.setFocusable(false);include.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+        line.addView(include,new LinearLayout.LayoutParams(design.dp(36),design.dp(36)));
+        // The narrow-label ladder: the full label, then the short one; never a word broken or the text shrunk.
+        TextView label=new TextView(this){@Override protected void onMeasure(int width,int height){
+            int room=MeasureSpec.getSize(width)-getTotalPaddingLeft()-getTotalPaddingRight();
+            String want=MeasureSpec.getMode(width)==MeasureSpec.UNSPECIFIED||getPaint().measureText(INCLUDE_FULL)<=room?INCLUDE_FULL:INCLUDE_SHORT;
+            if(!want.contentEquals(getText()))setText(want);
+            super.onMeasure(width,height);
+        }};
+        label.setText(INCLUDE_FULL);label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP,15*design.textScale);label.setTypeface(design.bold());
+        label.setTextColor(bundle==null?design.muted:design.text);label.setIncludeFontPadding(false);label.setMaxLines(1);label.setPadding(design.dp(6),0,design.dp(6),0);
+        label.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);label.setTag("diagnostics-label");
+        line.addView(label,new LinearLayout.LayoutParams(0,-2,1));
+        line.setClickable(bundle!=null);line.setFocusable(bundle!=null);line.setBackground(rowRipple());line.setContentDescription(INCLUDE_FULL);
+        line.setAccessibilityDelegate(new View.AccessibilityDelegate(){@Override public void onInitializeAccessibilityNodeInfo(View v,AccessibilityNodeInfo info){
+            super.onInitializeAccessibilityNodeInfo(v,info);info.setClassName(android.widget.CheckBox.class.getName());info.setCheckable(true);info.setChecked(include.isChecked());info.setEnabled(include.isEnabled());}});
+        line.setOnClickListener(v->{if(!include.isEnabled())return;include.setChecked(!include.isChecked());preferences.edit().putBoolean(REPORT_DIAGNOSTICS,include.isChecked()).apply();});
+        TextView preview=design.text("Preview",14,false);preview.setTypeface(design.medium());preview.setTextColor(design.accent);preview.setGravity(Gravity.CENTER);
+        preview.setMinHeight(design.dp(48));preview.setMinWidth(design.dp(48));preview.setPadding(design.dp(12),0,design.dp(4),0);preview.setMaxLines(1);
+        preview.setClickable(true);preview.setFocusable(true);preview.setTag("diagnostics-preview");preview.setContentDescription("Preview the diagnostics file");
+        preview.setOnClickListener(v->{if(bundle!=null)showDiagnosticsPreview(bundle);});preview.setVisibility(bundle==null?View.GONE:View.VISIBLE);
+        line.addView(preview,new LinearLayout.LayoutParams(-2,-2));
+        card.addView(line);
+        TextView note=design.caption(bundle==null?"Volt couldn't prepare the diagnostics file, so this email goes without it.":DIAGNOSTICS_NOTE);
+        note.setPadding(design.dp(4),design.dp(6),design.dp(4),0);note.setTag("diagnostics-note");card.addView(note);
+        content.addView(card);
+        TextView open=design.button("Open email",()->{
+            if(ready!=null&&!ready.getAsBoolean()){if(self[0]!=null)self[0].dismiss();return;}
+            boolean attach=bundle!=null&&include.isChecked(),opened=attach&&emailWithFile(subject,body,bundle);
+            if(!opened){opened=email(subject,body);if(opened&&attach)toast("Volt couldn't attach the diagnostics file, so the email goes without it.");}
+            if(!opened){toast("No email app could open the report.");return;}
+            if(self[0]!=null)self[0].dismiss();if(sent!=null)sent.run();
+        });
+        open.setTag("email-open");content.addView(open);
+        AlertDialog dialog=showSheet(content);self[0]=dialog;reportDialog=dialog;
+        dialog.setOnDismissListener(d->{if(diagnosticsPreview!=null)diagnosticsPreview.dismiss();if(reportDialog==dialog)reportDialog=null;});
+    }
+    /** The exact diagnostics file, readable and scrollable, over the email sheet. */
+    private void showDiagnosticsPreview(String bundle){
+        if(diagnosticsPreview!=null&&diagnosticsPreview.isShowing())return;
+        Dialog[] self={null};
+        int bytes=bundle.getBytes(StandardCharsets.UTF_8).length;
+        String size=bytes<1024?bytes+" bytes":String.format(Locale.ROOT,"%.1f KB",bytes/1024.0);
+        LinearLayout content=sheetContent("Diagnostics file",DiagnosticsProvider.NAME+" · "+size+". This is exactly what Volt attaches.",()->{if(self[0]!=null)self[0].dismiss();});
+        ScrollView scroll=new ScrollView(this);scroll.setTag("diagnostics-preview-scroll");scroll.setBackground(design.shape(design.surface,16,0));
+        TextView text=design.text(bundle,12,false);text.setTypeface(android.graphics.Typeface.MONOSPACE);text.setTextIsSelectable(true);
+        text.setPadding(design.dp(12),design.dp(12),design.dp(12),design.dp(12));text.setTag("diagnostics-preview-text");
+        scroll.addView(text,new ScrollView.LayoutParams(-1,-2));
+        content.addView(scroll,new LinearLayout.LayoutParams(-1,0,1));
+        Dialog dialog=showTallSheet(content);self[0]=dialog;diagnosticsPreview=dialog;
+        dialog.setOnDismissListener(d->{if(diagnosticsPreview==dialog)diagnosticsPreview=null;});
+    }
+    /**
+     * As email(), with the diagnostics file attached (DiagnosticsProvider). Only the app that receives this intent may
+     * read it, through the intent's own read grant; false when the file can't be written or no app can take it.
+     */
+    private boolean emailWithFile(String subject,String body,String bundle){
+        Uri uri;try{uri=DiagnosticsProvider.write(this,bundle);}catch(java.io.IOException|RuntimeException failed){return false;}
+        Intent send=new Intent(Intent.ACTION_SEND);send.setType(DiagnosticsProvider.TYPE);
+        send.putExtra(Intent.EXTRA_EMAIL,new String[]{ReportInvite.ADDRESS});send.putExtra(Intent.EXTRA_SUBJECT,subject);send.putExtra(Intent.EXTRA_TEXT,body);
+        send.putExtra(Intent.EXTRA_STREAM,uri);send.setClipData(android.content.ClipData.newRawUri(DiagnosticsProvider.NAME,uri));
+        send.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        // Email apps only, as the plain email opens them (a mailto selector); else the chooser of apps that take an email.
+        send.setSelector(new Intent(Intent.ACTION_SENDTO,Uri.parse("mailto:")));
+        try{startActivity(send);return true;}catch(android.content.ActivityNotFoundException none){}
+        send.setSelector(null);send.setType("message/rfc822");
+        try{startActivity(Intent.createChooser(send,"Email the report"));return true;}catch(RuntimeException none){return false;}
+    }
     /** Opens the owner's email app addressed to Volt's report alias and filled in; false when no app can. */
     private boolean email(String subject,String body){
         Intent mail=new Intent(Intent.ACTION_SENDTO,Uri.parse("mailto:"));

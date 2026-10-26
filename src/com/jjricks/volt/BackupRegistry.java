@@ -50,7 +50,7 @@ final class BackupRegistry {
     static {
         String app = "app_settings";
         for (String key : "theme units temperature_unit time_format stats_density phone_placement map_tile_url map_tile_attribution map_tile_attribution_url stats_favourite_order ride_chart_key last_ride_label".split(" ")) add(app, key, String.class, PREFERENCES);
-        for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained developer_options range_learned_intro_seen ride_auto_stop".split(" ")) add(app, key, Boolean.class, PREFERENCES);
+        for (String key : "haptics_enabled auto_connect background_connection keep_screen_awake history_enabled phone_gps phone_motion map_basemap_enabled map_basemap_explained developer_options range_learned_intro_seen ride_auto_stop report_diagnostics".split(" ")) add(app, key, Boolean.class, PREFERENCES);
         add(app, "text_scale", Float.class, PREFERENCES);
         add(app, "update_check_consented", Boolean.class, PREFERENCES);
         add(app, "poll_interval_ms", Integer.class, PREFERENCES);add(app, "stats_chart_window", Integer.class, PREFERENCES);
@@ -112,7 +112,7 @@ final class BackupRegistry {
     static final String[][] ROOTS = {
         {"files/rides", RIDES}, {"files/phone-rides", RIDES}, {"files/charge-recordings", CHARGES}, {"databases/telemetry-history.db", HISTORY},
         {"files/pending-owner-import.json", null, PENDING}, {"files/pending-owner-import.tmp", null, PENDING}, {"files/pending-export-", null, PENDING},
-        {"databases/telemetry-history.db-journal", null, PENDING}, {"files/missing-export", null, "Placeholder for an absent pending export"}, {"no_backup/connection-events", null, "Device diagnostics"}, {"no_backup/connection-events.tmp", null, "Device diagnostics"},
+        {"databases/telemetry-history.db-journal", null, PENDING}, {"files/missing-export", null, "Placeholder for an absent pending export"}, {"no_backup/connection-events", null, "Device diagnostics"}, {"no_backup/connection-events.tmp", null, "Device diagnostics"}, {"no_backup/command-events", null, "Device diagnostics"}, {"no_backup/command-events.tmp", null, "Device diagnostics"},
         // Guided setting test records stay on this phone (decision D4): never exported, cleared or replaced.
         {"no_backup/compat-tests", null, "Guided-test records of this installation"}, {"no_backup/compat-tests.tmp", null, "Guided-test records of this installation"},
         {"no_backup/app-data-transfer", null, PENDING}, {"no_backup/ride-transfer", null, PENDING},

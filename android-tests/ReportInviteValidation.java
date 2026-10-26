@@ -58,7 +58,7 @@ public final class ReportInviteValidation extends Instrumentation {
             // Intercept, never start, the email app; anything else starts normally.
             addMonitor(new ActivityMonitor() {
                 @Override public ActivityResult onStartActivity(Intent intent) {
-                    if (!Intent.ACTION_SENDTO.equals(intent.getAction()) && !Intent.ACTION_CHOOSER.equals(intent.getAction())) return null;
+                    if (!Intent.ACTION_SENDTO.equals(intent.getAction()) && !Intent.ACTION_SEND.equals(intent.getAction()) && !Intent.ACTION_CHOOSER.equals(intent.getAction())) return null;
                     emailed.set(intent); return new ActivityResult(0, null);
                 }
             });
@@ -166,6 +166,7 @@ public final class ReportInviteValidation extends Instrumentation {
             screenshot("drive-modes-confirm");
             require(field(activity.service().ble, "mutation") == null, "The drive-mode step sent a command");
             main(() -> find("drive-mode-confirm").performClick());
+            openEmail();
             long end = SystemClock.uptimeMillis() + 15000;
             while (emailed.get() == null && SystemClock.uptimeMillis() < end) SystemClock.sleep(100);
             Intent mail = emailed.get(); require(mail != null, "No email was opened after the drive modes were confirmed");
@@ -217,6 +218,7 @@ public final class ReportInviteValidation extends Instrumentation {
             tap("model-next"); settle();
             await(() -> view("drive-mode-skip") != null, "The drive-mode step did not open");
             main(() -> find("drive-mode-skip").performClick());
+            openEmail();
             end = SystemClock.uptimeMillis() + 15000;
             while (emailed.get() == null && SystemClock.uptimeMillis() < end) SystemClock.sleep(100);
             Intent skipped = emailed.get(); require(skipped != null, "Skipping the drive modes sent nothing");
@@ -289,6 +291,12 @@ public final class ReportInviteValidation extends Instrumentation {
         require(!showing(), "The connection-details offer came back after it was sent");
     }
 
+    /** The email sheet's Open email (its diagnostics file is ReportDiagnosticsValidation's); nothing opens before it. */
+    private void openEmail() {
+        await(() -> view("email-open") != null, "The email sheet did not open");
+        require(emailed.get() == null, "Email opened before Open email");
+        main(() -> find("email-open").performClick());
+    }
     private void open() {
         main(() -> invoke(activity, "showReportInvite", new Class<?>[]{String.class}, MODEL)); settle();
         require(showing() && "Check & share".contentEquals(button(AlertDialog.BUTTON_POSITIVE).getText()), "The offer did not open");

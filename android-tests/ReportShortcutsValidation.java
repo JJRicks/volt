@@ -29,7 +29,8 @@ import com.jjricks.volt.ScooterProfiles;
  * Fresh disposable emulator only. Two shortcuts to Volt's report address: More's Report an issue
  * drafts an email (intercepted in-process, never sent) with versions, phone and scooter model but no
  * fixture secrets; and the compatibility checker's Email to Volt, right under Run again once a check
- * has finished, asks which scooter this is and drafts the finished report to the alias.
+ * has finished, asks which scooter this is and drafts the finished report to the alias. Both go
+ * through the email sheet's Open email.
  */
 public final class ReportShortcutsValidation extends Instrumentation {
     private static final String MODEL = "39991", ADDRESS = "volt-reports@jjricks.com";
@@ -52,7 +53,7 @@ public final class ReportShortcutsValidation extends Instrumentation {
             // Intercept, never start, the email app and the share sheet.
             addMonitor(new ActivityMonitor() {
                 @Override public ActivityResult onStartActivity(Intent intent) {
-                    if (!Intent.ACTION_SENDTO.equals(intent.getAction()) && !Intent.ACTION_CHOOSER.equals(intent.getAction())) return null;
+                    if (!Intent.ACTION_SENDTO.equals(intent.getAction()) && !Intent.ACTION_SEND.equals(intent.getAction()) && !Intent.ACTION_CHOOSER.equals(intent.getAction())) return null;
                     started.set(intent); return new ActivityResult(0, null);
                 }
             });
@@ -89,6 +90,9 @@ public final class ReportShortcutsValidation extends Instrumentation {
         settle(); screenshot("more-report-issue");
         started.set(null);
         main(() -> root().findViewWithTag("more-report-issue").performClick()); settle();
+        // The email sheet comes first (ReportDiagnosticsValidation covers its diagnostics file); Open email drafts it.
+        require(started.get() == null && sheet("email-open") != null, "Report an issue did not open the email sheet first");
+        main(() -> sheet("email-open").performClick()); settle();
         Intent mail = started.get(); require(mail != null, "Report an issue opened nothing");
         if (Intent.ACTION_CHOOSER.equals(mail.getAction())) mail = mail.getParcelableExtra(Intent.EXTRA_INTENT);
         String[] to = mail.getStringArrayExtra(Intent.EXTRA_EMAIL);
@@ -134,6 +138,9 @@ public final class ReportShortcutsValidation extends Instrumentation {
         main(() -> sheet("model-next").performClick()); settle();
         await(() -> sheet("drive-mode-skip") != null, "The drive-mode step did not follow");
         main(() -> sheet("drive-mode-skip").performClick());
+        await(() -> sheet("email-open") != null, "The email sheet did not follow the drive modes");
+        require(started.get() == null, "Email opened before Open email");
+        main(() -> sheet("email-open").performClick());
         end = SystemClock.uptimeMillis() + 15000;
         while (started.get() == null && SystemClock.uptimeMillis() < end) SystemClock.sleep(100);
         Intent mail = started.get(); require(mail != null, "Email to Volt opened no email");

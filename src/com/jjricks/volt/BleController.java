@@ -52,6 +52,10 @@ public final class BleController {
     /** Guided setting tests: the device-local journal (never backed up) and the live test, if any. */
     private final TestJournal testJournal;private GuidedTest test;private boolean testParked;private final HashSet<String> testFirmwareConfirmed=new HashSet<>();
     private final ConnectionEventLog diagnostics;private long intentionalDisconnectSequence;private boolean recoverableConnectionLoss;
+    /** Control changes and their outcomes for report emails (CommandLog): typed, so it cannot hold an identity, a PIN or packet bytes. */
+    private final CommandLog commands;private boolean commandSession,commandFirmware;
+    /** Status values already flagged this session (once per control), and the last frame checked. */
+    private final HashSet<String> flaggedStatus=new HashSet<>();private byte[] statusChecked;private long statusCheckedMs;
     private Listener listener;private BluetoothGatt gatt;private BluetoothGattCharacteristic writer;private BluetoothLeScanner scanner;private ScooterProfiles.Profile profile;
     private State state=State.DISCONNECTED;private String message="Not connected",serial="";private boolean invalidFrameNoted,checksumNoted;private boolean authenticated,wanted,scanning,writing,mtuRequested,discovered,subscribing,subscribed,challengePending,visible,recording;
     private int generation,writeOperation,authRounds,retries,pollTicks,mtu=23;private long statusMs,lastFrameMs,motionMs,warningMs;private int speedRaw=-1,driving=-1,warning;
@@ -59,8 +63,8 @@ public final class BleController {
     /** Handshake responses stay private until the transport's hardware belongs to this profile. */
     private Protocol.Frame pendingStatusFrame,pendingSerialFrame;private long pendingStatusMs;
     private long savedProfileMs,lastBatteryPollMs,scanSequence,backgroundDeadlineMs;private ScanCallback scanCallback;private Runnable scanTimeout;
-    private static final class Mutation {String key;int cmd,target;long token;boolean ack,sent;Long time;byte[] bytes;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
-    public BleController(Context c,ScooterProfiles p){context=c.getApplicationContext();profiles=p;diagnostics=ConnectionEventLog.open(new File(context.getNoBackupFilesDir(),"connection-events"));testJournal=new TestJournal(TestJournal.file(new File(context.getNoBackupFilesDir(),"compat-tests")));BluetoothManager m=context.getSystemService(BluetoothManager.class);adapter=m==null?null:m.getAdapter();IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);if(Build.VERSION.SDK_INT>=33)context.registerReceiver(bluetoothReceiver,filter,Context.RECEIVER_EXPORTED);else context.registerReceiver(bluetoothReceiver,filter);}
+    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
+    public BleController(Context c,ScooterProfiles p){context=c.getApplicationContext();profiles=p;diagnostics=ConnectionEventLog.open(new File(context.getNoBackupFilesDir(),"connection-events"));commands=CommandLog.open(new File(context.getNoBackupFilesDir(),"command-events"));testJournal=new TestJournal(TestJournal.file(new File(context.getNoBackupFilesDir(),"compat-tests")));BluetoothManager m=context.getSystemService(BluetoothManager.class);adapter=m==null?null:m.getAdapter();IntentFilter filter=new IntentFilter(BluetoothDevice.ACTION_BOND_STATE_CHANGED);filter.addAction(BluetoothAdapter.ACTION_STATE_CHANGED);if(Build.VERSION.SDK_INT>=33)context.registerReceiver(bluetoothReceiver,filter,Context.RECEIVER_EXPORTED);else context.registerReceiver(bluetoothReceiver,filter);}
     public void setListener(Listener l){listener=l;}
     /** Runtime only. The transition guard also prevents listeners from persisting display samples. */
     public boolean simulating(){return simulationChanging||simulation!=null;}
@@ -71,7 +75,7 @@ public final class BleController {
         // callbacks also lose their generation/GATT identity when close() runs.
         wanted=false;recoverableConnectionLoss=false;handler.removeCallbacksAndMessages(null);clearMutation();
         close(State.DISCONNECTED);clearDiscovery();telemetry.clear();profile=null;scanner=null;discoveries.clear();advertised.clear();commandResults.clear();experimentBaselines.clear();
-        simulation=enabled?new ScooterSimulation():null;if(simulation!=null)simulation.setModel(simulationModel);
+        simulation=enabled?new ScooterSimulation():null;if(simulation!=null)simulation.setModel(simulationModel);endCommandSession();
         state=enabled?State.READY:State.DISCONNECTED;
         if(enabled)updateSimulation();
         simulationChanging=false;
@@ -100,7 +104,7 @@ public final class BleController {
         if(simulation!=null&&!Objects.equals(DeviceDescriptor.simulated(simulation.model(),0,next).region,DeviceDescriptor.simulated(simulation.model(),0,simulationRegion).region)){if(discovering)stopDiscovery();clearDiscovery();}
         simulationRegion=next;tickSimulation();changed();
     }
-    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
+    public void setSimulationModel(String pid){String next=pid==null?"":pid;if(simulation!=null&&!next.equals(simulationModel)){if(discovering)stopDiscovery();clearDiscovery();experimentBaselines.clear();}if(!next.equals(simulationModel))endCommandSession();simulationModel=next;if(simulation!=null){simulation.setModel(simulationModel);tickSimulation();}changed();}
     public void setSimulationCharging(boolean charging){if(simulation==null)return;simulation.setCharging(charging);tickSimulation();changed();}
     private void connectSimulation(){if(simulation==null)return;state=State.READY;updateSimulation();notice("Simulated connection");}
     /** Simulation changes need no caption or toast: the persistent banner already says the data is simulated. */
@@ -117,6 +121,67 @@ public final class BleController {
     public List<ConnectionEventLog.Record> diagnosticEvents(){return diagnostics.snapshot();}
     public boolean diagnosticEventsLoaded(){return diagnostics.loaded();}
     public boolean diagnosticStorageHealthy(){return diagnostics.storageHealthy();}
+    List<CommandLog.Record> commandEvents(){return commands.snapshot();}
+    boolean commandEventsLoaded(){return commands.loaded();}
+    boolean commandStorageHealthy(){return commands.storageHealthy();}
+    /**
+     * Command log: a session header before this connection's first event (once more if its firmware arrives later),
+     * then the event. Values pass CommandLog.loggable, so the PIN, times and the clock never carry one.
+     */
+    private void logCommand(CommandLog.Kind kind,MutationGate.Origin origin,String key,int value,CommandLog.Outcome outcome,int code,CapabilityResolver.Reason reason,Integer read,long elapsed){
+        try{noteSession();commands.record(new CommandLog.Command(System.currentTimeMillis(),kind,origin,key,CommandLog.loggable(key,value),outcome,code,reason,
+                read==null?null:CommandLog.loggable(key,read),elapsed));}
+        catch(IllegalArgumentException unloggable){/* a key outside the catalogue is never logged */}
+    }
+    private void logCommand(MutationGate.Request r,CommandLog.Outcome outcome,int code,CapabilityResolver.Reason reason,Integer read,long elapsed){
+        logCommand(commandKind(r),r.origin,r.feature,r.value,outcome,code,reason,read,elapsed);
+    }
+    /** The pending mutation's own step; its value is the target it was admitted with. */
+    private void logMutation(Mutation m,CommandLog.Outcome outcome,int code,Integer read){
+        if(m.request==null)return;
+        logCommand(commandKind(m.request),m.request.origin,m.key,m.target,outcome,code,null,read,m.sent?Math.max(0,now()-m.sentMs):-1);
+    }
+    private static CommandLog.Kind commandKind(MutationGate.Request r){
+        return r.origin==MutationGate.Origin.GUIDED_TEST?CommandLog.Kind.TRY:r.origin==MutationGate.Origin.GUIDED_RESTORE?CommandLog.Kind.RESTORE
+                :r.kind==MutationGate.Kind.PIN_READ?CommandLog.Kind.READ:CommandLog.Kind.SET;
+    }
+    private void noteSession(){
+        DeviceDescriptor d=descriptor();boolean fw=d.firmwareThisSession;
+        if(commandSession&&(commandFirmware||!fw))return;
+        String model=!d.rulePid().isEmpty()?d.rulePid():d.family(),version=AppVersion.name(context);
+        try{commands.record(new CommandLog.Session(System.currentTimeMillis(),version.matches(CommandLog.APP_VERSION)?version:"unknown",model.matches("[0-9]{1,5}")?model:"",
+                ModelRegistry.resolve(d).layer,firmware(fw?d.firmware.meter:null),firmware(fw?d.firmware.controller:null),simulating()));}
+        catch(IllegalArgumentException unloggable){/* every field is sanitized above */}
+        commandSession=true;commandFirmware=fw;
+    }
+    private static String firmware(String v){return v!=null&&v.matches("[0-9A-Za-z.]{1,16}")?v:"";}
+    /** A new connection or simulator model starts a new command session. */
+    private void endCommandSession(){commandSession=commandFirmware=false;flaggedStatus.clear();statusChecked=null;statusCheckedMs=0;}
+    /** A guided write's journalled outcome; the wire's ACK and rejection and Volt's refusals are logged where they happen. */
+    private void testOutcome(GuidedTest t,GuidedTest.Outcome o,int code,boolean inFlight,boolean restoring){
+        long elapsed=mutation!=null&&mutation.sent&&guided(mutation)?Math.max(0,now()-mutation.sentMs):-1;
+        try{CommandLog.Command c=CommandLog.fromTest(System.currentTimeMillis(),t,o,code,inFlight,restoring,elapsed);if(c!=null){noteSession();commands.record(c);}}
+        catch(IllegalArgumentException unloggable){/* a key outside the catalogue is never logged */}
+    }
+    /**
+     * Flags, once per control per session, a status value outside the model's domain for that control (a CHOICE such as
+     * maximum_speed reading 0). Cheap: only a changed frame, at most every ten seconds; never the PIN or a time.
+     */
+    private void checkStatus(Protocol.Frame f){
+        long now=now();if(statusChecked!=null&&(now-statusCheckedMs<10000||Arrays.equals(statusChecked,f.data)))return;
+        statusChecked=f.data.clone();statusCheckedMs=now;
+        DeviceDescriptor d=descriptor();ModelRegistry.Resolution r=ModelRegistry.resolve(d);StatusFields s=status();
+        for(List<ScooterCommands.Feature> group:Arrays.asList(ScooterCommands.catalog(),ScooterCommands.oemOnly()))for(ScooterCommands.Feature feature:group){
+            if(feature.sensitive||feature.type==ScooterCommands.Type.TIME||feature.type==ScooterCommands.Type.PIN||flaggedStatus.contains(feature.key))continue;
+            try{
+                FeatureVariant v=ModelRegistry.variant(feature.key,d,r,s);if(v==null)v=ModelRegistry.experimentalRule(feature.key,d,r,s).variant;
+                Integer value=v==null||v.decode==FeatureVariant.Decode.BE32?null:v.read(s);
+                if(value==null||v.allows(value)||value==v.sentinel)continue;
+                flaggedStatus.add(feature.key);
+                logCommand(CommandLog.Kind.READ,null,feature.key,-1,CommandLog.Outcome.UNEXPECTED_VALUE,-1,null,value,-1);
+            }catch(RuntimeException unreadable){/* a field this model does not decode is not a finding */}
+        }
+    }
     public void recordDiagnostic(ConnectionEventLog.Reason reason,int code){recordDiagnostic(reason,code,profile==null?null:profile.id);}
     /** journalProfile: the scooter this event belongs to (a connect attempt names the scooter before it becomes current). */
     private void recordDiagnostic(ConnectionEventLog.Reason reason,int code,String journalProfile){
@@ -292,7 +357,10 @@ public final class BleController {
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
         ++generation;++writeOperation;stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
-        queue.clear();discoveryQueue.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null)result(mutation.key,mutation.sent?"Cancelled after disconnection":"Cancelled before sending");clearMutation();pinState=null;pinStateMs=pinReadToken=0;pinReadPending=false;authenticated=writing=mtuRequested=discovered=subscribing=subscribed=challengePending=false;authRounds=0;statusFrame=pendingStatusFrame=pendingSerialFrame=null;pendingStatusMs=0;sessionFirmware=null;bondCheckedMs=0;statusMs=motionMs=warningMs=lastFrameMs=0;serial="";speedRaw=driving=-1;warning=0;state=next;changed();
+        queue.clear();discoveryQueue.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.sent?"Cancelled after disconnection":"Cancelled before sending");
+            // A guided write's interruption is its test's journalled outcome (testOutcome).
+            if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
+        clearMutation();endCommandSession();pinState=null;pinStateMs=pinReadToken=0;pinReadPending=false;authenticated=writing=mtuRequested=discovered=subscribing=subscribed=challengePending=false;authRounds=0;statusFrame=pendingStatusFrame=pendingSerialFrame=null;pendingStatusMs=0;sessionFirmware=null;bondCheckedMs=0;statusMs=motionMs=warningMs=lastFrameMs=0;serial="";speedRaw=driving=-1;warning=0;state=next;changed();
     }
     private void failed(String text,boolean retry,ConnectionEventLog.Reason reason,int code){
         if(simulating())return;
@@ -348,8 +416,8 @@ public final class BleController {
         if(owner!=null&&(!discovering||owner!=discovery||!owner.transmitted(cmd,now()))){pump();return;}
         if(frame.length==7&&readPolicy!=null)readPolicy.requested(cmd,now());
         if(frame.length==7&&cmd==0x70){outstandingStatusReads++;if(test!=null&&!test.terminal())test.onReadRequested(cmd,now());}
-        writing=true;if(mutation!=null&&Arrays.equals(frame,mutation.bytes)){mutation.sent=true;long token=mutation.token;int s=generation;handler.postDelayed(()->mutationTimeout(s,token),6500);}
-        if(cmd==0x7a){pinReadPending=true;pinReadToken=mutation!=null&&mutation.ack?mutation.token:0;int s=generation;long request=++pinReadSequence;handler.postDelayed(()->{if(s==generation&&request==pinReadSequence&&pinReadPending){pinReadPending=false;notice("PIN status did not arrive. Tap Read PIN status to try again.");}},4500);}
+        writing=true;if(mutation!=null&&Arrays.equals(frame,mutation.bytes)){mutation.sent=true;mutation.sentMs=now();long token=mutation.token;int s=generation;handler.postDelayed(()->mutationTimeout(s,token),6500);}
+        if(cmd==0x7a){pinReadPending=true;pinReadToken=mutation!=null&&mutation.ack?mutation.token:0;int s=generation;long request=++pinReadSequence;handler.postDelayed(()->{if(s==generation&&request==pinReadSequence&&pinReadPending){pinReadPending=false;logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.TIMEOUT,-1,null,null,4500);notice("PIN status did not arrive. Tap Read PIN status to try again.");}},4500);}
         if(!ScooterCommands.sensitiveCommand(cmd))event(String.format(Locale.ROOT,"Send 0x%02X (%d bytes)",cmd,frame.length));
         int result;if(Build.VERSION.SDK_INT>=33)result=gatt.writeCharacteristic(writer,frame,type);else{writer.setWriteType(type);writer.setValue(frame);result=gatt.writeCharacteristic(writer)?0:-1;}
         if(result!=0){writing=false;failed("Send failed",true,ConnectionEventLog.Reason.WRITE_FAILED,result);return;}int op=++writeOperation,session=generation;handler.postDelayed(()->{if(session==generation&&writing&&op==writeOperation)failed("Send failed",true,ConnectionEventLog.Reason.WRITE_TIMEOUT,-1);},3500);
@@ -375,7 +443,7 @@ public final class BleController {
         if(d.available()&&unchanged)return true;
         if(guided(pending)&&test!=null&&!test.terminal())test.onWriteRefused(now());
         clearMutation();result(pending.key,"Cancelled before sending");
-        if(!d.available())refused(pending.request,d);else notice("Setting changed while waiting. Try again.");
+        if(!d.available())refused(pending.request,d);else{logMutation(pending,CommandLog.Outcome.CANCELLED,-1,null);notice("Setting changed while waiting. Try again.");}
         if(guided(pending))stepTest();
         return false;
     }
@@ -403,19 +471,20 @@ public final class BleController {
                 // connected() also covers the owner handshake. Neither telemetry nor public
                 // status/features/motion may expose this account's other scooter during it.
                 if(state!=State.READY){changed();continue;}
-                if(f.cmd!=0x7a&&f.cmd!=0x63)telemetry.accept(f.cmd,f.data,now());if(f.cmd==0x73)sessionFirmware=null;
-                if(statusRead(f))confirmMutation(f);
+                if(f.cmd!=0x7a&&f.cmd!=0x63)telemetry.accept(f.cmd,f.data,now());if(f.cmd==0x73){sessionFirmware=null;if(commandSession&&!commandFirmware)noteSession();}
+                if(statusRead(f)){confirmMutation(f);checkStatus(f);}
                 if(f.cmd==0x70&&test!=null&&!test.terminal()){boolean sane=statusRead(f);test.onStatus(sane?StatusFields.of(f,now()):StatusFields.NONE,now());stepTest();}
                 if(f.cmd==0x90&&f.error()==0&&f.data.length>=9){warning=f.data[1]&255;warningMs=now();}
                 if((f.cmd==0x91||f.cmd==0x92)&&f.error()==0&&f.data.length>=(f.cmd==0x91?4:5)){driving=f.data[2]&255;speedRaw=(f.data[3]&255)*(f.cmd==0x91?10:1)+(f.cmd==0x92?(f.data[4]&255)<<8:0);motionMs=now();}
-                if(f.cmd==0x7a&&profile.role==0){pinReadPending=false;try{pinState=ScooterCommands.parsePin(f,true);pinStateMs=now();}catch(Exception e){pinState=null;pinStateMs=0;notice("PIN state is unavailable on this firmware.");}
+                if(f.cmd==0x7a&&profile.role==0){pinReadPending=false;try{pinState=ScooterCommands.parsePin(f,true);pinStateMs=now();logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.ACK,-1,null,null,-1);}
+                    catch(Exception e){pinState=null;pinStateMs=0;logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.REJECTED,f.error()&255,null,null,-1);notice("PIN state is unavailable on this firmware.");}
                     if(mutation!=null&&mutation.key.equals("pin")&&mutation.sent&&mutation.ack&&pinReadToken==mutation.token&&ScooterCommands.pinReadbackMatches(f,mutation.target==1,mutation.desiredPin,true)){
-                        finishMutation("PIN settings confirmed.");
+                        logMutation(mutation,CommandLog.Outcome.READBACK_SAME,-1,null);finishMutation("PIN settings confirmed.");
                     }
                 }
                 boolean guidedReply=mutation!=null&&mutation.sent&&f.cmd==mutation.cmd&&guided(mutation)&&test!=null;
                 if(guidedReply)test.onAck(f.cmd,f.error(),now());
-                if(mutation!=null&&mutation.sent&&f.cmd==mutation.cmd){if(f.error()!=0){String key=mutation.key;clearMutation();result(key,"Rejected ("+f.error()+")");notice("Change rejected","Change rejected ("+f.error()+")");}else if(mutation.key.equals("clock_sync")){finishMutation("Clock sent (unverified)","Accepted; no clock readback available");}else{mutation.ack=true;int s=generation;long token=mutation.token;String key=mutation.key;handler.postDelayed(()->{if(s==generation&&mutation!=null&&mutation.token==token)for(int cmd:ScooterCommands.followUpReads(key))send(Protocol.frame(cmd,null));},250);}}
+                if(mutation!=null&&mutation.sent&&f.cmd==mutation.cmd){logMutation(mutation,CommandLog.reply(f.error()),f.error()!=0?f.error()&255:-1,null);if(f.error()!=0){String key=mutation.key;clearMutation();result(key,"Rejected ("+f.error()+")");notice("Change rejected","Change rejected ("+f.error()+")");}else if(mutation.key.equals("clock_sync")){finishMutation("Clock sent (unverified)","Accepted; no clock readback available");}else{mutation.ack=true;int s=generation;long token=mutation.token;String key=mutation.key;handler.postDelayed(()->{if(s==generation&&mutation!=null&&mutation.token==token)for(int cmd:ScooterCommands.followUpReads(key))send(Protocol.frame(cmd,null));},250);}}
                 if(guidedReply)stepTest();
             }
             changed();
@@ -468,6 +537,7 @@ public final class BleController {
     private boolean gate(MutationGate.Request r){CapabilityResolver.Decision d=check(r);if(d.available())return true;refused(r,d);return false;}
     /** Refusal notice; the UT5 MAX keeps its existing wording. */
     private void refused(MutationGate.Request r,CapabilityResolver.Decision d){
+        logCommand(r,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);
         boolean ut5=d.layer==ModelRegistry.Layer.UT5_MAX;
         if(r.kind==MutationGate.Kind.SET&&r.feature.equals("lock")&&r.value==0&&(d.reason==CapabilityResolver.Reason.NOT_CONNECTED||d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE)){notice("Wait for a fresh scooter connection.");return;}
         switch(d.reason){
@@ -498,8 +568,9 @@ public final class BleController {
         MutationGate.Request request=new MutationGate.Request(key.equals("proximity_key")?MutationGate.Kind.PROXIMITY:MutationGate.Kind.SET,key,value,origin);
         if(simulating()){
             if(simulation==null||!ready()){notice("Connect the simulated scooter first.");return completed(completion,false);}
-            CapabilityResolver.Decision d=check(request);if(!d.available()){notice(d.reasonText());return completed(completion,false);}
-            try{Integer before=featureValue(key);simulation.set(key,value,d.variant);if(origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();quiet();return completed(completion,true);}
+            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return completed(completion,false);}
+            try{Integer before=featureValue(key);simulation.set(key,value,d.variant);if(origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();
+                logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,featureValue(key),0);quiet();return completed(completion,true);}
             catch(IllegalArgumentException invalid){notice(invalid.getMessage());return completed(completion,false);}
         }
         CapabilityResolver.Decision d=check(request);boolean proximity=request.kind==MutationGate.Kind.PROXIMITY;
@@ -518,9 +589,9 @@ public final class BleController {
     public void setChargeStart(long seconds,int offset,Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CHARGE_START,"charge_start",0,MutationGate.Origin.USER);
         if(simulating()){
             if(simulation==null||!ready()){notice("Connect the simulated scooter first.");completed(completion,false);return;}
-            CapabilityResolver.Decision d=check(request);if(!d.available()){notice(d.reasonText());completed(completion,false);return;}
+            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());completed(completion,false);return;}
             if(!ModelRegistry.chargeStartAllowed(d.layer,seconds,offset,System.currentTimeMillis()/1000)){notice(WHOLE_HOUR);completed(completion,false);return;}
-            try{simulation.setChargeStart(seconds,offset);updateSimulation();quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(invalid.getMessage());completed(completion,false);}return;
+            try{simulation.setChargeStart(seconds,offset);updateSimulation();logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,null,0);quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(invalid.getMessage());completed(completion,false);}return;
         }
         CapabilityResolver.Decision d=check(request);if(!d.available()){refused(request,d);completed(completion,false);return;}
         // Off the UT5 MAX, a whole local hour within 48 hours (the official app's picker); the UT5 MAX keeps any minute.
@@ -529,7 +600,7 @@ public final class BleController {
     static final String WHOLE_HOUR="Choose a whole hour within 48 hours";
     public void syncClock(){syncClock(null);}
     public void syncClock(Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CLOCK,"clock_sync",0,MutationGate.Origin.USER);
-        if(simulating()){if(!ready()){notice("Connect the simulated scooter first.");completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){notice(d.reasonText());completed(completion,false);return;}quiet();completed(completion,true);return;}
+        if(simulating()){if(!ready()){notice("Connect the simulated scooter first.");completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());completed(completion,false);return;}logCommand(request,CommandLog.Outcome.ACK,-1,null,null,0);quiet();completed(completion,true);return;}
         if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();begin(request,null,0,ScooterCommands.setClock(wall/1000,TimeZone.getDefault().getOffset(wall)/1000),null,completion);}
     public void readPin(){if(simulating()){simulationUnavailable("Handlebar PIN access");return;}
         CapabilityResolver.Decision d=check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER));
@@ -645,12 +716,12 @@ public final class BleController {
         if(!testJournal.healthy()){notice("Test records are unavailable");return false;}
         if(!unresolvedTests().isEmpty()||!testJournal.canStart()){notice("Review the unfinished try first");return false;}
         CapabilityResolver.Decision d=CapabilityResolver.admitTry(key,target,descriptor(),status(),runtime(key));
-        if(!d.available()){notice(d.reasonText());return false;}
+        if(!d.available()){logCommand(CommandLog.Kind.TRY,MutationGate.Origin.GUIDED_TEST,key,target,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return false;}
         Integer current=d.current();
         if(current==null){notice("Not available now");return false;}
         if(current==target){notice(ScooterCommands.find(key).label+" is already set.");return false;}
         String kind=d.experimental()?TestJournal.EXPERIMENTAL:TestJournal.VERIFY;
-        try{test=GuidedTest.trial(testJournal,p.id,descriptor(),d.variant,kind,target,current,now(),System.currentTimeMillis(),new java.security.SecureRandom());test.inheritOutstandingReads(outstandingStatusReads);}
+        try{test=GuidedTest.trial(testJournal,p.id,descriptor(),d.variant,kind,target,current,now(),System.currentTimeMillis(),new java.security.SecureRandom());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
         catch(IllegalArgumentException e){notice(e.getMessage());return false;}
         event("Try prepared");message="Reading "+ScooterCommands.find(key).label.toLowerCase(Locale.ROOT)+"…";stepTest();return true;
     }
@@ -662,8 +733,8 @@ public final class BleController {
         TestJournal.Entry e=testJournal.latestTry(p.id,key);
         if(e==null||!e.resolved||!"kept".equals(e.resolution)){notice("Nothing to set back");return false;}
         CapabilityResolver.Decision d=CapabilityResolver.admitTry(key,e.baseline,descriptor(),status(),runtime(key));
-        if(!d.available()){notice(d.reasonText());return false;}
-        try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);}
+        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,key,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return false;}
+        try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
         catch(IOException|IllegalArgumentException failed){notice("Couldn't set it back. Nothing was changed.");return false;}
         event("Set back approved");stepTest();return true;
     }
@@ -705,8 +776,8 @@ public final class BleController {
         if(e==null||r==null||(r.state!=GuidedTest.ReviewState.RESTORE_NEEDED&&r.state!=GuidedTest.ReviewState.CHANGED_OUTSIDE)||!r.restorable){notice(r==null?"Test not found":r.text);return;}
         CapabilityResolver.Decision d=e.isTry()?CapabilityResolver.admitTry(e.feature,e.baseline,descriptor(),status(),runtime(e.feature))
             :CapabilityResolver.admitTest(e.feature,e.baseline,descriptor(),status(),runtime(e.feature));
-        if(!d.available()){notice(d.reasonText());return;}
-        try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);}
+        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,e.feature,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return;}
+        try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
         catch(IOException|IllegalArgumentException failed){notice("Couldn't start the restore. Nothing was changed.");return;}
         event("Guided restore approved");stepTest();
     }
@@ -772,7 +843,11 @@ public final class BleController {
         message=key.equals("clock_sync")?"Setting the scooter’s clock from this phone…":"Applying "+ScooterCommands.find(key).label.toLowerCase(Locale.ROOT)+"…";changed();send(bytes);
         return mutation==pending;
     }
-    private void mutationTimeout(int session,long token){if(simulating())return;if(session!=generation||mutation==null||mutation.token!=token)return;if(guided(mutation)&&test!=null)test.onMutationTimeout(mutation.ack,now());String key=mutation.key;boolean missing=key.equals("clock_sync")||statusFrame==null||ScooterCommands.find(key).payloadOffset>=statusFrame.data.length-1;String text=mutation.ack&&missing?"Accepted; state not exposed by firmware":"Change not confirmed";result(key,text);clearMutation();failed("Change not confirmed",true,ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT,-1);}
+    private void mutationTimeout(int session,long token){if(simulating())return;if(session!=generation||mutation==null||mutation.token!=token)return;if(guided(mutation)&&test!=null)test.onMutationTimeout(mutation.ack,now());String key=mutation.key;boolean missing=key.equals("clock_sync")||statusFrame==null||ScooterCommands.find(key).payloadOffset>=statusFrame.data.length-1;String text=mutation.ack&&missing?"Accepted; state not exposed by firmware":"Change not confirmed";result(key,text);
+        // A guided write's timeout is its test's journalled outcome (testOutcome).
+        if(!guided(mutation)){CommandLog.Outcome outcome=CommandLog.expired(mutation.ack,!missing,mutation.lastRead,mutation.target);
+            logMutation(mutation,outcome,-1,outcome==CommandLog.Outcome.READBACK_OTHER?mutation.lastRead:null);}
+        clearMutation();failed("Change not confirmed",true,ConnectionEventLog.Reason.COMMAND_CONFIRMATION_TIMEOUT,-1);}
     /**
      * A settings read to bind on: the lock byte at payload offset 2 is present and plausible. The UT5 MAX
      * keeps its full 14-byte minimum; other models may send less (the N65i sends ten bytes), and every
@@ -809,7 +884,7 @@ public final class BleController {
         String pid=pendingAdvertised!=null&&gatt!=null&&gatt.getDevice().getAddress().equals(pendingAdvertisedMac)?pendingAdvertised.pid:p==null?"":p.advertisedPid;
         return DeviceDescriptor.of(s,pid,1,null,false,DeviceDescriptor.Transport.STANDARD,p==null?0:p.role);
     }
-    private void confirmMutation(Protocol.Frame f){if(simulating())return;if(mutation==null||!mutation.ack||mutation.key.equals("clock_sync")||guided(mutation))return;ScooterCommands.Feature feature=ScooterCommands.find(mutation.key);if(mutation.time!=null){Long actual=ScooterCommands.timeReadback(f);if(actual!=null&&actual.equals(mutation.time))finishMutation("Charging start time confirmed.");}else{Integer value=mutation.variant!=null&&mutation.variant.decode!=FeatureVariant.Decode.UT5_FEATURE?mutation.variant.read(StatusFields.of(f,now())):feature.readback(f);if(value!=null&&value==mutation.target){if(feature.key.equals("headlight")||feature.key.equals("auto_sensor"))finishMutation(feature.label+" setting confirmed.","Setting confirmed by readback; light output not measured");else finishMutation(feature.label+" confirmed.");}}}
+    private void confirmMutation(Protocol.Frame f){if(simulating())return;if(mutation==null||!mutation.ack||mutation.key.equals("clock_sync")||guided(mutation))return;ScooterCommands.Feature feature=ScooterCommands.find(mutation.key);if(mutation.time!=null){Long actual=ScooterCommands.timeReadback(f);if(actual!=null&&actual.equals(mutation.time)){logMutation(mutation,CommandLog.Outcome.READBACK_SAME,-1,null);finishMutation("Charging start time confirmed.");}}else{Integer value=mutation.variant!=null&&mutation.variant.decode!=FeatureVariant.Decode.UT5_FEATURE?mutation.variant.read(StatusFields.of(f,now())):feature.readback(f);if(value!=null)mutation.lastRead=value;if(value!=null&&value==mutation.target){logMutation(mutation,CommandLog.Outcome.READBACK_SAME,-1,value);if(feature.key.equals("headlight")||feature.key.equals("auto_sensor"))finishMutation(feature.label+" setting confirmed.","Setting confirmed by readback; light output not measured");else finishMutation(feature.label+" confirmed.");}}}
     private void finishMutation(String text){finishMutation(text,"Confirmed");}
     private void finishMutation(String text,String evidence){String key=mutation.key;Consumer<Boolean> completion=mutation.completion;mutation.completion=null;result(key,evidence);clearMutation();notice(text);completed(completion,true);}
     private void clearMutation(){Consumer<Boolean> completion=mutation==null?null:mutation.completion;if(mutation!=null){for(Iterator<byte[]> i=queue.iterator();i.hasNext();)if(i.next()==mutation.bytes)i.remove();if(mutation.desiredPin!=null){Arrays.fill(mutation.desiredPin,'\u0000');Arrays.fill(mutation.bytes,(byte)0);}}mutation=null;completed(completion,false);}
