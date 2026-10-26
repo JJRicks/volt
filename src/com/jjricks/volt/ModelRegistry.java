@@ -35,7 +35,7 @@ import java.util.Set;
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=14;
+    public static final int VERSION=15;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -95,7 +95,10 @@ public final class ModelRegistry {
      * changed, read back, observed and restored on a parked scooter (FEATURES.txt). The N65i (22131; meter
      * 0.0.0.5, controller 0.0.1.1) passed guided tests and a confirmed lock in October 2026. The ST3 Pro is
      * named from the MIT protocol reference Volt credits (23452, German market), and a US owner's compatibility
-     * report (meter 2.0.4.6, October 2026) confirmed the ID; nothing on it is verified. The
+     * report (meter 2.0.4.6, October 2026) confirmed the ID. A French owner's report (EU, meter 2.0.4.6, controller
+     * 0.0.2.0, October 2026) verified dashboard units, turn signal sound and range estimate (changed, read back,
+     * seen and restored) and traction control (three tries, read back and restored, seen twice), which the
+     * official app doesn't map there. The
      * GT5 Max (25462, EU; meter 1.0.0.4) is named from an owner's compatibility report, its model confirmed by the
      * maintainer in October 2026. Its owner reported using cruise control (which the official app hides there by
      * region) in October 2026, and the maintainer chose to mark it verified; nothing else on it is.
@@ -107,7 +110,7 @@ public final class ModelRegistry {
     private static final Map<String,Known> KNOWN=new LinkedHashMap<>();
     static{
         KNOWN.put("22131",new Known("N65i","n65i","lock","display_units","headlight","auto_sensor"));
-        KNOWN.put("23452",new Known("ST3 Pro","st3pro"));
+        KNOWN.put("23452",new Known("ST3 Pro","st3pro","display_units","turn_sound","range_algorithm","traction_control"));
         KNOWN.put("25462",new Known("GT5 Max","gt5max","cruise_control"));
         KNOWN.put("25852",new Known("UT5 Ultra X","ut5ultrax"));
         // No photo yet: Volt names it and keeps its owners from being asked again.
@@ -134,6 +137,16 @@ public final class ModelRegistry {
         if(t==null||!t.features.contains(feature)||rule.support!=CapabilityResolver.Support.KNOWN_ENCODING
                 ||rule.evidence!=CapabilityResolver.Evidence.OEM_MAPPED)return rule;
         return new Rule(rule.support,rule.reason,CapabilityResolver.Evidence.VOLT_VERIFIED,rule.oemNote,rule.preconditions,rule.variant);
+    }
+    /**
+     * A control the official app doesn't map for this model (null oemRule, never an exclusion) that owners verified on
+     * this exact model, with its known encoding: tries changed it, read it back and restored it, and the owner saw it.
+     */
+    private static Rule verifiedUnmapped(Known t,String feature){
+        // Only controls whose encoding Volt knows from the official app's other models; the ST3 Pro's traction control matches it.
+        FeatureVariant v=t==null||!t.features.contains(feature)?null:feature.equals("traction_control")?OEM_TCS:null;
+        return v==null?null:new Rule(CapabilityResolver.Support.KNOWN_ENCODING,CapabilityResolver.Reason.NONE,CapabilityResolver.Evidence.VOLT_VERIFIED,
+            "Not in the official app's map for this model; owners' tests confirmed it",preconditions(v),v);
     }
     /** UT5 MAX fields changed, read back and restored on the owner's parked scooter (FEATURES.txt). */
     private static final Set<String> VERIFIED=new HashSet<>(java.util.Arrays.asList("lock","cruise_control","energy_recovery","traction_control",
@@ -388,7 +401,10 @@ public final class ModelRegistry {
                 if(feature.equals("lock"))return new Rule(CapabilityResolver.Support.KNOWN_ENCODING,CapabilityResolver.Reason.NONE,
                     t!=null&&t.features.contains("lock")?CapabilityResolver.Evidence.VOLT_VERIFIED:CapabilityResolver.Evidence.SHARED_CONTRACT,
                     "",preconditions(SHARED_LOCK),SHARED_LOCK);
-                if(r.layer==Layer.OEM_GROUP){Rule oem=oemRule(feature,d,s);if(oem!=null)return verifiedOn(t,feature,oem);}
+                if(r.layer==Layer.OEM_GROUP){
+                    Rule oem=oemRule(feature,d,s);if(oem!=null)return verifiedOn(t,feature,oem);
+                    Rule tested=verifiedUnmapped(t,feature);if(tested!=null)return tested;
+                }
                 CapabilityResolver.Reason reason=r.conflict?CapabilityResolver.Reason.IDENTITY_CONFLICT
                     :d==null||d.pidSource()!=DeviceDescriptor.PidSource.ADVERTISED?CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED:CapabilityResolver.Reason.MODEL_NOT_MAPPED;
                 return refused(CapabilityResolver.Support.UNKNOWN_MAPPING,reason);

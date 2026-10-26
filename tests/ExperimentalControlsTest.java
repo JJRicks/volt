@@ -40,8 +40,8 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         String[] ut5Lab={"acceleration","speed_limit","dual_drive","drive_speed_limit","long_range_mode","overspeed_control","prompt_tone"};
         expect("UT5 MAX",ut5(),ut5Lab);
         expect("N65i 22131",model("22131"),"start_speed","traction_control","hill_start_assist","parking_assist","hill_descent_control","turn_sound","prompt_tone","speed_limit");
-        // Traction control is unmapped on the ST3 Pro (a partial OEM trace), so it is tried too.
-        expect("ST3 Pro 23452",model("23452"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
+        // Traction control is unmapped on the ST3 Pro (a partial OEM trace), but its owners verified it, so it is an ordinary control there.
+        expect("ST3 Pro 23452",model("23452"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
         expect("Group S 24431",model("24431"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
         // GT5 Max (25462, group 2545): the official app offers kick-start speed there, so Standing start stays an ordinary Scooter row.
         expect("GT5 Max 25462",model("25462"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
@@ -244,7 +244,7 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
     private static void helpVerify() {
         check(ModelRegistry.verifiable(ut5()).isEmpty(),"UT5 MAX: every guided-test control is verified");
         check(ModelRegistry.verifiable(model("22131")).equals(Arrays.asList("range_algorithm")),"N65i: only range estimate is unverified "+ModelRegistry.verifiable(model("22131")));
-        check(ModelRegistry.verifiable(model("23452")).equals(Arrays.asList(ModelRegistry.TESTABLE)),"ST3 Pro: the whole table "+ModelRegistry.verifiable(model("23452")));
+        check(ModelRegistry.verifiable(model("23452")).equals(Arrays.asList("headlight","auto_sensor")),"ST3 Pro: its owner verified units, turn sound and range estimate; the lights remain "+ModelRegistry.verifiable(model("23452")));
         check(ModelRegistry.verifiable(model("25731")).equals(Arrays.asList("display_units","headlight","auto_sensor","range_algorithm")),"2573: turn sound is hidden there, so it's experimental instead");
         check(ModelRegistry.verifiable(ModelRegistryTest.serial("Q2443ZZ9US7777777")).equals(Arrays.asList("display_units")),"Unidentified: dashboard units, as the guided tests offered");
         check(ModelRegistry.verifiable(ModelRegistryTest.advertised("39991")).equals(Arrays.asList("display_units")),"Unlisted: dashboard units only");
@@ -262,10 +262,11 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         check(CapabilityResolver.decideVerify("headlight",st3,status(data()),parked()).available(),"ST3 Pro tail light can be verified now");
         CapabilityResolver.Runtime rt=parked();rt.stationary=false;rt.motionSeen=false;rt.parkedConfirmed=true;
         check(CapabilityResolver.decideVerify("headlight",st3,status(data()),rt).reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"A try needs a real motion report (no parked tick)");
-        rt=parked();rt.owner=false;check(CapabilityResolver.decideVerify("display_units",st3,status(data()),rt).reason==CapabilityResolver.Reason.OWNER_ONLY,"Owner only, unlike the old guided tests");
-        byte[] locked=data();locked[2]=1;check(CapabilityResolver.decideVerify("display_units",st3,status(locked),parked()).reason==CapabilityResolver.Reason.LOCKED,"Unlocked");
-        rt=parked();rt.recording=true;check(CapabilityResolver.decideVerify("display_units",st3,status(data()),rt).reason==CapabilityResolver.Reason.RECORDING,"Not while recording");
+        rt=parked();rt.owner=false;check(CapabilityResolver.decideVerify("headlight",st3,status(data()),rt).reason==CapabilityResolver.Reason.OWNER_ONLY,"Owner only, unlike the old guided tests");
+        byte[] locked=data();locked[2]=1;check(CapabilityResolver.decideVerify("headlight",st3,status(locked),parked()).reason==CapabilityResolver.Reason.LOCKED,"Unlocked");
+        rt=parked();rt.recording=true;check(CapabilityResolver.decideVerify("headlight",st3,status(data()),rt).reason==CapabilityResolver.Reason.RECORDING,"Not while recording");
         check(CapabilityResolver.decideVerify("display_units",ut5(),status(data()),parked()).reason==CapabilityResolver.Reason.NOT_TESTABLE,"Verified on the UT5 MAX: nothing to verify");
+        check(CapabilityResolver.decideVerify("display_units",st3,status(data()),parked()).reason==CapabilityResolver.Reason.NOT_TESTABLE,"Owner-verified on the ST3 Pro: nothing to verify");
         check(CapabilityResolver.decideVerify("cruise_control",st3,status(data()),parked()).reason==CapabilityResolver.Reason.NOT_TESTABLE,"Only the guided-test table");
     }
 

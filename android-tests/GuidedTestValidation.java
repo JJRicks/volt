@@ -470,9 +470,11 @@ public final class GuidedTestValidation extends Instrumentation {
         awaitPhase(GuidedTest.Phase.DONE, label + " rejected");
         require(fake.writes.size() == writes + 1, label + ": rejection writes " + fake.describeWrites());
         main(() -> { GuidedTest t = activity.service().ble.guidedTest(); require(t.outcomeTexts().equals(Arrays.asList("Rejected, code 3", "Restoration confirmed")) && CompatibilityReport.tryResult(t.entry()).equals("refused"), label + ": rejected outcomes " + t.outcomeTexts()); });
-        awaitSheetText("Refused by scooter"); sheetShot(label + "-rejected");
+        awaitSheetText("Refused by scooter"); awaitSheetText("Your scooter refused this last time");
+        main(() -> { TextView go = (TextView) field(sheet(), "go"); require(go.getText().toString().startsWith("Try again"), label + ": after a refusal the action reads Try again: " + go.getText()); });
+        sheetShot(label + "-rejected");
         closeSheet();
-        checks.add(label + ": a rejected try (code 3) reads Refused by scooter, with no restore write");
+        checks.add(label + ": a rejected try (code 3) reads Refused by scooter, says the scooter likely doesn't support it, offers Try again, with no restore write");
     }
     /** ACK without a change: No change seen, and the connection stays up. */
     private void unchanged(String label) throws Exception {
