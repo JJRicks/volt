@@ -1,3 +1,46 @@
+VOLT 1.8.0 — DIAGNOSTICS IN REPORTS, MORE MODELS, RIDE AND CHARGE FIXES (versionCode 49)
+October 25, 2026
+
+- Full pure-Java suites, the owner-capture guard and the pinned Shizuku
+  dependency check pass on the release tree. The suites cover the control log
+  and diagnostics bundle (redaction, size caps, never-in-bundle secrets), the
+  per-report immutable diagnostics snapshots and their pruning, ride elevation
+  across GPS dropouts, the per-ride route power scale, charger-cutout pauses in
+  the charge store and through Bluetooth recovery, and the XT5 Pro and ST3 Pro
+  registry entries.
+- run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
+  off): all 61 steps, each run alone with --only from a shared queue across six
+  freshly booted disposable emulators. All passed, including guided tests,
+  compatibility gating and controls, Developer options 2,191 at both sizes,
+  dashboard slots 8,883, first connection 2,032, ride analysis 466 checks per
+  run, charge capture with the new charger-pause and recovery checks, report
+  diagnostics 165 in both themes, and the map, history, route, organization and
+  update checks.
+- Two steps needed a closer look:
+  - motion-polish passed when run alone on a freshly booted emulator. Earlier
+    failures (a "ghost" in the lock-slider reconnect frame, and pixels outside
+    a battery cell border) came from long-running or concurrently loaded
+    emulators, and the published 1.7.0 build failed the same way on the same
+    long-running emulator.
+  - search-focus failed three times while the queue had six emulators loaded:
+    twice at the dialog-title tap (the tap point fell inside the search field's
+    bounds) and once at "System Back changed the search text". With the load
+    gone, the 1.8.0 build passed twice on two emulators and the 1.7.0 build
+    passed three times, including on an emulator where 1.8.0 had just failed.
+    The tapped dialog and the test are unchanged since 1.7.0. This is the
+    flake noted at 1.7.0; the test should tap a point the search field cannot
+    overlap.
+- The release APK is signed with the project identity. Its certificate matches
+  the 1.7.0 release, and the signature and zip alignment verify. Its dex,
+  resources and manifest are identical to the build the sweep ran.
+- Physical scope: no new physical validation for this release. Automated checks
+  sent no real scooter commands. The diagnostics attachment, charger-cutout
+  pauses and the ride fixes have not been exercised on a physical scooter or a
+  real email app; the charger pause follows an owner's charge recording that
+  ended at 85% while still charging at full current.
+
+--- Previous verification ---
+
 VOLT 1.7.0 — GUIDED EXPERIMENTS, SPEED CAP AND MORE MODELS (versionCode 48)
 October 23, 2026
 
