@@ -270,6 +270,13 @@ is then released and forgotten immediately. A failed poll, disconnect, page exit
 or unverified cleanup discards the recording, exactly as owner capture discards
 its result. Recovery uses the same journal and steps, with ten-minute timings.
 
+**Folding.** NAVEE logs each frame twice (sent, then `Write success`), restates writes as
+`sendCmd cmd=…, value=…`, and polls status (read 0x70) every few seconds. A `Write success` is
+marked onto the command it confirms as ` (ok)`, so an unconfirmed command stands out; a `sendCmd`
+that restates the write just logged, and repeats of an identical read (with their confirmations),
+are folded. Folded rows are only counted; the count is sent with the hidden count. A real UT5 MAX
+capture went from 172 kept lines to 39, every command confirmed.
+
 **Filter (trust boundary).** `src/navee-log.js` is pure and unit-tested. Raw rows
 are never displayed, stored, logged or sent. A row is kept only if its message
 (after NAVEE's `[thread] Class.method: ` prefix) matches an allowlist of NAVEE
