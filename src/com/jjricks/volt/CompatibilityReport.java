@@ -234,6 +234,8 @@ final class CompatibilityReport {
     // ---- Output ---------------------------------------------------------------------------
 
     String json(){return json(tree);}
+    /** The sanitized tree itself, read-only, for a file that embeds the report (DiagnosticsBundle). */
+    Map<String,Object> tree(){return Collections.unmodifiableMap(tree);}
     /** The same indented, ASCII-only JSON for another sanitized tree (ConnectionReport). */
     static String json(Map<String,Object> tree){StringBuilder out=new StringBuilder();write(out,tree,0);out.append('\n');return out.toString();}
     String reportId(){Object id=tree.get("report_id");return id instanceof String?(String)id:"";}

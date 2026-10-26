@@ -20,6 +20,7 @@ storage:
 | Ride readings and optional location, pressure, and motion samples | Analyze a ride you record |
 | Charge samples and a manually selected charger label | Review charging and estimate remaining time |
 | Bounded connection events with timestamps, failure codes and recording state | Explain connection losses without saving credentials or packet contents |
+| Bounded control events: time, control, change type (set, try, set back, read), the value sent, the scooter's answer or Volt's reason for refusing, the value read back, how long it took; once per connection, Volt's version, the model ID and layer, and meter and controller firmware | Explain "this control doesn't work on my model" reports; never the PIN, owner key, serial, address, names, locations or packet bytes |
 | Try and guided test records (kind, setting, before and tried values, step outcomes with times relative to the try, your Did you see it change? answer, model prefix and layer, meter firmware, whether a sent report included it) | Keep an interrupted try or test visible until you review it, offer Set back, and put tries in your next compatibility report; at most 20, never in backups. Finished tries stay until a report you email, share or save includes them (a saved report once its file is written; then 30 days) or until you tap Clear try results, and a later Set back or review waits for the next report; finished guided tests go after 30 days |
 
 Connected history is enabled by default. It does not start GPS or phone sensors.
@@ -38,8 +39,15 @@ device restrictions can still interrupt it.
 
 Connection diagnostics retain at most 200 coarse events in private device-local storage.
 They exclude owner identities, PINs, names, serials, Bluetooth addresses and packet
-contents. They are included only when you choose to export diagnostics, and are
-excluded from portable app backups. Clearing app storage removes them.
+contents. They are included only when you choose to export diagnostics or send a
+report email with diagnostics, and are excluded from portable app backups. Clearing
+app storage removes them.
+
+The control log is always on and works the same way: about the last 1,000 events
+(at most 256 KB) in private storage that is never backed up. Its storage accepts only
+fixed names, numbers and version strings, so it cannot hold an owner key, PIN or PIN
+digits, serial, Bluetooth address, profile or scooter name, location, route or raw
+packet bytes. A value is never kept for the PIN, a charging time or the clock.
 
 Android cloud backup and device-transfer extraction are disabled in the manifest
 and backup rules. Local profiles, including owner credentials, are not separately
@@ -84,6 +92,8 @@ there is no bulk map download. GPS and the locally drawn route work without
 tiles or an internet connection.
 
 **Reports you choose to email.** Volt itself sends nothing. When it offers to share a compatibility report (after connecting a model it has none for) or a scooter's connection details (after two failed first connections), it opens your email app with the text in the message body, addressed to `volt-reports@jjricks.com`. You can read, edit or discard the message before sending. Reports contain the scooter's numeric Model ID, its read-only check or connection steps and error codes, Volt's version and, for connection details, your Android version and phone model. They also carry anything you add: the model you pick or type, and the names you give its drive modes. They never contain a serial, MAC address, owner key, PIN, scooter or owner names, routes or wall-clock times. **More → Report an issue** works the same way: it opens a draft to that address holding only a prompt, Volt's version, your Android version and phone model, and the selected scooter's model name. Your email provider handles the message like any other.
+
+**Diagnostics in report emails.** Before **Report an issue** or the checker's **Email to Volt** opens your email app, a short sheet offers **Include diagnostics**, ticked by default. It attaches one file, `volt-diagnostics.json`: Volt's version, your Android version and phone model, the finished compatibility check's report if there is one, the connection events, the control log, and the current readings without the scooter and battery serials or raw payloads. It never contains your owner key, PIN, serial, scooter address, location or routes, or scooter or profile names; Volt also withholds the file entirely if any saved scooter's serial, address, owner key or chosen name would appear in it. **Preview** shows the exact file. The diagnostics stay on your phone until you send such an email: sending them is opt-out per email. Untick **Include diagnostics** and the email goes without the file, as before; Volt remembers that choice for the next email. Each email's file is written once to Volt's private cache and never changed, and only the email app you send to is allowed to read it, for that email; Volt deletes these files after a day, keeping at most the last ten.
 **Check for updates runs only when you tap it** in **More → About & permissions**. Volt never checks in the background. The first time, it explains that GitHub receives your IP address and Volt's app/version User-Agent; choose **Check** or **Cancel**. Cancel sends nothing, and an approval is remembered (and included in backups with App preferences). Volt then requests one small JSON description of the latest Volt release from `api.github.com`. It shows whether that release is newer and offers **Open release page** in your browser. Volt never downloads or installs an update itself.
 
 Opening setup, help, attribution, or other external links uses your browser.
@@ -124,6 +134,7 @@ if you do not want them retained there.
 | Ride CSV/JSON/GPX | Timestamps and measurements; phone/joined/route exports can include precise locations |
 | Charge JSON | Electrical samples, times, gaps and charger label; excludes owner credentials, names, addresses, PINs and locations |
 | Ordinary diagnostics | Readings, diagnostic payloads and bounded connection events, potentially device serials in readings; excludes owner identity and PIN responses |
+| Report email diagnostics file (`volt-diagnostics.json`) | Volt and Android versions, phone model, the compatibility report above when one is finished, connection events, control events, and readings without serials or raw payloads; excludes owner identity, PINs, serials, addresses, names, locations and routes |
 | Compatibility report | Model ID, region and SKU derived from the serial, firmware versions, read outcomes and lengths, status-field presence and setting values, and control decisions; excludes the serial, scooter address, owner identity, PINs, names, times of day, routes and raw payloads. A fresh random report ID is used each time; it is not stored. Guided tests and Experimental controls tries add the setting, its before and tried values, step outcomes with times relative to the try, your yes/no answer, whether it was set back or kept, and for tries the result and the model layer |
 
 Exports only go to a destination you choose through the file picker or helper.

@@ -1599,6 +1599,23 @@ public final class ScooterService extends Service {
         return "km".equals(units) ? km : "dual".equals(units) ? mi + " / " + km : mi;
     }
     private void updateNotification(){if(foregroundStarted&&workAllowed())getSystemService(NotificationManager.class).notify(71,notification());}
+    /**
+     * The volt-diagnostics-v1 file a report email may carry (DiagnosticsBundle), or null when it would contain a saved
+     * scooter's serial, MAC, owner key or chosen name. Built on demand; it leaves the phone only when the owner sends it.
+     */
+    String diagnosticsBundle(CompatibilityReport report){
+        DiagnosticsBundle bundle=new DiagnosticsBundle(AppVersion.name(this),System.currentTimeMillis(),simulating())
+                .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL).report(report)
+                .connections(ble.diagnosticEvents(),ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
+                .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
+                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime());
+        List<String> secrets=new ArrayList<>();
+        for(ScooterProfiles.Profile p:profiles.all()){
+            secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));
+            if(!p.nameDefault)secrets.add(p.name);
+        }
+        return bundle.json(secrets);
+    }
     public String snapshot(){try{JSONObject o=new JSONObject();
             o.put("format", "navee-offline-diagnostics-v1");
             o.put("app_version", AppVersion.name(this));
