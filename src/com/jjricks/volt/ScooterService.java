@@ -421,7 +421,7 @@ public final class ScooterService extends Service {
                 boolean pause=chargeStore.holdsSchedulePause(scheduledChargePause(),mono);
                 ChargeRecoveryPolicy.Result recovery=chargeRecovery.evaluate(mono,activeProfileId(),active==null?"":active.serial,
                         ble.intentionalDisconnectSequence(),ble.permissions(),ble.bluetoothEnabled(),ble.connected(),ble.ready(),
-                        ble.recoverableConnectionLoss(),ble.currentTransportSerial(),frame,pause);
+                        ble.recoverableConnectionLoss(),ble.currentTransportSerial(),frame);
                 if(!applyChargeRecoveryResult(recovery)){
                     if(isChargeRecording()&&!chargeRecovery.recovering()&&(mono<chargeStore.lastFreshMono()||mono-chargeStore.lastFreshMono()>30000))
                         finishChargeCapture(ChargeSessionStore.Stop.READINGS_STOPPED);

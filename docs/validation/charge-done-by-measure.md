@@ -85,7 +85,7 @@ a fresh charging=off reading like this:
   span the pause;
 - export adds `schedule_pauses` with start and end times (and, since a charger that stops on its own below 99% also pauses the recording, `charger_pauses` in the same shape);
 - history rows say "paused N min for the schedule";
-- a recording allows at most eight pauses; the eighteen-hour and sample limits are unchanged;
+- a recording allows at most 24 pauses (schedule and charger pauses together); the eighteen-hour and sample limits are unchanged;
 - the schedule can be confirmed off before charging resumes, so an open pause keeps holding for two
   minutes after its plan is cancelled or starts; a charger that stays off after that ends the recording
   as before;
@@ -105,7 +105,7 @@ recordings are unaffected.
     a finish-time edit only shortening the window, never during arming.
   - `ChargeSessionStoreTest`, 562 checks: three-hour pause continuity; heartbeat freshness; exact pause
     duration; gap only on the first resumed sample; curve qualification; export intervals; backup-journal
-    validity; the eight-pause limit; a recording that stops inside its pause keeping its length; the
+    validity; the pause limit; a recording that stops inside its pause keeping its length; the
     two-minute hold when a plan is confirmed off before charging resumes; seven malformed marker
     sequences refused.
   - `ChargeRecoveryPolicyTest`, 37 checks: a post-loss charging=off reading resumes into a Volt pause;
