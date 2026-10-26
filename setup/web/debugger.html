@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <!-- Build replaces this with the exact bundled-script hash and the one submit URL. -->
+  <meta http-equiv="Content-Security-Policy" content="__CSP__">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#111211">
+  <title>NAVEE debugger · Volt</title>
+  <meta name="description" content="Record what the NAVEE app sends your scooter while you show a problem, check every line, and send it to Volt’s developer.">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" integrity="__INTEGRITY__" defer></script>
+</head>
+<body class="debugger">
+  <a class="skip" href="#main">Skip to the debugger</a>
+  <header class="masthead"><a class="brand" href="./" aria-label="NAVEE debugger start"><span class="brand-symbol"><svg viewBox="0 0 28 32" aria-hidden="true"><path d="M17 1 3 18h10l-2 13 14-18H15z"/></svg></span><span>VOLT<span class="brand-sub">NAVEE DEBUGGER</span></span></a><span class="private-note"><span class="dot"></span> You review before sending</span></header>
+  <main id="main">
+    <div class="intro">
+      <h1>Show us the problem.</h1>
+      <p class="lede">Record what the NAVEE app tells your scooter, check every line, then send it to Volt’s developer.</p>
+      <ol class="steps" aria-label="Debugger progress">
+        <li data-step="0" aria-current="step"><span class="step-number">1</span><span class="step-label">Problem</span></li>
+        <li data-step="1"><span class="step-number">2</span><span class="step-label">Ready</span></li>
+        <li data-step="2"><span class="step-number">3</span><span class="step-label">Connect</span></li>
+        <li data-step="3"><span class="step-number">4</span><span class="step-label">Record</span></li>
+        <li data-step="4"><span class="step-number">5</span><span class="step-label">Review</span></li>
+        <li data-step="5"><span class="step-number">6</span><span class="step-label">Send</span></li>
+      </ol>
+    </div>
+    <div class="workspace">
+      <noscript><div class="alert">Enable JavaScript to use the NAVEE debugger.</div></noscript>
+      <div id="environment" class="alert" hidden role="alert"></div>
+      <div id="error" class="alert" hidden role="alert"></div>
+      <div id="notice" class="notice" hidden role="status"></div>
+      <section id="recovery" class="panel" hidden aria-labelledby="recovery-title">
+        <span class="eyebrow">INTERRUPTED RECORDING</span><h2 id="recovery-title">Finish cleanup first.</h2>
+        <p>Reconnect the same phone so we can check that NAVEE’s original log setting is restored. Keep this browser’s site data until then.</p>
+        <button id="recover" class="primary">Connect phone and recover</button>
+        <details><summary>Need help recovering?</summary><p>The phone’s own timer attempts cleanup ten minutes after recording started. If recovery fails, wait ten minutes and try again. Don’t start Volt’s pairing helper or another capture tool, and don’t clear this site’s data.</p><p>On the phone, Settings → Apps → NAVEE → Force stop closes NAVEE, but doesn’t by itself restore the log setting. The recovery file below contains no scooter key or log lines; share it only with someone you trust to help.</p><button id="recovery-details" class="secondary full">Download recovery instructions</button></details>
+      </section>
+      <section id="problem-panel" class="panel" aria-labelledby="problem-title">
+        <span class="eyebrow">01 / THE PROBLEM</span><h2 id="problem-title">What’s going wrong?</h2>
+        <p>Tell the developer what you want Volt to do, or what goes wrong. You’ll then show it in the NAVEE app while this page records.</p>
+        <label class="field" for="model"><span>Scooter model</span><select id="model"></select></label>
+        <label class="field" for="description"><span>What are you trying to do, or what goes wrong?</span><textarea id="description" rows="5" maxlength="4000" required aria-describedby="description-hint description-count"></textarea></label>
+        <p id="description-hint" class="fine">Example: “My RGB lights can only be changed in the NAVEE app — I’ll cycle through every light mode and color.” <span id="description-count" aria-live="polite">0 / 4000</span></p>
+        <label class="field" for="contact"><span>How can the developer reply? <em>Optional</em></span><input id="contact" type="text" maxlength="240" autocomplete="email" placeholder="Email or Reddit username"></label>
+        <button id="problem-next" class="primary" disabled><span id="problem-next-label">Next</span> <span aria-hidden="true">→</span></button>
+      </section>
+      <section id="ready-panel" class="panel" hidden aria-labelledby="ready-title">
+        <span class="eyebrow">02 / GET READY</span><h2 id="ready-title">You’ll need:</h2>
+        <ul class="checklist"><li>A computer with Chrome or Edge.</li><li>A USB data cable for your Android phone.</li><li>USB debugging turned on (how-to below).</li><li>NAVEE signed in and able to connect to your scooter.</li><li>Your scooter nearby, parked and switched on.</li></ul>
+        <div class="permission"><strong>During the recording</strong><p>Don’t change your handlebar PIN, NAVEE password or account. Those lines are never kept, but it’s safest not to make them at all.</p></div>
+        <details id="debugging-help" class="help"><summary>How to turn on USB debugging</summary><ol><li>On your phone, open Settings → About phone. Tap Build number seven times. On Samsung, open Software information first.</li><li>Go back to Settings → System (or the main list) → Developer options, and turn on USB debugging.</li><li>Connect the cable and unlock your phone.</li></ol><p>Only the main personal Android user is supported; work profiles and secondary users are not.</p></details>
+        <button id="ready-next" class="primary">I’m ready <span aria-hidden="true">→</span></button>
+        <button id="ready-back" class="text-button full">Back</button>
+      </section>
+      <section id="connect-panel" class="panel" hidden aria-labelledby="connect-title">
+        <span class="eyebrow">03 / CONNECT</span><h2 id="connect-title">Connect your phone.</h2>
+        <p>Open this page in <strong>Chrome or Edge on a computer</strong>. Connect your phone with a USB data cable and unlock it.</p>
+        <details id="connection-help" class="help"><summary>Connection help</summary><ol><li>Close other scooter apps, Android Studio, scrcpy, and other USB setup tabs. If ADB is installed on this computer, run <code>adb kill-server</code> in a terminal: its background server keeps the phone busy after <code>adb devices</code> finishes.</li><li>Unplug and reconnect the phone, unlock it, and try again.</li></ol><p>This page cannot connect to the phone it’s running on. On Linux, the browser needs Android udev rules (Ubuntu or Debian: <code>android-sdk-platform-tools-common</code>); Snap or Flatpak browsers may not see USB phones. Windows may need your phone’s USB driver; a work-managed phone may block debugging.</p></details>
+        <div class="permission"><strong>Approve access to your phone</strong><p>USB debugging gives this page broad developer access. Use only a phone and scooter you own or have permission to use.</p><p>Use a regular browser window, not Incognito or Guest. Keep its site data until cleanup finishes.</p><p>On the phone prompt, leave <strong>“Always allow” unchecked.</strong></p></div>
+        <label class="consent"><input id="usb-consent" type="checkbox"><span>I understand and approve USB access.</span></label>
+        <button id="connect" class="primary" disabled>Choose my phone <span aria-hidden="true">→</span></button>
+        <p class="fine">Select your phone, then approve its USB debugging prompt.</p>
+        <button id="connect-back" class="text-button full">Back</button>
+      </section>
+      <section id="record-panel" class="panel" hidden aria-labelledby="record-title">
+        <span class="eyebrow">04 / RECORD</span><h2 id="record-title">Ready to record.</h2>
+        <div class="device-chip"><span class="dot"></span><span id="device-name">Android phone connected</span></div>
+        <p>We’ll restart NAVEE with temporary logging on. You use NAVEE as long as you need (up to nine minutes), then press Stop. We close NAVEE and restore its log setting.</p>
+        <details><summary>What’s recorded?</summary><p>Only NAVEE’s own Bluetooth and device-control lines are kept, such as the commands it sends your scooter. Network, account, login and payment lines, and anything we don’t recognize, are hidden and only counted.</p><p>Scooter keys, PIN commands, Bluetooth addresses, serial numbers, email addresses and phone numbers are removed. Nothing is sent until you review every line and choose Send.</p><p>A cleanup timer also runs on the phone. If the cable comes out or this tab closes, return here with the same phone to verify cleanup.</p></details>
+        <label class="consent"><input id="record-consent" type="checkbox"><span>I approve temporary NAVEE logging, restarting NAVEE, and cleanup when I stop.</span></label>
+        <button id="start" class="primary" disabled>Start recording</button>
+        <button id="disconnect" class="text-button full">Disconnect instead</button>
+      </section>
+      <section id="recording-panel" class="panel recording" hidden aria-labelledby="recording-title">
+        <div class="recording-head"><span class="live-dot" aria-hidden="true"></span><h2 id="recording-title">Getting the phone ready.</h2><span id="countdown" class="countdown" role="timer" aria-label="Time left">9:00</span></div>
+        <p id="progress" role="status" aria-live="polite">Preparing…</p>
+        <p class="guide">Now open NAVEE and do the thing slowly, one change at a time. Pause a few seconds between changes.</p>
+        <div id="live" class="log live" tabindex="0" aria-label="Kept NAVEE lines"><p id="live-empty" class="log-empty">Kept lines appear here.</p><ol id="live-rows"></ol></div>
+        <p class="counts"><span id="kept-count">0 lines kept</span> · <span id="hidden-count">0 other NAVEE lines hidden</span></p>
+        <form id="marker-form" class="marker" action="#" novalidate><label for="marker">Add a note <em>(e.g. “now switching to rainbow mode”)</em></label><div class="marker-row"><input id="marker" type="text" maxlength="200" autocomplete="off"><button id="add-marker" class="secondary" type="submit">Add note</button></div></form>
+        <button id="stop" class="primary">Stop and clean up</button>
+        <p class="fine">Keep this tab open and the cable connected.</p>
+      </section>
+      <section id="review-panel" class="panel" hidden aria-labelledby="review-title">
+        <span class="success-mark" aria-hidden="true">✓</span><span class="eyebrow">05 / REVIEW</span><h2 id="review-title">Check what will be sent.</h2>
+        <p>Cleanup is verified: NAVEE is closed and its log setting is restored. USB access is closed.</p>
+        <dl class="summary"><dt>Model</dt><dd id="sum-model"></dd><dt>Problem</dt><dd id="sum-description"></dd><dt>Contact</dt><dd id="sum-contact"></dd><dt>NAVEE app</dt><dd id="sum-navee"></dd><dt>Android</dt><dd id="sum-android"></dd><dt>Phone</dt><dd id="sum-phone"></dd><dt>Recording</dt><dd id="sum-recording"></dd></dl>
+        <button id="edit-details" class="text-button">Edit the problem or contact</button>
+        <p class="fine">Each line below is sent exactly as shown. Grey readings are this page’s explanation and aren’t sent. Delete any line you don’t want to share.</p>
+        <div class="log review" tabindex="0" aria-label="Lines that will be sent"><ol id="review-rows"></ol></div>
+        <p id="review-counts" class="counts"></p>
+        <label class="consent"><input id="send-consent" type="checkbox"><span>I’ve reviewed these lines and want to send them to Volt’s developer.</span></label>
+        <button id="send" class="primary" disabled>Send to Volt’s developer</button>
+        <button id="download-copy" class="secondary full">Download a copy</button>
+        <button id="discard" class="text-button full">Discard and start over</button>
+      </section>
+      <section id="done-panel" class="panel" hidden aria-labelledby="done-title">
+        <span class="success-mark" aria-hidden="true">✓</span><span class="eyebrow">06 / SENT</span><h2 id="done-title">Thanks — the developer will see this.</h2>
+        <p>Your reference: <strong id="reference" class="reference"></strong></p>
+        <p>Mention it if you contact the developer about this problem.</p>
+        <div class="permission"><strong>Put your phone back to normal</strong><p>Turn off USB debugging in Developer options. If you checked “Always allow,” use Developer options → Revoke USB debugging authorizations (this also removes other trusted computers).</p></div>
+        <button id="finish" class="primary">Done</button>
+      </section>
+      <p class="privacy-note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 8 3v5c0 5-8 10-8 10S4 16 4 11V6z"/><path d="m8 12 3 3 5-6"/></svg>Nothing is sent until you review it and choose Send.</p>
+    </div>
+  </main>
+  <footer><span>Independent project. Not affiliated with NAVEE.</span><a href="https://github.com/JJRicks/volt" target="_blank" rel="noopener noreferrer">About Volt</a></footer>
+</body>
+</html>

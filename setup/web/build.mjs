@@ -33,4 +33,26 @@ for (const scope of ['@yume-chan']) {
   }
 }
 await writeFile('dist/THIRD-PARTY-NOTICES.txt', licenses);
+
+// NAVEE debugger: a separate page for https://volt.jjricks.com/debugger/ with its
+// own bundle and exact-hash CSP. The only difference in policy: connect-src
+// allows exactly the submit endpoint. Never deploy dist/debugger/ with pairscooter.
+const SUBMIT_URL = 'https://volt.jjricks.com/debugger/submit';
+await mkdir('dist/debugger', { recursive: true });
+await build({ entryPoints: ['src/debugger.js'], bundle: true, outfile: 'dist/debugger/app.js', format: 'iife', target: ['chrome120'], minify: true, legalComments: 'external', sourcemap: false });
+const debugScript = await readFile('dist/debugger/app.js');
+const debugIntegrity = `sha256-${createHash('sha256').update(debugScript).digest('base64')}`;
+const debugPolicy = `default-src 'none'; script-src '${debugIntegrity}'; style-src 'self'; img-src 'self'; connect-src ${SUBMIT_URL}; font-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; worker-src 'none'; frame-src 'none'`;
+await writeFile('dist/debugger/index.html', (await readFile('debugger.html', 'utf8')).replace('__CSP__', debugPolicy).replace('__INTEGRITY__', debugIntegrity));
+await writeFile('dist/debugger/styles.css', Buffer.concat([await readFile('styles.css'), await readFile('debugger.css')]));
+for (const weight of ['regular', 'semibold', 'bold']) {
+  await writeFile(`dist/debugger/saira_${weight}.ttf`, await readFile(`../../res/font/saira_${weight}.ttf`));
+}
+await writeFile('dist/debugger/headers.json', JSON.stringify({
+  'Content-Security-Policy': `${debugPolicy}; frame-ancestors 'none'`,
+  'Permissions-Policy': 'usb=(self), camera=(), microphone=(), geolocation=()',
+  'Referrer-Policy': 'no-referrer', 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY',
+  'Cache-Control': 'no-store', 'Cross-Origin-Opener-Policy': 'same-origin'
+}, null, 2) + '\n');
+await writeFile('dist/debugger/THIRD-PARTY-NOTICES.txt', licenses.replace('Volt USB owner setup', 'Volt NAVEE debugger'));
 console.log('Built dist/ with bundled dependencies, exact script CSP/SRI, and hosting headers.');
