@@ -115,7 +115,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(service.chargeCharger()==null,"New scooter inherited the other charger selection");service.profiles.select(profile);
             });
             verifyRecoveryTransitions();
-            verifySchedulePause();
+            verifySchedulePause();verifyChargerPause();
             main(()->{seedActive(profile);activity.finish();getTargetContext().stopService(new Intent(getTargetContext(),ScooterService.class));});
             ScooterService ended=service;await(()->Boolean.TRUE.equals(field(ended,"destroyed")),"Service did not end");
             require(!store(ended).active(),"Service end left capture active");
@@ -436,6 +436,42 @@ public final class ChargeCaptureValidation extends Instrumentation {
             require(field(service.ble,"gatt")==null&&field(service.ble,"scanner")==null,"Fault injection touched real Bluetooth transport");
         });
     }
+    /** The charger cuts out below 99% with no schedule: the capture waits as a charger pause and resumes in one journal. */
+    private void verifyChargerPause(){
+        main(()->{
+            service.visible(true);setField(service,"chargeUpdating",true);
+            seedActive(profile);
+            try{
+                long at=SystemClock.elapsedRealtime();
+                require(store().chargerStopped(System.currentTimeMillis(),at)==ChargeSessionStore.ChargerOff.PAUSED,"A charger cutout did not open a charger pause");
+                require(store().chargerPaused()&&service.isChargeRecording()&&service.chargeCaptureStatus().endsWith("charger stopped · waiting for it to resume"),"Charger pause status missing: "+service.chargeCaptureStatus());
+                Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
+                require(notice.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("charger stopped · waiting for it to resume")&&notice.actions[0].title.toString().equals("Stop charge recording"),"Charger pause notice lost its state or Stop action");
+                require(store().chargerStopped(System.currentTimeMillis()+20000,at+20000)==ChargeSessionStore.ChargerOff.WAITING&&store().lastFreshMono()==at+20000,"Waiting for the charger did not keep the capture fresh");
+                // A Bluetooth loss during the wait goes through the service's recovery, and the scooter returns still off.
+                ChargeRecoveryPolicy policy=recoveryPolicy();setField(service,"chargeRecovery",policy);
+                long lost=at+25000,back=at+35000;
+                require(!(Boolean)invoke(service,"applyChargeRecoveryResult",new Class<?>[]{ChargeRecoveryPolicy.Result.class},evaluate(policy,lost,false,false,true,null))
+                        &&policy.recovering()&&store().chargerPaused()&&service.isChargeRecording(),"A Bluetooth loss ended or closed the charger pause");
+                ChargeRecoveryPolicy.Result back0=evaluate(policy,back,true,true,true,offFrame(back,51));
+                require((Boolean)invoke(service,"applyChargeRecoveryResult",new Class<?>[]{ChargeRecoveryPolicy.Result.class},back0)&&back0.stop==null&&!policy.recovering(),
+                        "Reconnecting with the charger still off ended the recording instead of resuming into its pause");
+                require(store().chargerStopped(System.currentTimeMillis()+35000,back)==ChargeSessionStore.ChargerOff.WAITING&&store().chargerPaused(),"The reconnect lost the charger pause");
+                store().resume(System.currentTimeMillis()+40000,at+40000);
+                require(store().sample(sampleFrame(at+41000,51,-2))&&!store().paused(),"Charging after the cutout did not resume the same journal");
+            }catch(IOException e){throw new IllegalStateException(e);}
+            service.stopChargeRecording();
+            try{
+                StringWriter out=new StringWriter();store().exportJson(profile,out);
+                org.json.JSONArray sessions=new org.json.JSONObject(out.toString()).getJSONArray("sessions");boolean found=false;
+                for(int i=0;i<sessions.length();i++){org.json.JSONObject session=sessions.getJSONObject(i);org.json.JSONArray pauses=session.getJSONArray("charger_pauses");
+                    if(pauses.length()==1){found=true;require(session.getJSONArray("schedule_pauses").length()==0&&!pauses.getJSONObject(0).isNull("end_elapsed_ms")
+                            &&session.getJSONArray("samples").getJSONObject(1).getBoolean("gap_before"),"Exported charger pause is open, bridged or labeled a schedule pause");}}
+                require(found,"Charger-paused journal missing from export");
+            }catch(Exception e){throw new IllegalStateException(e);}
+            setField(service,"chargeUpdating",false);
+        });
+    }
     /** Volt's own armed schedule holds current off; the capture waits, marks it and stays one journal. */
     private void verifySchedulePause(){
         main(()->{
@@ -477,6 +513,11 @@ public final class ChargeCaptureValidation extends Instrumentation {
     private ChargeRecoveryPolicy.Result evaluate(ChargeRecoveryPolicy policy,long now,boolean connected,boolean ready,boolean retry,ChargeSessionStore.Frame frame){
         return policy.evaluate(now,profile,service.profiles.active().serial,service.ble.intentionalDisconnectSequence(),true,true,connected,ready,retry,
                 connected?service.profiles.active().serial:"",frame);
+    }
+    /** The scooter reporting charging=off, with paired readings, as after a charger cutout. */
+    private ChargeSessionStore.Frame offFrame(long mono,double soc){
+        return new ChargeSessionStore.Frame(System.currentTimeMillis(),mono,new ChargeSessionStore.Value(0d,mono,0x72),new ChargeSessionStore.Value(soc,mono,0x72),
+                new ChargeSessionStore.Value(52d,mono,0x72),new ChargeSessionStore.Value(0d,mono,0x72),null);
     }
     private ChargeSessionStore.Frame sampleFrame(long mono,double soc,double amps){
         return new ChargeSessionStore.Frame(System.currentTimeMillis(),mono,new ChargeSessionStore.Value(1d,mono,0x72),new ChargeSessionStore.Value(soc,mono,0x72),

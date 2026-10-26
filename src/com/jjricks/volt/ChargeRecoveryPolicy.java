@@ -30,20 +30,15 @@ public final class ChargeRecoveryPolicy {
     }
     private Result stop(ChargeSessionStore.Stop reason) { return new Result(reason, false, false, false); }
 
-    /** All transport and frame facts must come from the current authenticated connection. */
-    public Result evaluate(long now, String selectedProfile, String savedSerial, long intentionalDisconnects,
-            boolean permissions, boolean bluetoothOn, boolean connected, boolean ready, boolean recoverable,
-            String transportSerial, ChargeSessionStore.Frame frame) {
-        return evaluate(now, selectedProfile, savedSerial, intentionalDisconnects, permissions, bluetoothOn, connected, ready,
-                recoverable, transportSerial, frame, false);
-    }
     /**
-     * scheduledPause: Volt's own armed charging schedule may be holding current off. A fresh
-     * charging=off packet after a loss then resumes the capture so the pause can be marked.
+     * All transport and frame facts must come from the current authenticated connection. A fresh
+     * charging=off packet below 99% after a loss resumes the capture, so the caller can mark it as a
+     * schedule pause or wait for the charger (ChargeSessionStore.chargerStopped), whose own deadline
+     * then ends it; any other not-charging state ends it here.
      */
     public Result evaluate(long now, String selectedProfile, String savedSerial, long intentionalDisconnects,
             boolean permissions, boolean bluetoothOn, boolean connected, boolean ready, boolean recoverable,
-            String transportSerial, ChargeSessionStore.Frame frame, boolean scheduledPause) {
+            String transportSerial, ChargeSessionStore.Frame frame) {
         if (intentionalDisconnects != disconnectSequence) return stop(ChargeSessionStore.Stop.STOPPED);
         if (!Objects.equals(profile, selectedProfile)) return stop(ChargeSessionStore.Stop.PROFILE_CHANGED);
         if (!Objects.equals(serial, savedSerial)) return stop(ChargeSessionStore.Stop.IDENTITY_CHANGED);
@@ -64,11 +59,12 @@ public final class ChargeRecoveryPolicy {
         if (recovering()) {
             if (!ready || !serial.equals(transportSerial) || frame == null)
                 return new Result(null, false, false, false);
-            // A fresh post-loss charging=off packet may end a capture, but a 100% endpoint
-            // still requires its paired electrical packet. Neither path fills the missing time.
+            // A fresh post-loss charging=off packet below 99% resumes into a pause; another state ends
+            // the capture. A 100% endpoint still requires its paired electrical packet. Neither path
+            // fills the missing time.
             if (afterLoss(frame.state, now) && frame.state.value != 1
                     && afterLoss(frame.soc, now) && frame.soc.value < 99) {
-                if (!scheduledPause || frame.state.value != 0) return stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+                if (frame.state.value != 0) return stop(ChargeSessionStore.Stop.CHARGING_ENDED);
                 interruptedMono = 0;
                 return new Result(null, true, false, true);
             }

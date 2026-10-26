@@ -178,9 +178,9 @@ public final class ChargeSessionStoreTest {
 
         ChargeSessionStore limited=store();limited.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
         for(int i=0;i<ChargeSessionStore.MAX_PAUSES;i++){limited.pause(WALL+i*2,MONO+i*2);limited.resume(WALL+i*2+1,MONO+i*2+1);}
-        check(limited.active(),"Eight pauses fit one recording");
+        check(limited.active(),ChargeSessionStore.MAX_PAUSES+" pauses fit one recording");
         limited.pause(WALL+100,MONO+100);
-        check(!limited.active()&&limited.recordings("one").get(0).stop==ChargeSessionStore.Stop.LIMIT,"A ninth pause ends the recording at its limit");
+        check(!limited.active()&&limited.recordings("one").get(0).stop==ChargeSessionStore.Stop.LIMIT,"One more pause ends the recording at its limit");
 
         ChargeSessionStore open=store();open.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
         open.sample(frame(MONO,50));open.pause(WALL+10000,MONO+10000);
@@ -193,11 +193,52 @@ public final class ChargeSessionStoreTest {
                 "Stopping while paused closes the pause at its last fresh reading");
 
         for(String bad:new String[]{"charge-v2,a,STOCK,1,1\np,1,1,0\n","charge-v2,a,STOCK,1,1\np,1,2,1\np,1,3,1\n","charge-v1,a,STOCK,1,1\np,1,1,1\n",
-                "charge-v2,a,STOCK,1,1\nend,STOPPED\np,1,1,1\n","charge-v2,a,STOCK,1,1\np,1,9,1\np,1,8,0\n","charge-v2,a,STOCK,1,1\np,0,1,1\n","charge-v2,a,STOCK,1,1\np,1,1,2\n"}){
+                "charge-v2,a,STOCK,1,1\nend,STOPPED\np,1,1,1\n","charge-v2,a,STOCK,1,1\np,1,9,1\np,1,8,0\n","charge-v2,a,STOCK,1,1\np,0,1,1\n","charge-v2,a,STOCK,1,1\np,1,1,3\n","charge-v2,a,STOCK,1,1\np,1,2,2\np,1,3,1\n"}){
             File file=new File(folder,UUID.randomUUID()+".csv");Files.write(file.toPath(),bad.getBytes(StandardCharsets.UTF_8));
             boolean refused=false;try{ChargeSessionStore.inspectJournal(file);}catch(IOException expected){refused=true;}
             check(refused,"malformed pause markers refused: "+bad.replace('\n','|'));file.delete();
         }
+    }
+    /**
+     * A charger that cuts out below 99% (an owner's overheating stock charger stopped at 85%) pauses the
+     * recording instead of ending it; charging that returns resumes it, and a charger that stays off ends it
+     * after CHARGER_PAUSE_MAX_MS. The pause is excluded from coverage and exported apart from schedule pauses.
+     */
+    static void chargerPause()throws Exception{
+        File folder=Files.createTempDirectory("charge-charger-pause-test-").toFile();ChargeSessionStore store=new ChargeSessionStore(folder);
+        store.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
+        long t=MONO;for(;t<MONO+30*60000L;t+=10000)check(store.sample(frame(t,60+(t-MONO)/60000)),"Charging before the cutout samples");
+        long offAt=t,off=12*60000L;
+        check(store.chargerStopped(WALL+offAt-MONO,offAt)==ChargeSessionStore.ChargerOff.PAUSED,"The first off reading opens a charger pause");
+        check(store.active()&&store.paused()&&store.chargerPaused(),"A charger pause keeps the recording open");
+        for(long h=offAt+10000;h<offAt+off;h+=10000)check(store.chargerStopped(WALL+h-MONO,h)==ChargeSessionStore.ChargerOff.WAITING,"Off readings wait for the charger");
+        check(store.lastFreshMono()==offAt+off-10000&&store.sampleCount()==180,"Waiting keeps the capture alive without samples");
+        long resumeAt=offAt+off;store.resume(WALL+resumeAt-MONO,resumeAt);
+        check(!store.paused()&&!store.chargerPaused(),"Charging again resumes the recording");
+        for(t=resumeAt;t<resumeAt+30*60000L;t+=10000)check(store.sample(frame(t,90+(t-resumeAt)/600000)),"Charging after the cutout samples");
+        long secondAt=t;
+        check(store.chargerStopped(WALL+secondAt-MONO,secondAt)==ChargeSessionStore.ChargerOff.PAUSED,"A second cutout opens a second pause");
+        long h=secondAt;for(;h-secondAt<ChargeSessionStore.CHARGER_PAUSE_MAX_MS;h+=10000)
+            check(store.chargerStopped(WALL+h-MONO,h)==ChargeSessionStore.ChargerOff.WAITING||h==secondAt,"It waits up to the limit");
+        check(store.chargerStopped(WALL+h-MONO,h)==ChargeSessionStore.ChargerOff.ENDED,"A charger still off after the limit ends the recording");
+        store.stop(ChargeSessionStore.Stop.CHARGING_ENDED);
+        ChargeSessionStore.HistorySession saved=store.recordings("one").get(0);
+        check(saved.stop==ChargeSessionStore.Stop.CHARGING_ENDED&&saved.chargerPauses==2&&saved.pauses==0,"Both cutouts are charger pauses, none a schedule pause");
+        check(saved.chargerPausedMs==off+(h-10000-secondAt)&&saved.pausedMs==0,"Each charger pause keeps its length: "+saved.chargerPausedMs);
+        check(saved.points.get(180).gap&&!saved.points.get(181).gap,"The first sample after the cutout starts a new segment");
+        ChargeSessionStore.Curve curve=store.snapshot().curves.get(ChargeSessionStore.key("one",ChargeSessionStore.Charger.STOCK));
+        check(curve!=null&&curve.qualifiedSessions==1,"Waiting for the charger is not missing data: the charge still qualifies");
+        StringWriter json=new StringWriter();store.exportJson("one",json);
+        check(json.toString().contains("\"schedule_pauses\":[],\"charger_pauses\":[{\"start_wall_ms\":"+(WALL+offAt-MONO)+",\"start_elapsed_ms\":"+offAt
+                +",\"end_wall_ms\":"+(WALL+resumeAt-MONO)+",\"end_elapsed_ms\":"+resumeAt+"},{"),"Export lists charger pauses apart from schedule pauses");
+        File journal=folder.listFiles((d,n)->n.endsWith(".csv"))[0];
+        check(ChargeSessionStore.inspectJournal(journal).finished,"A journal with charger pauses is a valid backup journal");
+
+        // A schedule pause whose grace has run out still ends the recording on an off reading, as before.
+        ChargeSessionStore scheduled=store();scheduled.start("one",ChargeSessionStore.Charger.STOCK,WALL,MONO);
+        scheduled.sample(frame(MONO,50));scheduled.pause(WALL+10000,MONO+10000);
+        check(scheduled.chargerStopped(WALL+20000,MONO+20000)==ChargeSessionStore.ChargerOff.ENDED&&!scheduled.chargerPaused(),"An expired schedule pause is not turned into a charger pause");
+        check(store().chargerStopped(WALL,MONO)==ChargeSessionStore.ChargerOff.ENDED,"No recording, nothing to pause");
     }
     /** Completed charges below 80% give the charge accepted per gauge point, catch-up included. */
     static void gaugeChargeCheck()throws Exception{
@@ -414,7 +455,7 @@ public final class ChargeSessionStoreTest {
         StringWriter resumedJson=new StringWriter();reconnected.exportJson("one",resumedJson);
         check(resumedJson.toString().contains("\"battery_percent\":54.0,\"voltage_v\":56.0,\"current_a\":-0.2,\"power_w\":-11.200000000000001,\"temperature_c\":null,\"gap_before\":true"),"First post-loss sample keeps gap and real measurements");
         check(reconnected.snapshot().sessions==1,"Transient recovery remains one journal, not a second session");
-        sustainedElectricalChanges();journals();schedulePause();
+        sustainedElectricalChanges();journals();schedulePause();chargerPause();
         System.out.println("ChargeSessionStore: "+checks+" checks passed");
     }
 }

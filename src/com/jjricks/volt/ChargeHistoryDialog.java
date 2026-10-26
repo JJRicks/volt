@@ -115,11 +115,17 @@ final class ChargeHistoryDialog {
         contents.addView(panel, new LinearLayout.LayoutParams(-1, -2));
         body.addView(scroller(contents), new LinearLayout.LayoutParams(-1, 0, 1));
     }
-    /** A Volt charging schedule held current off; the chart shows it as a gap. */
+    /** A Volt charging schedule, or the charger itself, held current off; the chart shows each as a gap. */
     private static String paused(ChargeSessionStore.HistorySession session) {
-        if (session.pauses == 0) return "";
-        long minutes = Math.round(session.pausedMs / 60000d);
-        return " · paused " + (minutes >= 60 ? minutes / 60 + " h " + minutes % 60 + " min" : minutes + " min") + " for the schedule";
+        String text = "";
+        if (session.pauses > 0) text += " · paused " + duration(session.pausedMs) + " for the schedule";
+        if (session.chargerPauses > 0)
+            text += " · charger stopped " + (session.chargerPauses == 1 ? "once" : session.chargerPauses + " times") + " (" + duration(session.chargerPausedMs) + ")";
+        return text;
+    }
+    private static String duration(long ms) {
+        long minutes = Math.round(ms / 60000d);
+        return minutes >= 60 ? minutes / 60 + " h " + minutes % 60 + " min" : minutes + " min";
     }
     private String batterySpan(ChargeSessionStore.HistorySession session) {
         Double first = null, last = null;
