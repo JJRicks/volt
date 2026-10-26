@@ -295,6 +295,24 @@ test('write confirmations fold into their command and repeated routine reads col
   s.ingest([line(`Send write command: ${frame(0x6f, [5, 1])}`, '1800000005.000'), line('sendCmd cmd=0X6F, value=0X05,0X01', '1800000005.001'),
     line('sendCmd cmd=0X6F, value=0X05,0X00', '1800000005.002'), line('sendCmd cmd=0X54, value=0X01', '1800000005.003')].join('\n'));
   assert.deepEqual(s.rows.map(x => x.text), [`Send write command: ${frame(0x6f, [5, 1])}`, 'sendCmd cmd=0X6F, value=0X05,0X00', 'sendCmd cmd=0X54, value=0X01']);
+  // Codex: a failed read and its identical retry. The retry is the one confirmed; the failed attempt stays.
+  const retry = new LogRecorder(START);
+  for (const [t, text] of [['1800000001.000', `Send read command: ${status}`], ['1800000002.000', 'Write failure: Timeout'],
+      ['1800000010.000', `Send read command: ${status}`], ['1800000010.010', `Write success: ${status}`]])
+    retry.ingest(line(text, t));
+  assert.deepEqual(retry.rows.map(x => x.text), [`Send read command: ${status}`, 'Write failure: Timeout', `Send read command: ${status} (ok)`]);
+  assert.deepEqual(retry.rows.map(x => x.time.slice(6)), ['01.000', '02.000', '10.000']);
+  // A confirmed read, then an identical read that fails: the failed repeat stays, unconfirmed.
+  const failed = new LogRecorder(START);
+  failed.ingest([line(`Send read command: ${status}`, '1800000001.000'), line(`Write success: ${status}`, '1800000001.010'),
+    line(`Send read command: ${status}`, '1800000002.000'), line('Write failure: Timeout', '1800000002.500'),
+    line(`Write success: ${status}`, '1800000003.000')].join('\n'));
+  assert.deepEqual(failed.rows.map(x => x.text), [`Send read command: ${status} (ok)`, `Send read command: ${status}`, 'Write failure: Timeout', `Write success: ${status}`]);
+  // A confirmation after a reconnect is never credited to a command from before it.
+  const reconnect = new LogRecorder(START);
+  reconnect.ingest([line(`Send write command: ${cruise}`, '1800000001.000'), line('DisConnected ([scooter])', '1800000001.500'),
+    line(`Write success: ${cruise}`, '1800000002.000')].join('\n'));
+  assert.deepEqual(reconnect.rows.map(x => x.text), [`Send write command: ${cruise}`, 'DisConnected ([scooter])', `Write success: ${cruise}`]);
   // Confirmation replaces the row object so the live list re-renders it.
   assert.equal(new Set(r.rows.map(x => x.id)).size, r.rows.length);
 });
