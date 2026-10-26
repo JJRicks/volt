@@ -42,10 +42,11 @@ const ALLOW = [
   ['scan', /^onScanStarted\b/],
   ['scan-done', /^onScanFinished, result count: \d{1,6}$/],
   ['stale', /^out date connection rejected\b/],
-  ['exo', /^\[Exo\] /],
-  ['exo-raw', new RegExp(`^Exo notify raw: ${HEX}$`)],
-  ['dg-write', /^DG write /],
-  ['dg-raw', new RegExp(`^DG notify raw: ${HEX}$`)],
+  // Exo and DG (other device families) log raw protocol payloads the 55 aa checks can't read:
+  // ExoProtocolHandler's "[Exo] type=0x70, data=[…]" carries the serial, and DgEBikeDevicePort
+  // logs "DG write auth: […]". Only their fixed status messages are kept.
+  ['exo-reconnect', /^\[Exo\] reconect after passive disconnect$/],
+  ['dg-write', /^DG write (?:ok: [A-Za-z_]{1,32}|fail \([A-Za-z_]{1,32}\): [^[\]]{1,200})$/], // the failure text is an exception message, never a payload
   ['dg-notify', /^DG notify (?:success$|fail: )/],
   ['dg-session', /^DG session -> \w{1,64}$/],
   ['dg-connect', /^DG (?:connect success|connect fail|disconnected)\b/],
@@ -93,10 +94,19 @@ function anonymize(kind, text) {
     default: return text;
   }
 }
+// Bytes Volt can't read are never sent: every bracketed byte group must be a
+// well-formed, non-sensitive NAVEE frame (55 aa … fe fd with a valid checksum).
+function opaqueBytes(text) {
+  for (const group of text.matchAll(/\[([0-9a-f]{2}(?:[ ,:-]+[0-9a-f]{2})*)\]/gi)) {
+    const frame = decodeFrame(group[1].split(/[ ,:-]+/).map(x => parseInt(x, 16)));
+    if (!frame || SENSITIVE.has(frame.cmd)) return true;
+  }
+  return false;
+}
 // Final check applied to every row, kept or user-written, before display or send.
 export function safeText(text) {
   return typeof text === 'string' && /^[\x20-\x7e]{1,600}$/.test(text) && !hasSecret(text) &&
-    !new RegExp(MAC.source, 'i').test(text) && !personal(text);
+    !new RegExp(MAC.source, 'i').test(text) && !personal(text) && !opaqueBytes(text);
 }
 export function hexBytes(text) {
   const match = /\[([0-9a-f]{2}(?: [0-9a-f]{2})*)\]/i.exec(text);

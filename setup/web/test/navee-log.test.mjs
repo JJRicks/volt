@@ -53,12 +53,9 @@ test('every allowlisted NAVEE Bluetooth/device message shape is kept', () => {
     ['onScanStarted, b: true', 'onScanStarted, b: true'],
     ['onScanFinished, result count: 3', 'onScanFinished, result count: 3'],
     ['out date connection rejected: C0:FF:EE:12:34:56 (target=AA:BB:CC:DD:EE:FF)', 'out date connection rejected: [scooter] (target=[scooter])'],
-    ['[Exo] connect success, mac=C0:FF:EE:12:34:56', '[Exo] connect success, mac=[MAC]'],
-    [`Exo notify raw: ${frame(0x40, [1, 2])}`, `Exo notify raw: ${frame(0x40, [1, 2])}`],
-    ['DG write light: [aa 01 02]', 'DG write light: [aa 01 02]'],
+    ['[Exo] reconect after passive disconnect', '[Exo] reconect after passive disconnect'],
     ['DG write ok: light', 'DG write ok: light'],
     ['DG write fail (light): Timeout', 'DG write fail (light): Timeout'],
-    ['DG notify raw: [aa 10 20]', 'DG notify raw: [aa 10 20]'],
     ['DG notify success', 'DG notify success'],
     ['DG notify fail: Gatt error', 'DG notify fail: Gatt error'],
     ['DG session -> AUTHENTICATED', 'DG session -> AUTHENTICATED'],
@@ -82,6 +79,18 @@ test('network, account, payment, download, unknown and notify-description rows a
     '', 'Notify success extra', 'setMTUSuccess: mtu = 247 more', 'sendCmd cmd=0X52, value=1', 'Send write command: 55 aa 00 52 01 01 a9 fe fd',
     'refreshLockStatus one', 'DG session -> two words'])
     assert.equal(kept(message), null, message);
+});
+test('Exo and DG raw payload rows are hidden: they can carry a serial or authentication bytes', () => {
+  // ExoProtocolHandler.v() logs type=0x70 data whose first 14 bytes F() decodes as the serial (synthetic X1234567890123).
+  const serial = hex([...'X1234567890123'].map(c => c.charCodeAt(0)).concat([0, 1, 2]));
+  for (const message of [`[Exo] type=0x70, data=${serial}, len=47`, '[Exo] connect success, mac=C0:FF:EE:12:34:56', '[Exo] tx [01 02 03]',
+    `Exo notify raw: ${frame(0x40, [1, 2])}`, `Exo notify raw: ${serial}`, 'DG write auth: [a5 5a 10 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d]',
+    'DG write light: [aa 01 02]', 'DG notify raw: [aa 10 20]', `DG notify raw: ${serial}`, 'DG write ok: [01 02]', 'DG write fail (auth): [01 02]x'.replace('x', ''),
+    'DG write ok: light extra'])
+    assert.equal(kept(message), null, message);
+  // Their fixed status rows stay.
+  assert.equal(kept('DG write ok: auth'), 'DG write ok: auth');
+  assert.equal(kept('DG write fail (auth): Timeout'), 'DG write fail (auth): Timeout');
 });
 test('only well-formed NAVEE frames are kept in frame rows', () => {
   const good = bytes(0x52, [1]);
@@ -114,26 +123,29 @@ test('owner auth, encrypted data, PIN write and PIN read frames are dropped in e
   assert.equal(kept(`Send write command: ${frame(0x52, [0x30])}`), `Send write command: ${frame(0x52, [0x30])}`);
 });
 test('MACs, scooter identifiers and serials are redacted; emails and phone numbers drop the row', () => {
-  assert.equal(kept('[Exo] link C0:FF:EE:12:34:56 and c0-ff-ee-12-34-57 via C0FFEE123458'), '[Exo] link [MAC] and [MAC] via [MAC]');
-  assert.equal(kept('[Exo] serial N2546ZZ9US1234567 ok'), '[Exo] serial [serial] ok');
-  assert.equal(kept('[Exo] sn=X2538SYNTHETIC0042, other n2546zz9us7654321'), '[Exo] sn=[serial], other [serial]');
+  assert.equal(kept('Write failure: link C0:FF:EE:12:34:56 and c0-ff-ee-12-34-57 via C0FFEE123458'), 'Write failure: link [MAC] and [MAC] via [MAC]');
+  assert.equal(kept('Write failure: serial N2546ZZ9US1234567 ok'), 'Write failure: serial [serial] ok');
+  assert.equal(kept('Write failure: sn=X2538SYNTHETIC0042, other n2546zz9us7654321'), 'Write failure: sn=[serial], other [serial]');
   assert.equal(kept('Connect success (N2546ZZ9US1234567)'), 'Connect success ([scooter])');
   // Long words without digits are not serials.
-  assert.equal(kept('[Exo] onCharacteristicChanged notification'), '[Exo] onCharacteristicChanged notification');
-  for (const message of ['[Exo] owner rider@example.com', 'Write failure: mail a.b+c@mail.example.org', '[Exo] call +1 (555) 123-4567',
-    'DG write fail (x): 5551234567', '[Exo] 555.123.4567', 'Notify failure: 0044 20 7946 0958'])
+  assert.equal(kept('Write failure: onCharacteristicChanged notification'), 'Write failure: onCharacteristicChanged notification');
+  for (const message of ['Write failure: owner rider@example.com', 'Write failure: mail a.b+c@mail.example.org', 'Write failure: call +1 (555) 123-4567',
+    'DG write fail (x): 5551234567', 'Write failure: 555.123.4567', 'Notify failure: 0044 20 7946 0958'])
     assert.equal(kept(message), null, message);
   // Hex bytes that happen to be decimal digits are not phone numbers.
   const clock = frame(0x6f, [6, 0x12, 0x34, 0x56, 0x78]);
   assert.equal(kept(`Send write command: ${clock}`), `Send write command: ${clock}`);
-  assert.equal(kept('DG notify raw: [12 34 56 78 90 12 34 56 78]'), 'DG notify raw: [12 34 56 78 90 12 34 56 78]');
+  assert.equal(kept(`Write failure: ${frame(0x52, [0x12, 0x34, 0x56, 0x78, 0x90])}`), `Write failure: ${frame(0x52, [0x12, 0x34, 0x56, 0x78, 0x90])}`);
+  // Bytes that aren't a NAVEE frame are opaque, so the row is hidden.
+  for (const message of ['Write failure: [12 34 56 78 90 12 34 56 78]', 'Notify failure: data=[58 31 32 33]', 'Write failure: [55 aa 00 52 01 01 00 fe fd]'])
+    assert.equal(kept(message), null, message);
 });
 test('rows are bounded printable ASCII and oversize input is hidden', () => {
-  const long = kept(`[Exo] ${'x'.repeat(2000)}`);
+  const long = kept(`Write failure: ${'x'.repeat(2000)}`);
   assert.equal(long.length, LIMITS.text); assert(long.endsWith('...'));
-  assert.equal(kept(`[Exo] ${'x'.repeat(9000)}`), null);
-  assert.equal(kept('[Exo] 状态 ok\tnext'), '[Exo] ?? ok next');
-  assert.equal(kept('[Exo] bell\u0007 here'), '[Exo] bell? here');
+  assert.equal(kept(`Write failure: ${'x'.repeat(9000)}`), null);
+  assert.equal(kept('Write failure: 状态 ok\tnext'), 'Write failure: ?? ok next');
+  assert.equal(kept('Write failure: bell\u0007 here'), 'Write failure: bell? here');
   assert.equal(classify(undefined), null);
 });
 test('frames decode and annotate in plain English where Volt knows the command', () => {
@@ -202,7 +214,7 @@ test('recorder stops at 3000 rows or its byte budget', () => {
   r.ingest(many);
   assert.equal(r.rows.length, LIMITS.rows); assert.equal(r.full, true);
   const big = new LogRecorder(START);
-  big.ingest(Array.from({ length: 600 }, (_, i) => line(`[Exo] ${'y'.repeat(500)}`, `1800000100.${String(i).padStart(3, '0')}`)).join('\n'));
+  big.ingest(Array.from({ length: 600 }, (_, i) => line(`Write failure: ${'y'.repeat(500)}`, `1800000100.${String(i).padStart(3, '0')}`)).join('\n'));
   assert.equal(big.full, true); assert(big.bytes <= ROW_BUDGET); assert(big.rows.length < 600);
   assert.throws(() => big.addNote('1800000200.000', 'late'), { code: 'full' });
 });
@@ -246,7 +258,7 @@ test('submission is the exact server format and refuses anything out of bounds',
     assert.throws(() => submission({ ...base(r), ...change }), { code: 'invalid' }, Object.keys(change).join());
   // The whole body stays under 256 KB even with the longest description and contact.
   const full = new LogRecorder(START);
-  full.ingest(Array.from({ length: 3000 }, (_, i) => line(`[Exo] ${'z'.repeat(300)}`, `1800000100.${String(i).padStart(3, '0')}`)).join('\n'));
+  full.ingest(Array.from({ length: 3000 }, (_, i) => line(`Write failure: ${'z'.repeat(300)}`, `1800000100.${String(i).padStart(3, '0')}`)).join('\n'));
   const longest = submission({ ...base(full), description: '“'.repeat(4000), contact: '"'.repeat(240), hidden: full.hidden, rows: full.rows });
   assert(new TextEncoder().encode(longest).length <= LIMITS.body);
 });

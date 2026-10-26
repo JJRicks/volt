@@ -275,8 +275,10 @@ are never displayed, stored, logged or sent. A row is kept only if its message
 (after NAVEE's `[thread] Class.method: ` prefix) matches an allowlist of NAVEE
 2.1.x Bluetooth/device-control messages (`Send write/read command`, `Write
 success/failure`, notify/MTU/reconnect, `sendCmd`, `sendAmbientCmd`, connect,
-disconnect and bond rows, lock status, scans, `[Exo]`/`Exo notify raw`, the DG
-rows). Frame rows must be well-formed `55 aa … fe fd` frames with a valid
+disconnect and bond rows, lock status, scans, and the fixed Exo/DG status rows).
+Exo and DG raw payload rows (`[Exo] type=…, data=[…]`, `Exo notify raw`, `DG write
+<label>: […]`, `DG notify raw`) are hidden: they can carry a serial or authentication
+bytes that the `55 aa` checks cannot read. Frame rows must be well-formed `55 aa … fe fd` frames with a valid
 checksum. BleHandler's notify-description rows are **not** kept: NAVEE logs them
 as a Chinese description followed by separate `Error`/`Update Data`/`CheckSum`
 rows whose payload carries no command byte, and some describe serial or PIN reads.
