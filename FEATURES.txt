@@ -1,11 +1,14 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.8.0 (versionCode 49)
+Current version: 1.8.1 (versionCode 50)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
 headlight and auto light sensor. Its other mapped controls remain untested.
 Owner-reported: GT5 Max, model 25462 (EU): cruise control works in use (the
 official app hides it there by region). Its other mapped controls remain untested.
+Owner-tested: ST3 Pro, model 23452 (EU, meter 2.0.4.6): dashboard units, turn signal
+sound and range estimate (changed, read back, seen, restored) and traction control
+(three tries, seen twice; not in the official app's map there).
 See VERIFICATION.txt for dated checks and the exact physical test scope.
 
 The app talks directly to the scooter over Bluetooth. Optional map tiles and
@@ -22,7 +25,16 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.8.0
+NEW IN 1.8.1
+------------
+- ST3 Pro: traction control is an ordinary, verified control (owners' tries
+  confirmed it; the official app doesn't map it there), and dashboard units,
+  turn signal sound and range estimate are verified, so they no longer say
+  Untested here.
+- When your scooter refuses an Experimental controls try, its sheet says it most
+  likely doesn't support that setting, and the button reads Try again.
+
+PREVIOUSLY IN 1.8.0
 ------------
 - Diagnostics in report emails: Report an issue and the checker's Email to Volt
   end on a short Email Volt sheet. Include diagnostics (ticked unless you unticked
