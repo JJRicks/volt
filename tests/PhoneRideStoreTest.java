@@ -205,6 +205,27 @@ public final class PhoneRideStoreTest {
             check(
                     !gpsHeight.toGpx().contains("<ele>"),
                     "Ellipsoid height not mislabeled as GPX sea-level elevation");
+            // A 15 s GPS dropout (a tunnel) while climbing 0.1 m/s: elevation carries on from the ride's start, not 0.
+            for (boolean barometer : new boolean[]{true, false}) {
+                String id = barometer ? "tunnel-barometer" : "tunnel-gps";
+                store.start(id, 1700000000000L, 1000, "pocket");
+                StringBuilder tunnel = new StringBuilder();
+                for (int i = 0; i <= 60; i++) {
+                    long mono = 1000 + i * 1000;
+                    double height = i * .1;
+                    if (barometer)
+                        tunnel.append(PhoneRideStore.row("PRESSURE", 1700000000000L + mono, mono, 900 * Math.pow(1 - height / 44330, 1 / 0.190294957)));
+                    if (i < 20 || i >= 35)
+                        tunnel.append(gps(mono, 43.82 + i * 5 / 111194.9266, 3, 5, .2, 1500 + height, 2.0));
+                }
+                store.appendBatch(id, tunnel.toString(), "");
+                PhoneRideStore.Track track = store.load(id);
+                PhoneRideStore.Point after = track.points.get(20);
+                check(track.locationCount == 46 && after.gapBefore, id + ": the dropout splits the route");
+                check((barometer ? "barometer" : "GPS").equals(after.elevationSource), id + ": elevation source");
+                near(3.5, after.relativeAltitudeM, barometer ? .5 : .01, id + ": elevation after the dropout keeps the ride's baseline");
+                near(6, track.points.get(45).relativeAltitudeM, barometer ? .5 : .01, id + ": elevation at the end");
+            }
             store.start("uncertain-speed", 1700000000000L, 1000, "pocket");
             store.appendBatch(
                     "uncertain-speed",
