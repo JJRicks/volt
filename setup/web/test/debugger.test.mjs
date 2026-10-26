@@ -33,7 +33,7 @@ function node(id = '', tag = 'div') {
     append(...nodes) { this.children.push(...nodes); }, replaceChildren(...nodes) { this.children = nodes; },
     focus() {}, click() { this.listeners.click?.(); } };
 }
-function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } } } = {}) {
+function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } }, logs = LOGS } = {}) {
   const elements = new Map(), phones = [], sessions = [], events = [], fetches = [], blobs = [], windowEvents = {};
   for (const [, id] of html.matchAll(/id="([^"]+)"/g)) elements.set(id, node(id));
   const fixture = { mode, pending: false, nextSerial: 'same-phone', reply, duringRecording: null,
@@ -46,7 +46,7 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
       constructor({ serial, onRecord, update }) { Object.assign(this, { serial, onRecord, update, safe: false, result: null, busy: false, stopped: false }); sessions.push(this); }
       async begin() {
         this.busy = true; this.update('preparing'); this.update('recording');
-        this.recorder = new fixture.LogRecorder(START); this.recorder.ingest(LOGS); this.onRecord(this.recorder);
+        this.recorder = new fixture.LogRecorder(START); this.recorder.ingest(logs); this.onRecord(this.recorder);
         await fixture.duringRecording?.(this);
         this.update('cleaning'); this.busy = false;
         this.safe = fixture.mode !== 'unsafe-failure'; fixture.pending = !this.safe;
@@ -84,9 +84,10 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
     $('usb-consent').checked = true; $('usb-consent').listeners.change(); await click('connect');
   }
   async function record() { await toRecord(); $('record-consent').checked = true; await click('start'); }
+  const flat = node => typeof node === 'string' ? node : node.children.length ? node.children.map(flat).join('') : node.textContent;
   const visible = () => [...elements.values()].filter(e => e.id.endsWith('-panel') || e.id === 'recovery').filter(e => !e.hidden).map(e => e.id);
   const rowsOf = id => $(id).children.map(li => li.children[1].textContent);
-  return { fixture, elements, phones, sessions, events, fetches, blobs, windowEvents, $, click, type, toRecord, record, visible, rowsOf };
+  return { flat, fixture, elements, phones, sessions, events, fetches, blobs, windowEvents, $, click, type, toRecord, record, visible, rowsOf };
 }
 
 test('the problem step needs a model and description; the model list is Volt’s', () => {
@@ -113,7 +114,10 @@ test('verified recording closes USB, then sends exactly the reviewed lines', asy
   assert.deepEqual(f.events, ['cleaned', 'close']);
   assert.deepEqual(f.visible(), ['review-panel']);
   assert.equal(f.$('sum-navee').textContent, '2.1.9'); assert.equal(f.$('sum-phone').textContent, 'Pixel 9');
-  assert.equal(f.$('review-rows').children[0].children[2].textContent, '0x52 Cruise control = 1');
+  const reading = f.$('review-rows').children[0].children[2];
+  assert.deepEqual([reading.children[0].textContent, reading.children[0].className, f.flat(reading.children[1])], ['Known', 'tag known', 'Cruise control → On']);
+  assert.equal(f.flat(f.$('known-summary')), '1 known command');
+  assert.equal(f.$('unknowns').hidden, true); assert.equal(f.$('summary-line').hidden, true);
   assert.equal(f.$('send').disabled, true);
   await f.click('send'); assert.equal(f.fetches.length, 0);
   // Delete the second line; it must not be sent.
@@ -209,4 +213,71 @@ test('leaving with an unsent capture asks first; page exit discards it', async (
   f.windowEvents.pagehide();
   const after = { preventDefault() { this.prevented = true; } };
   f.windowEvents.beforeunload(after); assert.equal(after.prevented, undefined);
+});
+
+const UNKNOWN_LOGS = [line(`Send write command: ${frame(0xa4, [1])}`, '1800000004.000'), line(`Write success: ${frame(0xa4, [1])}`, '1800000004.010'),
+  line(`Send write command: ${frame(0x53, [45])}`, '1800000005.000'), line(`Send write command: ${frame(0xa4, [1])}`, '1800000006.000'),
+  line(`Send write command: ${frame(0x6d, [4, 7, 1])}`, '1800000007.000'), line(`Send write command: ${frame(0x52, [1])}`, '1800000008.000'),
+  line('Send read command: [55 aa 00 70 6f fe fd]', '1800000009.000'), line(`Send write command: ${frame(0x6f, [6, 0x6b, 0x45, 0xa6, 0x20])}`, '1800000009.500')].join('\n');
+test('unknown commands ask what changed, one card at a time, while recording continues', async () => {
+  const f = fixture({ logs: UNKNOWN_LOGS });
+  let card;
+  f.fixture.duringRecording = () => {
+    // First unknown shows; the other two wait. Reads, known commands and NAVEE's clock sync never ask.
+    card = [f.$('ask').hidden, f.$('ask-tag').textContent, f.$('ask-reading').textContent, f.$('ask-queue').textContent];
+    assert.match(f.$('ask-announce').textContent, /hasn’t seen this before: 0xa4 = 1/);
+    f.$('ask-text').value = 'call me on 555 123 4567';
+    f.$('ask').listeners.submit({ preventDefault() {} });
+    assert.equal(f.$('ask-error').hidden, false); assert.match(f.$('ask-error').textContent, /phone numbers/);
+    assert.equal(f.$('ask-reading').textContent, '0xa4 = 1');
+    f.$('ask-text').value = 'rainbow mode';
+    f.$('ask').listeners.submit({ preventDefault() {} });
+    assert.deepEqual([f.$('ask-tag').textContent, f.$('ask-reading').textContent, f.$('ask-queue').textContent], ['New value', 'Energy recovery = 45', '1 more waiting.']);
+    f.$('ask-text').listeners.keydown({ key: 'Escape', preventDefault() {} }); // Skip
+    assert.equal(f.$('ask-reading').textContent, '0x6d:04:07 = 1');
+    f.click('ask-skip');
+    assert.equal(f.$('ask').hidden, true);
+    // The answer sits right after the first 0xa4 row in the live list.
+    assert.deepEqual(f.rowsOf('live-rows').slice(0, 2), [`Send write command: ${frame(0xa4, [1])} (ok)`, '[you said] 0xa4 = 1: rainbow mode']);
+    assert.equal(f.$('live-rows').children[1].className, 'note answer');
+    assert.equal(f.$('knows-live-seen').textContent, '· 4 seen in this capture');
+  };
+  await f.record();
+  assert.deepEqual(card, [false, 'New to Volt', '0xa4 = 1', '2 more waiting.']);
+  assert.deepEqual(f.visible(), ['review-panel']); assert.equal(f.$('ask').hidden, true);
+  assert.equal(f.flat(f.$('known-summary')), '2 known commands · 2 new: 0xa4 (sent twice), 0x6d:04:07 (sent once) · 1 new value: Energy recovery = 45 · 1 routine read');
+  const badges = f.$('review-rows').children.filter(li => li.children[2]?.className === 'reading').map(li => li.children[2].children[0].textContent);
+  assert.deepEqual(badges, ['New to Volt', 'New value', 'New to Volt', 'New to Volt', 'Known', 'Read', 'Known']);
+  // Skipped questions wait on the review screen; a typed draft survives re-renders.
+  assert.equal(f.$('unknowns').hidden, false);
+  const forms = () => f.$('unknown-list').children.map(li => li.children[0]);
+  assert.deepEqual(forms().map(form => form.children[0].children[2].textContent), ['Energy recovery = 45', '0x6d:04:07 = 1']);
+  const input = forms()[1].children[2].children[0];
+  input.value = 'star lights strobe'; input.listeners.input();
+  f.$('send-consent').checked = true; f.$('send-consent').listeners.change();
+  assert.equal(forms()[1].children[2].children[0].value, 'star lights strobe');
+  forms()[1].listeners.submit({ preventDefault() {} });
+  assert.deepEqual(forms().map(form => form.children[0].children[2].textContent), ['Energy recovery = 45']);
+  assert(f.rowsOf('review-rows').includes('[you said] 0x6d:04:07 = 1: star lights strobe'));
+  const summary = 'New to Volt: 0xa4 x2 [you said: rainbow mode], 0x6d:04:07 x1 [you said: star lights strobe]; New values: 0x53 Energy recovery=45 x1; Known: 2 commands, 1 read';
+  assert.equal(f.$('summary-sent').textContent, summary); assert.equal(f.$('summary-line').hidden, false);
+  await f.click('send');
+  const sent = JSON.parse(f.fetches[0].options.body);
+  assert.equal(sent.summary, summary);
+  assert.deepEqual(Object.keys(sent), ['format', 'model', 'description', 'contact', 'navee_version', 'android', 'phone', 'started_at', 'duration_s', 'hidden_rows', 'rows', 'summary']);
+  assert.equal(sent.rows[1], '08:00:04.000 [you said] 0xa4 = 1: rainbow mode');
+});
+test('"What Volt knows" lists the whole database by group and marks what this capture saw', async () => {
+  const f = fixture({ logs: UNKNOWN_LOGS });
+  await f.record();
+  const body = f.$('knows-review-body').children;
+  assert.deepEqual(body.filter(node => node.tag === 'h3').map(h => h.textContent), ['Ride', 'Lights & sound', 'Battery', 'Security', 'Preferences', 'Reads & clock sync']);
+  const items = body.filter(node => node.tag === 'ul').flatMap(list => list.children);
+  const energy = items.find(item => item.children[0].textContent === 'Energy recovery');
+  assert.deepEqual(energy.children.map(node => node.textContent), ['Energy recovery', '0x53', '0 = Off · 30 = Low · 60 = Medium · 90 = High', 'Seen once']);
+  const cap = items.find(item => item.children[0].textContent === 'Custom speed cap');
+  assert.deepEqual(cap.children.slice(1, 3).map(node => node.textContent), ['0x6b', 'Off, or 8–32 km/h']);
+  assert.equal(cap.children[3].hidden, true);
+  assert.equal(f.$('knows-review-seen').textContent, '· 4 seen in this capture');
+  assert.equal(f.$('knows-review').open, false);
 });

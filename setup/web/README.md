@@ -298,12 +298,28 @@ Bond rows to `[scooter]`, serial-like tokens to `[serial]`. Kept rows are printa
 ASCII, at most 512 characters, at most 3000 rows and a byte budget that keeps the
 request under 256 KB. Everything else is only counted ("N other NAVEE log lines
 were hidden"). User notes (≤ 200 characters, `[note] …`) pass the same rules.
-Annotations (`0x52 Cruise control = 1`, from `src/navee-commands.js`, checked
-against `ScooterCommands.java`) are display-only and not sent.
+Readings (`Cruise control → On`) are display-only and not sent.
+
+**Known commands.** `src/navee-commands.js` is Volt's command database: every control in
+`ScooterCommands.java`, the reads `Protocol.java` names (0x70–0x7b, except the PIN read) and
+NAVEE's 0x6f/06 clock sync, keyed `cmd`, `cmd:selector` or `cmd:selector:sub`, with name, group,
+kind and known values (labels describe Volt's UT5 MAX layer; other models can differ). The test
+expands the Java catalogue and fails on any opcode, selector, name, group, range or option
+mismatch. Each kept frame or `sendCmd` row is classified (`recognize()`, pure): **Known**
+(plain-English reading), **New value** (known command, value outside Volt's domain), **New to
+Volt** (no entry, e.g. `0xa4` or `0x6d:04:07`) or **Read**; reads and the clock sync never ask
+anything. Rows show a text badge plus the reading. While recording, each new command/value
+raises one non-blocking card at a time ("What did you just change in NAVEE?", Save/Skip,
+queued); an answer is a `[you said] <reading>: <text>` row inserted right after the first such
+row, under the note rules. Review shows a one-line tally, any unanswered new rows with their own
+answer box, and a collapsible "What Volt knows" reference that marks what this capture saw.
 
 **Submission.** One `fetch` to `https://volt.jjricks.com/debugger/submit` with
 `credentials: 'omit'`, `cache: 'no-store'`, `redirect: 'error'` and the
-`volt-navee-capture-v1` JSON body built and re-validated by `submission()`. The
+`volt-navee-capture-v1` JSON body built and re-validated by `submission()`. When something is
+new it adds an optional `summary` (≤ 2000 printable ASCII, built from the kept rows only and held
+to the row checks, e.g. `New to Volt: 0xa4 x3 [you said: rainbow mode]; New values: 0x53 Energy
+recovery=45 x1; Known: 18 commands, 4 reads`); otherwise the field is omitted. The review shows it. The
 server's reference ID is shown; rate limits (429), refusals and network errors keep
 the capture for another try. Only the server's short printable `error` text is shown.
 

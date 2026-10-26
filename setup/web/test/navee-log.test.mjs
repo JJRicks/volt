@@ -1,8 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, classify, clock, decodeFrame, logcatCommand, noteText, safeText, submission } from '../src/navee-log.js';
-import { COMMANDS, SENSITIVE } from '../src/navee-commands.js';
+import { LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, answerText, askable, classify, clock, decodeFrame, logcatCommand, noteText, recognize, safeSummary, safeText, submission, summaryText, tally } from '../src/navee-log.js';
+import { COMMANDS, GROUPS, SENSITIVE, describe } from '../src/navee-commands.js';
 import { frame as authFrame } from './fixtures.mjs';
 import { START, bytes, frame, hex, line } from './navee-fixtures.mjs';
 
@@ -152,36 +152,174 @@ test('frames decode and annotate in plain English where Volt knows the command',
   assert.deepEqual(decodeFrame(bytes(0x52, [1])), { flag: 0, cmd: 0x52, read: false, payload: [1] });
   assert.deepEqual(decodeFrame(bytes(0x70, [], 0, true)), { flag: 0, cmd: 0x70, read: true, payload: [] });
   assert.equal(decodeFrame(bytes(0x52, [1]).slice(1)), null);
-  assert.equal(annotate(`Send write command: ${frame(0x52, [1])}`), '0x52 Cruise control = 1');
-  assert.equal(annotate(`Write success: ${frame(0x6d, [4, 2, 1])}`), '0x6d Line lights color = 1');
-  assert.equal(annotate(`Write success: ${frame(0x6d, [1, 2])}`), '0x6d Ambient light = 2');
-  assert.equal(annotate(`Send write command: ${frame(0x6f, [4, 90])}`), '0x6f Charge ceiling = 90');
+  assert.equal(annotate(`Send write command: ${frame(0x52, [1])}`), 'Cruise control → On');
+  assert.equal(annotate(`Write success: ${frame(0x6d, [4, 2, 1])}`), 'Line lights color → Red');
+  assert.equal(annotate(`Write success: ${frame(0x6d, [1, 2])}`), 'Ambient light → Follow headlight');
+  assert.equal(annotate(`Send write command: ${frame(0x6f, [4, 90])}`), 'Charge ceiling → 90%');
   assert.equal(annotate(`Send write command: ${frame(0x5e, [1, 3, 5, 2])}`), '0x5e = 1, 3, 5, 2');
-  assert.equal(annotate(`Send read command: ${hex(bytes(0x70, [], 0, true))}`), 'read 0x70 Settings readback');
-  assert.equal(annotate(`Send read command: ${hex(bytes(0x73, [], 0, true))}`), 'read 0x73');
-  assert.equal(annotate('sendCmd cmd=0X57, value=0X01'), 'Automatic lights');
+  assert.equal(annotate(`Send read command: ${hex(bytes(0x70, [], 0, true))}`), 'Read vehicle status');
+  assert.equal(annotate(`Send read command: ${hex(bytes(0x73, [], 0, true))} (ok)`), 'Read firmware version');
+  assert.equal(annotate('sendCmd cmd=0X57, value=0X01'), 'Automatic lights → On');
   assert.equal(annotate('Notify success'), '');
+  // A failure row or a note quoting a frame is not a command row.
+  assert.equal(annotate(`Write failure: ${frame(0x52, [1])}`), '');
+  assert.equal(recognize(`[note] ${frame(0x52, [1])}`), null);
 });
-test('command names and opcodes match ScooterCommands.java; models match ModelRegistry KNOWN', async () => {
-  const java = await readFile(new URL('../../../src/com/jjricks/volt/ScooterCommands.java', import.meta.url), 'utf8');
-  const statements = java.split(/\);\s*\n/);
-  assert.match(java, /sensitiveCommand\(int cmd\) \{ return cmd==0x30 \|\| cmd==0x31 \|\| cmd==0x63 \|\| cmd==0x7a; \}/);
-  for (const [key, label] of Object.entries(COMMANDS)) {
-    const [cmd, selector, sub] = key.split(':').map(x => parseInt(x, 16));
-    if (key === '70') { assert.match(java, /readbackCmd = sensitive \? 0x7a : 0x70/); continue; }
-    if (key === '6f:06') { assert.match(java, /setClock[\s\S]*localTime\(6,/); continue; }
-    if (sub !== undefined) {
-      const [, base, kind] = /^(Line|Star) lights(?: (.*))?$/.exec(label);
-      assert.match(java, new RegExp(`lightCatalog\\("${base.toLowerCase()}",${selector},`));
-      assert.equal(['', 'pattern', 'color', 'Boost color'].indexOf(kind || ''), sub);
-      assert.match(java, /new int\[\]\{target,0\}[\s\S]*new int\[\]\{target,1\}[\s\S]*new int\[\]\{target,2\}[\s\S]*new int\[\]\{target,3\}/);
-      continue;
-    }
-    if (cmd === 0x6d) { assert.match(java, new RegExp(`oemOnlyLight\\("\\w+","${label}",${selector},`)); continue; }
-    const found = statements.find(s => s.includes(`"${label}"`) && new RegExp(`0x${cmd.toString(16).padStart(2, '0')}\\b`).test(s) &&
-      (selector === undefined || s.includes(`new int[]{${selector}}`)));
-    assert(found, `${key} ${label}`);
+// Real UT5 MAX write sequence (values as captured; clock bytes synthetic): every one is known.
+const UT5 = [
+  [0x51, [1], 'Electronic lock → On'], [0x51, [0], 'Electronic lock → Off'], [0x53, [60], 'Energy recovery → Medium'], [0x53, [90], 'Energy recovery → High'],
+  [0x55, [1], 'Dashboard units → Kilometers / km/h'], [0x55, [0], 'Dashboard units → Miles / mph'], [0x52, [1], 'Cruise control → On'], [0x52, [0], 'Cruise control → Off'],
+  [0x54, [1], 'Tail light → On'], [0x57, [0], 'Automatic lights → Off'], [0x57, [1], 'Automatic lights → On'], [0x6f, [5, 1], 'Low Battery Mode → On'],
+  [0x6f, [5, 0], 'Low Battery Mode → Off'], [0x6f, [4, 95], 'Charge ceiling → 95%'], [0x6f, [4, 80], 'Charge ceiling → 80%'], [0x6f, [4, 100], 'Charge ceiling → 100%'],
+  [0x6a, [3], 'Kick-start speed → 3 km/h'], [0x6a, [0], 'Kick-start speed → 0 km/h'], [0x5f, [1], 'Traction control → On'], [0x5f, [0], 'Traction control → Off'],
+  [0x81, [1, 1], 'Walk Assist → On'], [0x81, [1, 0], 'Walk Assist → Off'], [0x81, [3, 1], 'Hill descent control → On'], [0x81, [3, 0], 'Hill descent control → Off'],
+  [0x6f, [1, 1], 'Scheduled charging → On'], [0x6f, [1, 0], 'Scheduled charging → Off'],
+  // 2027-01-15 02:00 and 14:05:30 local wall clock, as WireCommands.localTime encodes them.
+  [0x6f, [3, 0x6b, 0x49, 0x7d, 0xa0], 'Charging start time → 02:00'], [0x6f, [6, 0x6b, 0x4a, 0x27, 0xaa], 'Clock sync → 14:05']
+];
+test('a real UT5 MAX capture classifies every write as known, with the right reading', () => {
+  const r = new LogRecorder(START), lines = [];
+  let ms = 1000;
+  const at = () => `1800000${String(Math.floor(ms / 1000)).padStart(3, '0')}.${String(ms++ % 1000).padStart(3, '0')}`;
+  for (const cmd of [0x70, 0x73, 0x74, 0x7b]) { const read = hex(bytes(cmd, [], 0, true)); lines.push(line(`Send read command: ${read}`, at()), line(`Write success: ${read}`, at())); }
+  for (const [cmd, payload] of UT5) {
+    lines.push(line(`Send write command: ${frame(cmd, payload)}`, at()), line(`Write success: ${frame(cmd, payload)}`, at()),
+      line(`sendCmd cmd=0X${cmd.toString(16).toUpperCase()}, value=${payload.map(b => `0X${b.toString(16).toUpperCase().padStart(2, '0')}`).join(',')}`, at()));
+    ms += 900;
   }
+  r.ingest(lines.join('\n'));
+  const infos = r.rows.map(row => recognize(row.text));
+  assert.deepEqual(infos.slice(0, 4).map(info => [info.status, info.reading]), [['read', 'Read vehicle status'], ['read', 'Read firmware version'], ['read', 'Read serial number'], ['read', 'Read fault codes']]);
+  assert.deepEqual(infos.slice(4).map(info => [info.status, info.reading]), UT5.map(([, , reading]) => ['known', reading]));
+  assert.deepEqual(r.rows.slice(4).map(row => row.annotation), UT5.map(([, , reading]) => reading));
+  assert.equal(infos.at(-1).routine, true);
+  assert(!infos.some(askable));
+  const t = tally(r.rows);
+  assert.deepEqual([t.known, t.reads, t.news, t.values], [UT5.length, 4, [], []]);
+  // Nothing new: no summary, and the body is exactly today's format.
+  assert.equal(summaryText(r.rows), '');
+  assert(!('summary' in JSON.parse(submission({ ...base(r), rows: r.rows }))));
+});
+test('unknown commands are new, unknown values of known commands are new values', () => {
+  const info = (cmd, payload, read = false) => describe(cmd, payload, read);
+  assert.deepEqual(['status', 'key', 'reading', 'sig'].map(k => info(0xa4, [1])[k]), ['new', 'a4', '0xa4 = 1', 'a4=1']);
+  assert.deepEqual(['status', 'key', 'reading'].map(k => info(0x6d, [4, 7, 1])[k]), ['new', '6d:04:07', '0x6d:04:07 = 1']);
+  assert.deepEqual(['status', 'key', 'reading'].map(k => info(0x6d, [9, 1])[k]), ['new', '6d:09', '0x6d:09 = 1']);
+  assert.deepEqual(['status', 'key', 'reading'].map(k => info(0x6f, [8, 1])[k]), ['new', '6f:08', '0x6f:08 = 1']);
+  assert.deepEqual(['status', 'name', 'reading', 'sig'].map(k => info(0x53, [45])[k]), ['new-value', 'Energy recovery', 'Energy recovery = 45', '53=45']);
+  for (const [cmd, payload, reading] of [[0x52, [2], 'Cruise control = 2'], [0x52, [1, 1], 'Cruise control = 1, 1'], [0x6f, [4, 77], 'Charge ceiling = 77'],
+    [0x6d, [4, 2, 3], 'Line lights color = 3'], [0x6a, [6], 'Kick-start speed = 6'], [0x6b, [0x85], 'Custom speed cap = 133'], [0x6b, [20], 'Custom speed cap = 20'],
+    [0x6f, [3, 0, 0, 0, 0], 'Charging start time = 0, 0, 0, 0'], [0x6f, [3, 1, 2], 'Charging start time = 1, 2'], [0x6c, [0x80 | 50, 1], 'Prompt sound = 178, 1']])
+    assert.deepEqual([info(cmd, payload).status, info(cmd, payload).reading], ['new-value', reading], reading);
+  // Speed caps: 0 is Off, enabled values carry bit 7 and Volt's lower bound.
+  assert.equal(info(0x6b, [0]).reading, 'Custom speed cap → Off'); assert.equal(info(0x6b, [0x80 | 25]).reading, 'Custom speed cap → 25 km/h');
+  assert.equal(info(0x6e, [3, 0x80 | 5]).reading, 'Drive mode speed cap → 5 km/h'); assert.equal(info(0x6e, [3, 0x80 | 4]).status, 'new-value');
+  assert.equal(info(0x6e, [1, 40]).reading, 'Maximum speed → 40 km/h'); assert.equal(info(0x6e, [2, 1]).reading, 'Dual motor drive → Dual motor');
+  // Reads are routine; only an unknown read is new, and it is never asked about.
+  assert.deepEqual([info(0x7b, [], true).status, info(0x7c, [], true).status, info(0x7c, [], true).reading, askable(info(0x7c, [], true))], ['read', 'new', 'Read 0x7c', false]);
+  assert.deepEqual([info(0x52, [], true).status, info(0x52, [], true).reading], ['new', 'Read 0x52']);
+  // NAVEE's own clock sync is known when well formed and never asked about.
+  assert.equal(askable(info(0x6f, [6, 0, 0, 0, 0])), false);
+  assert.equal(askable(info(0xa4, [1])), true); assert.equal(askable(info(0x53, [45])), true); assert.equal(askable(info(0x52, [1])), false);
+  assert.equal(recognize('sendCmd cmd=0XA4, value=0X01').status, 'new');
+});
+// Parses ScooterCommands' static catalogue by expanding its helper methods (toggle, choice,
+// lightCatalog, oemOnlyLight) into the add()/Feature argument list they all share.
+function javaFeatures(source) {
+  // Comments out, strings kept.
+  const java = source.replace(/"(?:[^"\\\n]|\\.)*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, m => m[0] === '"' ? m : ' ');
+  const close = { '(': ')', '{': '}', '[': ']' };
+  const split = (text, sep) => {
+    const parts = []; let depth = 0, quote = false, last = 0;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (quote) { if (c === '\\') i++; else if (c === '"') quote = false; continue; }
+      if (c === '"') quote = true; else if ('({['.includes(c)) depth++; else if (')}]'.includes(c)) depth--;
+      else if (c === sep && depth === 0) { parts.push(text.slice(last, i).trim()); last = i + 1; }
+    }
+    return [...parts, text.slice(last).trim()];
+  };
+  const group = (text, at) => { // text[at] opens a bracket; returns the inside
+    let depth = 0, quote = false;
+    for (let i = at; i < text.length; i++) {
+      const c = text[i];
+      if (quote) { if (c === '\\') i++; else if (c === '"') quote = false; continue; }
+      if (c === '"') quote = true; else if (close[c]) depth++; else if (')}]'.includes(c) && --depth === 0) return text.slice(at + 1, i);
+    }
+    throw new Error('unbalanced Java');
+  };
+  const calls = (text, name) => [...text.matchAll(new RegExp(`(?<![\\w.])${name.replace(' ', '\\s+')}\\s*\\(`, 'g'))].map(m => split(group(text, m.index + m[0].length - 1), ','));
+  const value = (expr, env) => {
+    let m;
+    if ((m = /^"((?:[^"\\]|\\.)*)"$/.exec(expr))) return m[1];
+    if (/^0x[0-9a-f]+$/i.test(expr)) return parseInt(expr, 16);
+    if (/^-?\d+$/.test(expr)) return Number(expr);
+    if ((m = /^new (?:int|String)\[\]\s*\{([\s\S]*)\}$/.exec(expr))) return m[1].trim() ? split(m[1], ',').map(x => value(x, env)) : [];
+    if (expr === 'NO_OPTIONS' || expr === 'NO_VALUES') return [];
+    if ((m = /^Type\.(\w+)$/.exec(expr))) return m[1].toLowerCase();
+    const sum = split(expr, '+');
+    if (sum.length > 1) { const parts = sum.map(x => value(x, env)); return parts.every(x => typeof x === 'string') ? parts.join('') : undefined; }
+    return /^\w+$/.test(expr) ? env[expr] : undefined;
+  };
+  // A helper's parameter names and the add()/new Feature() calls in its body.
+  const helper = name => {
+    const at = java.search(new RegExp(`private static void ${name}\\s*\\(`));
+    const params = split(group(java, java.indexOf('(', at)), ',').map(p => p.split(/\s+/).pop());
+    const body = group(java, java.indexOf('{', at));
+    return { params, inner: [...calls(body, 'add'), ...calls(body, 'new Feature')] };
+  };
+  const helpers = Object.fromEntries(['toggle', 'choice', 'lightCatalog', 'oemOnlyLight'].map(name => [name, helper(name)]));
+  const block = group(java, java.indexOf('{', java.search(/\bstatic\s*\{/)));
+  const feature = args => { const [key, label, group, , type, unit, cmd, min, max, , options, values, prefix] = args; return { key, label, group, type, unit, cmd, min, max, options, values, prefix }; };
+  const out = [];
+  for (const statement of split(block, ';')) {
+    const m = /^(\w+)\s*\(/.exec(statement);
+    if (!m) continue;
+    const args = split(group(statement, statement.indexOf('(')), ',').map(x => value(x, {}));
+    if (m[1] === 'add') { out.push(feature(args)); continue; }
+    const { params, inner } = helpers[m[1]];
+    const env = Object.fromEntries(params.map((p, i) => [p, args[i]]));
+    for (const call of inner) out.push(feature(call.map(x => value(x, env))));
+  }
+  return out;
+}
+test('the command database matches ScooterCommands.java and Protocol.java exactly; models match ModelRegistry KNOWN', async () => {
+  const java = await readFile(new URL('../../../src/com/jjricks/volt/ScooterCommands.java', import.meta.url), 'utf8');
+  const protocol = await readFile(new URL('../../../src/com/jjricks/volt/Protocol.java', import.meta.url), 'utf8');
+  assert.match(java, /sensitiveCommand\(int cmd\) \{ return cmd==0x30 \|\| cmd==0x31 \|\| cmd==0x63 \|\| cmd==0x7a; \}/);
+  const features = javaFeatures(java), keyOf = f => [f.cmd, ...f.prefix].map(n => n.toString(16).padStart(2, '0')).join(':');
+  assert.equal(features.length, new Set(features.map(f => f.key)).size); assert(features.length >= 39, `parsed ${features.length} Java features`);
+  const covered = new Set();
+  for (const f of features) {
+    assert.equal(typeof f.cmd, 'number', f.key); assert(Array.isArray(f.prefix), f.key);
+    if (f.type === 'pin') { assert(SENSITIVE.has(f.cmd)); continue; } // PIN frames are never kept
+    const key = keyOf(f), entry = COMMANDS[key];
+    assert(entry, `${f.key} → ${key} is missing`); covered.add(key);
+    assert.deepEqual([entry.name, entry.group, entry.kind], [f.label, f.group, f.type], key);
+    if (f.type === 'toggle' || f.type === 'choice') {
+      assert.equal(f.options.length, f.values.length, key);
+      assert.deepEqual(entry.values, Object.fromEntries(f.values.map((v, i) => [v, f.options[i]])), key);
+    }
+    if (f.type === 'slider') {
+      assert.deepEqual([entry.min, entry.max, entry.unit], [f.min, f.max, f.unit], key);
+      // Speed caps: Java refuses enabled values below the cap and sends 0 for Off.
+      const floor = new RegExp(`key\\.equals\\("${f.key}"\\) && value>0 && value<(\\d+)\\) return false`).exec(java);
+      assert.equal(entry.cap, floor ? Number(floor[1]) : undefined, key);
+    }
+  }
+  // Besides Java's controls, only the reads Protocol names (minus the PIN read) and NAVEE's clock sync.
+  const reads = [...protocol.matchAll(/public static final int (READ_\w+) = 0x([0-9a-f]{2});/g)].filter(([, name]) => name !== 'READ_PIN');
+  assert(reads.length >= 9);
+  for (const [, name, cmd] of reads) {
+    const entry = COMMANDS[cmd];
+    assert.equal(entry?.kind, 'read', name); covered.add(cmd);
+    for (const word of name.slice(5).toLowerCase().split('_')) assert(entry.name.toLowerCase().includes(word.replace(/s$/, '')), `${name} vs ${entry.name}`);
+  }
+  assert.deepEqual(/int\[\] READS = \{([^}]*)\}/.exec(java)[1].split(',').map(x => x.trim()).sort(), reads.map(([, , cmd]) => `0x${cmd}`).sort());
+  assert.match(java, /setClock[\s\S]*?localTime\(6,/); assert.deepEqual([COMMANDS['6f:06'].kind, COMMANDS['6f:06'].routine], ['time', true]); covered.add('6f:06');
+  assert.deepEqual(Object.keys(COMMANDS).filter(key => !covered.has(key)), []);
+  assert(!Object.keys(COMMANDS).some(key => SENSITIVE.has(parseInt(key, 16))));
+  assert.deepEqual([...new Set(Object.values(COMMANDS).map(e => e.group))].sort(), [...GROUPS].sort());
   const registry = await readFile(new URL('../../../src/com/jjricks/volt/ModelRegistry.java', import.meta.url), 'utf8');
   const known = [...registry.matchAll(/KNOWN\.put\("\d+",new Known\("([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(MODELS.slice(1), known);
@@ -194,7 +332,7 @@ test('recorder keeps only fresh filtered rows, dedupes across polls and counts h
   assert.deepEqual(r.ingest(poll1), { lines: 5, fresh: 4, added: 3 });
   assert.equal(r.hidden, 1); assert.equal(r.cursor, '1800000002.000');
   assert.deepEqual(r.rows.map(x => [x.time, x.text]), [['08:00:01.000', `Send write command: ${frame(0x52, [1])}`], ['08:00:02.000', 'Notify success'], ['08:00:02.000', 'Notify success']]);
-  assert.equal(r.rows[0].annotation, '0x52 Cruise control = 1');
+  assert.equal(r.rows[0].annotation, 'Cruise control → On');
   // The next poll starts at the boundary timestamp and repeats those rows.
   const poll2 = [line('Notify success', '1800000002.000'), line('Notify success', '1800000002.000'), line('Notify success', '1800000002.000'),
     line('getScooterInfo', '1800000002.000'), line('setMTUSuccess: mtu = 247', '1800000003.250')].join('\n');
@@ -315,4 +453,71 @@ test('write confirmations fold into their command and repeated routine reads col
   assert.deepEqual(reconnect.rows.map(x => x.text), [`Send write command: ${cruise}`, 'DisConnected ([scooter])', `Write success: ${cruise}`]);
   // Confirmation replaces the row object so the live list re-renders it.
   assert.equal(new Set(r.rows.map(x => x.id)).size, r.rows.length);
+});
+function unknowns() {
+  const r = new LogRecorder(START);
+  r.ingest([line(`Send write command: ${frame(0xa4, [1])}`, '1800000001.000'), line(`Write success: ${frame(0xa4, [1])}`, '1800000001.010'),
+    line(`Send write command: ${frame(0x52, [1])}`, '1800000002.000'), line(`Send write command: ${frame(0xa4, [1])}`, '1800000003.000'),
+    line(`Send write command: ${frame(0x6d, [4, 7, 1])}`, '1800000004.000'), line(`Send write command: ${frame(0x53, [45])}`, '1800000005.000'),
+    line(`Send write command: ${frame(0xa4, [2])}`, '1800000006.000'), line('Send read command: [55 aa 00 70 6f fe fd]', '1800000007.000'),
+    line(`Send write command: ${frame(0x6f, [6, 0x6b, 0x4a, 0x27, 0xaa])}`, '1800000008.000')].join('\n'));
+  return r;
+}
+test('answers are labelled, follow the row they explain and pass the note rules', () => {
+  const r = unknowns();
+  assert.equal(answerText('0xa4 = 1', '  rainbow   mode '), '[you said] 0xa4 = 1: rainbow mode');
+  assert.equal(answerText('Energy recovery = 45', 'peer C0:FF:EE:12:34:56'), '[you said] Energy recovery = 45: peer [MAC]');
+  for (const bad of ['', 'x'.repeat(201), 'mail me@example.com', 'call 555 123 4567', 'authData', '[12 34 56]'])
+    assert.throws(() => answerText('0xa4 = 1', bad), { code: 'note' }, bad);
+  assert.throws(() => answerText('[55 aa]', 'x'), { code: 'note' });
+  const first = r.addAnswer('a4=1', 'rainbow mode'), second = r.addAnswer('a4=1', 'or maybe strobe');
+  const texts = r.rows.map(row => row.text);
+  assert.deepEqual(texts.slice(0, 3), [`Send write command: ${frame(0xa4, [1])} (ok)`, '[you said] 0xa4 = 1: rainbow mode', '[you said] 0xa4 = 1: or maybe strobe']);
+  assert.deepEqual([first.note, first.sig, first.said, first.time, second.said], [true, 'a4=1', 'rainbow mode', '08:00:01.000', 'or maybe strobe']);
+  assert(r.rows.every(row => safeText(row.text)));
+  // Notes typed later still sort by time; answers keep their place.
+  r.addNote('1800000001.500', 'next');
+  assert.deepEqual(r.rows.slice(3, 5).map(row => row.text), ['[note] next', `Send write command: ${frame(0x52, [1])}`]);
+  // Only unknown commands/values present in the capture can be answered.
+  for (const sig of ['52=1', '70=r', '6f:06=107,74,39,170', 'ff=1']) assert.throws(() => r.addAnswer(sig, 'x'), { code: 'note' }, sig);
+  assert.throws(() => r.addAnswer('53=45', 'x'.repeat(201)), { code: 'note' });
+  const before = r.bytes; r.remove(second.id); assert(r.bytes < before);
+});
+test('the summary names what is new, with answers, and holds to the row rules', () => {
+  const r = unknowns();
+  assert.equal(summaryText(r.rows), 'New to Volt: 0xa4 x3, 0x6d:04:07 x1; New values: 0x53 Energy recovery=45 x1; Known: 2 commands, 1 read');
+  r.addAnswer('a4=1', 'rainbow mode'); r.addAnswer('a4=2', 'strobe [fast]'); r.addAnswer('53=45', 'regen slider halfway');
+  const summary = summaryText(r.rows);
+  assert.equal(summary, 'New to Volt: 0xa4 x3 [you said: rainbow mode / strobe fast], 0x6d:04:07 x1; New values: 0x53 Energy recovery=45 x1 [you said: regen slider halfway]; Known: 2 commands, 1 read');
+  assert(safeSummary(summary)); assert(serverAccepts(summary));
+  const t = tally(r.rows);
+  assert.deepEqual([t.known, t.reads, t.news.map(n => [n.key, n.count]), t.values.map(v => [v.sig, v.count])], [2, 1, [['a4', 3], ['6d:04:07', 1]], [['53=45', 1]]]);
+  // Deleting the lines removes them from the summary; answers alone don't count.
+  for (const row of r.rows.filter(row => !row.note && recognize(row.text)?.status !== 'known')) r.remove(row.id);
+  assert.equal(summaryText(r.rows), '');
+  // The same checks as rows, with a 2000-character bound.
+  for (const bad of ['x'.repeat(2001), 'peer C0:FF:EE:12:34:56', 'me@example.com', 'New: [12 34 56]', 'cmd=0x63', 'café', '+1 555 123 4567'])
+    assert.equal(safeSummary(bad), false, bad);
+  assert(safeSummary('x'.repeat(2000)));
+});
+test('a capture full of new commands keeps the summary bounded and the body under 256 KB', () => {
+  const r = new LogRecorder(START);
+  r.ingest(Array.from({ length: 2000 }, (_, i) => line(`Send write command: ${frame(0x90 + (i % 16), [i >> 4 & 255, 0x80 | i & 15, ...Array(10).fill(0x22)])}`,
+    `1800000${String(100 + Math.floor(i / 1000)).padStart(3, '0')}.${String(i % 1000).padStart(3, '0')}`)).join('\n'));
+  for (const row of r.rows.filter(row => recognize(row.text)?.status === 'new').slice(0, 40)) r.addAnswer(recognize(row.text).sig, `answer ${'y'.repeat(180)} ${row.id}`);
+  const summary = summaryText(r.rows);
+  assert(summary.length <= LIMITS.summary, summary.length); assert(safeSummary(summary)); assert.match(summary, /\+\d+ more/);
+  const body = submission({ ...base(r), description: '“'.repeat(4000), contact: '"'.repeat(240), rows: r.rows });
+  assert.equal(JSON.parse(body).summary, summary);
+  assert(new TextEncoder().encode(body).length <= LIMITS.body);
+});
+test('submission adds the summary last only when something is new', () => {
+  const r = unknowns();
+  r.addAnswer('a4=1', 'rainbow mode');
+  const sent = JSON.parse(submission({ ...base(r), rows: r.rows }));
+  assert.deepEqual(Object.keys(sent), ['format', 'model', 'description', 'contact', 'navee_version', 'android', 'phone', 'started_at', 'duration_s', 'hidden_rows', 'rows', 'summary']);
+  assert.equal(sent.summary, 'New to Volt: 0xa4 x3 [you said: rainbow mode], 0x6d:04:07 x1; New values: 0x53 Energy recovery=45 x1; Known: 2 commands, 1 read');
+  assert.equal(sent.rows[1], '08:00:01.000 [you said] 0xa4 = 1: rainbow mode');
+  assert(sent.rows.every(row => serverAccepts(row)));
+  assert(!('summary' in JSON.parse(submission(base(recorded())))));
 });

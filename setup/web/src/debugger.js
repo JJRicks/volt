@@ -1,6 +1,7 @@
 import { readJournal } from './capture.js';
 import { DebugCaptureSession, RECORD_MS } from './debug-capture.js';
-import { LIMITS, MODELS, OTHER_MODEL, submission } from './navee-log.js';
+import { LIMITS, MODELS, OTHER_MODEL, askable, recognize, submission, summaryText, tally } from './navee-log.js';
+import { COMMANDS, GROUPS, keyLabel } from './navee-commands.js';
 import { PROPERTY, PACKAGE, SetupError, quote, randomToken } from './protocol.js';
 import { connectPhone } from './transport.js';
 
@@ -12,6 +13,8 @@ const HOSTS = ['volt.jjricks.com', 'localhost', '127.0.0.1', '[::1]'];
 const $ = id => document.getElementById(id);
 // capture: the verified recording, held only in page memory until Done/Discard.
 let phone = null, session = null, busy = false, closing = false, capture = null, sentId = null, ticker = 0, rendered = [];
+// Questions about commands Volt doesn't know: one card at a time, each exact command/value once.
+let liveRecorder = null, asked = new Set(), queue = [], asking = null, drafts = new Map();
 const storage = {
   getItem: key => localStorage.getItem(key),
   setItem: (key, value) => localStorage.setItem(key, value),
@@ -19,6 +22,26 @@ const storage = {
 };
 const PANELS = ['problem-panel', 'ready-panel', 'connect-panel', 'record-panel', 'recording-panel', 'review-panel', 'done-panel', 'recovery'];
 const plural = (n, one, many) => `${n.toLocaleString('en-US')} ${n === 1 ? one : many}`;
+const times = n => n === 1 ? 'once' : n === 2 ? 'twice' : `${n.toLocaleString('en-US')} times`;
+const TAGS = { known: 'Known', read: 'Read', 'new-value': 'New value', new: 'New to Volt' };
+function element(tag, className = '', text = '') {
+  const node = document.createElement(tag);
+  if (className) node.className = className;
+  if (text) node.textContent = text;
+  return node;
+}
+// Hex keys ("0xa4", "0x6d:04:07") in monospace: Saira's zero reads as a letter O.
+function withCode(node, text) {
+  node.replaceChildren(...String(text).split(/(0x[0-9a-f]{2}(?::[0-9a-f]{2}){0,2})/).map((part, i) => i % 2 ? element('code', '', part) : part).filter(part => part !== ''));
+  return node;
+}
+function setTag(node, status) { node.className = `tag ${status}`; node.textContent = TAGS[status]; }
+// recognize() is pure; cache it per row object (confirmations replace the object).
+const infos = new WeakMap();
+function infoOf(row) {
+  if (!infos.has(row)) infos.set(row, row.note ? null : recognize(row.text));
+  return infos.get(row);
+}
 function message(id, text) { $(id).textContent = text; $(id).hidden = !text; }
 function error(error) {
   message('notice', '');
@@ -119,11 +142,16 @@ function startTicker() {
 function stopTicker() { clearInterval(ticker); ticker = 0; }
 function rowItem(row, removable) {
   const item = document.createElement('li');
-  if (row.note) item.className = 'note';
+  if (row.note) item.className = row.sig ? 'note answer' : 'note';
   const time = document.createElement('time'); time.textContent = row.time;
   const text = document.createElement('code'); text.textContent = row.text;
   item.append(time, text);
-  if (row.annotation) { const reading = document.createElement('span'); reading.className = 'reading'; reading.textContent = row.annotation; item.append(reading); }
+  const info = infoOf(row);
+  if (info) {
+    // Badge text plus reading: never colour alone. Display only; not sent.
+    const reading = element('span', 'reading'), tag = element('span');
+    setTag(tag, info.status); reading.append(tag, withCode(element('span'), info.reading)); item.append(reading);
+  }
   if (removable) {
     const remove = document.createElement('button');
     remove.className = 'remove'; remove.type = 'button'; remove.textContent = 'Delete';
@@ -138,8 +166,66 @@ function counts(recorder) {
   $('hidden-count').textContent = `${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden` +
     (recorder.folded ? ` · ${plural(recorder.folded, 'routine read or confirmation', 'routine reads and confirmations')} folded` : '');
 }
+// "What Volt knows": the whole database by group, built once per panel; seen counts update.
+const knows = {};
+function buildKnows(id) {
+  const items = new Map();
+  for (const group of GROUPS) {
+    const list = element('ul', 'knows-list');
+    for (const [key, entry] of Object.entries(COMMANDS).filter(([, e]) => e.group === group)) {
+      const item = element('li'), seen = element('span', 'seen-count');
+      seen.hidden = true;
+      item.append(element('span', 'knows-name', entry.name), element('code', '', keyLabel(key)), element('span', 'knows-values', valuesText(entry)), seen);
+      list.append(item); items.set(key, { item, seen });
+    }
+    $(`${id}-body`).append(element('h3', '', group === 'Reads' ? 'Reads & clock sync' : group), list);
+  }
+  knows[id] = items;
+}
+function valuesText(entry) {
+  if (entry.kind === 'read') return 'Read request';
+  if (entry.kind === 'time') return entry.routine ? 'Local clock time; NAVEE sends it on connect' : 'Local clock time, e.g. 02:00';
+  if (entry.kind === 'slider') return entry.cap ? `Off, or ${entry.cap}–${entry.max} ${entry.unit}` : `${entry.min}–${entry.max} ${entry.unit}`;
+  return Object.entries(entry.values).map(([value, label]) => `${value} = ${label}`).join(' · ');
+}
+function updateKnows(id, seen) {
+  let kinds = 0;
+  for (const [key, { item, seen: count }] of knows[id]) {
+    const n = seen.get(key) || 0;
+    kinds += n > 0;
+    item.classList.toggle('seen', n > 0); count.hidden = !n; count.textContent = n ? `Seen ${times(n)}` : '';
+  }
+  $(`${id}-seen`).textContent = kinds ? `· ${kinds} seen in this capture` : '';
+}
+// Prompt card: queue each unknown command/value the first time it arrives; recording continues.
+function queueUnknowns(recorder) {
+  for (const row of recorder.rows) {
+    const info = infoOf(row);
+    if (!askable(info) || asked.has(info.sig)) continue;
+    asked.add(info.sig); queue.push({ sig: info.sig, status: info.status, reading: info.reading, time: row.time });
+  }
+  if (!asking && queue.length) nextQuestion(false);
+  else $('ask-queue').textContent = queue.length ? `${queue.length} more waiting.` : '';
+}
+// focus: the user just saved or skipped, so keep them in the card (or return to the note box).
+function nextQuestion(focus) {
+  asking = queue.shift() || null;
+  message('ask-error', '');
+  $('ask').hidden = !asking;
+  if (!asking) { if (focus) $('marker').focus?.(); return; }
+  setTag($('ask-tag'), asking.status); $('ask-reading').textContent = asking.reading; $('ask-time').textContent = `at ${asking.time}`;
+  $('ask-text').value = '';
+  $('ask-queue').textContent = queue.length ? `${queue.length} more waiting.` : '';
+  $('ask-announce').textContent = `Volt hasn’t seen this before: ${asking.reading}. A question is below the live list.`;
+  if (focus) $('ask-text').focus?.();
+}
+function clearQuestions() {
+  asked = new Set(); queue = []; asking = null;
+  $('ask').hidden = true; $('ask-text').value = ''; $('ask-announce').textContent = ''; message('ask-error', '');
+}
 // Live list: kept, redacted rows only, newest at the bottom.
 function renderLive(recorder) {
+  liveRecorder = recorder;
   const live = $('live'), list = $('live-rows'), ids = recorder.rows.map(row => row.id);
   const atBottom = live.scrollHeight - live.scrollTop - live.clientHeight < 48;
   if (rendered.length <= ids.length && rendered.every((id, i) => ids[i] === id)) {
@@ -148,9 +234,11 @@ function renderLive(recorder) {
   rendered = ids;
   $('live-empty').hidden = ids.length > 0;
   counts(recorder);
+  queueUnknowns(recorder); updateKnows('knows-live', tally(recorder.rows).seen);
   if (atBottom) live.scrollTop = live.scrollHeight;
 }
 function clearLive() {
+  liveRecorder = null; clearQuestions(); updateKnows('knows-live', new Map());
   rendered = []; $('live-rows').replaceChildren(); $('live-empty').hidden = false;
   $('kept-count').textContent = '0 lines kept'; $('hidden-count').textContent = '0 other NAVEE log lines hidden';
   $('countdown').textContent = `${RECORD_MS / 60_000}:00`; $('countdown').classList.remove('low');
@@ -169,21 +257,73 @@ function renderReview() {
   $('sum-contact').textContent = $('contact').value.trim() || 'None given (the developer can’t reply)';
   $('sum-navee').textContent = facts.naveeVersion; $('sum-android').textContent = facts.android; $('sum-phone').textContent = facts.phone;
   $('sum-recording').textContent = `${Math.floor(durationS / 60)} min ${durationS % 60} s, started ${startedAt.slice(0, 19).replace('T', ' ')} UTC`;
+  const counted = tally(recorder.rows), summary = summaryText(recorder.rows);
+  withCode($('known-summary'), reviewLine(counted));
+  $('summary-sent').textContent = summary; $('summary-line').hidden = !summary;
+  updateKnows('knows-review', counted.seen);
+  renderUnknowns(recorder);
   $('review-rows').replaceChildren(...recorder.rows.map(row => rowItem(row, true)));
   const navee = recorder.rows.filter(row => !row.note).length;
   $('review-counts').textContent = `${plural(recorder.rows.length, 'line', 'lines')} will be sent (times are UTC). “(ok)” means NAVEE confirmed the command was written. ${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden${recorder.folded ? ` and ${plural(recorder.folded, 'repeat', 'repeats')} folded` : ''}; only those counts are sent.`;
   if (!navee) message('notice', 'No NAVEE Bluetooth lines were kept, so there’s nothing to send. Check that NAVEE connects to your scooter while recording, then try again.');
   $('send').disabled = !navee || !$('send-consent').checked || !!sentId;
 }
+// "18 known commands · 1 new: 0xa4 (sent 3 times) · 1 new value: Energy recovery = 45"
+function reviewLine({ known, reads, news, values }) {
+  const few = (items, text) => items.slice(0, 6).map(text).join(', ') + (items.length > 6 ? `, and ${items.length - 6} more` : '');
+  const parts = [plural(known, 'known command', 'known commands')];
+  if (news.length) parts.push(`${news.length} new: ${few(news, item => `${keyLabel(item.key)}${item.read ? ' read' : ''} (sent ${times(item.count)})`)}`);
+  if (values.length) parts.push(`${plural(values.length, 'new value', 'new values')}: ${few(values, item => item.reading)}`);
+  if (reads) parts.push(plural(reads, 'routine read', 'routine reads'));
+  return parts.join(' · ');
+}
+// Review: every unanswered unknown command/value, once, with its own answer box.
+function unanswered(rows) {
+  const answered = new Set(rows.filter(row => row.note && row.sig).map(row => row.sig)), items = new Map();
+  for (const row of rows) {
+    const info = infoOf(row);
+    if (!askable(info) || answered.has(info.sig)) continue;
+    const item = items.get(info.sig) || { ...info, time: row.time, count: 0 };
+    item.count++; items.set(info.sig, item);
+  }
+  return [...items.values()];
+}
+function renderUnknowns(recorder) {
+  const items = unanswered(recorder.rows);
+  $('unknowns').hidden = !items.length;
+  $('unknown-list').replaceChildren(...items.map((item, i) => {
+    const li = element('li'), form = element('form', 'unknown'), tag = element('span'), input = element('input'), label = element('label', 'sr-only', `What did you change in NAVEE for ${item.reading}?`);
+    const problem = element('p', 'ask-error'), id = `unknown-${i}`;
+    setTag(tag, item.status); problem.hidden = true; problem.setAttribute('role', 'alert');
+    input.id = id; input.value = drafts.get(item.sig) || ''; input.type = 'text'; input.maxLength = LIMITS.note; input.autocomplete = 'off'; input.placeholder = 'What you changed';
+    input.addEventListener('input', () => drafts.set(item.sig, input.value));
+    label.setAttribute('for', id); form.setAttribute('novalidate', '');
+    const save = element('button', 'secondary', 'Save'); save.type = 'submit';
+    const row = element('div', 'marker-row'); row.append(input, save);
+    const what = element('p', 'ask-what'); what.append(tag, ' ', element('code', '', item.reading), ' ', element('span', '', `at ${item.time}, sent ${times(item.count)}`));
+    form.append(what, label, row, problem);
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      try { recorder.addAnswer(item.sig, input.value); drafts.delete(item.sig); }
+      catch (e) { problem.textContent = e instanceof SetupError ? e.message : 'That answer couldn’t be added.'; problem.hidden = false; return; }
+      renderReview();
+      const next = $('unknown-list').children[i]?.querySelector?.('input');
+      (next || $('known-summary')).focus?.();
+    });
+    li.append(form);
+    return li;
+  }));
+}
 function showReview() {
+  clearQuestions();
   $('send-consent').checked = false; sentId = null;
   $('problem-next-label').textContent = 'Back to review';
   renderReview();
   panel('review-panel', 4);
 }
 function forgetCapture() {
-  capture = null; sentId = null; clearLive();
-  $('review-rows').replaceChildren(); $('send-consent').checked = false;
+  capture = null; sentId = null; drafts = new Map(); clearLive();
+  $('review-rows').replaceChildren(); $('unknown-list').replaceChildren(); $('unknowns').hidden = true; $('send-consent').checked = false;
   $('problem-next-label').textContent = 'Next';
 }
 function downloadText(data, name, type) {
@@ -238,6 +378,15 @@ $('marker-form').addEventListener('submit', event => {
   try { session?.addNote($('marker').value); $('marker').value = ''; }
   catch (e) { error(e instanceof SetupError ? e : new SetupError('note', 'That note couldn’t be added.')); }
 });
+$('ask').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!asking || !liveRecorder) return;
+  try { liveRecorder.addAnswer(asking.sig, $('ask-text').value); }
+  catch (e) { message('ask-error', e instanceof SetupError ? e.message : 'That answer couldn’t be added.'); return; }
+  renderLive(liveRecorder); nextQuestion(true);
+});
+$('ask-skip').addEventListener('click', () => nextQuestion(true));
+$('ask-text').addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); nextQuestion(true); } });
 $('send-consent').addEventListener('change', () => { if (capture) renderReview(); });
 $('edit-details').addEventListener('click', () => { message('notice', ''); panel('problem-panel', 0); });
 $('send').addEventListener('click', () => action(async () => {
@@ -322,5 +471,6 @@ navigator.serviceWorker?.addEventListener('controllerchange', () => { session?.c
 $('model').replaceChildren(...[['', 'Choose your scooter'], ...[...MODELS, OTHER_MODEL].map(name => [name, name])].map(([value, label]) => {
   const option = document.createElement('option'); option.value = value; option.textContent = label; return option;
 }));
+buildKnows('knows-live'); buildKnows('knows-review');
 details(); clearLive(); validateEnvironment();
 panel(pendingRecovery() ? 'recovery' : 'problem-panel', 0, false);
