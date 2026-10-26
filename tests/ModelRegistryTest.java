@@ -116,10 +116,21 @@ public final class ModelRegistryTest {
             &&ModelRegistry.photo(st3).equals("st3pro"),"ST3 Pro name, line and photo");
         check(ModelRegistry.modelName(sibling).isEmpty()&&ModelRegistry.photo(sibling).isEmpty(),"Another regional ID stays unnamed until it is reported");
         check(ModelRegistry.rule("lock",st3,null,null).evidence==CapabilityResolver.Evidence.SHARED_CONTRACT,"Naming verifies nothing: the shared lock keeps its evidence");
-        for(String f:new String[]{"display_units","headlight","cruise_control","energy_recovery"}){
+        for(String f:new String[]{"headlight","auto_sensor","cruise_control","energy_recovery"}){
             ModelRegistry.Rule named=ModelRegistry.rule(f,st3,null,null),plain=ModelRegistry.rule(f,sibling,null,null);
             check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,"Naming changes no rule: "+f);
         }
+        // A French owner verified these (changed, read back, seen, restored): same mapping, now Volt-verified.
+        for(String f:new String[]{"display_units","turn_sound","range_algorithm"}){
+            ModelRegistry.Rule named=ModelRegistry.rule(f,st3,null,null),plain=ModelRegistry.rule(f,sibling,null,null);
+            check(named.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED&&plain.evidence==CapabilityResolver.Evidence.OEM_MAPPED
+                &&named.support==plain.support&&named.variant==plain.variant,"Owner-verified on the ST3 Pro only: "+f);
+        }
+        // Traction control isn't in the official app's map for the ST3 Pro; its owners' tries make it an ordinary verified control there only.
+        ModelRegistry.Rule tcs=ModelRegistry.rule("traction_control",st3,null,null),tcsSibling=ModelRegistry.rule("traction_control",sibling,null,null);
+        check(tcs.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcs.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED&&tcs.variant==ModelRegistry.OEM_TCS
+            &&!tcs.variant.lab,"ST3 Pro traction control is a verified control with the official encoding");
+        check(tcsSibling.support==CapabilityResolver.Support.UNKNOWN_MAPPING&&tcsSibling.reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"A sibling ID stays not mapped");
         check(ModelRegistry.reported(st3)&&ReportInvite.model(st3).isEmpty(),"A US owner's report confirmed the ST3 Pro: it is reported and no longer offered");
         // The GT5 Max: named from an owner's report (25462, EU), so it is reported and no longer offered the report.
         DeviceDescriptor gt5=advertised("25462"),gt5Sibling=advertised("25461");
@@ -248,7 +259,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==14,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro, GT5 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
+        check(ModelRegistry.VERSION==15,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");

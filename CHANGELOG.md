@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- ST3 Pro (Model ID 23452): a second owner's report verified dashboard units, turn signal sound and range estimate, so those rows no longer say **Untested here**, and traction control, which the official app doesn't map there, worked in three tries. Traction control is now an ordinary, verified control on the ST3 Pro instead of an Experimental controls try.
+- When your scooter refuses an Experimental controls try, its sheet now says so plainly: the scooter answered with an error, so it most likely doesn't support that setting, and trying again usually gets the same answer. The button reads **Try again**.
+
 ## 1.8.0 — 2026-10-25
 
 - A charge recording no longer ends the moment the charger stops by itself below 99%, as an overheating charger can. It waits up to 30 minutes, marked as a charger stop (the notification says so), and continues the same recording when charging resumes; time spent waiting doesn't count against the recording or its learned curve. Charge recordings shows how often and how long the charger stopped, and the export lists the stops as `charger_pauses`. A charger still off after 30 minutes ends the recording as before.

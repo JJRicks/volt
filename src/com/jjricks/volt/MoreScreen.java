@@ -1812,7 +1812,7 @@ public final class MoreScreen implements AppScreen {
      */
     private final class LabSheet {
         final ScooterCommands.Feature feature; final AlertDialog dialog; final boolean verify;
-        final TextView now, warn, reason, go, back, progress, question, unfinishedText; final LadderPill status;
+        final TextView now, warn, reason, go, back, progress, question, unfinishedText, refusedNote; final LadderPill status;
         final LinearLayout controls, observe, unfinished;
         final List<Ui.RadioDot> dots = new ArrayList<>(); final List<Integer> values = new ArrayList<>(); final List<View> nowTags = new ArrayList<>();
         SeekBar slider; TextView sliderValue; final List<Integer> range = new ArrayList<>();
@@ -1838,6 +1838,9 @@ public final class MoreScreen implements AppScreen {
             now = fact(facts, "Now", ui.text("", 15, true));
             ui.divider(facts);
             status = new LadderPill(); fact(facts, "Last try", status);
+            // A refusal is the scooter's own answer: say so plainly, so the same try isn't repeated in hope.
+            refusedNote = ui.caption("Your scooter refused this last time: it answered with an error, so it most likely doesn't support this setting. Trying again usually gets the same answer.");
+            refusedNote.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), 0); refusedNote.setTag("lab-refused"); refusedNote.setVisibility(View.GONE); body.addView(refusedNote);
             // While a try runs: what Volt is doing, then the owner's answer.
             progress = ui.text("", 14, false); progress.setTextColor(ui.muted); progress.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), ui.dp(4));
             progress.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); progress.setTag("lab-progress"); body.addView(progress);
@@ -1969,8 +1972,11 @@ public final class MoreScreen implements AppScreen {
             }
             boolean busy = ble.pending() != null || ble.testing();
             boolean change = selected != null && current != null && !selected.equals(current) && d.allows(selected);
-            go.setText(selected == null ? "Try" : current != null && selected.equals(current) ? "Already " + labValue(feature, d, selected)
-                    : "Try " + labValue(feature, d, selected));
+            TestJournal.Entry last = ble.simulating() || live != null ? null : ble.latestTry(feature.key);
+            boolean refused = last != null && last.resolved && "refused".equals(CompatibilityReport.tryResult(last));
+            refusedNote.setVisibility(refused && !held ? View.VISIBLE : View.GONE);
+            go.setText(selected == null ? (refused ? "Try again" : "Try") : current != null && selected.equals(current) ? "Already " + labValue(feature, d, selected)
+                    : (refused ? "Try again: " : "Try ") + labValue(feature, d, selected));
             go.setContentDescription(go.getText()); go.setEnabled(d.available() && !busy && change);
             String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected) : null;
             warn.setText(caution == null ? "" : caution); warn.setVisibility(caution == null ? View.GONE : View.VISIBLE);
