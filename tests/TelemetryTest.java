@@ -14,6 +14,7 @@ public final class TelemetryTest {
         missingAndRejectedDataNeverFabricateReadings();
         batteryUnitsEndianAndSignsMatchOem();
         signStatesCorrectExistingReadingsWithoutChangingAge();
+        unknownSignStatesRemainDiagnosticOnly();
         rideVariantsAndUnsignedOdometer();
         settingsHaveExactOffsets();
         drivingModeNamesStayModelSpecificAndKeepRawEvidence();
@@ -128,6 +129,37 @@ public final class TelemetryTest {
         battery[11] = 7;
         model.accept(0x72, response(battery), 600);
         near(1.8, model.number("current_a"), "Previous-session sign state is not reused");
+    }
+
+    private static void unknownSignStatesRemainDiagnosticOnly() {
+        Telemetry model=new Telemetry();
+        byte[] battery=batteryFixture(); write(battery,6,1800,4,false); battery[11]=7;
+        model.accept(0x72,response(battery),100);
+        model.accept(0x79,response(new byte[]{1,1}),200);
+        for(int flag=2;flag<=255;flag++) {
+            model.accept(0x79,response(new byte[]{(byte)flag,(byte)flag}),300+flag);
+            near(-1.8,model.number("current_a"),"Unknown flag preserves known current sign");
+            near(-7,model.number("temperature_c"),"Unknown flag preserves known temperature sign");
+            near(flag,model.number("current_sign_state"),"Unknown raw current flag remains diagnostic");
+            near(flag,model.number("temperature_sign_state"),"Unknown raw temperature flag remains diagnostic");
+        }
+        near(-94.221,model.number("power_w"),"Unknown flag cannot flip computed power");
+        check(metric(model,"current_a").updatedMs==100&&metric(model,"temperature_c").updatedMs==100
+            &&metric(model,"power_w").updatedMs==100,"Sign responses never refresh sensor samples");
+        model.accept(0x79,response(new byte[]{0,0}),400);
+        near(-1.8,model.number("current_a"),"Unknown flags retain ordering watermark");
+        near(255,model.number("current_sign_state"),"Older raw flags cannot overwrite newer diagnostics");
+        model.accept(0x79,response(new byte[]{0,0}),600);
+        near(1.8,model.number("current_a"),"New valid flag can replace known negative");
+        near(7,model.number("temperature_c"),"New valid temperature flag restores positive");
+        model.clear(); model.accept(0x79,response(new byte[]{(byte)254,(byte)254}),700);
+        model.accept(0x72,response(battery),800);
+        near(1.8,model.number("current_a"),"Unknown initial flag uses the inline sign");
+        near(7,model.number("temperature_c"),"Unknown initial temperature flag uses the inline sign");
+        write(battery,6,0x80000708L,4,false); battery[11]=(byte)0x87;
+        model.accept(0x72,response(battery),900);
+        near(-1.8,model.number("current_a"),"Unknown flag never overrides inline negative");
+        near(-7,model.number("temperature_c"),"Inline negative temperature remains valid");
     }
 
     private static void rideVariantsAndUnsignedOdometer() {

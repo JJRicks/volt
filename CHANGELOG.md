@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Recognize and picture the GT3 Max (Model ID 24182) from an owner's report. Its controls keep their existing compatibility rules; this report did not test settings changes.
+- Include battery temperature in diagnostic exports; the degree symbol previously caused it to be omitted.
+- Keep unknown current/temperature sign flags in diagnostics without letting them overwrite a known sign. Sensor timestamps and inline negative signs are preserved.
+
 ## 1.8.1 — 2026-10-26
 
 - ST3 Pro (Model ID 23452): a second owner's report verified dashboard units, turn signal sound and range estimate, so those rows no longer say **Untested here**, and traction control, which the official app doesn't map there, worked in three tries. Traction control is now an ordinary, verified control on the ST3 Pro instead of an Experimental controls try.
