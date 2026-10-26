@@ -26,6 +26,7 @@ select:focus-visible,textarea:focus-visible { outline:3px solid var(--focus); ou
 .log time { color:var(--muted); white-space:nowrap; }
 .log code { color:var(--text); overflow-wrap:anywhere; grid-column:2; }
 .log .reading { grid-column:2; color:var(--muted); font-family:Saira,ui-sans-serif,sans-serif; font-size:12px; }
+.log .reading code,.known-summary code { color:inherit; font-size:11px; }
 .log .note code { color:#ffd479; }
 .log .remove { grid-column:3; grid-row:1 / span 2; min-height:36px; min-width:36px; padding:4px 10px; border-radius:10px; font-size:12px; font-family:Saira,ui-sans-serif,sans-serif; background:transparent; color:var(--muted); border:1px solid var(--edge); }
 .log .remove:hover { color:var(--text); background:var(--raised); }
@@ -41,7 +42,44 @@ select:focus-visible,textarea:focus-visible { outline:3px solid var(--focus); ou
 .summary #sum-description { max-height:9.5em; overflow:auto; }
 .reference { font-family:ui-monospace,monospace; font-size:16px; letter-spacing:1px; }
 .text-button:not(.full) { padding:6px 0; min-height:44px; }
-@media (prefers-reduced-motion:reduce) { .log { scroll-behavior:auto; } }
+.sr-only { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+/* Known-command badges: always text plus colour. */
+.tag { display:inline-block; margin-right:6px; padding:0 7px; border:1px solid var(--edge); border-radius:999px; font:600 10px/1.6 Saira,ui-sans-serif,sans-serif; letter-spacing:.6px; text-transform:uppercase; white-space:nowrap; vertical-align:1px; }
+.tag.known { color:var(--ok); border-color:#2f5a3b; }
+.tag.read { color:var(--muted); }
+.tag.new-value { color:#ffd479; border-color:#6b5524; background:#2a2416; }
+.tag.new { color:#fff; border-color:var(--accent); background:var(--accent-deep); }
+.log .answer code { color:#ffd479; }
+/* "What did you just change?" card: beside the live list, never blocking it. */
+.ask { margin:0 0 18px; padding:14px 16px; background:var(--raised); border:1px solid #6b5524; border-left:3px solid #ffd479; border-radius:4px 16px 16px 4px; animation:rise .2s ease-out; }
+.ask-title { margin:0 0 6px; color:var(--text); font-size:14px; font-weight:600; }
+.ask-what { margin:0 0 10px; font-size:13px; overflow-wrap:anywhere; }
+.ask-what code { font-size:12px; }
+.ask .fine { margin:8px 0 0; }
+.ask-error { margin:8px 0 0; color:var(--danger); font-size:12px; }
+.marker-row .text-button { flex:none; padding:6px 12px; }
+@keyframes rise { from { opacity:0; transform:translateY(4px); } }
+.known-summary { color:var(--text); font-size:13px; background:var(--raised); border:1px solid var(--edge); border-radius:14px; padding:10px 14px; overflow-wrap:anywhere; }
+.unknowns { margin:18px 0; padding:14px 16px; border:1px solid #6b5524; border-radius:16px; background:#1b1a15; }
+.unknowns h3 { margin:0; font-size:15px; font-weight:600; }
+.unknowns > .fine { margin:4px 0 12px; }
+.unknowns ol { list-style:none; margin:0; padding:0; display:grid; gap:14px; }
+.ask .marker-row input,.unknown .marker-row input { min-height:44px; background:var(--raised); color:var(--text); border:1px solid var(--edge); border-radius:12px; padding:9px 12px; }
+.ask .marker-row button,.unknown .marker-row button { min-height:44px; }
+.panel > .sent-summary { text-align:left; }
+.sent-summary code { font-size:11px; }
+/* "What Volt knows" reference. */
+.knows h3 { margin:16px 0 6px; font-size:12px; font-weight:600; letter-spacing:1.2px; text-transform:uppercase; color:var(--muted); }
+.knows h3:first-child { margin-top:4px; }
+.knows-seen { font-weight:400; color:var(--muted); }
+.knows-list { list-style:none; margin:0 0 8px; padding:0; }
+.knows-list li { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:0 10px; padding:7px 10px; border-radius:10px; font-size:12px; }
+.knows-list li.seen { background:var(--raised); border-left:3px solid var(--ok); border-radius:4px 10px 10px 4px; padding-left:7px; }
+.knows-name { color:var(--text); font-weight:600; }
+.knows-list code { font-size:11px; color:var(--muted); justify-self:end; }
+.knows-values { grid-column:1 / -1; color:var(--muted); overflow-wrap:anywhere; }
+.seen-count { grid-column:1 / -1; color:var(--ok); font-weight:600; }
+@media (prefers-reduced-motion:reduce) { .log { scroll-behavior:auto; } .ask { animation:none; } }
 @media (max-width:480px) {
   .debugger .steps li { flex-direction:column; gap:4px; padding:8px 2px; }
   .log li { grid-template-columns:minmax(0,1fr) auto; }

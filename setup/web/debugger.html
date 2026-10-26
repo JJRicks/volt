@@ -82,18 +82,32 @@
         <p class="guide">Now open NAVEE and do the thing slowly, one change at a time. Pause a few seconds between changes.</p>
         <div id="live" class="log live" tabindex="0" aria-label="Kept NAVEE lines"><p id="live-empty" class="log-empty">Kept lines appear here.</p><ol id="live-rows"></ol></div>
         <p class="counts"><span id="kept-count">0 lines kept</span> · <span id="hidden-count">0 other NAVEE lines hidden</span></p>
+        <p id="ask-announce" class="sr-only" aria-live="polite"></p>
+        <form id="ask" class="ask" action="#" novalidate hidden aria-labelledby="ask-title">
+          <p id="ask-title" class="ask-title">Volt hasn’t seen this before. What did you just change in NAVEE?</p>
+          <p class="ask-what"><span id="ask-tag" class="tag new">New to Volt</span> <code id="ask-reading"></code> <span id="ask-time"></span></p>
+          <label for="ask-text" class="sr-only">What you just changed in NAVEE</label>
+          <div class="marker-row"><input id="ask-text" type="text" maxlength="200" autocomplete="off" placeholder="e.g. rainbow light mode" aria-describedby="ask-hint"><button id="ask-save" class="secondary" type="submit">Save</button><button id="ask-skip" class="text-button" type="button">Skip</button></div>
+          <p id="ask-error" class="ask-error" hidden role="alert"></p>
+          <p id="ask-hint" class="fine">Saved as a line right after it. Recording continues. <span id="ask-queue"></span></p>
+        </form>
         <form id="marker-form" class="marker" action="#" novalidate><label for="marker">Add a note <em>(e.g. “now switching to rainbow mode”)</em></label><div class="marker-row"><input id="marker" type="text" maxlength="200" autocomplete="off"><button id="add-marker" class="secondary" type="submit">Add note</button></div></form>
         <button id="stop" class="primary">Stop and clean up</button>
         <p class="fine">Keep this tab open and the cable connected.</p>
+        <details id="knows-live" class="knows"><summary>What Volt knows <span id="knows-live-seen" class="knows-seen"></span></summary><div id="knows-live-body"></div></details>
       </section>
       <section id="review-panel" class="panel" hidden aria-labelledby="review-title">
         <span class="success-mark" aria-hidden="true">✓</span><span class="eyebrow">05 / REVIEW</span><h2 id="review-title">Check what will be sent.</h2>
         <p>Cleanup is verified: NAVEE is closed and its log setting is restored. USB access is closed.</p>
+        <p id="known-summary" class="known-summary" tabindex="-1"></p>
         <dl class="summary"><dt>Model</dt><dd id="sum-model"></dd><dt>Problem</dt><dd id="sum-description"></dd><dt>Contact</dt><dd id="sum-contact"></dd><dt>NAVEE app</dt><dd id="sum-navee"></dd><dt>Android</dt><dd id="sum-android"></dd><dt>Phone</dt><dd id="sum-phone"></dd><dt>Recording</dt><dd id="sum-recording"></dd></dl>
         <button id="edit-details" class="text-button">Edit the problem or contact</button>
         <p class="fine">Each line below is sent exactly as shown. Grey readings are this page’s explanation and aren’t sent. Delete any line you don’t want to share.</p>
+        <section id="unknowns" class="unknowns" hidden aria-labelledby="unknowns-title"><h3 id="unknowns-title">Volt hasn’t seen these before.</h3><p class="fine">What did you change in NAVEE for each? Optional: an answer is added as a line right after it, and you can delete it like any other line.</p><ol id="unknown-list"></ol></section>
         <div class="log review" tabindex="0" aria-label="Lines that will be sent"><ol id="review-rows"></ol></div>
         <p id="review-counts" class="counts"></p>
+        <p id="summary-line" class="fine sent-summary" hidden>Also sent, as a one-line summary: <code id="summary-sent"></code></p>
+        <details id="knows-review" class="knows"><summary>What Volt knows <span id="knows-review-seen" class="knows-seen"></span></summary><div id="knows-review-body"></div></details>
         <label class="consent"><input id="send-consent" type="checkbox"><span>I’ve reviewed these lines and want to send them to Volt’s developer.</span></label>
         <button id="send" class="primary" disabled>Send to Volt’s developer</button>
         <button id="download-copy" class="secondary full">Download a copy</button>

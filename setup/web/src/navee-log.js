@@ -3,10 +3,10 @@
 // Raw rows are never returned, stored or thrown; only allowlisted, redacted text
 // leaves classify(). Anything unrecognized is only counted as hidden.
 import { SetupError } from './protocol.js';
-import { SENSITIVE, commandName } from './navee-commands.js';
+import { SENSITIVE, describe, keyLabel } from './navee-commands.js';
 
 export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description: 4000, contact: 240,
-  model: 120, version: 40, android: 40, phone: 80, duration: 3600, hidden: 1_000_000, body: 256 * 1024 };
+  model: 120, version: 40, android: 40, phone: 80, duration: 3600, hidden: 1_000_000, summary: 2000, body: 256 * 1024 };
 // Rows stop being added before the JSON body could exceed the server limit,
 // leaving room for the longest description and contact (UTF-8, escaped).
 export const ROW_BUDGET = LIMITS.body - 34 * 1024;
@@ -103,11 +103,14 @@ function opaqueBytes(text) {
   }
   return false;
 }
-// Final check applied to every row, kept or user-written, before display or send.
-export function safeText(text) {
-  return typeof text === 'string' && /^[\x20-\x7e]{1,600}$/.test(text) && !hasSecret(text) &&
+function checked(text, max) {
+  return typeof text === 'string' && text.length <= max && /^[\x20-\x7e]+$/.test(text) && !hasSecret(text) &&
     !new RegExp(MAC.source, 'i').test(text) && !personal(text) && !opaqueBytes(text);
 }
+// Final check applied to every row, kept or user-written, before display or send.
+export const safeText = text => checked(text, LIMITS.row);
+// The same rules for the submission's one-line summary, which may be longer.
+export const safeSummary = text => checked(text, LIMITS.summary);
 export function hexBytes(text) {
   const match = /\[([0-9a-f]{2}(?: [0-9a-f]{2})*)\]/i.exec(text);
   return match ? match[1].split(' ').map(x => parseInt(x, 16)) : null;
@@ -120,19 +123,24 @@ export function decodeFrame(bytes) {
   if (bytes.length !== bytes[4] + 8) return null;
   return { flag: bytes[2], cmd: bytes[3], read: false, payload: bytes.slice(5, -3) };
 }
-const hex = n => '0x' + n.toString(16).padStart(2, '0');
-// Short, display-only reading of a kept row; never part of what is sent.
-export function annotate(text) {
-  const frame = decodeFrame(hexBytes(text) || []);
-  if (frame) {
-    const [name, depth] = commandName(frame.cmd, frame.payload), values = frame.payload.slice(depth);
-    if (frame.read) return `read ${hex(frame.cmd)}${name ? ` ${name}` : ''}`;
-    return `${hex(frame.cmd)}${name ? ` ${name}` : ''}${values.length ? ` = ${values.join(', ')}` : ''}`;
+const SEND_CMD = /^sendCmd cmd=0X([0-9A-F]{2}), value=((?:0X[0-9A-F]{2},?)+)$/;
+const sendCmd = text => { const m = SEND_CMD.exec(text); return m && [parseInt(m[1], 16), m[2].split(',').map(x => parseInt(x.slice(2), 16))]; };
+const NOTE = /^\[(?:note|you said)\] /;
+// What Volt makes of a kept frame or sendCmd row (see describe()), or null for any other row.
+// Runs only on text classify() already kept; the result is display/summary only.
+export function recognize(text) {
+  if (typeof text !== 'string' || NOTE.test(text)) return null;
+  if (/^(?:Send write command|Send read command|Write success): \[/.test(text)) {
+    const frame = decodeFrame(hexBytes(text));
+    return frame && describe(frame.cmd, frame.payload, frame.read);
   }
-  const command = /^sendCmd cmd=0X([0-9A-F]{2})/.exec(text);
-  if (command) return commandName(parseInt(command[1], 16))[0] || '';
-  return '';
+  const command = sendCmd(text);
+  return command && describe(command[0], command[1], false);
 }
+// Short, display-only reading of a kept row; never part of what is sent.
+export const annotate = text => recognize(text)?.reading || '';
+// Unknown commands and values the page asks about. Reads and NAVEE's clock sync are routine.
+export const askable = info => !!info && (info.status === 'new' || info.status === 'new-value') && !info.read && !info.routine;
 // Classify one NAVEE message (the text after "com.navee.ucaret:"). Returns the
 // redacted text to keep, or null to hide it.
 export function classify(message) {
@@ -151,15 +159,21 @@ export function classify(message) {
   const kept = bound(redact(anonymize(kind, text)), LIMITS.text);
   return safeText(kept) ? kept : null;
 }
-// A user-written marker: local text, clearly labelled, held to the same rules.
-export function noteText(text) {
+function userText(text, prefix) {
   const clean = printable(String(text ?? '')).replace(/\s+/g, ' ');
   if (!clean) throw new SetupError('note', 'Type a short note first.');
   if (clean.length > LIMITS.note) throw new SetupError('note', `Keep notes to ${LIMITS.note} characters.`);
   if (hasSecret(clean) || personal(clean)) throw new SetupError('note', 'Notes can’t include email addresses, phone numbers or Bluetooth security data.');
-  const note = `[note] ${redact(clean)}`;
+  const note = `${prefix} ${redact(clean)}`;
   if (!safeText(note)) throw new SetupError('note', 'That note can’t be added. Try plain words.');
   return note;
+}
+// A user-written marker: local text, clearly labelled, held to the same rules.
+export const noteText = text => userText(text, '[note]');
+// The user's answer about one unknown command: "[you said] <reading>: <text>", same rules.
+export function answerText(reading, text) {
+  if (typeof reading !== 'string' || !safeText(reading) || /[[\]]/.test(reading)) throw new SetupError('note', 'That line can’t be answered.');
+  return userText(text, `[you said] ${reading}:`);
 }
 // Phone epoch "seconds.fraction" → UTC "HH:MM:SS.mmm".
 export function clock(stamp) {
@@ -210,9 +224,9 @@ export class LogRecorder {
       return false;
     }
     // NAVEE's "sendCmd cmd=0X6F, value=0X05,0X01" restates the frame it just logged; the frame row stays.
-    const command = /^sendCmd cmd=0X([0-9A-F]{2}), value=((?:0X[0-9A-F]{2},?)+)$/.exec(text);
+    const command = sendCmd(text);
     if (command) {
-      const cmd = parseInt(command[1], 16), values = command[2].split(',').map(x => parseInt(x.slice(2), 16));
+      const [cmd, values] = command;
       return this.rows.slice(-3).some(row => {
         const frame = !row.note && /^Send write command: /.test(row.text) ? decodeFrame(hexBytes(row.text)) : null;
         return frame && frame.cmd === cmd && frame.payload.length === values.length && frame.payload.every((b, i) => b === values[i]);
@@ -267,6 +281,20 @@ export class LogRecorder {
     if (!row) throw new SetupError('full', 'The capture is full, so no more notes can be added.');
     return row;
   }
+  // Inserts the user's answer right after the first row with that exact command and value
+  // (and after earlier answers to it). Linked by signature: confirmations replace row ids.
+  addAnswer(sig, text) {
+    const i = this.rows.findIndex(row => !row.note && recognize(row.text)?.sig === sig), target = this.rows[i];
+    const info = target ? recognize(target.text) : null;
+    if (!askable(info)) throw new SetupError('note', 'That line is no longer in the capture.');
+    const note = answerText(info.reading, text), size = target.time.length + note.length + 4;
+    if (this.full || this.rows.length >= LIMITS.rows || this.bytes + size > ROW_BUDGET) throw new SetupError('full', 'The capture is full, so no more notes can be added.');
+    let j = i + 1;
+    while (j < this.rows.length && this.rows[j].note && this.rows[j].sig === sig) j++;
+    const row = { id: this.next++, at: target.at, time: target.time, text: note, note: true, annotation: '', sig, said: note.slice(`[you said] ${info.reading}: `.length) };
+    this.rows.splice(j, 0, row); this.bytes += size;
+    return row;
+  }
   remove(id) {
     const i = this.rows.findIndex(row => row.id === id);
     if (i < 0) return;
@@ -279,6 +307,57 @@ export function logcatCommand(uid, cursor, count) {
     throw new Error('Invalid logcat request');
   // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
   return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -s com.navee.ucaret:V '*:S' | head -n ${count}`;
+}
+// What the kept command rows add up to: new commands by key, new values by exact value, user
+// answers by signature, and counts of known commands and reads.
+export function tally(rows) {
+  const news = new Map(), values = new Map(), said = new Map(), seen = new Map();
+  let known = 0, reads = 0;
+  for (const row of rows) if (row.note && row.sig && row.said) said.set(row.sig, [...(said.get(row.sig) || []), row.said]);
+  for (const row of rows) {
+    const info = row.note ? null : recognize(row.text);
+    if (!info) continue;
+    if (info.name) seen.set(info.key, (seen.get(info.key) || 0) + 1);
+    if (info.status === 'known') { known++; continue; }
+    if (info.status === 'read') { reads++; continue; }
+    const map = info.status === 'new' ? news : values, id = info.status === 'new' ? info.key + (info.read ? 'r' : '') : info.sig;
+    const item = map.get(id) || { ...info, count: 0, answers: [] };
+    item.count++;
+    for (const answer of said.get(info.sig) || []) if (!item.answers.includes(answer)) item.answers.push(answer);
+    map.set(id, item);
+  }
+  return { known, reads, news: [...news.values()], values: [...values.values()], seen };
+}
+// Plain-ASCII summary sent beside the rows, e.g. "New to Volt: 0xa4 x3 [you said: rainbow mode];
+// New values: 0x53 Energy recovery=45 x1; Known: 18 commands". Empty when nothing is new.
+// Built from tally() only, bounded, and held to the row rules (safeSummary).
+export function summaryText(rows) {
+  const t = tally(rows);
+  if (!t.news.length && !t.values.length) return '';
+  const known = `Known: ${t.known} ${t.known === 1 ? 'command' : 'commands'}${t.reads ? `, ${t.reads} ${t.reads === 1 ? 'read' : 'reads'}` : ''}`;
+  const sections = [['New to Volt', t.news, item => `${keyLabel(item.key)}${item.read ? ' read' : ''} x${item.count}`],
+    ['New values', t.values, item => `${keyLabel(item.key)} ${item.name}=${item.values.join(',') || 'nothing'} x${item.count}`]].filter(([, items]) => items.length);
+  // One budget for the whole line: each section gets an equal share of what is left (unused
+  // room passes on) and keeps space for a "+N more" tail; each item's answers stay short.
+  const build = withAnswers => {
+    const said = item => withAnswers && item.answers.length ? ` [you said: ${bound(item.answers.join(' / ').replace(/[[\]]/g, ''), LIMITS.note)}]` : '';
+    let out = '';
+    sections.forEach(([title, items, text], s) => {
+      const share = Math.floor((LIMITS.summary - known.length - out.length) / (sections.length - s)) - 2 - 16;
+      let part = `${title}: `;
+      for (let i = 0; i < items.length; i++) {
+        const next = `${part}${i ? ', ' : ''}${text(items[i])}${said(items[i])}`;
+        if (next.length > share) { part += `${i ? ', ' : ''}+${items.length - i} more`; break; }
+        part = next;
+      }
+      out += `${part}; `;
+    });
+    return out + known;
+  };
+  const full = build(true);
+  if (safeSummary(full)) return full;
+  const plain = build(false);
+  return safeSummary(plain) ? plain : '';
 }
 function field(value, max, pattern = /^[\x20-\x7e]*$/) {
   const text = String(value ?? '').trim();
@@ -303,6 +382,11 @@ export function submission({ model, description, contact, naveeVersion, android,
   if (body.rows.length < 1 || body.rows.length > LIMITS.rows || !rows.some(row => !row.note))
     throw new SetupError('invalid', 'Keep at least one NAVEE line to send.');
   if (!body.rows.every(row => row.length <= LIMITS.row && /^\d{2}:\d{2}:\d{2}\.\d{3} /.test(row) && safeText(row.slice(13))))
+    throw new SetupError('invalid', 'A line could not be checked safely, so nothing was sent.');
+  // Optional: present only when the capture holds something Volt doesn't know.
+  const summary = summaryText(rows);
+  if (summary) body.summary = summary;
+  if (body.summary !== undefined && !safeSummary(body.summary))
     throw new SetupError('invalid', 'A line could not be checked safely, so nothing was sent.');
   const json = JSON.stringify(body);
   if (new TextEncoder().encode(json).length > LIMITS.body) throw new SetupError('invalid', 'This capture is too large to send. Delete some lines and try again.');
