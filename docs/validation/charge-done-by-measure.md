@@ -83,7 +83,7 @@ a fresh charging=off reading like this:
 - a reconnect that finds charging off during such a pause resumes into the pause instead of ending;
 - learned-curve coverage is judged on charging time, so a paused charge can still qualify; bins never
   span the pause;
-- export adds `schedule_pauses` with start and end times;
+- export adds `schedule_pauses` with start and end times (and, since a charger that stops on its own below 99% also pauses the recording, `charger_pauses` in the same shape);
 - history rows say "paused N min for the schedule";
 - a recording allows at most eight pauses; the eighteen-hour and sample limits are unchanged;
 - the schedule can be confirmed off before charging resumes, so an open pause keeps holding for two

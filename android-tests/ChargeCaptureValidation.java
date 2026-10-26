@@ -115,7 +115,7 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(service.chargeCharger()==null,"New scooter inherited the other charger selection");service.profiles.select(profile);
             });
             verifyRecoveryTransitions();
-            verifySchedulePause();
+            verifySchedulePause();verifyChargerPause();
             main(()->{seedActive(profile);activity.finish();getTargetContext().stopService(new Intent(getTargetContext(),ScooterService.class));});
             ScooterService ended=service;await(()->Boolean.TRUE.equals(field(ended,"destroyed")),"Service did not end");
             require(!store(ended).active(),"Service end left capture active");
@@ -434,6 +434,33 @@ public final class ChargeCaptureValidation extends Instrumentation {
                 require(!json.contains("000000000000")&&!json.contains("X2538-SYNTHETIC")&&!json.contains(profile),"Diagnostic events leaked owner/radio identity");
             }catch(Exception e){throw new IllegalStateException(e);}
             require(field(service.ble,"gatt")==null&&field(service.ble,"scanner")==null,"Fault injection touched real Bluetooth transport");
+        });
+    }
+    /** The charger cuts out below 99% with no schedule: the capture waits as a charger pause and resumes in one journal. */
+    private void verifyChargerPause(){
+        main(()->{
+            service.visible(true);setField(service,"chargeUpdating",true);
+            seedActive(profile);
+            try{
+                long at=SystemClock.elapsedRealtime();
+                require(store().chargerStopped(System.currentTimeMillis(),at)==ChargeSessionStore.ChargerOff.PAUSED,"A charger cutout did not open a charger pause");
+                require(store().chargerPaused()&&service.isChargeRecording()&&service.chargeCaptureStatus().endsWith("charger stopped · waiting for it to resume"),"Charger pause status missing: "+service.chargeCaptureStatus());
+                Notification notice=(Notification)invoke(service,"notification",new Class<?>[]{});
+                require(notice.extras.getCharSequence(Notification.EXTRA_TEXT).toString().contains("charger stopped · waiting for it to resume")&&notice.actions[0].title.toString().equals("Stop charge recording"),"Charger pause notice lost its state or Stop action");
+                require(store().chargerStopped(System.currentTimeMillis()+20000,at+20000)==ChargeSessionStore.ChargerOff.WAITING&&store().lastFreshMono()==at+20000,"Waiting for the charger did not keep the capture fresh");
+                store().resume(System.currentTimeMillis()+30000,at+30000);
+                require(store().sample(sampleFrame(at+31000,51,-2))&&!store().paused(),"Charging after the cutout did not resume the same journal");
+            }catch(IOException e){throw new IllegalStateException(e);}
+            service.stopChargeRecording();
+            try{
+                StringWriter out=new StringWriter();store().exportJson(profile,out);
+                org.json.JSONArray sessions=new org.json.JSONObject(out.toString()).getJSONArray("sessions");boolean found=false;
+                for(int i=0;i<sessions.length();i++){org.json.JSONObject session=sessions.getJSONObject(i);org.json.JSONArray pauses=session.getJSONArray("charger_pauses");
+                    if(pauses.length()==1){found=true;require(session.getJSONArray("schedule_pauses").length()==0&&!pauses.getJSONObject(0).isNull("end_elapsed_ms")
+                            &&session.getJSONArray("samples").getJSONObject(1).getBoolean("gap_before"),"Exported charger pause is open, bridged or labeled a schedule pause");}}
+                require(found,"Charger-paused journal missing from export");
+            }catch(Exception e){throw new IllegalStateException(e);}
+            setField(service,"chargeUpdating",false);
         });
     }
     /** Volt's own armed schedule holds current off; the capture waits, marks it and stays one journal. */

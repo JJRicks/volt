@@ -332,7 +332,8 @@ public final class ScooterService extends Service {
         if(chargeRecovery!=null&&chargeRecovery.recovering())
             return "Reconnecting · "+Math.max(1,(chargeRecovery.remainingMs(SystemClock.elapsedRealtime())+999)/1000)+"s";
         return (chargeStore.charger()==ChargeSessionStore.Charger.STOCK?"Stock charger":"High-speed charger")+" · "
-                +(chargeStore.paused()?"paused until the scheduled start":chargeStore.sampleCount()+" local samples");
+                +(chargeStore.chargerPaused()?"charger stopped · waiting for it to resume"
+                        :chargeStore.paused()?"paused until the scheduled start":chargeStore.sampleCount()+" local samples");
     }
     /** Qualified sessions behind the curve estimates actually use; 0 while the charger is unknown, -1 while loading. */
     public int qualifiedChargeCurves(){
@@ -443,6 +444,14 @@ public final class ScooterService extends Service {
                         // Give exactly one bounded poll window to preserve the observed 99→100 bin.
                         if(chargeEndingMono==0){chargeEndingMono=mono;ble.refresh(false);}
                         else if(mono-chargeEndingMono>=5000)stop=ChargeSessionStore.Stop.CHARGING_ENDED;
+                    }else if(frame.state.value==0){
+                        // The charger stopped short of full with no schedule holding it: an overheating charger
+                        // often cuts out and comes back. Wait, marked as a charger pause, before ending.
+                        chargeEndingMono=0;
+                        ChargeSessionStore.ChargerOff off=chargeStore.chargerStopped(wall,mono);
+                        if(!isChargeRecording()){chargeStatus="Charge recording reached its storage or time limit";refreshChargeCurves();applyWorkPolicy(false);return;}
+                        if(off==ChargeSessionStore.ChargerOff.PAUSED)updateNotification();
+                        else if(off==ChargeSessionStore.ChargerOff.ENDED)stop=ChargeSessionStore.Stop.CHARGING_ENDED;
                     }else stop=ChargeSessionStore.Stop.CHARGING_ENDED;
                 }
                 else{

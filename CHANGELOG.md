@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- A charge recording no longer ends the moment the charger stops by itself below 99%, as an overheating charger can. It waits up to 30 minutes, marked as a charger stop (the notification says so), and continues the same recording when charging resumes; time spent waiting doesn't count against the recording or its learned curve. Charge recordings shows how often and how long the charger stopped, and the export lists the stops as `charger_pauses`. A charger still off after 30 minutes ends the recording as before.
 - A phone ride's elevation no longer drops back to its starting height after a GPS dropout, such as under an overpass or through a short tunnel, which broke the elevation chart and painted false steep grades on the map. The route still splits at the dropout, but elevation keeps the ride's own baseline: the barometer's, or GPS height's when there is no barometer reading, as an owner reported.
 - Color a ride's route power from 0 to that ride's own peak, rounded up to 500 W (at least 1,000 W), instead of a fixed 2,000 W that turned a dual-motor ride solid yellow. As with speed, a lone spike doesn't stretch the scale; the legend shows the top.
 - Name the XT5 Pro (Model ID 24162), from an owner's compatibility report, and stop asking its owners for one. Its drive modes read WALK, DRIVE and SPORT (codes 11, 2 and 3, a full cycle the owner reported). Its controls are not verified; they follow the official app's map for its model group as before.
