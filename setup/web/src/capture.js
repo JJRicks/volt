@@ -15,8 +15,10 @@ export function readJournal(storage) {
 }
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 export class CaptureSession {
-  constructor({ run, serial, storage, update = () => {}, now = () => performance.now(), delay = wait, token = randomToken }) {
-    Object.assign(this, { run, serial, storage, update, now, delay, token });
+  // watchSeconds: the phone watchdog bound (owner capture 120 s). Subclasses may
+  // replace collect(); every other step, cleanup and export gate stay shared.
+  constructor({ run, serial, storage, update = () => {}, now = () => performance.now(), delay = wait, token = randomToken, watchSeconds = 120 }) {
+    Object.assign(this, { run, serial, storage, update, now, delay, token, watchSeconds });
     this.busy = false; this.result = null; this.cancelled = false; this.journal = null; this.safe = false;
   }
   saveJournal(value) {
@@ -68,22 +70,11 @@ export class CaptureSession {
       // A crash/timeout may occur after starting the watchdog. Journal that
       // uncertainty before issuing the command, not after it returns.
       this.saveJournal({ ...this.journal, stage: 'armed' });
-      const armed = await this.run(armCommand(this.journal.token), { input: guardScript(this.journal.token) });
+      const armed = await this.run(armCommand(this.journal.token), { input: guardScript(this.journal.token, this.watchSeconds) });
       if (armed !== 'READY') throw new SetupError('guard', 'The cleanup timer could not be confirmed. No logging changes were requested.');
       this.checkCancelled();
       await this.run(startCommand(this.journal.token, launcher), { timeout: 20_000 });
-      this.update('capturing', 'On your phone, select your scooter in NAVEE and connect');
-      const deadline = this.now() + 90_000;
-      while (this.now() < deadline) {
-        this.checkCancelled();
-        const rows = await this.run(`logcat --uid=${uid} -d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`,
-          { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) });
-        candidate = parseCapture(rows, Number(stamp), candidate);
-        if (candidate) break;
-        await this.delay(Math.min(600, Math.max(0, deadline - this.now())));
-      }
-      this.checkCancelled();
-      if (!candidate) throw new SetupError('empty', 'No fresh owner setup arrived in 90 seconds. Check NAVEE is signed in, your scooter is nearby, and other scooter apps are closed.');
+      candidate = await this.collect(uid, stamp);
     } catch (error) {
       failure = error;
       // Exit 23 is emitted only before prepare acquires the reservation. This
@@ -104,6 +95,24 @@ export class CaptureSession {
     if (failure) { this.result = null; throw failure instanceof SetupError ? failure : new SetupError('capture', 'Capture could not finish. Check the USB cable and phone permission, then try again.'); }
     this.result = candidate;
     this.update('ready', 'Owner setup found. Cleanup verified.');
+  }
+  // Owner capture: poll only fresh authentication rows for up to 90 seconds.
+  // Runs while NAVEE logs verbosely; begin() always cleans up afterwards.
+  async collect(uid, stamp) {
+    let candidate = null;
+    this.update('capturing', 'On your phone, select your scooter in NAVEE and connect');
+    const deadline = this.now() + 90_000;
+    while (this.now() < deadline) {
+      this.checkCancelled();
+      const rows = await this.run(`logcat --uid=${uid} -d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`,
+        { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) });
+      candidate = parseCapture(rows, Number(stamp), candidate);
+      if (candidate) break;
+      await this.delay(Math.min(600, Math.max(0, deadline - this.now())));
+    }
+    this.checkCancelled();
+    if (!candidate) throw new SetupError('empty', 'No fresh owner setup arrived in 90 seconds. Check NAVEE is signed in, your scooter is nearby, and other scooter apps are closed.');
+    return candidate;
   }
   async cleanup() {
     const journal = this.journal;

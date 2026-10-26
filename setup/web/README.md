@@ -181,8 +181,8 @@ lock or replace an unknown original setting with an assumed empty value.
 
 ## Hosting requirements
 
-Deploy **only `dist/`**, atomically, at the root of the dedicated
-`https://pairscooter.jjricks.com/` origin. All links/assets are relative and also
+Deploy **only `dist/`** (excluding `dist/debugger/`, see NAVEE debugger), atomically,
+at the root of the dedicated `https://pairscooter.jjricks.com/` origin. All links/assets are relative and also
 support the legacy `/pairscooter/` subpath. Do not expose node_modules, source maps, repository
 metadata, or runtime captures. There is no upload route to deploy.
 Include `saira_regular.ttf`, `saira_semibold.ttf`, and `saira_bold.ttf` alongside
@@ -240,6 +240,78 @@ if a controller appears. It does not unregister workers belonging to other apps.
 Use a separate persistent browser profile if a root-scoped service worker controls
 this page. Avoid Incognito/Guest windows and clearing site data during setup: losing
 the recovery journal can leave a completed phone lock needing manual verification.
+
+## NAVEE debugger
+
+A second, separate page (`debugger.html`, `src/debugger.js`) for
+`https://volt.jjricks.com/debugger/`. An owner describes a problem (model, a
+description up to 4000 characters, optional contact), connects their phone with
+the same USB consent and picker flow, and records what the official NAVEE app
+logs about Bluetooth while they reproduce the problem (for example cycling RGB
+light modes). They review every kept line, may delete lines, and only then send
+the capture to the developer; a local JSON copy is a secondary option.
+
+**Capture.** `src/debug-capture.js` subclasses the owner-capture session and
+replaces only its collection step (`CaptureSession.collect()`). It takes the same
+exclusive `volt-owner-capture.lock`, journal, user-0/profile/UID/launcher checks,
+temporary VERBOSE property, detached watchdog, force-stop and exact restoration,
+so it can never run concurrently with an owner capture or the Shizuku helper. The
+lock format is unchanged; only the watchdog bound is a parameter
+(`guardScript(token, watchSeconds = 120)`): 600 s here, 120 s for owner capture.
+Recording is user-stopped and ends automatically after nine minutes, a minute
+before the watchdog, with a visible countdown. Every ~2 s it reads
+`logcat --uid=<NAVEE uid> -d -v epoch -t <last row time> -m <batch> -s com.navee.ucaret:V '*:S'`
+(1 MiB response bound; oversize replies shrink the batch). Rows at the boundary
+timestamp are deduplicated by a 64-bit digest and occurrence count, so raw text
+is never retained. Before cleanup it reads NAVEE's `versionName`, Android's
+release and the phone model; these are the only device facts sent. Review, copy
+and send are available only after verified cleanup and lock release; USB access
+is then released and forgotten immediately. A failed poll, disconnect, page exit
+or unverified cleanup discards the recording, exactly as owner capture discards
+its result. Recovery uses the same journal and steps, with ten-minute timings.
+
+**Filter (trust boundary).** `src/navee-log.js` is pure and unit-tested. Raw rows
+are never displayed, stored, logged or sent. A row is kept only if its message
+(after NAVEE's `[thread] Class.method: ` prefix) matches an allowlist of NAVEE
+2.1.x Bluetooth/device-control messages (`Send write/read command`, `Write
+success/failure`, notify/MTU/reconnect, `sendCmd`, `sendAmbientCmd`, connect,
+disconnect and bond rows, lock status, scans, `[Exo]`/`Exo notify raw`, the DG
+rows). Frame rows must be well-formed `55 aa … fe fd` frames with a valid
+checksum. BleHandler's notify-description rows are **not** kept: NAVEE logs them
+as a Chinese description followed by separate `Error`/`Update Data`/`CheckSum`
+rows whose payload carries no command byte, and some describe serial or PIN reads.
+Dropped entirely: anything mentioning `authData`/`encryptData`; any NAVEE frame
+header whose command is 0x30, 0x31, 0x63 or 0x7a (Volt's `sensitiveCommand`) in
+any separator style, with or without brackets or `0x`; `cmd=0X30|31|63|7A`; email
+addresses; phone-number-like digit runs. Redacted: Bluetooth addresses (also the
+12-hex identifiers NAVEE prints) to `[MAC]`, the device in Connect/DisConnected/
+Bond rows to `[scooter]`, serial-like tokens to `[serial]`. Kept rows are printable
+ASCII, at most 512 characters, at most 3000 rows and a byte budget that keeps the
+request under 256 KB. Everything else is only counted ("N other NAVEE log lines
+were hidden"). User notes (≤ 200 characters, `[note] …`) pass the same rules.
+Annotations (`0x52 Cruise control = 1`, from `src/navee-commands.js`, checked
+against `ScooterCommands.java`) are display-only and not sent.
+
+**Submission.** One `fetch` to `https://volt.jjricks.com/debugger/submit` with
+`credentials: 'omit'`, `cache: 'no-store'`, `redirect: 'error'` and the
+`volt-navee-capture-v1` JSON body built and re-validated by `submission()`. The
+server's reference ID is shown; rate limits (429), refusals and network errors keep
+the capture for another try. Only the server's short printable `error` text is shown.
+
+**Hosting.** The build writes `dist/debugger/` (`index.html`, `app.js`, combined
+`styles.css` = `styles.css` + `debugger.css`, the three Saira fonts,
+`THIRD-PARTY-NOTICES.txt`, `headers.json`). Deploy that folder alone at
+`https://volt.jjricks.com/debugger/` and **never** include `dist/debugger/` in the
+pairscooter deployment (the page refuses to record on any host other than
+`volt.jjricks.com` or localhost). Apply `dist/debugger/headers.json`. Its CSP has
+the same shape as the setup page, exact script hash and all, except
+`connect-src https://volt.jjricks.com/debugger/submit` (nothing else).
+`Permissions-Policy: usb=(self)` is required. Unlike `pairscooter.jjricks.com`,
+`volt.jjricks.com` is shared with the homepage and other pages: WebUSB grants and
+localStorage are origin-wide, so every page on that origin must stay free of
+third-party script. The debugger forgets its USB device after each session.
+`test/debugger-browser-check.mjs` is the optional Playwright check for this page
+(same environment variables as `browser-check.mjs`).
 
 ## Validation limits
 

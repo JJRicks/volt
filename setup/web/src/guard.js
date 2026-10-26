@@ -9,7 +9,10 @@ function checkToken(token) {
   if (!tokenValid(token)) throw new Error('Invalid session token');
   return `[ ! -L ${d} ] && [ -d ${d} ] && [ "$(cat ${d}/token)" = ${quote(token)} ] && [ "$(cat ${d}/owner)" = webadb ]`;
 }
-export function guardScript(token) {
+// watchSeconds bounds the detached watchdog: owner capture keeps 120 s; the
+// NAVEE debugger's longer, user-stopped recording passes its own bound.
+export function guardScript(token, watchSeconds = 120) {
+  if (!Number.isInteger(watchSeconds) || watchSeconds < 1 || watchSeconds > 3600) throw new Error('Invalid watchdog bound');
   return `#!/system/bin/sh
 umask 077
 d=${d}
@@ -71,7 +74,7 @@ case "$1" in
     guard_mode=1
     printf ready > "$d/ready"
     i=0
-    while [ "$i" -lt 120 ]; do
+    while [ "$i" -lt ${watchSeconds} ]; do
       ours || exit 1
       [ "$(cat "$d/status" 2>/dev/null)" = done ] && break
       sleep 1
