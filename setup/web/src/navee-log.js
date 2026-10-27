@@ -12,7 +12,7 @@ export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description:
 export const ROW_BUDGET = LIMITS.body - 34 * 1024;
 export const FORMAT = 'volt-navee-capture-v1';
 // ModelRegistry.KNOWN names, after the UT5 MAX layer Volt's controls are built on.
-export const MODELS = ['UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'UT5 Ultra X', 'XT5 Pro'];
+export const MODELS = ['UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro'];
 export const OTHER_MODEL = 'Other / not sure';
 
 // ByteUtil.g: "[55 aa 00 52 01 01 a9 fe fd]", lowercase pairs, single spaces.

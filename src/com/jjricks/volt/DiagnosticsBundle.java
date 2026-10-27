@@ -114,7 +114,7 @@ final class DiagnosticsBundle {
     DiagnosticsBundle readings(List<Telemetry.Metric> metrics, long nowElapsedMs) {
         List<Object> out = new ArrayList<>();
         if (metrics != null) for (Telemetry.Metric metric : metrics) {
-            if (metric.value == null || WITHHELD.contains(metric.key) || !reading(metric.value)) continue;
+            if (metric.value == null || WITHHELD.contains(metric.key) || !reading(metric.key, metric.value)) continue;
             Map<String, Object> r = new LinkedHashMap<>();
             r.put("group", metric.group); r.put("key", metric.key); r.put("value", metric.value);
             if (metric.updatedMs >= 0) r.put("age_ms", Math.max(0, nowElapsedMs - metric.updatedMs));
@@ -124,8 +124,14 @@ final class DiagnosticsBundle {
         tree.put("readings", out);
         return this;
     }
+    // Telemetry formats battery temperature with a degree sign. Allow only that typed numeric
+    // value, not arbitrary Unicode in diagnostic strings or other fields.
+    static boolean reading(String key, String value) {
+        return reading(value) || ("temperature_c".equals(key) && value != null
+                && value.matches("-?[0-9]{1,3} °C"));
+    }
     static boolean reading(String value) {
-        if (value.length() > 80) return false;
+        if (value == null || value.length() > 80) return false;
         for (int i = 0; i < value.length(); i++) { char c = value.charAt(i); if (c < 0x20 || c > 0x7e) return false; }
         return !HEX_RUN.matcher(value).find() && !SERIAL.matcher(value).find();
     }

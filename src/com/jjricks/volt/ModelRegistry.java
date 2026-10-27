@@ -35,7 +35,7 @@ import java.util.Set;
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=15;
+    public static final int VERSION=16;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -102,6 +102,8 @@ public final class ModelRegistry {
      * GT5 Max (25462, EU; meter 1.0.0.4) is named from an owner's compatibility report, its model confirmed by the
      * maintainer in October 2026. Its owner reported using cruise control (which the official app hides there by
      * region) in October 2026, and the maintainer chose to mark it verified; nothing else on it is.
+     * The GT3 Max (24182, EUR; meter 2.0.4.6, controller 0.0.1.7) is named from an
+     * owner-identified read-only report in October 2026; no controls were tested.
      */
     private static final class Known {
         final String name,photo;final Set<String> features;
@@ -112,6 +114,7 @@ public final class ModelRegistry {
         KNOWN.put("22131",new Known("N65i","n65i","lock","display_units","headlight","auto_sensor"));
         KNOWN.put("23452",new Known("ST3 Pro","st3pro","display_units","turn_sound","range_algorithm","traction_control"));
         KNOWN.put("25462",new Known("GT5 Max","gt5max","cruise_control"));
+        KNOWN.put("24182",new Known("GT3 Max","gt3max"));
         KNOWN.put("25852",new Known("UT5 Ultra X","ut5ultrax"));
         // No photo yet: Volt names it and keeps its owners from being asked again.
         KNOWN.put("24162",new Known("XT5 Pro",""));
@@ -122,7 +125,7 @@ public final class ModelRegistry {
      * model leaves this table.
      */
     static final Map<String,String> WAITING_PHOTOS;
-    static{Map<String,String> w=new LinkedHashMap<>();w.put("GT3 Max","gt3max");w.put("XT5 Ultra","xt5ultra");WAITING_PHOTOS=java.util.Collections.unmodifiableMap(w);}
+    static{Map<String,String> w=new LinkedHashMap<>();w.put("XT5 Ultra","xt5ultra");WAITING_PHOTOS=java.util.Collections.unmodifiableMap(w);}
     /** The name and photo of each model known by Model ID, for ModelRegistryTest. */
     static Map<String,String[]> knownModels(){Map<String,String[]> out=new LinkedHashMap<>();for(Map.Entry<String,Known> e:KNOWN.entrySet())out.put(e.getKey(),new String[]{e.getValue().name,e.getValue().photo});return out;}
     /** A known model; the advertised Model ID must agree with the serial and resolve to a standard layer. */
@@ -854,7 +857,7 @@ public final class ModelRegistry {
     public static Double ratedWh(DeviceDescriptor d){return ut5Max(d)?716.04:null;}
     public static boolean showsPhoto(DeviceDescriptor d){return !photo(d).isEmpty();}
     /** Exact advertised Model IDs Volt already has a compatibility report for; extend it each release. */
-    static final Set<String> REPORTED=new HashSet<>(java.util.Arrays.asList("22131","23452","24162","25462","25852"));
+    static final Set<String> REPORTED=new HashSet<>(java.util.Arrays.asList("22131","23452","24162","24182","25462","25852"));
     /** True when Volt needs no new compatibility report for this model (the UT5 MAX is the reference). */
     public static boolean reported(DeviceDescriptor d){return ut5Max(d)||d!=null&&REPORTED.contains(d.rulePid());}
     /** Bundled photo key ("ut5max", "n65i") for this model, or "" for none. */

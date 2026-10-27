@@ -25,6 +25,13 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
+UNRELEASED
+------------
+- Recognize and picture the GT3 Max (24182) from a read-only owner report;
+  its controls retain their existing compatibility rules and evidence levels.
+- Include battery temperature in diagnostics and ignore unknown sign flags
+  when interpreting current and temperature, while retaining the raw flags.
+
 NEW IN 1.8.1
 ------------
 - ST3 Pro: traction control is an ordinary, verified control (owners' tries

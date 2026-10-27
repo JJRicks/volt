@@ -10,7 +10,7 @@ public final class ModelRegistryTest {
         // Touch the registry before ScooterCommands so a static-initialiser cycle would show here.
         check(ModelRegistry.resolve(advertised("25381")).layer==ModelRegistry.Layer.UT5_MAX&&ModelRegistry.variant("clock_sync",advertised("25381"),null,null)==ModelRegistry.CLOCK
             &&ModelRegistry.variant("lock",advertised("25381"),null,null).id.equals("lock.ut5"),"Registry initialises first");
-        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); waitingPhotos(); ownerAnswers();
+        tables(); layers(); ut5Identity(); helpers(); assumptions(); rules(); testedModels(); namedOnly(); gt3Report(); waitingPhotos(); ownerAnswers();
         System.out.println("ModelRegistry tests passed: "+assertions+" assertions");
     }
 
@@ -176,6 +176,26 @@ public final class ModelRegistryTest {
         }
     }
 
+    private static void gt3Report() {
+        DeviceDescriptor gt3=both("Q2418ZZ9ES7777777","24182"),sibling=advertised("24181");
+        check(ModelRegistry.modelName(gt3).equals("GT3 Max")&&ModelRegistry.photo(gt3).equals("gt3max")
+            &&ModelRegistry.showsPhoto(gt3),"Owner-identified GT3 Max gets its existing photo");
+        check(ModelRegistry.reported(gt3)&&ReportInvite.model(gt3).isEmpty(),"GT3 Max report is already received");
+        check(ModelRegistry.ownerPhoto("GT3 Max").equals("gt3max"),"Manual GT3 Max photo still works");
+        for(DeviceDescriptor unknown:new DeviceDescriptor[]{sibling,serial("Q2418ZZ9ES7777777"),
+                both("Q2345ZZ9ES7777777","24182"),DeviceDescriptor.of("","24182",1,null,false,DeviceDescriptor.Transport.UNVERIFIED,0)})
+            check(ModelRegistry.modelName(unknown).isEmpty()&&ModelRegistry.photo(unknown).isEmpty(),"Naming requires an exact, unconflicted standard advertised ID");
+        java.util.List<ScooterCommands.Feature> features=new java.util.ArrayList<>(ScooterCommands.catalog());
+        features.addAll(ScooterCommands.oemOnly());
+        for(ScooterCommands.Feature feature:features) {
+            String f=feature.key;
+            ModelRegistry.Rule named=ModelRegistry.rule(f,gt3,null,null),plain=ModelRegistry.rule(f,sibling,null,null);
+            check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,
+                "Read-only GT3 report changes no control capability: "+f);
+        }
+        check(ModelRegistry.driveModeLabelProduct(gt3)==0,"No drive-mode label inference from this report");
+    }
+
     /** Photos bundled ahead of their Model ID: listed NAVEE models, shown on nothing yet, each ready to use once its ID is known. */
     private static void waitingPhotos() throws java.io.IOException {
         Set<String> keys=new HashSet<>();keys.add("ut5max");
@@ -185,7 +205,7 @@ public final class ModelRegistryTest {
             check(w.getKey().equals(NaveeModels.exact(w.getKey())),"A waiting photo is not a listed NAVEE model: "+w.getKey());
             check(keys.add(w.getValue()),"Two models share the photo "+w.getValue());
         }
-        check(!ModelRegistry.WAITING_PHOTOS.containsKey("GT5 Max")&&ModelRegistry.WAITING_PHOTOS.containsKey("GT3 Max"),"The GT5 Max left the waiting photos once known; the GT3 Max still waits");
+        check(!ModelRegistry.WAITING_PHOTOS.containsKey("GT5 Max")&&!ModelRegistry.WAITING_PHOTOS.containsKey("GT3 Max"),"GT5 Max and GT3 Max no longer wait for IDs");
         check(ModelRegistry.ownerPhoto("XT5 Ultra").equals("xt5ultra"),"An owner's XT5 Ultra answer shows its waiting photo");
         // Each photo key is bundled and decodable by ScooterPhotos, so moving a model into KNOWN needs nothing else.
         String photos=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/ScooterPhotos.java")),java.nio.charset.StandardCharsets.UTF_8);
@@ -259,7 +279,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==15,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
+        check(ModelRegistry.VERSION==16,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");
