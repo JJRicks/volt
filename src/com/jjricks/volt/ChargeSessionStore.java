@@ -516,6 +516,8 @@ public final class ChargeSessionStore {
      * Only the observed range is usable; no bulk-power or below-range extrapolation is made.
      */
     private static final class FinishingCurve {
+        /** Pack/sensor offset allowance between charges, as in the high-speed reference. */
+        static final double FLAT_VOLT_TOLERANCE = .35;
         final List<Point> points;
         final boolean recoveredAfterBreak;
         FinishingCurve(List<Point> points, boolean recoveredAfterBreak) {
@@ -571,6 +573,13 @@ public final class ChargeSessionStore {
                 // Nearly flat power cannot locate us within this SOC plateau. Use its midpoint
                 // only for short intervals, without presenting a fabricated exact countdown.
                 if (next.mono-stage.get(0).mono > 600000) return null;
+                // Flat bulk power matches any stage at the same current; paired pack voltage
+                // must still lie near this stage (the gauge can sit volts away from it).
+                if (liveVolts != null) {
+                    double lowVolts = Double.POSITIVE_INFINITY, highVolts = 0;
+                    for (Point point : stage) { lowVolts = Math.min(lowVolts, point.voltage); highVolts = Math.max(highVolts, point.voltage); }
+                    if (liveVolts < lowVolts - FLAT_VOLT_TOLERANCE || liveVolts > highVolts + FLAT_VOLT_TOLERANCE) return null;
+                }
                 at = (stage.get(0).mono + next.mono) / 2d;
             } else if (liveVolts != null) {
                 double[][] samples = new double[stage.size()][3];

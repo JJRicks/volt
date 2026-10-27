@@ -157,7 +157,7 @@ public final class FastChargeTaperTest {
             }
         }
         check(stock == 5990 && recorded == 1028, "Parity covers all standard-charger and calibration samples");
-        double[][] bounds = {{12, 0, 5, 12}, {12, 5, 0, 5}, {12, 10, -1.5, 1.5}, {11, 5, -3, 3}, {11, 10, -3, 3}, {6, 5, -1, 3}};
+        double[][] bounds = {{12, 0, 5, 12}, {12, 5, 0, 5}, {12, 10, -1.5, 1.5}, {11, 0, -3, 3}, {11, 5, -3, 3}, {11, 10, -3, 3}, {6, 5, -1, 3}};
         for (double[] b : bounds) {
             FastChargeTaperReplay.Row row = FastChargeTaperReplay.at(rows, (int) b[0], b[1]);
             double error = row.full - row.actual;
@@ -171,7 +171,7 @@ public final class FastChargeTaperTest {
                 else if (session == 12) check(!personal, "Once personal, session 12 never drops back to a fallback");
                 if (session == 12) check(!row.source.equals("CURRENT_RATE"), "Session 12 never shows the current rate");
             }
-            check(sum / n <= 2.5, "Session " + session + " mean absolute error " + sum / n);
+            check(sum / n <= (session == 11 ? 1.0 : 2.5), "Session " + session + " mean absolute error " + sum / n);
         }
     }
 }

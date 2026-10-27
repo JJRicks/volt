@@ -41,7 +41,7 @@ public final class CompletedChargeEstimateTest {
     private static List<double[]> steadyTrace(int samplesPerPercent,long interval){
         List<double[]> points=new ArrayList<>();
         for(int i=0;i<=40*samplesPerPercent;i++)
-            points.add(new double[]{i*interval,60+i/samplesPerPercent,54,-2});
+            points.add(new double[]{i*interval,60+i/samplesPerPercent,53.39,-2});
         return points;
     }
     private static ChargeSessionStore.Curve curve(ChargeSessionStore store)throws Exception{
@@ -50,7 +50,8 @@ public final class CompletedChargeEstimateTest {
     private static ChargingEstimate.Result estimate(ChargeSessionStore.Curve curve,double soc,double watts,Double cutoff){
         // Representative paired voltages from the recorded 99% stages, rather than an
         // arbitrary fixed voltage that would contradict the phase being exercised.
-        double volts=soc==99?(watts>=100?53.814:watts>=70?54.172:watts>=45?54.335:54.374):54;
+        // Below 99% likewise: the recorded 92% and 95% stages sat near 53.28 and 53.39 V.
+        double volts=soc==99?(watts>=100?53.814:watts>=70?54.172:watts>=45?54.335:54.374):soc==95?53.39:soc==92?53.28:54;
         ChargingEstimate.Result baseline=ChargingEstimate.calculate(new ChargingEstimate.Value(1d,true,100),
                 new ChargingEstimate.Value(volts,true,100),new ChargingEstimate.Value(-watts/volts,true,100),
                 new ChargingEstimate.Value(soc,true,100),new ChargingEstimate.Value(15.3,true,100),
@@ -114,6 +115,8 @@ public final class CompletedChargeEstimateTest {
         check(sparseCurve!=null&&sparseCurve.hasFinishingCoverage(90)&&!sparseCurve.hasFinishingCoverage(50),"A sparse recording retains its qualifying continuous finish only");
         check(sparseCurve.estimate(50,51)==null&&sparseCurve.powerMatch(50,108d)==ChargeSessionStore.Curve.PowerMatch.UNKNOWN,"Two recovered tails cannot qualify pre-gap timing or power bins");
         check(sparseCurve.estimateFinishing(95,108d,54d)!=null,"Clearing unqualified legacy bins preserves the valid finishing suffix");
+        check(sparseCurve.estimateFinishing(95,108d,54.3d)!=null&&sparseCurve.estimateFinishing(95,108d,null)!=null,"Flat power within the pack-offset allowance still matches");
+        check(sparseCurve.estimateFinishing(95,108d,52d)==null&&sparseCurve.estimateFinishing(95,108d,54.4d)==null,"Flat power at a distant pack voltage is a different stage");
         ChargeSessionStore shortSuffix=store();record(shortSuffix,"sample",ChargeSessionStore.Charger.STOCK,steadyTrace(2,20000),ChargeSessionStore.Stop.COMPLETE,20,-1);
         check(!estimate(curve(shortSuffix),95,108,100d).learnedToFull,"A long total session cannot qualify a suffix with fewer than 61 retained samples");
         ChargeSessionStore minimumSuffix=store();record(minimumSuffix,"sample",ChargeSessionStore.Charger.STOCK,steadyTrace(6,10000),ChargeSessionStore.Stop.COMPLETE,174,-1);
