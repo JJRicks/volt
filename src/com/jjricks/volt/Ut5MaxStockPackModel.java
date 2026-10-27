@@ -212,7 +212,7 @@ public final class Ut5MaxStockPackModel {
 
     private Ut5MaxStockPackModel() {}
 
-    /** Display (most likely) and planning (cautious) minutes for one target. */
+    /** Minutes for one target: display estimate and historical planning estimate kept for evaluation. */
     public static final class Estimate {
         public final double display, planning;
         Estimate(double display, double planning) { this.display = display; this.planning = planning; }
