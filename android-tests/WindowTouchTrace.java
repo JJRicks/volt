@@ -15,6 +15,7 @@ final class WindowTouchTrace {
     private final Window window;
     private final Window.Callback original, proxy;
     private final List<String> events = new ArrayList<>();
+    private float[] firstDown;
 
     WindowTouchTrace(Window window) {
         this.window = window;
@@ -25,6 +26,8 @@ final class WindowTouchTrace {
                             && arguments.length == 1 && arguments[0] instanceof MotionEvent) {
                         MotionEvent event = (MotionEvent)arguments[0];
                         synchronized (events) {
+                            if (firstDown == null && event.getActionMasked() == MotionEvent.ACTION_DOWN)
+                                firstDown = new float[] {event.getX(), event.getY()};
                             if (events.size() < 12) {
                                 View focus = window.getCurrentFocus();
                                 events.add("action=" + event.getActionMasked() + ", raw=[" + event.getRawX()
@@ -53,6 +56,8 @@ final class WindowTouchTrace {
                 });
         window.setCallback(proxy);
     }
+    /** Window-local position of the first delivered press, or null; IME pan does not shift it. */
+    float[] firstDown() { synchronized (events) { return firstDown == null ? null : firstDown.clone(); } }
     void restore() { if (window.getCallback() == proxy) window.setCallback(original); }
     private String targets(View view) {
         StringBuilder result = new StringBuilder();
