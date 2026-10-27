@@ -51,6 +51,8 @@ public final class SearchFocusValidation extends Instrumentation {
     private Bundle arguments;
     private int keyboardRequests;
     private Rect lastTapScreenBounds = new Rect();
+    /** Each window's SearchFocus observer, kept before a touch trace wraps the window callback. */
+    private final java.util.Map<Window, Object> observers = new java.util.WeakHashMap<>();
     @Override public void onCreate(Bundle args) { arguments = args == null ? new Bundle() : args; start(); }
     @Override public void onStart() {
         Bundle result = new Bundle();
@@ -84,13 +86,13 @@ public final class SearchFocusValidation extends Instrumentation {
     }
     private void controlsChecks(String theme) {
         clickDescription("Scooter"); Object controls = screen(); EditText search = (EditText)field(controls, "search");
-        showKeyboard(search, activity.getWindow(), "speed"); tap((View)field(controls, "results"));
+        showKeyboard(search, activity.getWindow(), "speed"); tap((View)field(controls, "results"), activity.getWindow());
         assertDismissed(search, activity.getWindow(), "speed", "Outside results tap");
         require(screen() == controls, "An inert outside tap navigated away from settings");
         showKeyboard(search, activity.getWindow(), "speed"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, activity.getWindow(), "speed", "System Back");
         require(screen() == controls, "Hiding the keyboard also navigated away");
-        showKeyboard(search, activity.getWindow(), "speed"); tap(findDescription(root(), "Live Stats"));
+        showKeyboard(search, activity.getWindow(), "speed"); tap(findDescription(root(), "Live Stats"), activity.getWindow());
         await(() -> screen() instanceof StatsScreen && !imeVisible(activity.getWindow()), 4000,
                 "Outside navigation tap was swallowed or left the keyboard open");
         checks.add(theme + ": outside taps and system Back clear settings search focus, preserve the filter, and deliver navigation actions");
@@ -107,7 +109,7 @@ public final class SearchFocusValidation extends Instrumentation {
             View candidate = (View)field(row, "star");
             if (candidate.isShown()) { starView[0] = candidate; starKey[0] = (String)field(row, "key"); break; } } });
         require(starView[0] != null, "No visible Stats favourite star");
-        boolean original = favourite(starKey[0]); tap(starView[0]);
+        boolean original = favourite(starKey[0]); tap(starView[0], activity.getWindow());
         assertDismissed(search, activity.getWindow(), "battery", "Stats favourite tap");
         require(favourite(starKey[0]) != original, "Dismissing search consumed the favourite action");
         if (favourite(starKey[0]) != original) click(starView[0]);
@@ -144,34 +146,30 @@ public final class SearchFocusValidation extends Instrumentation {
         AtomicReference<WindowTouchTrace> trace = new AtomicReference<>();
         main(() -> trace.set(new WindowTouchTrace(picker.getWindow())));
         try {
-            tap(findText(picker.getWindow().getDecorView(), "Choose parameter"));
+            tap(findText(picker.getWindow().getDecorView(), "Choose parameter"), picker.getWindow());
             assertDismissed(search, picker.getWindow(), "voltage", "Dialog title tap");
         } catch (IllegalStateException error) {
             throw new IllegalStateException(error.getMessage() + "; " + trace.get().describe(), error);
         } finally { main(() -> trace.get().restore()); }
         require(picker.isShowing(), "An inert title tap dismissed the parameter picker");
         showKeyboard(search, picker.getWindow(), "voltage");
-        Rect field = nativeScreenBounds(search);
         require(search.getLayoutParams() instanceof ViewGroup.MarginLayoutParams
                 && ((ViewGroup.MarginLayoutParams)search.getLayoutParams()).bottomMargin >= activity.ui().dp(12),
                 "Parameter search lacks its expected inert bottom margin");
-        float marginX = field.centerX(), marginY = field.bottom + activity.ui().dp(6);
-        lastTapScreenBounds = new Rect((int)marginX, (int)marginY, (int)marginX + 1, (int)marginY + 1);
+        int margin = ((ViewGroup.MarginLayoutParams)search.getLayoutParams()).bottomMargin;
         main(() -> trace.set(new WindowTouchTrace(picker.getWindow())));
         try {
-            long marginDown = SystemClock.uptimeMillis();
-            inject(marginDown, MotionEvent.ACTION_DOWN, marginX, marginY);
-            inject(marginDown, MotionEvent.ACTION_UP, marginX, marginY);
+            tap(search, picker.getWindow(), margin);
             assertDismissed(search, picker.getWindow(), "voltage", "Dialog search margin tap");
-            require(picker.isShowing(), "A tap below search dismissed the parameter picker; nativeField=" + field
-                    + ", tapped=" + lastTapScreenBounds + ", metric=" + widget.metric);
+            require(picker.isShowing(), "A tap below search dismissed the parameter picker; tapped="
+                    + lastTapScreenBounds + ", metric=" + widget.metric);
         } catch (IllegalStateException error) {
             throw new IllegalStateException(error.getMessage() + "; " + trace.get().describe(), error);
         } finally { main(() -> trace.get().restore()); }
         showKeyboard(search, picker.getWindow(), "voltage"); sendKeyDownUpSync(KeyEvent.KEYCODE_BACK);
         assertDismissed(search, picker.getWindow(), "voltage", "Dialog system Back");
         require(picker.isShowing(), "Hiding the picker keyboard also dismissed the dialog");
-        showKeyboard(search, picker.getWindow(), "voltage"); tap(findText(picker.getWindow().getDecorView(), metricLabel("voltage_v")));
+        showKeyboard(search, picker.getWindow(), "voltage"); tap(findText(picker.getWindow().getDecorView(), metricLabel("voltage_v")), picker.getWindow());
         await(() -> !picker.isShowing() && widget.metric.equals("voltage_v") && !imeVisible(activity.getWindow()), 4000,
                 "Outside parameter tap was swallowed or did not save the selection");
         checks.add(theme + ": IME-panned picker clears focus from title and search-margin taps without clearing its query or consuming a selection");
@@ -181,7 +179,7 @@ public final class SearchFocusValidation extends Instrumentation {
         String originalTitle = current.title;
         click(findDescription((View)tile, "Options for " + current.title));
         AlertDialog title = dialog(dashboard); EditText ordinary = first(title.getWindow().getDecorView(), EditText.class);
-        showKeyboard(ordinary, title.getWindow(), "Ordinary title form"); tap(findText(title.getWindow().getDecorView(), "Title"));
+        showKeyboard(ordinary, title.getWindow(), "Ordinary title form"); tap(findText(title.getWindow().getDecorView(), "Title"), title.getWindow());
         waitForIdleSync(); SystemClock.sleep(180);
         main(() -> require(ordinary.hasFocus() && "Ordinary title form".contentEquals(ordinary.getText()),
                 "Search-only dismissal changed focus or text in an ordinary title form"));
@@ -196,8 +194,10 @@ public final class SearchFocusValidation extends Instrumentation {
         String stage = "IME request #" + (++keyboardRequests) + " in "
                 + (window == activity.getWindow() ? screen().getClass().getSimpleName() : "widget dialog")
                 + " (" + text + ")";
+        // A loaded emulator restarts a System UI that stopped responding; its windows take focus for seconds.
         await(() -> window.getDecorView().hasWindowFocus() && search.isAttachedToWindow() && search.isShown(),
-                4000, stage + ": input window did not gain focus");
+                15000, stage + ": input window did not gain focus");
+        awaitKeyboardSettled(window, stage);
         main(() -> search.requestRectangleOnScreen(new Rect(0, 0, search.getWidth(), search.getHeight()), true)); waitForIdleSync();
         awaitStableInputBounds(search, window, stage);
         // Touch focus follows the same path as the user. Calling requestFocus and
@@ -216,7 +216,7 @@ public final class SearchFocusValidation extends Instrumentation {
                 if (previousFocusListener.get() != null) previousFocusListener.get().onFocusChange(view, focused);
             });
         });
-        try { tap(search); await(search::hasFocus, 3000, stage + ": tapping the field did not focus it"); }
+        try { tap(search, window); await(search::hasFocus, 3000, stage + ": tapping the field did not focus it"); }
         catch (IllegalStateException error) {
             throw new IllegalStateException(error.getMessage() + "; " + keyboardDiagnostics(search, window)
                     + "; " + focusTrace.get().describe() + "; focusChanges=" + focusChanges, error);
@@ -228,19 +228,39 @@ public final class SearchFocusValidation extends Instrumentation {
             require(keyboard != null, "No input method service"); keyboard.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT);
         });
         try {
-            await(() -> search.hasFocus() && imeVisible(window), 5000,
-                    stage + ": software keyboard was not shown; enable the emulator software keyboard for this validation");
+            // Under load Android can stall a show (its keyboard window not drawn yet) and then abort it without
+            // retrying, while the client still counts the keyboard as requested and drops a repeated show. The
+            // app never shows the keyboard itself, so while the field keeps its focus withdraw that request
+            // (a hide of a keyboard that never appeared changes nothing the app observes) and ask again.
+            for (int request = 1; ; request++) {
+                try { await(() -> search.hasFocus() && imeVisible(window), 8000,
+                        stage + ": software keyboard was not shown; enable the emulator software keyboard for this validation"); break; }
+                catch (IllegalStateException missing) {
+                    AtomicReference<Boolean> focused = new AtomicReference<>(false); main(() -> focused.set(search.hasFocus()));
+                    if (request == 3 || !focused.get()) throw missing;
+                    InputMethodManager keyboard = getTargetContext().getSystemService(InputMethodManager.class);
+                    main(() -> keyboard.hideSoftInputFromWindow(search.getWindowToken(), 0)); awaitKeyboardSettled(window, stage);
+                    main(() -> require(search.hasFocus(), stage + ": withdrawing a keyboard that never appeared cleared search focus"));
+                    main(() -> keyboard.showSoftInput(search, InputMethodManager.SHOW_IMPLICIT));
+                }
+            }
+            // Visible insets can precede the keyboard window; Back must reach a keyboard that exists.
+            await(() -> { for (android.view.accessibility.AccessibilityWindowInfo item : getUiAutomation().getWindows())
+                if (item.getType() == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD) return true; return false; },
+                    5000, stage + ": keyboard window did not appear");
         } catch (IllegalStateException error) { throw new IllegalStateException(error.getMessage() + "; " + keyboardDiagnostics(search, window), error); }
         waitForIdleSync(); awaitStableInputBounds(search, window, stage + " after IME");
     }
     private void awaitStableInputBounds(EditText search, Window window, String stage) {
-        Rect previous = new Rect(); final long[] since = {SystemClock.elapsedRealtime()};
+        Rect previous = new Rect(); final long[] since = {SystemClock.elapsedRealtime()}; final int[] previousIme = {-2};
         await(() -> {
-            Rect next = screenBounds(search);
-            boolean steady = next.equals(previous) && !next.isEmpty() && window.getDecorView().hasWindowFocus()
+            Rect next = screenBounds(search); WindowInsets insets = window.getDecorView().getRootWindowInsets();
+            // The IME inset still moving means its show/hide animation (and any pan) is in flight.
+            int ime = insets == null ? -1 : insets.getInsets(WindowInsets.Type.ime()).bottom;
+            boolean steady = next.equals(previous) && ime == previousIme[0] && !next.isEmpty() && window.getDecorView().hasWindowFocus()
                     && !window.getDecorView().isLayoutRequested();
             if (!steady) since[0] = SystemClock.elapsedRealtime();
-            previous.set(next);
+            previous.set(next); previousIme[0] = ime;
             return steady && SystemClock.elapsedRealtime() - since[0] >= 300;
         }, 4000, stage + ": input bounds or window focus did not settle");
     }
@@ -286,6 +306,26 @@ public final class SearchFocusValidation extends Instrumentation {
                 + "], global=" + global + ", accessible=" + accessible + ", frame=" + frame
                 + ", rootScroll=" + view.getRootView().getScrollX() + "," + view.getRootView().getScrollY();
     }
+    /** Insets report a hide's end state when it starts, and under load that hide was seen finishing 10 s later.
+     *  A show requested meanwhile is aborted by Android and the app rightly blurs its field, so begin each
+     *  focus session only once the app's IME animation tracker is idle and a hidden keyboard's window is gone. */
+    private void awaitKeyboardSettled(Window window, String stage) {
+        main(() -> { if (window.getCallback() != null && window.getCallback().getClass().getName().endsWith("SearchFocus$TouchObserver"))
+            observers.put(window, window.getCallback()); });
+        await(() -> {
+            Object observer = observers.get(window), animations = observer == null ? null : field(observer, "imeAnimations");
+            try {
+                if (animations != null) {
+                    java.lang.reflect.Method running = animations.getClass().getDeclaredMethod("running"); running.setAccessible(true);
+                    if ((Boolean)running.invoke(animations)) return false;
+                }
+            } catch (ReflectiveOperationException error) { throw new IllegalStateException("Cannot inspect IME animations", error); }
+            if (imeVisible(window)) return true;
+            for (android.view.accessibility.AccessibilityWindowInfo item : getUiAutomation().getWindows())
+                if (item.getType() == android.view.accessibility.AccessibilityWindowInfo.TYPE_INPUT_METHOD) return false;
+            return true;
+        }, 12000, stage + ": the keyboard's show/hide transition did not finish");
+    }
     private boolean imeVisible(Window window) {
         WindowInsets insets = window.getDecorView().getRootWindowInsets();
         return insets != null && insets.isVisible(WindowInsets.Type.ime());
@@ -295,19 +335,51 @@ public final class SearchFocusValidation extends Instrumentation {
         catch (IllegalStateException error) {
             throw new IllegalStateException(error.getMessage() + "; " + keyboardDiagnostics(input, window), error);
         }
-        main(() -> require(text.contentEquals(input.getText()), action + " changed the search text"));
+        awaitKeyboardSettled(window, action);
+        main(() -> require(text.contentEquals(input.getText()), action + " changed the search text to \"" + input.getText() + "\""));
     }
     private boolean favourite(String key) {
         return settings().getStringSet("stats_favourites", java.util.Collections.<String>emptySet()).contains(key);
     }
-    private void tap(View view) {
-        require(view != null, "Missing touch target"); Rect rect = nativeScreenBounds(view);
-        require(rect.width() > 0 && rect.height() > 0, "Touch target is not visible");
-        lastTapScreenBounds = new Rect(rect);
-        long now = SystemClock.uptimeMillis(); inject(now, MotionEvent.ACTION_DOWN, rect.centerX(), rect.centerY());
-        inject(now, MotionEvent.ACTION_UP, rect.centerX(), rect.centerY()); waitForIdleSync();
+    private void tap(View view, Window window) { tap(view, window, 0); }
+    /** Taps the view's centre or, with below > 0, the middle of that strip under it. The window must
+     *  receive the press inside that target in its own coordinates, which an IME pan cannot shift: a
+     *  press that landed elsewhere tested nothing (a stale pan offset), so it is measured and sent again. */
+    private void tap(View view, Window window, int below) {
+        require(view != null, "Missing touch target");
+        for (int attempt = 1; ; attempt++) {
+            Rect rect = nativeScreenBounds(view);
+            require(rect.width() > 0 && rect.height() > 0, "Touch target is not visible");
+            float x = rect.centerX(), y = below > 0 ? rect.bottom + below / 2f : rect.centerY();
+            lastTapScreenBounds = below > 0 ? new Rect((int)x, (int)y, (int)x + 1, (int)y + 1) : new Rect(rect);
+            Rect target = new Rect(); AtomicReference<WindowTouchTrace> trace = new AtomicReference<>();
+            main(() -> {
+                int[] at = new int[2]; view.getLocationInWindow(at);
+                target.set(at[0], at[1] + (below > 0 ? view.getHeight() : 0), at[0] + view.getWidth(), at[1] + view.getHeight() + below);
+                trace.set(new WindowTouchTrace(window));
+            });
+            try {
+                long now = SystemClock.uptimeMillis(); inject(now, MotionEvent.ACTION_DOWN, x, y);
+                inject(now, MotionEvent.ACTION_UP, x, y); waitForIdleSync();
+            } finally { main(() -> trace.get().restore()); }
+            float[] down = trace.get().firstDown();
+            if (down != null && target.contains((int)down[0], (int)down[1])) return;
+            require(attempt < 3, "Touch at screen [" + x + "," + y + "] missed window target " + target + " three times"
+                    + (down == null ? " (no press reached this window: another window, such as a keyboard hint, covered it)" : "") + "; " + trace.get().describe());
+        }
     }
     private Rect nativeScreenBounds(View view) {
+        // The accessibility server applies an IME pan's surface move asynchronously, so one reading
+        // can be a pan behind. Use bounds that repeat across reads instead of the first one.
+        Rect previous = nativeScreenBoundsOnce(view);
+        for (long end = SystemClock.elapsedRealtime() + 3000; SystemClock.elapsedRealtime() < end; ) {
+            SystemClock.sleep(100); Rect next = nativeScreenBoundsOnce(view);
+            if (next.equals(previous)) return next;
+            previous = next;
+        }
+        return previous;
+    }
+    private Rect nativeScreenBoundsOnce(View view) {
         // injectInputEvent also waits for these animations, but doing it only
         // after selecting coordinates can move the target underneath the tap.
         try { getUiAutomation().getClass().getMethod("syncInputTransactions").invoke(getUiAutomation()); }

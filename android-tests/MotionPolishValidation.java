@@ -65,11 +65,16 @@ public final class MotionPolishValidation extends Instrumentation {
             folder = new File(getTargetContext().getExternalFilesDir(null), "motion-polish-validation");
             require(folder.isDirectory() || folder.mkdirs(), "Cannot create evidence folder");
             seed();
+            // Key events from an earlier run (typed passwords, Back) leave the display out of touch mode until a
+            // real touch, and then a focused, focusable slider draws Android's focus highlight over every pixel.
+            // These frames are finger interactions; the fixture's touches go straight to the views, so set it here.
+            setInTouchMode(true);
             activity = (MainActivity)startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && screen() != null && grid().getWidth() > 0, "Dashboard not ready");
             main(() -> require(activity.service().setSimulation(true) || activity.service().simulating(), "Simulator failed to enable"));
             await(() -> activity.service().simulating() && activity.service().ble.ready() && tileOrNull("battery") != null, "Simulator not ready");
             settle();
+            main(() -> require(root().isInTouchMode(), "Fixture window is not in touch mode"));
             notes.add("motion_enabled=" + Ui.motionEnabled());
             if (mode.equals("battery")) verifyBatteryCells();
             else if (mode.equals("glow")) verifyGlow();
@@ -705,14 +710,19 @@ public final class MotionPolishValidation extends Instrumentation {
         return count;
     }
     /** After the settle animation: no motion, no trail drawn, identical to the resting unlocked slider. */
-    private void settled(View slider, Bitmap rest, String label) {
+    private void settled(View slider, Bitmap rest, String label) throws Exception {
         SystemClock.sleep(450); settle();
+        AtomicReference<Bitmap> now = new AtomicReference<>(); AtomicReference<String> state = new AtomicReference<>();
         main(() -> {
             android.animation.ValueAnimator motion = (android.animation.ValueAnimator)field(slider, "motion");
             require((motion == null || !motion.isRunning()) && !(Boolean)field(slider, "dragging") && ((Number)field(slider, "position")).floatValue() == 0, label + ": did not settle to the confirmed unlocked state");
-            Bitmap now = draw(slider);
-            require(changed(rest, now) == 0, label + ": left a ghost (" + changed(rest, now) + " pixels differ from rest)");
+            now.set(draw(slider));
+            state.set("value=" + field(slider, "value") + " available=" + field(slider, "available") + " enabled=" + slider.isEnabled() + " pressed=" + slider.isPressed()
+                    + " trail=" + !((LockSliderTrail)field(slider, "trail")).isEmpty() + " size=" + slider.getWidth() + "x" + slider.getHeight());
         });
+        int ghost = changed(rest, now.get());
+        if (ghost != 0) { String name = label.replaceAll("[^A-Za-z0-9-]", "-"); save(rest, name + "-ghost-rest"); save(now.get(), name + "-ghost-now"); }
+        require(ghost == 0, label + ": left a ghost (" + ghost + " pixels differ from rest; " + state.get() + ")");
     }
     private String accessibility(View slider) {
         AtomicReference<String> text = new AtomicReference<>();
@@ -814,7 +824,13 @@ public final class MotionPolishValidation extends Instrumentation {
     }
     private void shell(String command) throws Exception {
         ParcelFileDescriptor pipe = getUiAutomation().executeShellCommand(command);
-        try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pipe)) { byte[] buffer = new byte[4096]; while (in.read(buffer) >= 0) { } }
+        // Bounded: one backgrounding "am start" never returned on a loaded emulator and held the case for ten minutes.
+        Thread reader = new Thread(() -> {
+            try (InputStream in = new ParcelFileDescriptor.AutoCloseInputStream(pipe)) { byte[] buffer = new byte[4096]; while (in.read(buffer) >= 0) { } }
+            catch (java.io.IOException ignored) { }
+        });
+        reader.start(); reader.join(60000);
+        require(!reader.isAlive(), "Shell command did not finish within 60 s: " + command);
     }
     private static int[] crop(Bitmap frame, int x, int y, int w, int h) {
         require(x >= 0 && y >= 0 && x + w <= frame.getWidth() && y + h <= frame.getHeight(), "Crop leaves the screencap");

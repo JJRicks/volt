@@ -9,7 +9,15 @@ new validation can't be left out of a release by accident. The guard works per c
 mode: when a validation or runner gains a mode with checks of its own, add a step for it here, or
 list it in SUBSUMED with the mode whose run already includes it. --only reruns named steps;
 --list prints them. Each direct step's on-device files (screenshots) are copied to its evidence
-directory before the app is removed.
+directory before the app is removed. A loaded emulator's System UI, launcher or keyboard can stall
+long enough for an "isn't responding" dialog, which takes window focus and covers screenshots in
+every later check; system error dialogs stay hidden while steps run and any left over are closed
+before each step (a stalled Volt is still killed, so its step fails). A step also waits for a freshly
+booted emulator to finish starting its services (see await_settled). The Play Store is disabled and
+left that way: on a read-only emulator it updates preinstalled apps, the keyboard among them, for many
+minutes after every boot, replacing their processes mid-step, and re-enabling it between --only steps
+made the launcher reload into the next step. Heads-up notifications (Play services posts several after
+boot) are off while steps run: one slid over a Battery cell's border in a screencap.
 """
 import argparse
 import json
@@ -153,6 +161,63 @@ if adb('shell', 'getprop', 'ro.kernel.qemu').strip() != '1' or adb('shell', 'get
 args.out.mkdir(parents=True, exist_ok=True)
 
 
+# A system error dialog's window title names the stalled process; a crash dialog also has focus.
+ERROR_DIALOG = re.compile(r'Window\{\S+ u\d+ Application (?:Not Responding|Error): ([\w.:]+)\}')
+# Its own buttons, by locale-independent ID: Wait for a stalled app, Close for a crashed one.
+DIALOG_BUTTON = re.compile(r'resource-id="android:id/aerr_(wait|close)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"')
+
+
+def clear_error_dialogs():
+    """Answer dialogs shown before they were hidden (boot, or between steps) as a person would.
+
+    Pressing the dialog's own button works for every owner; the persistent System UI ignores force-stop."""
+    for _ in range(10):
+        owners = set(ERROR_DIALOG.findall(adb('shell', 'dumpsys', 'window', 'windows')))
+        if not owners: return
+        dump = adb('shell', 'f=/data/local/tmp/volt-sweep-ui.xml; uiautomator dump $f >/dev/null && cat $f; rm -f $f', check=False)
+        buttons = sorted(DIALOG_BUTTON.findall(dump), key=lambda button: button[0] != 'wait')
+        if buttons:
+            left, top, right, bottom = map(int, buttons[0][1:])
+            adb('shell', 'input', 'tap', str((left + right) // 2), str((top + bottom) // 2))
+        time.sleep(1)
+    raise RuntimeError('System error dialogs would not close: ' + ', '.join(sorted(owners)))
+
+
+def anrs_since(mark):
+    lines = adb('shell', f"logcat -d -b events -t '{mark}'", check=False).splitlines()
+    return [line.split(' I am_anr  : ', 1)[1][:200] for line in lines if ' I am_anr  : ' in line]
+
+
+def running_seconds(process):
+    pids = adb('shell', 'pidof', process, check=False).split()
+    clock = adb('shell', 'ps', '-o', 'ETIME=', '-p', pids[0], check=False).split() if pids else []
+    if not clock or not re.fullmatch(r'(\d+-)?[\d:]+', clock[0]): return 0
+    days, _, clock = clock[0].rpartition('-'); seconds = 0
+    for part in clock.split(':'): seconds = seconds * 60 + int(part)
+    return seconds + int(days or 0) * 86400
+
+
+def await_settled(quiet=60, limit=600):
+    """sys.boot_completed comes minutes before a fresh emulator has started its services: four emulators booted
+    together logged System UI, keyboard and Play services startup ANRs for about three minutes (one restarted
+    its system server), and steps run then found no keyboard. Startup ANRs fire within ~20 s, so begin once
+    System UI and the selected keyboard have each run for a minute and no other app has stopped responding
+    in that minute; a service still missing counts as unsettled. After the limit, say so and run anyway."""
+    end = time.monotonic() + limit
+    while True:
+        try:
+            now = int(adb('shell', 'date', '+%s').strip())
+            recent = [anr for anr in anrs_since(f'{now - quiet}.000') if PKG not in anr]
+            ime = adb('shell', 'settings', 'get', 'secure', 'default_input_method').strip().partition('/')[0]
+            young = [name for name in ('com.android.systemui', ime) if name not in ('', 'null') and running_seconds(name) < quiet]
+        except (RuntimeError, ValueError) as error: recent, young = [f'{type(error).__name__}: {error}'.strip()[:200]], []
+        if not recent and not young: return
+        if time.monotonic() > end:
+            print(f'{args.serial} not settled after {limit} s: ' + '; '.join(recent[-2:] + [name + ' just started' for name in young]), flush=True)
+            return
+        time.sleep(5)
+
+
 def fresh(grant):
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('install', '--no-incremental', str(args.app.resolve())); adb('install', '--no-incremental', str(args.runner.resolve()))
@@ -182,15 +247,30 @@ def run_step(step):
     return passed, output
 
 
+await_settled()
 adb('shell', 'cmd', 'bluetooth_manager', 'disable')
 adb('shell', 'settings', 'delete', 'global', 'hidden_api_policy', check=False)
+hide_dialogs = adb('shell', 'settings', 'get', 'global', 'hide_error_dialogs').strip()
+STORE = 'com.android.vending'
+store_enabled = f'package:{STORE}' in adb('shell', 'pm', 'list', 'packages', '-e', STORE).split()
+heads_up = adb('shell', 'settings', 'get', 'global', 'heads_up_notifications_enabled').strip()
 results = []
 try:
+    # Android then kills an app that stops responding instead of showing a focus-taking dialog.
+    adb('shell', 'settings', 'put', 'global', 'hide_error_dialogs', '1')
+    if store_enabled:
+        adb('shell', 'pm', 'disable-user', '--user', '0', STORE)
+        print(f'Play Store disabled on {args.serial} for the sweep; re-enable with: adb -s {args.serial} shell pm enable {STORE}', flush=True)
+    adb('shell', 'settings', 'put', 'global', 'heads_up_notifications_enabled', '0')
     for step in STEPS:
         if args.only and step['name'] not in args.only: continue
         started = time.monotonic()
-        try: passed, output = run_step(step)
+        mark = adb('shell', "date '+%m-%d %H:%M:%S.000'").strip()
+        try: await_settled(); clear_error_dialogs(); passed, output = run_step(step)
         except Exception as error: passed, output = False, f'{type(error).__name__}: {error}'
+        if not passed:
+            try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
+            except Exception as error: output += f'\nANR log unavailable: {error}'
         (args.out / f'{step["name"]}.txt').write_text(output)
         detail = ' '.join(re.findall(r'(?:assertions|checks|check_count)=\d+', output)[:4])
         error = re.search(r'error=(.{0,240})', output)
@@ -200,6 +280,10 @@ finally:
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('shell', 'wm', 'size', 'reset', check=False); adb('shell', 'wm', 'density', 'reset', check=False)
     adb('shell', 'settings', 'put', 'system', 'font_scale', '1.0', check=False)
+    if heads_up in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'heads_up_notifications_enabled', check=False)
+    else: adb('shell', 'settings', 'put', 'global', 'heads_up_notifications_enabled', heads_up, check=False)
+    if hide_dialogs in ('', 'null'): adb('shell', 'settings', 'delete', 'global', 'hide_error_dialogs', check=False)
+    else: adb('shell', 'settings', 'put', 'global', 'hide_error_dialogs', hide_dialogs, check=False)
     (args.out / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
 failed = [r['step'] for r in results if not r['passed']]
 print(f'{len(results) - len(failed)}/{len(results)} steps passed' + (': failed ' + ', '.join(failed) if failed else ''))

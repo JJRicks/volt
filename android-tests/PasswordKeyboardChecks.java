@@ -25,6 +25,9 @@ final class PasswordKeyboardChecks {
         require(input != null, "Missing password editor");
         View decor = activity.getWindow().getDecorView();
         await(runner, () -> decor.hasWindowFocus() && input.isAttachedToWindow(), "Password window did not gain focus");
+        // A keyboard kept from the previous field may still be resizing the window; scrolling before that
+        // settles can leave this field outside the final, shorter viewport.
+        awaitStableBounds(runner,input,decor);
         onMain(runner,() -> {
             input.setText("");
             input.requestRectangleOnScreen(new Rect(0, 0, input.getWidth(), input.getHeight()), true);
