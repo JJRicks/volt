@@ -9,6 +9,17 @@ import { LOCK, armCommand, cleanupCommand, guardScript, prepareCommand, preparat
 const token = 'a'.repeat(64), other = 'b'.repeat(64);
 const startCommand = value => makeStart(value, 'com.navee.ucaret/.FixtureActivity');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+const exists = path => access(path).then(() => true, () => false);
+async function until(condition, ms) {
+  for (const end = Date.now() + ms; !(await condition());) { if (Date.now() > end) return false; await delay(20); }
+  return true;
+}
+// The detached watchdog polls its default bound times (each 1 s sleep shortened to 10 ms below),
+// then restores. Every poll spawns several processes, which a loaded host slows to tens of ms
+// each, so wait for its own acknowledgment with a per-poll allowance plus its bounded force-stop,
+// setprop and readback (6 + 3 + 3 s) instead of guessing a wall-clock duration.
+const WATCH_POLLS = Number(/while \[ "\$i" -lt (\d+) \]; do\n\s*ours/.exec(guardScript(token))[1]);
+const WATCHDOG_BOUND_MS = WATCH_POLLS * 250 + 12000;
 async function fixture(original = '') {
   const root = await mkdtemp(join(tmpdir(), 'volt-guard-test-')), bin = join(root, 'bin'), lock = join(root, 'lock');
   await mkdir(bin);
@@ -70,10 +81,10 @@ test('detached watchdog cleans up without the browser sending any cleanup reques
   const f = await fixture('WARN');
   try {
     await f.prepare(); await f.arm(); await f.run(startCommand(token));
-    for (let i = 0; i < 80 && await f.property() !== 'WARN'; i++) await delay(40);
-    assert.equal(await f.property(), 'WARN');
-    for (let i = 0; i < 30; i++) { try { await access(join(f.lock, 'guard_done')); break; } catch { await delay(20); } }
+    // guard_done is written only after the watchdog's last possible cleanup side effect.
+    assert(await until(() => exists(join(f.lock, 'guard_done')), WATCHDOG_BOUND_MS), `watchdog did not finish within ${WATCHDOG_BOUND_MS} ms`);
     assert.match(await readFile(join(f.lock, 'guard_done'), 'utf8'), /^(done|stopped)$/);
+    assert.equal(await f.property(), 'WARN');
     assert.equal((await f.run(releaseCommand(token))).code, 0);
   } finally { await f.dispose(); }
 });
@@ -85,7 +96,8 @@ test('watchdog racing an in-flight start restores only after the last possible l
     await f.arm(true);
     const started = await f.run(startCommand(token));
     assert.equal(started.code, 0);
-    for (let i = 0; i < 30 && await f.property() !== 'INFO'; i++) await delay(40);
+    // Its restore waits for start's gate and then its own 600 ms force-stop.
+    assert(await until(() => exists(join(f.lock, 'guard_done')), WATCHDOG_BOUND_MS), `watchdog did not finish within ${WATCHDOG_BOUND_MS} ms`);
     assert.equal(await f.property(), 'INFO');
     const events = await f.events();
     assert(events.lastIndexOf('setprop:INFO') > events.lastIndexOf('launch'));
