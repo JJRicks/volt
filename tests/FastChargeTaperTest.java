@@ -86,6 +86,18 @@ public final class FastChargeTaperTest {
         FastChargeTaper flat = new FastChargeTaper();
         for (int i = 0; i <= 60; i++) flat.observe("a", true, 53.6, 8.06, T0 + i * 10 * SEC);
         check(flat.tau() == FastChargeTaper.TAU_MINUTES && !flat.tapering(53.6, 8.06), "Constant current at CV voltage is still bulk");
+        // A derate above the CV floor, then a long flat plateau below 8 A's own CV voltage (review probe).
+        FastChargeTaper plateau = new FastChargeTaper();
+        plateau.observe("a", true, 53.4, 10.09, T0);
+        for (int i = 1; i <= 61; i++) plateau.observe("a", true, 53.4 + i * .003, 8.06, T0 + i * 10 * SEC);
+        check(plateau.tau() == FastChargeTaper.TAU_MINUTES && !plateau.tapering(53.583, 8.06), "A current step then a flat plateau is not a taper");
+        near(FastChargeTaper.minutes(53.583, 8.06, 15.3, null), FastChargeTaper.minutes(53.583, 8.06, 15.3, plateau), 1e-9, "The plateau adds no decay history");
+        for (int i = 0; i < 40; i++) plateau.observe("a", true, 53.7, 8.06 * Math.exp(-(i / 6d) / 12), T0 + 11 * MIN + i * 10 * SEC);
+        check(plateau.tapering(53.7, 5.0) && plateau.tau() < FastChargeTaper.TAU_MINUTES && plateau.tau() > 11, "A real taper after the plateau is still learned");
+        FastChargeTaper noisy = new FastChargeTaper();
+        noisy.observe("a", true, 53.6, 8.3, T0);
+        for (int i = 1; i <= 61; i++) noisy.observe("a", true, 53.6, i % 2 == 0 ? 8.06 : 8.04, T0 + i * 10 * SEC);
+        check(noisy.tau() == FastChargeTaper.TAU_MINUTES && !noisy.tapering(53.6, 8.04), "Quantization flicker on a plateau is not a decay");
         flat.observe("a", true, 53.7, 7.5, T0 + 20 * MIN + FastChargeTaper.MAX_SILENCE_MS);
         check(!flat.tapering(53.7, 7.5), "A long silence starts a new charge");
         flat.observe("b", true, 53.7, 7.5, T0 + 60 * MIN);
@@ -132,6 +144,15 @@ public final class FastChargeTaperTest {
         ChargingEstimate.Result expired = estimate(99, 54.34, 2.0, 100d, 2538, FAST, state, T0 + 4 * MIN);
         check(!expired.learnedToFull && expired.referenceToFull, "After the hold the voltage/current model returns");
         check(estimate(100, 54.48, .68, 100d, 2538, FAST, state, T0 + MIN).remainingMinutesToFull == 0, "At 100% nothing is held");
+        // Hard admission failures are never bridged by the hold or replaced by the taper (review probe).
+        for (double amps : new double[]{0, .01, .049}) {
+            FastChargeTaper low = new FastChargeTaper();
+            low.observe("a", true, 54.34, 2.0, T0);
+            low.rememberPersonal(12.5, 2, T0);
+            ChargingEstimate.Result refused = estimate(99, 54.34, amps, 100d, 2538, FAST, low, T0 + 24 * SEC);
+            check(refused.remainingMinutesToFull == null && refused.remainingMinutesToLimit == null && refused.planningMinutesToLimit == null
+                    && !refused.learnedToFull, "Low current " + amps + " A stays without an estimate");
+        }
     }
 
     /** Owner charges: high-speed fixes and parity for everything the new step must not touch. */

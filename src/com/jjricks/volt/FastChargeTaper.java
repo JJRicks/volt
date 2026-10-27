@@ -23,6 +23,8 @@ public final class FastChargeTaper {
     /** Current falling below this share of the highest current seen at CV voltage marks the taper. */
     static final double FALLING = 0.97, MIN_BULK_AMPS = 4, MAX_AMPS = 11.6;
     static final double TAU_LOW = 8, TAU_HIGH = 20, FIT_START = 3, FIT_FULL = 6, FIT_WINDOW = 10;
+    /** A decay sample must set a new low by this much; a fitted tau beyond FLAT_TAU is a plateau, not a taper. */
+    static final double NEW_LOW_AMPS = .005, FLAT_TAU = 60;
     public static final long HOLD_MS = 3 * 60_000L, SPACING_MS = 10_000L, MAX_SILENCE_MS = 30 * 60_000L;
     // Reference charge, constant current: volts below the CV entry voltage -> Ah delivered before it.
     static final double[] HEADROOM_VOLTS = {0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
@@ -34,7 +36,7 @@ public final class FastChargeTaper {
 
     private String profile;
     private long first, last, lastSample, heldAt;
-    private double cvCeiling, held = Double.NaN;
+    private double cvCeiling, lowest, held = Double.NaN;
     private int heldSessions;
     private final ArrayDeque<double[]> decay = new ArrayDeque<>();
 
@@ -53,6 +55,10 @@ public final class FastChargeTaper {
         if (volts < CV_VOLTS || a > MAX_AMPS) return;
         cvCeiling = Math.max(cvCeiling, a);
         if (a >= cvCeiling * FALLING || a <= END_AMPS || lastSample > 0 && nowMs - lastSample < SPACING_MS) return;
+        // Only sustained decay is taper evidence: a charger's current step down, then a flat
+        // plateau (10 -> 8 A, still below that current's CV voltage) must not fit a taper rate.
+        if (lowest > 0 && a > lowest - NEW_LOW_AMPS) return;
+        lowest = a;
         double minutes = (nowMs - first) / 60000d;
         decay.addLast(new double[]{minutes, Math.log(a)});
         lastSample = nowMs;
@@ -62,9 +68,9 @@ public final class FastChargeTaper {
     /** True while this instance is following a charge of that profile. */
     public boolean tracking(String profile) { return first > 0 && profile != null && profile.equals(this.profile); }
 
-    /** The current is falling at the charger's voltage limit: the taper has started. */
+    /** The current keeps falling at the charger's voltage limit: the taper has started. */
     boolean tapering(double volts, double amps) {
-        return cvCeiling > 0 && volts >= CV_VOLTS && amps < cvCeiling * FALLING;
+        return cvCeiling > 0 && decay.size() >= 2 && volts >= CV_VOLTS && amps < cvCeiling * FALLING;
     }
 
     /** The reference tau until three minutes of decay are watched, this charge's own by six. */
@@ -74,7 +80,7 @@ public final class FastChargeTaper {
         int n = decay.size();
         for (double[] p : decay) { sx += p[0]; sy += p[1]; sxx += p[0] * p[0]; sxy += p[0] * p[1]; }
         double span = end - start, slope = (n * sxy - sx * sy) / (n * sxx - sx * sx);
-        if (span < FIT_START || !(slope < 0)) return TAU_MINUTES;
+        if (span < FIT_START || !(slope < 0) || -1 / slope > FLAT_TAU) return TAU_MINUTES;
         double fitted = Math.max(TAU_LOW, Math.min(TAU_HIGH, -1 / slope));
         return TAU_MINUTES + (fitted - TAU_MINUTES) * Math.min(1, (span - FIT_START) / (FIT_FULL - FIT_START));
     }
@@ -120,7 +126,7 @@ public final class FastChargeTaper {
     }
 
     private void clearCharge() {
-        first = last = lastSample = heldAt = 0; cvCeiling = 0; held = Double.NaN; heldSessions = 0; decay.clear();
+        first = last = lastSample = heldAt = 0; cvCeiling = lowest = 0; held = Double.NaN; heldSessions = 0; decay.clear();
     }
 
     private static boolean finite(double value) { return !Double.isNaN(value) && !Double.isInfinite(value); }

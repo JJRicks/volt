@@ -323,7 +323,7 @@ public final class ChargingEstimate {
      */
     private static Result withFastTaper(Result prior,Result baseline,Value soc,Value ratedAh,int productId,FastChargeTaper taper) {
         if(prior==null||prior.referenceToFull||baseline==null||!baseline.charging||baseline.inputAmps==null||baseline.inputWatts==null
-                ||baseline.inputAmps<=0||productId!=Ut5MaxFastChargeReference.PRODUCT_ID||!valid(soc)||soc.number>=100||!valid(ratedAh))return prior;
+                ||baseline.remainingMinutesToFull==null||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||productId!=Ut5MaxFastChargeReference.PRODUCT_ID||!valid(soc)||soc.number>=100||!valid(ratedAh))return prior;
         double amps=baseline.inputAmps,volts=baseline.inputWatts/amps;
         Double full=FastChargeTaper.minutes(volts,amps,ratedAh.number,taper);
         if(full==null)return prior;
@@ -338,9 +338,14 @@ public final class ChargingEstimate {
                 false,false,0,referenceLimit,true,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
-    /** A personal finish shown moments ago keeps counting down rather than jumping to a fallback. */
+    /**
+     * A personal finish shown moments ago keeps counting down rather than jumping to a fallback.
+     * Only a dropped power match is bridged: without a usable live estimate (low current, missing
+     * readings) nothing is held, so Charge done by never receives a duration the live check refused.
+     */
     private static Result withHeldPersonal(Result prior,Value soc,FastChargeTaper taper,long nowMs) {
-        double[] held=taper==null||prior==null||prior.learnedToFull||!prior.charging||!valid(soc)||soc.number>=100?null:taper.heldPersonal(nowMs);
+        double[] held=taper==null||prior==null||prior.learnedToFull||!prior.charging||prior.remainingMinutesToFull==null
+                ||prior.inputAmps==null||prior.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||soc.number>=100?null:taper.heldPersonal(nowMs);
         if(held==null)return prior;
         int sessions=(int)held[1];
         Double limit=prior.targetPercent!=null&&prior.targetPercent==100?Double.valueOf(held[0]):prior.remainingMinutesToLimit;
