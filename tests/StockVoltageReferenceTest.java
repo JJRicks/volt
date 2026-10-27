@@ -105,7 +105,7 @@ public final class StockVoltageReferenceTest {
             else near(before.remainingMinutesToLimit,after.remainingMinutesToLimit,.001,"Lower-cutoff cap uses the selected full fallback");
         }
         ChargeSessionStore.Estimate snapshot=ChargingEstimate.recordingSnapshot(warm);
-        check(snapshot.version.equals("ut5-stock-pack-v6")&&snapshot.fullSource==ChargeSessionStore.Source.STOCK_REFERENCE,"New captures identify changed algorithm and source");
+        check(snapshot.version.equals("ut5-fast-taper-v7")&&snapshot.fullSource==ChargeSessionStore.Source.STOCK_REFERENCE,"New captures identify changed algorithm and source");
         System.out.println("StockVoltageReference: "+checks+" checks passed");
     }
 }

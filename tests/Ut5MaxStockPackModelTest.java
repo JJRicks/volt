@@ -170,6 +170,6 @@ public final class Ut5MaxStockPackModelTest {
                 new ChargingEstimate.Value(-2.3, false, 1000), live(30d), live(15.3), live(80d)), live(30d), live(15.3), 2538,
                 ChargeSessionStore.Charger.STOCK, null, null, null, 0, 0, early);
         check(!stale.stockPackModel && stale.remainingMinutesToFull == null, "Stale electrical readings never reach the model");
-        check(ChargingEstimate.ESTIMATOR_VERSION.equals("ut5-stock-pack-v6"), "Recorded predictions identify the new estimator");
+        check(ChargingEstimate.ESTIMATOR_VERSION.equals("ut5-fast-taper-v7"), "Recorded predictions identify the new estimator");
     }
 }
