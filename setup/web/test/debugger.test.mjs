@@ -33,7 +33,7 @@ function node(id = '', tag = 'div') {
     append(...nodes) { this.children.push(...nodes); }, replaceChildren(...nodes) { this.children = nodes; },
     focus() {}, click() { this.listeners.click?.(); } };
 }
-function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } }, logs = LOGS } = {}) {
+function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } }, logs = LOGS, blockedAtLoad = false } = {}) {
   const elements = new Map(), phones = [], sessions = [], events = [], fetches = [], blobs = [], windowEvents = {};
   for (const [, id] of html.matchAll(/id="([^"]+)"/g)) elements.set(id, node(id));
   const fixture = { mode, pending: false, nextSerial: 'same-phone', reply, duringRecording: null,
@@ -74,6 +74,18 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
     addEventListener: (name, fn) => { windowEvents[name] = fn; },
     document: { getElementById: id => elements.get(id), querySelectorAll: () => [], createElement: tag => node('', tag) }
   };
+  const denyStorage = (controllerOnly = false) => {
+    const denied = () => { throw new Error('Access to storage is not allowed from this context. private-detail'); };
+    const worker = { addEventListener() {} }; Object.defineProperty(worker, 'controller', { get: denied });
+    Object.defineProperty(scope.navigator, 'serviceWorker', controllerOnly
+      ? { configurable: true, value: worker } : { configurable: true, get: denied });
+    Object.defineProperty(scope, 'localStorage', { configurable: true, get: denied });
+  };
+  const allowStorage = worker => {
+    Object.defineProperty(scope.navigator, 'serviceWorker', { configurable: true, value: worker });
+    Object.defineProperty(scope, 'localStorage', { configurable: true, value: { getItem() { return null; } } });
+  };
+  if (blockedAtLoad) denyStorage();
   scope.window = scope; runInNewContext(bundled.outputFiles[0].text, scope);
   const $ = id => elements.get(id);
   const click = id => $(id).listeners.click();
@@ -87,7 +99,7 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
   const flat = node => typeof node === 'string' ? node : node.children.length ? node.children.map(flat).join('') : node.textContent;
   const visible = () => [...elements.values()].filter(e => e.id.endsWith('-panel') || e.id === 'recovery').filter(e => !e.hidden).map(e => e.id);
   const rowsOf = id => $(id).children.map(li => li.children[1].textContent);
-  return { flat, fixture, elements, phones, sessions, events, fetches, blobs, windowEvents, $, click, type, toRecord, record, visible, rowsOf };
+  return { denyStorage, allowStorage, flat, fixture, elements, phones, sessions, events, fetches, blobs, windowEvents, $, click, type, toRecord, record, visible, rowsOf };
 }
 
 test('the problem step needs a model and description; the model list is Volt’s', () => {
@@ -280,4 +292,53 @@ test('"What Volt knows" lists the whole database by group and marks what this ca
   assert.equal(cap.children[3].hidden, true);
   assert.equal(f.$('knows-review-seen').textContent, '· 4 seen in this capture');
   assert.equal(f.$('knows-review').open, false);
+});
+
+
+test('storage denial after verified capture cannot strand download or submit', async () => {
+  for (const controllerOnly of [false, true]) {
+    const f = fixture();
+    await f.record();
+    f.denyStorage(controllerOnly);
+    await f.click('download-copy');
+    assert.equal(f.blobs.length, 1);
+    assert.match(f.$('notice').textContent, /Download requested/);
+    await f.click('send');
+    assert.equal(f.fetches.length, 0, 'consent remains mandatory');
+    f.$('send-consent').checked = true; f.$('send-consent').listeners.change();
+    await f.click('send');
+    assert.equal(f.fetches.length, 1);
+    assert.deepEqual(JSON.parse(f.blobs[0]), JSON.parse(f.fetches[0].options.body));
+    assert.deepEqual(f.visible(), ['done-panel']);
+    assert.doesNotMatch(f.$('environment').textContent + f.$('error').textContent, /private-detail/);
+  }
+});
+
+test('blocked storage at load gives guidance without crashing or allowing USB', async () => {
+  const f = fixture({ blockedAtLoad: true });
+  assert.match(f.$('environment').textContent, /storage|browser settings/i);
+  assert.equal(f.$('model').children.length > 1, true, 'page still initializes');
+  await f.toRecord();
+  assert.equal(f.phones.length, 0);
+  assert.equal(f.$('connect').disabled, true);
+  assert.doesNotMatch(f.$('environment').textContent + f.$('error').textContent, /private-detail/);
+});
+
+
+test('restored browser access installs the controller-change guard before USB', async () => {
+  const f = fixture({ blockedAtLoad: true });
+  let changed, watches = 0;
+  const worker = { controller: null, addEventListener(name, callback) {
+    assert.equal(name, 'controllerchange'); watches++; changed = callback;
+  } };
+  f.allowStorage(worker);
+  await f.toRecord();
+  assert.equal(f.phones.length, 1);
+  assert.equal(watches, 1, 'repeated validation does not add duplicate watchers');
+  let cancelled = false;
+  f.sessions[0].cancel = () => { cancelled = true; };
+  worker.controller = {}; changed();
+  assert.equal(cancelled, true);
+  assert.equal(f.$('connect').disabled, true);
+  assert.match(f.$('environment').textContent, /service worker controls/);
 });
