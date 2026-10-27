@@ -406,13 +406,17 @@ public final class Telemetry {
     }
 
     private void signStates(byte[] data, int cmd, long time) {
+        // Only 0/1 have a known sign meaning. Keep other bytes (GT3 Max reported 254)
+        // as diagnostics without replacing a known sign or accepting older flags.
         if (has(data, 0, 1) && readings.get("temperature_sign_state").updatedMs <= time) {
-            temperatureSignState = data[0] & 255;
-            raw("temperature_sign_state", temperatureSignState, cmd, time);
+            int state = data[0] & 255;
+            raw("temperature_sign_state", state, cmd, time);
+            if (state <= 1) temperatureSignState = state;
         }
         if (has(data, 1, 1) && readings.get("current_sign_state").updatedMs <= time) {
-            currentSignState = data[1] & 255;
-            raw("current_sign_state", currentSignState, cmd, time);
+            int state = data[1] & 255;
+            raw("current_sign_state", state, cmd, time);
+            if (state <= 1) currentSignState = state;
         }
         // Correct the sign without making an older sensor sample appear freshly measured.
         refreshSignedReadings();

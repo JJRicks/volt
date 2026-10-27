@@ -104,7 +104,7 @@ function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { st
 
 test('the problem step needs a model and description; the model list is Volt’s', () => {
   const f = fixture();
-  assert.deepEqual(f.$('model').children.map(o => o.value), ['', 'UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'UT5 Ultra X', 'XT5 Pro', 'Other / not sure']);
+  assert.deepEqual(f.$('model').children.map(o => o.value), ['', 'UT5 Max', 'N65i', 'ST3 Pro', 'GT5 Max', 'GT3 Max', 'UT5 Ultra X', 'XT5 Pro', 'Other / not sure']);
   assert.deepEqual(f.visible(), ['problem-panel']);
   assert.equal(f.$('problem-next').disabled, true);
   f.type('description', 'Lights'); assert.equal(f.$('problem-next').disabled, true);

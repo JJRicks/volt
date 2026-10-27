@@ -21,6 +21,7 @@ public final class DiagnosticsBundleTest {
         noForbiddenData(json);
         secretGuard();
         withheldReadings();
+        batteryTemperatureSurvivesExport();
         System.out.println("DiagnosticsBundle tests passed: " + checks + " assertions");
     }
 
@@ -106,6 +107,24 @@ public final class DiagnosticsBundleTest {
                 && DiagnosticsBundle.reading("82") && DiagnosticsBundle.reading("Scooter returned status 3") && DiagnosticsBundle.reading("OK; 43 data bytes"),
                 "readings: short printable text, no payload hex or serials");
         require(DiagnosticsBundle.WITHHELD.containsAll(Arrays.asList("scooter_serial", "battery_serial_raw", "fault_history_raw", "ride_read_raw")), "identity and raw readings withheld");
+    }
+
+    private static void batteryTemperatureSurvivesExport() {
+        for(int degrees:new int[]{0,23,-7}) {
+            Telemetry t=new Telemetry();
+            byte[] battery=new byte[36]; battery[11]=(byte)(degrees<0?0x80-degrees:degrees);
+            t.accept(0x72,withStatus(battery),NOW-1000);
+            String json=new DiagnosticsBundle("1.8.1",WALL,false).readings(t.metrics(),NOW).json(Collections.<String>emptyList());
+            int start=json.indexOf("\"key\": \"temperature_c\"");
+            require(start>=0,"Temperature is exported, including zero and negative values");
+            String entry=json.substring(start,json.indexOf('}',start));
+            require(entry.contains("\"value\": \""+degrees+" \\u00b0C\"")&&entry.contains("\"age_ms\": 1000")
+                &&entry.contains("\"source\": \"0x72\""),"Temperature retains value, age and source");
+        }
+        require(!DiagnosticsBundle.reading("other","23 °C")&&!DiagnosticsBundle.reading("temperature_c","café")
+            &&!DiagnosticsBundle.reading("temperature_c","23 °C\n"),"Degree exception is numeric, single-line and temperature-only");
+        require(!DiagnosticsBundle.reading("temperature_c",SERIAL+" °C")
+            &&!DiagnosticsBundle.reading("temperature_c",OWNER_KEY+" °C"),"Temperature exception cannot export identity or key text");
     }
 
     private static byte[] withStatus(byte[] data) { byte[] out = new byte[data.length + 1]; System.arraycopy(data, 0, out, 1, data.length); return out; }
