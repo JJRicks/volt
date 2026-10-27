@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- UT5 MAX high-speed charges: when the charger reaches its voltage limit at a different battery percentage than Volt's saved charges, the time to full now comes from pack voltage and charging current instead of the live rate, which in the charger's taper read 2-3 times too short (10 minutes with 27 left, in an owner's charge from 91%). The taper's pace is refined from the charge itself after a few minutes, and a personal estimate no longer flickers to a fallback for a moment when the battery percentage steps. Saved finishing curves also check pack voltage before matching. New predictions are recorded as estimator `ut5-fast-taper-v7`; standard-charger estimates are unchanged. See [high-speed voltage/current estimates](docs/validation/fast-charge-taper.md).
 - Charge done by now uses the displayed standard-charger estimate plus the existing 20-minute buffer, instead of adding the buffer to a second, more pessimistic estimate. Existing scooter schedules stay as programmed until explicitly changed.
 - Recognize and picture the GT3 Max (Model ID 24182) from an owner's report. Its controls keep their existing compatibility rules; this report did not test settings changes.
 - Include battery temperature in diagnostic exports; the degree symbol previously caused it to be omitted.
