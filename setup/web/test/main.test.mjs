@@ -16,11 +16,11 @@ const bundled = await build({ entryPoints: [entry], bundle: true, write: false, 
     // The transport double shares the bundle's SetupError, so doubles can raise
     // the same typed errors the real transport and session would.
     build.onLoad({ filter: /./, namespace: 'fixture' }, args => ({ resolveDir: dirname(entry), contents: args.path.includes('capture')
-      ? 'export const CaptureSession = window.fixture.Session; export const readJournal = () => window.fixture.pending ? {} : null;'
+      ? 'export const CaptureSession = window.fixture.Session; export const readJournal = storage => { storage.getItem(\'probe\'); return window.fixture.pending ? {} : null; };'
       : "import { SetupError } from './protocol.js'; window.fixture.SetupError = SetupError; export const connectPhone = (...args) => window.fixture.connect(...args);" }));
   }
 }] });
-function fixture(mode = 'success', legacy = false) {
+function fixture(mode = 'success', legacy = false, denied = '') {
   const elements = new Map(), phones = [], sessions = [], events = [], windowEvents = {};
   for (const [, id] of html.matchAll(/id="([^"]+)"/g)) elements.set(id, { id, hidden: false, disabled: false, checked: false, textContent: '', listeners: {},
     addEventListener(name, fn) { this.listeners[name] = fn; }, classList: { toggle() {} }, setAttribute() {}, removeAttribute() {} });
@@ -54,11 +54,23 @@ function fixture(mode = 'success', legacy = false) {
     addEventListener: (name, fn) => { windowEvents[name] = fn; },
     document: { getElementById: id => elements.get(id), querySelectorAll: () => [], createElement: () => ({ click() {} }) }
   };
+  // Chrome throws SecurityError from these getters when site storage is blocked.
+  const blocked = () => { throw new Error('Access to storage is not allowed from this context. private-detail'); };
+  const deny = which => {
+    if (which === 'controller') { const worker = { addEventListener() {} }; Object.defineProperty(worker, 'controller', { get: blocked }); scope.navigator.serviceWorker = worker; }
+    if (which === 'serviceWorker' || which === 'all') Object.defineProperty(scope.navigator, 'serviceWorker', { configurable: true, get: blocked });
+    if (which === 'localStorage' || which === 'all') Object.defineProperty(scope, 'localStorage', { configurable: true, get: blocked });
+  };
+  const allow = worker => {
+    Object.defineProperty(scope.navigator, 'serviceWorker', { configurable: true, value: worker });
+    Object.defineProperty(scope, 'localStorage', { configurable: true, value: { getItem() { return null; } } });
+  };
+  if (denied) deny(denied);
   scope.window = scope; runInNewContext(bundled.outputFiles[0].text, scope);
   const click = id => elements.get(id).listeners.click();
   const connect = async () => { elements.get('usb-consent').checked = true; await click('connect'); };
   const start = async () => { elements.get('capture-consent').checked = true; await click('start'); };
-  return { fixture, elements, phones, sessions, events, windowEvents, click, connect, start };
+  return { fixture, elements, phones, sessions, events, windowEvents, click, connect, start, allow };
 }
 test('verified phone save closes permission immediately and preserves an explicit computer backup', async () => {
   const f = fixture(); await f.connect(); await f.start(); await f.click('send');
@@ -140,4 +152,32 @@ test('legacy origin blocks new capture but preserves same-browser cleanup recove
   assert.equal(f.phones[0].closed, true);
   assert.equal(f.fixture.pending, false);
   assert.equal(f.elements.get('connect').disabled, true);
+});
+
+test('blocked site storage gives guidance at load and never opens USB or a false recovery', async () => {
+  for (const denied of ['all', 'serviceWorker', 'controller', 'localStorage']) {
+    const f = fixture('success', false, denied);
+    assert.match(f.elements.get('environment').textContent, /blocked site storage/, denied);
+    assert.doesNotMatch(f.elements.get('environment').textContent + f.elements.get('error').textContent, /private-detail/);
+    assert.equal(f.elements.get('error').textContent, '', 'blocked storage is not reported as a recovery or USB failure');
+    await f.connect();
+    assert.equal(f.phones.length, 0, denied);
+    assert.equal(f.elements.get('connect').disabled, true);
+    assert.equal(f.elements.get('recover').disabled, true);
+    const unload = { prevented: false, preventDefault() { this.prevented = true; } };
+    f.windowEvents.beforeunload(unload); assert.equal(unload.prevented, false, 'no false leave warning');
+  }
+});
+test('storage allowed again installs the service-worker guard once and re-enables capture', async () => {
+  const f = fixture('success', false, 'all');
+  const listeners = [];
+  f.allow({ controller: null, addEventListener(name, fn) { listeners.push([name, fn]); } });
+  await f.connect();
+  assert.deepEqual(listeners.map(([name]) => name), ['controllerchange']);
+  assert.equal(f.elements.get('environment').hidden, true);
+  assert.equal(f.phones.length, 1);
+  await f.start(); assert.equal(f.elements.get('save-panel').hidden, false);
+  listeners[0][1]();
+  assert.equal(f.sessions[0].result, false, 'a controller change discards the capture');
+  assert.equal(listeners.length, 1, 'repeat checks do not stack listeners');
 });

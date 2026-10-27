@@ -6,6 +6,7 @@
 - Recognize and picture the GT3 Max (Model ID 24182) from an owner's report. Its controls keep their existing compatibility rules; this report did not test settings changes.
 - Include battery temperature in diagnostic exports; the degree symbol previously caused it to be omitted.
 - Keep unknown current/temperature sign flags in diagnostics without letting them overwrite a known sign. Sensor timestamps and inline negative signs are preserved.
+- Owner file setup helper: if browser privacy settings block site storage, the page now explains how to allow it instead of failing to start or offering a recovery that cannot run. New captures stay disabled until storage is allowed, because the helper needs its temporary recovery record.
 - Fix the NAVEE debugger's Send and Download buttons becoming unresponsive if browser privacy settings block a storage-related check. Completed recordings can still be saved or sent, and blocked browser checks show guidance instead of crashing the page.
 
 ## 1.8.1 — 2026-10-26

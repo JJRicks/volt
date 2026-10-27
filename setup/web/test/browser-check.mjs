@@ -111,6 +111,24 @@ try {
   assert.match(await swPage.locator('#environment').innerText(), /service worker/);
   await swPage.locator('#usb-consent').check(); assert.equal(await swPage.locator('#connect').isDisabled(), true);
   await swContext.close();
+  // Blocked site storage makes Chrome throw from these getters; the page must explain, not crash.
+  for (const denied of ['serviceWorker', 'controller', 'localStorage']) {
+    const context = await browser.newContext();
+    await context.addInitScript(which => {
+      const blocked = () => { throw new DOMException('Access to storage is not allowed from this context.', 'SecurityError'); };
+      if (which === 'controller') Object.defineProperty(navigator.serviceWorker, 'controller', { get: blocked });
+      else if (which === 'serviceWorker') Object.defineProperty(navigator, 'serviceWorker', { get: blocked });
+      else Object.defineProperty(window, 'localStorage', { get: blocked });
+    }, denied);
+    const page = await context.newPage(); page.on('pageerror', error => pageErrors.push(error.message));
+    await page.goto(url);
+    assert.match(await page.locator('#environment').innerText(), /blocked site storage/, denied);
+    await page.locator('#usb-consent').check();
+    assert.equal(await page.locator('#connect').isDisabled(), true);
+    assert.equal(await page.locator('#recover').isDisabled(), true);
+    assert.equal(await page.locator('#recovery').isVisible(), false);
+    await context.close();
+  }
   // The legacy origin retains its own journal and recovery path; it must never
   // silently redirect or start a new capture on the shared main-site origin.
   for (const hostname of ['jjricks.com', 'pairscooter.jjricks.com']) {
@@ -150,5 +168,5 @@ try {
     await context.close();
   }
   assert.deepEqual(pageErrors, []);
-  console.log(JSON.stringify({ widths, allPanelsFit: true, bundledFontsLoaded: true, textContrast: true, keyboardFocusVisible: true, reducedMotionRespected: true, usbConsentAndCancel: true, unreviewedScriptBlocked: true, uploadBlocked: true, serviceWorkerBlocked: true, legacyRecoveryPreserved: true, dedicatedOriginEnabled: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
+  console.log(JSON.stringify({ widths, allPanelsFit: true, bundledFontsLoaded: true, textContrast: true, keyboardFocusVisible: true, reducedMotionRespected: true, usbConsentAndCancel: true, unreviewedScriptBlocked: true, uploadBlocked: true, serviceWorkerBlocked: true, storageDenialHandled: true, legacyRecoveryPreserved: true, dedicatedOriginEnabled: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
 } finally { await browser.close(); await new Promise(resolve => server.close(resolve)); }
