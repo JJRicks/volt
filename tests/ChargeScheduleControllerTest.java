@@ -179,6 +179,11 @@ public final class ChargeScheduleControllerTest {
         int writes=r.writes.size();r.recreate();r.controller.observe();
         check(r.controller.view().doneByEnabled&&r.controller.view().startWallMs==decoded.start,"existing ten-minute-buffer schedule survives upgrade without moving its start");
         check(r.writes.size()==writes,"upgrade does not reprogram a saved schedule");
+        Rig cautious=new Rig();cautious.c.estimateMinutes=130d;cautious.arm();
+        long oldStart=cautious.sentTime;int oldWrites=cautious.writes.size();
+        cautious.c.estimateMinutes=90d;cautious.recreate();cautious.controller.observe();
+        check(cautious.controller.view().startWallMs==oldStart&&cautious.writes.size()==oldWrites,
+                "A previously programmed cautious plan is not silently rescheduled by an estimator upgrade");
         for(String bad:new String[]{"", "2|2|480|0|0|0|0|100|90|false", "1|2|480|0|0|0|0|100|90|false", "1|2|480|1|2|3|4|NaN|90|false", "1|2|1500|1|2|3|4|100|90|false", "garbage"})
             check(ChargeScheduleController.decode(bad).mode==0,"malformedrecordcannotarm");
         r.c.scope="owner-B";check(!r.controller.view().doneByEnabled,"profilesisolated");r.c.scope="simulation:owner-A";check(!r.controller.view().doneByEnabled,"simulationisolated");

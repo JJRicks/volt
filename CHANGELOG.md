@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Charge done by now uses the displayed standard-charger estimate plus the existing 20-minute buffer, instead of adding the buffer to a second, more pessimistic estimate. Existing scooter schedules stay as programmed until explicitly changed.
+
 ## 1.8.1 — 2026-10-26
 
 - ST3 Pro (Model ID 23452): a second owner's report verified dashboard units, turn signal sound and range estimate, so those rows no longer say **Untested here**, and traction control, which the official app doesn't map there, worked in three tries. Traction control is now an ordinary, verified control on the ST3 Pro instead of an Experimental controls try.

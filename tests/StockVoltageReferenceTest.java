@@ -20,9 +20,9 @@ public final class StockVoltageReferenceTest {
     public static void main(String[] args) throws Exception {
         // The recorded warm charge at 55%, 150 minutes after it started at 22%, had 175.87 min left.
         ChargingEstimate.Result warm=estimate(55,49.702,1.94,100d,150,22);
-        check(Math.abs(warm.remainingMinutesToFull-175.8677)<=5&&warm.planningMinutesToFull>=175.8677
+        check(Math.abs(warm.remainingMinutesToFull-175.8677)<=5&&warm.planningMinutesToFull+ChargeScheduleController.BUFFER_MS/60_000d>=175.8677
                 &&warm.remainingMinutesToFull<base(55,49.702,1.94,100d).remainingMinutesToFull-15,
-                "Pack voltage locates the warm charge within five minutes, a cautious plan is not late, and the raw rate improves by 15+ minutes");
+                "Pack voltage locates the warm charge within five minutes, the buffered plan is not late, and the raw rate improves by 15+ minutes");
         check(warm.stockPackModel&&warm.referenceToFull&&warm.referenceToLimit&&!warm.learnedToFull&&warm.learnedSessions==0,"Bundled pack evidence has honest provenance");
         near(warm.remainingMinutesToFull,warm.remainingMinutesToLimit,0,"Full and 100% cutoff agree");
         near(warm.remainingMinutesToFull,estimate(55,49.702,1.94,null,150,22).remainingMinutesToFull,0,"Unknown cutoff does not change hypothetical full");

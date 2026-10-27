@@ -54,8 +54,8 @@ public final class ChargingEstimate {
         /** A paired-voltage stock reference takes priority over SOC-only personal bulk timing. */
         public final boolean stockVoltageToFull;
         /**
-         * Cautious minutes for Charge done by. Equal to the displayed estimate except where a
-         * model quantifies its uncertainty; never shorter than the displayed estimate.
+         * Minutes for Charge done by, before its separate safety buffer. Use the same
+         * estimate shown on the dashboard rather than stacking pessimistic model assumptions.
          */
         public final Double planningMinutesToLimit, planningMinutesToFull;
         /** The standard-charger pack-voltage model supplied the bulk-stage estimate. */
@@ -347,21 +347,20 @@ public final class ChargingEstimate {
         double age=progress==null?0:progress.ageMinutes, start=progress==null?Double.NaN:progress.startSoc;
         Ut5MaxStockPackModel.Estimate full=Ut5MaxStockPackModel.estimate(soc.number,100,volts,amps,age,start,ratedAh.number);
         if (full==null) return null;
-        Double target=baseline.targetPercent, limit=null, planningLimit=null;
+        Double target=baseline.targetPercent, limit=null;
         if (target!=null) {
             Ut5MaxStockPackModel.Estimate cutoff=Ut5MaxStockPackModel.estimate(soc.number,target,volts,amps,age,start,ratedAh.number);
             if (cutoff==null) return null;
             limit=Math.min(cutoff.display,full.display);
-            planningLimit=Math.max(limit,Math.min(cutoff.planning,full.planning));
         }
         String status="Experimental UT5 MAX stock-charger estimate from pack voltage, charging current and observed finishes. ";
         if (progress==null || !progress.startObserved && !progress.ageInferred)
             status+="Charging start not seen, so it assumes charging just began until the current trend is known. ";
-        status+="Charge done by uses a longer, cautious estimate. This does not identify the charger. "
+        status+="Charge done by adds its safety buffer to this estimate. This does not identify the charger. "
                 +"Time to displayed 100%; balancing may continue."+cutoffNote(target);
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,limit,full.display,target,
                 "Stock reference",status,false,false,0,target!=null,true,ChargeSessionStore.Charger.STOCK,null,
-                planningLimit,full.planning,true);
+                limit,full.display,true);
     }
 
     private static boolean same(Double a,Double b){return a==null?b==null:a.equals(b);}
