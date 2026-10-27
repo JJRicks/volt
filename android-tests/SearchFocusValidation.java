@@ -344,7 +344,9 @@ public final class SearchFocusValidation extends Instrumentation {
     private void tap(View view, Window window) { tap(view, window, 0); }
     /** Taps the view's centre or, with below > 0, the middle of that strip under it. The window must
      *  receive the press inside that target in its own coordinates, which an IME pan cannot shift: a
-     *  press that landed elsewhere tested nothing (a stale pan offset), so it is measured and sent again. */
+     *  press that landed elsewhere tested nothing (a stale pan offset). It is measured and sent again
+     *  only if the miss left the case's preconditions intact (same focus, keyboard and text, and no
+     *  other control under the press); otherwise the retry would test a different scene, so it fails. */
     private void tap(View view, Window window, int below) {
         require(view != null, "Missing touch target");
         for (int attempt = 1; ; attempt++) {
@@ -352,8 +354,9 @@ public final class SearchFocusValidation extends Instrumentation {
             require(rect.width() > 0 && rect.height() > 0, "Touch target is not visible");
             float x = rect.centerX(), y = below > 0 ? rect.bottom + below / 2f : rect.centerY();
             lastTapScreenBounds = below > 0 ? new Rect((int)x, (int)y, (int)x + 1, (int)y + 1) : new Rect(rect);
-            Rect target = new Rect(); AtomicReference<WindowTouchTrace> trace = new AtomicReference<>();
+            Rect target = new Rect(); AtomicReference<WindowTouchTrace> trace = new AtomicReference<>(); AtomicReference<String> before = new AtomicReference<>();
             main(() -> {
+                before.set(scene(window));
                 int[] at = new int[2]; view.getLocationInWindow(at);
                 target.set(at[0], at[1] + (below > 0 ? view.getHeight() : 0), at[0] + view.getWidth(), at[1] + view.getHeight() + below);
                 trace.set(new WindowTouchTrace(window));
@@ -364,9 +367,36 @@ public final class SearchFocusValidation extends Instrumentation {
             } finally { main(() -> trace.get().restore()); }
             float[] down = trace.get().firstDown();
             if (down != null && target.contains((int)down[0], (int)down[1])) return;
+            AtomicReference<String> changed = new AtomicReference<>();
+            main(() -> {
+                View focus = window.getCurrentFocus(), hit = down == null ? null : controlAt(window.getDecorView(), (int)down[0], (int)down[1]);
+                String after = scene(window);
+                if (!after.equals(before.get())) changed.set("before: " + before.get() + "; after: " + after);
+                else if (hit != null && hit != focus) changed.set("it pressed another control: " + hit.getClass().getSimpleName()
+                        + (hit.getContentDescription() == null ? "" : " \"" + hit.getContentDescription() + "\""));
+            });
+            require(changed.get() == null, "Touch at screen [" + x + "," + y + "] missed window target " + target
+                    + " and changed the case's preconditions, so it cannot be retried (" + changed.get() + "); " + trace.get().describe());
             require(attempt < 3, "Touch at screen [" + x + "," + y + "] missed window target " + target + " three times"
                     + (down == null ? " (no press reached this window: another window, such as a keyboard hint, covered it)" : "") + "; " + trace.get().describe());
         }
+    }
+    /** What a stray press can disturb: the focused view, the keyboard and the focused field's text. */
+    private String scene(Window window) {
+        View focus = window.getCurrentFocus();
+        return "focus=" + (focus == null ? "none" : focus.getClass().getSimpleName() + "@" + System.identityHashCode(focus))
+                + " ime=" + imeVisible(window) + (focus instanceof TextView ? " text=\"" + ((TextView)focus).getText() + "\"" : "");
+    }
+    /** The topmost shown clickable view under a window-local point, or null when only inert content is there. */
+    private static View controlAt(View view, int x, int y) {
+        if (!view.isShown()) return null;
+        int[] at = new int[2]; view.getLocationInWindow(at);
+        if (x < at[0] || y < at[1] || x >= at[0] + view.getWidth() || y >= at[1] + view.getHeight()) return null;
+        if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup)view;
+            for (int i = group.getChildCount() - 1; i >= 0; i--) { View hit = controlAt(group.getChildAt(i), x, y); if (hit != null) return hit; }
+        }
+        return view.isClickable() || view.isLongClickable() ? view : null;
     }
     private Rect nativeScreenBounds(View view) {
         // The accessibility server applies an IME pan's surface move asynchronously, so one reading
