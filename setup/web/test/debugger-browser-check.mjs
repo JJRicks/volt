@@ -14,9 +14,14 @@ const widths = [1280, 1000, 768, 390, 344, 320];
 const panels = ['problem-panel', 'ready-panel', 'connect-panel', 'record-panel', 'recording-panel', 'review-panel', 'done-panel', 'recovery'];
 const pageErrors = [], submitted = [], blocked = [];
 const browser = await chromium.launch({ executablePath: process.env.CHROME_PATH, headless: true });
-async function open(width, hostname = 'volt.jjricks.com') {
+async function open(width, hostname = 'volt.jjricks.com', denied = '') {
   const context = await browser.newContext({ viewport: { width, height: 900 } });
   await context.addInitScript(() => { navigator.usb.requestDevice = async () => { throw new DOMException('No device selected', 'NotFoundError'); }; });
+  if (denied) await context.addInitScript(which => {
+    const blocked = () => { throw new DOMException('Access to storage is not allowed from this context.', 'SecurityError'); };
+    if (which === 'controller') Object.defineProperty(navigator.serviceWorker, 'controller', { get: blocked });
+    else Object.defineProperty(navigator, 'serviceWorker', { get: blocked });
+  }, denied);
   await context.route('**/*', async route => {
     const url = new URL(route.request().url());
     if (url.href === 'https://volt.jjricks.com/debugger/submit') { submitted.push(route.request().method()); await route.fulfill({ status: 201, contentType: 'application/json', body: '{"id":"0a1b2c3d"}' }); return; }
@@ -177,7 +182,14 @@ try {
   const swPage = await swContext.newPage(); await swPage.goto('https://volt.jjricks.com/debugger/');
   assert.match(await swPage.locator('#environment').innerText(), /service worker/);
   await swContext.close();
+  for (const denied of ['serviceWorker', 'controller']) {
+    const restricted = await open(1000, 'volt.jjricks.com', denied);
+    assert.match(await restricted.page.locator('#environment').innerText(), /Allow site storage/);
+    assert.equal(await restricted.page.locator('#connect').isDisabled(), true);
+    assert.equal(await restricted.page.locator('#recover').isDisabled(), true);
+    await restricted.context.close();
+  }
   assert.deepEqual(pageErrors, []);
   console.log(JSON.stringify({ widths, allPanelsFit: true, bundledFontsLoaded: true, textContrast: true, keyboardFocusVisible: true, reducedMotionRespected: true,
-    usbConsentAndCancel: true, promptCardKeyboard: true, knowsPanelCollapsed: true, onlySubmitReachable: true, unreviewedScriptBlocked: true, otherHostRefused: true, serviceWorkerBlocked: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
+    usbConsentAndCancel: true, promptCardKeyboard: true, knowsPanelCollapsed: true, onlySubmitReachable: true, unreviewedScriptBlocked: true, otherHostRefused: true, serviceWorkerBlocked: true, storageDenialHandled: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
 } finally { await browser.close(); }

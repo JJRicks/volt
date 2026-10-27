@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix the NAVEE debugger's Send and Download buttons becoming unresponsive if browser privacy settings block a storage-related check. Completed recordings can still be saved or sent, and blocked browser checks show guidance instead of crashing the page.
+
 ## 1.8.1 — 2026-10-26
 
 - ST3 Pro (Model ID 23452): a second owner's report verified dashboard units, turn signal sound and range estimate, so those rows no longer say **Untested here**, and traction control, which the official app doesn't map there, worked in three tries. Traction control is now an ordinary, verified control on the ST3 Pro instead of an Experimental controls try.
