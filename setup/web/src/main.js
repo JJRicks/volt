@@ -5,10 +5,19 @@ import { connectPhone } from './transport.js';
 const $ = id => document.getElementById(id);
 let phone = null, session = null, busy = false, closing = false;
 const legacySite = ['jjricks.com', 'www.jjricks.com'].includes(location.hostname) && /^\/pairscooter(?:\/|$)/.test(location.pathname);
+const STORAGE_BLOCKED = 'This browser blocked site storage, which this helper needs for its temporary recovery record. Allow site storage for this site in your browser settings, or use another regular browser profile (not Incognito or Guest).';
+let watchedWorker = null;
+// Chrome can throw when merely reading localStorage or navigator.serviceWorker if
+// site storage is blocked. Capture needs its recovery record, so it fails closed.
+function local(use) {
+  let store;
+  try { store = localStorage; } catch { throw new SetupError('storage', STORAGE_BLOCKED); }
+  return use(store);
+}
 const storage = {
-  getItem: key => localStorage.getItem(key),
-  setItem: (key, value) => localStorage.setItem(key, value),
-  removeItem: key => localStorage.removeItem(key)
+  getItem: key => local(store => store.getItem(key)),
+  setItem: (key, value) => local(store => store.setItem(key, value)),
+  removeItem: key => local(store => store.removeItem(key))
 };
 function message(id, text) { $(id).textContent = text; $(id).hidden = !text; }
 function error(error) {
@@ -29,13 +38,26 @@ function panel(name, step) {
 }
 function pendingRecovery() {
   try { return !!readJournal(storage); }
-  catch (e) { error(e); return true; }
+  catch (e) {
+    // Blocked storage is an environment problem, not a recovery: USB stays disabled.
+    if (e instanceof SetupError && e.code === 'storage') return false;
+    error(e); return true;
+  }
 }
 function validateEnvironment({ recovery = false } = {}) {
-  const problem = navigator.serviceWorker?.controller
-    ? 'A service worker controls this page. For your privacy, capture is disabled. Use a separate regular browser profile (not Incognito or Guest) for this helper or contact the site operator; this page will not remove another app’s service worker.'
-    : !window.isSecureContext || !navigator.usb
-      ? 'Open this page in desktop Chrome or Edge over HTTPS. USB setup is unavailable in this browser.' : '';
+  let problem;
+  try {
+    const worker = navigator.serviceWorker;
+    if (worker && worker !== watchedWorker) {
+      // Also retried after access recovers, so capture never runs without this guard.
+      worker.addEventListener('controllerchange', () => { session?.cancel(); session?.forgetResult(); validateEnvironment(); });
+      watchedWorker = worker;
+    }
+    problem = worker?.controller
+      ? 'A service worker controls this page. For your privacy, capture is disabled. Use a separate regular browser profile (not Incognito or Guest) for this helper or contact the site operator; this page will not remove another app’s service worker.'
+      : !window.isSecureContext || !navigator.usb
+        ? 'Open this page in desktop Chrome or Edge over HTTPS. USB setup is unavailable in this browser.' : local(() => '');
+  } catch { problem = STORAGE_BLOCKED; }
   message('environment', problem);
   $('legacy-site').hidden = !legacySite;
   $('connect').disabled = !!problem || legacySite || !$('usb-consent').checked || busy;
@@ -100,10 +122,14 @@ async function closePhone() {
   $('usb-consent').checked = false; $('capture-consent').checked = false; $('start').disabled = true;
   panel(pendingRecovery() ? 'recovery' : 'connect-panel', 0);
 }
-$('usb-consent').addEventListener('change', validateEnvironment);
+// A recovery record that was unreadable while storage was blocked must surface
+// once access returns, without a reload and without disturbing a running capture.
+function revealRecovery() { if (!busy && !session?.busy && pendingRecovery()) { panel('recovery', 0); return true; } return false; }
+$('usb-consent').addEventListener('change', () => { validateEnvironment(); revealRecovery(); });
 $('capture-consent').addEventListener('change', () => { $('start').disabled = !$('capture-consent').checked || busy; });
 $('connect').addEventListener('click', () => action(async () => {
-  if (!$('usb-consent').checked || pendingRecovery()) return;
+  if (!$('usb-consent').checked) return;
+  if (pendingRecovery()) { panel('recovery', 0); return; }
   await connect(); $('send').textContent = 'Save to phone Downloads'; panel('capture-panel', 1);
 }));
 $('disconnect').addEventListener('click', () => action(closePhone));
@@ -206,6 +232,5 @@ window.addEventListener('pagehide', () => {
   // fallback; the next visit must still explicitly verify cleanup.
   if (!session?.busy) phone?.close(true).catch(() => {});
 });
-navigator.serviceWorker?.addEventListener('controllerchange', () => { session?.cancel(); session?.forgetResult(); validateEnvironment(); });
 validateEnvironment();
 if (pendingRecovery()) panel('recovery', 0);
