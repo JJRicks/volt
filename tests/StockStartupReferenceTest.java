@@ -33,7 +33,7 @@ public final class StockStartupReferenceTest {
                 ChargingEstimate.Result result=estimate(row[0],row[1],row[2],100d,personal);
                 check(result.stockPackModel,"Standard bulk charging uses the pack model");
                 check(Math.abs(result.remainingMinutesToFull-row[3])<=12,"First full guesses remain within twelve minutes in these retrospective cases");
-                check(result.planningMinutesToFull>=row[3],"The cautious plan for these first guesses is never late");
+                check(result.planningMinutesToFull+ChargeScheduleController.BUFFER_MS/60_000d>=row[3],"Displayed first guesses plus the scheduling buffer meet these recorded finishes");
                 near(result.remainingMinutesToFull,result.remainingMinutesToLimit,0,"Full cutoff uses full timing");
                 near(result.planningMinutesToFull,result.planningMinutesToLimit,0,"Full cutoff uses full planning time");
             }

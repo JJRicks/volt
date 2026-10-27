@@ -556,11 +556,11 @@ public final class ScooterService extends Service {
         if(plan.busy||plan.doneByEnabled||plan.doneByBlockedReason!=null)return false;
         ChargeProgressTracker.Progress progress=chargeProgress.progress(profiles.active().id,SystemClock.elapsedRealtime());
         if(progress==null||progress.startObserved||progress.ageInferred||!chargingEstimate(displayReadings()).stockPackModel)return false;
-        Long start=cautiousChargeStart(plan.doneByMinuteOfDay);
+        Long start=bufferedChargeStart(plan.doneByMinuteOfDay);
         return start!=null&&ChargeMeasureWindow.useful(System.currentTimeMillis(),start);
     }
-    /** Start of today's cautious plan; null when it would charge now or has no estimate. */
-    private Long cautiousChargeStart(int minute){
+    /** Start of today's buffered plan; null when it would charge now or has no estimate. */
+    private Long bufferedChargeStart(int minute){
         ChargeScheduleController.Context c=chargeScheduleContext();
         if(!c.ready||c.estimateMinutes==null||!Double.isFinite(c.estimateMinutes)||c.estimateMinutes<=0)return null;
         try{ChargeScheduleController.Plan plan=ChargeScheduleController.plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);return plan.startNow?null:plan.startWallMs;}
@@ -572,7 +572,7 @@ public final class ScooterService extends Service {
     public int chargeMeasureMinutesLeft(){return (int)((chargeMeasure.remainingMs(SystemClock.elapsedRealtime())+59_999)/60_000);}
     public boolean startChargeMeasure(){
         if(!chargeMeasureOffered())return false;
-        int minute=chargeSchedule().doneByMinuteOfDay;Long start=cautiousChargeStart(minute);
+        int minute=chargeSchedule().doneByMinuteOfDay;Long start=bufferedChargeStart(minute);
         return start!=null&&beginChargeMeasure(minute,start);
     }
     private boolean beginChargeMeasure(int minute,long cautiousStartWall){
@@ -603,7 +603,7 @@ public final class ScooterService extends Service {
      */
     private void retargetChargeMeasure(int minute){
         if(!chargeMeasure.active()||chargeMeasure.arming())return;
-        long nowMono=SystemClock.elapsedRealtime(),nowWall=System.currentTimeMillis();Long start=cautiousChargeStart(minute);
+        long nowMono=SystemClock.elapsedRealtime(),nowWall=System.currentTimeMillis();Long start=bufferedChargeStart(minute);
         if(start!=null&&ChargeMeasureWindow.useful(nowWall,start)){chargeMeasure.retarget(minute,nowMono,nowWall,start);updateNotification();changed();return;}
         ChargeProgressTracker.Progress progress=chargeProgress.progress(chargeMeasure.profile(),nowMono);
         armMeasured(progress!=null&&(progress.startObserved||progress.ageInferred));
@@ -679,7 +679,7 @@ public final class ScooterService extends Service {
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){
             ChargingEstimate.Result estimate=chargingEstimate(displayReadings());
-            // Plans use the cautious estimate; the dashboard shows the most likely one.
+            // Use the displayed estimate; ChargeScheduleController adds the safety buffer once.
             c.estimateMinutes=estimate.planningMinutesToLimit;
             // A raw current-rate estimate remains useful on the dashboard while automatic
             // identification gathers its first frames, but must not freeze a finish plan yet.

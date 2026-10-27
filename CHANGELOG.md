@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Charge done by now uses the displayed standard-charger estimate plus the existing 20-minute buffer, instead of adding the buffer to a second, more pessimistic estimate. Existing scooter schedules stay as programmed until explicitly changed.
 - Recognize and picture the GT3 Max (Model ID 24182) from an owner's report. Its controls keep their existing compatibility rules; this report did not test settings changes.
 - Include battery temperature in diagnostic exports; the degree symbol previously caused it to be omitted.
 - Keep unknown current/temperature sign flags in diagnostics without letting them overwrite a known sign. Sensor timestamps and inline negative signs are preserved.

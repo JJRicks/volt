@@ -120,12 +120,12 @@ public final class Ut5MaxStockPackModelTest {
         ChargingEstimate.Result r = estimate(30, 47.6, 2.3, 80d, ChargeSessionStore.Charger.STOCK, null, early);
         check(r.stockPackModel && r.referenceToFull && r.referenceToLimit && r.referenceCharger == ChargeSessionStore.Charger.STOCK,
                 "Standard charging below 89% uses the pack model with reference attribution");
-        check(r.planningMinutesToLimit >= r.remainingMinutesToLimit && r.planningMinutesToFull >= r.remainingMinutesToFull,
-                "Plans are never shorter than the displayed estimate");
+        check(r.planningMinutesToLimit.equals(r.remainingMinutesToLimit) && r.planningMinutesToFull.equals(r.remainingMinutesToFull),
+                "Scheduling uses the displayed estimate before its separate buffer");
         check(r.remainingMinutesToLimit <= r.remainingMinutesToFull && r.planningMinutesToLimit <= r.planningMinutesToFull,
                 "Cutoff stays within time to full");
         check(r.status.contains("pack voltage") && r.status.contains("Charge done by") && !r.status.contains("start not seen"),
-                "An observed start explains the source and the cautious plan");
+                "An observed start explains the source and the buffered plan");
         ChargingEstimate.Result unseen = estimate(30, 47.6, 2.3, 80d, ChargeSessionStore.Charger.STOCK, null, null);
         check(unseen.stockPackModel && unseen.status.contains("start not seen"), "An unseen start is disclosed");
         check(unseen.remainingMinutesToLimit >= r.remainingMinutesToLimit - 1e-9, "An unseen start assumes the most warm-up decay ahead");
@@ -135,6 +135,22 @@ public final class Ut5MaxStockPackModelTest {
         ChargingEstimate.Result full = estimate(30, 47.6, 2.3, 100d, ChargeSessionStore.Charger.STOCK, null, early);
         check(full.remainingMinutesToLimit.equals(full.remainingMinutesToFull) && full.planningMinutesToLimit.equals(full.planningMinutesToFull),
                 "A 100% limit uses full timing for display and planning");
+
+        // Exercise the actual Result -> schedule boundary for full and partial targets,
+        // including unknown charge age. The buffer belongs only to the scheduler.
+        long now=java.time.Instant.parse("2026-10-27T00:00:00Z").toEpochMilli();
+        for(ChargeProgressTracker.Progress progress:new ChargeProgressTracker.Progress[]{early,null}) {
+            for(double target:new double[]{80,95,100}) {
+                ChargingEstimate.Result planEstimate=estimate(30,47.6,2.3,target,ChargeSessionStore.Charger.STOCK,null,progress);
+                check(planEstimate.stockPackModel,"Fixture reaches standard pack model");
+                check(planEstimate.planningMinutesToLimit.equals(planEstimate.remainingMinutesToLimit),"No hidden pessimistic reserve at target "+target);
+                ChargeScheduleController.Plan plan=ChargeScheduleController.plan(now,23*60,planEstimate.planningMinutesToLimit,
+                        java.util.TimeZone.getTimeZone("UTC"),false);
+                double allowance=(plan.deadlineWallMs-plan.startWallMs)/60_000d-planEstimate.remainingMinutesToLimit;
+                check(!plan.startNow&&allowance>=20&&allowance<21,"Exactly twenty minutes reserve plus less than one minute rounding");
+            }
+        }
+        check(r.status.contains("adds its safety buffer")&&!r.status.contains("longer, cautious"),"Diagnostic wording matches the new policy");
 
         ChargingEstimate.Result fast = estimate(30, 47.6, 2.3, 80d, ChargeSessionStore.Charger.HIGH_SPEED, null, early);
         check(!fast.stockPackModel, "High-speed charging never uses the standard-charger model");

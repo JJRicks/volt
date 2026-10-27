@@ -1,5 +1,8 @@
 # Standard-charger pack-model estimates
 
+**Scheduling policy update (2026-10-27):** new Charge done by plans use the display estimate plus the existing 20-minute buffer. The historical “planning” results below describe the former extra-cautious model, retained for comparison; they no longer select the scheduled duration. Fitted constants, displayed estimates and estimator version are unchanged. See [buffered scheduling replay](charge-done-by-buffer.md).
+
+
 Estimator `ut5-stock-pack-v6`, following [conservative startup estimates](stock-startup-estimates.md).
 It replaces UT5 MAX standard-charger timing **below 89%** only. From 89% the existing finishing
 reference, the 99% taper matcher and personal finishing curves are unchanged, and the high-speed,

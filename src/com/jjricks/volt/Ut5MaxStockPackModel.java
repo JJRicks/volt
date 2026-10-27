@@ -8,9 +8,10 @@ package com.jjricks.volt;
  * of that catch-up. The standard charger also starts about 15-20% above its settled current and
  * decays over roughly the first hour, so the live current alone is optimistic early in a charge.
  *
- * Display estimates aim for the most likely finish. Planning estimates, for Charge done by, assume
+ * Display estimates aim for the most likely finish. Historical cautious estimates assume
  * less help from the gauge's catch-up than observed (more charge still needed before 99%), the
- * strongest observed current decay and the longest observed finish. Constants are fitted from the anonymized public measurements by
+ * strongest observed current decay and the longest observed finish. Those remain available for
+ * replay comparison; Charge done by now uses the display estimate plus its own safety buffer. Constants are fitted from the anonymized public measurements by
  * docs/validation/data/stock-pack-v6/fit_pack_model.py. Times are to the first displayed 100%.
  */
 public final class Ut5MaxStockPackModel {
@@ -211,7 +212,7 @@ public final class Ut5MaxStockPackModel {
 
     private Ut5MaxStockPackModel() {}
 
-    /** Display (most likely) and planning (cautious) minutes for one target. */
+    /** Minutes for one target: display estimate and historical planning estimate kept for evaluation. */
     public static final class Estimate {
         public final double display, planning;
         Estimate(double display, double planning) { this.display = display; this.planning = planning; }
