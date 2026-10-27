@@ -16,7 +16,7 @@ const bundled = await build({ entryPoints: [entry], bundle: true, write: false, 
     // The transport double shares the bundle's SetupError, so doubles can raise
     // the same typed errors the real transport and session would.
     build.onLoad({ filter: /./, namespace: 'fixture' }, args => ({ resolveDir: dirname(entry), contents: args.path.includes('capture')
-      ? 'export const CaptureSession = window.fixture.Session; export const readJournal = storage => { storage.getItem(\'probe\'); return window.fixture.pending ? {} : null; };'
+      ? 'export const CaptureSession = window.fixture.Session; export const readJournal = storage => { storage.getItem(\'probe\'); if (window.fixture.damaged) throw new window.fixture.SetupError(\'journal\', \'The local recovery record is damaged.\'); return window.fixture.pending ? {} : null; };'
       : "import { SetupError } from './protocol.js'; window.fixture.SetupError = SetupError; export const connectPhone = (...args) => window.fixture.connect(...args);" }));
   }
 }] });
@@ -180,4 +180,24 @@ test('storage allowed again installs the service-worker guard once and re-enable
   listeners[0][1]();
   assert.equal(f.sessions[0].result, false, 'a controller change discards the capture');
   assert.equal(listeners.length, 1, 'repeat checks do not stack listeners');
+});
+test('a recovery record unreadable while storage was blocked surfaces once access returns', async () => {
+  for (const damaged of [false, true]) {
+    const f = fixture('success', false, 'all');
+    f.fixture.pending = !damaged; f.fixture.damaged = damaged;
+    assert.match(f.elements.get('environment').textContent, /blocked site storage/);
+    f.allow({ controller: null, addEventListener() {} });
+    await f.connect();
+    assert.equal(f.phones.length, 0, 'no USB until cleanup');
+    assert.equal(f.elements.get('recovery').hidden, false);
+    assert.equal(f.elements.get('connect-panel').hidden, true);
+    if (damaged) assert.match(f.elements.get('error').textContent, /damaged/);
+    else { await f.click('recover'); assert.equal(f.phones[0].closed, true); assert.equal(f.fixture.pending, false); }
+  }
+  // Ticking USB consent alone also reveals it, before any Connect attempt.
+  const f = fixture('success', false, 'localStorage'); f.fixture.pending = true;
+  f.allow({ controller: null, addEventListener() {} });
+  f.elements.get('usb-consent').checked = true; f.elements.get('usb-consent').listeners.change();
+  assert.equal(f.elements.get('recovery').hidden, false);
+  assert.equal(f.elements.get('connect-panel').hidden, true);
 });

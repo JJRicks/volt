@@ -122,10 +122,14 @@ async function closePhone() {
   $('usb-consent').checked = false; $('capture-consent').checked = false; $('start').disabled = true;
   panel(pendingRecovery() ? 'recovery' : 'connect-panel', 0);
 }
-$('usb-consent').addEventListener('change', validateEnvironment);
+// A recovery record that was unreadable while storage was blocked must surface
+// once access returns, without a reload and without disturbing a running capture.
+function revealRecovery() { if (!busy && !session?.busy && pendingRecovery()) { panel('recovery', 0); return true; } return false; }
+$('usb-consent').addEventListener('change', () => { validateEnvironment(); revealRecovery(); });
 $('capture-consent').addEventListener('change', () => { $('start').disabled = !$('capture-consent').checked || busy; });
 $('connect').addEventListener('click', () => action(async () => {
-  if (!$('usb-consent').checked || pendingRecovery()) return;
+  if (!$('usb-consent').checked) return;
+  if (pendingRecovery()) { panel('recovery', 0); return; }
   await connect(); $('send').textContent = 'Save to phone Downloads'; panel('capture-panel', 1);
 }));
 $('disconnect').addEventListener('click', () => action(closePhone));

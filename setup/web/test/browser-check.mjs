@@ -129,6 +129,31 @@ try {
     assert.equal(await page.locator('#recovery').isVisible(), false);
     await context.close();
   }
+  // A saved recovery record hidden by blocked storage surfaces once access returns, without a reload.
+  {
+    const context = await browser.newContext();
+    await context.addInitScript(() => {
+      navigator.usb.requestDevice = async () => { throw new DOMException('No device selected', 'NotFoundError'); };
+      localStorage.setItem('volt.owner-capture.recovery.v1', JSON.stringify({ version: 1, token: 'b'.repeat(64), serial: 'fixture-phone', original: '', stage: 'armed' }));
+      const real = Object.getOwnPropertyDescriptor(Window.prototype, 'localStorage') || Object.getOwnPropertyDescriptor(window, 'localStorage');
+      window.denyStorage = true;
+      Object.defineProperty(window, 'localStorage', { configurable: true, get() {
+        if (window.denyStorage) throw new DOMException('Access to storage is not allowed from this context.', 'SecurityError');
+        return real.get.call(window);
+      } });
+    });
+    const page = await context.newPage(); page.on('pageerror', error => pageErrors.push(error.message));
+    await page.goto(url);
+    assert.match(await page.locator('#environment').innerText(), /blocked site storage/);
+    assert.equal(await page.locator('#recovery').isVisible(), false);
+    await page.evaluate(() => { window.denyStorage = false; });
+    await page.locator('#usb-consent').check();
+    assert.equal(await page.locator('#recovery').isVisible(), true);
+    assert.equal(await page.locator('#connect-panel').isVisible(), false);
+    assert.equal(await page.locator('#recover').isEnabled(), true);
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('volt.owner-capture.recovery.v1')).stage), 'armed');
+    await context.close();
+  }
   // The legacy origin retains its own journal and recovery path; it must never
   // silently redirect or start a new capture on the shared main-site origin.
   for (const hostname of ['jjricks.com', 'pairscooter.jjricks.com']) {
