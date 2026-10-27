@@ -27,6 +27,10 @@ See VERIFICATION.txt for executed checks and physical validation limits.
 
 UNRELEASED
 ------------
+- UT5 MAX high-speed charges that reach the charger's voltage limit at an
+  unusual battery percentage are estimated from pack voltage and current, not
+  the live rate, which read 2-3 times too short in the taper. Personal
+  estimates no longer briefly drop out when the percentage steps.
 - Recognize and picture the GT3 Max (24182) from a read-only owner report;
   its controls retain their existing compatibility rules and evidence levels.
 - Include battery temperature in diagnostics and ignore unknown sign flags

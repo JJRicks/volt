@@ -3,7 +3,7 @@ package com.jjricks.volt;
 /** Fresh battery-side charging measurements, model defaults and optional personal charge curves. */
 public final class ChargingEstimate {
     /** Bump whenever the prediction algorithm/reference changes; independent of app versions. */
-    public static final String ESTIMATOR_VERSION = "ut5-stock-pack-v6";
+    public static final String ESTIMATOR_VERSION = "ut5-fast-taper-v7";
     public static final double MINIMUM_ETA_CURRENT_A = 0.05;
     /** Short UI label when measured current is too low for a time estimate. */
     public static final String LOW_CURRENT = "Low current";
@@ -206,17 +206,29 @@ public final class ChargingEstimate {
     public static Result forScooter(Result baseline, Value soc, Value ratedAh, int productId,
             ChargeSessionStore.Charger selectedCharger, ChargeSessionStore.Curve personal,
             ChargeReferenceGate gate, String scope, long frameMs, long nowMs, ChargeProgressTracker.Progress progress) {
+        return forScooter(baseline,soc,ratedAh,productId,selectedCharger,personal,gate,scope,frameMs,nowMs,progress,null);
+    }
+
+    /**
+     * taper is this profile's high-speed runtime state, or null. It supplies the charge's own
+     * taper rate and briefly holds a personal finish when live power slips between saved charges.
+     */
+    public static Result forScooter(Result baseline, Value soc, Value ratedAh, int productId,
+            ChargeSessionStore.Charger selectedCharger, ChargeSessionStore.Curve personal,
+            ChargeReferenceGate gate, String scope, long frameMs, long nowMs, ChargeProgressTracker.Progress progress,
+            FastChargeTaper taper) {
         if(selectedCharger==null){if(gate!=null)gate.reset();return baseline;}
-        Result prior=selectedCharger==ChargeSessionStore.Charger.HIGH_SPEED
-                ?withFastReference(baseline,soc,ratedAh,productId,gate,scope,frameMs,nowMs)
+        boolean fast=selectedCharger==ChargeSessionStore.Charger.HIGH_SPEED;
+        Result prior=fast
+                ?withFastTaper(withFastReference(baseline,soc,ratedAh,productId,gate,scope,frameMs,nowMs),baseline,soc,ratedAh,productId,taper)
                 :withStockReference(baseline,soc,ratedAh,productId,selectedCharger,gate,scope,frameMs,nowMs);
         // Below 89% the pack model replaces both the bundled bulk timing and percentage-only
         // personal history: the gauge's late catch-up varies between charges, pack voltage does not.
         Result pack=selectedCharger==ChargeSessionStore.Charger.STOCK?withStockPackModel(prior,baseline,soc,ratedAh,productId,progress):null;
         if (pack!=null) return pack;
-        if (personal==null || personal.charger!=selectedCharger) return prior;
+        if (personal==null || personal.charger!=selectedCharger) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
         Result learned=withObservedCurve(baseline,soc,personal);
-        if (learned==null || !learned.learnedToFull&&!learned.learnedToLimit) return prior;
+        if (learned==null || !learned.learnedToFull&&!learned.learnedToLimit) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
         double planningWeight=prior.referenceToFull
                 &&selectedCharger==ChargeSessionStore.Charger.STOCK
                 &&productId==Ut5MaxStockChargeReference.PRODUCT_ID
@@ -269,6 +281,11 @@ public final class ChargingEstimate {
         if(prior.targetPercent!=null&&!learned.learnedToLimit&&!referenceLimit)status+="Time to the limit uses the current rate. ";
         status+="Time to displayed 100%; balancing may continue.";
         status+=cutoffNote(prior.targetPercent);
+        if(fast&&taper!=null&&learned.learnedToFull)taper.rememberPersonal(learned.remainingMinutesToFull,learned.learnedSessions,nowMs);
+        else if(fast&&!learned.learnedToFull)return withHeldPersonal(new Result(prior.charging,prior.inputWatts,prior.inputAmps,
+                learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit,prior.remainingMinutesToFull,
+                prior.targetPercent,"From "+learned.learnedSessions+" past charge"+(learned.learnedSessions==1?"":"s"),status,learned.learnedToLimit,false,learned.learnedSessions,
+                referenceLimit,referenceFull,prior.referenceCharger),soc,taper,nowMs);
         return new Result(prior.charging,prior.inputWatts,prior.inputAmps,
                 learned.learnedToLimit?learned.remainingMinutesToLimit:prior.remainingMinutesToLimit,
                 learned.learnedToFull?learned.remainingMinutesToFull:prior.remainingMinutesToFull,
@@ -296,6 +313,48 @@ public final class ChargingEstimate {
         return new Result(baseline.charging,baseline.inputWatts,baseline.inputAmps,
                 limit==null?baseline.remainingMinutesToLimit:limit,full==null?baseline.remainingMinutesToFull:full,
                 baseline.targetPercent,"High-speed reference",status,false,false,0,limit!=null,full!=null,ChargeSessionStore.Charger.HIGH_SPEED);
+    }
+
+    /**
+     * High-speed time from pack voltage and current where the SOC-indexed reference declined: the
+     * gauge position of the charger's voltage limit varies between charges, the electrical taper
+     * does not. Only a current-rate time to 100% is replaced. A lower cutoff keeps its own
+     * evidence (or the current rate), never longer than the time to 100%.
+     */
+    private static Result withFastTaper(Result prior,Result baseline,Value soc,Value ratedAh,int productId,FastChargeTaper taper) {
+        if(prior==null||prior.referenceToFull||baseline==null||!baseline.charging||baseline.inputAmps==null||baseline.inputWatts==null
+                ||baseline.remainingMinutesToFull==null||baseline.inputAmps<MINIMUM_ETA_CURRENT_A||productId!=Ut5MaxFastChargeReference.PRODUCT_ID||!valid(soc)||soc.number>=100||!valid(ratedAh))return prior;
+        double amps=baseline.inputAmps,volts=baseline.inputWatts/amps;
+        Double full=FastChargeTaper.minutes(volts,amps,ratedAh.number,taper);
+        if(full==null)return prior;
+        Double target=prior.targetPercent,limit=prior.remainingMinutesToLimit;
+        boolean referenceLimit=prior.referenceToLimit;
+        if(target!=null&&target==100){limit=full;referenceLimit=true;}
+        else if(limit!=null)limit=Math.min(limit,full);
+        String status="Experimental UT5 MAX high-speed estimate from pack voltage and charging current: constant current until the charger's voltage limit, then its observed taper. ";
+        if(target!=null&&target<100&&!prior.referenceToLimit)status+="Time to the limit uses the current rate, up to the time to 100%. ";
+        status+="Time to displayed 100%; balancing may continue."+cutoffNote(target);
+        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,full,target,"High-speed reference",status,
+                false,false,0,referenceLimit,true,ChargeSessionStore.Charger.HIGH_SPEED);
+    }
+
+    /**
+     * A personal finish shown moments ago keeps counting down rather than jumping to a fallback.
+     * Only a dropped power match is bridged: without a usable live estimate (low current, missing
+     * readings) nothing is held, so Charge done by never receives a duration the live check refused.
+     */
+    private static Result withHeldPersonal(Result prior,Value soc,FastChargeTaper taper,long nowMs) {
+        double[] held=taper==null||prior==null||prior.learnedToFull||!prior.charging||prior.remainingMinutesToFull==null
+                ||prior.inputAmps==null||prior.inputAmps<MINIMUM_ETA_CURRENT_A||!valid(soc)||soc.number>=100?null:taper.heldPersonal(nowMs);
+        if(held==null)return prior;
+        int sessions=(int)held[1];
+        Double limit=prior.targetPercent!=null&&prior.targetPercent==100?Double.valueOf(held[0]):prior.remainingMinutesToLimit;
+        boolean personalLimit=prior.targetPercent!=null&&prior.targetPercent==100||prior.learnedToLimit;
+        String status="Holding the personal finish estimate from "+sessions+" completed high-speed charge"+(sessions==1?"":"s")
+                +" while live power moves between saved charges. Time to displayed 100%; balancing may continue."+cutoffNote(prior.targetPercent);
+        return new Result(prior.charging,prior.inputWatts,prior.inputAmps,limit,held[0],prior.targetPercent,
+                "From "+sessions+" past charge"+(sessions==1?"":"s"),status,personalLimit,true,sessions,
+                !personalLimit&&prior.referenceToLimit,false,prior.referenceCharger);
     }
 
     private static Result withStockReference(Result baseline, Value soc, Value ratedAh, int productId,

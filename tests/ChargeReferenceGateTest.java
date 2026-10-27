@@ -119,9 +119,12 @@ public final class ChargeReferenceGateTest {
             ChargingEstimate.Result result = ChargingEstimate.forScooter(base, live(72d, frame), live(15.3, frame),
                     2538, ChargeSessionStore.Charger.HIGH_SPEED, null, fastGate, SCOPE, frame, frame);
             if (i == 0) fastFirst = result;
-            check(result.referenceToFull == (i < 3) && (i == 3 || result.referenceCharger == ChargeSessionStore.Charger.HIGH_SPEED),
+            check(result.referenceToFull && result.referenceCharger == ChargeSessionStore.Charger.HIGH_SPEED
+                    && result.status.startsWith("Experimental UT5 MAX high-speed reference") == (i < 3),
                     "One or two soft high-speed frames keep the fast reference, then it expires: " + i);
             if (i < 3) near(fastFirst.remainingMinutesToFull, result.remainingMinutesToFull, .00001, "Fast grace avoids a live-rate cliff");
+            else near(FastChargeTaper.minutes(volts, watts / volts, 15.3, null), result.remainingMinutesToFull, 1e-9,
+                    "Expired SOC grace falls to the voltage/current taper, not the live rate");
         }
         check(!fastGate.accepts(SCOPE + ":2538:STOCK", ChargeSessionStore.Charger.STOCK, 95, 94.5, 5000, 5000),
                 "Fast admission never lends grace to the stock family");
