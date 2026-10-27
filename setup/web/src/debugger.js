@@ -11,6 +11,7 @@ const SUBMIT_URL = 'https://volt.jjricks.com/debugger/submit';
 // helper, whose origin shares the same recovery journal key and USB grants.
 const HOSTS = ['volt.jjricks.com', 'localhost', '127.0.0.1', '[::1]'];
 const $ = id => document.getElementById(id);
+let watchedWorker = null;
 // capture: the verified recording, held only in page memory until Done/Discard.
 let phone = null, session = null, busy = false, closing = false, capture = null, sentId = null, ticker = 0, rendered = [];
 // Questions about commands Volt doesn't know: one card at a time, each exact command/value once.
@@ -66,12 +67,29 @@ function pendingRecovery() {
   catch (e) { error(e); return true; }
 }
 function validateEnvironment() {
-  const problem = !HOSTS.includes(location.hostname)
-    ? 'The NAVEE debugger runs only at volt.jjricks.com/debugger/. Open it there to record.'
-    : navigator.serviceWorker?.controller
-    ? 'A service worker controls this page. For your privacy, recording is disabled. Use a separate regular browser profile (not Incognito or Guest); this page will not remove another app’s service worker.'
-    : !window.isSecureContext || !navigator.usb
-      ? 'Open this page in desktop Chrome or Edge over HTTPS. The USB connection this needs is unavailable in this browser.' : '';
+  let problem;
+  try {
+    if (!HOSTS.includes(location.hostname)) {
+      problem = 'The NAVEE debugger runs only at volt.jjricks.com/debugger/. Open it there to record.';
+    } else {
+      const worker = navigator.serviceWorker;
+      if (worker && worker !== watchedWorker) {
+        // Retry registration if access was previously blocked. Never allow a new
+        // capture after permissions recover without its controller-change guard.
+        worker.addEventListener('controllerchange', () => { session?.cancel(); session?.forgetResult(); validateEnvironment(); });
+        watchedWorker = worker;
+      }
+      problem = worker?.controller
+        ? 'A service worker controls this page. For your privacy, recording is disabled. Use a separate regular browser profile (not Incognito or Guest); this page will not remove another app’s service worker.'
+        : !window.isSecureContext || !navigator.usb
+          ? 'Open this page in desktop Chrome or Edge over HTTPS. The USB connection this needs is unavailable in this browser.' : '';
+    }
+  } catch {
+    // Chrome can throw when merely reading navigator.serviceWorker if storage is
+    // blocked. Fail closed for USB, but a verified capture is already in memory:
+    // reviewing, downloading and sending it need neither USB nor browser storage.
+    problem = 'This browser blocked a required privacy check. Allow site storage in your browser settings or use another regular browser profile for new recordings. A completed recording can still be downloaded or sent.';
+  }
   message('environment', problem);
   $('connect').disabled = !!problem || !$('usb-consent').checked || busy;
   $('recover').disabled = !!problem || busy;
@@ -111,8 +129,11 @@ async function connect({ recovery = false } = {}) {
 }
 async function action(work) {
   if (busy) return;
-  busy = true; validateEnvironment(); message('error', ''); message('notice', '');
-  try { await work(); } catch (e) { error(e); }
+  busy = true;
+  try {
+    validateEnvironment(); message('error', ''); message('notice', '');
+    await work();
+  } catch (e) { error(e); }
   finally { busy = false; validateEnvironment(); }
 }
 async function releasePhone() {
@@ -467,7 +488,6 @@ window.addEventListener('pagehide', () => {
   // The armed phone watchdog is the fallback; the next visit verifies cleanup.
   if (!session?.busy) phone?.close(true).catch(() => {});
 });
-navigator.serviceWorker?.addEventListener('controllerchange', () => { session?.cancel(); session?.forgetResult(); validateEnvironment(); });
 $('model').replaceChildren(...[['', 'Choose your scooter'], ...[...MODELS, OTHER_MODEL].map(name => [name, name])].map(([value, label]) => {
   const option = document.createElement('option'); option.value = value; option.textContent = label; return option;
 }));

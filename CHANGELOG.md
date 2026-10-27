@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Charge done by now uses the displayed standard-charger estimate plus the existing 20-minute buffer, instead of adding the buffer to a second, more pessimistic estimate. Existing scooter schedules stay as programmed until explicitly changed.
+- Fix the NAVEE debugger's Send and Download buttons becoming unresponsive if browser privacy settings block a storage-related check. Completed recordings can still be saved or sent, and blocked browser checks show guidance instead of crashing the page.
 
 ## 1.8.1 — 2026-10-26
 
