@@ -58,6 +58,7 @@ public final class ParkedValidation extends Instrumentation {
         }else if(mode.equals("clock")){
             runMain(()->service.ble.syncClock());waitFor(()->service.ble.pending()==null,10000,"Clock ACK unavailable");output.putString("clock",service.ble.commandResults().get("clock_sync"));
         }else if(mode.equals("time")){
+            require(!planActive(),"A charging schedule is active; the start-time check was not run so the plan is kept");
             Double stored=service.ble.telemetry.number("scheduled_charge_time_raw");if(stored==null||stored<=0)throw new IllegalStateException("No restorable stored charging timestamp");long before=stored.longValue();long now=System.currentTimeMillis();int offset=TimeZone.getDefault().getOffset(now)/1000;long target=now/1000+3600;
             try{runMain(()->service.ble.setChargeStart(target,offset));waitFor(()->service.ble.pending()==null,10000,"Charging time did not settle");if(!Double.valueOf(target+offset).equals(service.ble.telemetry.number("scheduled_charge_time_raw")))throw new IllegalStateException("Charging time did not match");status("charge_start: new timestamp confirmed");}
             finally{waitFor(()->service.ble.ready()&&service.ble.pending()==null,15000,"Cannot restore stored charging time");runMain(()->service.ble.setChargeStart(before-offset,offset));waitFor(()->service.ble.pending()==null,10000,"Charging time restoration did not settle");if(!Double.valueOf(before).equals(service.ble.telemetry.number("scheduled_charge_time_raw")))throw new IllegalStateException("Charging time restoration did not match");status("charge_start: original timestamp restored");}
@@ -66,6 +67,8 @@ public final class ParkedValidation extends Instrumentation {
             String only=args.getString("feature","");boolean lab=Boolean.parseBoolean(args.getString("lab","false"));
             // A test plan's exclusions (speed caps, drive modes) are recorded, never written.
             Set<String> exclude=new HashSet<>(Arrays.asList(args.getString("exclude","").split(",")));
+            // Volt reads a ceiling change as a new plan and retires Charge done by; never touch it while a plan is held.
+            if(planActive()){exclude.add("charge_limit");exclude.add("timed_charging");}
             for(ScooterCommands.Feature feature:ScooterCommands.catalog()){
                 if(!only.isEmpty()&&!only.equals(feature.key))continue;
                 if(exclude.contains(feature.key)){JSONObject row=new JSONObject();row.put("key",feature.key);row.put("outcome","Excluded by the test plan; no write");results.put(row);continue;}
@@ -89,7 +92,7 @@ public final class ParkedValidation extends Instrumentation {
         }else if(!mode.equals("snapshot"))throw new IllegalArgumentException("Unknown validation mode");
         save("latest-diagnostics.json",service.snapshot());JSONObject report=new JSONObject();report.put("format","navee-parked-control-validation-v1");report.put("checked_at_ms",System.currentTimeMillis());report.put("results",results);report.put("warning","Readback validation only. Propulsion, descent, cruise engagement, physical lighting and ridden energy behavior require rider checks.");save("control-validation.json",report.toString(2));
         // The hardware sweep reads this to decide whether a schedule test can run (it needs a charge in progress).
-        if(!smokeMode)output.putString("charging_state",String.valueOf(service.ble.telemetry.number("charging_state")));
+        if(!smokeMode){output.putString("charging_state",String.valueOf(service.ble.telemetry.number("charging_state")));output.putString("schedule_active",String.valueOf(planActive()));}
         output.putString("result","Saved local diagnostics and validation evidence");output.putInt("controls",smokeMode?0:results.length());if(smokeMode)output.putInt("checks",results.length());output.putString("original_background",String.valueOf(smokeMode&&smokePreferences!=null?smokePreferences.getOrDefault("background_connection",false):originalBackground));cleanup();finish(0,output);
     }catch(Throwable e){try{save("partial-control-validation.json",results.toString(2));if(service!=null)save("failed-diagnostics.json",service.snapshot());}catch(Exception ignored){}output.putString("error",e.getClass().getSimpleName()+": "+e.getMessage());cleanup();finish(1,output);}finally{cleanup();}}
     private void cleanup(){if(smokeMode&&smokePreferences!=null)restoreSmokePreferences();if(service!=null&&originalBackground!=null){boolean previous=originalBackground;runMain(()->{service.settings.edit().putBoolean("background_connection",previous).commit();if(!getTargetContext().getSystemService(PowerManager.class).isInteractive())service.visible(false);});originalBackground=null;}if(bound){runMain(()->getTargetContext().unbindService(connection));bound=false;}}
@@ -249,6 +252,12 @@ public final class ParkedValidation extends Instrumentation {
         if(connecting.get()){status("Background smoke: simulated transport failure/retries must stop at the original fixed deadline");sleepUntil(connectingDeadline.get()+500);assertHardOff("Connecting/failure grace deadline");Thread.sleep(2000);assertHardOff("Two seconds after simulated-failure cutoff");}
         runMain(()->require(mutations()==initial.get(),"Lifecycle smoke submitted a scooter setting mutation"));
         JSONObject evidence=new JSONObject();evidence.put("mode","background");evidence.put("grace_ms",10000);evidence.put("first_resume_cancelled",true);evidence.put("second_pause_full_grace",true);evidence.put("old_deadline_did_not_disconnect",true);evidence.put("hard_cutoff",true);evidence.put("late_hidden_start_no_new_grace",true);evidence.put("connecting_case",connecting.get()?"Started while CONNECTING/AUTHENTICATING, simulated transport-only failure entered retries, original fixed deadline retained, hard cutoff and no late retry/notification after 2s":"Skipped: no verified scooter address/Bluetooth permission or enabled adapter");evidence.put("scooter_mutations",0);evidence.put("recordings_created",0);results.put(evidence);
+    }
+    /** Scheduled charging or Charge done by, Volt's own or set elsewhere and read back on: a plan the checks must leave alone. */
+    private boolean planActive(){
+        AtomicReference<Boolean> active=new AtomicReference<>();
+        runMain(()->{ChargeScheduleController.View v=service.chargeSchedule();active.set(v.manualEnabled||v.doneByEnabled||Integer.valueOf(1).equals(service.ble.featureValue("timed_charging")));});
+        return Boolean.TRUE.equals(active.get());
     }
     /**
      * Test scheduled charging end to end, as the owner's button runs it: about 2 minutes ahead, judged by the scooter's own

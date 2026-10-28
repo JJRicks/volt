@@ -11,7 +11,8 @@ import unittest
 SWEEP = pathlib.Path(__file__).resolve().parents[1] / 'android-tests' / 'run-hardware-sweep.py'
 # Prints canned device answers and logs every call. FAKE_PLAN maps a ParkedValidation mode to pass,
 # fail, notime or unrestored; FAKE_CHARGING is the snapshot's charging_state; FAKE_QEMU, FAKE_LOCKED and
-# FAKE_SIGNATURE simulate an emulator, a locked phone and a runner signed with another key.
+# FAKE_SIGNATURE simulate an emulator, a locked phone and a runner signed with another key; FAKE_ACTIVE reports a held
+# charging plan; FAKE_PULL=fail and FAKE_RM=fail make evidence collection fail.
 FAKE = r'''#!/usr/bin/env python3
 import json, os, pathlib, sys
 state = pathlib.Path(os.environ['FAKE_STATE'])
@@ -19,7 +20,8 @@ argv = sys.argv[1:]
 if argv[:1] == ['-s']: argv = argv[2:]
 with state.joinpath('calls').open('a') as out: out.write(json.dumps(argv) + '\n')
 plan = json.loads(os.environ.get('FAKE_PLAN', '{}'))
-if argv[:3] == ['shell', 'getprop', 'ro.kernel.qemu']: print(os.environ.get('FAKE_QEMU', ''))
+if argv[:1] == ['shell'] and len(argv) == 2 and argv[1].startswith('rm -rf '): sys.exit(1 if os.environ.get('FAKE_RM') == 'fail' else 0)
+elif argv[:3] == ['shell', 'getprop', 'ro.kernel.qemu']: print(os.environ.get('FAKE_QEMU', ''))
 elif argv[:3] == ['shell', 'pm', 'list']: print('package:com.jjricks.volt')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'power': print('mWakefulness=Awake')
 elif argv[:2] == ['shell', 'dumpsys'] and argv[2] == 'window': print('isKeyguardShowing=' + os.environ.get('FAKE_LOCKED', 'false'))
@@ -32,18 +34,35 @@ elif argv[:3] == ['shell', 'am', 'instrument']:
         print('java.lang.SecurityException: Permission Denial: starting instrumentation ComponentInfo{com.jjricks.volt.tests} not signed')
         sys.exit(1)
     outcome = plan.get(mode, 'pass')
-    if mode == 'snapshot': print('INSTRUMENTATION_RESULT: charging_state=' + os.environ.get('FAKE_CHARGING', '1.0'))
+    if mode == 'snapshot':
+        print('INSTRUMENTATION_RESULT: charging_state=' + os.environ.get('FAKE_CHARGING', '1.0'))
+        print('INSTRUMENTATION_RESULT: schedule_active=' + os.environ.get('FAKE_ACTIVE', 'false'))
     if outcome == 'fail': print('INSTRUMENTATION_RESULT: error=IllegalStateException: Change declined'); print('INSTRUMENTATION_CODE: 1')
     elif outcome == 'notime': print('INSTRUMENTATION_RESULT: error=IllegalStateException: No restorable stored charging timestamp'); print('INSTRUMENTATION_CODE: 1')
     else: print('INSTRUMENTATION_RESULT: result=Saved'); print('INSTRUMENTATION_CODE: 0')
 elif argv[:1] == ['pull']:
+    if os.environ.get('FAKE_PULL') == 'fail': print("adb: error: failed to stat remote object: Permission denied"); sys.exit(1)
     mode = state.joinpath('mode').read_text() if state.joinpath('mode').exists() else ''
+    folder = pathlib.Path(argv[2]) / 'validation'; folder.mkdir(parents=True, exist_ok=True)
+    rows = []
     if mode == 'sweep':
-        folder = pathlib.Path(argv[2]) / 'validation'; folder.mkdir(parents=True, exist_ok=True)
         restored = plan.get('sweep') != 'unrestored'
         rows = [dict(key='headlight', before=0, test=1, after=1, restored=restored, outcome='Change and restoration confirmed'),
                 dict(key='maximum_speed', outcome='Excluded by the test plan; no write')]
-        folder.joinpath('control-validation.json').write_text(json.dumps(dict(results=rows)))
+    folder.joinpath('control-validation.json').write_text(json.dumps(dict(results=rows)))
+'''
+# A runner or production APK's manifest as aapt2 dumps it; FAKE_APK picks which.
+AAPT2 = r'''#!/usr/bin/env python3
+import os
+kind = os.environ.get('FAKE_APK', 'runner')
+android = 'http://schemas.android.com/apk/res/android'
+if kind == 'volt': print('  E: manifest (line=2)\n    A: package="com.jjricks.volt" (Raw: "com.jjricks.volt")\n      E: application (line=4)')
+else:
+    target = 'com.jjricks.other' if kind == 'other-target' else 'com.jjricks.volt'
+    print('  E: manifest (line=2)\n    A: package="com.jjricks.volt.tests" (Raw: "com.jjricks.volt.tests")\n'
+          '      E: instrumentation (line=5)\n'
+          f'        A: {android}:name(0x01010003)="com.jjricks.volt.tests.ParkedValidation" (Raw: "x")\n'
+          f'        A: {android}:targetPackage(0x01010021)="{target}" (Raw: "x")')
 '''
 
 
@@ -51,12 +70,13 @@ class HardwareSweep(unittest.TestCase):
     def setUp(self):
         self.dir = pathlib.Path(tempfile.mkdtemp())
         self.adb = self.dir / 'adb'; self.adb.write_text(FAKE); self.adb.chmod(0o755)
+        self.aapt2 = self.dir / 'aapt2'; self.aapt2.write_text(AAPT2); self.aapt2.chmod(0o755)
         self.runner = self.dir / 'runner.apk'; self.runner.write_bytes(b'apk')
         self.out = self.dir / 'out'
 
     def run_sweep(self, *extra, serial='57181FDCG0018E', parked=True, **env):
-        command = [sys.executable, '-I', str(SWEEP), '--adb', str(self.adb), '--serial', serial, '--runner', str(self.runner),
-                   '--out', str(self.out)] + (['--parked'] if parked else []) + list(extra)
+        command = [sys.executable, '-I', str(SWEEP), '--adb', str(self.adb), '--aapt2', str(self.aapt2), '--serial', serial,
+                   '--runner', str(self.runner), '--out', str(self.out)] + (['--parked'] if parked else []) + list(extra)
         environ = dict(os.environ, FAKE_STATE=str(self.dir), **env)
         return subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=environ, timeout=60)
 
@@ -98,6 +118,38 @@ class HardwareSweep(unittest.TestCase):
             self.assertNotIn('pm clear', ' '.join(call))
         report = (self.out / 'report.md').read_text()
         self.assertIn('| headlight | 0 | 1 | 1 | Change and restoration confirmed |', report); self.assertNotIn('NOT RESTORED', report)
+
+    def test_only_the_parkedvalidation_runner_is_ever_installed(self):
+        for kind in ('volt', 'other-target'):
+            self.setUp()
+            result = self.run_sweep(FAKE_APK=kind)
+            self.assertNotEqual(result.returncode, 0); self.assertIn('is not the ParkedValidation runner', result.stdout)
+            self.assertEqual(self.calls(), [], f'{kind}: no device call at all, so nothing was installed')
+
+    def test_an_active_charging_plan_is_left_alone(self):
+        result = self.run_sweep(FAKE_ACTIVE='true')
+        self.assertEqual(result.returncode, 0, result.stdout)
+        self.assertEqual(self.modes(), ['snapshot', 'navigation', 'background', 'clock', 'sweep'])
+        sweep = next(c for c in self.calls() if c[:3] == ['shell', 'am', 'instrument'] and 'sweep' in c)
+        excluded = [sweep[i + 1] for i, value in enumerate(sweep) if value == 'exclude']
+        self.assertTrue(any('charge_limit' in e.split(',') for e in excluded), 'the ceiling is never written under a held plan')
+        summary = self.summary()
+        self.assertEqual((summary['charge-time'], summary['schedule-test']), ('SKIP', 'SKIP'))
+
+    def test_missing_evidence_fails_and_stops_writes(self):
+        result = self.run_sweep(FAKE_PULL='fail')
+        self.assertNotEqual(result.returncode, 0)
+        self.assertEqual(self.summary()['snapshot'], 'FAIL')
+        self.assertEqual(self.modes(), ['snapshot', 'navigation', 'background'], 'no write runs without evidence')
+        self.setUp()
+        result = self.run_sweep(FAKE_RM='fail')
+        self.assertNotEqual(result.returncode, 0); self.assertIn('could not be cleared', result.stdout)
+        self.assertNotIn('clock', self.modes())
+
+    def test_a_reused_output_directory_is_refused(self):
+        self.out.mkdir(); (self.out / 'settings').mkdir(); (self.out / 'settings' / 'control-validation.json').write_text('{"results": []}')
+        result = self.run_sweep()
+        self.assertNotEqual(result.returncode, 0); self.assertIn('new or empty directory', result.stdout); self.assertEqual(self.calls(), [])
 
     def test_opt_in_steps_run_only_when_named(self):
         self.run_sweep('--include', 'lock')
