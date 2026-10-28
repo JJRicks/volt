@@ -442,6 +442,21 @@ public final class ChargeScheduleControllerTest {
         Rig native0=new Rig();native0.c.enabled=1;native0.c.charging=0;native0.c.soc=41d;native0.c.wireStart=time("2026-10-20T11:00:00Z")/1000-6*3600;native0.c.now=time("2026-10-20T12:00:00Z");
         native0.controller.observe();check(native0.controller.view().missed==null&&native0.controller.view().manualEnabled,"a native schedule Volt never armed is never alerted");
 
+        Rig lost=withManualOnly();lost.c.soc=41d;lost.c.charging=0;lost.controller.setManualEnabled(true,lost.results::add);lost.reply(true);lost.reply(true);lost.reply(false);
+        check(lost.results.get(0)!=null&&lost.results.get(0).contains("not confirmed")&&!lost.controller.view().manualEnabled,"an unconfirmed ON is reported and not shown as armed");
+        lost.c.wireStart=lost.sentTime/1000+lost.sentOffset;lost.c.enabled=1;lost.controller.observe();
+        check(lost.controller.view().manualEnabled&&lost.controller.diagnostics().mode==1,"the scooter reading back Volt's start with ON is tracked as Volt's schedule");
+        pastStart(lost,41d);check(lost.controller.view().missed!=null&&lost.controller.view().missed.armedSoc==41,"a start missed after a lost ON confirmation is still reported");
+        Rig lostLate=withManualOnly();lostLate.c.soc=41d;lostLate.c.charging=0;lostLate.controller.setManualEnabled(true,lostLate.results::add);lostLate.reply(true);lostLate.reply(true);lostLate.reply(false);
+        lostLate.c.wireStart=lostLate.sentTime/1000+lostLate.sentOffset;lostLate.c.enabled=1;pastStart(lostLate,41d);
+        check(lostLate.controller.view().missed!=null,"first seen after its start (the next morning), a lost-ON schedule that never charged is reported");
+        Rig lostOff=withManualOnly();lostOff.c.soc=41d;lostOff.c.charging=0;lostOff.controller.setManualEnabled(true,lostOff.results::add);lostOff.reply(true);lostOff.reply(true);lostOff.reply(false);
+        lostOff.c.wireStart=lostOff.sentTime/1000+lostOff.sentOffset;lostOff.c.enabled=0;pastStart(lostOff,41d);
+        check(lostOff.controller.view().missed==null&&!lostOff.controller.view().manualEnabled,"a lost ON the scooter did not apply stays untracked and quiet");
+        Rig movedOn=manualAt41();movedOn.c.wireStart=moved/1000-6*3600;movedOn.c.now=time("2026-10-20T08:00:00Z");movedOn.controller.observe();pastStart(movedOn,41d);
+        movedOn.c.now=moved+180_000;movedOn.controller.observe();
+        check(movedOn.controller.view().missed==null,"a start edited on the scooter is never adopted as Volt's");
+
         Rig v3=manualAt41();String old=legacy(v3.saved.get("owner-A"),13,"3");ChargeScheduleController.State decoded=ChargeScheduleController.decode(old);
         check(decoded.mode==1&&decoded.armedSoc==-1&&decoded.alert==0&&decoded.outcome==0,"version 3 records still decode, with no arming battery level");
         v3.saved.put("owner-A",old);v3.recreate();pastStart(v3,41d);check(v3.controller.view().missed==null&&!v3.controller.view().manualEnabled,"an upgraded schedule retires quietly");

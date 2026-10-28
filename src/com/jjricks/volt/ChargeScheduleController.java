@@ -146,13 +146,20 @@ public final class ChargeScheduleController {
                     &&s.wire!=s.calculatedWire&&c.wireStart!=s.calculatedWire;
             // A start that already passed without charging is still reported, even if the time then changed.
             if(s.mode!=0)settle(c,s,s.mode,missed(c,s)?Outcome.MISSED:Outcome.CHANGED_ON_SCOOTER);
-            s.mode=0;s.retired=false;s.start=fromWire(c.wireStart,offset);s.wire=c.wireStart;
+            s.mode=0;s.retired=false;s.start=fromWire(c.wireStart,offset);s.wire=c.wireStart;s.armedSoc=-1;
             // Follow genuine manual edits made on the scooter/OEM app, but do not
             // mistake a late readback from our calculated write for a manual choice.
             if(manualContext)s.manualStart=s.start;
             s.status="Charging time changed on the scooter";save(c,s);return;
         }
-        if(s.mode==0)return;
+        if(s.mode==0){
+            // An ON whose confirmation was lost (timeout or a dropped link after the scooter applied it)
+            // still runs the start Volt wrote. Track it, so a start it then misses is reported too.
+            if(s.retired||s.armedSoc<0||s.start<=0||!Integer.valueOf(1).equals(c.enabled)||c.wireStart==null||c.wireStart!=s.wire
+                    ||c.now>=s.start+24*60*60_000L)return;
+            double armedSoc=c.now<s.start&&finite(c.soc)&&c.soc>=0&&c.soc<=100?c.soc:s.armedSoc;
+            newIntention(s,armedSoc);s.mode=1;s.deadline=s.start+24*60*60_000L;s.target=finite(c.target)&&c.target>0&&c.target<=100?c.target:100;s.status="";save(c,s);
+        }
         if(finite(c.target)&&c.target>0&&c.target<=100&&c.target!=s.target){
             // A ceiling edit changes the ETA contract. Preserve the actual scheduled start,
             // but stop presenting an obsolete finish deadline as a calculated plan.
