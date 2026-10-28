@@ -39,6 +39,12 @@ public final class ChargeScheduleTestTest {
         check(stale.observe(NOW+50_001,null,null,null)==ChargeScheduleTest.Outcome.INTERRUPTED,"no fresh charging reading for 30 s ends without a verdict");
         check(paused().observe(START,OFF,100d,100d)==ChargeScheduleTest.Outcome.LIMIT_REACHED,"at the charge limit the charger stops by itself: no verdict on the clock");
         check(paused().observe(NOW-1,OFF,50d,100d)==ChargeScheduleTest.Outcome.INTERRUPTED,"a phone clock set backwards ends without a verdict");
+        ChargeScheduleTest back=armed();check(back.observe(NOW+20_000,OFF,50d,100d)==ChargeScheduleTest.Outcome.NONE&&back.observe(NOW+90_000,OFF,50d,100d)==ChargeScheduleTest.Outcome.NONE,"paused");
+        check(back.observe(NOW+30_000,OFF,50d,100d)==ChargeScheduleTest.Outcome.INTERRUPTED&&back.offsetSeconds()==null,"a backward step mid-test, still after the beginning, ends without a timing verdict");
+        ChargeScheduleTest jump=armed();check(jump.observe(NOW+20_000,5_000_000,OFF,50d,100d)==ChargeScheduleTest.Outcome.NONE&&jump.observe(NOW+40_000,5_020_000,OFF,50d,100d)==ChargeScheduleTest.Outcome.NONE,"wall and elapsed time agree");
+        check(jump.observe(NOW+160_000,5_030_000,ON,50d,100d)==ChargeScheduleTest.Outcome.INTERRUPTED&&jump.offsetSeconds()==null,"a forward clock jump is not read as a late resume");
+        ChargeScheduleTest steady=armed();steady.observe(NOW+20_000,7_000_000,OFF,50d,100d);
+        check(steady.observe(START+3_000,7_000_000+START+3_000-(NOW+20_000),ON,50d,100d)==ChargeScheduleTest.Outcome.PASSED,"steady clocks still pass");
         ChargeScheduleTest cancel=paused();check(cancel.stop(ChargeScheduleTest.Outcome.CANCELLED)==ChargeScheduleTest.Outcome.CANCELLED&&cancel.observe(START,ON,50d,100d)==ChargeScheduleTest.Outcome.CANCELLED,"cancel is final");
         ChargeScheduleTest done=paused();done.observe(START,ON,50d,100d);check(done.stop(ChargeScheduleTest.Outcome.INTERRUPTED)==ChargeScheduleTest.Outcome.PASSED,"a verdict already in survives a later stop");
         ChargeScheduleTest ending=paused();ending.observe(START,ON,50d,100d);ending.ending();check(ending.phase()==ChargeScheduleTest.Phase.ENDING,"cleanup phase");

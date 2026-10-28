@@ -35,6 +35,8 @@ public final class ChargeScheduleController {
         public boolean ready, wholeHours;
         public int generation;
         public long now, sampleMs;
+        /** Elapsed realtime when now was read; 0 when unknown. */
+        public long mono;
         public Integer charging, enabled;
         public Long wireStart;
         public Double soc, target, estimateMinutes;
@@ -156,7 +158,7 @@ public final class ChargeScheduleController {
     public ChargeScheduleController(Store store,Driver driver){this.store=store;this.driver=driver;}
     private Context context(){
         Context raw=driver.context(),c=new Context();
-        c.scope=raw.scope;c.ready=raw.ready;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.sampleMs=raw.sampleMs;
+        c.scope=raw.scope;c.ready=raw.ready;c.wholeHours=raw.wholeHours;c.generation=raw.generation;c.now=raw.now;c.mono=raw.mono;c.sampleMs=raw.sampleMs;
         c.charging=raw.charging;c.enabled=raw.enabled;c.wireStart=raw.wireStart;c.soc=raw.soc;c.target=raw.target;c.estimateMinutes=raw.estimateMinutes;
         c.timeReason=raw.timeReason;c.toggleReason=raw.toggleReason;c.estimateUnavailableReason=raw.estimateUnavailableReason;c.zone=(TimeZone)raw.zone.clone();return c;
     }
@@ -483,12 +485,15 @@ public final class ChargeScheduleController {
         ChargeScheduleTest t=test;if(t==null||t.phase()==ChargeScheduleTest.Phase.ARMING||t.phase()==ChargeScheduleTest.Phase.ENDING)return;
         // Disconnects and new sessions send nothing: the tracked intention's own checks take over.
         if(!sameContext(testContext,c)){endTest(ChargeScheduleTest.Outcome.INTERRUPTED,false,null);return;}
-        if(t.observe(c.now,c.charging,c.soc,c.target)!=ChargeScheduleTest.Outcome.NONE)endTest(t.outcome(),true,null);
+        if(t.observe(c.now,c.mono,c.charging,c.soc,c.target)!=ChargeScheduleTest.Outcome.NONE)endTest(t.outcome(),true,null);
     }
     private void endTest(ChargeScheduleTest.Outcome reason,boolean cleanup,String failure){
         ChargeScheduleTest t=test;if(t==null)return;Context c=testContext;State s=state(c);
         if(t.phase()==ChargeScheduleTest.Phase.ENDING){test=null;testContext=null;deliver(t,s.testOff==1,failure,"Volt stopped before it finished; check that Scheduled charging is off");return;}
-        t.stop(reason);s.testOutcome=t.outcome().ordinal();s.testPaused=t.paused();s.testResume=t.resumeWallMs();s.testOff=cleanup?0:-1;save(c,s);
+        t.stop(reason);
+        // A resume the test saw is the intention's start: an OFF that fails or a lost link must not later call it missed.
+        if(t.resumeWallMs()>0)s.started=true;
+        s.testOutcome=t.outcome().ordinal();s.testPaused=t.paused();s.testResume=t.resumeWallMs();s.testOff=cleanup?0:-1;save(c,s);
         if(!cleanup){test=null;testContext=null;deliver(t,false,failure,null);return;}
         t.ending();
         disable(true,"Scheduled charging is off; ",result->{if(test!=t)return;test=null;testContext=null;deliver(t,state(c).testOff==1,failure,result);});

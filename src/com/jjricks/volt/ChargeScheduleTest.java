@@ -10,9 +10,9 @@ public final class ChargeScheduleTest {
     /** Persisted by ordinal: append only. RUNNING found on load means the process ended mid-test. */
     public enum Outcome { NONE, RUNNING, PASSED, RESUMED_EARLY, RESUMED_LATE, NO_PAUSE, NO_RESUME, LIMIT_REACHED, CANCELLED, INTERRUPTED, NOT_STARTED }
     public enum Phase { ARMING, PAUSING, WAITING, ENDING }
-    static final long LEAD_MS=120_000L, PAUSE_MS=60_000L, EARLY_MS=30_000L, LATE_MS=90_000L, GIVE_UP_MS=5*60_000L, STALE_MS=30_000L;
+    static final long LEAD_MS=120_000L, PAUSE_MS=60_000L, EARLY_MS=30_000L, LATE_MS=90_000L, GIVE_UP_MS=5*60_000L, STALE_MS=30_000L, CLOCK_SLIP_MS=5_000L;
     public final long beganWallMs, startWallMs;
-    private long onMs, lastReadingMs, resumeMs;
+    private long onMs, lastReadingMs, resumeMs, lastNow, baseWall, baseMono;
     private boolean paused, cancelRequested, ending;
     private Outcome outcome=Outcome.NONE;
 
@@ -37,10 +37,14 @@ public final class ChargeScheduleTest {
      * One observation from the current connection; charging is null without a fresh reading. Returns the verdict
      * once known, else NONE. A charger unplugged mid-test reads as a pause too: charging_state cannot tell them apart.
      */
-    Outcome observe(long now,Integer charging,Double soc,Double target){
+    Outcome observe(long now,Integer charging,Double soc,Double target){return observe(now,0,charging,soc,target);}
+    /** mono is elapsed realtime (0 when unknown); wall time drifting from it means the phone's clock changed. */
+    Outcome observe(long now,long mono,Integer charging,Double soc,Double target){
         if(outcome!=Outcome.NONE||onMs==0)return outcome;
-        // A phone clock set backwards makes every deadline below meaningless.
-        if(now<beganWallMs)return end(Outcome.INTERRUPTED);
+        // A phone clock changed mid-test would be blamed on the scooter's clock: end without a timing verdict.
+        if(now<beganWallMs||now<lastNow)return end(Outcome.INTERRUPTED);
+        if(mono>0){if(baseMono==0){baseMono=mono;baseWall=now;}else if(Math.abs(now-baseWall-(mono-baseMono))>CLOCK_SLIP_MS)return end(Outcome.INTERRUPTED);}
+        lastNow=now;
         if(charging!=null)lastReadingMs=now;
         // The charger stops by itself at the limit, which would look like a pause that never resumes.
         if(soc!=null&&target!=null&&Double.isFinite(soc)&&Double.isFinite(target)&&soc>=target)return end(Outcome.LIMIT_REACHED);

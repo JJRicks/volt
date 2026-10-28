@@ -773,7 +773,7 @@ public final class ScooterService extends Service {
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
     }
     private ChargeScheduleController.Context chargeScheduleContext(){
-        ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();
+        ChargeScheduleController.Context c=new ChargeScheduleController.Context();c.now=System.currentTimeMillis();c.mono=SystemClock.elapsedRealtime();
         if(ble==null||profiles==null)return c;
         ScooterProfiles.Profile active=profiles.active(),transport=ble.profile();
         boolean simulation=simulating();

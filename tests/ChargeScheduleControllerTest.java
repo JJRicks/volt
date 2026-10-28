@@ -517,6 +517,14 @@ public final class ChargeScheduleControllerTest {
     }
     private static void scheduleTests(){
         long start=time("2026-10-20T05:02:00Z");
+        Rig offFails=testing();at(offFails,start-110_000,0);at(offFails,start+6_000,1);check(offFails.writes.equals(java.util.Arrays.asList("off")),"verdict sends OFF");offFails.reply(false);
+        offFails.recreate();at(offFails,start+130_000,0);offFails.c.soc=79d;offFails.controller.observe();
+        check(offFails.controller.view().missed==null,"a resume the test saw is never later called a missed start, even after a failed OFF and a restart");
+        Rig lostOff=testing();at(lostOff,start-110_000,0);at(lostOff,start+6_000,1);lostOff.c.generation++;lostOff.controller.observe();lostOff.c.generation--;
+        lostOff.recreate();at(lostOff,start+130_000,0);
+        check(lostOff.controller.view().missed==null,"nor after the link drops while OFF is pending");
+        Rig earlyResume=testing();at(earlyResume,start-110_000,0);at(earlyResume,start-20_000,1);earlyResume.reply(false);earlyResume.recreate();at(earlyResume,start+130_000,0);
+        check(earlyResume.controller.view().missed==null,"a resume inside the early pass window counts as the start too");
         Rig pass=testing();at(pass,start-110_000,1);at(pass,start-100_000,0);check(pass.controller.view().testPhase==ChargeScheduleTest.Phase.WAITING&&pass.writes.isEmpty(),"paused: waiting for the start");
         at(pass,start-40_000,0);check(pass.controller.view().manualEnabled&&pass.writes.isEmpty(),"a long pause before the start is not a missed start or anything else");
         at(pass,start+6_000,1);cleanup(pass,"pass");
