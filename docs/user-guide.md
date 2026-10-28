@@ -229,7 +229,7 @@ lock by itself.
 
 The lock switch needs a fresh authenticated connection and confirmed lock state. Once connected, it moves as soon as you tap or slide it; the scooter's readback then confirms it. A tap in the first moments after connecting waits up to five seconds for the scooter to accept it (its first motion report, or an automatic setting Volt is finishing) and is sent once. A refusal, a missing confirmation or a lost connection puts the switch back with a short message.
 Dragging sends the requested change without an extra confirmation dialog; the
-displayed result follows the scooter's response. A connection failure does not
+scooter's response confirms it or puts the switch back. A connection failure does not
 replay a pending setting change. Retry Connect after checking power/range;
 Disconnect ends the local session. See the [connection reference](recording-reference.md)
 for background timeout and handlebar fallback behavior.
