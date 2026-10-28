@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
 
 /**
  * The diagnostics file a report email can carry (volt-diagnostics-v1): Volt's and Android's versions, the
- * phone model, the sanitized compatibility report, the connection and command logs, and the current readings
- * without identities or payload bytes. Built only from typed or sanitized sources; json() then refuses to
+ * phone model, the sanitized compatibility report, the connection and command logs, the charging schedule record and
+ * the current readings, without identities or payload bytes. Built only from typed or sanitized sources; json() then refuses to
  * return a file that contains any saved scooter's serial, MAC, owner key or chosen name. Pure and Android-free.
  */
 final class DiagnosticsBundle {
@@ -104,6 +104,44 @@ final class DiagnosticsBundle {
         }
         m.put("events", events);
         tree.put("command_log", m);
+        return this;
+    }
+
+    private static final String[] SCHEDULE_MODES = {"none", "manual", "done_by"}, ALERTS = {"none", "pending", "shown"};
+    /**
+     * The selected scooter's charging schedule record (ChargeScheduleController.Diagnostics): times, the wire start and
+     * clock offset sent, battery percentages and enums. It has no scope or other identity; null when no scooter is selected.
+     * Its writes and their readback outcomes are already in command_log (clock_sync, charge_start, timed_charging).
+     */
+    DiagnosticsBundle chargeSchedule(ChargeScheduleController.Diagnostics d) {
+        if (d == null) { tree.put("charge_schedule", null); return this; }
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("mode", SCHEDULE_MODES[d.mode]);
+        if (d.armedWallMs > 0) m.put("armed_wall_ms", d.armedWallMs);
+        if (d.startWallMs > 0) m.put("start_wall_ms", d.startWallMs);
+        if (d.deadlineWallMs > 0) m.put("deadline_wall_ms", d.deadlineWallMs);
+        if (d.wireStart > 0) m.put("wire_start", d.wireStart);
+        if (d.clockOffsetSeconds != null) m.put("clock_offset_s", (long) d.clockOffsetSeconds);
+        if (d.armedSoc != null) m.put("soc_at_arming", (long) d.armedSoc);
+        m.put("target", (long) d.target);
+        m.put("outcome", lower(d.outcome));
+        if (d.outcome != ChargeScheduleController.Outcome.NONE) {
+            m.put("outcome_wall_ms", d.outcomeWallMs); m.put("outcome_mode", SCHEDULE_MODES[d.outcomeMode]);
+            if (d.outcomeStartWallMs > 0) m.put("outcome_start_wall_ms", d.outcomeStartWallMs);
+            if (d.outcomeArmedSoc != null) m.put("outcome_soc_at_arming", (long) d.outcomeArmedSoc);
+            if (d.outcomeSoc != null) m.put("outcome_soc", (long) d.outcomeSoc);
+            if (d.outcomeEnabled != null) m.put("outcome_enabled", (long) d.outcomeEnabled);
+            if (d.outcomeWireStart != null) m.put("outcome_wire_start", d.outcomeWireStart);
+        }
+        m.put("alert", ALERTS[d.alert]);
+        if (d.readWallMs != null) {
+            Map<String, Object> r = new LinkedHashMap<>();
+            r.put("wall_ms", d.readWallMs);
+            if (d.readEnabled != null) r.put("enabled", (long) d.readEnabled);
+            if (d.readWireStart != null) r.put("wire_start", d.readWireStart);
+            m.put("readback", r);
+        }
+        tree.put("charge_schedule", m);
         return this;
     }
 

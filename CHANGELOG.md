@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- If Scheduled charging or Charge done by passes its start time and the battery hasn't charged, Volt now says so, with the time and battery level, and offers to turn the schedule off so charging starts now. This includes a schedule whose On confirmation was lost but which the scooter applied. Out of sight, it posts one notification. Report diagnostics now include the schedule's times, battery levels and outcome, with no identifying details.
+
 ## 1.9.0 — 2026-10-28
 
 - UT5 MAX high-speed charges: when the charger reaches its voltage limit at a different battery percentage than Volt's saved charges, the time to full now comes from pack voltage and charging current instead of the live rate, which in the charger's taper read 2-3 times too short (10 minutes with 27 left, in an owner's charge from 91%). The taper's pace is refined from the charge itself after a few minutes, and a personal estimate no longer flickers to a fallback for a moment when the battery percentage steps. Saved finishing curves also check pack voltage before matching. New predictions are recorded as estimator `ut5-fast-taper-v7`; standard-charger estimates are unchanged. See [high-speed voltage/current estimates](docs/validation/fast-charge-taper.md).

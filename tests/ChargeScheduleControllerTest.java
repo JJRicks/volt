@@ -12,6 +12,8 @@ public final class ChargeScheduleControllerTest {
     private static int checks;
     private static void check(boolean condition,String message){checks++;if(!condition)throw new AssertionError(message);}
     private static long time(String iso){return Instant.parse(iso).toEpochMilli();}
+    /** An older schema's record: the leading fields of the current encoding under that version. */
+    private static String legacy(String encoded,int fields,String version){String[] v=encoded.split("\\|",-1);v[0]=version;return String.join("|",java.util.Arrays.copyOf(v,fields));}
     private static final class Rig implements ChargeScheduleController.Store,ChargeScheduleController.Driver {
         final Map<String,String> saved=new HashMap<>();
         final List<String> writes=new ArrayList<>();
@@ -35,7 +37,7 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
     }
     private static void planner(){
@@ -227,9 +229,9 @@ public final class ChargeScheduleControllerTest {
         check(ChargeScheduleController.decode(manualV1).manualStart==manual,"v1 genuine manual start migrates");
         check(ChargeScheduleController.decode(manualV1.replace("|0.0|false","|90.0|false")).manualStart==0,"v1 downgraded calculated schedule not mistaken for prior manual preference");
         ChargeScheduleController.State migrated=ChargeScheduleController.decode(manualV1);
-        check(ChargeScheduleController.encode(migrated).startsWith("3|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
+        check(ChargeScheduleController.encode(migrated).startsWith("4|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
         check(ChargeScheduleController.decode(ChargeScheduleController.encode(migrated).replace("|"+manual,"|-1")).mode==0,"invalid v3 timestamp rejected");
-        String v2=ChargeScheduleController.encode(migrated).replaceFirst("^3\\|","2|");v2=v2.substring(0,v2.lastIndexOf('|'));v2=v2.substring(0,v2.lastIndexOf('|'));
+        String v2=legacy(ChargeScheduleController.encode(migrated),11,"2");
         check(ChargeScheduleController.decode(v2).manualStart==manual&&ChargeScheduleController.decode(v2).calculatedWire==0,"v2 manual preference remains readable");
     }
     private static Rig armedWithManual(){
@@ -349,7 +351,7 @@ public final class ChargeScheduleControllerTest {
             check(missing.writes.size()==3&&missing.results.get(1).contains("fresh charging estimate"),"unverified paused state refuses captured ETA reuse");
             check(missing.controller.view().doneByMinuteOfDay==480&&missing.controller.view().doneByWallMs==oldDeadline,"refused update preserves original deadline and preference");
         }
-        Rig legacy=armedWithManual();String old=legacy.saved.get("owner-A").replaceFirst("^3\\|","2|");old=old.substring(0,old.lastIndexOf('|'));old=old.substring(0,old.lastIndexOf('|'));
+        Rig legacy=armedWithManual();String old=legacy(legacy.saved.get("owner-A"),11,"2");
         legacy.saved.put("owner-A",old);legacy.recreate();legacy.controller.setDoneTime(9,0,legacy.results::add);
         check(legacy.writes.size()==3&&legacy.results.get(1).contains("fresh charging estimate"),"legacy active plan cannot invent missing captured SOC");
         for(int failure=0;failure<3;failure++){
@@ -371,5 +373,116 @@ public final class ChargeScheduleControllerTest {
         check(!late.controller.view().doneByEnabled&&late.controller.view().doneByMinuteOfDay==360&&late.results.get(1).startsWith("Charging now"),"charge-now update saves new preference only after OFF confirmed");
         String[] bad=paused.saved.get("owner-A").split("\\|",-1);bad[12]="NaN";
         check(ChargeScheduleController.decode(String.join("|",bad)).mode==0,"invalid captured SOC rejected");
+    }
+    /** Scheduled charging armed by Volt for 11:00Z (5 AM Boise) at 41%, the scooter reporting it on and paused. */
+    private static Rig manualAt41(){
+        Rig r=withManualOnly();r.c.soc=41d;r.c.charging=0;r.controller.setManualEnabled(true,r.results::add);r.reply(true);r.reply(true);r.c.enabled=1;r.reply(true);
+        check(r.results.get(0)==null&&r.controller.view().manualEnabled&&r.controller.view().missed==null,"manual schedule armed without an alert");return r;
+    }
+    private static void pastStart(Rig r,Double soc){r.c.now=time("2026-10-20T11:02:00Z");r.c.sampleMs+=6*3600_000L;r.c.charging=0;r.c.soc=soc;r.controller.observe();}
+    private static void missedStarts(){
+        Rig missed=manualAt41();int commands=missed.writes.size();pastStart(missed,41d);
+        ChargeScheduleController.View view=missed.controller.view();
+        check(view.missed!=null&&!view.missed.doneBy&&!view.missed.shown&&view.missed.startWallMs==time("2026-10-20T11:00:00Z")&&view.missed.soc==41&&view.missed.armedSoc==41,
+                "unchanged battery after the start is a missed start with its time and both levels");
+        check(!view.manualEnabled&&missed.c.enabled==1,"a missed start clears the switch despite the scooter's own readback still saying on");
+        check(missed.writes.size()==commands,"detecting a missed start never sends a command");
+        missed.recreate();check(missed.controller.view().missed!=null,"the alert survives a restart before anyone saw it");
+        ChargeScheduleController.Missed taken=missed.controller.takeUnshownMissed();
+        check(taken!=null&&taken.startWallMs==time("2026-10-20T11:00:00Z")&&missed.controller.takeUnshownMissed()==null,"the background notice is taken once");
+        missed.recreate();missed.controller.observe();check(missed.controller.takeUnshownMissed()==null&&missed.controller.view().missed.shown,"a restart neither repeats the notice nor loses the unanswered alert");
+        missed.controller.acknowledgeMissed();missed.recreate();check(missed.controller.view().missed==null,"acknowledging clears the alert for good");
+        ChargeScheduleController.Diagnostics d=missed.controller.diagnostics();
+        check(d.mode==0&&d.outcome==ChargeScheduleController.Outcome.MISSED&&d.outcomeMode==1&&d.outcomeSoc==41&&d.armedSoc==41&&d.outcomeEnabled==1
+                &&missed.c.wireStart.equals(d.outcomeWireStart)&&d.clockOffsetSeconds==-6*3600&&d.target==100&&d.readEnabled==1&&d.alert==0,"diagnostics keep the missed intention's numbers");
+
+        Rig drift=manualAt41();pastStart(drift,42d);check(drift.controller.view().missed!=null,"one point of reading noise is still a missed start");
+        Rig drained=manualAt41();pastStart(drained,40d);check(drained.controller.view().missed!=null&&drained.controller.view().missed.soc==40,"standby drain is still a missed start");
+        Rig charged=manualAt41();pastStart(charged,60d);
+        check(charged.controller.view().missed==null&&!charged.controller.view().manualEnabled&&charged.controller.diagnostics().outcome==ChargeScheduleController.Outcome.START_PASSED,
+                "a battery that rose charged, then stopped (unplugged or done): retired quietly");
+        Rig twoPoints=manualAt41();pastStart(twoPoints,43d);check(twoPoints.controller.view().missed==null,"two points is a charge, not reading noise");
+        Rig unknown=manualAt41();pastStart(unknown,null);
+        check(unknown.controller.view().missed==null&&!unknown.controller.view().manualEnabled,"unknown battery retires quietly rather than guessing");
+        Rig unarmed=withManualOnly();unarmed.c.soc=null;unarmed.c.charging=0;unarmed.controller.setManualEnabled(true,unarmed.results::add);unarmed.reply(true);unarmed.reply(true);unarmed.c.enabled=1;unarmed.reply(true);
+        pastStart(unarmed,41d);check(unarmed.controller.view().missed==null,"no battery level at arming gives no baseline: quiet");
+        Rig waiting=manualAt41();waiting.c.now=time("2026-10-20T11:01:00Z");waiting.c.soc=41d;waiting.controller.observe();
+        check(waiting.controller.view().missed==null&&waiting.controller.view().manualEnabled,"inside the start grace nothing is decided");
+        Rig charging=manualAt41();charging.c.now=time("2026-10-20T11:02:00Z");charging.c.charging=1;charging.controller.observe();
+        check(charging.controller.view().missed==null&&charging.controller.view().manualEnabled,"charging at the start is the schedule working");
+
+        Rig rearm=manualAt41();pastStart(rearm,41d);rearm.c.charging=1;rearm.controller.setManualEnabled(true,rearm.results::add);rearm.reply(true);
+        check(rearm.sentTime==time("2026-10-21T11:00:00Z"),"re-arming uses the next occurrence");rearm.c.wireStart=rearm.sentTime/1000+rearm.sentOffset;rearm.reply(true);rearm.reply(true);
+        check(rearm.controller.view().missed==null&&rearm.controller.view().manualEnabled&&rearm.controller.diagnostics().outcome==ChargeScheduleController.Outcome.NONE,"re-arming clears the alert");
+        check(ChargeScheduleController.decode(rearm.saved.get("owner-A")).alert==0,"re-armed record carries no alert");
+
+        Rig off=manualAt41();pastStart(off,41d);commands=off.writes.size();off.controller.turnOffMissed(off.results::add);
+        check(off.writes.size()==commands+1&&off.writes.get(commands).equals("off"),"Turn off schedule sends only OFF");
+        off.reply(false);check(off.controller.view().missed!=null&&off.results.get(1)!=null,"an unconfirmed OFF keeps the alert");
+        off.controller.turnOffMissed(off.results::add);off.c.enabled=0;off.reply(true);
+        check(off.results.get(2)==null&&off.controller.view().missed==null&&off.controller.diagnostics().outcome==ChargeScheduleController.Outcome.MISSED,"a confirmed OFF clears the alert and keeps the outcome");
+        Rig offline=manualAt41();pastStart(offline,41d);offline.c.ready=false;commands=offline.writes.size();offline.controller.turnOffMissed(offline.results::add);
+        check(offline.writes.size()==commands&&offline.results.get(1).equals("Connect the scooter first")&&offline.controller.view().missed!=null,"offline turn-off sends nothing and keeps the alert");
+
+        Rig doneBy=new Rig();doneBy.arm();long start=doneBy.controller.view().startWallMs;doneBy.c.now=doneBy.controller.view().doneByWallMs+180_000;doneBy.c.charging=0;doneBy.controller.observe();
+        check(doneBy.controller.view().missed!=null&&doneBy.controller.view().missed.doneBy&&doneBy.controller.view().missed.startWallMs==start&&doneBy.controller.view().missed.armedSoc==79,
+                "Charge done by found after its deadline is still a missed start, not just an ended plan");
+        check(doneBy.controller.diagnostics().outcomeMode==2&&doneBy.controller.diagnostics().armedSoc==79,"done-by arming records the battery separately");
+        Rig doneByCharged=new Rig();doneByCharged.arm();doneByCharged.c.now=doneByCharged.controller.view().doneByWallMs+180_000;doneByCharged.c.charging=0;doneByCharged.c.soc=97d;doneByCharged.controller.observe();
+        check(doneByCharged.controller.view().missed==null&&doneByCharged.controller.diagnostics().outcome==ChargeScheduleController.Outcome.ENDED,"done-by that charged and stopped below the limit ends quietly");
+        Rig doneByOff=new Rig();doneByOff.arm();doneByOff.c.now=start+180_000;doneByOff.c.charging=0;doneByOff.controller.observe();
+        doneByOff.controller.turnOffMissed(doneByOff.results::add);check(doneByOff.writes.get(doneByOff.writes.size()-1).equals("off"),"done-by turn-off starts with OFF");
+
+        Rig changed=manualAt41();long moved=time("2026-10-21T11:00:00Z");changed.c.wireStart=moved/1000-6*3600;pastStart(changed,41d);
+        check(changed.controller.view().missed!=null&&changed.controller.view().missed.startWallMs==time("2026-10-20T11:00:00Z"),"a start the scooter moved after missing it is still reported with its original time");
+        check(changed.controller.view().manualEnabled&&changed.controller.view().startWallMs==moved,"the moved native schedule is shown as the scooter reports it");
+        check(changed.controller.view().missed.armedSoc==41&&changed.controller.view().missed.soc==41&&changed.controller.diagnostics().outcomeArmedSoc==41,
+                "the moved start keeps the missed intention's own arming battery");
+        changed.recreate();check(changed.controller.view().missed.armedSoc==41,"the missed intention's arming battery survives a restart");
+        Rig editedAfter=manualAt41();pastStart(editedAfter,41d);editedAfter.c.soc=60d;editedAfter.c.charging=1;
+        editedAfter.controller.setManualStart(time("2026-10-21T11:00:00Z"),editedAfter.results::add);editedAfter.reply(true);
+        editedAfter.c.wireStart=editedAfter.sentTime/1000+editedAfter.sentOffset;editedAfter.reply(true);
+        check(editedAfter.controller.view().missed!=null&&editedAfter.controller.view().missed.armedSoc==41&&editedAfter.controller.view().missed.soc==41,
+                "editing Charge start after an unanswered miss does not rewrite that miss's battery levels");
+        Rig started=manualAt41();started.c.now=time("2026-10-20T11:02:00Z");started.c.sampleMs+=6*3600_000L;started.c.charging=1;started.controller.observe();
+        started.recreate();started.c.now+=30_000;started.c.sampleMs+=30_000;started.c.charging=0;started.c.soc=41d;started.controller.observe();
+        check(started.controller.view().missed==null&&!started.controller.view().manualEnabled&&started.controller.diagnostics().outcome==ChargeScheduleController.Outcome.START_PASSED,
+                "a start Volt saw charging, then stopping within the noise tolerance, is not a missed start, even across a restart");
+        Rig early=manualAt41();early.c.now=time("2026-10-20T10:59:00Z");early.c.charging=1;early.controller.observe();
+        early.c.now=time("2026-10-20T11:02:00Z");early.c.charging=0;early.controller.observe();
+        check(early.controller.view().missed!=null,"charging seen only before the start is not evidence that the start fired");
+        Rig edited=manualAt41();edited.c.wireStart=moved/1000-6*3600;edited.c.now=time("2026-10-20T08:00:00Z");edited.controller.observe();
+        check(edited.controller.view().missed==null&&edited.controller.diagnostics().outcome==ChargeScheduleController.Outcome.CHANGED_ON_SCOOTER,"an edit before the start is a change, not a miss");
+
+        Rig native0=new Rig();native0.c.enabled=1;native0.c.charging=0;native0.c.soc=41d;native0.c.wireStart=time("2026-10-20T11:00:00Z")/1000-6*3600;native0.c.now=time("2026-10-20T12:00:00Z");
+        native0.controller.observe();check(native0.controller.view().missed==null&&native0.controller.view().manualEnabled,"a native schedule Volt never armed is never alerted");
+
+        Rig lost=withManualOnly();lost.c.soc=41d;lost.c.charging=0;lost.controller.setManualEnabled(true,lost.results::add);lost.reply(true);lost.reply(true);lost.reply(false);
+        check(lost.results.get(0)!=null&&lost.results.get(0).contains("not confirmed")&&!lost.controller.view().manualEnabled,"an unconfirmed ON is reported and not shown as armed");
+        lost.c.wireStart=lost.sentTime/1000+lost.sentOffset;lost.c.enabled=1;lost.controller.observe();
+        check(lost.controller.view().manualEnabled&&lost.controller.diagnostics().mode==1,"the scooter reading back Volt's start with ON is tracked as Volt's schedule");
+        pastStart(lost,41d);check(lost.controller.view().missed!=null&&lost.controller.view().missed.armedSoc==41,"a start missed after a lost ON confirmation is still reported");
+        Rig lostLate=withManualOnly();lostLate.c.soc=41d;lostLate.c.charging=0;lostLate.controller.setManualEnabled(true,lostLate.results::add);lostLate.reply(true);lostLate.reply(true);lostLate.reply(false);
+        lostLate.c.wireStart=lostLate.sentTime/1000+lostLate.sentOffset;lostLate.c.enabled=1;pastStart(lostLate,41d);
+        check(lostLate.controller.view().missed!=null,"first seen after its start (the next morning), a lost-ON schedule that never charged is reported");
+        Rig lostOff=withManualOnly();lostOff.c.soc=41d;lostOff.c.charging=0;lostOff.controller.setManualEnabled(true,lostOff.results::add);lostOff.reply(true);lostOff.reply(true);lostOff.reply(false);
+        lostOff.c.wireStart=lostOff.sentTime/1000+lostOff.sentOffset;lostOff.c.enabled=0;pastStart(lostOff,41d);
+        check(lostOff.controller.view().missed==null&&!lostOff.controller.view().manualEnabled,"a lost ON the scooter did not apply stays untracked and quiet");
+        Rig movedOn=manualAt41();movedOn.c.wireStart=moved/1000-6*3600;movedOn.c.now=time("2026-10-20T08:00:00Z");movedOn.controller.observe();pastStart(movedOn,41d);
+        movedOn.c.now=moved+180_000;movedOn.controller.observe();
+        check(movedOn.controller.view().missed==null,"a start edited on the scooter is never adopted as Volt's");
+
+        Rig v3=manualAt41();String old=legacy(v3.saved.get("owner-A"),13,"3");ChargeScheduleController.State decoded=ChargeScheduleController.decode(old);
+        check(decoded.mode==1&&decoded.armedSoc==-1&&decoded.alert==0&&decoded.outcome==0,"version 3 records still decode, with no arming battery level");
+        v3.saved.put("owner-A",old);v3.recreate();pastStart(v3,41d);check(v3.controller.view().missed==null&&!v3.controller.view().manualEnabled,"an upgraded schedule retires quietly");
+        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("4|")&&encoded.split("\\|",-1).length==24,"version 4 record");
+        String active=encoded.replaceFirst("^4\\|0\\|","4|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
+        for(int field:new int[]{13,14,15,16,17,18,19,20,21,22,23}){
+            String[] v=active.split("\\|",-1);v[field]=field==13||field==17||field==22?"101":field==23?"maybe":"9999999999999999";
+            check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 4 field "+field+" rejected");
+        }
+        String[] alert=active.split("\\|",-1);alert[21]="3";check(ChargeScheduleController.decode(String.join("|",alert)).mode==0,"unknown alert state rejected");
+        String[] outcome=active.split("\\|",-1);outcome[14]=Integer.toString(ChargeScheduleController.Outcome.values().length);check(ChargeScheduleController.decode(String.join("|",outcome)).mode==0,"unknown outcome rejected");
+        Rig empty=new Rig();empty.c.scope="";check(empty.controller.diagnostics()==null,"no scooter, no schedule record");
     }
 }

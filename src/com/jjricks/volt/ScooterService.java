@@ -74,7 +74,7 @@ public final class ScooterService extends Service {
     private String trendProfile = "", recordingError;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74;
     private final RangeFollowPolicy rangeFollowPolicy = new RangeFollowPolicy();
     private boolean selectingRange;
     private final ArrayDeque<Ui.Point> power=new ArrayDeque<>(),voltage=new ArrayDeque<>(),speed=new ArrayDeque<>();
@@ -547,6 +547,34 @@ public final class ScooterService extends Service {
     }
     public void setManualChargeEnabled(boolean enabled,Consumer<String> completion){schedules().setManualEnabled(enabled,scheduleCompletion(completion));changed();}
     public void setManualChargeStart(long wallMs,Consumer<String> completion){schedules().setManualStart(wallMs,scheduleCompletion(completion));changed();}
+    /** The missed-start dialog is on screen: no notification follows for that intention. */
+    public void missedStartShown(){schedules().missedShown();cancelMissedStartNotice();}
+    public void acknowledgeMissedStart(){schedules().acknowledgeMissed();cancelMissedStartNotice();changed();}
+    /** Sends OFF through the schedule controller; a confirmed OFF clears the alert. */
+    public void turnOffMissedStart(Consumer<String> completion){
+        schedules().turnOffMissed(scheduleCompletion(result->{if(result==null)cancelMissedStartNotice();if(completion!=null)completion.accept(result);}));changed();
+    }
+    public String missedStartTitle(ChargeScheduleController.Missed missed){return missed.doneBy?"Charge done by didn't start charging":"Scheduled charging didn't start";}
+    public String missedStartText(ChargeScheduleController.Missed missed,boolean inApp){
+        String time=DisplayTime.clock(this,settings,missed.startWallMs);
+        return (missed.doneBy?"Charging was set to start at "+time:"It was set for "+time)+", and the battery is still at "+missed.soc+"% ("+missed.armedSoc+"% when you set it). "
+                +"Check that the charger is plugged in and its light turns red at the start time. "
+                +(inApp?"Volt can turn the schedule off so charging starts now.":"Open Volt to turn the schedule off so charging starts now.");
+    }
+    /** Out of sight, a missed start is posted once per intention; in sight, MainActivity shows its dialog instead. */
+    private void noticeMissedStart(){
+        if(visible||chargeScheduleController==null)return;
+        ChargeScheduleController.Missed missed=chargeScheduleController.takeUnshownMissed();if(missed==null)return;
+        String text=missedStartText(missed,false);
+        try{
+            notification();// Ensures the channel exists even if the foreground notice never posted.
+            PendingIntent open=PendingIntent.getActivity(this,4,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            getSystemService(NotificationManager.class).notify(MISSED_START_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(missedStartTitle(missed)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
+                    .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
+        }catch(RuntimeException unavailable){}
+    }
+    private void cancelMissedStartNotice(){try{getSystemService(NotificationManager.class).cancel(MISSED_START_NOTICE);}catch(RuntimeException ignored){}}
 
     /**
      * Charge done by may first measure for up to about ten minutes, only when the pack model would
@@ -1035,7 +1063,7 @@ public final class ScooterService extends Service {
             };
 
     private void addTrend(ArrayDeque<Ui.Point> values,String key,long now){for(Telemetry.Metric m:ble.telemetry.metrics())if(m.key.equals(key)&&m.numericValue!=null&&m.updatedMs>=0&&now>=m.updatedMs&&now-m.updatedMs<2500){if(values.isEmpty()||values.peekLast().millis<m.updatedMs)values.add(new Ui.Point(m.updatedMs,m.numericValue));break;}while(!values.isEmpty()&&now-values.peek().millis>120000)values.remove();while(values.size()>240)values.remove();}
-    private void changed(){if(destroyed)return;if(chargeScheduleController!=null)chargeScheduleController.observe();updateChargerDetection();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
+    private void changed(){if(destroyed)return;if(chargeScheduleController!=null){chargeScheduleController.observe();noticeMissedStart();}updateChargerDetection();if(!canRetainStockReference())chargeReferenceGate.reset();updateChargeCapture(SystemClock.elapsedRealtime(),System.currentTimeMillis());observeRideAutoStop(SystemClock.elapsedRealtime());observeTelemetry();followRangeMode();for(Runnable r:new ArrayList<>(listeners))r.run();}
     public boolean followsRidingMode() {
         return settings.getBoolean("range_follow_mode_" + activeProfileId(), true);
     }
@@ -1621,7 +1649,7 @@ public final class ScooterService extends Service {
                 .phone(Build.VERSION.RELEASE,Build.VERSION.SDK_INT,Build.MANUFACTURER+" "+Build.MODEL).report(report)
                 .connections(ble.diagnosticEvents(),ble.diagnosticEventsLoaded(),ble.diagnosticStorageHealthy())
                 .commands(ble.commandEvents(),ble.commandEventsLoaded(),ble.commandStorageHealthy())
-                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime());
+                .readings(ble.telemetry.metrics(),SystemClock.elapsedRealtime()).chargeSchedule(schedules().diagnostics());
         List<String> secrets=new ArrayList<>();
         for(ScooterProfiles.Profile p:profiles.all()){
             secrets.add(p.serial);secrets.add(p.identity);secrets.add(p.mac);secrets.add(p.mac==null?null:p.mac.replace(":",""));

@@ -62,7 +62,25 @@ public final class DiagnosticsBundleTest {
         require(report != null, "fixture report builds");
 
         return new DiagnosticsBundle("1.7.0", WALL + 10000, false).phone("16", 36, "Google Pixel 9").report(report)
-                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW);
+                .connections(connections, true, true).commands(commands, true, true).readings(t.metrics(), NOW).chargeSchedule(schedule());
+    }
+
+    /** A missed manual start, stored under a scope that is the fixture's serial: the scope must not reach the file. */
+    static ChargeScheduleController.Diagnostics schedule() {
+        long start = WALL + 3_600_000L, wire = start / 1000 - 6 * 3600;
+        String record = "4|0|480|" + start + "|" + wire + "|" + (start + 86_400_000L) + "|" + WALL + "|100.0|0.0|true|" + start + "|0|-1.0"
+                + "|41.0|" + ChargeScheduleController.Outcome.MISSED.ordinal() + "|" + (start + 130_000L) + "|" + start + "|41.0|1|1|" + wire + "|2|41.0|false";
+        ChargeScheduleController.Context c = new ChargeScheduleController.Context();
+        c.scope = SERIAL; c.ready = true; c.now = start + 140_000L; c.enabled = 1; c.wireStart = wire; c.zone = TimeZone.getTimeZone("America/Boise");
+        return new ChargeScheduleController(new ChargeScheduleController.Store() {
+            public String read(String scope) { return SERIAL.equals(scope) ? record : null; }
+            public void write(String scope, String value) { throw new AssertionError("diagnostics never write"); }
+        }, new ChargeScheduleController.Driver() {
+            public ChargeScheduleController.Context context() { return c; }
+            public void clock(java.util.function.Consumer<Boolean> done) { throw new AssertionError("no radio"); }
+            public void time(long wall, int offset, java.util.function.Consumer<Boolean> done) { throw new AssertionError("no radio"); }
+            public void enabled(boolean on, java.util.function.Consumer<Boolean> done) { throw new AssertionError("no radio"); }
+        }).diagnostics();
     }
 
     private static void contents(String json) {
@@ -75,9 +93,17 @@ public final class DiagnosticsBundleTest {
                 "\"key\": \"headlight\"", "\"outcome\": \"readback_same\"", "\"read\": 1", "\"elapsed_ms\": 640",
                 "\"outcome\": \"rejected\"", "\"code\": 3", "\"kind\": \"try\"", "\"origin\": \"guided_test\"", "\"outcome\": \"readback_other\"",
                 "\"origin\": \"automatic_range_follow\"", "\"reason\": \"moving\"", "\"outcome\": \"unexpected_value\"",
-                "\"readings\": [", "\"key\": \"display_units\"", "\"key\": \"meter_version\"", "\"source\": \"0x70\""})
+                "\"readings\": [", "\"key\": \"display_units\"", "\"key\": \"meter_version\"", "\"source\": \"0x70\"",
+                "\"charge_schedule\": {", "\"mode\": \"none\"", "\"wire_start\": " + ((WALL + 3_600_000L) / 1000 - 6 * 3600), "\"clock_offset_s\": -21600",
+                "\"soc_at_arming\": 41", "\"target\": 100", "\"outcome\": \"missed\"", "\"outcome_mode\": \"manual\"", "\"outcome_soc\": 41", "\"outcome_soc_at_arming\": 41",
+                "\"outcome_enabled\": 1", "\"alert\": \"shown\"", "\"readback\": {", "\"enabled\": 1"})
             require(json.contains(expected), "bundle holds " + expected);
         require(!json.contains("\"key\": \"pin\",\n          \"value\""), "the PIN event carries no value");
+        String schedule = json.substring(json.indexOf("\"charge_schedule\": {")); // the last section
+        require(schedule.replaceAll("\"[a-z_]+\": (-?[0-9]+|\"[a-z_]+\"|\\{|true|false)", "").replaceAll("[\\s,{}]", "").isEmpty(),
+                "the schedule section holds only numbers and lower-case enums");
+        require(new DiagnosticsBundle("1.9.0", WALL, false).chargeSchedule(null).json(Collections.<String>emptyList()).contains("\"charge_schedule\": null"),
+                "no selected scooter, no schedule record");
     }
 
     /** None of the fixture's private values, in any spelling, nor any payload-length hex run. */
@@ -88,7 +114,7 @@ public final class DiagnosticsBundleTest {
                 Protocol.hex(Protocol.auth(Protocol.fromHex(OWNER_KEY), 1, 0)), Protocol.hex(PIN.getBytes(StandardCharsets.US_ASCII)), "0107030905",
                 "a1b2c3d4e5f60708090a", "scooter_serial", "battery_serial_raw", "fault_history_raw", "raw_diagnostic_payloads"};
         for (String secret : forbidden) require(!upper.contains(secret.toUpperCase(Locale.ROOT)), "never in the bundle: " + secret);
-        require(!java.util.regex.Pattern.compile("[0-9A-Fa-f]{12,}").matcher(json.replaceAll("\"(created_)?wall_ms\": \\d+", "").replaceAll("\"report_id\": \"[0-9a-f]{16}\"", "")).find(),
+        require(!java.util.regex.Pattern.compile("[0-9A-Fa-f]{12,}").matcher(json.replaceAll("\"[a-z_]*wall_ms\": \\d+", "").replaceAll("\"report_id\": \"[0-9a-f]{16}\"", "")).find(),
                 "no payload-length hex run anywhere");
     }
 
