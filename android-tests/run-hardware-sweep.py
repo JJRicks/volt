@@ -59,6 +59,7 @@ parser.add_argument('--serial', help="the phone's explicit adb serial")
 parser.add_argument('--runner', type=Path, help='parked-validation.apk signed with the installed Volt key')
 parser.add_argument('--aapt2', help="SDK aapt2 for the runner manifest check (default: newest build-tools beside --adb's SDK)")
 parser.add_argument('--out', type=Path)
+parser.add_argument('--pull-timeout', type=int, default=300, help='seconds allowed to pull one step\'s evidence')
 parser.add_argument('--parked', action='store_true', help='confirm the scooter is parked with the owner beside it')
 parser.add_argument('--include', action='append', default=[], choices=OPTIONAL, help='add an opt-in step (repeatable)')
 parser.add_argument('--only', action='append', help='run only these steps (repeatable)')
@@ -134,7 +135,7 @@ def instrument(step, extra=()):
                  check=False, timeout=900)
     destination = args.out / step['name']; destination.mkdir(parents=True, exist_ok=True)
     pulled = subprocess.run(prefix + ['pull', EVIDENCE, str(destination)], text=True, stdout=subprocess.PIPE,
-                            stderr=subprocess.STDOUT, timeout=300)
+                            stderr=subprocess.STDOUT, timeout=args.pull_timeout)
     reports = list(destination.rglob('control-validation.json')) + list(destination.rglob('partial-control-validation.json'))
     if pulled.returncode or not reports: return output, 'its evidence could not be pulled from the phone'
     return output, None
@@ -183,7 +184,8 @@ try:
             print(f"{step['name']}: {step['what']}…", flush=True)
             extra = ('-e', 'exclude', ','.join(EXCLUDE + ('charge_limit',))) if step['name'] == 'settings' and planned == 'true' else ()
             try: output, missing = instrument(step, extra)
-            except Exception as error: output, missing = f'INSTRUMENTATION_RESULT: error={type(error).__name__}: {error}', None
+            # An attempt that threw (a timed-out clear, run or pull) has no trustworthy evidence either.
+            except Exception as error: output, missing = '', f'it could not finish ({type(error).__name__}), so its evidence is missing'
             (args.out / f"{step['name']}.txt").write_text(output)
             status, detail = verdict(output)
             if missing and status != 'SKIP': status, detail = 'FAIL', missing

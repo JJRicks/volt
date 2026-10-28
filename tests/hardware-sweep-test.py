@@ -42,6 +42,7 @@ elif argv[:3] == ['shell', 'am', 'instrument']:
     else: print('INSTRUMENTATION_RESULT: result=Saved'); print('INSTRUMENTATION_CODE: 0')
 elif argv[:1] == ['pull']:
     if os.environ.get('FAKE_PULL') == 'fail': print("adb: error: failed to stat remote object: Permission denied"); sys.exit(1)
+    if os.environ.get('FAKE_PULL') == 'hang' and not state.joinpath('hung').exists(): state.joinpath('hung').write_text(''); import time; time.sleep(5)
     mode = state.joinpath('mode').read_text() if state.joinpath('mode').exists() else ''
     folder = pathlib.Path(argv[2]) / 'validation'; folder.mkdir(parents=True, exist_ok=True)
     rows = []
@@ -145,6 +146,14 @@ class HardwareSweep(unittest.TestCase):
         result = self.run_sweep(FAKE_RM='fail')
         self.assertNotEqual(result.returncode, 0); self.assertIn('could not be cleared', result.stdout)
         self.assertNotIn('clock', self.modes())
+
+    def test_a_collection_timeout_counts_as_missing_evidence(self):
+        result = self.run_sweep('--pull-timeout', '1', FAKE_PULL='hang')
+        self.assertNotEqual(result.returncode, 0)
+        summary = self.summary()
+        self.assertEqual(summary['snapshot'], 'FAIL')
+        self.assertEqual(self.modes(), ['snapshot', 'navigation', 'background'], 'a timed-out pull stops every later write')
+        self.assertEqual((summary['clock'], summary['settings']), ('SKIP', 'SKIP'))
 
     def test_a_reused_output_directory_is_refused(self):
         self.out.mkdir(); (self.out / 'settings').mkdir(); (self.out / 'settings' / 'control-validation.json').write_text('{"results": []}')
