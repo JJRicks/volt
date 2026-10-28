@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- The lock switch moves the moment you tap or slide it, once Volt is connected, instead of waiting for the scooter. A tap made in the first moments after connecting, while the scooter is still sending its first readings or Volt is finishing an automatic setting, is now kept and sent as soon as the scooter accepts it, instead of being silently ignored. If the scooter refuses, doesn't confirm, or isn't ready within a few seconds, the switch goes back with a short message and a distinct vibration. Locking still waits for the scooter to report it is standing still.
+
 ## 1.10.0 — 2026-10-28
 
 - If Scheduled charging or Charge done by passes its start time and the battery hasn't charged, Volt now says so, with the time and battery level, and offers to turn the schedule off so charging starts now. This includes a schedule whose On confirmation was lost but which the scooter applied. Out of sight, it posts one notification. Report diagnostics now include the schedule's times, battery levels and outcome, with no identifying details.
