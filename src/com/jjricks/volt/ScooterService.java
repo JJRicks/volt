@@ -54,6 +54,7 @@ public final class ScooterService extends Service {
         CapacityCache(long mono, BatteryCapacityEstimate.Result result) { this.mono = mono; this.result = result; }
     }
     private ChargeScheduleController chargeScheduleController;
+    private ChargeScheduleController.TestResult pendingScheduleTest;
     private ChargeSessionStore chargeStore;
     private ChargeSessionStore.Snapshot chargeSnapshot;
     private final ChargeReferenceGate chargeReferenceGate = new ChargeReferenceGate();
@@ -74,7 +75,7 @@ public final class ScooterService extends Service {
     private String trendProfile = "", recordingError;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
-    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74;
+    static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75;
     private final RangeFollowPolicy rangeFollowPolicy = new RangeFollowPolicy();
     private boolean selectingRange;
     private final ArrayDeque<Ui.Point> power=new ArrayDeque<>(),voltage=new ArrayDeque<>(),speed=new ArrayDeque<>();
@@ -122,7 +123,7 @@ public final class ScooterService extends Service {
         PowerManager pm=getSystemService(PowerManager.class);
         wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "Volt:Recorder");
         wakeLock.setReferenceCounted(false);
-        visible=uiVisible;running=this;settings.registerOnSharedPreferenceChangeListener(settingsChanged);ble.visibility(visible,isRecording()||isChargeRecording()||chargeMeasure.active(),backgroundDeadlineMs);
+        visible=uiVisible;running=this;settings.registerOnSharedPreferenceChangeListener(settingsChanged);ble.visibility(visible,isRecording()||isChargeRecording()||holding(),backgroundDeadlineMs);
     }
     @Override public int onStartCommand(Intent intent,int flags,int startId){
         if (destroyed || DataMaintenance.active()) { stopSelf(); return START_NOT_STICKY; }
@@ -135,6 +136,7 @@ public final class ScooterService extends Service {
         if("STOP_RECORDING".equals(action))stopRide();
         else if("STOP_CHARGE_RECORDING".equals(action))stopChargeRecording();
         else if("SCHEDULE_CHARGE_NOW".equals(action))scheduleChargeNow();
+        else if("CANCEL_SCHEDULE_TEST".equals(action))cancelScheduleTest();
         else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
         applyWorkPolicy(!stopAction||isRecording());return isRecording()?START_STICKY:START_NOT_STICKY;
     }
@@ -149,6 +151,7 @@ public final class ScooterService extends Service {
         if (phoneSaving()) return "Wait for the ride to finish saving";
         if ((ble != null && ble.pending() != null) || (chargeScheduleController != null && chargeScheduleController.busy()))
             return "Wait for the current scooter change to finish";
+        if (scheduleTesting()) return "Wait for the schedule test to finish";
         return null;
     }
 
@@ -160,6 +163,7 @@ public final class ScooterService extends Service {
         if (chargeExporting) return "Finish the current charge export first";
         if (chargeScheduleController != null && chargeScheduleController.busy()) return "Wait for the charging schedule to finish";
         if (chargeMeasure.active()) return "Wait for Charge done by to finish measuring";
+        if (scheduleTesting()) return "Wait for the schedule test to finish";
         if (!clearingHistory.isEmpty()) return "Wait for history cleanup to finish";
         if (ble != null && ble.pending() != null) return "Wait for the current scooter change to finish";
         ShizukuCaptureClient capture = ShizukuCaptureClient.get(this);
@@ -239,8 +243,8 @@ public final class ScooterService extends Service {
     public boolean setSimulation(boolean enabled) {
         if (destroyed || ble == null) return false;
         if (enabled == simulating()) return true;
-        if (enabled && (isRecording() || isChargeRecording() || phoneSaving() || chargeMeasure.active())) {
-            android.widget.Toast.makeText(this, chargeMeasure.active() ? "Wait for Charge done by to finish measuring" : "Finish the current recording before simulating", android.widget.Toast.LENGTH_LONG).show();
+        if (enabled && (isRecording() || isChargeRecording() || phoneSaving() || holding())) {
+            android.widget.Toast.makeText(this, chargeMeasure.active() ? "Wait for Charge done by to finish measuring" : scheduleTesting() ? "Wait for the schedule test to finish" : "Finish the current recording before simulating", android.widget.Toast.LENGTH_LONG).show();
             return false;
         }
         if (enabled && (profiles.active() == null || !settings.getBoolean("developer_options", false))) return false;
@@ -557,7 +561,8 @@ public final class ScooterService extends Service {
     public String missedStartTitle(ChargeScheduleController.Missed missed){return missed.doneBy?"Charge done by didn't start charging":"Scheduled charging didn't start";}
     public String missedStartText(ChargeScheduleController.Missed missed,boolean inApp){
         String time=DisplayTime.clock(this,settings,missed.startWallMs);
-        return (missed.doneBy?"Charging was set to start at "+time:"It was set for "+time)+", and the battery is still at "+missed.soc+"% ("+missed.armedSoc+"% when you set it). "
+        return (missed.doneBy?"Charging was set to start at "+time:missed.test?"The schedule test set it to resume at "+time:"It was set for "+time)
+                +", and the battery is still at "+missed.soc+"% ("+missed.armedSoc+(missed.test?"% at the test). ":"% when you set it). ")
                 +"Check that the charger is plugged in and its light turns red at the start time. "
                 +(inApp?"Volt can turn the schedule off so charging starts now.":"Open Volt to turn the schedule off so charging starts now.");
     }
@@ -657,6 +662,89 @@ public final class ScooterService extends Service {
         chargeMeasure.finish();chargeDoneNotice(false,reason+". Charge done by is off.");
         if(!destroyed)endChargeMeasureWork();
     }
+    /** Charge done by's measuring window or a Scheduled charging test keeps the connection, each for a bounded few minutes. */
+    private boolean holding(){return chargeMeasure.active()||scheduleTesting();}
+    public boolean scheduleTesting(){return chargeScheduleController!=null&&chargeScheduleController.testing();}
+    /** UT5 MAX only: other models' whole-hour starts are too coarse to time a two-minute resume. */
+    public boolean scheduleTestOffered(){
+        return ble!=null&&ble.controlOffered("timed_charging")&&ble.controlOffered("charge_start")&&ble.decision("charge_start").layer==ModelRegistry.Layer.UT5_MAX;
+    }
+    /** Starts the owner's test; null when started, else why not. */
+    public String startScheduleTest(){
+        if(destroyed)return "Reopen Volt";
+        if(chargeMeasure.active())return "Wait for Charge done by to finish measuring";
+        String blocked=schedules().startTest(this::scheduleTestFinished);
+        if(blocked!=null)return blocked;
+        cancelScheduleTestNotice();pendingScheduleTest=null;cancelBackgroundDeadline();applyWorkPolicy(false);updateNotification();changed();return null;
+    }
+    public void cancelScheduleTest(){if(chargeScheduleController!=null)chargeScheduleController.cancelTest();changed();}
+    /** The finished test not yet shown in a dialog; null when none. */
+    public ChargeScheduleController.TestResult pendingScheduleTest(){return pendingScheduleTest;}
+    public void scheduleTestShown(){pendingScheduleTest=null;cancelScheduleTestNotice();}
+    private void scheduleTestFinished(ChargeScheduleController.TestResult result){
+        // A clean cancel is the owner's own choice and gets a toast; anything else is a dialog in sight, a notification out of it.
+        if(result.outcome==ChargeScheduleTest.Outcome.CANCELLED&&result.scheduleOff&&result.cleanup==null){
+            if(visible&&!destroyed)android.widget.Toast.makeText(this,"Test cancelled. Scheduled charging is off.",android.widget.Toast.LENGTH_LONG).show();
+        }else pendingScheduleTest=result;
+        if(pendingScheduleTest!=null&&(!visible||destroyed))scheduleTestNotice(result);
+        if(!destroyed){applyWorkPolicy(false);updateNotification();changed();}
+    }
+    /** Row and notification progress while a test runs. */
+    public String scheduleTestStatus(){
+        ChargeScheduleController.View v=chargeSchedule();if(v.testPhase==null)return null;
+        long left=v.testStartWallMs-System.currentTimeMillis();
+        switch(v.testPhase){
+            case ARMING:return "Setting the schedule…";
+            case PAUSING:return "Pausing charging…";
+            case ENDING:return "Turning the schedule off…";
+            default:long seconds=(left+999)/1000;return left>0?"Resumes in "+seconds/60+":"+String.format(Locale.ROOT,"%02d",seconds%60):"Waiting for charging to resume";
+        }
+    }
+    public String scheduleTestTitle(ChargeScheduleController.TestResult r){
+        switch(r.outcome){
+            case PASSED:return "Scheduled charging works";
+            case RESUMED_EARLY:return "Charging resumed early";
+            case RESUMED_LATE:return "Charging resumed late";
+            case NO_PAUSE:return "The scooter didn't pause";
+            case NO_RESUME:return "Charging didn't resume";
+            case INTERRUPTED:return "Scheduled charging test interrupted";
+            case CANCELLED:return "Test cancelled";
+            default:return "Test didn't finish";
+        }
+    }
+    private static final String SET_CLOCK=" Open the official NAVEE app once (it sets the clock when it connects) and test again.";
+    public String scheduleTestText(ChargeScheduleController.TestResult r){
+        int seconds=r.offsetSeconds==null?0:Math.abs(r.offsetSeconds),minutes=Math.max(1,Math.round(seconds/60f));
+        String about="about "+minutes+(minutes==1?" minute":" minutes");
+        String text;
+        switch(r.outcome){
+            case PASSED:text="The scooter's clock and schedule work. Charging resumed "+(seconds==0?"at the start.":seconds+(seconds==1?" second ":" seconds ")+(r.offsetSeconds<0?"before":"after")+" the start.");break;
+            case RESUMED_EARLY:text="Charging resumed "+about+" before the start, so the scooter's clock may be ahead by "+about+"."+SET_CLOCK;break;
+            case RESUMED_LATE:text="Charging resumed "+about+" after the start, so the scooter's clock may be behind by "+about+"."+SET_CLOCK;break;
+            case NO_PAUSE:text="The scooter didn't pause. Its clock may be ahead, or it ignored the schedule."+SET_CLOCK;break;
+            case NO_RESUME:text="Charging was still paused 5 minutes after the start. The scooter's clock may be behind by more than 5 minutes, or its schedule didn't release. "
+                    +"If the charger was unplugged, test again."+SET_CLOCK;break;
+            case LIMIT_REACHED:text="The battery reached its charge limit during the test, so it couldn't tell. Test again further below the limit.";break;
+            case INTERRUPTED:return "The test was interrupted. Check that charging resumed. If it didn't, turn Scheduled charging off.";
+            case CANCELLED:text="";break;
+            default:text="The test couldn't start"+(r.failure==null?".":": "+r.failure+".");
+        }
+        // Cleanup is reported plainly; an unconfirmed OFF leaves the missed-start alert to follow up.
+        if(!r.scheduleOff)text+=" Volt couldn't confirm turning the schedule off. Turn Scheduled charging off so charging continues.";
+        else if(r.cleanup!=null)text+=" "+r.cleanup+".";
+        return text.trim();
+    }
+    private void scheduleTestNotice(ChargeScheduleController.TestResult result){
+        String text=scheduleTestText(result);
+        try{
+            notification();// Ensures the channel exists even if the foreground notice never posted.
+            PendingIntent open=PendingIntent.getActivity(this,5,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            getSystemService(NotificationManager.class).notify(SCHEDULE_TEST_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+                    .setContentTitle(scheduleTestTitle(result)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
+                    .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
+        }catch(RuntimeException unavailable){}
+    }
+    private void cancelScheduleTestNotice(){try{getSystemService(NotificationManager.class).cancel(SCHEDULE_TEST_NOTICE);}catch(RuntimeException ignored){}}
     private void endChargeMeasureWork(){if(destroyed)return;applyWorkPolicy(false);updateNotification();changed();}
     private boolean notificationsAllowed(){
         NotificationManager manager=getSystemService(NotificationManager.class);NotificationChannel channel=manager.getNotificationChannel("scooter");
@@ -677,7 +765,8 @@ public final class ScooterService extends Service {
     /** Volt-programmed or native charge time ahead: current is held off on purpose, not finished. */
     private boolean scheduledChargePause(){
         if(chargeScheduleController==null)return false;
-        if(chargeScheduleController.busy())return true;
+        // A test's pause is Volt's own, up to its end, which sends OFF if charging never resumed.
+        if(chargeScheduleController.busy()||chargeScheduleController.testing())return true;
         ChargeScheduleController.View plan=chargeSchedule();
         return (plan.doneByEnabled||plan.manualEnabled)&&plan.startWallMs>0
                 &&System.currentTimeMillis()<plan.startWallMs+ChargeScheduleController.START_GRACE_MS;
@@ -795,7 +884,7 @@ public final class ScooterService extends Service {
         return visible
                 || isRecording()
                 || isChargeRecording()
-                || chargeMeasure.active()
+                || holding()
                 || phoneSaving()
                 || settings.getBoolean("background_connection", false)
                 || backgroundDeadlineMs > SystemClock.elapsedRealtime();
@@ -806,7 +895,7 @@ public final class ScooterService extends Service {
         if(destroyed)return;boolean wasVisible=visible;visible=value;
         if(value)cancelBackgroundDeadline();
         else if(wasVisible){
-            if(!isRecording()&&!isChargeRecording()&&!chargeMeasure.active()&&!settings.getBoolean("background_connection",false)){
+            if(!isRecording()&&!isChargeRecording()&&!holding()&&!settings.getBoolean("background_connection",false)){
                 backgroundDeadlineMs=SystemClock.elapsedRealtime()+10000;handler.removeCallbacks(backgroundStop);handler.postDelayed(backgroundStop,10000);
             }else cancelBackgroundDeadline();
         }
@@ -822,7 +911,7 @@ public final class ScooterService extends Service {
                     if (visible
                             || isRecording()
                             || isChargeRecording()
-                            || chargeMeasure.active()
+                            || holding()
                             || phoneSaving()
                             || settings.getBoolean("background_connection", false)) {
                         cancelBackgroundDeadline();
@@ -855,10 +944,10 @@ public final class ScooterService extends Service {
         if (visible
                 || isRecording()
                 || isChargeRecording()
-                || chargeMeasure.active()
+                || holding()
                 || phoneSaving()
                 || settings.getBoolean("background_connection", false)) cancelBackgroundDeadline();
-        ble.visibility(visible,isRecording()||isChargeRecording()||chargeMeasure.active(),backgroundDeadlineMs);
+        ble.visibility(visible,isRecording()||isChargeRecording()||holding(),backgroundDeadlineMs);
         if(!workAllowed()){stopIdleWork();return;}
         workActive=true;startForegroundNotice(false);updateRecordingWakeLock();if(isRecording()&&phoneRecorder==null)startPhoneRecording();handler.removeCallbacks(tick);handler.post(tick);
         if (isRecording() && !ble.connected()) ble.connectLast();
@@ -869,7 +958,7 @@ public final class ScooterService extends Service {
         changed();
     }
     private void stopIdleWork(){
-        workActive=false;cancelBackgroundDeadline();handler.removeCallbacks(tick);ble.visibility(visible,isRecording()||isChargeRecording()||chargeMeasure.active(),0);ble.suspend();
+        workActive=false;cancelBackgroundDeadline();handler.removeCallbacks(tick);ble.visibility(visible,isRecording()||isChargeRecording()||holding(),0);ble.suspend();
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
         stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
@@ -1010,6 +1099,8 @@ public final class ScooterService extends Service {
                     }
                     updateChargeCapture(mono,wall);
                     updateChargeMeasure(mono);
+                    // A test's deadlines pass without any new frame; out of sight nothing else calls observe().
+                    if(scheduleTesting()&&!visible)chargeScheduleController.observe();
                     updateRecordingWakeLock();
                     if (isRecording()) {
                         recordPhoneTelemetry(mono);
@@ -1046,7 +1137,7 @@ public final class ScooterService extends Service {
                                             android.widget.Toast.LENGTH_LONG)
                                     .show();
                         }
-                    } else if (wakeLock.isHeld() && !phoneSaving() && !isChargeRecording() && !chargeMeasure.active()) wakeLock.release();
+                    } else if (wakeLock.isHeld() && !phoneSaving() && !isChargeRecording() && !holding()) wakeLock.release();
                     // Re-read the clock: a loss seen inside this tick (a failed refresh write) was fed a later time.
                     long autoNow = SystemClock.elapsedRealtime();
                     observeRideAutoStop(autoNow);
@@ -1058,7 +1149,7 @@ public final class ScooterService extends Service {
                     }
                     if (visible || isRecording() || isChargeRecording()) changed();
                     if (workActive && workAllowed())
-                        handler.postDelayed(this, visible || isRecording() || isChargeRecording() || chargeMeasure.active() ? 1000 : 15000);
+                        handler.postDelayed(this, visible || isRecording() || isChargeRecording() || holding() ? 1000 : 15000);
                 }
             };
 
@@ -1538,7 +1629,7 @@ public final class ScooterService extends Service {
      * A stalled service still has a bounded lock rather than an indefinite battery drain. */
     private void updateRecordingWakeLock(){
         if(wakeLock==null)return;
-        if(!destroyed&&!simulating()&&(isRecording()||isChargeRecording()||chargeMeasure.active()||phoneSaving())){
+        if(!destroyed&&!simulating()&&(isRecording()||isChargeRecording()||holding()||phoneSaving())){
             long now=SystemClock.elapsedRealtime();
             if(!wakeLock.isHeld()||now<wakeLockRenewedMs||now-wakeLockRenewedMs>=RECORDING_WAKE_RENEW_MS){
                 wakeLock.acquire(RECORDING_WAKE_TIMEOUT_MS);wakeLockRenewedMs=now;
@@ -1578,8 +1669,9 @@ public final class ScooterService extends Service {
                         open,
                         PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         boolean measuring = chargeMeasure.active() && !isChargeRecording() && !isRecording() && !phoneSaving();
+        String testStatus = measuring || isChargeRecording() || isRecording() || phoneSaving() ? null : scheduleTestStatus();boolean testing = testStatus != null;
         String title =
-                measuring ? "Measuring charge for Charge done by" :
+                measuring ? "Measuring charge for Charge done by" : testing ? "Testing scheduled charging" :
                 isChargeRecording() ? (chargeRecovery!=null&&chargeRecovery.recovering()?"Charge recording · reconnecting":"Charge recording is active") : phoneSaving()
                         ? "Saving ride"
                         : isRecording()
@@ -1592,6 +1684,7 @@ public final class ScooterService extends Service {
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
         String text =
                 measuring ? (chargeMeasure.arming() ? "Setting the schedule…" : "Sets the schedule within "+chargeMeasureMinutesLeft()+" min · keep the charger connected") :
+                testing ? testStatus+" · keep the phone near the scooter" :
                 isChargeRecording() ? chargeCaptureStatus() : phoneSaving()
                         ? null
                         : isRecording()
@@ -1607,21 +1700,22 @@ public final class ScooterService extends Service {
                         .setContentTitle(title)
                         .setContentText(text)
                         .setContentIntent(content)
-                        .setOngoing(isRecording() || isChargeRecording() || chargeMeasure.active() || phoneSaving() || ble.connected())
+                        .setOngoing(isRecording() || isChargeRecording() || holding() || phoneSaving() || ble.connected())
                         .setOnlyAlertOnce(true)
                         .setCategory(Notification.CATEGORY_SERVICE)
                         .setVisibility(Notification.VISIBILITY_PRIVATE);
         if (phoneSaving()) builder.setProgress(0, 0, true);
         if (ride != null && ride.startWallMs > 0)
             builder.setWhen(ride.startWallMs).setShowWhen(true).setUsesChronometer(true);
-        if(Build.VERSION.SDK_INT>=31&&(isRecording()||isChargeRecording()||chargeMeasure.active()||phoneSaving()))
+        if(Build.VERSION.SDK_INT>=31&&(isRecording()||isChargeRecording()||holding()||phoneSaving()))
             builder.setForegroundServiceBehavior(Notification.FOREGROUND_SERVICE_IMMEDIATE);
-        String action = measuring ? "SCHEDULE_CHARGE_NOW" : isChargeRecording() ? "STOP_CHARGE_RECORDING" : isRecording() ? "STOP_RECORDING" : "DISCONNECT";
+        boolean testEnding = testing && chargeSchedule().testPhase == ChargeScheduleTest.Phase.ENDING;
+        String action = measuring ? "SCHEDULE_CHARGE_NOW" : testing ? "CANCEL_SCHEDULE_TEST" : isChargeRecording() ? "STOP_CHARGE_RECORDING" : isRecording() ? "STOP_RECORDING" : "DISCONNECT";
         PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,ScooterService.class).setAction(action),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-        if (!phoneSaving() && !(measuring && chargeMeasure.arming()))
+        if (!phoneSaving() && !(measuring && chargeMeasure.arming()) && !testEnding)
             builder.addAction(
                     new Notification.Action.Builder(
-                                    null, measuring ? "Schedule now" : isChargeRecording() ? "Stop charge recording" : isRecording() ? "Stop recording" : "Disconnect", stop)
+                                    null, measuring ? "Schedule now" : testing ? "Cancel test" : isChargeRecording() ? "Stop charge recording" : isRecording() ? "Stop recording" : "Disconnect", stop)
                             .build());
         return builder.build();
     }
@@ -1711,7 +1805,8 @@ public final class ScooterService extends Service {
             return "{}";
         }}
     @Override public void onDestroy(){
-        if(chargeScheduleController!=null)chargeScheduleController.cancel();
+        // No screen can show a test's result once the service ends: cancel() posts its notification instead.
+        if(chargeScheduleController!=null){destroyed=true;chargeScheduleController.cancel();}
         resetChargeEstimateContext();
         if (guardedLifecycle) { chargeWorker.shutdown(); capacityWorker.shutdown(); super.onDestroy(); return; }
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,"Volt closed while measuring. Charge done by is off.");}destroyed=true;finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{

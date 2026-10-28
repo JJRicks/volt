@@ -126,7 +126,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
-    private AlertDialog scanDialog, controlDialog, missedStartDialog;
+    private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
     private AlertDialog quickMenuDialog;
@@ -241,7 +241,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
@@ -317,7 +317,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
-        observeConnectionFeedback(false);maybeShowMissedStart();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeShowScheduleTestResult();maybeShowMissedStart();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -1293,6 +1293,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final LinearLayout lightsHeader,banner,readOnlyBanner,testBanner;private TextView identifyAction,testBannerText,testReviewAction;private String offeredKeys="";
         private final View headlightRow,zonesRow,clockSpinner;
         private final SettingLine clockLine,chargerLine;
+        private final ScheduleTestRow scheduleTest;
         private final TopSpeedCard topSpeed;
         /** Two-column panes on wide screens; both null on a phone. */
         private final LinearLayout leftPane,rightPane;
@@ -1378,6 +1379,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             clockButton=pill("Sync",()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription("Sync scooter clock");
             LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-2,-2);clockParams.leftMargin=design.dp(10);clockLine.line.addView(clockButton,clockParams);
             addRow("Battery",clockLine.card);extras.put(clockLine.card,new String[]{"Battery","sync scooter clock scheduled charging time timezone"});
+            scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
+            extras.put(scheduleTest.row.card,new String[]{"Battery","test scheduled charging check scooter clock schedule resume"});
             chargerLine=new SettingLine("battery","Charger for estimates",null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
             chargerLine.line.setTag("estimate-charger-setting");chargerLine.value.setTag("estimate-charger-value");
             addRow("Battery",chargerLine.card);extras.put(chargerLine.card,new String[]{"Battery","charger for estimates automatic auto stock high speed charging time remaining"});
@@ -1420,7 +1423,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean zones=false;for(ControlRow row:rows)zones|=(row.feature.key.startsWith("line_")||row.feature.key.startsWith("star_"))&&offered(row.feature.key);
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
-                boolean match=e.getKey()==zonesRow&&(lights||!zones)||e.getKey()==clockLine.card&&!offered("clock_sync")||e.getKey()==headlightRow&&!lights&&!searching?false:searching?normalize(metadata[1]).contains(needle):onPage(metadata[0]);
+                boolean match=e.getKey()==zonesRow&&(lights||!zones)||e.getKey()==clockLine.card&&!offered("clock_sync")||e.getKey()==headlightRow&&!lights&&!searching||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle):onPage(metadata[0]);
                 if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered())match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
@@ -1473,7 +1476,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void refresh(){
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
-            topSpeed.refresh();
+            scheduleTest.refresh();topSpeed.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
                     ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING);
@@ -1499,7 +1502,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
-            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0');
+            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
@@ -1844,7 +1847,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** A scheduled start that passed without charging: say so plainly and offer to turn the schedule off. */
     private void maybeShowMissedStart(){
-        if(scooterService==null||!resumed||onboarding!=null||missedStartDialog!=null&&missedStartDialog.isShowing())return;
+        if(scooterService==null||!resumed||onboarding!=null||missedStartDialog!=null&&missedStartDialog.isShowing()||scheduleTestDialog!=null&&scheduleTestDialog.isShowing())return;
         ChargeScheduleController.View charge=scooterService.chargeSchedule();ChargeScheduleController.Missed missed=charge.missed;
         if(missed==null||charge.busy||missedStartOffered==missed.startWallMs)return;
         missedStartOffered=missed.startWallMs;
@@ -1859,6 +1862,65 @@ public final class MainActivity extends Activity implements ScreenHost {
                 .create();
         missedStartDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
         scooterService.missedStartShown();
+    }
+    /** Scheduled charging test: confirm first, since it pauses charging for a few minutes. */
+    private void scheduleTestAction(){
+        if(scooterService==null){toast("Connect the scooter first");return;}
+        if(scooterService.scheduleTesting()){showScheduleTest();return;}
+        String blocked=scooterService.chargeSchedule().testBlockedReason;if(blocked!=null){toast(blocked);return;}
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle("Test scheduled charging?")
+                .setMessage("Volt pauses charging and sets the scooter to resume in about 2 minutes, to check the scooter's clock and schedule. "
+                        +"It takes about 3–5 minutes; keep the phone near the scooter.")
+                .setPositiveButton("Start test",(d,which)->{if(scooterService==null)return;toast(scooterService.startScheduleTest());redraw();})
+                .setNegativeButton("Cancel",null)
+                .create();
+        controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    private void showScheduleTest(){
+        ChargeScheduleController.View charge=scooterService.chargeSchedule();
+        if(charge.testPhase==null||charge.testPhase==ChargeScheduleTest.Phase.ENDING){toast(scooterService.scheduleTestStatus());return;}
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle("Testing scheduled charging")
+                .setMessage("Charging should resume at "+DisplayTime.clock(this,preferences,charge.testStartWallMs)+". "
+                        +"Cancel test turns the schedule off and restores your Charge start.")
+                .setPositiveButton("Keep testing",null)
+                .setNegativeButton("Cancel test",(d,which)->{if(scooterService!=null)scooterService.cancelScheduleTest();redraw();})
+                .create();
+        controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    /** A finished test's result, once; out of sight the service posted it as a notification, which this replaces. */
+    private void maybeShowScheduleTestResult(){
+        if(scooterService==null||!resumed||onboarding!=null||scheduleTestDialog!=null&&scheduleTestDialog.isShowing()||missedStartDialog!=null&&missedStartDialog.isShowing())return;
+        ChargeScheduleController.TestResult result=scooterService.pendingScheduleTest();if(result==null)return;
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(scooterService.scheduleTestTitle(result)).setMessage(scooterService.scheduleTestText(result))
+                .setPositiveButton("OK",null).create();
+        scheduleTestDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+        scooterService.scheduleTestShown();
+    }
+    private boolean scheduleTestOffered(){return scooterService!=null&&scooterService.scheduleTestOffered();}
+    private static String lastTestLabel(ChargeScheduleTest.Outcome outcome){
+        switch(outcome){
+            case PASSED:return "Passed";case RESUMED_EARLY:return "Clock ahead";case RESUMED_LATE:return "Clock behind";case NO_PAUSE:return "Didn't pause";
+            case NO_RESUME:return "Didn't resume";case LIMIT_REACHED:return "At limit";case CANCELLED:return "Cancelled";case INTERRUPTED:return "Interrupted";
+            case NOT_STARTED:return "Didn't start";default:return "";
+        }
+    }
+    /** UT5 MAX: shows a running test's progress, else the last result; a blocked row says why, as other rows do. */
+    private final class ScheduleTestRow {
+        final SettingLine row=new SettingLine("clock","Test scheduled charging",null);final View spinner=new Spinner();
+        ScheduleTestRow(){
+            row.card.setTag("schedule-test");row.line.setTag("schedule-test-row");
+            spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());row.chevron(MainActivity.this::scheduleTestAction);
+        }
+        void refresh(){
+            ChargeScheduleController.View charge=scooterService==null?null:scooterService.chargeSchedule();
+            String status=scooterService==null?null:scooterService.scheduleTestStatus();
+            String blocked=status!=null?null:charge==null?"Connect the scooter first":charge.testBlockedReason;
+            String value=status!=null?status:charge==null?"":lastTestLabel(charge.lastTest);
+            boolean ready=scooterService!=null&&scooterService.ble.ready();
+            row.name.setTextColor(blocked==null?design.text:design.muted);row.value.setText(value);row.line.setAlpha(blocked==null?1f:.5f);
+            row.setSub(ready?blocked:null);spinner.setVisibility(status!=null?View.VISIBLE:View.GONE);
+            row.line.setContentDescription("Test scheduled charging"+(value.isEmpty()?"":", "+value)+(blocked==null?"":", "+blocked));
+        }
     }
     private void toggleManualCharge(){toggleManualCharge(true);}
     private void toggleManualCharge(boolean feedback){
