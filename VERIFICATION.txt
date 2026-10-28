@@ -1,3 +1,36 @@
+VOLT 1.10.0 — SCHEDULED CHARGE CHECKS AND SCHEDULE TEST (versionCode 52)
+October 28, 2026
+
+- Full pure-Java suites, the owner-capture guard and the pinned Shizuku
+  dependency check pass on the release tree. The suites cover missed-start
+  detection (battery at arming against now, a charge that ran and stopped, an
+  observed start, unknown levels), one alert per schedule across restarts,
+  tracking a schedule whose ON confirmation was lost, the schedule test's
+  timing verdicts, cleanup and phone-clock guards, the v5 schedule record with
+  v1-v4 compatibility, and the redacted charge_schedule diagnostics section.
+- run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
+  off): all 61 steps, each run alone with --only from a shared queue across four
+  freshly booted disposable emulators, including the charge-schedule steps that
+  now cover the Test scheduled charging row, its blocked reasons, cancel and an
+  early resume.
+- Three steps passed only on a rerun. rides, live-stats and search-focus each
+  ended with the instrumented process dying ("Process crashed") while four
+  emulators also streamed their screens to view-only mirrors. All three passed
+  alone on a fresh emulator with an empty crash log. Under the same load (four
+  emulators, four mirrors) each step then ran on every emulator, 12 runs, all
+  passing, with no Volt fatal exception in any crash log. The emulators logged
+  about 100 low-memory kills each, and one emulator's system server died during
+  boot, so the original failures are attributed to emulator memory pressure.
+- The release APK is signed with the project identity. Its certificate matches
+  the 1.9.0 release, and the signature and zip alignment verify. Its dex,
+  resources and manifest are identical to the build the sweep ran.
+- Physical scope: no physical validation for this release, by the owner's
+  choice. The missed-start alert and Test scheduled charging have run only
+  against the simulator and emulators; neither has sent a command to a real
+  scooter. Automated checks sent no real scooter commands.
+
+--- Previous verification ---
+
 VOLT 1.9.0 — HIGH-SPEED CHARGE ESTIMATES, CHARGE DONE BY, GT3 MAX (versionCode 51)
 October 28, 2026
 
