@@ -534,12 +534,12 @@ public final class ChargeScheduleController {
     private static long fromWire(long raw,long clockOffsetMs){return raw*1000L-clockOffsetMs;}
     private static boolean finite(Double n){return n!=null&&Double.isFinite(n);}
     private static boolean soc(double n){return Double.isFinite(n)&&n>=-1&&n<=100;}
-    static String encode(State s){return "4|"+s.mode+"|"+s.minute+"|"+s.start+"|"+s.wire+"|"+s.deadline+"|"+s.armed+"|"+s.target+"|"+s.estimate+"|"+s.retired+"|"+s.manualStart+"|"+s.calculatedWire+"|"+s.capturedSoc
+    static String encode(State s){return "5|"+s.mode+"|"+s.minute+"|"+s.start+"|"+s.wire+"|"+s.deadline+"|"+s.armed+"|"+s.target+"|"+s.estimate+"|"+s.retired+"|"+s.manualStart+"|"+s.calculatedWire+"|"+s.capturedSoc
             +"|"+s.armedSoc+"|"+s.outcome+"|"+s.outcomeMs+"|"+s.outcomeStart+"|"+s.outcomeSoc+"|"+s.outcomeMode+"|"+s.outcomeEnabled+"|"+s.outcomeWire+"|"+s.alert+"|"+s.outcomeArmedSoc+"|"+s.started
             +"|"+s.testWall+"|"+s.testStart+"|"+s.testResume+"|"+s.testOutcome+"|"+s.testOff+"|"+s.testPaused;}
     static State decode(String text){
         State s=new State();if(text==null)return s;
-        try{String[] v=text.split("\\|",-1);boolean legacy=v.length==10&&v[0].equals("1"),v2=v.length==11&&v[0].equals("2"),v3=v.length==13&&v[0].equals("3"),v4=v.length==30&&v[0].equals("4");if(!legacy&&!v2&&!v3&&!v4)return s;
+        try{String[] v=text.split("\\|",-1);boolean legacy=v.length==10&&v[0].equals("1"),v2=v.length==11&&v[0].equals("2"),v3=v.length==13&&v[0].equals("3"),v4=v.length==24&&v[0].equals("4"),v5=v.length==30&&v[0].equals("5");if(!legacy&&!v2&&!v3&&!v4&&!v5)return s;
             State n=new State();n.mode=Integer.parseInt(v[1]);n.minute=Integer.parseInt(v[2]);n.start=Long.parseLong(v[3]);n.wire=Long.parseLong(v[4]);n.deadline=Long.parseLong(v[5]);n.armed=Long.parseLong(v[6]);n.target=Double.parseDouble(v[7]);n.estimate=Double.parseDouble(v[8]);n.retired=Boolean.parseBoolean(v[9]);
             // Version 1 did not save manual and calculated starts separately. Only
             // a record without a calculated estimate can safely supply that preference.
@@ -547,14 +547,16 @@ public final class ChargeScheduleController {
             n.calculatedWire=legacy||v2?(n.mode==2?n.wire:0):Long.parseLong(v[11]);
             n.capturedSoc=legacy||v2?-1:Double.parseDouble(v[12]);
             // Before version 4 nothing recorded the battery at arming or an outcome: never infer a miss.
-            if(v4){n.armedSoc=Double.parseDouble(v[13]);n.outcome=Integer.parseInt(v[14]);n.outcomeMs=Long.parseLong(v[15]);n.outcomeStart=Long.parseLong(v[16]);n.outcomeSoc=Double.parseDouble(v[17]);
+            if(v4||v5){n.armedSoc=Double.parseDouble(v[13]);n.outcome=Integer.parseInt(v[14]);n.outcomeMs=Long.parseLong(v[15]);n.outcomeStart=Long.parseLong(v[16]);n.outcomeSoc=Double.parseDouble(v[17]);
                 n.outcomeMode=Integer.parseInt(v[18]);n.outcomeEnabled=Integer.parseInt(v[19]);n.outcomeWire=Long.parseLong(v[20]);n.alert=Integer.parseInt(v[21]);n.outcomeArmedSoc=Double.parseDouble(v[22]);
-                if(!v[23].equals("true")&&!v[23].equals("false")||!v[29].equals("true")&&!v[29].equals("false"))return s;n.started=Boolean.parseBoolean(v[23]);
+                if(!v[23].equals("true")&&!v[23].equals("false"))return s;n.started=Boolean.parseBoolean(v[23]);
+                // Version 4 (#129) had no schedule test.
+                if(v5){if(!v[29].equals("true")&&!v[29].equals("false"))return s;
                 n.testWall=Long.parseLong(v[24]);n.testStart=Long.parseLong(v[25]);n.testResume=Long.parseLong(v[26]);n.testOutcome=Integer.parseInt(v[27]);n.testOff=Integer.parseInt(v[28]);n.testPaused=Boolean.parseBoolean(v[29]);
                 if(n.testWall<0||n.testWall>0xffffffffL*1000L||n.testStart<0||n.testStart>0xffffffffL*1000L||n.testResume<0||n.testResume>0xffffffffL*1000L
                         ||n.testOutcome<0||n.testOutcome>=ChargeScheduleTest.Outcome.values().length||n.testOff<-1||n.testOff>1)return s;
                 // A test still running when its record is loaded was cut off by the process ending.
-                if(n.testOutcome==ChargeScheduleTest.Outcome.RUNNING.ordinal())n.testOutcome=ChargeScheduleTest.Outcome.INTERRUPTED.ordinal();
+                if(n.testOutcome==ChargeScheduleTest.Outcome.RUNNING.ordinal())n.testOutcome=ChargeScheduleTest.Outcome.INTERRUPTED.ordinal();}
                 if(!soc(n.armedSoc)||!soc(n.outcomeSoc)||!soc(n.outcomeArmedSoc)||n.outcome<0||n.outcome>=Outcome.values().length||n.outcomeMs<0||n.outcomeMs>0xffffffffL*1000L||n.outcomeStart<0||n.outcomeStart>0xffffffffL*1000L||n.outcomeMode<0||n.outcomeMode>2
                         ||n.outcomeEnabled<-1||n.outcomeEnabled>1||n.outcomeWire<-1||n.outcomeWire>0xffffffffL||n.alert<ALERT_NONE||n.alert>ALERT_SHOWN)return s;}
             if(n.mode<0||n.mode>2||n.minute<0||n.minute>=1440||n.start<0||n.start>0xffffffffL*1000L||n.manualStart<0||n.manualStart>0xffffffffL*1000L||n.wire<0||n.wire>0xffffffffL||n.calculatedWire<0||n.calculatedWire>0xffffffffL||n.deadline<0||n.deadline>0xffffffffL*1000L||n.armed<0||n.armed>0xffffffffL*1000L||!Double.isFinite(n.target)||n.target<=0||n.target>100||!Double.isFinite(n.estimate)||n.estimate<0||n.estimate>2880||!Double.isFinite(n.capturedSoc)||n.capturedSoc< -1||n.capturedSoc>100)return s;

@@ -229,7 +229,7 @@ public final class ChargeScheduleControllerTest {
         check(ChargeScheduleController.decode(manualV1).manualStart==manual,"v1 genuine manual start migrates");
         check(ChargeScheduleController.decode(manualV1.replace("|0.0|false","|90.0|false")).manualStart==0,"v1 downgraded calculated schedule not mistaken for prior manual preference");
         ChargeScheduleController.State migrated=ChargeScheduleController.decode(manualV1);
-        check(ChargeScheduleController.encode(migrated).startsWith("4|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
+        check(ChargeScheduleController.encode(migrated).startsWith("5|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
         check(ChargeScheduleController.decode(ChargeScheduleController.encode(migrated).replace("|"+manual,"|-1")).mode==0,"invalid v3 timestamp rejected");
         String v2=legacy(ChargeScheduleController.encode(migrated),11,"2");
         check(ChargeScheduleController.decode(v2).manualStart==manual&&ChargeScheduleController.decode(v2).calculatedWire==0,"v2 manual preference remains readable");
@@ -475,11 +475,16 @@ public final class ChargeScheduleControllerTest {
         Rig v3=manualAt41();String old=legacy(v3.saved.get("owner-A"),13,"3");ChargeScheduleController.State decoded=ChargeScheduleController.decode(old);
         check(decoded.mode==1&&decoded.armedSoc==-1&&decoded.alert==0&&decoded.outcome==0,"version 3 records still decode, with no arming battery level");
         v3.saved.put("owner-A",old);v3.recreate();pastStart(v3,41d);check(v3.controller.view().missed==null&&!v3.controller.view().manualEnabled,"an upgraded schedule retires quietly");
-        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("4|")&&encoded.split("\\|",-1).length==30,"version 4 record");
-        String active=encoded.replaceFirst("^4\\|0\\|","4|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
+        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("5|")&&encoded.split("\\|",-1).length==30,"version 5 record");
+        ChargeScheduleController.State fromV4=ChargeScheduleController.decode(legacy(encoded,24,"4"));
+        check(fromV4.outcome==ChargeScheduleController.Outcome.MISSED.ordinal()&&fromV4.outcomeArmedSoc==41&&fromV4.alert==missed.controller.diagnostics().alert&&fromV4.testOutcome==0,
+                "a version 4 record from #129 keeps its missed-start evidence and has no test");
+        String[] v4bad=legacy(encoded,24,"4").split("\\|",-1);v4bad[23]="maybe";check(ChargeScheduleController.decode(String.join("|",v4bad)).outcome==0,"invalid version 4 field rejected");
+        check(ChargeScheduleController.decode(legacy(encoded,30,"4")).outcome==0&&ChargeScheduleController.decode(legacy(encoded,24,"5")).outcome==0,"field counts must match their version");
+        String active=encoded.replaceFirst("^5\\|0\\|","5|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
         for(int field:new int[]{13,14,15,16,17,18,19,20,21,22,23}){
             String[] v=active.split("\\|",-1);v[field]=field==13||field==17||field==22?"101":field==23?"maybe":"9999999999999999";
-            check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 4 field "+field+" rejected");
+            check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 5 field "+field+" rejected");
         }
         String[] alert=active.split("\\|",-1);alert[21]="3";check(ChargeScheduleController.decode(String.join("|",alert)).mode==0,"unknown alert state rejected");
         String[] outcome=active.split("\\|",-1);outcome[14]=Integer.toString(ChargeScheduleController.Outcome.values().length);check(ChargeScheduleController.decode(String.join("|",outcome)).mode==0,"unknown outcome rejected");
@@ -556,7 +561,7 @@ public final class ChargeScheduleControllerTest {
         check(tested.size()==1&&tested.get(0).outcome==ChargeScheduleTest.Outcome.INTERRUPTED&&armingDrop.writes.size()==1,"a new session while arming stops it there");
         Rig running=testing();running.saved.put("owner-A",running.saved.get("owner-A"));String record=ChargeScheduleController.encode(ChargeScheduleController.decode(running.saved.get("owner-A")));
         check(ChargeScheduleController.decode(running.saved.get("owner-A")).testOutcome==ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(),"a running test found on load was cut off by the process ending");
-        check(record.split("\\|",-1).length==30,"version 4 record carries the test");
+        check(record.split("\\|",-1).length==30,"version 5 record carries the test");
 
         Rig clockFailed=withManualOnly();tested.clear();clockFailed.controller.startTest(tested::add);clockFailed.reply(false);
         check(tested.get(0).outcome==ChargeScheduleTest.Outcome.NOT_STARTED&&tested.get(0).failure.startsWith("Could not set the scooter clock")&&clockFailed.writes.size()==1,"a refused clock changed nothing, so nothing is undone");

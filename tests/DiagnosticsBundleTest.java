@@ -68,7 +68,7 @@ public final class DiagnosticsBundleTest {
     /** A missed manual start, stored under a scope that is the fixture's serial: the scope must not reach the file. */
     static ChargeScheduleController.Diagnostics schedule() {
         long start = WALL + 3_600_000L, wire = start / 1000 - 6 * 3600;
-        String record = "4|0|480|" + start + "|" + wire + "|" + (start + 86_400_000L) + "|" + WALL + "|100.0|0.0|true|" + start + "|0|-1.0"
+        String record = "5|0|480|" + start + "|" + wire + "|" + (start + 86_400_000L) + "|" + WALL + "|100.0|0.0|true|" + start + "|0|-1.0"
                 + "|41.0|" + ChargeScheduleController.Outcome.MISSED.ordinal() + "|" + (start + 130_000L) + "|" + start + "|41.0|1|1|" + wire + "|2|41.0|false"
                 + "|" + WALL + "|" + (WALL + 120_000L) + "|" + (WALL + 126_000L) + "|" + ChargeScheduleTest.Outcome.PASSED.ordinal() + "|1|true";
         ChargeScheduleController.Context c = new ChargeScheduleController.Context();

@@ -712,7 +712,8 @@ public final class ScooterService extends Service {
             default:return "Test didn't finish";
         }
     }
-    private static final String SET_CLOCK=" Open the official NAVEE app once (it sets the clock when it connects) and test again.";
+    /** The test set the clock just before arming (the same write the official app sends), so a wrong clock now means the scooter didn't keep it. */
+    private static final String SET_CLOCK=" Volt set the scooter's clock right before this test, so the scooter may not be keeping the time it's given. Until that's solved, a smart plug is a safer timer. Report an issue with diagnostics so we can look into it.";
     public String scheduleTestText(ChargeScheduleController.TestResult r){
         int seconds=r.offsetSeconds==null?0:Math.abs(r.offsetSeconds),minutes=Math.max(1,Math.round(seconds/60f));
         String about="about "+minutes+(minutes==1?" minute":" minutes");
