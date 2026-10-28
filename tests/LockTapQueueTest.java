@@ -55,6 +55,28 @@ public final class LockTapQueueTest {
         // One command at a time: further taps wait for the readback.
         q = new LockTapQueue(); q.request(false, true, 0); q.step(0, true, false, false, open); q.sent();
         require(!q.request(false, false, 10) && q.shown(false), "A tap during the sent change is ignored");
+        // The gate opens only after the hold: the tap is put back, never sent late.
+        q = new LockTapQueue(); q.request(false, true, 0);
+        require(q.step(4999, true, false, false, wait) == none, "Inside the hold, waiting");
+        require(q.step(6000, true, false, false, open) == revert && q.takeFailure().contains("wasn't ready"), "An open gate past the hold still reverts");
+
+        // Gate mapping from the decision once the write in flight finishes.
+        CapabilityResolver.Reason moving = CapabilityResolver.Reason.MOVING, warning = CapabilityResolver.Reason.WARNING_ACTIVE;
+        require(LockTapQueue.gate(true, CapabilityResolver.Reason.NONE, false) == open, "Writable now: open");
+        require(LockTapQueue.gate(true, CapabilityResolver.Reason.NONE, true) == wait, "Writable once the automatic write finishes: wait");
+        require(LockTapQueue.gate(false, CapabilityResolver.Reason.NO_MOTION_REPORT, true) == wait, "First motion report pending: wait");
+        require(LockTapQueue.gate(false, CapabilityResolver.Reason.STATUS_STALE, false) == wait, "Fresh status pending: wait");
+        require(LockTapQueue.gate(false, moving, true) == refuse && LockTapQueue.gate(false, warning, true) == refuse,
+                "Riding or a warning behind a busy write is refused, not held");
+        require(LockTapQueue.gate(false, moving, false) == refuse, "Riding with nothing pending: the gate refuses and says why");
+
+        // Riding while another write is in flight: rejected at once, so stopping later can't send it.
+        q = new LockTapQueue(); q.request(false, true, 0);
+        require(q.reject("Stop before locking") == revert && !q.waiting() && q.takeFailure().equals("Stop before locking"), "A hard refusal drops the tap now");
+        require(q.step(1000, true, false, false, open) == none, "Nothing is left to send once the rider stops");
+        q = new LockTapQueue(); q.request(false, true, 0); q.step(0, true, false, false, open); q.sent();
+        require(q.reject("x") == none && q.waiting(), "A sent change is left to its readback");
+
         System.out.println("LockTapQueueTest: " + checks + " checks passed");
     }
     private static void require(boolean condition, String message) { checks++; if (!condition) throw new AssertionError(message); }

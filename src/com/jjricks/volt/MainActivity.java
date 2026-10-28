@@ -936,9 +936,10 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void pumpLockQueue(BleController ble,boolean ready,Boolean shownLock,String pending){
         if(!lockQueue.waiting())return;
         LockTapQueue.Gate gate=LockTapQueue.Gate.WAIT;
-        if(ble!=null&&pending==null){CapabilityResolver.Decision d=ble.decision("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
-            gate=d.available()?LockTapQueue.Gate.OPEN:d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE
-                    ||d.reason==CapabilityResolver.Reason.NO_MOTION_REPORT?LockTapQueue.Gate.WAIT:LockTapQueue.Gate.REFUSE;}
+        if(ble!=null){CapabilityResolver.Decision d=ble.decisionOnceIdle("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
+            boolean otherWrite=pending!=null&&!"lock".equals(pending);gate=LockTapQueue.gate(d.available(),d.reason,otherWrite);
+            // Behind another write the BLE gate would only say "busy"; give the real refusal now instead of holding the tap.
+            if(gate==LockTapQueue.Gate.REFUSE&&otherWrite&&lockQueue.reject(d.reasonText())==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailure());return;}}
         LockTapQueue.Action action=lockQueue.step(SystemClock.elapsedRealtime(),ready&&ble!=null,shownLock,"lock".equals(pending),gate);
         if(action==LockTapQueue.Action.SEND){
             boolean target=Boolean.TRUE.equals(lockQueue.target());

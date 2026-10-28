@@ -240,6 +240,8 @@ public final class BleController {
     private final LinkedHashMap<String,Integer> experimentBaselines=new LinkedHashMap<>();
     /** Value-specific decision (lock direction): unlock follows the recovery contract. */
     public CapabilityResolver.Decision decision(String key,int value){return duringDiscovery(CapabilityResolver.admit(key,value,descriptor(),status(),runtime(key)));}
+    /** The decision this change would get once the write in flight finishes: riding, warnings and the rest still refuse. Read-only. */
+    public CapabilityResolver.Decision decisionOnceIdle(String key,int value){CapabilityResolver.Runtime rt=runtime(key);rt.busy=false;return duringDiscovery(CapabilityResolver.admit(key,value,descriptor(),status(),rt));}
     private StatusFields status(){return StatusFields.of(statusFrame,statusMs);}
     /** A lock change stops a running compatibility check first, so only other features see it as active. */
     private CapabilityResolver.Runtime runtime(String feature){
