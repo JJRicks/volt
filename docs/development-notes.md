@@ -17,7 +17,9 @@ Implementation invariants and native test guidance for contributors. Start with 
 
 ## Device checks
 
-`android-tests/ParkedValidation.java` is a separate, explicitly invoked instrumentation runner. Its modes include real lock/settings writes and stationary recording sessions; choose a mode only when those actions are intended and the owner is present with a safely parked scooter. Navigation/background modes perform different checks and have documented guards. Read the chosen mode before running it.
+`android-tests/ParkedValidation.java` is a separate, explicitly invoked instrumentation runner. Its modes include real lock/settings writes and stationary recording sessions; choose a mode only when those actions are intended and the owner is present with a safely parked scooter. Navigation/background modes perform different checks and have documented guards. Read the chosen mode before running it. `sweep` takes `-e exclude key,key` (recorded, never written); `schedule` runs Test scheduled charging end to end and passes only on an on-time resume with Scheduled charging confirmed off.
+
+`android-tests/run-hardware-sweep.py` runs those modes as one owner-present plan on a physical phone (`--list` prints it): read-only snapshot, navigation and background checks, then clock, reversible settings, charging start time and, while charging, the schedule test. It refuses emulators and runs without `--parked`, never installs or removes Volt, excludes speed caps, maximum speed, dual motor drive and the bare Scheduled charging toggle, keeps lock and the PIN state read behind `--include`, and skips later writes after a failed one. `tests/hardware-sweep-test.py` checks those rules against a fake adb.
 
 `android-tests/DeveloperSettingsValidation.java` validates rounded preferences and
 the hidden simulation menu on a disposable emulator with Bluetooth disabled.

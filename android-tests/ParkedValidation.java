@@ -64,13 +64,18 @@ public final class ParkedValidation extends Instrumentation {
         }else if(mode.equals("sweep")){
             if(service.isRecording())throw new IllegalStateException("Finish the existing recording before parked control validation");
             String only=args.getString("feature","");boolean lab=Boolean.parseBoolean(args.getString("lab","false"));
+            // A test plan's exclusions (speed caps, drive modes) are recorded, never written.
+            Set<String> exclude=new HashSet<>(Arrays.asList(args.getString("exclude","").split(",")));
             for(ScooterCommands.Feature feature:ScooterCommands.catalog()){
                 if(!only.isEmpty()&&!only.equals(feature.key))continue;
+                if(exclude.contains(feature.key)){JSONObject row=new JSONObject();row.put("key",feature.key);row.put("outcome","Excluded by the test plan; no write");results.put(row);continue;}
                 if(lab&&only.isEmpty()&&!feature.experimental)continue;
                 if(feature.sensitive||feature.requiresBond||feature.type==ScooterCommands.Type.TIME||feature.key.equals("lock"))continue;
                 if(feature.experimental&&!lab)continue;
                 validate(feature);
             }
+        }else if(mode.equals("schedule")){
+            scheduleTest(output);
         }else if(mode.equals("ui")){
             String page=args.getString("page","home");java.lang.reflect.Method select=MainActivity.class.getDeclaredMethod("select",String.class);select.setAccessible(true);
             runMain(()->{try{select.invoke(activity,page);}catch(Exception e){throw new IllegalStateException(e);}});waitForIdleSync();Thread.sleep(1200);
@@ -83,6 +88,8 @@ public final class ParkedValidation extends Instrumentation {
             String id=service.rides.activeId();Thread.sleep(seconds*1000L);runMain(()->service.stopRide());if(service.isRecording())throw new IllegalStateException("Recording could not stop/save");save("stationary-recording.json",service.rides.get(id).toJson());File dir=new File(getTargetContext().getExternalFilesDir(null),"validation");dir.mkdirs();service.rides.exportCsv(id,new File(dir,"stationary-recording.csv"));output.putString("recording","Completed stationary validation");
         }else if(!mode.equals("snapshot"))throw new IllegalArgumentException("Unknown validation mode");
         save("latest-diagnostics.json",service.snapshot());JSONObject report=new JSONObject();report.put("format","navee-parked-control-validation-v1");report.put("checked_at_ms",System.currentTimeMillis());report.put("results",results);report.put("warning","Readback validation only. Propulsion, descent, cruise engagement, physical lighting and ridden energy behavior require rider checks.");save("control-validation.json",report.toString(2));
+        // The hardware sweep reads this to decide whether a schedule test can run (it needs a charge in progress).
+        if(!smokeMode)output.putString("charging_state",String.valueOf(service.ble.telemetry.number("charging_state")));
         output.putString("result","Saved local diagnostics and validation evidence");output.putInt("controls",smokeMode?0:results.length());if(smokeMode)output.putInt("checks",results.length());output.putString("original_background",String.valueOf(smokeMode&&smokePreferences!=null?smokePreferences.getOrDefault("background_connection",false):originalBackground));cleanup();finish(0,output);
     }catch(Throwable e){try{save("partial-control-validation.json",results.toString(2));if(service!=null)save("failed-diagnostics.json",service.snapshot());}catch(Exception ignored){}output.putString("error",e.getClass().getSimpleName()+": "+e.getMessage());cleanup();finish(1,output);}finally{cleanup();}}
     private void cleanup(){if(smokeMode&&smokePreferences!=null)restoreSmokePreferences();if(service!=null&&originalBackground!=null){boolean previous=originalBackground;runMain(()->{service.settings.edit().putBoolean("background_connection",previous).commit();if(!getTargetContext().getSystemService(PowerManager.class).isInteractive())service.visible(false);});originalBackground=null;}if(bound){runMain(()->getTargetContext().unbindService(connection));bound=false;}}
@@ -242,6 +249,28 @@ public final class ParkedValidation extends Instrumentation {
         if(connecting.get()){status("Background smoke: simulated transport failure/retries must stop at the original fixed deadline");sleepUntil(connectingDeadline.get()+500);assertHardOff("Connecting/failure grace deadline");Thread.sleep(2000);assertHardOff("Two seconds after simulated-failure cutoff");}
         runMain(()->require(mutations()==initial.get(),"Lifecycle smoke submitted a scooter setting mutation"));
         JSONObject evidence=new JSONObject();evidence.put("mode","background");evidence.put("grace_ms",10000);evidence.put("first_resume_cancelled",true);evidence.put("second_pause_full_grace",true);evidence.put("old_deadline_did_not_disconnect",true);evidence.put("hard_cutoff",true);evidence.put("late_hidden_start_no_new_grace",true);evidence.put("connecting_case",connecting.get()?"Started while CONNECTING/AUTHENTICATING, simulated transport-only failure entered retries, original fixed deadline retained, hard cutoff and no late retry/notification after 2s":"Skipped: no verified scooter address/Bluetooth permission or enabled adapter");evidence.put("scooter_mutations",0);evidence.put("recordings_created",0);results.put(evidence);
+    }
+    /**
+     * Test scheduled charging end to end, as the owner's button runs it: about 2 minutes ahead, judged by the scooter's own
+     * pause and resume. Passes only on an on-time resume with the schedule confirmed off and the scooter reading it off.
+     */
+    private void scheduleTest(Bundle output)throws Exception{
+        require(!service.isRecording(),"Finish the existing recording before the schedule test");
+        AtomicReference<Boolean> offered=new AtomicReference<>();runMain(()->offered.set(service.scheduleTestOffered()));require(Boolean.TRUE.equals(offered.get()),"Test scheduled charging is not offered for this scooter");
+        AtomicReference<String> blocked=new AtomicReference<>();runMain(()->blocked.set(service.startScheduleTest()));require(blocked.get()==null,"Schedule test not started: "+blocked.get());
+        status("schedule: started; the scooter should pause, then resume about 2 minutes ahead");
+        awaitReadOnly(()->!service.scheduleTesting(),9*60_000L,"Schedule test did not finish within 9 minutes");
+        java.lang.reflect.Method schedules=ScooterService.class.getDeclaredMethod("schedules");schedules.setAccessible(true);
+        AtomicReference<ChargeScheduleController.Diagnostics> read=new AtomicReference<>();runMain(()->{try{read.set(((ChargeScheduleController)schedules.invoke(service)).diagnostics());}catch(ReflectiveOperationException e){throw new IllegalStateException(e);}});
+        ChargeScheduleController.Diagnostics d=read.get();require(d!=null,"No schedule record for this scooter");
+        waitFor(()->service.ble.ready()&&service.ble.pending()==null,15000,"Connection unavailable after the schedule test");
+        Integer enabled=service.ble.featureValue("timed_charging");ChargeScheduleController.View view=service.chargeSchedule();
+        JSONObject row=new JSONObject();row.put("key","schedule_test");row.put("outcome",d.testOutcome.name());row.put("offset_s",d.testOffsetSeconds==null?JSONObject.NULL:d.testOffsetSeconds);
+        row.put("paused",d.testPaused);row.put("schedule_off_confirmed",Integer.valueOf(1).equals(d.testScheduleOff));row.put("timed_charging_readback",enabled==null?JSONObject.NULL:enabled);
+        row.put("manual_enabled",view.manualEnabled);row.put("done_by_enabled",view.doneByEnabled);results.put(row);
+        output.putString("schedule_test",d.testOutcome.name()+(d.testOffsetSeconds==null?"":" offset="+d.testOffsetSeconds+"s"));
+        require(Integer.valueOf(1).equals(d.testScheduleOff)&&Integer.valueOf(0).equals(enabled)&&!view.manualEnabled&&!view.doneByEnabled,"Scheduled charging was not confirmed off after the test; turn it off in Volt");
+        require(d.testOutcome==ChargeScheduleTest.Outcome.PASSED,"Schedule test result: "+d.testOutcome);
     }
     private void sleepUntil(long monotonic)throws InterruptedException{for(;;){long remaining=monotonic-SystemClock.elapsedRealtime();if(remaining<=0)return;Thread.sleep(Math.min(500,remaining));}}
     /** Keep assertion failures on the instrumentation thread, never uncaught on MainLooper. */
