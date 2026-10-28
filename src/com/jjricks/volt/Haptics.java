@@ -44,6 +44,11 @@ final class Haptics {
         perform(view, Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.CONFIRM : HapticFeedbackConstants.CONTEXT_CLICK);
     }
 
+    /** A requested change didn't happen: the lock switch went back to the scooter's state. */
+    static void reject(View view) {
+        perform(view, Build.VERSION.SDK_INT >= 30 ? HapticFeedbackConstants.REJECT : HapticFeedbackConstants.LONG_PRESS);
+    }
+
     private static void perform(View view, int effect) {
         if (view != null && enabled(view.getContext())) view.performHapticFeedback(effect);
     }

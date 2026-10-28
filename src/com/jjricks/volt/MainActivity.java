@@ -96,6 +96,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private TextView connectionTitle,connectionAction,lockTitle,profileTitle,offlineTitle,offlineDetail;
     private View lockReady,lockOffline;
     private LockControl lockControl;
+    /** One rider lock tap shared by every lock switch: shown at once, sent when the scooter takes writes. */
+    private final LockTapQueue lockQueue=new LockTapQueue();
     private boolean showDashboardDisconnect=true,compactLock;
     /**
      * Every lock card on the current dashboard (normally one; the All widgets example and older
@@ -884,6 +886,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile active=scooterService==null?null:scooterService.profiles.active();
         long last=active==null?0:active.lastConnected;
         String scooterName=active==null?"your scooter":active.name;
+        pumpLockQueue(ble,ready,shownLock,pending);
         for(int lockIndex=dashboardLocks.isEmpty()?-1:0;lockIndex<dashboardLocks.size();lockIndex++){
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
         if(lockTitle!=null){
@@ -891,12 +894,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             boolean showBar=ready;
             if(lockReady!=null)lockReady.setVisibility(showBar?View.VISIBLE:View.GONE);
             if(lockOffline!=null)lockOffline.setVisibility(showBar?View.GONE:View.VISIBLE);
-            lockTitle.setText("lock".equals(pending)?"Updating…":shownLock==null?"Lock":shownLock?"Locked":"Unlocked");
+            lockTitle.setText("lock".equals(pending)||lockQueue.waiting()?"Updating…":shownLock==null?"Lock":shownLock?"Locked":"Unlocked");
             lockTitle.setTextColor(Boolean.FALSE.equals(shownLock)&&ready?design.danger:design.text);
             design.decorate(lockTitle,Boolean.FALSE.equals(shownLock)?"unlock":"lock");
             android.graphics.drawable.Drawable lockGlyph=lockTitle.getCompoundDrawablesRelative()[0];
             if(lockGlyph!=null){lockGlyph.setBounds(0,0,design.dp(20),design.dp(20));lockTitle.setCompoundDrawablesRelative(lockGlyph,null,null,null);lockTitle.setCompoundDrawablePadding(design.dp(8));}
-            lockControl.update(shownLock,ready&&pending==null&&!editing&&lockOffered(ble,shownLock));
+            // Another write in flight (an automatic one right after connecting) no longer disables the switch: the tap waits for it.
+            lockControl.update(shownLock,ready&&!editing&&lockOffered(ble,shownLock));
             if(offlineTitle!=null){
                 // The scooter name is already in the Home header; repeating it can fill
                 // a narrow card and push Cancel out of view at larger system font sizes.
@@ -926,12 +930,29 @@ public final class MainActivity extends Activity implements ScreenHost {
         ScooterProfiles.Profile p=scooterService==null?null:scooterService.profiles.active();if(profileTitle!=null){profileTitle.setText(p==null?"Your scooter":p.name);profileTitle.setVisibility(home?View.VISIBLE:View.GONE);}
     }
     /**
+     * Sends a waiting lock tap once the scooter takes writes, or puts the switch back with the reason. The gate is the
+     * same one every write passes; WAIT covers only the short post-connect holds, so riding is still refused, never queued.
+     */
+    private void pumpLockQueue(BleController ble,boolean ready,Boolean shownLock,String pending){
+        if(!lockQueue.waiting())return;
+        LockTapQueue.Gate gate=LockTapQueue.Gate.WAIT;
+        if(ble!=null&&pending==null){CapabilityResolver.Decision d=ble.decision("lock",Boolean.TRUE.equals(lockQueue.target())?1:0);
+            gate=d.available()?LockTapQueue.Gate.OPEN:d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE
+                    ||d.reason==CapabilityResolver.Reason.NO_MOTION_REPORT?LockTapQueue.Gate.WAIT:LockTapQueue.Gate.REFUSE;}
+        LockTapQueue.Action action=lockQueue.step(SystemClock.elapsedRealtime(),ready&&ble!=null,shownLock,"lock".equals(pending),gate);
+        if(action==LockTapQueue.Action.SEND){
+            boolean target=Boolean.TRUE.equals(lockQueue.target());
+            // Marked first: the send itself redraws the header, which must not send again.
+            lockQueue.sent();if(!ble.set("lock",target?1:0)){lockQueue.refused();Haptics.reject(lockControl);}
+        }else if(action==LockTapQueue.Action.REVERT){Haptics.reject(lockControl);toast(lockQueue.takeFailure());}
+    }
+    /**
      * Whether the lock switch can be used in the shown direction on this model. Riding, a missing
      * motion report or a warning keep it tappable so the tap says why; the gate still refuses.
      */
     private static boolean lockOffered(BleController ble,Boolean shownLock){
         if(ble==null)return false;CapabilityResolver.Decision d=ble.decision("lock",shownLock==null||!shownLock?1:0);
-        return d.available()||d.blockedByRide();
+        return d.available()||d.blockedByRide()||d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE;
     }
     /** Updates the action presentation without changing the Bluetooth transport. */
     private void updateConnectionAction(boolean ready,boolean connecting){
@@ -975,15 +996,19 @@ public final class MainActivity extends Activity implements ScreenHost {
         private android.animation.ValueAnimator motion;
         /** Recent thumb positions for a short speed trail; visual only, never the lock value. */
         private final LockSliderTrail trail=new LockSliderTrail();
-        LockControl(){super(MainActivity.this);setMinimumWidth(design.dp(48));setMinimumHeight(design.dp(48));setClickable(true);setFocusable(true);setContentDescription("Electronic lock switch");setOnClickListener(v->apply(!Boolean.TRUE.equals(value)));}
-        private void apply(boolean target){if(available&&value!=null&&scooterService!=null&&target!=value){if(scooterService.ble.set("lock",target?1:0))requestedAt=SystemClock.elapsedRealtime();redraw();}}
+        LockControl(){super(MainActivity.this);setMinimumWidth(design.dp(48));setMinimumHeight(design.dp(48));setClickable(true);setFocusable(true);setContentDescription("Electronic lock switch");setOnClickListener(v->apply(!Boolean.TRUE.equals(shown())));}
+        /** The side drawn: a waiting tap's side until the scooter's readback settles it. Accessibility keeps the confirmed state. */
+        private Boolean shown(){return lockQueue.shown(value);}
+        private Boolean drawn;
+        private void apply(boolean target){if(available&&value!=null&&scooterService!=null&&lockQueue.request(value,target,SystemClock.elapsedRealtime())){requestedAt=SystemClock.elapsedRealtime();redraw();}}
         void update(Boolean locked,boolean enabled){
             boolean changed=value==null?locked!=null:!value.equals(locked);
             boolean hadState=value!=null;
             if(changed&&hadState&&locked!=null&&requestedAt>0&&SystemClock.elapsedRealtime()-requestedAt<15000){requestedAt=0;Haptics.confirm(this);}
             value=locked;available=enabled;setEnabled(enabled);if(!enabled)trail.clear();
             if(!enabled&&dragging){dragging=false;setPressed(false);releaseParent();settle(hadState&&locked!=null);}
-            else if(changed&&!dragging)settle(hadState&&locked!=null);
+            else if((changed||!java.util.Objects.equals(drawn,shown()))&&!dragging)settle(hadState&&locked!=null);
+            drawn=shown();
             setContentDescription(locked==null?"Electronic lock state unavailable":"Electronic lock, "+(locked?"locked":"unlocked")+". Double-tap or slide to "+(locked?"unlock":"lock"));
             if(Build.VERSION.SDK_INT>=30)setStateDescription(locked==null?"Unavailable":locked?"Locked":"Unlocked");
             invalidate();
@@ -993,7 +1018,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         /** Position is visual only. Value/accessibility always reflect the last confirmed report. */
         private void settle(boolean animate){
             cancelMotion();
-            final float target=Boolean.TRUE.equals(value)?1:0;
+            final float target=Boolean.TRUE.equals(shown())?1:0;
             if(!animate||!resumed||!isAttachedToWindow()||!isShown()||!Ui.motionEnabled()||Math.abs(target-position)<.001f){position=target;trail.clear();invalidate();return;}
             motion=android.animation.ValueAnimator.ofFloat(position,target);
             motion.setDuration(180);motion.setInterpolator(new android.view.animation.PathInterpolator(.2f,0,0,1));
@@ -1002,7 +1027,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /** Moves the drawn thumb only; the trail samples it while motion is allowed. */
         private void move(float next){position=next;if(available&&Ui.motionEnabled())trail.record(next,SystemClock.uptimeMillis());else trail.clear();invalidate();}
-        void stopMotion(){cancelMotion();dragging=false;setPressed(false);releaseParent();position=Boolean.TRUE.equals(value)?1:0;trail.clear();invalidate();}
+        void stopMotion(){cancelMotion();dragging=false;setPressed(false);releaseParent();position=Boolean.TRUE.equals(shown())?1:0;trail.clear();invalidate();}
         @Override protected void onDetachedFromWindow(){stopMotion();super.onDetachedFromWindow();}
         @Override protected void onWindowVisibilityChanged(int visibility){super.onWindowVisibilityChanged(visibility);if(visibility!=VISIBLE)stopMotion();}
         @Override public CharSequence getAccessibilityClassName(){return Switch.class.getName();}
@@ -1025,13 +1050,13 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(head.measureText(state)>right-left)head.setTextSize(design.sp(13));
             Paint.FontMetrics metrics=head.getFontMetrics();
             if(metrics.descent-metrics.ascent>h||head.measureText(state)>right-left)return false;
-            head.setColor(!available?design.dim:Boolean.FALSE.equals(value)?design.danger:design.text);head.setAlpha(alpha);
+            head.setColor(!available?design.dim:Boolean.FALSE.equals(shown())?design.danger:design.text);head.setAlpha(alpha);
             canvas.drawText(state,(left+right)/2,h/2-(metrics.ascent+metrics.descent)/2,head);
             return true;
         }
         /** Locked: white knob on the right. Unlocked: red knob on the left. Tap anywhere or slide to change. */
         @Override protected void onDraw(Canvas canvas){
-            super.onDraw(canvas);float x=0,y=0,w=getWidth(),h=getHeight();if(w<=0||h<=0)return;
+            super.onDraw(canvas);float x=0,y=0,w=getWidth(),h=getHeight();if(w<=0||h<=0)return;Boolean value=shown();
             boolean locked=Boolean.TRUE.equals(value),unlocked=Boolean.FALSE.equals(value);
             // Lock bar: the slider is the card, so it reaches the cell edges with the cards' 20 dp corners.
             float edge=compact?design.dp(1)/2f:design.dp(1);
