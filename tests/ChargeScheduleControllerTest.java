@@ -436,6 +436,21 @@ public final class ChargeScheduleControllerTest {
         Rig changed=manualAt41();long moved=time("2026-10-21T11:00:00Z");changed.c.wireStart=moved/1000-6*3600;pastStart(changed,41d);
         check(changed.controller.view().missed!=null&&changed.controller.view().missed.startWallMs==time("2026-10-20T11:00:00Z"),"a start the scooter moved after missing it is still reported with its original time");
         check(changed.controller.view().manualEnabled&&changed.controller.view().startWallMs==moved,"the moved native schedule is shown as the scooter reports it");
+        check(changed.controller.view().missed.armedSoc==41&&changed.controller.view().missed.soc==41&&changed.controller.diagnostics().outcomeArmedSoc==41,
+                "the moved start keeps the missed intention's own arming battery");
+        changed.recreate();check(changed.controller.view().missed.armedSoc==41,"the missed intention's arming battery survives a restart");
+        Rig editedAfter=manualAt41();pastStart(editedAfter,41d);editedAfter.c.soc=60d;editedAfter.c.charging=1;
+        editedAfter.controller.setManualStart(time("2026-10-21T11:00:00Z"),editedAfter.results::add);editedAfter.reply(true);
+        editedAfter.c.wireStart=editedAfter.sentTime/1000+editedAfter.sentOffset;editedAfter.reply(true);
+        check(editedAfter.controller.view().missed!=null&&editedAfter.controller.view().missed.armedSoc==41&&editedAfter.controller.view().missed.soc==41,
+                "editing Charge start after an unanswered miss does not rewrite that miss's battery levels");
+        Rig started=manualAt41();started.c.now=time("2026-10-20T11:02:00Z");started.c.sampleMs+=6*3600_000L;started.c.charging=1;started.controller.observe();
+        started.recreate();started.c.now+=30_000;started.c.sampleMs+=30_000;started.c.charging=0;started.c.soc=41d;started.controller.observe();
+        check(started.controller.view().missed==null&&!started.controller.view().manualEnabled&&started.controller.diagnostics().outcome==ChargeScheduleController.Outcome.START_PASSED,
+                "a start Volt saw charging, then stopping within the noise tolerance, is not a missed start, even across a restart");
+        Rig early=manualAt41();early.c.now=time("2026-10-20T10:59:00Z");early.c.charging=1;early.controller.observe();
+        early.c.now=time("2026-10-20T11:02:00Z");early.c.charging=0;early.controller.observe();
+        check(early.controller.view().missed!=null,"charging seen only before the start is not evidence that the start fired");
         Rig edited=manualAt41();edited.c.wireStart=moved/1000-6*3600;edited.c.now=time("2026-10-20T08:00:00Z");edited.controller.observe();
         check(edited.controller.view().missed==null&&edited.controller.diagnostics().outcome==ChargeScheduleController.Outcome.CHANGED_ON_SCOOTER,"an edit before the start is a change, not a miss");
 
@@ -460,10 +475,10 @@ public final class ChargeScheduleControllerTest {
         Rig v3=manualAt41();String old=legacy(v3.saved.get("owner-A"),13,"3");ChargeScheduleController.State decoded=ChargeScheduleController.decode(old);
         check(decoded.mode==1&&decoded.armedSoc==-1&&decoded.alert==0&&decoded.outcome==0,"version 3 records still decode, with no arming battery level");
         v3.saved.put("owner-A",old);v3.recreate();pastStart(v3,41d);check(v3.controller.view().missed==null&&!v3.controller.view().manualEnabled,"an upgraded schedule retires quietly");
-        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("4|")&&encoded.split("\\|",-1).length==22,"version 4 record");
+        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("4|")&&encoded.split("\\|",-1).length==24,"version 4 record");
         String active=encoded.replaceFirst("^4\\|0\\|","4|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
-        for(int field:new int[]{13,14,15,16,17,18,19,20,21}){
-            String[] v=active.split("\\|",-1);v[field]=field==13||field==17?"101":"9999999999999999";
+        for(int field:new int[]{13,14,15,16,17,18,19,20,21,22,23}){
+            String[] v=active.split("\\|",-1);v[field]=field==13||field==17||field==22?"101":field==23?"maybe":"9999999999999999";
             check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 4 field "+field+" rejected");
         }
         String[] alert=active.split("\\|",-1);alert[21]="3";check(ChargeScheduleController.decode(String.join("|",alert)).mode==0,"unknown alert state rejected");

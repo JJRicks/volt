@@ -45,13 +45,13 @@ public final class ChargeScheduleController {
         public final boolean doneBy, shown;
         public final long startWallMs;
         public final int soc, armedSoc;
-        private Missed(State s){doneBy=s.outcomeMode==2;shown=s.alert==ALERT_SHOWN;startWallMs=s.outcomeStart;soc=(int)Math.round(s.outcomeSoc);armedSoc=(int)Math.round(s.armedSoc);}
+        private Missed(State s){doneBy=s.outcomeMode==2;shown=s.alert==ALERT_SHOWN;startWallMs=s.outcomeStart;soc=(int)Math.round(s.outcomeSoc);armedSoc=(int)Math.round(s.outcomeArmedSoc);}
     }
     /** Numbers and enums only, for the redacted diagnostics bundle. Never a scope or other identity. */
     public static final class Diagnostics {
         public final int mode, outcomeMode, alert;
         public final long armedWallMs, startWallMs, deadlineWallMs, wireStart, outcomeWallMs, outcomeStartWallMs;
-        public final Integer clockOffsetSeconds, armedSoc, target, outcomeSoc, outcomeEnabled, readEnabled;
+        public final Integer clockOffsetSeconds, armedSoc, target, outcomeArmedSoc, outcomeSoc, outcomeEnabled, readEnabled;
         public final Long outcomeWireStart, readWireStart, readWallMs;
         public final Outcome outcome;
         private Diagnostics(State s,Context c){
@@ -59,7 +59,7 @@ public final class ChargeScheduleController {
             // The offset sent with the start is implied by the two; a pair from different writes is not reported.
             long offset=s.wire-Math.floorDiv(s.start,1000L);clockOffsetSeconds=s.wire>0&&s.start>0&&Math.abs(offset)<=18*3600?(int)offset:null;
             armedSoc=s.armedSoc<0?null:(int)Math.round(s.armedSoc);target=(int)Math.round(s.target);
-            outcome=Outcome.values()[s.outcome];outcomeWallMs=s.outcomeMs;outcomeStartWallMs=s.outcomeStart;outcomeSoc=s.outcomeSoc<0?null:(int)Math.round(s.outcomeSoc);
+            outcome=Outcome.values()[s.outcome];outcomeWallMs=s.outcomeMs;outcomeStartWallMs=s.outcomeStart;outcomeSoc=s.outcomeSoc<0?null:(int)Math.round(s.outcomeSoc);outcomeArmedSoc=s.outcomeArmedSoc<0?null:(int)Math.round(s.outcomeArmedSoc);
             outcomeEnabled=s.outcomeEnabled<0?null:s.outcomeEnabled;outcomeWireStart=s.outcomeWire<0?null:s.outcomeWire;
             boolean live=c.ready&&!c.scope.isEmpty();readEnabled=live&&c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:null;readWireStart=live?c.wireStart:null;readWallMs=live?c.now:null;
         }
@@ -91,14 +91,16 @@ public final class ChargeScheduleController {
         long start, manualStart, wire, deadline, armed, calculatedWire;
         double target=100, estimate, capturedSoc=-1;
         /** Battery at arming, for every mode; capturedSoc stays done-by's estimate guard. */
-        double armedSoc=-1, outcomeSoc=-1;
+        double armedSoc=-1, outcomeSoc=-1, outcomeArmedSoc=-1;
+        /** Volt saw this intention charging at or after its start: a later stop is not a missed start. */
+        boolean started;
         int outcome, outcomeMode, outcomeEnabled=-1, alert;
         long outcomeMs, outcomeStart, outcomeWire=-1;
         boolean retired;
         String status="";
         long earlyFirst, earlyLast;
         State copy(){State n=new State();n.mode=mode;n.minute=minute;n.start=start;n.manualStart=manualStart;n.wire=wire;n.deadline=deadline;n.armed=armed;n.calculatedWire=calculatedWire;n.target=target;n.estimate=estimate;n.capturedSoc=capturedSoc;n.retired=retired;n.status=status;
-            n.armedSoc=armedSoc;n.outcomeSoc=outcomeSoc;n.outcome=outcome;n.outcomeMode=outcomeMode;n.outcomeEnabled=outcomeEnabled;n.alert=alert;n.outcomeMs=outcomeMs;n.outcomeStart=outcomeStart;n.outcomeWire=outcomeWire;return n;}
+            n.armedSoc=armedSoc;n.outcomeSoc=outcomeSoc;n.outcomeArmedSoc=outcomeArmedSoc;n.started=started;n.outcome=outcome;n.outcomeMode=outcomeMode;n.outcomeEnabled=outcomeEnabled;n.alert=alert;n.outcomeMs=outcomeMs;n.outcomeStart=outcomeStart;n.outcomeWire=outcomeWire;return n;}
     }
     public static final class Plan {
         public final long deadlineWallMs, startWallMs;
@@ -146,7 +148,7 @@ public final class ChargeScheduleController {
                     &&s.wire!=s.calculatedWire&&c.wireStart!=s.calculatedWire;
             // A start that already passed without charging is still reported, even if the time then changed.
             if(s.mode!=0)settle(c,s,s.mode,missed(c,s)?Outcome.MISSED:Outcome.CHANGED_ON_SCOOTER);
-            s.mode=0;s.retired=false;s.start=fromWire(c.wireStart,offset);s.wire=c.wireStart;s.armedSoc=-1;
+            s.mode=0;s.retired=false;s.start=fromWire(c.wireStart,offset);s.wire=c.wireStart;s.armedSoc=-1;s.started=false;
             // Follow genuine manual edits made on the scooter/OEM app, but do not
             // mistake a late readback from our calculated write for a manual choice.
             if(manualContext)s.manualStart=s.start;
@@ -168,6 +170,7 @@ public final class ChargeScheduleController {
         }
         if(finite(c.soc)&&c.soc>=s.target){retire(c,s,"Charge target reached",Outcome.TARGET_REACHED);return;}
         if(c.charging==null)return;
+        if(c.charging==1&&c.now>=s.start&&!s.started){s.started=true;save(c,s);}
         boolean ended=c.now>=s.deadline+START_GRACE_MS;
         // The battery decides whether a passed start ever charged: no rise since arming is a missed
         // start, a rise is a charge that ran and stopped (unplugged or done), and unknown stays quiet.
@@ -188,18 +191,18 @@ public final class ChargeScheduleController {
         if(s.mode!=0)settle(c,s,s.mode,outcome);s.mode=0;s.retired=true;s.status=status;s.earlyFirst=s.earlyLast=0;save(c,s);
     }
     private static boolean missed(Context c,State s){
-        return s.mode!=0&&Integer.valueOf(0).equals(c.charging)&&c.now>=s.start+START_GRACE_MS
+        return s.mode!=0&&!s.started&&Integer.valueOf(0).equals(c.charging)&&c.now>=s.start+START_GRACE_MS
                 &&s.armedSoc>=0&&finite(c.soc)&&c.soc<s.target&&c.soc<=s.armedSoc+1;
     }
     /** Records how an armed intention ended, with the readback at that moment; a miss raises its one alert. */
     private static void settle(Context c,State s,int mode,Outcome outcome){
-        s.outcome=outcome.ordinal();s.outcomeMs=c.now;s.outcomeStart=s.start;s.outcomeMode=mode;s.outcomeSoc=finite(c.soc)&&c.soc>=0&&c.soc<=100?c.soc:-1;
+        s.outcome=outcome.ordinal();s.outcomeArmedSoc=s.armedSoc;s.outcomeMs=c.now;s.outcomeStart=s.start;s.outcomeMode=mode;s.outcomeSoc=finite(c.soc)&&c.soc>=0&&c.soc<=100?c.soc:-1;
         s.outcomeEnabled=c.enabled!=null&&(c.enabled==0||c.enabled==1)?c.enabled:-1;s.outcomeWire=c.wireStart!=null&&c.wireStart>=0&&c.wireStart<=0xffffffffL?c.wireStart:-1;
         if(outcome==Outcome.MISSED)s.alert=ALERT_PENDING;
     }
     /** Battery at arming from the freshest reading available; -1 when none is fresh. */
     private double armingSoc(Context c){Double now=context().soc;return finite(now)&&now>=0&&now<=100?now:finite(c.soc)&&c.soc>=0&&c.soc<=100?c.soc:-1;}
-    private static void newIntention(State s,double soc){s.armedSoc=soc;s.outcome=Outcome.NONE.ordinal();s.outcomeMs=0;s.outcomeStart=0;s.outcomeMode=0;s.outcomeSoc=-1;s.outcomeEnabled=-1;s.outcomeWire=-1;s.alert=ALERT_NONE;}
+    private static void newIntention(State s,double soc){s.armedSoc=soc;s.started=false;s.outcomeArmedSoc=-1;s.outcome=Outcome.NONE.ordinal();s.outcomeMs=0;s.outcomeStart=0;s.outcomeMode=0;s.outcomeSoc=-1;s.outcomeEnabled=-1;s.outcomeWire=-1;s.alert=ALERT_NONE;}
     /** The owner saw the dialog or notification for the current scooter's missed start. */
     public void missedShown(){Context c=context();State s=state(c);if(s.alert==ALERT_PENDING){s.alert=ALERT_SHOWN;save(c,s);}}
     public void acknowledgeMissed(){Context c=context();State s=state(c);if(s.alert!=ALERT_NONE){s.alert=ALERT_NONE;save(c,s);}}
@@ -354,7 +357,7 @@ public final class ChargeScheduleController {
                 // but never claim that the calculated deadline was successfully armed.
                 State s=state(c);boolean wasEnabled=s.mode!=0||Integer.valueOf(1).equals(c.enabled);
                 s.start=start;s.wire=start/1000+offset;s.mode=wasEnabled?1:0;s.retired=false;
-                s.deadline=start+24*60*60_000L;s.armed=context().now;s.armedSoc=armingSoc(c);save(c,s);
+                s.deadline=start+24*60*60_000L;s.armed=context().now;s.armedSoc=armingSoc(c);s.started=false;save(c,s);
                 if(!enable){commit.run();finishBusy();completion.accept(null);return;}
                 Context latest=context();
                 if(deadlineTarget!=null&&(!finite(latest.target)||!deadlineTarget.equals(latest.target))){
@@ -440,10 +443,10 @@ public final class ChargeScheduleController {
     private static boolean finite(Double n){return n!=null&&Double.isFinite(n);}
     private static boolean soc(double n){return Double.isFinite(n)&&n>=-1&&n<=100;}
     static String encode(State s){return "4|"+s.mode+"|"+s.minute+"|"+s.start+"|"+s.wire+"|"+s.deadline+"|"+s.armed+"|"+s.target+"|"+s.estimate+"|"+s.retired+"|"+s.manualStart+"|"+s.calculatedWire+"|"+s.capturedSoc
-            +"|"+s.armedSoc+"|"+s.outcome+"|"+s.outcomeMs+"|"+s.outcomeStart+"|"+s.outcomeSoc+"|"+s.outcomeMode+"|"+s.outcomeEnabled+"|"+s.outcomeWire+"|"+s.alert;}
+            +"|"+s.armedSoc+"|"+s.outcome+"|"+s.outcomeMs+"|"+s.outcomeStart+"|"+s.outcomeSoc+"|"+s.outcomeMode+"|"+s.outcomeEnabled+"|"+s.outcomeWire+"|"+s.alert+"|"+s.outcomeArmedSoc+"|"+s.started;}
     static State decode(String text){
         State s=new State();if(text==null)return s;
-        try{String[] v=text.split("\\|",-1);boolean legacy=v.length==10&&v[0].equals("1"),v2=v.length==11&&v[0].equals("2"),v3=v.length==13&&v[0].equals("3"),v4=v.length==22&&v[0].equals("4");if(!legacy&&!v2&&!v3&&!v4)return s;
+        try{String[] v=text.split("\\|",-1);boolean legacy=v.length==10&&v[0].equals("1"),v2=v.length==11&&v[0].equals("2"),v3=v.length==13&&v[0].equals("3"),v4=v.length==24&&v[0].equals("4");if(!legacy&&!v2&&!v3&&!v4)return s;
             State n=new State();n.mode=Integer.parseInt(v[1]);n.minute=Integer.parseInt(v[2]);n.start=Long.parseLong(v[3]);n.wire=Long.parseLong(v[4]);n.deadline=Long.parseLong(v[5]);n.armed=Long.parseLong(v[6]);n.target=Double.parseDouble(v[7]);n.estimate=Double.parseDouble(v[8]);n.retired=Boolean.parseBoolean(v[9]);
             // Version 1 did not save manual and calculated starts separately. Only
             // a record without a calculated estimate can safely supply that preference.
@@ -452,8 +455,9 @@ public final class ChargeScheduleController {
             n.capturedSoc=legacy||v2?-1:Double.parseDouble(v[12]);
             // Before version 4 nothing recorded the battery at arming or an outcome: never infer a miss.
             if(v4){n.armedSoc=Double.parseDouble(v[13]);n.outcome=Integer.parseInt(v[14]);n.outcomeMs=Long.parseLong(v[15]);n.outcomeStart=Long.parseLong(v[16]);n.outcomeSoc=Double.parseDouble(v[17]);
-                n.outcomeMode=Integer.parseInt(v[18]);n.outcomeEnabled=Integer.parseInt(v[19]);n.outcomeWire=Long.parseLong(v[20]);n.alert=Integer.parseInt(v[21]);
-                if(!soc(n.armedSoc)||!soc(n.outcomeSoc)||n.outcome<0||n.outcome>=Outcome.values().length||n.outcomeMs<0||n.outcomeMs>0xffffffffL*1000L||n.outcomeStart<0||n.outcomeStart>0xffffffffL*1000L||n.outcomeMode<0||n.outcomeMode>2
+                n.outcomeMode=Integer.parseInt(v[18]);n.outcomeEnabled=Integer.parseInt(v[19]);n.outcomeWire=Long.parseLong(v[20]);n.alert=Integer.parseInt(v[21]);n.outcomeArmedSoc=Double.parseDouble(v[22]);
+                if(!v[23].equals("true")&&!v[23].equals("false"))return s;n.started=Boolean.parseBoolean(v[23]);
+                if(!soc(n.armedSoc)||!soc(n.outcomeSoc)||!soc(n.outcomeArmedSoc)||n.outcome<0||n.outcome>=Outcome.values().length||n.outcomeMs<0||n.outcomeMs>0xffffffffL*1000L||n.outcomeStart<0||n.outcomeStart>0xffffffffL*1000L||n.outcomeMode<0||n.outcomeMode>2
                         ||n.outcomeEnabled<-1||n.outcomeEnabled>1||n.outcomeWire<-1||n.outcomeWire>0xffffffffL||n.alert<ALERT_NONE||n.alert>ALERT_SHOWN)return s;}
             if(n.mode<0||n.mode>2||n.minute<0||n.minute>=1440||n.start<0||n.start>0xffffffffL*1000L||n.manualStart<0||n.manualStart>0xffffffffL*1000L||n.wire<0||n.wire>0xffffffffL||n.calculatedWire<0||n.calculatedWire>0xffffffffL||n.deadline<0||n.deadline>0xffffffffL*1000L||n.armed<0||n.armed>0xffffffffL*1000L||!Double.isFinite(n.target)||n.target<=0||n.target>100||!Double.isFinite(n.estimate)||n.estimate<0||n.estimate>2880||!Double.isFinite(n.capturedSoc)||n.capturedSoc< -1||n.capturedSoc>100)return s;
             if(n.mode!=0&&(n.start==0||n.armed==0||n.deadline<n.start))return s;return n;

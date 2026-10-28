@@ -128,6 +128,7 @@ final class DiagnosticsBundle {
         if (d.outcome != ChargeScheduleController.Outcome.NONE) {
             m.put("outcome_wall_ms", d.outcomeWallMs); m.put("outcome_mode", SCHEDULE_MODES[d.outcomeMode]);
             if (d.outcomeStartWallMs > 0) m.put("outcome_start_wall_ms", d.outcomeStartWallMs);
+            if (d.outcomeArmedSoc != null) m.put("outcome_soc_at_arming", (long) d.outcomeArmedSoc);
             if (d.outcomeSoc != null) m.put("outcome_soc", (long) d.outcomeSoc);
             if (d.outcomeEnabled != null) m.put("outcome_enabled", (long) d.outcomeEnabled);
             if (d.outcomeWireStart != null) m.put("outcome_wire_start", d.outcomeWireStart);

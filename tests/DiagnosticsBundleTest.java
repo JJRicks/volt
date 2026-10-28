@@ -69,7 +69,7 @@ public final class DiagnosticsBundleTest {
     static ChargeScheduleController.Diagnostics schedule() {
         long start = WALL + 3_600_000L, wire = start / 1000 - 6 * 3600;
         String record = "4|0|480|" + start + "|" + wire + "|" + (start + 86_400_000L) + "|" + WALL + "|100.0|0.0|true|" + start + "|0|-1.0"
-                + "|41.0|" + ChargeScheduleController.Outcome.MISSED.ordinal() + "|" + (start + 130_000L) + "|" + start + "|41.0|1|1|" + wire + "|2";
+                + "|41.0|" + ChargeScheduleController.Outcome.MISSED.ordinal() + "|" + (start + 130_000L) + "|" + start + "|41.0|1|1|" + wire + "|2|41.0|false";
         ChargeScheduleController.Context c = new ChargeScheduleController.Context();
         c.scope = SERIAL; c.ready = true; c.now = start + 140_000L; c.enabled = 1; c.wireStart = wire; c.zone = TimeZone.getTimeZone("America/Boise");
         return new ChargeScheduleController(new ChargeScheduleController.Store() {
@@ -95,7 +95,7 @@ public final class DiagnosticsBundleTest {
                 "\"origin\": \"automatic_range_follow\"", "\"reason\": \"moving\"", "\"outcome\": \"unexpected_value\"",
                 "\"readings\": [", "\"key\": \"display_units\"", "\"key\": \"meter_version\"", "\"source\": \"0x70\"",
                 "\"charge_schedule\": {", "\"mode\": \"none\"", "\"wire_start\": " + ((WALL + 3_600_000L) / 1000 - 6 * 3600), "\"clock_offset_s\": -21600",
-                "\"soc_at_arming\": 41", "\"target\": 100", "\"outcome\": \"missed\"", "\"outcome_mode\": \"manual\"", "\"outcome_soc\": 41",
+                "\"soc_at_arming\": 41", "\"target\": 100", "\"outcome\": \"missed\"", "\"outcome_mode\": \"manual\"", "\"outcome_soc\": 41", "\"outcome_soc_at_arming\": 41",
                 "\"outcome_enabled\": 1", "\"alert\": \"shown\"", "\"readback\": {", "\"enabled\": 1"})
             require(json.contains(expected), "bundle holds " + expected);
         require(!json.contains("\"key\": \"pin\",\n          \"value\""), "the PIN event carries no value");
