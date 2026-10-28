@@ -126,7 +126,9 @@ public final class MainActivity extends Activity implements ScreenHost {
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
-    private AlertDialog scanDialog, controlDialog;
+    private AlertDialog scanDialog, controlDialog, missedStartDialog;
+    /** The missed start already offered during this visit; a later visit offers it again until answered. */
+    private long missedStartOffered;
     private AlertDialog quickMenuDialog;
     private MoreScreen quickMoreScreen;
     private final ArrayList<ControlRow> quickMenuRows = new ArrayList<>();
@@ -217,7 +219,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         rebuild();
     }
     @Override public void onResume(){
-        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;ScooterService.setUiVisible(true);fold.start();
+        super.onResume();if(startupRedirect || enteringMaintenance)return;resumed=true;missedStartOffered=0;ScooterService.setUiVisible(true);fold.start();
         observeConnectionFeedback(true);
         if(selectedPage.equals("more")){boolean expired=expireMoreSection(true);markMoreActive();if(expired)rebuild();}
         if(selectedPage.equals("stats")){boolean expired=expireStatsSection(true);markStatsActive();if(expired)rebuild();}
@@ -239,7 +241,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
@@ -315,7 +317,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
-        observeConnectionFeedback(false);maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeShowMissedStart();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -1839,6 +1841,24 @@ public final class MainActivity extends Activity implements ScreenHost {
                 .setNegativeButton("Stop measuring",(d,which)->{if(scooterService!=null)scooterService.cancelChargeMeasure();redraw();})
                 .create();
         controlDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+    }
+    /** A scheduled start that passed without charging: say so plainly and offer to turn the schedule off. */
+    private void maybeShowMissedStart(){
+        if(scooterService==null||!resumed||onboarding!=null||missedStartDialog!=null&&missedStartDialog.isShowing())return;
+        ChargeScheduleController.View charge=scooterService.chargeSchedule();ChargeScheduleController.Missed missed=charge.missed;
+        if(missed==null||charge.busy||missedStartOffered==missed.startWallMs)return;
+        missedStartOffered=missed.startWallMs;
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(scooterService.missedStartTitle(missed)).setMessage(scooterService.missedStartText(missed,true))
+                .setPositiveButton("Turn off schedule",(d,which)->{
+                    if(scooterService==null)return;
+                    // Failure keeps the alert, so the next visit offers it again.
+                    scooterService.turnOffMissedStart(result->{if(destroyed)return;toast(result!=null?result:"Schedule off. Charging starts now if the charger is plugged in.");redraw();});redraw();
+                })
+                .setNegativeButton("OK",(d,which)->{if(scooterService!=null)scooterService.acknowledgeMissedStart();})
+                .setOnCancelListener(d->{if(scooterService!=null)scooterService.acknowledgeMissedStart();})
+                .create();
+        missedStartDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+        scooterService.missedStartShown();
     }
     private void toggleManualCharge(){toggleManualCharge(true);}
     private void toggleManualCharge(boolean feedback){
