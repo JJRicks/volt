@@ -63,7 +63,7 @@ public final class ChargeScheduleValidation extends Instrumentation {
         controls();verifyOrdering();verifyUnplugged();verifyDisabledThumb(false);
         controls();main(()->service.ble.setSimulationCharging(true));settle();
         verifyStartupEstimateGuard();
-        verifyPickers();verifyStalePicker();verifyMeasureWindow();verifyPlanAndPausedControls();verifyManualAndQuickRefresh();
+        verifyPickers();verifyStalePicker();verifyMeasureWindow();verifyPlanAndPausedControls();verifyManualAndQuickRefresh();verifyScheduleTest();
         assertNoRadio();
         main(()->require(service.setSimulation(false),"Simulation did not stop"));
         for(String key:settings().getAll().keySet())require(!key.startsWith("charge_schedule_owned_"),"Simulation persisted a charging plan: "+key);
@@ -308,6 +308,59 @@ public final class ChargeScheduleValidation extends Instrumentation {
         require(response.get()==null,"Manual disable transaction failed: "+response.get());settle();
         checks.add("Existing manual charging remains usable without a connected charger and refreshes its switch/start-time rows");
     }
+    /** Test scheduled charging in the simulator: the instrumentation plays the scooter, pausing and resuming charging. */
+    private void verifyScheduleTest() throws Exception {
+        AtomicReference<String> response=new AtomicReference<>("pending");long preferred=Math.floorDiv(System.currentTimeMillis()+5*60*60_000L,60_000L)*60_000L;
+        main(()->service.setManualChargeStart(preferred,response::set));await(()->!"pending".equals(response.get()),"Manual start did not finish");require(response.get()==null,"Manual start failed");
+        main(()->service.ble.setSimulationCharging(true));controls();
+        main(()->{View line=root().findViewWithTag("schedule-test-row");require(line!=null&&line.isShown(),"Test row missing on the UT5 MAX");
+            reveal(line);require(line.getAlpha()==1f&&service.chargeSchedule().testBlockedReason==null,"Test row blocked while charging with no schedule: "+service.chargeSchedule().testBlockedReason+" alpha "+line.getAlpha());
+            line.performClick();});settle();
+        main(()->{AlertDialog dialog=(AlertDialog)field(activity,"controlDialog");require(dialog.isShowing(),"No confirmation dialog");
+            require(texts(dialog.getWindow().getDecorView()).contains("resume in about 2 minutes"),"Confirmation does not explain the pause");});
+        shot("schedule-test-confirm");
+        main(()->((AlertDialog)field(activity,"controlDialog")).getButton(AlertDialog.BUTTON_POSITIVE).performClick());
+        await(()->service.chargeSchedule().testPhase==ChargeScheduleTest.Phase.PAUSING,"Test did not arm");
+        main(()->require(Integer.valueOf(1).equals(service.ble.featureValue("timed_charging"))&&service.chargeSchedule().manualStartWallMs==preferred,"Armed test changed the manual preference or left the schedule off"));
+        main(()->service.ble.setSimulationCharging(false));await(()->service.chargeSchedule().testPhase==ChargeScheduleTest.Phase.WAITING,"Pause not seen");
+        main(activity::redraw);settle();main(()->reveal(root().findViewWithTag("schedule-test-row")));
+        main(()->{View line=root().findViewWithTag("schedule-test-row");require(texts(line).contains("Resumes in"),"Row shows no countdown: "+texts(line));});
+        shot("schedule-test-progress");
+        boolean pass="true".equals(args.getString("schedule_test_pass"));
+        if(pass){long start=service.chargeSchedule().testStartWallMs;while(System.currentTimeMillis()<start+3000)SystemClock.sleep(500);}
+        main(()->service.ble.setSimulationCharging(true));
+        await(()->!service.scheduleTesting(),"Test did not end");
+        await(()->{Object dialog=field(activity,"scheduleTestDialog");return dialog!=null&&((AlertDialog)dialog).isShowing();},"No result dialog");
+        main(()->{String text=texts(((AlertDialog)field(activity,"scheduleTestDialog")).getWindow().getDecorView());
+            require(pass?text.contains("The scooter's clock and schedule work. Charging resumed")&&text.contains("after the start"):text.contains("before the start, so the scooter's clock may be ahead"),"Unexpected result: "+text);});
+        shot(pass?"schedule-test-result-pass":"schedule-test-result-early");
+        main(()->((AlertDialog)field(activity,"scheduleTestDialog")).getButton(AlertDialog.BUTTON_POSITIVE).performClick());settle();
+        main(()->{ChargeScheduleController.View v=service.chargeSchedule();
+            require(!v.manualEnabled&&!v.doneByEnabled&&Integer.valueOf(0).equals(service.ble.featureValue("timed_charging")),"Test left a schedule on");
+            require(v.manualStartWallMs==preferred&&v.lastTest==(pass?ChargeScheduleTest.Outcome.PASSED:ChargeScheduleTest.Outcome.RESUMED_EARLY),"Manual preference not restored or result not kept");});
+        checks.add("Test scheduled charging arms through the schedule transaction, shows a countdown, reports "+(pass?"a pass":"an early resume")+", and ends with the schedule off and Charge start restored");
+        // Cancel: the same OFF and restore, a toast instead of a dialog.
+        main(()->require(service.startScheduleTest()==null,"Second test did not start"));
+        await(()->service.chargeSchedule().testPhase==ChargeScheduleTest.Phase.PAUSING,"Second test did not arm");
+        main(()->service.ble.setSimulationCharging(false));await(()->service.chargeSchedule().testPhase==ChargeScheduleTest.Phase.WAITING,"Second pause not seen");
+        main(()->invoke(activity,"scheduleTestAction"));settle();
+        main(()->require(texts(((AlertDialog)field(activity,"controlDialog")).getWindow().getDecorView()).contains("Cancel test turns the schedule off"),"Running test dialog missing"));
+        shot("schedule-test-running");
+        main(()->((AlertDialog)field(activity,"controlDialog")).getButton(AlertDialog.BUTTON_NEGATIVE).performClick());
+        await(()->!service.scheduleTesting(),"Cancel did not end the test");main(()->service.ble.setSimulationCharging(true));settle();
+        main(()->{ChargeScheduleController.View v=service.chargeSchedule();
+            require(service.pendingScheduleTest()==null&&v.lastTest==ChargeScheduleTest.Outcome.CANCELLED&&v.manualStartWallMs==preferred&&!v.manualEnabled
+                    &&Integer.valueOf(0).equals(service.ble.featureValue("timed_charging")),"Cancel left a schedule or a dialog behind");});
+        main(()->service.ble.setSimulationCharging(false));SystemClock.sleep(3600);main(activity::redraw);settle();main(()->reveal(root().findViewWithTag("schedule-test-row")));
+        main(()->{View line=root().findViewWithTag("schedule-test-row");require(line.getAlpha()<1f&&texts(line).contains("Connect a charger first"),"Blocked test row does not say why: "+texts(line));});
+        shot("schedule-test-blocked");main(()->service.ble.setSimulationCharging(true));settle();
+        checks.add("Cancel test turns the schedule off and restores Charge start; without charging the row is greyed with its reason");
+    }
+    /** Scrolls a row to a third of the screen, clear of the bottom bar. */
+    private void reveal(View view){View parent=view;while(parent!=null&&!(parent instanceof android.widget.ScrollView))parent=parent.getParent() instanceof View?(View)parent.getParent():null;
+        if(parent==null)return;Rect r=new Rect();view.getDrawingRect(r);((ViewGroup)parent).offsetDescendantRectToMyCoords(view,r);parent.scrollTo(0,Math.max(0,r.top-parent.getHeight()/3));}
+    /** Waits for the frame to draw before capturing it. */
+    private void shot(String label)throws Exception{settle();SystemClock.sleep(900);waitForIdleSync();screenshot(label);}
     private void controls(){main(()->{settings().edit().putString("scooter_section","").commit();invoke(activity,"select",new Class<?>[]{String.class},"home");});settle();main(()->invoke(activity,"select",new Class<?>[]{String.class},"controls"));settle();main(()->{service.ble.tickSimulation();activity.redraw();});settle();}
     private void home(){main(()->invoke(activity,"select",new Class<?>[]{String.class},"home"));settle();}
     private Object control(String key){for(Object row:(List<?>)field(field(activity,"screen"),"rows"))if(((ScooterCommands.Feature)field(row,"feature")).key.equals(key))return row;throw new IllegalStateException("Missing "+key);}

@@ -110,7 +110,7 @@ final class DiagnosticsBundle {
     private static final String[] SCHEDULE_MODES = {"none", "manual", "done_by"}, ALERTS = {"none", "pending", "shown"};
     /**
      * The selected scooter's charging schedule record (ChargeScheduleController.Diagnostics): times, the wire start and
-     * clock offset sent, battery percentages and enums. It has no scope or other identity; null when no scooter is selected.
+     * clock offset sent, battery percentages, enums and the last Scheduled charging test. It has no scope or other identity; null when no scooter is selected.
      * Its writes and their readback outcomes are already in command_log (clock_sync, charge_start, timed_charging).
      */
     DiagnosticsBundle chargeSchedule(ChargeScheduleController.Diagnostics d) {
@@ -134,6 +134,15 @@ final class DiagnosticsBundle {
             if (d.outcomeWireStart != null) m.put("outcome_wire_start", d.outcomeWireStart);
         }
         m.put("alert", ALERTS[d.alert]);
+        if (d.testOutcome != ChargeScheduleTest.Outcome.NONE) {
+            // The last Scheduled charging test: resume minus start in seconds, and whether OFF was confirmed afterwards.
+            Map<String, Object> t = new LinkedHashMap<>();
+            t.put("wall_ms", d.testWallMs); t.put("start_wall_ms", d.testStartWallMs); t.put("outcome", lower(d.testOutcome));
+            if (d.testOffsetSeconds != null) t.put("offset_s", (long) d.testOffsetSeconds);
+            t.put("paused", d.testPaused);
+            if (d.testScheduleOff != null) t.put("schedule_off", (long) d.testScheduleOff);
+            m.put("test", t);
+        }
         if (d.readWallMs != null) {
             Map<String, Object> r = new LinkedHashMap<>();
             r.put("wall_ms", d.readWallMs);

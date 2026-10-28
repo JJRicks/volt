@@ -37,7 +37,7 @@ public final class ChargeScheduleControllerTest {
         void recreate(){controller=new ChargeScheduleController(this,this);}
     }
     public static void main(String[] args){
-        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();
+        planner();transactions();reconciliation();gating();startupEstimateGuard();persistence();preferences();restoration();externalManualEdits();connectedPlanEdits();missedStarts();scheduleTests();
         System.out.println("ChargeScheduleControllerTest: "+checks+" assertions passed");
     }
     private static void planner(){
@@ -229,7 +229,7 @@ public final class ChargeScheduleControllerTest {
         check(ChargeScheduleController.decode(manualV1).manualStart==manual,"v1 genuine manual start migrates");
         check(ChargeScheduleController.decode(manualV1.replace("|0.0|false","|90.0|false")).manualStart==0,"v1 downgraded calculated schedule not mistaken for prior manual preference");
         ChargeScheduleController.State migrated=ChargeScheduleController.decode(manualV1);
-        check(ChargeScheduleController.encode(migrated).startsWith("4|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
+        check(ChargeScheduleController.encode(migrated).startsWith("5|")&&ChargeScheduleController.decode(ChargeScheduleController.encode(migrated)).manualStart==manual,"new schema roundtrips migrated preference");
         check(ChargeScheduleController.decode(ChargeScheduleController.encode(migrated).replace("|"+manual,"|-1")).mode==0,"invalid v3 timestamp rejected");
         String v2=legacy(ChargeScheduleController.encode(migrated),11,"2");
         check(ChargeScheduleController.decode(v2).manualStart==manual&&ChargeScheduleController.decode(v2).calculatedWire==0,"v2 manual preference remains readable");
@@ -475,14 +475,132 @@ public final class ChargeScheduleControllerTest {
         Rig v3=manualAt41();String old=legacy(v3.saved.get("owner-A"),13,"3");ChargeScheduleController.State decoded=ChargeScheduleController.decode(old);
         check(decoded.mode==1&&decoded.armedSoc==-1&&decoded.alert==0&&decoded.outcome==0,"version 3 records still decode, with no arming battery level");
         v3.saved.put("owner-A",old);v3.recreate();pastStart(v3,41d);check(v3.controller.view().missed==null&&!v3.controller.view().manualEnabled,"an upgraded schedule retires quietly");
-        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("4|")&&encoded.split("\\|",-1).length==24,"version 4 record");
-        String active=encoded.replaceFirst("^4\\|0\\|","4|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
+        String encoded=missed.saved.get("owner-A");check(encoded.startsWith("5|")&&encoded.split("\\|",-1).length==30,"version 5 record");
+        ChargeScheduleController.State fromV4=ChargeScheduleController.decode(legacy(encoded,24,"4"));
+        check(fromV4.outcome==ChargeScheduleController.Outcome.MISSED.ordinal()&&fromV4.outcomeArmedSoc==41&&fromV4.alert==missed.controller.diagnostics().alert&&fromV4.testOutcome==0,
+                "a version 4 record from #129 keeps its missed-start evidence and has no test");
+        String[] v4bad=legacy(encoded,24,"4").split("\\|",-1);v4bad[23]="maybe";check(ChargeScheduleController.decode(String.join("|",v4bad)).outcome==0,"invalid version 4 field rejected");
+        check(ChargeScheduleController.decode(legacy(encoded,30,"4")).outcome==0&&ChargeScheduleController.decode(legacy(encoded,24,"5")).outcome==0,"field counts must match their version");
+        String active=encoded.replaceFirst("^5\\|0\\|","5|1|");check(ChargeScheduleController.decode(active).mode==1,"fixture: the record is otherwise valid");
         for(int field:new int[]{13,14,15,16,17,18,19,20,21,22,23}){
             String[] v=active.split("\\|",-1);v[field]=field==13||field==17||field==22?"101":field==23?"maybe":"9999999999999999";
-            check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 4 field "+field+" rejected");
+            check(ChargeScheduleController.decode(String.join("|",v)).mode==0,"invalid version 5 field "+field+" rejected");
         }
         String[] alert=active.split("\\|",-1);alert[21]="3";check(ChargeScheduleController.decode(String.join("|",alert)).mode==0,"unknown alert state rejected");
         String[] outcome=active.split("\\|",-1);outcome[14]=Integer.toString(ChargeScheduleController.Outcome.values().length);check(ChargeScheduleController.decode(String.join("|",outcome)).mode==0,"unknown outcome rejected");
         Rig empty=new Rig();empty.c.scope="";check(empty.controller.diagnostics()==null,"no scooter, no schedule record");
+    }
+
+    /** A test armed on a scooter with a manual Charge start preference (11:00Z), ON confirmed and still charging. */
+    private static final List<ChargeScheduleController.TestResult> tested=new ArrayList<>();
+    private static Rig testing(){
+        Rig r=withManualOnly();tested.clear();
+        check(r.controller.startTest(tested::add)==null,"the test starts");check(r.controller.testing()&&r.controller.view().testPhase==ChargeScheduleTest.Phase.ARMING,"arming");
+        check(r.writes.equals(java.util.Arrays.asList("clock")),"the usual transaction: clock first");r.reply(true);
+        check(r.writes.get(1).equals("time")&&r.sentTime==time("2026-10-20T05:02:00Z")&&r.sentTime==ChargeScheduleTest.start(r.c.now),"time second: two minutes ahead, a whole minute");
+        r.c.wireStart=r.sentTime/1000+r.sentOffset;r.reply(true);check(r.writes.get(2).equals("on"),"ON last");r.c.enabled=1;r.reply(true);
+        ChargeScheduleController.View v=r.controller.view();
+        check(v.testPhase==ChargeScheduleTest.Phase.PAUSING&&v.testStartWallMs==r.sentTime&&tested.isEmpty(),"armed, waiting for the pause");
+        check(v.manualEnabled&&v.manualStartWallMs==time("2026-10-20T11:00:00Z"),"tracked as a Volt manual intention, the owner's preference untouched");
+        check(v.manualBlockedReason.equals("Wait for the schedule test to finish")&&v.doneByBlockedReason.equals("Wait for the schedule test to finish")&&v.testBlockedReason==null,"other schedule controls wait for the test");
+        r.writes.clear();return r;
+    }
+    private static void at(Rig r,long wall,Integer charging){r.c.sampleMs+=wall-r.c.now;r.c.now=wall;r.c.charging=charging;r.controller.observe();}
+    /** OFF, then the 11:00Z preference restored (clock and time), never ON. */
+    private static void cleanup(Rig r,String message){
+        check(r.writes.equals(java.util.Arrays.asList("off")),message+": the verdict sends OFF first");r.c.enabled=0;r.reply(true);
+        check(r.writes.equals(java.util.Arrays.asList("off","clock")),message+": then restores the clock");r.reply(true);
+        check(r.writes.get(2).equals("time")&&r.sentTime==time("2026-10-20T11:00:00Z"),message+": and the owner's Charge start");r.c.wireStart=r.sentTime/1000+r.sentOffset;r.reply(true);
+        ChargeScheduleController.View v=r.controller.view();
+        check(r.writes.size()==3&&!r.controller.testing()&&!r.controller.busy()&&!v.manualEnabled&&!v.doneByEnabled&&v.manualStartWallMs==time("2026-10-20T11:00:00Z"),message+": schedule off, preference kept, test over");
+        check(tested.size()==1&&tested.get(0).scheduleOff&&tested.get(0).cleanup==null,message+": one clean result");
+    }
+    private static void scheduleTests(){
+        long start=time("2026-10-20T05:02:00Z");
+        Rig offFails=testing();at(offFails,start-110_000,0);at(offFails,start+6_000,1);check(offFails.writes.equals(java.util.Arrays.asList("off")),"verdict sends OFF");offFails.reply(false);
+        offFails.recreate();at(offFails,start+130_000,0);offFails.c.soc=79d;offFails.controller.observe();
+        check(offFails.controller.view().missed==null,"a resume the test saw is never later called a missed start, even after a failed OFF and a restart");
+        Rig lostOff=testing();at(lostOff,start-110_000,0);at(lostOff,start+6_000,1);lostOff.c.generation++;lostOff.controller.observe();lostOff.c.generation--;
+        lostOff.recreate();at(lostOff,start+130_000,0);
+        check(lostOff.controller.view().missed==null,"nor after the link drops while OFF is pending");
+        Rig earlyResume=testing();at(earlyResume,start-110_000,0);at(earlyResume,start-20_000,1);earlyResume.reply(false);earlyResume.recreate();at(earlyResume,start+130_000,0);
+        check(earlyResume.controller.view().missed==null,"a resume inside the early pass window counts as the start too");
+        Rig pass=testing();at(pass,start-110_000,1);at(pass,start-100_000,0);check(pass.controller.view().testPhase==ChargeScheduleTest.Phase.WAITING&&pass.writes.isEmpty(),"paused: waiting for the start");
+        at(pass,start-40_000,0);check(pass.controller.view().manualEnabled&&pass.writes.isEmpty(),"a long pause before the start is not a missed start or anything else");
+        at(pass,start+6_000,1);cleanup(pass,"pass");
+        ChargeScheduleController.TestResult result=tested.get(0);
+        check(result.outcome==ChargeScheduleTest.Outcome.PASSED&&result.offsetSeconds==6&&result.paused&&result.startWallMs==start&&result.failure==null,"pass with its measured offset");
+        ChargeScheduleController.Diagnostics d=pass.controller.diagnostics();
+        check(d.testOutcome==ChargeScheduleTest.Outcome.PASSED&&d.testOffsetSeconds==6&&d.testPaused&&d.testScheduleOff==1&&d.testWallMs==time("2026-10-20T05:00:00Z")&&d.testStartWallMs==start,"diagnostics keep the last test");
+        check(d.outcome==ChargeScheduleController.Outcome.TURNED_OFF&&d.alert==0,"the test's intention ended turned off, without an alert");
+        pass.recreate();check(pass.controller.view().lastTest==ChargeScheduleTest.Outcome.PASSED&&pass.controller.view().lastTestOffsetSeconds==6,"the last test survives a restart");
+        at(pass,start+600_000,0);check(pass.controller.view().missed==null&&pass.writes.size()==3,"nothing follows a finished test");
+
+        Rig early=testing();at(early,start-110_000,0);at(early,start-95_000,1);cleanup(early,"early");
+        check(tested.get(0).outcome==ChargeScheduleTest.Outcome.RESUMED_EARLY&&tested.get(0).offsetSeconds==-95,"an early resume reports how early");
+        Rig noPause=testing();at(noPause,time("2026-10-20T05:00:30Z"),1);check(noPause.writes.isEmpty(),"charging inside the pause window");
+        at(noPause,time("2026-10-20T05:01:00Z"),1);cleanup(noPause,"no pause");
+        check(tested.get(0).outcome==ChargeScheduleTest.Outcome.NO_PAUSE&&!tested.get(0).paused&&tested.get(0).offsetSeconds==null,"never paused");
+
+        Rig noResume=testing();at(noResume,start-100_000,0);for(long t=start-80_000;t<start+300_000;t+=20_000)at(noResume,t,0);
+        check(noResume.writes.isEmpty()&&noResume.controller.view().missed==null,"through the grace period a running test raises no missed-start alert");
+        at(noResume,start+300_000,0);cleanup(noResume,"no resume");check(tested.get(0).outcome==ChargeScheduleTest.Outcome.NO_RESUME&&tested.get(0).paused,"paused, never resumed");
+        check(noResume.controller.view().missed==null,"OFF confirmed: no missed-start alert follows");
+
+        Rig offFailed=testing();at(offFailed,start-100_000,0);at(offFailed,start+300_000,0);check(offFailed.writes.equals(java.util.Arrays.asList("off")),"OFF sent");offFailed.reply(false);
+        result=tested.get(0);check(result.outcome==ChargeScheduleTest.Outcome.NO_RESUME&&!result.scheduleOff&&result.cleanup.startsWith("Schedule cancellation was not confirmed")&&!offFailed.controller.testing(),"an unconfirmed OFF is reported plainly");
+        check(offFailed.writes.size()==1&&offFailed.controller.diagnostics().testScheduleOff==0,"nothing restored without OFF");
+        at(offFailed,start+310_000,0);ChargeScheduleController.Missed missed=offFailed.controller.view().missed;
+        check(missed!=null&&missed.test&&missed.startWallMs==start,"the tracked intention then raises the missed-start alert");
+        offFailed.controller.turnOffMissed(offFailed.results::add);check(offFailed.writes.get(1).equals("off"),"Turn off schedule sends OFF");offFailed.c.enabled=0;offFailed.reply(true);offFailed.reply(true);
+        check(offFailed.writes.get(3).equals("time")&&offFailed.sentTime==time("2026-10-20T11:00:00Z"),"turning off a test's missed start restores the Charge start too");
+
+        Rig cancel=testing();at(cancel,start-100_000,0);cancel.controller.cancelTest();cleanup(cancel,"cancel");check(tested.get(0).outcome==ChargeScheduleTest.Outcome.CANCELLED,"cancelled");
+        Rig cancelArming=withManualOnly();tested.clear();cancelArming.controller.startTest(tested::add);cancelArming.controller.cancelTest();cancelArming.reply(true);cancelArming.reply(true);cancelArming.c.enabled=1;cancelArming.reply(true);
+        cancelArming.writes.subList(0,3).clear();cleanup(cancelArming,"cancel while arming");check(tested.get(0).outcome==ChargeScheduleTest.Outcome.CANCELLED,"a cancel while arming ends once ON is confirmed");
+
+        Rig dropped=testing();at(dropped,start-100_000,0);dropped.c.generation++;at(dropped,start-90_000,0);
+        result=tested.get(0);check(result.outcome==ChargeScheduleTest.Outcome.INTERRUPTED&&!result.scheduleOff&&result.cleanup==null&&dropped.writes.isEmpty()&&!dropped.controller.testing(),"a new session interrupts without sending anything");
+        check(dropped.controller.view().manualEnabled&&dropped.controller.diagnostics().testScheduleOff==null,"the interrupted test stays a tracked intention");
+        at(dropped,start+130_000,0);check(dropped.controller.view().missed!=null&&dropped.controller.view().missed.test&&dropped.writes.isEmpty(),"on reconnect its missed start is alerted, with no command sent");
+        Rig away=testing();away.c.ready=false;at(away,start-100_000,null);check(tested.get(0).outcome==ChargeScheduleTest.Outcome.INTERRUPTED&&away.writes.isEmpty(),"a disconnect interrupts");
+        Rig closed=testing();closed.controller.cancel();check(tested.get(0).outcome==ChargeScheduleTest.Outcome.INTERRUPTED&&closed.writes.isEmpty()&&!closed.controller.testing(),"Volt closing interrupts");
+        Rig armingDrop=withManualOnly();tested.clear();armingDrop.controller.startTest(tested::add);armingDrop.c.generation++;armingDrop.reply(true);
+        check(tested.size()==1&&tested.get(0).outcome==ChargeScheduleTest.Outcome.INTERRUPTED&&armingDrop.writes.size()==1,"a new session while arming stops it there");
+        Rig running=testing();running.saved.put("owner-A",running.saved.get("owner-A"));String record=ChargeScheduleController.encode(ChargeScheduleController.decode(running.saved.get("owner-A")));
+        check(ChargeScheduleController.decode(running.saved.get("owner-A")).testOutcome==ChargeScheduleTest.Outcome.INTERRUPTED.ordinal(),"a running test found on load was cut off by the process ending");
+        check(record.split("\\|",-1).length==30,"version 5 record carries the test");
+
+        Rig clockFailed=withManualOnly();tested.clear();clockFailed.controller.startTest(tested::add);clockFailed.reply(false);
+        check(tested.get(0).outcome==ChargeScheduleTest.Outcome.NOT_STARTED&&tested.get(0).failure.startsWith("Could not set the scooter clock")&&clockFailed.writes.size()==1,"a refused clock changed nothing, so nothing is undone");
+        Rig timeFailed=withManualOnly();tested.clear();timeFailed.controller.startTest(tested::add);timeFailed.reply(true);timeFailed.reply(false);timeFailed.writes.subList(0,2).clear();cleanup(timeFailed,"unconfirmed time");
+        check(tested.get(0).outcome==ChargeScheduleTest.Outcome.NOT_STARTED&&tested.get(0).failure!=null,"an unconfirmed time is undone and reported");
+        Rig onFailed=withManualOnly();tested.clear();onFailed.controller.startTest(tested::add);onFailed.reply(true);onFailed.reply(true);onFailed.reply(false);onFailed.writes.subList(0,3).clear();cleanup(onFailed,"unconfirmed ON");
+
+        Rig nativeTime=new Rig();long nativeStart=time("2026-10-20T13:00:00Z");nativeTime.c.wireStart=nativeStart/1000-6*3600;tested.clear();
+        nativeTime.controller.startTest(tested::add);nativeTime.reply(true);nativeTime.reply(true);nativeTime.c.enabled=1;nativeTime.reply(true);nativeTime.writes.clear();
+        at(nativeTime,start-100_000,0);at(nativeTime,start,1);nativeTime.reply(true);nativeTime.reply(true);
+        check(nativeTime.sentTime==nativeStart&&nativeTime.controller.view().manualStartWallMs==nativeStart,"a native time set elsewhere is restored as the preference");nativeTime.reply(true);
+        Rig none=new Rig();tested.clear();none.controller.startTest(tested::add);none.reply(true);none.reply(true);none.c.enabled=1;none.reply(true);none.writes.clear();
+        at(none,start-100_000,0);at(none,start,1);none.reply(true);
+        check(none.writes.equals(java.util.Arrays.asList("off"))&&tested.get(0).scheduleOff&&none.controller.view().manualStartWallMs==0,"without a preference only OFF is sent and none is invented");
+
+        Rig gate=new Rig();gate.c.wholeHours=true;check("Not available on this model".equals(gate.controller.startTest(tested::add))&&gate.writes.isEmpty(),"other models schedule whole hours only");
+        gate.c.wholeHours=false;gate.c.charging=0;check("Connect a charger first".equals(gate.controller.view().testBlockedReason),"needs charging now");
+        gate.c.charging=null;check("Connect a charger first".equals(gate.controller.view().testBlockedReason),"needs a fresh charging reading");
+        gate.c.charging=1;gate.c.soc=100d;check("Battery is already at its charge limit".equals(gate.controller.view().testBlockedReason),"needs room below the limit");
+        gate.c.soc=null;check("Wait for fresh charging readings".equals(gate.controller.view().testBlockedReason),"needs a fresh battery level");
+        gate.c.soc=79d;gate.c.ready=false;check("Connect the scooter first".equals(gate.controller.view().testBlockedReason),"needs the scooter");
+        gate.c.ready=true;gate.c.enabled=1;check("Turn off Scheduled charging first".equals(gate.controller.view().testBlockedReason),"not over a schedule that is on");
+        gate.c.enabled=0;gate.c.timeReason="Charge start isn't available";check("Charge start isn't available".equals(gate.controller.view().testBlockedReason),"needs the charge start control");
+        gate.c.timeReason=null;check(gate.controller.view().testBlockedReason==null,"ready to test");
+        gate.arm();gate.c.charging=1;check("Turn off Charge done by first".equals(gate.controller.view().testBlockedReason),"not over Charge done by");
+        Rig busy=new Rig();busy.enable();check("Wait for the current change to finish".equals(busy.controller.startTest(tested::add)),"not during another change");
+        Rig twice=testing();check("Wait for the schedule test to finish".equals(twice.controller.startTest(tested::add))&&twice.writes.isEmpty(),"one test at a time");
+        Rig limit=testing();at(limit,start-100_000,0);limit.c.soc=100d;at(limit,start-90_000,0);check(limit.writes.equals(java.util.Arrays.asList("off")),"a charge limit reached mid-test still ends with OFF");
+
+        String[] v=pass.saved.get("owner-A").split("\\|",-1);
+        for(int field:new int[]{24,25,26,27,28,29}){String[] bad=v.clone();bad[field]=field==27?"99":field==28?"2":field==29?"maybe":"-1";
+            check(ChargeScheduleController.decode(String.join("|",bad)).testWall==0,"invalid test field "+field+" rejected");}
     }
 }
