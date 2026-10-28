@@ -1,3 +1,33 @@
+VOLT 1.9.0 — HIGH-SPEED CHARGE ESTIMATES, CHARGE DONE BY, GT3 MAX (versionCode 51)
+October 28, 2026
+
+- Full pure-Java suites, the owner-capture guard and the pinned Shizuku
+  dependency check pass on the release tree. The suites cover the UT5 MAX
+  high-speed taper model (voltage-headroom bulk stage, the charge's own taper
+  refit, the held personal finish, and its rejection of plateaus, low current
+  and missing baselines) and its replay of the owner's recorded charges, the
+  voltage check on saved finishing curves, Charge done by planning from the
+  displayed estimate plus one 20-minute buffer, the GT3 Max registry entry and
+  battery temperature in diagnostics.
+- run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
+  off): all 61 steps, each run alone with --only from a shared queue across four
+  freshly booted disposable emulators. All passed, motion-polish and
+  search-focus among them, with the hardening from this release's test fixes.
+- One step passed only on a rerun. launch-granted completed all of its checks,
+  then its cleanup timed out waiting for the launch activity to finish while
+  four emulators ran; it passed alone on a fresh emulator.
+- The release APK is signed with the project identity. Its certificate matches
+  the 1.8.1 release, and the signature and zip alignment verify. Its dex,
+  resources and manifest are identical to the build the sweep ran.
+- Physical scope: no new physical validation by Volt's developer for this
+  release. The high-speed estimate is calibrated and replayed on four recorded
+  charges from one owner's UT5 MAX and charger; that replay is retrospective,
+  not an independent validation. Charge done by has not been checked on a new
+  scheduled charge. The GT3 Max entry comes from a read-only owner report.
+  Automated checks sent no real scooter commands.
+
+--- Previous verification ---
+
 VOLT 1.8.1 — ST3 PRO OWNER-VERIFIED CONTROLS AND CLEARER REFUSALS (versionCode 50)
 October 26, 2026
 

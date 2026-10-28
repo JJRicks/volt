@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.8.1 (versionCode 50)
+Current version: 1.9.0 (versionCode 51)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,18 +25,21 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-UNRELEASED
+NEW IN 1.9.0
 ------------
 - UT5 MAX high-speed charges that reach the charger's voltage limit at an
   unusual battery percentage are estimated from pack voltage and current, not
   the live rate, which read 2-3 times too short in the taper. Personal
   estimates no longer briefly drop out when the percentage steps.
+- Charge done by plans from the displayed standard-charger estimate plus the
+  existing 20-minute buffer, not a second, more pessimistic estimate. Existing
+  scooter schedules stay as programmed until you change them.
 - Recognize and picture the GT3 Max (24182) from a read-only owner report;
   its controls retain their existing compatibility rules and evidence levels.
 - Include battery temperature in diagnostics and ignore unknown sign flags
   when interpreting current and temperature, while retaining the raw flags.
 
-NEW IN 1.8.1
+PREVIOUSLY IN 1.8.1
 ------------
 - ST3 Pro: traction control is an ordinary, verified control (owners' tries
   confirmed it; the official app doesn't map it there), and dashboard units,
