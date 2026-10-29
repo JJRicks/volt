@@ -155,19 +155,25 @@ public final class ParkedValidation extends Instrumentation {
         Map<String,View> sections=(Map<String,View>)field(screen,"sections");require(sections.size()==size,"Unexpected section catalogue size");
         for(Map.Entry<String,View> section:sections.entrySet())require(section.getValue().getVisibility()==(section.getKey().equals(selected)?View.VISIBLE:View.GONE),"Wrong section visibility: "+section.getKey()+" while "+selected+" selected");
     }
+    /** The screen's own rule for whether this scooter offers a row (an Experimental controls row such as the UT5 MAX's acceleration is not). */
+    private boolean rowOffered(Object screen,String key){
+        try{java.lang.reflect.Method offered=screen.getClass().getDeclaredMethod("rowOffered",String.class);offered.setAccessible(true);return Boolean.TRUE.equals(offered.invoke(screen,key));}
+        catch(ReflectiveOperationException e){throw new IllegalStateException("Cannot inspect rowOffered",e);}
+    }
     /** Scooter tab: null is the main page, "lights" the Lights page, otherwise a search query. */
     @SuppressWarnings("unchecked") private void assertControls(Object screen,String mode){
-        List<Object> rows=(List<Object>)field(screen,"rows");int shown=0;
+        List<Object> rows=(List<Object>)field(screen,"rows");int shown=0,offeredLights=0;
         for(Object row:rows){
             ScooterCommands.Feature feature=(ScooterCommands.Feature)field(row,"feature");View card=(View)field(row,"card");
             require(!feature.key.equals("maximum_speed"),"Maximum speed belongs to the top speed card, not a settings row");
             boolean zone=LINE_KEYS.contains(feature.key)||STAR_KEYS.contains(feature.key),light=zone||feature.key.equals("headlight")||feature.key.equals("auto_sensor");
-            boolean expected=mode==null?!zone:mode.equals("lights")?light:mode.equals("kickstart")&&feature.key.equals("start_speed");
-            require(card.isShown()==expected,"Unexpected control row visibility: "+feature.key);if(card.isShown())shown++;
+            boolean offered=rowOffered(screen,feature.key);if(offered&&light)offeredLights++;
+            boolean expected=offered&&(mode==null?!zone:mode.equals("lights")?light:mode.equals("kickstart")&&feature.key.equals("start_speed"));
+            require(card.isShown()==expected,"Unexpected control row visibility: "+feature.key+(offered?"":" (not offered here)"));if(card.isShown())shown++;
         }
         View topSpeed=(View)field(field(screen,"topSpeed"),"card");require(topSpeed.isShown()==(mode==null),"Unexpected top speed card visibility");
         if(mode==null)require(shown>0,"Scooter page has no settings rows");
-        else if(mode.equals("lights"))require(shown==LINE_KEYS.size()+STAR_KEYS.size()+2,"Lights page must show both headlight controls and every zone control");
+        else if(mode.equals("lights"))require(shown==offeredLights,"Lights page must show every offered headlight and zone control");
         else if(mode.equals("kickstart"))require(shown==1,"Kickstart search must show exactly the start-speed control");
         else require(shown==0,"No-match query left a control visible");
         Map<View,String[]> extras=(Map<View,String[]>)field(screen,"extras");View headlightRow=(View)field(screen,"headlightRow");
