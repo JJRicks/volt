@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- GT3 Max: Top speed and Kick-start speed now say **Unconfirmed here**. An owner's scooter accepted changes to both but kept its old value (top speed stayed 32 km/h, kick-start stayed 3). They stay available in case the scooter needs conditions Volt can't see, until a report shows a change kept.
 - Drive mode no longer flickers on scooters whose settings read carries another value in the mode's place, such as the GT3 Max, where it alternated between the real mode and 3. Volt now follows the scooter's live home report for the mode, as the official app does; the settings byte stays in diagnostics as its own reading. The GT3 Max's modes are named Drive, Sport and Walk, from an owner's report.
 - The lock switch moves the moment you tap or slide it, once Volt is connected, instead of waiting for the scooter. A tap made in the first moments after connecting, while the scooter is still sending its first readings or Volt is finishing an automatic setting, is now kept and sent as soon as the scooter accepts it, instead of being silently ignored. If the scooter refuses, doesn't confirm, or isn't ready within a few seconds, the switch goes back with a short message and a distinct vibration. Locking still waits for the scooter to report it is standing still.
 

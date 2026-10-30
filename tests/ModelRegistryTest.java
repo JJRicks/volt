@@ -197,6 +197,11 @@ public final class ModelRegistryTest {
         }
         // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
         check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
+        // The same owner's log: maximum speed and kick-start acknowledged, then read back unchanged.
+        check(ModelRegistry.unconfirmed(gt3,"maximum_speed")&&ModelRegistry.unconfirmed(gt3,"start_speed"),"GT3 Max top speed and kick-start are marked unconfirmed");
+        check(!ModelRegistry.unconfirmed(gt3,"headlight")&&!ModelRegistry.unconfirmed(gt3,null)&&!ModelRegistry.unconfirmed(sibling,"maximum_speed")
+            &&!ModelRegistry.unconfirmed(serial("Q2418ZZ9ES7777777"),"maximum_speed")&&!ModelRegistry.unconfirmed(advertised("2538"),"maximum_speed"),
+            "Only those controls, only on the exact advertised GT3 Max");
     }
 
     /** Photos bundled ahead of their Model ID: listed NAVEE models, shown on nothing yet, each ready to use once its ID is known. */

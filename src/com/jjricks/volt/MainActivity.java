@@ -2127,12 +2127,14 @@ public final class MainActivity extends Activity implements ScreenHost {
         }
         /**
          * Short caption for a connected row: why the control is refused (not the transient states the row
-         * already shows), else "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
+         * already shows), else "Unconfirmed here" where an owner saw this model keep its old value, else
+         * "Untested here" for an OEM-mapped control on another model. None on the UT5 MAX.
          */
         private String rowNote(BleController ble,CapabilityResolver.Decision d,boolean parked){
             if(ble==null||d==null||!ble.ready())return null;
             if(!d.available()&&!parked&&d.reason!=CapabilityResolver.Reason.BUSY&&d.reason!=CapabilityResolver.Reason.FIELD_ABSENT
                     &&d.reason!=CapabilityResolver.Reason.NOT_CONNECTED&&d.reason!=CapabilityResolver.Reason.STATUS_STALE)return d.reasonText();
+            if(ModelRegistry.unconfirmed(ble.descriptor(),feature.key))return "Unconfirmed here";
             return d.layer!=ModelRegistry.Layer.UT5_MAX&&d.evidence==CapabilityResolver.Evidence.OEM_MAPPED?"Untested here":null;
         }
         /** UT5 MAX swatches never change; colours beyond them (another model's table) show only while that model offers them. */
@@ -2280,6 +2282,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(pending&&index>=0&&Build.VERSION.SDK_INT>=30)buttons.get(index).setStateDescription("Confirming");
             // Without motion the pulse cannot show, so a one-word status stands in for it.
             String feedback=pending?(Ui.motionEnabled()&&index>=0?null:"Confirming…"):resultChip(ble,feature.key);
+            // An owner saw this model keep its old top speed after a change: say so until a report shows it kept.
+            if(feedback==null&&ready&&ModelRegistry.unconfirmed(ble.descriptor(),feature.key))feedback="Unconfirmed here";
             status.setText(feedback==null?"":feedback);status.setVisibility(feedback==null?View.GONE:View.VISIBLE);
             String state=ready+"|"+available+"|"+actual;
             if(!state.equals(styled)){styled=state;style(!ready,available,actual);}

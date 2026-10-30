@@ -135,6 +135,18 @@ public final class ModelRegistry {
         if(r.conflict)return null; // an unresolved identity keeps generic naming and evidence
         return r.layer==Layer.OEM_GROUP||r.layer==Layer.SHARED?KNOWN.get(d.rulePid()):null;
     }
+    /**
+     * Controls an owner's scooter acknowledged and then read back unchanged, by exact model. They stay offered (the
+     * scooter may need conditions Volt can't see) but say so until a report shows them kept. GT3 Max (24182, ES):
+     * maximum speed 25 read back 32 twice; kick-start 2 and 1 read back 3.
+     */
+    private static final Map<String,Set<String>> NOT_KEPT=new java.util.HashMap<>();
+    static{NOT_KEPT.put("24182",new HashSet<>(java.util.Arrays.asList("maximum_speed","start_speed")));}
+    /** True when an owner saw this exact model acknowledge a change to this control and keep its old value. */
+    public static boolean unconfirmed(DeviceDescriptor d,String feature){
+        Known t=known(d);if(t==null||feature==null)return false;
+        Set<String> keys=NOT_KEPT.get(d.rulePid());return keys!=null&&keys.contains(feature);
+    }
     /** Promotes an OEM-mapped control to Volt-verified on the exact model a tester checked it on. */
     private static Rule verifiedOn(Known t,String feature,Rule rule){
         if(t==null||!t.features.contains(feature)||rule.support!=CapabilityResolver.Support.KNOWN_ENCODING
