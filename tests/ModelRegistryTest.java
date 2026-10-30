@@ -161,6 +161,8 @@ public final class ModelRegistryTest {
             check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,"Naming the UT5 Ultra X changes no rule: "+f);
         }
         check(ModelRegistry.reported(ultra)&&ReportInvite.model(ultra).isEmpty()&&!ReportInvite.model(ultraSibling).isEmpty(),"The UT5 Ultra X is reported; its unreported siblings are still offered");
+        check(ModelRegistry.driveModeLabelProduct(advertised("24182"))==25462&&ModelRegistry.driveModeLabelProduct(advertised("24181"))==0,
+            "The GT3 Max's owner-reported codes (2 Drive, 3 Sport, 11 Walk) get names; its unreported sibling's stay raw");
         check(ModelRegistry.driveModeLabelProduct(ultra)==0,"The UT5 Ultra X's drive-mode codes stay unnamed until an owner reports them");
         check(ModelRegistry.ownerPhoto("UT5 Ultra X").equals("ut5ultrax"),"An owner's UT5 Ultra X answer gets its photo");
         // The XT5 Pro: named from an owner's report (24162, EU, group S), no photo yet; its full drive-mode cycle matches the GT5 Max.
@@ -193,7 +195,8 @@ public final class ModelRegistryTest {
             check(named.evidence==plain.evidence&&named.support==plain.support&&named.variant==plain.variant,
                 "Read-only GT3 report changes no control capability: "+f);
         }
-        check(ModelRegistry.driveModeLabelProduct(gt3)==0,"No drive-mode label inference from this report");
+        // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
+        check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
     }
 
     /** Photos bundled ahead of their Model ID: listed NAVEE models, shown on nothing yet, each ready to use once its ID is known. */

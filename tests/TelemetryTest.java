@@ -274,6 +274,18 @@ public final class TelemetryTest {
         model.accept(0x92, response(new byte[] {50, 2}), 250);
         near(2, model.number("driving_status"), "Ride status remains its own raw field");
         near(3, model.number("driving_mode"), "Separate ride status cannot overwrite the current mode");
+        // GT3 Max: the settings byte stays at its acceleration value (Eco 3) whatever the mode; 0x90 carries the real mode.
+        Telemetry gt3 = new Telemetry();
+        gt3.accept(0x90, response(new byte[] {0, 11}), 100);
+        gt3.accept(0x70, response(new byte[] {0, 3}), 200);
+        near(11, gt3.number("driving_mode"), "A newer settings byte never replaces the home report's mode once 0x90 reported");
+        near(3, gt3.number("settings_mode_raw"), "The settings byte stays visible as its own raw reading");
+        gt3.accept(0x90, response(new byte[] {0, 2}), 300);
+        gt3.accept(0x70, response(new byte[] {0, 3}), 400);
+        near(2, gt3.number("driving_mode"), "Drive stays Drive: no flicker back to 3");
+        gt3.clear();
+        gt3.accept(0x70, response(new byte[] {0, 3}), 500);
+        near(3, gt3.number("driving_mode"), "A fresh connection uses the settings byte until its first home report");
     }
 
     private static void firmwareSerialAndHistory() {

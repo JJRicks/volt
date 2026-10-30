@@ -102,6 +102,7 @@ final class ScooterReadingLabels {
             case "daytime_light": return "Daytime light (raw)";
             case "maximum_speed_setting": return "Max. speed setting (raw)";
             case "drive_mode_setting": return "Mode setting (raw)";
+            case "settings_mode_raw": return "Settings mode byte (raw)";
             case "scheduled_charge_time_raw": return "Charge schedule (raw)";
             case "charge_limit_percent": return "Charge limit";
             case "low_power": return "Low-battery mode (raw)";

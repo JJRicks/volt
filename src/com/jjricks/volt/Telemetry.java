@@ -75,6 +75,12 @@ public final class Telemetry {
     private final LinkedHashMap<String, Metric> readings = new LinkedHashMap<String, Metric>();
     private final LinkedHashMap<Integer, byte[]> rawFrames = new LinkedHashMap<Integer, byte[]>();
     private final LinkedHashMap<Integer, Integer> responseStatuses = new LinkedHashMap<Integer, Integer>();
+    /**
+     * A home report (0x90) carried the drive mode on this connection. The official app shows the mode only from 0x90; the
+     * settings read's byte 1 is its acceleration value on models that have one (Eco 3 on the GT3 Max, whatever the mode),
+     * so once 0x90 reports, the settings byte no longer replaces the mode.
+     */
+    private boolean homeMode;
     private Long rawVoltage;
     private Long rawCurrent;
     private Long rawTemperature;
@@ -117,6 +123,7 @@ public final class Telemetry {
         define("Ride", "stored_trips", "Stored trips");
 
         for (String[] setting : SETTINGS) define("Settings", setting[0], setting[1]);
+        define("Settings", "settings_mode_raw", "Settings read mode byte (raw)");
         define("Settings", "scheduled_charge_time_raw", "Scheduled charge time (raw timestamp)");
         define("Settings", "charge_limit_percent", "Charge limit");
         define("Settings", "low_power", "Low Battery Mode (raw)");
@@ -302,6 +309,7 @@ public final class Telemetry {
         }
         rawFrames.clear();
         responseStatuses.clear();
+        homeMode = false;
         rawVoltage = rawCurrent = rawTemperature = null;
         voltageCmd = currentCmd = temperatureCmd = -1;
         voltageMs = currentMs = temperatureMs = -1;
@@ -314,7 +322,8 @@ public final class Telemetry {
         for (int i = 0; i < SETTINGS.length; i++) {
             if (!has(data, i, 1)) continue;
             int value = data[i] & 255;
-            if (i == 2) lock(value, cmd, time);
+            if (i == 1) { raw("settings_mode_raw", value, cmd, time); if (!homeMode) raw("driving_mode", value, cmd, time); }
+            else if (i == 2) lock(value, cmd, time);
             else if (i == 7) put("display_units", value == 0 ? "Imperial (0)"
                     : value == 1 ? "Metric (1)" : value + " (raw)", (double) value, cmd, time);
             else raw(SETTINGS[i][0], value, cmd, time);
@@ -428,7 +437,7 @@ public final class Telemetry {
             put("warning_code", warning == 0 ? "None (0)" : "Code " + warning,
                     (double) warning, cmd, time);
         }
-        if (has(data, 1, 1)) raw("driving_mode", data[1] & 255, cmd, time);
+        if (has(data, 1, 1)) { homeMode = true; raw("driving_mode", data[1] & 255, cmd, time); }
         if (has(data, 2, 1)) percent("battery_percent", data[2] & 255, cmd, time);
         if (has(data, 3, 1)) batteryStatus(data[3] & 255, cmd, time);
         if (has(data, 4, 1)) raw("charging_state", data[4] & 255, cmd, time);
