@@ -178,7 +178,9 @@ public final class ParkedValidation extends Instrumentation {
         else require(shown==0,"No-match query left a control visible");
         Map<View,String[]> extras=(Map<View,String[]>)field(screen,"extras");View headlightRow=(View)field(screen,"headlightRow");
         // The read-only headlight row (switched by the power button) belongs to the Lights page only.
-        for(Map.Entry<View,String[]> e:extras.entrySet())require(e.getKey().isShown()==(e.getKey()==headlightRow?"lights".equals(mode):mode==null),"Unexpected extra settings row visibility");
+        // Battery alert rows show only for models without a native charge limit (never the UT5 MAX).
+        for(Map.Entry<View,String[]> e:extras.entrySet())require(e.getKey().isShown()==(e.getKey()==headlightRow?"lights".equals(mode)
+                :mode==null&&(!"charge-alert".equals(e.getKey().getTag())||service.chargeAlertsOffered())),"Unexpected extra settings row visibility");
         if("lights".equals(mode))require(findText(headlightRow,"Power button")!=null,"Lights page headlight row lost its Power button value");
     }
     /** Wide Stats keeps Readings in its own right-hand pane, so it has no Readings tab and that section is always shown. */
