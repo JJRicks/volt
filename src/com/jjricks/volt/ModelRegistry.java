@@ -866,12 +866,13 @@ public final class ModelRegistry {
     /**
      * Models whose drive-mode codes Volt names: the UT5 MAX (2538), the GT5 Max (25462) and the XT5 Pro (24162, same
      * codes) from owner reports, and the N65i (22131), assumed by the maintainer to match the GT5 Max until an owner
-     * reports otherwise; 0 keeps raw codes.
+     * reports otherwise, and the GT3 Max (24182), whose owner answered Drive 2, Sport 3, Walk 11; 0 keeps raw codes.
      */
     public static int driveModeLabelProduct(DeviceDescriptor d){
         if(ut5Max(d))return 2538;if(known(d)==null)return 0;
         // The XT5 Pro (24162) reported the same codes in a closed cycle: 11 Walk, 2 Drive, 3 Sport.
-        return "25462".equals(d.rulePid())||"22131".equals(d.rulePid())||"24162".equals(d.rulePid())?25462:0;
+        String pid=d.rulePid();
+        return "25462".equals(pid)||"22131".equals(pid)||"24162".equals(pid)||"24182".equals(pid)?25462:0;
     }
     public static int rangeFollowProduct(DeviceDescriptor d){return ut5Max(d)?2538:0;}
     public static String modelName(DeviceDescriptor d){if(ut5Max(d))return "UT5 MAX";Known t=known(d);return t!=null?t.name:ownerModel(d);}
