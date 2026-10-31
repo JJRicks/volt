@@ -83,6 +83,16 @@ public final class ChargeAlertPolicy {
     private long stoppedSince, watchSince, lostSince;
     private Integer lastPct;
     private boolean lastFresh;
+    /**
+     * A settings change, or an alert becoming deliverable, is measured against the next fresh reading first: what that
+     * reading has already reached counts as handled, so choosing a level (or turning delivery on) never fires by itself.
+     */
+    private boolean chargeBaseline, lowBaseline;
+    /** The previous step's effective on-states; null before the first step, which baselines nothing (a reconnect still alerts). */
+    private Boolean wasChargeOn, wasLowOn;
+    /** The previous step's fresh reading and when it ran: a change made between close steps is measured against it. */
+    private Integer stepPct, stepState;
+    private long stepMono;
 
     public ChargeAlertPolicy(Settings settings, State state) {
         this.settings = settings == null ? Settings.OFF : settings;this.state = state == null ? new State() : state;
@@ -109,10 +119,9 @@ public final class ChargeAlertPolicy {
         if (next.charge && (!settings.charge || next.chargeAt != settings.chargeAt) && state.session && state.bestPct >= next.chargeAt && state.firedAt < next.chargeAt) {
             state.firedAt = next.chargeAt;dirty = true;
         }
-        if (next.low && (!settings.low || next.lowBelow != settings.lowBelow)) {
-            boolean under = lastPct != null && lastPct < next.lowBelow;
-            if (under != state.lowLatched) { state.lowLatched = under;dirty = true; }
-        }
+        // Measured at the next step: against the reading just before this change when steps were running, else (the
+        // service doesn't step while alerts are off) against the next fresh reading.
+        chargeBaseline |= next.charge;lowBaseline |= next.low;
         settings = next;
         if (!next.charge || !next.notify && !next.alarm) idle();
     }
@@ -136,6 +145,26 @@ public final class ChargeAlertPolicy {
         Integer state01 = connected && fresh(charging, chargingMono, nowMono) && (charging == 0 || charging == 1) ? charging.intValue() : null;
         if (pct != null) lastPct = pct;
         lastFresh = pct != null;
+        if (wasChargeOn != null && chargeOn && !wasChargeOn) chargeBaseline = true;
+        if (wasLowOn != null && lowOn && !wasLowOn) lowBaseline = true;
+        wasChargeOn = chargeOn;wasLowOn = lowOn;
+        boolean continuous = stepPct != null && stepState != null && stepMono > 0 && nowMono >= stepMono && nowMono - stepMono <= FRESH_MS;
+        Integer basePct = continuous ? stepPct : pct, baseState = continuous ? stepState : state01;
+        if ((lowBaseline || chargeBaseline) && basePct != null && baseState != null) {
+            if (lowBaseline) {
+                boolean under = basePct < settings.lowBelow;
+                if (under != state.lowLatched) { state.lowLatched = under;dirty = true; }
+                lowBaseline = false;
+            }
+            // Same completion rule as firing: charging at or past the level, or stopped at 99%+ for Full. Still charging at 99%
+            // stays due, so a genuine finish later alerts.
+            if (chargeBaseline) {
+                boolean reached = baseState == 1 ? basePct >= settings.chargeAt : settings.chargeAt == 100 && basePct >= FULL_FROM;
+                if (state.session && reached && state.firedAt < settings.chargeAt) { state.firedAt = settings.chargeAt;dirty = true; }
+                chargeBaseline = false;
+            }
+        }
+        stepPct = pct != null && state01 != null ? pct : null;stepState = stepPct != null ? state01 : null;stepMono = nowMono;
         if (connected) { lostSince = 0;paused = false; } else if (lostSince == 0) lostSince = nowMono;
         if (pct != null && state01 != null) {
             // Unseen for longer than a charge lasts, or the phone clock jumped back: that charge can't be told from a new one.

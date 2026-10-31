@@ -37,6 +37,7 @@ public final class ChargeAlertPolicyTest {
         holds();
         gating();
         wording();
+        changesNeverFire();
         System.out.println("ChargeAlertPolicy: " + checks + " checks passed");
     }
 
@@ -277,6 +278,53 @@ public final class ChargeAlertPolicyTest {
         Rig r = new Rig(new Settings(true, 80, true, 20, true, true)); r.offered = false;
         check(r.at(0, 1, 50) == Event.NONE && !r.policy.watching() && r.at(10 * SEC, 1, 80) == Event.NONE && r.at(10 * SEC, 0, 10) == Event.NONE,
                 "Where the charge limit is offered, nothing ever fires or holds");
+    }
+
+    /** Codex's reproductions: choosing a level, or turning delivery on, never fires an alert by itself. */
+    private static void changesNeverFire() {
+        // The service doesn't step while alerts are off, so the policy has no reading when Low is switched on at 15%.
+        Rig idle = new Rig(Settings.OFF.delivery(true, true));
+        idle.policy.settings(idle.policy.settings().low(true, 20));
+        check(idle.at(SEC, 0, 15) == Event.NONE, "Enabling Low at 15% (never stepped while off) doesn't alarm");
+        check(idle.at(SEC, 0, 14) == Event.NONE, "Still under: latched, no alert");
+        check(idle.at(SEC, 0, 26) == Event.NONE && idle.at(SEC, 0, 19) == Event.LOW, "A genuine new crossing after re-arming still alerts");
+        // Delivery chosen after the alert: turning Notify me on at 15% doesn't fire either.
+        Rig noDelivery = new Rig(Settings.OFF.low(true, 20));
+        check(noDelivery.at(SEC, 0, 15) == Event.NONE, "No delivery: nothing to fire");
+        noDelivery.policy.settings(noDelivery.policy.settings().delivery(true, false));
+        check(noDelivery.at(SEC, 0, 15) == Event.NONE, "Turning Notify me on at 15% doesn't fire");
+        // Notifications allowed later (canNotify flips) is the same kind of change.
+        Rig blocked = new Rig(low(20)); blocked.canNotify = false;
+        check(blocked.at(SEC, 0, 15) == Event.NONE, "Notifications blocked: no delivery");
+        blocked.canNotify = true;
+        check(blocked.at(SEC, 0, 15) == Event.NONE, "Allowing notifications at 15% doesn't fire");
+        // A reconnect (a new policy) to an already low battery is not a settings change: it still alerts.
+        Rig reconnect = new Rig(low(20));
+        check(reconnect.at(SEC, 0, 15) == Event.LOW, "Connecting to a battery already under the level alerts");
+
+        // Full after a charge that stopped at 99%: moving the slider to Full doesn't fire on the same readings.
+        Rig stopped = new Rig(charge(80));
+        stopped.at(SEC, 1, 60);
+        check(stopped.at(SEC, 1, 80) == Event.CHARGE, "80% alert as usual");
+        check(stopped.at(SEC, 0, 99) == Event.NONE, "Stopped at 99%: no Full alert configured");
+        stopped.policy.settings(stopped.policy.settings().charge(true, 100));
+        check(stopped.at(SEC, 0, 99) == Event.NONE && stopped.at(SEC, 0, 99) == Event.NONE, "Choosing Full after it already stopped at 99% doesn't fire");
+        // Still charging at 99% when Full is chosen: the genuine finish later alerts.
+        Rig charging = new Rig(charge(80));
+        charging.at(SEC, 1, 60); charging.at(SEC, 1, 80);
+        check(charging.at(SEC, 1, 99) == Event.NONE, "Charging at 99%");
+        charging.policy.settings(charging.policy.settings().charge(true, 100));
+        check(charging.at(SEC, 1, 99) == Event.NONE, "Choosing Full while still charging at 99%: nothing yet");
+        check(charging.at(SEC, 1, 100) == Event.FULL, "Reaching 100% afterwards alerts Full");
+        Rig chargingStops = new Rig(charge(80));
+        chargingStops.at(SEC, 1, 60); chargingStops.at(SEC, 1, 80); chargingStops.at(SEC, 1, 99);
+        chargingStops.policy.settings(chargingStops.policy.settings().charge(true, 100));
+        check(chargingStops.at(SEC, 1, 99) == Event.NONE && chargingStops.at(SEC, 0, 99) == Event.FULL, "Or charging then stopping at 99% alerts Full");
+        // Lowering the level below a level already passed this charge: no alert from the edit.
+        Rig lowered = new Rig(charge(90));
+        lowered.at(SEC, 1, 60); lowered.at(SEC, 1, 85);
+        lowered.policy.settings(lowered.policy.settings().charge(true, 80));
+        check(lowered.at(SEC, 1, 85) == Event.NONE && lowered.at(SEC, 1, 90) == Event.NONE, "Lowering the level below the current charge doesn't fire");
     }
 
     private static void wording() {
