@@ -1,3 +1,34 @@
+VOLT 1.11.0 — BATTERY ALERTS, INSTANT LOCK SWITCH, DRIVE MODE FIX (versionCode 53)
+October 30, 2026
+
+- Full pure-Java suites, the owner-capture guard, the hardware sweep's
+  fake-adb tests and the pinned Shizuku dependency check pass on the release
+  tree. The suites cover the battery alert policy (once per charge, settings
+  changes never firing, low-battery hysteresis, model gating), the lock tap
+  queue (hold, expiry, riding refused), the drive mode from the home report,
+  and the GT3 Max unconfirmed controls.
+- run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
+  off): all 64 steps, each run alone with --only from a shared queue across four
+  freshly booted disposable emulators, including the new battery alert steps.
+  All passed on the first run.
+- Owner-present hardware sweep (run-hardware-sweep.py, first release use) on
+  the owner's Pixel 10 Pro Fold and parked UT5 MAX, with this release candidate
+  installed: snapshot, background lifecycle, clock sync, 23 settings changed,
+  read back and restored, the charging start time written and restored, and
+  lock and unlock all passed; nothing was left changed. Test scheduled charging
+  was skipped (not charging); the owner had run it by hand and it passed. The
+  read-only navigation check failed on stale test expectations (a maximum
+  speed row rule, fixed locally, then a Stats section rule), not on app
+  behavior; it will be updated separately.
+- The release APK is signed with the project identity. Its certificate matches
+  the 1.10.0 release, and the signature and zip alignment verify. Its dex,
+  resources and manifest are identical to the build the sweeps ran.
+- Physical scope: battery alerts are tested with simulated readings only; no
+  real charge on a scooter without a charge limit. The lock tap and drive mode
+  changes ran on the owner's UT5 MAX in normal use.
+
+--- Previous verification ---
+
 VOLT 1.10.0 — SCHEDULED CHARGE CHECKS AND SCHEDULE TEST (versionCode 52)
 October 28, 2026
 
