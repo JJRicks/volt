@@ -68,6 +68,10 @@ public final class BackupRegistryTest {
                 &&"abc-1".equals(schedule.profile("charge_schedule_owned_abc-1"))
                 &&"charge_schedule_owned_new".equals(schedule.rename("charge_schedule_owned_abc-1","new")),
                 "charging intentions are scooter-scoped settings and remap on restore");
+        BackupRegistry.Rule alerts=BackupRegistry.rule("app_settings","charge_alerts_abc-1"),alertState=BackupRegistry.rule("app_settings","charge_alert_state_abc-1");
+        check(alerts!=null&&BackupRegistry.SCOOTER_PREFERENCES.equals(alerts.category)&&"charge_alerts_new".equals(alerts.rename("charge_alerts_abc-1","new"))
+                &&alertState!=null&&alertState.excluded()&&"abc-1".equals(alertState.profile("charge_alert_state_abc-1")),
+                "battery alert choices are scooter preferences; the charge in progress stays on this phone");
         check(BackupRegistry.rule("app_settings","legacy_removed_key")==null,"unknown keys are unassigned");
         check(BackupRegistry.rule("app_settings","dashboard_restore_undo_v1_p").excluded()&&BackupRegistry.rule("onboarding","tick_x").excluded()&&BackupRegistry.rule("onboarding","onboarding_done").category.equals(BackupRegistry.SCOOTERS),"pending and wizard keys are excluded; setup completion travels with Scooters");
         check(BackupRegistry.rule("scooter","identity").replaceOnly&&!BackupRegistry.rule("profiles","items").replaceOnly,"legacy setup restores only by Replace everything");

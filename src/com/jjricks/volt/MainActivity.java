@@ -128,7 +128,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private long lastBodyRefreshMs;
     private boolean startupRedirect, enteringMaintenance;
     private int topInset,bottomInset,leftInset,rightInset;
-    private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog;
+    private AlertDialog scanDialog, controlDialog, missedStartDialog, scheduleTestDialog, chargeAlertDialog;
     /** The missed start already offered during this visit; a later visit offers it again until answered. */
     private long missedStartOffered;
     private AlertDialog quickMenuDialog;
@@ -243,7 +243,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         connectionHaptics.cancel();
         if(startupRedirect){destroyed=true;super.onDestroy();return;}
         if(Build.VERSION.SDK_INT>=33&&systemBack!=null)getOnBackInvokedDispatcher().unregisterOnBackInvokedCallback(systemBack);
-        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
+        destroyed=true;closeQuickMenu();pendingRideLocation=null;if(controlDialog!=null)controlDialog.dismiss();if(missedStartDialog!=null)missedStartDialog.dismiss();if(scheduleTestDialog!=null)scheduleTestDialog.dismiss();if(chargeAlertDialog!=null)chargeAlertDialog.dismiss();if(reportChecking&&scooterService!=null)scooterService.ble.stopDiscovery();reportChecking=false;if(reportDialog!=null)reportDialog.dismiss();bodyRefreshScheduled=false;handler.removeCallbacksAndMessages(null);fold.stop();preferences.unregisterOnSharedPreferenceChangeListener(settingsChanged);
         if(screen!=null)screen.close();if(scanDialog!=null)scanDialog.dismiss();
         if(scooterService!=null)scooterService.unlisten(serviceChanged);
         if(bound||binding)try{unbindService(serviceConnection);}catch(IllegalArgumentException ignored){}
@@ -319,7 +319,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void automaticRefresh(){
         if(destroyed||design==null)return;
         if(Looper.myLooper()!=Looper.getMainLooper()){handler.post(this::automaticRefresh);return;}
-        observeConnectionFeedback(false);maybeShowScheduleTestResult();maybeShowMissedStart();maybeInviteReport();maybeOfferConnectionReport();
+        observeConnectionFeedback(false);maybeShowScheduleTestResult();maybeShowMissedStart();maybeShowChargeAlert();maybeInviteReport();maybeOfferConnectionReport();
         if (displayedSimulation != (scooterService != null && scooterService.simulating())) {
             handler.removeCallbacks(settingsRebuild); handler.post(settingsRebuild); return;
         }
@@ -336,6 +336,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if (quickMoreScreen != null) quickMoreScreen.refresh();
         if (choiceSheet != null) choiceSheet.refresh();
         if (rangeSourceSheet != null) rangeSourceSheet.refresh();
+        if (chargeAlertSheet != null) chargeAlertSheet.refresh();
         if(resumed&&scooterService!=null&&scooterService.isRecording()&&Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED&&!preferences.getBoolean("notification_prompted",false)){preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);}
         boolean awake=resumed&&preferences.getBoolean("keep_screen_awake",true)&&scooterService!=null&&scooterService.isRecording();
         if(awake)getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
@@ -1320,6 +1321,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         private final View headlightRow,zonesRow,clockSpinner;
         private final SettingLine clockLine,chargerLine;
         private final ScheduleTestRow scheduleTest;
+        private final ChargeAlertRow chargeAlert,lowAlert;
         private final TopSpeedCard topSpeed;
         /** Two-column panes on wide screens; both null on a phone. */
         private final LinearLayout leftPane,rightPane;
@@ -1410,6 +1412,9 @@ public final class MainActivity extends Activity implements ScreenHost {
             chargerLine=new SettingLine("battery","Charger for estimates",null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
             chargerLine.line.setTag("estimate-charger-setting");chargerLine.value.setTag("estimate-charger-value");
             addRow("Battery",chargerLine.card);extras.put(chargerLine.card,new String[]{"Battery","charger for estimates automatic auto stock high speed charging time remaining"});
+            chargeAlert=new ChargeAlertRow(false);lowAlert=new ChargeAlertRow(true);
+            addRow("Battery",chargeAlert.row.card);extras.put(chargeAlert.row.card,new String[]{"Battery","charge alert battery alerts level reached full charged notify notification alarm sound"});
+            addRow("Battery",lowAlert.row.card);extras.put(lowAlert.row.card,new String[]{"Battery","low battery alert battery alerts notify notification alarm sound"});
             SettingLine security=new SettingLine("shield","PIN & proximity unlock",null);security.chevron(()->openMoreSection("Security"));
             addRow("Security",security.card);extras.put(security.card,new String[]{"Security","pin password proximity unlock pairing bluetooth bond security"});
             SettingLine identity=new SettingLine("pencil","Scooter name",null);identity.chevron(MainActivity.this::renameScooter);nameValue=identity.value;
@@ -1450,7 +1455,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             for(Map.Entry<View,String[]> e:extras.entrySet()){
                 String[] metadata=e.getValue();
                 boolean match=e.getKey()==zonesRow&&(lights||!zones)||e.getKey()==clockLine.card&&!offered("clock_sync")||e.getKey()==headlightRow&&!lights&&!searching||e.getKey()==scheduleTest.row.card&&!scheduleTestOffered()?false:searching?normalize(metadata[1]).contains(needle):onPage(metadata[0]);
-                if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered())match=false;
+                if("charge-done-by".equals(e.getKey().getTag())&&!chargeDoneOffered()||"charge-alert".equals(e.getKey().getTag())&&!chargeAlertsOffered())match=false;
                 e.getKey().setVisibility(match?View.VISIBLE:View.GONE);if(match){count++;visible.add(metadata[0]);}
             }
             boolean speed=topSpeedCard()&&(searching?TOP_SPEED_WORDS.contains(needle):!lights);
@@ -1502,7 +1507,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         @Override public void refresh(){
             for(ControlRow row:rows)row.refresh();
             for(ChargeDoneRow row:chargeRows)row.refresh();
-            scheduleTest.refresh();topSpeed.refresh();
+            scheduleTest.refresh();topSpeed.refresh();chargeAlert.refresh();lowAlert.refresh();
             BleController ble=scooterService==null?null:scooterService.ble;boolean ready=ble!=null&&ble.ready();
             boolean connecting=ble!=null&&!ready&&(ble.connected()||ble.state()==BleController.State.CONNECTING||ble.state()==BleController.State.AUTHENTICATING
                     ||ble.state()==BleController.State.SCANNING||ble.state()==BleController.State.WAITING);
@@ -1528,7 +1533,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             identifyAction.setVisibility(ble!=null&&ble.modelUnidentified()?View.VISIBLE:View.GONE);
             // Rows follow the model's decisions; re-filter when the set of mapped controls changes.
-            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0');
+            StringBuilder offered=new StringBuilder();for(ControlRow row:rows)offered.append(rowOffered(row.feature.key)?'1':'0');offered.append(offered("clock_sync")?'1':'0').append(topSpeedCard()?'1':'0').append(scheduleTestOffered()?'1':'0').append(chargeAlertsOffered()?'1':'0');
             if(!offered.toString().equals(offeredKeys)){offeredKeys=offered.toString();applyFilter();}
             boolean clockPending=ble!=null&&"clock_sync".equals(ble.pending());
             CapabilityResolver.Decision clockDecision=ble==null?null:ble.decision("clock_sync");
@@ -1816,6 +1821,176 @@ public final class MainActivity extends Activity implements ScreenHost {
             line.setClickable(true);line.setFocusable(true);line.setBackground(rowRipple());line.setOnClickListener(v->action.run());
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
+    }
+    private boolean chargeAlertsOffered(){return scooterService!=null&&scooterService.chargeAlertsOffered();}
+    /** Why an alert can't reach the owner now, or null; shared by the rows and the sheet. */
+    private String chargeAlertBlocked(ChargeAlertPolicy.Settings a){
+        if(!a.charge&&!a.low)return null;
+        if(!a.notify&&!a.alarm)return "Choose Notify me or Alarm sound";
+        if(scooterService!=null&&(!scooterService.alertWatchAllowed()||a.notify&&!a.alarm&&!scooterService.alertNotificationsAllowed()))return "Notifications are off";
+        return null;
+    }
+    /** Scooter › Battery, models without a native charge limit: one row per alert; both open the same sheet. */
+    private final class ChargeAlertRow {
+        final SettingLine row;final boolean low;
+        ChargeAlertRow(boolean low){
+            this.low=low;row=new SettingLine(low?"battery":"bolt",low?"Low battery alert":"Charge alert",null);
+            row.card.setTag("charge-alert");row.line.setTag(low?"charge-alert-low-row":"charge-alert-charge-row");row.value.setTag(low?"charge-alert-low-value":"charge-alert-charge-value");
+            row.chevron(MainActivity.this::showChargeAlerts);
+        }
+        void refresh(){
+            ChargeAlertPolicy.Settings a=scooterService==null?ChargeAlertPolicy.Settings.OFF:scooterService.chargeAlerts();
+            boolean on=low?a.low:a.charge;
+            String value=!on?"Off":low?"Below "+a.lowBelow+"%":ChargeAlertPolicy.levelText(a.chargeAt);
+            String sub=!on?null:chargeAlertBlocked(a);
+            if(sub==null&&on&&!low&&scooterService!=null&&scooterService.chargeAlertWatching())sub="Watching this charge";
+            if(!value.contentEquals(row.value.getText()))row.value.setText(value);
+            row.setSub(sub);row.sub.setTextColor(sub!=null&&!sub.startsWith("Watching")?design.danger:design.muted);
+            row.line.setContentDescription((low?"Low battery alert":"Charge alert")+", "+value+(sub==null?"":", "+sub));
+        }
+    }
+    private ChargeAlertSheet chargeAlertSheet;
+    private void showChargeAlerts(){
+        if(scooterService==null||scooterService.profiles.active()==null){toast("Choose a scooter first");return;}
+        if(!chargeAlertsOffered())return;
+        if(controlDialog!=null)controlDialog.dismiss();
+        chargeAlertSheet=new ChargeAlertSheet();
+    }
+    /** Volt's own per-scooter choices, saved as they change; nothing here sends a scooter command. */
+    private final class ChargeAlertSheet {
+        final String profile=scooterService.profiles.active().id;
+        final AlertDialog dialog;
+        final SettingLine chargeLine,lowLine,notifyLine,alarmLine;
+        final Switch charge,low,notify,alarm;
+        final SeekBar chargeLevel,lowLevel;
+        final View chargeLevels,lowLevels;
+        final TextView deliveryNote,permissionText,permissionAction;
+        final LinearLayout permission;
+        boolean dragging;
+        ChargeAlertSheet(){
+            final AlertDialog[] self=new AlertDialog[1];
+            LinearLayout body=sheetContent("Battery alerts","Volt checks the battery while it's connected to this scooter. Alerts stay on for every charge until you turn them off.",
+                    ()->{if(self[0]!=null)self[0].dismiss();});
+            body.setTag("charge-alert-sheet");
+            LinearLayout levels=design.groupCard();body.addView(levels,new LinearLayout.LayoutParams(-1,-2));
+            chargeLine=new SettingLine("bolt","Charge alert",null);charge=sheetSwitch(levels,chargeLine,"charge-alert-charge");
+            chargeLevel=levelSlider((ChargeAlertPolicy.CHARGE_MAX-ChargeAlertPolicy.CHARGE_MIN)/ChargeAlertPolicy.STEP,"Charge alert level","charge-alert-charge-level");
+            chargeLevels=levelRow(levels,chargeLevel,ChargeAlertPolicy.CHARGE_MIN+"%","Full");
+            design.divider(levels);
+            lowLine=new SettingLine("battery","Low battery alert",null);low=sheetSwitch(levels,lowLine,"charge-alert-low");
+            lowLevel=levelSlider((ChargeAlertPolicy.LOW_MAX-ChargeAlertPolicy.LOW_MIN)/ChargeAlertPolicy.STEP,"Low battery alert level","charge-alert-low-level");
+            lowLevels=levelRow(levels,lowLevel,ChargeAlertPolicy.LOW_MIN+"%",ChargeAlertPolicy.LOW_MAX+"%");
+            body.addView(design.sectionLabel("Alert me with"));
+            LinearLayout delivery=design.groupCard();body.addView(delivery,new LinearLayout.LayoutParams(-1,-2));
+            notifyLine=new SettingLine("screen","Notify me",null);notify=sheetSwitch(delivery,notifyLine,"charge-alert-notify");
+            design.divider(delivery);
+            alarmLine=new SettingLine("sound","Alarm sound","Your alarm sound, for up to a minute, even when notifications are silent");alarm=sheetSwitch(delivery,alarmLine,"charge-alert-alarm");
+            deliveryNote=design.caption("Turn on Notify me or Alarm sound to get alerts.");deliveryNote.setTextColor(design.danger);deliveryNote.setTag("charge-alert-delivery-note");
+            deliveryNote.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(deliveryNote);
+            // Notifications off: say what that means and take the owner to the one place that fixes it.
+            permission=row();permission.setGravity(Gravity.CENTER_VERTICAL);permission.setTag("charge-alert-permission");
+            permission.setPadding(design.dp(14),design.dp(4),design.dp(8),design.dp(4));permission.setMinimumHeight(design.dp(56));
+            permission.setBackground(design.shape(Ui.withAlpha(design.accent,design.dark?36:22),16,Ui.withAlpha(design.accent,design.dark?100:80)));
+            permissionText=design.text("",13,false);LinearLayout.LayoutParams pw=new LinearLayout.LayoutParams(0,-2,1);pw.rightMargin=design.dp(8);permission.addView(permissionText,pw);
+            permissionAction=pill("Allow",MainActivity.this::allowChargeAlertNotifications);permissionAction.setTag("charge-alert-allow");permission.addView(permissionAction);
+            LinearLayout.LayoutParams pp=new LinearLayout.LayoutParams(-1,-2);pp.topMargin=design.dp(12);body.addView(permission,pp);
+            TextView background=design.caption("While a charge alert waits, Volt stays connected in the background with a notification, for up to 12 hours. "
+                    +"The low battery alert needs Volt to be connected already.");
+            background.setPadding(design.dp(4),design.dp(12),design.dp(4),0);background.setTag("charge-alert-background");body.addView(background);
+            TextView saver=design.caption("Phones that close apps in the background, like Xiaomi, can stop the alert. In Volt's app settings, set battery use to No restrictions.");
+            saver.setPadding(design.dp(4),design.dp(8),design.dp(4),0);saver.setTag("charge-alert-battery-hint");body.addView(saver);
+            TextView settings=design.text("App settings",14,false);settings.setTypeface(design.medium());settings.setTextColor(design.accent);
+            settings.setMinHeight(design.dp(48));settings.setGravity(Gravity.CENTER_VERTICAL);settings.setPadding(design.dp(4),0,design.dp(4),0);
+            settings.setClickable(true);settings.setFocusable(true);settings.setContentDescription("Open Volt's app settings");settings.setTag("charge-alert-app-settings");
+            settings.setOnClickListener(v->openAppSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
+            body.addView(settings,new LinearLayout.LayoutParams(-2,-2));
+            dialog=showSheet(body);self[0]=dialog;controlDialog=dialog;
+            dialog.setOnDismissListener(d->{if(chargeAlertSheet==this)chargeAlertSheet=null;if(controlDialog==dialog)controlDialog=null;redraw();});
+            refresh();
+        }
+        Switch sheetSwitch(LinearLayout card,SettingLine line,String tag){
+            Switch toggle=new Haptics.FeedbackSwitch(MainActivity.this);toggle.setShowText(false);toggle.setMinHeight(design.dp(48));toggle.setMinimumWidth(design.dp(54));
+            design.styleSwitch(toggle);toggle.setTag(tag);toggle.setContentDescription(line.name.getText());
+            toggle.setOnClickListener(v->save());
+            LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.leftMargin=design.dp(10);line.line.addView(toggle,p);
+            line.line.setClickable(true);line.line.setFocusable(true);line.line.setBackground(rowRipple());line.line.setOnClickListener(v->toggle.performClick());
+            card.addView(line.card);return toggle;
+        }
+        SeekBar levelSlider(int steps,String label,String tag){
+            SeekBar slider=new SeekBar(MainActivity.this);slider.setMax(steps);slider.setTag(tag);slider.setContentDescription(label);
+            slider.setProgressTintList(ColorStateList.valueOf(design.accent));slider.setThumbTintList(ColorStateList.valueOf(design.accent));slider.setProgressBackgroundTintList(ColorStateList.valueOf(design.outline));
+            slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener(){
+                public void onStartTrackingTouch(SeekBar s){dragging=true;}
+                public void onProgressChanged(SeekBar s,int n,boolean user){if(!user)return;if(dragging)labels(chosen());else save();}
+                public void onStopTrackingTouch(SeekBar s){dragging=false;save();}
+            });
+            return slider;
+        }
+        View levelRow(LinearLayout card,SeekBar slider,String low,String high){
+            LinearLayout box=column();box.addView(slider,new LinearLayout.LayoutParams(-1,design.dp(48)));
+            LinearLayout ends=row();ends.setPadding(design.dp(4),0,design.dp(4),design.dp(8));ends.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
+            ends.addView(design.caption(low),new LinearLayout.LayoutParams(0,-2,1));TextView end=design.caption(high);end.setGravity(Gravity.END);ends.addView(end,new LinearLayout.LayoutParams(-2,-2));
+            box.addView(ends,new LinearLayout.LayoutParams(-1,-2));card.addView(box,new LinearLayout.LayoutParams(-1,-2));return box;
+        }
+        ChargeAlertPolicy.Settings chosen(){
+            return new ChargeAlertPolicy.Settings(charge.isChecked(),ChargeAlertPolicy.CHARGE_MIN+chargeLevel.getProgress()*ChargeAlertPolicy.STEP,
+                    low.isChecked(),ChargeAlertPolicy.LOW_MIN+lowLevel.getProgress()*ChargeAlertPolicy.STEP,notify.isChecked(),alarm.isChecked());
+        }
+        boolean current(){return !destroyed&&scooterService!=null&&scooterService.profiles.active()!=null&&profile.equals(scooterService.profiles.active().id)&&scooterService.chargeAlertsOffered();}
+        void save(){
+            if(!current()){dialog.dismiss();return;}
+            scooterService.setChargeAlerts(chosen());refresh();redraw();
+        }
+        void labels(ChargeAlertPolicy.Settings a){
+            chargeLine.value.setText(ChargeAlertPolicy.levelText(a.chargeAt));lowLine.value.setText("Below "+a.lowBelow+"%");
+            if(Build.VERSION.SDK_INT>=30){chargeLevel.setStateDescription(ChargeAlertPolicy.levelText(a.chargeAt));lowLevel.setStateDescription("Below "+a.lowBelow+"%");}
+        }
+        void refresh(){
+            if(!current()){dialog.dismiss();return;}
+            ChargeAlertPolicy.Settings a=scooterService.chargeAlerts();
+            charge.setChecked(a.charge);low.setChecked(a.low);notify.setChecked(a.notify);alarm.setChecked(a.alarm);
+            if(!dragging){chargeLevel.setProgress((a.chargeAt-ChargeAlertPolicy.CHARGE_MIN)/ChargeAlertPolicy.STEP);lowLevel.setProgress((a.lowBelow-ChargeAlertPolicy.LOW_MIN)/ChargeAlertPolicy.STEP);labels(a);}
+            chargeLevels.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLevels.setVisibility(a.low?View.VISIBLE:View.GONE);
+            chargeLine.value.setVisibility(a.charge?View.VISIBLE:View.GONE);lowLine.value.setVisibility(a.low?View.VISIBLE:View.GONE);
+            deliveryNote.setVisibility((a.charge||a.low)&&!a.notify&&!a.alarm?View.VISIBLE:View.GONE);
+            boolean app=notificationsOn(),alerts=scooterService.alertNotificationsAllowed(),watch=scooterService.alertWatchAllowed();
+            String text=!app?"Notifications are off for Volt, so alerts work only while Volt is open."
+                    :!watch?"Volt's connection notification is off, so Volt can't watch a charge in the background."
+                    :a.notify&&!alerts?"Battery alert notifications are off, so Notify me can't show.":null;
+            permission.setVisibility(text==null?View.GONE:View.VISIBLE);if(text!=null&&!text.contentEquals(permissionText.getText()))permissionText.setText(text);
+            permissionAction.setContentDescription("Allow notifications for Volt");
+        }
+    }
+    private boolean notificationsOn(){
+        android.app.NotificationManager manager=getSystemService(android.app.NotificationManager.class);return manager!=null&&manager.areNotificationsEnabled();
+    }
+    /** Android 13+ asks once; after that (or when a channel is off) only Android's notification settings can change it. */
+    private void allowChargeAlertNotifications(){
+        if(Build.VERSION.SDK_INT>=33&&checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED
+                &&(!preferences.getBoolean("notification_prompted",false)||shouldShowRequestPermissionRationale(Manifest.permission.POST_NOTIFICATIONS))){
+            preferences.edit().putBoolean("notification_prompted",true).apply();requestPermissions(new String[]{Manifest.permission.POST_NOTIFICATIONS},NOTIFICATION_PERMISSION);return;
+        }
+        openAppSettings(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS);
+    }
+    private void openAppSettings(String action){
+        Intent intent=new Intent(action);
+        if(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS.equals(action))intent.putExtra(android.provider.Settings.EXTRA_APP_PACKAGE,getPackageName());
+        else intent.setData(Uri.parse("package:"+getPackageName()));
+        try{startActivity(intent);}catch(android.content.ActivityNotFoundException|SecurityException unavailable){
+            try{startActivity(new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,Uri.parse("package:"+getPackageName())));}
+            catch(android.content.ActivityNotFoundException|SecurityException missing){toast("Open Volt's settings in Android");}
+        }
+    }
+    /** An alert that fired while Volt was open: a dialog instead of a notification; closing it stops the alarm. */
+    private void maybeShowChargeAlert(){
+        if(scooterService==null||!resumed||onboarding!=null||chargeAlertDialog!=null&&chargeAlertDialog.isShowing())return;
+        String[] alert=scooterService.pendingChargeAlert();if(alert==null)return;
+        boolean sounding=scooterService.chargeAlarmPlaying();
+        AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(alert[0]).setMessage(alert[1])
+                .setPositiveButton(sounding?"Stop alarm":"OK",null).create();
+        dialog.setOnDismissListener(d->{if(scooterService!=null)scooterService.stopChargeAlarm();if(chargeAlertDialog==dialog)chargeAlertDialog=null;});
+        chargeAlertDialog=dialog;dialog.show();styleDialog(dialog,AlertDialog.BUTTON_POSITIVE);
+        scooterService.chargeAlertShown();
     }
     private boolean chargeDoneOffered(){
         return scooterService==null||scooterService.ble==null

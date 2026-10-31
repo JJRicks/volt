@@ -83,6 +83,7 @@ STEPS = [
 for size, theme, text in (PHONE, WIDE):
     w = size.split('x')[0]
     STEPS += [inst(f'charge-schedule-{w}', T + 'ChargeScheduleValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
+              inst(f'charge-alerts-{w}', T + 'ChargeAlertValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'my-scooters-{w}', T + 'MyScootersValidation', '-e', 'theme', theme, '-e', 'text_scale', text, size=size),
               inst(f'developer-settings-{w}', T + 'DeveloperSettingsValidation', '-e', 'theme', theme, size=size),
               inst(f'dashboard-offline-lock-{w}', T + 'DashboardValidation', '-e', 'mode', 'offline-lock', '-e', 'theme', theme, size=size)]
@@ -94,6 +95,7 @@ STEPS += [
     inst('capacity-widget', T + 'CapacityWidgetValidation'),
     inst('charge-schedule-wire', PKG + '.ChargeScheduleWireValidation', hidden_api=True),
     inst('first-connection', T + 'FirstConnectionValidation', hidden_api=True),
+    inst('charge-alerts-notifications-off', T + 'ChargeAlertValidation', '-e', 'mode', 'notifications-off', grant=('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT')),
     inst('launch-denied', T + 'LaunchValidation', '-e', 'mode', 'denied', grant=()),
     inst('launch-granted', T + 'LaunchValidation', '-e', 'mode', 'granted'),
     inst('phone-ride-denied', T + 'PhoneRideValidation', '-e', 'mode', 'denied', grant=NEARBY),

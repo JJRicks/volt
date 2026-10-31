@@ -28,7 +28,7 @@ Stable IDs go in the manifest. Labels are UI copy.
 | `rides` | Rides | `files/rides/<uuid>.csv`, `files/phone-rides/<uuid>-{phone,motion}.csv` as one group per ride; `ride_comparison`, `ride_selected` | START record profile |
 | `charges` | Charges | `files/charge-recordings/<uuid>.{csv,active}` (complete, interrupted and estimate samples) | journal header profile |
 | `history` | Readings history | `databases/telemetry-history.db`: last-seen readings, detail, minute/daily rollups | `profiles.name` rows |
-| `scooter-preferences` | Scooter preferences | `range_source_<pid>`, `range_follow_mode_<pid>`, `charge_charger_<pid>`, `control_evidence.<pid>` | per scooter |
+| `scooter-preferences` | Scooter preferences | `range_source_<pid>`, `range_follow_mode_<pid>`, `charge_charger_<pid>`, `charge_alerts_<pid>`, `control_evidence.<pid>` | per scooter |
 
 `control_evidence` is a dormant cache, unused since 1.1.0. It is restored as data only and never authorizes a control: controls still require fresh authenticated state. Scooter preferences restore app-side choices only. They never push settings to the scooter.
 
@@ -40,6 +40,7 @@ Stable IDs go in the manifest. Labels are UI copy.
 | `app_settings.notification_prompted`, `onboarding.nearby_asked` | Tied to this installation's Android permission prompts |
 | `app_settings.owner_import_applied`, `pending-owner-import.*`, `pending-export-*`, `pending_documents.*` | Pending operations of this installation |
 | `onboarding.*` except `onboarding_done` | Setup wizard in progress on this installation |
+| `app_settings.charge_alert_state_<pid>` | The charge in progress for battery alerts on this phone. A restored copy could silence the next alert. |
 | `app_settings.dashboard_restore_undo_v1_<pid>` | Short-lived undo. Removed for every scooter whose dashboard is restored, so a stale undo cannot revert the restore. |
 | `owner_capture_cleanup.*`, `/data/local/tmp/volt-owner-capture.lock` | Shizuku cleanup journal for this phone. Never read, cleared or replaced. |
 | `no_backup/connection-events` | Device diagnostics |
@@ -115,7 +116,7 @@ The new code no longer writes `.voltrides` files or full v1 backups. Dashboard J
 | Rides | Add-only by UUID, as RideArchive today. Identical groups are skipped. A differing or partial local group is kept and counted as a conflict. No new UUID is ever synthesized. Hardening: a ride whose mapped profile and START wall and monotonic clocks equal an existing ride with another UUID also counts as a conflict. Orphan phone sidecars are skipped and counted. `ride_comparison` and `ride_selected` stay local. |
 | Charges | Same as rides by UUID. `<uuid>.active` and `<uuid>.csv` are the same identity. Journals are validated by `ChargeSessionStore` parsing, which v1 did not do. An imported `.active` becomes interrupted at the next startup, which is existing behaviour. |
 | Readings history | Merge the database by mapped profile. Rows are unioned on the existing UNIQUE keys (`detail(pid,kid,wall)`, `minute`/`daily(pid,kid,bucket)`), and this phone's row wins on collision. `latest` keeps this phone's snapshot; otherwise the newest backup snapshot is used. Profile and key IDs are remapped by name. The result must pass `integrity_check` and the schema check, and stay within the history size limit (decision 6). |
-| Scooter preferences | For each mapped scooter, replace its `range_source_`, `range_follow_mode_`, `charge_charger_` and `control_evidence` entries. |
+| Scooter preferences | For each mapped scooter, replace its `range_source_`, `range_follow_mode_`, `charge_charger_`, `charge_alerts_` and `control_evidence` entries. |
 
 ### Profile resolution (dependencies)
 
