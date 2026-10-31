@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.10.0 (versionCode 52)
+Current version: 1.11.0 (versionCode 53)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,7 +25,22 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.10.0
+NEW IN 1.11.0
+------------
+- Battery alerts for scooters without a charge limit setting (such as the
+  GT3 Max): a Charge alert at a level you choose (50% to Full) and a Low
+  battery alert (below 5-50%), with Notify me and Alarm sound as separate
+  opt-ins. They stay on for every charge; while charging, Volt stays
+  connected and its notification shows the battery level and the target.
+- The lock switch moves as soon as you tap or slide it once connected; a tap
+  in the first moments after connecting is kept and sent when the scooter
+  accepts it, instead of being ignored. Riding is still refused.
+- Drive mode follows the scooter's live report, so it no longer flickers on
+  the GT3 Max; its modes read Drive, Sport and Walk.
+- GT3 Max: Top speed and Kick-start speed say Unconfirmed here, after an
+  owner's scooter acknowledged changes but kept its old values.
+
+PREVIOUSLY IN 1.10.0
 ------------
 - If Scheduled charging or Charge done by passes its start and the battery
   hasn't charged, Volt says so with the time and battery levels and offers to
