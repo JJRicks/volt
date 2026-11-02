@@ -173,7 +173,8 @@ def own_rows(output, uid):
 
     Rows split on "\\n" only: logcat repeats the writer's prefix on each line of a message, but
     any other separator (str.splitlines() also splits on U+2028, \\x1c, \\r ...) is message text
-    another app chooses, and could carry a fake NAVEE prefix."""
+    another app chooses, and could carry a fake NAVEE prefix. So output must be the phone's
+    bytes decoded as they are, never a text-mode read that rewrites "\\r" (Adb.run reads bytes)."""
     uid = str(uid)
     if not APP_UID.fullmatch(uid):
         raise ValueError("Invalid app uid")
@@ -200,8 +201,10 @@ class Adb:
             command += ["-s", self.serial]
         command += list(arguments)
         try:
+            # Bytes, decoded below: a text-mode read turns every bare "\r" into "\n", and inside
+            # another app's log message that would start a forged row (see own_rows).
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                    timeout=timeout, check=False, encoding="utf-8", errors="replace")
+                                    timeout=timeout, check=False)
         except FileNotFoundError:
             raise SetupError("ADB was not found. Install Android SDK Platform-Tools and add adb to PATH, or pass --adb /path/to/adb.")
         except subprocess.TimeoutExpired:
@@ -211,7 +214,7 @@ class Adb:
         if result.returncode:
             # Do not echo command stdout/stderr: it might contain private phone log data.
             raise CommandFailed("ADB could not complete this step. Unlock the phone, approve USB debugging, and check the cable.")
-        return result.stdout.strip()
+        return result.stdout.decode("utf-8", "replace").strip()
 
     def select_device(self):
         listing = self.run("devices")

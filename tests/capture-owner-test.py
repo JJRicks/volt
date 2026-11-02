@@ -2,10 +2,10 @@
 """Run setup/capture-owner.py against a fake adb and fake phone tools, never a real phone.
 
 The fake adb runs each `adb shell` string with the real /bin/sh, so quoting, the
-device-side redirect of the --uid check and exit statuses behave as on a phone. Its
-PATH holds only the fake tools: am, cmd, monkey, getprop, setprop, date and logcat.
-The helper's polling clock advances only when it sleeps, so a 3-second capture is
-always five reads, each allowed at least 0.6 real seconds.
+device-side redirect of the --uid check and exit statuses behave as on a phone, and
+the phone's bytes reach the helper unchanged. Its PATH holds only the fake tools: am,
+cmd, monkey, getprop, setprop, date and logcat. The helper's polling clock advances
+only when it sleeps, so a 3-second capture is always five reads.
 """
 import contextlib
 import importlib.util
@@ -13,6 +13,7 @@ import io
 import json
 import pathlib
 import shlex
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -30,6 +31,7 @@ PRIVATE = 'PRIVATE-PHONE-TEXT'
 TOOLS = ('am', 'cmd', 'monkey', 'getprop', 'setprop', 'date', 'logcat')
 
 # adb: `devices`, then `-s SERIAL shell <string>` run by /bin/sh with exit status passed back.
+# A shell string listed in adb_fail fails in adb itself (a dropped connection); the phone never runs it.
 ADB = r'''
 import json, pathlib, subprocess, sys
 root = pathlib.Path(sys.argv[1]); argv = sys.argv[2:]
@@ -38,18 +40,25 @@ if argv == ['devices']:
     print('List of devices attached\n' + 'FAKE0001\tdevice\n'); sys.exit(0)
 if argv[:3] != ['-s', 'FAKE0001', 'shell'] or len(argv) != 4:
     sys.stderr.write('fake adb: unexpected call\n'); sys.exit(99)
+if argv[3] in json.loads(root.joinpath('state.json').read_text()).get('adb_fail', []):
+    sys.stderr.write('error: closed\n'); sys.exit(1)
 sys.stdout.flush()
 sys.exit(subprocess.run(['/bin/sh', '-c', argv[3]], env={'PATH': str(root / 'bin')}).returncode)
 '''
 # The phone's tools, sharing state.json. logcat honours --uid (Android 12+ only), -v uid, -t (a
-# time, or a row count), -e and the NAVEE tag filter. Each log row is [epoch, writer, pid, tag,
-# message]; a null writer is a row printed without the uid column.
+# time, or a row count; ignore_since drops the time filter), -e and the NAVEE tag filter. Each log
+# row is [epoch, writer, pid, tag, message]; a null writer is a row printed without the uid column.
+# Like logcat, it repeats a row's prefix on each "\n"-separated line of its message, and writes the
+# message's other characters (a bare "\r" among them) as UTF-8 bytes, unchanged. A command listed in
+# fail exits 1 after printing private text.
 PHONE = r'''
 import json, pathlib, re, sys
 root = pathlib.Path(sys.argv[1]); name = sys.argv[2]; args = sys.argv[3:]
 path = root / 'state.json'; state = json.loads(path.read_text())
 def save(): path.write_text(json.dumps(state))
 NAVEE = 'com.navee.ucaret'
+if ' '.join([name] + args) in state.get('fail', []):
+    print('PRIVATE-PHONE-TEXT'); sys.stderr.write(name + ': PRIVATE-PHONE-TEXT refused\n'); sys.exit(1)
 if name == 'am' and args == ['get-current-user']: print(state['user'])
 elif name == 'am' and args == ['force-stop', NAVEE]: state['running'] = False; save()
 elif name == 'monkey' and args == ['-p', NAVEE, '-c', 'android.intent.category.LAUNCHER', '1']:
@@ -77,18 +86,20 @@ elif name == 'logcat':
         i += 1
     rows = [r for r in state['log'] if (uid is None or r[1] == uid) and (not tags or r[3] in tags)
             and (pattern is None or re.search(pattern, r[4]))]
-    if since is not None and '.' in since: rows = [r for r in rows if float(r[0]) >= float(since)]
-    elif since is not None: rows = rows[-int(since):]
     reading = since is not None and '.' in since
+    if reading and not state.get('ignore_since'): rows = [r for r in rows if float(r[0]) >= float(since)]
+    elif since is not None and not reading: rows = rows[-int(since):]
     if reading: state['reads'] = state.get('reads', 0) + 1; save()
     if reading and state.get('refuse_read'):
         # A refused read after some output: neither part may count or be shown.
-        print('%s %5d %5d D %s: %s' % (rows[0][0], rows[0][2], rows[0][2], rows[0][3], rows[0][4]) if rows else PRIVATE)
-        sys.stderr.write('logcat: ' + PRIVATE + ' read refused\n'); sys.exit(1)
-    print('--------- beginning of main')
+        print('%s %5d %5d D %s: %s' % (rows[0][0], rows[0][2], rows[0][2], rows[0][3], rows[0][4]) if rows else 'PRIVATE-PHONE-TEXT')
+        sys.stderr.write('logcat: PRIVATE-PHONE-TEXT read refused\n'); sys.exit(1)
+    lines = ['--------- beginning of main']
     for r in rows:
         writer = ('%5s ' % r[1]) if show_uid and r[1] is not None else ''
-        print('%s %s%5d %5d D %s: %s' % (r[0], writer, r[2], r[2], r[3], r[4]))
+        prefix = '%s %s%5d %5d D %s: ' % (r[0], writer, r[2], r[2], r[3])
+        lines += [prefix + part for part in r[4].split('\n')]
+    sys.stdout.buffer.write(('\n'.join(lines) + '\n').encode('utf-8'))
 else:
     sys.stderr.write('fake phone: unexpected command\n'); sys.exit(64)
 '''
@@ -102,6 +113,15 @@ def frame(identity='010203040506', role=0):
 
 def auth(writer, identity='010203040506', pid=4321, epoch='1800000001.250', role=0, tag='com.navee.ucaret'):
     return [epoch, writer, pid, tag, '[2] BleHandler.l: Send authData: [' + frame(identity, role) + ']']
+
+
+# A whole NAVEE -v uid row, valid and fresh, that another app can put inside its own message.
+FORGED = '1800000002.000 10123  4321  4321 D com.navee.ucaret: Send authData: [' + frame('0A0B0C0D0E0F') + ']'
+# Characters that str.splitlines() or text-mode reads treat as line breaks; only "\n" makes logcat
+# repeat the real writer's prefix ("\r\n" gets it after the "\n").
+SEPARATORS = ('\r', '\r\n', '\x0b', '\x0c', '\x1c', '\x1d', '\x1e', '\x85', '\u2028', '\u2029')
+# Writers that NAVEE's uid 10123 is a prefix of, or that contain it: another app, a work-profile app.
+LONGER_UIDS = ('1012345', '101230', '110123', '1010123')
 
 
 def shell(command):
@@ -139,11 +159,22 @@ class OwnRows(unittest.TestCase):
     def test_keeps_only_rows_navees_uid_wrote(self):
         self.assertEqual('  1800000000.123456789 4321  4321 D com.navee.ucaret: Send authData: x\n',
                          capture_owner.own_rows(self.own + '\r\n', NAVEE))
-        # Another uid, a uid sharing digits, shell, no uid column, the divider, no epoch, a report line.
-        for other in (self.own.replace('10123', '10999'), self.own.replace('10123', '110123'),
-                      self.own.replace('10123', 'shell'), self.own.replace(' 10123 ', ' '),
-                      '--------- beginning of main', '10123  4321  4321 D com.navee.ucaret: Send authData: x', '~0'):
+        # Another uid, uids sharing digits (NAVEE's a prefix of some), shell, no uid column, the divider,
+        # no epoch, a report line.
+        for other in ([self.own.replace('10123', '10999'), self.own.replace('10123', 'shell'),
+                       self.own.replace(' 10123 ', ' '), '--------- beginning of main',
+                       '10123  4321  4321 D com.navee.ucaret: Send authData: x', '~0']
+                      + [self.own.replace('10123', writer) for writer in LONGER_UIDS]):
             self.assertEqual('', capture_owner.own_rows(other, NAVEE), other)
+
+    def test_rows_without_writer_column_are_never_trusted(self):
+        # Without the column, a pid equal to NAVEE's uid is still a pid, and a NAVEE prefix inside the
+        # message is still message text: the writer is only the column right after the epoch.
+        for row in ('1800000001.250 10123 10123 D com.navee.ucaret: Send authData: [' + frame('0A0B0C0D0E0F') + ']',
+                    '1800000001.250 10123  4321 D com.navee.ucaret: Send authData: [' + frame('0A0B0C0D0E0F') + ']',
+                    '1800000001.250  4321  4321 D com.navee.ucaret: x ' + FORGED,
+                    '1800000001.250  4321  4321 D com.navee.ucaret: ' + FORGED[len('1800000002.000 '):]):
+            self.assertEqual('', capture_owner.own_rows(row, NAVEE), row)
 
     def test_short_uid_names(self):
         # getpwuid names of five characters or fewer stand in for the number: uid 10005 prints as u0_a5.
@@ -156,9 +187,9 @@ class OwnRows(unittest.TestCase):
 
     def test_message_separators_cannot_forge_a_row(self):
         # logcat repeats the real writer's prefix only after "\n"; every other separator is message text.
-        fake = '1800000002.000 10123  4321  4321 D com.navee.ucaret: Send authData: [' + frame('0A0B0C0D0E0F') + ']'
-        for separator in ('\r', '\x0b', '\x0c', '\x1c', '\x1d', '\x1e', '\x85', ' ', ' '):
-            impostor = '1800000001.000 10999  4321  4321 D com.navee.ucaret: x' + separator + fake
+        # (Capture.test_android11_message_separators_cannot_forge_a_row sends these through adb too.)
+        for separator in [s for s in SEPARATORS if '\n' not in s]:
+            impostor = '1800000001.000 10999  4321  4321 D com.navee.ucaret: x' + separator + FORGED
             self.assertEqual('', capture_owner.own_rows(impostor, NAVEE), repr(separator))
             self.assertIsNone(capture_owner.parse_capture(capture_owner.own_rows(impostor, NAVEE), 1800000000))
 
@@ -178,16 +209,27 @@ class PhoneAnswers(unittest.TestCase):
     def test_users_and_other_profiles(self):
         self.assertEqual([0, 10], capture_owner.android_users(
             'Users:\n\tUserInfo{0:Owner:c13} running\n\tUserInfo{10:Work: profile}:1030}\n'))
-        for listing in ('', 'Users:', 'Users:\n\tUserInfo{10:Work:1030}', 'Users:\n\tUserInfo{0:Owner:c13}\n\tUserInfo{0:Again:c13}',
+        # The limits, as in protocol.js parseAndroidUsers: user ids up to 21474, 32 users, 8 KiB.
+        owner = 'Users:\n\tUserInfo{0:Owner:c13}\n'
+        self.assertEqual([0, 21474], capture_owner.android_users(owner + '\tUserInfo{21474:X:0}'))
+        self.assertEqual(list(range(32)), capture_owner.android_users(
+            'Users:\n' + ''.join('\tUserInfo{%d:U:0}\n' % n for n in range(32))))
+        self.assertEqual([0], capture_owner.android_users('Users:\n\tUserInfo{0:' + 'O' * 8000 + ':c13}'))
+        for listing in ('', 'Users:', 'Users:\n\tUserInfo{10:Work:1030}', owner + '\tUserInfo{0:Again:c13}',
                         'Users:\n\tUserInfo{0:Owner}', 'Error: couldn\'t get users', 'Users:\n\tUserInfo{99999:X:0}',
-                        'Users:\n' + ''.join('\tUserInfo{%d:U:0}\n' % n for n in range(33))):
-            with self.assertRaises(capture_owner.SetupError, msg=listing):
+                        owner + '\tUserInfo{21475:X:0}', owner + '\tUserInfo{99999:X:0}',
+                        'Users:\n' + ''.join('\tUserInfo{%d:U:0}\n' % n for n in range(33)),
+                        'Users:\n\tUserInfo{0:' + 'O' * 8200 + ':c13}'):
+            with self.assertRaises(capture_owner.SetupError, msg=listing[:80]):
                 capture_owner.android_users(listing)
         self.assertFalse(capture_owner.has_navee_package(''))
         self.assertFalse(capture_owner.has_navee_package('package:com.navee.ucaret.lite uid:1010200'))
         self.assertTrue(capture_owner.has_navee_package('package:com.navee.ucaret.lite uid:1010200\npackage:com.navee.ucaret uid:1010123'))
-        with self.assertRaises(capture_owner.SetupError):
-            capture_owner.has_navee_package('Error: unknown user 10')
+        # The 16 KiB limit: 400 rows of 37 bytes are read, 500 refuse.
+        self.assertTrue(capture_owner.has_navee_package('package:com.navee.ucaret uid:1010123\n' * 400))
+        for listing in ('Error: unknown user 10', 'package:com.navee.ucaret uid:1010123\n' * 500):
+            with self.assertRaises(capture_owner.SetupError, msg=listing[:80]):
+                capture_owner.has_navee_package(listing)
 
 
 class Capture(unittest.TestCase):
@@ -276,15 +318,42 @@ class Capture(unittest.TestCase):
 
     def test_android11_impostor_on_recycled_pid_is_never_read(self):
         # Other uids wrote valid frames as pid 4321 and exited; NAVEE, now pid 4321, wrote none. All window long.
-        log = [auth('10999', '0A0B0C0D0E0F'), auth('u0_a5', '0A0B0C0D0E0F'), auth('shell', '0A0B0C0D0E0F'),
-               auth('1010123', '0A0B0C0D0E0F')]
+        # Some writers start with NAVEE's uid (1012345 is a work-profile app's), so only an exact match counts.
+        log = [auth(writer, '0A0B0C0D0E0F') for writer in ('10999', 'u0_a5', 'shell') + LONGER_UIDS]
         self.assert_no_identity(self.capture(android=11, log=log), 'No fresh owner identity arrived')
         self.assertEqual(5, self.phone()['reads'])
         self.assertEqual([READ_ROWS] * 5, [s for s in self.shells() if s.startswith('logcat') and s != CHECK])
 
     def test_rows_without_writer_column_are_never_trusted(self):
-        self.assert_no_identity(self.capture(android=11, log=[auth(None)]), 'No fresh owner identity arrived')
+        # No column: a plain row, one whose pid equals NAVEE's uid, and one carrying a whole NAVEE row in its message.
+        log = [auth(None), auth(None, pid=10123), ['1800000001.250', None, 4321, 'com.navee.ucaret', 'x ' + FORGED]]
+        self.assert_no_identity(self.capture(android=11, log=log), 'No fresh owner identity arrived')
         self.assertEqual(5, self.phone()['reads'])
+
+    def test_android11_message_separators_cannot_forge_a_row(self):
+        # Another app's message holds a line-break-like character, then a whole valid NAVEE row. logcat prints
+        # it as that app's row (and repeats its prefix after "\n"), and adb carries the bytes unchanged, so the
+        # helper must not turn a bare "\r" into a line break the way a text-mode read would.
+        impostors = [['1800000001.000', '10999', 4321, 'com.navee.ucaret', 'x' + separator + FORGED]
+                     for separator in SEPARATORS]
+        self.assert_no_identity(self.capture(android=11, log=impostors), 'No fresh owner identity arrived')
+        self.assertEqual(5, self.phone()['reads'])
+        # NAVEE's own row still counts beside them, with no conflict from the impostors' identity.
+        self.assertEqual(0, self.capture(android=11, log=impostors + [auth(NAVEE)]), self.err)
+        self.assertEqual(('010203040506', 0), self.saved())
+
+    def test_stale_frames_are_never_saved(self):
+        # A phone whose logcat ignores the -t time: the helper still drops rows from before its capture stamp.
+        stale = [auth(NAVEE, 'ABCDEF123456', epoch='1799999999.000'), auth(NAVEE, 'ABCDEF123456', epoch='1800000000.099')]
+        for android in (12, 11):
+            with self.subTest(android=android):
+                self.assert_no_identity(self.capture(android=android, ignore_since=True, log=stale),
+                                        'No fresh owner identity arrived')
+                self.assertEqual(5, self.phone()['reads'])
+                self.output.unlink(missing_ok=True)
+                self.assertEqual(0, self.capture(android=android, ignore_since=True, log=stale + [auth(NAVEE)]), self.err)
+                self.assertEqual(('010203040506', 0), self.saved())
+                self.output.unlink()
 
     def test_failed_uid_check_reads_rows(self):
         # A phone whose --uid check fails for any reason reads -v uid rows, never unfiltered ones.
@@ -293,6 +362,24 @@ class Capture(unittest.TestCase):
         self.assertEqual(('010203040506', 0), self.saved())
         self.assertIn(READ_ROWS, self.shells())
         self.assertNotIn(READ_BY_UID, self.shells())
+
+    def test_uid_check_failing_in_adb_reads_rows(self):
+        # On an Android 12 phone the check itself fails before logcat answers: adb drops it, or it times out.
+        log = [auth('10999', '0A0B0C0D0E0F', epoch='1800000001.000'), auth(NAVEE)]
+        self.assertEqual(0, self.capture(log=log, adb_fail=[CHECK]), self.err)
+        self.assertEqual(('010203040506', 0), self.saved())
+        self.assertEqual(PREFLIGHT + [CHECK] + START + [READ_ROWS] + CLEANUP, self.shells())
+        self.output.unlink()
+        real_run = subprocess.run
+        def check_times_out(command, *args, **kwargs):
+            if command[-1] == CHECK:
+                raise subprocess.TimeoutExpired(command, kwargs.get('timeout'))
+            return real_run(command, *args, **kwargs)
+        with mock.patch.object(capture_owner.subprocess, 'run', check_times_out):
+            self.assertEqual(0, self.capture(log=log), self.err)
+        self.assertEqual(('010203040506', 0), self.saved())
+        # The timed-out check never reached the fake adb, so its log skips from the preflight to the start.
+        self.assertEqual(PREFLIGHT + START + [READ_ROWS] + CLEANUP, self.shells())
 
     def test_navees_own_identities_must_agree(self):
         log = [auth(NAVEE, epoch='1800000001.000'), auth(NAVEE, 'ABCDEF123456')]
@@ -311,6 +398,18 @@ class Capture(unittest.TestCase):
     def test_wrong_current_user(self):
         self.assert_refused_unchanged(self.capture(user='10'), 'main Android user')
         self.assertEqual([['devices'], shell('am get-current-user')], self.calls())
+
+    def test_refused_preflight_names_the_step(self):
+        # A preflight command the phone refuses (exit 1) gets that step's message, not adb's generic one.
+        users = 'Users:\n\tUserInfo{0:Owner:c13} running\n\tUserInfo{10:Work:1030} running\n'
+        for command, message in (('am get-current-user', 'could not be checked safely'),
+                                 ('cmd package list packages -U --user 0 com.navee.ucaret', 'could not be identified'),
+                                 ('cmd user list --all', 'could not be checked safely'),
+                                 ('cmd package list packages -U --user 10 com.navee.ucaret', 'could not be checked safely')):
+            with self.subTest(command):
+                self.assert_refused_unchanged(self.capture(users=users, fail=[command]), message)
+                self.assertNotIn('ADB could not complete', self.err)
+                self.assertEqual(shell(command), self.calls()[-1])
 
     def test_navee_missing(self):
         self.assert_refused_unchanged(self.capture(packages={}), 'Install and sign into the official NAVEE app')
