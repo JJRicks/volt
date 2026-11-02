@@ -13,7 +13,16 @@ Volt is English-only today. Its text is written directly into the code, so trans
 3. **Other scripts, left to right:** Russian, Ukrainian, Greek, Chinese (Simplified), Hindi and Bengali. These use the phone's own fonts.
 4. **Right to left:** Arabic and Urdu. The screens have to be mirrored, so these wait if they break the layout.
 
-Translations start as machine drafts. Text about the lock, riding, alarms and owner setup ships only after a native speaker reviews it. Diagnostics and report emails stay in English so reports remain readable. To review your language, open an issue.
+### How translations are made and checked
+
+A council of AI models from different companies translates and reviews the text:
+
+1. **Each model translates on its own.** It gets notes on where each piece of text appears, what it does and how much room it has, plus a glossary of scooter terms that matches the official app.
+2. **Automated checks** confirm that numbers, placeholders and plural forms survive and that the text fits.
+3. **Where the models agree,** that translation is used. Where they don't, a judge model chooses one and records why.
+4. **Text about the lock, riding, alarms and owner setup** needs every model to agree, and its translation back into English must keep the original meaning.
+
+New languages ship as **beta**. On Android 13 and later, you can switch Volt alone back to English in the phone's settings. Native speakers are welcome to spot-check a language, especially its safety text: open an issue. Diagnostics and report emails stay in English, so reports remain readable.
 
 ## Investigating
 
