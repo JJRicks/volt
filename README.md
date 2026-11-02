@@ -49,6 +49,7 @@ First-time capture needs your working NAVEE account and Android debugging access
 | Dashboard, settings, rides and backups | [User guide](docs/user-guide.md) |
 | Supported controls and test evidence | [Feature availability](FEATURES.txt) · [Verification history](VERIFICATION.txt) |
 | A bug report or an idea | [Issues](https://github.com/JJRicks/volt/issues) · [Contributing](CONTRIBUTING.md) |
+| What's planned, including languages | [Roadmap](ROADMAP.md) |
 | A source build | [Build guide](docs/building.md) · [Development notes](docs/development-notes.md) |
 | A security concern | [Security reporting](SECURITY.md) |
 
