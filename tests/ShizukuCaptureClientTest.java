@@ -26,6 +26,7 @@ public final class ShizukuCaptureClientTest {
         staleBindingsAndTimeout();
         staleDeathAndResult();
         discardClearsStatus();
+        unreadReasonsNamed();
         System.out.println("ShizukuCaptureClientTest: " + checks + " checks passed");
     }
 
@@ -132,6 +133,20 @@ public final class ShizukuCaptureClientTest {
         check(!f.client.message.isEmpty(), "timed out capture reports a status");
         f.client.discard();
         check(f.client.owner == null && f.client.message.isEmpty(), "discard leaves no stale status for the capture step");
+    }
+
+    private static void unreadReasonsNamed() throws Exception {
+        int[] outcomes = { OwnerCaptureEngine.NOT_RUNNING, OwnerCaptureEngine.IMPOSTOR, OwnerCaptureEngine.UNREADABLE };
+        String[] messages = { "NAVEE wasn't running", "Another app is using NAVEE's name", "Volt couldn't read NAVEE's log" };
+        for (int i = 0; i < outcomes.length; i++) {
+            Fixture f = new Fixture(false);
+            f.client.start(false);
+            Remote remote = new Remote(); f.binding().onServiceConnected(null, remote);
+            remote.callback.completed(remote.token, outcomes[i], true, "010203040506", 0);
+            Handler.drain();
+            check(messages[i].equals(f.client.message), "Android 11 capture names why nothing was read");
+            check(f.client.owner == null && !f.client.pendingCleanup(), "a failed capture never exposes an owner");
+        }
     }
 
     private static void matchingJournalOnly() throws Exception {
