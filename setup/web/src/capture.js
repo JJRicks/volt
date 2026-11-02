@@ -1,7 +1,13 @@
-import { MAX_CAPTURE_BYTES, PACKAGE, PROPERTY, SetupError, ownerDocument, parseCapture, quote, randomToken, tokenValid, parseAndroidUsers, hasNaveePackage, validLauncher } from './protocol.js';
+import { MAX_CAPTURE_BYTES, PACKAGE, PROPERTY, SetupError, ownerDocument, parseCapture, quote, randomToken, tokenValid, parseAndroidUsers, hasNaveePackage, validLauncher, appLogcat, logFilter, logFilterCheck, logcatReply } from './protocol.js';
 import { LOCK, armCommand, cleanupCommand, inspectCommand, prepareCommand, releaseCommand, preparationStateCommand, startCommand, guardScript, reacquireRecoveryCommand } from './guard.js';
 
 export const JOURNAL_KEY = 'volt.owner-capture.recovery.v1';
+// Why the last poll read nothing on Android 11 and older (logcatReply's status), named if nothing arrives.
+const UNREAD = {
+  'no-pid': ['not-running', 'NAVEE wasn’t running, so no owner setup arrived in 90 seconds. Check NAVEE opens and is signed in, then try again.'],
+  'other-uid': ['impostor', 'Another app is using NAVEE’s name, so its log wasn’t read and no owner setup arrived. Close other scooter apps, then try again.'],
+  several: ['several', 'More than one NAVEE process was running, so none was read and no owner setup arrived. Try again.']
+};
 export function readJournal(storage) {
   const raw = storage.getItem(JOURNAL_KEY);
   if (!raw) return null;
@@ -99,20 +105,36 @@ export class CaptureSession {
   // Owner capture: poll only fresh authentication rows for up to 90 seconds.
   // Runs while NAVEE logs verbosely; begin() always cleans up afterwards.
   async collect(uid, stamp) {
-    let candidate = null;
+    let candidate = null, unread = null;
     this.update('capturing', 'On your phone, select your scooter in NAVEE and connect');
     const deadline = this.now() + 90_000;
+    // Once per capture: --uid where logcat has it (Android 12+), else NAVEE's verified pid. A failed
+    // check also uses the pid, which every supported Android can filter by.
+    const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }));
     while (this.now() < deadline) {
       this.checkCancelled();
-      const rows = await this.run(`logcat --uid=${uid} -d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`,
-        { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) });
-      candidate = parseCapture(rows, Number(stamp), candidate);
+      const reply = logcatReply(await this.run(appLogcat(uid, filter, `-d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`),
+        { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) }));
+      // A refused read is never "nothing yet". Without one verified NAVEE process nothing was read: wait for it.
+      if (reply.status === 'failed') throw new SetupError('logcat', 'Volt couldn’t read NAVEE’s log on this phone, so no owner setup was found. Reconnect the phone and try again.');
+      unread = reply.status === 'ok' ? null : reply.status;
+      candidate = parseCapture(reply.output, Number(stamp), candidate);
       if (candidate) break;
       await this.delay(Math.min(600, Math.max(0, deadline - this.now())));
     }
     this.checkCancelled();
-    if (!candidate) throw new SetupError('empty', 'No fresh owner setup arrived in 90 seconds. Check NAVEE is signed in, your scooter is nearby, and other scooter apps are closed.');
+    if (!candidate) throw new SetupError(...UNREAD[unread] ?? ['empty', 'No fresh owner setup arrived in 90 seconds. Check NAVEE is signed in, your scooter is nearby, and other scooter apps are closed.']);
     return candidate;
+  }
+  // Read-only, bounded extras (filter check, health probe): a failure returns null and never ends
+  // the capture. Only cancellation propagates.
+  async spare(command, options) {
+    try { return await this.run(command, options); }
+    catch (error) {
+      if (error instanceof SetupError && error.code === 'cancelled') throw error;
+      this.checkCancelled();
+      return null;
+    }
   }
   async cleanup() {
     const journal = this.journal;

@@ -1,6 +1,6 @@
 // A fake Android 11 phone for the on-device log commands, run by the real /bin/sh: logcat without
-// --uid ("Unknown option", exit 1) unless uid is true, with --pid, -t <time> and -s <tag> filters
-// and a divider line; pidof; getprop; and /proc/<pid>/status. No real device or adb.
+// --uid ("Unknown option", exit 1) unless uid is true, with --pid, -t <time>, -e <regex> and -s <tag>
+// filters and a divider line; pidof; getprop; and /proc/<pid>/status. No real device or adb.
 import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -8,14 +8,14 @@ import { execFile } from 'node:child_process';
 
 const scripts = {
   logcat: `printf '%s\\n' "$*" >> "$FIXTURE/args"
-pid=; t=0; tag=; prev=
+pid=; t=0; tag=; e=; prev=
 for a in "$@"; do
   case "$a" in --uid=*) [ -f "$FIXTURE/uid" ] || { echo "logcat: Unknown option '$a'." >&2; exit 1; } ;; --pid=*) pid=\${a#--pid=} ;; esac
-  [ "$prev" = -t ] && t=$a; [ "$prev" = -s ] && tag=\${a%%:*}; prev=$a
+  [ "$prev" = -t ] && t=$a; [ "$prev" = -s ] && tag=\${a%%:*}; [ "$prev" = -e ] && e=$a; prev=$a
 done
 case "$t" in *.*) ;; *) t=0 ;; esac
 [ ! -s "$FIXTURE/log" ] || echo '--------- beginning of main'
-awk -v pid="$pid" -v t="$t" -v tag="$tag" '($1 + 0 >= t + 0) && (pid == "" || $2 == pid) && (tag == "" || $5 == tag ":")' "$FIXTURE/log"`,
+awk -v pid="$pid" -v t="$t" -v tag="$tag" -v e="$e" '($1 + 0 >= t + 0) && (pid == "" || $2 == pid) && (tag == "" || $5 == tag ":") && (e == "" || $0 ~ e)' "$FIXTURE/log"`,
   pidof: '[ "$1" = com.navee.ucaret ] && [ -s "$FIXTURE/pids" ] && cat "$FIXTURE/pids" || exit 1',
   getprop: '[ "$1" = log.tag.com.navee.ucaret ] && cat "$FIXTURE/property"'
 };
