@@ -49,6 +49,8 @@ sources+=("$TEST_DIR/StockPackParity.java")
 sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastChargeTaperTest.java" "$TEST_DIR/FastChargeTaperReplay.java")
 # Battery alerts (charge level, full, low) for models without a native charge limit; uses the compat suites' resolver.
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")
+# Notification spacing under Android's per-app enqueue rate limit.
+sources+=("$APP_DIR/src/com/jjricks/volt/NotificationPacer.java" "$TEST_DIR/NotificationPacerTest.java")
 javac --release 8 -encoding UTF-8 -d "$TEST_BUILD_DIR/classes" "${sources[@]}"
 for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
     java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"
@@ -58,6 +60,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxStockPackModelTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeProgressTrackerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeMeasureWindowTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ChargeAlertPolicyTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.NotificationPacerTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.FastChargeTaperTest "$APP_DIR/docs/validation/data/fast-charge-taper-v7"
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.CompletedChargeEstimateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.StockStartupReferenceTest
