@@ -22,7 +22,7 @@ November 2, 2026
   - logcat showed Android's notification rate limit (about 5 updates per
     second per app) dropping Volt's updates, once the alert's Stop update.
   - With the fix, notification-heavy steps run alone with logcat (alert,
-    schedule, capture and auto-stop steps, the alarm step 9 times) passed every
+    schedule, capture and auto-stop steps, the alarm step 8 times) passed every
     run. Android dropped none of Volt's notification updates in all but one run.
     That one shed a connection-notice update while the app was in sight and
     restarting its service, when alerts show as a dialog.
