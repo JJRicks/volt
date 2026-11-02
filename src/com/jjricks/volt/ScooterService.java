@@ -27,7 +27,7 @@ public final class ScooterService extends Service {
         else service.handler.post(()->{if(running==service)service.applyVisibility(uiVisible);});
     }
     public final class LocalBinder extends Binder {public ScooterService service(){return ScooterService.this;}}
-    private final LocalBinder binder=new LocalBinder();private final Handler handler=new Handler(Looper.getMainLooper());private final LinkedHashSet<Runnable> listeners=new LinkedHashSet<>();
+    private final LocalBinder binder=new LocalBinder();private final Handler handler=new Handler(Looper.getMainLooper());private final NotificationPacer<java.util.function.Supplier<Notification>> notices=new NotificationPacer<>(CHARGE_ALERT_NOTICE);private final Runnable noticeDrain=this::drainNotices;private final LinkedHashSet<Runnable> listeners=new LinkedHashSet<>();
     public ScooterProfiles profiles;public BleController ble;public RideStore rides;public PhoneRideStore phoneRides;public TelemetryHistory history;public SharedPreferences settings;
     private final Map<String,TelemetryHistory.Snapshot> displayCache=new LinkedHashMap<>();
     private final Set<String> loadingHistory=new HashSet<>(),clearingHistory=new HashSet<>();
@@ -71,7 +71,7 @@ public final class ScooterService extends Service {
     private PhoneRideRecorder phoneRecorder;private boolean phoneLocationForeground;private int phoneSavingCount;private String phoneFinalStatus;
     private static final long RECORDING_WAKE_TIMEOUT_MS=10*60*1000L, RECORDING_WAKE_RENEW_MS=5*60*1000L;
     private long wakeLockRenewedMs;
-    private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int samples;private long lastNotification,backgroundDeadlineMs;
+    private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
     private String trendProfile = "", recordingError;
     /** Forgotten-ride decision for the active ride only; rebuilt unarmed after any restart. */
     private RideAutoStopPolicy rideAutoStop;private long rideAutoStopDisconnects;
@@ -212,6 +212,7 @@ public final class ScooterService extends Service {
         ble.setListener(null);
         ble.destroy();
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+        flushNotices();
         stopForeground(STOP_FOREGROUND_REMOVE);
         foregroundStarted = false;
         capacityPending.clear();
@@ -584,12 +585,12 @@ public final class ScooterService extends Service {
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
             PendingIntent open=PendingIntent.getActivity(this,4,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            getSystemService(NotificationManager.class).notify(MISSED_START_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+            post(MISSED_START_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(missedStartTitle(missed)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelMissedStartNotice(){try{getSystemService(NotificationManager.class).cancel(MISSED_START_NOTICE);}catch(RuntimeException ignored){}}
+    private void cancelMissedStartNotice(){cancelNotice(MISSED_START_NOTICE);}
 
     /**
      * Charge done by may first measure for up to about ten minutes, only when the pack model would
@@ -750,12 +751,12 @@ public final class ScooterService extends Service {
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
             PendingIntent open=PendingIntent.getActivity(this,5,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            getSystemService(NotificationManager.class).notify(SCHEDULE_TEST_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+            post(SCHEDULE_TEST_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(scheduleTestTitle(result)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelScheduleTestNotice(){try{getSystemService(NotificationManager.class).cancel(SCHEDULE_TEST_NOTICE);}catch(RuntimeException ignored){}}
+    private void cancelScheduleTestNotice(){cancelNotice(SCHEDULE_TEST_NOTICE);}
     private void endChargeMeasureWork(){if(destroyed)return;applyWorkPolicy(false);updateNotification();changed();}
     private boolean notificationsAllowed(){return channelAllowed("scooter");}
     private boolean channelAllowed(String id){
@@ -768,12 +769,12 @@ public final class ScooterService extends Service {
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
             PendingIntent open=PendingIntent.getActivity(this,3,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            getSystemService(NotificationManager.class).notify(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+            post(CHARGE_DONE_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(set?"Charge done by is set":"Charge done by wasn't set").setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelChargeDoneNotice(){try{getSystemService(NotificationManager.class).cancel(CHARGE_DONE_NOTICE);}catch(RuntimeException ignored){}}
+    private void cancelChargeDoneNotice(){cancelNotice(CHARGE_DONE_NOTICE);}
     // ---- Battery alerts (ChargeAlertPolicy) -------------------------------------------------------
 
     /** Loads the selected scooter's alert settings and session; another scooter never inherits them. */
@@ -890,21 +891,24 @@ public final class ScooterService extends Service {
      * overlap, and carries Stop; with Notify me off it is only that Stop and goes when the alarm ends.
      */
     private void alertNotice(boolean keep){
-        try{
-            NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
-            boolean sounding=alarmPlaying();
-            PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
-                    .setContentTitle(alertTitle).setContentText(alertText).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
-                    .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
-            if(sounding){
-                PendingIntent stop=PendingIntent.getService(this,6,new Intent(this,ScooterService.class).setAction("STOP_CHARGE_ALARM"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-                builder.addAction(new Notification.Action.Builder(null,"Stop",stop).build()).setDeleteIntent(stop);
-                // NotificationCompat.setSilent's method: a group child that alerts only for its (absent) summary stays quiet.
-                builder.setGroup("volt-charge-alarm").setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY);
-            }
-            manager.notify(CHARGE_ALERT_NOTICE,builder.build());alertNoticeKept=keep;
-        }catch(RuntimeException unavailable){}
+        alertNoticeKept=keep;
+        // Built when it posts: with Notify me off it's only the alarm's Stop, so once the alarm ends there's nothing to post.
+        post(CHARGE_ALERT_NOTICE,()->keep||alarmPlaying()?alertNoticeContent():null);
+    }
+    private Notification alertNoticeContent(){
+        NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
+        boolean sounding=alarmPlaying();
+        PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+        Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
+                .setContentTitle(alertTitle).setContentText(alertText).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
+                .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
+        if(sounding){
+            PendingIntent stop=PendingIntent.getService(this,6,new Intent(this,ScooterService.class).setAction("STOP_CHARGE_ALARM"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            builder.addAction(new Notification.Action.Builder(null,"Stop",stop).build()).setDeleteIntent(stop);
+            // NotificationCompat.setSilent's method: a group child that alerts only for its (absent) summary stays quiet.
+            builder.setGroup("volt-charge-alarm").setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY);
+        }
+        return builder.build();
     }
     /** After the alarm: Notify me keeps the notice (without Stop) if the owner hasn't cleared it; alarm only removes it. */
     private void finishAlertNotice(){
@@ -912,7 +916,7 @@ public final class ScooterService extends Service {
             NotificationManager manager=getSystemService(NotificationManager.class);boolean shown=false;
             for(android.service.notification.StatusBarNotification n:manager.getActiveNotifications())shown|=n.getId()==CHARGE_ALERT_NOTICE;
             if(!shown)return;
-            if(alertNoticeKept)alertNotice(true);else manager.cancel(CHARGE_ALERT_NOTICE);
+            if(alertNoticeKept)alertNotice(true);else cancelNotice(CHARGE_ALERT_NOTICE);
         }catch(RuntimeException unavailable){}
     }
     /** One per lost watch, on the connection channel like Volt's other status notices. */
@@ -921,12 +925,12 @@ public final class ScooterService extends Service {
         try{
             notification();// Ensures the channel exists even if the foreground notice never posted.
             PendingIntent open=PendingIntent.getActivity(this,8,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            getSystemService(NotificationManager.class).notify(ALERT_PAUSED_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+            post(ALERT_PAUSED_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle(ChargeAlertPolicy.alertTitle(event,0)).setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text))
                     .setContentIntent(open).setAutoCancel(true).setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelAlertPausedNotice(){try{getSystemService(NotificationManager.class).cancel(ALERT_PAUSED_NOTICE);}catch(RuntimeException ignored){}}
+    private void cancelAlertPausedNotice(){cancelNotice(ALERT_PAUSED_NOTICE);}
     /**
      * The phone's alarm sound on the alarm stream (USAGE_ALARM), so it plays at alarm volume with notifications
      * silenced; Do Not Disturb still applies its own alarm rule. Loops for at most ALARM_MS.
@@ -1135,7 +1139,7 @@ public final class ScooterService extends Service {
             workActive = visible;
             if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
             // A visual preview has no reason to keep a foreground service or sensors alive.
-            stopForeground(STOP_FOREGROUND_REMOVE); foregroundStarted = false;
+            notices.cancel(71); stopForeground(STOP_FOREGROUND_REMOVE); foregroundStarted = false;
             if (visible) handler.post(tick);
             changed();
             return;
@@ -1162,7 +1166,7 @@ public final class ScooterService extends Service {
     private void stopIdleWork(){
         workActive=false;cancelBackgroundDeadline();handler.removeCallbacks(tick);ble.watchBattery(0);ble.visibility(visible,isRecording()||isChargeRecording()||holding(),0);ble.suspend();
         if(wakeLock!=null&&wakeLock.isHeld()&&!isRecording()&&!isChargeRecording()&&!phoneSaving())wakeLock.release();
-        stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
+        notices.cancel(71);stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;stopSelf();
     }
     public void startRide(String label){if(destroyed)return;if(isChargeRecording()){android.widget.Toast.makeText(this,"Stop charge recording before starting a ride",android.widget.Toast.LENGTH_SHORT).show();return;}if(simulating()) {
             android.widget.Toast.makeText(this, "Exit simulation first", android.widget.Toast.LENGTH_SHORT).show();
@@ -1222,12 +1226,12 @@ public final class ScooterService extends Service {
             PendingIntent open=PendingIntent.getActivity(this,2,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
             RideStore.Summary ride=null;try{ride=rides.get(id);}catch(IOException ignored){}
             String text=ride==null||ride.label.isEmpty()?"Bluetooth lost while parked":ride.label+" · Bluetooth lost while parked";
-            getSystemService(NotificationManager.class).notify(AUTO_STOP_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
+            post(AUTO_STOP_NOTICE,new Notification.Builder(this,"scooter").setSmallIcon(R.drawable.ic_volt_notification)
                     .setContentTitle("Ride saved automatically").setContentText(text).setStyle(new Notification.BigTextStyle().bigText(text)).setContentIntent(open).setAutoCancel(true)
                     .setCategory(Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE).build());
         }catch(RuntimeException unavailable){}
     }
-    private void cancelAutoStopNotice(){try{getSystemService(NotificationManager.class).cancel(AUTO_STOP_NOTICE);}catch(RuntimeException ignored){}}
+    private void cancelAutoStopNotice(){cancelNotice(AUTO_STOP_NOTICE);}
     private void startPhoneRecording(){
         if (simulating()) return;
         if(phoneRides==null||!isRecording()||phoneRecorder!=null)return;
@@ -1844,17 +1848,17 @@ public final class ScooterService extends Service {
 
     private void startForegroundNotice(boolean startup) {
         if ((!startup && simulating()) || !ble.permissions() || (!startup && !workAllowed())) return;
+        int type = Build.VERSION.SDK_INT >= 29
+                ? ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE | (phoneLocationForeground ? ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION : 0)
+                : 0;
+        // Already in the foreground as this type: only the notice may change, and that update is spaced like the rest.
+        // Every startForeground counts toward Android's notification rate and can't wait, so it's kept for real changes.
+        if (!startup && foregroundStarted && type == foregroundType) { updateNotification(); return; }
         Notification notice = notification();
-        if (Build.VERSION.SDK_INT >= 29)
-            startForeground(
-                    71,
-                    notice,
-                    (ServiceInfo.FOREGROUND_SERVICE_TYPE_CONNECTED_DEVICE
-                            | (phoneLocationForeground
-                                    ? ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
-                                    : 0)));
+        if (Build.VERSION.SDK_INT >= 29) startForeground(71, notice, type);
         else startForeground(71, notice);
-        foregroundStarted = true;
+        foregroundStarted = true; foregroundType = type;
+        notices.posted(71, SystemClock.elapsedRealtime());
     }
 
     private Notification notification() {
@@ -1947,7 +1951,28 @@ public final class ScooterService extends Service {
         String km = String.format(Locale.US, "%.1f km", ride.distanceKm), mi = String.format(Locale.US, "%.1f mi", ride.distanceKm / 1.609344);
         return "km".equals(units) ? km : "dual".equals(units) ? mi + " / " + km : mi;
     }
-    private void updateNotification(){if(foregroundStarted&&workAllowed())getSystemService(NotificationManager.class).notify(71,notification());}
+    private void updateNotification(){if(foregroundStarted&&workAllowed())post(71,()->foregroundStarted&&workAllowed()?notification():null);}
+    /** Every notification Volt posts goes through here, spaced so Android never sheds one (NotificationPacer). */
+    private void post(int id,Notification notice){post(id,()->notice);}
+    private void post(int id,java.util.function.Supplier<Notification> build){notices.offer(id,build);drainNotices();}
+    private void cancelNotice(int id){notices.cancel(id);try{getSystemService(NotificationManager.class).cancel(id);}catch(RuntimeException ignored){}}
+    private void drainNotices(){
+        handler.removeCallbacks(noticeDrain);
+        long now=SystemClock.elapsedRealtime();
+        Map.Entry<Integer,java.util.function.Supplier<Notification>> next=notices.take(now);
+        if(next!=null)notifyNow(next.getKey(),next.getValue());
+        long wait=notices.delay(now);
+        if(wait>=0&&!destroyed)handler.postDelayed(noticeDrain,wait);
+    }
+    /** Ending: the connection notice goes with the foreground; any other queued notice posts now rather than never. */
+    private void flushNotices(){
+        handler.removeCallbacks(noticeDrain);notices.cancel(71);
+        for(Map.Entry<Integer,java.util.function.Supplier<Notification>> next:notices.takeAll())notifyNow(next.getKey(),next.getValue());
+    }
+    private void notifyNow(int id,java.util.function.Supplier<Notification> build){
+        try{Notification notice=build.get();if(notice!=null)getSystemService(NotificationManager.class).notify(id,notice);}
+        catch(RuntimeException unavailable){}
+    }
     /**
      * The volt-diagnostics-v1 file a report email may carry (DiagnosticsBundle), or null when it would contain a saved
      * scooter's serial, MAC, owner key or chosen name. Built on demand; it leaves the phone only when the owner sends it.
@@ -2026,5 +2051,5 @@ public final class ScooterService extends Service {
         if(chargeMeasure.active()){chargeMeasure.finish();chargeDoneNotice(false,"Volt closed while measuring. Charge done by is off.");}destroyed=true;stopChargeAlarm();finishChargeCapture(ChargeSessionStore.Stop.PROCESS_ENDED);chargeWorker.shutdown();workActive=false;if(running==this)running=null;if(settings!=null)settings.unregisterOnSharedPreferenceChangeListener(settingsChanged);handler.removeCallbacksAndMessages(null);capacityWorker.shutdown();capacityPending.clear();rangePending.clear();persistHistory(true);if(history!=null)history.close();stopPhoneRecording();if(isRecording())try{
                 rides.markGap(
                         System.currentTimeMillis(), SystemClock.elapsedRealtime(), "Service ended");
-            }catch(IOException ignored){}if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();if(ble!=null)ble.destroy();stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;listeners.clear();super.onDestroy();}
+            }catch(IOException ignored){}if(wakeLock!=null&&wakeLock.isHeld())wakeLock.release();if(ble!=null)ble.destroy();flushNotices();stopForeground(STOP_FOREGROUND_REMOVE);foregroundStarted=false;listeners.clear();super.onDestroy();}
 }
