@@ -219,6 +219,29 @@ public final class ChargeAlertValidation extends Instrumentation {
         checks.add("Losing the connection out of sight posts one Charge alert paused notice, releases the hold, and opening Volt clears it");
     }
 
+    /**
+     * Swiping the sounding notice away just as the alarm ends stays dismissed. The kept notice queued then (the service
+     * spaces its posts) must never post afterwards; the swipe has its own action, apart from Stop.
+     */
+    private void verifySwipeAfterAlarm() throws Exception {
+        main(() -> { invoke(service, "startChargeAlarm"); invoke(service, "alertNotice", new Class<?>[]{boolean.class}, true); });
+        await(() -> active(76) != null && active(76).getNotification().actions != null, "No sounding notice to swipe");
+        AtomicReference<android.app.PendingIntent> swipe = new AtomicReference<>();
+        main(() -> {
+            swipe.set(active(76).getNotification().deleteIntent);
+            Object pacer = field(service, "notices");
+            invoke(pacer, "posted", new Class<?>[]{int.class, long.class}, -1, SystemClock.elapsedRealtime()); // a post just now: the next one waits
+            invoke(service, "stopChargeAlarm"); // the alarm ends; the kept notice, without Stop, queues behind the gap
+            require(Boolean.TRUE.equals(invoke(pacer, "waiting", new Class<?>[]{int.class}, 76)), "The kept notice did not queue");
+            getTargetContext().getSystemService(NotificationManager.class).cancel(76); // the swipe removes the shown notice...
+        });
+        swipe.get().send(); // ...and sends its delete intent
+        SystemClock.sleep(1500);
+        main(() -> require(active(76) == null && !Boolean.TRUE.equals(invoke(field(service, "notices"), "waiting", new Class<?>[]{int.class}, 76)),
+                "A swiped alert came back"));
+        checks.add("Swiping the sounding notice away as the alarm ends stays dismissed; the kept notice queued behind the post spacing never posts");
+    }
+
     /** keep: Notify me on (the notice stays after the alarm); off: alarm only (a minimal notice carrying Stop). */
     private void verifyAlarmOutOfSight(boolean keep) throws Exception {
         AtomicReference<Notification> posted = new AtomicReference<>();
@@ -234,7 +257,8 @@ public final class ChargeAlertValidation extends Instrumentation {
             require(service.chargeAlarmPlaying(), "The alarm did not start");
             require(service.workAllowed() && service.backgroundDeadlineMs() == 0, "The sounding alarm does not keep Volt running");
         });
-        await(() -> active(76) != null, "No alert notification");
+        // The service spaces its posts (NotificationPacer), so wait for this alert's notice, not one still shown from before.
+        await(() -> active(76) != null && active(76).getNotification().actions != null, "No alert notification with Stop");
         main(() -> {
             Notification n = active(76).getNotification(); posted.set(n);
             require("charge_alerts".equals(n.getChannelId()), "Alert is not on the Battery alerts channel");
@@ -246,16 +270,19 @@ public final class ChargeAlertValidation extends Instrumentation {
             require(channel != null && channel.getImportance() == NotificationManager.IMPORTANCE_HIGH && "Battery alerts".contentEquals(channel.getName()), "Battery alerts channel importance or name");
             Notification fg = (Notification) invoke(service, "notification");
             require("Charged to 80%".equals(String.valueOf(fg.extras.getCharSequence(Notification.EXTRA_TITLE))) && fg.actions != null && "Stop".contentEquals(fg.actions[0].title), "Connection notice lacks the alarm's Stop");
-            boolean alarmUsage = false;
-            for (AudioPlaybackConfiguration c : getTargetContext().getSystemService(AudioManager.class).getActivePlaybackConfigurations())
-                alarmUsage |= c.getAudioAttributes().getUsage() == AudioAttributes.USAGE_ALARM;
-            require(alarmUsage, "No playback with USAGE_ALARM");
         });
+        // Android lists a playback a moment after it starts.
+        await(() -> {
+            for (AudioPlaybackConfiguration c : getTargetContext().getSystemService(AudioManager.class).getActivePlaybackConfigurations())
+                if (c.getAudioAttributes().getUsage() == AudioAttributes.USAGE_ALARM) return true;
+            return false;
+        }, "No playback with USAGE_ALARM");
         shot(keep ? "alarm-notify" : "alarm-only");
         posted.get().actions[0].actionIntent.send();
         await(() -> !service.chargeAlarmPlaying(), "Stop did not end the alarm");
         if (keep) {
             await(() -> active(76) != null && active(76).getNotification().actions == null, "Notify me notice was not kept without Stop");
+            verifySwipeAfterAlarm();
         } else await(() -> active(76) == null, "Alarm-only notice outlived the alarm");
         // Opening Volt stops a sounding alarm too.
         main(() -> {
@@ -263,7 +290,7 @@ public final class ChargeAlertValidation extends Instrumentation {
             require(service.chargeAlarmPlaying(), "Alarm did not restart");
             ScooterService.setUiVisible(true);
             require(!service.chargeAlarmPlaying(), "Opening Volt did not stop the alarm");
-            getTargetContext().getSystemService(NotificationManager.class).cancel(76);
+            invoke(service, "cancelNotice", new Class<?>[]{int.class}, 76); // also drops a kept notice still queued
             reset();
         });
         checks.add(keep ? "Out of sight with Notify me and Alarm sound: a silent high-importance Battery alerts notice with Stop while USAGE_ALARM plays; Stop ends it and keeps the notice; opening Volt also stops the alarm"
