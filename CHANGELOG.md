@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- NAVEE debugger: while recording, a status line now says whether NAVEE's Bluetooth lines are arriving and, if not, why and what to try: NAVEE's log setting didn't take, the phone isn't keeping app logs, NAVEE isn't running or isn't writing logs the page can read, or the phone runs Android 11 or older, whose log reader can't pick out NAVEE's lines. A review with no NAVEE lines repeats the last finding. A capture that can't be sent or copied now names the field to fix, or says there are no NAVEE lines, instead of a general "details are missing" message.
+
 ## 1.11.0 — 2026-10-30
 
 - **Battery alerts** (Scooter › Battery) for scooters without a charge limit setting, such as the GT3 Max: a **Charge alert** when charging reaches a level you choose (50–100%, or Full, which also counts a charge that stops at 99%) and a **Low battery alert** below a level you choose (5–50%). Pick **Notify me**, **Alarm sound** (your alarm sound for up to a minute, with Stop), or both; everything starts off. Alerts stay on for every later charge until you turn them off, and alert once per charge. While a charge alert waits, Volt stays connected in the background with a notification showing the battery level (for example **42% now · alert at 80%**), for up to 12 hours; if the connection is lost it says the alert is paused. The low battery alert works only while Volt is already connected. Nothing leaves your phone, and the UT5 MAX, which has its own charge limit, doesn't show these rows.

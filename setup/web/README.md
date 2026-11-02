@@ -270,6 +270,19 @@ is then released and forgotten immediately. A failed poll, disconnect, page exit
 or unverified cleanup discards the recording, exactly as owner capture discards
 its result. Recovery uses the same journal and steps, with ten-minute timings.
 
+**Capture health.** As recording starts and about every 5 s after (15 s after a failed
+probe), one read-only command (`probeCommand()`, 4 KiB, 8 s) prints NAVEE's pids (`pidof`), the
+log property's readback, and line counts since the recording started, counted on the phone with
+`wc -l` (dividers excluded) so no log text is transferred: all apps (`logcat -d -t <start>`) and
+NAVEE's uid, any tag (the same with `--uid=<uid>`). A count whose logcat fails reads `x`: Android
+11 and older reject `--uid` (added in Android 12), which the poll's `| head` would otherwise turn
+into a silently empty capture. `captureHealth()` (pure) turns these and the kept-row count into one
+status line, in order: property not VERBOSE; uid filter refused; NAVEE running but no app logging;
+NAVEE not running; nothing from NAVEE's uid; NAVEE logging but no Bluetooth lines; receiving.
+Unknown facts name no cause, and kept rows outrank counts from a ring buffer that may have rotated.
+A failed probe never ends the recording; only cancellation propagates. The review repeats the last
+finding when no NAVEE line was kept, and `submission()` names the field it refuses.
+
 **Folding.** NAVEE logs each frame twice (sent, then `Write success`), restates writes as
 `sendCmd cmd=…, value=…`, and polls status (read 0x70) every few seconds. A `Write success` is
 marked onto the command it confirms as ` (ok)`, so an unconfirmed command stands out; a `sendCmd`

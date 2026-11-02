@@ -3,24 +3,24 @@
 // recording of filtered NAVEE Bluetooth rows instead of the authentication poll.
 import { CaptureSession, readJournal } from './capture.js';
 import { MAX_CAPTURE_BYTES, PACKAGE, SetupError } from './protocol.js';
-import { LIMITS, LogRecorder, logcatCommand, safeText } from './navee-log.js';
+import { LIMITS, LogRecorder, captureHealth, logcatCommand, parseProbe, probeCommand, safeText } from './navee-log.js';
 
 // The phone watchdog restores NAVEE's log setting after ten minutes even if the
 // browser vanishes. Recording stops a minute earlier so normal cleanup wins.
-export const WATCH_SECONDS = 600, RECORD_MS = 540_000, POLL_MS = 2_000;
+export const WATCH_SECONDS = 600, RECORD_MS = 540_000, POLL_MS = 2_000, PROBE_MS = 5_000;
 const BATCH = 100;
 const stampOf = ms => `${Math.floor(ms / 1000)}.${String(Math.floor(ms % 1000)).padStart(3, '0')}`;
 
 export class DebugCaptureSession extends CaptureSession {
-  constructor({ wall = () => Date.now(), onRecord = () => {}, ...options }) {
+  constructor({ wall = () => Date.now(), onRecord = () => {}, onHealth = () => {}, ...options }) {
     super({ ...options, watchSeconds: WATCH_SECONDS });
-    Object.assign(this, { wall, onRecord });
-    this.stopping = false; this.recorder = null; this.deadline = 0; this.offset = 0;
+    Object.assign(this, { wall, onRecord, onHealth });
+    this.stopping = false; this.recorder = null; this.deadline = 0; this.offset = 0; this.health = null;
   }
   // Stop keeps the recording; cancel() (disconnect, page exit) discards it.
   stop() { this.stopping = true; }
   async begin() {
-    if (!this.busy) { this.stopping = false; this.recorder = null; this.deadline = 0; }
+    if (!this.busy) { this.stopping = false; this.recorder = null; this.deadline = 0; this.health = null; }
     return super.begin();
   }
   async collect(uid, stamp) {
@@ -35,10 +35,17 @@ export class DebugCaptureSession extends CaptureSession {
     this.deadline = started + RECORD_MS;
     this.update('recording', 'Recording. Use NAVEE on your phone now.');
     this.onRecord(recorder);
-    let count = BATCH, failures = 0, drains = 0, last = false, reason = 'stopped';
+    let count = BATCH, failures = 0, drains = 0, last = false, reason = 'stopped', probed = {}, probeAt = started;
+    this.report(probed);
     for (;;) {
       this.checkCancelled();
       if (!last && (this.stopping || this.now() >= this.deadline)) { last = true; reason = this.stopping ? 'stopped' : 'limit'; }
+      // Capture health: once at the start, then about every 5 s; a failed probe waits longer.
+      if (!last && this.now() >= probeAt) {
+        const result = await this.probe(uid, stamp);
+        probed = result || {}; probeAt = this.now() + PROBE_MS * (result ? 1 : 3);
+        this.report(probed);
+      }
       let output;
       try {
         output = await this.run(logcatCommand(uid, recorder.cursor, count), { maxBytes: MAX_CAPTURE_BYTES, timeout: 12_000 });
@@ -50,7 +57,7 @@ export class DebugCaptureSession extends CaptureSession {
         throw error;
       }
       const poll = recorder.ingest(output);
-      this.onRecord(recorder);
+      this.onRecord(recorder); this.report(probed);
       if (recorder.full) { reason = 'full'; break; }
       const more = poll.lines >= count;
       if (more && !poll.fresh) count = Math.min(count * 2, 1000); // one crowded timestamp
@@ -61,8 +68,22 @@ export class DebugCaptureSession extends CaptureSession {
       await this.pause();
     }
     this.checkCancelled();
-    return { recorder, facts, reason, startedAt: new Date(Math.floor(Number(stamp) * 1000)).toISOString(),
+    return { recorder, facts, reason, health: this.health, startedAt: new Date(Math.floor(Number(stamp) * 1000)).toISOString(),
       durationS: Math.min(LIMITS.duration, Math.max(0, Math.round((this.now() - started) / 1000))) };
+  }
+  // Read-only and bounded. A failure only makes health unknown; it never ends the
+  // recording. Only cancellation propagates.
+  async probe(uid, stamp) {
+    try { return parseProbe(await this.run(probeCommand(uid, stamp), { maxBytes: 4096, timeout: 8_000 })); }
+    catch (error) {
+      if (error instanceof SetupError && error.code === 'cancelled') throw error;
+      this.checkCancelled();
+      return null;
+    }
+  }
+  report(probed) {
+    const health = captureHealth({ ...probed, kept: this.recorder.rows.filter(row => !row.note).length });
+    if (health.state !== this.health?.state) this.onHealth(this.health = health);
   }
   async pause() {
     const until = Math.min(this.now() + POLL_MS, this.deadline);

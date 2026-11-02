@@ -2,7 +2,7 @@
 // shown and sent. Pure and free of browser APIs so every rule is unit-tested.
 // Raw rows are never returned, stored or thrown; only allowlisted, redacted text
 // leaves classify(). Anything unrecognized is only counted as hidden.
-import { SetupError } from './protocol.js';
+import { PACKAGE, PROPERTY, SetupError, quote } from './protocol.js';
 import { SENSITIVE, describe, keyLabel } from './navee-commands.js';
 
 export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description: 4000, contact: 240,
@@ -308,6 +308,52 @@ export function logcatCommand(uid, cursor, count) {
   // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
   return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -s com.navee.ucaret:V '*:S' | head -n ${count}`;
 }
+// Capture health, read-only and counted on the phone so no log text is transferred. One line each:
+// NAVEE's pids (empty when it isn't running, ? without pidof), its log property, then the number of
+// log lines since the recording started from all apps and from NAVEE's uid (any tag). A count is x
+// when logcat itself fails: Android 11 and older reject --uid, and a pipe would hide that as zero.
+export function probeCommand(uid, cursor) {
+  if (!/^\d{5}$/.test(String(uid)) || !/^\d{9,11}\.\d{1,9}$/.test(cursor)) throw new Error('Invalid probe request');
+  return `p=$(pidof ${PACKAGE} 2>/dev/null); command -v pidof >/dev/null || p=?; echo "$p"
+getprop ${PROPERTY}
+n() { set -- $( { { logcat -d -t ${quote(cursor)} "$@" 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | wc -l; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
+n
+n --uid=${uid}`;
+}
+// probeCommand's output → captureHealth's facts. Anything unexpected is unknown (null).
+export function parseProbe(output) {
+  const lines = String(output ?? '').split(/\r?\n/);
+  if (lines.length !== 4) return { propertyOk: null, uidFilter: null, running: null, phoneLines: null, naveeLines: null };
+  const [pids, property, all, navee] = lines, count = text => /^\d{1,9}$/.test(text.trim()) ? Number(text.trim()) : null;
+  const phoneLines = count(all), naveeLines = count(navee);
+  return { propertyOk: /^[\x20-\x7e]{0,91}$/.test(property) ? property === 'VERBOSE' : null,
+    // Only the uid filter differs between the two reads, so it alone failed.
+    uidFilter: naveeLines !== null ? true : navee === 'x' && phoneLines !== null ? false : null,
+    running: pids === '' ? false : /^\d{1,10}(?: \d{1,10})*$/.test(pids) ? true : null, phoneLines, naveeLines };
+}
+export const HEALTH = {
+  checking: 'Checking that NAVEE’s lines are arriving…',
+  property: 'NAVEE’s log setting didn’t take on this phone, so its lines can’t be read. Try recording again.',
+  unsupported: 'This phone’s log reader can’t pick out NAVEE’s lines (that needs Android 12 or newer), so nothing can be recorded on it yet.',
+  'phone-logs': 'This phone isn’t keeping app logs. Try this: in Developer options, set Logger buffer size to 256K or more (not Off), then record again.',
+  'not-running': 'NAVEE isn’t running. Open NAVEE and connect it to your scooter.',
+  'navee-silent': 'NAVEE isn’t writing logs this page can read. Try this: close NAVEE fully (swipe it away), reopen it and connect. Some Xiaomi (MIUI) phones may also restrict app logs.',
+  'no-bluetooth': 'NAVEE is logging, but no Bluetooth lines yet. Make sure it’s connected to your scooter, then change a setting.',
+  healthy: 'Receiving NAVEE Bluetooth lines.'
+};
+// Why a recording is (still) empty, in order; null facts are unknown and never name a cause. Kept
+// rows prove NAVEE's lines arrive, which outranks counts of a ring buffer that may have rotated.
+export function captureHealth({ propertyOk = null, uidFilter = null, running = null, phoneLines = null, naveeLines = null, kept = 0 } = {}) {
+  const empty = !(kept > 0);
+  const state = propertyOk === false ? 'property'
+    : uidFilter === false && empty ? 'unsupported'
+    : running === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
+    : running === false ? 'not-running'
+    : running === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
+    : naveeLines > 0 && empty ? 'no-bluetooth'
+    : empty ? 'checking' : 'healthy';
+  return { state, text: HEALTH[state] };
+}
 // What the kept command rows add up to: new commands by key, new values by exact value, user
 // answers by signature, and counts of known commands and reads.
 export function tally(rows) {
@@ -373,14 +419,18 @@ export function submission({ model, description, contact, naveeVersion, android,
     navee_version: field(naveeVersion, LIMITS.version), android: field(android, LIMITS.android), phone: field(phone, LIMITS.phone),
     started_at: startedAt, duration_s: durationS, hidden_rows: hidden, rows: rows.map(row => `${row.time} ${row.text}`)
   };
-  if (!body.model || !body.description || body.description.length > LIMITS.description || body.contact === null ||
-      body.navee_version === null || body.android === null || body.phone === null ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(startedAt) ||
+  // An empty capture first: no edit to the details can make it sendable. Then name the field to fix.
+  if (!rows.some(row => !row.note)) throw new SetupError('invalid', 'There are no NAVEE lines to send. Keep at least one, or record again.');
+  const problem = !body.description ? 'Describe the problem first.'
+    : body.description.length > LIMITS.description ? `Keep the description to ${LIMITS.description.toLocaleString('en-US')} characters.`
+    : body.contact === null ? `The contact is too long or has characters that can’t be sent. Use up to ${LIMITS.contact} characters.`
+    : !body.model ? 'Choose your scooter model.'
+    : body.navee_version === null || body.android === null || body.phone === null ? 'The phone details couldn’t be read. Record again.'
+    : !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(startedAt) ||
       !Number.isInteger(durationS) || durationS < 0 || durationS > LIMITS.duration ||
-      !Number.isInteger(hidden) || hidden < 0 || hidden > LIMITS.hidden)
-    throw new SetupError('invalid', 'Some details are missing or too long. Check the description and contact fields.');
-  if (body.rows.length < 1 || body.rows.length > LIMITS.rows || !rows.some(row => !row.note))
-    throw new SetupError('invalid', 'Keep at least one NAVEE line to send.');
+      !Number.isInteger(hidden) || hidden < 0 || hidden > LIMITS.hidden ? 'The recording details couldn’t be checked; record again.' : '';
+  if (problem) throw new SetupError('invalid', problem);
+  if (body.rows.length > LIMITS.rows) throw new SetupError('invalid', 'This capture is too large to send. Delete some lines and try again.');
   if (!body.rows.every(row => row.length <= LIMITS.row && /^\d{2}:\d{2}:\d{2}\.\d{3} /.test(row) && safeText(row.slice(13))))
     throw new SetupError('invalid', 'A line could not be checked safely, so nothing was sent.');
   // Optional: present only when the capture holds something Volt doesn't know.
