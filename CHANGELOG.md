@@ -2,7 +2,8 @@
 
 ## Unreleased
 
-- NAVEE debugger: while recording, a status line now says whether NAVEE's Bluetooth lines are arriving and, if not, why and what to try: NAVEE's log setting didn't take, the phone isn't keeping app logs, NAVEE isn't running or isn't writing logs the page can read, or the phone runs Android 11 or older, whose log reader can't pick out NAVEE's lines. A review with no NAVEE lines repeats the last finding. A capture that can't be sent or copied now names the field to fix, or says there are no NAVEE lines, instead of a general "details are missing" message.
+- NAVEE debugger: phones on Android 11 and older are now recorded. Their log reader can't filter by app, so recordings came back empty (most likely what happened on an owner's Redmi Note 8T); the debugger now follows NAVEE's own process instead, after checking it really belongs to NAVEE, and keeps following it if NAVEE restarts.
+- NAVEE debugger: while recording, a status line says whether NAVEE's Bluetooth lines are arriving and, if not, why and what to try: NAVEE's log setting didn't take, the phone's log reader is refusing the request, another app is using NAVEE's name, the phone isn't keeping app logs, or NAVEE isn't running or isn't writing logs the page can read. A review with no NAVEE lines repeats the last finding. A capture that can't be sent or copied now names the field to fix, or says there are no NAVEE lines, instead of a general "details are missing" message.
 
 ## 1.11.0 — 2026-10-30
 

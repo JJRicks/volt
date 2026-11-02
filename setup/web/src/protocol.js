@@ -46,6 +46,38 @@ export function ownerDocument(result, now = new Date()) {
   }, null, 2) + '\n';
 }
 export const quote = value => "'" + String(value).replaceAll("'", "'\\''") + "'";
+// Reading only NAVEE's logs. logcat --uid arrived in Android 12; Android 11 and older exit "Unknown
+// option" (and a pipe would hide that as no output). Ask logcat itself, not the SDK level, once per
+// capture: "0" means --uid works, anything else means filtering by NAVEE's verified pid.
+export const LOG_FILTERS = ['uid', 'pid'];
+const appUid = uid => { if (!/^\d{5}$/.test(String(uid))) throw new Error('Invalid app uid'); return String(uid); };
+export const logFilterCheck = uid => `logcat --uid=${appUid(uid)} -d -t 1 >/dev/null 2>&1; echo $?`;
+export const logFilter = output => output === '0' ? 'uid' : 'pid';
+// Shell fragment: NAVEE's processes whose real uid is uid. A process name proves nothing, and
+// /proc/<pid> itself is root-owned once an app is non-dumpable, so the Uid: line of its status is
+// read. Leaves k = verified pids, q = the last of them, o = same-named processes with another uid.
+export const verifiedPids = uid => `k=0 o=0 q=; for p in $(pidof ${PACKAGE} 2>/dev/null); do set -- $(grep '^Uid:' /proc/$p/status 2>/dev/null); ` +
+  `if [ "$2" = ${appUid(uid)} ]; then k=$((k+1)) q=$p; elif [ -n "$2" ]; then o=$((o+1)); fi; done`;
+// One read of NAVEE's lines, `logcat <filter> <args> | <then>` (args and then are trusted shell built
+// from validated values), by uid or by NAVEE's one verified pid, resolved in the same command so a
+// restart is followed. A last line reports logcat's exit status ("~0"), or instead of reading in pid
+// mode: "~pid0" (not running), "~pidN" (several), "~uid" (only another uid has the name), "~127" (no pidof).
+export function appLogcat(uid, filter, args, then = 'cat') {
+  if (!LOG_FILTERS.includes(filter)) throw new Error('Invalid log filter');
+  const read = by => `{ r=$( { { logcat ${by} ${args} 2>/dev/null; echo "$?" >&3; } | ${then} >&4; } 3>&1 ); echo "~$r"; } 4>&1`;
+  if (filter === 'uid') return read(`--uid=${appUid(uid)}`);
+  return `${verifiedPids(uid)}
+if ! command -v pidof >/dev/null; then echo '~127'; elif [ "$k" = 1 ]; then ${read('--pid="$q"')}; elif [ "$k" = 0 ] && [ "$o" != 0 ]; then echo '~uid'; else echo "~pid$k"; fi`;
+}
+// appLogcat's reply: the output before its report, and the outcome. A non-zero exit after output is
+// head ending the read early (SIGPIPE); with no output, or with no report at all, the read failed.
+export function logcatReply(text) {
+  const all = String(text ?? ''), at = all.lastIndexOf('\n'), last = /^~(?:(\d{1,3})|pid(\d{1,3})|(uid))$/.exec(all.slice(at + 1));
+  const output = last ? all.slice(0, Math.max(at, 0)) : all;
+  const status = !last ? 'failed' : last[3] ? 'other-uid' : last[2] !== undefined ? (last[2] === '0' ? 'no-pid' : 'several')
+    : last[1] === '0' || output.trim() !== '' ? 'ok' : 'failed';
+  return { output, status };
+}
 export function tokenValid(token) { return typeof token === 'string' && /^[a-f0-9]{64}$/.test(token); }
 export function randomToken() {
   return Array.from(crypto.getRandomValues(new Uint8Array(32)), x => x.toString(16).padStart(2, '0')).join('');

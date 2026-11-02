@@ -1,31 +1,32 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, mkdir, writeFile, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
-import { execFile } from 'node:child_process';
 import { CaptureSession, JOURNAL_KEY } from '../src/capture.js';
 import { DebugCaptureSession, PROBE_MS, RECORD_MS, WATCH_SECONDS } from '../src/debug-capture.js';
-import { LIMITS, parseProbe, probeCommand } from '../src/navee-log.js';
+import { HEALTH, LIMITS, parseProbe, probeCommand } from '../src/navee-log.js';
 import { SetupError } from '../src/protocol.js';
 import { row } from './fixtures.mjs';
 import { frame, line } from './navee-fixtures.mjs';
+import { fakeAndroid, logRow } from './fake-android.mjs';
 
 const token = 'c'.repeat(64);
 function store() {
   const data = new Map();
   return { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) };
 }
-// Phone double: classifies each trusted command, never runs anything.
-function fixture({ polls = [], fail = '', facts = {}, after = () => {}, logs, probe = () => '4321\nVERBOSE\n812\n37' } = {}) {
+// The device's report after a poll's rows (see appLogcat), added unless a test wrote its own.
+const reported = out => /(?:^|\n)~(?:\d{1,3}|pid\d{1,3}|uid)$/.test(out) ? out : out ? `${out}\n~0` : '~0';
+// Phone double: classifies each trusted command, never runs anything. shell(command, op, n), when
+// given, runs the filter check, probe and polls on a real shell instead (see fake-android.mjs).
+function fixture({ polls = [], fail = '', facts = {}, after = () => {}, logs, probe = () => '1\nVERBOSE\n812\n37', filter = () => '0', shell } = {}) {
   const calls = []; let time = 0, wall = 1_900_000_000_000, poll = 0, probes = 0, locked = false, restored = false;
   const storage = store();
   const run = async (command, opts = {}) => {
-    const op = command.startsWith('p=$(pidof ') ? 'probe' : command === 'am get-current-user' ? 'user' : command === 'cmd user list --all' ? 'users'
+    const op = command.includes('\nn() { ') ? 'probe' : command.includes(' -v epoch ') ? 'logs' : command.endsWith('-d -t 1 >/dev/null 2>&1; echo $?') ? 'filter'
+      : command === 'am get-current-user' ? 'user' : command === 'cmd user list --all' ? 'users'
       : command.startsWith('cmd package resolve-activity') ? 'launcher' : command.startsWith('pm list') ? 'uid'
       : command.startsWith('umask') ? 'prepare' : command.includes('nohup sh') ? 'arm' : command.includes('printf STARTED') ? 'start'
       : command === 'date +%s.%N' ? 'date' : command.startsWith('dumpsys package') ? 'navee' : command === 'getprop ro.build.version.release' ? 'android'
-      : command === 'getprop ro.product.model' ? 'phone' : command.startsWith('logcat') ? 'logs' : command === 'sh -s clean' ? 'cleanup'
+      : command === 'getprop ro.product.model' ? 'phone' : command === 'sh -s clean' ? 'cleanup'
       : command.startsWith('getprop') ? 'readback' : command.includes('printf RELEASED') ? 'release' : command.includes('printf ABSENT') ? 'exists'
       : command.includes('printf PENDING') ? 'inspect' : null;
     if (!op) throw new Error('Unexpected command');
@@ -46,10 +47,12 @@ function fixture({ polls = [], fail = '', facts = {}, after = () => {}, logs, pr
       case 'phone': if (facts.phone instanceof Error) throw facts.phone; return facts.phone ?? 'Pixel 9';
       case 'logs': {
         time += 1_000; wall += 1_000;
-        if (logs) return logs(poll++, command);
-        return polls[Math.min(poll++, polls.length - 1)] ?? '';
+        if (shell) return shell(command, op, poll++);
+        if (logs) return reported(logs(poll++, command));
+        return reported(polls[Math.min(poll++, polls.length - 1)] ?? '');
       }
-      case 'probe': return probe(probes++, command);
+      case 'probe': return shell ? shell(command, op, probes++) : probe(probes++, command);
+      case 'filter': { const reply = shell ? await shell(command, op, 0) : filter(); if (reply instanceof Error) throw reply; return reply; }
       case 'cleanup': restored = true; return '';
       case 'readback': return '';
       case 'release': assert(restored); locked = false; return 'RELEASED';
@@ -81,7 +84,8 @@ test('recording polls filtered NAVEE rows until Stop, then cleans up before revi
   assert.equal(result.startedAt, '2027-01-15T08:00:00.000Z');
   assert.equal(f.storage.getItem(JOURNAL_KEY), null);
   const ops = f.calls.map(c => c.op);
-  assert.deepEqual(ops.slice(0, 13), ['user', 'users', 'uid', 'launcher', 'prepare', 'arm', 'start', 'date', 'navee', 'android', 'phone', 'probe', 'logs']);
+  assert.deepEqual(ops.slice(0, 14), ['user', 'users', 'uid', 'launcher', 'prepare', 'arm', 'start', 'date', 'navee', 'android', 'phone', 'filter', 'probe', 'logs']);
+  assert.equal(ops.filter(op => op === 'filter').length, 1);
   assert.deepEqual(result.health, { state: 'healthy', text: 'Receiving NAVEE Bluetooth lines.' });
   assert.deepEqual(ops.slice(-5), ['exists', 'inspect', 'cleanup', 'readback', 'release']);
   // One more poll after Stop collects the last rows.
@@ -91,7 +95,8 @@ test('recording polls filtered NAVEE rows until Stop, then cleans up before revi
   assert.match(arm.opts.input, new RegExp(`while \\[ "\\$i" -lt ${WATCH_SECONDS} \\]; do`));
   assert.match(arm.opts.input, /volt-owner-capture\.lock/);
   const logs = f.calls.filter(c => c.op === 'logs').map(c => c.command);
-  assert.equal(logs[0], "logcat --uid=10123 -d -v epoch -t '1800000000.000000000' -s com.navee.ucaret:V '*:S' | head -n 100");
+  assert.equal(f.calls.find(c => c.op === 'filter').command, 'logcat --uid=10123 -d -t 1 >/dev/null 2>&1; echo $?');
+  assert.equal(logs[0], `{ r=$( { { logcat --uid=10123 -d -v epoch -t '1800000000.000000000' -s com.navee.ucaret:V '*:S' 2>/dev/null; echo "$?" >&3; } | head -n 100 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
   assert.match(logs[1], /-t '1800000004\.100'/);
   assert.equal(f.calls.find(c => c.op === 'logs').opts.maxBytes, 1024 * 1024);
 });
@@ -135,7 +140,7 @@ test('oversized replies shrink the batch, crowded batches drain before pausing',
   let f;
   const seen = [];
   f = fixture({ logs: (n, command) => {
-    seen.push(Number(/\| head -n (\d+)$/.exec(command)[1]));
+    seen.push(Number(/\| head -n (\d+) >&4/.exec(command)[1]));
     if (n === 0) throw new SetupError('oversize', 'too big');
     if (n === 4) f.session.stop();
     // A full batch (lines >= the head -n bound) is polled again immediately.
@@ -212,7 +217,7 @@ test('capture health is probed as recording starts, then about every 5 s, not on
 });
 test('health follows the probe and kept NAVEE rows, changes only with its state, and is kept for review', async () => {
   let f;
-  const replies = ['\nVERBOSE\n812\n0', '4321\nVERBOSE\n900\n0', '4321\nVERBOSE\n950\n12'];
+  const replies = ['0\nVERBOSE\n812\n0', '1\nVERBOSE\n900\n0', '1\nVERBOSE\n950\n12'];
   f = fixture({ probe: n => replies[Math.min(n, 2)], logs: n => {
     if (n === 0) f.session.addNote('now lights'); // a note is not a NAVEE line
     if (n === 8) f.session.stop();
@@ -221,17 +226,100 @@ test('health follows the probe and kept NAVEE rows, changes only with its state,
   await f.session.begin();
   assert.deepEqual(f.healths, ['checking', 'not-running', 'navee-silent', 'no-bluetooth', 'healthy']);
   assert.deepEqual(f.session.capture().health, { state: 'healthy', text: 'Receiving NAVEE Bluetooth lines.' });
-  // Android 11 and older refuse --uid: named while recording, and kept for the review.
+});
+test('the log filter is chosen once per recording: --uid where logcat has it, else NAVEE’s verified pid', async () => {
+  const record = async filter => {
+    let f;
+    f = fixture({ filter, logs: n => { if (n === 1) f.session.stop(); return write('1800000004.000'); } });
+    await f.session.begin();
+    const of = op => f.calls.filter(c => c.op === op);
+    assert.equal(of('filter').length, 1);
+    assert.deepEqual(of('filter')[0].opts, { maxBytes: 256, timeout: 8_000 });
+    assert.equal(f.session.capture().recorder.rows.length, 1);
+    const polls = of('logs').map(c => c.command), probes = of('probe').map(c => c.command);
+    const mode = polls.every(c => c.includes('logcat --uid=10123 ')) ? 'uid' : polls.every(c => c.includes('logcat --pid="$q" ') && c.includes("grep '^Uid:'")) ? 'pid' : 'mixed';
+    assert.equal(probes.every(c => c.endsWith(mode === 'uid' ? 'n --uid=10123' : 'n --pid="$q" || echo x')), true);
+    return mode;
+  };
+  assert.equal(await record(() => '0'), 'uid');
+  // Android 11 and older ("Unknown option" → 1), and anything unclear, use the pid, which works everywhere.
+  for (const reply of [() => '1', () => '255', () => 'logcat: junk', () => '', () => new SetupError('timeout', 'slow'), () => new Error('usb glitch')])
+    assert.equal(await record(reply), 'pid', String(reply));
+  // Only a cancellation during the check propagates.
+  for (const reply of [f => { f.session.cancel(); return '0'; }, () => new SetupError('cancelled', 'Capture stopped.')]) {
+    let f;
+    f = fixture({ filter: () => reply(f) });
+    await assert.rejects(f.session.begin(), { code: 'cancelled' });
+    assert.equal(f.calls.filter(c => c.op === 'logs').length, 0);
+    assert(f.calls.some(c => c.op === 'cleanup'));
+  }
+});
+test('a failing logcat is reported to health, never read as an empty poll; the recording continues', async () => {
+  let f;
+  f = fixture({ logs: n => { if (n === 4) f.session.stop(); return n < 3 ? '~1' : write('1800000004.000'); } });
+  await f.session.begin();
+  assert.deepEqual(f.healths, ['checking', 'no-bluetooth', 'logcat-failed', 'healthy']);
+  assert.equal(f.session.capture().reason, 'stopped'); assert.equal(f.session.capture().recorder.rows.length, 1);
+  // With the pid fallback failing too, neither filter works; kept for the review.
   let g;
-  g = fixture({ probe: () => '4321\nVERBOSE\n250\nx', logs: n => { if (n === 2) g.session.stop(); return ''; } });
+  g = fixture({ filter: () => '1', logs: n => { if (n === 2) g.session.stop(); return '~1'; } });
   await g.session.begin();
-  assert.deepEqual(g.healths, ['checking', 'unsupported']);
-  assert.equal(g.session.capture().health.state, 'unsupported');
-  assert.equal(g.session.capture().recorder.rows.length, 0);
+  assert.deepEqual(g.healths, ['checking', 'no-bluetooth', 'unsupported']);
+  assert.equal(g.session.capture().health.state, 'unsupported'); assert.equal(g.session.capture().recorder.rows.length, 0);
+  // head ending a full batch early (logcat's SIGPIPE status after rows) is a good read.
+  let h;
+  h = fixture({ logs: n => { if (n === 1) h.session.stop(); return `${write('1800000004.000')}\n~141`; } });
+  await h.session.begin();
+  assert.equal(h.session.capture().health.state, 'healthy'); assert.equal(h.session.capture().recorder.rows.length, 1);
+});
+test('pid mode names no NAVEE process and an impostor, and reads nothing for several', async () => {
+  let f;
+  const replies = ['~pid0', '~uid', '~pid2'];
+  f = fixture({ filter: () => '1', logs: n => { if (n === 3) f.session.stop(); return replies[n] ?? write('1800000004.000'); } });
+  await f.session.begin();
+  assert.deepEqual(f.healths, ['checking', 'no-bluetooth', 'not-running', 'impostor', 'no-bluetooth', 'healthy']);
+  assert.equal(HEALTH.impostor, 'Another app is using NAVEE’s name, so nothing is recorded.');
+  assert.equal(f.session.capture().recorder.rows.length, 1);
+});
+test('on a fake Android 11 over a real shell, pid mode records NAVEE’s own rows and follows a restart', async () => {
+  const phone = await fakeAndroid();
+  try {
+    // NAVEE (uid 10123) and an impostor using its process name and tag.
+    await phone.processes([[4321, 10123], [7777, 10999]]);
+    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager'), logRow('1800000004.000', 4321, `Send write command: ${frame(0x52, [1])}`),
+      logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [2])}`)]);
+    let f;
+    f = fixture({ shell: async (command, op, n) => {
+      if (op === 'logs' && n === 2) { // NAVEE restarts with a new pid
+        await phone.processes([[5555, 10123], [7777, 10999]]);
+        await phone.log([logRow('1800000006.000', 5555, `Send write command: ${frame(0x52, [0])}`)]);
+      }
+      if (op === 'logs' && n === 4) f.session.stop();
+      return phone.exec(command);
+    } });
+    await f.session.begin();
+    const result = f.session.capture(), args = await phone.args();
+    assert.deepEqual(result.recorder.rows.map(r => r.text), [`Send write command: ${frame(0x52, [1])}`, `Send write command: ${frame(0x52, [0])}`]);
+    assert.equal(result.health.state, 'healthy');
+    assert.equal(args[0], '--uid=10123 -d -t 1'); assert.equal(args.filter(a => a.startsWith('--uid=')).length, 1);
+    assert(args.some(a => a.startsWith('--pid=4321 -d -v epoch')) && args.some(a => a.startsWith('--pid=5555 -d -v epoch')));
+    assert(!args.some(a => a.includes('--pid=7777')));
+  } finally { await phone.dispose(); }
+  // Only the impostor runs: nothing is read, and the page says why.
+  const fake = await fakeAndroid();
+  try {
+    await fake.processes([[7777, 10999]]);
+    await fake.log([logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [2])}`)]);
+    let g;
+    g = fixture({ shell: (command, op, n) => { if (op === 'logs' && n === 2) g.session.stop(); return fake.exec(command); } });
+    await g.session.begin();
+    assert.equal(g.session.capture().recorder.rows.length, 0); assert.equal(g.session.capture().health.state, 'impostor');
+    assert(!(await fake.args()).some(a => a.includes('--pid=')));
+  } finally { await fake.dispose(); }
 });
 test('a failed, slow or junk probe only makes health unknown; the recording continues', async () => {
   let f;
-  const replies = [new SetupError('timeout', 'slow'), new Error('usb glitch'), 'sh: garbage', new SetupError('command', 'exit 1'), '4321\nVERBOSE\n812\n0'];
+  const replies = [new SetupError('timeout', 'slow'), new Error('usb glitch'), 'sh: garbage', new SetupError('command', 'exit 1'), '1\nVERBOSE\n812\n0'];
   f = fixture({ probe: n => { const reply = replies[Math.min(n, replies.length - 1)]; if (reply instanceof Error) throw reply; return reply; },
     logs: n => { if (n === 30) f.session.stop(); return n >= 25 ? write('1800000004.000') : ''; } });
   await f.session.begin();
@@ -246,7 +334,7 @@ test('a failed, slow or junk probe only makes health unknown; the recording cont
   assert.equal(f.calls.filter(c => c.op === 'logs').length, 32);
 });
 test('cancelling during a probe still discards the recording and cleans up', async () => {
-  for (const reply of [() => '4321\nVERBOSE\n1\n1', () => { throw new Error('usb gone'); }, () => { throw new SetupError('cancelled', 'Capture stopped.'); }]) {
+  for (const reply of [() => '1\nVERBOSE\n1\n1', () => { throw new Error('usb gone'); }, () => { throw new SetupError('cancelled', 'Capture stopped.'); }]) {
     let f;
     f = fixture({ probe: () => { f.session.cancel(); return reply(); } });
     await assert.rejects(f.session.begin(), { code: 'cancelled' });
@@ -256,34 +344,24 @@ test('cancelling during a probe still discards the recording and cleans up', asy
     assert.equal(f.storage.getItem(JOURNAL_KEY), null);
   }
 });
-test('the probe works in a real shell: dividers aren’t counted, a refused option is x, it always exits 0', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'volt-probe-test-')), bin = join(root, 'bin');
+test('the probe works on a real shell: dividers aren’t counted, a refused or unresolved filter is unknown, it exits 0', async () => {
+  const phone = await fakeAndroid();
   try {
-    await mkdir(bin);
-    const scripts = {
-      pidof: '[ "$1" = com.navee.ucaret ] && [ -f "$FIXTURE/running" ] && echo 4321 || exit 1',
-      getprop: '[ "$1" = log.tag.com.navee.ucaret ] && cat "$FIXTURE/property"',
-      // Android 11 logcat: "Unknown option" and exit 1 for --uid; dividers whenever a buffer prints.
-      logcat: `printf '%s\\n' "$*" >> "$FIXTURE/args"
-case "$*" in *--uid=*) [ ! -f "$FIXTURE/no-uid" ] || { echo "logcat: Unknown option '--uid=10123'." >&2; exit 1; }; n=$(cat "$FIXTURE/navee") ;; *) n=$(cat "$FIXTURE/all") ;; esac
-[ "$n" = 0 ] || echo '--------- beginning of main'
-i=0; while [ "$i" -lt "$n" ]; do echo "11-02 10:00:01.000  1234  1234 I tag: line $i"; i=$((i+1)); done
-[ "$n" = 0 ] || echo '--------- switch to system'`
-    };
-    for (const [name, script] of Object.entries(scripts)) await writeFile(join(bin, name), `#!/bin/sh\n${script}\n`, { mode: 0o700 });
-    const probe = async ({ running = true, property = 'VERBOSE', all, navee, uid = true }) => {
-      await writeFile(join(root, 'property'), `${property}\n`); await writeFile(join(root, 'all'), String(all)); await writeFile(join(root, 'navee'), String(navee));
-      for (const [flag, on] of [['running', running], ['no-uid', !uid]]) on ? await writeFile(join(root, flag), '') : await rm(join(root, flag), { force: true });
-      const stdout = await new Promise((resolve, reject) => execFile('/bin/sh', ['-c', probeCommand(10123, '1800000000.000000000')],
-        { env: { ...process.env, PATH: `${bin}:${process.env.PATH}`, FIXTURE: root } }, (error, out) => error ? reject(error) : resolve(out)));
-      return parseProbe(stdout.replace(/\r?\n$/, '')); // as run() returns it
-    };
-    assert.deepEqual(await probe({ all: 7, navee: 3 }), { propertyOk: true, uidFilter: true, running: true, phoneLines: 7, naveeLines: 3 });
-    assert.deepEqual(await probe({ all: 0, navee: 0 }), { propertyOk: true, uidFilter: true, running: true, phoneLines: 0, naveeLines: 0 });
-    assert.deepEqual(await probe({ running: false, property: 'INFO', all: 5, navee: 0 }), { propertyOk: false, uidFilter: true, running: false, phoneLines: 5, naveeLines: 0 });
-    assert.deepEqual(await probe({ all: 9, navee: 0, uid: false }), { propertyOk: true, uidFilter: false, running: true, phoneLines: 9, naveeLines: null });
-    assert.deepEqual((await readFile(join(root, 'args'), 'utf8')).split('\n').slice(0, 2), ['-d -t 1800000000.000000000', '-d -t 1800000000.000000000 --uid=10123']);
-  } finally { await rm(root, { recursive: true, force: true }); }
+    const probe = async filter => parseProbe(await phone.exec(probeCommand(10123, '1800000000.000000000', filter)));
+    assert.deepEqual(await probe('pid'), { propertyOk: true, running: false, phoneLines: 0, naveeLines: null });
+    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager'), logRow('1800000002.000', 4321, 'one'), logRow('1800000003.000', 4321, 'two'),
+      logRow('1800000003.500', 7777, 'impostor')]);
+    // NAVEE isn't running: no pid to count by.
+    assert.deepEqual(await probe('pid'), { propertyOk: true, running: false, phoneLines: 4, naveeLines: null });
+    // The impostor counts toward neither running nor NAVEE's lines.
+    await phone.processes([[4321, 10123], [7777, 10999]]);
+    assert.deepEqual(await probe('pid'), { propertyOk: true, running: true, phoneLines: 4, naveeLines: 2 });
+    // Android 11 refuses --uid: unknown, never zero.
+    assert.deepEqual(await probe('uid'), { propertyOk: true, running: true, phoneLines: 4, naveeLines: null });
+    await phone.property('INFO');
+    assert.equal((await probe('pid')).propertyOk, false);
+    assert(!(await phone.args()).some(a => a.includes('--pid=7777')));
+  } finally { await phone.dispose(); }
 });
 test('a recording cannot start while a recovery record exists', async () => {
   const f = fixture();

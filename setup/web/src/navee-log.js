@@ -2,7 +2,7 @@
 // shown and sent. Pure and free of browser APIs so every rule is unit-tested.
 // Raw rows are never returned, stored or thrown; only allowlisted, redacted text
 // leaves classify(). Anything unrecognized is only counted as hidden.
-import { PACKAGE, PROPERTY, SetupError, quote } from './protocol.js';
+import { LOG_FILTERS, PACKAGE, PROPERTY, SetupError, appLogcat, quote, verifiedPids } from './protocol.js';
 import { SENSITIVE, describe, keyLabel } from './navee-commands.js';
 
 export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description: 4000, contact: 240,
@@ -302,54 +302,58 @@ export class LogRecorder {
     this.bytes -= row.time.length + row.text.length + 4;
   }
 }
-export function logcatCommand(uid, cursor, count) {
-  if (!/^\d{5}$/.test(String(uid)) || !/^\d{9,11}\.\d{1,9}$/.test(cursor) || !Number.isInteger(count) || count < 1 || count > 1000)
-    throw new Error('Invalid logcat request');
+const request = (uid, cursor, filter) => /^\d{5}$/.test(String(uid)) && /^\d{9,11}\.\d{1,9}$/.test(cursor) && LOG_FILTERS.includes(filter);
+// filter: 'uid' where logcat has --uid (Android 12+), else 'pid' (NAVEE's verified process, see appLogcat).
+export function logcatCommand(uid, cursor, count, filter = 'uid') {
+  if (!request(uid, cursor, filter) || !Number.isInteger(count) || count < 1 || count > 1000) throw new Error('Invalid logcat request');
   // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
-  return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -s com.navee.ucaret:V '*:S' | head -n ${count}`;
+  return appLogcat(uid, filter, `-d -v epoch -t '${cursor}' -s ${PACKAGE}:V '*:S'`, `head -n ${count}`);
 }
 // Capture health, read-only and counted on the phone so no log text is transferred. One line each:
-// NAVEE's pids (empty when it isn't running, ? without pidof), its log property, then the number of
-// log lines since the recording started from all apps and from NAVEE's uid (any tag). A count is x
-// when logcat itself fails: Android 11 and older reject --uid, and a pipe would hide that as zero.
-export function probeCommand(uid, cursor) {
-  if (!/^\d{5}$/.test(String(uid)) || !/^\d{9,11}\.\d{1,9}$/.test(cursor)) throw new Error('Invalid probe request');
-  return `p=$(pidof ${PACKAGE} 2>/dev/null); command -v pidof >/dev/null || p=?; echo "$p"
+// how many NAVEE processes have its uid (? without pidof), its log property, then the number of log
+// lines since the recording started from all apps and from NAVEE (any tag, the poll's filter). A
+// count is x when logcat itself fails, or in pid mode without exactly one verified NAVEE process.
+export function probeCommand(uid, cursor, filter = 'uid') {
+  if (!request(uid, cursor, filter)) throw new Error('Invalid probe request');
+  return `${verifiedPids(uid)}
+command -v pidof >/dev/null && echo "$k" || echo '?'
 getprop ${PROPERTY}
 n() { set -- $( { { logcat -d -t ${quote(cursor)} "$@" 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | wc -l; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
 n
-n --uid=${uid}`;
+${filter === 'uid' ? `n --uid=${uid}` : '[ "$k" = 1 ] && n --pid="$q" || echo x'}`;
 }
 // probeCommand's output → captureHealth's facts. Anything unexpected is unknown (null).
 export function parseProbe(output) {
   const lines = String(output ?? '').split(/\r?\n/);
-  if (lines.length !== 4) return { propertyOk: null, uidFilter: null, running: null, phoneLines: null, naveeLines: null };
+  if (lines.length !== 4) return { propertyOk: null, running: null, phoneLines: null, naveeLines: null };
   const [pids, property, all, navee] = lines, count = text => /^\d{1,9}$/.test(text.trim()) ? Number(text.trim()) : null;
-  const phoneLines = count(all), naveeLines = count(navee);
   return { propertyOk: /^[\x20-\x7e]{0,91}$/.test(property) ? property === 'VERBOSE' : null,
-    // Only the uid filter differs between the two reads, so it alone failed.
-    uidFilter: naveeLines !== null ? true : navee === 'x' && phoneLines !== null ? false : null,
-    running: pids === '' ? false : /^\d{1,10}(?: \d{1,10})*$/.test(pids) ? true : null, phoneLines, naveeLines };
+    running: /^\d{1,3}$/.test(pids) ? Number(pids) > 0 : null, phoneLines: count(all), naveeLines: count(navee) };
 }
 export const HEALTH = {
   checking: 'Checking that NAVEE’s lines are arriving…',
   property: 'NAVEE’s log setting didn’t take on this phone, so its lines can’t be read. Try recording again.',
-  unsupported: 'This phone’s log reader can’t pick out NAVEE’s lines (that needs Android 12 or newer), so nothing can be recorded on it yet.',
+  unsupported: 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.',
+  'logcat-failed': 'This phone’s log reader is refusing the request, so no NAVEE lines are arriving. Try recording again.',
+  impostor: 'Another app is using NAVEE’s name, so nothing is recorded.',
   'phone-logs': 'This phone isn’t keeping app logs. Try this: in Developer options, set Logger buffer size to 256K or more (not Off), then record again.',
   'not-running': 'NAVEE isn’t running. Open NAVEE and connect it to your scooter.',
   'navee-silent': 'NAVEE isn’t writing logs this page can read. Try this: close NAVEE fully (swipe it away), reopen it and connect. Some Xiaomi (MIUI) phones may also restrict app logs.',
   'no-bluetooth': 'NAVEE is logging, but no Bluetooth lines yet. Make sure it’s connected to your scooter, then change a setting.',
   healthy: 'Receiving NAVEE Bluetooth lines.'
 };
-// Why a recording is (still) empty, in order; null facts are unknown and never name a cause. Kept
-// rows prove NAVEE's lines arrive, which outranks counts of a ring buffer that may have rotated.
-export function captureHealth({ propertyOk = null, uidFilter = null, running = null, phoneLines = null, naveeLines = null, kept = 0 } = {}) {
-  const empty = !(kept > 0);
+// Why a recording is (still) empty, in order; null facts are unknown and never name a cause. filter
+// and logcat (logcatReply's status) come from the latest poll, the rest from the probe. Kept rows
+// prove NAVEE's lines arrive, which outranks counts of a ring buffer that may have rotated.
+export function captureHealth({ propertyOk = null, filter = null, logcat = null, running = null, phoneLines = null, naveeLines = null, kept = 0 } = {}) {
+  const empty = !(kept > 0), live = logcat === 'no-pid' ? false : running;
   const state = propertyOk === false ? 'property'
-    : uidFilter === false && empty ? 'unsupported'
-    : running === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
-    : running === false ? 'not-running'
-    : running === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
+    // Pid mode is the fallback for a refused --uid, so a failing pid read means neither works.
+    : logcat === 'failed' ? (filter === 'pid' && empty ? 'unsupported' : 'logcat-failed')
+    : logcat === 'other-uid' ? 'impostor'
+    : live === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
+    : live === false ? 'not-running'
+    : live === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
     : naveeLines > 0 && empty ? 'no-bluetooth'
     : empty ? 'checking' : 'healthy';
   return { state, text: HEALTH[state] };

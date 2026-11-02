@@ -260,8 +260,17 @@ lock format is unchanged; only the watchdog bound is a parameter
 (`guardScript(token, watchSeconds = 120)`): 600 s here, 120 s for owner capture.
 Recording is user-stopped and ends automatically after nine minutes, a minute
 before the watchdog, with a visible countdown. Every ~2 s it reads
-`logcat --uid=<NAVEE uid> -d -v epoch -t <last row time> -s com.navee.ucaret:V '*:S' | head -n <batch>` (logcat refuses `-m` with `-t`)
-(1 MiB response bound; oversize replies shrink the batch). Rows at the boundary
+`logcat <filter> -d -v epoch -t <last row time> -s com.navee.ucaret:V '*:S' | head -n <batch>` (logcat refuses `-m` with `-t`)
+(1 MiB response bound; oversize replies shrink the batch), followed by a `~<logcat exit status>`
+line, so a refused option is a failure rather than an empty poll. The filter is chosen once per
+recording by asking logcat itself (`logcat --uid=<uid> -d -t 1`; exit 0 or not): `--uid=<NAVEE uid>`
+on Android 12 and newer; on Android 11 and older, which lack `--uid`, `--pid=<pid>` of NAVEE's
+process, resolved by `pidof` in the same command (so a restart is followed) and used only when the
+`Uid:` line of `/proc/<pid>/status` is NAVEE's uid (a process name proves nothing; `/proc/<pid>`'s
+owner is root for non-dumpable apps). Same-named processes with another uid are never read and are
+reported as `~uid`; none, or several verified ones, read nothing (`~pid0`, `~pidN`). The check, the
+verified-pid fragment and the status-reporting read are generic (`protocol.js`: `logFilterCheck`,
+`verifiedPids`, `appLogcat`, `logcatReply`). Rows at the boundary
 timestamp are deduplicated by a 64-bit digest and occurrence count, so raw text
 is never retained. Before cleanup it reads NAVEE's `versionName`, Android's
 release and the phone model; these are the only device facts sent. Review, copy
@@ -271,15 +280,15 @@ or unverified cleanup discards the recording, exactly as owner capture discards
 its result. Recovery uses the same journal and steps, with ten-minute timings.
 
 **Capture health.** As recording starts and about every 5 s after (15 s after a failed
-probe), one read-only command (`probeCommand()`, 4 KiB, 8 s) prints NAVEE's pids (`pidof`), the
-log property's readback, and line counts since the recording started, counted on the phone with
-`wc -l` (dividers excluded) so no log text is transferred: all apps (`logcat -d -t <start>`) and
-NAVEE's uid, any tag (the same with `--uid=<uid>`). A count whose logcat fails reads `x`: Android
-11 and older reject `--uid` (added in Android 12), which the poll's `| head` would otherwise turn
-into a silently empty capture. `captureHealth()` (pure) turns these and the kept-row count into one
-status line, in order: property not VERBOSE; uid filter refused; NAVEE running but no app logging;
-NAVEE not running; nothing from NAVEE's uid; NAVEE logging but no Bluetooth lines; receiving.
-Unknown facts name no cause, and kept rows outrank counts from a ring buffer that may have rotated.
+probe), one read-only command (`probeCommand()`, 4 KiB, 8 s) prints how many NAVEE processes have
+its uid, the log property's readback, and line counts since the recording started, counted on the
+phone with `wc -l` (dividers excluded) so no log text is transferred: all apps (`logcat -d -t
+<start>`) and NAVEE, any tag, with the poll's filter. A count whose logcat fails reads `x` (unknown).
+`captureHealth()` (pure) turns these, the latest poll's status and the kept-row count into one
+status line, in order: property not VERBOSE; logcat failing (with the pid fallback, neither filter
+works); another uid using NAVEE's name; NAVEE running but no app logging; NAVEE not running (also no
+verified pid); nothing from NAVEE; NAVEE logging but no Bluetooth lines; receiving. Unknown facts
+name no cause, and kept rows outrank counts from a ring buffer that may have rotated.
 A failed probe never ends the recording; only cancellation propagates. The review repeats the last
 finding when no NAVEE line was kept, and `submission()` names the field it refuses.
 
