@@ -2,7 +2,7 @@
 // shown and sent. Pure and free of browser APIs so every rule is unit-tested.
 // Raw rows are never returned, stored or thrown; only allowlisted, redacted text
 // leaves classify(). Anything unrecognized is only counted as hidden.
-import { SetupError } from './protocol.js';
+import { LOG_FILTERS, PACKAGE, PROPERTY, SetupError, appLogcat, quote, verifiedPids } from './protocol.js';
 import { SENSITIVE, describe, keyLabel } from './navee-commands.js';
 
 export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description: 4000, contact: 240,
@@ -302,11 +302,61 @@ export class LogRecorder {
     this.bytes -= row.time.length + row.text.length + 4;
   }
 }
-export function logcatCommand(uid, cursor, count) {
-  if (!/^\d{5}$/.test(String(uid)) || !/^\d{9,11}\.\d{1,9}$/.test(cursor) || !Number.isInteger(count) || count < 1 || count > 1000)
-    throw new Error('Invalid logcat request');
+const request = (uid, cursor, filter) => /^\d{5}$/.test(String(uid)) && /^\d{9,11}\.\d{1,9}$/.test(cursor) && LOG_FILTERS.includes(filter);
+// filter: 'uid' where logcat has --uid (Android 12+), else 'pid' (NAVEE's verified process, see appLogcat).
+export function logcatCommand(uid, cursor, count, filter = 'uid') {
+  if (!request(uid, cursor, filter) || !Number.isInteger(count) || count < 1 || count > 1000) throw new Error('Invalid logcat request');
   // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
-  return `logcat --uid=${uid} -d -v epoch -t '${cursor}' -s com.navee.ucaret:V '*:S' | head -n ${count}`;
+  return appLogcat(uid, filter, `-d -v epoch -t '${cursor}' -s ${PACKAGE}:V '*:S'`, `head -n ${count}`);
+}
+// Capture health, read-only and counted on the phone so no log text is transferred. One line each:
+// how many NAVEE processes have its uid (? without pidof), its log property, then the number of log
+// lines since the recording started from all apps and from NAVEE (any tag, the poll's filter). A
+// count is x when logcat itself fails, or in pid mode without exactly one verified NAVEE process.
+export function probeCommand(uid, cursor, filter = 'uid') {
+  if (!request(uid, cursor, filter)) throw new Error('Invalid probe request');
+  return `${verifiedPids(uid)}
+command -v pidof >/dev/null && echo "$k" || echo '?'
+getprop ${PROPERTY}
+n() { set -- $( { { logcat -d -t ${quote(cursor)} "$@" 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | wc -l; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
+n
+${filter === 'uid' ? `n --uid=${uid}` : '[ "$k" = 1 ] && n --pid="$q" || echo x'}`;
+}
+// probeCommand's output → captureHealth's facts. Anything unexpected is unknown (null).
+export function parseProbe(output) {
+  const lines = String(output ?? '').split(/\r?\n/);
+  if (lines.length !== 4) return { propertyOk: null, running: null, phoneLines: null, naveeLines: null };
+  const [pids, property, all, navee] = lines, count = text => /^\d{1,9}$/.test(text.trim()) ? Number(text.trim()) : null;
+  return { propertyOk: /^[\x20-\x7e]{0,91}$/.test(property) ? property === 'VERBOSE' : null,
+    running: /^\d{1,3}$/.test(pids) ? Number(pids) > 0 : null, phoneLines: count(all), naveeLines: count(navee) };
+}
+export const HEALTH = {
+  checking: 'Checking that NAVEE’s lines are arriving…',
+  property: 'NAVEE’s log setting didn’t take on this phone, so its lines can’t be read. Try recording again.',
+  unsupported: 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.',
+  'logcat-failed': 'This phone’s log reader is refusing the request, so no NAVEE lines are arriving. Try recording again.',
+  impostor: 'Another app is using NAVEE’s name, so nothing is recorded.',
+  'phone-logs': 'This phone isn’t keeping app logs. Try this: in Developer options, set Logger buffer size to 256K or more (not Off), then record again.',
+  'not-running': 'NAVEE isn’t running. Open NAVEE and connect it to your scooter.',
+  'navee-silent': 'NAVEE isn’t writing logs this page can read. Try this: close NAVEE fully (swipe it away), reopen it and connect. Some Xiaomi (MIUI) phones may also restrict app logs.',
+  'no-bluetooth': 'NAVEE is logging, but no Bluetooth lines yet. Make sure it’s connected to your scooter, then change a setting.',
+  healthy: 'Receiving NAVEE Bluetooth lines.'
+};
+// Why a recording is (still) empty, in order; null facts are unknown and never name a cause. filter
+// and logcat (logcatReply's status) come from the latest poll, the rest from the probe. Kept rows
+// prove NAVEE's lines arrive, which outranks counts of a ring buffer that may have rotated.
+export function captureHealth({ propertyOk = null, filter = null, logcat = null, running = null, phoneLines = null, naveeLines = null, kept = 0 } = {}) {
+  const empty = !(kept > 0), live = logcat === 'no-pid' ? false : running;
+  const state = propertyOk === false ? 'property'
+    // Pid mode is the fallback for a refused --uid, so a failing pid read means neither works.
+    : logcat === 'failed' ? (filter === 'pid' && empty ? 'unsupported' : 'logcat-failed')
+    : logcat === 'other-uid' ? 'impostor'
+    : live === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
+    : live === false ? 'not-running'
+    : live === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
+    : naveeLines > 0 && empty ? 'no-bluetooth'
+    : empty ? 'checking' : 'healthy';
+  return { state, text: HEALTH[state] };
 }
 // What the kept command rows add up to: new commands by key, new values by exact value, user
 // answers by signature, and counts of known commands and reads.
@@ -373,14 +423,18 @@ export function submission({ model, description, contact, naveeVersion, android,
     navee_version: field(naveeVersion, LIMITS.version), android: field(android, LIMITS.android), phone: field(phone, LIMITS.phone),
     started_at: startedAt, duration_s: durationS, hidden_rows: hidden, rows: rows.map(row => `${row.time} ${row.text}`)
   };
-  if (!body.model || !body.description || body.description.length > LIMITS.description || body.contact === null ||
-      body.navee_version === null || body.android === null || body.phone === null ||
-      !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(startedAt) ||
+  // An empty capture first: no edit to the details can make it sendable. Then name the field to fix.
+  if (!rows.some(row => !row.note)) throw new SetupError('invalid', 'There are no NAVEE lines to send. Keep at least one, or record again.');
+  const problem = !body.description ? 'Describe the problem first.'
+    : body.description.length > LIMITS.description ? `Keep the description to ${LIMITS.description.toLocaleString('en-US')} characters.`
+    : body.contact === null ? `The contact is too long or has characters that can’t be sent. Use up to ${LIMITS.contact} characters.`
+    : !body.model ? 'Choose your scooter model.'
+    : body.navee_version === null || body.android === null || body.phone === null ? 'The phone details couldn’t be read. Record again.'
+    : !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{3})?Z$/.test(startedAt) ||
       !Number.isInteger(durationS) || durationS < 0 || durationS > LIMITS.duration ||
-      !Number.isInteger(hidden) || hidden < 0 || hidden > LIMITS.hidden)
-    throw new SetupError('invalid', 'Some details are missing or too long. Check the description and contact fields.');
-  if (body.rows.length < 1 || body.rows.length > LIMITS.rows || !rows.some(row => !row.note))
-    throw new SetupError('invalid', 'Keep at least one NAVEE line to send.');
+      !Number.isInteger(hidden) || hidden < 0 || hidden > LIMITS.hidden ? 'The recording details couldn’t be checked; record again.' : '';
+  if (problem) throw new SetupError('invalid', problem);
+  if (body.rows.length > LIMITS.rows) throw new SetupError('invalid', 'This capture is too large to send. Delete some lines and try again.');
   if (!body.rows.every(row => row.length <= LIMITS.row && /^\d{2}:\d{2}:\d{2}\.\d{3} /.test(row) && safeText(row.slice(13))))
     throw new SetupError('invalid', 'A line could not be checked safely, so nothing was sent.');
   // Optional: present only when the capture holds something Volt doesn't know.

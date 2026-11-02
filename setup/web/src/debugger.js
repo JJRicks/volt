@@ -116,7 +116,7 @@ async function connect({ recovery = false } = {}) {
     }
   });
   phone = connected;
-  session = new DebugCaptureSession({ run: phone.run, serial: phone.serial, storage, onRecord: renderLive, update: state => {
+  session = new DebugCaptureSession({ run: phone.run, serial: phone.serial, storage, onRecord: renderLive, onHealth: health => message('health', health.text), update: state => {
     const recording = state === 'recording';
     $('recording-title').textContent = recording ? 'Recording. Use NAVEE now.' : state === 'cleaning' ? 'Restoring your phone’s settings.' : 'Getting the phone ready.';
     $('progress').textContent = recording ? 'Recording. Do the thing in NAVEE, then press Stop.' : state === 'cleaning' ? 'Closing NAVEE and restoring its log setting…' : 'Restarting NAVEE with temporary logging…';
@@ -259,7 +259,7 @@ function renderLive(recorder) {
   if (atBottom) live.scrollTop = live.scrollHeight;
 }
 function clearLive() {
-  liveRecorder = null; clearQuestions(); updateKnows('knows-live', new Map());
+  liveRecorder = null; clearQuestions(); updateKnows('knows-live', new Map()); message('health', '');
   rendered = []; $('live-rows').replaceChildren(); $('live-empty').hidden = false;
   $('kept-count').textContent = '0 lines kept'; $('hidden-count').textContent = '0 other NAVEE log lines hidden';
   $('countdown').textContent = `${RECORD_MS / 60_000}:00`; $('countdown').classList.remove('low');
@@ -286,8 +286,15 @@ function renderReview() {
   $('review-rows').replaceChildren(...recorder.rows.map(row => rowItem(row, true)));
   const navee = recorder.rows.filter(row => !row.note).length;
   $('review-counts').textContent = `${plural(recorder.rows.length, 'line', 'lines')} will be sent (times are UTC). “(ok)” means NAVEE confirmed the command was written. ${plural(recorder.hidden, 'other NAVEE log line was', 'other NAVEE log lines were')} hidden${recorder.folded ? ` and ${plural(recorder.folded, 'repeat', 'repeats')} folded` : ''}; only those counts are sent.`;
-  if (!navee) message('notice', 'No NAVEE Bluetooth lines were kept, so there’s nothing to send. Check that NAVEE connects to your scooter while recording, then try again.');
+  if (!navee) message('notice', emptyNotice());
   $('send').disabled = !navee || !$('send-consent').checked || !!sentId;
+}
+// Nothing to send: say why with the recording's last capture-health finding, when it named a cause.
+function emptyNotice() {
+  if (capture.recorder.rows.some(row => !row.note)) return '';
+  const { state, text } = capture.health || {};
+  return `No NAVEE Bluetooth lines were kept, so there’s nothing to send. ${state && state !== 'checking' && state !== 'healthy'
+    ? `Last check while recording: ${text}` : 'Check that NAVEE connects to your scooter while recording, then try again.'}`;
 }
 // "18 known commands · 1 new: 0xa4 (sent 3 times) · 1 new value: Energy recovery = 45"
 function reviewLine({ known, reads, news, values }) {
@@ -381,7 +388,7 @@ $('start').addEventListener('click', () => action(async () => {
     await releasePhone();
     showReview();
     const why = { limit: 'Recording reached its nine-minute limit and stopped. ', full: `The capture is full (${LIMITS.rows.toLocaleString('en-US')} lines or its size limit), so recording stopped. ` }[capture.reason] || '';
-    if (why) message('notice', why + 'Cleanup is verified.');
+    if (why) message('notice', [`${why}Cleanup is verified.`, emptyNotice()].filter(Boolean).join(' '));
   } catch (e) {
     stopTicker(); clearLive(); capture = null;
     if (session?.safe && !pendingRecovery()) await closePhone();

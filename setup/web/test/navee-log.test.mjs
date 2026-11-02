@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, answerText, askable, classify, clock, decodeFrame, logcatCommand, noteText, recognize, safeSummary, safeText, submission, summaryText, tally } from '../src/navee-log.js';
+import { HEALTH, LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, answerText, askable, captureHealth, classify, clock, decodeFrame, logcatCommand, noteText, parseProbe, probeCommand, recognize, safeSummary, safeText, submission, summaryText, tally } from '../src/navee-log.js';
 import { COMMANDS, GROUPS, SENSITIVE, describe } from '../src/navee-commands.js';
 import { frame as authFrame } from './fixtures.mjs';
 import { START, bytes, frame, hex, line } from './navee-fixtures.mjs';
+import { appLogcat, verifiedPids } from '../src/protocol.js';
 
 // The submit server's documented refusals. Every kept row must pass them.
 function serverAccepts(row) {
@@ -369,9 +370,97 @@ test('notes are labelled local text, ordered by time and held to the same rules'
 });
 test('clock and logcat command are strict', () => {
   assert.equal(clock('1800000000.1'), '08:00:00.100'); assert.equal(clock('1800000000.123456789'), '08:00:00.123');
-  assert.equal(logcatCommand(10123, '1800000000.125', 100), "logcat --uid=10123 -d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S' | head -n 100");
-  for (const args of [['10123;x', '1800000000.125', 1], [10123, "1'; reboot", 1], [10123, '1800000000.125', 0], [10123, '1800000000.125', 1001], [1, '1800000000.125', 1]])
-    assert.throws(() => logcatCommand(...args));
+  // One builder for both filters; the poll reports logcat's exit status after the rows.
+  assert.equal(logcatCommand(10123, '1800000000.125', 100), `{ r=$( { { logcat --uid=10123 -d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S' 2>/dev/null; echo "$?" >&3; } | head -n 100 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
+  assert.equal(logcatCommand(10123, '1800000000.125', 100, 'uid'), logcatCommand(10123, '1800000000.125', 100));
+  assert.equal(logcatCommand(10123, '1800000000.125', 7, 'pid'), appLogcat(10123, 'pid', "-d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S'", 'head -n 7'));
+  assert.match(logcatCommand(10123, '1800000000.125', 7, 'pid'), /grep '\^Uid:' \/proc\/\$p\/status.*\[ "\$2" = 10123 \].*logcat --pid="\$q" -d -v epoch -t '1800000000\.125' -s com\.navee\.ucaret:V '\*:S' 2>\/dev\/null; .*\| head -n 7 >&4/s);
+  for (const args of [['10123;x', '1800000000.125', 1], [10123, "1'; reboot", 1], [10123, '1800000000.125', 0], [10123, '1800000000.125', 1001], [1, '1800000000.125', 1],
+    [10123, '1800000000.125', 1, 'tag'], [10123, '1800000000.125', 1, ''], ['1012a', '1800000000.125', 1, 'pid']])
+    assert.throws(() => logcatCommand(...args), String(args));
+});
+test('the capture-health probe is one strict, read-only command counted on the phone, with the poll’s filter', () => {
+  const head = `${verifiedPids(10123)}
+command -v pidof >/dev/null && echo "$k" || echo '?'
+getprop log.tag.com.navee.ucaret
+n() { set -- $( { { logcat -d -t '1800000000.000000000' "$@" 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | wc -l; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
+n
+`;
+  assert.equal(probeCommand(10123, '1800000000.000000000'), `${head}n --uid=10123`);
+  assert.equal(probeCommand(10123, '1800000000.000000000', 'pid'), `${head}[ "$k" = 1 ] && n --pid="$q" || echo x`);
+  // No clearing, buffer or property changes, and output goes nowhere but back or to /dev/null.
+  for (const filter of ['uid', 'pid']) {
+    assert.doesNotMatch(probeCommand(10123, '1800000000.1', filter), /logcat[^|\n]* -[cGgfrnp]\b|setprop|>(?!\/dev\/null|&[13])|\brm |\bam |\btouch |\bmkdir /);
+    assert.doesNotMatch(logcatCommand(10123, '1800000000.1', 5, filter), /logcat[^|\n]* -[cGgfrnp]\b|setprop|>(?!\/dev\/null|&[134])|\brm |\bam |\btouch |\bmkdir /);
+  }
+  for (const args of [['10123;x', '1800000000.125'], [10123, "1'; reboot"], [10123, '1800000000.125 -c'], [1, '1800000000.125'], [123456, '1800000000.125'], [10123, '1800000000.125', 'all']])
+    assert.throws(() => probeCommand(...args));
+});
+test('probe output parses defensively: anything unexpected is unknown', () => {
+  const unknown = { propertyOk: null, running: null, phoneLines: null, naveeLines: null };
+  assert.deepEqual(parseProbe('1\nVERBOSE\n812\n37'), { propertyOk: true, running: true, phoneLines: 812, naveeLines: 37 });
+  assert.deepEqual(parseProbe('0\nVERBOSE\n  12\n0'), { propertyOk: true, running: false, phoneLines: 12, naveeLines: 0 });
+  assert.deepEqual(parseProbe('2\nWARN\n0\n0\r'), { propertyOk: false, running: true, phoneLines: 0, naveeLines: 0 });
+  assert.deepEqual(parseProbe('1\n\n5\n0'), { propertyOk: false, running: true, phoneLines: 5, naveeLines: 0 });
+  // A failed NAVEE read (or pid mode without exactly one verified process) is unknown, not zero.
+  assert.deepEqual(parseProbe('1\nVERBOSE\n250\nx'), { propertyOk: true, running: true, phoneLines: 250, naveeLines: null });
+  assert.deepEqual(parseProbe('1\nVERBOSE\nx\nx'), { ...unknown, propertyOk: true, running: true });
+  assert.deepEqual(parseProbe('?\nVERBOSE\n9\n2'), { propertyOk: true, running: null, phoneLines: 9, naveeLines: 2 });
+  for (const junk of ['', 'VERBOSE', '1\nVERBOSE\n5', '1\nVERBOSE\n5\n2\nextra', null, undefined])
+    assert.deepEqual(parseProbe(junk), unknown, String(junk));
+  assert.deepEqual(parseProbe('sh: pidof\nV\u0000\n-1\n1e3'), { ...unknown });
+  assert.deepEqual(parseProbe('4321 4400\nVERBOSE\n12345678901\n2'), { propertyOk: true, running: null, phoneLines: null, naveeLines: 2 });
+});
+test('capture health names a cause only from data, in order', () => {
+  const state = facts => captureHealth(facts).state;
+  const fine = { propertyOk: true, filter: 'uid', logcat: 'ok', running: true, phoneLines: 900, naveeLines: 40, kept: 0 };
+  assert.equal(state(fine), 'no-bluetooth');
+  assert.equal(state({ ...fine, kept: 3 }), 'healthy');
+  assert.equal(state({ ...fine, naveeLines: 0 }), 'navee-silent');
+  assert.equal(state({ ...fine, running: false }), 'not-running');
+  assert.equal(state({ ...fine, phoneLines: 0, naveeLines: 0 }), 'phone-logs');
+  assert.equal(state({ ...fine, propertyOk: false }), 'property');
+  // A failing logcat is an error, never "no lines": with --uid, the reader is refusing; with the pid
+  // fallback (--uid already refused), neither filter works, unless lines were kept before.
+  assert.equal(state({ ...fine, logcat: 'failed' }), 'logcat-failed');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed' }), 'unsupported');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed', kept: 2 }), 'logcat-failed');
+  assert.equal(state({ ...fine, logcat: 'failed', kept: 2 }), 'logcat-failed');
+  // Pid mode: another uid behind NAVEE's name; no NAVEE process; several are not a cause.
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid' }), 'impostor');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid', kept: 2 }), 'impostor');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'no-pid' }), 'not-running');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'no-pid', phoneLines: 0, naveeLines: 0 }), 'not-running');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'several' }), 'no-bluetooth');
+  // Order: the property, the reader, an impostor, then the phone's logger before NAVEE itself.
+  assert.equal(state({ ...fine, propertyOk: false, filter: 'pid', logcat: 'failed', phoneLines: 0 }), 'property');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed', running: false, phoneLines: 0, naveeLines: null }), 'unsupported');
+  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid', running: false, phoneLines: 0 }), 'impostor');
+  assert.equal(state({ ...fine, running: false, phoneLines: 0, naveeLines: 0 }), 'not-running');
+  assert.equal(state({ ...fine, running: false, kept: 3 }), 'not-running');
+  // A NAVEE line counted after an empty all-apps read means the phone does log.
+  assert.equal(state({ ...fine, phoneLines: 0, naveeLines: 2 }), 'no-bluetooth');
+  // Kept rows prove lines arrive: a rotated buffer's zero counts never contradict them.
+  assert.equal(state({ ...fine, phoneLines: 0, naveeLines: 0, kept: 1 }), 'healthy');
+  assert.equal(state({ ...fine, naveeLines: 0, kept: 1 }), 'healthy');
+  assert.equal(captureHealth({ ...fine, filter: 'pid', logcat: 'other-uid' }).text, 'Another app is using NAVEE’s name, so nothing is recorded.');
+  assert.equal(captureHealth({ ...fine, filter: 'pid', logcat: 'failed' }).text, 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.');
+  assert.equal(captureHealth({ ...fine, logcat: 'failed' }).text, 'This phone’s log reader is refusing the request, so no NAVEE lines are arriving. Try recording again.');
+  // Unknown facts (a failed probe) claim nothing.
+  assert.equal(state({}), 'checking'); assert.equal(state(), 'checking');
+  assert.equal(state({ kept: 2 }), 'healthy');
+  assert.equal(state({ running: null, phoneLines: 0, naveeLines: 0 }), 'checking');
+  assert.equal(state({ running: true, phoneLines: null, naveeLines: 0 }), 'checking');
+  assert.equal(state({ running: true, phoneLines: 5, naveeLines: null }), 'checking');
+  assert.equal(state({ propertyOk: null, running: true, phoneLines: 5, naveeLines: 2 }), 'no-bluetooth');
+  assert.deepEqual(captureHealth({ ...fine, kept: 3 }), { state: 'healthy', text: 'Receiving NAVEE Bluetooth lines.' });
+  assert.equal(captureHealth({ ...fine, phoneLines: 0, naveeLines: 0 }).text,
+    'This phone isn’t keeping app logs. Try this: in Developer options, set Logger buffer size to 256K or more (not Off), then record again.');
+  assert.equal(captureHealth({ ...fine, naveeLines: 0 }).text,
+    'NAVEE isn’t writing logs this page can read. Try this: close NAVEE fully (swipe it away), reopen it and connect. Some Xiaomi (MIUI) phones may also restrict app logs.');
+  assert.equal(captureHealth({ ...fine, running: false }).text, 'NAVEE isn’t running. Open NAVEE and connect it to your scooter.');
+  assert.equal(captureHealth({}).text, 'Checking that NAVEE’s lines are arriving…');
+  for (const text of Object.values(HEALTH)) assert(text.length <= 200 && !/[\u0000-\u001f]/.test(text), text);
 });
 function recorded() {
   const r = new LogRecorder(START);
@@ -399,6 +488,32 @@ test('submission is the exact server format and refuses anything out of bounds',
   full.ingest(Array.from({ length: 3000 }, (_, i) => line(`Write failure: ${'z'.repeat(300)}`, `1800000100.${String(i).padStart(3, '0')}`)).join('\n'));
   const longest = submission({ ...base(full), description: '“'.repeat(4000), contact: '"'.repeat(240), hidden: full.hidden, rows: full.rows });
   assert(new TextEncoder().encode(longest).length <= LIMITS.body);
+});
+test('a refused submission names what to fix, an empty capture first', () => {
+  const r = recorded(), refused = change => { try { submission({ ...base(r), ...change }); } catch (e) { assert.equal(e.code, 'invalid'); return e.message; } assert.fail('accepted'); };
+  const empty = 'There are no NAVEE lines to send. Keep at least one, or record again.';
+  assert.equal(refused({ rows: [] }), empty);
+  assert.equal(refused({ rows: r.rows.filter(x => x.note) }), empty);
+  // The real problem wins over any detail that also fails.
+  assert.equal(refused({ rows: [], description: '', contact: 'x'.repeat(241), startedAt: 'yesterday' }), empty);
+  assert.equal(refused({ description: '' }), 'Describe the problem first.');
+  assert.equal(refused({ description: ' \r\n\t ' }), 'Describe the problem first.');
+  assert.equal(refused({ description: undefined }), 'Describe the problem first.');
+  assert.equal(refused({ description: 'x'.repeat(4001) }), 'Keep the description to 4,000 characters.');
+  assert.equal(refused({ description: '', contact: 'x'.repeat(241) }), 'Describe the problem first.');
+  assert.equal(refused({ contact: 'x'.repeat(241) }), 'The contact is too long or has characters that can’t be sent. Use up to 240 characters.');
+  assert.equal(refused({ contact: 'x'.repeat(241), model: '' }), 'The contact is too long or has characters that can’t be sent. Use up to 240 characters.');
+  for (const model of ['', 'm'.repeat(121), 'UT5 Maxé'])
+    assert.equal(refused({ model }), 'Choose your scooter model.', model);
+  for (const change of [{ naveeVersion: 'v'.repeat(41) }, { android: 'a'.repeat(41) }, { phone: 'p'.repeat(81) }, { phone: 'Redmi Note 8T' }])
+    assert.equal(refused(change), 'The phone details couldn’t be read. Record again.', Object.keys(change).join());
+  for (const change of [{ startedAt: 'yesterday' }, { durationS: 3601 }, { durationS: 1.5 }, { durationS: -1 }, { hidden: -1 }, { hidden: 1_000_001 }, { hidden: '3' }])
+    assert.equal(refused(change), 'The recording details couldn’t be checked; record again.', Object.keys(change).join());
+  assert.equal(refused({ rows: Array.from({ length: LIMITS.rows + 1 }, () => r.rows[0]) }), 'This capture is too large to send. Delete some lines and try again.');
+  assert.equal(refused({ rows: [...r.rows, { time: '08:00:02.000', text: 'peer C0:FF:EE:12:34:56' }] }), 'A line could not be checked safely, so nothing was sent.');
+  // Every bound is the server's, unchanged: the longest accepted values still pass.
+  assert.doesNotThrow(() => submission({ ...base(r), description: 'x'.repeat(4000), contact: 'x'.repeat(240), model: 'm'.repeat(120), naveeVersion: 'v'.repeat(40),
+    android: 'a'.repeat(40), phone: 'p'.repeat(80), durationS: 3600, hidden: 1_000_000 }));
 });
 test('fuzzed garbage around allowlisted prefixes never yields an unsafe kept row', () => {
   let seed = 7;

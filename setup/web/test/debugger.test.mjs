@@ -9,6 +9,7 @@ import { runInNewContext } from 'node:vm';
 import { webcrypto } from 'node:crypto';
 import { build } from 'esbuild';
 import { frame, line, START } from './navee-fixtures.mjs';
+import { HEALTH } from '../src/navee-log.js';
 
 const entry = fileURLToPath(new URL('../src/debugger.js', import.meta.url));
 const html = await readFile(new URL('../debugger.html', import.meta.url), 'utf8');
@@ -33,25 +34,27 @@ function node(id = '', tag = 'div') {
     append(...nodes) { this.children.push(...nodes); }, replaceChildren(...nodes) { this.children = nodes; },
     focus() {}, click() { this.listeners.click?.(); } };
 }
-function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } }, logs = LOGS, blockedAtLoad = false } = {}) {
+function fixture({ mode = 'success', hostname = 'volt.jjricks.com', reply = { status: 201, body: { id: '0a1b2c3d' } }, logs = LOGS, blockedAtLoad = false, healths = [], reason = 'stopped' } = {}) {
   const elements = new Map(), phones = [], sessions = [], events = [], fetches = [], blobs = [], windowEvents = {};
   for (const [, id] of html.matchAll(/id="([^"]+)"/g)) elements.set(id, node(id));
-  const fixture = { mode, pending: false, nextSerial: 'same-phone', reply, duringRecording: null,
+  const fixture = { mode, pending: false, nextSerial: 'same-phone', reply, duringRecording: null, healths, reason,
     async connect(_waiting, disconnect) {
       const phone = { serial: this.nextSerial, name: 'Fixture', disconnect, closed: false,
         async close(forget) { assert.equal(forget, true); this.closed = true; events.push('close'); this.disconnect(); }, async run() { throw new Error('unused'); } };
       phones.push(phone); return phone;
     },
     Session: class {
-      constructor({ serial, onRecord, update }) { Object.assign(this, { serial, onRecord, update, safe: false, result: null, busy: false, stopped: false }); sessions.push(this); }
+      constructor({ serial, onRecord, onHealth, update }) { Object.assign(this, { serial, onRecord, onHealth, update, safe: false, result: null, busy: false, stopped: false }); sessions.push(this); }
       async begin() {
         this.busy = true; this.update('preparing'); this.update('recording');
         this.recorder = new fixture.LogRecorder(START); this.recorder.ingest(logs); this.onRecord(this.recorder);
+        for (const health of fixture.healths) this.onHealth(health);
         await fixture.duringRecording?.(this);
         this.update('cleaning'); this.busy = false;
         this.safe = fixture.mode !== 'unsafe-failure'; fixture.pending = !this.safe;
         if (fixture.mode !== 'success') throw new fixture.SetupError('cleanup', 'Fixture capture failure');
-        this.result = { recorder: this.recorder, facts: { naveeVersion: '2.1.9', android: '16', phone: 'Pixel 9' }, reason: 'stopped', startedAt: '2027-01-15T08:00:00.000Z', durationS: 75 };
+        this.result = { recorder: this.recorder, facts: { naveeVersion: '2.1.9', android: '16', phone: 'Pixel 9' }, reason: fixture.reason,
+          health: fixture.healths.at(-1) ?? null, startedAt: '2027-01-15T08:00:00.000Z', durationS: 75 };
         events.push('cleaned');
       }
       capture() { assert.equal(this.safe, true); assert(this.result); return this.result; }
@@ -150,6 +153,53 @@ test('verified recording closes USB, then sends exactly the reviewed lines', asy
   await f.click('send'); assert.equal(f.fetches.length, 1);
   f.click('finish');
   assert.deepEqual(f.visible(), ['problem-panel']); assert.equal(f.$('description').value, '');
+});
+test('recording shows live capture health; an empty review says why and what to try', async () => {
+  const health = state => ({ state, text: HEALTH[state] });
+  const f = fixture({ logs: '', healths: [health('checking'), health('phone-logs')] });
+  assert.equal(f.$('health').hidden, true);
+  let live;
+  f.fixture.duringRecording = () => { live = [f.$('health').hidden, f.$('health').textContent, f.$('health').id]; };
+  await f.record();
+  assert.deepEqual(live, [false, HEALTH['phone-logs'], 'health']);
+  assert.match(html, /<p id="health" class="notice" role="status" aria-live="polite" hidden><\/p>/);
+  assert.deepEqual(f.visible(), ['review-panel']);
+  assert.equal(f.$('notice').textContent, `No NAVEE Bluetooth lines were kept, so there’s nothing to send. Last check while recording: ${HEALTH['phone-logs']}`);
+  assert.equal(f.$('send').disabled, true);
+  // A copy of an empty capture names the real problem, even with details also missing.
+  f.$('description').value = '';
+  await f.click('download-copy');
+  assert.equal(f.$('error').textContent, 'There are no NAVEE lines to send. Keep at least one, or record again.');
+  assert.equal(f.blobs.length, 0);
+  f.click('discard'); assert.equal(f.$('health').hidden, true);
+  // The nine-minute stop keeps the reason beside its own notice.
+  const g = fixture({ logs: '', reason: 'limit', healths: [health('checking'), health('unsupported')] });
+  await g.record();
+  assert.equal(g.$('notice').textContent, `Recording reached its nine-minute limit and stopped. Cleanup is verified. No NAVEE Bluetooth lines were kept, so there’s nothing to send. Last check while recording: ${HEALTH.unsupported}`);
+  // Without a finding (still checking, or lines kept then deleted), the general advice.
+  const plain = 'No NAVEE Bluetooth lines were kept, so there’s nothing to send. Check that NAVEE connects to your scooter while recording, then try again.';
+  const h = fixture({ logs: '', healths: [health('checking')] });
+  await h.record();
+  assert.equal(h.$('notice').textContent, plain);
+  const k = fixture({ healths: [health('healthy')] });
+  await k.record();
+  for (const li of [...k.$('review-rows').children]) li.children.at(-1).click();
+  assert.equal(k.$('notice').textContent, plain);
+});
+test('a refused copy or send names the field to fix', async () => {
+  const f = fixture();
+  await f.record();
+  f.$('send-consent').checked = true; f.$('send-consent').listeners.change();
+  for (const [field, value, said] of [['description', '   ', 'Describe the problem first.'], ['description', 'x'.repeat(4001), 'Keep the description to 4,000 characters.'],
+    ['contact', 'x'.repeat(241), 'The contact is too long or has characters that can’t be sent. Use up to 240 characters.']]) {
+    const before = f.$(field).value;
+    f.$(field).value = value;
+    await f.click('download-copy'); assert.equal(f.$('error').textContent, said);
+    await f.click('send'); assert.equal(f.$('error').textContent, said);
+    f.$(field).value = before;
+  }
+  assert.equal(f.blobs.length, 0); assert.equal(f.fetches.length, 0);
+  await f.click('send'); assert.equal(f.fetches.length, 1);
 });
 test('notes typed during recording join the capture', async () => {
   const f = fixture();

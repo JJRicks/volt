@@ -6,6 +6,7 @@ import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import assert from 'node:assert/strict';
 import { COMMANDS } from '../src/navee-commands.js';
+import { HEALTH } from '../src/navee-log.js';
 const { chromium } = await import(pathToFileURL(process.env.PLAYWRIGHT_MODULE).href);
 const root = resolve('dist/debugger'), headers = JSON.parse(await readFile(join(root, 'headers.json'), 'utf8'));
 const files = ['index.html', 'app.js', 'styles.css', 'saira_regular.ttf', 'saira_semibold.ttf', 'saira_bold.ttf'];
@@ -33,8 +34,9 @@ async function open(width, hostname = 'volt.jjricks.com', denied = '') {
   await page.goto(`https://${hostname}/debugger/`); await page.waitForFunction(() => document.querySelector('#model').options.length > 1);
   return { context, page };
 }
-// Representative kept rows, including the longest unbroken line the filter allows.
-const sample = () => {
+// Representative kept rows, including the longest unbroken line the filter allows, and the longest health text.
+const sample = health => {
+  document.getElementById('health').textContent = health; document.getElementById('health').hidden = false;
   const rows = [['08:00:04.000', 'Send write command: [55 aa 00 6d 03 04 02 01 da fe fd] (ok)', ['known', 'Known', 'Line lights color → Red'], false],
     ['08:00:04.500', '[note] now switching to rainbow mode', null, true], ['08:00:05.000', 'Send write command: [55 aa 00 a4 01 01 a5 fe fd] (ok)', ['new', 'New to Volt', '0xa4 = 1'], false],
     ['08:00:05.000', '[you said] 0xa4 = 1: rainbow mode', null, 'note answer'], ['08:00:05.500', 'Send write command: [55 aa 00 53 01 2d 80 fe fd] (ok)', ['new-value', 'New value', 'Energy recovery = 45'], false],
@@ -110,7 +112,9 @@ try {
     assert.match(await page.locator('#error').innerText(), /No phone selected/);
     assert.equal(await page.locator('#record-panel').isVisible(), false);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false, `connect width ${width}`);
-    await page.evaluate(sample);
+    await page.evaluate(sample, Object.values(HEALTH).reduce((a, b) => b.length > a.length ? b : a));
+    // The live status line is a polite status region, hidden until recording reports.
+    assert.deepEqual(await page.locator('#health').evaluate(element => [element.getAttribute('role'), element.getAttribute('aria-live'), element.closest('section').id]), ['status', 'polite', 'recording-panel']);
     for (const id of panels) {
       await page.evaluate(id => {
         for (const panel of document.querySelectorAll('.panel')) panel.hidden = panel.id !== id;
@@ -142,7 +146,7 @@ try {
       for (const panel of document.querySelectorAll('.panel')) panel.hidden = !['review-panel'].includes(panel.id);
       const luminance = color => color.match(/[\d.]+/g).slice(0, 3).map(Number).map(n => n / 255)
         .map(n => n <= .04045 ? n / 12.92 : ((n + .055) / 1.055) ** 2.4).reduce((sum, n, i) => sum + n * [.2126, .7152, .0722][i], 0);
-      return ['#send', '#review-panel .fine', '.summary dt', '.log time', '.log .reading', '.log code', '.counts', '.consent', '.steps li',
+      return ['#send', '#review-panel .fine', '.summary dt', '.log time', '.log .reading', '.log code', '.counts', '#health', '.consent', '.steps li',
         '.tag.known', '.tag.new', '.tag.new-value', '.tag.read', '.ask-title', '.ask-what', '.known-summary', '.unknowns .fine', '.knows-values', '.knows-list code', '.seen-count', '.knows h3'].every(selector => {
         const element = document.querySelector(selector), style = getComputedStyle(element);
         let background = element;
@@ -191,5 +195,5 @@ try {
   }
   assert.deepEqual(pageErrors, []);
   console.log(JSON.stringify({ widths, allPanelsFit: true, bundledFontsLoaded: true, textContrast: true, keyboardFocusVisible: true, reducedMotionRespected: true,
-    usbConsentAndCancel: true, promptCardKeyboard: true, knowsPanelCollapsed: true, onlySubmitReachable: true, unreviewedScriptBlocked: true, otherHostRefused: true, serviceWorkerBlocked: true, storageDenialHandled: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
+    usbConsentAndCancel: true, healthStatusLine: true, promptCardKeyboard: true, knowsPanelCollapsed: true, onlySubmitReachable: true, unreviewedScriptBlocked: true, otherHostRefused: true, serviceWorkerBlocked: true, storageDenialHandled: true, pageErrors, screenshots: process.env.QA_DIR }, null, 2));
 } finally { await browser.close(); }
