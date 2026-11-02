@@ -138,13 +138,14 @@ public final class ScooterService extends Service {
         // Current visibility is checked immediately afterwards, before any BLE work starts.
         String action=intent==null?null:intent.getAction();
         boolean stopAction="STOP_RECORDING".equals(action)||"STOP_CHARGE_RECORDING".equals(action)||"DISCONNECT".equals(action)
-                ||"STOP_CHARGE_ALARM".equals(action)||"STOP_ALERT_WATCH".equals(action);
+                ||"STOP_CHARGE_ALARM".equals(action)||"DISMISS_CHARGE_ALERT".equals(action)||"STOP_ALERT_WATCH".equals(action);
         startForegroundNotice(true);applyVisibility(uiVisible,!stopAction);
         if("STOP_RECORDING".equals(action))stopRide();
         else if("STOP_CHARGE_RECORDING".equals(action))stopChargeRecording();
         else if("SCHEDULE_CHARGE_NOW".equals(action))scheduleChargeNow();
         else if("CANCEL_SCHEDULE_TEST".equals(action))cancelScheduleTest();
         else if("STOP_CHARGE_ALARM".equals(action))stopChargeAlarm();
+        else if("DISMISS_CHARGE_ALERT".equals(action))dismissChargeAlert();
         else if("STOP_ALERT_WATCH".equals(action))skipChargeAlert();
         else if("DISCONNECT".equals(action)){ble.disconnect();if(!isRecording()&&!isChargeRecording()&&!phoneSaving()&&!visible){stopIdleWork();return START_NOT_STICKY;}}
         applyWorkPolicy(!stopAction||isRecording());return isRecording()?START_STICKY:START_NOT_STICKY;
@@ -904,12 +905,19 @@ public final class ScooterService extends Service {
                 .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
         if(sounding){
             PendingIntent stop=PendingIntent.getService(this,6,new Intent(this,ScooterService.class).setAction("STOP_CHARGE_ALARM"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
-            builder.addAction(new Notification.Action.Builder(null,"Stop",stop).build()).setDeleteIntent(stop);
+            // Swiping it away also ends the alarm, but means "gone": Stop alone keeps the Notify me notice.
+            PendingIntent dismiss=PendingIntent.getService(this,9,new Intent(this,ScooterService.class).setAction("DISMISS_CHARGE_ALERT"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
+            builder.addAction(new Notification.Action.Builder(null,"Stop",stop).build()).setDeleteIntent(dismiss);
             // NotificationCompat.setSilent's method: a group child that alerts only for its (absent) summary stays quiet.
             builder.setGroup("volt-charge-alarm").setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY);
         }
         return builder.build();
     }
+    /**
+     * The owner swiped the sounding notice away: end the alarm and post nothing more for it. A kept notice queued when
+     * the alarm ended just before the swipe (NotificationPacer spaces posts) is dropped too.
+     */
+    private void dismissChargeAlert(){alertNoticeKept=false;cancelNotice(CHARGE_ALERT_NOTICE);stopChargeAlarm();}
     /** After the alarm: Notify me keeps the notice (without Stop) if the owner hasn't cleared it; alarm only removes it. */
     private void finishAlertNotice(){
         try{
