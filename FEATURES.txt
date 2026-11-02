@@ -32,9 +32,9 @@ NEW IN 1.11.1
   setup. Volt now reads each log line with the app Android recorded as its
   writer and keeps only NAVEE's. If the phone refuses the read, it says Volt
   couldn't read NAVEE's log instead of "Nothing found".
-- Battery alerts: the alert notification always gets its Stop button. Android
-  could drop that update when an alert fired while Volt's connection notice
-  was also changing, so Volt now spaces its notification updates.
+- Battery alerts: Volt spaces its notification updates, so an alert firing
+  while the connection notice changes no longer loses the alarm's Stop button
+  (Android could drop that update). A swiped alert stays dismissed.
 
 PREVIOUSLY IN 1.11.0
 ------------

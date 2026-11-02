@@ -35,8 +35,16 @@ November 2, 2026
     ("Enable the emulator software keyboard for password validation"); it passed
     twice when rerun alone on a fresh emulator. This release doesn't touch
     backups.
-- No owner-present hardware sweep for this patch: neither change is something
-  the hardware sweep exercises. The 1.11.0 hardware results stand for the rest.
+- No owner-present hardware sweep for this patch.
+  - The hardware sweep doesn't directly test Android 11 Shizuku capture, or the
+    alert pacing and dismissal cases.
+  - Its background step does exercise the foreground start and update handling
+    that the pacing change touched. That step hasn't run on this build; the
+    1.11.0 hardware results predate the change.
+  - The emulator steps that start and update the foreground service passed on
+    this build: charge capture, ride auto-stop, phone rides with and without
+    location (which changes the foreground type), battery alerts and scheduled
+    charging.
 - The release APK is signed with the project identity. Its certificate matches
   the 1.11.0 release, and the signature and zip alignment verify. Its dex,
   resources and manifest are identical to the build the sweep ran.
