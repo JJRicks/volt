@@ -1,40 +1,47 @@
-VOLT 1.11.1 — OWNER SETUP ON ANDROID 11 (versionCode 54)
+VOLT 1.11.1 — OWNER SETUP ON ANDROID 11, BATTERY ALERT STOP (versionCode 54)
 November 2, 2026
 
 - Full pure-Java suites (OwnerCaptureEngineTest 158 checks,
-  ShizukuCaptureClientTest 80), the owner-capture guard, the hardware sweep's
-  fake-adb tests and the pinned Shizuku dependency check pass on the release
-  tree. The suites cover the Android 11 fallback: only rows written by NAVEE's
-  uid are kept (another uid on a recycled pid, rows without a uid column, and
-  short uid names), and a refused read is named, not "Nothing found".
+  ShizukuCaptureClientTest 80, NotificationPacerTest 20), the owner-capture
+  guard, the hardware sweep's fake-adb tests and the pinned Shizuku dependency
+  check pass on the release tree.
+  - The owner-capture suites cover the Android 11 fallback: only rows written by
+    NAVEE's uid are kept (another uid on a recycled pid, rows without a uid
+    column, and short uid names), and a refused read is named, not "Nothing
+    found".
+  - The pacer suite simulates Android's notification rate estimator.
 - Android 11 emulator (API 30, Google APIs, arm64): logcat refuses --uid
   ("Unknown option", exit 1). Rows were written with su as NAVEE's uid, another
   app's uid, shell and uid 10005 (printed as u0_a5). Read with the app's exact
   command, its filter and parser returned only the identity NAVEE's uid wrote.
   The setup page's command gave the same result. Not yet run through Shizuku
   on a real Android 11 phone with NAVEE.
+- Battery alert Stop (notification pacing):
+  - The first sweep of this release found charge-alerts-344 flaky, and the
+    exact 1.11.0 build was flaky in the same way (1 of 4).
+  - logcat showed Android's notification rate limit (about 5 updates per
+    second per app) dropping Volt's updates, once the alert's Stop update.
+  - With the fix, notification-heavy steps run alone with logcat (alert,
+    schedule, capture and auto-stop steps, the alarm step 9 times) passed every
+    run. Android dropped none of Volt's notification updates in all but one run.
+    That one shed a connection-notice update while the app was in sight and
+    restarting its service, when alerts show as a dialog.
+  - A new check (a swipe just as the alarm ends stays dismissed) fails on the
+    first version of the fix and passes on this one.
 - run-release-sweep.py on this exact build (API 36.1, synthetic data, Bluetooth
   off): all 64 steps, each run alone with --only from a shared queue across four
   freshly booted disposable emulators.
-  - 63 passed on the first run. charge-alerts-344 failed once ("No playback with
-    USAGE_ALARM").
-  - Rerun alone: 2 of 3 passed, then 4 of 4.
-  - The 1.11.0 release build, run the same way, failed 1 of 4 ("Sounding alert
-    lacks Stop"). Neither the step nor the alert code changed in this release.
-  - Cause, from logcat: Android's notification rate limit (about 5 updates per
-    second per app) dropped Volt's notification updates in 7 of 8 runs. It was
-    usually the connection notice, and once the alert's Stop update. The test
-    fires events faster than a scooter, but the burst when an alert fires can
-    trip the limit on a phone too. This is pre-existing; a follow-up will merge
-    those bursts and post the alert with Stop from the start.
-- No owner-present hardware sweep for this patch: its only app change, owner
-  capture through Shizuku on Android 11, isn't something the hardware sweep
-  exercises. The 1.11.0 hardware results stand for the rest.
+  - 63 passed on the first run. backups stopped at its emulator precondition
+    ("Enable the emulator software keyboard for password validation"); it passed
+    twice when rerun alone on a fresh emulator. This release doesn't touch
+    backups.
+- No owner-present hardware sweep for this patch: neither change is something
+  the hardware sweep exercises. The 1.11.0 hardware results stand for the rest.
 - The release APK is signed with the project identity. Its certificate matches
   the 1.11.0 release, and the signature and zip alignment verify. Its dex,
-  resources and manifest are identical to the build the sweeps ran.
+  resources and manifest are identical to the build the sweep ran.
 - Physical scope: owner capture on Android 11 is untested on a real phone with
-  NAVEE.
+  NAVEE, and the alert notification change is untested through a real charge.
 
 --- Previous verification ---
 
