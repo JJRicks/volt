@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 1.11.1 — 2026-11-02
 
 - Owner setup now works on Android 11 and older, from both the setup page and the app's **Use Shizuku on this phone** (which needs Android 11). Their log reader can't filter by app, so capture failed there. It now reads each log line with the app that wrote it, as Android records it, and keeps only NAVEE's. If the phone refuses the read or the read fails partway, both say Volt couldn't read NAVEE's log, instead of reporting that nothing arrived.
 - NAVEE debugger: phones on Android 11 and older are now recorded. Their log reader can't filter by app, so recordings came back empty (most likely what happened on an owner's Redmi Note 8T); the debugger now follows NAVEE's own process instead, after checking it really belongs to NAVEE, and keeps following it if NAVEE restarts.
