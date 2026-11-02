@@ -270,15 +270,17 @@ recording by asking logcat itself (`logcat --uid=<uid> -d -t 1`; exit 0 or not):
 on Android 12 and newer; on Android 11 and older, which lack `--uid`, `-v uid`, as owner capture
 reads there: every row under NAVEE's tag, each with the uid that wrote it (logd records it from the
 kernel's socket credentials, and logcat prints it on every line, so no app or message text can claim
-NAVEE's). Only rows whose writer is NAVEE's uid are classified; another uid's rows, and rows without
-the column, are never kept, hidden-counted, shown, copied or sent. Never by pid: `logcat --pid` also
-returns rows an earlier process with that recycled pid wrote. Every row still moves the cursor and
-the boundary dedupe, and in this mode a poll is full when `head` passed `<batch>` lines (dividers
-included), so a flood of another app's rows under NAVEE's tag, even within one millisecond, grows the
-batch and is read past instead of holding back NAVEE's later rows. The limit is the 1000-line batch:
-about 1000 or more rows stamped with one millisecond would still hold the cursor there. The check,
-the status-reporting read and the writer column's parse are generic (`protocol.js`:
-`logFilterCheck`, `appLogcat`, `logcatReply`, `writerOf`). Rows at the boundary
+NAVEE's). The phone keeps only rows whose writer column is NAVEE's uid, before `head` counts the
+batch (`… -v uid … | grep -E <NAVEE's writer column> | head -n <batch>`), and the page checks the
+column again on every row; another uid's rows, and rows without the column, are never kept,
+hidden-counted, shown, copied or sent. Never by pid: `logcat --pid` also returns rows an earlier
+process with that recycled pid wrote. Dropping them on the phone also protects the cursor: logd keeps
+whatever time the writing app put on a row, so another app could stamp rows hours ahead, or more than
+a batch in one instant, and either would hold back NAVEE's later rows if they took up the batch or
+moved the cursor. As with `--uid`, only NAVEE's own rows fill the batch and move the cursor; any other
+row that still reached the page is only counted. The check, the status-reporting read and the writer
+column's parse are generic (`protocol.js`: `logFilterCheck`, `appLogcat`, `logcatReply`, `writerOf`,
+and `writerPattern`, the same test for `grep -E`). Rows at the boundary
 timestamp are deduplicated by a 64-bit digest and occurrence count, so raw text
 is never retained. Before cleanup it reads NAVEE's `versionName`, Android's
 release and the phone model; these are the only device facts sent. Review, copy
@@ -293,13 +295,15 @@ its uid (the `Uid:` line of each `pidof` process's `/proc/<pid>/status`; this on
 now and never selects rows), the log property's readback, and line counts since the recording
 started, counted on the phone (dividers excluded) so no log text is transferred: all apps (`logcat
 -d -t <start>`, `wc -l`) and NAVEE, any tag (`--uid`, or on Android 11 and older the `-v uid` rows
-whose writer column is NAVEE's uid, `grep -c`). A count whose logcat fails reads `x` (unknown).
-`captureHealth()` (pure) turns these, the latest poll's status and the recorder's counts (kept rows,
-rows NAVEE's uid wrote, another uid's rows under NAVEE's tag, rows without a writer) into one status
-line, in order: property not VERBOSE; logcat failing (with the `-v uid` fallback, neither filter
-works; also when that reader's rows lack the writer column); rows under NAVEE's tag arriving only
-from another uid ("its lines are ignored"; only counted, never content); NAVEE running but no app
-logging; NAVEE not running; nothing from NAVEE; NAVEE logging but no Bluetooth lines; receiving.
+whose writer column is NAVEE's uid, `grep -c`). On Android 11 and older it also counts the rows
+under NAVEE's tag that the poll never reads: another uid's, and those without a writer column. A
+count whose logcat fails reads `x` (unknown). `captureHealth()` (pure) turns these, the latest poll's
+status and the recorder's counts (kept rows, rows NAVEE's uid wrote) into one status line, in order:
+property not VERBOSE; logcat failing (with the `-v uid` fallback, neither filter works; also when,
+after a good poll, nothing of NAVEE's arrived and NAVEE's tag has rows without the writer column);
+rows under NAVEE's tag only from another uid once a poll has read nothing of NAVEE's ("its lines are
+ignored"; only counted, never content); NAVEE running but no app logging; NAVEE not running; nothing
+from NAVEE; NAVEE logging but no Bluetooth lines; receiving.
 Unknown facts name no cause, and kept rows outrank counts from a ring buffer that may have rotated.
 A failed probe never ends the recording; only cancellation propagates. The review repeats the last
 finding when no NAVEE line was kept, and `submission()` names the field it refuses.

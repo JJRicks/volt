@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAuthLine, parseCapture, ownerDocument, quote, MAX_CAPTURE_BYTES, LOG_FILTERS, appLogcat, logFilter, logFilterCheck, logcatReply, ownRows, verifiedPids, writerOf } from '../src/protocol.js';
+import { parseAuthLine, parseCapture, ownerDocument, quote, MAX_CAPTURE_BYTES, LOG_FILTERS, appLogcat, logFilter, logFilterCheck, logcatReply, ownRows, verifiedPids, writerOf, writerPattern } from '../src/protocol.js';
 import { frame, row } from './fixtures.mjs';
 import { fakeAndroid, logRow } from './fake-android.mjs';
 test('strict six-byte identity with supported roles and signed checksum', () => {
@@ -109,6 +109,30 @@ test('writerOf reads each -v uid line’s writer column: NAVEE’s uid, another 
     assert.equal(writer(none), null, none);
   assert.equal(writerOf(10005)(own.replace('10123', 'u0_a5')).own, true);
   assert.equal(writerOf(10005)(own.replace('10123', '10005')).own, true);
+});
+test('writerPattern is writerOf’s test for the phone’s grep -E, and the real shell agrees with writerOf line by line', async () => {
+  const tail = '[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[A-Z][[:space:]]', lead = '^[[:space:]]*[0-9]{9,}(\\.[0-9]+)?[[:space:]]+';
+  assert.equal(writerPattern(10123), `${lead}10123${tail}`);
+  assert.equal(writerPattern(10005), `${lead}(10005|u0_a5)${tail}`);
+  assert.equal(writerPattern(null), `${lead}[^[:space:]]+${tail}`);
+  for (const uid of ['10123;reboot', '1012', '123456', '1e4', -10123, ' 10123', "1012'"]) assert.throws(() => writerPattern(uid), String(uid));
+  const own = '1800000000.125 10123  4321  4321 D com.navee.ucaret: x';
+  const lines = [own, `  ${own}`, own.replace(/ /g, '\t'), '1800000000 10123  4321  4321 D com.navee.ucaret: x', own.replace('10123', 'u0_a5'), own.replace('10123', '10005'),
+    own.replace('10123', '10999'), own.replace('10123', '110123'), own.replace('10123', '101234'), own.replace('10123', '1012'), own.replace('10123', '10123x'), own.replace('10123', 'shell'),
+    `1800000000.125 10999  1  1 D com.navee.ucaret: ${own}`, '--------- beginning of main', own.replace(' 10123 ', ' '), own.replace(' 10123 ', '       '),
+    '10123  4321  4321 D com.navee.ucaret: x', 'x 1800000000.125 10123  4321  4321 D t: x', '1800000000.125 10123 4321 D com.navee.ucaret: x', '~0'];
+  const phone = await fakeAndroid();
+  try {
+    // The lines grep -E keeps on this machine's /bin/sh (grep exits 1 when it keeps none).
+    const kept = async uid => (await phone.exec(`{ printf '%s\\n' ${lines.map(quote).join(' ')} | grep -E ${quote(writerPattern(uid))}; } || true`)).split('\n').filter(Boolean);
+    for (const uid of [10123, 10005]) {
+      const writer = writerOf(uid);
+      assert.deepEqual(await kept(uid), lines.filter(line => writer(line)?.own), String(uid));
+      // Any writer: every line writerOf reads a writer column in, NAVEE's or not.
+      assert.deepEqual(await kept(null), lines.filter(line => writer(line) !== null));
+    }
+    assert.deepEqual(await kept(10123), [own, `  ${own}`, own.replace(/ /g, '\t'), '1800000000 10123  4321  4321 D com.navee.ucaret: x']);
+  } finally { await phone.dispose(); }
 });
 test('owner capture’s fallback keeps only rows NAVEE’s uid wrote, on a real shell over a fake Android 11', async () => {
   const phone = await fakeAndroid(), args = "-d -v epoch -t '1800000004.100' -s com.navee.ucaret:V '*:S'";

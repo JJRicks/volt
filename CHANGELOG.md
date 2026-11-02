@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- NAVEE debugger: on Android 11 and older, recordings now read each log line with the app that wrote it, as Android records it, and keep only NAVEE's, as owner setup already does. Following NAVEE's process could occasionally take in another app's lines when Android reused NAVEE's process number. Lines another app writes under NAVEE's name are never kept or sent; when they're all that arrives, the status line says another app is writing under NAVEE's name and its lines are ignored.
+- NAVEE debugger: on Android 11 and older, recordings now read each log line with the app that wrote it, as Android records it, and keep only NAVEE's, as owner setup already does. Following NAVEE's process could occasionally take in another app's lines when Android reused NAVEE's process number. Lines another app writes under NAVEE's name are dropped on the phone, so they're never kept or sent and can't hold back NAVEE's own; when they're all that arrives, the status line says another app is writing under NAVEE's name and its lines are ignored.
 
 ## 1.11.1 — 2026-11-02
 

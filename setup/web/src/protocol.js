@@ -72,18 +72,27 @@ export function appLogcat(uid, filter, args, then = 'cat') {
 // A -v uid row: its epoch, the uid that wrote it, then pid, tid and priority. logd records each row's
 // uid from the kernel's socket credentials, so unlike a process name or a recycled pid no other app
 // can claim it, and logcat prints this prefix on every line of a message, so message text can't
-// supply one. getpwuid names of five characters or fewer replace the number, so an app uid below
-// 10010 prints as u0_a0 to u0_a9.
+// supply one. (The epoch is not like that: logd keeps whatever time the writing app put on its row.)
+// getpwuid names of five characters or fewer replace the number, so an app uid below 10010 prints as
+// u0_a0 to u0_a9.
 const WRITTEN = /^(\s*\d{9,}(?:\.\d+)?)\s+(\S+)\s+(?=\d+\s+\d+\s+[A-Z]\s)/;
+const writerNames = uid => { const id = Number(appUid(uid)); return id < 10010 ? [String(id), `u0_a${id - 10000}`] : [String(id)]; };
 // Reads the writer of one -v uid line for uid: { own: true, stamp, rest } (rest: the row after the
 // writer column, from its pid) when uid wrote it, { own: false } when another uid did, and null for a
 // line without the column (a divider, or a row printed without it), which is never uid's.
 export function writerOf(uid) {
-  const id = Number(appUid(uid)), names = [String(id), id < 10010 ? `u0_a${id - 10000}` : String(id)];
+  const names = writerNames(uid);
   return line => {
     const row = WRITTEN.exec(line);
     return !row ? null : names.includes(row[2]) ? { own: true, stamp: row[1], rest: line.slice(row[0].length) } : { own: false };
   };
+}
+// writerOf's test as a grep -E pattern, so the phone itself can keep only uid's rows: a -v uid line whose
+// writer column is uid's, or with uid null, a line with a writer column at all (anyone's).
+export function writerPattern(uid) {
+  const names = uid === null ? ['[^[:space:]]+'] : writerNames(uid);
+  return `^[[:space:]]*[0-9]{9,}(\\.[0-9]+)?[[:space:]]+${names.length > 1 ? `(${names.join('|')})` : names[0]}` +
+    '[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[A-Z][[:space:]]';
 }
 // The -v uid rows NAVEE's uid wrote, without that column (as --uid prints them); any other row, or one
 // without the column, is dropped.
