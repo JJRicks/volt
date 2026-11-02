@@ -30,10 +30,11 @@ export class DebugCaptureSession extends CaptureSession {
     this.offset = Number(now[1]) * 1000 - this.wall();
     // The only device facts sent: NAVEE version, Android version and phone model.
     const facts = await this.deviceFacts();
-    // Once per recording: --uid where logcat has it (Android 12+), else NAVEE's verified pid. A failed
-    // check also uses the pid, which every supported Android can filter by.
+    // Once per recording: --uid where logcat has it (Android 12+). Otherwise, or if the check fails, every
+    // row under NAVEE's tag is read with the uid that wrote it and only NAVEE's are kept, never by a pid
+    // that may be reused.
     const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }));
-    const recorder = this.recorder = new LogRecorder(stamp);
+    const recorder = this.recorder = new LogRecorder(stamp, filter === 'rows' ? uid : null);
     const started = this.now();
     this.deadline = started + RECORD_MS;
     this.update('recording', 'Recording. Use NAVEE on your phone now.');
@@ -65,7 +66,12 @@ export class DebugCaptureSession extends CaptureSession {
       polled = reply.status;
       this.onRecord(recorder); report();
       if (recorder.full) { reason = 'full'; break; }
-      const more = poll.lines >= count;
+      // A full window means head cut the read short. In rows mode other apps' rows under NAVEE's tag
+      // share it, so it is counted as head counts: every line, logcat's dividers too. A flood of them,
+      // even in one millisecond, then grows the batch and moves the cursor until NAVEE's later rows are read
+      // (up to the 1000-line batch: about 1000 or more rows in one millisecond would still hold it).
+      const read = filter === 'rows' ? (reply.output ? reply.output.split('\n').length : 0) : poll.lines;
+      const more = read >= count;
       if (more && !poll.fresh) count = Math.min(count * 2, 1000); // one crowded timestamp
       else if (!more && count < BATCH) count = Math.min(BATCH, count * 2);
       if (more && ++drains < 50) continue;
@@ -78,7 +84,8 @@ export class DebugCaptureSession extends CaptureSession {
       durationS: Math.min(LIMITS.duration, Math.max(0, Math.round((this.now() - started) / 1000))) };
   }
   report(facts) {
-    const health = captureHealth({ ...facts, kept: this.recorder.rows.filter(row => !row.note).length });
+    const { rows, own, foreign, unattributed } = this.recorder;
+    const health = captureHealth({ ...facts, kept: rows.filter(row => !row.note).length, own, foreign, unattributed });
     if (health.state !== this.health?.state) this.onHealth(this.health = health);
   }
   async pause() {

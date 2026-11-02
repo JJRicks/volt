@@ -14,7 +14,7 @@ function store() {
   return { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) };
 }
 // The device's report after a poll's rows (see appLogcat), added unless a test wrote its own.
-const reported = out => /(?:^|\n)~(?:\d{1,3}|pid\d{1,3}|uid)$/.test(out) ? out : out ? `${out}\n~0` : '~0';
+const reported = out => /(?:^|\n)~\d{1,3}$/.test(out) ? out : out ? `${out}\n~0` : '~0';
 // Phone double: classifies each trusted command, never runs anything. shell(command, op, n), when
 // given, runs the filter check, probe and polls on a real shell instead (see fake-android.mjs).
 function fixture({ polls = [], fail = '', facts = {}, after = () => {}, logs, probe = () => '1\nVERBOSE\n812\n37', filter = () => '0', shell } = {}) {
@@ -66,6 +66,8 @@ function fixture({ polls = [], fail = '', facts = {}, after = () => {}, logs, pr
   return { session, calls, storage, records, healths, advance: ms => { time += ms; wall += ms; } };
 }
 const write = (stamp, cmd = 0x52, value = 1) => line(`Send write command: ${frame(cmd, [value])}`, stamp);
+// A row as -v uid prints it (Android 11 and older): the uid that wrote it right after the epoch.
+const by = (writer, row) => row.replace(/^(\S+) /, `$1 ${writer} `);
 
 test('recording polls filtered NAVEE rows until Stop, then cleans up before review is allowed', async () => {
   let f;
@@ -228,24 +230,25 @@ test('health follows the probe and kept NAVEE rows, changes only with its state,
   assert.deepEqual(f.healths, ['checking', 'not-running', 'navee-silent', 'no-bluetooth', 'healthy']);
   assert.deepEqual(f.session.capture().health, { state: 'healthy', text: 'Receiving NAVEE Bluetooth lines.' });
 });
-test('the log filter is chosen once per recording: --uid where logcat has it, else NAVEE’s verified pid', async () => {
+test('the log filter is chosen once per recording: --uid where logcat has it, else each row’s writer', async () => {
   const record = async filter => {
     let f;
-    f = fixture({ filter, logs: n => { if (n === 1) f.session.stop(); return write('1800000004.000'); } });
+    f = fixture({ filter, logs: (n, command) => { if (n === 1) f.session.stop(); return command.includes(' -v uid ') ? by(10123, write('1800000004.000')) : write('1800000004.000'); } });
     await f.session.begin();
     const of = op => f.calls.filter(c => c.op === op);
     assert.equal(of('filter').length, 1);
     assert.deepEqual(of('filter')[0].opts, { maxBytes: 256, timeout: 8_000 });
     assert.equal(f.session.capture().recorder.rows.length, 1);
     const polls = of('logs').map(c => c.command), probes = of('probe').map(c => c.command);
-    const mode = polls.every(c => c.includes('logcat --uid=10123 ')) ? 'uid' : polls.every(c => c.includes('logcat --pid="$q" ') && c.includes("grep '^Uid:'")) ? 'pid' : 'mixed';
-    assert.equal(probes.every(c => c.endsWith(mode === 'uid' ? 'n --uid=10123' : 'n --pid="$q" || echo x')), true);
+    const mode = polls.every(c => c.includes('logcat --uid=10123 ')) ? 'uid' : polls.every(c => c.includes('logcat -v uid -d -v epoch ')) ? 'rows' : 'mixed';
+    assert(!polls.some(c => /pidof|--pid|\/proc\//.test(c)));
+    assert.deepEqual(new Set(probes), new Set([probeCommand('10123', '1800000000.000000000', mode)]));
     return mode;
   };
   assert.equal(await record(() => '0'), 'uid');
-  // Android 11 and older ("Unknown option" → 1), and anything unclear, use the pid, which works everywhere.
+  // Android 11 and older ("Unknown option" → 1), and anything unclear, read each row's writer, which works everywhere.
   for (const reply of [() => '1', () => '255', () => 'logcat: junk', () => '', () => new SetupError('timeout', 'slow'), () => new Error('usb glitch')])
-    assert.equal(await record(reply), 'pid', String(reply));
+    assert.equal(await record(reply), 'rows', String(reply));
   // Only a cancellation during the check propagates.
   for (const reply of [f => { f.session.cancel(); return '0'; }, () => new SetupError('cancelled', 'Capture stopped.')]) {
     let f;
@@ -261,7 +264,7 @@ test('a failing logcat is reported to health, never read as an empty poll; the r
   await f.session.begin();
   assert.deepEqual(f.healths, ['checking', 'no-bluetooth', 'logcat-failed', 'healthy']);
   assert.equal(f.session.capture().reason, 'stopped'); assert.equal(f.session.capture().recorder.rows.length, 1);
-  // With the pid fallback failing too, neither filter works; kept for the review.
+  // With the -v uid fallback failing too, neither filter works; kept for the review.
   let g;
   g = fixture({ filter: () => '1', logs: n => { if (n === 2) g.session.stop(); return '~1'; } });
   await g.session.begin();
@@ -273,27 +276,55 @@ test('a failing logcat is reported to health, never read as an empty poll; the r
   await h.session.begin();
   assert.equal(h.session.capture().health.state, 'healthy'); assert.equal(h.session.capture().recorder.rows.length, 1);
 });
-test('pid mode names no NAVEE process and an impostor, and reads nothing for several', async () => {
+test('rows mode: another uid’s rows under NAVEE’s tag are ignored and named; rows without a writer are never recorded', async () => {
+  const other = by(10999, write('1800000004.000', 0x6d, 2)), own = by(10123, write('1800000005.000'));
   let f;
-  const replies = ['~pid0', '~uid', '~pid2'];
-  f = fixture({ filter: () => '1', logs: n => { if (n === 3) f.session.stop(); return replies[n] ?? write('1800000004.000'); } });
+  f = fixture({ filter: () => '1', logs: n => { if (n === 3) f.session.stop(); return n < 2 ? other : [other, own].join('\n'); } });
   await f.session.begin();
-  assert.deepEqual(f.healths, ['checking', 'no-bluetooth', 'not-running', 'impostor', 'no-bluetooth', 'healthy']);
-  assert.equal(HEALTH.impostor, 'Another app is using NAVEE’s name, so nothing is recorded.');
-  assert.equal(f.session.capture().recorder.rows.length, 1);
+  // Only another uid's rows: a count, never content. Then NAVEE's own arrive.
+  assert.deepEqual(f.healths, ['checking', 'no-bluetooth', 'impostor', 'healthy']);
+  assert.equal(HEALTH.impostor, 'Another app is writing under NAVEE’s name; its lines are ignored.');
+  const recorder = f.session.capture().recorder;
+  assert.deepEqual(recorder.rows.map(r => r.text), [`Send write command: ${frame(0x52, [1])}`]);
+  assert.deepEqual([recorder.foreign, recorder.hidden, recorder.own, recorder.unattributed], [1, 0, 1, 0]);
+  // Kept for the review when nothing of NAVEE's ever arrives.
+  let g;
+  g = fixture({ filter: () => '1', logs: n => { if (n === 2) g.session.stop(); return other; } });
+  await g.session.begin();
+  assert.deepEqual(g.session.capture().health, { state: 'impostor', text: HEALTH.impostor });
+  assert.equal(g.session.capture().recorder.rows.length, 0); assert.equal(g.session.capture().recorder.hidden, 0);
+  // A row printed without its writer column can't be told from another app's: never recorded, and the
+  // reader can't pick out NAVEE's lines.
+  let h;
+  h = fixture({ filter: () => '1', logs: n => { if (n === 2) h.session.stop(); return [write('1800000004.000'), write('1800000004.100', 0x6d, 2)].join('\n'); } });
+  await h.session.begin();
+  const empty = h.session.capture();
+  assert.equal(empty.recorder.rows.length, 0); assert.equal(empty.recorder.hidden, 0); assert.equal(empty.recorder.unattributed, 2);
+  assert.equal(empty.health.state, 'unsupported');
+  // The old pid-mode reports are failed reads now, never "not running" or an impostor.
+  let k;
+  k = fixture({ shell: (command, op, n) => {
+    if (op !== 'logs') return op === 'filter' ? '1' : '1\nVERBOSE\n812\n37';
+    if (n === 1) k.session.stop();
+    return n ? '~uid' : '~pid0';
+  } });
+  await k.session.begin();
+  assert.deepEqual(k.healths, ['checking', 'no-bluetooth', 'unsupported']);
 });
-test('on a fake Android 11 over a real shell, pid mode records NAVEE’s own rows and follows a restart', async () => {
+test('on a fake Android 11 over a real shell, rows mode records only NAVEE’s uid: never an impostor on a recycled pid, and across a restart', async () => {
   const phone = await fakeAndroid();
   try {
-    // NAVEE (uid 10123) and an impostor using its process name and tag.
+    // NAVEE (uid 10123) as pid 4321; another uid wrote a valid frame under NAVEE's tag as pid 4321 before
+    // NAVEE took that pid, and keeps writing under its own pid 7777.
     await phone.processes([[4321, 10123], [7777, 10999]]);
-    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager'), logRow('1800000004.000', 4321, `Send write command: ${frame(0x52, [1])}`),
-      logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [2])}`)]);
+    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager', 1000), logRow('1800000002.000', 4321, `Send write command: ${frame(0x6d, [2])}`, undefined, 10999),
+      logRow('1800000004.000', 4321, `Send write command: ${frame(0x52, [1])}`), logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [3])}`, undefined, 10999)]);
     let f;
     f = fixture({ shell: async (command, op, n) => {
-      if (op === 'logs' && n === 2) { // NAVEE restarts with a new pid
-        await phone.processes([[5555, 10123], [7777, 10999]]);
-        await phone.log([logRow('1800000006.000', 5555, `Send write command: ${frame(0x52, [0])}`)]);
+      if (op === 'logs' && n === 2) { // NAVEE restarts with a new pid; the impostor takes 4321
+        await phone.processes([[5555, 10123], [4321, 10999]]);
+        await phone.log([logRow('1800000006.000', 4321, `Send write command: ${frame(0x6d, [4])}`, undefined, 10999),
+          logRow('1800000006.500', 5555, `Send write command: ${frame(0x52, [0])}`)]);
       }
       if (op === 'logs' && n === 4) f.session.stop();
       return phone.exec(command);
@@ -301,22 +332,52 @@ test('on a fake Android 11 over a real shell, pid mode records NAVEE’s own row
     await f.session.begin();
     const result = f.session.capture(), args = await phone.args();
     assert.deepEqual(result.recorder.rows.map(r => r.text), [`Send write command: ${frame(0x52, [1])}`, `Send write command: ${frame(0x52, [0])}`]);
+    assert.deepEqual([result.recorder.foreign, result.recorder.hidden], [3, 0]);
     assert.equal(result.health.state, 'healthy');
     assert.equal(args[0], '--uid=10123 -d -t 1'); assert.equal(args.filter(a => a.startsWith('--uid=')).length, 1);
-    assert(args.some(a => a.startsWith('--pid=4321 -d -v epoch')) && args.some(a => a.startsWith('--pid=5555 -d -v epoch')));
-    assert(!args.some(a => a.includes('--pid=7777')));
+    assert(args.some(a => a === "-v uid -d -v epoch -t 1800000000.000000000 -s com.navee.ucaret:V *:S"));
+    assert(args.some(a => a === '-v uid -d -v epoch -t 1800000006.500 -s com.navee.ucaret:V *:S'));
+    assert(!args.some(a => a.includes('--pid')));
+    assert(!f.calls.filter(c => c.op === 'logs').some(c => /pidof|\/proc\//.test(c.command)));
   } finally { await phone.dispose(); }
-  // Only the impostor runs: nothing is read, and the page says why.
+  // Only the impostor writes: nothing is recorded, and the page says why.
   const fake = await fakeAndroid();
   try {
     await fake.processes([[7777, 10999]]);
-    await fake.log([logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [2])}`)]);
+    await fake.log([logRow('1800000004.100', 7777, `Send write command: ${frame(0x6d, [2])}`, undefined, 10999)]);
     let g;
     g = fixture({ shell: (command, op, n) => { if (op === 'logs' && n === 2) g.session.stop(); return fake.exec(command); } });
     await g.session.begin();
-    assert.equal(g.session.capture().recorder.rows.length, 0); assert.equal(g.session.capture().health.state, 'impostor');
-    assert(!(await fake.args()).some(a => a.includes('--pid=')));
+    const capture = g.session.capture();
+    assert.equal(capture.recorder.rows.length, 0); assert.equal(capture.recorder.hidden, 0); assert.equal(capture.recorder.foreign, 1);
+    assert.deepEqual(capture.health, { state: 'impostor', text: 'Another app is writing under NAVEE’s name; its lines are ignored.' });
   } finally { await fake.dispose(); }
+});
+test('on a real shell, a flood of another uid’s rows larger than the batch, even in one millisecond, can’t stall the cursor or starve NAVEE’s later rows', async () => {
+  const phone = await fakeAndroid(), flood = `Send write command: ${frame(0x6d, [2])}`;
+  try {
+    // 250 identical rows in one millisecond, then 150 more a millisecond apart, all under NAVEE's tag
+    // from another uid on NAVEE's pid; then NAVEE's own.
+    await phone.processes([[4321, 10123]]);
+    await phone.log([...Array.from({ length: 250 }, () => logRow('1800000004.000', 4321, flood, undefined, 10999)),
+      ...Array.from({ length: 150 }, (_, i) => logRow(`1800000004.${String(i + 1).padStart(3, '0')}`, 4321, flood, undefined, 10999)),
+      logRow('1800000005.000', 4321, `Send write command: ${frame(0x52, [1])}`), logRow('1800000005.100', 4321, `Send write command: ${frame(0x52, [0])}`)]);
+    const batches = [];
+    let f;
+    f = fixture({ shell: (command, op, n) => {
+      if (op === 'logs') { batches.push(Number(/\| head -n (\d+) >&4/.exec(command)[1])); if (n === 12) f.session.stop(); }
+      return phone.exec(command);
+    } });
+    await f.session.begin();
+    const { recorder, health } = f.session.capture();
+    assert.deepEqual(recorder.rows.map(r => r.text), [`Send write command: ${frame(0x52, [1])}`, `Send write command: ${frame(0x52, [0])}`]);
+    // Every flood row moved the cursor and dedupe once; none was kept or counted as NAVEE's.
+    assert.deepEqual([recorder.foreign, recorder.hidden, recorder.own, recorder.cursor], [400, 0, 2, '1800000005.100']);
+    assert.equal(health.state, 'healthy');
+    // Full windows (logcat's divider counts, as head counts it) were read again at once, the crowded
+    // millisecond grew the batch, and NAVEE's rows arrived within the first few polls.
+    assert.deepEqual(batches.slice(0, 6), [100, 100, 200, 200, 400, 400]);
+  } finally { await phone.dispose(); }
 });
 test('a failed, slow or junk probe only makes health unknown; the recording continues', async () => {
   let f;
@@ -345,24 +406,37 @@ test('cancelling during a probe still discards the recording and cleans up', asy
     assert.equal(f.storage.getItem(JOURNAL_KEY), null);
   }
 });
-test('the probe works on a real shell: dividers aren’t counted, a refused or unresolved filter is unknown, it exits 0', async () => {
+test('the probe works on a real shell: dividers aren’t counted, only NAVEE’s uid’s rows are NAVEE’s, a refused filter is unknown, it exits 0', async () => {
   const phone = await fakeAndroid();
   try {
-    const probe = async filter => parseProbe(await phone.exec(probeCommand(10123, '1800000000.000000000', filter)));
-    assert.deepEqual(await probe('pid'), { propertyOk: true, running: false, phoneLines: 0, naveeLines: null });
-    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager'), logRow('1800000002.000', 4321, 'one'), logRow('1800000003.000', 4321, 'two'),
-      logRow('1800000003.500', 7777, 'impostor')]);
-    // NAVEE isn't running: no pid to count by.
-    assert.deepEqual(await probe('pid'), { propertyOk: true, running: false, phoneLines: 4, naveeLines: null });
-    // The impostor counts toward neither running nor NAVEE's lines.
+    const probe = async (filter, uid = 10123, on = phone) => parseProbe(await on.exec(probeCommand(uid, '1800000000.000000000', filter)));
+    assert.deepEqual(await probe('rows'), { propertyOk: true, running: false, phoneLines: 0, naveeLines: 0 });
+    await phone.log([logRow('1800000001.000', 1000, 'Start proc', 'ActivityManager', 1000), logRow('1800000002.000', 4321, 'one'), logRow('1800000003.000', 4321, 'two', 'OtherTag'),
+      logRow('1800000003.500', 4321, 'impostor on a recycled pid', undefined, 10999), logRow('1800000003.600', 4321, 'shares digits', undefined, 110123)]);
+    // NAVEE's uid wrote two rows (any tag); the system, the impostor on NAVEE's pid and a uid sharing its digits wrote the rest.
+    assert.deepEqual(await probe('rows'), { propertyOk: true, running: false, phoneLines: 5, naveeLines: 2 });
+    // Running counts only processes whose Uid: line is NAVEE's.
+    await phone.processes([[7777, 10999]]);
+    assert.equal((await probe('rows')).running, false);
     await phone.processes([[4321, 10123], [7777, 10999]]);
-    assert.deepEqual(await probe('pid'), { propertyOk: true, running: true, phoneLines: 4, naveeLines: 2 });
+    assert.deepEqual(await probe('rows'), { propertyOk: true, running: true, phoneLines: 5, naveeLines: 2 });
     // Android 11 refuses --uid: unknown, never zero.
-    assert.deepEqual(await probe('uid'), { propertyOk: true, running: true, phoneLines: 4, naveeLines: null });
+    assert.deepEqual(await probe('uid'), { propertyOk: true, running: true, phoneLines: 5, naveeLines: null });
     await phone.property('INFO');
-    assert.equal((await probe('pid')).propertyOk, false);
-    assert(!(await phone.args()).some(a => a.includes('--pid=7777')));
+    assert.equal((await probe('rows')).propertyOk, false);
+    assert(!(await phone.args()).some(a => a.includes('--pid')));
   } finally { await phone.dispose(); }
+  // A logcat without -v uid: unknown, never zero; a short getpwuid name is NAVEE's for a low uid.
+  const old = await fakeAndroid({ uidFormat: false });
+  try {
+    await old.log([logRow('1800000002.000', 4321, 'one')]);
+    assert.deepEqual(parseProbe(await old.exec(probeCommand(10123, '1800000000.000000000', 'rows'))), { propertyOk: true, running: false, phoneLines: 1, naveeLines: null });
+  } finally { await old.dispose(); }
+  const low = await fakeAndroid();
+  try {
+    await low.log([logRow('1800000002.000', 4321, 'one', undefined, 'u0_a5'), logRow('1800000002.500', 4321, 'two', undefined, 10005), logRow('1800000003.000', 4321, 'three', undefined, 'u0_a50')]);
+    assert.equal(parseProbe(await low.exec(probeCommand(10005, '1800000000.000000000', 'rows'))).naveeLines, 2);
+  } finally { await low.dispose(); }
 });
 test('a recording cannot start while a recovery record exists', async () => {
   const f = fixture();
