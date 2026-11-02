@@ -90,6 +90,17 @@ Downloads because you selected --push. On macOS/Linux the computer file is
 created with permissions restricted to your user.
 It filters only NAVEE owner-authentication rows; it does not save general phone
 logs, HTTP tokens, passwords, or an account database.
+It accepts only rows Android records as written by NAVEE itself (NAVEE's app
+uid for the phone's main user), so another app logging under NAVEE's name
+cannot supply the identity. Android 12 and newer filter by that uid on the
+phone. Android 11 and older can't, so there the helper reads each row with
+the uid that wrote it and keeps only NAVEE's; a row without that uid is
+dropped.
+
+The helper supports only the phone's main Android user. Before changing
+anything, it stops if another user is active, or if NAVEE is also installed
+in a work profile or another user: NAVEE's temporary log setting is shared
+across profiles.
 
 If several phones are attached, run adb devices to find yours, then use:
 
@@ -125,6 +136,11 @@ IF CAPTURE DOES NOT WORK
 - Ensure your own account and scooter connect successfully inside NAVEE.
 - Close other scooter apps, power on the scooter, and rerun the helper.
 - If the file already exists, keep it and choose another --output filename.
+- "Couldn't read NAVEE's log" means the phone refused or broke off the log
+  read. No identity was taken from it. Reconnect the phone and rerun.
+- Switch to the phone's main user if the helper asks. If NAVEE is also
+  installed in a work profile or another user, remove it there before
+  capturing; the browser and Shizuku helpers refuse that case too.
 
 After an interrupted capture, the helper attempts to close NAVEE and restore
 its logging level. If USB disconnects during cleanup, it reports the remaining

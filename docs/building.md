@@ -59,9 +59,10 @@ These tests need the JDK and Python but no Android SDK, device, internet connect
 ```sh
 bash tests/run.sh
 python3 tests/owner-capture-guard-test.py
+python3 tests/capture-owner-test.py
 ```
 
-They exercise protocol, storage, calculations and owner-capture logic with synthetic data. Passing them does not establish physical scooter behavior or compatibility with every phone and firmware.
+They exercise protocol, storage, calculations and owner-capture logic with synthetic data; `capture-owner-test.py` runs the computer helper against a fake adb and fake phone tools. Passing them does not establish physical scooter behavior or compatibility with every phone and firmware.
 
 ## Build native tests
 

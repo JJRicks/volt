@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Computer setup helper (`setup/capture-owner.py`): it now accepts only log lines Android records as written by NAVEE itself, as the setup page and the app already do, so another app logging under NAVEE's name can't hand it a fake owner identity. On Android 11 and older, which can't filter by app, it reads each line with the app that wrote it and keeps only NAVEE's. Like the other two routes, it now supports only the phone's main Android user and stops before changing anything if NAVEE is also installed in a work profile or another user. If the phone refuses the log read, it says it couldn't read NAVEE's log instead of reporting that nothing arrived.
+
 ## 1.11.1 — 2026-11-02
 
 - Owner setup now works on Android 11 and older, from both the setup page and the app's **Use Shizuku on this phone** (which needs Android 11). Their log reader can't filter by app, so capture failed there. It now reads each log line with the app that wrote it, as Android records it, and keeps only NAVEE's. If the phone refuses the read or the read fails partway, both say Volt couldn't read NAVEE's log, instead of reporting that nothing arrived.

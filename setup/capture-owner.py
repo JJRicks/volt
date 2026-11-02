@@ -3,7 +3,10 @@
 
 The saved six-byte identity is for Bluetooth ownership authentication, NOT a
 NAVEE password, HTTP access token or cloud login token. This helper reads only
-fresh OEM "Send authData:" log rows and never writes full phone logs.
+fresh OEM "Send authData:" log rows that Android records as written by NAVEE's
+own app (its uid for the phone's main user), and never writes full phone logs.
+It supports only the main Android user and stops, before changing anything, if
+NAVEE is also installed in another user or work profile.
 
 Examples:
   python3 capture-owner.py
@@ -36,10 +39,30 @@ AUTH_MARKER = "Send authData:"
 MAX_INPUT = 1024 * 1024
 FRAME_TEXT = re.compile(r"[0-9a-f]{2}(?:[\s:-]*[0-9a-f]{2}){16}", re.IGNORECASE)
 EPOCH_PREFIX = re.compile(r"^\s*(\d{9,}(?:\.\d+)?)\s")
+# An Android app uid for user 0: five digits, 10000-99999.
+APP_UID = re.compile(r"[1-9][0-9]{4}")
+PACKAGE_UID = re.compile(r"package:com\.navee\.ucaret uid:([1-9][0-9]{4})")
+PACKAGE_ROW = re.compile(r"package:([A-Za-z0-9_.]+) uid:([0-9]{1,10})")
+USER_ROW = re.compile(r"\s*UserInfo\{([0-9]{1,5}):[^\r\n]*:[0-9a-f]+\}(?: running)?\s*", re.IGNORECASE)
+# A -v uid row: epoch, the uid that wrote it, then pid, tid and a priority letter.
+WRITER = re.compile(r"(\s*[0-9]{9,}(?:\.[0-9]+)?)\s+(\S+)\s+(?=[0-9]+\s+[0-9]+\s+[A-Z]\s)", re.ASCII)
+NOTHING_CHANGED = " No logging changes were made."
+NOT_INSTALLED = "Install and sign into the official NAVEE app on this phone before capturing your owner setup."
+UNIDENTIFIED = "The installed NAVEE app could not be identified for the phone's main Android user." + NOTHING_CHANGED
+UNCHECKED = "The phone's Android users and profiles could not be checked safely." + NOTHING_CHANGED
+OTHER_USER = ("Switch the phone to its main Android user (the owner) and run the helper again. "
+              "Secondary users and work profiles are not supported." + NOTHING_CHANGED)
+OTHER_PROFILE = ("NAVEE is also installed in another Android user or work profile. Capture is unavailable "
+                 "because NAVEE's temporary log setting is shared across profiles." + NOTHING_CHANGED)
+UNREADABLE = "Couldn't read NAVEE's log on this phone, so no owner identity was found. Reconnect the phone and run the helper again."
 
 
 class SetupError(Exception):
     """A user-actionable error; never include private identity or raw phone logs."""
+
+
+class CommandFailed(SetupError):
+    """The phone ran the command and it exited non-zero (adb's shell protocol passes the status)."""
 
 
 def parse_auth_line(line):
@@ -97,6 +120,75 @@ def read_capture_file(path):
         raise SetupError("Capture file must be UTF-8 text containing NAVEE authentication rows.")
 
 
+def package_uid(listing):
+    """NAVEE's uid from `cmd package list packages -U --user 0`: exactly one row, for exactly NAVEE.
+
+    The package filter matches substrings, so a second row (another package whose
+    name contains NAVEE's) or any other shape refuses rather than guessing."""
+    match = PACKAGE_UID.fullmatch(listing.strip())
+    if match is None:
+        raise SetupError(UNIDENTIFIED)
+    return match.group(1)
+
+
+def android_users(listing):
+    """User ids from `cmd user list --all`; names are discarded. Unreadable lists refuse."""
+    if len(listing.encode("utf-8")) > 8192:
+        raise SetupError(UNCHECKED)
+    lines = re.split(r"\r?\n", listing.strip())
+    if lines[0] != "Users:" or not 1 <= len(lines) - 1 <= 32:
+        raise SetupError(UNCHECKED)
+    users = []
+    for line in lines[1:]:
+        match = USER_ROW.fullmatch(line)
+        if match is None or int(match.group(1)) > 21474 or int(match.group(1)) in users:
+            raise SetupError(UNCHECKED)
+        users.append(int(match.group(1)))
+    if 0 not in users:
+        raise SetupError(UNCHECKED)
+    return users
+
+
+def has_navee_package(listing):
+    """Whether another user's `list packages -U` output holds NAVEE itself (not a longer name)."""
+    if len(listing.encode("utf-8")) > 16384:
+        raise SetupError(UNCHECKED)
+    if not listing.strip():
+        return False
+    found = False
+    for line in re.split(r"\r?\n", listing.strip()):
+        match = PACKAGE_ROW.fullmatch(line)
+        if match is None:
+            raise SetupError(UNCHECKED)
+        found = found or match.group(1) == PACKAGE
+    return found
+
+
+def own_rows(output, uid):
+    """The -v uid rows NAVEE's uid wrote, without that column (as --uid prints them); any other row,
+    or one without the column, is dropped. logd records each row's uid from the kernel's socket
+    credentials, so unlike a tag, a process name or a recycled pid no other app can claim it.
+    getpwuid names of five characters or fewer replace the number, so an app uid below 10010
+    prints as u0_a0 to u0_a9. Ported from OwnerCaptureEngine.ownRows and protocol.js ownRows.
+
+    Rows split on "\\n" only: logcat repeats the writer's prefix on each line of a message, but
+    any other separator (str.splitlines() also splits on U+2028, \\x1c, \\r ...) is message text
+    another app chooses, and could carry a fake NAVEE prefix."""
+    uid = str(uid)
+    if not APP_UID.fullmatch(uid):
+        raise ValueError("Invalid app uid")
+    number = int(uid)
+    names = (uid, "u0_a%d" % (number - 10000) if number < 10010 else uid)
+    kept = []
+    for line in output.split("\n"):
+        if line.endswith("\r"):
+            line = line[:-1]
+        row = WRITER.match(line)
+        if row is not None and row.group(2) in names:
+            kept.append(row.group(1) + " " + line[row.end():] + "\n")
+    return "".join(kept)
+
+
 class Adb:
     def __init__(self, executable, serial=None):
         self.executable = executable
@@ -118,7 +210,7 @@ class Adb:
             raise SetupError("ADB could not start. Check --adb points to the platform-tools executable.")
         if result.returncode:
             # Do not echo command stdout/stderr: it might contain private phone log data.
-            raise SetupError("ADB could not complete this step. Unlock the phone, approve USB debugging, and check the cable.")
+            raise CommandFailed("ADB could not complete this step. Unlock the phone, approve USB debugging, and check the cable.")
         return result.stdout.strip()
 
     def select_device(self):
@@ -145,11 +237,62 @@ class Adb:
         self.serial = ready[0]
 
 
+def phone_query(adb, command, refused):
+    """A read-only preflight command; a phone that refuses it gets the step named, not adb's text."""
+    try:
+        return adb.run("shell", command)
+    except CommandFailed:
+        raise SetupError(refused)
+
+
+def navee_uid(adb):
+    """NAVEE's uid for Android user 0, as OwnerCaptureEngine.capture() and capture.js begin() check.
+
+    Only user 0 is supported: monkey starts NAVEE for the current user, and the uid
+    read here is user 0's. The log property is device-wide, so NAVEE installed in
+    another user or profile refuses too. Nothing on the phone changes here."""
+    if phone_query(adb, "am get-current-user", UNCHECKED) != "0":
+        raise SetupError(OTHER_USER)
+    listing = phone_query(adb, "cmd package list packages -U --user 0 " + PACKAGE, UNIDENTIFIED)
+    if not listing:
+        raise SetupError(NOT_INSTALLED)
+    uid = package_uid(listing)
+    for user in android_users(phone_query(adb, "cmd user list --all", UNCHECKED)):
+        if user != 0 and has_navee_package(phone_query(
+                adb, "cmd package list packages -U --user %d %s" % (user, PACKAGE), UNCHECKED)):
+            raise SetupError(OTHER_PROFILE)
+    return uid
+
+
+def reads_by_uid(adb, uid):
+    """Once per capture: logcat --uid arrived in Android 12; Android 11's exits "Unknown option".
+    Ask logcat itself, not the SDK level. Its output stays on the phone; only the exit status
+    returns. Anything but 0, or a failed check, means reading every row with the uid that wrote
+    it (-v uid), which is never less strict."""
+    try:
+        return adb.run("shell", "logcat --uid=" + uid + " -d -t 1 >/dev/null 2>&1; echo $?", timeout=8) == "0"
+    except SetupError:
+        return False
+
+
+def auth_rows(adb, uid, by_uid, stamp, timeout):
+    """NAVEE's own auth rows since stamp, by --uid or by each row's writer. Device-side tag and
+    message filters keep HTTP tokens and general phone logs off the computer. Only a read that
+    exits 0 counts: a refused one is an error, never "nothing arrived", even after some rows."""
+    log_filter = "--uid=" + uid if by_uid else "-v uid"
+    try:
+        output = adb.run("shell", "logcat " + log_filter + " -d -v epoch -t " + shlex.quote(stamp)
+                         + " -e 'Send authData:' -s " + PACKAGE + ":D '*:S'", timeout=timeout)
+    except CommandFailed:
+        raise SetupError(UNREADABLE)
+    return output if by_uid else own_rows(output, uid)
+
+
 def capture_phone(adb, seconds):
     """Bounded polling; always close verbose OEM process and restore its old tag."""
     adb.select_device()
-    if not adb.run("shell", "pm path " + PACKAGE).startswith("package:"):
-        raise SetupError("Install and sign into the official NAVEE app on this phone before capturing your owner setup.")
+    uid = navee_uid(adb)
+    by_uid = reads_by_uid(adb, uid)
     old_property = adb.run("shell", "getprop " + PROPERTY)
     property_changed = False
     oem_started = False
@@ -179,12 +322,9 @@ def capture_phone(adb, seconds):
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 break
-            # Device-side regex + tag filter prevents HTTP tokens, general phone
-            # logs, and unrelated OEM messages from being captured at all.
-            auth_rows = adb.run("shell", "logcat -d -v epoch -t " + shlex.quote(stamp)
-                                + " -e 'Send authData:' -s "
-                                + PACKAGE + ":D '*:S'", timeout=min(12, max(0.1, remaining)))
-            result = parse_capture(auth_rows, started_epoch)
+            # Only rows NAVEE's uid wrote: any app can log under NAVEE's tag.
+            rows = auth_rows(adb, uid, by_uid, stamp, timeout=min(12, max(0.1, remaining)))
+            result = parse_capture(rows, started_epoch)
             if result is not None:
                 break
             time.sleep(min(0.6, max(0, deadline - time.monotonic())))
