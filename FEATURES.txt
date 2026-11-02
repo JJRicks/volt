@@ -1,5 +1,5 @@
 VOLT — MODEL-AWARE FEATURE AVAILABILITY
-Current version: 1.11.0 (versionCode 53)
+Current version: 1.11.1 (versionCode 54)
 Earlier parked checks: US UT5 MAX, model 2538; OEM reference: NAVEE 2.1.9
 Tester-reported parked checks: US N65i, model 22131 (meter 0.0.0.5, controller
 0.0.1.1): connection, lock readback, and guided tests of display units,
@@ -25,7 +25,18 @@ or sponsored by NAVEE.
 That historical release introduced no new scooter command or decoded telemetry field.
 See VERIFICATION.txt for executed checks and physical validation limits.
 
-NEW IN 1.11.0
+NEW IN 1.11.1
+------------
+- Owner setup with Use Shizuku on this phone now works on Android 11. Its
+  log reader can't filter by app, so the capture never found the owner
+  setup. Volt now reads each log line with the app Android recorded as its
+  writer and keeps only NAVEE's. If the phone refuses the read, it says Volt
+  couldn't read NAVEE's log instead of "Nothing found".
+- Battery alerts: Volt spaces its notification updates, so an alert firing
+  while the connection notice changes no longer loses the alarm's Stop button
+  (Android could drop that update). A swiped alert stays dismissed.
+
+PREVIOUSLY IN 1.11.0
 ------------
 - Battery alerts for scooters without a charge limit setting (such as the
   GT3 Max): a Charge alert at a level you choose (50% to Full) and a Low

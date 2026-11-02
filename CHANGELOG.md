@@ -1,9 +1,9 @@
 # Changelog
 
-## Unreleased
+## 1.11.1 — 2026-11-02
 
-- Battery alerts: the alert notification now always gets its **Stop** button. Android limits how quickly an app may update its notifications. When an alert fired while Volt's connection notice was also changing, Android could drop the update that added Stop, and the shade could keep showing an older alert. Volt now spaces its notification updates so none is dropped.
 - Owner setup now works on Android 11 and older, from both the setup page and the app's **Use Shizuku on this phone** (which needs Android 11). Their log reader can't filter by app, so capture failed there. It now reads each log line with the app that wrote it, as Android records it, and keeps only NAVEE's. If the phone refuses the read or the read fails partway, both say Volt couldn't read NAVEE's log, instead of reporting that nothing arrived.
+- Battery alerts: Volt now spaces its notification updates, so the burst when an alert fires no longer loses the alarm's **Stop** button. Android limits how quickly an app may update its notifications. When an alert fired while Volt's connection notice was also changing, Android could drop the update that added Stop, and the shade could keep showing an older alert. Swiping a sounding alert away now also stays dismissed.
 - NAVEE debugger: phones on Android 11 and older are now recorded. Their log reader can't filter by app, so recordings came back empty (most likely what happened on an owner's Redmi Note 8T); the debugger now follows NAVEE's own process instead, after checking it really belongs to NAVEE, and keeps following it if NAVEE restarts.
 - NAVEE debugger: while recording, a status line says whether NAVEE's Bluetooth lines are arriving and, if not, why and what to try: NAVEE's log setting didn't take, the phone's log reader is refusing the request, another app is using NAVEE's name, the phone isn't keeping app logs, or NAVEE isn't running or isn't writing logs the page can read. A review with no NAVEE lines repeats the last finding. A capture that can't be sent or copied now names the field to fix, or says there are no NAVEE lines, instead of a general "details are missing" message.
 
