@@ -110,7 +110,8 @@ test('owner capture keeps its 120-second watchdog and authentication poll', asyn
     if (command.startsWith('pm list')) return 'package:com.navee.ucaret uid:10123';
     if (command.startsWith('umask')) return `1800000000.000\n${btoa('')}`;
     if (command.includes('nohup sh')) return 'READY';
-    if (command.startsWith('logcat')) return row();
+    if (command.startsWith('logcat --uid=10123 -d -t 1 ')) return '0';
+    if (command.includes(' -v epoch ')) return `${row()}\n~0`;
     if (command.includes('printf ABSENT')) return 'PRESENT';
     if (command.includes('printf PENDING')) return `${btoa('')}\nPENDING`;
     if (command.includes('printf RELEASED')) return 'RELEASED';
@@ -119,7 +120,7 @@ test('owner capture keeps its 120-second watchdog and authentication poll', asyn
   const session = new CaptureSession({ run, serial: 'p', storage: store(), token: () => token, now: () => 0, delay: async () => {} });
   await session.begin();
   assert.match(calls.find(c => c.command.includes('nohup sh')).opts.input, /while \[ "\$i" -lt 120 \]; do\n {6}ours/);
-  assert.match(calls.find(c => c.command.startsWith('logcat')).command, /-e 'Send authData:' -s com.navee.ucaret:D/);
+  assert.match(calls.find(c => c.command.includes(' -v epoch ')).command, /--uid=10123 -d -v epoch .* -e 'Send authData:' -s com.navee.ucaret:D/);
 });
 test('the recording stops itself at the time limit and still cleans up', async () => {
   const f = fixture({ polls: [write('1800000004.000')] });

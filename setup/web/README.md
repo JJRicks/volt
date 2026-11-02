@@ -75,8 +75,11 @@ recovery guide, CSP upload/script rejection, and service-worker blocking.
    resolved to a validated component in the fixed NAVEE package before starting.
    The page
    identifies that user's exact installed package UID. Logcat is filtered **on the phone** by UID, NAVEE tag, authentication
-   marker, and fresh phone epoch. Other apps cannot inject an accepted message by
-   merely reusing the tag. Unsupported UID filtering fails closed. Each response
+   marker, and fresh phone epoch. Android 11 and older lack `logcat --uid`, so there every row is
+   read with `-v uid`, the uid that wrote it (logd records it from the kernel's socket credentials),
+   and only NAVEE's rows are kept. A row without that column is dropped. Other apps cannot inject an
+   accepted message by reusing the tag, the process name or a recycled pid. Only a read that exits 0
+   counts: a refused or failed read fails closed at once, even after some output. Each response
    is bounded to 1 MiB, and polling stops after 90 seconds.
 4. The 17-byte auth frame has its header, opcode fields, supported role, reserved
    byte, trailer, length, and checksum verified. Conflicting identities/roles are

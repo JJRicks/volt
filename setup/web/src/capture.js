@@ -1,4 +1,4 @@
-import { MAX_CAPTURE_BYTES, PACKAGE, PROPERTY, SetupError, ownerDocument, parseCapture, quote, randomToken, tokenValid, parseAndroidUsers, hasNaveePackage, validLauncher } from './protocol.js';
+import { MAX_CAPTURE_BYTES, PACKAGE, PROPERTY, SetupError, ownerDocument, parseCapture, quote, randomToken, tokenValid, parseAndroidUsers, hasNaveePackage, validLauncher, appLogcat, logFilter, logFilterCheck, logcatReply, ownRows } from './protocol.js';
 import { LOCK, armCommand, cleanupCommand, inspectCommand, prepareCommand, releaseCommand, preparationStateCommand, startCommand, guardScript, reacquireRecoveryCommand } from './guard.js';
 
 export const JOURNAL_KEY = 'volt.owner-capture.recovery.v1';
@@ -102,17 +102,32 @@ export class CaptureSession {
     let candidate = null;
     this.update('capturing', 'On your phone, select your scooter in NAVEE and connect');
     const deadline = this.now() + 90_000;
+    // Once per capture: --uid where logcat has it (Android 12+). Otherwise, or if the check fails, every
+    // row is read with the uid that wrote it and only NAVEE's are kept, never by a pid that may be reused.
+    const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }), 'rows');
     while (this.now() < deadline) {
       this.checkCancelled();
-      const rows = await this.run(`logcat --uid=${uid} -d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`,
-        { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) });
-      candidate = parseCapture(rows, Number(stamp), candidate);
+      const reply = logcatReply(await this.run(appLogcat(uid, filter, `-d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`),
+        { maxBytes: MAX_CAPTURE_BYTES, timeout: Math.min(12_000, Math.max(100, deadline - this.now())) }), true);
+      // Only a whole read counts. A refused or failed one is never "nothing yet", even after some rows.
+      if (reply.status !== 'ok') throw new SetupError('logcat', 'Volt couldn’t read NAVEE’s log on this phone, so no owner setup was found. Reconnect the phone and try again.');
+      candidate = parseCapture(filter === 'rows' ? ownRows(reply.output, uid) : reply.output, Number(stamp), candidate);
       if (candidate) break;
       await this.delay(Math.min(600, Math.max(0, deadline - this.now())));
     }
     this.checkCancelled();
     if (!candidate) throw new SetupError('empty', 'No fresh owner setup arrived in 90 seconds. Check NAVEE is signed in, your scooter is nearby, and other scooter apps are closed.');
     return candidate;
+  }
+  // Read-only, bounded extras (filter check, health probe): a failure returns null and never ends
+  // the capture. Only cancellation propagates.
+  async spare(command, options) {
+    try { return await this.run(command, options); }
+    catch (error) {
+      if (error instanceof SetupError && error.code === 'cancelled') throw error;
+      this.checkCancelled();
+      return null;
+    }
   }
   async cleanup() {
     const journal = this.journal;

@@ -77,16 +77,6 @@ export class DebugCaptureSession extends CaptureSession {
     return { recorder, facts, reason, health: this.health, startedAt: new Date(Math.floor(Number(stamp) * 1000)).toISOString(),
       durationS: Math.min(LIMITS.duration, Math.max(0, Math.round((this.now() - started) / 1000))) };
   }
-  // Read-only, bounded extras (filter check, health probe): a failure returns null and never
-  // ends the recording. Only cancellation propagates.
-  async spare(command, options) {
-    try { return await this.run(command, options); }
-    catch (error) {
-      if (error instanceof SetupError && error.code === 'cancelled') throw error;
-      this.checkCancelled();
-      return null;
-    }
-  }
   report(facts) {
     const health = captureHealth({ ...facts, kept: this.recorder.rows.filter(row => !row.note).length });
     if (health.state !== this.health?.state) this.onHealth(this.health = health);

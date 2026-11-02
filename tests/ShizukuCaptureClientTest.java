@@ -26,6 +26,7 @@ public final class ShizukuCaptureClientTest {
         staleBindingsAndTimeout();
         staleDeathAndResult();
         discardClearsStatus();
+        unreadableNamed();
         System.out.println("ShizukuCaptureClientTest: " + checks + " checks passed");
     }
 
@@ -132,6 +133,16 @@ public final class ShizukuCaptureClientTest {
         check(!f.client.message.isEmpty(), "timed out capture reports a status");
         f.client.discard();
         check(f.client.owner == null && f.client.message.isEmpty(), "discard leaves no stale status for the capture step");
+    }
+
+    private static void unreadableNamed() throws Exception {
+        Fixture f = new Fixture(false);
+        f.client.start(false);
+        Remote remote = new Remote(); f.binding().onServiceConnected(null, remote);
+        remote.callback.completed(remote.token, OwnerCaptureEngine.UNREADABLE, true, "010203040506", 0);
+        Handler.drain();
+        check("Volt couldn't read NAVEE's log".equals(f.client.message), "a refused log read is named, not \"nothing found\"");
+        check(f.client.owner == null && !f.client.pendingCleanup(), "a failed capture never exposes an owner");
     }
 
     private static void matchingJournalOnly() throws Exception {
