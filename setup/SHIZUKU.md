@@ -22,11 +22,11 @@ It takes a random session token, not arbitrary commands, package names or paths.
 It resolves NAVEE's package UID for the current Android user and uses device-side
 `logcat --uid`, tag and message filters. Android 11's logcat has no `--uid` (it
 arrived in Android 12), which is checked once per capture (`logcat --uid=<uid> -d -t 1`
-exiting 0). There each poll runs `pidof com.navee.ucaret`, reads every candidate's
-`/proc/<pid>/status` and filters by `--pid` of the one process whose real uid (first
-`Uid:` field) is NAVEE's; a process name proves nothing. With no such process, only
-another uid's, or several, nothing is read that poll. Every command is an argument
-vector, never a shell string. A refused read fails closed at once.
+exiting 0). There each poll reads with `-v uid`, which prints the uid that wrote each
+row (logd takes it from the kernel's socket credentials), and keeps only rows whose
+uid is NAVEE's. A row without that column is dropped. A process name or pid proves
+nothing, because pids are reused. Every command is an argument vector, never a shell
+string. A refused read fails closed at once.
 Only new phone-timestamped, checksum-valid 17-byte auth frames are accepted;
 conflicting identities/roles abort. Subprocess stdout and stderr are bounded,
 stderr is discarded, and no raw capture is logged or persisted.

@@ -11,7 +11,7 @@ function store() {
   return { getItem: k => data.get(k) ?? null, setItem: (k, v) => data.set(k, v), removeItem: k => data.delete(k) };
 }
 // The device's report after a read's rows (see appLogcat), added unless a test wrote its own.
-const reported = out => /(?:^|\n)~(?:\d{1,3}|pid\d{1,3}|uid)$/.test(out) ? out : out ? `${out}\n~0` : '~0';
+const reported = out => /(?:^|\n)~\d{1,3}$/.test(out) ? out : out ? `${out}\n~0` : '~0';
 // filter answers the once-per-capture --uid check ('0': Android 12+). shell(command, op, n), when
 // given, runs the check and polls on a real shell instead (see fake-android.mjs).
 function fixture({ fail = '', original = '', logs = row(), clockStep = 0, after = () => {}, storage = store(), serial = 'test-phone', user = '0', userList = 'Users:\n\tUserInfo{0:Owner:13} running', otherPackage = '', launcher = 'com.navee.ucaret/.MainActivity', uidRow = 'package:com.navee.ucaret uid:10123', filter = () => '0', shell } = {}) {
@@ -213,87 +213,91 @@ test('foreign armed reservation retains our recovery journal and receives no cle
   assert(f.storage.getItem(JOURNAL_KEY));
   assert(!seen.some(command => command === 'sh -s clean' || command.includes('printf RELEASED')));
 });
-// Android 11 and older: logcat has no --uid, so the capture reads NAVEE's one verified process.
-const auth = (stamp, pid, identity) => logRow(stamp, pid, `Send authData: ${frame(identity)}`);
+// Android 11 and older: logcat has no --uid, so the capture reads every row with the uid that wrote it.
+const auth = (stamp, pid, identity, writer) => logRow(stamp, pid, `Send authData: ${frame(identity)}`, undefined, writer);
 const READ_ARGS = "-d -v epoch -t 1800000000.000 -e Send authData: -s com.navee.ucaret:D *:S";
-test('on a fake Android 11, capture reads only NAVEE’s verified process; an impostor’s name and tag are ignored', async () => {
+// row() as -v uid prints it, written by NAVEE's uid.
+const ownRow = (...args) => row(...args).replace(' ', ' 10123  ');
+test('on a fake Android 11, capture keeps only rows NAVEE’s uid wrote; an impostor’s tag and pid are ignored', async () => {
   const phone = await fakeAndroid();
   try {
     // Read, the impostor's different identity would be a conflict.
-    await phone.processes([[7777, 10999], [4321, 10123]]);
-    await phone.log([auth('1800000000.100', 7777, '0A0B0C0D0E0F'), auth('1800000000.200', 4321)]);
+    await phone.log([auth('1800000000.100', 4321, '0A0B0C0D0E0F', 10999), auth('1800000000.200', 4321)]);
     const f = fixture({ shell: phone.exec });
     await f.session.begin();
     assert.equal(JSON.parse(f.session.document()).owner_identity, '010203040506');
-    assert.deepEqual(await phone.args(), ['--uid=10123 -d -t 1', `--pid=4321 ${READ_ARGS}`]);
+    assert.deepEqual(await phone.args(), ['--uid=10123 -d -t 1', `-v uid ${READ_ARGS}`]);
+    assert(!f.calls.some(x => /pidof|\/proc\//.test(x.command)));
     assert.deepEqual(f.calls.slice(-5).map(x => x.op), ['exists', 'inspect', 'cleanup', 'readback', 'release']);
   } finally { await phone.dispose(); }
 });
-test('on a fake Android 11, capture waits for NAVEE’s process within its 90 seconds and follows a restart', async () => {
+test('on a fake Android 11, a recycled pid never lends another app’s rows to NAVEE', async () => {
+  // Another uid wrote a checksum-valid frame as pid 4321 and exited; NAVEE, now pid 4321, writes none.
   const phone = await fakeAndroid();
   try {
-    await phone.log([auth('1800000000.200', 4321), auth('1800000000.300', 5555)]);
+    await phone.processes([[4321, 10123]]);
+    await phone.log([auth('1800000000.100', 4321, '0A0B0C0D0E0F', 10999)]);
+    const f = fixture({ clockStep: 30_000, shell: phone.exec });
+    await assert.rejects(f.session.begin(), { code: 'empty' });
+    assert.equal(f.calls.filter(x => x.op === 'logs').length, 3);
+    assert(f.calls.some(x => x.op === 'cleanup')); assert.equal(f.storage.getItem(JOURNAL_KEY), null);
+    assert.throws(() => f.session.document(), { code: 'unsafe-export' });
+    // Once NAVEE writes its own, that is what is captured.
+    await phone.log([auth('1800000000.300', 4321)]);
+    const g = fixture({ shell: phone.exec });
+    await g.session.begin();
+    assert.equal(JSON.parse(g.session.document()).owner_identity, '010203040506');
+  } finally { await phone.dispose(); }
+});
+test('on a fake Android 11, NAVEE’s rows arriving later or after a restart are kept; its identities must agree', async () => {
+  const phone = await fakeAndroid();
+  try {
     const f = fixture({ clockStep: 10_000, shell: async (command, op, n) => {
-      if (op === 'logs' && n === 2) await phone.processes([[4321, 10123]]);
+      if (op === 'logs' && n === 2) await phone.log([auth('1800000000.300', 5555)]);
       return phone.exec(command);
     } });
     await f.session.begin();
     assert.equal(JSON.parse(f.session.document()).owner_identity, '010203040506');
     assert.equal(f.calls.filter(x => x.op === 'logs').length, 3);
-    assert.equal((await phone.args()).filter(a => a.startsWith('--pid=')).length, 1);
   } finally { await phone.dispose(); }
-  // NAVEE restarting with a new pid is followed: each poll resolves the pid again.
   const restarted = await fakeAndroid();
   try {
-    await restarted.processes([[4321, 10123]]);
-    const f = fixture({ shell: async (command, op, n) => {
-      if (op === 'logs' && n === 1) { await restarted.processes([[5555, 10123]]); await restarted.log([auth('1800000000.300', 5555)]); }
-      return restarted.exec(command);
-    } });
-    await f.session.begin();
-    assert.equal(JSON.parse(f.session.document()).owner_identity, '010203040506');
-    assert.deepEqual((await restarted.args()).slice(1), [`--pid=4321 ${READ_ARGS}`, `--pid=5555 ${READ_ARGS}`]);
+    await restarted.log([auth('1800000000.200', 4321), auth('1800000000.300', 5555, 'A1A2A3A4A5A6')]);
+    const f = fixture({ shell: restarted.exec });
+    await assert.rejects(f.session.begin(), { code: 'conflict' }); assert.throws(() => f.session.document(), { code: 'unsafe-export' });
   } finally { await restarted.dispose(); }
 });
-for (const [list, code, message] of [[[], 'not-running', /^NAVEE wasn’t running/], [[[7777, 10999]], 'impostor', /^Another app is using NAVEE’s name/],
-  [[[4321, 10123], [4400, 10123]], 'several', /^More than one NAVEE process/]])
-  test(`on a fake Android 11 without one verified NAVEE process (${code}), nothing is read for 90 seconds and the reason is named`, async () => {
-    const phone = await fakeAndroid();
+test('a refused or incomplete log read is an error at once, never “nothing found”, and still cleans up', async () => {
+  // Android 11 refusing --uid after a check that said it works, and a logcat without -v uid.
+  for (const [options, filter] of [[{}, '0'], [{ uidFormat: false }, null]]) {
+    const phone = await fakeAndroid(options);
     try {
-      await phone.processes(list); await phone.log([auth('1800000000.200', 7777), auth('1800000000.300', 4321)]);
-      const f = fixture({ clockStep: 30_000, shell: phone.exec });
-      await assert.rejects(f.session.begin(), { code, message });
-      assert.equal(f.calls.filter(x => x.op === 'logs').length, 3);
-      assert(!(await phone.args()).some(a => a.startsWith('--pid=')), 'logcat never ran');
-      assert(f.calls.some(x => x.op === 'cleanup')); assert.equal(f.storage.getItem(JOURNAL_KEY), null);
+      await phone.log([auth('1800000000.200', 4321)]);
+      const f = fixture({ shell: (command, op) => op === 'filter' && filter ? filter : phone.exec(command) });
+      await assert.rejects(f.session.begin(), { code: 'logcat', message: /^Volt couldn’t read NAVEE’s log on this phone/ });
+      assert.equal(f.calls.filter(x => x.op === 'logs').length, 1); assert(f.calls.some(x => x.op === 'cleanup'));
       assert.throws(() => f.session.document(), { code: 'unsafe-export' });
     } finally { await phone.dispose(); }
-  });
-test('a refused log read is an error at once, never “nothing found”, and still cleans up', async () => {
-  // Android 11 refusing --uid after a check that said it works.
-  const phone = await fakeAndroid();
-  try {
-    await phone.processes([[4321, 10123]]); await phone.log([auth('1800000000.200', 4321)]);
-    const f = fixture({ shell: (command, op) => op === 'filter' ? '0' : phone.exec(command) });
-    await assert.rejects(f.session.begin(), { code: 'logcat', message: /^Volt couldn’t read NAVEE’s log on this phone/ });
-    assert.equal(f.calls.filter(x => x.op === 'logs').length, 1); assert(f.calls.some(x => x.op === 'cleanup'));
-    assert.throws(() => f.session.document(), { code: 'unsafe-export' });
-  } finally { await phone.dispose(); }
-  // A failing logcat or no pidof in either mode, even after a good poll.
-  for (const [filter, reply] of [['0', '~1'], ['1', '~1'], ['1', '~127'], ['1', '~255']]) {
+  }
+  // A non-zero exit in either mode, even after a valid frame: the read may have stopped before a conflicting one.
+  for (const [filter, frameRow] of [['0', row()], ['1', ownRow()]]) for (const reply of ['~1', '~127', '~255', `${frameRow}\n~1`, `${frameRow}\n~141`]) {
     const f = fixture({ filter: () => filter, logs: reply });
     await assert.rejects(f.session.begin(), { code: 'logcat' }); assert(f.calls.some(x => x.op === 'cleanup'));
+    assert.throws(() => f.session.document(), { code: 'unsafe-export' });
   }
 });
-test('a failed or slow --uid check falls back to the pid; Android 12 keeps --uid', async () => {
+test('a failed or slow --uid check falls back to each row’s writer; Android 12 keeps --uid', async () => {
   for (const reply of [new SetupError('timeout', 'slow'), new Error('usb glitch'), '1', '', 'sh: junk']) {
-    const f = fixture({ filter: () => reply }); await f.session.begin();
-    assert.match(f.calls.find(x => x.op === 'logs').command, /pidof com\.navee\.ucaret/);
-    assert.doesNotMatch(f.calls.find(x => x.op === 'logs').command, /--uid=/);
+    const f = fixture({ filter: () => reply, logs: ownRow() }); await f.session.begin();
+    assert.equal(JSON.parse(f.session.document()).owner_identity, '010203040506');
+    assert.match(f.calls.find(x => x.op === 'logs').command, /logcat -v uid -d -v epoch/);
+    assert.doesNotMatch(f.calls.find(x => x.op === 'logs').command, /--uid=|pidof/);
   }
+  // Rows without a writer (no -v uid column) are never NAVEE's.
+  await assert.rejects(fixture({ filter: () => '1', logs: row(), clockStep: 30_000 }).session.begin(), { code: 'empty' });
   const phone = await fakeAndroid({ uid: true });
   try {
-    await phone.processes([[4321, 10123]]); await phone.log([auth('1800000000.200', 4321)]);
+    await phone.log([auth('1800000000.100', 4321, '0A0B0C0D0E0F', 10999), auth('1800000000.200', 4321)]);
     const f = fixture({ shell: phone.exec }); await f.session.begin();
     assert.equal(JSON.parse(f.session.document()).owner_identity, '010203040506');
     assert.deepEqual(await phone.args(), ['--uid=10123 -d -t 1', `--uid=10123 ${READ_ARGS}`]);

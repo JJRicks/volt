@@ -59,7 +59,7 @@ public final class OwnerCaptureEngineTest {
         check(happy.events.indexOf("arm") < happy.events.indexOf("start"));
         check(happy.events.indexOf("restore") < happy.events.indexOf("release"));
         // Android 12+: --uid, asked of logcat once, and no process lookups.
-        equal(1, Collections.frequency(happy.events, "check")); check(!happy.events.contains("pidof"));
+        equal(1, Collections.frequency(happy.events, "check"));
         check(happy.commands.contains("/system/bin/logcat --uid=10123 -d -t 1"));
         check(happy.commands.contains("/system/bin/logcat -d -v epoch -t " + NOW + " --uid=10123 -e Send authData: -s com.navee.ucaret:D *:S"));
         for (String filter : happy.filters) equal("--uid=10123", filter);
@@ -107,41 +107,44 @@ public final class OwnerCaptureEngineTest {
         result = OwnerCaptureEngine.capture(changedLock, TOKEN);
         check(!result.clean); check(result.owner == null); check(!changedLock.events.contains("restore"));
     }
-    /** Android 11's logcat has no --uid: NAVEE's one process with its real uid is read by pid instead. */
+    /** Android 11's logcat has no --uid: every row is read with the uid that wrote it, and only NAVEE's kept. */
     private static void android11() {
-        String read = "/system/bin/logcat -d -v epoch -t " + NOW + " --pid=4321 -e Send authData: -s com.navee.ucaret:D *:S";
-        // Beside an impostor using NAVEE's name (whose rows would carry another identity), only NAVEE is read.
-        Fake pid = new Fake(); pid.noUid = true; pid.pidofReplies = Arrays.asList("7777 4321");
-        OwnerCaptureEngine.Result result = OwnerCaptureEngine.capture(pid, TOKEN);
+        String rowsRead = "/system/bin/logcat -d -v epoch -t " + NOW + " -v uid -e Send authData: -s com.navee.ucaret:D *:S";
+        String own = "  1800000000.123456789 10123  4321  4321 D com.navee.ucaret: Send authData: x";
+        equal("  1800000000.123456789 4321  4321 D com.navee.ucaret: Send authData: x\n", OwnerCaptureEngine.ownRows(own + "\r\n", "10123"));
+        // Another uid, a uid sharing digits, shell, no uid column (a logcat ignoring -v uid), the divider.
+        for (String other : new String[] {own.replace("10123", "10999"), own.replace("10123", "110123"), own.replace("10123", "shell"),
+                own.replace(" 10123 ", " "), "--------- beginning of main", "10123  4321  4321 D com.navee.ucaret: Send authData: x"})
+            equal("", OwnerCaptureEngine.ownRows(other, "10123"));
+        // getpwuid names of five characters or fewer stand in for the number: uid 10005 prints as u0_a5.
+        check(!OwnerCaptureEngine.ownRows(own.replace("10123", "u0_a5"), "10005").isEmpty());
+        check(!OwnerCaptureEngine.ownRows(own.replace("10123", "10005"), "10005").isEmpty());
+        equal("", OwnerCaptureEngine.ownRows(own.replace("10123", "u0_a5"), "10123"));
+        reject(() -> OwnerCaptureEngine.ownRows(repeat('x', OwnerCaptureEngine.MAX_OUTPUT + 1), "10123"));
+        // An impostor's checksum-valid rows under NAVEE's tag and pid, beside NAVEE's own, are never read.
+        Fake rows = new Fake(); rows.noUid = true; rows.impostor = true;
+        OwnerCaptureEngine.Result result = OwnerCaptureEngine.capture(rows, TOKEN);
         equal(OwnerCaptureEngine.OK, result.outcome); check(result.clean); equal("010203040506", result.owner.identity);
-        equal(Arrays.asList("--pid=4321", "--pid=4321"), pid.filters); equal(1, Collections.frequency(pid.events, "check"));
-        check(pid.commands.contains("/system/bin/pidof com.navee.ucaret") && pid.commands.contains("/system/bin/cat /proc/7777/status"));
-        check(pid.commands.contains(read)); check(pid.events.indexOf("check") > pid.events.indexOf("start"));
-        check(pid.events.indexOf("restore") < pid.events.indexOf("release"));
-        // A failed check on a phone with --uid also reads by pid.
+        equal(Arrays.asList("rows", "rows"), rows.filters); equal(1, Collections.frequency(rows.events, "check"));
+        check(rows.commands.contains(rowsRead)); check(rows.events.indexOf("check") > rows.events.indexOf("start"));
+        check(rows.events.indexOf("restore") < rows.events.indexOf("release"));
+        // A failed check on a phone with --uid also reads rows.
         Fake checkFailed = new Fake(); checkFailed.failure = "check";
         result = OwnerCaptureEngine.capture(checkFailed, TOKEN);
-        equal(OwnerCaptureEngine.OK, result.outcome); equal(Arrays.asList("--pid=4321", "--pid=4321"), checkFailed.filters);
-        // NAVEE appears late, then restarts with a new pid: still followed within the window; identities must agree.
-        Fake late = new Fake(); late.noUid = true; late.pidofReplies = Arrays.asList("", "", "4321", "5555");
-        result = OwnerCaptureEngine.capture(late, TOKEN);
-        equal(OwnerCaptureEngine.OK, result.outcome); equal(Arrays.asList("--pid=4321", "--pid=5555"), late.filters);
-        Fake restartConflict = new Fake(); restartConflict.noUid = true; restartConflict.pidofReplies = Arrays.asList("4321", "5555"); restartConflict.conflictAt = 2;
-        result = OwnerCaptureEngine.capture(restartConflict, TOKEN);
+        equal(OwnerCaptureEngine.OK, result.outcome); equal(Arrays.asList("rows", "rows"), checkFailed.filters);
+        // A recycled pid: another uid wrote a valid frame as pid 123 and exited, and NAVEE, now pid 123, wrote
+        // none. Nothing is captured, all window long.
+        Fake reused = new Fake(); reused.noUid = true; reused.impostor = true; reused.noPacket = true;
+        result = OwnerCaptureEngine.capture(reused, TOKEN);
+        equal(OwnerCaptureEngine.TIMED_OUT, result.outcome); check(result.clean); check(result.owner == null); equal(9, reused.logCount);
+        // Rows without a uid column are never trusted.
+        Fake unlabeled = new Fake(); unlabeled.noUid = true; unlabeled.writer = null;
+        result = OwnerCaptureEngine.capture(unlabeled, TOKEN);
+        equal(OwnerCaptureEngine.TIMED_OUT, result.outcome); check(result.clean); check(result.owner == null);
+        // NAVEE's own identities must still agree.
+        Fake conflict = new Fake(); conflict.noUid = true; conflict.conflictAt = 2;
+        result = OwnerCaptureEngine.capture(conflict, TOKEN);
         equal(OwnerCaptureEngine.CONFLICT, result.outcome); check(result.clean); check(result.owner == null);
-        // Without exactly one verified process nothing is read, for the whole window, and the reason is kept.
-        Object[][] unread = {
-            {"", OwnerCaptureEngine.NOT_RUNNING}, {"7777", OwnerCaptureEngine.IMPOSTOR}, {"6666", OwnerCaptureEngine.NOT_RUNNING},
-            {"4321 5555", OwnerCaptureEngine.TIMED_OUT}, {"7777 4321 5555", OwnerCaptureEngine.TIMED_OUT}};
-        for (Object[] c : unread) {
-            Fake f = new Fake(); f.noUid = true; f.pidofReplies = Arrays.asList((String) c[0]);
-            result = OwnerCaptureEngine.capture(f, TOKEN);
-            equal(c[1], result.outcome); check(result.clean); check(result.owner == null);
-            equal(0, f.logCount); equal(9, Collections.frequency(f.events, "pidof")); check(!f.lock);
-        }
-        // Only the last poll names the reason: an impostor while NAVEE restarts, then NAVEE without a frame.
-        Fake recovered = new Fake(); recovered.noUid = true; recovered.noPacket = true; recovered.pidofReplies = Arrays.asList("7777", "4321");
-        equal(OwnerCaptureEngine.TIMED_OUT, OwnerCaptureEngine.capture(recovered, TOKEN).outcome);
         // A refused read is an error at once, in either mode, never "nothing found".
         for (boolean noUid : new boolean[] {true, false}) {
             Fake refused = new Fake(); refused.noUid = noUid; refused.refuseRead = true;
@@ -151,13 +154,6 @@ public final class OwnerCaptureEngineTest {
         // Cancelling during a refused read is still a cancellation.
         Fake cancelled = new Fake(); cancelled.refuseRead = true; cancelled.cancelAfterLog = true;
         equal(OwnerCaptureEngine.CANCELLED, OwnerCaptureEngine.capture(cancelled, TOKEN).outcome);
-        // pidof output is validated as digits before any path or argument is built from it.
-        for (String reply : new String[] {"4321 ../../data/x", "4321;id", "-1", "0", "12345678"}) {
-            Fake junk = new Fake(); junk.noUid = true; junk.pidofReplies = Arrays.asList(reply);
-            result = OwnerCaptureEngine.capture(junk, TOKEN);
-            equal(OwnerCaptureEngine.FAILED, result.outcome); check(result.clean); equal(0, junk.logCount);
-            for (String command : junk.commands) check(!command.contains("..") && !command.contains(";"));
-        }
     }
     private static void processBounds() throws Exception {
         equal("ok", OwnerCaptureProcess.run("/bin/sh", "-c", "printf ok"));
@@ -174,29 +170,18 @@ public final class OwnerCaptureEngineTest {
         check(elapsedMs >= OwnerCaptureProcess.TERMINATION_GRACE_SECONDS * 1000);
         check(elapsedMs < (OwnerCaptureProcess.TERMINATION_GRACE_SECONDS + 4) * 1000);
     }
-    /** A phone double. noUid: Android 11's logcat, refusing --uid. pidof answers from pidofReplies in turn
-     *  (the last repeats; "" exits 1), and /proc/<pid>/status from uids (missing: the process exited). */
+    /** A phone double. noUid: Android 11's logcat, refusing --uid. Read with -v uid, rows carry writer (null:
+     *  no uid column), and impostor adds another uid's valid frame, as NAVEE's pid, before NAVEE's own. */
     private static final class Fake implements OwnerCaptureEngine.Host {
         final List<String> events = new ArrayList<>(), filters = new ArrayList<>(), commands = new ArrayList<>();
-        final java.util.Map<String, String> uids = new java.util.HashMap<>();
-        List<String> pidofReplies = java.util.Arrays.asList("4321");
-        String property = "  INFO  ", original, failure = ""; boolean lock, noPacket, cancel, cancelAfterLog, conflict, ownershipLost, noUid, refuseRead;
-        int logCount, pidofCount, packetAt = 1, packetUntil = Integer.MAX_VALUE, conflictAt = Integer.MAX_VALUE; long millis, preparationMillis;
-        Fake() { uids.put("4321", "10123"); uids.put("5555", "10123"); uids.put("7777", "10999"); }
+        String property = "  INFO  ", original, failure = "", writer = "10123";
+        boolean lock, noPacket, cancel, cancelAfterLog, conflict, ownershipLost, noUid, refuseRead, impostor;
+        int logCount, packetAt = 1, packetUntil = Integer.MAX_VALUE, conflictAt = Integer.MAX_VALUE; long millis, preparationMillis;
         void event(String name) throws Exception { events.add(name); if (failure.equals(name)) { failure = ""; throw new Exception(); } }
         @Override public String command(String... args) throws Exception {
             commands.add(String.join(" ", args));
-            if (args[0].equals("/system/bin/logcat") && !java.util.Arrays.asList(args).contains("epoch")) {
+            if (args[0].equals("/system/bin/logcat") && !Arrays.asList(args).contains("epoch")) {
                 event("check"); if (noUid) throw new Exception("Unknown option"); return "";
-            }
-            if (args[0].equals("/system/bin/pidof")) {
-                event("pidof"); String reply = pidofReplies.get(Math.min(pidofCount++, pidofReplies.size() - 1));
-                if (reply.isEmpty()) throw new Exception(); return reply + "\n";
-            }
-            if (args[0].equals("/system/bin/cat")) {
-                event("cat"); String uid = uids.get(args[1].replaceAll("^/proc/([0-9]+)/status$", "$1"));
-                if (uid == null || !args[1].matches("/proc/[0-9]+/status")) throw new Exception();
-                return "Name:\tcom.navee.ucaret\nState:\tS (sleeping)\nUid:\t" + uid + "\t" + uid + "\t" + uid + "\t" + uid + "\nGid:\t" + uid + "\n";
             }
             if (args[0].endsWith("am")) { event("user"); return "0\n"; }
             if (args[0].endsWith("cmd")) {
@@ -207,12 +192,14 @@ public final class OwnerCaptureEngineTest {
             if (args[0].endsWith("getprop")) { event(events.contains("restore") ? "verify" : "getprop"); return property + "\n"; }
             if (args[0].endsWith("date")) { event("clock"); return NOW; }
             if (args[0].endsWith("logcat")) {
-                event("log"); logCount++; filters.add(args[6]);
+                boolean rows = Arrays.asList(args).contains("uid");
+                event("log"); logCount++; filters.add(rows ? "rows" : args[6]);
                 if (cancelAfterLog) cancel = true;
-                if (refuseRead || (noUid && args[6].startsWith("--uid="))) throw new Exception();
-                // An impostor's rows, if ever read, carry another identity.
-                if (args[6].equals("--pid=7777")) return line(NOW, packet("0A0B0C0D0E0F", 0));
-                return noPacket || logCount < packetAt || logCount > packetUntil ? "" : line(NOW, packet((conflict && logCount > 1) || logCount >= conflictAt ? "A1A2A3A4A5A6" : "010203040506", 0));
+                if (refuseRead || (noUid && !rows)) throw new Exception();
+                String before = rows && impostor ? written("10999", packet("0A0B0C0D0E0F", 0)) + "\n" : "";
+                if (noPacket || logCount < packetAt || logCount > packetUntil) return before;
+                String own = packet((conflict && logCount > 1) || logCount >= conflictAt ? "A1A2A3A4A5A6" : "010203040506", 0);
+                return before + (rows ? written(writer, own) : line(NOW, own));
             }
             throw new AssertionError("Unexpected command");
         }
@@ -230,6 +217,10 @@ public final class OwnerCaptureEngineTest {
         @Override public void pause() { millis += 10000; }
     }
     private static String line(String time, String packet) { return time + " 123 123 D com.navee.ucaret: Send authData: " + packet; }
+    /** A row as -v epoch -v uid prints it, written by writer (null: without the uid column). */
+    private static String written(String writer, String packet) {
+        return "  " + NOW + (writer == null ? "" : " " + writer) + "   123   123 D com.navee.ucaret: Send authData: " + packet;
+    }
     private static String packet(String identity, int role) {
         byte[] p = Protocol.fromHex("55AA0030090000" + identity + "0000FEFD"); p[6] = (byte)role;
         int sum = 0; for (int i = 0; i < 14; i++) sum += p[i] & 255; p[14] = (byte)sum;

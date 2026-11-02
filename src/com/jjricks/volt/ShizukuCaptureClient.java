@@ -167,8 +167,6 @@ final class ShizukuCaptureClient {
                 } else if (outcome == OwnerCaptureEngine.TIMED_OUT) message = "Nothing found in 90 s";
                 else if (outcome == OwnerCaptureEngine.CONFLICT) message = "Several scooters. Connect one.";
                 else if (outcome == OwnerCaptureEngine.BUSY) message = "Another capture is running";
-                else if (outcome == OwnerCaptureEngine.NOT_RUNNING) message = "NAVEE wasn't running";
-                else if (outcome == OwnerCaptureEngine.IMPOSTOR) message = "Another app is using NAVEE's name";
                 else if (outcome == OwnerCaptureEngine.UNREADABLE) message = "Volt couldn't read NAVEE's log";
                 else if (outcome == OwnerCaptureEngine.CANCELLED || wasCancelled) message = "Stopped";
                 else message = "Capture failed";
