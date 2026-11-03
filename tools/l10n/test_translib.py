@@ -85,14 +85,17 @@ class SourceTest(unittest.TestCase):
     def test_draft_roundtrip(self):
         path = self.repo.path("l10n", "work", "es", "common", "drafts", "claude-opus.xml")
         translib.write_draft(path, "claude-opus", "claude-opus-5-5", [
-            ("common_dont", "string", {"other": "No borres l'almacenamiento  ahora "}, 1),
-            ("common_scooters_skipped", "plural", {"one": "%1$d <x> & y", "other": "%1$d z"}, 2)], prompt="draft-review")
+            ("common_dont", "string", {"other": "No borres l'almacenamiento  ahora "}, 1, "a" * 40),
+            ("common_scooters_skipped", "plural", {"one": "%1$d <x> & y", "other": "%1$d z"}, 2, None)],
+            prompt="draft-review")
         draft = translib.read_draft(path)
         self.assertEqual((draft.provider, draft.model, draft.prompt), ("claude", "claude-opus-5-5", "draft-review"))
         self.assertEqual(draft.entries["common_dont"].items["other"], "No borres l'almacenamiento  ahora ")
         self.assertEqual(draft.entries["common_dont"].problems, [])
         self.assertEqual(draft.entries["common_scooters_skipped"].items["one"], "%1$d <x> & y")
         self.assertEqual(draft.entries["common_scooters_skipped"].attempt, 2)
+        self.assertEqual(draft.entries["common_dont"].src, "a" * 40)
+        self.assertIsNone(draft.entries["common_scooters_skipped"].src)
         with self.assertRaises(translib.L10nError):
             translib.write_draft(path, "mistral", "m", [])
 

@@ -18,6 +18,8 @@ environment; see providers.py for how they are kept out of every output.
                                                         back-translate agreed safety keys with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
+                                                        (after prompt --role backtranslate, whose
+                                                        texts the reply is bound to)
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
@@ -25,8 +27,10 @@ environment; see providers.py for how they are kept out of every output.
 Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
   drafts/<name>.xml        claude-<config>.xml, openai.xml, google.xml: Android resource XML whose root
                            carries volt:provider, volt:model (the exact model id) and, when the API
-                           reported a more specific one, volt:model-reported; a redrafted key carries
-                           volt:attempt="2".
+                           reported a more specific one, volt:model-reported. Every entry carries
+                           volt:src, the source hash of the English it translated (from the pack it
+                           was drafted from); an entry without it or with another hash is stale and
+                           ignored. A redrafted key carries volt:attempt="2".
   checks.jsonl             check.py's results per draft and key.
   backtranslation.jsonl    {"key", "source_sha1", "target", "back", "provider", "model",
                            "model_reported"}; target and back are a string or {quantity: text}.
@@ -34,8 +38,10 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
   judge.jsonl              the judge's rulings (written by the Claude judge session):
                            {"key", "source_sha1", "model", "verdict", "pick", "text", "back", "reason",
                             "confirm", "backtranslation_meaning_kept"}
-                           verdict: "pick" (a passing draft, named in pick), "merge" (text), "confirm"
-                           (safety keys: accept the unanimous text) or "fallback" (keep English).
+                           verdict: "pick" (a passing draft, named in pick, with its text copied into
+                           text), "merge" (text), "confirm" (safety keys: accept the unanimous text)
+                           or "fallback" (keep English). A pick counts only while the named draft
+                           still has that text.
                            confirm (safety keys): every item of SAFETY_CONFIRMATIONS set to true,
                            text the confirmed text and back the back-translation the judge saw,
                            both copied from the request; they must match the current ones.
@@ -135,8 +141,10 @@ def instructions(pack, style="standard"):
     return "\n".join(rules)
 
 
-def model_view(entry, findings=None):
+def model_view(entry, findings=None, with_src=False):
     view = collections.OrderedDict((f, entry[f]) for f in MODEL_FIELDS if entry.get(f) not in (None, [], {}))
+    if with_src:
+        view["src"] = entry["source_sha1"]  # a Claude drafter copies it into its draft (volt:src)
     current = entry.get("current")
     if current and current.get("stale"):
         view["previous_translation"] = current["text"]
@@ -145,13 +153,13 @@ def model_view(entry, findings=None):
     return view
 
 
-def user_prompt(pack, entries, findings_by_key=None):
+def user_prompt(pack, entries, findings_by_key=None, with_src=False):
     findings_by_key = findings_by_key or {}
     head = ("Translate these %d strings from %s (area %s)." % (len(entries), pack["source_file"], pack["area"]))
     if findings_by_key:
         head += (" Your earlier draft of these strings failed the automated checks listed under failed_checks; "
                  "fix them.")
-    body = [model_view(e, findings_by_key.get(e["key"])) for e in entries]
+    body = [model_view(e, findings_by_key.get(e["key"]), with_src) for e in entries]
     return head + "\n\n" + json.dumps(body, ensure_ascii=False, indent=1)
 
 
@@ -193,8 +201,13 @@ def reply_strings(value):
     return strings
 
 
-def replies_to_entries(pack, strings, keys):
-    """[(key, kind, items, attempt)] for the requested keys; unknown keys and bad shapes are reported."""
+def replies_to_entries(pack, strings, keys, srcs=None):
+    """[(key, kind, items, attempt, src)] for the requested keys; unknown keys and bad shapes are reported.
+
+    src is the source hash of the English the text translates: the pack's, for a reply to a prompt
+    made from this pack (the API drafts), or srcs[key] when the drafter copied it from its prompt
+    (Claude). A key srcs lacks keeps no src and is stale: it is never stamped with the current hash.
+    """
     by_key = dict((e["key"], e) for e in pack["entries"])
     out, problems = [], []
     for key in keys:
@@ -207,7 +220,16 @@ def replies_to_entries(pack, strings, keys):
             problems.append("%s: expected %s" % (key, "a string" if entry["kind"] == "string" else
                                                  "an object of plural categories"))
             continue
-        out.append((key, entry["kind"], items, 1))
+        if srcs is None:
+            src = entry["source_sha1"]
+        else:
+            src = srcs.get(key) if isinstance(srcs.get(key), str) else None
+            if src is None:
+                problems.append("%s: no src copied from the prompt; the entry is stale until redrafted" % key)
+            elif src != entry["source_sha1"]:
+                problems.append("%s: src %s is not the current English's (%s); the entry is stale" % (
+                    key, src[:12], entry["source_sha1"][:12]))
+        out.append((key, entry["kind"], items, 1, src))
     for key in strings:
         if key not in by_key:
             problems.append("%s: not in the pack; ignored" % key)
@@ -218,15 +240,15 @@ def existing_draft_entries(path):
     if not os.path.exists(path):
         return collections.OrderedDict()
     draft = translib.read_draft(path)
-    return collections.OrderedDict((k, (k, e.kind, e.items, e.attempt)) for k, e in draft.entries.items())
+    return collections.OrderedDict((k, (k, e.kind, e.items, e.attempt, e.src)) for k, e in draft.entries.items())
 
 
 def save_draft(paths, pack, name, model, model_reported, new_entries, prompt, replace=False, attempt=None):
     """Write or update drafts/<name>.xml in pack order. attempt marks the replaced keys (redraft)."""
     path = os.path.join(paths.drafts(pack["tag"], pack["area"]), name + ".xml")
     merged = collections.OrderedDict() if replace else existing_draft_entries(path)
-    for key, kind, items, _ in new_entries:
-        merged[key] = (key, kind, items, attempt or 1)
+    for key, kind, items, _, src in new_entries:
+        merged[key] = (key, kind, items, attempt or 1, src)
     order = [e["key"] for e in pack["entries"]]
     ordered = [merged[k] for k in order if k in merged]
     translib.write_draft(path, name, model, ordered, model_reported, prompt)
@@ -335,14 +357,19 @@ def claude_prompt(paths, tag, area, name, style, redraft=False):
         "# Volt translation draft: %s, area %s, %s" % (tag, area, draft_name),
         "Work alone: do not open other drafts, judge files or decisions under l10n/work/ or l10n/decisions/.",
         instructions(pack, style),
+        "Each string below has a `src`: the hash of the English you translate. Copy every one unchanged "
+        "into your reply, as a top-level `\"src\": {\"<key>\": \"<src>\"}` object next to `strings`. It "
+        "records which English each text translates; a text without its src, or with another English's, is "
+        "ignored.",
         "When done, write the JSON object to `%s`, then run:\n\n"
         "    python3 tools/l10n/council.py import-claude --tag %s --area %s --name %s --model <your exact model id>"
         " --from %s%s" % (paths.rel(reply), tag, area, name, paths.rel(reply), " --redraft" if redraft else ""),
         "It converts the reply into `%s` with the correct escaping. You may instead write that XML file directly "
-        "(root `<resources xmlns:volt=\"%s\" volt:provider=\"claude\" volt:model=\"<model id>\">`, Android "
-        "resource escaping) and run import-claude without --from to validate it." % (
+        "(root `<resources xmlns:volt=\"%s\" volt:provider=\"claude\" volt:model=\"<model id>\">`, each "
+        "`<string>` or `<plurals>` with `volt:src=\"<its src>\"`, Android resource escaping) and run "
+        "import-claude without --from to validate it." % (
             paths.rel(draft_path), gen_catalog.VOLT_NS),
-        "## Strings\n\n" + user_prompt(pack, entries, findings),
+        "## Strings\n\n" + user_prompt(pack, entries, findings, with_src=True),
     ])
     path = paths.work(tag, area, "prompts", draft_name + (".redraft" if redraft else "") + ".md")
     l10nlib.write_text(path, text + "\n")
@@ -361,17 +388,19 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
         if not isinstance(value, dict):
             raise translib.L10nError("%s: not a JSON object" % source)
         strings = reply_strings(value)
+        srcs = value.get("src") if isinstance(value.get("src"), dict) else {}
         path = os.path.join(paths.drafts(tag, area), draft_name + ".xml")
         if redraft:
             failed = failed_keys(paths, tag, area, draft_name)
-            got, problems = replies_to_entries(pack, strings, [k for k in strings if k in failed])
+            got, problems = replies_to_entries(pack, strings, [k for k in strings if k in failed], srcs)
             if not os.path.exists(path):
                 raise translib.L10nError("%s does not exist; --redraft replaces keys of an existing draft" % path)
             previous = translib.read_draft(path)
             save_draft(paths, pack, draft_name, previous.model, previous.model_reported, got, previous.prompt,
                        attempt=MAX_ATTEMPTS)
         else:
-            got, problems = replies_to_entries(pack, strings, [e["key"] for e in pack["entries"] if e["key"] in strings])
+            got, problems = replies_to_entries(
+                pack, strings, [e["key"] for e in pack["entries"] if e["key"] in strings], srcs)
             problems.extend("%s: needed but missing from the reply" % e["key"] for e in needed_entries(pack)
                             if e["key"] not in strings)
             save_draft(paths, pack, draft_name, model, model, got, value.get("style"), replace=True)
@@ -396,6 +425,10 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
                 problems.append("%s is not in the pack" % key)
             elif entry.kind != by_key[key]["kind"]:
                 problems.append("%s: a %s where English has a %s" % (key, entry.kind, by_key[key]["kind"]))
+            else:
+                stale = checklib.stale_source(entry.src, by_key[key]["source_sha1"])
+                if stale:
+                    problems.append("%s: %s; redraft it from the current prompt" % (key, stale))
         errors += len(problems)
         out.write("%s (%s): %d keys%s\n" % (filename, draft.model, len(draft.entries),
                                              "" if not problems else ", %d problems" % len(problems)))
@@ -412,24 +445,36 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
 # ---------------------------------------------------------------------------
 
 Candidate = collections.namedtuple("Candidate", "draft provider model model_reported attempt items findings ok")
-KeyState = collections.namedtuple("KeyState", "entry candidates passing agreed unanimous providers")
+# stale: [{draft, provider, model, src, why}] for draft entries of other English (or of unknown English).
+KeyState = collections.namedtuple("KeyState", "entry candidates passing agreed unanimous providers stale")
 
 
 def analyze(paths, pack, drafts=None, use_java=True):
-    """{key: KeyState} for every pack entry, with the checks recomputed on every draft."""
+    """{key: KeyState} for every pack entry, with the checks recomputed on every draft.
+
+    A draft entry whose volt:src is not the current English's hash (or is missing) is stale: it is
+    no candidate, it is not checked, and its draft counts as missing that key (so a ladder it no
+    longer covers fails the ladder check). It is listed in KeyState.stale, never relabelled.
+    """
     drafts = translib.list_drafts(paths, pack["tag"], pack["area"]) if drafts is None else drafts
     font = fontmetrics.Font(paths.font())
     measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
     results = {}
     for draft in drafts:
-        results[draft.name] = checklib.check_targets(pack, checklib.draft_targets(draft), font, measurer)
+        results[draft.name] = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
     states = collections.OrderedDict()
     for entry in pack["entries"]:
         key = entry["key"]
-        candidates = []
+        candidates, stale = [], []
         for draft in drafts:
             if key in draft.entries:
                 d = draft.entries[key]
+                why = checklib.stale_source(d.src, entry["source_sha1"])
+                if why:
+                    stale.append(collections.OrderedDict([
+                        ("draft", draft.name), ("provider", draft.provider), ("model", draft.model),
+                        ("src", d.src), ("why", why)]))
+                    continue
                 findings = results[draft.name].get(key, [])
                 candidates.append(Candidate(draft.name, draft.provider, draft.model, draft.model_reported, d.attempt,
                                             d.items, findings, checklib.is_ok(findings)))
@@ -441,7 +486,7 @@ def analyze(paths, pack, drafts=None, use_java=True):
         unanimous = (bool(candidates) and len(passing) == len(candidates) and len(values) == 1
                      and set(c.provider for c in candidates) >= set(translib.PROVIDERS))
         states[key] = KeyState(entry, candidates, passing, agreed, unanimous,
-                               sorted(set(c.provider for c in candidates)))
+                               sorted(set(c.provider for c in candidates)), stale)
     return states
 
 
@@ -530,12 +575,34 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
     return stored
 
 
+def backtranslation_request_path(paths, tag, area):
+    return paths.work(tag, area, "prompts", "backtranslation.request.json")
+
+
 def import_backtranslation(paths, tag, area, source, model, use_java=True, out=None):
+    """Store a Claude agent's back-translations of the texts its prompt showed.
+
+    The reply names keys only, so each key is bound to the English and text the prompt was made
+    from (prompts/backtranslation.request.json): a key whose English or agreed text changed since
+    the prompt is dropped, never stored as a back-translation of the new text.
+    """
     out = out or sys.stdout
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
     targets = backtranslation_targets(states)
+    request_path = backtranslation_request_path(paths, tag, area)
+    if not os.path.exists(request_path):
+        raise translib.L10nError("%s is missing: write the prompt with prompt --role backtranslate first" %
+                                 paths.rel(request_path))
+    asked = json.loads(l10nlib.read_text(request_path))
+    for key in list(targets):
+        state = targets[key]
+        shown = asked.get(key) or {}
+        if shown.get("source_sha1") != state.entry["source_sha1"] or not same_text(
+                state.entry["kind"], shown.get("target"), state.agreed):
+            out.write("  %s: the text changed since the prompt; back-translate it again\n" % key)
+            del targets[key]
     value = json.loads(l10nlib.read_text(source))
     provider = "claude" if model.startswith("claude") else "other"
     stored = store_backtranslation(paths, pack, targets, reply_strings(value), provider, model, model,
@@ -562,6 +629,10 @@ def backtranslation_prompt_file(paths, tag, area, use_java=True):
         "## Strings\n\n" + backtranslate_prompt(pack, targets)])
     path = paths.work(tag, area, "prompts", "backtranslation.md")
     l10nlib.write_text(path, text + "\n")
+    translib.write_json(backtranslation_request_path(paths, tag, area), collections.OrderedDict(
+        (k, collections.OrderedDict([("source_sha1", s.entry["source_sha1"]),
+                                     ("target", translib.text_value(s.entry["kind"], s.agreed))]))
+        for k, s in targets.items()))
     return path, len(targets)
 
 
@@ -647,11 +718,14 @@ def write_judge_requests(paths, tag, area, use_java=True):
             paths.rel(paths.work(tag, area, "judge-requests.jsonl")), paths.rel(judge_path)),
         "    {\"key\": ..., \"source_sha1\": <copied from the request>, \"model\": <your exact model id>,\n"
         "     \"verdict\": \"pick\" | \"merge\" | \"confirm\" | \"fallback\", \"pick\": <draft name, for pick>,\n"
-        "     \"text\": <your text, for merge: a string or {category: text}>, \"reason\": <why, one or two sentences>,\n"
+        "     \"text\": <for pick: the picked candidate's text, copied exactly; for merge: your text; a string or\n"
+        "              {category: text}>, \"reason\": <why, one or two sentences>,\n"
         "     \"confirm\": {<each item of the request's confirm list>: true}, \"backtranslation_meaning_kept\": true,\n"
         "     \"back\": <for confirm: the request's backtranslation.back, copied exactly>}",
-        "- disagreement / single-draft: pick the best passing draft or merge a better text from them. A merged text "
-        "is checked again; if it fails, the key stays English.",
+        "- disagreement / single-draft: pick the best passing draft or merge a better text from them. For pick, "
+        "copy that candidate's text into your text field exactly: a pick counts only while that draft still has "
+        "that text, so a redrafted candidate needs a new ruling. A merged text is checked again; if it fails, the "
+        "key stays English.",
         "- safety-confirmation: every drafter wrote the same text (the request's text field). For confirm, copy "
         "that text into your text field and the request's backtranslation.back into back, exactly: a confirm "
         "counts only for the text and back-translation it names. Compare the text with the English and the "
@@ -707,6 +781,10 @@ def decide(paths, tag, area, final=False, use_java=True):
     confirmed item by item, naming that text and that back-translation), or fallback-english (the key is left out of values-<qual>). A ladder
     group falls back as a whole when any rung does. Keys still waiting for a judge ruling or a
     back-translation are pending; with final=True they fall back instead.
+
+    Only draft entries of the current English count (volt:src, see analyze()); stale ones are listed
+    in stale_drafts and named in a fallback's reason. A pick counts only while the picked draft has
+    the text the ruling copied; otherwise the key waits for a new ruling.
     """
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
@@ -721,11 +799,16 @@ def decide(paths, tag, area, final=False, use_java=True):
 
     def row(entry, state, outcome, reason, items=None, judge=None, back=None, checks=None):
         drafter_ids = sorted(set(c.model for c in state.candidates)) if state else []
+        stale = list(state.stale) if state else []
+        if stale and outcome == "fallback-english":
+            reason = "%s; stale drafts ignored: %s" % (reason, ", ".join(
+                "%s (%s)" % (s["draft"], s["why"]) for s in stale))
         return collections.OrderedDict([
             ("format", DECISION_FORMAT), ("key", entry["key"]), ("kind", entry["kind"]),
             ("source_sha1", entry["source_sha1"]), ("english", entry["english"]), ("safety", entry.get("safety") or []),
             ("outcome", outcome), ("text", translib.text_value(entry["kind"], items) if items else None),
             ("reason", reason), ("alternatives", _alternatives(entry, state) if state else []),
+            ("stale_drafts", stale),
             ("models", collections.OrderedDict([
                 ("drafters", drafter_ids), ("judge", judge.get("model") if judge else None),
                 ("backtranslator", back.get("model") if back else None)])),
@@ -745,7 +828,7 @@ def decide(paths, tag, area, final=False, use_java=True):
             if old and old.get("source_sha1") == entry["source_sha1"]:
                 rows[key] = old
             else:
-                rows[key] = row(entry, state, "fallback-english", "no drafts")
+                rows[key] = row(entry, state, "fallback-english", "no current drafts" if state.stale else "no drafts")
             continue
         if entry.get("safety"):
             if not state.unanimous:
@@ -810,10 +893,18 @@ def decide(paths, tag, area, final=False, use_java=True):
         if verdict == "fallback":
             rows[key] = row(entry, state, "fallback-english", "judge: %s" % ruling["reason"], judge=ruling)
         elif verdict == "pick":
+            # A pick names a draft and copies its text: it counts only while that draft has that text
+            # (as a safety confirm counts only for the text it names), so a redrafted candidate needs a
+            # new ruling and falls back until it has one.
             chosen = [c for c in state.passing if c.draft == ruling.get("pick")]
             if not chosen:
+                pending.append((key, "a ruling on the current candidates"))
                 rows[key] = row(entry, state, "fallback-english", "judge picked %r, which is not a passing draft" %
                                 ruling.get("pick"), judge=ruling)
+            elif not same_text(entry["kind"], ruling.get("text"), chosen[0].items):
+                pending.append((key, "a ruling on %s's current text" % chosen[0].draft))
+                rows[key] = row(entry, state, "fallback-english", "judge picked %s with another text (or none); "
+                                "the draft changed since the ruling" % chosen[0].draft, judge=ruling)
             else:
                 checks = [f for f in chosen[0].findings if f["severity"] != checklib.INFO]
                 rows[key] = row(entry, state, "judged", "judge picked %s: %s" % (chosen[0].draft, ruling["reason"]),

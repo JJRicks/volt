@@ -274,7 +274,8 @@ class CheckCommandTest(unittest.TestCase):
     def test_checks_jsonl(self):
         texts = dict(council_fixture.SPANISH)
         texts["common_move_widget"] = "Mover %1$s"
-        entries = [(k, self.by[k]["kind"], translib.items_of(self.by[k]["kind"], v), 1) for k, v in texts.items()]
+        entries = [(k, self.by[k]["kind"], translib.items_of(self.by[k]["kind"], v), 1, self.by[k]["source_sha1"])
+                   for k, v in texts.items()]
         translib.write_draft(self.repo.path("l10n/work/es/common/drafts/google.xml"), "google", "gemini-x", entries)
         with contextlib.redirect_stdout(io.StringIO()) as out:
             self.assertEqual(check.main(["--root", self.repo.root, "--tag", "es", "--area", "common", "--no-java"]), 1)

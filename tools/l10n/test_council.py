@@ -70,15 +70,22 @@ class Base(unittest.TestCase):
             self.assertNotIn(GEMINI_KEY, text)
             self.assertNotIn("SECRET", text)
 
-    def claude_reply(self, texts, name="opus-context", model="claude-opus-5-5", redraft=False):
+    def sha(self, area="common"):
+        return dict((e["key"], e["source_sha1"]) for e in pack.load_pack(self.paths, "es", area)["entries"])
+
+    def claude_reply(self, texts, name="opus-context", model="claude-opus-5-5", redraft=False, src=None):
+        """An agent's JSON reply; src (default: the current pack's) is what it copied from its prompt."""
         path = self.repo.path("reply-%s.json" % name)
+        if src is None:
+            sha = self.sha()
+            src = dict((k, sha[k]) for k in texts if k in sha)
         with open(path, "w", encoding="utf-8") as handle:
-            json.dump({"strings": texts}, handle, ensure_ascii=False)
+            json.dump({"strings": texts, "src": src}, handle, ensure_ascii=False)
         args = ["import-claude", "--tag", "es", "--area", "common", "--name", name, "--model", model, "--from", path]
         return self.main(*(args + (["--redraft"] if redraft else [])))
 
     def judge(self, rows):
-        sha = dict((e["key"], e["source_sha1"]) for e in pack.load_pack(self.paths, "es", "common")["entries"])
+        sha = self.sha()
         lines = []
         for row in rows:
             row = dict(row)
@@ -94,6 +101,21 @@ class Base(unittest.TestCase):
                "backtranslation_meaning_kept": True, "text": cf.SPANISH[key], "back": BACK[key]}
         row.update(extra)
         return row
+
+    def draft_all(self, google_overrides=None, claude_overrides=None, skip_claude=False):
+        google_texts = dict(cf.SPANISH, common_move_widget="Mueve %1$s al hueco %2$d")
+        google_texts.update(google_overrides or {})
+        fake = self.transport(**{
+            "gpt-5.1": cf.drafting_reply(cf.SPANISH),
+            "gemini-3-pro": cf.drafting_reply(google_texts),
+            "gemini-3-flash": lambda prompt: {"strings": dict((k, BACK[k]) for k in cf.requested_keys(prompt))}})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
+        if not skip_claude:
+            claude = dict(cf.SPANISH, common_not_reported="Sin informar")
+            claude.update(claude_overrides or {})
+            self.assertEqual(self.claude_reply(claude), 0)
+        return fake
 
     def decisions(self, area="common"):
         return dict((r["key"], r) for r in translib.read_jsonl(self.paths.decisions("es", area)))
@@ -297,6 +319,10 @@ class DraftingTest(Base):
         draft = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/openai.xml"))
         self.assertEqual(draft.entries["common_move_widget"].attempt, 2)
         self.assertEqual(draft.entries["common_cancel"].attempt, 1)
+        # Keys the redraft did not touch keep the src they were drafted with.
+        sha = self.sha()
+        self.assertEqual(draft.entries["common_cancel"].src, sha["common_cancel"])
+        self.assertEqual(draft.entries["common_move_widget"].src, sha["common_move_widget"])
         self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 0)
         # A failed second attempt is not sent back again.
         self.repo.write("l10n/work/es/common/checks.jsonl", json.dumps(
@@ -314,6 +340,9 @@ class ClaudeImportTest(Base):
         self.assertIn("Work alone", prompt)
         self.assertIn("common_lock_waiting_short", prompt)
         self.assertNotIn("source_sha1", prompt)
+        # Each string carries its src for the agent to copy back (a draft's provenance).
+        self.assertIn('"src": "%s"' % self.sha()["common_cancel"], prompt)
+        self.assertIn("Copy every one unchanged", prompt)
         self.assertEqual(self.claude_reply(dict(cf.SPANISH)), 0)
         draft = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/claude-opus-context.xml"))
         self.assertEqual((draft.provider, draft.model), ("claude", "claude-opus-5-5"))
@@ -337,21 +366,6 @@ class ClaudeImportTest(Base):
 
 class CouncilFlowTest(Base):
     """Three providers draft; the checks, back-translation, judge and decisions follow plan 7.2."""
-
-    def draft_all(self, google_overrides=None, claude_overrides=None, skip_claude=False):
-        google_texts = dict(cf.SPANISH, common_move_widget="Mueve %1$s al hueco %2$d")
-        google_texts.update(google_overrides or {})
-        fake = self.transport(**{
-            "gpt-5.1": cf.drafting_reply(cf.SPANISH),
-            "gemini-3-pro": cf.drafting_reply(google_texts),
-            "gemini-3-flash": lambda prompt: {"strings": dict((k, BACK[k]) for k in cf.requested_keys(prompt))}})
-        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
-        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
-        if not skip_claude:
-            claude = dict(cf.SPANISH, common_not_reported="Sin informar")
-            claude.update(claude_overrides or {})
-            self.assertEqual(self.claude_reply(claude), 0)
-        return fake
 
     def test_full_flow(self):
         fake = self.draft_all()
@@ -380,7 +394,8 @@ class CouncilFlowTest(Base):
 
         yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
         self.judge([
-            {"key": "common_move_widget", "verdict": "pick", "pick": "openai"},
+            {"key": "common_move_widget", "verdict": "pick", "pick": "openai",
+             "text": "Mover %1$s a la posición %2$d"},
             {"key": "common_not_reported", "verdict": "merge", "text": "No informado"},
             self.confirm("common_lock_waiting"),
             self.confirm("common_lock_waiting_short"),
@@ -416,8 +431,9 @@ class CouncilFlowTest(Base):
         self.main("backtranslate", "google", "--tag", "es", "--area", "common")
         yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
         self.judge([self.confirm(k) for k in ("common_lock_waiting_short", "common_alarm_on", "common_disclaimer")] +
-                   [{"key": "common_move_widget", "verdict": "pick", "pick": "google"},
-                    {"key": "common_not_reported", "verdict": "pick", "pick": "openai"}])
+                   [{"key": "common_move_widget", "verdict": "pick", "pick": "google",
+                     "text": "Mueve %1$s al hueco %2$d"},
+                    {"key": "common_not_reported", "verdict": "pick", "pick": "openai", "text": "No informado"}])
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
         d = self.decisions()
         self.assertEqual(d["common_lock_waiting"]["outcome"], "fallback-english")
@@ -440,6 +456,7 @@ class CouncilFlowTest(Base):
 
     def test_backtranslator_must_not_have_drafted(self):
         self.draft_all()
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "backtranslate"), 0)
         path = self.repo.path("back.json")
         with open(path, "w", encoding="utf-8") as handle:
             json.dump({"strings": BACK}, handle)
@@ -528,6 +545,208 @@ class CouncilFlowTest(Base):
         self.judge([{"key": "common_move_widget", "verdict": "pick", "pick": "openai", "source_sha1": "0" * 40}])
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
         self.assertIn("common_move_widget: waiting for a judge ruling", self.out.getvalue())
+
+
+class ProvenanceTest(Base):
+    """Codex's PR #152 repros: a draft or a pick ruling must stay bound to what it was made from."""
+
+    KEY = "common_backup_action"
+    DRAFTS = "l10n/work/es/common/drafts/"
+
+    def set_english(self, english):
+        """Put KEY into the fixture's English with this text, and regenerate the common pack."""
+        path = "res/values/strings_common.xml"
+        text = self.repo.read(path)
+        line = '    <string name="%s" volt:screen="Backup">' % self.KEY
+        if line in text:
+            start = text.index(line)
+            text = text[:start] + text[text.index("\n", start) + 1:]
+        text = text.replace("</resources>", "%s%s</string>\n</resources>" % (line, english))
+        self.repo.write(path, text)
+        measurer = fontmetrics.Measurer(self.paths.font(), use_java=False)
+        pack.write_pack(self.paths, pack.build_pack(self.paths, "es", "common", measurer))
+
+    def draft(self, openai_text, google_text):
+        self.transport(**{"gpt-5.1": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: openai_text})),
+                          "gemini-3-pro": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: google_text}))})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
+
+    def merge(self):
+        import merge
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(out):
+            code = merge.main(["--root", self.repo.root, "--tag", "es", "--area", "common", "--aapt", "off"])
+        return code, out.getvalue()
+
+    def test_drafts_record_the_english_they_translated(self):
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar copia")
+        sha = self.sha()[self.KEY]
+        for name in ("openai", "google"):
+            draft = translib.read_draft(self.repo.path(self.DRAFTS + name + ".xml"))
+            self.assertEqual(draft.entries[self.KEY].src, sha)
+        self.assertIn('volt:src="%s"' % sha, self.repo.read(self.DRAFTS + "openai.xml"))
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.decisions()[self.KEY]["outcome"], "agreed")
+        self.assertEqual(self.decisions()[self.KEY]["stale_drafts"], [])
+
+    def test_stale_drafts_are_not_relabelled_with_new_english(self):
+        """Repro 1: Save backup -> Guardar copia twice; English becomes Restore backup; drafts kept."""
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar copia")
+        old_sha = self.sha()[self.KEY]
+        self.set_english("Restore backup")
+        new_sha = self.sha()[self.KEY]
+        self.assertNotEqual(old_sha, new_sha)
+        # check marks the stale entries failed (so a redraft sends them back)...
+        self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
+        rows = [r for r in translib.read_jsonl(self.repo.path("l10n/work/es/common/checks.jsonl"))
+                if r["key"] == self.KEY]
+        self.assertEqual(sorted(r["draft"] for r in rows), ["google", "openai"])
+        for r in rows:
+            self.assertFalse(r["ok"])
+            self.assertEqual((r["draft_src"], r["source_sha1"]), (old_sha, new_sha))
+            self.assertEqual([f["check"] for f in r["findings"] if f["severity"] == "error"], ["source"])
+        # ...and decide never agrees them under the new hash: the key falls back, and says why.
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        d = self.decisions()[self.KEY]
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIsNone(d["text"])
+        self.assertEqual(d["english"], "Restore backup")
+        self.assertEqual(d["source_sha1"], new_sha)
+        self.assertIn("no current drafts", d["reason"])
+        self.assertIn("drafted from other English", d["reason"])
+        self.assertEqual(sorted(s["draft"] for s in d["stale_drafts"]), ["google", "openai"])
+        self.assertEqual(set(s["src"] for s in d["stale_drafts"]), {old_sha})
+        self.assertEqual(d["alternatives"], [])
+        # The merged folder leaves the key out (English shows), and validates.
+        code, out = self.merge()
+        self.assertEqual(code, 0, out)
+        self.assertNotIn(self.KEY, self.repo.read("res/values-es/strings_common.xml"))
+        self.assertNotIn("Guardar copia", self.repo.read("res/values-es/strings_common.xml"))
+
+    def test_stale_and_unstamped_claude_drafts_are_ignored(self):
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar copia")
+        old_sha = self.sha()[self.KEY]
+        self.set_english("Restore backup")
+        # A Claude reply that copied the old src, or none, is stored as stale: never stamped current.
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH, **{self.KEY: "Guardar copia"}),
+                                           src=dict(self.sha(), **{self.KEY: old_sha})), 1)
+        self.assertIn("%s: src %s is not the current English's" % (self.KEY, old_sha[:12]), self.out.getvalue())
+        draft = translib.read_draft(self.repo.path(self.DRAFTS + "claude-opus-context.xml"))
+        self.assertEqual(draft.entries[self.KEY].src, old_sha)
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH, **{self.KEY: "Guardar copia"}), name="sonnet",
+                                           model="claude-sonnet-5", src={}), 1)
+        self.assertIn("%s: no src copied from the prompt" % self.KEY, self.out.getvalue())
+        self.assertIsNone(translib.read_draft(self.repo.path(self.DRAFTS + "claude-sonnet.xml")).entries[self.KEY].src)
+        # Agent-written XML without volt:src fails validation.
+        self.repo.write(self.DRAFTS + "claude-haiku.xml",
+                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" '
+                        'volt:model="claude-haiku-5">\n  <string name="%s">Guardar copia</string>\n</resources>\n'
+                        % self.KEY)
+        self.assertEqual(self.main("import-claude", "--tag", "es", "--area", "common", "--name", "haiku"), 1)
+        self.assertIn("%s: no volt:src" % self.KEY, self.out.getvalue())
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()[self.KEY]
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertEqual(sorted(s["draft"] for s in d["stale_drafts"]),
+                         ["claude-haiku", "claude-opus-context", "claude-sonnet", "google", "openai"])
+        # Agent-written XML with the current src validates and counts.
+        self.repo.write(self.DRAFTS + "claude-haiku.xml",
+                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" '
+                        'volt:model="claude-haiku-5">\n  <string name="%s" volt:src="%s">Restaurar copia</string>\n'
+                        '</resources>\n' % (self.KEY, self.sha()[self.KEY]))
+        self.out.truncate(0)
+        self.assertEqual(self.main("import-claude", "--tag", "es", "--area", "common", "--name", "haiku"), 0,
+                         self.out.getvalue())
+
+    def test_fresh_replacement_drafts_agree(self):
+        """Control for repro 1: drafts made again from the new English agree as usual."""
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar copia")
+        self.set_english("Restore backup")
+        self.draft("Restaurar copia", "Restaurar copia")
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        d = self.decisions()[self.KEY]
+        self.assertEqual((d["outcome"], d["text"], d["english"]), ("agreed", "Restaurar copia", "Restore backup"))
+        self.assertEqual(d["stale_drafts"], [])
+        code, out = self.merge()
+        self.assertEqual(code, 0, out)
+        self.assertIn('<string name="%s">Restaurar copia</string>' % self.KEY,
+                      self.repo.read("res/values-es/strings_common.xml"))
+
+    def test_pick_ruling_is_bound_to_the_text_it_reviewed(self):
+        """Repro 2: the judge picks openai's Guardar copia; openai is redrafted as Restaurar copia."""
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar respaldo")
+        old_ruling = {"key": self.KEY, "verdict": "pick", "pick": "openai", "text": "Guardar copia",
+                      "reason": "Guardar copia is the shorter, usual phrase for saving a backup"}
+        self.judge([old_ruling])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual((self.decisions()[self.KEY]["outcome"], self.decisions()[self.KEY]["text"]),
+                         ("judged", "Guardar copia"))
+        # Only openai's draft is replaced; the old ruling stays in judge.jsonl.
+        self.transport(**{"gpt-5.1": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: "Restaurar copia"}))})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.out.truncate(0)
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("%s: waiting for a ruling on openai's current text" % self.KEY, self.out.getvalue())
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()[self.KEY]
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIsNone(d["text"])
+        self.assertIn("another text", d["reason"])
+        code, out = self.merge()
+        self.assertEqual(code, 0, out)
+        self.assertNotIn("Restaurar copia", self.repo.read("res/values-es/strings_common.xml"))
+        # A pick without the text (the old format) binds nothing either.
+        self.judge([dict(old_ruling, text=None)])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertEqual(self.decisions()[self.KEY]["outcome"], "fallback-english")
+        # The judge request shows the new candidate; a fresh ruling naming its text counts (control).
+        self.main("judge-requests", "--tag", "es", "--area", "common")
+        requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+        self.assertIn("Restaurar copia", [c["text"] for c in requests[self.KEY]["candidates"]])
+        self.assertIn("copy that candidate's text", self.repo.read("l10n/work/es/common/prompts/judge.md"))
+        self.judge([dict(old_ruling, text="Restaurar copia", reason="hmm")])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        d = self.decisions()[self.KEY]
+        self.assertEqual((d["outcome"], d["text"]), ("judged", "Restaurar copia"))
+        self.assertEqual(d["judge"]["text"], "Restaurar copia")
+
+    def test_pick_of_a_stale_draft_waits_for_a_new_ruling(self):
+        self.set_english("Save backup")
+        self.draft("Guardar copia", "Guardar respaldo")
+        ruling = {"key": self.KEY, "verdict": "pick", "pick": "openai", "text": "Guardar copia"}
+        self.set_english("Restore backup")
+        # The old ruling is on older English and the drafts are stale: nothing is judged.
+        self.judge([ruling])  # stamped with the new hash, as a careless resumed judge might
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()[self.KEY]
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("no current drafts", d["reason"])
+
+    def test_claude_backtranslation_is_bound_to_the_prompted_text(self):
+        self.draft_all()
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "backtranslate"), 0)
+        # Every drafter now writes another alarm text after the prompt was made.
+        for name in ("openai", "google", "claude-opus-context"):
+            path = self.DRAFTS + name + ".xml"
+            self.repo.write(path, self.repo.read(path).replace("Alarma activada", "Alarma silenciada"))
+        path = self.repo.path("back.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump({"strings": BACK}, handle)
+        self.out.truncate(0)
+        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
+                                   "--model", "claude-haiku-5"), 0)
+        self.assertIn("common_alarm_on: the text changed since the prompt", self.out.getvalue())
+        rows = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/backtranslation.jsonl")))
+        self.assertNotIn("common_alarm_on", rows)
+        self.assertEqual(rows["common_disclaimer"]["target"], "Volt no está afiliada a NAVEE")
 
 
 class BetaBarTest(Base):

@@ -379,7 +379,8 @@ def xml_attr(value):
 # Draft files: l10n/work/<tag>/<area>/drafts/<name>.xml
 # ---------------------------------------------------------------------------
 
-DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems")
+# src: the source hash (source_sha1) of the English the entry translated, from volt:src; None if absent.
+DraftEntry = collections.namedtuple("DraftEntry", "key kind items raw attempt problems src")
 Draft = collections.namedtuple("Draft", "name provider model model_reported prompt entries path")
 
 
@@ -391,7 +392,11 @@ def draft_provider(name):
 
 
 def write_draft(path, name, model, entries, model_reported=None, prompt=None):
-    """entries: [(key, kind, {quantity: text}, attempt)] in pack order."""
+    """entries: [(key, kind, {quantity: text}, attempt, src)] in pack order.
+
+    src is the source hash of the English the entry translated (volt:src); a draft entry without
+    one, or with another than the current English's, is stale and never decides anything.
+    """
     if not DRAFT_NAME.match(name):
         raise L10nError("draft name %r must be lower-case letters, digits and dashes" % name)
     provider = draft_provider(name)
@@ -404,8 +409,9 @@ def write_draft(path, name, model, entries, model_reported=None, prompt=None):
     lines = ['<?xml version="1.0" encoding="utf-8"?>',
              "<!-- Draft %s: written by tools/l10n/council.py; staging only, never compiled. -->" % name,
              "<resources %s>" % " ".join(attrs)]
-    for key, kind, items, attempt in entries:
-        extra = ' volt:attempt="%d"' % attempt if attempt and attempt > 1 else ""
+    for key, kind, items, attempt, src in entries:
+        extra = ' volt:src="%s"' % xml_attr(src) if src else ""
+        extra += ' volt:attempt="%d"' % attempt if attempt and attempt > 1 else ""
         if kind == "string":
             lines.append('    <string name="%s"%s>%s</string>' % (key, extra, xml_text(encode_resource_text(items["other"]))))
         else:
@@ -444,11 +450,13 @@ def read_draft(path):
         problems = []
         if kind not in ("string", "plurals"):
             raise L10nError("%s:%d: <%s> is not allowed in a draft" % (path, node.line, kind))
-        attempt = 1
+        attempt, src = 1, None
         for attr, value in node.attrs.items():
             local = gen_catalog._local(attr)
             if local == "attempt" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
                 attempt = int(value) if value.isdigit() else 1
+            elif local == "src" and gen_catalog._namespace(attr) == gen_catalog.VOLT_NS:
+                src = value.strip() or None
             elif local != "name":
                 problems.append("attribute %s is not allowed in a draft" % local)
         items, raw = collections.OrderedDict(), collections.OrderedDict()
@@ -471,7 +479,8 @@ def read_draft(path):
                 problems.extend("[%s] %s" % (quantity, p) for p in item_problems)
         if key in entries:
             raise L10nError("%s:%d: %s appears twice" % (path, node.line, key))
-        entries[key] = DraftEntry(key, "plural" if kind == "plurals" else "string", items, raw, attempt, problems)
+        entries[key] = DraftEntry(key, "plural" if kind == "plurals" else "string", items, raw, attempt, problems,
+                                  src)
     return Draft(name, provider, model, attrs.get("model-reported") or model, attrs.get("prompt"), entries, path)
 
 

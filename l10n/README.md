@@ -515,6 +515,13 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    agent's instructions; the agent writes its JSON reply and runs `council.py import-claude ...
    --from <reply> --model <its model id>`, which writes `drafts/claude-<name>.xml` with the right
    escaping. An agent may write that XML itself; `import-claude` without `--from` validates it.
+   **Every draft entry records the English it translated** (`volt:src`, the source hash below):
+   API drafts are stamped from the pack they were made from, and each string in a Claude prompt
+   carries a `src` that the agent copies unchanged into its reply (`"src": {"<key>": "<src>"}`)
+   or onto its XML element. An entry with no `volt:src`, or another English's, is stale: `check`
+   fails it (`source`), `import-claude` reports it, and every later step ignores it, so it is
+   redrafted, never relabelled with the current hash. A key whose drafts are all stale falls back
+   like any undecided key, and its decision lists them in `stale_drafts`.
 3. **Checks** (`check.py`, run by `council.py check`): placeholders, numbers, plural categories,
    escapes, dnt tokens and markup, glossary, whitespace, Saira glyph coverage, ladder rungs and width
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
@@ -530,7 +537,9 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
-   session, which picks or merges; a merged text must pass the checks again.
+   session, which picks or merges; a merged text must pass the checks again. A pick names the draft
+   and copies its text, and counts only while that draft still has that text: a redrafted
+   candidate needs a new ruling and falls back until it has one.
 5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
    providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
    text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
@@ -655,16 +664,25 @@ their lists reviewed before their wave starts.
   Metadata does not count. CatalogCheckTest (B0b) computes the same hash to find stale translations.
 - **Drafts** (`l10n/work/<tag>/<area>/drafts/<name>.xml`): Android resource XML, names
   `claude-<config>`, `openai`, `google`. The root carries `volt:provider`, `volt:model` (exact id)
-  and, when different, `volt:model-reported`; a redrafted key carries `volt:attempt="2"`.
-- **`checks.jsonl`**: `{"draft", "provider", "model", "attempt", "key", "source_sha1", "ok",
-  "findings": [{"check", "severity", "quantity", "message"}], "width_method"}`.
+  and, when different, `volt:model-reported`. Every `<string>` and `<plurals>` carries
+  `volt:src="<sha1>"`, the source hash of the English it translated (copied from the prompt's
+  `src` by a Claude agent); an entry without it, or with another hash than the current English's,
+  is stale and ignored. A redrafted key carries `volt:attempt="2"`.
+- **`checks.jsonl`**: `{"draft", "provider", "model", "attempt", "key", "source_sha1", "draft_src",
+  "ok", "findings": [{"check", "severity", "quantity", "message"}], "width_method"}`; `draft_src`
+  is the entry's `volt:src`, and a stale one fails the `source` check.
 - **`backtranslation.jsonl`**: `{"key", "source_sha1", "target", "back", "provider", "model",
-  "model_reported"}`; a text is a string or `{quantity: text}`.
+  "model_reported"}`; a text is a string or `{quantity: text}`. `import-backtranslation` binds a
+  Claude agent's reply to the texts its prompt showed (`prompts/backtranslation.request.json`,
+  written by `prompt --role backtranslate`): a key whose English or agreed text changed since is
+  dropped.
 - **`judge.jsonl`** (written by the judge): `{"key", "source_sha1", "model", "verdict", "pick",
   "text", "back", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
   `confirm` (safety keys) or `fallback`; `confirm` maps each of `lock_states_distinct`,
   `on_off_never_always_not_inverted`, `unverified_never_confirmed`,
-  `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A confirm also copies
+  `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A pick copies the
+  picked candidate's text into `text` and counts only while that draft still has it (after
+  normalizing); a pick without it, or of a changed draft, waits for a new ruling. A confirm also copies
   the request's `text` (the agreed text) and `backtranslation.back` into `text` and `back`; it
   counts only while both still match the current agreed text and back-translation, so a changed
   draft needs a new ruling. A safety key reaches `judge-requests` only after a current
@@ -672,7 +690,8 @@ their lists reviewed before their wave starts.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
   (`agreed`, `judged`, `safety-agreed` or `fallback-english`), `text`, `reason`, `alternatives`
-  (every draft with its model ids, attempt, text and findings), `models` (`drafters`, `judge`,
+  (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
+  ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
   key). `prompts/` and `replies/` are regenerated and not committed (`l10n/.gitignore`).

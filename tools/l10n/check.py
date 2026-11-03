@@ -5,11 +5,16 @@
   check.py --tag es --area common --draft openai  one draft
 
 Writes l10n/work/<tag>/<area>/checks.jsonl, one line per draft and key:
-  {"draft", "provider", "model", "attempt", "key", "source_sha1", "ok", "findings", "width_method"}
+  {"draft", "provider", "model", "attempt", "key", "source_sha1", "draft_src", "ok", "findings",
+   "width_method"}
 where each finding is {"check", "severity", "quantity", "message"}. Severity "error" fails the draft
 for that key; "warn" goes to the judge; "info" is a note. Exit status 1 when any key failed.
+draft_src is the entry's volt:src; an entry whose draft_src is missing or is not source_sha1 fails
+the "source" check: it translated other English, so it is redrafted, never relabelled.
 
 Checks, per key (a plural is checked per quantity):
+  source        the entry's volt:src is the hash of the current English (check_draft only; the
+                council drops such entries before every other step)
   kind          the draft has a string where English has a string, plurals where it has plurals
   empty         no empty text where English has text
   placeholders  the same %n$ placeholders with the same conversions, and %% where English has it;
@@ -608,8 +613,20 @@ def check_targets(pack, targets, font=None, measurer=None, ladders=True):
     return results
 
 
-def draft_targets(draft):
-    return collections.OrderedDict((k, (e.kind, e.items, e.problems)) for k, e in draft.entries.items())
+def stale_source(src, sha):
+    """Why a draft entry recorded as translating src is not a translation of the English sha, or None."""
+    if not src:
+        return "no volt:src: the English this entry translated is unknown"
+    if src != sha:
+        return "drafted from other English (volt:src %s, the English is now %s)" % (src[:12], (sha or "?")[:12])
+    return None
+
+
+def draft_targets(draft, pack=None):
+    """{key: (kind, items, problems)} of a draft; with pack, only the entries of the current English."""
+    sha = dict((e["key"], e["source_sha1"]) for e in pack["entries"]) if pack else None
+    return collections.OrderedDict((k, (e.kind, e.items, e.problems)) for k, e in draft.entries.items()
+                                   if sha is None or k not in sha or stale_source(e.src, sha[k]) is None)
 
 
 def check_draft(pack, draft, font, measurer):
@@ -618,9 +635,13 @@ def check_draft(pack, draft, font, measurer):
     sha = dict((e["key"], e["source_sha1"]) for e in pack["entries"])
     rows = []
     for key, findings in results.items():
+        stale = stale_source(draft.entries[key].src, sha.get(key)) if key in sha else None
+        if stale:
+            findings = findings + [finding("source", ERROR, stale)]
         rows.append(collections.OrderedDict([
             ("draft", draft.name), ("provider", draft.provider), ("model", draft.model),
             ("attempt", draft.entries[key].attempt), ("key", key), ("source_sha1", sha.get(key)),
+            ("draft_src", draft.entries[key].src),
             ("ok", is_ok(findings)), ("findings", findings), ("width_method", measurer.method if measurer else None)]))
     return rows
 
