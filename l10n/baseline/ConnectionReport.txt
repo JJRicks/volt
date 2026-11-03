@@ -1,6 +1,6 @@
 # Hard-coded English in src/com/jjricks/volt/ConnectionReport.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
-multiword	"(?: · retrying| · change cancelled)?(?: \\(-?\\d+\\))?)"
+multiword	"(?: · retrying| · change cancelled| · change not confirmed| · reconnecting to confirm)?(?: \\(-?\\d+\\))?)"
 multiword	"(?:Send|Receive) 0x[0-9A-F]{2}(?: · status \\d+)? · \\d+ bytes|Send 0x[0-9A-F]{2} \\(\\d+ bytes\\)"
 multiword	"Volt connection details · "
 multiword	"\n\nVolt could not connect to this scooter. These are its connection details; it is everything Volt sends, and nothing is attached.\n\n"
@@ -8,4 +8,5 @@ multiword	"model not identified"
 multiword	"|(?:Timed out|Connection lost|Signal lost|Connection failed|Send failed|Owner check failed|Owner identity rejected"
 multiword	"|Bluetooth MTU \\d+|Reconnect in \\d+s|Owner authenticated locally|Model ID captured"
 multiword	"|Ignored a scooter reply that failed its checks|Scooter replies use the header-free checksum"
-multiword	"|Unsupported scooter|Unsupported firmware|Unrecognised scooter|Not the saved scooter|Bluetooth off)"
+multiword	"|Scooter may have restarted Bluetooth)"
+multiword	"|Unsupported scooter|Unsupported firmware|Unrecognised scooter|Not the saved scooter|Bluetooth off"
