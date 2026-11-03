@@ -18,8 +18,8 @@ final class CommandLog {
     static final int MAX_RECORDS = 1000;
     static final int MAX_FILE_BYTES = 256 * 1024;
     private static final int MAGIC = 0x56434d44, VERSION = 1, HEADER_BYTES = 12, CRC_BYTES = 8;
-    /** Volt's version name: numbers and dots with a short suffix ("1.7.0", "1.7.0-dev"), too short for a key or serial; or "unknown". */
-    static final String APP_VERSION = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,10})?";
+    /** Volt's version name: numbers and dots with up to three short suffix parts ("1.7.0", build.sh's "1.7.0-dev+abc1234-dirty"), each too short for a key or serial; or "unknown". */
+    static final String APP_VERSION = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,12}){0,3}";
     /** set: an owner, automatic or simulator change; try/restore: a guided write and its set-back; read: a PIN status read or a flagged status value. */
     enum Kind { SET, TRY, RESTORE, READ }
     enum Outcome {

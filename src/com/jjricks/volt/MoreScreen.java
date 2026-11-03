@@ -2098,7 +2098,9 @@ public final class MoreScreen implements AppScreen {
                 notes.setTag("update-notes"); box.addView(notes);
             }
         } else if (r != null && r.outcome == UpdateCheck.Outcome.CURRENT) {
-            box = dialogBox("You're up to date", "Volt " + installed + " is the latest release.");
+            box = dialogBox("You're up to date", VersionName.dev(installed)
+                    ? "Volt " + installed + " is a development build. The latest release is " + r.latest + "."
+                    : "Volt " + installed + " is the latest release.");
         } else {
             box = dialogBox("Couldn't check for updates", r == null
                     ? "GitHub didn't answer. Check your connection and try again."

@@ -129,9 +129,44 @@ navee_load_signing_identity() {
     export NAVEE_SIGNING_PASSWORD
 }
 
+# The versionName the APK carries. A release build (VOLT_RELEASE=1) uses the manifest's
+# exactly. Any other build is marked as a development build of that version, with its
+# commit, so a build installed from main never passes for the release it is based on:
+# "1.11.1-dev+abc1234", plus "-dirty" when the tree has uncommitted changes. Without git
+# (for example a source ZIP), it is "1.11.1-dev". versionCode is never changed.
+navee_version_name() {
+    local manifest sha
+    manifest="$(python3 -I - "$APP_DIR/AndroidManifest.xml" <<'PYVERSION'
+import re, sys
+from xml.etree import ElementTree
+name = ElementTree.parse(sys.argv[1]).getroot().get('{http://schemas.android.com/apk/res/android}versionName') or ''
+if not re.fullmatch(r'[0-9]{1,4}(\.[0-9]{1,4}){1,3}', name):
+    sys.exit('AndroidManifest.xml versionName must be numeric, like 1.11.1; build.sh adds any dev marker')
+print(name)
+PYVERSION
+)" || return 1
+    case "${VOLT_RELEASE:-}" in
+        1) printf '%s\n' "$manifest"; return 0 ;;
+        ''|0) ;;
+        *) echo "VOLT_RELEASE must be 1 (release build) or unset; got: $VOLT_RELEASE" >&2; return 1 ;;
+    esac
+    if sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
+        if [[ -n "$(git -C "$APP_DIR" status --porcelain 2>/dev/null)" ]]; then
+            printf '%s-dev+%s-dirty\n' "$manifest" "$sha"
+        else
+            printf '%s-dev+%s\n' "$manifest" "$sha"
+        fi
+    else
+        printf '%s-dev\n' "$manifest"
+    fi
+}
+
 navee_build_app() {
     navee_find_sdk
     navee_find_java
+    local version_name
+    version_name="$(navee_version_name)"
+    echo "versionName: $version_name"
     mkdir -p "$BUILD_DIR" "$(dirname -- "$APK_PATH")"
     rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies"
     mkdir -p "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
@@ -157,7 +192,7 @@ PYGUARD
             -o"$BUILD_DIR/generated" "$source_file"
     done
 
-    "$BUILD_TOOLS/aapt" package -f -m \
+    "$BUILD_TOOLS/aapt" package -f -m --version-name "$version_name" --replace-version \
         -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
         -J "$BUILD_DIR/generated" -F "$BUILD_DIR/resources.apk"
 

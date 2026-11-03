@@ -37,29 +37,11 @@ final class UpdateCheck {
     /** The same User-Agent the map tiles send. */
     static String userAgent(String installed) { return "Volt/" + installed + " (Android; https://github.com/JJRicks/volt)"; }
 
-    /** Leading numeric parts: "v1.5.1" is 1.5.1 and the test build "1.5.0-n65i-test" is 1.5.0; null when there are none. */
-    static int[] version(String text) {
-        if (text == null) return null;
-        String s = text.trim();
-        if (s.startsWith("v") || s.startsWith("V")) s = s.substring(1);
-        int end = 0;
-        while (end < s.length() && (Character.isDigit(s.charAt(end)) || s.charAt(end) == '.')) end++;
-        String[] parts = s.substring(0, end).split("\\.");
-        if (end == 0 || parts.length == 0 || parts.length > 4) return null;
-        int[] result = new int[parts.length];
-        try { for (int i = 0; i < parts.length; i++) result[i] = Integer.parseInt(parts[i]); }
-        catch (NumberFormatException unreadable) { return null; }
-        return result;
-    }
+    /** Leading numeric parts (see VersionName): "v1.5.1" is 1.5.1 and the dev build "1.11.1-dev+abc1234" is 1.11.1. */
+    static int[] version(String text) { return VersionName.numbers(text); }
 
     /** Missing parts count as 0, so 1.5 equals 1.5.0. */
-    static int compare(int[] a, int[] b) {
-        for (int i = 0; i < Math.max(a.length, b.length); i++) {
-            int x = i < a.length ? a[i] : 0, y = i < b.length ? b[i] : 0;
-            if (x != y) return x < y ? -1 : 1;
-        }
-        return 0;
-    }
+    static int compare(int[] a, int[] b) { return VersionName.compare(a, b); }
 
     /** GitHub's latest-release reply against the installed version; anything unexpected is UNREADABLE. */
     static Result evaluate(String installed, String json) {
