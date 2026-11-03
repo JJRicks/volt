@@ -142,14 +142,45 @@ navee_volt_checkout() {
     top="$(git -C "$APP_DIR" rev-parse --show-toplevel 2>/dev/null)" && [[ -n "$top" && "$top" -ef "$APP_DIR" ]]
 }
 
-# Every change git sees, untracked files included, plus ignored files in the paths the APK is
-# built from. Prints nothing for a clean tree; fails when git can't read the status.
+# Every change git sees, untracked files included, then every file the APK is built from that
+# isn't HEAD's own copy. The second part collects inputs the way the build does (find's *.java
+# under src, hidden directories too; aidl's -I tree; aapt's res and assets, which skip hidden
+# names and *~), so ignore files, status settings and index flags such as assume-unchanged or
+# skip-worktree can't hide one. Prints nothing for a clean tree; fails when git can't answer.
 navee_build_changes() {
-    local all ignored
+    local all
     all="$(git -C "$APP_DIR" status --porcelain --untracked-files=all 2>/dev/null)" || return 1
-    ignored="$(git -C "$APP_DIR" status --porcelain --untracked-files=all --ignored=matching -- \
-        src res aidl licenses AndroidManifest.xml setup/owner-capture-guard.sh 2>/dev/null)" || return 1
-    { printf '%s\n' "$all"; printf '%s\n' "$ignored" | grep -E '^!! ' | grep -vE '(^!! |/)\.[^/]*/?$'; } | grep -v '^$' || true
+    [[ -z "$all" ]] || printf '%s\n' "$all"
+    python3 -I - "$APP_DIR" <<'PYINPUTS'
+import os, subprocess, sys
+root = sys.argv[1]
+def git(*args, data=None):
+    return subprocess.run(['git', '-C', root, *args], input=data, capture_output=True, check=True).stdout
+def aapt_skips(rel):
+    return any(part.startswith('.') or part.endswith('~') for part in rel.split('/')[1:])
+RULES = (('src/', lambda rel: rel.endswith('.java')), ('aidl/', lambda rel: rel.endswith('.aidl')),
+         ('res/', lambda rel: not aapt_skips(rel)), ('licenses/', lambda rel: not aapt_skips(rel)))
+SINGLE = ('AndroidManifest.xml', 'build.sh', 'setup/owner-capture-guard.sh', 'setup/shizuku-dependencies.py')
+def is_input(rel):
+    return rel in SINGLE or any(rel.startswith(top) and keep(rel) for top, keep in RULES)
+head = {}
+for entry in git('ls-tree', '-r', '-z', 'HEAD').split(b'\0'):
+    if entry:
+        meta, path = entry.split(b'\t', 1)
+        if is_input(path.decode()):
+            head[path.decode()] = meta.split()[2].decode()
+found = [rel for rel in SINGLE if os.path.lexists(os.path.join(root, rel))]
+for top, _ in RULES:
+    for folder, _, files in os.walk(os.path.join(root, top)):
+        found += [rel for rel in (os.path.relpath(os.path.join(folder, name), root).replace(os.sep, '/')
+                                  for name in files) if is_input(rel)]
+hashes = git('hash-object', '--stdin-paths', data='\n'.join(found).encode()).decode().split() if found else []
+for rel, blob in zip(found, hashes):
+    if head.get(rel) != blob:
+        print('?? build input not as committed: ' + rel)
+for rel in sorted(set(head) - set(found)):
+    print('?? build input missing: ' + rel)
+PYINPUTS
 }
 
 navee_version_name() {
@@ -168,9 +199,8 @@ PYVERSION
         *) echo "VOLT_RELEASE must be 1 (release build) or unset; got: $VOLT_RELEASE" >&2; return 1 ;;
     esac
     if navee_volt_checkout && sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
-        # Untracked files count too, whatever status.showUntrackedFiles says, and so do ignored files
-        # in what the APK is built from (hidden ones like .DS_Store are never packaged). A failed
-        # status counts as dirty.
+        # Untracked files count too, whatever status.showUntrackedFiles says, and so does any build
+        # input that isn't HEAD's copy (see navee_build_changes). A failed check counts as dirty.
         local status
         if ! status="$(navee_build_changes)" || [[ -n "$status" ]]; then dirty="-dirty"; fi
     else
@@ -178,7 +208,7 @@ PYVERSION
     fi
     if [[ "${VOLT_RELEASE:-}" == 1 ]]; then
         if [[ -n "$dirty" ]]; then
-            echo "VOLT_RELEASE=1 refuses uncommitted, untracked or ignored changes (or an unreadable git status); commit, stash or remove them first:" >&2
+            echo "VOLT_RELEASE=1 refuses uncommitted, untracked or ignored changes, and build inputs that aren't as committed (or an unreadable git status); commit, stash or remove them first:" >&2
             navee_build_changes >&2 || true
             return 1
         fi

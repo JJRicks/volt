@@ -51,6 +51,26 @@ mkdir -p "$WORK/own/dist"; echo "{}" > "$WORK/own/dist/report.json"
 expect "$(name "$WORK/own")" "$VERSION-dev+$sha" "A hidden file in res and an ignored file outside the build"
 expect "$(name "$WORK/own" VOLT_RELEASE=1)" "$VERSION" "A release build with only those"
 rm -r "$WORK/own/res" "$WORK/own/dist"
+# Ignored hidden folders still feed the build: find's *.java search and aidl's -I tree both walk them.
+printf '.generated/\n' >> "$WORK/own/.git/info/exclude"
+mkdir -p "$WORK/own/src/.generated"; echo "class Untracked {}" > "$WORK/own/src/.generated/Untracked.java"
+expect "$(name "$WORK/own")" "$VERSION-dev+$sha-dirty" "An ignored source in a hidden folder"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses an ignored source in a hidden folder"
+rm -r "$WORK/own/src"; mkdir -p "$WORK/own/aidl/.generated"; echo "interface I {}" > "$WORK/own/aidl/.generated/I.aidl"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses an ignored AIDL import in a hidden folder"
+rm -r "$WORK/own/aidl"
+# Index flags hide local edits from git status, but not from the input check.
+mkdir -p "$WORK/own/res/values"; echo "<resources/>" > "$WORK/own/res/values/x.xml"
+g -C "$WORK/own" add -A; g -C "$WORK/own" commit -qm resource; sha="$(git -C "$WORK/own" rev-parse --short=7 HEAD)"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "$VERSION" "A committed resource"
+g -C "$WORK/own" update-index --assume-unchanged res/values/x.xml; echo "<resources></resources>" > "$WORK/own/res/values/x.xml"
+expect "$(name "$WORK/own")" "$VERSION-dev+$sha-dirty" "An assume-unchanged edit"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses an assume-unchanged edit"
+g -C "$WORK/own" update-index --no-assume-unchanged res/values/x.xml; g -C "$WORK/own" checkout -q -- res/values/x.xml
+g -C "$WORK/own" update-index --skip-worktree res/values/x.xml; rm "$WORK/own/res/values/x.xml"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses a skip-worktree deletion"
+g -C "$WORK/own" update-index --no-skip-worktree res/values/x.xml; g -C "$WORK/own" checkout -q -- res/values/x.xml
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "$VERSION" "Clean once the flags are gone"
 
 # A source ZIP unpacked inside an unrelated, dirty repository: never that repository's commit.
 mkdir "$WORK/outer"; g -C "$WORK/outer" init -q; g -C "$WORK/outer" commit -q --allow-empty -m outer
