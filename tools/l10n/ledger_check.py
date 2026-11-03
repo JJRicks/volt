@@ -13,7 +13,10 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            replaced it; each call serves one row, in the base order
   removed                  the code was deleted: the changed lines holding it only lose tokens, and
                            the whole statement holding it is gone (not just the literal and its +);
-                           every removed row is listed for the reviewer
+                           when its enclosing block (an if, a method) went too, every other
+                           statement in that block needs a removed row of its own, or the row's note
+                           starts "whole block:"; every removed row is listed for the reviewer, with
+                           the whole deleted block when there is one
   stays-english, id-kept   the literal moved within src/: the same value is added elsewhere (outside
                            the changed lines it left, so a reorder or swap is not a move), and the
                            code it left either only lost tokens or names the constant it moved to
@@ -609,8 +612,13 @@ def added_in_hunk(diff, hunk):
 
 
 def _excerpt(tokens, limit=16):
+    if limit is None:
+        return " ".join(t.raw for t in tokens)
     text = " ".join(t.raw for t in tokens[:limit])
     return text + (" ..." if len(tokens) > limit else "")
+
+
+WHOLE_BLOCK = "whole block:"
 
 
 def statement_of(diff, k):
@@ -652,10 +660,12 @@ def call_span(tokens, k):
 
 
 def deleted_scope(diff, first, last):
-    """(first, last) widened from a deleted statement to each enclosing block (a method, an if) whose
-    header and body were deleted with it."""
+    """(first, last, frame) widened from a deleted statement to each enclosing block (a method, an if)
+    whose header and body were deleted with it. frame is the set of base tokens of those blocks'
+    headers and braces; any other token in the widened span is another statement deleted with them."""
     tokens = diff.base.tokens
     deleted, _ = diff.changed_tokens()
+    frame = set()
     while True:
         depth, opener = 0, None
         for j in range(first - 1, -1, -1):
@@ -667,13 +677,15 @@ def deleted_scope(diff, first, last):
                     break
                 depth -= 1
         if opener is None:
-            return first, last
+            return first, last, frame
         head_first = opener
         while head_first > 0 and not (tokens[head_first - 1].kind == "op" and tokens[head_first - 1].value in ";{}"):
             head_first -= 1
         close = expressions.match_brace(tokens, opener)
         if any(j not in deleted for j in range(head_first, close + 1)):
-            return first, last
+            return first, last, frame
+        frame.update(range(head_first, opener + 1))
+        frame.add(close)
         first, last = head_first, close
 
 
@@ -783,6 +795,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     allowed_base = collections.defaultdict(dict)  # path -> {base token: span id} a row may replace or delete
     allowed_head = collections.defaultdict(dict)  # path -> {head token: span id} of the calls that serve rows
     manual_rows = set()
+    removed_own = collections.defaultdict(set)  # path -> base tokens of removed rows' own statements
+    removed_frames = collections.defaultdict(set)  # path -> headers and braces of blocks they deleted
+    widened = []  # (row, where, path, own statement span, widened span) for removed rows past their statement
     for row in rows:
         if not row.path.startswith("src/"):
             continue
@@ -804,8 +819,13 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 first, last, terminator = statement_of(diff, k)
                 if terminator is not None and diff.base_token(terminator).value == ";":
                     last = terminator
-                first, last = deleted_scope(diff, first, last)
+                own = range(first, last + 1)
+                removed_own[row.path].update(own)
+                first, last, frame = deleted_scope(diff, first, last)
+                removed_frames[row.path].update(frame)
                 span = range(first, last + 1)
+                if len(span) > len(own) and not any(w[0] is row and w[4] == span for w in widened):
+                    widened.append((row, where, row.path, own, span))
             elif row.kind in CATALOG_KINDS and is_manual:
                 first, last, _ = statement_of(diff, k)
                 span = range(first, last + 1)
@@ -816,10 +836,10 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 continue
             for j in span:
                 allowed_base[row.path].setdefault(j, id(row))
-        if row.kind == "removed" and tokens:
+        if row.kind == "removed" and tokens and not any(w[0] is row for w in widened):
             first, last, _ = statement_of(diff, min(tokens))
             warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this text" % (
-                where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1])))
+                where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1], None)))
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
@@ -858,6 +878,32 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             hunks = sorted(set(diff.gone[k] for k in tokens if k in diff.gone))
             if hunks:
                 converted.append((row.path, min(tokens), row, where, [diff.hunks[h][2:] for h in hunks]))
+
+    # A removed row whose statement went with its enclosing block (an if, a method) frees that whole
+    # block. Every other statement deleted with it must hold a removed row's literal itself, unless
+    # the row's note asks for the whole block; either way the reviewer sees the entire block.
+    asked = [(path, span) for row, _, path, _, span in widened if row.note.startswith(WHOLE_BLOCK)]
+    listed = set()
+    for row, where, path, own, span in widened:
+        tokens = diffs[path].base.tokens
+        others = [j for j in span if j not in removed_own[path] and j not in removed_frames[path]]
+        whole = any(p == path and s[0] <= span[0] and span[-1] <= s[-1] for p, s in asked)
+        if others and not whole:
+            first, last, _ = statement_of(diffs[path], others[0])
+            problems.append("%s: removed row at %s:%d deletes the whole block around its statement (base lines "
+                            "%d-%d), which also deletes `%s` (base line %d), code with no removed row of its own; "
+                            "record that code, or start a note of a removed row in the block with \"%s\" to ask "
+                            "for the whole block" % (
+                                where, path, row.base_line, tokens[span[0]].line, tokens[span[-1]].line,
+                                _excerpt(tokens[first:last + 1], None), tokens[others[0]].line, WHOLE_BLOCK))
+        if (path, span[0], span[-1]) in listed:
+            continue
+        listed.add((path, span[0], span[-1]))
+        warnings.append("%s: removed row at %s:%d deletes the whole block (base lines %d-%d)%s: `%s`; check by "
+                        "hand that no screen showed this text and nothing in it set what a screen shows" % (
+                            where, path, row.base_line, tokens[span[0]].line, tokens[span[-1]].line,
+                            ", with other code, as a whole block: note asks" if others and whole else "",
+                            _excerpt(tokens[span[0]:span[-1] + 1], None)))
 
     used, last = set(), {}
     for path, _, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):

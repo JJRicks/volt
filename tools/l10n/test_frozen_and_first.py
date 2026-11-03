@@ -261,6 +261,27 @@ class FrozenCodeTest(unittest.TestCase):
         self.assertRejected(problems, "tests/l10n/FakeScale.java: declares RouteSpeedScale, the name of a src/ class")
         self.assertFalse(any("NewTest" in p for p in problems), problems)
 
+    def test_a_new_test_class_may_not_shadow_java_lang_or_an_existing_test_type(self):
+        """Re-review 4, finding 2: a same-package AssertionError replaces java.lang's in every test."""
+        self.repo.write("tests/StockPackParity.java", "package com.jjricks.volt;\n\nfinal class StockPackParity {}\n"
+                        "final class ReplayHelper { static class Row {} }\n")
+        self.repo.commit("existing helper")
+        self.base = self.repo.git("rev-parse", "HEAD")
+        self.repo.write("tests/l10n/AssertionError.java", "package com.jjricks.volt;\n\nfinal class AssertionError "
+                        "extends Error { AssertionError(Object m) { } }\n")
+        self.repo.write("tests/l10n/Helpers.java", java_class("Helpers", "    static final class Row {}\n"
+                                                              "    static final class Process {}") +
+                        "final class ReplayHelper {}\nfinal class System {}\n")
+        self.repo.write("tests/l10n/CatalogCheckTest.java", java_class("CatalogCheckTest", "    static final class Record {}"))
+        head = self.repo.commit("head")
+        problems = frozen_literals.run(self.base, head, cwd=self.repo.root)[0]
+        self.assertRejected(problems, "tests/l10n/AssertionError.java: declares AssertionError, the name of a java.lang type")
+        self.assertRejected(problems, "tests/l10n/Helpers.java: declares System, the name of a java.lang type")
+        self.assertRejected(problems, "tests/l10n/Helpers.java: declares ReplayHelper, a type tests/StockPackParity.java "
+                                      "already declares")
+        # Nested types only shadow inside their own class, so an honest nested Row, Process or Record passes.
+        self.assertFalse(any("Row" in p or "Process" in p or "CatalogCheckTest" in p for p in problems), problems)
+
     def test_plain_new_tests_pass(self):
         added = ('''        System.out.println("RouteSpeedScaleTest: " + checks + " checks passed");
         double kmh = 45;

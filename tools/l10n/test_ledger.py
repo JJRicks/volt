@@ -421,6 +421,63 @@ class ChangesAroundTextTest(RepoCase):
                             for w in warnings), warnings)
 
 
+class RemovedBlockTest(RepoCase):
+    """Re-review 4, finding 1: a removed row's statement deleted with its enclosing block must not
+    take the block's other statements (a setText with no literal) along unseen."""
+    CARD = "src/com/jjricks/volt/ChargingCard.java"
+    FILES = {CARD: java_class("ChargingCard", '''    void update(TextView chargingTemperature, double temperature) {
+        if (chargingTemperature != null) {
+            String unit = units("temperature_c");
+            chargingTemperature.setText(format(temperature));
+            chargingTemperature.setTextColor(0xffffffff);
+            describeCharging(chargingTemperature, "Battery temperature", "");
+        }
+        if (temperature > 60) {
+            describeCharging(chargingTemperature, "Battery hot", "");
+        }
+        refresh();
+    }''')}
+    TEMP_ROWS = [CARD + ':9\t["Battery temperature"]\t-\tremoved\tdead label',
+                 CARD + ':6\t["temperature_c"]\t-\tremoved\tdead unit',
+                 CARD + ':9\t[""]\t-\tremoved\tdead hint']
+
+    def delete_lines(self, first, last):
+        lines = self.text(self.CARD).split("\n")
+        self.repo.write(self.CARD, "\n".join(lines[:first - 1] + lines[last:]))
+
+    def test_a_block_with_an_unrecorded_statement_fails(self):
+        self.delete_lines(5, 10)
+        problems, _, _ = self.check(self.TEMP_ROWS)
+        self.assertTrue(any("deletes the whole block" in p and "chargingTemperature . setText ( format ( temperature ) )"
+                            in p for p in problems), problems)
+
+    def test_a_whole_block_note_passes_and_lists_the_entire_block(self):
+        self.delete_lines(5, 10)
+        rows = list(self.TEMP_ROWS)
+        rows[0] = rows[0].replace("\tdead label", "\twhole block: the charging card loses its temperature")
+        problems, warnings, _ = self.check(rows)
+        self.assertEqual(problems, [])
+        self.assertTrue(any("deletes the whole block (base lines 5-10)" in w and "as a whole block: note asks" in w and
+                            "chargingTemperature . setText ( format ( temperature ) ) ;" in w and
+                            "setTextColor" in w for w in warnings), warnings)
+
+    def test_a_block_holding_only_recorded_statements_passes_and_is_listed(self):
+        self.delete_lines(11, 13)
+        problems, warnings, _ = self.check([self.CARD + ':12\t["Battery hot"]\t-\tremoved\tdead warning',
+                                            self.CARD + ':12\t[""]\t-\tremoved\tdead hint'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("deletes the whole block (base lines 11-13)" in w and "if ( temperature > 60 )" in w
+                            for w in warnings), warnings)
+
+    def test_a_deleted_statement_alone_still_passes(self):
+        self.delete_lines(12, 12)
+        problems, warnings, _ = self.check([self.CARD + ':12\t["Battery hot"]\t-\tremoved\tdead warning',
+                                            self.CARD + ':12\t[""]\t-\tremoved\tdead hint'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("deletes `describeCharging ( chargingTemperature , \"Battery hot\" , \"\" )`" in w
+                            for w in warnings), warnings)
+
+
 class CallSiteTest(RepoCase):
     """Re-review finding 3: a row's call must sit where its literal was, so swapped keys fail."""
     PICKER = "src/com/jjricks/volt/StatsWindowPicker.java"

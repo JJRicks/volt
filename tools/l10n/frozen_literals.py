@@ -33,7 +33,9 @@ between. Code may only be added, as whole statements or members (balanced bracke
     an existing test calling into one could run anything, including an early exit.
 
 A new test file may not declare a type named like a src/ class, which would replace it in a test
-build that compiles both.
+build that compiles both, nor a top-level type named like a java.lang type (AssertionError, String,
+System) or like a top-level type an existing file under tests/ or android-tests/ declares, which
+would replace that type for every existing test compiled with it.
 
 Code may be deleted only where a deleted statement is recorded by a removed ledger row. New test
 files are not limited. Because of this, a statement cannot move between existing files.
@@ -112,6 +114,32 @@ ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "set
            "ClassLoader", "loadClass", "defineClass", "ServiceLoader", "Unsafe", "ProcessBuilder", "ProcessHandle",
            "exec", "ScriptEngineManager", "ScriptEngine", "JShell", "ToolProvider", "Thread", "Instrumentation", "Signal"}
 TYPE_WORDS = {"class", "interface", "enum", "record"}
+# Every top-level type in java.base's java.lang (JDK 25): a type of that name in the tests' package
+# replaces the implicitly imported one in every test compiled with it (AssertionError, String, System).
+JAVA_LANG = frozenset("""
+AbstractMethodError AbstractStringBuilder Appendable ApplicationShutdownHooks ArithmeticException
+ArrayIndexOutOfBoundsException ArrayStoreException AssertionError AssertionStatusDirectives AutoCloseable
+BaseVirtualThread Boolean BootstrapMethodError Byte CharSequence Character CharacterData CharacterName Class
+ClassCastException ClassCircularityError ClassFormatError ClassFrameInfo ClassLoader ClassNotFoundException
+ClassValue CloneNotSupportedException Cloneable Comparable Compiler CompoundEnumeration
+ConditionalSpecialCasing Deprecated Double Enum EnumConstantNotPresentException Error Exception
+ExceptionInInitializerError FdLibm Float FunctionalInterface IO IllegalAccessError IllegalAccessException
+IllegalArgumentException IllegalCallerException IllegalMonitorStateException IllegalStateException
+IllegalThreadStateException IncompatibleClassChangeError IndexOutOfBoundsException InheritableThreadLocal
+InstantiationError InstantiationException Integer InternalError InterruptedException Iterable
+LayerInstantiationException LinkageError LiveStackFrame LiveStackFrameInfo Long MatchException Math Module
+ModuleLayer NamedPackage NegativeArraySizeException NoClassDefFoundError NoSuchFieldError
+NoSuchFieldException NoSuchMethodError NoSuchMethodException NullPointerException Number
+NumberFormatException Object OutOfMemoryError Override Package Process ProcessBuilder ProcessEnvironment
+ProcessHandle ProcessHandleImpl ProcessImpl PublicMethods Readable Record ReflectiveOperationException
+Runnable Runtime RuntimeException RuntimePermission SafeVarargs ScopedValue SecurityException
+SecurityManager Short Shutdown StableValue StackFrameInfo StackOverflowError StackStreamFactory
+StackTraceElement StackWalker StrictMath String StringBuffer StringBuilder StringCoding StringConcatHelper
+StringIndexOutOfBoundsException StringLatin1 StringUTF16 SuppressWarnings System Terminator Thread
+ThreadBuilders ThreadDeath ThreadGroup ThreadLocal Throwable TypeNotPresentException UnknownError
+UnsatisfiedLinkError UnsupportedClassVersionError UnsupportedOperationException VerifyError VersionProps
+VirtualMachineError VirtualThread Void WeakPairMap WrongThreadException
+""".split())
 PAIRS = {"(": ")", "[": "]", "{": "}"}
 NOT_TYPES = {"return", "new", "throw", "case", "else", "yield", "assert", "instanceof"}
 
@@ -220,6 +248,23 @@ def declared_types(text):
     return set(tokens[k + 1].value for k in range(len(tokens) - 1)
                if tokens[k].kind == "ident" and tokens[k].value in TYPE_WORDS and tokens[k + 1].kind == "ident" and
                not (k > 0 and _is_op(tokens[k - 1], ".")))
+
+
+def top_level_types(text):
+    """Names of the types a Java source declares outside any braces: the ones its package sees."""
+    if text is None:
+        return set()
+    tokens = l10nlib.lex_java(text)
+    names, depth = set(), 0
+    for k, t in enumerate(tokens):
+        if _is_op(t, "{"):
+            depth += 1
+        elif _is_op(t, "}"):
+            depth -= 1
+        elif depth == 0 and k + 1 < len(tokens) and t.kind == "ident" and t.value in TYPE_WORDS and \
+                tokens[k + 1].kind == "ident" and not (k > 0 and _is_op(tokens[k - 1], ".")):
+            names.add(tokens[k + 1].value)
+    return names
 
 
 def insertion_problem(run, ctx, base_names, guarded_names, before_token, new_types=frozenset()):
@@ -451,6 +496,7 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
     added_text = l10nlib.read_files(head, added_files, cwd)
     src_classes = set(os.path.basename(p)[:-len(".java")] for p in l10nlib.list_files(head, ["src"], cwd)
                       if p.endswith(".java"))
+    test_types = None  # name -> a test file at the merge base declaring it at top level, read on demand
     for path in added_files:
         try:
             declared = declared_types(added_text[path])
@@ -462,6 +508,26 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
             for name in sorted(declared & src_classes):
                 problems.append("%s: declares %s, the name of a src/ class; a test build compiling both would use "
                                 "the test's copy" % (path, name))
+            try:
+                top = top_level_types(added_text[path]) | {os.path.basename(path)[:-len(".java")]}
+            except l10nlib.LexError:
+                continue
+            for name in sorted(top & JAVA_LANG):
+                problems.append("%s: declares %s, the name of a java.lang type; every test compiled with it would "
+                                "use this copy instead of java.lang.%s" % (path, name, name))
+            if test_types is None:
+                test_types = {}
+                existing = [p for p in l10nlib.list_files(merge, list(TEST_DIRS), cwd) if p.endswith(".java")]
+                for old_path, text in sorted(l10nlib.read_files(merge, existing, cwd).items()):
+                    try:
+                        names = top_level_types(text) | {os.path.basename(old_path)[:-len(".java")]}
+                    except l10nlib.LexError:
+                        continue
+                    for name in names:
+                        test_types.setdefault(name, old_path)
+            for name in sorted((top & set(test_types)) - JAVA_LANG):
+                problems.append("%s: declares %s, a type %s already declares; a test build compiling both would use "
+                                "one copy for every test" % (path, name, test_types[name]))
     for path in files:
         try:
             problems.extend(code_problems(path, before[path], after[path], removable[path],

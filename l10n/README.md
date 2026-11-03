@@ -192,8 +192,12 @@ How `ledger_check.py` (G1) reads it:
 - `removed`: the code was deleted. The changed lines that held the literal may only lose tokens:
   nothing, not even a constant's name, takes its place. The whole statement holding the literal
   (or the member or block around it) must go: deleting only `"Chart time window: " +` from a
-  `setContentDescription(...)` call leaves shorter English running and fails. Every `removed` row
-  is listed as a warning, with the statement it deletes, for the reviewer.
+  `setContentDescription(...)` call leaves shorter English running and fails. When the block around
+  the statement (an `if`, a method) is deleted too, every other statement in that block must hold a
+  `removed` row's literal itself, or the row's note must start with `whole block:` to ask for the
+  whole block: a block that also held `label.setText(format(value))` cannot disappear behind one
+  accessibility-label row. Every `removed` row is listed as a warning, with the statement it
+  deletes (or the entire deleted block), for the reviewer.
 - Nothing else changes around text. In a changed region that holds or held a literal, the head may
   differ from the base only where a row's expression became the call that serves it (plus a
   `.render()` on a `Msg`), or a `removed` row's statement was deleted. Wrapping a kept literal or
@@ -231,6 +235,31 @@ changes since the merge base:
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
   approval), updates the tests that assert the old English, and shows the census diff.
+
+## Threat model
+
+The gates are a safety net for **honest but careless** batch authors: people and LLM agents
+converting thousands of literals, who will sometimes drop a word, swap two keys, delete a line too
+many or "tidy" a test. The rule is that every English change either fails a gate or shows up in a
+reviewer-facing warning that prints the affected code. Codex and human review are the second line,
+and they read those warnings.
+
+Deliberate sabotage of the harness is out of scope for automation: reflection, process exits,
+shadowing a class, generated-code tricks or decoys built to fool a tool. The gates refuse the easy
+forms of these anyway, but closing every route is review's job. A route counts as a gate bug only
+when an honest author could plausibly hit it by accident.
+
+Known limits:
+
+- A day/month swap where both numbers are 12 or under (`10/5` against `5/10`) is two valid dates,
+  so the census (G7) cannot see it; G10's `Fmt` parity tests are what catch a changed date order.
+- `manual:` ledger rows (ternaries, `String.format`, `StringBuilder` chains) are checked by hand:
+  G1 only checks their literals' order and lists the row and its statement for the reviewer.
+- `whole block:` removed rows, `as` holes and code changes away from any text are warnings, not
+  failures: the reviewer must read them.
+- G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
+- CI runs the pull request's own copy of the tools, so the "proof tooling unchanged" check and
+  review are what stop a batch from weakening them.
 
 ## The gates
 
@@ -276,7 +305,10 @@ anything in the file, declare a type or initializer block, import a name the fil
 loaders, threads, processes and script engines are refused, because a method name can hide in a
 string (`"ex" + "it"`). Added code also may not use a type declared in a file the change adds (in
 `src/` or the tests): new files are not limited, so a helper there could exit before the first
-check. A new test file may not declare a type named like a `src/` class. A statement cannot move
+check. A new test file may not declare a type named like a `src/` class, nor a top-level type named
+like a `java.lang` type (`AssertionError`, `String`, `System`) or like a top-level type an existing
+file under `tests/` or `android-tests/` declares: compiled together, the new one would replace it in
+every existing test. Nested types are not limited. A statement cannot move
 out of an existing file. A statement may disappear only for a deleted test of deleted code:
 a `removed` ledger row naming that test file and a line of the statement, where the change adds no
 English in its place and the English does not come back in a new statement. "English-looking"
