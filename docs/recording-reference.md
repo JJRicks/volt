@@ -21,6 +21,24 @@ Proximity unlock requires this phone's Bluetooth bond and an enabled, configured
 handlebar PIN. More shows the prerequisites and confirms the scooter setting.
 Availability and physical behavior still depend on firmware.
 
+The scooter may disconnect for a moment after proximity unlock is turned on
+(a GT3 Max restarts its Bluetooth after the change). Volt does not report that
+change as cancelled: it reconnects by itself and confirms it from the first
+status read, or says it was not confirmed. If the reconnect does not happen
+within a minute, or no reconnect follows (Bluetooth turned off, the app paused
+in the background), the change is reported as not confirmed, never as
+cancelled. Turning proximity unlock off never needs the pairing.
+
+If proximity unlock reads on and this phone is not paired (for example after
+pairing did not finish, or after the official app turned it on), More says so
+and offers to pair this phone or turn proximity unlock off. Volt never sends
+the off command by itself; the official app does.
+
+Follow-up, needs a hardware test: Volt pairs this phone first and then turns
+proximity unlock on. The official app (2.1.9) turns it on first and pairs after
+the scooter reconnects. Whether pairing first works on a GT3 Max is not yet
+known; Volt keeps its order until a test on that scooter shows which one works.
+
 ## Understanding battery readings
 
 Fields include reported charge percentage, voltage, signed current, same-report

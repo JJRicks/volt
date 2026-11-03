@@ -74,7 +74,9 @@ public final class ConnectionReportTest {
     private static void redaction() {
         for (String line : new String[]{"21:38:34  Bluetooth MTU 247", "21:38:35  Send 0x74 (7 bytes)", "21:38:35  Receive 0x70 · status 0 · 10 bytes",
                 "21:38:52  Timed out", "21:38:52  Connection lost · retrying (147)", "21:38:52  Reconnect in 4s", "21:38:35  Ignored a scooter reply that failed its checks",
-                "21:38:35  Scooter replies use the header-free checksum", "21:38:35  Owner identity rejected (3)", "21:38:35  Owner authenticated locally"})
+                "21:38:35  Scooter replies use the header-free checksum", "21:38:35  Owner identity rejected (3)", "21:38:35  Owner authenticated locally",
+                "21:38:52  Scooter may have restarted Bluetooth · reconnecting to confirm (8)", "21:38:52  Send failed · reconnecting to confirm",
+                "21:38:52  Bluetooth off · change not confirmed"})
             check(ConnectionReport.safe(line), "Shared: " + line);
         for (String line : new String[]{"21:38:52  This is Ollie's UT5. Select it in My scooters, or scan for your new scooter.",
                 "21:38:52  Guided test approved", "21:38:52  Timed out for My Scooter", "Timed out", "21:38:52  Send 0x30 (17 bytes) 86001234", "", null})
