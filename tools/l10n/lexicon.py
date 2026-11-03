@@ -16,8 +16,12 @@ Each check is designed per language and script so it is neither blind nor noisy:
     contain a negation character (级别, 识别, 无线, 非常, 少ない, 危ない, 未満), which are skipped.
     The longest word wins, so 不管用 (does not work) is a negation although 不管 is ordinary.
   - Glossary targets match the way the language writes words (INFLECTING, SUFFIXING, PROCLITICS),
-    and never where the next or previous word makes them the opposite term (OPPOSITE_CONTEXT:
-    "lås upp", "buka kunci", "فتح القفل", 解除锁定, ロックを解除).
+    and, for the lock terms, never where the next or previous word makes them the opposite term
+    (OPPOSITE_CONTEXT: "lås upp", "buka kunci", "فتح القفل", 解除锁定, ロックを解除) or removes the
+    lock (REMOVAL_CONTEXT: "Quitar el bloqueo", "Zdejmij blokadę", "Sperre aufheben").
+
+These lists are a first filter. They catch the common inversions cheaply; they cannot catch every
+way a language says the opposite. check.py's docstring ("Limits") lists the known gaps.
 """
 
 import re
@@ -134,7 +138,7 @@ NATIVE_STEMS = dict((k, _nfc(v)) for k, v in NATIVE_STEMS.items())
 # character (skipped before the negation words are matched).
 UNSPACED_NEGATION = {
     "zh": (("没有", "沒有", "无法", "無法", "不能", "不可", "不要", "未能", "尚未", "请勿", "請勿", "并非", "並非",
-            "未知", "不管用", "不断开", "不斷開", "不", "没", "沒", "无", "無", "未", "非", "别", "別", "勿", "否", "莫", "甭"),
+            "未知", "不管用", "不断开", "不斷開", "不同步", "不同意", "不", "没", "沒", "无", "無", "未", "非", "别", "別", "勿", "否", "莫", "甭"),
            ("级别", "級別", "识别", "識別", "区别", "區別", "特别", "特別", "分别", "分別", "类别", "類別", "差别",
             "差別", "告别", "告別", "性别", "性別", "个别", "個別", "辨别", "辨別", "鉴别", "鑑別", "别人", "別人",
             "别的", "別的", "别处", "別處", "派别", "派別", "无线", "無線", "无人机", "無人機", "非常", "是否",
@@ -163,21 +167,25 @@ _ENDING_LETTERS = "aeiouyáéíóúàèìòùâêîôûãõăаеёиоуыэю�
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
 PROCLITICS = {"ar": "(?:[وف]?(?:لل|[بلك]?(?:ال)?))", "he": "(?:[ושהבלמכ]{0,3})"}
-# Words next to a glossary target that make it the opposite term, per language: (a pattern the
-# text before the target must not end with, a pattern the text after it must not start with). In
-# zh the after pattern also skips 定 and 住, so the target 锁 inside 锁定解除 is not found either.
-# Unlock is often the lock word plus a separate word or particle: zh 解锁, 解除锁定, 打开…的锁,
-# 锁定解除; ja ロック解除, ロックを解除, ロックを外す; ko 잠금 해제, 잠금을 풀다; sv "lås upp"; nb "lås opp";
+# Words next to a lock glossary target that make it the opposite term, per language: (a pattern the
+# text before the target must not end with, a pattern the text after it must not start with). They
+# apply only to the lock terms (check.LOCK_TERM): next to another term, such as an alarm, the same
+# words are an ordinary verb ("打开警报", turn on the alarm). In zh the after pattern also skips 定
+# and 住, so the target 锁 inside 锁定解除 is not found either.
+# Unlock is often the lock word plus a separate word or particle: zh 解锁, 解除锁定, 锁定解除; ja
+# ロック解除, ロックを解除, ロックの解除, ロックを外す; ko 잠금 해제, 잠금을 풀다; sv "lås upp"; nb "lås opp";
 # da "lås op"; id "buka kunci"; ar "فتح القفل", "فك قفل", "إلغاء قفل"; ur "ان لاک", "لاک کھولیں";
 # hi "लॉक खोलें"; bn "লক খুলুন". A target found only in such a place is not found.
 # The gap stops at punctuation and at the words that start a new step (后, 并, 再, 时: "解除报警后锁定",
 # lock after the alarm is dismissed, is not an unlock).
 _ZH_GAP = "[^，。、；：！？,.;:!?\n后後并並和及再然时時]{0,8}"
+_ZH_CLAUSE_END = "^(?:定)?\\s*(?:$|[，。、；：！？,.;:!?])"
 OPPOSITE_CONTEXT = {
-    "zh": ("(?:解|开|開|取消|解除%s|(?:打开|打開)%s的)\\s*$" % (_ZH_GAP, _ZH_GAP),
+    # 开 alone is 开锁 (unlock); 打开 before the target is handled in OPPOSITE_AROUND.
+    "zh": ("(?:解|(?<![打])开|(?<![打])開|取消|解除%s)\\s*$" % _ZH_GAP,
            "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:解除|打开|打開|解开|解開)"),
-    "ja": ("(?:解|アン)\\s*$", "^\\s*(?:を|が|は|も)?\\s*(?:解除|解|外|はず|開け|あけ)"),
-    "ko": ("", "^(?:을|를|이|가|은|는|도)?\\s*(?:해제|풀|열)"),
+    "ja": ("(?:解|アン)\\s*$", "^\\s*(?:を|が|は|も|の)?\\s*(?:解除|解錠|解い|解く|解け|解か|外す|外し|外れ|外さ|はず|開け|あけ)"),
+    "ko": ("", "^(?:을|를|이|가|은|는|도)?\\s*(?:해제|풀(?:기|어|려|리|고|면|다|린|릴)|열(?:기|어|려|리|고|면|다|린|릴))"),
     "sv": ("", "^[^\\W\\d_]*\\s+upp(?![^\\W_])"),
     "nb": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "nn": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
@@ -188,8 +196,143 @@ OPPOSITE_CONTEXT = {
     "hi": ("", "^\\S*\\s+(?:खोल|खुल)"),
     "bn": ("", "^\\S*\\s+(?:খুল|খোল)"),
 }
-OPPOSITE_CONTEXT = dict((k, tuple(re.compile(unicodedata.normalize("NFC", p)) if p else None for p in v))
-                        for k, v in OPPOSITE_CONTEXT.items())
+
+
+def _before(verbs, determiners=""):
+    """Text before a target that ends with one of the verbs (or nouns), then an optional determiner."""
+    det = "(?:(?:%s)\\s+|l['’]\\s*)?" % determiners if determiners else ""
+    return "(?<![^\\W_])(?:%s)\\s+%s$" % (verbs, det)
+
+
+def _after(participles, gap="", aux="", tail=""):
+    """Text after a target: the rest of its word, an optional genitive gap ("del patinete"), an
+    optional auxiliary, then a participle; or one of the tail words at the end of the text."""
+    body = "[^\\W\\d_]*(?:%s)?\\s+(?:(?:%s)\\s+)?(?:%s)" % (gap, aux, participles) if aux else \
+        "[^\\W\\d_]*(?:%s)?\\s+(?:%s)" % (gap, participles)
+    if tail:
+        return "^(?:%s|[^\\W\\d_]*\\s+(?:%s)\\s*[.!?]?\\s*$)" % (body, tail)
+    return "^" + body
+
+
+# Lock removed: unlock said as "remove / lift / release / turn off the lock" ("Quitar el bloqueo",
+# "Zdejmij blokadę", "Sperre aufheben", "Снять блокировку", "ロックをオフにする", "关闭滑板车锁定"), and
+# the lock said to be removed ("Bloqueo desactivado", "Blokada wyłączona"). Same shape as
+# OPPOSITE_CONTEXT, but skipped when the English itself says off, remove, disable and the like
+# (check.EN_REMOVAL: "Turn off the lock" is rightly "Desactivar el bloqueo"). These words are a first
+# filter: a phrasing missing here still has to pass every drafter, the back-translation and the judge.
+_NOT_A_GAP = "(?!(?:y|e|o|u|ni|et|ou|ni|ed|od|i|oraz|lub|albo|a|gdy|kiedy|jeśli|po|przy|und|oder|en|of|"\
+    "och|eller|dan|atau|saat|jika|ketika|setelah|lalu|и|или|а|когда|при|если|после|і|або|коли|якщо|"\
+    "και|η|οταν|μετα)(?![^\\W_]))"
+_GAP_WORD = "\\s+%s[^\\W\\d_]+" % _NOT_A_GAP
+REMOVAL_CONTEXT = {
+    "es": (_before("quitar|quita|quite|quitá|retirar|retira|retire|retirá|eliminar|elimina|elimine|eliminá|"
+                   "levantar|levanta|levante|levantá|desactivar|desactiva|desactive|desactivá|deshabilitar|"
+                   "deshabilita|deshabilite|apagar|apaga|apague|liberar|libera|libere|abrir|abre|abra|anular|"
+                   "anula|anule|cancelar|cancela|cancele|eliminación|desactivación|retirada|liberación|"
+                   "apertura|anulación|cancelación|levantamiento",
+                   "el|la|los|las|lo|un|una|su|sus|tu|tus|del|de\\s+la|de\\s+los|de\\s+las|al"),
+           _after("quitad|retirad|eliminad|levantad|desactivad|deshabilitad|apagad|liberad|abiert|anulad|cancelad",
+                  "\\s+(?:del|de\\s+(?:la|las|los|el|su|tu))\\s+[^\\W\\d_]+",
+                  "está|esta|están|fue|ha\\s+sido|se\\s+ha|queda|quedó")),
+    "pt": (_before("remover|remova|remove|retirar|retire|retira|tirar|tire|tira|desativar|desative|desativa|"
+                   "desactivar|desactive|desactiva|desligar|desligue|desliga|levantar|levante|levanta|liberar|"
+                   "libere|libera|libertar|liberte|liberta|abrir|abra|abre|eliminar|elimine|elimina|cancelar|"
+                   "cancele|cancela|anular|anule|anula|remoção|retirada|desativação|desactivação|liberação|"
+                   "libertação|abertura|eliminação|cancelamento|anulação|levantamento",
+                   "o|a|os|as|um|uma|do|da|dos|das|seu|sua|seus|suas|ao|à|o\\s+seu|a\\s+sua"),
+           _after("removid|retirad|tirad|desativad|desactivad|desligad|levantad|liberad|libertad|abert|eliminad|"
+                  "cancelad|anulad", "\\s+(?:do|da|dos|das)\\s+[^\\W\\d_]+",
+                  "está|estão|foi|foram|fica|ficou|é|será|tem\\s+sido")),
+    "fr": (_before("retirer|retirez|retire|enlever|enlevez|enlève|supprimer|supprimez|supprime|désactiver|"
+                   "désactivez|désactive|lever|levez|lève|ôter|ôtez|ôte|ouvrir|ouvrez|ouvre|libérer|libérez|"
+                   "libère|annuler|annulez|annule|couper|coupez|coupe|éteindre|éteignez|éteins|retrait|"
+                   "suppression|désactivation|levée|ouverture|libération|annulation",
+                   "le|la|les|un|une|du|des|de\\s+la|son|sa|ses|votre|vos|ton|ta|tes|au|aux"),
+           _after("retiré|enlevé|supprimé|désactivé|levé|ôté|ouvert|libéré|annulé|coupé|éteint",
+                  "\\s+(?:du|des|de\\s+la|de)\\s+[^\\W\\d_]+|\\s+de\\s+l['’][^\\W\\d_]+",
+                  "est|sont|a\\s+été|été|sera")),
+    "it": (_before("rimuovi|rimuovere|rimuova|rimuovete|togli|togliere|tolga|togliete|disattiva|disattivare|"
+                   "disattivi|disattivate|disabilita|disabilitare|disabiliti|rilascia|rilasciare|apri|aprire|"
+                   "apra|annulla|annullare|annulli|spegni|spegnere|spenga|elimina|eliminare|elimini|leva|"
+                   "levare|revoca|revocare|rimozione|disattivazione|disabilitazione|rilascio|apertura|"
+                   "annullamento|eliminazione",
+                   "il|lo|la|i|gli|le|un|uno|una|un['’]|del|dello|della|dei|degli|delle|dell['’]|al|allo|"
+                   "alla|il\\s+suo|la\\s+sua|suo|sua"),
+           _after("rimoss|tolt|disattivat|disabilitat|rilasciat|apert|annullat|spent|eliminat|levat|revocat",
+                  "\\s+(?:del|dello|della|dei|degli|delle)\\s+[^\\W\\d_]+|\\s+dell['’][^\\W\\d_]+",
+                  "è|e'|sono|viene|è\\s+stato|è\\s+stata|stato|stata")),
+    "de": (_before("aufheben|hebe|entfernen|entferne|entfernt|deaktivieren|deaktiviere|deaktiviert|lösen|löse|"
+                   "löst|ausschalten|abschalten|freigeben|öffnen|öffne|öffnet|aufhebung|entfernung|"
+                   "deaktivierung|freigabe|öffnung|abschaltung",
+                   "(?:sie\\s+)?(?:der|die|das|den|dem|des|eine|einer|einen|ihre|ihrer|ihren|deine|deiner|"
+                   "seine|seiner)|sie"),
+           _after("aufheben|aufgehoben|lösen|gelöst|entfernen|entfernt|deaktivieren|deaktiviert|ausschalten|"
+                  "ausgeschaltet|abschalten|abgeschaltet|öffnen|geöffnet|freigeben|freigegeben|beenden|beendet",
+                  "\\s+(?:des|der|vom|von\\s+(?:der|dem|ihrem|deinem))\\s+[^\\W\\d_]+",
+                  "ist|wird|wurde", "auf|aus")),
+    "nl": (_before("verwijder|verwijderen|deactiveer|deactiveren|hef|opheffen|open|openen|uitschakelen|"
+                   "uitzetten|annuleer|annuleren|opheffing|verwijdering|deactivering|uitschakeling|opening|"
+                   "vrijgeven|geef", "de|het|een|je|uw|jouw|zijn|haar"),
+           _after("opheffen|opgeheven|uitschakelen|uitgeschakeld|uitzetten|uitgezet|verwijderen|verwijderd|"
+                  "deactiveren|gedeactiveerd|openen|geopend|annuleren|geannuleerd|vrijgeven|vrijgegeven",
+                  "\\s+van\\s+(?:de|het|je|uw)\\s+[^\\W\\d_]+", "is|wordt|werd", "uit|op|eraf|af|open")),
+    "pl": (_before("zdejmij|zdejmijcie|zdjąć|zdejmowanie|zdjęcie|wyłącz|wyłączcie|wyłączyć|wyłączenie|"
+                   "wyłączanie|usuń|usuńcie|usunąć|usunięcie|usuwanie|zwolnij|zwolnić|zwolnienie|znieś|znieść|"
+                   "zniesienie|otwórz|otworzyć|otwarcie|dezaktywuj|dezaktywować|dezaktywacja|dezaktywacji|"
+                   "anuluj|anulować|anulowanie"),
+           _after("wyłączon|zdjęt|usunięt|zniesion|zwolnion|otwart|dezaktywowan|anulowan", _GAP_WORD,
+                  "została|zostanie|zostało|został|zostały|jest|są")),
+    "sv": (_before("ta\\s+bort|tar\\s+bort|inaktivera|avaktivera|deaktivera|stäng\\s+av|stänger\\s+av|"
+                   "slå\\s+av|öppna|frigör|häv|upphäv|borttagning\\s+av|avaktivering\\s+av|"
+                   "inaktivering\\s+av|hävning\\s+av", "det|den|ditt|din"),
+           _after("inaktiver|avaktiver|deaktiver|borttag|hävt|hävd|hävs|öppnat|öppnad|frigjor|avstängt|"
+                  "avstängd|bort(?![^\\W_])", "", "är|har\\s+tagits|har\\s+hävts|blev|har\\s+blivit", "av")),
+    "id": (_before("lepas|lepaskan|melepas|melepaskan|nonaktifkan|menonaktifkan|matikan|mematikan|hapus|"
+                   "hapuskan|menghapus|copot|mencopot|cabut|mencabut|batalkan|membatalkan|pelepasan|"
+                   "penonaktifan|penghapusan|pembatalan"),
+           _after("dibuka|terbuka|dilepas|dilepaskan|terlepas|dinonaktifkan|dimatikan|dihapus|dicabut|dicopot|"
+                  "dibatalkan", _GAP_WORD, "telah|sudah|akan")),
+    "ru": (_before("снять|снимите|сними|снятие|снятия|отключить|отключите|отключи|отключение|отключения|"
+                   "выключить|выключите|выключи|выключение|убрать|уберите|убери|отменить|отмените|отмена|"
+                   "отмены|деактивировать|деактивируйте|деактивация|открыть|откройте|открой"),
+           _after("снят|отключен|отключён|выключен|выключён|убран|отменен|отменён|деактивирован", _GAP_WORD,
+                  "была|был|было|будет")),
+    "uk": (_before("зняти|зніміть|зніми|зняття|вимкнути|вимкніть|вимкни|вимкнення|скасувати|скасуйте|"
+                   "скасування|прибрати|приберіть|деактивувати|деактивуйте|відкрити|відкрийте"),
+           _after("знят|вимкнен|скасован|прибран|деактивован", _GAP_WORD, "було|був|була|буде")),
+    # Greek is matched without accents (term_found strips them).
+    "el": (_before("αρση|απενεργοποιηση|απενεργοποιηστε|απενεργοποιησε|απενεργοποιω|αφαιρεση|αφαιρεστε|"
+                   "αφαιρεσε|ανοιγμα|ανοιξτε|ανοιξε|ακυρωση|ακυρωστε|καταργηση",
+                   "του|της|το|την|τα|των|τον|η|ο"),
+           _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
+                  "εχει|ειναι|θα")),
+    "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
+    "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
+}
+
+# Pairs where both must hold to make the target its opposite: zh "打开滑板车的锁" (open the scooter's
+# lock) and "关闭滑板车锁定" (turn off the scooter lock) only when the target ends the clause, so
+# "打开应用的锁定页面" (open the app's lock page) keeps its lock term. The removal pairs follow
+# REMOVAL_CONTEXT's English rule.
+OPPOSITE_AROUND = {
+    "zh": (("(?:打开|打開)(?:%s的)?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+}
+REMOVAL_AROUND = {
+    "zh": (("(?:关闭|關閉|停用|禁用)%s的?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+}
+
+
+def _compiled(table):
+    return dict((k, tuple(re.compile(unicodedata.normalize("NFC", p)) if p else None for p in v))
+                for k, v in table.items())
+
+
+OPPOSITE_CONTEXT = _compiled(OPPOSITE_CONTEXT)
+REMOVAL_CONTEXT = _compiled(REMOVAL_CONTEXT)
+OPPOSITE_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p)) for p in pair) for pair in v))
+                       for k, v in OPPOSITE_AROUND.items())
+REMOVAL_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p)) for p in pair) for pair in v))
+                      for k, v in REMOVAL_AROUND.items())
 
 # Script codes a language's "script" value allows (Japanese mixes kanji and kana).
 SCRIPT_SETS = {"Hans": {"Hani"}, "Hant": {"Hani"}, "Jpan": {"Hani", "Kana"}, "Kore": {"Hang", "Hani"}}
@@ -299,12 +442,14 @@ def _inflected(primary, word):
     return re.escape(word)
 
 
-def term_found(primary, script, term, text):
+def term_found(primary, script, term, text, opposite=True, removal=True):
     """Whether a glossary target appears in a text, matched the way the language writes words.
 
     Spaced scripts: the target starts a word ("bloquear" is not inside "desbloquear"), and ends one
-    unless the language takes suffixes or inflects (INFLECTING). Unspaced scripts: anywhere. In
-    both, a match next to words that make it the opposite term (OPPOSITE_CONTEXT) does not count.
+    unless the language takes suffixes or inflects (INFLECTING). Unspaced scripts: anywhere.
+    With opposite (a lock term), a match next to words that make it the opposite term
+    (OPPOSITE_CONTEXT, OPPOSITE_AROUND) does not count; with removal as well, nor does one next to
+    words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND).
     """
     text, term = normalize(text), normalize(term)
     if primary == "el":
@@ -318,11 +463,18 @@ def term_found(primary, script, term, text):
         body = r"\s+".join(_inflected(primary, p) for p in term.split())
         end = "" if primary in SUFFIXING or body.endswith("{0,4}") else r"(?![^\W_])"
         pattern = r"(?<![^\W_])" + PROCLITICS.get(primary, "") + body + end
-    before, after = OPPOSITE_CONTEXT.get(primary, (None, None))
+    contexts, around = [], []
+    if opposite:
+        contexts.append(OPPOSITE_CONTEXT.get(primary, (None, None)))
+        around.extend(OPPOSITE_AROUND.get(primary, ()))
+        if removal:
+            contexts.append(REMOVAL_CONTEXT.get(primary, (None, None)))
+            around.extend(REMOVAL_AROUND.get(primary, ()))
     for m in re.finditer(pattern, text, re.UNICODE):
-        if before is not None and before.search(text[:m.start()]):
+        head, tail = text[:m.start()], text[m.end():]
+        if any((b is not None and b.search(head)) or (a is not None and a.search(tail)) for b, a in contexts):
             continue
-        if after is not None and after.search(text[m.end():]):
+        if any(b.search(head) and a.search(tail) for b, a in around):
             continue
         return True
     return False

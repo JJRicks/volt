@@ -517,7 +517,8 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
    words and mixed-script leakage. Glossary terms match as whole words ("bloquear" is not found
-   in "desbloquear"). A plural category that covers more than one number (Russian "one" also
+   in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
+   make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
    negation the English lacks warns, and is an error in a safety key; in a safety key an English
    un-word needs a negation word or the glossary's term, not just a prefix like "in-". A Latin
@@ -552,6 +553,56 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
+
+### Limits of the automated checks
+
+`check.py` and `lexicon.py` are a **first filter**. They reject the common ways a draft goes wrong
+cheaply, before anyone pays for a judge, but word lists cannot read a sentence, so they are not
+the guarantee that a lock, alarm, power or speed key means what the English means. That guarantee
+is step 5: every drafter agrees, a model that drafted nothing back-translates the agreed text,
+the judge rules on that exact text and its back-translation, and anything less falls back to
+English. The checks' job for a safety key is to fail closed: a false alarm sends a correct key
+back to English (a coverage cost), and a miss is left to step 5.
+
+What they catch reliably: broken placeholders, numbers, plural categories, escapes, markup,
+protected tokens, glyphs and widths, which are mechanical; a glossary term that is missing; the
+lock word inside its own unlock word (desbloquear, entsperren, разблокировать, 解锁, ロック解除);
+unlock written as the lock word plus the common separate word (sv "lås upp", id "buka kunci", ar
+"فتح القفل", zh 解除锁定, ja ロックを解除, ko 잠금 해제); the lock said to be removed or turned off in
+the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
+"Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"); and a negation dropped or
+added where the language has a negation list.
+
+Known gaps, by language family:
+
+- **Romance (es, pt, fr, it) and Germanic (de, nl, sv, nb, da)**: the removal words are a list of
+  common verbs, nouns and participles, with articles and one genitive ("del patinete") allowed
+  between. A rarer verb, a longer gap, or the verb far from the lock word ("Quita ahora mismo el
+  bloqueo") passes. German and Dutch separable verbs are caught only at the end of the text
+  ("Hebe die Sperre auf"). A prefix like "des-" or "dé-" is only a guess for polarity.
+- **Slavic (pl, ru, uk, cs, sk, hr)**: inflected glossary targets match any ending of up to four
+  letters after a stem of five or more letters, so a short stem must be listed in every form.
+  The removal lists cover pl, ru and uk only; cs, sk and hr have none yet.
+- **Greek**: matched without accents; the removal list is short.
+- **Indonesian and Malay**: word order is free and affixes are many; only the listed buka-,
+  lepas-, nonaktif- and di- forms are caught.
+- **Arabic and Urdu**: written without short vowels, so غيّر (change) and غير (not) can be the same
+  letters; a bare غير counts as a negation. Only the listed unlock verbs are caught.
+- **Hindi and Bengali**: unlock is caught only with खोल/খুল after the lock word.
+- **Chinese, Japanese, Korean** (no word spaces, or particles): a curated word list stands in for
+  word boundaries; an ordinary word that contains a negation character and is not in the list
+  reads as a negation (fails closed), and a context word in another role can hide or reject the
+  lock term. zh 打开…的锁 and 关闭…锁定 count as unlock only when the lock word ends the clause.
+- **Languages with no list yet** (fi, hu, ro, tr and others in the later waves): negation and
+  removal are not checked at all; polarity only warns, and the judge decides.
+- **Everywhere**: the removal context is skipped when the English itself says off, remove,
+  disable, release, clear, cancel, delete, open or end, so an inversion in such a key is left to
+  step 5. Word lists apply to the lock terms only (an alarm or cruise-control term keeps its
+  ordinary verbs). Polarity cannot see an inversion made with an antonym ("on" drafted as "off"
+  in a language without a negating prefix), nor a sentence that is fluent and wrong.
+
+Later-wave languages (ru, uk, el, zh, ja, hi, bn, ar, ur, da, nb, fi, cs, sk, ro, hu, hr, tr) need
+their lists reviewed before their wave starts.
 
 ### Formats
 

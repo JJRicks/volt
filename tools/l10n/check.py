@@ -23,8 +23,9 @@ Checks, per key (a plural is checked per quantity):
                 flags, URLs, {z}/{x}/{y}, the U+FFFC placeholder) are kept exactly
   markup        the same number of ** and backtick marks, and every `code span` unchanged
   glossary      approved glossary terms are used: as whole words in scripts with word spaces (at a
-                word start where the language takes suffixes), anywhere but beside an opposite-term
-                affix in zh, ja and Thai (warn; error for a safety term in a safety key)
+                word start where the language takes suffixes, with endings where it inflects),
+                anywhere in zh, ja and Thai; a lock term next to words that make it unlock or remove
+                the lock is not found (warn; error for a safety term in a safety key)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
@@ -35,6 +36,22 @@ Checks, per key (a plural is checked per quantity):
   script        no letters from another script, except words copied from the English (any case,
                 hyphen-aware); a Latin acronym or a loan in LATIN_LOANS (App, Wi-Fi) only warns
   untranslated  the target is not just the English (warn)
+
+Limits. These checks are a first filter, not the guarantee. They catch the mechanical faults
+(placeholders, numbers, plurals, escapes, markup, tokens, glyphs, widths) reliably, and the
+common meaning faults by word lists: a missing glossary term, the lock word inside its unlock word,
+unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
+removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
+ja, zh), and negation dropped or added where the language has a list. Known gaps: a removal verb
+or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
+text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
+ko, where a word list stands in for word boundaries; languages with no negation or removal list,
+where polarity only warns; English that itself says off or remove (the removal context is skipped);
+and inversions by antonym. For safety keys (lock, unlock, alarms, power, speed) the guarantee is
+the council's later stages: every drafter must agree, a model that drafted nothing back-translates
+the agreed text, the judge rules on that exact text, and a failure falls back to English. A false
+alarm here fails closed (the key falls back to English). See l10n/README.md, "Limits of the
+automated checks".
 """
 
 import argparse
@@ -70,6 +87,15 @@ EN_NEGATION_WORDS = {"not", "no", "never", "none", "nothing", "nobody", "nowhere
 # lexicon.OPPOSITE_CONTEXT) and the judge's safety confirmation, not by this word check.
 EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|univers\w*|union\w*|unif\w*|"
                               r"uninstall\w*|undo\w*|unpair\w*|unmute\w*|unzip\w*)$")
+
+# Glossary terms that are the lock itself (Lock, Locked, Lock bar, electronic lock; not unlock): only
+# these get the opposite-term and lock-removed contexts (lexicon.OPPOSITE_CONTEXT, REMOVAL_CONTEXT).
+LOCK_TERM = re.compile(r"(?<![a-z])lock", re.IGNORECASE)
+# English that itself turns something off or removes it: then "Desactivar el bloqueo" may be right,
+# so the lock-removed context is not applied.
+EN_REMOVAL = re.compile(r"(?<![a-z])(?:off|disabl\w*|remov\w*|releas\w*|lift\w*|clear\w*|cancel\w*|"
+                        r"deactivat\w*|delet\w*|open\w*|end|ends|ended|ending|turn\w*\s+off|switch\w*\s+off)"
+                        r"(?![a-z])", re.IGNORECASE)
 
 # English words whose translation often carries a negating prefix ("off" -> "desactivada").
 EN_OFF_WORDS = {"off", "disable", "disabled", "disconnect", "disconnected", "inactive", "stop", "stopped",
@@ -465,7 +491,9 @@ def _glossary(language, entry, reference, text, safety, q):
         targets = hit.get("target")
         if not targets:
             continue
-        if not any(lexicon.term_found(primary, script, t, text) for t in targets):
+        lock = bool(LOCK_TERM.search(hit["term"]))
+        removal = lock and not EN_REMOVAL.search(reference)
+        if not any(lexicon.term_found(primary, script, t, text, lock, removal) for t in targets):
             severity = ERROR if safety and hit.get("safety") else WARN
             out.append(finding("glossary", severity, "%r should be %s" % (
                 hit["term"], " or ".join(repr(t) for t in targets)), q))

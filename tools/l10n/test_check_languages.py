@@ -240,12 +240,13 @@ class LanguageChecksTest(unittest.TestCase):
         self.assertEqual(check.target_negation("ar", "حالة القفل غير معروفة")[0], ["غير"])
 
 
-SCRIPTS = {"el": "Grek", "hi": "Deva", "bn": "Beng", "ar": "Arab", "ur": "Arab", "zh": "Hans", "ja": "Jpan"}
+SCRIPTS = {"el": "Grek", "hi": "Deva", "bn": "Beng", "ar": "Arab", "ur": "Arab", "zh": "Hans", "ja": "Jpan",
+           "ru": "Cyrl", "uk": "Cyrl", "ko": "Kore"}
 
 
-def _key_findings(tag, english, target, glossary=None, kind="string", plurals=("one", "other")):
+def _key_findings(tag, english, target, glossary=None, kind="string", plurals=("one", "other"), term="Lock"):
     entry = {"key": "k", "kind": kind, "english": english, "safety": "lock", "dnt": [], "formatted": True,
-             "glossary": [{"term": "Lock", "target": glossary, "safety": "lock", "dnt": False}] if glossary else []}
+             "glossary": [{"term": term, "target": glossary, "safety": "lock", "dnt": False}] if glossary else []}
     language = {"tag": tag, "plurals": list(plurals), "script": SCRIPTS.get(tag, "Latn"), "font": "system"}
     return check.check_key(entry, language, kind, check._items(kind, target))
 
@@ -320,6 +321,107 @@ class MoreLanguagesTest(unittest.TestCase):
         self.assertEqual(_errors("ar", english, target, kind="plural",
                                  plurals=("zero", "one", "two", "few", "many", "other")), ["polarity"])
 
+    # Unlock said as "remove / lift / turn off the lock", and the lock said to be removed.
+
+    LOCK_REMOVED = (
+        ("es", "Lock scooter", "Quitar el bloqueo del patinete", ["bloquear", "bloqueo"]),
+        ("es", "Lock scooter", "Levantar el bloqueo del patinete", ["bloquear", "bloqueo"]),
+        ("es", "The lock is on", "Bloqueo desactivado", ["bloqueo", "bloqueado"]),
+        ("es", "The lock is on", "Bloqueo del patinete quitado", ["bloqueo", "bloqueado"]),
+        ("pt-BR", "Lock scooter", "Remover o bloqueio do patinete", ["bloquear", "bloqueio"]),
+        ("pt-PT", "Lock scooter", "Retirar o bloqueio da trotinete", ["bloquear", "bloqueio"]),
+        ("pt-BR", "The lock is on", "Bloqueio desativado", ["bloqueio", "bloqueado"]),
+        ("fr", "Lock scooter", "Retirer le verrouillage de la trottinette", ["verrouiller", "verrouillage"]),
+        ("fr", "Lock scooter", "Lever le verrou", ["verrouiller", "verrou"]),
+        ("fr", "Lock scooter", "Désactiver l'antivol", ["verrouiller", "antivol"]),
+        ("fr", "The lock is on", "Verrouillage désactivé", ["verrouillé", "verrouillage"]),
+        ("it", "Lock scooter", "Rimuovi il blocco del monopattino", ["bloccare", "blocca", "blocco"]),
+        ("it", "Lock scooter", "Togli il blocco", ["bloccare", "blocca", "blocco"]),
+        ("it", "The lock is on", "Blocco disattivato", ["bloccato", "blocco"]),
+        ("de", "Lock scooter", "Sperre des Rollers aufheben", ["sperren", "Sperre"]),
+        ("de", "Lock scooter", "Sperre lösen", ["sperren", "Sperre"]),
+        ("de", "Lock scooter", "Entfernen Sie die Sperre", ["sperren", "Sperre"]),
+        ("de", "Lock scooter", "Hebe die Sperre auf", ["sperren", "Sperre"]),
+        ("de", "The lock is on", "Sperre aufgehoben", ["gesperrt", "Sperre"]),
+        ("nl", "Lock scooter", "Vergrendeling opheffen", ["vergrendelen", "vergrendeling"]),
+        ("nl", "Lock scooter", "Schakel de vergrendeling uit", ["vergrendelen", "vergrendeling"]),
+        ("nl", "Lock scooter", "Verwijder de vergrendeling", ["vergrendelen", "vergrendeling"]),
+        ("nl", "The lock is on", "Vergrendeling uitgeschakeld", ["vergrendeld", "vergrendeling"]),
+        ("pl", "Lock scooter", "Zdejmij blokadę hulajnogi", ["zablokuj", "blokada"]),
+        ("pl", "Lock scooter", "Wyłącz blokadę hulajnogi", ["zablokuj", "blokada"]),
+        ("pl", "Lock scooter", "Usuń blokadę", ["zablokuj", "blokada"]),
+        ("pl", "The lock is on", "Blokada hulajnogi wyłączona", ["zablokowana", "blokada"]),
+        ("pl", "The lock is on", "Blokada została zdjęta", ["zablokowana", "blokada"]),
+        ("sv", "Lock scooter", "Ta bort låset", ["lås", "låset"]),
+        ("sv", "Lock scooter", "Inaktivera låset", ["lås", "låset"]),
+        ("sv", "The lock is on", "Låset inaktiverat", ["låst", "låset"]),
+        ("id", "Lock scooter", "Lepaskan kunci skuter", ["kunci"]),
+        ("id", "Lock scooter", "Nonaktifkan kunci", ["kunci"]),
+        ("id", "The lock is on", "Kunci dinonaktifkan", ["terkunci", "kunci"]),
+        # Later-wave languages, where the inflected glossary match had let these pass.
+        ("ru", "Lock scooter", "Снять блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "Lock scooter", "Отключить блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("uk", "Lock scooter", "Зняти блокування самоката", ["заблокувати", "блокування"]),
+        ("el", "Lock scooter", "Άρση κλειδώματος πατινιού", ["κλείδωμα", "κλειδώνω"]),
+        ("ja", "Lock scooter", "スクーターのロックの解除", ["ロック"]),
+        ("ja", "Lock scooter", "ロックをオフにする", ["ロック"]),
+        ("zh", "Lock scooter", "关闭滑板车锁定", ["锁定", "锁"]),
+        ("zh", "Lock scooter", "打开滑板车的锁", ["锁定", "锁"]),
+    )
+
+    LOCK_KEPT = (
+        ("es", "Lock scooter", "Bloquear el patinete", ["bloquear", "bloqueo"]),
+        ("es", "Lock and turn off the lights", "Bloquear y apagar las luces", ["bloquear"]),
+        ("es", "Lock when the app opens", "Bloquear al abrir la app", ["bloquear"]),
+        ("pt-BR", "Lock and turn off", "Bloquear e desligar", ["bloquear"]),
+        ("fr", "Lock and switch off the lights", "Verrouiller et éteindre les feux", ["verrouiller"]),
+        ("it", "Lock and turn off", "Blocca e spegni", ["blocca"]),
+        ("de", "Lock remotely", "Sperren aus der Ferne", ["sperren"]),
+        ("de", "Lock and switch off the lights", "Roller sperren und Licht ausschalten", ["sperren"]),
+        ("nl", "Lock remotely", "Op afstand vergrendelen", ["vergrendelen"]),
+        ("nl", "Lock and switch off", "Vergrendelen en uitschakelen", ["vergrendelen"]),
+        ("pl", "Lock and turn off the lights", "Zablokuj i wyłącz światła", ["zablokuj"]),
+        ("pl", "Lock when the motor stops", "Blokada przy wyłączonym silniku", ["blokada"]),
+        ("sv", "Lock scooter", "Lås sparkcykeln", ["lås"]),
+        ("id", "Lock if it dies", "Kunci jika mati", ["kunci"]),
+        ("ru", "Turn on the lock", "Включите блокировку", ["блокировка"]),
+        ("zh", "Open the app's lock page", "打开应用的锁定页面", ["锁定"]),
+        ("zh", "Turn on the lock feature", "打开锁定功能", ["锁定"]),
+        ("ja", "Lock from outside", "ロックは外部から", ["ロック"]),
+        # The English itself turns the lock off: the removal words are the right translation.
+        ("es", "Turn off the lock", "Desactivar el bloqueo", ["bloquear", "bloqueo"]),
+        ("pl", "Remove the lock", "Zdejmij blokadę", ["zablokuj", "blokada"]),
+        ("de", "Disable the lock", "Sperre deaktivieren", ["sperren", "Sperre"]),
+    )
+
+    def test_lock_removed_is_not_the_lock_term(self):
+        for tag, english, text, targets in self.LOCK_REMOVED:
+            self.assertIn("glossary", _errors(tag, english, text, targets), (tag, text))
+
+    def test_removal_words_in_other_roles_keep_the_lock_term(self):
+        for tag, english, text, targets in self.LOCK_KEPT:
+            self.assertNotIn("glossary", _errors(tag, english, text, targets),
+                             (tag, text, _key_findings(tag, english, text, targets)))
+
+    def test_contexts_apply_only_to_lock_terms(self):
+        # "Turn off the alarm" and "turn on cruise control" are ordinary verbs next to other terms.
+        for tag, english, text, targets, term in (
+                ("es", "Turn off the alarm", "Desactivar la alarma", ["alarma"], "alarm"),
+                ("pl", "Turn off the alarm", "Wyłącz alarm", ["alarm"], "alarm"),
+                ("zh", "Turn on cruise control", "打开定速巡航", ["定速巡航"], "Cruise control"),
+                ("zh", "Turn on the alarm", "打开警报", ["警报"], "alarm")):
+            self.assertNotIn("glossary", _errors(tag, english, text, targets, term=term), (tag, text))
+
+    def test_cjk_context_words_in_other_roles(self):
+        self.assertTrue(lexicon.term_found("ko", "Kore", "잠금", "키보드 잠금 열쇠"))
+        self.assertTrue(lexicon.term_found("ko", "Kore", "잠금", "잠금을 열심히"))
+        self.assertFalse(lexicon.term_found("ko", "Kore", "잠금", "잠금을 열어"))
+        self.assertFalse(lexicon.term_found("ja", "Jpan", "ロック", "ロックを外す"))
+        self.assertTrue(lexicon.term_found("ja", "Jpan", "ロック", "ロックは外部から"))
+        self.assertEqual(lexicon.unspaced_negations("zh", "数据不同步"), ["不同步"])
+        self.assertEqual(lexicon.unspaced_negations("zh", "我不同意"), ["不同意"])
+        self.assertEqual(lexicon.unspaced_negations("zh", "不同的颜色"), [])
+        self.assertEqual(_errors("zh", "Data synced", "数据不同步"), ["polarity"])
 
 if __name__ == "__main__":
     unittest.main()
