@@ -356,7 +356,14 @@ class CharacterizationFirstTest(unittest.TestCase):
     def test_a_template_row_requires_characterization(self):
         self.convert()
         problems = self.gate(self.repo.commit("no characterization"))[0]
-        self.assertTrue(any("template or plural ledger row" in p for p in problems), problems)
+        self.assertTrue(any("template, plural or format ledger row" in p for p in problems), problems)
+
+    def test_a_format_row_requires_characterization(self):
+        self.repo.write(self.UNITS, java_class("DisplayUnits", "    String km() { return T.unitKm(); }"))
+        self.repo.write("l10n/ledger/b1.tsv", "\t".join(ledger_check.HEADER) + "\n" + self.UNITS +
+                        ':4\t[" ", {"text": "km", "key": "units_km", "arg": 1}]\tunit_km\tformat\t\n')
+        problems = self.gate(self.repo.commit("no characterization"))[0]
+        self.assertTrue(any("adds 1 template, plural or format ledger row" in p for p in problems), problems)
 
     def test_an_exact_only_batch_needs_none(self):
         self.convert("exact")

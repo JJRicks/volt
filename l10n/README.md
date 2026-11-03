@@ -167,7 +167,8 @@ its own `.sources` file (its characterization tests, its new suites) and never e
    or `f`). Keep the pieces as drafted: `ledger_check` compares them with the base expression. The
    draft follows `+` chains only; for a ternary, `String.format`, a `StringBuilder.append` chain or a
    numeric sum such as `a + b + "x"`, write the row by hand with a note starting `manual:` (the
-   reviewer checks those by hand). The note does not excuse a mismatch with an expression the tool
+   reviewer checks those by hand). A `String.format` literal or `+` chain that mixes numbers and unit
+   text (`"%.1f mph"`, `n + " km/h"`) becomes a `format` row instead, which G1 checks whole (below). The note does not excuse a mismatch with an expression the tool
    did parse on that line. `extract.py scan <files>` lists a file's literals, which helps
    plan a batch.
 4. **Shrink the baselines.** `python3 tools/l10n/hardcoded_lint.py --write-baselines` rewrites
@@ -221,9 +222,9 @@ their own pull request first.
 | Column | Meaning |
 |---|---|
 | `location` | merge-base `file:line` of the expression's first literal, e.g. `src/com/jjricks/volt/Ui.java:812` |
-| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently: `Fmt.<method>(..., <hole>, ...)` is accepted, anything else needs a `manual:` note, and every `as` is listed for the reviewer. For `plural`, an object of English forms: `{"one": [...], "other": [...]}` |
-| `key` | the resource key, or `-` for `stays-english` and `removed` |
-| `kind` | `exact`, `template`, `plural`, `id-kept`, `stays-english` or `removed` |
+| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently: `Fmt.<method>(..., <hole>, ...)` is accepted, anything else needs a `manual:` note, and every `as` is listed for the reviewer. For `plural`, an object of English forms: `{"one": [...], "other": [...]}`. For `format`, the split (below) |
+| `key` | the resource key (for `format`, the template), or `-` for `stays-english` and `removed` |
+| `kind` | `exact`, `template`, `plural`, `format`, `id-kept`, `stays-english` or `removed` |
 | `note` | free text; `manual: <why>` for a hand-written row |
 
 How `ledger_check.py` (G1) reads it:
@@ -239,6 +240,53 @@ How `ledger_check.py` (G1) reads it:
   `T.render(T.<KEY>, ...)` must pass the holes in placeholder order (a plural's quantity first),
   in the head lines that replaced the literal; each call serves one row, in the base order, so
   keys swapped between converted sites fail.
+- `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
+  `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
+  catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
+  `T.fmtQuantity(Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1), T.unitsMph())` the pieces are
+
+  ```json
+  [{"spec": "%.1f", "arg": 1, "value": "kmh / KM_PER_MILE", "as": "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"},
+   " ", {"text": "mph", "key": "units_mph", "arg": 2}]
+  ```
+
+  and for `value + " km/h"` becoming `T.fmtQuantity(Fmt.integer(value), T.unitsKmh())` they are
+  `[{"hole": "value", "arg": 1, "type": "s", "as": "Fmt.integer(value)"}, " ", {"text": "km/h",
+  "key": "units_kmh", "arg": 2}]`. A plain string is text the template keeps; a `spec` item is one
+  format specifier with the base argument it formats (`value`) and the `Fmt` call head passes
+  (`as`); a `text` item is text its `key` now holds; holes are the chain's. `arg` is the template
+  placeholder each item fills, from 1 with no gaps. G1 checks that:
+  - the split, joined in order, spells the base literal (or chain) exactly, so a dropped space, a
+    piece left out, swapped pieces or another specifier fail;
+  - spec items come only from a `String.format` format string, whose specifiers must all be split
+    out, and each `value` is the argument that specifier formats at the merge base;
+  - each specifier's `as` is the `Fmt` call `FMT_SPECS` in `ledger_check.py` pairs with it, with the
+    `String.format` call's locale: `%.Nf` is `Fmt.decimal(<locale>, <value>, N)`, `%,.Nf` is
+    `Fmt.grouped(<locale>, <value>, N)` and `%d` is `Fmt.integer(<value>)` (only with `Locale.US`,
+    `Locale.ROOT` or `Locale.ENGLISH`, since `%d` prints the locale's digits). A plain `%s` (or
+    `%n$s`) prints its argument as it is, so its `as` is the `value` itself, with only string
+    literals in it turned into `T.<key>()` calls: `"%.2f %s"` with `metric ? "mph" : "mi"` becomes
+    `T.fmtQuantity(Fmt.decimal(Locale.US, amount, 2), metric ? T.unitsMph() : T.unitsMi())`, and
+    each replaced literal (`"mph"`, `"mi"`) needs an exact row of its own, `manual:` for a ternary,
+    which checks its key's English and that its call comes in the base order. Another pairing
+    (`%S`, a width, `%.3s`) needs a tooling pull request that adds it, with a G10 test;
+  - the head call `T.<template>(...)` (or `M.`, `Msg.of`) replaces the whole `String.format(...)`
+    call (or chain) where it was, passing the `as` calls, holes and `T.<key>()` calls in placeholder
+    order, so a wrong unit key or swapped arguments fail;
+  - every `text` item's key is a string holding exactly that text (undoing recorded English changes),
+    and the template, which takes only `%n$s` placeholders, filled with sentinels for the numbers and
+    holes and with the keys' English, prints the original (`%%` in a format string is `%`);
+  - every `Fmt` method the row passes is called by a test that `tests/run.sh` compiles under
+    `tests/l10n/` (one a `tests/l10n/*.sources` list names): G10 `FmtLegacyTest` is what shows it
+    prints like the specifier `FMT_SPECS` pairs it with.
+
+  Every `format` row is listed for the reviewer with the base code, the call that replaced it, each
+  specifier and its replacement, and the compiled tests that call a method of the same name as the
+  one that held the literal. A method no plain JVM test can call (a private or instance method of
+  a screen, such as `RidesScreen.speed`) does not fail: its warning says no test calls it, so the
+  reviewer checks that its values are ones G10 covers. A batch with a `format` row
+  needs characterization tests first (G5), as one with a `template` row does. `LedgerTest` (G2)
+  skips `format` rows: their templates are plain `%n$s`, which G1 renders itself.
 - `removed`: the code was deleted. The changed lines that held the literal may only lose tokens:
   nothing, not even a constant's name, takes its place. The whole statement holding the literal
   (or the member or block around it) must go: deleting only `"Chart time window: " +` from a
@@ -253,17 +301,35 @@ How `ledger_check.py` (G1) reads it:
   `.render()` on a `Msg`), or a `removed` row's statement was deleted. Wrapping a kept literal or
   the new call (`"Skip".toUpperCase()`, `T.statsWindowTitle().toUpperCase()`) or dropping code
   beside it fails. A `manual:` row frees its whole statement, so it is listed for a hand check.
+  Whole new members (a method or field declared next to converted text, such as B1's
+  `labelQuantity` beside `label`) do not run where the text is; they are listed with their code.
   Changes in regions with no text, and around a `stays-english` or `id-kept` move, are listed as
   warnings.
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
   must be added somewhere else in `src/` (outside the changed region it left), and the lines it
   left must either only lose tokens (code moved out whole) or name the constant it moved to
-  (`NAME`, or `Class.NAME` from another file).
+  (`NAME`, or `Class.NAME` from another file). The constant is a `final` field of a class, enum or
+  record body (or an interface field), `static final String NAME = "V";`, or an enum constant
+  whose argument the literal is, `VOLT(T.UNITS_VOLT, "V")`. A local variable, an assignment
+  (`source = "GPS";` in a method) or a field that is not `final` is never a constant, for an
+  arrival or for a constant already in `src/`. Several occurrences of one
+  literal may move into the same constant, one row each (ChartScale's three `unit.equals("V")`
+  becoming `UnitCode.VOLT.matches(unit)`); then every changed region they left must name, in the
+  base order of its literals, the constant each one moved to, so `"V"` then `"W"` cannot become
+  `WATT` then `VOLT`, and two `"V"` sites need two `VOLT`s. A constant several sites share is listed
+  with each site; a constant holding another value, or a site naming another constant, fails.
+  A later batch may also move a literal into a constant already in `src/` (B1's `UnitCode`, whose
+  doc asks each batch that owns unit data to compare through it): the region it left names that
+  constant (`UnitCode.VOLT.code`), and the constant's whole value is the same literal. Each such
+  site is listed with the existing constant's code.
 - An extraction batch adds no literal to `src/` other than `""`: new text goes to the catalog, and
   a literal that moved needs a `stays-english` or `id-kept` row. Each new literal fails G1, except
   a lower-case key or id such as a preference name (`"app_language"`) or a `requireNonNull` message
-  (`"msg"`): letters and digits joined by `_` or `.`, two characters or more. G1 lists every such
-  literal with its statement for the reviewer, and it alone does not make a change "around text".
+  (`"msg"`): letters and digits joined by `_` or `.`, two characters or more; and a format-only
+  literal such as `"%.1f"`, `"%d"` or `"%,.0f"` (number specifiers, `%d %o %x %X %f %e %E %g %G`,
+  with `%%` and `%n`, digits and punctuation, no letter outside a specifier; `%s`, `%S`, `%b`, `%c`
+  and `%t` can print words, so they do not count). G1 lists every such literal with its statement for the reviewer, and it
+  alone does not make a change "around text".
 - Ledger files are append-only. Every ledger at head is checked against the catalog on every pull
   request, so rewording an extracted string fails unless `l10n/english-changes.tsv` records it.
 - A row whose location is a test file must be `removed`, for a test of deleted code (G4 below).
@@ -309,8 +375,18 @@ Known limits:
 
 - A day/month swap where both numbers are 12 or under (`10/5` against `5/10`) is two valid dates,
   so the census (G7) cannot see it; G10's `Fmt` parity tests are what catch a changed date order.
-- `manual:` ledger rows (ternaries, `String.format`, `StringBuilder` chains) are checked by hand:
-  G1 only checks their literals' order and lists the row and its statement for the reviewer.
+- `manual:` ledger rows (ternaries, `String.format` outside `format` rows, `StringBuilder` chains)
+  are checked by hand: G1 only checks their literals' order and lists the row and its statement for
+  the reviewer.
+- `format` rows: G1 proves the text around each number (split, keys, template, call), not the number
+  itself. That `Fmt.decimal` prints like `%.1f` is G10's (`FmtLegacyTest`), and that a site's
+  arguments were in range for it is the characterization tests'; G1 pairs each specifier with one
+  `Fmt` call and requires a compiled G10 test of each `Fmt` method. A test of the converted method
+  itself is listed when one exists (matched by simple name, so an overload counts), not required.
+  A `%s` passthrough assumes its argument is text (a template's arguments are `CharSequence`).
+- A literal shared through one constant is checked for the constant's name and the order of the
+  sites in each region, not for what the code around each site does with it; the shared constant
+  and every changed region are listed. Whole new members next to text are listed, not checked.
 - `whole block:` removed rows, `as` holes and code changes away from any text are warnings, not
   failures: the reviewer must read them.
 - G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
@@ -335,7 +411,7 @@ Known limits:
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
 | G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
-| G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1) | CI via `tests/run.sh` |
+| G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
 runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
