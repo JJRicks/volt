@@ -3,6 +3,8 @@
 # for one thing, each name has its own row and the alias rows say which term they belong to.
 # Columns: id, English term, definition, part of speech, do-not-translate (yes/no), safety flag (a
 # volt:safety value or -), source location (src/com/jjricks/volt/ unless a path is given).
+# A one-word adjective row whose id is another row's id plus a suffix (energy-recovery-off) is one
+# value of that setting; it is required only where the text is the value alone or names the setting.
 id	term	definition	pos	dnt	safety	source
 volt	Volt	The app's name. Never translated.	proper noun	yes	-	res/values/strings.xml app_name
 navee	NAVEE	The scooter maker. Keep the name exactly as written.	proper noun	yes	disclaimer	MoreScreen.java:184
@@ -33,6 +35,7 @@ build-number	Build number	Android's About phone entry. Use Android's own localiz
 electronic-lock	electronic lock	Volt's lock control.	noun phrase	no	lock	MainActivity.java:448-1114
 lock	Lock	The action that locks the scooter.	verb	no	lock	MainActivity.java:448-1114
 locked	Locked	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	MainActivity.java:448-1114
+unlock	Unlock	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	MainActivity.java:448-1114
 unlocked	Unlocked	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	MainActivity.java:448-1114
 lock-bar	Lock bar	The lock row on Home.	noun phrase	no	lock	DashboardConfig.java:58
 lock-state-unverified	Lock state unverified	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	MainActivity.java:448-1114

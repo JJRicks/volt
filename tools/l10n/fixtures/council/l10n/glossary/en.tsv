@@ -1,0 +1,7 @@
+# Fixture glossary (same columns as l10n/glossary/en.tsv).
+id	term	definition	pos	dnt	safety	source
+volt	Volt	The app's name.	proper noun	yes	-	fixture
+navee	NAVEE	The scooter maker.	proper noun	yes	disclaimer	fixture
+not-affiliated	not affiliated with NAVEE	The disclaimer.	adjective phrase	no	disclaimer	fixture
+scooter	scooter	The connected e-scooter.	noun	no	-	fixture
+lock	lock	Lock the scooter.	verb	no	lock	fixture

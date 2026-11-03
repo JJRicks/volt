@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="l10n_tag">en</string>
+    <string name="common_cancel" volt:screen="Dialogs" volt:purpose="button">Cancel</string>
+    <!-- Shown under the lock switch while Volt waits for the scooter's answer. -->
+    <string name="common_lock_waiting" volt:screen="Home lock row" volt:purpose="status" volt:max="160dp@14sp"
+        volt:ladder="full" volt:safety="lock">Waiting for the scooter</string>
+    <string name="common_lock_waiting_short" volt:ladder="short" volt:max="75dp@14sp">Waiting</string>
+    <string name="common_move_widget" volt:screen="Dashboard editor">Move %1$s to slot %2$d</string>
+    <string name="common_battery_percent">%1$s%%</string>
+    <string name="common_not_reported">Not reported</string>
+    <plurals name="common_scooters_skipped" volt:english-fix="pending">
+        <item quantity="one">%1$d scooter skipped</item>
+        <item quantity="other">%1$d scooters skipped</item>
+    </plurals>
+    <string name="common_capture" volt:dnt="navee-owner-setup.json">Save navee-owner-setup.json to Downloads</string>
+    <string name="common_disclaimer" volt:safety="disclaimer" volt:dnt="Volt|NAVEE">Volt is not affiliated with NAVEE</string>
+    <string name="common_alarm_on" volt:safety="alarm">Alarm on</string>
+    <string name="common_internal" translatable="false">volt-internal-id</string>
+    <string name="common_dont">Don\'t clear storage.</string>
+</resources>

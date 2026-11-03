@@ -1,0 +1,17 @@
+# Test fixture language.
+field	value
+tag	es
+folder	values-es
+endonym	Español
+wave	pilot
+status	draft
+formality	tú
+plurals	one,many,other
+quote_style	«…» “…”
+percent_style	%1$s %%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english
