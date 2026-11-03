@@ -1174,7 +1174,7 @@ class DeclarationTypeTest(RepoCase):
         self.assertIn("%s:5: the declaration `private CharSequence subtitle = M . commonNotReported ( )`" % UI, shown[0])
         self.assertIn("every use of subtitle behaves the same with a CharSequence", shown[0])
         # Each use is shown as its code, so the reviewer sees the overload or equals without the file.
-        self.assertIn("it is private or a local, so only this file names it, at: line 7 `subtitle = value`; line 7 "
+        self.assertIn("only this file can name it (private or local), at: line 7 `subtitle = value`; line 7 "
                       "`show ( subtitle )`; line 8 `return on ? \"\" : subtitle`", shown[0])
 
     def test_a_field_other_files_can_name_fails(self):
@@ -1194,8 +1194,66 @@ class DeclarationTypeTest(RepoCase):
                 self.assertTrue(any("%s:5: `%sCharSequence subtitle = M . commonNotReported ( )` changes from String to "
                                     "CharSequence on a field that is not private" % (UI, modifiers) in p
                                     for p in problems), problems)
-                self.assertFalse(any("so only this file names it" in w or "names it nowhere else" in w
+                self.assertFalse(any("only this file can name it" in w
                                      for w in warnings), warnings)
+
+    def test_every_use_is_listed_even_several_in_one_long_statement(self):
+        # Gates round 2 review: one window per statement hid a later use in the same statement, such as
+        # an equals that turns false for a Msg.
+        self.edit("void set(String value) { subtitle = value; show(subtitle); }",
+                  "void set(String value) { show(subtitle, value, value, value, value, value, value, value, value, "
+                  "value, value, value, subtitle.equals(\"Not reported\") ? 1 : 0); }")
+        self.repo.write(UI, self.text(UI))
+        self.base = self.repo.commit("a long statement")
+        self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+        problems, warnings, _ = self.check([self.SUBTITLE])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "changes from String to CharSequence" in w]
+        self.assertEqual(len(shown), 1, warnings)
+        self.assertIn("line 7 `show ( subtitle , value", shown[0])
+        self.assertIn("subtitle . equals ( \"Not reported\" ) ? 1 : 0", shown[0])
+        self.assertEqual(shown[0].count("line 7 `"), 2, shown[0])
+        # Many uses are all listed, never cut to a count.
+        self.repo.write(UI, self.FILES[UI].replace("show(subtitle); }", "show(subtitle); }\n" + "".join(
+            "        void use%d() { show(subtitle); }\n" % i for i in range(30))))
+        self.repo.write("l10n/ledger/b2.tsv", HEADER)
+        self.base = self.repo.commit("thirty uses")
+        self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+        problems, warnings, _ = self.check([self.SUBTITLE])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "changes from String to CharSequence" in w]
+        self.assertEqual(shown[0].count("`show ( subtitle )`"), 31, shown[0])
+        self.assertNotIn("more)", shown[0])
+
+    def test_a_field_of_a_private_or_local_class_passes(self):
+        # A package-private field of a private nested class, or a field of a class declared in a method,
+        # can be named only in its own file, like a private field.
+        for old, new in (("    static final class Ring {", "    private static final class Ring {"),
+                         ("    static final class Ring {", "    private static final class Outer {\n    static final class Ring {"),
+                         ("    static final class Ring {", "    static void local() {\n    final class Ring {")):
+            with self.subTest(new=new):
+                text = self.FILES[UI].replace(old, new).replace('private String subtitle', 'String subtitle')
+                if new.count("{") == 2:
+                    text = text.replace("    static String label()", "    }\n    static String label()")
+                self.repo.write(UI, text)
+                self.repo.write("l10n/ledger/b2.tsv", HEADER)
+                self.base = self.repo.commit("a nested field")
+                line = 1 + text.splitlines().index('        String subtitle = "Not reported";')
+                self.edit('String subtitle = "Not reported";', "CharSequence subtitle = M.commonNotReported();")
+                problems, warnings, _ = self.check([UI + ':%d\t["Not reported"]\tcommon_not_reported\texact\t' % line])
+                self.assertEqual(problems, [])
+                self.assertTrue(any("only this file can name it" in w for w in warnings), warnings)
+
+    def test_a_local_in_a_method_with_a_record_parameter_passes(self):
+        # Gates round 2 review: record is a contextual keyword, so label(Object record) { is a method.
+        self.repo.write(UI, self.FILES[UI].replace("static String label() { String shown = \"Not reported\"; return shown; }",
+                                                   "static String label(Object record) { String shown = \"Not reported\"; "
+                                                   "return shown.toString(); }"))
+        self.base = self.repo.commit("a record parameter")
+        self.edit('String shown = "Not reported";', "CharSequence shown = M.commonNotReported();")
+        problems, warnings, _ = self.check([UI + ':11\t["Not reported"]\tcommon_not_reported\texact\t'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("`CharSequence shown = M . commonNotReported ( )` changes" in w for w in warnings), warnings)
 
     def test_a_non_private_split_or_interface_field_fails(self):
         self.repo.write(UI, self.FILES[UI].replace('private String unit = "", empty', 'String unit = "", empty'))
@@ -1222,6 +1280,11 @@ class DeclarationTypeTest(RepoCase):
         self.assertIsNone(kind('class C { void f() { if (o == C.class) { String a = "x"; } } }', "x"))
         self.assertIsNone(kind('class C { Runnable r = new Runnable() { String a = "x"; }; }', "x"))
         self.assertIsNone(kind('class C { static { String a = "x"; } }', "x"))
+        self.assertIsNone(kind('class C { void save(Ride record) { String a = "x"; } }', "x"))
+        self.assertIsNone(kind('class C { void f() { for (Ride record : rides) { String a = "x"; } } }', "x"))
+        self.assertIsNone(kind('class C { Ride record(int id) { String a = "x"; return null; } }', "x"))
+        self.assertEqual(kind('class C { record Point(int y) { static String a = "x"; } }', "x"), "record")
+        self.assertEqual(kind('class C { @Tag(record = 1) static class D { String a = "x"; } }', "x"), "class")
 
     def test_one_declarator_of_several_and_a_local_pass(self):
         self.edit('private String unit = "", empty = "No measured data yet", axis = "";',
@@ -1424,6 +1487,26 @@ class LocaleWrapTest(RepoCase):
         self.assertIn("Locale.ROOT is the data tier", shown[1])
         self.assertIn("not an id or a value that is stored, sent or compared", shown[1])
         self.assertFalse(any("data tier" in w for w in shown[:1] + shown[2:]), shown)
+
+    def test_a_wrap_in_a_data_tier_file_fails(self):
+        # Gates round 2 review: plan section 4.1's data tier (Telemetry label and value, stored records,
+        # JSON) never localizes, whatever the legacy locale; a US wrap there would write a decimal comma.
+        for name, code, wrapped in (
+                ("Telemetry", 'static String value(double v, int d) { return String.format(Locale.US, "%." + d + "f", v); }',
+                 "Locale.US, \"%.\""),
+                ("RideStore", 'static java.text.SimpleDateFormat utc() { return new java.text.SimpleDateFormat('
+                 '"yyyy-MM-dd\'T\'HH:mm:ss", Locale.US); }', "Locale.US)"),
+                ("BackupJson", 'static String hex(char c) { return String.format(Locale.ROOT, "\\\\u%04x", (int) c); }',
+                 "Locale.ROOT, ")):
+            with self.subTest(name=name):
+                path = "src/com/jjricks/volt/%s.java" % name
+                self.repo.write(path, java_class(name, "    " + code))
+                self.base = self.repo.commit("a data-tier file")
+                locale = wrapped.split(",")[0].rstrip(")")
+                self.repo.write(path, self.text(path).replace(locale, "Fmt.locale(%s)" % locale, 1))
+                problems, _, _ = self.check([])
+                self.assertTrue(any("%s:4: `%s` is wrapped into Fmt.locale(...) in a data-tier file" % (
+                    path, locale.replace(".", " . ")) in p for p in problems), problems)
 
     def test_an_unreadable_english_only_list_fails(self):
         self.repo.write(ledger_check.CATALOG_USAGE_TEST, java_class("CatalogUsageTest", '    static final List<String> '
