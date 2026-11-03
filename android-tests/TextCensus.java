@@ -37,7 +37,12 @@ import java.util.concurrent.atomic.AtomicReference;
  * notif-subtext, notif-action, notif-channel. The locator is tag=<tag> for a view with a String tag, else
  * the class path from its window root with child indexes; a window other than the activity's is prefixed
  * dialog[<n>]/. Records are in view-tree order (activity window first), then the other windows, then
- * notifications.
+ * notifications when the screenshot asks for them.
+ *
+ * Notifications join a screen's census only through {@link #writeWithNotifications}, used by the validations
+ * whose checks are about Volt's notification text (charge alerts, charge capture, charge schedule, ride
+ * auto-stop). Elsewhere the connection notice is incidental and races the screen (a simulated link that is up
+ * in one run and already down in the next), so {@link #write} leaves notifications out.
  *
  * It uses only public APIs and no Volt classes, so one test APK censuses an older app build too. A census
  * never fails its validation: if it cannot be taken, <screenshot name>.census-error.txt says why, and the
@@ -59,14 +64,19 @@ public final class TextCensus {
 
     private TextCensus() {}
 
-    /** Censuses the app's windows and notifications now, into screenshot's folder beside it. */
-    public static void write(Instrumentation instrumentation, File screenshot) {
+    /** Censuses the app's windows now, into screenshot's folder beside it; notifications are left out. */
+    public static void write(Instrumentation instrumentation, File screenshot) { write(instrumentation, screenshot, false); }
+
+    /** Like {@link #write}, plus the app's active notifications: for a validation whose checks are about them. */
+    public static void writeWithNotifications(Instrumentation instrumentation, File screenshot) { write(instrumentation, screenshot, true); }
+
+    private static void write(Instrumentation instrumentation, File screenshot, boolean withNotifications) {
         String base = screenshot.getName().replaceFirst("\\.png$", "");
         File folder = screenshot.getParentFile();
         try {
             AtomicReference<String> text = new AtomicReference<>();
             AtomicReference<Throwable> failure = new AtomicReference<>();
-            Runnable take = () -> { try { text.set(census(instrumentation.getTargetContext())); } catch (Throwable error) { failure.set(error); } };
+            Runnable take = () -> { try { text.set(census(instrumentation.getTargetContext(), withNotifications)); } catch (Throwable error) { failure.set(error); } };
             if (Looper.myLooper() == Looper.getMainLooper()) take.run(); else instrumentation.runOnMainSync(take);
             if (failure.get() != null) throw failure.get();
             save(new File(folder, base + ".census.tsv"), text.get());
@@ -138,7 +148,7 @@ public final class TextCensus {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup)view).getChildCount(); i++) dump(((ViewGroup)view).getChildAt(i), depth + 1, out);
     }
     /** The census text; call on the main thread. */
-    static String census(Context context) {
+    static String census(Context context, boolean withNotifications) {
         if (Build.VERSION.SDK_INT < 29) throw new IllegalStateException("the census needs API 29 (WindowInspector)");
         StringBuilder out = new StringBuilder(MAGIC).append('\n');
         // Every window root of this process in stacking order; the activity's window comes first.
@@ -152,7 +162,7 @@ public final class TextCensus {
             String prefix = index++ == 0 && activityWindow(root) ? "" : "dialog[" + (index - 1) + "]/";
             walk(root, prefix + root.getClass().getSimpleName(), null, !prefix.isEmpty(), false, out);
         }
-        notifications(context, out);
+        if (withNotifications) notifications(context, out);
         return out.toString();
     }
 

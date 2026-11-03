@@ -223,7 +223,7 @@ public final class RideAutoStopValidation extends Instrumentation {
         File file = new File(dir, args.getString("variant", "auto-stop") + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot();
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
+        screenshots.add(file.getAbsolutePath()); TextCensus.writeWithNotifications(this, file);
     }
     private void check(boolean condition, String message) { checks++; if (!condition) throw new AssertionError(message); }
     private void await(BooleanSupplier test, String why) { long end = SystemClock.elapsedRealtime() + 15000; while (SystemClock.elapsedRealtime() < end) { if (test.getAsBoolean()) { checks++; return; } SystemClock.sleep(50); } throw new AssertionError(why); }

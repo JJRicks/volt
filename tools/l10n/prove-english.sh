@@ -12,8 +12,9 @@
 #   --skip-build  do not run build.sh here (G3 then reports "not run")
 #   --skip-tests  do not run tests/run.sh (G6 then reports "not run")
 #
-# G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census for
-# base and head on an English-pinned emulator, then tools/l10n/census_diff.py, and paste its last line.
+# G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census twice
+# for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
+# --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
 set -uo pipefail
 umask 077
 
