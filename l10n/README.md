@@ -322,9 +322,14 @@ How `ledger_check.py` (G1) reads it:
     (`private String unit = "", empty = "No data", axis = "";`), either the whole declaration changes
     type, or that declarator moves into a declaration of its own right before or after the rest, which
     stays exactly as it was (`private String unit = "", axis = "";` and
-    `private CharSequence empty = M.uiChartEmpty();`). The warning prints the declaration and every head line of the file that
-    names the variable: an overload chosen by type (`text(String)` against `text(CharSequence)`),
-    `equals` or a cast now sees a `CharSequence`, which the reviewer checks. A use that needs the
+    `private CharSequence empty = M.uiChartEmpty();`). Only a `private` field or a local (in a
+    method, lambda, initializer or anonymous class) may change type: G1 reads one file, and a field
+    other files can name (package-private, `protected`, `public`, an interface field) fails, since
+    `r.subtitle.equals("Not reported")` elsewhere would compile on and turn false. Make such a
+    field private first, in a commit of its own, or keep the String. The warning prints the
+    declaration and the code of every statement of the file that names the variable: an overload
+    chosen by type (`text(String)` against `text(CharSequence)`), `equals` or a cast now sees a
+    `CharSequence`, which the reviewer checks. A use that needs the
     String back may add `.toString()` (`: subtitle` becoming `: subtitle.toString()`, the String it
     was), listed too; any other change at a use, and `.toString()` on another variable, fails. Any
     other type change (to `Object` or `Msg`, CharSequence to String, a neighbouring declaration, a
@@ -335,8 +340,13 @@ How `ledger_check.py` (G1) reads it:
     `Fmt.locale` returns its argument while Volt is English, which G10 proves, so a compiled test
     under `tests/l10n/` must call `Fmt.locale` (else G1 fails), and each wrap is listed with its
     statement and the compiled tests that call the method holding it (its characterization), or a
-    note that none does. Another locale, another method (`Fmt.displayLocale()`), extra arguments or
-    a call on the result fail; so does unwrapping (`Fmt.locale(Locale.US)` becoming `Locale.US`).
+    note that none does. A `Locale.ROOT` wrap's warning also says that ROOT is the data tier: the
+    reviewer checks that the text is shown on a screen (decorative upper-casing), not an id, enum
+    token or stored value, which a shipped language would case-map by its own rules. A wrap in a
+    file of `CatalogUsageTest.ENGLISH_ONLY` (reports, logs, the shell process) fails, and so does a
+    `CatalogUsageTest` whose `ENGLISH_ONLY` list G1 cannot read. Another locale, another method
+    (`Fmt.displayLocale()`), extra arguments or a call on the result fail; so does unwrapping
+    (`Fmt.locale(Locale.US)` becoming `Locale.US`).
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
   must be added somewhere else in `src/` (outside the changed region it left), and the lines it
   left must either only lose tokens (code moved out whole) or name the constant it moved to

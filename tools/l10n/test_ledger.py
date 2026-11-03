@@ -1173,7 +1173,55 @@ class DeclarationTypeTest(RepoCase):
         self.assertEqual(len(shown), 1, warnings)
         self.assertIn("%s:5: the declaration `private CharSequence subtitle = M . commonNotReported ( )`" % UI, shown[0])
         self.assertIn("every use of subtitle behaves the same with a CharSequence", shown[0])
-        self.assertIn("head lines 7, 8", shown[0])
+        # Each use is shown as its code, so the reviewer sees the overload or equals without the file.
+        self.assertIn("it is private or a local, so only this file names it, at: line 7 `subtitle = value`; line 7 "
+                      "`show ( subtitle )`; line 8 `return on ? \"\" : subtitle`", shown[0])
+
+    def test_a_field_other_files_can_name_fails(self):
+        # Review round 1: r.subtitle.equals("Not reported") in another file compiles on and turns false
+        # (Msg.equals(String)), and G1 lists uses from the declaring file only.
+        screen = "src/com/jjricks/volt/Screen.java"
+        self.repo.write(screen, java_class("Screen", '    static boolean missing(Ui.Ring r) { return '
+                                           'r.subtitle.equals("Not reported"); }'))
+        for modifiers in ("", "protected ", "public ", "static "):
+            with self.subTest(modifiers=modifiers):
+                self.repo.write(UI, self.FILES[UI].replace('private String subtitle', '%sString subtitle' % modifiers))
+                self.repo.write("l10n/ledger/b2.tsv", HEADER)  # the last subtest's row is not in this base
+                self.base = self.repo.commit("a %sfield used in another file" % modifiers)
+                self.edit('%sString subtitle = "Not reported";' % modifiers,
+                          '%sCharSequence subtitle = M.commonNotReported();' % modifiers)
+                problems, warnings, _ = self.check([self.SUBTITLE])
+                self.assertTrue(any("%s:5: `%sCharSequence subtitle = M . commonNotReported ( )` changes from String to "
+                                    "CharSequence on a field that is not private" % (UI, modifiers) in p
+                                    for p in problems), problems)
+                self.assertFalse(any("so only this file names it" in w or "names it nowhere else" in w
+                                     for w in warnings), warnings)
+
+    def test_a_non_private_split_or_interface_field_fails(self):
+        self.repo.write(UI, self.FILES[UI].replace('private String unit = "", empty', 'String unit = "", empty'))
+        self.base = self.repo.commit("package-private")
+        self.edit('String unit = "", empty = "No measured data yet", axis = "";',
+                  'String unit = "", axis = "";\n        CharSequence empty = M.uiChartEmpty();')
+        problems, _, _ = self.check([self.EMPTY])
+        self.assertTrue(any("`CharSequence empty = M . uiChartEmpty ( )` changes from String to CharSequence on a field "
+                            "that is not private" in p for p in problems), problems)
+        self.repo.write(UI, java_class("Ui", '    interface Labels {\n        String NONE = "Not reported";\n    }'))
+        self.base = self.repo.commit("an interface field")
+        self.edit('String NONE = "Not reported";', "CharSequence NONE = M.commonNotReported();")
+        problems, _, _ = self.check([self.SUBTITLE])
+        self.assertTrue(any("on a field that is not private" in p for p in problems), problems)
+
+    def test_body_kind(self):
+        def kind(source, literal):
+            tokens = expressions.l10nlib.lex_java(source)
+            return ledger_check.body_kind(tokens, next(i for i, t in enumerate(tokens) if t.value == literal))
+        self.assertEqual(kind('class C { String a = "x"; }', "x"), "class")
+        self.assertEqual(kind('class C { void f() {} String a = "x"; }', "x"), "class")
+        self.assertEqual(kind('interface I { String a = "x"; }', "x"), "interface")
+        self.assertIsNone(kind('class C { void f() { String a = "x"; } }', "x"))
+        self.assertIsNone(kind('class C { void f() { if (o == C.class) { String a = "x"; } } }', "x"))
+        self.assertIsNone(kind('class C { Runnable r = new Runnable() { String a = "x"; }; }', "x"))
+        self.assertIsNone(kind('class C { static { String a = "x"; } }', "x"))
 
     def test_one_declarator_of_several_and_a_local_pass(self):
         self.edit('private String unit = "", empty = "No measured data yet", axis = "";',
@@ -1352,6 +1400,38 @@ class LocaleWrapTest(RepoCase):
                 self.edit("String.format(Locale.US, \"%.1f\"", code)
                 problems, _, _ = self.check([])
                 self.assertTrue(any(message in p and "around text" in p for p in problems), problems)
+
+    def test_a_wrap_in_an_english_only_file_fails(self):
+        # Review round 1: reports, logs and the shell process stay English in every language
+        # (CatalogUsageTest.ENGLISH_ONLY), so their legacy locales are never wrapped.
+        report = "src/com/jjricks/volt/IssueReport.java"
+        self.repo.write(report, java_class("IssueReport", '    static String code(Enum<?> e) { return "" + '
+                                           'e.name().toLowerCase(Locale.ROOT); }'))
+        self.repo.write(ledger_check.CATALOG_USAGE_TEST, java_class("CatalogUsageTest", '    static final List<String> '
+                        'ENGLISH_ONLY = Arrays.asList(\n            "CommandLog.java", "IssueReport.java");'))
+        self.base = self.repo.commit("an English-only file")
+        self.repo.write(report, self.text(report).replace("toLowerCase(Locale.ROOT)", "toLowerCase(Fmt.locale(Locale.ROOT))"))
+        problems, _, _ = self.check([])
+        self.assertTrue(any("%s:4: `Locale . ROOT` is wrapped into Fmt.locale(...) in an English-only file" % report in p
+                            for p in problems), problems)
+        # The same wrap in a display file passes, and a ROOT wrap tells the reviewer to rule out ids.
+        self.repo.write(report, java_class("IssueReport", '    static String code(Enum<?> e) { return "" + '
+                                           'e.name().toLowerCase(Locale.ROOT); }'))
+        self.wrap_all()
+        problems, warnings, _ = self.check([])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "Fmt.locale keeps that locale" in w]
+        self.assertIn("Locale.ROOT is the data tier", shown[1])
+        self.assertIn("not an id or a value that is stored, sent or compared", shown[1])
+        self.assertFalse(any("data tier" in w for w in shown[:1] + shown[2:]), shown)
+
+    def test_an_unreadable_english_only_list_fails(self):
+        self.repo.write(ledger_check.CATALOG_USAGE_TEST, java_class("CatalogUsageTest", '    static final List<String> '
+                        'ENGLISH_FILES = Arrays.asList("IssueReport.java");'))
+        self.base = self.repo.commit("a renamed list")
+        self.wrap_all()
+        problems, _, _ = self.check([])
+        self.assertTrue(any("cannot read its ENGLISH_ONLY" in p for p in problems), problems)
 
     def test_unwrapping_a_locale_fails(self):
         self.edit("String.format(Fmt.locale(Locale.US), \"%.0f\"", "String.format(Locale.US, \"%.0f\"")
