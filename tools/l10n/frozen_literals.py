@@ -181,8 +181,8 @@ def contexts(tokens):
         result.append(stack[-1] if stack else None)
         if _is_op(t, "{"):
             head = tokens[head_start:p]
-            declares_type = any(h.kind == "ident" and h.value in TYPE_WORDS and (i == 0 or not _is_op(head[i - 1], "."))
-                                for i, h in enumerate(head))
+            # record is contextual: void check(Result record) { opens a method body, not a type.
+            declares_type = bool(ledger_check.header_type_keywords(head))
             stack.append("type" if declares_type or _anonymous_body(tokens, p) else "code")
         elif _is_op(t, "}") and stack:
             stack.pop()

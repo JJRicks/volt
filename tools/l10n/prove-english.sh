@@ -73,8 +73,6 @@ gate() { # label log command...
 
 KIND="$(python3 tools/l10n/ci_gates.py --base "$BASE" --print-mode 2>/dev/null || echo unknown)"
 echo "prove-english: base $(git rev-parse --short=12 "$BASE"), merge base $(git rev-parse --short=12 "$MERGE"), head $(git rev-parse --short=12 HEAD), $KIND change$DIRTY" >&2
-REPORT_ONLY=()
-[[ "$KIND" == english-change ]] && REPORT_ONLY=(--report)
 
 # Tools.
 log="$WORK/unittest.log"
@@ -97,7 +95,24 @@ if [[ -f tests/l10n/LedgerTest.java ]]; then
 else
     record "G2 template equivalence" "n/a" "tests/l10n/LedgerTest arrives with the catalog (B0b)"
 fi
-gate "G4 frozen test statements" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE" ${REPORT_ONLY[@]+"${REPORT_ONLY[@]}"}
+if [[ "$KIND" != ordinary && "$KIND" != english-change ]]; then  # a batch, or a kind ci_gates could not tell
+    gate "G4 frozen test statements" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE"
+else
+    # As in CI: G4 binds batches only. An English change lists its test changes, and an ordinary change
+    # (a feature, a fix, a tooling change) may edit tests, so it is listed too but never fails here.
+    log="$WORK/g4.log"
+    python3 tools/l10n/frozen_literals.py --base "$BASE" --report >"$log" 2>&1
+    status=$?
+    detail="$(grep -E '^frozen_literals: (PASS|REPORT|FAILED): ' "$log" | tail -1 | sed -E 's/^frozen_literals: [A-Z]+: //')"
+    if [[ "$status" != 0 ]]; then
+        record "G4 frozen test statements" FAIL "${detail:-frozen_literals.py failed}"; show_failure G4 "$log"
+    elif grep -q '^frozen_literals: REPORT: ' "$log"; then
+        record "G4 frozen test statements" REPORT "$detail; listed, not enforced: G4 binds batches only (this is an ordinary or English change: $KIND)"
+        show_failure "G4 (report)" "$log"
+    else
+        record "G4 frozen test statements" PASS "$detail"
+    fi
+fi
 gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
 if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then

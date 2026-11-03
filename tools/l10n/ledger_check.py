@@ -61,11 +61,12 @@ that serves it (with a manual row, anywhere in the statement holding its literal
 row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase(), or dropping code
 next to it, fails. Whole new members (a method or field added next to converted text), regions a
 stays-english or id-kept move touched, and every other src change are listed for the reviewer. Two
-more changes are allowed and listed: a String declaration (a private field or a local) whose
-initializer becomes the row's call turning CharSequence (for a deferred M call), with the code of
-every statement naming the variable; and a legacy locale wrapped for Fmt (Locale.US becoming
-Fmt.locale(Locale.US)) outside CatalogUsageTest.ENGLISH_ONLY files, which needs a compiled
-tests/l10n/ test calling Fmt.locale (G10).
+more changes are allowed and listed: a String declaration (a private field, a local, or a field
+of a private or local type) whose initializer becomes the row's call turning CharSequence (for a
+deferred M call), with the code around every use of the variable in its file; and a legacy locale
+wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside CatalogUsageTest.ENGLISH_ONLY
+files and the plan's data-tier files (DATA_TIER), which needs a compiled tests/l10n/ test calling
+Fmt.locale (G10).
 
 Ledger format: a TSV with the header
 
@@ -1016,7 +1017,7 @@ def enclosing_method(tokens, k):
             first -= 1
         header = tokens[first:opener]
         values = [t.value for t in header]
-        if any(v in values for v in ("class", "enum", "interface", "record")):
+        if header_type_keywords(header):
             return None
         if header and values[0] not in NOT_METHOD_HEADERS and not any(v in values for v in ("=", "->", "new")):
             p = 0
@@ -1063,6 +1064,25 @@ def test_callers(head, cwd=None):
 
 
 _TYPE_KEYWORDS = ("class", "enum", "interface", "record")
+
+
+def header_type_keywords(header):
+    """The type keywords (class, enum, interface, record) that declare a type in the tokens of one
+    block header, in order. A keyword inside parentheses (a parameter, an annotation's arguments) or
+    after a . (C.class) declares nothing, and record is a contextual keyword: it declares a record
+    only when a name follows it (record Point(int x), not void save(Ride record) or Ride record :)."""
+    found, depth = [], 0
+    for i, t in enumerate(header):
+        if t.kind == "op" and t.value in ("(", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", "]"):
+            depth -= 1
+        elif depth == 0 and t.kind == "ident" and t.value in _TYPE_KEYWORDS and not (
+                i > 0 and header[i - 1].kind == "op" and header[i - 1].value == "."):
+            if t.value == "record" and not (i + 1 < len(header) and header[i + 1].kind == "ident"):
+                continue
+            found.append(t.value)
+    return found
 
 
 def _final_field(tokens, k):
@@ -1122,8 +1142,7 @@ def body_kind(tokens, j):
     header = j
     while header > 0 and not op(header - 1, ";", "{", "}"):
         header -= 1
-    kinds = [tokens[i].value for i in range(header, j) if tokens[i].kind == "ident"
-             and tokens[i].value in _TYPE_KEYWORDS and not op(i - 1, ".")]
+    kinds = header_type_keywords(tokens[header:j])
     return kinds[-1] if kinds else None
 
 
@@ -1395,53 +1414,93 @@ def split_declaration(diff, base_span, head_span):
     return None
 
 
+def _opener(tokens, j):
+    """The index of the { whose block holds token j directly, or None at file level."""
+    depth = 0
+    while j >= 0:
+        if tokens[j].kind == "op" and tokens[j].value == "}":
+            depth += 1
+        elif tokens[j].kind == "op" and tokens[j].value == "{":
+            if depth == 0:
+                return j
+            depth -= 1
+        j -= 1
+    return None
+
+
+def only_this_file_names(tokens, start, end):
+    """True when the declaration whose modifiers and type are tokens start..end-1 can be named only in
+    its own file: a local (a method, lambda, initializer or anonymous class body), a private field of
+    a class, enum or record, or any field of a type that is itself private or local (a package-private
+    field of a private nested class, a field of a class declared in a method)."""
+    kind = body_kind(tokens, start)
+    if kind is None:
+        return True
+    if kind != "interface" and any(t.kind == "ident" and t.value == "private" for t in tokens[start:end]):
+        return True
+    opener = _opener(tokens, start - 1)
+    while opener is not None:  # the type body holding the declaration, then each type around it
+        header = opener
+        while header > 0 and not (tokens[header - 1].kind == "op" and tokens[header - 1].value in ";{}"):
+            header -= 1
+        keyword = max(i for i in range(header, opener) if tokens[i].kind == "ident" and tokens[i].value in _TYPE_KEYWORDS)
+        if any(t.kind == "ident" and t.value == "private" for t in tokens[header:keyword]):
+            return True
+        outer = _opener(tokens, header - 1)
+        if outer is None:
+            return False  # a top-level type
+        if body_kind(tokens, header) is None:
+            return True  # a class declared in a method or other block
+        opener = outer
+    return False
+
+
 def retype_reach_problem(where, path, diff, h_type):
     """A problem when the declaration whose type token is head token h_type is a field other files can
     name (not private, or any interface field): G1 lists the uses of a retyped variable from its own
     file only, and r.subtitle.equals("Not reported") in another file compiles on and turns false. A
-    private field or a local (a method, lambda, initializer or anonymous class body) is named only
-    in its own file, which retype_warning lists. Else None."""
+    private field, a local, or a field of a private or local type is named only in its own file
+    (only_this_file_names), which retype_warning lists. Else None."""
     tokens = diff.head.tokens
     start, _ = statement_bounds(tokens, h_type)
-    kind = body_kind(tokens, start)
-    private = any(t.kind == "ident" and t.value == "private" for t in tokens[start:h_type])
-    if kind is None or (private and kind != "interface"):
+    if only_this_file_names(tokens, start, h_type):
         return None
     first, last, _ = expressions.statement_span(tokens, h_type)
     return ("%s: %s:%d: `%s` changes from String to CharSequence on a field that is not private, so code in "
             "other files can name it and G1 cannot list those uses (an equals, an overload chosen by type); an "
-            "extraction batch retypes only a private field or a local: make the field private in an earlier "
+            "extraction batch retypes only a field other files cannot name (a private field, or any field of a "
+            "private or local class) or a local: make the field private in an earlier "
             "commit of its own, or keep the String and convert where it is shown" % (
                 where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None)))
 
 
 def retype_warning(where, path, diff, h_type, name, split_from=None):
     """The reviewer's listing of a String declaration that became CharSequence for its catalog call,
-    with the code of every statement in the file that names the variable (a private field or a local
-    is named nowhere else; retype_reach_problem refuses the rest): a use that picks an overload by type
+    with the code around every use of the variable in the file, a window of up to 12 tokens each side
+    for each use not already inside a printed window (only this file can name it; retype_reach_problem
+    refuses the rest): a use that picks an overload by type
     (a String and a CharSequence overload), compares with equals or casts reads it differently now."""
     tokens = diff.head.tokens
     first, last, _ = expressions.statement_span(tokens, h_type)
-    uses, seen = [], set()
+    uses, printed = [], -1
     for k, t in enumerate(tokens):
-        if t.kind != "ident" or t.value != name or first <= k <= last:
-            continue
+        if t.kind != "ident" or t.value != name or first <= k <= last or k <= printed:
+            continue  # not a use, the declaration itself, or inside a window already printed
         s_first, s_last, _ = expressions.statement_span(tokens, k)
-        if (s_first, s_last) in seen:
-            continue
-        seen.add((s_first, s_last))
-        # A window centred on the use, so a long statement never hides it.
+        # A window centred on the use, so a long statement never hides it; a later use of the same
+        # statement outside this window gets a window of its own. Every use is printed, none capped.
         start, end = max(s_first, k - 12), min(s_last, k + 12)
+        printed = end
         uses.append("line %d `%s%s%s`" % (t.line, "... " if start > s_first else "",
                                           _excerpt(tokens[start:end + 1], None), " ..." if end < s_last else ""))
-    shown = "; ".join(uses[:20]) + ("; ... (%d more)" % (len(uses) - 20) if len(uses) > 20 else "")
+    shown = "; ".join(uses)
     return ("%s: %s:%d: the declaration `%s`%s changes from String to CharSequence for its catalog call; check by "
             "hand that every use of %s behaves the same with a CharSequence (an overload chosen by type, equals, a "
             "cast)%s" % (
                 where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None),
                 " (moved out of `%s`, the rest kept as it was)" % split_from if split_from else "", name,
-                "; it is private or a local, so only this file names it, at: %s" % shown if uses else
-                "; it is private or a local, and this file names it nowhere else"))
+                "; only this file can name it (private or local), at: %s" % shown if uses else
+                "; only this file can name it (private or local), and it names it nowhere else"))
 
 
 def _class_name(path):
@@ -1495,7 +1554,7 @@ def _whole_members(tokens, first, last):
     start = opener
     while start > 0 and not op(start - 1, ";", "{", "}"):
         start -= 1
-    if not any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record") for t in tokens[start:opener]):
+    if not header_type_keywords(tokens[start:opener]):
         return False
     j = first
     while j <= last:
@@ -1510,8 +1569,7 @@ def _whole_members(tokens, first, last):
                 continue
             header.append(tokens[k])
             k += 1
-        if k > last or not header or any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record")
-                                         for t in header):
+        if k > last or not header or header_type_keywords(header):
             return False
         if op(k, "{"):
             # A method: a name and parameters before its body; an initializer block has none.
@@ -1834,6 +1892,15 @@ def english_only_files(head, cwd=None):
     return frozenset(re.findall(r'"([^"\\]+)"', found.group(1))), None
 
 
+# Plan section 4.1, the data tier: these files write journals, CSV, GPX, JSON, backups, hex and the
+# Telemetry labels and values, which never localize (a decimal comma or a localized date would be
+# stored or sent), and plan section 4.3 lists no display call site in them. A Fmt.locale wrap there
+# fails like one in an ENGLISH_ONLY file; a display site found in one moves out in a commit of its own.
+DATA_TIER = frozenset(name + ".java" for name in (
+    "Telemetry", "RideStore", "RideArchive", "PhoneRideStore", "ChargeSessionStore", "BackupArchive", "BackupJson",
+    "AppDataBackup", "TestJournal", "ChargeScheduleController"))
+
+
 def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
     """(problems, warning) for a legacy locale wrapped into Fmt.locale(...) at head token k. G10
     (FmtLegacyTest) shows Fmt.locale returns the legacy locale while Volt is English, so a compiled
@@ -1852,6 +1919,10 @@ def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
         problems.append("%s:%d: `%s` is wrapped into Fmt.locale(...) in an English-only file (%s ENGLISH_ONLY): "
                         "its text and data stay English in every language, so it keeps its legacy locale" % (
                             path, tokens[k].line, _excerpt(tokens[k + 4:close], None), CATALOG_USAGE_TEST))
+    if os.path.basename(path) in DATA_TIER:
+        problems.append("%s:%d: `%s` is wrapped into Fmt.locale(...) in a data-tier file (plan section 4.1; "
+                        "ledger_check.DATA_TIER): what it formats is stored, sent or logged and never localizes, so "
+                        "it keeps its legacy locale" % (path, tokens[k].line, _excerpt(tokens[k + 4:close], None)))
     method = enclosing_method(tokens, k)
     owner = _class_name(path)
     tests = callers.get((owner, method), []) if method else []

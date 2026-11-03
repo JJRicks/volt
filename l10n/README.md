@@ -322,14 +322,18 @@ How `ledger_check.py` (G1) reads it:
     (`private String unit = "", empty = "No data", axis = "";`), either the whole declaration changes
     type, or that declarator moves into a declaration of its own right before or after the rest, which
     stays exactly as it was (`private String unit = "", axis = "";` and
-    `private CharSequence empty = M.uiChartEmpty();`). Only a `private` field or a local (in a
-    method, lambda, initializer or anonymous class) may change type: G1 reads one file, and a field
-    other files can name (package-private, `protected`, `public`, an interface field) fails, since
-    `r.subtitle.equals("Not reported")` elsewhere would compile on and turn false. Make such a
-    field private first, in a commit of its own, or keep the String. The warning prints the
-    declaration and the code of every statement of the file that names the variable: an overload
-    chosen by type (`text(String)` against `text(CharSequence)`), `equals` or a cast now sees a
-    `CharSequence`, which the reviewer checks. A use that needs the
+    `private CharSequence empty = M.uiChartEmpty();`). Only a declaration no other file can name
+    may change type: a local (in a method, lambda, initializer or anonymous class), a `private`
+    field, or any field of a type that is itself `private` or declared in a method (a
+    package-private field of a `private static class`). G1 reads one file, and a field other files
+    can name (package-private, `protected` or `public` in a type they can reach, an interface field
+    of such a type) fails, since `r.subtitle.equals("Not reported")` elsewhere would compile on and
+    turn false. Make such a field private first, in a commit of its own, or keep the String. The
+    warning prints the declaration and, for every use of the variable in the file, the code around
+    it (up to 12 tokens each side within its statement; a use already inside an earlier window is
+    not printed twice, so two uses in one long statement get a window each, and nothing is cut to
+    a count): an overload chosen by type (`text(String)` against `text(CharSequence)`), `equals` or
+    a cast now sees a `CharSequence`, which the reviewer checks. A use that needs the
     String back may add `.toString()` (`: subtitle` becoming `: subtitle.toString()`, the String it
     was), listed too; any other change at a use, and `.toString()` on another variable, fails. Any
     other type change (to `Object` or `Msg`, CharSequence to String, a neighbouring declaration, a
@@ -344,7 +348,13 @@ How `ledger_check.py` (G1) reads it:
     reviewer checks that the text is shown on a screen (decorative upper-casing), not an id, enum
     token or stored value, which a shipped language would case-map by its own rules. A wrap in a
     file of `CatalogUsageTest.ENGLISH_ONLY` (reports, logs, the shell process) fails, and so does a
-    `CatalogUsageTest` whose `ENGLISH_ONLY` list G1 cannot read. Another locale, another method
+    `CatalogUsageTest` whose `ENGLISH_ONLY` list G1 cannot read. So does a wrap in a data-tier
+    file of plan section 4.1 (`ledger_check.DATA_TIER`: Telemetry, RideStore, RideArchive,
+    PhoneRideStore, ChargeSessionStore, BackupArchive, BackupJson, AppDataBackup, TestJournal,
+    ChargeScheduleController), whatever the locale: they write stored records, JSON, journals and
+    the Telemetry labels and values, where a shipped language's decimal comma or date would be
+    stored or sent, and plan section 4.3 names no display call site in them. A display site found
+    there moves out in a commit of its own first. Another locale, another method
     (`Fmt.displayLocale()`), extra arguments or a call on the result fail; so does unwrapping
     (`Fmt.locale(Locale.US)` becoming `Locale.US`).
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
@@ -457,7 +467,7 @@ Known limits:
 | G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
-| G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches), prove-english |
+| G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
 | G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch pull requests), prove-english |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
