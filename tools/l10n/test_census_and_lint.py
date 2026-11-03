@@ -303,6 +303,35 @@ class VolatileTest(unittest.TestCase):
                                           self.records([("notif-action", "notification:scooter/71", "-", "Disconnect now")]))
         self.assertIn('- notif-action notification:scooter/71: "Disconnect"', result.text)
 
+    def test_numeric_date_format_changes_fail_on_every_path(self):
+        """Codex review of #155: neither "numbers differ" nor compare-by-form may wave through a day/month
+        swap or a changed year width, which same_after_masking already refuses."""
+        for base, head in (("Last seen 23/10/2026", "Last seen 10/23/2026"), ("Recorded 3/4/26", "Recorded 3/4/2026")):
+            a, a2, h = self.runs(base, base, head)
+            result = census_diff.compare_runs([a, a2], h)
+            self.assertEqual((len(result.text), result.numbers), (2, []), (base, head))
+        # A date that drifts between the base runs is compared by form, and the swap still fails there.
+        a, a2, h = self.runs("Total 5 W, 23/10/2026", "Total 6 W, 23/10/2026", "Total 7 W, 10/23/2026")
+        result = census_diff.compare_runs([a, a2], h)
+        self.assertEqual((len(result.text), result.formed), (2, [("text", "tag=power", 0)]))
+        # Ordinary drift and an ordinary later date still pass.
+        for base, head in (("137 W", "145 W"), ("Last seen 23/10/2026", "Last seen 24/10/2026")):
+            a, a2, h = self.runs(base, base, head)
+            self.assertEqual(census_diff.compare_runs([a, a2], h).text, [], (base, head))
+        work = tempfile.mkdtemp(prefix="l10n-census-")
+        try:
+            seen = lambda v: {"home": [("text", "tag=seen", "-", v)]}  # noqa: E731
+            a, a2, head = self.folders(work, {"a": seen("Last seen 23/10/2026"), "a2": seen("Last seen 23/10/2026"),
+                                              "head": seen("Last seen 10/23/2026")})
+            for folder in (a, a2, head):
+                self.sweep(folder)
+            code, out, err = self.main(["--base", a, "--base", a2, head])
+            self.assertEqual(code, 1, out + err)
+            self.assertIn('+ text tag=seen: "Last seen 10/23/2026"', err)
+            self.assertIn("0 with numbers that differ", out)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+
     def folders(self, work, runs):
         for run, screens in runs.items():
             for name, rows in screens.items():

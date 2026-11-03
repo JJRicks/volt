@@ -219,6 +219,11 @@ def same_after_masking(base_value, head_value):
     for r1, r2 in zip(a_digits, b_digits):
         if {_padding(r1), _padding(r2)} == {"0", "1"}:
             return False
+    return _dates_kept(a_dates, b_dates)
+
+
+def _dates_kept(a_dates, b_dates):
+    """True when each numeric date keeps its year width and a day above 12 stays in its group."""
     for d1, d2 in zip(a_dates, b_dates):
         if len(d1) == 3 and len(d2) == 3 and len(d1[2]) != len(d2[2]):
             return False
@@ -304,11 +309,15 @@ def form(value):
 
 def same_form(base_value, head_value):
     """True when two texts differ at most in the values of their numbers: the same form (see form),
-    and no digit run turns from zero-padded to unpadded or back ("08:00" against "8:00")."""
+    no digit run turns from zero-padded to unpadded or back ("08:00" against "8:00"), and every
+    numeric date keeps its year width and day position, as same_after_masking requires ("23/10/2026"
+    against "10/23/2026", or "3/4/26" against "3/4/2026", is a format change, not a drifting number)."""
     if form(base_value) != form(head_value):
         return False
     pairs = zip(_DIGITS.findall(mask_ids(base_value)), _DIGITS.findall(mask_ids(head_value)))
-    return not any({_padding(a), _padding(b)} == {"0", "1"} for a, b in pairs)
+    if any({_padding(a), _padding(b)} == {"0", "1"} for a, b in pairs):
+        return False
+    return _dates_kept(masked(base_value)[3], masked(head_value)[3])
 
 
 def _match(wanted, offered):
