@@ -1,5 +1,6 @@
 # Hard-coded English in src/com/jjricks/volt/MoreScreen.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+helper	" is a development build. The latest release is "
 helper	" is available"
 helper	" is the latest release."
 helper	" · not affiliated with NAVEE"
@@ -174,6 +175,7 @@ helper	"Untested on "
 helper	"Unverified on "
 helper	"Use this scooter"
 helper	"View full notices"
+helper	"Volt "
 helper	"Volt "
 helper	"Volt "
 helper	"Volt "
