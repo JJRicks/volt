@@ -51,7 +51,36 @@ sources+=("$APP_DIR/src/com/jjricks/volt/FastChargeTaper.java" "$TEST_DIR/FastCh
 sources+=("$APP_DIR/src/com/jjricks/volt/ChargeAlertPolicy.java" "$TEST_DIR/ChargeAlertPolicyTest.java")
 # Notification spacing under Android's per-app enqueue rate limit.
 sources+=("$APP_DIR/src/com/jjricks/volt/NotificationPacer.java" "$TEST_DIR/NotificationPacerTest.java")
-javac --release 8 -encoding UTF-8 -d "$TEST_BUILD_DIR/classes" "${sources[@]}"
+# Localization (l10n/README.md): the generated text catalog (T, M, EnglishText, AppLanguages), the Msg
+# that M needs, and every tests/l10n/*.sources list. Each line of a list is a repository path to compile
+# ("#" starts a comment); every listed tests/l10n/**Test.java then runs from the repository root as
+# com.jjricks.volt.<Name>. Like build.sh, all of it waits for the first res/values/strings_*.xml, and a
+# batch adds its own .sources file instead of editing this script.
+l10n_tests=()
+if navee_l10n_active; then
+    L10N_GENERATED="$TEST_BUILD_DIR/generated"
+    rm -rf -- "$L10N_GENERATED"
+    python3 "$APP_DIR/tools/l10n/gen_catalog.py" --res "$APP_DIR/res" --lang "$APP_DIR/l10n/lang" --out "$L10N_GENERATED"
+    for name in T M EnglishText AppLanguages; do sources+=("$L10N_GENERATED/com/jjricks/volt/$name.java"); done
+    sources+=("$APP_DIR/src/com/jjricks/volt/Msg.java")
+    for list in "$TEST_DIR"/l10n/*.sources; do
+        [[ -f "$list" ]] || continue
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+            [[ -n "$line" ]] || continue
+            [[ -f "$APP_DIR/$line" && "$line" == *.java ]] || { echo "$list: not a Java file in this repository: $line" >&2; exit 1; }
+            sources+=("$APP_DIR/$line")
+            if [[ "$line" == tests/l10n/*Test.java ]]; then l10n_tests+=("$(basename -- "$line" .java)"); fi
+        done < "$list"
+    done
+fi
+# A list may name a source the lines above already compile; javac rejects a file given twice.
+unique_sources=(); seen_sources=$'\n'
+for source in "${sources[@]}"; do
+    case "$seen_sources" in *$'\n'"$source"$'\n'*) continue ;; esac
+    unique_sources+=("$source"); seen_sources+="$source"$'\n'
+done
+javac --release 8 -encoding UTF-8 -d "$TEST_BUILD_DIR/classes" "${unique_sources[@]}"
 for name in ChargeScheduleController ChargeScheduleTest ChargerDetection Protocol Telemetry ScooterCommands OwnerIdentityParser RideStore RideArchive PhoneRideStore DashboardLayout BatteryCapacityEstimate LearnedRangeEstimate ChargingEstimate OwnerCaptureEngine ScooterSimulation QuickAccessActions DisplayTemperature GaugeScaleInput RangeFollowPolicy RideChartData ChartScale ChargeSessionStore ChargeEstimateHistory ChargeChartData StatsFavouriteOrder AppDataArchive BackupExportCache ConnectionFeedbackState ChargeRecoveryPolicy ConnectionEventLog LockSliderGeometry; do
     java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.${name}Test"
 done
@@ -96,3 +125,5 @@ for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "co
 
 # build.sh versionName: dev marker, release flag, trees that aren't their own checkout.
 bash "$TEST_DIR/build-version-test.sh"
+# Localization suites from tests/l10n/*.sources (see above), from the repository root.
+for name in ${l10n_tests[@]+"${l10n_tests[@]}"}; do (cd "$APP_DIR" && java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"); done

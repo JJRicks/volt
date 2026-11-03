@@ -35,7 +35,7 @@ import com.jjricks.volt.ScooterService;
 /**
  * Fresh disposable emulator only. Captures the default UT5 MAX simulator on Home, the Scooter page,
  * settings search, Quick access and the More pages, with a view-tree dump next to each screenshot,
- * so two builds can be compared screen by screen. It uses only APIs that Volt 1.3.1 already has
+ * and a text census (TextCensus) beside it, so two builds can be compared screen by screen. It uses only APIs that Volt 1.3.1 already has
  * (the same file builds against the 1.3.1 baseline), the simulator builds no frames, and Bluetooth
  * must be off.
  */
@@ -120,27 +120,13 @@ public final class Ut5SimulationScreens extends Instrumentation {
         main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle(); SystemClock.sleep(700); settle();
         File dir = new File(getTargetContext().getExternalFilesDir(null), "compatibility-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory unavailable");
         String variant = arguments.getString("variant", "ut5").replaceAll("[^a-zA-Z0-9_.-]", "");
-        StringBuilder tree = new StringBuilder(); main(() -> dump(activity.getWindow().getDecorView(), 0, tree));
+        StringBuilder tree = new StringBuilder(); main(() -> TextCensus.dump(activity.getWindow().getDecorView(), 0, tree));
         try (FileOutputStream out = new FileOutputStream(new File(dir, variant + "-" + label + ".txt"))) { out.write(tree.toString().getBytes(StandardCharsets.UTF_8)); }
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         File file = new File(dir, variant + "-" + label + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath());
-    }
-    /** Shown views only: type, on-screen bounds, enabled/alpha, text and spoken description. */
-    private void dump(View view, int depth, StringBuilder out) {
-        if (!view.isShown()) return;
-        int[] at = new int[2]; view.getLocationOnScreen(at);
-        char[] indent = new char[depth * 2]; Arrays.fill(indent, ' ');
-        out.append(indent).append(view.getClass().getSimpleName()).append(" [").append(at[0]).append(',').append(at[1]).append(' ')
-                .append(view.getWidth()).append('x').append(view.getHeight()).append(']');
-        if (!view.isEnabled()) out.append(" disabled");
-        if (view.getAlpha() < 1f) out.append(" alpha=").append(String.format(Locale.US, "%.2f", view.getAlpha()));
-        if (view.getTag() instanceof String) out.append(" tag=").append(view.getTag());
-        if (view instanceof TextView && ((TextView)view).getText().length() > 0) out.append(" text=\"").append(((TextView)view).getText().toString().replace('\n', '|')).append('"');
-        if (view.getContentDescription() != null) out.append(" desc=\"").append(view.getContentDescription().toString().replace('\n', '|')).append('"');
-        out.append('\n');
-        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup)view).getChildCount(); i++) dump(((ViewGroup)view).getChildAt(i), depth + 1, out);
+        TextCensus.write(this, file);
     }
     private MoreScreen more() { Object screen = field(activity, "screen"); require(screen instanceof MoreScreen, "More screen is not active"); return (MoreScreen)screen; }
     private SharedPreferences settings() { return prefs("app_settings"); }

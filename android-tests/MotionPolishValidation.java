@@ -845,7 +845,7 @@ public final class MotionPolishValidation extends Instrumentation {
     private void save(Bitmap bitmap, String name) throws Exception {
         File file = new File(folder, variant + "-" + name + ".png");
         try (FileOutputStream out = new FileOutputStream(file)) { require(bitmap.compress(Bitmap.CompressFormat.PNG, 100, out), "PNG failed"); }
-        screenshots.add(file.getName());
+        screenshots.add(file.getName()); TextCensus.write(this, file);
     }
     private void reading(Map<String, TelemetryHistory.Reading> values, String key, String text, String unit, double value, long wall, boolean live) {
         values.put(key, new TelemetryHistory.Reading(key, key, "Synthetic fixture", text, unit, value, wall, live));

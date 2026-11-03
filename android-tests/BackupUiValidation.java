@@ -258,7 +258,7 @@ public final class BackupUiValidation extends Instrumentation {
     private void render(View view,String name){AtomicReference<Throwable> error=new AtomicReference<>();runOnMainSync(()->{try{
         android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(view.getWidth(),view.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);view.draw(new android.graphics.Canvas(bitmap));
         try(java.io.OutputStream out=new java.io.FileOutputStream(new File(getTargetContext().getExternalFilesDir(null),name))){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();}catch(Throwable e){error.set(e);}});
-        if(error.get()!=null)throw new RuntimeException(error.get());}
+        if(error.get()!=null)throw new RuntimeException(error.get());TextCensus.write(this,new File(getTargetContext().getExternalFilesDir(null),name));}
     private TextView text(View view,String wanted){if(view instanceof TextView&&wanted.contentEquals(((TextView)view).getText()))return(TextView)view;
         if(view instanceof ViewGroup){ViewGroup group=(ViewGroup)view;for(int i=0;i<group.getChildCount();i++){TextView found=text(group.getChildAt(i),wanted);if(found!=null)return found;}}return null;}
     private void clickText(View root,String wanted){View found=text(root,wanted);require(found!=null,"Missing text "+wanted);while(!found.isClickable()&&found.getParent()instanceof View)found=(View)found.getParent();require(found.performClick(),"Could not click "+wanted);}

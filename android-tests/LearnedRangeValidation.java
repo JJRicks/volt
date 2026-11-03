@@ -379,6 +379,7 @@ public final class LearnedRangeValidation extends Instrumentation {
         try {File dir=new File(getTargetContext().getExternalFilesDir(null),"learned-range-validation");require(dir.isDirectory()||dir.mkdirs(),"Screenshot directory");
             android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(view.getWidth(),view.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);view.draw(new android.graphics.Canvas(bitmap));
             try(FileOutputStream out=new FileOutputStream(new File(dir,name))){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}finally{bitmap.recycle();}
+            TextCensus.write(this,new File(dir,name));
         }catch(IOException error){throw new IllegalStateException(error);}
     }
     private SharedPreferences settings(){return getTargetContext().getSharedPreferences("app_settings",Context.MODE_PRIVATE);}

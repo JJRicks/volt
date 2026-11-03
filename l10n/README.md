@@ -117,6 +117,13 @@ and may not let an existing test call into a file it adds. So the plan's B0b is 
 `FmtLegacyTest` is not scaffolded in B0b: B1 adds it, whole, as a new file with `Fmt`. A later
 change to any of these tests is a tooling pull request of its own.
 
+Once a `res/values/strings_*.xml` exists, `tests/run.sh` generates the catalog (without
+`--android`), compiles it with `Msg`, then reads every `tests/l10n/*.sources` file: each line is a
+repository path to compile (`#` starts a comment; a hand-written `src/` class the batch's tests need,
+such as `UserFacingException` or B1's `Fmt`, is listed there too), and every listed
+`tests/l10n/**Test.java` runs from the repository root as `com.jjricks.volt.<Name>`. A batch adds
+its own `.sources` file (its characterization tests, its new suites) and never edits `tests/run.sh`.
+
 ## Doing a batch
 
 1. **Branch** from `main`. If the batch changes a template or the output of a pure class, make the
@@ -148,8 +155,21 @@ change to any of these tests is a tooling pull request of its own.
 6. **Prove it**: `tools/l10n/prove-english.sh origin/main` and paste its summary block into the PR
    description and the Codex handoff comment.
 7. **Census (G7)** on an English-pinned emulator: run the batch's sweep steps with `--census` for
-   the base and the head APK, then `python3 tools/l10n/census_diff.py base-dir head-dir`, and paste
-   its last line.
+   the base and the head APK, with the head's test APK both times, then
+   `python3 tools/l10n/census_diff.py base-out/census head-out/census`, and paste its last line.
+   For example:
+
+   ```sh
+   python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --census \
+       --app base.apk --runner head-runner.apk --out evidence/base --only live-stats --only dashboard
+   python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --census \
+       --app dist/volt.apk --runner head-runner.apk --out evidence/head --only live-stats --only dashboard
+   python3 tools/l10n/census_diff.py evidence/base/census evidence/head/census
+   ```
+
+   Use a new, empty `--out` each time, and sign both APKs with the same key as the test APK. The
+   test APK only uses public APIs and app classes that older builds have, so it censuses the base
+   APK too.
 
 **After a rebase** onto a `main` that moved lines, the ledger's base lines are stale. Run
 `python3 tools/l10n/extract.py relocate --base origin/main --batch b2-ui`: it moves every row whose
@@ -370,6 +390,29 @@ is `tag=<tag>` when the view has a String tag, else the class path with child in
 `x,y,width,height` or `-`. Backslash, tab, line feed and carriage return are escaped as `\\`, `\t`,
 `\n`, `\r`.
 
+Every validation's screenshot helper writes one next to its screenshot (`TextCensus.write`), and
+every runner script pulls it with the screenshot, so every sweep step that takes screenshots has a
+census; `run-release-sweep.py --census` copies them to `<out>/census/<step>/`. A census that cannot be
+taken leaves `<name>.census-error.txt` instead, which the sweep reports, as it does a screenshot with
+no census beside it. A PNG drawn from one view rather than taken of the windows
+(`ResponsiveDashboardValidation`'s card and gauge renders) is censused by `TextCensus.writeView`,
+which walks that view's tree (locators start at `render/`, bounds are relative to the view). Only a
+render that holds no text (`DeveloperSettingsValidation`'s switch thumbs) calls `TextCensus.skip`,
+which leaves `<name>.census-skip.txt` with the reason; the sweep accepts that and counts no screen
+for it. A runner's own `screencap` of the notification shade (`run-ride-auto-stop.py`) gets a
+census of the app's notifications only, which the validation takes with
+`TextCensus.writeNotifications` and the runner moves beside the PNG.
+`tools/l10n/test_census_coverage.py` fails when an `android-tests` method or runner script writes a
+PNG file without a census, or calls `TextCensus.skip` outside its list of text-free renders. Steps that take
+no screenshots (FirstConnection, Launch, PhoneRide and others) have no census, and the sweep names them: G7 proves nothing for those screens, so a batch that
+changes them needs a screenshot step first, and a `census_diff.py` result of `0 screen(s)` is not a
+pass. The report-only `locale-*` steps never join the census.
+
+Windows come from `WindowInspector` (API 29+): the activity's window first, then
+dialogs and popups (`dialog[<n>]/...`), whose framework title, message and button views are `title`,
+`message` and `button`, and whose list rows are `item`. Toasts are drawn by the system and are not in
+the census.
+
 `census_diff.py` masks the *values* of clock times, durations and dates and keeps their form: each
 number becomes `<n>`, a month or weekday becomes its form (`<MMM>`, `<MMMM>`, `<MMM:upper>`,
 `<EEE>`, `<EEEE>`), AM/PM keeps its case, and unit words stay as written (`<n> min`, `<n> hrs`).
@@ -380,6 +423,25 @@ unpadded (`05 min` against `5 min`), a numeric date keeps its year width, and a 
 move between a numeric date's first two groups. Bounds changes are reported without failing. A
 day/month swap with both groups 12 or under (`10/5` against `5/10`) is two valid dates and cannot
 be told apart from the text; that order is G10's to catch (Fmt keeps each call site's pattern).
+
+## Pseudo-locale checks
+
+`android-tests/LocaleValidation.java` sets en-XA or ar-XB from inside the app process
+(`LocaleManager.setApplicationLocales`, API 33+), walks the main pages and the More sections, and
+counts text that was not extracted (plain letters outside aapt's `[..]` groups), glued pieces (two
+`[..]` groups in one view), unfilled `%1$s`, ar-XB windows that are not right to left, and
+`TextFit`'s fit problems. During the migration it reports only. The sweep runs it as the `locale-*`
+steps when given the pseudo APK, whose `classes.dex` must equal the release APK's:
+
+```sh
+VOLT_PSEUDO_LOCALES=1 bash build.sh && bash android-tests/build.sh
+python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --app dist/volt.apk \
+    --pseudo-app build/pseudo/volt-pseudo.apk --runner "$RUNNER" --out evidence/pseudo \
+    --only locale-en-XA-344 --only locale-ar-XB-344
+```
+
+Every other step runs in English: the sweep aborts unless the emulator's system language is en-US,
+and clears any per-app language after each fresh install.
 
 ## Languages
 

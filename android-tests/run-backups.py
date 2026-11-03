@@ -79,7 +79,11 @@ try:
             raise SystemExit('A system "isn\'t responding" dialog has focus on ' + args.serial + '; dismiss it and run again')
         name = 'ui-' + case.replace(':', '-')
         instrument(name, 'BackupUiValidation', '-e', 'theme', theme)
-        run('pull', external + 'backup-categories.png', str(args.out / (name + '.png')), check=False)
+        # Both screenshots (backup categories, then the onboarding setup paths) and the text census beside
+        # each one (android-tests/TextCensus.java), for run-release-sweep.py --census.
+        for stem, target in (('backup-categories', name), ('setup-paths', name + '-setup-paths')):
+            for suffix in ('.png', '.census.tsv', '.census-error.txt'):
+                run('pull', external + stem + suffix, str(args.out / (target + suffix)), check=False)
     clear()
     # The maintenance journey binds the real service; Bluetooth itself stays disabled.
     for permission in ('BLUETOOTH_SCAN', 'BLUETOOTH_CONNECT', 'POST_NOTIFICATIONS'):

@@ -561,7 +561,7 @@ public final class SearchFocusValidation extends Instrumentation {
         File folder = new File(getTargetContext().getExternalFilesDir(null), "search-validation"); require(folder.isDirectory() || folder.mkdirs(), "Cannot create screenshot directory");
         String variant = arguments.getString("variant", "search").replaceAll("[^A-Za-z0-9_-]", ""); File file = new File(folder, variant + "-" + name + ".png");
         try (FileOutputStream stream = new FileOutputStream(file)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream); }
-        finally { bitmap.recycle(); } screenshots.add(file.getAbsolutePath());
+        finally { bitmap.recycle(); } screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
     private void cleanup() {
         if (!admitted) return;

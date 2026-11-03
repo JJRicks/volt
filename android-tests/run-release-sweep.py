@@ -18,9 +18,22 @@ left that way: on a read-only emulator it updates preinstalled apps, the keyboar
 minutes after every boot, replacing their processes mid-step, and re-enabling it between --only steps
 made the launcher reload into the next step. Heads-up notifications (Play services posts several after
 boot) are off while steps run: one slid over a Battery cell's border in a screencap.
+
+Localization (l10n/README.md). Every step runs Volt in English: the emulator's system language must be
+en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
+that every screenshot helper writes (android-tests/TextCensus.java) into <out>/census/<step>/, for
+tools/l10n/census_diff.py; run the same steps for a base and a head APK with the same test APK and
+compare the two census folders. A screenshot without a census, and a step with no census at all, are
+reported, since G7 then covers nothing there. --pseudo-app adds the pseudo-locale APK (VOLT_PSEUDO_LOCALES=1 build.sh,
+build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
+(LocaleValidation under en-XA and ar-XB). Those steps report only: their findings never fail the sweep,
+and without --pseudo-app they are skipped. They never join the census, so run them as their own
+sweep (own --out, no --census) rather than adding --pseudo-app to a G7 run.
 """
 import argparse
+import hashlib
 import json
+import shutil
 from pathlib import Path
 import re
 import subprocess
@@ -46,8 +59,10 @@ def runner(name, script, covers, *extra):
     return dict(name=name, kind='runner', script=script, covers=covers, extra=list(extra))
 
 
-def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False):
-    return dict(name=name, kind='inst', cls=cls, covers=[cls.rsplit('.', 1)[1]], extra=list(extra), grant=grant, size=size, hidden_api=hidden_api)
+def inst(name, cls, *extra, grant=ALL, size=None, hidden_api=False, pseudo=False):
+    """pseudo: install --pseudo-app instead of --app, and report the result without failing the sweep."""
+    return dict(name=name, kind='inst', cls=cls, covers=[cls.rsplit('.', 1)[1]], extra=list(extra), grant=grant, size=size, hidden_api=hidden_api,
+                pseudo=pseudo)
 
 
 T = PKG + '.tests.'
@@ -113,6 +128,12 @@ STEPS += [inst(name, cls) for name, cls in (
     ('map-tiles', PKG + '.MapTilesValidation'), ('history', T + 'HistoryValidation'),
     ('route-gesture', T + 'RouteGestureValidation'), ('search-focus', T + 'SearchFocusValidation'),
     ('ui-organization', T + 'UiOrganizationValidation'), ('update-check', T + 'UpdateCheckValidation'))]
+# Pseudo-locale text and layout checks (plan section 6.2): report only until the localization gate.
+for locale in ('en-XA', 'ar-XB'):
+    for size, theme, text in (PHONE, WIDE):
+        w = size.split('x')[0]
+        STEPS.append(inst(f'locale-{locale}-{w}', T + 'LocaleValidation', '-e', 'locale', locale, '-e', 'theme', theme, '-e', 'text_scale', text,
+                          '-e', 'variant', f'{locale}-{w}', size=size, pseudo=True))
 
 
 def registered():
@@ -132,6 +153,8 @@ parser.add_argument('--app', type=Path)
 parser.add_argument('--runner', type=Path)
 parser.add_argument('--out', type=Path)
 parser.add_argument('--only', action='append', help='step name (repeatable)')
+parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py')
+parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the report-only locale-* steps; its classes.dex must equal --app\'s')
 parser.add_argument('--list', action='store_true', help='print the steps and exit')
 args = parser.parse_args()
 missing = uncovered()
@@ -147,6 +170,17 @@ for flag in ('adb', 'serial', 'app', 'runner', 'out'):
 if not re.fullmatch(r'emulator-\d+', args.serial):
     parser.error('An explicit emulator serial is required; physical devices are refused')
 names = {step['name'] for step in STEPS}
+
+
+def dex_hash(apk):
+    import zipfile
+    with zipfile.ZipFile(apk) as archive:
+        return hashlib.sha256(archive.read('classes.dex')).hexdigest()
+
+
+if args.pseudo_app:
+    if dex_hash(args.pseudo_app) != dex_hash(args.app):
+        parser.error('--pseudo-app has a different classes.dex from --app; build both with the same build.sh run (VOLT_PSEUDO_LOCALES=1)')
 for name in args.only or []:
     if name not in names: parser.error(f'Unknown step {name}; see --list')
 prefix = [args.adb, '-s', args.serial]
@@ -160,6 +194,12 @@ def adb(*values, check=True, timeout=240):
 
 if adb('shell', 'getprop', 'ro.kernel.qemu').strip() != '1' or adb('shell', 'getprop', 'sys.boot_completed').strip() != '1':
     raise SystemExit('A booted disposable emulator is required')
+# English pin: the steps assert English text, and the census compares English. Volt follows the system
+# language (System default), so the emulator itself must be en-US.
+SYSTEM_LOCALE = adb('shell', 'getprop', 'persist.sys.locale').strip() or adb('shell', 'getprop', 'ro.product.locale').strip()
+if SYSTEM_LOCALE != 'en-US':
+    raise SystemExit(f'The emulator\'s system language is {SYSTEM_LOCALE or "unknown"}; set it to English (United States) first')
+SDK = int(adb('shell', 'getprop', 'ro.build.version.sdk').strip() or 0)
 args.out.mkdir(parents=True, exist_ok=True)
 
 
@@ -220,10 +260,36 @@ def await_settled(quiet=60, limit=600):
         time.sleep(5)
 
 
-def fresh(grant):
+def fresh(grant, app=None):
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
-    adb('install', '--no-incremental', str(args.app.resolve())); adb('install', '--no-incremental', str(args.runner.resolve()))
+    adb('install', '--no-incremental', str((app or args.app).resolve())); adb('install', '--no-incremental', str(args.runner.resolve()))
+    # English reset: no per-app language survives into a step (API 33+; uninstalling already clears it below).
+    if SDK >= 33: adb('shell', f"cmd locale set-app-locales {PKG} --locales ''", check=False)
     for permission in grant: adb('shell', 'pm', 'grant', PKG, 'android.permission.' + permission, check=False)
+
+
+def gather_census(step_name):
+    """Copies a step's census files into <out>/census/<step>/; returns (screens, problems).
+
+    A problem is a census that could not be taken or a screenshot with no census beside it (a helper
+    that does not call TextCensus.write, or a runner that does not pull the census files). A
+    <name>.census-skip.txt (TextCensus.skip, for a render that holds no text) stands in for the
+    census and counts no screen.
+    """
+    source, target = args.out / step_name, args.out / 'census' / step_name
+    screens, errors = 0, []
+    if not source.is_dir(): return screens, errors
+    for path in sorted(source.rglob('*')):
+        if path.name.endswith('.census.tsv') or path.name.endswith('.census-error.txt'):
+            destination = target / path.relative_to(source); destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, destination)
+            if path.name.endswith('.census.tsv'): screens += 1
+            else: errors.append(f'{path.relative_to(source)}: {path.read_text(errors="replace").strip()[:200]}')
+        elif path.suffix == '.png':
+            stem = path.with_suffix('')
+            if not any(stem.with_name(stem.name + s).exists() for s in ('.census.tsv', '.census-error.txt', '.census-skip.txt')):
+                errors.append(f'{path.relative_to(source)}: no census beside this screenshot')
+    return screens, errors
 
 
 def run_step(step):
@@ -232,12 +298,14 @@ def run_step(step):
                    '--app', str(args.app), '--runner', str(args.runner), '--out', str(args.out / step['name'])] + step['extra']
         result = subprocess.run(command, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=7200)
         return result.returncode == 0, result.stdout
+    if step['pseudo'] and not args.pseudo_app:
+        return True, 'skipped: give --pseudo-app (build/pseudo/volt-pseudo.apk) to run the pseudo-locale checks'
     if step['size']:
         w, h = map(int, step['size'].split('x'))
         adb('shell', 'wm', 'density', '480'); adb('shell', 'wm', 'size', f'{w * 3}x{h * 3}')
     if step['hidden_api']: adb('shell', 'settings', 'put', 'global', 'hidden_api_policy', '1')
     try:
-        fresh(step['grant'])
+        fresh(step['grant'], args.pseudo_app if step['pseudo'] else None)
         output = adb('shell', 'am', 'instrument', '-w', '-r', *step['extra'], f'{PKG}.tests/{step["cls"]}', check=False, timeout=1800)
     finally:
         # Screenshots live in the app's files; keep them (failures too) before the next install removes them.
@@ -274,10 +342,21 @@ try:
             try: output += ''.join(f'\nANR during step: {anr}' for anr in anrs_since(mark))
             except Exception as error: output += f'\nANR log unavailable: {error}'
         (args.out / f'{step["name"]}.txt').write_text(output)
-        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count)=\d+', output)[:4])
+        report_only = step.get('pseudo', False)
+        detail = ' '.join(re.findall(r'(?:assertions|checks|check_count|screens|unextracted|glued|unfilled|fit_problems|direction_problems)=\d+', output)[:8])
+        if output.startswith('skipped:'): detail = output
         error = re.search(r'error=(.{0,240})', output)
-        results.append(dict(step=step['name'], passed=passed, seconds=round(time.monotonic() - started)))
-        print(f'{step["name"]}: {"PASS" if passed else "FAIL"} {detail}' + ('' if passed or not error else f' :: {error.group(1)}'), flush=True)
+        result = dict(step=step['name'], passed=passed or report_only, seconds=round(time.monotonic() - started))
+        label = ('REPORT' if passed else 'REPORT (did not finish)') if report_only else 'PASS' if passed else 'FAIL'
+        if report_only: result['report_only'] = True
+        # Report-only pseudo-locale steps are not English, so they never join the G7 census.
+        if args.census and not report_only:
+            screens, census_errors = gather_census(step['name'])
+            result['census_screens'], result['census_errors'] = screens, census_errors
+            detail += f' census={screens}' + (f' census_errors={len(census_errors)}' if census_errors else '')
+            if not screens: detail += ' (no screenshots: this step proves nothing for G7)'
+        results.append(result)
+        print(f'{step["name"]}: {label} {detail}' + ('' if passed or not error else f' :: {error.group(1)}'), flush=True)
 finally:
     for package in (PKG + '.tests', PKG): adb('uninstall', package, check=False)
     adb('shell', 'wm', 'size', 'reset', check=False); adb('shell', 'wm', 'density', 'reset', check=False)
@@ -289,4 +368,10 @@ finally:
     (args.out / 'summary.json').write_text(json.dumps(results, indent=2) + '\n')
 failed = [r['step'] for r in results if not r['passed']]
 print(f'{len(results) - len(failed)}/{len(results)} steps passed' + (': failed ' + ', '.join(failed) if failed else ''))
+if args.census:
+    census_errors = [f'{r["step"]}/{e}' for r in results for e in r.get('census_errors', [])]
+    empty = [r['step'] for r in results if 'census_screens' in r and not r['census_screens']]
+    print(f'census: {sum(r.get("census_screens", 0) for r in results)} screen(s) in {args.out / "census"}'
+          + (f'; {len(census_errors)} problem(s): ' + '; '.join(census_errors[:5]) if census_errors else '')
+          + (f'; no census from {len(empty)} step(s) (G7 covers nothing there): ' + ', '.join(empty) if empty else ''))
 raise SystemExit(1 if failed else 0)

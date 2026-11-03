@@ -78,7 +78,8 @@ if args.render:
             output = run('shell', 'am', 'instrument', '-w', '-e', 'mode', args.render_mode, '-e', 'theme', theme, RUNNER, check=False)
             folder = args.out / case.replace(':', '-'); folder.mkdir(exist_ok=True); (folder / 'render.txt').write_text(output)
             # Every screen this mode rendered (damaged and Scooters-only modes add their own), before the next case clears them.
-            for image in re.findall(r'restore-[a-z-]+\.png', run('shell', 'ls', external, check=False)):
+            # ... and the text census beside each one (android-tests/TextCensus.java), for run-release-sweep.py --census.
+            for image in re.findall(r'restore-[a-z-]+\.(?:png|census\.tsv|census-error\.txt)', run('shell', 'ls', external, check=False)):
                 run('pull', external + image, str(folder / image), check=False)
             passed = 'result=PASS' in output; results.append(passed)
             print(f'{case}: {"PASS" if passed else "FAIL"}', flush=True)
