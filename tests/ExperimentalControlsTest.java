@@ -40,11 +40,16 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         String[] ut5Lab={"acceleration","speed_limit","dual_drive","drive_speed_limit","long_range_mode","overspeed_control","prompt_tone"};
         expect("UT5 MAX",ut5(),ut5Lab);
         expect("N65i 22131",model("22131"),"start_speed","traction_control","hill_start_assist","parking_assist","hill_descent_control","turn_sound","prompt_tone","speed_limit");
-        // Traction control is unmapped on the ST3 Pro (a partial OEM trace), but its owners verified it, so it is an ordinary control there.
+        // Traction control is OEM-mapped on the ST3 Pro (version 18) and its owners verified it, so it is an ordinary, verified control there.
         expect("ST3 Pro 23452",model("23452"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
-        expect("Group S 24431",model("24431"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
+        expect("Group S 24431",model("24431"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
+        // The GT3 Max (24182, group C): its official app sends traction control (version 18), so it leaves Experimental controls.
+        expect("GT3 Max 24182 ES",OemControlsTest.model("24182","ES"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
+        CapabilityResolver.Decision gt3Tcs=ordinary("traction_control",OemControlsTest.model("24182","ES"));
+        check(gt3Tcs.available()&&gt3Tcs.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&!gt3Tcs.variant.lab&&!tryNow("traction_control",OemControlsTest.model("24182","ES"),data(),parked()).experimental(),
+            "GT3 Max traction control is an ordinary OEM-mapped row, never a try: "+gt3Tcs);
         // GT5 Max (25462, group 2545): the official app offers kick-start speed there, so Standing start stays an ordinary Scooter row.
-        expect("GT5 Max 25462",model("25462"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
+        expect("GT5 Max 25462",model("25462"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
         CapabilityResolver.Decision gt5Start=ordinary("start_speed",model("25462"));
         check(gt5Start.available()&&gt5Start.allows(0)&&!gt5Start.variant.lab&&ModelRegistry.modelName(model("25462")).equals("GT5 Max"),"A US GT5 Max keeps Standing start in Scooter settings: "+gt5Start);
         // The owner's EU GT5 Max: kick-start 3–5 km/h as its official app, still in Scooter settings; no Top speed, and nothing moves to Experimental.
@@ -53,7 +58,7 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         check(euStart.available()&&!euStart.allows(0)&&!euStart.allows(2)&&euStart.allows(3)&&!euStart.variant.lab,"EU GT5 Max kick-start is 3–5 km/h in Scooter settings: "+euStart);
         check(ordinary("maximum_speed",gt5Eu).reason==CapabilityResolver.Reason.REGION_RULE&&!tryNow("maximum_speed",gt5Eu,data(),parked()).experimental(),"EU GT5 Max: no Top speed, never an experiment");
         check(ordinary("cruise_control",gt5Eu).available()&&ordinary("cruise_control",gt5Eu).evidence==CapabilityResolver.Evidence.VOLT_VERIFIED,"EU GT5 Max keeps its owner-verified cruise control");
-        expect("GT5 Max 25462 EU",gt5Eu,"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
+        expect("GT5 Max 25462 EU",gt5Eu,"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit");
         expect("2573",model("25731"),"cruise_control","traction_control","hill_start_assist","parking_assist","hill_descent_control","turn_sound","prompt_tone");
         expect("Group M 25041",model("25041"),"cruise_control","traction_control","headlight","auto_sensor","turn_sound","hill_start_assist","parking_assist",
             "hill_descent_control","prompt_tone");
@@ -163,8 +168,12 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             }
             System.out.println("Experimental order "+(ModelRegistry.modelLine(d).isEmpty()?d.rulePid():ModelRegistry.modelLine(d))+": "+shown.toString().trim());
         }
-        // The N65i: turn-signal sound and kick-start (common on other models) lead; the assists tie and follow the owner list.
+        // The N65i: traction control, kick-start and turn-signal sound (common on other models) lead; the assists tie and
+        // follow the owner list. The exact order is pinned because the emulator's GuidedTestValidation (experimental mode)
+        // compares the Experimental controls rows in order; change both together.
         List<String> n65i=ModelRegistry.experimental(model("22131"));
+        check(n65i.equals(Arrays.asList("traction_control","start_speed","turn_sound","speed_limit","hill_start_assist","parking_assist","hill_descent_control","prompt_tone")),
+            "N65i Experimental controls order matches GuidedTestValidation "+n65i);
         check(n65i.indexOf("hill_start_assist")<n65i.indexOf("parking_assist")&&n65i.indexOf("parking_assist")<n65i.indexOf("hill_descent_control"),"Ties follow TRY_PRIORITY "+n65i);
         check(n65i.indexOf("prompt_tone")==n65i.size()-1,"The rarest control comes last "+n65i);
         int[] none=ModelRegistry.offeredElsewhere("drive_speed_limit",ut5());check(none[2]==0,"Drive-mode cap is mapped on no other model");

@@ -126,11 +126,12 @@ public final class ModelRegistryTest {
             check(named.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED&&plain.evidence==CapabilityResolver.Evidence.OEM_MAPPED
                 &&named.support==plain.support&&named.variant==plain.variant,"Owner-verified on the ST3 Pro only: "+f);
         }
-        // Traction control isn't in the official app's map for the ST3 Pro; its owners' tries make it an ordinary verified control there only.
+        // Traction control is in the official app's map for the ST3 Pro's group (version 18); its owners' tries make it Volt-verified there only.
         ModelRegistry.Rule tcs=ModelRegistry.rule("traction_control",st3,null,null),tcsSibling=ModelRegistry.rule("traction_control",sibling,null,null);
         check(tcs.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcs.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED&&tcs.variant==ModelRegistry.OEM_TCS
             &&!tcs.variant.lab,"ST3 Pro traction control is a verified control with the official encoding");
-        check(tcsSibling.support==CapabilityResolver.Support.UNKNOWN_MAPPING&&tcsSibling.reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"A sibling ID stays not mapped");
+        check(tcsSibling.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcsSibling.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&tcsSibling.variant==tcs.variant,
+            "A sibling ID has the same OEM-mapped row, not verified");
         check(ModelRegistry.reported(st3)&&ReportInvite.model(st3).isEmpty(),"A US owner's report confirmed the ST3 Pro: it is reported and no longer offered");
         // The GT5 Max: named from an owner's report (25462, EU), so it is reported and no longer offered the report.
         DeviceDescriptor gt5=advertised("25462"),gt5Sibling=advertised("25461");
@@ -197,6 +198,10 @@ public final class ModelRegistryTest {
         }
         // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
         check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
+        // Version 18: the owner's recording showed the official app sending traction control; it is an ordinary OEM-mapped row (not verified).
+        ModelRegistry.Rule tcs=ModelRegistry.rule("traction_control",gt3,null,null);
+        check(tcs.support==CapabilityResolver.Support.KNOWN_ENCODING&&tcs.reason==CapabilityResolver.Reason.NONE&&tcs.evidence==CapabilityResolver.Evidence.OEM_MAPPED
+            &&tcs.variant==ModelRegistry.OEM_TCS&&tcs.oemNote.isEmpty(),"The Spanish GT3 Max's traction control is the official row: "+tcs.evidence);
         // The same owner's log: maximum speed and kick-start 2 and 1 acknowledged, then read back unchanged. Version 17 follows the
         // official app's region rules instead: no Top speed in ES and kick-start 3–5 km/h, so neither needs an Unconfirmed label.
         ModelRegistry.Rule top=ModelRegistry.rule("maximum_speed",gt3,null,null),start=ModelRegistry.rule("start_speed",gt3,null,null);
@@ -314,7 +319,7 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==17,"Registry version records the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
+        check(ModelRegistry.VERSION==18,"Registry version records traction control wherever the official app shows it and the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");
