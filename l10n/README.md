@@ -130,6 +130,21 @@ such as `UserFacingException` or B1's `Fmt`, is listed there too), and every lis
 `tests/l10n/**Test.java` runs from the repository root as `com.jjricks.volt.<Name>`. A batch adds
 its own `.sources` file (its characterization tests, its new suites) and never edits `tests/run.sh`.
 
+## The runtime (B0b)
+
+- `VoltApp` (the manifest's Application) installs `AndroidText` as `T`'s source in
+  `attachBaseContext`, before any Activity, Service or ContentProvider starts, and again on every
+  configuration change. Until then, and if that fails, `T` reads `EnglishText`.
+- `AppLanguage` holds the language choice (`app_settings/app_language`, `""` for System default,
+  excluded from backups). With System default, which is every installation until the Language row
+  ships, `wrap` returns its argument and `resources` returns the application's own Resources.
+- `Msg` is a deferred message (`M.<key>(...)`, `Msg.verbatim(name)` for text that is not from the
+  catalog). It is a `CharSequence`, renders when read, and `english()` gives the English whatever is
+  installed. `UserFacingException(Msg)` keeps English in `getMessage()`; screens show `msg()`.
+- `ScreenHost.toast(Msg)` and `sheetContent(Msg, Msg, close)` render at display time.
+- The Shizuku shell process (`OwnerCaptureUserService` and everything it reaches) never uses any of
+  these; `tests/l10n/CatalogUsageTest` checks that, and rules R2 to R6.
+
 ## Doing a batch
 
 1. **Branch** from `main`. If the batch changes a template or the output of a pure class, make the
@@ -463,6 +478,9 @@ The translation tools follow plan 7.1-7.4. Drafts come from **three providers**:
 agents, which write draft files), OpenAI and Google Gemini (called by `council.py` over HTTPS). A
 language runs area by area once the migration gate has passed, D3 has frozen the English terms and
 the owner has confirmed the language's decisions below.
+
+The Language row (plan section 5) stays hidden, and `AndroidManifest.xml` names
+`res/xml/locales_config.xml` only from the first language pull request.
 
 ### Decisions per language
 

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Number and unit templates (plan section 4.2). Fmt (B1) fills them; each language owns the order and
+  spacing. Numbers arrive already formatted, as %n$s.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- A percentage: %1$s is the number. French puts a narrow no-break space before %; Turkish puts % first. -->
+    <string name="fmt_percent" volt:purpose="number format">%1$s%%</string>
+    <!-- A value and its unit symbol, such as "12.5 km". %1$s is the number, %2$s the unit. -->
+    <string name="fmt_quantity" volt:purpose="number format">%1$s %2$s</string>
+    <!-- A range with one unit, such as "10–25 km/h". %1$s and %2$s are the numbers, %3$s the unit. -->
+    <string name="fmt_range" volt:purpose="number format">%1$s–%2$s %3$s</string>
+    <!-- Two unit systems at once, such as "7.8 mi / 12.5 km". -->
+    <string name="fmt_dual" volt:purpose="number format">%1$s / %2$s</string>
+</resources>

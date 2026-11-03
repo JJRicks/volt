@@ -79,6 +79,8 @@ final class BackupRegistry {
         for (String key : "more_wide_menu_scroll more_away_boot stats_away_boot".split(" ")) exclude(app, key, Integer.class, DEVICE);
         exclude(app, "more_away_elapsed", Long.class, DEVICE);exclude(app, "stats_away_elapsed", Long.class, DEVICE);
         exclude(app, "dashboard_editing", Boolean.class, DEVICE);
+        // The language choice belongs to this phone; on Android 13 and later the system owns it (AppLanguage).
+        exclude(app, "app_language", String.class, DEVICE);exclude(app, "app_language_migrated", Boolean.class, DEVICE);
         add("profiles", "items", String.class, SCOOTERS);add("profiles", "active", String.class, SCOOTERS);add("profiles", "legacy_migrated", Boolean.class, SCOOTERS);
         // The pre-profile setup is read only by a one-time migration: exact restores keep it, merges never do.
         for (String key : "identity mac serial last_connected_mac".split(" ")) RULES.add(new Rule("scooter", key, false, String.class, SCOOTERS, null, false, false, true));

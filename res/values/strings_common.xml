@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared words and sentences used on many screens (l10n/README.md). B0b adds them unused; each
+  migration batch points its own call sites at them. The English must stay exactly what the source
+  says today.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Which language folder resolved. The pipeline writes it for each language; it is never sent to
+         translators, and anything that is not an exact shipped tag counts as English. -->
+    <string name="l10n_tag">en</string>
+
+    <!-- Dismisses a sheet or dialog without changing anything. -->
+    <string name="common_cancel" volt:screen="Sheets and dialogs" volt:purpose="button">Cancel</string>
+    <!-- Acknowledges a message. -->
+    <string name="common_ok" volt:screen="Dialogs" volt:purpose="button">OK</string>
+    <!-- Closes a sheet, dialog or panel. -->
+    <string name="common_close" volt:screen="Sheets and dialogs" volt:purpose="button">Close</string>
+    <!-- Finishes editing or a finished step. -->
+    <string name="common_done" volt:screen="Sheets and editors" volt:purpose="button">Done</string>
+    <!-- Spoken state of the chosen option in a segmented selector or list. -->
+    <string name="common_selected" volt:screen="Segmented selectors" volt:purpose="accessibility state">Selected</string>
+    <!-- A switch or setting that is turned on. -->
+    <string name="common_on" volt:screen="Settings and controls" volt:purpose="value">On</string>
+    <!-- A switch or setting that is turned off. -->
+    <string name="common_off" volt:screen="Settings and controls" volt:purpose="value">Off</string>
+    <!-- The scooter did not report this reading. -->
+    <string name="common_not_reported" volt:screen="Readings" volt:purpose="value">Not reported</string>
+    <!-- Retries a step that failed. -->
+    <string name="common_try_again" volt:screen="Errors" volt:purpose="button">Try again</string>
+    <!-- No scooter profile exists yet. -->
+    <string name="common_no_scooter" volt:screen="Home and connection" volt:purpose="status">No scooter set up</string>
+    <!-- A charging control needs the charger plugged in. -->
+    <string name="common_connect_charger_first" volt:screen="Charging controls" volt:purpose="reason"
+        volt:safety="charge">Connect a charger first</string>
+    <!-- Another scooter setting change is still being written and checked. -->
+    <string name="common_wait_current_change" volt:screen="Scooter controls" volt:purpose="reason">Wait for the current change to finish</string>
+    <!-- A restore failed part-way; clearing app storage would lose the rollback copy. -->
+    <string name="common_restore_failed" volt:screen="Back up and restore" volt:purpose="error"
+        volt:dnt="Volt">Restore failed. Reopen Volt. Don\'t clear storage.</string>
+</resources>

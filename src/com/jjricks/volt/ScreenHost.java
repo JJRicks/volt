@@ -5,6 +5,8 @@ import java.io.File;
 public interface ScreenHost {
     Activity activity(); Ui ui(); ScooterService service();
     void redraw(); void rebuild(); void toast(String text); void connect();
+    /** A catalog message as a toast, rendered now in the current language. */
+    default void toast(Msg message) { toast(message.render()); }
     void requestBluetooth(); void importOwner();
     void requestRideLocation(Runnable ready);
     void saveText(String name,String mime,String content);
@@ -15,6 +17,10 @@ public interface ScreenHost {
     default void dataBackup(Boolean restore, String preselect) { }
     /** A Volt bottom sheet: its body (grab handle, title, close) and the shown sheet around that body. */
     android.widget.LinearLayout sheetContent(String title, String explanation, Runnable close);
+    /** The same sheet body with catalog text, rendered now; explanation may be null. */
+    default android.widget.LinearLayout sheetContent(Msg title, Msg explanation, Runnable close) {
+        return sheetContent(title.render(), explanation == null ? null : explanation.render(), close);
+    }
     android.app.AlertDialog showSheet(android.view.View content);
     default void exportDashboardLayouts() { }
     default void importDashboardLayouts() { }
