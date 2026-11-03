@@ -272,6 +272,14 @@ public final class ChargeEstimateValidation extends Instrumentation {
         store().start(profile,ChargeSessionStore.Charger.STOCK,wall+10800000,mono+10800000);
         require(store().sample(frame(wall+10800000,mono+10800000,99),new ChargeSessionStore.Estimate("tiny-fixture",Double.MIN_VALUE,null,100d,ChargeSessionStore.Source.CURRENT_RATE,null,0)),"Tiny sample rejected");
         store().stop(ChargeSessionStore.Stop.STOPPED);tinyId=recordingAt(mono+10800000);
+        // G7: the history lists the newest file first (ChargeSessionStore sorts by modification time, then by the
+        // random file name), and five files written within a second listed in any order. Fixed times, an hour apart
+        // in the order seeded, keep the list and its screenshot the same on every run.
+        String[] seeded={completeId,partialId,legacyId,extremeId,tinyId};
+        for(int i=0;i<seeded.length;i++)
+            require(new File(getTargetContext().getFilesDir(),"charge-recordings/"+seeded[i]+".csv").setLastModified(wall+i*3600000L),"Fixture recording time not set");
+        List<String> listed=new ArrayList<>();for(ChargeSessionStore.HistorySession session:store().recordings(profile))listed.add(session.id);
+        require(listed.equals(Arrays.asList(tinyId,extremeId,legacyId,partialId,completeId)),"Fixture history order is not fixed: "+listed);
     }
     /** Capture labels never drive Automatic: every model keeps the live rate without detection. */
     private void verifyRecordingsStayLabels()throws Exception{

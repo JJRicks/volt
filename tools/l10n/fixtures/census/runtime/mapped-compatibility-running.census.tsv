@@ -1,0 +1,35 @@
+volt-text-census-v1
+text	tag=simulation-banner	0,72,1032,144	Simulation · Exit
+desc	tag=simulation-banner	0,72,1032,144	Simulation, sample data. Tap to exit simulation.
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,246,924,62	Connected · Synthetic compatibility fixture
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,246,924,62	Connected. Connection details
+tooltip	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,246,924,62	Connection details
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[1]	54,308,924,120	More
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]	54,464,454,144	Back to Developer options
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/IconView[0]	54,512,48,48	back
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/TextView[1]	114,503,352,66	Developer options
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/TextView[1]	54,608,924,126	Compatibility
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[0]	96,776,840,80	Model 24431
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[1]	96,856,840,89	Simulated scooter
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[2]	96,945,840,79	Model ID · Advertised
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[3]	96,1024,840,79	Region · Unknown
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[4]	96,1103,840,79	Firmware · Not read yet
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/LinearLayout[0]/TextView[5]	96,1182,840,79	Rules · OEM-mapped (untested)
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/TextView[1]	54,1351,924,144	Run check
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/TextView[1]	54,1351,924,144	Run check
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[10]/LinearLayout[0]/TextView[2]	54,1513,924,249	The check only reads. Tries are in More › Experimental controls, and the report includes their results. Never changes firmware.
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	Home
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/IconView[0]	105,2415,63,63	home
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	Live Stats
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]/IconView[0]	294,2415,63,63	stats
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	Rides
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]/IconView[0]	673,2415,63,63	rides
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	More
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	Selected
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]/IconView[0]	863,2415,63,63	more
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	Scooter
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]/IconView[0]	478,2392,75,75	scooter

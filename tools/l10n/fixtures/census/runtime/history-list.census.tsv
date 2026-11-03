@@ -1,0 +1,93 @@
+volt-text-census-v1
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Disconnected
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Disconnected. Connection details
+tooltip	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Connection details
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[1]	54,164,924,120	More
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]	54,320,203,144	Back to More
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/IconView[0]	54,368,48,48	back
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/TextView[1]	114,359,101,66	More
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/TextView[1]	54,464,924,126	Developer options
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[0]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,623,645,71	Compatibility checker
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[0]/LinearLayout[0]/LinearLayout[1]/TextView[1]	228,694,645,63	Model check & report
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[0]/LinearLayout[0]/IconView[3]	897,667,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[1]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,853,510,151	Simulate scooter as connected
+desc	tag=developer-simulation-toggle	774,856,168,144	Simulate scooter as connected
+state	tag=developer-simulation-toggle	774,856,168,144	Off
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[1]/LinearLayout[2]/LinearLayout[1]/TextView[0]	228,1085,440,71	Simulated model
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[1]/LinearLayout[2]/TextView[2]	698,1089,175,64	UT5 MAX
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[1]/LinearLayout[2]/IconView[3]	897,1098,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/TextView[3]	54,1244,924,111	Charge recording
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/TextView[4]	54,1355,924,77	Charger for estimates
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[0]	66,1444,254,144	Auto
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[0]	66,1444,254,144	Charger for estimates: Auto
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[0]	66,1444,254,144	Selected
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[1]	320,1444,269,144	Stock
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[1]	320,1444,269,144	Charger for estimates: Stock
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[1]	320,1444,269,144	
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[2]	589,1444,377,144	High-speed
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[2]	589,1444,377,144	Charger for estimates: High-speed
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/SegmentedSelector[5]/Track[0]/TextView[2]	589,1444,377,144	
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/TextView[6]	54,1636,924,225	Auto recognizes UT5 MAX chargers from live power. If uncertain, Volt uses the current rate; choose a charger to override.
+desc	tag=charge-learning-status	54,1861,924,209	Saved charge curves not applied until the charger is known
+tooltip	tag=charge-learning-status	54,1861,924,209	A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings.
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[7]/LinearLayout[0]/TextView[0]	96,1903,803,66	Saved charge curves
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[7]/LinearLayout[0]/TextView[1]	899,1903,37,66	—
+text	tag=charge-learning-scope	96,1969,840,59	Not applied until the charger is known
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[8]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,2157,645,71	Record this charge
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[8]/LinearLayout[0]/IconView[3]	897,2170,45,45	chevron
+text	tag=charge-capture-status	54,2316,924,93	Connect your scooter first
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,2442,645,71	Charge recordings
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[0]/LinearLayout[1]/TextView[1]	228,2513,645,63	Saved estimates & finish times
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[0]/IconView[3]	897,2486,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[2]/LinearLayout[1]/TextView[0]	228,2633,645,71	Export charge recordings
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[2]/LinearLayout[1]/TextView[1]	228,2704,645,63	JSON · this scooter
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[2]/IconView[3]	897,2677,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[4]/LinearLayout[1]/TextView[0]	228,2824,645,151	Clear this scooter's charge recordings
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[10]/LinearLayout[4]/IconView[3]	897,2877,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/TextView[11]	54,3038,924,111	Test layouts
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[12]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,3206,645,71	Load All widgets into slot 3
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[12]/LinearLayout[0]/IconView[3]	897,3219,45,45	chevron
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[13]/LinearLayout[0]/LinearLayout[1]/TextView[0]	228,3422,645,71	Hide developer options
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[8]/LinearLayout[13]/LinearLayout[0]/IconView[3]	897,3435,45,45	chevron
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	Home
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/IconView[0]	105,2415,63,63	home
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	Live Stats
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]/IconView[0]	294,2415,63,63	stats
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	Rides
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]/IconView[0]	673,2415,63,63	rides
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	More
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	Selected
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]/IconView[0]	863,2415,63,63	more
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	Scooter
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]/IconView[0]	478,2392,75,75	scooter
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,109,798,94	Charge recordings
+desc	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/FrameLayout[1]	870,84,144,144	Close charge recordings
+desc	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/FrameLayout[1]/IconView[0]	910,124,63,63	close
+desc	tag=charge-history-session:fc37a2e3-bbc0-4b48-aee7-6e6cff323d80	48,264,936,300	Jan 1, 2025 · 16:59, Stock charger · 99% → 100%, 100% observed
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	96,306,840,75	Jan 1, 2025 · 16:59
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[0]/TextView[1]	96,381,840,72	Stock charger · 99% → 100%
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[0]/TextView[2]	96,453,840,69	100% observed
+desc	tag=charge-history-session:714be932-bf8a-4cc2-89ed-06c7d1288dac	48,594,936,300	Jan 1, 2025 · 16:59, Stock charger · 99% → 100%, 100% observed
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[1]/TextView[0]	96,636,840,75	Jan 1, 2025 · 16:59
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[1]/TextView[1]	96,711,840,72	Stock charger · 99% → 100%
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[1]/TextView[2]	96,783,840,69	100% observed
+desc	tag=charge-history-session:3e1e8346-10c3-40e0-8a43-2fa216c4cd57	48,924,936,300	Jan 1, 2025 · 18:59, Stock charger · 60% → 60%, Finish not observed
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[2]/TextView[0]	96,966,840,75	Jan 1, 2025 · 18:59
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[2]/TextView[1]	96,1041,840,72	Stock charger · 60% → 60%
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[2]/TextView[2]	96,1113,840,69	Finish not observed
+desc	tag=charge-history-session:246795d4-a2b0-4011-a4a2-70defcda8037	48,1254,936,300	Jan 1, 2025 · 17:59, Stock charger · 60% → 60%, Finish not observed
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[3]/TextView[0]	96,1296,840,75	Jan 1, 2025 · 17:59
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[3]/TextView[1]	96,1371,840,72	Stock charger · 60% → 60%
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[3]/TextView[2]	96,1443,840,69	Finish not observed
+desc	tag=charge-history-session:061f4eba-5985-4c5f-88b3-397ef9bc9496	48,1584,936,300	Jan 1, 2025 · 19:59, Stock charger · 99% → 99%, Finish not observed
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[4]/TextView[0]	96,1626,840,75	Jan 1, 2025 · 19:59
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[4]/TextView[1]	96,1701,840,72	Stock charger · 99% → 99%
+text	dialog[1]/DecorView/LinearLayout[0]/FrameLayout[1]/LinearLayout[0]/ScrollView[1]/LinearLayout[0]/LinearLayout[4]/TextView[2]	96,1773,840,69	Finish not observed
+notif-channel	notification:scooter/71	-	Scooter connection & recording
+notif-title	notification:scooter/71	-	Volt
+notif-text	notification:scooter/71	-	Simulation off
+notif-action	notification:scooter/71	-	Disconnect
