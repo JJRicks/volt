@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Volt's shipped languages (status beta or stable in l10n/lang/*.tsv), kept by hand; CatalogCheckTest
+     keeps it equal to those files and the res/values-* folders. AndroidManifest.xml names it only from
+     the first language PR on, so Android's per-app Language page stays hidden while Volt is English-only. -->
+<locale-config xmlns:android="http://schemas.android.com/apk/res/android">
+    <locale android:name="en" />
+</locale-config>

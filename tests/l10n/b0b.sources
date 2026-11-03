@@ -1,0 +1,10 @@
+# B0b: the catalog and runtime suites (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+src/com/jjricks/volt/UserFacingException.java
+tests/l10n/L10nFiles.java
+tests/l10n/GoldenReports.java
+tests/l10n/CatalogCheckTest.java
+tests/l10n/LedgerTest.java
+tests/l10n/CatalogUsageTest.java
+tests/l10n/ReportsStayEnglishTest.java
+tests/l10n/GlyphCoverageTest.java

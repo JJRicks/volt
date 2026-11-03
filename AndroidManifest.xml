@@ -22,6 +22,7 @@
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
     <queries><package android:name="moe.shizuku.privileged.api" /><package android:name="com.navee.ucaret" /></queries>
     <application
+        android:name=".VoltApp"
         android:allowBackup="false"
         android:fullBackupContent="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
