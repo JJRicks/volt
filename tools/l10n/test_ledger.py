@@ -454,7 +454,7 @@ class ChangesAroundTextTest(RepoCase):
         self.assertTrue(any('new key or id literal "stats_skip"' in w for w in warnings), warnings)
 
     def test_new_text_that_is_not_a_key_still_fails(self):
-        for literal in ("Language", "app language", "%d", " / ", "km/h", "x", "12"):
+        for literal in ("Language", "app language", "%d km", " / ", "km/h", "x", "12", "50% off"):
             with self.subTest(literal=literal):
                 self.repo.write(self.PICKER, self.FILES[self.PICKER])
                 self.edit("    static int size()", '    static final String LABEL = "%s";\n    static int size()' % literal)
@@ -680,6 +680,341 @@ class DraftAndRelocateTest(RepoCase):
         self.repo.write("l10n/ledger/b2.tsv", text)
         head = self.repo.commit("relocated")
         self.assertEqual(ledger_check.run(main_tip, head, cwd=self.repo.root)[0], [])
+
+
+FMT_STRINGS = """<resources>
+    <string name="fmt_quantity">%1$s %2$s</string>
+    <string name="fmt_tight">%1$s%2$s</string>
+    <string name="fmt_range">%1$s–%2$s %3$s</string>
+    <string name="units_kmh">km/h</string>
+    <string name="units_mph">mph</string>
+    <string name="units_watt">W</string>
+</resources>
+"""
+
+
+def spec(text, arg, value, call):
+    return {"spec": text, "arg": arg, "value": value, "as": call}
+
+
+def unit(text, key, arg):
+    return {"text": text, "key": key, "arg": arg}
+
+
+class FormatRowTest(RepoCase):
+    """B1: a String.format literal mixing specifiers and unit text, or a + chain with unit text, splits
+    into a template, text keys and Fmt calls; every careless variant fails."""
+    FILES = {UNITS: java_class("DisplayUnits", '''    static String speed(double kmh) { return String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE); }
+    static String count(int n) { return n + " km/h"; }
+    static String watts(double w) { return String.format(Locale.US, "%,.0f W", w); }
+    static String range(double a, double b) { return String.format(Locale.US, "%.1f–%.1f mph", a, b); }
+    static String plain(int n) { return String.format("%d mph", n); }''')}
+    FMT_TEST = "tests/l10n/FmtLegacyTest.java"
+    SPEED = [spec("%.1f", 1, "kmh / KM_PER_MILE", "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"), " ",
+             unit("mph", "units_mph", 2)]
+    SPEED_CALL = "T.fmtQuantity(Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1), T.unitsMph())"
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write("res/values/strings_fmt.xml", FMT_STRINGS)
+        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { DisplayUnits.speed(1); "
+                                                  "DisplayUnits.count(1); DisplayUnits.watts(1); DisplayUnits.range(1, 2); "
+                                                  "DisplayUnits.plain(1); }"))
+
+    def convert(self, old, new):
+        self.repo.write(UNITS, self.text(UNITS).replace(old, new))
+
+    def row(self, line, split, key="fmt_quantity", note=""):
+        return "%s:%d\t%s\t%s\tformat\t%s" % (UNITS, line, json.dumps(split, ensure_ascii=False), key, note)
+
+    def speed(self, call=SPEED_CALL, split=SPEED, key="fmt_quantity"):
+        self.convert('String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)', call)
+        return self.check([self.row(4, split, key)])
+
+    def test_honest_string_format_passes_and_is_listed(self):
+        problems, warnings, _ = self.speed()
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "format row at %s:4" % UNITS in w]
+        self.assertEqual(len(shown), 1, warnings)
+        self.assertIn('`String . format ( Locale . US , "%.1f mph" , kmh / KM_PER_MILE )` becomes '
+                      '`T . fmtQuantity ( Fmt . decimal ( Locale . US , kmh / KM_PER_MILE , 1 ) , T . unitsMph ( ) )`',
+                      shown[0])
+        self.assertIn('text "mph" -> units_mph', shown[0])
+        self.assertIn("%.1f -> Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)", shown[0])
+        self.assertIn("DisplayUnits.speed is called by %s" % self.FMT_TEST, shown[0])
+
+    def test_honest_plus_chain_passes(self):
+        self.convert('n + " km/h"', "T.fmtQuantity(Fmt.integer(n), T.unitsKmh())")
+        split = [{"hole": "n", "arg": 1, "type": "s", "as": "Fmt.integer(n)"}, " ", unit("km/h", "units_kmh", 2)]
+        problems, warnings, _ = self.check([self.row(5, split)])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("`n + \" km/h\"` becomes" in w and "n -> Fmt.integer(n)" in w for w in warnings), warnings)
+
+    def test_grouping_and_two_specifiers_pass(self):
+        self.convert('String.format(Locale.US, "%,.0f W", w)', "T.fmtQuantity(Fmt.grouped(Locale.US, w, 0), T.unitsWatt())")
+        self.convert('String.format(Locale.US, "%.1f–%.1f mph", a, b)',
+                     "T.fmtRange(Fmt.decimal(Locale.US, a, 1), Fmt.decimal(Locale.US, b, 1), T.unitsMph())")
+        rows = [self.row(6, [spec("%,.0f", 1, "w", "Fmt.grouped(Locale.US, w, 0)"), " ", unit("W", "units_watt", 2)]),
+                self.row(7, [spec("%.1f", 1, "a", "Fmt.decimal(Locale.US, a, 1)"), "–",
+                             spec("%.1f", 2, "b", "Fmt.decimal(Locale.US, b, 1)"), " ", unit("mph", "units_mph", 3)],
+                         "fmt_range")]
+        problems, _, _ = self.check(rows)
+        self.assertEqual(problems, [])
+
+    def test_wrong_unit_key_in_the_code_fails(self):
+        problems, _, _ = self.speed(call=self.SPEED_CALL.replace("unitsMph", "unitsKmh"))
+        self.assertTrue(any("no call of fmtQuantity passes the holes in placeholder order" in p and "T . unitsMph ( )" in p
+                            for p in problems), problems)
+
+    def test_wrong_unit_key_in_the_row_fails(self):
+        split = [dict(p, key="units_kmh") if isinstance(p, dict) and "key" in p else p for p in self.SPEED]
+        problems, _, _ = self.speed(call=self.SPEED_CALL.replace("unitsMph", "unitsKmh"), split=split)
+        self.assertTrue(any("text key units_kmh is 'km/h' but that part of the literal was 'mph'" in p
+                            for p in problems), problems)
+
+    def test_swapped_pieces_fail(self):
+        swapped_call = "T.fmtQuantity(T.unitsMph(), Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1))"
+        problems, _, _ = self.speed(call=swapped_call)
+        self.assertTrue(any("no call of fmtQuantity passes" in p for p in problems), problems)
+        split = [unit("mph", "units_mph", 1), " ", dict(self.SPEED[0], arg=2)]
+        problems, _, _ = self.speed(call=swapped_call, split=split)
+        self.assertTrue(any('its split reassembles to ["mph %.1f"]' in p for p in problems), problems)
+
+    def test_swapped_placeholder_numbers_fail(self):
+        """The split says the unit is arg 1 in the right order; the template puts arg 1 first."""
+        split = [dict(self.SPEED[0], arg=2), " ", unit("mph", "units_mph", 1)]
+        problems, _, _ = self.speed(call="T.fmtQuantity(T.unitsMph(), Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1))",
+                                    split=split)
+        self.assertTrue(any("template fmt_quantity renders 'mph \\x01B'" in p for p in problems), problems)
+
+    def test_changed_specifier_fails(self):
+        call = self.SPEED_CALL.replace(", 1)", ", 0)")
+        zero = dict(self.SPEED[0], **{"as": "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 0)"})
+        problems, _, _ = self.speed(call=call, split=[zero] + self.SPEED[1:])
+        self.assertTrue(any("the specifier %.1f of kmh / KM_PER_MILE prints as Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"
+                            in p for p in problems), problems)
+        problems, _, _ = self.speed(call=call, split=[spec("%.0f", 1, "kmh / KM_PER_MILE",
+                                                          "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 0)")] + self.SPEED[1:])
+        self.assertTrue(any('its split reassembles to ["%.0f mph"]' in p for p in problems), problems)
+
+    def test_dropped_space_fails(self):
+        problems, _, _ = self.speed(split=[self.SPEED[0], self.SPEED[2]])
+        self.assertTrue(any('its split reassembles to ["%.1fmph"]' in p for p in problems), problems)
+
+    def test_a_template_without_the_space_fails(self):
+        problems, _, _ = self.speed(call=self.SPEED_CALL.replace("fmtQuantity", "fmtTight"), key="fmt_tight")
+        self.assertTrue(any("template fmt_tight renders '\\x01Amph' with its text keys and sentinels, the original "
+                            "'\\x01A mph'" in p for p in problems), problems)
+
+    def test_text_piece_left_out_fails(self):
+        problems, _, _ = self.speed(call="T.fmtQuantity(Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1), \"\")",
+                                    split=self.SPEED[:2])
+        self.assertTrue(any('its split reassembles to ["%.1f "]' in p for p in problems), problems)
+
+    def test_another_value_for_the_specifier_fails(self):
+        split = [spec("%.1f", 1, "kmh", "Fmt.decimal(Locale.US, kmh, 1)")] + self.SPEED[1:]
+        problems, _, _ = self.speed(call="T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 1), T.unitsMph())", split=split)
+        self.assertTrue(any("the specifier %.1f formats kmh / KM_PER_MILE at the merge base, not kmh" in p
+                            for p in problems), problems)
+
+    def test_another_locale_fails(self):
+        call = self.SPEED_CALL.replace("Locale.US", "Locale.ROOT")
+        split = [dict(self.SPEED[0], **{"as": "Fmt.decimal(Locale.ROOT, kmh / KM_PER_MILE, 1)"})] + self.SPEED[1:]
+        problems, _, _ = self.speed(call=call, split=split)
+        self.assertTrue(any("prints as Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)" in p for p in problems), problems)
+
+    def test_integer_needs_a_latin_digit_locale(self):
+        self.convert('String.format("%d mph", n)', "T.fmtQuantity(Fmt.integer(n), T.unitsMph())")
+        problems, _, _ = self.check([self.row(8, [spec("%d", 1, "n", "Fmt.integer(n)"), " ", unit("mph", "units_mph", 2)])])
+        self.assertTrue(any("%d prints the default locale's digits" in p for p in problems), problems)
+
+    def test_unknown_specifier_pairs_fail(self):
+        self.repo.write(UNITS, self.text(UNITS).replace('"%.1f mph"', '"%5.1f mph"'))
+        self.base = self.repo.commit("padded")
+        self.convert('String.format(Locale.US, "%5.1f mph", kmh / KM_PER_MILE)',
+                     "T.fmtQuantity(Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1), T.unitsMph())")
+        split = [spec("%5.1f", 1, "kmh / KM_PER_MILE", "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)")] + self.SPEED[1:]
+        problems, _, _ = self.check([self.row(4, split)])
+        self.assertTrue(any("G1 does not know which Fmt call prints like %5.1f" in p for p in problems), problems)
+
+    def test_the_method_needs_a_test(self):
+        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { DisplayUnits.count(1); }"))
+        problems, _, _ = self.speed()
+        self.assertTrue(any("no test under tests/l10n/ calls DisplayUnits.speed(...)" in p for p in problems), problems)
+
+    def test_specifiers_must_be_split_out_and_only_from_string_format(self):
+        problems, _, _ = self.speed(split=["%.1f ", unit("mph", "units_mph", 1)])
+        self.assertTrue(any("is String.format's format string; split its specifiers out" in p for p in problems), problems)
+        self.repo.write(UNITS, self.FILES[UNITS])
+        self.convert('n + " km/h"', '"%.1f" + n + " km/h"')
+        self.base = self.repo.commit("odd")
+        self.convert('"%.1f" + n + " km/h"', "T.fmtQuantity(Fmt.integer(n), T.unitsKmh())")
+        problems, _, _ = self.check([self.row(5, [spec("%.1f", 1, "n", "Fmt.decimal(Locale.US, n, 1)"),
+                                                  {"hole": "n", "arg": 2, "type": "s"}, " km/h"])], ledger="b3")
+        self.assertTrue(any("spec items split a String.format literal, which has no holes" in p for p in problems),
+                        problems)
+
+    def test_invalid_format_rows(self):
+        cases = [
+            ("[]", "its split"),
+            ('["%.1f mph"]', "splits a specifier out to Fmt or text out to a key"),
+            ('[{"spec": "%%", "arg": 1, "value": "x", "as": "Fmt.x(x)"}]', "takes an argument"),
+            ('[{"spec": "%.1f", "arg": 2, "value": "x", "as": "Fmt.decimal(Locale.US, x, 1)"}]', "1 to 1 with no gaps"),
+            ('[{"spec": "%.1f", "arg": 1, "value": "x", "as": "Fmt.decimal(Locale.US, x, 1)"}, " %s ", '
+             '{"text": "mph", "key": "units_mph", "arg": 2}]', "holds a format specifier"),
+            ('[{"text": "mph", "key": "units_mph", "arg": 1}, {"text": "mph", "key": "units_mph", "arg": 1}]',
+             "claim arg 1"),
+            ('[{"text": "mph", "key": "Units", "arg": 1}]', "needs a resource key"),
+            ('[{"hole": "x", "arg": 1, "type": "s", "as": "x.trim()"}, {"text": "mph", "key": "units_mph", "arg": 2}]',
+             "a format row's \\\"as\\\" must be Fmt"),
+            ('[{"hole": "x", "arg": 1, "type": "d"}, {"text": "mph", "key": "units_mph", "arg": 2}]', "type s"),
+        ]
+        for pieces, message in cases:
+            with self.assertRaises(ledger_check.LedgerError, msg=pieces) as caught:
+                ledger_check.parse_ledger(HEADER + UNITS + ":4\t" + pieces + "\tfmt_quantity\tformat\t\n")
+            self.assertIn(message.replace('\\"', '"'), str(caught.exception), pieces)
+        with self.assertRaises(ledger_check.LedgerError) as caught:
+            ledger_check.parse_ledger(HEADER + self.row(4, self.SPEED, note="manual: shape") + "\n")
+        self.assertIn("takes no \"manual:\" note", str(caught.exception))
+
+    def test_rows_stay_checked_against_the_catalog(self):
+        self.speed()
+        self.base = self.repo.git("rev-parse", "HEAD")
+        self.repo.write("res/values/strings_fmt.xml", FMT_STRINGS.replace(">mph<", ">mi/h<"))
+        problems, _, _ = self.check()
+        self.assertTrue(any("text key units_mph is 'mi/h' but that part of the literal was 'mph'" in p for p in problems),
+                        problems)
+
+    def test_format_only_literals_are_listed(self):
+        self.assertTrue(all(ledger_check.is_format_only(v) for v in ("%.1f", "%d", "%,.0f", "%.1f–%.1f", "%2$s/%1$s")))
+        self.assertFalse(any(ledger_check.is_format_only(v) for v in ("%.1f mph", "%%", "50% off", "km/h", "%.", "%d%")))
+        self.convert("    static String plain(int n)", '    static final String[] PATTERNS = {"%.1f", "%,.0f"};\n'
+                     "    static String plain(int n)")
+        problems, warnings, summary = self.check([])
+        self.assertEqual(problems, [])
+        self.assertTrue(any('new format-only literal "%,.0f" in `"%.1f" , "%,.0f"`'
+                            in w for w in warnings), warnings)
+        self.assertIn("2 new format-only literal(s), listed", summary)
+
+
+class SharedConstantTest(RepoCase):
+    """B1: repeated data unit literals move into one constant (an enum constant's argument or a static
+    final field); each site must name the constant its own literal moved to."""
+    SCALE = "src/com/jjricks/volt/ChartScale.java"
+    CODE = "src/com/jjricks/volt/UnitCode.java"
+    FILES = {SCALE: java_class("ChartScale", '''    static double span(String unit) { return unit.equals("V") ? .1 : unit.equals("W") ? 2 : 1; }
+    static int unused() { return 0; }
+    static double floor(String unit) { return unit.equals("V") ? .1 : 1; }''')}
+    ROWS = [SCALE + ':4\t["V"]\t-\tstays-english\tdata unit', SCALE + ':4\t["W"]\t-\tstays-english\tdata unit',
+            SCALE + ':6\t["V"]\t-\tstays-english\tdata unit']
+    ENUM = java_class("UnitCode", '''    VOLT(1, "V"),
+    WATT(2, "W");
+    final String code;
+    UnitCode(int id, String code) { this.code = code; }''').replace("final class UnitCode", "enum UnitCode")
+
+    def convert(self, span="UnitCode.VOLT.matches(unit) ? .1 : UnitCode.WATT.matches(unit) ? 2 : 1",
+                floor="UnitCode.VOLT.matches(unit) ? .1 : 1", code=None):
+        text = self.text(self.SCALE).replace('unit.equals("V") ? .1 : unit.equals("W") ? 2 : 1', span)
+        self.repo.write(self.SCALE, text.replace('unit.equals("V") ? .1 : 1', floor))
+        self.repo.write(self.CODE, code or self.ENUM)
+
+    def test_enum_constant_shared_by_two_sites_passes_and_lists_each(self):
+        self.convert()
+        problems, warnings, _ = self.check(self.ROWS)
+        self.assertEqual(problems, [])
+        self.assertTrue(any('2 occurrences of "V" moved into the one constant UnitCode.VOLT (`VOLT ( 1 , "V" )`): '
+                            "%s:4 (l10n/ledger/b2.tsv:2), %s:6 (l10n/ledger/b2.tsv:4)" % (self.SCALE, self.SCALE) in w
+                            for w in warnings), warnings)
+        self.assertTrue(any("%s:4: this change adds `UnitCode . VOLT" % self.SCALE in w and "beside a stays-english" in w
+                            for w in warnings), warnings)
+
+    def test_static_final_field_shared_by_two_sites_passes(self):
+        self.convert("VOLT.equals(unit) ? .1 : WATT.equals(unit) ? 2 : 1", "VOLT.equals(unit) ? .1 : 1",
+                     java_class("Units", '    static final String VOLT = "V";\n    static final String WATT = "W";'))
+        text = self.text(self.SCALE).replace("VOLT.equals", "Units.VOLT.equals").replace("WATT.equals", "Units.WATT.equals")
+        self.repo.write(self.SCALE, text)
+        self.repo.write("src/com/jjricks/volt/Units.java", self.text(self.CODE).replace("class UnitCode", "class Units"))
+        self.repo.remove(self.CODE)
+        problems, _, _ = self.check(self.ROWS)
+        self.assertEqual(problems, [])
+
+    def test_an_arrival_holding_another_value_fails(self):
+        self.convert(code=self.ENUM.replace('VOLT(1, "V")', 'VOLT(1, "v")'))
+        problems, _, _ = self.check(self.ROWS)
+        self.assertEqual(len([p for p in problems if '"V" left' in p and "not added anywhere else" in p]), 2, problems)
+        self.assertTrue(any('new literal "v"' in p for p in problems), problems)
+
+    def test_a_site_naming_another_constant_fails(self):
+        self.convert(floor="UnitCode.WATT.matches(unit) ? .1 : 1")
+        problems, _, _ = self.check(self.ROWS)
+        self.assertTrue(any('"V" left %s:6 and is not added anywhere else' % self.SCALE in p for p in problems), problems)
+
+    def test_constants_swapped_within_a_line_fail(self):
+        self.convert(span="UnitCode.WATT.matches(unit) ? .1 : UnitCode.VOLT.matches(unit) ? 2 : 1")
+        problems, _, _ = self.check(self.ROWS)
+        self.assertTrue(any('are, in order, "V" (UnitCode.VOLT), "W" (UnitCode.WATT), but the head lines name '
+                            "UnitCode.WATT, UnitCode.VOLT" in p for p in problems), problems)
+
+    def test_two_sites_in_one_region_need_two_references(self):
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace('unit.equals("W") ? 2', 'unit.equals("V") ? 2'))
+        self.base = self.repo.commit("two volts")
+        self.convert(span="UnitCode.VOLT.matches(unit) ? .1 : unit.isEmpty() ? 2 : 1")
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace('unit.equals("V") ? .1 : unit.equals("V") ? 2 : 1',
+                                                                  "UnitCode.VOLT.matches(unit) ? .1 : unit.isEmpty() ? 2 : 1"))
+        self.repo.write(self.CODE, self.ENUM.replace('VOLT(1, "V"),\n    WATT(2, "W");', 'VOLT(1, "V");'))
+        rows = [self.ROWS[0], self.ROWS[0], self.ROWS[2]]
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any('are, in order, "V" (UnitCode.VOLT), "V" (UnitCode.VOLT), but the head lines name '
+                            "UnitCode.VOLT;" in p for p in problems), problems)
+
+    def test_constant_name_forms(self):
+        def name(source, literal):
+            tokens = expressions.l10nlib.lex_java(source)
+            return ledger_check.constant_name(tokens, next(i for i, t in enumerate(tokens) if t.value == literal))
+        self.assertEqual(name('enum U { A(1, "a"), B(2, "b"); }', "b"), "B")
+        self.assertEqual(name('enum U { A("a") }', "a"), "A")
+        self.assertEqual(name('class C { static final String X = "x"; }', "x"), "X")
+        self.assertIsNone(name('class C { static final String X = "x" + y; }', "x"))
+        self.assertIsNone(name('class C { void f() { g(1, "x"); } }', "x"))
+        self.assertIsNone(name('enum U { A; void f() { B("x"); } }', "x"))
+        self.assertIsNone(name('enum U { A(f("x")) }', "x"))
+
+
+class InsertedMemberTest(RepoCase):
+    """B1: a converted method with a new method added right after it (the diff may show the insertion
+    as "} void f() { ... ;")."""
+    SCALE = "src/com/jjricks/volt/RouteSpeedScale.java"
+    FILES = {SCALE: java_class("RouteSpeedScale", '''    static String label(String a, String b) {
+        return a + " / " + b;
+    }
+
+    static int blend(int a) {
+        return a;
+    }''')}
+
+    def test_a_new_member_beside_converted_text_passes_and_is_listed(self):
+        self.repo.write("res/values/strings_fmt.xml", FMT_STRINGS.replace("</resources>",
+                                                                         '<string name="fmt_dual">%1$s / %2$s</string></resources>'))
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace('''        return a + " / " + b;
+    }
+''', '''        return T.fmtDual(a, b);
+    }
+
+    static Formatted labelQuantity(String a, String b) {
+        return Fmt.dual(a, b);
+    }
+'''))
+        problems, warnings, _ = self.check([self.SCALE + ':5\t[{"hole": "a", "arg": 1, "type": "s"}, " / ", '
+                                            '{"hole": "b", "arg": 2, "type": "s"}]\tfmt_dual\ttemplate\t'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("adds the whole member(s) `static Formatted labelQuantity ( String a , String b ) { return "
+                            "Fmt . dual ( a , b ) ; }`" in w for w in warnings), warnings)
+
+    def test_a_new_statement_beside_text_still_fails(self):
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace('        return a + " / " + b;',
+                                                                  '        log(a); return a + " / " + b;'))
+        problems, _, _ = self.check([])
+        self.assertTrue(any("adds `log ( a ) ;`" in p and "around text" in p for p in problems), problems)
 
 
 class ExpressionTest(unittest.TestCase):

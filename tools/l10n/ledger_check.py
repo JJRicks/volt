@@ -11,6 +11,17 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            T.<key>(...) or M.<key>(...) call (or Msg.of / T.render with T.<KEY>)
                            must pass the row's holes in placeholder order in the head lines that
                            replaced it; each call serves one row, in the base order
+  format                   a literal that mixes numbers and unit text: a String.format format string
+                           ("%.1f mph") or a + chain (n + " km/h"). The pieces are the split: text
+                           the template keeps, {"spec"} items for the specifiers (each with the base
+                           argument it formats and the Fmt call FMT_SPECS pairs with it), {"text",
+                           "key"} items for text a catalog key now holds, and the chain's holes. The
+                           split must spell the base expression exactly; the head call is
+                           T.<template>(...) with the Fmt calls, holes and T.<key>() calls in
+                           placeholder order, replacing the whole String.format(...) call; each key
+                           must hold its text, and the template, filled with sentinels and the keys'
+                           English, must print the original. A test under tests/l10n/ must call the
+                           method that held it (Fmt's parity is G10's); every format row is listed
   removed                  the code was deleted: the changed lines holding it only lose tokens, and
                            the whole statement holding it is gone (not just the literal and its +);
                            when its enclosing block (an if, a method) went too, every other
@@ -19,7 +30,11 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            the whole deleted block when there is one
   stays-english, id-kept   the literal moved within src/: the same value is added elsewhere (outside
                            the changed lines it left, so a reorder or swap is not a move), and the
-                           code it left either only lost tokens or names the constant it moved to
+                           code it left either only lost tokens or names the constant it moved to:
+                           NAME = "..." (a static final field) or an enum constant NAME(..., "..."),
+                           which several sites may share; each region must then name, in the base
+                           order of its literals, the constant each one moved to, and a shared
+                           constant is listed with every site
 
 A row whose pieces cannot match a + chain (a ternary, String.format, a StringBuilder chain) has a
 note starting "manual:"; its literals must then appear in order from its line, and it is listed
@@ -32,14 +47,16 @@ Ledger files are append-only. An extraction batch adds no literal to src/ (other
 to the catalog, and a literal that moved needs a stays-english or id-kept row. The one exception is a
 new lower-case key or id (a preference name, a requireNonNull message; l10nlib.is_identifier_like):
 it is not text, but a person could read one, so every such literal is listed for the reviewer with
-the statement that holds it, and it does not by itself make its changed region count as text.
+the statement that holds it, and it does not by itself make its changed region count as text. A new
+format-only literal ("%.1f", "%,.0f": specifiers, digits and punctuation; is_format_only) is allowed
+and listed the same way.
 
 Nothing else may change around the text either. In a changed region of a src/ file that holds or held
 a literal, the only differences from the base allowed are a row's expression replaced by the call
 that serves it (with a manual row, anywhere in the statement holding its literals) and a removed
 row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase(), or dropping code
-next to it, fails. Regions a stays-english or id-kept move touched, and every other src change, are
-listed for the reviewer.
+next to it, fails. Whole new members (a method or field added next to converted text), regions a
+stays-english or id-kept move touched, and every other src change are listed for the reviewer.
 
 Ledger format: a TSV with the header
 
@@ -51,9 +68,13 @@ Ledger format: a TSV with the header
             a hole is {"hole": <Java source at base>, "arg": <placeholder index>, "type": "s"|"d"|"f"},
             plus "quantity": true for a plural's quantity and "as": <Java source> when head passes a
             different expression for it; a char literal is {"char": "x"}. For kind plural, pieces
-            is an object of English plural forms: {"one": [...], "other": [...]}.
-  key       the resource key (exact, template, plural, id-kept), or - (stays-english, removed)
-  kind      exact | template | plural | id-kept | stays-english | removed
+            is an object of English plural forms: {"one": [...], "other": [...]}. For kind format,
+            the split, e.g. for String.format(Locale.US, "%.1f mph", kmh):
+              [{"spec": "%.1f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 1)"}, " ",
+               {"text": "mph", "key": "units_mph", "arg": 2}]
+  key       the resource key (exact, template, plural, id-kept; format: the template), or -
+            (stays-english, removed)
+  kind      exact | template | plural | format | id-kept | stays-english | removed
   note      free text, no tabs; "manual: <why>" for a hand-written row
 
 A row whose location is under tests/ or android-tests/ must be kind removed; frozen_literals.py
@@ -79,11 +100,11 @@ import gen_catalog  # noqa: E402
 import expressions  # noqa: E402
 
 HEADER = ("location", "pieces", "key", "kind", "note")
-KINDS = ("exact", "template", "plural", "id-kept", "stays-english", "removed")
-CATALOG_KINDS = ("exact", "template", "plural")
+KINDS = ("exact", "template", "plural", "format", "id-kept", "stays-english", "removed")
+CATALOG_KINDS = ("exact", "template", "plural", "format")
 MOVING = CATALOG_KINDS + ("removed",)
 STAYING = ("id-kept", "stays-english")
-NEEDS_KEY = ("exact", "template", "plural", "id-kept")
+NEEDS_KEY = ("exact", "template", "plural", "format", "id-kept")
 LOCATION = re.compile(r"^((?:src|tests|android-tests)/[^\t:]+\.java):([1-9][0-9]*)$")
 LEDGER_DIR = "l10n/ledger"
 CHANGES_PATH = "l10n/english-changes.tsv"
@@ -91,7 +112,10 @@ CHANGES_HEADER = ("key", "quantity", "old", "new", "note")
 MANUAL_WINDOW = 30
 TEST_DIRS = ("tests/", "android-tests/")
 
-Row = collections.namedtuple("Row", "source line text path base_line pieces key kind note literals")
+Row = collections.namedtuple("Row", "source line text path base_line pieces key kind note literals split")
+Row.__new__.__defaults__ = (None,)
+"""pieces: the base expression's pieces (for a format row, derived from its split); split: a format
+row's split, else None."""
 
 
 class LedgerError(ValueError):
@@ -121,6 +145,106 @@ def _check_sequence(sequence, where):
         extra = set(piece) - {"hole", "arg", "type", "quantity", "as"}
         if extra:
             raise LedgerError("%s: unknown hole field(s) %s" % (where, ", ".join(sorted(extra))))
+
+
+# A java.util.Formatter specifier: %[index$][flags][width][.precision]conversion. %% and %n take no argument.
+FORMAT_SPEC = re.compile(r"%(\d+\$)?([-#+ 0,(]*)(\d+)?(\.\d+)?([tT][A-Za-z]|[A-Za-z%])")
+
+
+def is_format_only(value):
+    """True for a literal made of format specifiers, digits and punctuation only ("%.1f", "%d",
+    "%,.0f", "%.1f–%.1f"): no letter outside a specifier, and at least one specifier that takes an
+    argument. It holds no words, so an extraction batch may add one; every one is listed."""
+    rest, found, at = [], False, 0
+    for m in FORMAT_SPEC.finditer(value):
+        rest.append(value[at:m.start()])
+        at = m.end()
+        found = found or m.group(5) not in ("%", "n")
+    rest.append(value[at:])
+    leftover = "".join(rest)
+    return found and "%" not in leftover and not any(c.isalpha() for c in leftover)
+
+
+def format_text(raw):
+    """What a piece of a String.format format string prints: %% is %, %n a line break."""
+    return re.sub(r"%[%n]", lambda m: "%" if m.group(0) == "%%" else "\n", raw)
+
+
+def _check_split(split, where):
+    """The base pieces a format row's split reassembles to (strings joined, holes kept), checking each
+    item. Raises LedgerError."""
+    if not isinstance(split, list) or not split:
+        raise LedgerError("%s: a format row's pieces are its split: a JSON array of text, {\"spec\": ...}, "
+                          "{\"text\": ..., \"key\": ...} and hole items" % where)
+    derived, buffer, args = [], [], {}
+    kinds = set()
+    for item in split:
+        if isinstance(item, str):
+            if not item:
+                raise LedgerError("%s: an empty text piece" % where)
+            buffer.append(item)
+            continue
+        if not isinstance(item, dict):
+            raise LedgerError("%s: each split item is a string or an object" % where)
+        if "spec" in item:
+            if set(item) != {"spec", "arg", "value", "as"}:
+                raise LedgerError("%s: a spec item is {\"spec\": \"%%.1f\", \"arg\": n, \"value\": <base argument>, "
+                                  "\"as\": <the Fmt call head passes>}" % where)
+            m = FORMAT_SPEC.fullmatch(item["spec"]) if isinstance(item["spec"], str) else None
+            if m is None or m.group(5) in ("%", "n"):
+                raise LedgerError("%s: %r is not a format specifier that takes an argument (%%%% and %%n are text)" % (
+                    where, item["spec"]))
+            for field in ("value", "as"):
+                if not isinstance(item[field], str) or not item[field].strip():
+                    raise LedgerError("%s: a spec item's %r is Java source" % (where, field))
+            buffer.append(item["spec"])
+            kinds.add("spec")
+        elif "key" in item:
+            if set(item) != {"text", "key", "arg"}:
+                raise LedgerError("%s: a text item is {\"text\": <the literal's text>, \"key\": <catalog key>, \"arg\": n}"
+                                  % where)
+            if not isinstance(item["key"], str) or not gen_catalog.KEY_PATTERN.match(item["key"]):
+                raise LedgerError("%s: a text item needs a resource key" % where)
+            if not isinstance(item["text"], str) or not item["text"]:
+                raise LedgerError("%s: a text item's text is the part of the literal its key holds" % where)
+            buffer.append(item["text"])
+            kinds.add("key")
+        elif "hole" in item:
+            _check_sequence([item], where)
+            if item["type"] != "s":
+                raise LedgerError("%s: a format row's holes are text (%%n$s): type s" % where)
+            if "quantity" in item:
+                raise LedgerError("%s: a format row has no plural quantity" % where)
+            if "as" in item and not fmt_wrapper(item):
+                raise LedgerError("%s: hole %s is passed as %s; a format row's \"as\" must be Fmt.<method>(..., %s, ...)"
+                                  % (where, item["hole"], item["as"], item["hole"]))
+            if buffer:
+                derived.append("".join(buffer))
+                buffer = []
+            derived.append(dict(item))
+            kinds.add("hole")
+        else:
+            raise LedgerError("%s: unknown split item %s" % (where, json.dumps(item, ensure_ascii=False)))
+        if not isinstance(item.get("arg"), int) or isinstance(item.get("arg"), bool) or item["arg"] < 1:
+            raise LedgerError("%s: each spec, text and hole item needs \"arg\": its placeholder index, from 1" % where)
+        if item["arg"] in args:
+            raise LedgerError("%s: two split items claim arg %d" % (where, item["arg"]))
+        args[item["arg"]] = item
+    if buffer:
+        derived.append("".join(buffer))
+    if sorted(args) != list(range(1, len(args) + 1)):
+        raise LedgerError("%s: the split's args must be 1 to %d with no gaps" % (where, len(args)))
+    if not kinds & {"spec", "key"}:
+        raise LedgerError("%s: a format row splits a specifier out to Fmt or text out to a key; without either "
+                          "it is a template row" % where)
+    if "spec" in kinds:
+        if "hole" in kinds:
+            raise LedgerError("%s: spec items split a String.format literal, which has no holes" % where)
+        for item in split:
+            text = item if isinstance(item, str) else item.get("text")
+            if text is not None and "%" in re.sub(r"%[%n]", "", text):
+                raise LedgerError("%s: the text %r holds a format specifier; split it out as a spec item" % (where, text))
+    return derived
 
 
 def sequences(pieces):
@@ -171,12 +295,17 @@ def parse_ledger(text, source="ledger"):
                 pieces = json.loads(pieces_text)
             except ValueError as error:
                 raise LedgerError("%s: pieces is not valid JSON: %s" % (where, error))
+            split = None
             if kind == "plural":
                 if not isinstance(pieces, dict) or "other" not in pieces or \
                         any(q not in gen_catalog.QUANTITIES for q in pieces):
                     raise LedgerError("%s: plural pieces are {\"one\": [...], \"other\": [...]}" % where)
                 for quantity, sequence in pieces.items():
                     _check_sequence(sequence, "%s[%s]" % (where, quantity))
+            elif kind == "format":
+                if note.startswith("manual:"):
+                    raise LedgerError("%s: a format row is checked whole; it takes no \"manual:\" note" % where)
+                split, pieces = pieces, _check_split(pieces, where)
             else:
                 _check_sequence(pieces, where)
             if kind == "exact" and (len(pieces) != 1 or not isinstance(pieces[0], str)):
@@ -195,7 +324,7 @@ def parse_ledger(text, source="ledger"):
                                       "any other \"as\" needs a note starting \"manual:\"" % (
                                           where, hole["hole"], hole["as"], hole["hole"]))
             result.append(Row(source, line, raw_lines[line - 1].rstrip("\r"), m.group(1), int(m.group(2)), pieces,
-                              key, kind, note, literal_counts(pieces)))
+                              key, kind, note, literal_counts(pieces), split))
         except LedgerError as error:
             problems.append(str(error))
     if problems:
@@ -325,6 +454,59 @@ def render_simple(template, pieces):
     return SIMPLE_PLACEHOLDER.sub(substitute, template), original
 
 
+def split_is_format_literal(split):
+    return any(isinstance(item, dict) and "spec" in item for item in split)
+
+
+def check_format_catalog(row, entry, catalog, changes, where):
+    """A format row against the catalog: every text item's key holds exactly that text, and the template,
+    filled with sentinels for the numbers and holes and with the keys' English for the text items,
+    prints the original literal (or + chain) with the same sentinels."""
+    problems = []
+    template = extraction_text(entry, "other", changes, problems, where)
+    if template is None:
+        return problems
+    if not re.fullmatch(r"(?:[^%]|%%|%[1-9][0-9]*\$s)*", template):
+        return problems + ["%s: format row: template %s is %r; a format row's template takes only %%n$s placeholders" % (
+            where, row.key, template)]
+    literal = split_is_format_literal(row.split)
+    shown = format_text if literal else (lambda raw: raw)
+    values, original = {}, []
+    for item in row.split:
+        if isinstance(item, str):
+            original.append(shown(item))
+            continue
+        sentinel = chr(1) + chr(64 + item["arg"])
+        if "key" not in item:
+            values[item["arg"]] = sentinel
+            original.append(sentinel)
+            continue
+        text = shown(item["text"])
+        values[item["arg"]] = text
+        original.append(text)
+        unit = catalog.get(item["key"])
+        if unit is None:
+            problems.append("%s: format row: text key %s is not in res/values/strings*.xml" % (where, item["key"]))
+            continue
+        if unit.kind != "string":
+            problems.append("%s: format row: text key %s is a %s, not a string" % (where, item["key"], unit.kind))
+            continue
+        english = extraction_text(unit, "other", changes, problems, where)
+        if english is not None and english != text:
+            problems.append("%s: format row: text key %s is %r but that part of the literal was %r" % (
+                where, item["key"], english, text))
+
+    def substitute(m):
+        if m.group(0) == "%%":
+            return "%"
+        return values.get(int(m.group(1)), m.group(0))
+    rendered, original = SIMPLE_PLACEHOLDER.sub(substitute, template), "".join(original)
+    if rendered != original:
+        problems.append("%s: format row: template %s renders %r with its text keys and sentinels, the original %r" % (
+            where, row.key, rendered, original))
+    return problems
+
+
 def check_against_catalog(rows, catalog, changes=None):
     problems = []
     changes = changes or {}
@@ -342,7 +524,9 @@ def check_against_catalog(rows, catalog, changes=None):
         if entry.kind != want:
             problems.append("%s: key %s is a %s, but the row's kind is %s" % (where, row.key, entry.kind, row.kind))
             continue
-        if row.kind == "exact":
+        if row.kind == "format":
+            problems.extend(check_format_catalog(row, entry, catalog, changes, where))
+        elif row.kind == "exact":
             text = extraction_text(entry, "other", changes, problems, where)
             if text is not None and text != row.pieces[0]:
                 problems.append("%s: exact row: %s is %r but the literal was %r" % (where, row.key, text, row.pieces[0]))
@@ -380,7 +564,10 @@ def catalog_consistency(head, cwd=None):
         except gen_catalog.CatalogError as error:
             return problems + ["catalog: " + p for p in error.problems], len(rows)
         problems.extend(check_against_catalog(rows, catalog, changes))
-        problems.extend(check_changes(changes, catalog, set(r.key for r in rows if r.kind in CATALOG_KINDS)))
+        checked = set(r.key for r in rows if r.kind in CATALOG_KINDS)
+        checked.update(item["key"] for r in rows if r.kind == "format" for item in r.split
+                       if isinstance(item, dict) and "key" in item)
+        problems.extend(check_changes(changes, catalog, checked))
     return problems, len(rows)
 
 
@@ -422,11 +609,18 @@ def locate(row, diff, claimed):
                       expressions.shape(e.pieces) == wanted]
         if candidates:
             def score(e):
-                free = not any(k in claimed for k in e.tokens)
+                free = not any((row.path, k) in claimed for k in e.tokens)
                 gone = all(k in diff.gone for k in e.tokens)
                 return (free, gone == (row.kind in MOVING))
             best = max(candidates, key=score)
             return list(best.tokens), False, None
+    if row.kind == "format":
+        on_line = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
+                   if e.first_line <= row.base_line <= e.last_line]
+        return None, False, ("format row: its split reassembles to %s, which is not the expression on line %d of %s "
+                             "at the merge base%s; the split must spell the original exactly, in order" % (
+                                 json.dumps(row.pieces, ensure_ascii=False), row.base_line, row.path,
+                                 " (found: %s)" % "; ".join(on_line) if on_line else " (no literal there)"))
     if not row.note.startswith("manual:"):
         on_line = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
                    if e.first_line <= row.base_line <= e.last_line]
@@ -524,6 +718,19 @@ def _arguments(index, opener):
 
 def expected_arguments(row):
     """(quantity source key or None, [source keys by arg index]) the head call must pass."""
+    if row.kind == "format":
+        by_arg = {}
+        for item in row.split:
+            if isinstance(item, str):
+                continue
+            if "spec" in item:
+                source = item["as"]
+            elif "key" in item:
+                source = "T.%s()" % gen_catalog.camel(item["key"])
+            else:
+                source = item.get("as", item["hole"])
+            by_arg[item["arg"]] = expressions.source_key(source)
+        return None, [by_arg[i] for i in sorted(by_arg)]
     by_arg, quantity = {}, None
     for hole in holes(row.pieces):
         source = expressions.source_key(hole.get("as", hole["hole"]))
@@ -595,6 +802,236 @@ def fmt_wrapper(hole):
             t[3].kind != "op" or t[3].value != "(" or expressions.match_forward(t, 3) != len(t) - 1:
         return False
     return expressions.source_key(hole["hole"]) in _arguments(lexed, 3)
+
+
+# How a String.format specifier moves into Fmt, for format rows: the specifier, the Fmt method, and
+# the arguments that call must pass ("locale": the String.format call's locale, "value": the spec's
+# base argument, a digit: that group of the specifier). Fmt's own parity with the specifier is G10's
+# (tests/l10n/FmtLegacyTest); a pair not listed here needs a tooling pull request that adds it.
+FMT_SPECS = (
+    (re.compile(r"%\.([0-6])f"), "decimal", ("locale", "value", "1")),
+    (re.compile(r"%,\.([0-6])f"), "grouped", ("locale", "value", "1")),
+    (re.compile(r"%d"), "integer", ("value",)),
+)
+# %d prints the locale's digits; Fmt.integer always prints Latin digits, which these locales do too.
+LATIN_DIGIT_LOCALES = (("Locale", ".", "US"), ("Locale", ".", "ROOT"), ("Locale", ".", "ENGLISH"))
+# String.format without a locale uses the default format locale.
+DEFAULT_LOCALES = (("Locale", ".", "getDefault", "(", ")"),
+                   ("Locale", ".", "getDefault", "(", "Locale", ".", "Category", ".", "FORMAT", ")"))
+
+
+def spec_problem(item, locale):
+    """None when a spec item's "as" is the Fmt call FMT_SPECS pairs with its specifier, with the
+    String.format call's locale (a source key, or None for the default) and the spec's value."""
+    try:
+        lexed = _Lexed(item["as"])
+    except l10nlib.LexError:
+        lexed = None
+    t = lexed.tokens if lexed else []
+    if len(t) < 4 or t[0].value != "Fmt" or t[1].value != "." or t[2].kind != "ident" or \
+            t[3].kind != "op" or t[3].value != "(" or expressions.match_forward(t, 3) != len(t) - 1:
+        return "the specifier %s is passed as %s, which is not one Fmt.<method>(...) call" % (item["spec"], item["as"])
+    method, actual = t[2].value, _arguments(lexed, 3)
+    for pattern, name, shape in FMT_SPECS:
+        m = pattern.fullmatch(item["spec"])
+        if not m:
+            continue
+        if name == "integer" and locale not in LATIN_DIGIT_LOCALES:
+            return ("%s prints %s's digits, and Fmt.integer always prints Latin ones; only a String.format with "
+                    "Locale.US, Locale.ROOT or Locale.ENGLISH moves to Fmt.integer" % (
+                        item["spec"], " ".join(locale) if locale else "the default locale"))
+        wanted = []
+        for locale_key in ([locale] if locale else DEFAULT_LOCALES):
+            want = []
+            for part in shape:
+                want.append(locale_key if part == "locale" else expressions.source_key(item["value"]) if part == "value"
+                            else expressions.source_key(m.group(int(part))))
+            wanted.append(want)
+        if method == name and actual in wanted:
+            return None
+        return "the specifier %s of %s prints as Fmt.%s(%s), but the row passes %s" % (
+            item["spec"], item["value"], name, ", ".join(" ".join(a).replace(" . ", ".") for a in wanted[0]), item["as"])
+    return ("G1 does not know which Fmt call prints like %s (FMT_SPECS in tools/l10n/ledger_check.py lists the "
+            "pairs it checks); add the pair, with a G10 test, in a tooling pull request" % item["spec"])
+
+
+def _argument_spans(tokens, opener):
+    """(closing index, [(first, last)] of each top-level argument) of the call whose ( is at opener."""
+    close = expressions.match_forward(tokens, opener)
+    if close is None or close == opener + 1:
+        return close, []
+    spans, start, depth = [], opener + 1, 0
+    for k in range(opener + 1, close):
+        value = tokens[k].value if tokens[k].kind == "op" else None
+        if value in ("(", "[", "{"):
+            depth += 1
+        elif value in (")", "]", "}"):
+            depth -= 1
+        elif value == "," and depth == 0:
+            spans.append((start, k - 1))
+            start = k + 1
+    spans.append((start, close - 1))
+    return close, spans
+
+
+def string_format_site(index, k):
+    """(first, last, locale source key or None, [argument source keys after the format string]) when the
+    literal at token k is the whole format-string argument of String.format(...), else None."""
+    tokens = index.tokens
+    depth, j = 0, k - 1
+    while j >= 0:
+        t = tokens[j]
+        if t.kind == "op" and t.value in (")", "]", "}"):
+            depth += 1
+        elif t.kind == "op" and t.value in ("(", "[", "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        j -= 1
+    if j < 3 or tokens[j].value != "(" or [x.value for x in tokens[j - 3:j]] != ["String", ".", "format"]:
+        return None
+    close, spans = _argument_spans(tokens, j)
+    if close is None or (k, k) not in spans or spans.index((k, k)) > 1:
+        return None
+    at = spans.index((k, k))
+    keys = [expressions.source_key(expressions.source_of(index.text, tokens, a, b)) for a, b in spans]
+    return j - 3, close, keys[0] if at == 1 else None, keys[at + 1:]
+
+
+def format_site(row, diff, tokens):
+    """(problem, (first, last) base token span the head call replaces, locale or None) for a format row."""
+    index = diff.base
+    literal = split_is_format_literal(row.split)
+    sites = [(k, string_format_site(index, k)) for k in tokens]
+    if not literal:
+        for k, site in sites:
+            if site is not None:
+                return ("format row: %s on line %d is String.format's format string; split its specifiers out as "
+                        "spec items" % (l10nlib.json_string(index.tokens[k].value), index.tokens[k].line)), None, None
+        return None, diff.base.expression_of(tokens[0]).span, None
+    k, site = sites[0]
+    if site is None:
+        return ("format row: %s on line %d is not the format string of a String.format(...) call, so it has no "
+                "specifiers to split out" % (l10nlib.json_string(index.tokens[k].value), index.tokens[k].line)), None, None
+    first, last, locale, after = site
+    used, ordinary = set(), 0
+    for item in row.split:
+        if not isinstance(item, dict) or "spec" not in item:
+            continue
+        explicit = FORMAT_SPEC.fullmatch(item["spec"]).group(1)
+        if explicit:
+            position = int(explicit[:-1]) - 1
+        else:
+            position, ordinary = ordinary, ordinary + 1
+        if position >= len(after):
+            return ("format row: the specifier %s on line %d has no argument in the String.format call" % (
+                item["spec"], index.tokens[k].line)), None, None
+        if expressions.source_key(item["value"]) != after[position]:
+            return ("format row: the specifier %s formats %s at the merge base, not %s" % (
+                item["spec"], " ".join(after[position]), item["value"])), None, None
+        used.add(position)
+        problem = spec_problem(item, locale)
+        if problem:
+            return "format row: %s" % problem, None, None
+    if len(used) != len(after):
+        return ("format row: the String.format call on line %d passes %d argument(s) after its format string, and "
+                "the specifiers use %d" % (index.tokens[k].line, len(after), len(used))), None, None
+    return None, (first, last), locale
+
+
+NOT_METHOD_HEADERS = {"if", "for", "while", "switch", "catch", "synchronized", "do", "try", "else", "finally"}
+
+
+def enclosing_method(tokens, k):
+    """The name of the method (or constructor) whose body holds token k, or None."""
+    j = k
+    while True:
+        depth, opener = 0, None
+        for i in range(j - 1, -1, -1):
+            if tokens[i].kind == "op" and tokens[i].value == "}":
+                depth += 1
+            elif tokens[i].kind == "op" and tokens[i].value == "{":
+                if depth == 0:
+                    opener = i
+                    break
+                depth -= 1
+        if opener is None:
+            return None
+        first = opener
+        while first > 0 and not (tokens[first - 1].kind == "op" and tokens[first - 1].value in ";{}"):
+            first -= 1
+        header = tokens[first:opener]
+        values = [t.value for t in header]
+        if any(v in values for v in ("class", "enum", "interface", "record")):
+            return None
+        if header and values[0] not in NOT_METHOD_HEADERS and not any(v in values for v in ("=", "->", "new")):
+            p = 0
+            while p < len(header):
+                if header[p].kind == "op" and header[p].value == "(":
+                    if p > 0 and header[p - 1].kind == "ident" and not (p > 1 and header[p - 2].value == "@"):
+                        return header[p - 1].value
+                    close = expressions.match_forward(header, p)
+                    p = close if close is not None else p
+                p += 1
+        j = opener
+
+
+def test_callers(head, cwd=None):
+    """{(Class, method): [test files]} for every Class.method( call in a test under tests/l10n/ at head."""
+    names = [p for p in l10nlib.list_files(head, ["tests/l10n"], cwd) if p.endswith(".java")]
+    found = collections.defaultdict(list)
+    for path, text in sorted(l10nlib.read_files(head, names, cwd).items()):
+        try:
+            tokens = l10nlib.lex_java(text or "")
+        except l10nlib.LexError:
+            continue
+        for i in range(len(tokens) - 3):
+            if tokens[i].kind == "ident" and tokens[i + 1].value == "." and tokens[i + 2].kind == "ident" and \
+                    tokens[i + 3].value == "(" and path not in found[(tokens[i].value, tokens[i + 2].value)]:
+                found[(tokens[i].value, tokens[i + 2].value)].append(path)
+    return found
+
+
+def constant_name(tokens, k):
+    """NAME when the literal at token k is all of a constant's value: NAME = "..." (a field such as
+    static final String NAME = "V";) or the whole argument of an enum constant NAME(..., "V", ...)."""
+    def op(j, *values):
+        return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+    if k >= 2 and op(k - 1, "=") and tokens[k - 2].kind == "ident" and op(k + 1, ";", ","):
+        return tokens[k - 2].value
+    if not (op(k - 1, "(", ",") and op(k + 1, ")", ",")):
+        return None
+    depth, j = 0, k - 1
+    while j >= 0:
+        if op(j, ")", "]", "}"):
+            depth += 1
+        elif op(j, "(", "[", "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        j -= 1
+    if j < 2 or not op(j, "(") or tokens[j - 1].kind != "ident" or not op(j - 2, "{", ","):
+        return None
+    # NAME( is an enum constant when it sits in an enum body before the body's first ;
+    depth, i = 0, j - 2
+    while i >= 0:
+        if op(i, ")", "]", "}"):
+            depth += 1
+        elif op(i, "(", "[", "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        elif depth == 0 and op(i, ";"):
+            return None
+        i -= 1
+    if i < 0 or not op(i, "{"):
+        return None
+    first = i
+    while first > 0 and not op(first - 1, ";", "{", "}"):
+        first -= 1
+    if not any(t.kind == "ident" and t.value == "enum" for t in tokens[first:i]):
+        return None
+    return tokens[j - 1].value
 
 
 def _region_tokens(index, first, last):
@@ -696,23 +1133,97 @@ def _class_name(path):
     return os.path.basename(path)[:-len(".java")]
 
 
-def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
-    """True when the code a staying literal left names the constant it arrived in: the arrival is
-    NAME = "..." and the region's head lines say NAME (same file) or Class.NAME."""
-    tokens = arrival_diff.head.tokens
-    if arrival_index < 2 or tokens[arrival_index - 1].value != "=" or tokens[arrival_index - 2].kind != "ident":
-        return False
-    name, owner = tokens[arrival_index - 2].value, _class_name(arrival_path)
+def _references(diff, hunk, row_path, arrival_path, name):
+    """Positions, in the head lines of one changed region, that name the constant NAME of arrival_path:
+    NAME in the same file, or Class.NAME."""
+    owner = _class_name(arrival_path)
     _, _, h1, h2 = diff.hunks[hunk]
     region = _region_tokens(diff.head, h1, h2)
+    found = []
     for k, tok in enumerate(region):
         if tok.kind != "ident" or tok.value != name:
             continue
         qualified = k >= 2 and region[k - 1].value == "." and region[k - 2].value == owner
         unqualified = (k == 0 or region[k - 1].value != ".") and arrival_path == row_path
         if qualified or unqualified:
-            return True
-    return False
+            found.append(k)
+    return found
+
+
+def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
+    """The constant's name when the code a staying literal left names the constant it arrived in: the
+    arrival is NAME = "..." or an enum constant NAME(..., "...", ...), and the region's head lines say
+    NAME (same file) or Class.NAME. Else None."""
+    name = constant_name(arrival_diff.head.tokens, arrival_index)
+    if name is None or not _references(diff, hunk, row_path, arrival_path, name):
+        return None
+    return name
+
+
+def _whole_members(tokens, first, last):
+    """True when tokens first..last are whole method or field declarations in a class body."""
+    def op(j, *values):
+        return tokens[j].kind == "op" and tokens[j].value in values
+    if first == 0 or not op(first - 1, ";", "{", "}"):
+        return False
+    depth, opener = 0, None
+    for i in range(first - 1, -1, -1):
+        if op(i, "}"):
+            depth += 1
+        elif op(i, "{"):
+            if depth == 0:
+                opener = i
+                break
+            depth -= 1
+    if opener is None:
+        return False
+    start = opener
+    while start > 0 and not op(start - 1, ";", "{", "}"):
+        start -= 1
+    if not any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record") for t in tokens[start:opener]):
+        return False
+    j = first
+    while j <= last:
+        k, header = j, []
+        while k <= last and not op(k, ";", "{"):
+            if op(k, "(", "["):
+                close = expressions.match_forward(tokens, k)
+                if close is None or close > last:
+                    return False
+                header.extend(tokens[k:close + 1])
+                k = close + 1
+                continue
+            header.append(tokens[k])
+            k += 1
+        if k > last or not header or any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record")
+                                         for t in header):
+            return False
+        if op(k, "{"):
+            # A method: a name and parameters before its body; an initializer block has none.
+            if not any(op(m, "(") for m in range(j, k)) or any(op(m, "=") for m in range(j, k)):
+                return False
+            k = expressions.match_brace(tokens, k)
+            if not op(k, "}") or k > last:
+                return False
+        j = k + 1
+    return j == last + 1
+
+
+def inserted_members(tokens, first, last):
+    """(first, last) of whole member declarations that head tokens first..last are, possibly once slid
+    over equal neighbouring tokens (a diff may show "} void f() { ... ;" for "void f() { ... ; }"),
+    or None."""
+    def key(tok):
+        return (tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw)
+    candidates, f, l = [(first, last)], first, last
+    while l + 1 < len(tokens) and key(tokens[f]) == key(tokens[l + 1]):
+        f, l = f + 1, l + 1
+        candidates.append((f, l))
+    f, l = first, last
+    while f > 0 and key(tokens[f - 1]) == key(tokens[l]):
+        f, l = f - 1, l - 1
+        candidates.append((f, l))
+    return next(((f, l) for f, l in candidates if _whole_members(tokens, f, l)), None)
 
 
 def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=()):
@@ -744,23 +1255,34 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
                     where.append(k)
             sides.append((keys, where))
         (a, a_at), (b, b_at) = sides
+        text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
+            any(t.kind in expressions.LITERALS and k not in new_ids
+                for k, t in enumerate(diff.head.tokens) if h1 <= t.line <= h2)
         lost, gained = [], []
         for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+            if text and tag == "insert" and None not in b_at[j1:j2] and b_at[j2 - 1] - b_at[j1] == j2 - j1 - 1:
+                members = inserted_members(diff.head.tokens, b_at[j1], b_at[j2 - 1])
+                if members is not None:
+                    # A new method or field next to text does not run where the text is; it is listed.
+                    warnings.append("%s:%d: this change adds the whole member(s) `%s`; check by hand that nothing "
+                                    "in them changes English" % (
+                                        path, diff.head_token(members[0]).line,
+                                        _excerpt(diff.head.tokens[members[0]:members[1] + 1], 60)))
+                    continue
             if tag != "equal":
                 lost.extend(k for k in a_at[i1:i2] if k is not None)
                 gained.extend(k for k in b_at[j1:j2] if k is not None)
         if not lost and not gained:
             continue
         parts = []
+        # Beside a move the reviewer is the check, so the whole change is printed.
+        limit = None if (path, hunk) in moved_hunks else 16
         if gained:
-            parts.append("adds `%s`" % _excerpt([diff.head_token(k) for k in gained]))
+            parts.append("adds `%s`" % _excerpt([diff.head_token(k) for k in gained], limit))
         if lost:
-            parts.append("drops `%s`" % _excerpt([diff.base_token(k) for k in lost]))
+            parts.append("drops `%s`" % _excerpt([diff.base_token(k) for k in lost], limit))
         line = diff.head_token(gained[0]).line if gained else diff.base_token(lost[0]).line
         what = "%s:%d: this change %s" % (path, line, " and ".join(parts))
-        text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
-            any(t.kind in expressions.LITERALS and k not in new_ids
-                for k, t in enumerate(diff.head.tokens) if h1 <= t.line <= h2)
         if (path, hunk) in moved_hunks:
             warnings.append("%s beside a stays-english or id-kept move; check by hand that the English is the same"
                             % what)
@@ -772,6 +1294,82 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
         else:
             warnings.append("%s, away from any text; check by hand that it changes no English" % what)
     return problems, warnings
+
+
+def check_named_moves(named, arrivals, diffs):
+    """(problems, warnings) for staying literals that moved into named constants.
+
+    In each changed region, the constants the head lines name must include one reference per literal
+    that left it, in the base order of those literals: unit.equals("V") ... unit.equals("W") cannot
+    become WATT ... VOLT, nor two "V" sites one VOLT. Every constant several sites share is listed with
+    each site."""
+    problems, warnings = [], []
+    by_hunk = collections.defaultdict(list)  # (path, hunk) -> [(base token, (owner, name), row)]
+    for n, uses in sorted(named.items()):
+        a_path, _, a_k, _ = arrivals[n]
+        a_tokens = diffs[a_path].head.tokens
+        name = constant_name(a_tokens, a_k)
+        for row, path, k in uses:
+            by_hunk[(path, diffs[path].gone[k])].append((k, (a_path, name), row))
+        if len(uses) > 1:
+            first = max(i for i in range(a_k) if a_tokens[i].kind == "ident" and a_tokens[i].value == name)
+            sites = ", ".join("%s:%d (%s:%d)" % (path, diffs[path].base_token(k).line, row.source, row.line)
+                              for row, path, k in uses)
+            warnings.append("%s:%d: %d occurrences of %s moved into the one constant %s.%s (`%s`): %s; check by hand "
+                            "that every site means this same value" % (
+                                a_path, a_tokens[a_k].line, len(uses), l10nlib.json_string(a_tokens[a_k].value),
+                                _class_name(a_path), name, _excerpt(a_tokens[first:a_k + 2], None),
+                                sites))
+    for (path, hunk), moved in sorted(by_hunk.items()):
+        diff = diffs[path]
+        moved.sort(key=lambda m: m[0])
+        want = [m[1] for m in moved]
+        refs = []
+        for constant in set(want):
+            refs.extend((k, constant) for k in _references(diff, hunk, path, constant[0], constant[1]))
+        named_order = [constant for _, constant in sorted(refs)]
+        at = 0
+        for constant in named_order:
+            if at < len(want) and constant == want[at]:
+                at += 1
+        if at < len(want):
+            _, _, h1, h2 = diff.hunks[hunk]
+            problems.append("%s:%d: the literals that left these lines for constants are, in order, %s, but the head "
+                            "lines name %s; each site must name the constant its own literal moved to (head lines "
+                            "%d-%d: `%s`)" % (
+                                path, diff.base_token(moved[0][0]).line,
+                                ", ".join("%s (%s.%s)" % (l10nlib.json_string(diff.base_token(m[0]).value),
+                                                          _class_name(m[1][0]), m[1][1]) for m in moved),
+                                ", ".join("%s.%s" % (_class_name(c[0]), c[1]) for c in named_order) or "none",
+                                h1, h2, _excerpt(_region_tokens(diff.head, h1, h2), 60)))
+    return problems, warnings
+
+
+def format_review(row, where, diff, base_span, head_span, callers):
+    """(problem or None, warning) for a format row whose call was found: the reviewer sees the base code,
+    the call that replaced it and each specifier's Fmt call, and a test under tests/l10n/ must call the
+    method that held it, since only running it proves the numbers print as before (G10, G5)."""
+    base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
+    method = enclosing_method(base_tokens, base_span[0])
+    owner = _class_name(row.path)
+    pairs = ["%s -> %s" % (item["spec"], item["as"]) for item in row.split if isinstance(item, dict) and "spec" in item]
+    pairs += ["%s -> %s" % (item["hole"], item["as"]) for item in row.split
+              if isinstance(item, dict) and "hole" in item and "as" in item]
+    keys = ["%s -> %s" % (l10nlib.json_string(item["text"]), item["key"]) for item in row.split
+            if isinstance(item, dict) and "key" in item]
+    tests = callers.get((owner, method), []) if method else []
+    problem = None
+    if pairs and not tests:
+        problem = ("%s: format row at %s:%d moves number formatting into Fmt, and no test under tests/l10n/ calls "
+                   "%s.%s(...); add one (G10 FmtLegacyTest or a characterization test) that compares its output" % (
+                       where, row.path, row.base_line, owner, method or "<the enclosing method>"))
+    warning = "%s: format row at %s:%d: `%s` becomes `%s`; text %s%s%s; check by hand that each Fmt call prints " \
+              "what its specifier did" % (
+                  where, row.path, row.base_line, _excerpt(base_tokens[base_span[0]:base_span[1] + 1], None),
+                  _excerpt(head_tokens[head_span[0]:head_span[1] + 1], None), ", ".join(keys) or "none",
+                  "; numbers " + ", ".join(pairs) if pairs else "",
+                  "; %s.%s is called by %s" % (owner, method, ", ".join(tests)) if tests else "")
+    return problem, warning
 
 
 def run(base, head, explicit_ledgers=None, cwd=None):
@@ -803,6 +1401,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     removed_own = collections.defaultdict(set)  # path -> base tokens of removed rows' own statements
     removed_frames = collections.defaultdict(set)  # path -> headers and braces of blocks they deleted
     widened = []  # (row, where, path, own statement span, widened span) for removed rows past their statement
+    format_rows = {}  # id(row) -> the base span a format row's call replaces
     for row in rows:
         if not row.path.startswith("src/"):
             continue
@@ -816,6 +1415,13 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         if problem:
             problems.append("%s: %s" % (where, problem))
             continue
+        format_span = None
+        if row.kind == "format":
+            problem, format_span, _ = format_site(row, diff, tokens)
+            if problem:
+                problems.append("%s: %s" % (where, problem))
+                continue
+            format_rows[id(row)] = format_span
         manual += 1 if is_manual else 0
         if is_manual:
             manual_rows.add(id(row))
@@ -831,6 +1437,10 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 span = range(first, last + 1)
                 if len(span) > len(own) and not any(w[0] is row and w[4] == span for w in widened):
                     widened.append((row, where, row.path, own, span))
+            elif row.kind == "format":
+                # A String.format literal's row replaces the whole String.format(...) call.
+                first, last = format_span
+                span = range(first, last + 1)
             elif row.kind in CATALOG_KINDS and is_manual:
                 first, last, _ = statement_of(diff, k)
                 span = range(first, last + 1)
@@ -856,7 +1466,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
-        for hole in holes(row.pieces):
+        for hole in holes(row.pieces) if row.kind != "format" else ():
             if "as" in hole:
                 warnings.append("%s: at %s:%d the hole %s is passed as %s; check by hand that it renders the same" % (
                     where, row.path, row.base_line, hole["hole"], hole["as"]))
@@ -918,7 +1528,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                             ", with other code, as a whole block: note asks" if others and whole else "",
                             _excerpt(tokens[span[0]:span[-1] + 1], None)))
 
-    used, last = set(), {}
+    used, last, callers = set(), {}, None
     for path, _, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
         problem, call = check_call_sites(row, calls, path, ranges, used, last.get(path, -1))
         if problem:
@@ -935,44 +1545,69 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     first, end = call_span(head_tokens, call[2])
                 for j in range(first, end + 1):
                     allowed_head[path].setdefault(j, id(row))
+                if row.kind == "format":
+                    if callers is None:
+                        callers = test_callers(head, cwd)
+                    problem, warning = format_review(row, where, diffs[path], format_rows[id(row)], (first, end),
+                                                     callers)
+                    if problem:
+                        problems.append(problem)
+                    warnings.append(warning)
+                    # The text keys' calls inside it serve this row, not an exact row of the same key.
+                    for j in range(first, end + 1):
+                        if head_tokens[j].kind == "ident" and head_tokens[j].value in ("T", "M") and \
+                                (j == 0 or head_tokens[j - 1].value != "."):
+                            used.add((path, j))
 
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
         for k in sorted(diffs[path].added):
             arrivals.append([path, diffs[path].added[k], k, False])
+    named = collections.defaultdict(list)  # arrival index -> [(row, path, base token)] that name its constant
     for row, path, k in staying:
         tok = diffs[path].base_token(k)
         hunk = diffs[path].gone[k]
         here = (path, hunk)
         moved_whole = added_in_hunk(diffs[path], hunk) is None
-        for arrival in arrivals:
-            other = diffs[arrival[0]].head_token(arrival[2])
-            # A move lands outside the changed region it left (within one region it is a reorder, a
-            # swap), and the code it left was moved out whole or names the constant it went to.
-            if not arrival[3] and (other.kind, other.value) == (tok.kind, tok.value) and \
-                    (arrival[0], arrival[1]) != here and \
-                    (moved_whole or _points_to(diffs[path], hunk, path, arrival[0], arrival[2], diffs[arrival[0]])):
-                arrival[3] = True
-                break
+        # A move lands outside the changed region it left (within one region it is a reorder, a swap).
+        # The code it left names the constant it went to (several sites may share one constant), or
+        # was moved out whole (one site per arrival).
+        same = [n for n, a in enumerate(arrivals) if (a[0], a[1]) != here and
+                (diffs[a[0]].head_token(a[2]).kind, diffs[a[0]].head_token(a[2]).value) == (tok.kind, tok.value)]
+        chosen = next((n for n in same if arrivals[n][3] in (False, "named") and
+                       _points_to(diffs[path], hunk, path, arrivals[n][0], arrivals[n][2], diffs[arrivals[n][0]])), None)
+        if chosen is not None:
+            arrivals[chosen][3] = "named"
+            named[chosen].append((row, path, k))
+            continue
+        chosen = next((n for n in same if arrivals[n][3] is False), None) if moved_whole else None
+        if chosen is not None:
+            arrivals[chosen][3] = "whole"
         else:
             problems.append("%s:%d: %s row: %s left %s:%d and is not added anywhere else in src where the code it "
                             "left points (a constant those lines name, or code moved out whole); text that leaves "
-                            "src needs exact, template, plural or removed" % (
+                            "src needs exact, template, plural, format or removed" % (
                                 row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
+    problems_named, warnings_named = check_named_moves(named, arrivals, diffs)
+    problems.extend(problems_named)
+    warnings.extend(warnings_named)
 
     # A new lower-case key, path or id is not text (a preference name, a requireNonNull message); it is
     # allowed, and listed with its statement, since a person could still read one.
-    new_ids = collections.defaultdict(set)
+    # A new format-only literal ("%.1f", "%d") holds no words either; it is allowed and listed the same way.
+    new_ids, new_formats = collections.defaultdict(set), collections.defaultdict(set)
     for path, _, k, used_by_move in arrivals:
         tok = diffs[path].head_token(k)
         if not used_by_move and tok.kind == "string" and l10nlib.is_identifier_like(tok.value):
             new_ids[path].add(k)
+        elif not used_by_move and tok.kind == "string" and is_format_only(tok.value):
+            new_formats[path].add(k)
 
     moved_hunks = set((path, diffs[path].gone[k]) for _, path, k in staying)
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
     for path in sorted(diffs):
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
-                                                   moved_hunks, new_ids[path])
+                                                   moved_hunks, new_ids[path] | new_formats[path])
         problems.extend(problem_list)
         warnings.extend(warning_list)
 
@@ -989,19 +1624,21 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     path, tok.line, "char" if tok.kind == "char" else "literal", l10nlib.json_string(tok.value)))
 
     new_literals = 0
-    for path in sorted(new_ids):
-        head_tokens = diffs[path].head.tokens
-        for k in sorted(new_ids[path]):
-            first, last, _ = expressions.statement_span(head_tokens, k)
-            # A window centred on the literal, so a long statement never hides the code that uses it.
-            start, end = max(first, k - 20), min(last, k + 20)
-            warnings.append("%s:%d: new key or id literal %s in `%s%s%s`; check by hand that no screen shows it" % (
-                path, head_tokens[k].line, l10nlib.json_string(head_tokens[k].value),
-                "... " if start > first else "", _excerpt(head_tokens[start:end + 1], None),
-                " ..." if end < last else ""))
+    for found, what, check in ((new_ids, "key or id", "that no screen shows it"),
+                               (new_formats, "format-only", "that the number it formats prints as before")):
+        for path in sorted(found):
+            head_tokens = diffs[path].head.tokens
+            for k in sorted(found[path]):
+                first, last, _ = expressions.statement_span(head_tokens, k)
+                # A window centred on the literal, so a long statement never hides the code that uses it.
+                start, end = max(first, k - 20), min(last, k + 20)
+                warnings.append("%s:%d: new %s literal %s in `%s%s%s`; check by hand %s" % (
+                    path, head_tokens[k].line, what, l10nlib.json_string(head_tokens[k].value),
+                    "... " if start > first else "", _excerpt(head_tokens[start:end + 1], None),
+                    " ..." if end < last else "", check))
     for path, _, k, used_by_move in arrivals:
         tok = diffs[path].head_token(k)
-        if k in new_ids[path]:
+        if k in new_ids[path] or k in new_formats[path]:
             continue
         if not used_by_move and not (tok.kind == "string" and tok.value == ""):
             new_literals += 1
@@ -1013,9 +1650,11 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     catalog_problems, catalog_rows = catalog_consistency(head, cwd)
     problems.extend(catalog_problems)
     summary = "%d literal(s) left %d src file(s); %d new ledger row(s)%s; %d new literal(s); " \
-              "%d new key or id literal(s), listed; %d ledger row(s) agree with the catalog" % (
+              "%d new key or id literal(s), listed; %s%d ledger row(s) agree with the catalog" % (
                   gone_total, len(gone_files), len(rows), " (%d manual)" % manual if manual else "",
-                  new_literals, sum(len(v) for v in new_ids.values()), catalog_rows)
+                  new_literals, sum(len(v) for v in new_ids.values()),
+                  "%d new format-only literal(s), listed; " % sum(len(v) for v in new_formats.values())
+                  if any(new_formats.values()) else "", catalog_rows)
     return problems, warnings, summary
 
 
