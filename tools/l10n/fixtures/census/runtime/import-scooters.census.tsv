@@ -1,0 +1,47 @@
+volt-text-census-v1
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Disconnected
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Disconnected. Connection details
+tooltip	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[0]	54,102,924,62	Connection details
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/LinearLayout[0]/TextView[1]	54,164,924,120	More
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]	54,320,203,144	Back to More
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/IconView[0]	54,368,48,48	back
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/TextView[1]	114,359,101,66	More
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[1]/TextView[1]	54,464,924,126	My scooters
+text	tag=scooters-add	54,590,924,168	Add a scooter
+desc	tag=scooters-add	54,590,924,168	Add a scooter
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[0]/LinearLayout[0]/LinearLayout[1]/TextView[0]	288,902,474,90	Imported scooter
+desc	tag=scooter-edit-22a69015-333d-3cc4-873b-dc21bc3fe6e1	786,875,144,144	Edit Imported scooter
+tooltip	tag=scooter-edit-22a69015-333d-3cc4-873b-dc21bc3fe6e1	786,875,144,144	Edit scooter
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[0]/LinearLayout[0]/FrameLayout[2]/IconView[0]	831,920,54,54	pencil
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[0]/TextView[2]	102,1034,828,81	UT5 MAX
+text	tag=scooter-use-22a69015-333d-3cc4-873b-dc21bc3fe6e1	102,1151,828,144	Use this scooter
+desc	tag=scooter-use-22a69015-333d-3cc4-873b-dc21bc3fe6e1	102,1151,828,144	Use Imported scooter. View saved data without connecting
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/LinearLayout[0]/FrameLayout[0]/IconView[1]	138,1460,84,84	scooter
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/LinearLayout[0]/LinearLayout[1]/TextView[0]	288,1457,474,90	Imported scooter
+desc	tag=scooter-edit-23c8578b-7602-30fa-95be-256131bc6fdb	786,1430,144,144	Edit Imported scooter
+tooltip	tag=scooter-edit-23c8578b-7602-30fa-95be-256131bc6fdb	786,1430,144,144	Edit scooter
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/LinearLayout[0]/FrameLayout[2]/IconView[0]	831,1475,54,54	pencil
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/LinearLayout[1]/TextView[0]	102,1613,166,75	Current
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/LinearLayout[1]/TextView[1]	292,1622,638,57	Offline
+text	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/PageScroll[0]/LinearLayout[0]/LinearLayout[3]/LinearLayout[2]/LinearLayout[1]/TextView[2]	102,1688,828,81	Model not identified
+text	tag=scooter-connect-23c8578b-7602-30fa-95be-256131bc6fdb	102,1805,828,144	Connect
+desc	tag=scooter-connect-23c8578b-7602-30fa-95be-256131bc6fdb	102,1805,828,144	Connect Imported scooter
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	Home
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]	42,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[0]/IconView[0]	105,2415,63,63	home
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	Live Stats
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]	231,2376,189,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[1]/IconView[0]	294,2415,63,63	stats
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	Rides
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]	610,2376,190,168	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[3]/IconView[0]	673,2415,63,63	rides
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	More
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]	800,2376,190,168	Selected
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/LinearLayout[0]/LinearLayout[4]/IconView[0]	863,2415,63,63	more
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	Scooter
+state	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]	414,2328,204,204	
+desc	DecorView/LinearLayout[0]/FrameLayout[1]/FrameLayout[0]/LinearLayout[0]/LinearLayout[1]/LinearLayout[0]/FrameLayout[1]/FrameLayout[1]/FrameLayout[1]/IconView[0]	478,2392,75,75	scooter
+notif-channel	notification:scooter/71	-	Scooter connection & recording
+notif-title	notification:scooter/71	-	Volt
+notif-text	notification:scooter/71	-	Bluetooth off
+notif-action	notification:scooter/71	-	Disconnect

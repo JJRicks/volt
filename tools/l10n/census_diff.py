@@ -1,6 +1,14 @@
 #!/usr/bin/env python3
-"""G7, the screen text census diff: two TextCensus dumps must hold the same text once clock, duration
-and date values are masked. Bounds differences are reported but never fail.
+"""G7, the screen text census diff: HEAD's TextCensus dumps must hold the base runs' text once generated
+identifiers and clock, duration and date values are masked. Bounds differences are reported but never fail.
+
+Sweep the base APK twice and the head APK once (l10n/README.md, step 7). A record whose value differs
+between the base runs only in its digits (drifting simulated telemetry) is compared by form, digit
+runs masked; one that differs otherwise (a timing-dependent capture) is volatile: listed and counted,
+never compared. Every other record must match HEAD. With one base run nothing can
+be told volatile, so run-to-run noise fails like a text change (a warning says so). Records are keyed
+by screen file, field, locator with identifiers masked and the occurrence of that pair; a list that
+reorders between the base runs is compared without its order (see compare_runs).
 
 The census format (written by android-tests/TextCensus.java, added in B0b): one UTF-8 file per
 captured screen, named <variant>-<label>.census.tsv. The first line is exactly
@@ -22,13 +30,15 @@ then optional lines starting with #, then one record per line with four tab-sepa
 In locator and value, backslash, tab, line feed and carriage return are written as \\\\, \\t, \\n and \\r.
 Records are in view-tree order (depth first), then dialogs, then notifications.
 
-  census_diff.py BASE HEAD [--show-bounds]      BASE and HEAD are census files or folders of them
+  census_diff.py --base A --base A2 HEAD [--show-volatile] [--show-bounds]
+                                                two or more base runs, then HEAD: census files or folders
+  census_diff.py BASE HEAD                      one base run (volatile records cannot be told apart)
   census_diff.py --mask FILE                    print a census with the masks applied
 """
 
 import argparse
 import collections
-import difflib
+import json
 import os
 import re
 import sys
@@ -112,12 +122,41 @@ def _shape(value):
 
 NUMERIC_DATE = PATTERNS[2]
 
+# Generated identifiers, masked in locators and values before anything else. Each is random per run
+# and is never text a batch formats: a UUID (profile, recording and scooter ids, also inside view
+# tags such as scooter-edit-<uuid>), the hex value of a JSON id field ("report_id": "1458068b..."),
+# and a free-standing hex run that is plainly an id: 16 or more hex digits, or 12 to 15 that mix
+# digits and letters a-f ("Report 1458068b7d6e6467 · Volt"). A run must be all lower or all upper
+# case and stand alone (no letter or digit beside it), so a decimal number shorter than 16 digits,
+# a word, and a formatted number ("1,234,567") are never touched.
+UUID = re.compile(r"(?<![0-9A-Za-z])[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+                  r"(?![0-9A-Za-z])")
+JSON_ID = re.compile(r'("(?:id|[A-Za-z0-9_]+_id)"\s*:\s*")([0-9a-fA-F]{8,})(")')
+HEX_ID = re.compile(r"(?<![0-9A-Za-z])(?:[0-9a-f]{16,}|[0-9A-F]{16,}"
+                    r"|(?=[0-9a-f]*[a-f])(?=[a-f]*[0-9])[0-9a-f]{12,15}"
+                    r"|(?=[0-9A-F]*[A-F])(?=[A-F]*[0-9])[0-9A-F]{12,15})(?![0-9A-Za-z])")
+# Report previews show the JSON a report carries, whose millisecond fields ("wall_ms": 1793691898829,
+# "first_ms": 51) are timestamps and timings of that run. Reports stay English and keep their own
+# goldens (G9), so only the number of a JSON field whose name ends in _ms is masked, as <ms>.
+JSON_MS = re.compile(r'("[A-Za-z0-9_]*_ms"\s*:\s*)-?\d+(?![\d.])')
+UUID_MASK, HEX_MASK, MS_MASK = "<uuid>", "<hex-id>", "<ms>"
+
+
+def mask_ids(text):
+    """text with generated identifiers and JSON report timings replaced by <uuid>, <hex-id> and <ms>;
+    nothing else changes."""
+    text = UUID.sub(UUID_MASK, text)
+    text = JSON_ID.sub(lambda m: m.group(1) + HEX_MASK + m.group(3), text)
+    text = JSON_MS.sub(lambda m: m.group(1) + MS_MASK, text)
+    return HEX_ID.sub(HEX_MASK, text)
+
 
 def masked(value):
-    """(comparison key, durations, digits, numeric dates): the key has values masked and plural unit
-    spellings merged; durations lists (number, unit as written) for the singular/plural check; digits
-    lists every masked digit run, in order, for the zero-padding check; numeric dates lists the
-    digit groups of each d/M or M/d/y date, for the order and year-width checks."""
+    """(comparison key, durations, digits, numeric dates): the key has identifiers and values masked
+    and plural unit spellings merged; durations lists (number, unit as written) for the singular/plural
+    check; digits lists every masked digit run, in order, for the zero-padding check; numeric dates
+    lists the digit groups of each d/M or M/d/y date, for the order and year-width checks."""
+    value = mask_ids(value)
     out, durations, digits, dates, at = [], [], [], [], 0
     spans = []
     for pattern in PATTERNS:
@@ -224,26 +263,141 @@ def write(records):
     return "\n".join(out) + "\n"
 
 
-def compare(base, head):
-    """(text_differences, bounds_differences) between two record lists."""
-    a = [(r.field, r.locator, mask(r.value)) for r in base]
-    b = [(r.field, r.locator, mask(r.value)) for r in head]
-    text, bounds = [], []
-    matcher = difflib.SequenceMatcher(None, a, b, autojunk=False)
-    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
-        if tag == "equal":
-            for i, j in zip(range(i1, i2), range(j1, j2)):
-                if not same_after_masking(base[i].value, head[j].value):
-                    text.append("- %s %s: %s" % (base[i].field, base[i].locator, l10nlib.json_string(base[i].value)))
-                    text.append("+ %s %s: %s" % (head[j].field, head[j].locator, l10nlib.json_string(head[j].value)))
-                elif base[i].bounds != head[j].bounds:
-                    bounds.append("%s %s: %s -> %s" % (base[i].field, base[i].locator, base[i].bounds, head[j].bounds))
+
+
+def keyed(records):
+    """{key: record} in record order. A record's key is (field, locator with identifiers masked,
+    occurrence): the occurrence counts earlier records with the same field and masked locator, so the
+    rows of a list whose views share a tag (charge-history-session:<uuid>) keep their order."""
+    seen, out = collections.Counter(), collections.OrderedDict()
+    for record in records:
+        where = (record.field, mask_ids(record.locator))
+        out[where + (seen[where],)] = record
+        seen[where] += 1
+    return out
+
+
+def _where(key):
+    return "%s %s%s" % (key[0], key[1], "" if key[2] == 0 else " #%d" % (key[2] + 1))
+
+
+def _line(sign, key, value):
+    return "%s %s: %s" % (sign, _where(key), l10nlib.json_string(value))
+
+
+Result = collections.namedtuple("Result", "text bounds volatile reordered formed")
+_DIGITS = re.compile(r"\d+")
+
+
+def form(value):
+    """value with identifiers masked and every digit run as <n>: what is left of a reading whose number
+    drifts between runs ("137 W" and "145 W" are both "<n> W"; "18.7 W" and "18,7 W" are not)."""
+    return _DIGITS.sub("<n>", mask_ids(value))
+
+
+def _match(wanted, offered):
+    """Greedy one-to-one match of wanted values to offered values (exact first, then same_after_masking);
+    returns (the wanted values left unmatched, the offered values left over)."""
+    pool, missing = list(offered), []
+    for value in wanted:
+        hit = next((i for i, v in enumerate(pool) if v == value), None)
+        if hit is None:
+            hit = next((i for i, v in enumerate(pool) if same_after_masking(value, v)), None)
+        if hit is None:
+            missing.append(value)
+        else:
+            del pool[hit]
+    return missing, pool
+
+
+_INDEX = re.compile(r"\[\d+\]")
+
+
+def shape(key):
+    """The list a key's row belongs to: field and masked locator with child indexes dropped, so the
+    rows .../LinearLayout[0]/TextView[2] and .../LinearLayout[3]/TextView[2] share one."""
+    return key[0], _INDEX.sub("[]", key[1])
+
+
+def compare_runs(bases, head):
+    """Compares HEAD's records with one or more BASE runs of the same steps; returns a Result.
+
+    A key (see keyed) in every base run whose values agree across the runs (same_after_masking) is
+    stable: HEAD must have it, with a value that matches under the masks. A key whose values differ
+    between the base runs, or that only some base runs have, is volatile: reported, never compared.
+
+    Fallback for a list that reorders between runs: of the keys of one shape (see shape) whose values
+    are not identical in every base run, when there are two or more and every base run holds the same
+    values there in some order, they are a reordered list. HEAD must hold those values at those keys,
+    in any order (each matched under the masks), and they count as reordered, not volatile.
+
+    A key whose values differ between the base runs only in their digits (see form: drifting simulated
+    telemetry) is compared by form: HEAD must have it with the same form, so a changed separator, unit,
+    space, plural or capital still fails; only the numbers, and so their zero padding, go unchecked.
+
+    HEAD keys that no base run has fail. text lists the failures, bounds the bounds notes (HEAD bounds
+    unlike every base run's), volatile (key, [base values]) the records not compared, reordered the
+    keys compared without their order and formed the keys compared by form.
+    """
+    maps, now = [keyed(b) for b in bases], keyed(head)
+    order = collections.OrderedDict()
+    for m in maps:
+        for key in m:
+            order[key] = True
+    text, bounds, volatile, reordered, formed = [], [], [], [], []
+    lists = collections.OrderedDict()
+    for key in order:
+        if all(key in m for m in maps) and any(mask_ids(m[key].value) != mask_ids(maps[0][key].value) for m in maps[1:]):
+            lists.setdefault(shape(key), []).append(key)
+    for keys in lists.values():
+        runs = [sorted(mask_ids(m[k].value) for k in keys) for m in maps]
+        if len(keys) < 2 or any(run != runs[0] for run in runs[1:]):
             continue
-        for i in range(i1, i2):
-            text.append("- %s %s: %s" % (base[i].field, base[i].locator, l10nlib.json_string(base[i].value)))
-        for j in range(j1, j2):
-            text.append("+ %s %s: %s" % (head[j].field, head[j].locator, l10nlib.json_string(head[j].value)))
-    return text, bounds
+        reordered.extend(keys)
+        missing, left = _match([maps[0][k].value for k in keys], [now[k].value for k in keys if k in now])
+        first = [mask_ids(maps[0][k].value) for k in keys]
+        for value in missing:
+            # Named by the key that held the value in the first base run.
+            text.append(_line("-", keys[first.index(mask_ids(value))], value) + " (a reordered list's row)")
+        for value in left if missing else ():
+            text.append(_line("+", keys[0], value) + " (a reordered list's row)")
+    shuffled = set(reordered)
+    for key in order:
+        if key in shuffled:
+            continue
+        if not all(key in m for m in maps):
+            volatile.append((key, [m[key].value for m in maps if key in m]))
+            continue
+        first = maps[0][key]
+        record = now.get(key)
+        if not all(same_after_masking(first.value, m[key].value) for m in maps[1:]):
+            if any(form(m[key].value) != form(first.value) for m in maps[1:]):
+                volatile.append((key, [m[key].value for m in maps]))
+                continue
+            formed.append(key)
+            if record is None:
+                text.append(_line("-", key, first.value) + " (compared by form: its numbers drift)")
+            elif form(record.value) != form(first.value):
+                text.append(_line("-", key, first.value) + " (compared by form: its numbers drift)")
+                text.append(_line("+", key, record.value) + " (compared by form: its numbers drift)")
+            continue
+        if record is None:
+            text.append(_line("-", key, first.value))
+        elif not same_after_masking(first.value, record.value):
+            text.append(_line("-", key, first.value))
+            text.append(_line("+", key, record.value))
+        elif all(m[key].bounds != record.bounds for m in maps):
+            bounds.append("%s: %s -> %s" % (_where(key), first.bounds, record.bounds))
+    for key, record in now.items():
+        if key not in order:
+            text.append(_line("+", key, record.value))
+    return Result(text, bounds, volatile, reordered, formed)
+
+
+def compare(base, head):
+    """(text_differences, bounds_differences) between two record lists (one base run)."""
+    result = compare_runs([base], head)
+    return result.text, result.bounds
 
 
 def _collect(path):
@@ -258,53 +412,145 @@ def _collect(path):
     return {os.path.basename(path): path}
 
 
-def diff_paths(base_path, head_path):
-    """(text problems, bounds notes, screens compared)."""
-    base_files, head_files = _collect(base_path), _collect(head_path)
-    single = not os.path.isdir(base_path) and not os.path.isdir(head_path)
-    if single:
-        pairs = [("", base_path, head_path)]
+Summary = collections.namedtuple("Summary", "problems notes screens volatile reordered formed records warnings")
+SWEEP = "sweep.json"
+
+
+def _sweep(path):
+    """The sweep.json run-release-sweep.py --census writes into a census folder, or None."""
+    name = os.path.join(path, SWEEP)
+    if not os.path.isdir(path) or not os.path.isfile(name):
+        return None
+    try:
+        data = json.loads(l10nlib.read_text(name))
+    except ValueError:
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def check_runs(base_paths, head_path):
+    """(problems, warnings) about the runs themselves. Base runs must be separate sweeps of one app APK:
+    with two or more, HEAD given as a base, a base given twice, or base runs of different app APKs
+    would mark every change volatile. Every run must use one test APK. A run without sweep.json
+    cannot be checked, which is a warning."""
+    problems, warnings = [], []
+    real = [os.path.realpath(p) for p in base_paths]
+    if len(real) > 1 and os.path.realpath(head_path) in real:
+        problems.append("HEAD %s is also a base run" % head_path)
+    if len(set(real)) < len(real):
+        problems.append("a base run is given twice: each --base must be its own sweep")
+    sweeps = [_sweep(p) for p in list(base_paths) + [head_path]]
+    if any(s is None for s in sweeps):
+        warnings.append("no %s in %s: cannot check which APKs the runs used" % (
+            SWEEP, ", ".join(p for p, s in zip(list(base_paths) + [head_path], sweeps) if s is None)))
+        return problems, warnings
+    if len(base_paths) > 1 and len({s.get("app_sha256") for s in sweeps[:-1]}) > 1:
+        problems.append("the base runs are of different app APKs (app_sha256 in %s): sweep the same base APK each time" % SWEEP)
+    if len({s.get("runner_sha256") for s in sweeps}) > 1:
+        problems.append("the runs used different test APKs (runner_sha256 in %s): use the head's test APK for every run" % SWEEP)
+    return problems, warnings
+
+
+def diff_runs(base_paths, head_path):
+    """Summary of HEAD against the BASE runs. problems lists the failures; volatile holds
+    "<screen>: <field> <locator>: <base values>" lines for the records and screens not compared
+    (a screen only some base runs have counts each of its records); reordered counts the records
+    compared without their order and formed those compared by form; records counts the records of the screens HEAD was compared on."""
+    run_problems, warnings = check_runs(base_paths, head_path)
+    base_files = [_collect(p) for p in base_paths]
+    head_files = _collect(head_path)
+    if not any(os.path.isdir(p) for p in list(base_paths) + [head_path]):
+        pairs = [(os.path.basename(head_path), [p for p in base_paths], head_path)]
     else:
-        pairs = []
-        for name in sorted(set(base_files) | set(head_files)):
-            pairs.append((name, base_files.get(name), head_files.get(name)))
-    problems, notes = [], []
-    for name, a, b in pairs:
-        if a is None or b is None:
-            problems.append("%s: only in %s" % (name, "head" if a is None else "base"))
+        names = set(head_files)
+        for files in base_files:
+            names |= set(files)
+        pairs = [(name, [files.get(name) for files in base_files], head_files.get(name)) for name in sorted(names)]
+    problems, notes, volatile, reordered, formed, records = list(run_problems), [], [], 0, 0, 0
+    for name, bases, head in pairs:
+        present = [b for b in bases if b is not None]
+        if not present:
+            problems.append("%s: only in head" % name)
             continue
         try:
-            text, bounds = compare(parse(l10nlib.read_text(a), a), parse(l10nlib.read_text(b), b))
+            runs = [parse(l10nlib.read_text(b), b) for b in present]
+            if len(present) < len(bases):
+                records += len(keyed(runs[0]))
+                volatile.extend("%s: %s (screen in %d of %d base runs)" % (name, _where(k), len(present), len(bases))
+                                for k in keyed(runs[0]))
+                continue
+            if head is None:
+                problems.append("%s: only in base" % name)
+                continue
+            result = compare_runs(runs, parse(l10nlib.read_text(head), head))
         except CensusError as error:
             problems.append(str(error))
             continue
-        label = name or os.path.basename(b)
-        problems.extend("%s: %s" % (label, t) for t in text)
-        notes.extend("%s: %s" % (label, t) for t in bounds)
-    return problems, notes, len(pairs)
+        records += len(set().union(*[keyed(r) for r in runs]))
+        problems.extend("%s: %s" % (name, t) for t in result.text)
+        notes.extend("%s: %s" % (name, t) for t in result.bounds)
+        volatile.extend("%s: %s: %s" % (name, _where(k), " | ".join(l10nlib.json_string(v) for v in values))
+                        for k, values in result.volatile)
+        reordered += len(result.reordered)
+        formed += len(result.formed)
+    return Summary(problems, notes, len(pairs), volatile, reordered, formed, records, warnings)
+
+
+def diff_paths(base_path, head_path):
+    """(text problems, bounds notes, screens compared) for one base run."""
+    summary = diff_runs([base_path], head_path)
+    return summary.problems, summary.notes, summary.screens
+
+
+def _step(line):
+    return line.split("/", 1)[0] if "/" in line.split(":", 1)[0] else line.split(":", 1)[0]
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    parser.add_argument("paths", nargs="*", help="BASE HEAD")
+    parser.add_argument("paths", nargs="*", help="BASE HEAD, or HEAD with --base")
+    parser.add_argument("--base", action="append", default=[], metavar="BASE",
+                        help="a base run (census file or folder); give it twice or more to learn volatile records")
     parser.add_argument("--mask", metavar="FILE", help="print FILE with masks applied")
     parser.add_argument("--show-bounds", action="store_true", help="list each bounds difference")
+    parser.add_argument("--show-volatile", action="store_true", help="list each volatile record with its base values")
     args = parser.parse_args(argv)
     if args.mask:
         for record in parse(l10nlib.read_text(args.mask), args.mask):
-            print("%s\t%s\t%s" % (record.field, record.locator, mask(record.value)))
+            print("%s\t%s\t%s" % (record.field, mask_ids(record.locator), mask(record.value)))
         return 0
-    if len(args.paths) != 2:
-        parser.error("give BASE and HEAD")
-    problems, notes, screens = diff_paths(args.paths[0], args.paths[1])
-    for problem in problems:
+    if args.base:
+        if len(args.paths) != 1:
+            parser.error("give HEAD after the --base runs")
+        bases, head = args.base, args.paths[0]
+    else:
+        if len(args.paths) != 2:
+            parser.error("give BASE and HEAD, or --base BASE --base BASE2 HEAD")
+        bases, head = args.paths[:1], args.paths[1]
+    summary = diff_runs(bases, head)
+    if len(bases) == 1:
+        print("census_diff: warning: one base run, so run-to-run noise (drifting telemetry, timing-dependent "
+              "captures) cannot be told apart from a text change; sweep the base twice and pass --base twice",
+              file=sys.stderr)
+    for warning in summary.warnings:
+        print("census_diff: warning: " + warning, file=sys.stderr)
+    for problem in summary.problems:
         print("census_diff: " + problem, file=sys.stderr)
     if args.show_bounds:
-        for note in notes:
+        for note in summary.notes:
             print("census_diff: bounds: " + note)
-    print("census_diff: %s: %d screen(s), %d text difference(s), %d bounds difference(s) (reported only)" % (
-        "FAILED" if problems else "PASS", screens, len(problems), len(notes)))
-    return 1 if problems else 0
+    if args.show_volatile:
+        for line in summary.volatile:
+            print("census_diff: volatile: " + line)
+    if summary.volatile:
+        steps = collections.Counter(_step(line) for line in summary.volatile)
+        print("census_diff: volatile by step: " + ", ".join("%s %d" % (s, n) for s, n in sorted(steps.items())))
+    print("census_diff: %s: %d screen(s), %d base run(s), %d text difference(s), %d of %d record(s) volatile "
+          "(not compared), %d compared by form (numbers drift), %d in reordered lists (compared without order), "
+          "%d bounds difference(s) (reported only)" % (
+              "FAILED" if summary.problems else "PASS", summary.screens, len(bases), len(summary.problems),
+              len(summary.volatile), summary.records, summary.formed, summary.reordered, len(summary.notes)))
+    return 1 if summary.problems else 0
 
 
 if __name__ == "__main__":

@@ -22,9 +22,11 @@ boot) are off while steps run: one slid over a Battery cell's border in a screen
 Localization (l10n/README.md). Every step runs Volt in English: the emulator's system language must be
 en-US, and each fresh install clears any per-app language (API 33+). --census gathers the text census
 that every screenshot helper writes (android-tests/TextCensus.java) into <out>/census/<step>/, for
-tools/l10n/census_diff.py; run the same steps for a base and a head APK with the same test APK and
-compare the two census folders. A screenshot without a census, and a step with no census at all, are
-reported, since G7 then covers nothing there. --pseudo-app adds the pseudo-locale APK (VOLT_PSEUDO_LOCALES=1 build.sh,
+tools/l10n/census_diff.py, with census/sweep.json naming the app and test APKs (SHA-256). Run the same
+steps twice for the base APK and once for the head APK, each into a new --out and all with the head's
+test APK, then compare with census_diff.py --base A/census --base A2/census HEAD/census: the two base
+runs show which records change from run to run (volatile, reported but not compared). A screenshot
+without a census, and a step with no census at all, are reported, since G7 then covers nothing there. --pseudo-app adds the pseudo-locale APK (VOLT_PSEUDO_LOCALES=1 build.sh,
 build/pseudo/volt-pseudo.apk), whose classes.dex must equal --app's, for the locale-* steps
 (LocaleValidation under en-XA and ar-XB). Those steps report only: their findings never fail the sweep,
 and without --pseudo-app they are skipped. They never join the census, so run them as their own
@@ -153,7 +155,7 @@ parser.add_argument('--app', type=Path)
 parser.add_argument('--runner', type=Path)
 parser.add_argument('--out', type=Path)
 parser.add_argument('--only', action='append', help='step name (repeatable)')
-parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py')
+parser.add_argument('--census', action='store_true', help='gather every step\'s text census into <out>/census/ for tools/l10n/census_diff.py (sweep the base APK twice, the head once)')
 parser.add_argument('--pseudo-app', type=Path, help='the pseudo-locale APK for the report-only locale-* steps; its classes.dex must equal --app\'s')
 parser.add_argument('--list', action='store_true', help='print the steps and exit')
 args = parser.parse_args()
@@ -201,6 +203,13 @@ if SYSTEM_LOCALE != 'en-US':
     raise SystemExit(f'The emulator\'s system language is {SYSTEM_LOCALE or "unknown"}; set it to English (United States) first')
 SDK = int(adb('shell', 'getprop', 'ro.build.version.sdk').strip() or 0)
 args.out.mkdir(parents=True, exist_ok=True)
+if args.census:
+    # census_diff.py reads this to refuse base runs of different app APKs (HEAD passed as a base by
+    # mistake would turn every change into a volatile record) and runs with different test APKs.
+    (args.out / 'census').mkdir(exist_ok=True)
+    (args.out / 'census' / 'sweep.json').write_text(json.dumps(dict(
+        format='volt-census-sweep-v1', app_sha256=hashlib.sha256(args.app.read_bytes()).hexdigest(),
+        runner_sha256=hashlib.sha256(args.runner.read_bytes()).hexdigest(), only=args.only or []), indent=2) + '\n')
 
 
 # A system error dialog's window title names the stalled process; a crash dialog also has focus.

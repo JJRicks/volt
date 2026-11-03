@@ -160,22 +160,30 @@ its own `.sources` file (its characterization tests, its new suites) and never e
 5. **Build** with `bash build.sh` (catalog plus round-trip), then `bash android-tests/build.sh`.
 6. **Prove it**: `tools/l10n/prove-english.sh origin/main` and paste its summary block into the PR
    description and the Codex handoff comment.
-7. **Census (G7)** on an English-pinned emulator: run the batch's sweep steps with `--census` for
-   the base and the head APK, with the head's test APK both times, then
-   `python3 tools/l10n/census_diff.py base-out/census head-out/census`, and paste its last line.
-   For example:
+7. **Census (G7)** on an English-pinned emulator: run the batch's sweep steps with `--census` twice
+   for the base APK and once for the head APK, with the head's test APK every time, then
+   `python3 tools/l10n/census_diff.py --base base-out/census --base base2-out/census head-out/census`,
+   and paste its last two lines (the volatile count by step and the summary). For example:
 
    ```sh
-   python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --census \
-       --app base.apk --runner head-runner.apk --out evidence/base --only live-stats --only dashboard
+   for run in base base2; do
+     python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --census \
+         --app base.apk --runner head-runner.apk --out evidence/$run --only live-stats --only dashboard
+   done
    python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 --census \
        --app dist/volt.apk --runner head-runner.apk --out evidence/head --only live-stats --only dashboard
-   python3 tools/l10n/census_diff.py evidence/base/census evidence/head/census
+   python3 tools/l10n/census_diff.py --base evidence/base/census --base evidence/base2/census evidence/head/census
    ```
 
    Use a new, empty `--out` each time, and sign both APKs with the same key as the test APK. The
    test APK only uses public APIs and app classes that older builds have, so it censuses the base
-   APK too.
+   APK too. The two base runs show which records change from run to run on their own: a reading
+   whose number drifts is compared by its form only, and any other change (a capture that races the
+   app) makes the record *volatile*: listed by step, counted in the summary, and not compared. Review that count: G7 covers nothing there, so a batch
+   that converts text only a volatile record shows needs another proof (its unit tests, or a steadier
+   screenshot). Every other record must match exactly, apart from the masks below. With one base run
+   (`census_diff.py BASE HEAD`) nothing can be told volatile, so noise fails like a text change and
+   a warning says so.
 
 **After a rebase** onto a `main` that moved lines, the ledger's base lines are stale. Run
 `python3 tools/l10n/extract.py relocate --base origin/main --batch b2-ui`: it moves every row whose
@@ -290,6 +298,9 @@ Known limits:
 - `whole block:` removed rows, `as` holes and code changes away from any text are warnings, not
   failures: the reviewer must read them.
 - G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
+- G7 does not compare volatile records (values whose text, not only their digits, changed between
+  the two base runs), nor the numbers of records compared by form. The summary counts both; the
+  reviewer judges whether the batch's text there is proven another way.
 - CI runs the pull request's own copy of the tools, so the "proof tooling unchanged" check and
   review are what stop a batch from weakening them.
 
@@ -418,6 +429,41 @@ Windows come from `WindowInspector` (API 29+): the activity's window first, then
 dialogs and popups (`dialog[<n>]/...`), whose framework title, message and button views are `title`,
 `message` and `button`, and whose list rows are `item`. Toasts are drawn by the system and are not in
 the census.
+
+**Generated identifiers** are masked first, in locators and values: a UUID becomes `<uuid>`
+(`tag=scooter-edit-<uuid>`), the hex value of a JSON id field (`"report_id": "1458068b7d6e6467"`)
+and a free-standing hex id (16 or more hex digits, or 12 to 15 mixing digits and letters, in one
+case, with no letter or digit beside it: `Report 1458068b7d6e6467`) become `<hex-id>`, and the
+number of a JSON field whose name ends in `_ms` (a report preview's `wall_ms` or `first_ms`) becomes
+`<ms>`. Report JSON stays English and has its own goldens (G9). Nothing else about numbers is masked:
+`18.7 W` against `18,7 W`, `137 W` against `137W`, a changed unit, plural, capital or zero padding
+all fail.
+
+**Volatile records.** Each record is keyed by its screen file (path under the census folder),
+field, locator with identifiers masked, and occurrence (the how-manyth record with that field and
+masked locator, counted in tree order), so the rows of a list whose views share a tag keep their own
+keys. A key whose values differ between the base runs (once masked), or that only some base runs
+have, is volatile: `--show-volatile` lists each one with its base values. A key every base run
+agrees on is stable and must be in HEAD with a matching value; a key only HEAD has fails. Between
+the two sits a key whose base values differ only in their digits (`137 W` and `145 W`, drifting
+telemetry): it is *compared by form*, each digit run as `<n>`, so HEAD's `150 W` passes but `150W`,
+`15,0 W`, `150 kW` or a changed plural fails; only its numbers, and so their zero padding, go
+unchecked. A key whose form also changes between the base runs (`9.9 W` and `10 W`) is volatile. A screen
+only some base runs have is volatile as a whole. Fallback for a list that reorders between runs
+(the charge history once listed recordings by file time and random name): the keys of one field
+and one locator with child indexes dropped (`.../LinearLayout[]/TextView[]`) whose values are not
+identical in every base run, when there are two or more and every base run holds the same values
+there in some order, are a reordered list. HEAD must hold those values there, in any order, and
+the summary counts them as compared without order. `census_diff.py` also fails when HEAD is given
+as one of two or more base runs, when a base is given twice, when the base runs' `sweep.json`
+(written by `run-release-sweep.py --census`) names different app APKs, or when the runs used
+different test APKs; a run without `sweep.json` gets a warning.
+
+The validations keep their screenshots steady where they can, so that even one base run is mostly
+clean: `GuidedTestValidation` waits for Volt's paced connection notification to show what the
+service would post now before each screenshot, `ChargeEstimateValidation` gives its history fixture
+fixed file times, and `CompatibilityGatingValidation` holds the simulated check at its first read
+for the "running" screenshot.
 
 `census_diff.py` masks the *values* of clock times, durations and dates and keeps their form: each
 number becomes `<n>`, a month or weekday becomes its form (`<MMM>`, `<MMMM>`, `<MMM:upper>`,

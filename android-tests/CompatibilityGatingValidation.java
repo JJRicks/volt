@@ -399,11 +399,15 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             for (String f : new String[]{"display_units", "headlight", "turn_sound", "auto_sensor", "range_algorithm"}) require(!ble.testDecision(f).available(), label + ": a simulated guided test is possible for " + f);
             require(!ble.testing() && ble.guidedTest() == null && ble.unresolvedTests().isEmpty(), label + ": a guided test exists");
         });
-        final Map<String, Integer> before = new TreeMap<>();
+        final Map<String, Integer> before = new TreeMap<>(); final Object[] check = {null};
         main(() -> {
             BleController ble = activity.service().ble; before.putAll(ble.simulationFeatures());
             ble.startDiscovery(); int[] held = {0};
             require(ble.discovering(), label + ": check did not start");
+            // G7: hold the check at its first read until the running screenshot is taken, so that screenshot shows
+            // the same step on every run. Its first tick runs after this block; no read is reserved while the last
+            // request time is in the future, and nothing is sent or recorded meanwhile (see releaseCheck).
+            check[0] = invoke(ble, "discovery"); setField(check[0], "lastRequestMs", Long.MAX_VALUE / 4);
             for (ScooterCommands.Feature f : ScooterCommands.catalog()) {
                 CapabilityResolver.Decision d = ble.decision(f.key);
                 if (f.key.equals("lock")) require(d.reason != CapabilityResolver.Reason.DISCOVERY_ACTIVE, label + ": lock held by the check");
@@ -414,7 +418,16 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             require(!ble.set("display_units", 0) && !ble.set("display_units", 1), label + ": a setting was admitted during the check");
             require(ble.decision("clock_sync").reason == CapabilityResolver.Reason.DISCOVERY_ACTIVE || ble.decision("clock_sync").support != CapabilityResolver.Support.KNOWN_ENCODING, label + ": clock not held");
         });
-        settle(); screenshot(label + "-compatibility-running");
+        try {
+            require(check[0] != null, label + ": no running check to hold");
+            final String first = "Reading 1 of " + ((int[])field(check[0], "ORDER")).length + "\u2026";
+            // Body refreshes share a 1 Hz pulse: wait for the held step to be drawn.
+            await(() -> { final boolean[] drawn = {false}; main(() -> drawn[0] = byText(root(), first) != null); return drawn[0]; },
+                    label + ": the running check did not show \"" + first + "\"");
+            settle(); screenshot(label + "-compatibility-running");
+        } finally {
+            if (check[0] != null) main(() -> releaseCheck(check[0]));
+        }
         long end = SystemClock.uptimeMillis() + 35000;
         while (SystemClock.uptimeMillis() < end) { final boolean[] running = {true}; main(() -> running[0] = activity.service().ble.discovering()); if (!running[0]) break; SystemClock.sleep(200); }
         settle();
@@ -624,6 +637,8 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             scroll.scrollTo(0, Math.max(0, scroll.getScrollY() + at[1] - top[1] - found.getHeight()));
         }); settle();
     }
+    /** Lets a check held by verifyCompatibility send its reads: the last request time goes back to DiscoveryCoordinator's initial one. */
+    private void releaseCheck(Object check) { setField(check, "lastRequestMs", Long.MIN_VALUE / 2); }
     private TextView byText(View view, String text) {
         if (view instanceof TextView && text.contentEquals(((TextView)view).getText()) && view.isShown()) return (TextView)view;
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup)view).getChildCount(); i++) { TextView found = byText(((ViewGroup)view).getChildAt(i), text); if (found != null) return found; }

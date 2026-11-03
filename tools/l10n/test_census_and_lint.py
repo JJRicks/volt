@@ -129,6 +129,218 @@ class CensusTest(unittest.TestCase):
             shutil.rmtree(work, ignore_errors=True)
 
 
+FIXTURES = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "census")
+
+
+def fixture(run, name):
+    """A real census (or an excerpt of one) from two sweeps of builds with the same text."""
+    path = os.path.join(FIXTURES, run, name + census_diff.SUFFIX)
+    return census_diff.parse(l10nlib.read_text(path), path)
+
+
+class IdentifierMaskTest(unittest.TestCase):
+    def test_uuids_in_locators_and_values(self):
+        self.assertEqual(census_diff.mask_ids("tag=scooter-edit-c896149b-2f4a-38a1-a4eb-d8bdc678b97c"), "tag=scooter-edit-<uuid>")
+        self.assertEqual(census_diff.mask_ids("Profile C896149B-2F4A-38A1-A4EB-D8BDC678B97C saved"), "Profile <uuid> saved")
+        key = next(iter(census_diff.keyed(census_diff.parse(census_diff.write(
+            [("desc", "tag=scooter-edit-5a0af0c0-afe0-3b5e-9d6f-2b2df8e2b325", "-", "Edit")])))))
+        self.assertEqual(key, ("desc", "tag=scooter-edit-<uuid>", 0))
+
+    def test_hex_ids_and_report_timings(self):
+        cases = {
+            '"report_id": "1458068b7d6e6467",': '"report_id": "<hex-id>",',
+            '"report_id": "1234567890123456"': '"report_id": "<hex-id>"',
+            '"id": "0123abcd"': '"id": "<hex-id>"',
+            "Report 1458068b7d6e6467 · Volt 1.11.1": "Report <hex-id> · Volt 1.11.1",
+            "Report 61A6F9281269FDFC": "Report <hex-id>",
+            "key a1b2c3d4e5f6": "key <hex-id>",
+            '"wall_ms": 1793691898829, "first_ms": 51': '"wall_ms": <ms>, "first_ms": <ms>',
+        }
+        for value, masked in cases.items():
+            self.assertEqual(census_diff.mask_ids(value), masked, value)
+
+    def test_numbers_words_and_short_hex_stay(self):
+        for value in ("137 W", "18.7 W", "18,7 W", "1,234,567 km", "1234567890", "123456789012345", "deadbeefcafe",
+                      "Decaf", "A1B2C3", "0x74", "Q2538ZZ9US7777777", "C0:FF:EE:00:25:38", "1458068B7d6e6467",
+                      '"first": 51', '"wall_ms": 1.5', "Battery 80%", "2026-03-05"):
+            self.assertEqual(census_diff.mask_ids(value), value, value)
+
+    def test_number_formatting_changes_still_count(self):
+        """B1 changes number formatting; masking ids and clocks must not hide it."""
+        for a, b in (("18.7 W", "18,7 W"), ("137 W", "137W"), ("137 W", "137 kW"), ("2 rides", "2 ride"),
+                     ("Run check", "Run Check"), ("08:00", "8:00"), ("95% of 716 Wh", "95 % of 716 Wh"),
+                     ("Report 1458068b7d6e6467 · 18.7 W", "Report 61a6f9281269fdfc · 18,7 W")):
+            self.assertFalse(census_diff.same_after_masking(a, b), (a, b))
+        self.assertTrue(census_diff.same_after_masking("Report 1458068b7d6e6467 · 18.7 W", "Report 61a6f9281269fdfc · 18.7 W"))
+
+    def test_real_captures_differ_only_in_ids(self):
+        for name in ("import-scooters", "mapped-compatibility-json"):
+            base, head = fixture("harness", name), fixture("runtime", name)
+            self.assertNotEqual([r.value for r in base] + [r.locator for r in base],
+                                [r.value for r in head] + [r.locator for r in head], name)
+            self.assertEqual(census_diff.compare(base, head)[0], [], name)
+
+
+class VolatileTest(unittest.TestCase):
+    def records(self, rows):
+        return census_diff.parse(census_diff.write(rows))
+
+    def runs(self, *values):
+        """One record list per run: a stable label, a watt reading per run and a clock."""
+        return [self.records([("text", "tag=title", "0,0,10,10", "Battery"), ("text", "tag=power", "0,20,10,10", value),
+                              ("text", "tag=updated", "0,40,10,10", "Updated 9:59 AM")]) for value in values]
+
+    def test_stable_mismatch_fails(self):
+        a, a2, head = self.runs("18.7 W", "18.7 W", "18,7 W")
+        result = census_diff.compare_runs([a, a2], head)
+        self.assertEqual(result.text, ['- text tag=power: "18.7 W"', '+ text tag=power: "18,7 W"'])
+        self.assertEqual(result.volatile, [])
+        a, a2, head = self.runs("137 W", "137 W", "137W")
+        self.assertEqual(len(census_diff.compare_runs([a, a2], head).text), 2)
+
+    def test_stable_records_keep_the_clock_masks(self):
+        a, a2 = self.runs("18.7 W", "18.7 W")
+        head = self.records([("text", "tag=title", "0,0,10,10", "Battery"), ("text", "tag=power", "0,20,10,10", "18.7 W"),
+                             ("text", "tag=updated", "0,40,10,10", "Updated 10:03 PM")])
+        self.assertEqual(census_diff.compare_runs([a, a2], head).text, [])
+
+    def test_volatile_is_reported_not_compared(self):
+        a, a2, head = self.runs("Scooter connected", "Disconnected", "Something else")
+        result = census_diff.compare_runs([a, a2], head)
+        self.assertEqual(result.text, [])
+        self.assertEqual(result.volatile, [(("text", "tag=power", 0), ["Scooter connected", "Disconnected"])])
+        # The stable records of the same screen are still compared.
+        head = self.records([("text", "tag=title", "0,0,10,10", "battery"), ("text", "tag=power", "0,20,10,10", "1 W"),
+                             ("text", "tag=updated", "0,40,10,10", "Updated 9:59 AM")])
+        self.assertEqual(len(census_diff.compare_runs([a, a2], head).text), 2)
+
+    def test_drifting_numbers_are_compared_by_form(self):
+        """Simulated telemetry drifts between runs: its numbers go unchecked, its formatting does not."""
+        for base, base2, head, fails in (("137 W", "145 W", "150 W", False), ("137 W", "145 W", "150W", True),
+                                         ("18.7 W", "16.3 W", "17.1 W", False), ("18.7 W", "16.3 W", "17,1 W", True),
+                                         ("24 °C", "23 °C", "25 °F", True), ("24 °C", "23 °C", "25 °c", True),
+                                         ("3 rides", "4 rides", "5 ride", True), ("Battery power, 20.1 W", "Battery power, 22.0 W",
+                                                                                 "Battery power, 21.4 W", False)):
+            a, a2, h = self.runs(base, base2, head)
+            result = census_diff.compare_runs([a, a2], h)
+            self.assertEqual((bool(result.text), result.volatile, result.formed), (fails, [], [("text", "tag=power", 0)]),
+                             (base, base2, head))
+        # A number whose form changes between the base runs is volatile.
+        a, a2, h = self.runs("9.9 W", "10 W", "10W")
+        result = census_diff.compare_runs([a, a2], h)
+        self.assertEqual((result.text, len(result.volatile)), ([], 1))
+
+    def test_records_only_some_base_runs_have_are_volatile(self):
+        a, a2, _ = self.runs("1 W", "1 W", "1 W")
+        a2 = a2 + self.records([("toast", "tag=hint", "-", "Saved")])
+        result = census_diff.compare_runs([a, a2], a)
+        self.assertEqual((result.text, result.volatile), ([], [(("toast", "tag=hint", 0), ["Saved"])]))
+        # A record HEAD adds, or one every base run has and HEAD lacks, fails.
+        self.assertEqual(census_diff.compare_runs([a, a], a2).text, ['+ toast tag=hint: "Saved"'])
+        self.assertEqual(census_diff.compare_runs([a2, a2], a).text, ['- toast tag=hint: "Saved"'])
+
+    def test_a_reordered_list_is_compared_without_order(self):
+        rows = ["Jan 1, 2025 · 16:59, 100% observed", "Jan 1, 2025 · 17:59, Finish not observed", "Jan 1, 2025 · 18:59, Finish not observed"]
+
+        def screen(order, *extra):
+            return self.records([("text", "tag=title", "-", "Charge recordings")]
+                                + [("desc", "tag=charge-history-session:%s" % ("%08x-0000-4000-8000-%012x" % (i, i)), "-", rows[i])
+                                   for i in order] + list(extra))
+        a, a2 = screen((0, 1, 2)), screen((2, 0, 1))
+        result = census_diff.compare_runs([a, a2], screen((1, 2, 0)))
+        self.assertEqual((result.text, result.volatile, len(result.reordered)), ([], [], 3))
+        rows[0] = rows[0].replace("100%", "100 %")
+        changed = census_diff.compare_runs([a, a2], screen((1, 2, 0)))
+        self.assertEqual(changed.text, [
+            '- desc tag=charge-history-session:<uuid>: "Jan 1, 2025 · 16:59, 100% observed" (a reordered list\'s row)',
+            '+ desc tag=charge-history-session:<uuid>: "Jan 1, 2025 · 16:59, 100 % observed" (a reordered list\'s row)'])
+        # With one base run a reordered list cannot be told from a changed one.
+        self.assertNotEqual(census_diff.compare_runs([a], a2).text, [])
+
+    def test_real_reordered_history(self):
+        """The charge history fixture listed its sessions in another order on each run."""
+        base, base2 = fixture("harness", "history-list"), fixture("runtime", "history-list")
+        self.assertNotEqual(census_diff.compare(base, base2)[0], [])
+        for head in (base, base2):
+            result = census_diff.compare_runs([base, base2], head)
+            self.assertEqual((result.text, result.volatile), ([], []))
+            self.assertGreaterEqual(len(result.reordered), 10)
+        rows = [(r.field, r.locator, r.bounds, r.value.replace("100% observed", "100 % observed", 1)) for r in base2]
+        self.assertNotEqual(census_diff.compare_runs([base, base2], self.records(rows)).text, [])
+
+    def test_real_timing_dependent_captures_are_volatile(self):
+        for name, least in (("mapped-compatibility-running", 6), ("n65i-lab-unconfirmed-drop", 2)):
+            base, base2 = fixture("harness", name), fixture("runtime", name)
+            self.assertNotEqual(census_diff.compare(base, base2)[0], [], name)
+            result = census_diff.compare_runs([base, base2], base2)
+            self.assertEqual(result.text, [], name)
+            self.assertGreaterEqual(len(result.volatile), least, name)
+        # The notice's channel and action matched in both runs, so they are still compared.
+        result = census_diff.compare_runs([fixture("harness", "n65i-lab-unconfirmed-drop"), fixture("runtime", "n65i-lab-unconfirmed-drop")],
+                                          self.records([("notif-action", "notification:scooter/71", "-", "Disconnect now")]))
+        self.assertIn('- notif-action notification:scooter/71: "Disconnect"', result.text)
+
+    def folders(self, work, runs):
+        for run, screens in runs.items():
+            for name, rows in screens.items():
+                l10nlib.write_text(os.path.join(work, run, name + census_diff.SUFFIX), census_diff.write(rows))
+        return [os.path.join(work, run) for run in runs]
+
+    def sweep(self, folder, app="a" * 64, runner="r" * 64):
+        l10nlib.write_text(os.path.join(folder, census_diff.SWEEP), '{"format": "volt-census-sweep-v1", "app_sha256": "%s", "runner_sha256": "%s"}\n' % (app, runner))
+
+    def main(self, argv):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = census_diff.main(argv)
+        return code, out.getvalue(), err.getvalue()
+
+    def test_multi_base_cli_and_single_base_warning(self):
+        work = tempfile.mkdtemp(prefix="l10n-census-")
+        try:
+            power = lambda v: [("text", "tag=title", "-", "Battery"), ("text", "tag=power", "-", v)]
+            a, a2, head = self.folders(work, {"a": {"home": power("Charging"), "only-a": power("1 W")},
+                                              "a2": {"home": power("Idle")}, "head": {"home": power("Off")}})
+            for folder in (a, a2, head):
+                self.sweep(folder)
+            code, out, err = self.main(["--base", a, "--base", a2, head, "--show-volatile"])
+            self.assertEqual(code, 0, err)
+            self.assertNotIn("one base run", err)
+            self.assertIn("volatile: home.census.tsv: text tag=power: \"Charging\" | \"Idle\"", out)
+            self.assertIn("only-a.census.tsv: text tag=power (screen in 1 of 2 base runs)", out)
+            self.assertIn("volatile by step: ", out)
+            self.assertIn("PASS: 2 screen(s), 2 base run(s), 0 text difference(s), 3 of 4 record(s) volatile", out)
+            code, out, err = self.main([a, head])
+            self.assertEqual(code, 1)
+            self.assertIn("warning: one base run", err)
+            self.assertIn("home.census.tsv: - text tag=power", err)
+            self.assertIn("only-a.census.tsv: only in base", err)
+            with contextlib.redirect_stderr(io.StringIO()):
+                for argv in (["--base", a, a2, head], [head]):
+                    with self.assertRaises(SystemExit):
+                        census_diff.main(argv)
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+
+    def test_runs_must_be_separate_sweeps_of_one_base_apk(self):
+        work = tempfile.mkdtemp(prefix="l10n-census-")
+        try:
+            screen = {"home": [("text", "tag=title", "-", "Battery")]}
+            a, a2, head = self.folders(work, {"a": screen, "a2": screen, "head": screen})
+            self.assertIn("no sweep.json", " ".join(census_diff.diff_runs([a, a2], head).warnings))
+            self.sweep(a); self.sweep(a2); self.sweep(head, app="b" * 64)
+            summary = census_diff.diff_runs([a, a2], head)
+            self.assertEqual((summary.problems, summary.warnings), ([], []))
+            self.assertIn("HEAD", " ".join(census_diff.diff_runs([a, head], head).problems))
+            self.assertIn("given twice", " ".join(census_diff.diff_runs([a, a], head).problems))
+            self.sweep(a2, app="b" * 64)
+            self.assertIn("different app APKs", " ".join(census_diff.diff_runs([a, a2], head).problems))
+            self.sweep(a2); self.sweep(head, runner="s" * 64)
+            self.assertIn("different test APKs", " ".join(census_diff.diff_runs([a, a2], head).problems))
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+
+
 class LintTest(unittest.TestCase):
     SOURCE = java_class("Screen", '''    @SuppressWarnings("unchecked word")
     void show(TextView v, Ui ui) {
