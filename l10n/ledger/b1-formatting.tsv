@@ -1,0 +1,37 @@
+# Ledger for b1-formatting: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/DisplayTemperature.java:32	[{"hole": "number(displayed, decimals)", "arg": 1, "type": "s"}, " ", {"hole": "unit(preference)", "arg": 2, "type": "s", "as": "symbol(preference)"}]	fmt_quantity	template	manual: the shown symbol is UnitCode's (units_celsius or units_fahrenheit), the same text as unit(preference) in English; unit() stays the data and preference spelling
+src/com/jjricks/volt/DisplayTemperature.java:41	[{"hole": "number(low, decimals)", "arg": 1, "type": "s"}, "–", {"hole": "number(high, decimals)", "arg": 2, "type": "s"}, " ", {"hole": "unit(preference)", "arg": 3, "type": "s", "as": "symbol(preference)"}]	fmt_range	template	manual: the shown symbol is UnitCode's (units_celsius or units_fahrenheit), the same text as unit(preference) in English; unit() stays the data and preference spelling
+src/com/jjricks/volt/DisplayTemperature.java:48	["%.", {"hole": "precision", "arg": 1, "type": "d"}, "f"]	-	stays-english	the decimal pattern moved with DisplayTemperature.number's formatting into Fmt.decimal; Java format syntax, not text
+src/com/jjricks/volt/RouteSpeedScale.java:74	["Speed"]	units_route_speed_title	exact	
+src/com/jjricks/volt/RouteSpeedScale.java:74	["Speed · ", {"hole": "source", "arg": 1, "type": "s", "as": "sourceLabel(source)"}]	units_route_speed_title_source	template	manual: source stays the English id (RouteSpeedScale.SCOOTER or GPS) that RouteMapView and RidesScreen compare; the title shows its display label, units_route_source_scooter or units_route_source_gps, the same text in English, and any other id as it is
+src/com/jjricks/volt/DisplayUnits.java:15	[{"hole": "value", "arg": 1, "type": "s", "as": "Fmt.integer(value)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DisplayUnits.java:16	[{"spec": "%.1f", "arg": 1, "value": "value / KM_PER_MILE", "as": "Fmt.decimal(Locale.US, value / KM_PER_MILE, 1)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DisplayUnits.java:21	[{"spec": "%.1f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 1)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DisplayUnits.java:22	[{"spec": "%.1f", "arg": 1, "value": "kmh / KM_PER_MILE", "as": "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DisplayUnits.java:26	[{"hole": "minimumKmh", "arg": 1, "type": "s", "as": "Fmt.integer(minimumKmh)"}, "–", {"hole": "maximumKmh", "arg": 2, "type": "s", "as": "Fmt.integer(maximumKmh)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 3}]	fmt_range	format	
+src/com/jjricks/volt/DisplayUnits.java:27	[{"spec": "%.1f", "arg": 1, "value": "minimumKmh / KM_PER_MILE", "as": "Fmt.decimal(Locale.US, minimumKmh / KM_PER_MILE, 1)"}, "–", {"spec": "%.1f", "arg": 2, "value": "maximumKmh / KM_PER_MILE", "as": "Fmt.decimal(Locale.US, maximumKmh / KM_PER_MILE, 1)"}, " ", {"text": "mph", "key": "units_mph", "arg": 3}]	fmt_range	format	
+src/com/jjricks/volt/DisplayUnits.java:48	[{"hole": "imperial", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/RouteSpeedScale.java:78	[{"spec": "%.0f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 0)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteSpeedScale.java:79	[{"spec": "%.0f", "arg": 1, "value": "kmh / RideStore.KM_PER_MILE", "as": "Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 0)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteSpeedScale.java:80	[{"hole": "imperial", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/RouteSpeedScale.java:116	[{"spec": "%,.0f", "arg": 1, "value": "watts", "as": "Fmt.grouped(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/ChartScale.java:29	["V"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:29	["W"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:39	["W"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:39	["A"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:40	["V"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:45	["°C"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:45	["°F"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:46	["V"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:46	["km/h"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:46	["mph"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:47	["km"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:47	["mi"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:47	["Ah"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:47	["Wh"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/ChartScale.java:47	["min"]	-	stays-english	chart data unit, compared through UnitCode's data code
+src/com/jjricks/volt/DisplayUnits.java:38	[{"spec": "%.2f", "arg": 1, "value": "amount", "as": "Fmt.decimal(Locale.US, amount, 2)"}, " ", {"spec": "%s", "arg": 2, "value": "matches.group(2).equals(\"km/h\") ? \"mph\" : \"mi\"", "as": "matches.group(2).equals(\"km/h\") ? T.unitsMph() : T.unitsMi()"}]	fmt_quantity	format	
+src/com/jjricks/volt/DisplayUnits.java:39	["mph"]	units_mph	exact	manual: ternary unit argument of String.format
+src/com/jjricks/volt/DisplayUnits.java:39	["mi"]	units_mi	exact	manual: ternary unit argument of String.format

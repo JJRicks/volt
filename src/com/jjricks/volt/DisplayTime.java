@@ -45,7 +45,7 @@ public final class DisplayTime {
     }
 
     private static String format(String skeleton, long wall) {
-        Locale locale = Locale.getDefault();
+        Locale locale = Fmt.locale(Locale.getDefault());
         String pattern = DateFormat.getBestDateTimePattern(locale, skeleton);
         return new SimpleDateFormat(pattern, locale).format(new Date(wall));
     }
