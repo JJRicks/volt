@@ -75,9 +75,9 @@ final class RouteSpeedScale {
 
     /** Display label for a canonical km/h value; units are "mi", "km" or "dual". */
     static String label(double kmh, String units) {
-        String metric = String.format(Locale.US, "%.0f km/h", kmh),
-                imperial = String.format(Locale.US, "%.0f mph", kmh / RideStore.KM_PER_MILE);
-        return "km".equals(units) ? metric : "dual".equals(units) ? imperial + " / " + metric : imperial;
+        String metric = T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 0), T.unitsKmh()),
+                imperial = T.fmtQuantity(Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 0), T.unitsMph());
+        return "km".equals(units) ? metric : "dual".equals(units) ? T.fmtDual(imperial, metric) : imperial;
     }
 
     /** {@link #label} as structured text: the same text, with the number and unit ranges. */
@@ -120,7 +120,7 @@ final class RouteSpeedScale {
     }
 
     /** "3,500 W". */
-    static String wattsLabel(double watts) { return String.format(Locale.US, "%,.0f W", watts); }
+    static String wattsLabel(double watts) { return T.fmtQuantity(Fmt.grouped(Locale.US, watts, 0), T.unitsWatt()); }
 
     private static double top(Double[] values) { return top(values, STEP_KMH, MIN_TOP_KMH, MAX_TOP_KMH); }
 

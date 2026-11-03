@@ -9,23 +9,29 @@ package com.jjricks.volt;
  * are: each batch that owns such data moves its comparisons to these codes.
  */
 public enum UnitCode {
-    KMH(T.UNITS_KMH),
-    MPH(T.UNITS_MPH),
-    KM(T.UNITS_KM),
-    MI(T.UNITS_MI),
-    VOLT(T.UNITS_VOLT),
-    AMP(T.UNITS_AMP),
-    WATT(T.UNITS_WATT),
-    WATT_HOUR(T.UNITS_WATT_HOUR),
-    AMP_HOUR(T.UNITS_AMP_HOUR),
-    CELSIUS(T.UNITS_CELSIUS),
-    FAHRENHEIT(T.UNITS_FAHRENHEIT),
-    MINUTE(T.UNITS_MINUTE);
+    KMH(T.UNITS_KMH, "km/h"),
+    MPH(T.UNITS_MPH, "mph"),
+    KM(T.UNITS_KM, "km"),
+    MI(T.UNITS_MI, "mi"),
+    VOLT(T.UNITS_VOLT, "V"),
+    AMP(T.UNITS_AMP, "A"),
+    WATT(T.UNITS_WATT, "W"),
+    WATT_HOUR(T.UNITS_WATT_HOUR, "Wh"),
+    AMP_HOUR(T.UNITS_AMP_HOUR, "Ah"),
+    CELSIUS(T.UNITS_CELSIUS, "°C"),
+    FAHRENHEIT(T.UNITS_FAHRENHEIT, "°F"),
+    MINUTE(T.UNITS_MINUTE, "min");
 
     /** The catalog id of the symbol (an id, rule R5: rendered only when shown). */
     final int symbolId;
 
-    UnitCode(int symbolId) { this.symbolId = symbolId; }
+    /** The unit as data spells it (Telemetry and chart series units): never shown through here. */
+    final String code;
+
+    UnitCode(int symbolId, String code) { this.symbolId = symbolId; this.code = code; }
+
+    /** True when a data unit string is this unit. */
+    boolean matches(String unit) { return code.equals(unit); }
 
     /** The symbol in the current language. */
     public String symbol() { return T.render(symbolId); }

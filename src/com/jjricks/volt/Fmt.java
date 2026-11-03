@@ -75,6 +75,17 @@ public final class Fmt {
         return String.format(locale(legacy), "%." + precision + "f", value);
     }
 
+    /** The grouped patterns, by decimals: "%,.Nf". */
+    private static final String[] GROUPED = {"%,.0f", "%,.1f", "%,.2f", "%,.3f", "%,.4f", "%,.5f", "%,.6f"};
+
+    /**
+     * value with grouping separators and a fixed number of decimals (0 to 6), rounded half up:
+     * exactly String.format(legacy, "%,.<decimals>f", value) while {@link #legacy()}.
+     */
+    public static String grouped(Locale legacy, double value, int decimals) {
+        return String.format(locale(legacy), GROUPED[Math.max(0, Math.min(6, decimals))], value);
+    }
+
     /**
      * A whole number without grouping, as Java's string concatenation writes it. With Latin digits
      * forced for every shipped language (waves 1-3), that is the same text in every locale; the RTL wave

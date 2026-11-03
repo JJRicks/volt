@@ -62,6 +62,12 @@ public final class FmtLegacyTest {
         for (int decimals = -1; decimals <= 7; decimals++) {
             for (double value : edges) decimalParity(value, decimals, where);
         }
+        for (int decimals = 0; decimals <= 6; decimals++) {
+            for (double value : edges) {
+                String legacy = String.format(Locale.US, "%,." + decimals + "f", value);
+                check(Fmt.grouped(Locale.US, value, decimals).equals(legacy), where + ": grouped " + value + " with " + decimals + " decimals");
+            }
+        }
         Random random = new Random(20261103L);
         for (int i = 0; i < 400; i++) {
             double value = (random.nextDouble() - .5) * Math.pow(10, random.nextInt(9));

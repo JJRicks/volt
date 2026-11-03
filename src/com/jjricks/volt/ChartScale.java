@@ -26,7 +26,7 @@ public final class ChartScale {
             low = Math.max(0, Math.min(100, low)); high = Math.max(0, Math.min(100, high));
         }
         double center = low / 2 + high / 2;
-        double minimumSpan = unit.equals("V") ? .1 : unit.equals("W") ? Math.max(1, Math.abs(center) * .02) : 1;
+        double minimumSpan = UnitCode.VOLT.matches(unit) ? .1 : UnitCode.WATT.matches(unit) ? Math.max(1, Math.abs(center) * .02) : 1;
         if (!absolute) {
             double half = Math.max(high / 2 - low / 2, minimumSpan / 2);
             double padded = finite(half * 1.24);
@@ -36,15 +36,16 @@ public final class ChartScale {
             if (min == max) { min = Math.nextDown(min); max = Math.nextUp(max); }
             return new Range(finite(min), finite(max));
         }
-        boolean signed = metric.equals("power_w") || metric.equals("current_a") || unit.equals("W") || unit.equals("A");
-        double floor = unit.equals("V") ? .1 : 1;
+        boolean signed = metric.equals("power_w") || metric.equals("current_a") || UnitCode.WATT.matches(unit) || UnitCode.AMP.matches(unit);
+        double floor = UnitCode.VOLT.matches(unit) ? .1 : 1;
         if (signed) {
             double extent = ceiling(finite(Math.max(floor, Math.max(Math.abs(low), Math.abs(high))) * 1.08));
             return new Range(-extent, extent);
         }
-        boolean temperature = metric.contains("temperature") || unit.equals("°C") || unit.equals("°F");
-        boolean nonnegative = !temperature && (percent || unit.equals("V") || unit.equals("km/h") || unit.equals("mph")
-                || unit.equals("km") || unit.equals("mi") || unit.equals("Ah") || unit.equals("Wh") || unit.equals("min")
+        boolean temperature = metric.contains("temperature") || UnitCode.CELSIUS.matches(unit) || UnitCode.FAHRENHEIT.matches(unit);
+        boolean nonnegative = !temperature && (percent || UnitCode.VOLT.matches(unit) || UnitCode.KMH.matches(unit) || UnitCode.MPH.matches(unit)
+                || UnitCode.KM.matches(unit) || UnitCode.MI.matches(unit) || UnitCode.AMP_HOUR.matches(unit)
+                || UnitCode.WATT_HOUR.matches(unit) || UnitCode.MINUTE.matches(unit)
                 || metric.startsWith("speed_") || metric.startsWith("odometer_") || metric.contains("_count"));
         double min = nonnegative || low >= 0 ? 0 : -ceiling(finite(Math.abs(low) * 1.08));
         double max = high > 0 ? ceiling(finite(high * 1.08)) : 0;
