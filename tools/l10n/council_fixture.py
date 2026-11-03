@@ -13,6 +13,7 @@ import tempfile
 import unittest.mock
 import urllib.request
 
+import providers
 import translib
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -65,12 +66,15 @@ class NoNetwork(object):
     """Context manager: any real urllib request fails the test."""
 
     def __enter__(self):
-        self.patch = unittest.mock.patch.object(urllib.request, "urlopen", no_network)
-        self.patch.start()
+        self.patches = [unittest.mock.patch.object(urllib.request, "urlopen", no_network),
+                        unittest.mock.patch.object(providers, "_open", no_network)]
+        for patch in self.patches:
+            patch.start()
         return self
 
     def __exit__(self, *exc):
-        self.patch.stop()
+        for patch in reversed(self.patches):
+            patch.stop()
         return False
 
 

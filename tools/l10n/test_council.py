@@ -1,6 +1,7 @@
 """The council runner, with mocked HTTP only: no test reaches the network or reads a keys file."""
 
 import contextlib
+import email.message
 import io
 import json
 import os
@@ -9,6 +10,7 @@ import unittest
 import unittest.mock
 import urllib.error
 import urllib.request
+import urllib.response
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import council  # noqa: E402
@@ -86,6 +88,13 @@ class Base(unittest.TestCase):
             lines.append(json.dumps(row, ensure_ascii=False))
         self.repo.write("l10n/work/es/common/judge.jsonl", "\n".join(lines) + "\n")
 
+    def confirm(self, key, **extra):
+        """A judge's safety confirmation of the fixture's agreed text and its back-translation."""
+        row = {"key": key, "verdict": "confirm", "confirm": dict((c, True) for c in council.SAFETY_CONFIRMATIONS),
+               "backtranslation_meaning_kept": True, "text": cf.SPANISH[key], "back": BACK[key]}
+        row.update(extra)
+        return row
+
     def decisions(self, area="common"):
         return dict((r["key"], r) for r in translib.read_jsonl(self.paths.decisions("es", area)))
 
@@ -147,7 +156,7 @@ class SecretHandlingTest(Base):
 
         def refuse(request, timeout=None):
             raise urllib.error.URLError("proxy rejected key=%s" % OPENAI_KEY)
-        with unittest.mock.patch.object(urllib.request, "urlopen", refuse):
+        with unittest.mock.patch.object(providers, "_open", refuse):
             with self.assertRaises(providers.ProviderError) as caught:
                 transport.send("GET", "https://api.openai.com/v1/models", {"Authorization": "Bearer " + OPENAI_KEY}, None)
         self.assertIn("URLError", str(caught.exception))
@@ -155,9 +164,53 @@ class SecretHandlingTest(Base):
 
         def http_error(request, timeout=None):
             raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, io.BytesIO(b'{"error": "denied"}'))
-        with unittest.mock.patch.object(urllib.request, "urlopen", http_error):
+        with unittest.mock.patch.object(providers, "_open", http_error):
             status, data = transport.send("GET", "https://api.openai.com/v1/models", {}, None)
         self.assertEqual((status, data), (403, b'{"error": "denied"}'))
+
+    def test_redirects_are_not_followed(self):
+        """A 30x must not carry the key's header to the Location (another host, or plain http)."""
+        seen = []
+
+        class Redirecting(urllib.request.BaseHandler):
+            handler_order = 100  # before urllib's own http handler: nothing leaves the process
+
+            def fake_open(self, request):
+                seen.append((request.full_url, request.get_header("Authorization")))
+                if len(seen) > 1:
+                    return self.response(request, 200, "OK", b"{}", {})
+                return self.response(request, 302, "Found", b'{"error": "moved"}',
+                                     {"Location": "http://other.invalid/x", "Content-Type": "application/json"})
+
+            @staticmethod
+            def response(request, code, msg, body, fields):
+                headers = email.message.Message()
+                for name, value in fields.items():
+                    headers[name] = value
+                response = urllib.response.addinfourl(io.BytesIO(body), headers, request.full_url, code)
+                response.msg = msg
+                return response
+
+            def http_open(self, request):
+                return self.fake_open(request)
+
+            def https_open(self, request):
+                return self.fake_open(request)
+
+        # Plain urllib follows the redirect and copies the header to the other host.
+        seen[:] = []
+        urllib.request.build_opener(Redirecting()).open(
+            urllib.request.Request("https://api.invalid/v1/models", headers={"Authorization": "Bearer " + OPENAI_KEY}))
+        self.assertEqual(seen, [("https://api.invalid/v1/models", "Bearer " + OPENAI_KEY),
+                                ("http://other.invalid/x", "Bearer " + OPENAI_KEY)])
+        # The council's opener stops at the 302.
+        seen[:] = []
+        opener = providers.build_opener(Redirecting())
+        with unittest.mock.patch.object(providers, "_open", lambda request, timeout: opener.open(request, timeout=timeout)):
+            status, data = providers.UrllibTransport().send(
+                "GET", "https://api.invalid/v1/models", {"Authorization": "Bearer " + OPENAI_KEY}, None)
+        self.assertEqual(status, 302)
+        self.assertEqual(seen, [("https://api.invalid/v1/models", "Bearer " + OPENAI_KEY)])
 
     def test_missing_key_names_the_variable_only(self):
         self.transport()
@@ -329,11 +382,9 @@ class CouncilFlowTest(Base):
         self.judge([
             {"key": "common_move_widget", "verdict": "pick", "pick": "openai"},
             {"key": "common_not_reported", "verdict": "merge", "text": "No informado"},
-            {"key": "common_lock_waiting", "verdict": "confirm", "confirm": yes, "backtranslation_meaning_kept": True},
-            {"key": "common_lock_waiting_short", "verdict": "confirm", "confirm": yes,
-             "backtranslation_meaning_kept": True},
-            {"key": "common_alarm_on", "verdict": "confirm", "confirm": dict(yes, on_off_never_always_not_inverted=False),
-             "backtranslation_meaning_kept": True},
+            self.confirm("common_lock_waiting"),
+            self.confirm("common_lock_waiting_short"),
+            self.confirm("common_alarm_on", confirm=dict(yes, on_off_never_always_not_inverted=False)),
             {"key": "common_disclaimer", "verdict": "fallback", "reason": "softened"},
         ])
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
@@ -364,8 +415,7 @@ class CouncilFlowTest(Base):
         self.draft_all(google_overrides={"common_lock_waiting": "Esperando el patinete"})
         self.main("backtranslate", "google", "--tag", "es", "--area", "common")
         yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
-        self.judge([{"key": k, "verdict": "confirm", "confirm": yes, "backtranslation_meaning_kept": True}
-                    for k in ("common_lock_waiting_short", "common_alarm_on", "common_disclaimer")] +
+        self.judge([self.confirm(k) for k in ("common_lock_waiting_short", "common_alarm_on", "common_disclaimer")] +
                    [{"key": "common_move_widget", "verdict": "pick", "pick": "google"},
                     {"key": "common_not_reported", "verdict": "pick", "pick": "openai"}])
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
@@ -403,11 +453,64 @@ class CouncilFlowTest(Base):
         # A back-translation by a drafter that is already on file does not count.
         self.repo.write("l10n/work/es/common/backtranslation.jsonl", "".join(
             json.dumps(dict(r, model="gpt-5.1")) + "\n" for r in rows))
-        yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
-        self.judge([{"key": "common_alarm_on", "verdict": "confirm", "confirm": yes,
-                     "backtranslation_meaning_kept": True}])
+        self.judge([self.confirm("common_alarm_on")])
         self.main("decide", "--tag", "es", "--area", "common", "--final")
         self.assertIn("also drafted", self.decisions()["common_alarm_on"]["reason"])
+
+    def test_safety_confirmation_names_the_text_and_back_translation(self):
+        """An old confirm must not carry over to a new (here inverted) text with a fresh back-translation."""
+        self.draft_all()
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+        self.judge([self.confirm("common_alarm_on")])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
+        self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "safety-agreed")
+        self.assertEqual(self.decisions()["common_alarm_on"]["judge"]["text"], "Alarma activada")
+        # Every drafter now writes the inverted text, and it gets a fresh, faithful back-translation.
+        for name in ("openai", "google"):
+            path = "l10n/work/es/common/drafts/%s.xml" % name
+            self.repo.write(path, self.repo.read(path).replace("Alarma activada", "Alarma desactivada"))
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH, common_not_reported="Sin informar",
+                                                common_alarm_on="Alarma desactivada")), 0)
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = translib.read_jsonl(self.repo.path(path))
+        rows = [dict(r, target="Alarma desactivada", back="Alarm off") if r["key"] == "common_alarm_on" else r
+                for r in rows]
+        translib.write_jsonl(self.repo.path(path), rows)
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("common_alarm_on: waiting for the judge's confirmation", self.out.getvalue())
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()["common_alarm_on"]
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIsNone(d["text"])
+        self.assertIn("confirmed another text", d["reason"])
+        # The judge-request now carries the new text and back-translation for a new ruling.
+        self.main("judge-requests", "--tag", "es", "--area", "common")
+        requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+        self.assertEqual(requests["common_alarm_on"]["text"], "Alarma desactivada")
+        self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm off")
+        # A confirm that names the right text but another back-translation does not count either.
+        self.judge([self.confirm("common_alarm_on", text="Alarma desactivada")])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "fallback-english")
+        # A confirm without the texts (the old format) confirms nothing.
+        self.judge([dict(self.confirm("common_alarm_on"), text=None, back=None)])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "fallback-english")
+
+    def test_safety_keys_wait_for_a_back_translation_before_the_judge(self):
+        self.draft_all()
+        self.assertEqual(self.main("judge-requests", "--tag", "es", "--area", "common"), 0)
+        requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+        self.assertNotIn("common_alarm_on", requests)
+        self.assertIn("common_move_widget", requests)
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        self.main("judge-requests", "--tag", "es", "--area", "common")
+        requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+        self.assertEqual(requests["common_alarm_on"]["text"], "Alarma activada")
+        self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm activated")
 
     def test_judge_merge_is_checked_again(self):
         self.draft_all()

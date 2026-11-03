@@ -516,7 +516,13 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    escapes, dnt tokens and markup, glossary, whitespace, Saira glyph coverage, ladder rungs and width
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
-   words and mixed-script leakage. `checks.jsonl` records each finding; a failed key goes back to
+   words and mixed-script leakage. Glossary terms match as whole words ("bloquear" is not found
+   in "desbloquear"). A plural category that covers more than one number (Russian "one" also
+   covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
+   negation the English lacks warns, and is an error in a safety key; in a safety key an English
+   un-word needs a negation word or the glossary's term, not just a prefix like "in-". A Latin
+   word that is not in the English is an error in a non-Latin language, except an acronym or a
+   name in `LATIN_LOANS`, which warns. `checks.jsonl` records each finding; a failed key goes back to
    its drafter once (`redraft`, or `prompt --redraft` for Claude) and is dropped if it fails again.
 4. **Agreement**: after normalizing (NFC, whitespace, quote style), two or more passing drafts that
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
@@ -524,7 +530,8 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
    providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
    text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
-   Claude agent on a model that did not draft); and the judge confirms every item: locked and
+   Claude agent on a model that did not draft); and the judge, shown that text and its
+   back-translation and naming both in its ruling, confirms every item: locked and
    unlocked stay distinct, on/off and never/always are not inverted, "unverified" or "unknown"
    never reads as confirmed, numbers, units and the named action are unchanged, "not affiliated
    with NAVEE" is not softened, and the back-translation keeps the meaning. Anything less **falls
@@ -560,11 +567,14 @@ decisions (and merge again), never straight into `res/values-<qual>/`.
 - **`backtranslation.jsonl`**: `{"key", "source_sha1", "target", "back", "provider", "model",
   "model_reported"}`; a text is a string or `{quantity: text}`.
 - **`judge.jsonl`** (written by the judge): `{"key", "source_sha1", "model", "verdict", "pick",
-  "text", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
+  "text", "back", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
   `confirm` (safety keys) or `fallback`; `confirm` maps each of `lock_states_distinct`,
   `on_off_never_always_not_inverted`, `unverified_never_confirmed`,
-  `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A ruling whose
-  `source_sha1` is not the current English is ignored.
+  `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A confirm also copies
+  the request's `text` (the agreed text) and `backtranslation.back` into `text` and `back`; it
+  counts only while both still match the current agreed text and back-translation, so a changed
+  draft needs a new ruling. A safety key reaches `judge-requests` only after a current
+  back-translation exists. A ruling whose `source_sha1` is not the current English is ignored.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
   (`agreed`, `judged`, `safety-agreed` or `fallback-english`), `text`, `reason`, `alternatives`

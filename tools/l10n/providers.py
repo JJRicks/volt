@@ -5,6 +5,7 @@ request is built and never kept. Nothing here logs, prints, stores or echoes a k
 carries one, or a raw HTTP error body: errors are reduced to the status code and the provider's
 error message after redaction (redact()), which removes the current key values and anything shaped
 like a key or an Authorization header. Gemini's key goes in the x-goog-api-key header, not the URL.
+Redirects are never followed (urllib would copy the key's header to the new location).
 
 Model ids are chosen at run time from each provider's model list (choose_model), per the patterns
 in council_models.json.
@@ -82,13 +83,32 @@ def _key(provider):
 # Transport
 # ---------------------------------------------------------------------------
 
+class _RefuseRedirects(urllib.request.HTTPRedirectHandler):
+    """Never follow a redirect: urllib would copy every header, the key included, to the new URL,
+    which may be another host or plain http. A 30x comes back as an HTTP error status instead."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
+def build_opener(*handlers):
+    """An opener that refuses redirects (handlers: extra urllib handlers, for tests)."""
+    return urllib.request.build_opener(_RefuseRedirects(), *handlers)
+
+
+def _open(request, timeout):
+    """Open a request with an opener that refuses redirects (tests replace this)."""
+    return build_opener().open(request, timeout=timeout)
+
+
 class UrllibTransport(object):
-    """send(method, url, headers, body) -> (status, body bytes). Never raises with request details."""
+    """send(method, url, headers, body) -> (status, body bytes). Never raises with request details,
+    and never follows a redirect (a 30x is returned as its status)."""
 
     def send(self, method, url, headers, body):
         request = urllib.request.Request(url, data=body, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            with _open(request, TIMEOUT) as response:
                 return response.status, response.read()
         except urllib.error.HTTPError as error:
             try:

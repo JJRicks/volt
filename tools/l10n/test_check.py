@@ -20,7 +20,7 @@ class CheckTest(unittest.TestCase):
         cls.measurer = fontmetrics.Measurer(cls.repo.paths.font(), use_java=False)
         cls.font = fontmetrics.Font(cls.repo.paths.font())
         cls.packs = {}
-        for tag in ("es", "de", "ru", "pt-BR"):
+        for tag in ("es", "de", "ru", "pt-BR", "pt-PT"):
             cls.packs[tag] = pack.build_pack(cls.repo.paths, tag, "common", cls.measurer)
         cls.packs["es-ble"] = pack.build_pack(cls.repo.paths, "es", "ble", cls.measurer)
 
@@ -168,8 +168,95 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(self.checks(self.run_check("common_cancel", "Cancelar отмена")), ["glyphs", "script"])
         ru = self.run_check("common_disclaimer", "Volt не связан с NAVEE", tag="ru")
         self.assertNotIn("script", self.checks(ru) + self.checks(ru, check.WARN))
-        ru = self.run_check("common_cancel", "Stop отмена", tag="ru")
+        # A Latin word from another language in a Cyrillic target is leakage: an error.
+        for leaked in ("Stop отмена", "Abbrechen", "Отмена Cancelar"):
+            self.assertEqual(self.checks(self.run_check("common_cancel", leaked, tag="ru")), ["script"], leaked)
+        # A technical name or an acronym the English lacks only warns.
+        ru = self.run_check("common_cancel", "Отмена (Bluetooth)", tag="ru")
+        self.assertEqual(self.checks(ru), [])
         self.assertIn("script", self.checks(ru, check.WARN))
+        self.assertIn("script", self.checks(self.run_check("common_cancel", "Отмена USB", tag="ru"), check.WARN))
+
+    def test_plural_forms_covering_many_numbers_keep_the_count(self):
+        # Russian "one" covers 21, 31, 101: writing the word "one" there shows "one scooter" for 21.
+        ru = {"one": "Пропущен один самокат", "few": "Пропущено %1$d самоката", "many": "Пропущено %1$d самокатов",
+              "other": "Пропущено %1$d самоката"}
+        findings = self.run_check("common_scooters_skipped", ru, tag="ru")
+        self.assertEqual(self.checks(findings), ["placeholders"])
+        self.assertEqual([f["quantity"] for f in findings if f["severity"] == check.ERROR], ["one"])
+        ru_few = dict(ru, one="Пропущен %1$d самокат", few="Пропущено несколько самокатов")
+        self.assertEqual(self.checks(self.run_check("common_scooters_skipped", ru_few, tag="ru")), ["placeholders"])
+        good = dict(ru, one="Пропущен %1$d самокат")
+        self.assertEqual(self.checks(self.run_check("common_scooters_skipped", good, tag="ru")), [])
+        # Brazilian "one" covers 0 and 1; European Portuguese "one" is exactly 1.
+        pt = {"one": "Um patinete ignorado", "many": "%1$d de patinetes ignorados", "other": "%1$d patinetes ignorados"}
+        self.assertEqual(self.checks(self.run_check("common_scooters_skipped", pt, tag="pt-BR")), ["placeholders"])
+        self.assertEqual(self.checks(self.run_check("common_scooters_skipped", pt, tag="pt-PT")), [])
+        # Spanish "many" (millions) covers many numbers too.
+        es = {"one": "Un patinete omitido", "many": "Muchos patinetes omitidos", "other": "%1$d patinetes omitidos"}
+        self.assertEqual(self.checks(self.run_check("common_scooters_skipped", es)), ["placeholders"])
+        self.assertEqual(check.single_number_categories("es"), {"one"})
+        self.assertEqual(check.single_number_categories("pt-BR"), set())
+        self.assertEqual(check.single_number_categories("fr"), set())
+        self.assertEqual(check.single_number_categories("cs"), {"one", "many"})
+
+    def test_added_negation(self):
+        # Alarm on -> "alarm not on" is an error in a safety key; a prefix alone warns for the judge.
+        self.assertEqual(self.checks(self.run_check("common_alarm_on", "Alarma no activada")), ["polarity"])
+        findings = self.run_check("common_alarm_on", "Alarma desactivada")
+        self.assertEqual(self.checks(findings), [])
+        self.assertIn("polarity", self.checks(findings, check.WARN))
+        self.assertNotIn("polarity", self.checks(self.run_check("common_alarm_on", "Alarma activada"), check.WARN))
+        # In an ordinary key an added negation warns.
+        self.assertIn("polarity", self.checks(self.run_check("common_cancel", "No cancelar"), check.WARN))
+        # Unlock -> "Desbloquear" is the expected prefixed word, not an added negation.
+        findings = self.run_check("ble_unlock", "Desbloquear patinete", pack_name="es-ble")
+        self.assertEqual(self.checks(findings) + self.checks(findings, check.WARN), [])
+
+
+class LockSafetyTest(unittest.TestCase):
+    """Lock and unlock stay distinct: "bloquear" inside "desbloquear" is not the glossary's term."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo = council_fixture.FixtureRepo()
+        cls.repo.write("res/values/strings_lockx.xml", (
+            '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">\n'
+            '    <string name="lockx_unable" volt:safety="lock">Unable to lock the scooter</string>\n'
+            '    <string name="lockx_lock_now" volt:safety="lock">Lock scooter</string>\n'
+            '    <string name="lockx_unverified" volt:safety="lock">Lock state unverified</string>\n'
+            '    <string name="lockx_unknown">Unknown lock state</string>\n'
+            '</resources>\n'))
+        glossary = cls.repo.read("l10n/glossary/es.tsv")
+        cls.repo.write("l10n/glossary/es.tsv", glossary + "lock\tbloquear | bloqueado | bloqueo\tLock.\tverb\tno\tlock\tfixture\n")
+        measurer = fontmetrics.Measurer(cls.repo.paths.font(), use_java=False)
+        cls.pack = pack.build_pack(cls.repo.paths, "es", "lockx", measurer)
+        cls.font = fontmetrics.Font(cls.repo.paths.font())
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.repo.close()
+
+    def errors(self, key, text):
+        findings = check.check_targets(self.pack, {key: ("string", {"other": text}, [])}, self.font, None)[key]
+        return sorted(set(f["check"] for f in findings if f["severity"] == check.ERROR))
+
+    def test_unlock_is_not_lock(self):
+        self.assertEqual(self.errors("lockx_lock_now", "Bloquear patinete"), [])
+        self.assertEqual(self.errors("lockx_lock_now", "Desbloquear patinete"), ["glossary"])
+        self.assertEqual(self.errors("lockx_lock_now", "Abrir patinete"), ["glossary"])
+        self.assertEqual(self.errors("lockx_unable", "No se puede bloquear el patinete"), [])
+        # "You can unlock the scooter": no lock term, and "des-" negates the lock, not the sentence.
+        self.assertEqual(self.errors("lockx_unable", "Se puede desbloquear el patinete"), ["glossary", "polarity"])
+        self.assertEqual(self.errors("lockx_unable", "Se puede bloquear el patinete"), ["polarity"])
+
+    def test_prefix_alone_is_not_a_negation_in_a_safety_key(self):
+        # "información" starts with in-, but it negates nothing.
+        self.assertEqual(self.errors("lockx_unverified", "Estado de bloqueo confirmado. Información"), ["polarity"])
+        self.assertEqual(self.errors("lockx_unverified", "Estado de bloqueo sin verificar"), [])
+        self.assertEqual(self.errors("lockx_unverified", "Estado de bloqueo no verificado"), [])
+        # Outside safety keys a prefixed word still counts.
+        self.assertEqual(self.errors("lockx_unknown", "Estado de bloqueo desconocido"), [])
 
 
 class CheckCommandTest(unittest.TestCase):

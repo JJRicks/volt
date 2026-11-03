@@ -13,7 +13,8 @@ Checks, per key (a plural is checked per quantity):
   kind          the draft has a string where English has a string, plurals where it has plurals
   empty         no empty text where English has text
   placeholders  the same %n$ placeholders with the same conversions, and %% where English has it;
-                only positional forms and %%
+                only positional forms and %%; a plural category that covers more than one number
+                (every one but n=1-only "one" and the like) keeps the count
   numbers       every number written in the English appears in the target (any script's digits)
   plurals       every CLDR category the language needs is present
   escapes       the draft's spelling is one aapt stores exactly (apostrophes, quotes, escapes), and
@@ -21,13 +22,16 @@ Checks, per key (a plural is checked per quantity):
   dnt           volt:dnt tokens, do-not-translate glossary terms and fixed tokens (file names, CLI
                 flags, URLs, {z}/{x}/{y}, the U+FFFC placeholder) are kept exactly
   markup        the same number of ** and backtick marks, and every `code span` unchanged
-  glossary      approved glossary terms are used (warn; error for a safety term in a safety key)
+  glossary      approved glossary terms are used, as whole words (warn; error for a safety term in a
+                safety key)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
   width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
-  polarity      negation in the English (not, no, never, un-...) is present in the target
-  script        no letters from another script, except words copied from the English
+  polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
+                added where the English has none (on -> "no activada")
+  script        no letters from another script, except words copied from the English (a Latin
+                acronym or a name in LATIN_LOANS only warns)
   untranslated  the target is not just the English (warn)
 """
 
@@ -63,6 +67,15 @@ EN_NEGATION_WORDS = {"not", "no", "never", "none", "nothing", "nobody", "nowhere
 EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|univers\w*|union\w*|unif\w*|"
                               r"uninstall\w*|undo\w*|unpair\w*|unmute\w*|unzip\w*)$")
 
+# English words whose translation often carries a negating prefix ("off" -> "desactivada").
+EN_OFF_WORDS = {"off", "disable", "disabled", "disconnect", "disconnected", "inactive", "stop", "stopped",
+                "cancel", "cancelled", "canceled", "lost", "missing", "unknown", "failed", "invalid", "incorrect",
+                "deny", "denied", "remove", "removed", "delete", "deleted", "clear", "cleared", "offline", "empty"}
+# The on/off state words: an "Alarm off" target with no negation at all is worth the judge's look.
+EN_STATE_OFF = {"off", "disabled", "inactive", "deactivated"}
+# Negation words that are also ordinary words (French "personne" is "person"): not counted as added.
+AMBIGUOUS_NEGATION = {"fr": {"personne"}}
+
 # Negation words (whole words) and negating prefixes per language (primary subtag). zh uses
 # characters, matched anywhere.
 NEGATION = {
@@ -95,9 +108,29 @@ NEGATION = {
     "bn": ({"না", "নয়", "নেই", "কখনো", "ছাড়া"}, ("অ",)),
 }
 
+# CLDR plural categories that select exactly one whole number (or none), per language: only these
+# may drop the count placeholder ("Un patinete" for n=1). Everything else ("one" in fr, pt-BR, hi, bn,
+# ru, uk, hr, which also covers 0, 21, 31 or 101; every "few" and "many"; "other") must keep it.
+_EXACT_ONE = {"en", "es", "it", "de", "nl", "sv", "da", "nb", "nn", "no", "fi", "el", "hu", "tr", "ro", "cs", "sk",
+              "pl", "bg", "ca", "et", "he", "ar", "pt-PT", "ja", "zh", "ko", "id", "vi", "th"}
+_EXACT_OTHER = {"ar": {"zero", "two"}, "cy": {"zero", "two"}, "he": {"two"}, "cs": {"many"}, "sk": {"many"}}
+
+
+def single_number_categories(tag):
+    """Plural categories of a language that select a single whole number (or none)."""
+    primary = tag.split("-")[0]
+    out = set(_EXACT_OTHER.get(primary, ()))
+    if tag in _EXACT_ONE or (primary in _EXACT_ONE and primary != "pt"):
+        out.add("one")
+    return out
+
+
 SCRIPT_PREFIXES = (("LATIN", "Latn"), ("CYRILLIC", "Cyrl"), ("GREEK", "Grek"), ("CJK", "Hans"),
                    ("HIRAGANA", "Jpan"), ("KATAKANA", "Jpan"), ("DEVANAGARI", "Deva"), ("BENGALI", "Beng"),
                    ("ARABIC", "Arab"), ("HEBREW", "Hebr"), ("HANGUL", "Hang"), ("THAI", "Thai"))
+# Latin-script names a non-Latin translation may use although the English does not (a warning only).
+# Any other Latin word there is leakage from another language ("Abbrechen", "Cancelar"): an error.
+LATIN_LOANS = {"Android", "Bluetooth", "Google", "Wi", "Fi", "Volt", "NAVEE", "Play", "Pixel", "Shizuku", "iPhone"}
 WORD = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*", re.UNICODE)
 
 
@@ -154,15 +187,31 @@ def english_negation(text):
     return plain, un
 
 
-def target_negation(primary, text):
+def target_negation(primary, text, stems=()):
+    """(negation words, words that may carry a negating prefix) in a target.
+
+    A word that is a negating prefix plus one of stems (the approved glossary targets, such as
+    "bloquear") is the opposite term ("desbloquear"), not a negation of the sentence: it is left out.
+    """
     words, prefixes = NEGATION[primary]
     lower = text.lower()
     if primary == "zh":
         return [w for w in words if w in lower], []
     tokens = re.findall(r"[^\W\d_]+", lower, re.UNICODE)
     found = [t for t in tokens if t in words]
-    prefixed = [t for t in tokens if any(t.startswith(p) and len(t) > len(p) + 3 for p in prefixes)]
+    prefixed = [t for t in tokens if any(t.startswith(p) and len(t) > len(p) + 3 and
+                                         not any(t[len(p):].startswith(stem) for stem in stems)
+                                         for p in prefixes)]
     return found, prefixed
+
+
+def glossary_targets(entry):
+    """Every approved target form of the entry's glossary hits, lower case, whole words only."""
+    out = set()
+    for hit in entry.get("glossary") or []:
+        for target in hit.get("target") or []:
+            out.update(w.lower() for w in WORD.findall(target))
+    return out
 
 
 def protected_tokens(entry):
@@ -245,8 +294,10 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
                 extra = specs - source_union
                 if extra:
                     out.append(finding("placeholders", ERROR, "placeholders %s are not in the English" % _list(extra), q))
-                if quantity == "other" and not ref_specs <= specs:
-                    out.append(finding("placeholders", ERROR, "the other form must keep %s" % _list(ref_specs - specs), q))
+                needed = set(placeholder_specs(english_other))
+                if quantity not in single_number_categories(language["tag"]) and not needed <= specs:
+                    out.append(finding("placeholders", ERROR, "the %s form covers more than one number, so it must "
+                                       "keep %s" % (quantity, _list(needed - specs)), q))
             if ("%%" in reference) != ("%%" in text):
                 out.append(finding("placeholders", ERROR, "the English %s a %%%% percent sign; the target %s" % (
                     "has" if "%%" in reference else "has no", "does not" if "%%" in reference else "does"), q))
@@ -296,7 +347,7 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
                 out.append(finding("glyphs", WARN, "Saira has no glyph for %s; Android falls back to another font" %
                                    _chars(spaces), q))
         # polarity
-        out.extend(_polarity(language, reference, text, safety, q))
+        out.extend(_polarity(language, reference, text, safety, q, entry))
         # script
         out.extend(_script(language, english_all, entry, text, q))
         # glossary
@@ -325,22 +376,65 @@ def _chars(chars):
     return ", ".join("%r (U+%04X)" % (ch, ord(ch)) for ch in chars)
 
 
-def _polarity(language, reference, text, safety, q):
+def _polarity(language, reference, text, safety, q, entry=None):
+    """Negation kept, and none added, in either direction.
+
+    A negating prefix ("des-", "in-") is only a guess: "información" is not a negation and
+    "desbloquear" is the opposite of "bloquear". So in a safety key an English un-word must become a
+    negation word, or a prefixed word the glossary approves; a prefix alone is an error there.
+    """
+    entry = entry or {}
     plain, un = english_negation(reference)
-    if not plain and not un:
-        return []
     primary = language["tag"].split("-")[0]
     severity = ERROR if safety else WARN
     if primary not in NEGATION:
-        return [finding("polarity", WARN, "no negation word list for %s; the judge checks polarity" % primary, q)]
-    found, prefixed = target_negation(primary, text)
-    if plain and not found:
-        return [finding("polarity", severity, "the English says %s; the target has no negation word" %
-                        ", ".join(repr(w) for w in plain[:3]), q)]
-    if un and not plain and not found and not prefixed:
-        return [finding("polarity", severity, "the English says %s; the target has no negation" %
-                        ", ".join(repr(w) for w in un[:3]), q)]
+        if plain or un:
+            return [finding("polarity", WARN, "no negation word list for %s; the judge checks polarity" % primary, q)]
+        return []
+    stems = glossary_targets(entry)
+    found, prefixed = target_negation(primary, text, stems)
+    if plain or un:
+        if plain and not found:
+            return [finding("polarity", severity, "the English says %s; the target has no negation word" %
+                            ", ".join(repr(w) for w in plain[:3]), q)]
+        if un and not plain and not found:
+            approved = [w for w in prefixed if w in stems]
+            if safety and not approved:
+                return [finding("polarity", ERROR, "the English says %s; in a safety key the target needs a "
+                                "negation word or the glossary's term, not just a prefix%s" % (
+                                    ", ".join(repr(w) for w in un[:3]),
+                                    " (%s)" % ", ".join(prefixed[:3]) if prefixed else ""), q)]
+            if not prefixed:
+                return [finding("polarity", severity, "the English says %s; the target has no negation" %
+                                ", ".join(repr(w) for w in un[:3]), q)]
+        return []
+    # The English has no negation: one in the target may invert the meaning (on -> "no activada").
+    opposite = english_opposite_words(reference)
+    found = [w for w in found if w not in AMBIGUOUS_NEGATION.get(primary, ())]
+    if found and not opposite:
+        return [finding("polarity", severity, "the target says %s; the English has no negation" %
+                        ", ".join(repr(w) for w in found[:3]), q)]
+    if found:
+        return [finding("polarity", WARN, "the target says %s; the English says %s; the judge checks polarity" % (
+            ", ".join(repr(w) for w in found[:3]), ", ".join(repr(w) for w in sorted(opposite)[:3])), q)]
+    if prefixed and not opposite:
+        return [finding("polarity", WARN, "%s may carry a negating prefix the English does not have; the judge "
+                        "checks polarity" % ", ".join(repr(w) for w in prefixed[:3]), q)]
+    if not prefixed and opposite & EN_STATE_OFF:
+        return [finding("polarity", WARN, "the English says %s; check the target is not the opposite" % ", ".join(
+            repr(w) for w in sorted(opposite & EN_STATE_OFF)), q)]
     return []
+
+
+def english_opposite_words(text):
+    """English words that may translate to a prefixed word: un-, dis-, de-, in-, non- words and the off words."""
+    words = set(w.lower() for w in WORD.findall(text.replace("’", "'")))
+    return set(w for w in words if w in EN_OFF_WORDS or
+               (len(w) > 4 and re.match(r"^(?:un|dis|de|in|im|ir|il|non|anti)", w)))
+
+
+def _acronym(word):
+    return 2 <= len(word) <= 5 and word.isupper()
 
 
 def _script(language, english, entry, text, q):
@@ -354,7 +448,7 @@ def _script(language, english, entry, text, q):
             continue
         if word in allowed_words or any(word in token for token in allowed_words):
             continue
-        if expected != "Latn" and foreign == {"Latn"}:
+        if expected != "Latn" and foreign == {"Latn"} and (word in LATIN_LOANS or _acronym(word)):
             borrowed.append(word)
         else:
             bad.append(word)
@@ -362,20 +456,19 @@ def _script(language, english, entry, text, q):
     if bad:
         out.append(finding("script", ERROR, "letters from another script: %s" % ", ".join(sorted(set(bad))[:5]), q))
     if borrowed:
-        out.append(finding("script", WARN, "Latin words not in the English: %s" % ", ".join(sorted(set(borrowed))[:5]), q))
+        out.append(finding("script", WARN, "Latin technical words not in the English: %s" % ", ".join(sorted(set(borrowed))[:5]), q))
     return out
 
 
 def _glossary(entry, reference, text, safety, q):
     out = []
-    lower = text.lower()
     for hit in entry.get("glossary") or []:
         if hit.get("dnt") or not translib.term_pattern(hit["term"]).search(reference):
             continue
         targets = hit.get("target")
         if not targets:
             continue
-        if not any(t.lower() in lower for t in targets):
+        if not any(translib.term_pattern(t).search(text) for t in targets):
             severity = ERROR if safety and hit.get("safety") else WARN
             out.append(finding("glossary", severity, "%r should be %s" % (
                 hit["term"], " or ".join(repr(t) for t in targets)), q))
