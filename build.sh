@@ -129,9 +129,108 @@ navee_load_signing_identity() {
     export NAVEE_SIGNING_PASSWORD
 }
 
+# The versionName the APK carries. A release build (VOLT_RELEASE=1) uses the manifest's
+# exactly, and is refused with uncommitted changes, so a swept or signed release can't
+# carry local edits under a clean version. Any other build is marked as a development
+# build of that version, with its commit, so a build installed from main never passes
+# for the release it is based on: "1.11.1-dev+abc1234", plus "-dirty" when the tree has
+# uncommitted changes. When APP_DIR isn't the top of its own git checkout (for example a
+# source ZIP, even one unpacked inside another repository), it is "1.11.1-dev" and a
+# release build can't check for local edits. versionCode is never changed.
+navee_volt_checkout() {
+    local top
+    top="$(git -C "$APP_DIR" rev-parse --show-toplevel 2>/dev/null)" && [[ -n "$top" && "$top" -ef "$APP_DIR" ]]
+}
+
+# Every change git sees, untracked files included, then every file the APK is built from that
+# isn't HEAD's own copy. The second part collects inputs the way the build does (find's *.java
+# under src, hidden directories too; aidl's -I tree; aapt's res and assets, which skip hidden
+# names and *~), so ignore files, status settings and index flags such as assume-unchanged or
+# skip-worktree can't hide one. Prints nothing for a clean tree; fails when git can't answer.
+navee_build_changes() {
+    local all
+    all="$(git -C "$APP_DIR" status --porcelain --untracked-files=all 2>/dev/null)" || return 1
+    [[ -z "$all" ]] || printf '%s\n' "$all"
+    python3 -I - "$APP_DIR" <<'PYINPUTS'
+import os, subprocess, sys
+root = sys.argv[1]
+def git(*args, data=None):
+    return subprocess.run(['git', '-C', root, *args], input=data, capture_output=True, check=True).stdout
+def aapt_skips(rel):
+    return any(part.startswith('.') or part.endswith('~') for part in rel.split('/')[1:])
+RULES = (('src/', lambda rel: rel.endswith('.java')), ('aidl/', lambda rel: rel.endswith('.aidl')),
+         ('res/', lambda rel: not aapt_skips(rel)), ('licenses/', lambda rel: not aapt_skips(rel)))
+SINGLE = ('AndroidManifest.xml', 'build.sh', 'setup/owner-capture-guard.sh', 'setup/shizuku-dependencies.py')
+def is_input(rel):
+    return rel in SINGLE or any(rel.startswith(top) and keep(rel) for top, keep in RULES)
+head = {}
+for entry in git('ls-tree', '-r', '-z', 'HEAD').split(b'\0'):
+    if entry:
+        meta, path = entry.split(b'\t', 1)
+        if is_input(path.decode()):
+            head[path.decode()] = meta.split()[2].decode()
+found = [rel for rel in SINGLE if os.path.lexists(os.path.join(root, rel))]
+for top, _ in RULES:
+    for folder, _, files in os.walk(os.path.join(root, top)):
+        found += [rel for rel in (os.path.relpath(os.path.join(folder, name), root).replace(os.sep, '/')
+                                  for name in files) if is_input(rel)]
+hashes = git('hash-object', '--stdin-paths', data='\n'.join(found).encode()).decode().split() if found else []
+for rel, blob in zip(found, hashes):
+    if head.get(rel) != blob:
+        print('?? build input not as committed: ' + rel)
+for rel in sorted(set(head) - set(found)):
+    print('?? build input missing: ' + rel)
+PYINPUTS
+}
+
+navee_version_name() {
+    local manifest sha dirty=""
+    manifest="$(python3 -I - "$APP_DIR/AndroidManifest.xml" <<'PYVERSION'
+import re, sys
+from xml.etree import ElementTree
+name = ElementTree.parse(sys.argv[1]).getroot().get('{http://schemas.android.com/apk/res/android}versionName') or ''
+if not re.fullmatch(r'[0-9]{1,4}(\.[0-9]{1,4}){1,3}', name):
+    sys.exit('AndroidManifest.xml versionName must be numeric, like 1.11.1; build.sh adds any dev marker')
+print(name)
+PYVERSION
+)" || return 1
+    case "${VOLT_RELEASE:-}" in
+        1|''|0) ;;
+        *) echo "VOLT_RELEASE must be 1 (release build) or unset; got: $VOLT_RELEASE" >&2; return 1 ;;
+    esac
+    if navee_volt_checkout && sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
+        # Untracked files count too, whatever status.showUntrackedFiles says, and so does any build
+        # input that isn't HEAD's copy (see navee_build_changes). A failed check counts as dirty.
+        local status
+        if ! status="$(navee_build_changes)" || [[ -n "$status" ]]; then dirty="-dirty"; fi
+    else
+        sha=""
+    fi
+    if [[ "${VOLT_RELEASE:-}" == 1 ]]; then
+        if [[ -n "$dirty" ]]; then
+            echo "VOLT_RELEASE=1 refuses uncommitted, untracked or ignored changes, and build inputs that aren't as committed (or an unreadable git status); commit, stash or remove them first:" >&2
+            navee_build_changes >&2 || true
+            return 1
+        fi
+        if [[ -n "$sha" ]]; then
+            echo "Release build of commit $(git -C "$APP_DIR" rev-parse HEAD)" >&2
+        else
+            echo "Release build outside a Volt git checkout: uncommitted changes can't be checked" >&2
+        fi
+        printf '%s\n' "$manifest"
+    elif [[ -n "$sha" ]]; then
+        printf '%s-dev+%s%s\n' "$manifest" "$sha" "$dirty"
+    else
+        printf '%s-dev\n' "$manifest"
+    fi
+}
+
 navee_build_app() {
     navee_find_sdk
     navee_find_java
+    local version_name
+    version_name="$(navee_version_name)"
+    echo "versionName: $version_name"
     mkdir -p "$BUILD_DIR" "$(dirname -- "$APK_PATH")"
     rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies"
     mkdir -p "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
@@ -157,7 +256,7 @@ PYGUARD
             -o"$BUILD_DIR/generated" "$source_file"
     done
 
-    "$BUILD_TOOLS/aapt" package -f -m \
+    "$BUILD_TOOLS/aapt" package -f -m --version-name "$version_name" --replace-version \
         -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
         -J "$BUILD_DIR/generated" -F "$BUILD_DIR/resources.apk"
 
