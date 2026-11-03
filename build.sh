@@ -130,12 +130,20 @@ navee_load_signing_identity() {
 }
 
 # The versionName the APK carries. A release build (VOLT_RELEASE=1) uses the manifest's
-# exactly. Any other build is marked as a development build of that version, with its
-# commit, so a build installed from main never passes for the release it is based on:
-# "1.11.1-dev+abc1234", plus "-dirty" when the tree has uncommitted changes. Without git
-# (for example a source ZIP), it is "1.11.1-dev". versionCode is never changed.
+# exactly, and is refused with uncommitted changes, so a swept or signed release can't
+# carry local edits under a clean version. Any other build is marked as a development
+# build of that version, with its commit, so a build installed from main never passes
+# for the release it is based on: "1.11.1-dev+abc1234", plus "-dirty" when the tree has
+# uncommitted changes. When APP_DIR isn't the top of its own git checkout (for example a
+# source ZIP, even one unpacked inside another repository), it is "1.11.1-dev" and a
+# release build can't check for local edits. versionCode is never changed.
+navee_volt_checkout() {
+    local top
+    top="$(git -C "$APP_DIR" rev-parse --show-toplevel 2>/dev/null)" && [[ -n "$top" && "$top" -ef "$APP_DIR" ]]
+}
+
 navee_version_name() {
-    local manifest sha
+    local manifest sha dirty=""
     manifest="$(python3 -I - "$APP_DIR/AndroidManifest.xml" <<'PYVERSION'
 import re, sys
 from xml.etree import ElementTree
@@ -146,16 +154,30 @@ print(name)
 PYVERSION
 )" || return 1
     case "${VOLT_RELEASE:-}" in
-        1) printf '%s\n' "$manifest"; return 0 ;;
-        ''|0) ;;
+        1|''|0) ;;
         *) echo "VOLT_RELEASE must be 1 (release build) or unset; got: $VOLT_RELEASE" >&2; return 1 ;;
     esac
-    if sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
-        if [[ -n "$(git -C "$APP_DIR" status --porcelain 2>/dev/null)" ]]; then
-            printf '%s-dev+%s-dirty\n' "$manifest" "$sha"
-        else
-            printf '%s-dev+%s\n' "$manifest" "$sha"
+    if navee_volt_checkout && sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
+        # Untracked files count too; a failed status counts as dirty.
+        local status
+        if ! status="$(git -C "$APP_DIR" status --porcelain 2>/dev/null)" || [[ -n "$status" ]]; then dirty="-dirty"; fi
+    else
+        sha=""
+    fi
+    if [[ "${VOLT_RELEASE:-}" == 1 ]]; then
+        if [[ -n "$dirty" ]]; then
+            echo "VOLT_RELEASE=1 refuses uncommitted or untracked changes (or an unreadable git status); commit, stash or remove them first:" >&2
+            git -C "$APP_DIR" status --short >&2 || true
+            return 1
         fi
+        if [[ -n "$sha" ]]; then
+            echo "Release build of commit $(git -C "$APP_DIR" rev-parse HEAD)" >&2
+        else
+            echo "Release build outside a Volt git checkout: uncommitted changes can't be checked" >&2
+        fi
+        printf '%s\n' "$manifest"
+    elif [[ -n "$sha" ]]; then
+        printf '%s-dev+%s%s\n' "$manifest" "$sha" "$dirty"
     else
         printf '%s-dev\n' "$manifest"
     fi

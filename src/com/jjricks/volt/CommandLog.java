@@ -20,6 +20,22 @@ final class CommandLog {
     private static final int MAGIC = 0x56434d44, VERSION = 1, HEADER_BYTES = 12, CRC_BYTES = 8;
     /** Volt's version name: numbers and dots with up to three short suffix parts ("1.7.0", build.sh's "1.7.0-dev+abc1234-dirty"), each too short for a key or serial; or "unknown". */
     static final String APP_VERSION = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,12}){0,3}";
+    /** The pattern Volt 1.11.1 and earlier check when they read this journal; a session they reject makes them drop the whole log. */
+    static final String LEGACY_APP_VERSION = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,10})?";
+    /**
+     * The version a session record stores. A dev build of a published release has the same versionCode, so that release
+     * can be installed over it and read this journal; it must accept every record. A dev build is stored as
+     * "1.11.1-dev" (diagnostics still carry its commit), anything else unreadable there as "unknown".
+     */
+    static String journalVersion(String version) {
+        if (version == null) return "unknown";
+        if (version.matches(LEGACY_APP_VERSION)) return version;
+        if (version.matches(APP_VERSION) && VersionName.dev(version)) {
+            String dev = version.substring(0, version.indexOf("-dev")) + "-dev";
+            if (dev.matches(LEGACY_APP_VERSION)) return dev;
+        }
+        return "unknown";
+    }
     /** set: an owner, automatic or simulator change; try/restore: a guided write and its set-back; read: a PIN status read or a flagged status value. */
     enum Kind { SET, TRY, RESTORE, READ }
     enum Outcome {

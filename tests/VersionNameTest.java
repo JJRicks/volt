@@ -6,7 +6,7 @@ import java.util.Arrays;
 public final class VersionNameTest {
     private static int assertions;
     public static void main(String[] args) {
-        numbers(); comparison(); dev(); patterns(); updates(); reports();
+        numbers(); comparison(); dev(); patterns(); journal(); updates(); reports();
         System.out.println("VersionName tests passed: " + assertions + " assertions");
     }
 
@@ -45,6 +45,27 @@ public final class VersionNameTest {
             check(ok.matches(CommandLog.APP_VERSION), "Command log keeps " + ok);
         for (String bad : new String[]{"", "1", "1.11.1 ", "1.11.1-dev+abc 1234", "1.11.1-dev+abc1234-dirty-x-y", "1.11.1-", "1.11.1-dev+", "N2546ZZ9US1234567", "C0:FF:EE:12:34:56"})
             check(!bad.matches(CommandLog.APP_VERSION), "Command log refuses " + bad);
+    }
+
+    /**
+     * Published 1.11.1 has this versionCode too, so it can be installed over a dev build and read its command journal.
+     * Its pattern (copied from v1.11.1's CommandLog.APP_VERSION) must accept every stored session, or it drops the whole log.
+     */
+    private static void journal() {
+        String published = "unknown|[0-9]{1,4}(\\.[0-9]{1,4}){1,3}([-+][0-9A-Za-z.]{1,10})?";
+        check(CommandLog.LEGACY_APP_VERSION.equals(published), "The legacy pattern is v1.11.1's");
+        for (String dev : new String[]{"1.11.1-dev", "1.11.1-dev+abc1234", "1.11.1-dev+abc1234-dirty", "1.11.1-dev+0123456789ab-dirty", "1.2.3.4-dev+abc1234"}) {
+            String stored = CommandLog.journalVersion(dev);
+            check(stored.matches(published) && VersionName.dev(stored), "A dev build's session stays readable by 1.11.1 and keeps the marker: " + dev + " -> " + stored);
+        }
+        check(CommandLog.journalVersion("1.11.1-dev+abc1234").equals("1.11.1-dev"), "Stored as its base version and -dev");
+        for (String same : new String[]{"1.11.1", "1.7.0-dev", "1.5.0+n65i", "unknown"})
+            check(CommandLog.journalVersion(same).equals(same), "Versions 1.11.1 reads are stored as they are: " + same);
+        for (String other : new String[]{"1.5.0-n65i-test", "", "1.11.1 ", "N2546ZZ9US1234567"})
+            check(CommandLog.journalVersion(other).equals("unknown"), "Anything else is unknown: " + other);
+        check(CommandLog.journalVersion(null).equals("unknown"), "No version is unknown");
+        // And it is a valid session record here.
+        new CommandLog.Session(1_790_000_000_000L, CommandLog.journalVersion("1.11.1-dev+abc1234-dirty"), "25462", ModelRegistry.Layer.OEM_GROUP, "", "", false);
     }
 
     /** A dev build of 1.11.1 is never told to update to 1.11.1, but is offered anything newer. */

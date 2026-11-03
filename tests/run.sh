@@ -93,3 +93,6 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.DualChargerEstimateTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.Ut5MaxFastChargeReferenceTest "$TEST_DIR/fixtures/ut5-max-fast-charge-calibration.csv"
 
 for name in StockVoltageReferenceTest; do java -cp "$TEST_BUILD_DIR/classes" "com.jjricks.volt.$name"; done
+
+# build.sh versionName: dev marker, release flag, trees that aren't their own checkout.
+bash "$TEST_DIR/build-version-test.sh"
