@@ -2,7 +2,7 @@
 // shown and sent. Pure and free of browser APIs so every rule is unit-tested.
 // Raw rows are never returned, stored or thrown; only allowlisted, redacted text
 // leaves classify(). Anything unrecognized is only counted as hidden.
-import { LOG_FILTERS, PACKAGE, PROPERTY, SetupError, appLogcat, quote, verifiedPids } from './protocol.js';
+import { LOG_FILTERS, PACKAGE, PROPERTY, SetupError, appLogcat, quote, verifiedPids, writerOf, writerPattern } from './protocol.js';
 import { SENSITIVE, describe, keyLabel } from './navee-commands.js';
 
 export const LIMITS = { rows: 3000, text: 512, row: 600, note: 200, description: 4000, contact: 240,
@@ -191,11 +191,20 @@ const ROW = /^\s*(\d{9,11}\.\d{1,9})\s+(.*)$/;
 const NAVEE = /^\d{1,10}\s+\d{1,10}\s+[VDIWEFA]\s+com\.navee\.ucaret\s*: ?(.*)$/;
 // Holds only kept, redacted rows plus counters. Each poll re-reads from the last
 // row's timestamp, so rows at that boundary are deduplicated by digest and count.
+// writer: NAVEE's uid when polls are read with -v uid (Android 11 and older, see
+// logcatCommand), null when logcat already kept only NAVEE's rows (--uid). Given a
+// writer, only rows that uid wrote are read at all. The phone's grep already dropped
+// every other row; any that still arrives (another uid's, or one without the writer
+// column) is only counted (foreign, unattributed), never kept, hidden, shown, copied
+// or sent, and never moves the cursor or dedupe: its writer chose its time, so one
+// stamped ahead would skip NAVEE's later rows.
 export class LogRecorder {
-  constructor(start) {
+  constructor(start, writer = null) {
     if (!/^\d{9,11}\.\d{1,9}$/.test(start)) throw new SetupError('clock', 'The phone did not provide a valid capture time.');
     this.start = start; this.cursor = start; this.floor = nanos(start); this.edge = this.floor;
     this.seen = new Map(); this.rows = []; this.hidden = 0; this.bytes = 0; this.full = false; this.next = 1;
+    // own: NAVEE rows read (kept, hidden or folded); the others are never NAVEE's.
+    this.writer = writer === null ? null : writerOf(writer); this.own = 0; this.foreign = 0; this.unattributed = 0;
     // Folded: "Write success" echoes marked onto their command as " (ok)", and confirmed repeats of a routine read.
     this.folded = 0; this.confirmedReads = new Set(); this.barrier = -1n;
   }
@@ -236,7 +245,7 @@ export class LogRecorder {
   }
   // Called after a failure/reconnect row is kept.
   breakCorrelation(row) { this.barrier = row.at; this.confirmedReads.clear(); }
-  // Returns how many timestamped rows the poll held and how many were new.
+  // Returns how many timestamped rows the poll held (whoever wrote them) and how many of NAVEE's were new.
   ingest(output) {
     let lines = 0, fresh = 0, added = 0;
     const counts = new Map();
@@ -244,6 +253,13 @@ export class LogRecorder {
       const row = ROW.exec(line);
       if (!row) continue;
       lines++;
+      // Counted each time one arrives (it never moves the dedupe); only the "any at all" matters.
+      const written = this.writer ? this.writer(line) : { own: true, rest: row[2] };
+      if (!written?.own) {
+        if (written) this.foreign = Math.min(LIMITS.hidden, this.foreign + 1);
+        else this.unattributed = Math.min(LIMITS.hidden, this.unattributed + 1);
+        continue;
+      }
       const at = nanos(row[1]);
       if (at < this.floor || at < this.edge) continue;
       const key = digest(row[2]);
@@ -257,7 +273,8 @@ export class LogRecorder {
       }
       fresh++;
       if (this.full) continue;
-      const message = NAVEE.exec(row[2]);
+      this.own = Math.min(LIMITS.hidden, this.own + 1);
+      const message = NAVEE.exec(written.rest);
       const kept = message ? classify(message[1]) : null;
       if (kept === null) { this.hidden = Math.min(LIMITS.hidden, this.hidden + 1); continue; }
       if (this.fold(kept)) { this.folded = Math.min(LIMITS.hidden, this.folded + 1); continue; }
@@ -303,39 +320,56 @@ export class LogRecorder {
   }
 }
 const request = (uid, cursor, filter) => /^\d{5}$/.test(String(uid)) && /^\d{9,11}\.\d{1,9}$/.test(cursor) && LOG_FILTERS.includes(filter);
-// filter: 'uid' where logcat has --uid (Android 12+), else 'pid' (NAVEE's verified process, see appLogcat).
+// filter: 'uid' where logcat has --uid (Android 12+), else 'rows': the rows under NAVEE's tag that NAVEE's
+// uid wrote (-v uid, kept on the phone by writerPattern), for a LogRecorder given NAVEE's uid.
 export function logcatCommand(uid, cursor, count, filter = 'uid') {
   if (!request(uid, cursor, filter) || !Number.isInteger(count) || count < 1 || count > 1000) throw new Error('Invalid logcat request');
-  // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead.
-  return appLogcat(uid, filter, `-d -v epoch -t '${cursor}' -s ${PACKAGE}:V '*:S'`, `head -n ${count}`);
+  // logcat refuses -m (--max-count) together with -t, so the batch is bounded by head instead. In rows
+  // mode the phone drops every other writer's rows before head counts the batch: another app may write
+  // any number of rows under NAVEE's tag, at any times it likes, so its rows must never take up the
+  // batch or move the cursor. Then, as with --uid, the batch and cursor see only NAVEE's own rows.
+  const keep = filter === 'rows' ? `grep -E ${quote(writerPattern(uid))} | ` : '';
+  return appLogcat(uid, filter, `-d -v epoch -t '${cursor}' -s ${PACKAGE}:V '*:S'`, `${keep}head -n ${count}`);
 }
 // Capture health, read-only and counted on the phone so no log text is transferred. One line each:
 // how many NAVEE processes have its uid (? without pidof), its log property, then the number of log
-// lines since the recording started from all apps and from NAVEE (any tag, the poll's filter). A
-// count is x when logcat itself fails, or in pid mode without exactly one verified NAVEE process.
+// lines since the recording started from all apps and from NAVEE (any tag): by --uid, or in rows mode
+// the -v uid rows whose writer column is NAVEE's uid. Rows mode adds two counts of lines under NAVEE's
+// tag the poll never reads: those another uid wrote, and those without a writer column. A count is x
+// when logcat itself fails.
 export function probeCommand(uid, cursor, filter = 'uid') {
   if (!request(uid, cursor, filter)) throw new Error('Invalid probe request');
-  return `${verifiedPids(uid)}
+  const head = `${verifiedPids(uid)}
 command -v pidof >/dev/null && echo "$k" || echo '?'
 getprop ${PROPERTY}
 n() { set -- $( { { logcat -d -t ${quote(cursor)} "$@" 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | wc -l; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
 n
-${filter === 'uid' ? `n --uid=${uid}` : '[ "$k" = 1 ] && n --pid="$q" || echo x'}`;
+`;
+  if (filter === 'uid') return `${head}n --uid=${uid}`;
+  const own = quote(writerPattern(uid)), count = (args, then) =>
+    `set -- $( { { logcat -d -t ${quote(cursor)} -v uid -v epoch${args} 2>/dev/null; echo "$?" >&3; } | ${then}; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x`;
+  // c: NAVEE's tag, not NAVEE's uid; then with a writer column (another uid's), or (c -v) without one.
+  return `${head}${count('', `grep -c -E ${own}`)}
+c() { ${count(` -s ${PACKAGE}:V '*:S'`, `grep -v '^--------- ' | grep -v -E ${own} | grep -c "$@" -E ${quote(writerPattern(null))}`)}; }
+c
+c -v`;
 }
-// probeCommand's output → captureHealth's facts. Anything unexpected is unknown (null).
+// probeCommand's output → captureHealth's facts. Anything unexpected is unknown (null). Rows mode's two
+// extra lines are foreign (another uid's rows under NAVEE's tag) and unattributed (rows there without a writer).
 export function parseProbe(output) {
   const lines = String(output ?? '').split(/\r?\n/);
-  if (lines.length !== 4) return { propertyOk: null, running: null, phoneLines: null, naveeLines: null };
-  const [pids, property, all, navee] = lines, count = text => /^\d{1,9}$/.test(text.trim()) ? Number(text.trim()) : null;
-  return { propertyOk: /^[\x20-\x7e]{0,91}$/.test(property) ? property === 'VERBOSE' : null,
+  if (lines.length !== 4 && lines.length !== 6) return { propertyOk: null, running: null, phoneLines: null, naveeLines: null };
+  const [pids, property, all, navee, other, bare] = lines, count = text => /^\d{1,9}$/.test(text.trim()) ? Number(text.trim()) : null;
+  const facts = { propertyOk: /^[\x20-\x7e]{0,91}$/.test(property) ? property === 'VERBOSE' : null,
     running: /^\d{1,3}$/.test(pids) ? Number(pids) > 0 : null, phoneLines: count(all), naveeLines: count(navee) };
+  return lines.length === 6 ? { ...facts, foreign: count(other), unattributed: count(bare) } : facts;
 }
 export const HEALTH = {
   checking: 'Checking that NAVEE’s lines are arriving…',
   property: 'NAVEE’s log setting didn’t take on this phone, so its lines can’t be read. Try recording again.',
   unsupported: 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.',
   'logcat-failed': 'This phone’s log reader is refusing the request, so no NAVEE lines are arriving. Try recording again.',
-  impostor: 'Another app is using NAVEE’s name, so nothing is recorded.',
+  impostor: 'Another app is writing under NAVEE’s name; its lines are ignored.',
   'phone-logs': 'This phone isn’t keeping app logs. Try this: in Developer options, set Logger buffer size to 256K or more (not Off), then record again.',
   'not-running': 'NAVEE isn’t running. Open NAVEE and connect it to your scooter.',
   'navee-silent': 'NAVEE isn’t writing logs this page can read. Try this: close NAVEE fully (swipe it away), reopen it and connect. Some Xiaomi (MIUI) phones may also restrict app logs.',
@@ -343,17 +377,26 @@ export const HEALTH = {
   healthy: 'Receiving NAVEE Bluetooth lines.'
 };
 // Why a recording is (still) empty, in order; null facts are unknown and never name a cause. filter
-// and logcat (logcatReply's status) come from the latest poll, the rest from the probe. Kept rows
-// prove NAVEE's lines arrive, which outranks counts of a ring buffer that may have rotated.
-export function captureHealth({ propertyOk = null, filter = null, logcat = null, running = null, phoneLines = null, naveeLines = null, kept = 0 } = {}) {
-  const empty = !(kept > 0), live = logcat === 'no-pid' ? false : running;
+// and logcat (logcatReply's status) come from the latest poll; own is the recorder's count of rows
+// NAVEE's uid wrote under its tag; foreign and unattributed (rows mode) count rows under NAVEE's tag
+// that another uid wrote, or that lack a writer column (the probe's counts, as the poll never reads
+// them, plus any the recorder was handed); the rest come from the probe. Kept rows prove NAVEE's lines
+// arrive, which outranks counts of a ring buffer that may have rotated.
+export function captureHealth({ propertyOk = null, filter = null, logcat = null, running = null, phoneLines = null, naveeLines = null,
+  kept = 0, own = 0, foreign = 0, unattributed = 0 } = {}) {
+  // none: a poll has read the log and nothing under NAVEE's tag was NAVEE's. (The probe runs before the
+  // first poll, when nothing has been read yet.)
+  const empty = !(kept > 0), none = empty && !(own > 0) && logcat === 'ok';
   const state = propertyOk === false ? 'property'
-    // Pid mode is the fallback for a refused --uid, so a failing pid read means neither works.
-    : logcat === 'failed' ? (filter === 'pid' && empty ? 'unsupported' : 'logcat-failed')
-    : logcat === 'other-uid' ? 'impostor'
-    : live === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
-    : live === false ? 'not-running'
-    : live === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
+    // Rows mode is the fallback for a refused --uid, so a failing read means neither works; so do rows
+    // the reader prints without their writer, which can never be told apart from another app's.
+    : logcat === 'failed' ? (filter === 'rows' && empty ? 'unsupported' : 'logcat-failed')
+    : none && unattributed > 0 ? 'unsupported'
+    // NAVEE's tag, but only ever from another uid: those rows are ignored (only counted).
+    : none && foreign > 0 ? 'impostor'
+    : running === true && phoneLines === 0 && !(naveeLines > 0) && empty ? 'phone-logs'
+    : running === false ? 'not-running'
+    : running === true && phoneLines > 0 && naveeLines === 0 && empty ? 'navee-silent'
     : naveeLines > 0 && empty ? 'no-bluetooth'
     : empty ? 'checking' : 'healthy';
   return { state, text: HEALTH[state] };

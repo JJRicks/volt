@@ -46,7 +46,14 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         // GT5 Max (25462, group 2545): the official app offers kick-start speed there, so Standing start stays an ordinary Scooter row.
         expect("GT5 Max 25462",model("25462"),"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
         CapabilityResolver.Decision gt5Start=ordinary("start_speed",model("25462"));
-        check(gt5Start.available()&&gt5Start.allows(0)&&!gt5Start.variant.lab&&ModelRegistry.modelName(model("25462")).equals("GT5 Max"),"GT5 Max keeps Standing start in Scooter settings: "+gt5Start);
+        check(gt5Start.available()&&gt5Start.allows(0)&&!gt5Start.variant.lab&&ModelRegistry.modelName(model("25462")).equals("GT5 Max"),"A US GT5 Max keeps Standing start in Scooter settings: "+gt5Start);
+        // The owner's EU GT5 Max: kick-start 3–5 km/h as its official app, still in Scooter settings; no Top speed, and nothing moves to Experimental.
+        DeviceDescriptor gt5Eu=OemControlsTest.model("25462","EU");
+        CapabilityResolver.Decision euStart=ordinary("start_speed",gt5Eu);
+        check(euStart.available()&&!euStart.allows(0)&&!euStart.allows(2)&&euStart.allows(3)&&!euStart.variant.lab,"EU GT5 Max kick-start is 3–5 km/h in Scooter settings: "+euStart);
+        check(ordinary("maximum_speed",gt5Eu).reason==CapabilityResolver.Reason.REGION_RULE&&!tryNow("maximum_speed",gt5Eu,data(),parked()).experimental(),"EU GT5 Max: no Top speed, never an experiment");
+        check(ordinary("cruise_control",gt5Eu).available()&&ordinary("cruise_control",gt5Eu).evidence==CapabilityResolver.Evidence.VOLT_VERIFIED,"EU GT5 Max keeps its owner-verified cruise control");
+        expect("GT5 Max 25462 EU",gt5Eu,"hill_start_assist","parking_assist","hill_descent_control","prompt_tone","speed_limit","traction_control");
         expect("2573",model("25731"),"cruise_control","traction_control","hill_start_assist","parking_assist","hill_descent_control","turn_sound","prompt_tone");
         expect("Group M 25041",model("25041"),"cruise_control","traction_control","headlight","auto_sensor","turn_sound","hill_start_assist","parking_assist",
             "hill_descent_control","prompt_tone");
@@ -118,6 +125,26 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             }
         }
         check(models>200,"Swept every listed model ID");
+        // Version 17: the same split in the EUR bucket, where a kick-start try offers 3–5 km/h and Top speed is never added.
+        int tries=0;
+        for(String prefix:ModelRegistry.LISTED){
+            String pid=prefix.length()==4?prefix+"1":prefix;
+            for(String area:new String[]{"ES","US"}){
+                DeviceDescriptor d=OemControlsTest.model(pid,area);
+                Set<String> got=listed(d);
+                check(!got.contains("maximum_speed"),pid+" "+area+": Top speed is never an experiment");
+                if(ModelRegistry.resolve(d).layer!=ModelRegistry.Layer.OEM_GROUP)continue; // the UT5 MAX lists its catalogue Lab rows
+                for(ScooterCommands.Feature f:ScooterCommands.catalog()){
+                    CapabilityResolver.Decision usual=CapabilityResolver.decide(f.key,d,status(data()),parked());
+                    if(got.contains(f.key))check(usual.reason==CapabilityResolver.Reason.MODEL_EXCLUDED||usual.reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,pid+" "+area+": "+f.key+" listed but not hidden");
+                }
+                if(!got.contains("start_speed"))continue;
+                CapabilityResolver.Decision t=tryNow("start_speed",d,data(),parked());
+                check(Arrays.equals(t.values(),area.equals("US")?new int[]{0,1,2,3,4,5}:new int[]{3,4,5}),pid+" "+area+": kick-start try "+Arrays.toString(t.values()));
+                tries++;
+            }
+        }
+        check(tries>10,"Kick-start tries swept in both buckets: "+tries);
     }
 
     /** Most likely to work first (related models, then all other listed models), then the owner's priority list. */
@@ -170,6 +197,30 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
         byte[] fast=data();fast[19]=9;check(tryNow("start_speed",n65i,fast,parked()).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"Kick-start readback outside 0-5 refuses");
         check(CapabilityResolver.admitExperimental("start_speed",0,n65i,status(data()),parked()).available(),"Standing start admitted");
         check(CapabilityResolver.admitExperimental("start_speed",6,n65i,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"Outside 0-5 refused");
+        // Outside the official app's USA bucket a kick-start try offers 3–5 km/h only, as its kick-start screen would.
+        for(String area:new String[]{"EU","ES","DE","ZZ"}){
+            DeviceDescriptor eu=OemControlsTest.model("22131",area);
+            CapabilityResolver.Decision t=tryNow("start_speed",eu,data(),parked());
+            check(t.experimental()&&t.available()&&Arrays.equals(t.values(),new int[]{3,4,5})&&t.variant.id.equals("start_speed.3_5.lab"),"N65i "+area+": kick-start try is 3–5 km/h "+t);
+            for(int v=0;v<=2;v++)check(CapabilityResolver.admitExperimental("start_speed",v,eu,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"N65i "+area+": "+v+" km/h never tried");
+            // A kick-start already below 3 km/h (kept from a registry 16 try, say) shows as it is and can move to 3–5 km/h, by a
+            // try or by Set back to an offered value; 0–2 km/h is never sent here.
+            for(int low=0;low<=2;low++){
+                byte[] slow=data();slow[19]=(byte)low;
+                CapabilityResolver.Decision s=tryNow("start_speed",eu,slow,parked());
+                check(s.available()&&s.experimental()&&Arrays.equals(s.values(),new int[]{3,4,5})&&s.current()==low
+                    &&s.label(low).equals(low+" km/h"),"N65i "+area+": "+low+" km/h shows as it is, 3–5 km/h offered "+s+" "+s.reasonText());
+                for(int to=3;to<=5;to++)check(CapabilityResolver.admitTry("start_speed",to,eu,status(slow),parked()).available()
+                    &&tryGate("start_speed",to,false,eu,slow,trying("start_speed")).available()&&tryGate("start_speed",to,true,eu,slow,trying("start_speed")).available(),
+                    "N65i "+area+": from "+low+" km/h a try or Set back to "+to+" km/h is admitted");
+                for(int to=0;to<=2;to++)check(CapabilityResolver.admitTry("start_speed",to,eu,status(slow),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED
+                    &&tryGate("start_speed",to,false,eu,slow,trying("start_speed")).reason==CapabilityResolver.Reason.MODEL_EXCLUDED
+                    &&tryGate("start_speed",to,true,eu,slow,trying("start_speed")).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,
+                    "N65i "+area+": from "+low+" km/h, "+to+" km/h is never sent, as a try or a Set back");
+            }
+            byte[] fastEu=data();fastEu[19]=9;
+            check(tryNow("start_speed",eu,fastEu,parked()).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"N65i "+area+": a kick-start readback outside 0–5 is still unknown");
+        }
         check(CapabilityResolver.admitExperimental("prompt_tone",5,n65i,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"Outside the five sounds refused");
         // An offered control is never tried this way (it lives in Scooter settings), nor is anything the experimental rule leaves out.
         for(String key:new String[]{"display_units","cruise_control","energy_recovery","maximum_speed","charge_limit","lock","pin","proximity_key","lock_expiry","low_power","acceleration","dual_drive","overspeed_control"}){

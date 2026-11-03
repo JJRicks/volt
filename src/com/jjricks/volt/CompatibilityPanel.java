@@ -164,7 +164,9 @@ final class CompatibilityPanel {
                 if(!t.nothingWritten()){
                     card.addView(muted(join(t.outcomeTexts())));
                     String r=t.restorationStatus();boolean kept=t.keeps()&&r.equals(TestJournal.DECLINED);
-                    TextView restored=ui.text(kept?"Kept · Set back is in Experimental controls":r.equals("confirmed")?"Restoration confirmed":"Restoration outstanding · review below",13.5f,true);
+                    // A try that left a value Volt doesn't offer here (kick-start below 3 km/h) has no Set back.
+                    String keptText=ble.experimentBaseline(t.feature)!=null?"Kept · Set back is in Experimental controls":"Kept";
+                    TextView restored=ui.text(kept?keptText:r.equals("confirmed")?"Restoration confirmed":"Restoration outstanding · review below",13.5f,true);
                     restored.setTextColor(r.equals("confirmed")||kept?ui.ok:ui.text);restored.setPadding(0,ui.dp(6),0,0);card.addView(restored);
                 }
                 card.addView(ui.secondaryButton("Close",()->{ble.closeTest();refresh();}));

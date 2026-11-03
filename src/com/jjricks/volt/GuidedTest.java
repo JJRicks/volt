@@ -106,6 +106,15 @@ final class GuidedTest {
         t.kind=kind;t.layer=d==null?"":ModelRegistry.resolve(d).layer.name().toLowerCase(java.util.Locale.ROOT);t.expectedBaseline=expectedBaseline;
         t.phase=Phase.PRECHECK;t.arm();return t;
     }
+    /**
+     * The value Set back would write for this try, or null: a kept try whose baseline the current try variant (v)
+     * still offers, under the same variant it was journalled with. restoreFrom refuses anything else ("Test rules
+     * changed", "Nothing to restore"), so Set back isn't offered then: for example a try kept under an earlier
+     * registry's 0–5 km/h kick-start where 3–5 km/h is offered now, or one that started below 3 km/h there.
+     */
+    static Integer setBackValue(TestJournal.Entry e,FeatureVariant v){
+        return e!=null&&e.resolved&&e.isTry()&&"kept".equals(e.resolution)&&v!=null&&v.id.equals(e.variantId)&&v.allows(e.baseline)?e.baseline:null;
+    }
     /** TestJournal.TEST, EXPERIMENTAL or VERIFY. */
     String kind(){return kind;}
     /** A try keeps the value after the owner's answer; a guided test sets it back by itself. */
@@ -356,11 +365,15 @@ final class GuidedTest {
     private void capture(StatusFields s){
         Integer value=variant.read(s);
         if(value==null){end("This scooter isn't reporting this setting.");return;}
-        if(!variant.allows(value)){end("The current value is unknown, so Volt won't test it.");return;}
+        // A try may start from a setting its variant shows but doesn't offer (a kick-start below 3 km/h where only 3–5 km/h
+        // is offered): it moves to an offered value, and Set back is never offered for it (setBackValue, offered). A guided
+        // test always writes its baseline back, so it still needs an offered one.
+        boolean shown=keeps()&&variant.shows(value);
+        if(!variant.allows(value)&&!shown){end("The current value is unknown, so Volt won't test it.");return;}
         if(expectedBaseline!=null&&!value.equals(expectedBaseline)){end("The scooter now shows "+variant.label(value)+". Nothing was changed.");return;}
         if(value==target){end("It's already set to "+variant.label(target)+".");return;}
         if(!offered(variant,s,target)){end(variant.label(target)+" isn't offered now.");return;}
-        if(!offered(variant,s,value)){end("The current value can't be set back, so Volt won't test it.");return;}
+        if(!shown&&!offered(variant,s,value)){end("The current value can't be set back, so Volt won't test it.");return;}
         baseline=value;related=relatedValue(s);phase=Phase.BASELINE;
     }
     private void confirmTarget(StatusFields s,Integer value,long nowMs){

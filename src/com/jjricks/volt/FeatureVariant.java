@@ -22,19 +22,29 @@ public final class FeatureVariant {
     public final boolean readable;
     /** A raw readback outside the domain with a known meaning (e.g. an unset charge limit), or -1; never offered or sent. */
     public final int sentinel; public final String sentinelLabel;
+    /**
+     * Settings this field can hold that this model's official app doesn't offer here (a kick-start below 3 km/h outside
+     * its USA bucket), with their labels. Shown as the current value, never offered or sent; the owner can still choose
+     * an offered value. Unlike a sentinel they are real settings, so they don't make the row read as unknown.
+     */
+    private final int[] shown; private final String[] shownLabels;
 
     FeatureVariant(String id,String feature,int cmd,int[] selector,int[] values,String[] labels,String unit,int min,int max,int step,
             int offset,int mask,int shift,Decode decode,boolean parked,boolean owner,boolean lab,boolean dynamicChoices,boolean readable){
-        this(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,-1,"");
+        this(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,-1,"",new int[0],new String[0]);
     }
     private FeatureVariant(String id,String feature,int cmd,int[] selector,int[] values,String[] labels,String unit,int min,int max,int step,
-            int offset,int mask,int shift,Decode decode,boolean parked,boolean owner,boolean lab,boolean dynamicChoices,boolean readable,int sentinel,String sentinelLabel){
+            int offset,int mask,int shift,Decode decode,boolean parked,boolean owner,boolean lab,boolean dynamicChoices,boolean readable,int sentinel,String sentinelLabel,
+            int[] shown,String[] shownLabels){
         require(id!=null&&feature!=null&&values.length==labels.length,"Variant domain is malformed");
         this.id=id;this.feature=feature;this.cmd=cmd;this.selector=selector.clone();this.values=values.clone();this.labels=labels.clone();this.unit=unit==null?"":unit;
         this.min=min;this.max=max;this.step=Math.max(1,step);this.offset=offset;this.mask=mask;this.shift=shift;this.decode=decode;
         this.parked=parked;this.owner=owner;this.lab=lab;this.dynamicChoices=dynamicChoices;this.readable=readable&&offset>=0&&decode!=Decode.BE32;
         require(sentinel<0||values.length==0||!contains(values,sentinel),"A sentinel is never an offered value");
         this.sentinel=sentinel;this.sentinelLabel=sentinelLabel==null?"":sentinelLabel;
+        require(shown.length==shownLabels.length&&(shown.length==0||values.length>0),"Shown values need labels and an explicit domain");
+        for(int v:shown)require(!contains(values,v)&&v!=sentinel,"A shown value is never an offered value or the sentinel");
+        this.shown=shown.clone();this.shownLabels=shownLabels.clone();
     }
 
     /** Exact copy of today's UT5 MAX options, values, readback, parked rule and Lab (experimental) flag. */
@@ -47,16 +57,22 @@ public final class FeatureVariant {
     /** The same wire field with fewer values (for example a regional ceiling). Values must already be allowed. */
     public FeatureVariant narrowed(String id,int[] values,String[] labels){
         for(int v:values)require(allows(v),"Narrowed value is outside the variant domain");
-        return new FeatureVariant(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,sentinel,sentinelLabel);
+        return new FeatureVariant(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,sentinel,sentinelLabel,shown,shownLabels);
     }
     /** The same variant with a labelled out-of-domain readback; the value still reads as unknown and is never sent. */
     FeatureVariant withSentinel(int raw,String label){
-        return new FeatureVariant(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,raw,label);
+        return new FeatureVariant(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,raw,label,shown,shownLabels);
+    }
+    /** The same variant that also shows these settings, outside its offered values, as the current value (see shown). */
+    FeatureVariant withShown(int[] raw,String[] rawLabels){
+        return new FeatureVariant(id,feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,parked,owner,lab,dynamicChoices,readable,sentinel,sentinelLabel,raw,rawLabels);
     }
     /** The same wire field and readback as an experimental (Lab) variant: parked and owner only, id + ".lab". */
     FeatureVariant lab(){
-        return new FeatureVariant(id+".lab",feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,true,true,true,dynamicChoices,readable,sentinel,sentinelLabel);
+        return new FeatureVariant(id+".lab",feature,cmd,selector,values,labels,unit,min,max,step,offset,mask,shift,decode,true,true,true,dynamicChoices,readable,sentinel,sentinelLabel,shown,shownLabels);
     }
+    /** A setting this field can hold that this variant shows but never offers or sends (see shown). */
+    public boolean shows(int value){return contains(shown,value);}
 
     /** Current value from an accepted status, or null when absent. Never 0-for-absent. */
     public Integer read(StatusFields s){
@@ -104,6 +120,7 @@ public final class FeatureVariant {
     public String label(int value){
         if(decode==Decode.UT5_FEATURE&&values.length==0)return ScooterCommands.find(feature).valueLabel(value);
         for(int i=0;i<values.length;i++)if(values[i]==value)return labels[i];
+        for(int i=0;i<shown.length;i++)if(shown[i]==value)return shownLabels[i];
         if(sentinel>=0&&value==sentinel)return sentinelLabel;
         if(decode==Decode.CAP7&&value==0)return "Off";
         return Integer.toString(value)+(unit.isEmpty()?"":" "+unit);

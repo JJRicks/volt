@@ -290,7 +290,9 @@ Useful details:
 - Recovery offers Off, Low, Medium and High. Stronger recovery changes coasting
   deceleration; its real energy benefit needs a ride measurement.
 - Startup threshold offers 0–5 km/h. Maximum speed uses this model's OEM choices
-  of 25, 32, 40 and 50 km/h; limits for other UT5 models are not offered.
+  of 25, 32, 40 and 50 km/h; limits for other UT5 models are not offered. A
+  UT5 MAX whose serial names a region other than US, CN or RU follows the
+  official app there: no maximum speed and a 3–5 km/h startup threshold.
 - Charge ceiling offers 80%, 85%, 90%, 95% and 100%. Stored schedule settings
   were verified; actual charging start/stop behavior needs a charging cycle.
 - Low Battery Mode limits maximum speed below 20% charge. It is not an Eco mode
@@ -372,15 +374,18 @@ Acceleration       OEM-mapped   Parked; 2345, 2714, 2509 (firmware), the 2545
                                 and 2619 groups
 PIN, proximity     OEM-mapped   Owner, parked; Volt's strict flow (PIN, then
                                 pairing); firmware where the official app checks
-Maximum speed      OEM-mapped   Parked; the official app's mapped choices for
-                                that model across regions (never probed);
-                                firmware or full model ID for some
+Maximum speed      OEM-mapped   Parked; only with a US, CN or RU serial region,
+(Top speed)                     as in the official app; its mapped choices for
+                                that model (never probed); firmware or full
+                                model ID for some
 Custom speed cap   OEM-mapped   Parked; 2573, 2634, 2611, 2753, 2612, 2643,
                                 2754 (8-32 km/h), 2782 (8/15/25/32),
                                 2504/2505 (8-16), 2506 (8-20); Off sends 0
-Kick-start speed   OEM-mapped   Parked; mapped models offer 0-5 km/h,
-                                except 2504-2506 (3-5); below 3 shows a caution;
-                                firmware and full-model-ID gates still apply
+Kick-start speed   OEM-mapped   Parked; 0-5 km/h with a US, CN or RU serial
+                                region, 3-5 km/h elsewhere and on 2504-2506,
+                                as in the official app; below 3 shows a
+                                caution; a setting already below 3 shows as it
+                                is; firmware and full-model-ID gates still apply
 Energy recovery    OEM-mapped   Unlocked, parked; on/off; turning it off shows
 (2504-2506)                     a caution
 Line and star      OEM-mapped   2547 (two colours) and 2585 (six colours);
@@ -397,15 +402,22 @@ model ID while only a serial is known.
 
 Every other control stays hidden until mapped. A serial number alone never
 selects an OEM group; Identify reads the advertised model ID. Regional hiding
-and value restrictions are noted, not applied: each model offers its widest
-mapped domain, with no values borrowed from other models. The scooter's
-firmware can still reject a setting. A control that is Lab
+and value restrictions are noted, not applied, except for Top speed and
+kick-start below 3 km/h, which follow the official app's regions on every
+model (the UT5 MAX too, when its serial names another region): each other
+control offers its widest mapped domain, with no values borrowed from other
+models. The official app also shows both on a 2620 EU scooter that its own
+server located in Russia; Volt can't see that location, so it doesn't. The
+scooter's firmware can still reject a setting. A control that is Lab
 on the UT5 MAX is an ordinary row on a model the official app maps it for.
 Controls the official app hides for an identified model can be tried from
 More > Experimental controls (see EXPERIMENTAL CONTROLS below); the rows above
 are unchanged.
 Firmware conditions need the version read in the current connection, and a
-value the scooter reports outside the mapped choices reads as unknown.
+value the scooter reports outside the mapped choices reads as unknown, except
+a kick-start below 3 km/h where 3-5 is offered: it shows as it is, and only
+3-5 can be chosen (from Experimental controls too, where that try can't be
+set back).
 
 More > Compatibility runs a read-only check (nine known reads, at most 30 s)
 and builds a report for review: model ID, derived region, firmware, read
@@ -476,7 +488,8 @@ UT5 MAX                Its Lab rows, as before: acceleration, custom and drive
                        speed caps, dual motor, long range, overspeed, prompt
                        sound
 Identified OEM models  Each of these the official app hides for that model:
-                       kick-start speed (0-5 km/h, Standing start at 0),
+                       kick-start speed (0-5 km/h, Standing start at 0, with
+                       a US, CN or RU serial region; 3-5 km/h elsewhere),
                        cruise control, traction control, tail light,
                        automatic lights, turn signal sound, walk, power and
                        descent assist, prompt sound
@@ -486,17 +499,18 @@ Anything else          Nothing: unidentified, model ID mismatch, models the
 For example the N65i (22131) lists kick-start speed, turn signal sound,
 traction control, the three assists and prompt sound; the ST3 Pro (23452)
 and the GT5 Max (25462) the three assists and prompt sound; 2585 nothing.
-The GT5 Max's kick-start speed, Standing start included, stays in Scooter
+The GT5 Max's kick-start speed (3-5 km/h on an EU one) stays in Scooter
 settings: the official app offers kick-start speed for that model.
 
 Never added on another model, where the official app does not offer them:
-maximum speed and every speed cap, overspeed control (it acts on speed while
-riding), Eco/Turbo (its readback is the riding-mode byte), dual motor (it
-shares the speed and mode command), charging, Low Battery Mode, long range
-mode, lock time and the clock (the 0x6f parameter block), the lock, PIN and
-proximity unlock, and ambient, logo, daytime, line and star lights (status
-byte 10 means different lights on different models). Where the official app
-does offer one of these for a model, it stays in Scooter settings as before.
+maximum speed (also where it hides Top speed by region) and every speed cap,
+overspeed control (it acts on speed while riding), Eco/Turbo (its readback is
+the riding-mode byte), dual motor (it shares the speed and mode command),
+charging, Low Battery Mode, long range mode, lock time and the clock (the 0x6f
+parameter block), the lock, PIN and proximity unlock, and ambient, logo,
+daytime, line and star lights (status byte 10 means different lights on
+different models). Where the official app does offer one of these for a
+model, it stays in Scooter settings as before.
 Volt sends only the encoding the official app uses on models that do offer a
 control; no new commands, and never firmware.
 

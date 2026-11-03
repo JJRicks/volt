@@ -452,10 +452,20 @@ public final class DashboardConfig {
      * True when something changed and the dashboard needs saving.
      */
     public boolean adaptSettingTiles(java.util.List<String> modelTiles) {
+        return adaptSettingTiles(modelTiles, null);
+    }
+
+    /**
+     * The same, also replacing tiles still on Volt's earlier pick for this model (ModelTiles.previousSettingTiles: a Top speed
+     * tile from before Top speed followed the official app's regions). Tiles the owner chose are never touched.
+     */
+    public boolean adaptSettingTiles(java.util.List<String> modelTiles, java.util.List<String> previousModelTiles) {
         boolean changed = false;
         if (modelTiles == null || modelTiles.equals(ModelTiles.DEFAULT)) return false;
+        boolean previous = previousModelTiles != null && !previousModelTiles.equals(modelTiles);
         for (Widget widget : widgets)
-            if (widget.type.equals("shortcuts") && widget.quickActions.equals(ModelTiles.DEFAULT)) {
+            if (widget.type.equals("shortcuts") && (widget.quickActions.equals(ModelTiles.DEFAULT)
+                    || previous && widget.quickActions.equals(previousModelTiles))) {
                 widget.quickActions.clear(); widget.quickActions.addAll(modelTiles); changed = true;
             }
         return changed;

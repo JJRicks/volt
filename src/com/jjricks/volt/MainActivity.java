@@ -3050,8 +3050,8 @@ public final class MainActivity extends Activity implements ScreenHost {
     private void editFeature(ScooterCommands.Feature feature){
         if(feature.key.equals("range_algorithm")){showRangeSource();return;}
         if(feature.type==ScooterCommands.Type.TIME){showChargingTime();return;}
-        // A slider on the UT5 MAX can be an explicit OEM value list on another model.
-        FeatureVariant variant=oemVariant(feature.key);
+        // A slider on the UT5 MAX can be an explicit value list: another model's OEM table, or a non-US UT5 MAX's 3–5 km/h kick-start.
+        FeatureVariant variant=scooterService==null?null:scooterService.ble.decision(feature.key).variant;
         if(feature.type!=ScooterCommands.Type.SLIDER||variant!=null&&variant.values.length>0){showChoice(feature);return;}
         if(scooterService==null||!scooterService.ble.ready()||scooterService.ble.pending()!=null)return;
         Integer current=scooterService.ble.featureValue(feature.key);if(current==null)return;
