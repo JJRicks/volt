@@ -50,11 +50,17 @@ public final class OemControlsTest {
     private static void batch1Tables() {
         String NM="MODEL_NOT_MAPPED",EX="MODEL_EXCLUDED",FP="FULL_PID_NEEDED";
         String[][] rows={
-            // Traction control: Q, O, G mapped; the OEM's wider list (partial visibility trace) stays unmapped; explicit exclusions.
+            // Traction control (version 18): every model with an OEM More screen (Q, O, G in its first group, the rest in its last),
+            // except 2573, 2634, 2314, 2417, 2422; group M (plugins screen) and the legacy group (no More screen) are excluded.
             {"traction_control","25471",A},{"traction_control","25851",A},{"traction_control","26191",A},{"traction_control","26201",A},{"traction_control","26461",A},
-            {"traction_control","27011",A},{"traction_control","27451",A},{"traction_control","24431",NM},{"traction_control","24011",NM},{"traction_control","25451",NM},
-            {"traction_control","28081",NM},{"traction_control","25731",EX},{"traction_control","26341",EX},{"traction_control","23141",EX},{"traction_control","24171",EX},
-            {"traction_control","24221",EX},{"traction_control","22131",EX},{"traction_control","25041",EX},
+            {"traction_control","27011",A},{"traction_control","27451",A},{"traction_control","24182",A},{"traction_control","24181",A},{"traction_control","24031",A},
+            {"traction_control","27041",A},{"traction_control","24431",A},{"traction_control","24169",A},{"traction_control","25291",A},{"traction_control","24011",A},
+            {"traction_control","23451",A},{"traction_control","27141",A},{"traction_control","25451",A},{"traction_control","25661",A},{"traction_control","28081",A},
+            {"traction_control","25431",A},{"traction_control","27991",A},{"traction_control","24421",A},{"traction_control","24411",A},{"traction_control","26231",A},
+            {"traction_control","27821",A},{"traction_control","25091",A},{"traction_control","24361",A},{"traction_control","25481",A},{"traction_control","26111",A},
+            {"traction_control","27531",A},{"traction_control","25731",EX},{"traction_control","26341",EX},{"traction_control","23141",EX},{"traction_control","24171",EX},
+            {"traction_control","24221",EX},{"traction_control","22131",EX},{"traction_control","23321",EX},{"traction_control","25041",EX},{"traction_control","25051",EX},
+            {"traction_control","25061",EX},
             // Low Battery Mode: O, S, Q, H, G.
             {"low_power","26191",A},{"low_power","24169",A},{"low_power","24431",A},{"low_power","25291",A},{"low_power","25471",A},{"low_power","25431",A},{"low_power","27011",A},
             {"low_power","24011",EX},{"low_power","24021",EX},{"low_power","25451",EX},{"low_power","25041",EX},{"low_power","25731",EX},
@@ -256,6 +262,13 @@ public final class OemControlsTest {
         // Cautions: only for OEM-mapped variants off the UT5 MAX layer.
         byte[] d=data();
         check(ModelRegistry.caution(decide("traction_control",model("25471"),d),0)!=null&&ModelRegistry.caution(decide("traction_control",model("25471"),d),1)==null,"TCS off asks first");
+        // Version 18: the GT3 Max (24182) gets the official row and wire in any region (its ES owner recorded the official app sending 0x5f).
+        for(String area:new String[]{"ES","EU","DE","US",null}){
+            CapabilityResolver.Decision gt3=decide("traction_control",firmware("24182",area,null),d);
+            check(gt3.available()&&gt3.evidence==CapabilityResolver.Evidence.OEM_MAPPED&&gt3.oemNote.isEmpty()&&gt3.variant==ModelRegistry.OEM_TCS
+                &&gt3.variant.cmd==0x5f&&!gt3.variant.lab,"GT3 Max traction control is OEM-mapped in "+area+": "+gt3);
+            check(ModelRegistry.caution(gt3,0)!=null,"GT3 Max TCS off asks first in "+area);
+        }
         check(ModelRegistry.caution(decide("low_power",model("24431"),d),0)!=null&&ModelRegistry.caution(decide("dual_drive",model("24431"),d),0)!=null,"Low power and dual motor off ask first");
         for(ScooterCommands.Feature f:ScooterCommands.catalog())for(int v:new int[]{0,1,2,30,40,60,70})
             check(ModelRegistry.caution(decide(f.key,ModelRegistryTest.serial("Q2538ZZ9US7777777"),d),v)==null,"UT5 MAX keeps direct controls "+f.key);

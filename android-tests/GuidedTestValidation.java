@@ -935,8 +935,9 @@ public final class GuidedTestValidation extends Instrumentation {
         String label = N65I[0];
         connect(label); parked(label);
         openLab();
-        // The custom speed cap joins the experiments the official app hides on the N65i.
-        List<String> expected = Arrays.asList("start_speed", "turn_sound", "speed_limit", "traction_control", "hill_start_assist", "parking_assist", "hill_descent_control", "prompt_tone", "range_algorithm");
+        // The custom speed cap joins the experiments the official app hides on the N65i. Traction control leads: the
+        // official app offers it on more other models than any other control the N65i lacks (mirrored in ExperimentalControlsTest).
+        List<String> expected = Arrays.asList("traction_control", "start_speed", "turn_sound", "speed_limit", "hill_start_assist", "parking_assist", "hill_descent_control", "prompt_tone", "range_algorithm");
         await(() -> labKeys().equals(expected), label + ": Experimental controls rows " + labKeys() + " expected " + expected, 10000);
         main(() -> { for (String key : expected) require(activity.service().ble.tryDecision(key).available(), label + ": " + key + " not available: " + activity.service().ble.tryDecision(key).reasonText()); });
         awaitText("Untested on your model", "Untested here", "Untested"); screenshot(label + "-lab-list");

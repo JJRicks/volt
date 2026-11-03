@@ -8,7 +8,7 @@ Owner-reported: GT5 Max, model 25462 (EU): cruise control works in use (the
 official app hides it there by region). Its other mapped controls remain untested.
 Owner-tested: ST3 Pro, model 23452 (EU, meter 2.0.4.6): dashboard units, turn signal
 sound and range estimate (changed, read back, seen, restored) and traction control
-(three tries, seen twice; not in the official app's map there).
+(three tries, seen twice; the official app offers it there too).
 See VERIFICATION.txt for dated checks and the exact physical test scope.
 
 The app talks directly to the scooter over Bluetooth. Optional map tiles and
@@ -360,8 +360,9 @@ Turn signal sound  OEM-mapped   Unlocked; models the official app offers it on
 Cruise control     OEM-mapped   Unlocked, parked; model-mapped, with the
                                 cruise status field present and known
 Energy recovery    OEM-mapped   Unlocked, parked; choices depend on model
-Traction control   OEM-mapped   Parked; 2547, 2585, 2619, 2620, 2646, 2701,
-                                2745; turning it off asks first
+Traction control   OEM-mapped   Parked; every model with an official More
+                                screen except 2314, 2417, 2422, 2573, 2634
+                                and 2504-2506; turning it off asks first
 Low Battery Mode   OEM-mapped   Parked; the models the official app shows it
                                 for; turning it off asks first
 Long range mode    OEM-mapped   Parked; 2745 and the 2543 group; its status
@@ -399,12 +400,11 @@ lights                          region hiding noted, not applied
 Ambient, logo and  OEM-mapped   2416, 2443, 2529: Off, On or follow headlight;
 daytime lights                  region hiding noted, not applied
 
-Still hidden because the evidence is incomplete: traction control outside
-the groups above, ambient lights on 2345/2714 (their readback is only partly
-mapped) and 2504-2506 (per-gear colours), lighting on models without an
-official light screen, group 2504-2506 lock settings, sound effects on 2506,
-the drive-mode speed cap, weather display and anything that needs the full
-model ID while only a serial is known.
+Still hidden because the evidence is incomplete: ambient lights on 2345/2714
+(their readback is only partly mapped) and 2504-2506 (per-gear colours),
+lighting on models without an official light screen, group 2504-2506 lock
+settings, sound effects on 2506, the drive-mode speed cap, weather display and
+anything that needs the full model ID while only a serial is known.
 
 Every other control stays hidden until mapped. A serial number alone never
 selects an OEM group; Identify reads the advertised model ID. Regional hiding
@@ -504,9 +504,10 @@ Identified OEM models  Each of these the official app hides for that model:
 Anything else          Nothing: unidentified, model ID mismatch, models the
                        official app does not list, golf carts, e-bikes, Exo
 
-For example the N65i (22131) lists kick-start speed, turn signal sound,
-traction control, the three assists and prompt sound; the ST3 Pro (23452)
-and the GT5 Max (25462) the three assists and prompt sound; 2585 nothing.
+For example the N65i (22131) lists, in this order, traction control,
+kick-start speed, turn signal sound, the custom speed cap, the three assists
+and prompt sound; the ST3 Pro (23452) and the GT5 Max (25462) the custom
+speed cap, the three assists and prompt sound; 2585 nothing.
 The GT5 Max's kick-start speed (3-5 km/h on an EU one) stays in Scooter
 settings: the official app offers kick-start speed for that model.
 
