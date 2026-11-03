@@ -7,19 +7,24 @@ region in the same order, so swapping two literals, or changing one, removes it.
 must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch>.tsv:
 
   exact, template, plural  the row's pieces must equal the base expression on its line (as
-                           extract.py draft writes them), every literal of it must be gone, and at
-                           head a T.<key>(...) or M.<key>(...) call (or Msg.of / T.render with
-                           T.<KEY>) must pass the row's holes in placeholder order
-  removed                  the code was deleted: the changed region holding it adds no literal
+                           extract.py draft writes them), every literal of it must be gone, and a
+                           T.<key>(...) or M.<key>(...) call (or Msg.of / T.render with T.<KEY>)
+                           must pass the row's holes in placeholder order in the head lines that
+                           replaced it; each call serves one row, in the base order
+  removed                  the code was deleted: the changed lines holding it only lose tokens
   stays-english, id-kept   the literal moved within src/: the same value is added elsewhere (outside
-                           the changed lines it left, so a reorder or swap is not a move)
+                           the changed lines it left, so a reorder or swap is not a move), and the
+                           code it left either only lost tokens or names the constant it moved to
 
 A row whose pieces cannot match a + chain (a ternary, String.format, a StringBuilder chain) has a
 note starting "manual:"; its literals must then appear in order from its line, and it is listed
-for the reviewer. Every ledger at head (not only this batch's) is also checked against the catalog:
+for the reviewer. When the line parses as an expression with the row's literals, a manual row must
+still match it. A hole's "as" (the expression head passes) must be Fmt.<method>(..., <hole>, ...)
+unless the row is manual; every "as" is listed for the reviewer. Every ledger at head (not only this batch's) is also checked against the catalog:
 an exact row's English must still equal its literal and a template must still render the original,
-unless l10n/english-changes.tsv records an owner-approved change of that key. Ledger files are
-append-only. New English-looking literals in src/ are listed as warnings.
+unless l10n/english-changes.tsv records an owner-approved change of that key (its keys must exist).
+Ledger files are append-only. An extraction batch adds no literal to src/ (other than ""): text goes
+to the catalog, and a literal that moved needs a stays-english or id-kept row.
 
 Ledger format: a TSV with the header
 
@@ -168,6 +173,11 @@ def parse_ledger(text, source="ledger"):
                 if expressions.source_key(previous.get("as", previous["hole"])) != \
                         expressions.source_key(hole.get("as", hole["hole"])) or previous["type"] != hole["type"]:
                     raise LedgerError("%s: two holes claim arg %d with different sources or types" % (where, hole["arg"]))
+            for hole in holes(pieces):
+                if "as" in hole and not fmt_wrapper(hole) and not note.startswith("manual:"):
+                    raise LedgerError("%s: hole %s is passed as %s; only Fmt.<method>(..., %s, ...) is checked, so "
+                                      "any other \"as\" needs a note starting \"manual:\"" % (
+                                          where, hole["hole"], hole["as"], hole["hole"]))
             result.append(Row(source, line, raw_lines[line - 1].rstrip("\r"), m.group(1), int(m.group(2)), pieces,
                               key, kind, note, literal_counts(pieces)))
         except LedgerError as error:
@@ -348,12 +358,31 @@ def catalog_consistency(head, cwd=None):
         changes = parse_changes(texts.get(CHANGES_PATH))
     except (LedgerError, ValueError) as error:
         return problems + [str(error)], len(rows)
-    if rows:
+    if rows or changes:
         try:
-            problems.extend(check_against_catalog(rows, _catalog_at(head, cwd), changes))
+            catalog = _catalog_at(head, cwd)
         except gen_catalog.CatalogError as error:
-            problems.extend("catalog: " + p for p in error.problems)
+            return problems + ["catalog: " + p for p in error.problems], len(rows)
+        problems.extend(check_against_catalog(rows, catalog, changes))
+        problems.extend(check_changes(changes, catalog, set(r.key for r in rows if r.kind in CATALOG_KINDS)))
     return problems, len(rows)
+
+
+def check_changes(changes, catalog, ledger_keys):
+    """Every recorded English change names a catalog key and quantity, and (for keys no ledger row
+    checks) its last new text is today's text."""
+    problems = []
+    for (key, quantity), entries in sorted(changes.items()):
+        where = entries[0][2]
+        entry = catalog.get(key)
+        if entry is None:
+            problems.append("%s: %s names key %s, which is not in res/values/strings*.xml" % (where, CHANGES_PATH, key))
+        elif quantity not in entry.items:
+            problems.append("%s: %s names %s[%s], which the catalog does not have" % (where, CHANGES_PATH, key, quantity))
+        elif key not in ledger_keys and entries[-1][1] != entry.items[quantity].text:
+            problems.append("%s: %s says %s[%s] became %r, but it is %r" % (
+                entries[-1][2], CHANGES_PATH, key, quantity, entries[-1][1], entry.items[quantity].text))
+    return problems
 
 
 # ---------------------------------------------------------------------------
@@ -389,6 +418,14 @@ def locate(row, diff, claimed):
                              "hand-written row (ternary, String.format, append chain) needs a note starting "
                              "\"manual:\"" % (row.base_line, row.path,
                                               " (found: %s)" % "; ".join(on_line) if on_line else " (no literal there)"))
+    if not isinstance(row.pieces, dict):
+        # The note excuses a shape the + chain parser cannot follow, not a mismatch with one it did parse.
+        items = expressions.literal_items(row.pieces)
+        parsed = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
+                  if e.first_line <= row.base_line <= e.last_line and expressions.literal_items(e.pieces) == items]
+        if parsed:
+            return None, True, ("manual row, but line %d of %s parses as an expression with the same literals, and "
+                                "the pieces do not match it (found: %s)" % (row.base_line, row.path, "; ".join(parsed)))
     start = _first_literal_on(index, row.base_line)
     if start is None:
         return None, True, "no literal on line %d of %s at the merge base" % (row.base_line, row.path)
@@ -412,8 +449,12 @@ def locate(row, diff, claimed):
 
 
 def call_index(head_texts):
-    """{"accessor": {name: [(path, line, [arg keys])]}, "id": {CONST: [...]}, "refs": set of names}."""
-    accessors, ids, refs = collections.defaultdict(list), collections.defaultdict(list), set()
+    """{"accessor": {name: [Call]}, "id": {CONST: [Call]}, "bare": {CONST: [Call]}, "refs": set of names}.
+
+    A Call is (path, line, token index, [arg source keys]); a bare T.CONST reference has args None.
+    """
+    accessors, ids, bare, refs = (collections.defaultdict(list), collections.defaultdict(list),
+                                  collections.defaultdict(list), set())
     for path, text in head_texts.items():
         if text is None:
             continue
@@ -429,13 +470,15 @@ def call_index(head_texts):
             name = tokens[i + 2].value
             refs.add(name)
             if i + 3 < len(tokens) and tokens[i + 3].value == "(" and tokens[i + 3].kind == "op":
-                accessors[name].append((path, tokens[i].line, _arguments(index, i + 3)))
-            elif tokens[i].value == "T" and i > 0 and tokens[i - 1].value == "(":
-                opener = i - 1
-                args = _arguments(index, opener)
+                accessors[name].append((path, tokens[i].line, i, _arguments(index, i + 3)))
+                continue
+            if tokens[i].value == "T" and i > 0 and tokens[i - 1].value == "(":
+                args = _arguments(index, i - 1)
                 if args and args[0] == ("T", ".", name):
-                    ids[name].append((path, tokens[i].line, args[1:]))
-    return {"accessor": accessors, "id": ids, "refs": refs}
+                    ids[name].append((path, tokens[i].line, i, args[1:]))
+                    continue
+            bare[name].append((path, tokens[i].line, i, None))
+    return {"accessor": accessors, "id": ids, "bare": bare, "refs": refs}
 
 
 class _Lexed(object):
@@ -474,30 +517,108 @@ def expected_arguments(row):
     return quantity, [by_arg[i] for i in sorted(by_arg)]
 
 
-def check_call_sites(row, calls):
-    """A problem string, or None: the key is used at head and its holes are passed in placeholder order."""
+def _passes_holes(row, actual):
+    quantity, args = expected_arguments(row)
+    if not args and quantity is None:
+        return actual in ([], None)
+    if actual is None:
+        return False
+    if row.kind == "plural":
+        if not actual or (quantity is not None and actual[0] != quantity):
+            return False
+        actual = actual[1:]
+    return actual == args
+
+
+def check_call_sites(row, calls, path=None, ranges=None, used=None, after=-1):
+    """(problem or None, the call used): a call of the row's key passes its holes in placeholder order.
+
+    With path and ranges, the call must sit in those head lines of path (the code that replaced the
+    row's literals), must not be in used, and must come after token index after (calls follow the
+    base order of their rows), so two keys swapped between converted sites fail.
+    """
     accessor, constant = gen_catalog.camel(row.key), gen_catalog.constant(row.key)
     if accessor not in calls["refs"] and constant not in calls["refs"]:
-        return "key %s is not used in src at head (no T.%s, M.%s or T.%s)" % (row.key, accessor, accessor, constant)
+        return "key %s is not used in src at head (no T.%s, M.%s or T.%s)" % (
+            row.key, accessor, accessor, constant), None
+    candidates = sorted(calls["accessor"].get(accessor, []) + calls["id"].get(constant, []) +
+                        calls["bare"].get(constant, []), key=lambda c: (c[0], c[2]))
+    passing = [c for c in candidates if _passes_holes(row, c[3])]
     quantity, args = expected_arguments(row)
-    if row.kind == "exact" or (not args and quantity is None):
-        return None
-    found = []
-    for path, line, actual in calls["accessor"].get(accessor, []) + calls["id"].get(constant, []):
-        rest = actual
-        if row.kind == "plural":
-            if not rest or (quantity is not None and rest[0] != quantity):
-                found.append((path, line, actual))
-                continue
-            rest = rest[1:]
-        if rest == args:
-            return None
-        found.append((path, line, actual))
     want = ([" ".join(quantity) if quantity else "<quantity>"] if row.kind == "plural" else []) + \
         [" ".join(a) for a in args]
-    seen = "; ".join("%s:%d (%s)" % (p, l, ", ".join(" ".join(a) for a in act)) for p, l, act in found[:3])
-    return "no call of %s passes the holes in placeholder order (%s)%s" % (
-        accessor, ", ".join(want), "; found " + seen if seen else "; only T.%s is referenced" % constant)
+    if not passing:
+        found = [c for c in candidates if c[3] is not None]
+        seen = "; ".join("%s:%d (%s)" % (p, l, ", ".join(" ".join(a) for a in act)) for p, l, _, act in found[:3])
+        return "no call of %s passes the holes in placeholder order (%s)%s" % (
+            accessor, ", ".join(want), "; found " + seen if seen else "; only T.%s is referenced" % constant), None
+    if ranges is None:
+        return None, passing[0]
+    here = [c for c in passing if c[0] == path and any(h1 <= c[1] <= h2 for h1, h2 in ranges)]
+    free = [c for c in here if (c[0], c[2]) not in (used or ()) and c[2] > after]
+    if free:
+        return None, free[0]
+    lines = ", ".join("%d-%d" % r if r[0] <= r[1] else "(none)" for r in ranges)
+    if here:
+        return ("the call of %s in head lines %s of %s is already used by another row, or comes before the call of "
+                "an earlier row; each converted site needs its own call, in the base order" % (
+                    accessor, lines, path)), None
+    elsewhere = "; ".join("%s:%d" % (c[0], c[1]) for c in passing[:3])
+    return ("%s is called at %s, not in the head lines that replaced the literal (%s, lines %s); the call must "
+            "sit where the literal was" % (accessor, elsewhere, path, lines)), None
+
+
+def fmt_wrapper(hole):
+    """True when a hole's "as" is Fmt.<method>(...) with the hole's own source as one whole argument."""
+    try:
+        lexed = _Lexed(hole["as"])
+    except l10nlib.LexError:
+        return False
+    t = lexed.tokens
+    if len(t) < 5 or t[0].value != "Fmt" or t[1].value != "." or t[2].kind != "ident" or \
+            t[3].kind != "op" or t[3].value != "(" or expressions.match_forward(t, 3) != len(t) - 1:
+        return False
+    return expressions.source_key(hole["hole"]) in _arguments(lexed, 3)
+
+
+def _region_tokens(index, first, last):
+    return [t for t in index.tokens if first <= t.line <= last] if index is not None else []
+
+
+def added_in_hunk(diff, hunk):
+    """The first head token of a changed region that is not a base token kept in order (None when the
+    region only lost tokens, which is what deleting code looks like)."""
+    b1, b2, h1, h2 = diff.hunks[hunk]
+    base = iter([(t.kind, t.value if t.kind in expressions.LITERALS else t.raw)
+                 for t in _region_tokens(diff.base, b1, b2)])
+    for tok in _region_tokens(diff.head, h1, h2):
+        key = (tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw)
+        if not any(key == b for b in base):
+            return tok
+    return None
+
+
+def _class_name(path):
+    return os.path.basename(path)[:-len(".java")]
+
+
+def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
+    """True when the code a staying literal left names the constant it arrived in: the arrival is
+    NAME = "..." and the region's head lines say NAME (same file) or Class.NAME."""
+    tokens = arrival_diff.head.tokens
+    if arrival_index < 2 or tokens[arrival_index - 1].value != "=" or tokens[arrival_index - 2].kind != "ident":
+        return False
+    name, owner = tokens[arrival_index - 2].value, _class_name(arrival_path)
+    _, _, h1, h2 = diff.hunks[hunk]
+    region = _region_tokens(diff.head, h1, h2)
+    for k, tok in enumerate(region):
+        if tok.kind != "ident" or tok.value != name:
+            continue
+        qualified = k >= 2 and region[k - 1].value == "." and region[k - 2].value == owner
+        unqualified = (k == 0 or region[k - 1].value != ".") and arrival_path == row_path
+        if qualified or unqualified:
+            return True
+    return False
 
 
 def run(base, head, explicit_ledgers=None, cwd=None):
@@ -521,6 +642,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
 
     claimed = {}  # (path, token) -> row
     staying = []  # (row, path, token) gone literals a stays-english or id-kept row says moved
+    converted = []  # (path, first base token, row, where, head line ranges) for the call-site check
     manual = 0
     for row in rows:
         if not row.path.startswith("src/"):
@@ -539,6 +661,10 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
+        for hole in holes(row.pieces):
+            if "as" in hole:
+                warnings.append("%s: at %s:%d the hole %s is passed as %s; check by hand that it renders the same" % (
+                    where, row.path, row.base_line, hole["hole"], hole["as"]))
         for k in tokens:
             tok = diff.base_token(k)
             if (row.path, k) in claimed:
@@ -550,18 +676,27 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             if row.kind in MOVING and k not in diff.gone:
                 problems.append("%s: the row says %s (line %d) left, but it is still there at head" % (
                     where, l10nlib.json_string(tok.value), tok.line))
-            elif row.kind == "removed" and diff.hunk_added.get(diff.gone[k]):
-                replacement = diff.head_token(diff.hunk_added[diff.gone[k]][0])
+            elif row.kind == "removed" and added_in_hunk(diff, diff.gone[k]) is not None:
+                replacement = added_in_hunk(diff, diff.gone[k])
                 problems.append("%s: removed is for deleted code, but the change that removes %s puts %s in its "
-                                "place (head line %d); record where the text went instead" % (
-                                    where, l10nlib.json_string(tok.value), l10nlib.json_string(replacement.value),
-                                    replacement.line))
+                                "place (head line %d); deleting code only loses tokens, so record where the text "
+                                "went instead" % (where, l10nlib.json_string(tok.value), replacement.raw,
+                                                  replacement.line))
             elif row.kind in STAYING and k in diff.gone:
                 staying.append((row, row.path, k))
         if row.kind in CATALOG_KINDS and calls is not None:
-            problem = check_call_sites(row, calls)
-            if problem:
-                problems.append("%s: %s" % (where, problem))
+            hunks = sorted(set(diff.gone[k] for k in tokens if k in diff.gone))
+            if hunks:
+                converted.append((row.path, min(tokens), row, where, [diff.hunks[h][2:] for h in hunks]))
+
+    used, last = set(), {}
+    for path, _, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
+        problem, call = check_call_sites(row, calls, path, ranges, used, last.get(path, -1))
+        if problem:
+            problems.append("%s: %s" % (where, problem))
+        else:
+            used.add((call[0], call[2]))
+            last[path] = call[2]
 
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
@@ -569,15 +704,21 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             arrivals.append([path, diffs[path].added[k], k, False])
     for row, path, k in staying:
         tok = diffs[path].base_token(k)
-        here = (path, diffs[path].gone[k])
+        hunk = diffs[path].gone[k]
+        here = (path, hunk)
+        moved_whole = added_in_hunk(diffs[path], hunk) is None
         for arrival in arrivals:
             other = diffs[arrival[0]].head_token(arrival[2])
-            # A move lands outside the changed region it left; within one region it is a reorder (a swap).
-            if not arrival[3] and (other.kind, other.value) == (tok.kind, tok.value) and (arrival[0], arrival[1]) != here:
+            # A move lands outside the changed region it left (within one region it is a reorder, a
+            # swap), and the code it left was moved out whole or names the constant it went to.
+            if not arrival[3] and (other.kind, other.value) == (tok.kind, tok.value) and \
+                    (arrival[0], arrival[1]) != here and \
+                    (moved_whole or _points_to(diffs[path], hunk, path, arrival[0], arrival[2], diffs[arrival[0]])):
                 arrival[3] = True
                 break
         else:
-            problems.append("%s:%d: %s row: %s left %s:%d and is not added anywhere else in src; text that leaves "
+            problems.append("%s:%d: %s row: %s left %s:%d and is not added anywhere else in src where the code it "
+                            "left points (a constant those lines name, or code moved out whole); text that leaves "
                             "src needs exact, template, plural or removed" % (
                                 row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
 
@@ -593,20 +734,22 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 problems.append("%s:%d: %s %s left with no ledger row" % (
                     path, tok.line, "char" if tok.kind == "char" else "literal", l10nlib.json_string(tok.value)))
 
-    new_english = []
-    for path, _, k, used in arrivals:
+    new_literals = 0
+    for path, _, k, used_by_move in arrivals:
         tok = diffs[path].head_token(k)
-        if not used and tok.kind == "string" and l10nlib.is_english_looking(tok.value):
-            new_english.append(tok.value)
-            warnings.append("new English-looking literal %s at %s:%d (extraction batches normally add none)" % (
-                l10nlib.json_string(tok.value), path, tok.line))
+        if not used_by_move and not (tok.kind == "string" and tok.value == ""):
+            new_literals += 1
+            problems.append("%s:%d: new %s %s; an extraction batch adds no text to src (put it in the catalog), and "
+                            "a literal that moved needs a stays-english or id-kept row" % (
+                                path, tok.line, "char" if tok.kind == "char" else "literal",
+                                l10nlib.json_string(tok.value)))
 
     catalog_problems, catalog_rows = catalog_consistency(head, cwd)
     problems.extend(catalog_problems)
-    summary = "%d literal(s) left %d src file(s); %d new ledger row(s)%s; %d new English-looking literal(s); " \
+    summary = "%d literal(s) left %d src file(s); %d new ledger row(s)%s; %d new literal(s); " \
               "%d ledger row(s) agree with the catalog" % (
                   gone_total, len(gone_files), len(rows), " (%d manual)" % manual if manual else "",
-                  len(new_english), catalog_rows)
+                  new_literals, catalog_rows)
     return problems, warnings, summary
 
 

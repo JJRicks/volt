@@ -119,7 +119,8 @@ byte-identical. Because `M.java` needs `Msg`, the first `strings_*.xml` arrives 
    or `f`). Keep the pieces as drafted: `ledger_check` compares them with the base expression. The
    draft follows `+` chains only; for a ternary, `String.format`, a `StringBuilder.append` chain or a
    numeric sum such as `a + b + "x"`, write the row by hand with a note starting `manual:` (the
-   reviewer checks those by hand). `extract.py scan <files>` lists a file's literals, which helps
+   reviewer checks those by hand). The note does not excuse a mismatch with an expression the tool
+   did parse on that line. `extract.py scan <files>` lists a file's literals, which helps
    plan a batch.
 4. **Shrink the baselines.** `python3 tools/l10n/hardcoded_lint.py --write-baselines` rewrites
    `l10n/baseline/`; a converted file's baseline disappears. Baselines may only shrink.
@@ -136,8 +137,9 @@ pieces match exactly one expression in that file at the new merge base, and list
 hand fix. Baselines carry no line numbers and need nothing.
 
 **Keep the proof tooling out of batches.** A batch pull request must not change `tools/l10n/`,
-`.github/workflows/` or `tests/l10n/golden.sh`; CI fails it. Change the tools in their own pull
-request first.
+`.github/workflows/`, anything under `tests/l10n/` except `characterization/`, `golden/` and the
+batch's own `tests/l10n/<batch>.sources`, `tests/run.sh`, `build.sh` or `android-tests/build.sh`
+(`ci_gates.is_tooling`); CI fails it. Change the tools in their own pull request first.
 
 ### Ledger format
 
@@ -147,7 +149,7 @@ request first.
 | Column | Meaning |
 |---|---|
 | `location` | merge-base `file:line` of the expression's first literal, e.g. `src/com/jjricks/volt/Ui.java:812` |
-| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently (e.g. through `Fmt`). For `plural`, an object of English forms: `{"one": [...], "other": [...]}` |
+| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently: `Fmt.<method>(..., <hole>, ...)` is accepted, anything else needs a `manual:` note, and every `as` is listed for the reviewer. For `plural`, an object of English forms: `{"one": [...], "other": [...]}` |
 | `key` | the resource key, or `-` for `stays-english` and `removed` |
 | `kind` | `exact`, `template`, `plural`, `id-kept`, `stays-english` or `removed` |
 | `note` | free text; `manual: <why>` for a hand-written row |
@@ -161,14 +163,18 @@ How `ledger_check.py` (G1) reads it:
 - `exact`, `template`, `plural`: the pieces must equal the base expression on that line (hole
   sources compared token by token), every literal of it must be gone, the key must exist with that
   kind, an exact row's English must equal its literal, and a template must render the original
-  concatenation. At head, some `T.<key>(...)`, `M.<key>(...)`, `Msg.of(T.<KEY>, ...)` or
-  `T.render(T.<KEY>, ...)` must pass the holes in placeholder order (a plural's quantity first).
-- `removed`: the code was deleted. The changed region that removes the literal must add no literal
-  in its place.
+  concatenation. A `T.<key>(...)`, `M.<key>(...)`, `Msg.of(T.<KEY>, ...)` or
+  `T.render(T.<KEY>, ...)` must pass the holes in placeholder order (a plural's quantity first),
+  in the head lines that replaced the literal; each call serves one row, in the base order, so
+  keys swapped between converted sites fail.
+- `removed`: the code was deleted. The changed lines that held the literal may only lose tokens:
+  nothing, not even a constant's name, takes its place.
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
-  must be added somewhere else in `src/` (outside the changed region it left).
-- New English-looking literals in `src/` are listed as warnings and counted in the summary; an
-  extraction batch normally adds none.
+  must be added somewhere else in `src/` (outside the changed region it left), and the lines it
+  left must either only lose tokens (code moved out whole) or name the constant it moved to
+  (`NAME`, or `Class.NAME` from another file).
+- An extraction batch adds no literal to `src/` other than `""`: new text goes to the catalog, and
+  a literal that moved needs a `stays-english` or `id-kept` row. Each new literal fails G1.
 - Ledger files are append-only. Every ledger at head is checked against the catalog on every pull
   request, so rewording an extracted string fails unless `l10n/english-changes.tsv` records it.
 - A row whose location is a test file must be `removed`, for a test of deleted code (G4 below).
@@ -180,8 +186,8 @@ changes since the merge base:
 
 | Kind | When | Gates |
 |---|---|---|
-| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml` | every gate, strict; proof tooling unchanged |
-| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only |
+| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference | every gate, strict; proof tooling unchanged |
+| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog |
 | `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
 
 - **An ordinary feature or fix** may change English, tests and report formats. If it adds UI text
@@ -224,9 +230,16 @@ real aapt (`fixtures/aapt/`, `fixtures/aapt-qualified/`); refresh them with
 **G4.** A test *statement* (the tokens between `;`, `{` and `}`) that holds an English-looking
 literal must stay token for token as it was; new statements may be added. So an assertion cannot be
 weakened, swapped, or have its expected text changed while a decoy keeps the old literal. Spacing,
-comments and a class qualifier in front of a call (`TextFit.assertText(...)`) do not count, and
-statements are compared across all changed test files, so moving a helper between files is fine
-(`--per-file` forbids that too). A statement may disappear only for a deleted test of deleted code:
+comments and a class qualifier in front of a call (`TextFit.assertText(...)`) do not count.
+Every existing test file also keeps all of its code, English or not: its tokens stay in order with
+nothing changed between them, so an assertion cannot be wrapped in `if (false) { ... }` and a
+helper such as `check()` cannot be edited. Code may only be added as whole statements or members,
+and added code may not jump out of the code around it (`return`, `break`, `continue`, `throw`
+inside a method), assign to a variable it did not declare, declare a member (or a local hiding a
+field or type) named like anything in the file, declare a type or initializer block, import a name
+the file uses, or call `exit`, `halt`, `Runtime`, uncaught-exception handlers, reflection,
+`setOut`/`setErr`, `setDefault`, `setProperty` or `setSecurityManager`. New test files are not
+limited, and a statement cannot move out of an existing file. A statement may disappear only for a deleted test of deleted code:
 a `removed` ledger row naming that test file and a line of the statement, where the change adds no
 English in its place and the English does not come back in a new statement. "English-looking"
 means a literal with two letters in a row (or a non-ASCII letter) that is not a lower-case key,
@@ -284,10 +297,13 @@ is `tag=<tag>` when the view has a String tag, else the class path with child in
 `census_diff.py` masks the *values* of clock times, durations and dates and keeps their form: each
 number becomes `<n>`, a month or weekday becomes its form (`<MMM>`, `<MMMM>`, `<MMM:upper>`,
 `<EEE>`, `<EEEE>`), AM/PM keeps its case, and unit words stay as written (`<n> min`, `<n> hrs`).
-Singular and plural unit words may differ only when the number differs too (`1 minute ago` then
-`2 minutes ago`); with the same number they must match, so `1 seconds left` cannot become
-`1 second left` unseen. Bounds changes are reported without failing. Numeric dates (`10/5`) mask
-to `<n>/<n>`, so a day/month order change is G10's to catch, not G7's.
+Singular and plural unit words may differ only when the number moves between 1 and not 1
+(`1 minute ago` then `2 minutes ago`); otherwise they must match, so `1 seconds left` cannot become
+`1 second left` and `2 seconds` cannot become `3 second` unseen. A zero-padded number cannot turn
+unpadded (`05 min` against `5 min`), a numeric date keeps its year width, and a day above 12 cannot
+move between a numeric date's first two groups. Bounds changes are reported without failing. A
+day/month swap with both groups 12 or under (`10/5` against `5/10`) is two valid dates and cannot
+be told apart from the text; that order is G10's to catch (Fmt keeps each call site's pattern).
 
 ## Languages
 

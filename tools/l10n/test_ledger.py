@@ -74,6 +74,11 @@ class LedgerFormatTest(unittest.TestCase):
             (UI + ":3\t[{\"hole\": \"a\", \"arg\": 1, \"type\": \"s\"}, {\"hole\": \"b\", \"arg\": 1, \"type\": \"s\"}]"
                   "\tk\ttemplate\t", "two holes claim arg 1"),
             ("tests/UiTest.java:3\t[\"a\"]\tk\texact\t", "must be kind removed"),
+            # Re-review finding 4: an "as" other than an Fmt wrapper of the hole is a hand-checked row.
+            (UI + ":3\t[{\"hole\": \"x\", \"arg\": 1, \"type\": \"s\", \"as\": \"x.toUpperCase()\"}]\tk\ttemplate\t",
+             "needs a note starting \"manual:\""),
+            (UI + ":3\t[{\"hole\": \"x\", \"arg\": 1, \"type\": \"s\", \"as\": \"Fmt.text(y)\"}]\tk\ttemplate\t",
+             "only Fmt.<method>(..., x, ...) is checked"),
         ]
         for row, message in cases:
             with self.assertRaises(ledger_check.LedgerError) as caught:
@@ -222,8 +227,26 @@ class TemplateOrderTest(RepoCase):
         self.convert("T.unitsDual(Fmt.text(imperial), metric)")
         pieces = [{"hole": "imperial", "arg": 1, "type": "s", "as": "Fmt.text(imperial)"}, " / ",
                   {"hole": "metric", "arg": 2, "type": "s"}]
-        problems, _, _ = self.check([self.row(pieces)])
+        problems, warnings, _ = self.check([self.row(pieces)])
         self.assertEqual(problems, [])
+        self.assertTrue(any("the hole imperial is passed as Fmt.text(imperial)" in w for w in warnings), warnings)
+
+    def test_a_transformed_hole_needs_the_manual_note_and_is_listed(self):
+        """Re-review finding 4: "as" accepted any expression silently."""
+        self.convert("T.unitsDual(imperial.toUpperCase(), metric)")
+        pieces = [{"hole": "imperial", "arg": 1, "type": "s", "as": "imperial.toUpperCase()"}, " / ",
+                  {"hole": "metric", "arg": 2, "type": "s"}]
+        problems, _, _ = self.check([self.row(pieces)])
+        self.assertTrue(any('any other "as" needs a note starting "manual:"' in p for p in problems), problems)
+        problems, warnings, _ = self.check([self.row(pieces) + "manual: shouted"], ledger="b3")
+        self.assertTrue(any("passed as imperial.toUpperCase()" in w for w in warnings), warnings)
+
+    def test_a_manual_note_does_not_excuse_a_parsed_expression(self):
+        """Re-review finding 6: the swapped-hole row with a manual note."""
+        self.convert("T.unitsDual(metric, imperial)")
+        pieces = [{"hole": "metric", "arg": 1, "type": "s"}, " / ", {"hole": "imperial", "arg": 2, "type": "s"}]
+        problems, _, _ = self.check([self.row(pieces) + "manual: ternary"])
+        self.assertTrue(any("manual row, but line 4" in p and '"hole": "imperial"' in p for p in problems), problems)
 
 
 class RemovedAndMovedTest(RepoCase):
@@ -251,14 +274,45 @@ class RemovedAndMovedTest(RepoCase):
         problems, warnings, summary = self.check([self.SCALE + ':5\t["%.0f km/h"]\t-\tremoved\tdead code'])
         self.assertTrue(any("removed is for deleted code" in p and "%.0f kph" in p for p in problems), problems)
 
-    def test_moving_the_changed_literal_elsewhere_is_reported(self):
+    def test_moving_the_changed_literal_elsewhere_fails(self):
         self.edit('    static String label(double v) { return String.format(java.util.Locale.US, "%.0f km/h", v); }\n', "")
         self.edit('    static String restore()', '    static String label(double v) { return String.format('
                   'java.util.Locale.US, "%.0f kph", v); }\n    static String restore()')
         problems, warnings, summary = self.check([self.SCALE + ':5\t["%.0f km/h"]\t-\tremoved\tdead code'])
+        self.assertTrue(any('new literal "%.0f kph"; an extraction batch adds no text' in p for p in problems), problems)
+        self.assertIn("1 new literal(s)", summary)
+
+    def test_removed_with_the_new_text_in_a_constant_fails(self):
+        """Re-review finding 1: the changed literal moves into a constant declared elsewhere."""
+        self.edit('    static String label(double v) { return String.format(java.util.Locale.US, "%.0f km/h", v); }',
+                  '    static String label(double v) { return String.format(java.util.Locale.US, METRIC_FORMAT, v); }')
+        self.edit('    static final String SCOOTER', '    private static final String METRIC_FORMAT = "%.0f kph";\n'
+                                                     '    static final String SCOOTER')
+        problems, _, _ = self.check([self.SCALE + ':5\t["%.0f km/h"]\t-\tremoved\tdead code'])
+        self.assertTrue(any("removed is for deleted code" in p and "METRIC_FORMAT in its place" in p
+                            for p in problems), problems)
+        self.assertTrue(any('new literal "%.0f kph"' in p for p in problems), problems)
+
+    def test_removed_with_an_existing_constant_in_its_place_fails(self):
+        self.edit('return "Unused";', "return SCOOTER;")
+        problems, _, _ = self.check([self.SCALE + ':6\t["Unused"]\t-\tremoved\tdead code'])
+        self.assertTrue(any("removed is for deleted code" in p and "SCOOTER" in p for p in problems), problems)
+
+    def test_stays_english_decoy_fails(self):
+        """Re-review finding 1: the old value re-added elsewhere while its site shows other text."""
+        self.edit('return "Choose what to back up.";', "return restore();")
+        self.edit('    static String dead()', '    static final String DECOY = "Choose what to back up.";\n\n'
+                                              '    static String dead()')
+        problems, _, _ = self.check([self.SCALE + ':7\t["Choose what to back up."]\t-\tstays-english\t'])
+        self.assertTrue(any("is not added anywhere else in src where the code it left points" in p
+                            for p in problems), problems)
+
+    def test_stays_english_into_a_named_constant_passes(self):
+        self.edit('return "Unused";', "return UNUSED;")
+        self.edit('    static String restore()', '    static String restore2() { return null; }\n\n'
+                                                 '    static final String UNUSED = "Unused";\n    static String restore()')
+        problems, _, _ = self.check([self.SCALE + ':6\t["Unused"]\t-\tstays-english\tsource id'])
         self.assertEqual(problems, [])
-        self.assertTrue(any('new English-looking literal "%.0f kph"' in w for w in warnings), warnings)
-        self.assertIn("1 new English-looking literal(s)", summary)
 
     def test_swapping_two_literals_fails(self):
         self.edit("Choose what to back up.", "PLACEHOLDER")
@@ -303,6 +357,58 @@ class RemovedAndMovedTest(RepoCase):
         self.assertTrue(any("still there at head" in p for p in problems), problems)
 
 
+class CallSiteTest(RepoCase):
+    """Re-review finding 3: a row's call must sit where its literal was, so swapped keys fail."""
+    PICKER = "src/com/jjricks/volt/StatsWindowPicker.java"
+    FILES = {PICKER: java_class("StatsWindowPicker", '''    String title() { return "Chart window"; }
+    int unchanged() { return 1; }
+    String close() { return "Close chart window choices"; }
+    String a() { return "Choose"; }
+    String b() { return "Choose again"; }''')}
+    STRINGS = """<resources>
+    <string name="stats_window_title">Chart window</string>
+    <string name="stats_window_close">Close chart window choices</string>
+    <string name="stats_choose">Choose</string>
+    <string name="stats_choose_again">Choose again</string>
+</resources>
+"""
+    ROWS = [PICKER + ':4\t["Chart window"]\tstats_window_title\texact\t',
+            PICKER + ':6\t["Close chart window choices"]\tstats_window_close\texact\t']
+
+    def convert(self, title, close):
+        text = self.text(self.PICKER).replace('return "Chart window";', "return %s;" % title)
+        self.repo.write(self.PICKER, text.replace('return "Close chart window choices";', "return %s;" % close))
+        self.repo.write("res/values/strings_stats.xml", self.STRINGS)
+
+    def test_honest_conversion_passes(self):
+        self.convert("T.statsWindowTitle()", "T.statsWindowClose()")
+        self.assertEqual(self.check(self.ROWS)[0], [])
+
+    def test_keys_swapped_between_sites_fail(self):
+        self.convert("T.statsWindowClose()", "T.statsWindowTitle()")
+        problems, _, _ = self.check(self.ROWS)
+        self.assertEqual(len([p for p in problems if "not in the head lines that replaced the literal" in p]), 2,
+                         problems)
+
+    def test_keys_swapped_within_one_region_fail(self):
+        text = self.text(self.PICKER).replace('return "Choose";', "return T.statsChooseAgain();")
+        self.repo.write(self.PICKER, text.replace('return "Choose again";', "return T.statsChoose();"))
+        self.repo.write("res/values/strings_stats.xml", self.STRINGS)
+        rows = [self.PICKER + ':7\t["Choose"]\tstats_choose\texact\t',
+                self.PICKER + ':8\t["Choose again"]\tstats_choose_again\texact\t']
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any("comes before the call of an earlier row" in p for p in problems), problems)
+
+    def test_one_call_cannot_serve_two_rows(self):
+        text = self.text(self.PICKER).replace('return "Choose";', "return T.statsChoose();")
+        self.repo.write(self.PICKER, text.replace('    String b() { return "Choose again"; }', "    String b() { return null; }"))
+        self.repo.write("res/values/strings_stats.xml", self.STRINGS)
+        rows = [self.PICKER + ':7\t["Choose"]\tstats_choose\texact\t',
+                self.PICKER + ':8\t["Choose again"]\tstats_choose\texact\t']
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any("already used by another row" in p for p in problems), problems)
+
+
 class CatalogHistoryTest(RepoCase):
     """Finding 14: a later pull request rewording an extracted string; ledgers are append-only."""
 
@@ -327,6 +433,13 @@ class CatalogHistoryTest(RepoCase):
                                                     "common_cancel\t-\tCancel\tCancel now\towner approved in D1\n")
         problems, _, _ = self.check()
         self.assertEqual(problems, [])
+
+    def test_an_english_change_for_an_unknown_key_fails(self):
+        """Re-review finding 9: english-changes rows are checked against the catalog."""
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\n"
+                                                    "zz_nothing\t-\ta\tb\towner approved in #999\n")
+        problems, _, _ = self.check()
+        self.assertTrue(any("names key zz_nothing, which is not in res/values" in p for p in problems), problems)
 
     def test_ledgers_are_append_only(self):
         self.repo.write("l10n/ledger/b2.tsv", HEADER + "\n".join(ROWS[:2]) + "\n")

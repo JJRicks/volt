@@ -58,17 +58,21 @@ class FrozenLiteralsTest(unittest.TestCase):
     def test_changing_english_fails(self):
         self.edit(TEST, "Battery at 80%", "Battery at 80 %")
         problems, _ = self.run_gate()
-        self.assertEqual(len(problems), 1)
-        self.assertIn('ChargeAlertPolicyTest.java:5: a test statement with "Battery at 80%" was changed', problems[0])
+        self.assertTrue(any('ChargeAlertPolicyTest.java:5: a test statement with "Battery at 80%" was changed' in p
+                            for p in problems), problems)
+        self.assertTrue(any("existing test code changed" in p for p in problems), problems)
 
-    def test_keys_in_statements_without_english_are_free(self):
+    def test_existing_code_without_english_is_frozen_too(self):
+        """Re-review finding 2: existing test code only gains statements, keys included."""
         self.edit(TEST, 'prefs("battery_alerts")', 'prefs("charge_alerts")')
         self.edit(VALIDATION, '"scroll"', '"scrollView"')
-        self.assertEqual(self.run_gate()[0], [])
+        problems, _ = self.run_gate()
+        self.assertEqual(len(problems), 2, problems)
+        self.assertTrue(all("existing test code changed" in p for p in problems), problems)
 
     def test_a_key_beside_english_is_frozen_with_it(self):
         self.edit(TEST, 'check("Charge alert", "battery_alerts")', 'check("Charge alert", "charge_alerts")')
-        self.assertEqual(len(self.run_gate()[0]), 1)
+        self.assertTrue(any("was changed or removed" in p for p in self.run_gate()[0]))
 
     def test_decoy_keeping_the_old_literal_fails(self):
         """Finding 3: the expectation changes while a decoy keeps "30 km/h" in the file."""
@@ -76,24 +80,27 @@ class FrozenLiteralsTest(unittest.TestCase):
                   'equals("30 kph"), "Metric label"); check(!"30 km/h".isEmpty(), "Metric label");')
         problems, _ = self.run_gate()
         self.assertTrue(any('"30 km/h", "Metric label" was changed' in p for p in problems), problems)
-        self.assertEqual(len(self.run_gate(per_file=True)[0]), 1)
+        self.assertTrue(any('"30 km/h", "Metric label" was changed' in p for p in self.run_gate(per_file=True)[0]))
 
     def test_weakened_assertion_fails(self):
         self.edit(SCALE_TEST, '.equals("30 km/h")', '.equals("30 km/h") || true')
-        self.assertEqual(len(self.run_gate()[0]), 1)
+        problems = self.run_gate()[0]
+        self.assertTrue(any("was changed or removed" in p for p in problems), problems)
+        self.assertTrue(any("not plain new test code" in p for p in problems), problems)
 
     def test_swapped_expectations_fail(self):
         self.edit(SCALE_TEST, '"30 km/h"), "Metric label"', '"30 km/h"), "Imperial label"')
         self.edit(SCALE_TEST, '"19 mph"), "Imperial label"', '"19 mph"), "Metric label"')
-        self.assertEqual(len(self.run_gate()[0]), 2)
+        self.assertEqual(len([p for p in self.run_gate()[0] if "was changed or removed" in p]), 2)
 
-    def test_moving_a_statement_between_files_is_fine_unless_per_file(self):
+    def test_moving_a_statement_out_of_an_existing_file_fails(self):
         self.edit(VALIDATION, 'clickText("Lock scooter"); ', "")
         self.repo.write("android-tests/TextCensus.java",
                         java_class("TextCensus", '    void lock() { TextFit.clickText("Lock scooter"); }'))
         head = self.repo.commit("move")
-        self.assertEqual(frozen_literals.run(self.base, head, cwd=self.repo.root)[0], [])
-        self.assertEqual(len(frozen_literals.run(self.base, head, per_file=True, cwd=self.repo.root)[0]), 1)
+        problems = frozen_literals.run(self.base, head, cwd=self.repo.root)[0]
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("existing test code deleted", problems[0])
 
     def test_deleting_a_test_needs_a_removed_ledger_row(self):
         self.repo.remove(VALIDATION)
@@ -135,6 +142,103 @@ class FrozenLiteralsTest(unittest.TestCase):
             self.assertIn("frozen_literals: REPORT:", out.getvalue())
         finally:
             os.chdir(here)
+
+
+class FrozenCodeTest(unittest.TestCase):
+    """Re-review finding 2: switching an assertion off without touching its tokens."""
+    SCALE = java_class("RouteSpeedScaleTest", '''    private static int checks;
+
+    private static void check(boolean value, String message) {
+        checks++;
+        if (!value) throw new AssertionError(message);
+    }
+
+    public static void main(String[] args) {
+        check(RouteSpeedScale.label(30, "km").equals("30 km/h"), "Metric label");
+        check(RouteSpeedScale.label(19, "mi").equals("19 mph / 30 km/h"), "Dual label");
+        System.out.println("RouteSpeedScaleTest: " + checks + " checks passed");
+    }''')
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.repo.write(SCALE_TEST, self.SCALE)
+        self.base = self.repo.commit("base")
+
+    def tearDown(self):
+        self.repo.close()
+
+    def gate(self, old, new, per_file=False):
+        text = self.SCALE
+        for o, n in zip(old if isinstance(old, list) else [old], new if isinstance(new, list) else [new]):
+            self.assertIn(o, text)
+            text = text.replace(o, n, 1)
+        self.repo.write(SCALE_TEST, text)
+        head = self.repo.commit("head")
+        return frozen_literals.run(self.base, head, per_file=per_file, cwd=self.repo.root)[0]
+
+    METRIC = 'check(RouteSpeedScale.label(30, "km").equals("30 km/h"), "Metric label");'
+
+    def assertRejected(self, problems, reason):
+        self.assertTrue(any(reason in p for p in problems), problems)
+
+    def test_wrapping_in_if_false_fails(self):
+        problems = self.gate(self.METRIC, "if (false) { " + self.METRIC + " }", per_file=True)
+        self.assertRejected(problems, "brackets do not balance")
+
+    def test_decoy_copy_in_an_uncalled_method_fails(self):
+        decoy = "    private static void unused() {\n        " + self.METRIC + "\n    }\n\n    public static void main"
+        problems = self.gate(['.equals("30 km/h"), "Metric label"', "public static void main"],
+                             ['.equals("30 kph"), "Metric label"', decoy])
+        self.assertRejected(problems, 'existing test code changed ("30 km/h" became "30 kph")')
+
+    def test_neutering_the_check_helper_fails(self):
+        self.assertRejected(self.gate("if (!value) throw", "if (!value && message.isEmpty()) throw"),
+                            "not plain new test code: it does not start and end at a statement boundary")
+
+    def test_inserted_jumps_and_assignments_fail(self):
+        self.assertRejected(self.gate("        checks++;\n", "        checks++;\n        value = true;\n"),
+                            "it changes value, which it did not declare")
+        self.repo.git("reset", "-q", "--hard", self.base)
+        self.assertRejected(self.gate("    public static void main(String[] args) {\n",
+                                      "    public static void main(String[] args) {\n        if (true) return;\n"),
+                            "it jumps out of the existing code (return)")
+
+    def test_inserted_escapes_initializers_and_shadows_fail(self):
+        cases = [
+            ("    private static int checks;\n", "    private static int checks;\n    static { "
+             "Thread.setDefaultUncaughtExceptionHandler((t, e) -> System.exit(0)); }\n", "it calls"),
+            ("    private static int checks;\n", "    private static int checks;\n    static int x = (checks = -9);\n",
+             "it changes checks"),
+            ("    private static int checks;\n", "    private static int checks;\n    static final Fake RouteSpeedScale = "
+             "null;\n", "it declares RouteSpeedScale, a name the file already uses"),
+            ("    public static void main(String[] args) {\n", "    public static void main(String[] args) {\n"
+             "        Fake RouteSpeedScale = new Fake();\n", "it declares RouteSpeedScale"),
+            ("    private static int checks;\n", "    private static int checks;\n    static final class RouteSpeedScale {}\n",
+             "it declares a type"),
+            ("package com.jjricks.volt;\n", "package com.jjricks.volt;\nimport fake.RouteSpeedScale;\n",
+             "it imports RouteSpeedScale"),
+            ("    private static int checks;\n", "    private static int checks;\n    static { java.util.Locale.setDefault("
+             "java.util.Locale.US); }\n", "it calls setDefault"),
+        ]
+        for old, new, reason in cases:
+            self.repo.git("reset", "-q", "--hard", self.base)
+            self.assertRejected(self.gate(old, new), reason)
+
+    def test_plain_new_tests_pass(self):
+        added = ('''        System.out.println("RouteSpeedScaleTest: " + checks + " checks passed");
+        double kmh = 45;
+        for (int i = 0; i < 2; i++) kmh += i;
+        check(RouteSpeedScale.label(kmh, "km").equals("46 km/h"), "Rounded metric label");
+        newCases();
+''', '''    private static void newCases() {
+        String expected = "12 km/h";
+        check(RouteSpeedScale.label(12, "km").equals(expected), "Small metric label");
+    }
+
+    public static void main''')
+        problems = self.gate(['        System.out.println("RouteSpeedScaleTest: " + checks + " checks passed");\n',
+                              "    public static void main"], list(added), per_file=True)
+        self.assertEqual(problems, [])
 
 
 class CharacterizationFirstTest(unittest.TestCase):

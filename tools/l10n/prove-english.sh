@@ -164,15 +164,25 @@ if bash tests/l10n/golden.sh >"$log" 2>&1; then
 else
     record "G9 reports stay English (goldens)" FAIL "$(tail -1 "$log")"; show_failure G9 "$log"
 fi
-tooling_files=($(git diff --name-only "$MERGE" HEAD -- tools/l10n .github/workflows tests/l10n/golden.sh))
+# The same list CI uses (ci_gates.is_tooling): tools/l10n, workflows, tests/l10n outside
+# characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh.
+tooling_files=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-tooling))
 tooling="${#tooling_files[@]} file(s)"
 (( ${#tooling_files[@]} )) && tooling+=", e.g. ${tooling_files[0]}"
 if (( ${#tooling_files[@]} == 0 )); then
-    record "Proof tooling unchanged" PASS "tools/l10n, .github/workflows and tests/l10n/golden.sh as at the merge base"
+    record "Proof tooling unchanged" PASS "tools/l10n, workflows, tests/l10n tooling, tests/run.sh and build scripts as at the merge base"
 elif [[ "$KIND" == ordinary ]]; then
     record "Proof tooling unchanged" "n/a" "a tooling change, not a batch: $tooling"
 else
     record "Proof tooling unchanged" FAIL "changed in a $KIND pull request: $tooling"
+fi
+if [[ "$KIND" == english-change ]]; then
+    ledger_files=($(git diff --name-only "$MERGE" HEAD -- l10n/ledger))
+    if (( ${#ledger_files[@]} )); then
+        record "No ledger rows in an English change" FAIL "an English change must not also extract text: ${ledger_files[*]}"
+    else
+        record "No ledger rows in an English change" PASS "l10n/ledger unchanged"
+    fi
 fi
 if [[ -f tests/l10n/FmtLegacyTest.java ]]; then
     record "G10 format legacy parity" "in G6" "tests/l10n/FmtLegacyTest runs inside tests/run.sh"

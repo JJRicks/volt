@@ -23,6 +23,12 @@ class KindTest(unittest.TestCase):
         self.assertEqual(ci_gates.kind_of(["res/values/strings_common.xml"]), "batch")
         self.assertEqual(ci_gates.kind_of(["l10n/ledger/b2-ui.tsv"]), "batch")
         self.assertEqual(ci_gates.kind_of(["l10n/ledger/b2-ui.tsv", "l10n/english-changes.tsv"]), "english-change")
+        self.assertEqual(ci_gates.kind_of(["src/com/jjricks/volt/Ui.java"], gains_catalog_references=True), "batch")
+
+    def test_catalog_references(self):
+        refs = ci_gates.catalog_references('class A { void f() { a(T.statsWindowTitle()); b(R.string.app_name); '
+                                           'c(Msg.of(T.STATS_X)); d(x.T.y); e(M.rides(n)); } }')
+        self.assertEqual(sorted(refs), ["M.rides", "R.string.app_name", "T.STATS_X", "T.statsWindowTitle"])
 
     def test_plans(self):
         labels = lambda kind, pr="": [s[0] for s in ci_gates.plan(kind, "origin/main", "HEAD", pr, "/repo")]  # noqa: E731
@@ -39,9 +45,13 @@ class KindTest(unittest.TestCase):
         self.assertIn("--tight", tight["G8 shrink-only baselines"][1])
 
     def test_tooling(self):
-        self.assertEqual(ci_gates.tooling_changes(["tools/l10n/frozen_literals.py", ".github/workflows/tests.yml",
-                                                   "tests/l10n/golden.sh", "tests/l10n/GoldenReports.java", "src/A.java"]),
-                         ["tools/l10n/frozen_literals.py", ".github/workflows/tests.yml", "tests/l10n/golden.sh"])
+        # Re-review finding 5: the golden generator and the test runners are tooling too.
+        changed = ["tools/l10n/frozen_literals.py", ".github/workflows/tests.yml", "tests/l10n/golden.sh",
+                   "tests/l10n/GoldenReports.java", "tests/run.sh", "build.sh", "android-tests/build.sh",
+                   "tests/l10n/LedgerTest.java", "src/A.java", "tests/RouteSpeedScaleTest.java",
+                   "tests/l10n/b2-ui.sources", "tests/l10n/characterization/DisplayUnitsTest.java",
+                   "tests/l10n/golden/phone-track.gpx", "android-tests/run-release-sweep.py"]
+        self.assertEqual(ci_gates.tooling_changes(changed), changed[:8])
 
 
 class GoldenRewriteTest(unittest.TestCase):
@@ -83,6 +93,38 @@ class GoldenRewriteTest(unittest.TestCase):
         code, output = self.run_ci()
         self.assertIn("ci_gates: ordinary change", output)
         self.assertNotIn("G9", output)
+
+    def test_post_processing_goldens_in_the_generator_fails(self):
+        """Re-review finding 5: GoldenReports.java rewrites the output so the goldens stay byte-identical."""
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        self.repo.write("tests/l10n/GoldenReports.java", 'class GoldenReports { String gpx(String t) { '
+                                                         'return t.replace("<name>Trip", "<name>Ride"); } }\n')
+        self.repo.write("l10n/ledger/b9.tsv", HEADER + STORE + ':4\t["<trk><name>Ride"]\t-\tremoved\tmanual: x\n')
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/GoldenReports.java)", output)
+
+    def test_a_conversion_without_a_ledger_is_a_batch(self):
+        """Re-review finding 7: forgetting the ledger must not make the change ordinary."""
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        self.repo.write(STORE, java_class("PhoneRideStore", "    String name() { return T.ridesGpxOpen(); }"))
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("ci_gates: batch change", output)
+        self.assertIn("src gained catalog references (T.ridesGpxOpen)", output)
+        self.assertIn("FAILED G1 ledger", output)
+
+    def test_an_english_change_may_not_add_ledger_rows(self):
+        """Re-review finding 9."""
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        self.repo.write(STORE, java_class("PhoneRideStore", '    String name() { return "<trk><name>Ride"; }'))
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz_nothing\t-\ta\tb\towner approved in #999\n")
+        self.repo.write("l10n/ledger/b9.tsv", HEADER)
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("ci_gates: english-change change", output)
+        self.assertIn("FAILED no ledger rows in an English change", output)
+        self.assertIn("names key zz_nothing, which is not in res/values", output)
 
     def test_tooling_edits_in_a_batch_fail(self):
         self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")

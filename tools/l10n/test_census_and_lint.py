@@ -56,6 +56,15 @@ class MaskTest(unittest.TestCase):
                      ("7:45 PM", "7:45 pm"), ("Mar 5", "Mar 5, 2026")):
             self.assertFalse(census_diff.same_after_masking(a, b), (a, b))
 
+    def test_plural_padding_and_date_order_changes_count(self):
+        """Re-review finding 8: the forms may not change just because the number did."""
+        for a, b in (("2 seconds left", "3 second left"), ("5 hours", "7 hour"), ("05 min", "5 min"),
+                     ("Ride 0:05", "Ride 00:07"), ("13/5/2026", "5/14/2026"), ("10/5/2026", "10/5/26")):
+            self.assertFalse(census_diff.same_after_masking(a, b), (a, b))
+        for a, b in (("1 minute ago", "2 minutes ago"), ("2 minutes ago", "1 minute ago"), ("05 min", "15 min"),
+                     ("9:59", "10:01"), ("13/5/2026", "14/6/2026"), ("5/13/2026", "6/14/2026"), ("1h 05m", "2h 15m")):
+            self.assertTrue(census_diff.same_after_masking(a, b), (a, b))
+
 
 class CensusTest(unittest.TestCase):
     BASE = [("text", "tag=lock_label", "10,20,300,48", "Lock scooter"),

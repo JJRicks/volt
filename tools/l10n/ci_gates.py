@@ -6,10 +6,14 @@ localization batches, not to every pull request: an ordinary feature or fix may 
 and add UI text. The kind comes from the paths changed since the merge base:
 
   english-change  l10n/english-changes.tsv changed: an owner-approved English change (plan part D).
-                  G1 runs with the recorded changes; G4 and the golden diff only report.
-  batch           l10n/ledger/ or a res/values*/strings_*.xml changed: an extraction batch. Every
-                  gate is strict, and the proof tooling (tools/l10n/, .github/workflows/,
-                  tests/l10n/golden.sh) must not change in the same pull request.
+                  G1 runs with the recorded changes; G4 and the golden diff only report. It may
+                  not also add ledger rows (an extraction goes in its own pull request).
+  batch           l10n/ledger/ or a res/values*/strings_*.xml changed, or a src/ file gained a
+                  T.<name>, M.<name>, R.string or R.plurals reference (a conversion that forgot its
+                  ledger): an extraction batch. Every gate is strict, and the proof tooling
+                  (is_tooling: tools/l10n/, .github/workflows/, tests/l10n/ except
+                  characterization/, golden/ and *.sources, tests/run.sh, build.sh and
+                  android-tests/build.sh) must not change in the same pull request.
   ordinary        anything else. The lint baselines must list every finding (they may grow; run
                   hardcoded_lint.py --write-baselines), and every ledger must still agree with the
                   catalog.
@@ -19,9 +23,11 @@ tests/l10n/golden.sh (goldens equal head's output).
 
   ci_gates.py --base origin/main [--head HEAD] [--pr-head <sha>] [--mode auto|batch|english-change|ordinary]
   ci_gates.py --base origin/main --print-mode
+  ci_gates.py --base origin/main --print-tooling   the proof tooling files changed since the merge base
 """
 
 import argparse
+import collections
 import os
 import re
 import subprocess
@@ -33,16 +39,59 @@ import l10nlib  # noqa: E402
 TOOLS = os.path.dirname(os.path.abspath(__file__))
 CHANGES_PATH = "l10n/english-changes.tsv"
 CATALOG_FILE = re.compile(r"^res/values[^/]*/strings_[^/]+\.xml$")
-TOOLING = ("tools/l10n/", ".github/workflows/", "tests/l10n/golden.sh")
+TOOLING = ("tools/l10n/", ".github/workflows/", "tests/l10n/")
+TOOLING_FILES = ("tests/run.sh", "build.sh", "android-tests/build.sh")
+NOT_TOOLING = ("tests/l10n/characterization/", "tests/l10n/golden/")
 GOLDEN_DIR = "tests/l10n/golden"
+LEDGER_DIR = "l10n/ledger/"
 
 
-def kind_of(changed):
+def is_tooling(path):
+    """The proof tools and what runs them: a batch must not change these (golden/ is G9's job)."""
+    if path in TOOLING_FILES:
+        return True
+    if not path.startswith(TOOLING) or path.startswith(NOT_TOOLING):
+        return False
+    return not (path.startswith("tests/l10n/") and path.endswith(".sources") and path.count("/") == 2)
+
+
+def kind_of(changed, gains_catalog_references=False):
     if CHANGES_PATH in changed:
         return "english-change"
-    if any(p.startswith("l10n/ledger/") or CATALOG_FILE.match(p) for p in changed):
+    if gains_catalog_references or any(p.startswith(LEDGER_DIR) or CATALOG_FILE.match(p) for p in changed):
         return "batch"
     return "ordinary"
+
+
+def catalog_references(text):
+    """Counter of T.<name>, M.<name>, R.string.<name> and R.plurals.<name> references in Java source."""
+    found = collections.Counter()
+    if text is None:
+        return found
+    try:
+        tokens = l10nlib.lex_java(text)
+    except l10nlib.LexError:
+        return found
+    for i in range(len(tokens) - 2):
+        t = tokens[i]
+        if t.kind != "ident" or (i > 0 and tokens[i - 1].value == ".") or tokens[i + 1].value != ".":
+            continue
+        if t.value in ("T", "M") and tokens[i + 2].kind == "ident":
+            found[t.value + "." + tokens[i + 2].value] += 1
+        elif t.value == "R" and tokens[i + 2].value in ("string", "plurals") and i + 4 < len(tokens) and \
+                tokens[i + 3].value == "." and tokens[i + 4].kind == "ident":
+            found["R.%s.%s" % (tokens[i + 2].value, tokens[i + 4].value)] += 1
+    return found
+
+
+def gained_catalog_references(merge, head, changed, cwd=None):
+    """References to the catalog that src/ has at head but not at the merge base."""
+    files = [p for p in changed if p.startswith("src/") and p.endswith(".java")]
+    before, after = l10nlib.read_files(merge, files, cwd), l10nlib.read_files(head, files, cwd)
+    gained = collections.Counter()
+    for path in files:
+        gained.update(catalog_references(after[path]) - catalog_references(before[path]))
+    return sorted(gained)
 
 
 def golden_changes(merge, head, cwd=None):
@@ -53,7 +102,7 @@ def golden_changes(merge, head, cwd=None):
 
 
 def tooling_changes(changed):
-    return [p for p in changed if p.startswith(TOOLING)]
+    return [p for p in changed if is_tooling(p)]
 
 
 def plan(kind, base, head, pr_head, root):
@@ -73,6 +122,8 @@ def plan(kind, base, head, pr_head, root):
         ("G9 goldens unchanged since the merge base", None, strict),
         ("proof tooling unchanged", None, True),
     ]
+    if kind == "english-change":
+        steps.append(("no ledger rows in an English change", None, True))
     if pr_head:
         steps.insert(3, ("G5 characterization first", tool("char_first.py", "--base", base, "--head", pr_head), True))
     return steps
@@ -85,15 +136,23 @@ def main(argv=None):
     parser.add_argument("--pr-head", default="", help="the pull request's head commit, for G5")
     parser.add_argument("--mode", default="auto", choices=("auto", "batch", "english-change", "ordinary"))
     parser.add_argument("--print-mode", action="store_true", help="print the kind and exit")
+    parser.add_argument("--print-tooling", action="store_true", help="print the changed proof tooling files and exit")
     args = parser.parse_args(argv)
     head = l10nlib.resolve(args.head)
     merge = l10nlib.merge_base(args.base, head)
     changed = l10nlib.changed_files(merge, head, ["."])
-    kind = kind_of(changed) if args.mode == "auto" else args.mode
+    if args.print_tooling:
+        for path in tooling_changes(changed):
+            print(path)
+        return 0
+    gained = gained_catalog_references(merge, head, changed)
+    kind = kind_of(changed, bool(gained)) if args.mode == "auto" else args.mode
     if args.print_mode:
         print(kind)
         return 0
-    print("ci_gates: %s change (%d path(s) since merge base %s)" % (kind, len(changed), l10nlib.short(merge)))
+    print("ci_gates: %s change (%d path(s) since merge base %s)%s" % (
+        kind, len(changed), l10nlib.short(merge),
+        "; src gained catalog references (%s)" % ", ".join(gained[:5]) if gained else ""))
     failed = []
     for label, command, strict in plan(kind, args.base, head, args.pr_head, l10nlib.repo_root()):
         if command is not None:
@@ -101,6 +160,12 @@ def main(argv=None):
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             sys.stdout.write(result.stdout.decode("utf-8", "replace"))
             ok, detail = result.returncode == 0, "exit %d" % result.returncode
+        elif label.startswith("no ledger rows"):
+            ledgers = [p for p in changed if p.startswith(LEDGER_DIR)]
+            ok, detail = not ledgers, ", ".join(ledgers) or "none"
+            if ledgers:
+                print("ci_gates: %s: %s changed; an owner-approved English change must not also extract text, so "
+                      "put the extraction in its own pull request" % (label, ", ".join(ledgers)), file=sys.stderr)
         elif label.startswith("G9"):
             changes = golden_changes(merge, head)
             ok, detail = not changes, ", ".join(changes) or "unchanged"

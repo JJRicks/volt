@@ -110,18 +110,26 @@ def _shape(value):
     return _WORD.sub(lambda m: "<n>" if m.group(0)[0].isdigit() else _form(m.group(0)), value)
 
 
+NUMERIC_DATE = PATTERNS[2]
+
+
 def masked(value):
-    """(comparison key, durations): the key has values masked and plural unit spellings merged; durations
-    lists (number, unit as written) for the extra singular/plural check."""
-    out, durations, at = [], [], 0
+    """(comparison key, durations, digits, numeric dates): the key has values masked and plural unit
+    spellings merged; durations lists (number, unit as written) for the singular/plural check; digits
+    lists every masked digit run, in order, for the zero-padding check; numeric dates lists the
+    digit groups of each d/M or M/d/y date, for the order and year-width checks."""
+    out, durations, digits, dates, at = [], [], [], [], 0
     spans = []
     for pattern in PATTERNS:
         for m in pattern.finditer(value):
-            if not any(m.start() < e and s < m.end() for s, e in spans):
-                spans.append((m.start(), m.end()))
-    for s, e in sorted(spans):
+            if not any(m.start() < e and s < m.end() for s, e, _ in spans):
+                spans.append((m.start(), m.end(), pattern is NUMERIC_DATE))
+    for s, e, numeric_date in sorted(spans):
         out.append(value[at:s])
         piece = value[s:e]
+        digits.extend(re.findall(r"\d+", piece))
+        if numeric_date:
+            dates.append(tuple(piece.split("/")))
         duration = _DURATION.match(piece)
         if duration and duration.group(3) in UNITS:
             unit = duration.group(3)
@@ -132,21 +140,50 @@ def masked(value):
             out.append(_shape(piece))
         at = e
     out.append(value[at:])
-    return "".join(out), tuple(durations)
+    return "".join(out), tuple(durations), tuple(digits), tuple(dates)
 
 
 def mask(value):
     return masked(value)[0]
 
 
+def _is_one(number):
+    try:
+        return float(number) == 1
+    except ValueError:
+        return False
+
+
+def _padding(run):
+    """"0" for a zero-padded run (05), "1" for a one-digit run (5), None when it cannot tell (12)."""
+    return "0" if len(run) > 1 and run[0] == "0" else "1" if len(run) == 1 else None
+
+
 def same_after_masking(base_value, head_value):
-    """True when two texts differ only in clock, duration and date values."""
-    a, a_durations = masked(base_value)
-    b, b_durations = masked(head_value)
+    """True when two texts differ only in clock, duration and date values.
+
+    The values may differ, their spelling may not: a unit keeps its singular or plural word while
+    its number stays 1 or stays not 1 ("2 seconds" to "3 second" fails), a zero-padded number cannot
+    become unpadded ("05 min" to "5 min" fails), a numeric date keeps its year width, and a day above
+    12 cannot move between the first two groups (d/M against M/d). A d/M and M/d swap with both
+    groups 12 or under ("10/5" against "5/10") is two valid dates and cannot be told from the text.
+    """
+    a, a_durations, a_digits, a_dates = masked(base_value)
+    b, b_durations, b_digits, b_dates = masked(head_value)
     if a != b:
         return False
     for (n1, u1), (n2, u2) in zip(a_durations, b_durations):
-        if n1 == n2 and u1 != u2:
+        if _is_one(n1) == _is_one(n2) and u1 != u2:
+            return False
+    for r1, r2 in zip(a_digits, b_digits):
+        if {_padding(r1), _padding(r2)} == {"0", "1"}:
+            return False
+    for d1, d2 in zip(a_dates, b_dates):
+        if len(d1) == 3 and len(d2) == 3 and len(d1[2]) != len(d2[2]):
+            return False
+        day1 = [i for i in (0, 1) if int(d1[i]) > 12]
+        day2 = [i for i in (0, 1) if int(d2[i]) > 12]
+        if day1 and day2 and day1 != day2:
             return False
     return True
 
