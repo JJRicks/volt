@@ -13,7 +13,10 @@ public final class CapabilityResolver {
     public enum Support { KNOWN_ENCODING, UNKNOWN_MAPPING, INCOMPATIBLE }
     public enum Evidence { VOLT_VERIFIED, VOLT_LAB, OEM_MAPPED, SHARED_CONTRACT, LOCAL_TEST, NONE }
     public enum Precondition { FRESH_STATUS, STATIONARY, MOTION_REPORT, NO_WARNING, OWNER, UNLOCKED, BONDED, PIN_ENABLED, FIRMWARE_READ, FULL_PID }
-    /** REGION_RULE remains readable for older reports; the current registry does not return it. */
+    /**
+     * REGION_RULE: since registry 17, only Top speed (maximum_speed) outside the official app's USA bucket, where the
+     * official app shows no Top speed row. Every other regional rule stays a note.
+     */
     public enum Reason { NONE, NOT_CONNECTED, STATUS_STALE, FIELD_ABSENT, VALUE_UNKNOWN, NO_CHOICES, BUSY, MOVING, NO_MOTION_REPORT,
         WARNING_ACTIVE, LOCKED, OWNER_ONLY, NEEDS_BOND, NEEDS_PIN, FIRMWARE_UNKNOWN, FIRMWARE_OLD, FULL_PID_NEEDED,
         IDENTITY_CONFLICT, MODEL_NOT_IDENTIFIED, MODEL_NOT_MAPPED, MODEL_EXCLUDED, REGION_RULE,
@@ -86,7 +89,7 @@ public final class CapabilityResolver {
         ModelRegistry.Resolution r=ModelRegistry.resolve(d);
         ModelRegistry.Rule rule=ModelRegistry.rule(feature,d,r,status);
         // 1-2. Registry and model conditions (product, transport, identity, mapping, firmware, full PID).
-        // Regional OEM UI policy is recorded as provenance; it does not refuse a control.
+        // Regional OEM UI policy is recorded as provenance; it refuses only Top speed (ModelRegistry version 17).
         if(rule.support!=Support.KNOWN_ENCODING||rule.reason!=Reason.NONE)return new Decision(feature,r.layer,rule,rule.reason,status,null);
         FeatureVariant v=rule.variant;
         if(rt==null||!rt.ready)return new Decision(feature,r.layer,rule,Reason.NOT_CONNECTED,status,v.choices(status));
@@ -105,7 +108,9 @@ public final class CapabilityResolver {
             Integer current=v.readable?v.read(status):null;
             if(v.readable&&current==null)reason=Reason.FIELD_ABSENT;
             // UT5 MAX keeps today's rule: only Lab rows refuse an out-of-domain readback (e.g. a 0 sentinel), so the owner can set a valid value.
-            else if(current!=null&&!v.allows(current)&&(r.layer!=ModelRegistry.Layer.UT5_MAX||v.lab))reason=Reason.VALUE_UNKNOWN;
+            // A setting the variant shows but doesn't offer (a kick-start below 3 km/h outside the official app's USA bucket) is
+            // known, not unknown: the row shows it and offers only the variant's values.
+            else if(current!=null&&!v.allows(current)&&!v.shows(current)&&(r.layer!=ModelRegistry.Layer.UT5_MAX||v.lab))reason=Reason.VALUE_UNKNOWN;
             else {choices=v.choices(status);if(v.dynamicChoices&&choices.length==0)reason=Reason.NO_CHOICES;}
         }
         // 4. Preconditions.

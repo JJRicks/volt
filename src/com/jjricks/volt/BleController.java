@@ -176,7 +176,7 @@ public final class BleController {
             try{
                 FeatureVariant v=ModelRegistry.variant(feature.key,d,r,s);if(v==null)v=ModelRegistry.experimentalRule(feature.key,d,r,s).variant;
                 Integer value=v==null||v.decode==FeatureVariant.Decode.BE32?null:v.read(s);
-                if(value==null||v.allows(value)||value==v.sentinel)continue;
+                if(value==null||v.allows(value)||value==v.sentinel||v.shows(value))continue;
                 flaggedStatus.add(feature.key);
                 logCommand(CommandLog.Kind.READ,null,feature.key,-1,CommandLog.Outcome.UNEXPECTED_VALUE,-1,null,value,-1);
             }catch(RuntimeException unreadable){/* a field this model does not decode is not a finding */}

@@ -197,11 +197,21 @@ public final class ModelRegistryTest {
         }
         // A later report from an owner answered the modes (Drive 2, Sport 3, Walk 11): names only, no control rule changes above.
         check(ModelRegistry.driveModeLabelProduct(gt3)==25462,"GT3 Max drive modes are named from the owner's answer");
-        // The same owner's log: maximum speed and kick-start acknowledged, then read back unchanged.
-        check(ModelRegistry.unconfirmed(gt3,"maximum_speed")&&ModelRegistry.unconfirmed(gt3,"start_speed"),"GT3 Max top speed and kick-start are marked unconfirmed");
-        check(!ModelRegistry.unconfirmed(gt3,"headlight")&&!ModelRegistry.unconfirmed(gt3,null)&&!ModelRegistry.unconfirmed(sibling,"maximum_speed")
-            &&!ModelRegistry.unconfirmed(serial("Q2418ZZ9ES7777777"),"maximum_speed")&&!ModelRegistry.unconfirmed(advertised("2538"),"maximum_speed"),
-            "Only those controls, only on the exact advertised GT3 Max");
+        // The same owner's log: maximum speed and kick-start 2 and 1 acknowledged, then read back unchanged. Version 17 follows the
+        // official app's region rules instead: no Top speed in ES and kick-start 3–5 km/h, so neither needs an Unconfirmed label.
+        ModelRegistry.Rule top=ModelRegistry.rule("maximum_speed",gt3,null,null),start=ModelRegistry.rule("start_speed",gt3,null,null);
+        check(top.support==CapabilityResolver.Support.INCOMPATIBLE&&top.reason==CapabilityResolver.Reason.REGION_RULE,"The Spanish GT3 Max has no Top speed, as in the official app");
+        check(start.variant==ModelRegistry.START_3_5&&!start.variant.allows(2)&&!start.variant.allows(1)&&start.variant.allows(3),"The Spanish GT3 Max's kick-start is 3–5 km/h, as in the official app");
+        check(!ModelRegistry.unconfirmed(gt3,"maximum_speed")&&!ModelRegistry.unconfirmed(gt3,"start_speed")&&!ModelRegistry.unconfirmed(gt3,"headlight"),
+            "Nothing is marked unconfirmed on the GT3 Max any more");
+        // The mechanism stays: an entry marks only that control, only on that exact advertised model.
+        ModelRegistry.NOT_KEPT.put("24182",new HashSet<>(java.util.Arrays.asList("start_speed")));
+        try{
+            check(ModelRegistry.unconfirmed(gt3,"start_speed")&&!ModelRegistry.unconfirmed(gt3,"headlight")&&!ModelRegistry.unconfirmed(gt3,null)
+                &&!ModelRegistry.unconfirmed(sibling,"start_speed")&&!ModelRegistry.unconfirmed(serial("Q2418ZZ9ES7777777"),"start_speed")
+                &&!ModelRegistry.unconfirmed(advertised("2538"),"start_speed"),"Unconfirmed applies to that control, only on the exact advertised model");
+        }finally{ModelRegistry.NOT_KEPT.remove("24182");}
+        check(ModelRegistry.NOT_KEPT.isEmpty(),"No model is listed as not keeping a change");
     }
 
     /** Photos bundled ahead of their Model ID: listed NAVEE models, shown on nothing yet, each ready to use once its ID is known. */
@@ -271,23 +281,40 @@ public final class ModelRegistryTest {
         check(ModelRegistry.rule("cruise_control",us,null,null).evidence==CapabilityResolver.Evidence.VOLT_VERIFIED
             &&ModelRegistry.rule("pin",us,null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("clock_sync",us,null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED,"Evidence levels");
-        // Regional OEM rules on a non-US UT5 MAX are notes, never restrictions.
+        // Version 17: a UT5 MAX whose serial names a region outside the official app's USA bucket follows its Top speed
+        // and kick-start rules; its other regional OEM rules stay notes, never restrictions.
         ModelRegistry.Rule max=ModelRegistry.rule("maximum_speed",de,null,null);
-        check(max.support==CapabilityResolver.Support.KNOWN_ENCODING&&max.reason==CapabilityResolver.Reason.NONE&&!max.oemNote.isEmpty()
-            &&java.util.Arrays.equals(max.variant.values,ScooterCommands.find("maximum_speed").optionValues),"DE UT5 MAX keeps max speed, with an OEM note");
-        check(!ModelRegistry.rule("start_speed",de,null,null).oemNote.isEmpty()&&!ModelRegistry.rule("headlight",de,null,null).oemNote.isEmpty()
-            &&!ModelRegistry.rule("line_light",de,null,null).oemNote.isEmpty()&&ModelRegistry.rule("display_units",de,null,null).oemNote.isEmpty(),"Regional notes");
+        check(max.support==CapabilityResolver.Support.INCOMPATIBLE&&max.reason==CapabilityResolver.Reason.REGION_RULE&&max.variant==null&&!max.oemNote.isEmpty(),
+            "DE UT5 MAX has no Top speed, as in the official app");
+        ModelRegistry.Rule start=ModelRegistry.rule("start_speed",de,null,null);
+        check(start.support==CapabilityResolver.Support.KNOWN_ENCODING&&start.reason==CapabilityResolver.Reason.NONE&&start.variant.id.equals("start_speed.ut5_3_5")
+            &&java.util.Arrays.equals(start.variant.values,new int[]{3,4,5})&&start.variant.decode==FeatureVariant.Decode.UT5_FEATURE
+            &&start.evidence==CapabilityResolver.Evidence.VOLT_VERIFIED&&start.oemNote.isEmpty(),"DE UT5 MAX kick-start: the catalogue field, 3–5 km/h, no note");
+        check(!ModelRegistry.rule("headlight",de,null,null).oemNote.isEmpty()&&!ModelRegistry.rule("line_light",de,null,null).oemNote.isEmpty()
+            &&ModelRegistry.rule("display_units",de,null,null).oemNote.isEmpty()&&ModelRegistry.rule("cruise_control",de,null,null).support==CapabilityResolver.Support.KNOWN_ENCODING,
+            "Other regional rules stay notes");
+        for(String area:new String[]{"CN","RU"}){
+            DeviceDescriptor bucket=serial("Q2538ZZ9"+area+"7777777");
+            check(ModelRegistry.rule("maximum_speed",bucket,null,null).variant.id.equals("maximum_speed.ut5")&&ModelRegistry.rule("start_speed",bucket,null,null).variant.id.equals("start_speed.ut5")
+                &&ModelRegistry.rule("start_speed",bucket,null,null).oemNote.isEmpty(),"A "+area+" UT5 MAX is in the official app's USA bucket");
+        }
         DeviceDescriptor none=serial("Q2538ZZ9US777777");
         check(none.region==null&&ModelRegistry.rule("maximum_speed",none,null,null).support==CapabilityResolver.Support.KNOWN_ENCODING
             &&!ModelRegistry.rule("maximum_speed",none,null,null).oemNote.isEmpty()&&!ModelRegistry.rule("cruise_control",none,null,null).oemNote.isEmpty()
-            &&!ModelRegistry.rule("headlight",none,null,null).oemNote.isEmpty()&&ModelRegistry.rule("display_units",none,null,null).oemNote.isEmpty(),"No-region UT5 MAX keeps controls, with the OEM's strictest notes");
-        check(!ModelRegistry.rule("maximum_speed",serial("Q2538ZZ9us7777777"),null,null).oemNote.isEmpty(),"Lowercase US region is not the OEM's USA bucket");
+            &&ModelRegistry.rule("start_speed",none,null,null).variant.id.equals("start_speed.ut5")&&!ModelRegistry.rule("start_speed",none,null,null).oemNote.isEmpty()
+            &&!ModelRegistry.rule("headlight",none,null,null).oemNote.isEmpty()&&ModelRegistry.rule("display_units",none,null,null).oemNote.isEmpty(),
+            "No-region UT5 MAX keeps today's controls, with the OEM's strictest notes");
+        for(DeviceDescriptor sim:new DeviceDescriptor[]{DeviceDescriptor.simulated("",0),DeviceDescriptor.simulated("",0,"DE")})
+            check(sim.region==null&&ModelRegistry.rule("maximum_speed",sim,null,null).variant.id.equals("maximum_speed.ut5")
+                &&ModelRegistry.rule("start_speed",sim,null,null).variant.id.equals("start_speed.ut5"),"The UT5 MAX simulator never takes a region: Top speed and 0–5 km/h stay");
+        check(ModelRegistry.rule("maximum_speed",serial("Q2538ZZ9us7777777"),null,null).reason==CapabilityResolver.Reason.REGION_RULE,
+            "Lowercase us is not the OEM's USA bucket (its area is NA)");
         ModelRegistry.Rule lock=ModelRegistry.rule("lock",advertised("39991"),null,null);
         check(lock.support==CapabilityResolver.Support.KNOWN_ENCODING&&lock.evidence==CapabilityResolver.Evidence.SHARED_CONTRACT&&lock.variant==ModelRegistry.SHARED_LOCK,"Shared lock contract");
         check(ModelRegistry.rule("display_units",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("charge_limit",advertised("24431"),null,null).evidence==CapabilityResolver.Evidence.OEM_MAPPED
             &&ModelRegistry.rule("drive_speed_limit",advertised("24431"),null,null).reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED,"OEM-mapped rows; the D-mode cap stays unmapped");
-        check(ModelRegistry.VERSION==16,"Registry version records the experimental table (including not-mapped tries) alongside the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the regional unions and control tables");
+        check(ModelRegistry.VERSION==17,"Registry version records the official region rules for Top speed and kick-start, beside the experimental table (including not-mapped tries), the known N65i, ST3 Pro (with its owner-verified controls), GT5 Max, GT3 Max, UT5 Ultra X and XT5 Pro, the other regional unions and control tables");
         check(ModelRegistry.rule("display_units",both("Q2547ZZ9US7777777","25381"),null,null).reason==CapabilityResolver.Reason.IDENTITY_CONFLICT,"Conflict reason");
         boolean unknownKey=false;try{ModelRegistry.rule("not_a_feature",us,null,null);}catch(IllegalArgumentException expected){unknownKey=true;}
         check(unknownKey,"Unknown keys are rejected");

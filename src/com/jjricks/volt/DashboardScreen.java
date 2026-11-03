@@ -93,7 +93,7 @@ public final class DashboardScreen implements AppScreen {
         config = new DashboardConfig(preferences, profileId,
                 host.activity().getResources().getConfiguration().screenWidthDp >= 650, modelTiles);
         restoreUndoKey = "dashboard_restore_undo_v1_" + profileId;
-        reconcileModelTiles(modelTiles);
+        reconcileModelTiles(modelTiles, profile == null ? null : ModelTiles.previousSettingTiles(profile.savedDescriptor()));
         editing = preferences.getBoolean("dashboard_editing", false);
         view = column();
         // Home header: a muted status line, the scooter name and a round edit button.
@@ -730,7 +730,7 @@ public final class DashboardScreen implements AppScreen {
             modelIdentity = identity(current);
             java.util.List<String> tiles = current == null ? ModelTiles.DEFAULT : ModelTiles.settingTiles(current.savedDescriptor());
             config.modelTiles(tiles);
-            if (reconcileModelTiles(tiles)) { render(); return; }
+            if (reconcileModelTiles(tiles, current == null ? null : ModelTiles.previousSettingTiles(current.savedDescriptor()))) { render(); return; }
         }
         boolean live = service != null && service.ble.ready();
         long last = 0;
@@ -6288,12 +6288,13 @@ public final class DashboardScreen implements AppScreen {
     private String modelIdentity = "";
 
     /**
-     * Untouched default Setting tiles become the model's own and are saved. A pending Restore defaults Undo that
-     * points at exactly those defaults is moved along with them, so adapting never ends the Undo offer.
+     * Untouched default Setting tiles, or an untouched earlier pick for this model (previous: one with a Top speed tile from
+     * before registry version 17), become the model's own and are saved. A pending Restore defaults Undo that points at
+     * exactly those tiles is moved along with them, so adapting never ends the Undo offer.
      */
-    private boolean reconcileModelTiles(java.util.List<String> tiles) {
+    private boolean reconcileModelTiles(java.util.List<String> tiles, java.util.List<String> previous) {
         String before = config.storedWidgetsJson();
-        if (!config.adaptSettingTiles(tiles)) return false;
+        if (!config.adaptSettingTiles(tiles, previous)) return false;
         config.save();
         if (before != null && preferences.contains(restoreUndoKey)) {
             try {

@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- **Top speed** and **Kick-start speed** now follow the official NAVEE app's region rules on every model, instead of offering every region's choices. Top speed appears only when the scooter's serial number is from the US, China or Russia, and kick-start speeds below 3 km/h (Standing start, 1 and 2 km/h) only there too; elsewhere, and on 2504–2506 models, kick-start offers 3–5 km/h. A Spanish GT3 Max acknowledged those changes but kept its old values, so it now shows what its official app shows instead of **Unconfirmed here**. A scooter already set below 3 km/h shows that speed and can be moved to 3–5 km/h, and a Top speed tile Volt put on Home earlier is swapped for a control the scooter offers. A US UT5 MAX is unchanged, and every other control keeps its current choices (cruise control stays on the European GT5 Max).
+
 ## 1.11.1 — 2026-11-02
 
 - Owner setup now works on Android 11 and older, from both the setup page and the app's **Use Shizuku on this phone** (which needs Android 11). Their log reader can't filter by app, so capture failed there. It now reads each log line with the app that wrote it, as Android records it, and keeps only NAVEE's. If the phone refuses the read or the read fails partway, both say Volt couldn't read NAVEE's log, instead of reporting that nothing arrived.

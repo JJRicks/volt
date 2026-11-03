@@ -15,7 +15,7 @@ public final class OemControlsTest {
         batch1Tables(); batch1Firmware(); batch1Region(); batch1Fields(); batch1Frames(); batch1Rules();
         batch2MaximumSpeed(); batch2SpeedLimit(); batch2StartSpeed(); batch2Energy(); batch2Frames();
         batch3Zones(); batch3GroupS(); batch3Frames();
-        regionalUnion(); quickAccessFollowsDecision();
+        regionalUnion(); officialSpeedRules(); quickAccessFollowsDecision();
         System.out.println("OemControls tests passed: "+assertions+" assertions");
     }
 
@@ -286,7 +286,7 @@ public final class OemControlsTest {
     static int[] span(int from,int to){int[] out=new int[to-from+1];for(int i=0;i<out.length;i++)out[i]=from+i;return out;}
     static int[] off(int[] kmh){int[] out=new int[kmh.length+1];System.arraycopy(kmh,0,out,1,kmh.length);return out;}
 
-    /** Maximum speed: the OEM table per prefix (never probed), regional provenance, K/C firmware and the fifth digit. */
+    /** Maximum speed: the OEM table per prefix (never probed), the official region rule, K/C firmware and the fifth digit. */
     private static void batch2MaximumSpeed() {
         byte[] d=data();d[25]=25; // 25 km/h is in every table
         Object[][] tables={{"24021",ints(25,32)},{"27041",ints(25,32)},{"24421",ints(25,32)},{"25191",ints(25,32)},{"27011",ints(25,32)},{"24169",ints(25,32,40,50)},
@@ -306,11 +306,16 @@ public final class OemControlsTest {
         check(decide("maximum_speed",model("2543"),d).reason==CapabilityResolver.Reason.FULL_PID_NEEDED&&decide("maximum_speed",model("2799"),d).reason==CapabilityResolver.Reason.FULL_PID_NEEDED,"Fifth digit needed");
         for(String pid:new String[]{"28081","26111","27531","25731","26341","23141","24171","25041","25061","22131","26231","27821"})
             check(reason("maximum_speed",model(pid),d).equals("MODEL_EXCLUDED"),"No maximum speed row on "+pid);
-        for(String area:new String[]{"US","CN","RU","EU","DE","IT","NE","NL","ZZ","us"}){
+        // Version 17: the official app's row rule (USA bucket: US, CN and RU serial areas), not the regional union.
+        for(String area:new String[]{"US","CN","RU"}){
             CapabilityResolver.Decision x=decide("maximum_speed",model("24431",area),d);
-            check(x.available()&&Arrays.equals(x.values(),ints(25,32,45,50)),"Same-model max speed regardless of region "+area+" "+x);}
-        check(decide("maximum_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).available(),"No region retains mapped maximum speed");
-        check(decide("maximum_speed",model("26201","EU"),d).available(),"2620's EU visibility needs no server");
+            check(x.available()&&Arrays.equals(x.values(),ints(25,32,45,50))&&x.oemNote.isEmpty(),"USA bucket keeps this model's max speed table "+area+" "+x);}
+        for(String area:new String[]{"EU","ES","DE","IT","NE","NL","AT","ZZ","us"}){
+            CapabilityResolver.Decision x=decide("maximum_speed",model("24431",area),d);
+            check(x.support==CapabilityResolver.Support.INCOMPATIBLE&&x.reason==CapabilityResolver.Reason.REGION_RULE&&x.variant==null&&x.values().length==0,"No Top speed outside the USA bucket "+area+" "+x);}
+        check(decide("maximum_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).reason==CapabilityResolver.Reason.REGION_RULE,"No region is the official app's EUR bucket: no Top speed");
+        check(decide("maximum_speed",model("26201","EU"),d).reason==CapabilityResolver.Reason.REGION_RULE,"2620 EU: the official app's server-location branch counts as not shown");
+        check(decide("maximum_speed",model("26201","US"),d).available(),"2620 US keeps Top speed");
         // K and C: blocked below meter 2.0.1.2; equal passes; unknown fails closed; lexicographic order.
         String[][] fw={{"2.0.1.2",A},{"2.0.1.1","FIRMWARE_OLD"},{"2.0.0.9","FIRMWARE_OLD"},{"2.0.2.0",A},{"2.0.10.0",A},{null,"FIRMWARE_UNKNOWN"}};
         for(String pid:new String[]{"24011","23451","27141","24021","24031","24181","27041"})for(String[] f:fw){
@@ -359,14 +364,14 @@ public final class OemControlsTest {
         check(ut5.variant.lab&&ut5.variant.id.equals("speed_limit.ut5"),"UT5 MAX keeps the Lab cap");
     }
 
-    /** Kick-start speed: same-model regional union 0-5, group M remains 3-5; firmware gates remain. */
+    /** Kick-start speed: the row keeps the regional union; 0-2 km/h only in the official app's USA bucket outside group M; firmware gates remain. */
     private static void batch2StartSpeed() {
         byte[] d=data();d[19]=3;
-        Object[][] rows={{"24431","US",span(0,5)},{"24431","CN",span(0,5)},{"24431","RU",span(0,5)},{"24431","EU",span(0,5)},{"24431","DE",span(0,5)},{"24431","ZZ",span(0,5)},
-            {"25471","US",span(0,5)},{"24411","US",span(0,5)},{"24421","IT",span(0,5)},{"25451","US",span(0,5)},{"26191","NE",span(0,5)},{"26111","US",span(0,5)},
-            {"25731","EU",span(0,5)},{"25091","US",span(0,5)},{"25431","US",span(0,5)},{"24491","DE",span(0,5)},{"26231","US",span(0,5)},{"27821","US",span(0,5)},
-            {"25041","US",span(3,5)},{"25061","RU",span(3,5)},{"27011","US",span(0,5)},{"27451","IT",span(0,5)},{"27811","ZZ",span(0,5)},{"26571","US",span(0,5)},
-            {"26581","EU",span(0,5)},{"27071","UK",span(0,5)},{"27991","US",span(0,5)},{"28001","SE",span(0,5)}};
+        Object[][] rows={{"24431","US",span(0,5)},{"24431","CN",span(0,5)},{"24431","RU",span(0,5)},{"24431","EU",span(3,5)},{"24431","DE",span(3,5)},{"24431","ZZ",span(3,5)},
+            {"25471","US",span(0,5)},{"24411","US",span(0,5)},{"24421","IT",span(3,5)},{"25451","US",span(0,5)},{"26191","NE",span(3,5)},{"26111","US",span(0,5)},
+            {"25731","EU",span(3,5)},{"25091","US",span(0,5)},{"25431","US",span(0,5)},{"24491","DE",span(3,5)},{"26231","US",span(0,5)},{"27821","US",span(0,5)},
+            {"25041","US",span(3,5)},{"25061","RU",span(3,5)},{"27011","US",span(0,5)},{"27451","IT",span(3,5)},{"27811","ZZ",span(3,5)},{"26571","US",span(0,5)},
+            {"26581","EU",span(3,5)},{"27071","UK",span(3,5)},{"27991","US",span(0,5)},{"28001","SE",span(3,5)},{"26201","EU",span(3,5)},{"26201","US",span(0,5)}};
         for(Object[] r:rows){DeviceDescriptor dev=model((String)r[0],(String)r[1]);check(reason("start_speed",dev,d).equals(A),"Start speed "+r[0]+" "+r[1]+" "+decide("start_speed",dev,d));values("start_speed",dev,d,(int[])r[2]);}
         // Formerly regional members retain the same-model choices even with no region or DE.
         for(String pid:new String[]{"27011","27451","27811","26571","26581","27071","27991","28001"}){
@@ -374,7 +379,8 @@ public final class OemControlsTest {
             DeviceDescriptor invalid=ModelRegistryTest.both("Q"+pid.substring(0,4)+"ZZ9US777777",pid);
             check(invalid.region==null&&reason("start_speed",invalid,d).equals(A),"No region retains start speed on "+pid);
         }
-        check(reason("start_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).equals(A)&&Arrays.equals(decide("start_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).values(),span(0,5)),"Mapped members keep full same-model choices without a region");
+        check(reason("start_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).equals(A)&&Arrays.equals(decide("start_speed",ModelRegistryTest.both("Q2443ZZ9US777777","24431"),d).values(),span(3,5)),
+            "Without a region (the official app's EUR bucket) the row stays, with 3-5 km/h");
         for(String pid:new String[]{"28081","24171","24221","22131","24361"})check(reason("start_speed",model(pid),d).equals("MODEL_EXCLUDED"),"No start speed on "+pid);
         // Firmware: K/C below 2.0.1.2; 2314 by fifth digit (1: below 0.0.0.8; 2: below 2.0.0.9; others: none).
         Object[][] fw={{"24011","2.0.1.2",A},{"24011","2.0.1.1","FIRMWARE_OLD"},{"24011",null,"FIRMWARE_UNKNOWN"},{"24181","2.0.1.3",A},
@@ -383,23 +389,38 @@ public final class OemControlsTest {
         for(Object[] f:fw){CapabilityResolver.Decision x=decide("start_speed",firmware((String)f[0],(String)f[1]),d);
             check((x.available()?A:x.reason.name()).equals(f[2]),"Start speed "+f[0]+" meter "+f[1]+" "+x);}
         check(reason("start_speed",model("2314"),d).equals("FULL_PID_NEEDED"),"2314 needs the fifth digit");
-        // Readback offset 19 exact; 0-2 show the official app's caution; 3-5 on a 3-5 model read 0 as unknown.
+        // Readback offset 19 exact; 0-2 show the official app's caution where offered. A 3-5 model already below 3 km/h (set where
+        // 0-2 are offered, or before version 17) shows that speed and offers only 3-5; anything above 5 is unknown.
         check(decide("start_speed",model("24431"),Arrays.copyOf(d,19)).reason==CapabilityResolver.Reason.FIELD_ABSENT,"Truncated before offset 19");
-        byte[] zero=d.clone();zero[19]=0;check(decide("start_speed",model("25041","EU"),zero).reason==CapabilityResolver.Reason.VALUE_UNKNOWN&&decide("start_speed",model("24431","EU"),zero).current()==0,"0 is allowed by regional union but remains outside group M");
-        byte[] six=d.clone();six[19]=6;check(decide("start_speed",model("24431"),six).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"6 is outside every domain");
+        for(int low=0;low<=2;low++){
+            byte[] slow=d.clone();slow[19]=(byte)low;
+            for(DeviceDescriptor dev:new DeviceDescriptor[]{model("25041","EU"),model("25041","US"),model("24431","EU"),model("24182","ES")}){
+                DeviceDescriptor read=ModelRegistry.any(dev,ModelRegistry.C)?firmware(dev.rulePid(),dev.region,"2.0.4.6"):dev;
+                CapabilityResolver.Decision x=decide("start_speed",read,slow);
+                check(x.available()&&x.current()==low&&Arrays.equals(x.values(),span(3,5))&&!x.allows(low)&&(low+" km/h").equals(x.label(low)),"Shown, not offered: "+low+" on "+dev+" "+x);
+                StatusFields s=status(slow);
+                check(CapabilityResolver.admit("start_speed",low,read,s,CapabilityResolverTest.parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED
+                    &&CapabilityResolver.admit("start_speed",4,read,s,CapabilityResolverTest.parked()).available(),"Never sent, and 4 replaces it: "+low+" on "+dev);
+            }
+        }
+        byte[] six=d.clone();six[19]=6;
+        check(decide("start_speed",model("24431"),six).reason==CapabilityResolver.Reason.VALUE_UNKNOWN&&decide("start_speed",model("24431","EU"),six).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"6 is outside every domain");
         for(int v=0;v<=5;v++)check((ModelRegistry.caution(decide("start_speed",model("24431"),d),v)!=null)==(v<3),"Caution below 3 km/h: "+v);
-        CapabilityResolver.Decision ut5=decide("start_speed",ModelRegistryTest.serial("Q2538ZZ9DE7777777"),d);
-        check(ut5.variant.id.equals("start_speed.ut5")&&ut5.allows(0)&&ut5.allows(5)&&ModelRegistry.caution(ut5,0)==null,"Every UT5 MAX keeps 0-5 and no prompt");
+        CapabilityResolver.Decision ut5=decide("start_speed",ModelRegistryTest.serial("Q2538ZZ9US7777777"),d);
+        check(ut5.variant.id.equals("start_speed.ut5")&&ut5.allows(0)&&ut5.allows(5)&&ModelRegistry.caution(ut5,0)==null,"The US UT5 MAX keeps 0-5 and no prompt");
+        CapabilityResolver.Decision ut5De=decide("start_speed",ModelRegistryTest.serial("Q2538ZZ9DE7777777"),d);
+        check(ut5De.variant.id.equals("start_speed.ut5_3_5")&&!ut5De.allows(2)&&ut5De.allows(3)&&ModelRegistry.caution(ut5De,3)==null,"A DE UT5 MAX gets 3-5 and no prompt");
     }
 
     /**
-     * All known standard model IDs retain the same six riding-control decisions across regions,
+     * All known standard model IDs retain the same four riding-control decisions across regions,
      * including absent/unknown regions and either regional visibility flag. Explicit per-model
      * domain fixtures above independently establish the expected unions. Exercise admission and
      * encoded bytes too: presentation alone must never bypass the remaining runtime guards.
+     * Top speed and kick-start follow the official app's region rules instead (officialSpeedRules).
      */
     private static void regionalUnion() {
-        String[] keys={"cruise_control","energy_recovery","long_range_mode","maximum_speed","speed_limit","start_speed"};
+        String[] keys={"cruise_control","energy_recovery","long_range_mode","speed_limit"};
         String[] areas={"US","RU","CN","EU","DE","NL","AT","IT","SE","ZZ",null};
         int mapped=0;
         for(String prefix:ModelRegistry.LISTED){
@@ -443,24 +464,110 @@ public final class OemControlsTest {
             }
         }
         check(mapped>100,"Matrix covers mapped riding controls across the OEM model catalogue");
-        // Regional policy cannot waive meter version or full model ID evidence.
+        // Region rules cannot waive meter version or full model ID evidence (Top speed's region comes first: no row, nothing to gate).
         for(String area:areas)for(String key:new String[]{"maximum_speed","start_speed"}){
+            boolean row=key.equals("start_speed")||area!=null&&("US".equals(area)||"CN".equals(area)||"RU".equals(area));
             for(String pid:new String[]{"24011","27041"}){
-                check(decide(key,firmware(pid,area,null),data()).reason==CapabilityResolver.Reason.FIRMWARE_UNKNOWN,"Unknown firmware still refused: "+key+" "+area);
-                check(decide(key,firmware(pid,area,"2.0.1.1"),data()).reason==CapabilityResolver.Reason.FIRMWARE_OLD,"Old firmware still refused: "+key+" "+area);
+                check(decide(key,firmware(pid,area,null),data()).reason==(row?CapabilityResolver.Reason.FIRMWARE_UNKNOWN:CapabilityResolver.Reason.REGION_RULE),"Unknown firmware still refused: "+key+" "+area);
+                check(decide(key,firmware(pid,area,"2.0.1.1"),data()).reason==(row?CapabilityResolver.Reason.FIRMWARE_OLD:CapabilityResolver.Reason.REGION_RULE),"Old firmware still refused: "+key+" "+area);
             }
             String prefix=key.equals("maximum_speed")?"2543":"2314";
-            check(decide(key,firmware(prefix,area,"9.9.9.9"),data()).reason==CapabilityResolver.Reason.FULL_PID_NEEDED,"Full PID still required: "+key+" "+area);
+            check(decide(key,firmware(prefix,area,"9.9.9.9"),data()).reason==(row?CapabilityResolver.Reason.FULL_PID_NEEDED:CapabilityResolver.Reason.REGION_RULE),"Full PID still required: "+key+" "+area);
         }
+        // The UT5 MAX: a US (CN, RU) serial or none keeps Top speed and the 0–5 slider; another serial region follows the official app.
         for(String area:areas){
             DeviceDescriptor ut5=firmware("25381",area,"9.9.9.9");
+            boolean usa=area==null||"US".equals(area)||"CN".equals(area)||"RU".equals(area);
             byte[] d=data();d[25]=25;
-            values("maximum_speed",ut5,d,ints(25,32,40,50));
             CapabilityResolver.Decision start=decide("start_speed",ut5,d);
-            check(start.values().length==0&&start.variant.min==0&&start.variant.max==5&&start.variant.step==1,
-                "UT5 retains the continuous 0–5 slider, not the OEM choice sheet: "+area);
+            if(usa){
+                values("maximum_speed",ut5,d,ints(25,32,40,50));
+                check(start.values().length==0&&start.variant.min==0&&start.variant.max==5&&start.variant.step==1,
+                    "UT5 retains the continuous 0–5 slider, not the OEM choice sheet: "+area);
+            }else{
+                check(decide("maximum_speed",ut5,d).reason==CapabilityResolver.Reason.REGION_RULE,"UT5 MAX outside the USA bucket has no Top speed: "+area);
+                check(Arrays.equals(start.values(),span(3,5))&&start.available()&&start.variant.decode==FeatureVariant.Decode.UT5_FEATURE,"UT5 MAX outside the USA bucket: 3–5 km/h kick-start: "+area);
+            }
             check(decide("speed_limit",ut5,d).variant.lab,"UT5 experimental speed cap unchanged: "+area);
+            check(decide("cruise_control",ut5,d).available(),"UT5 cruise control unchanged: "+area);
         }
+    }
+
+    /**
+     * Version 17 (owner decision): Top speed and kick-start's 0–2 km/h follow OEM 2.1.9 on every model. Top speed: the
+     * More screen's row (DeviceMoreActionActivity.onCreate) needs skuVersion USA and a 2509/S/Q/H/K/L/B/C/D/O/G model, or
+     * a 2620 EU scooter the official app's server located in Russia (not visible to Volt: not shown). Kick-start 0–2:
+     * StartupSpeedActivity.onCreate needs a model outside group M and the same region test.
+     */
+    private static void officialSpeedRules() {
+        String[] areas={"US","CN","RU","EU","ES","DE","IT","NE","NL","AT","FR","UK","SE","ZZ","us",null};
+        byte[] d=data();d[25]=25;d[19]=3;
+        int rows=0,lows=0;
+        for(String prefix:ModelRegistry.LISTED){
+            String pid=prefix.length()==4?prefix+"1":prefix;
+            if(ModelRegistry.resolve(firmware(pid,"US","9.9.9.9")).layer!=ModelRegistry.Layer.OEM_GROUP)continue;
+            boolean m=ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.M);
+            boolean listed=ModelRegistry.any(firmware(pid,"US",null),"2509")||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.S)
+                ||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.Q)||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.H)
+                ||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.K)||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.L)
+                ||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.B)||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.C)
+                ||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.D)||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.O)
+                ||ModelRegistry.any(firmware(pid,"US",null),ModelRegistry.G);
+            for(String area:areas){
+                DeviceDescriptor dev=firmware(pid,area,"9.9.9.9");
+                boolean usa="US".equals(area)||"CN".equals(area)||"RU".equals(area);
+                String context=pid+" "+area;
+                CapabilityResolver.Decision top=decide("maximum_speed",dev,d);
+                if(!listed)check(top.reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"No Top speed row on this model: "+context+" "+top);
+                else if(!usa)check(top.support==CapabilityResolver.Support.INCOMPATIBLE&&top.reason==CapabilityResolver.Reason.REGION_RULE&&top.variant==null,"Top speed hidden outside the USA bucket: "+context+" "+top);
+                else{check(top.available()&&top.variant.feature.equals("maximum_speed"),"Top speed in the USA bucket: "+context+" "+top);rows++;}
+                // Never reachable where hidden: no ordinary change, no Experimental try, no guided test.
+                if(!top.available())for(int kmh:new int[]{25,32,45}){
+                    check(!CapabilityResolver.admit("maximum_speed",kmh,dev,status(d),CapabilityResolverTest.parked()).available(),"Hidden Top speed never admitted: "+context);
+                    check(!CapabilityResolver.decideTry("maximum_speed",dev,status(d),CapabilityResolverTest.parked()).available(),"Hidden Top speed never tried: "+context);
+                }
+                check(!CapabilityResolver.decideTest("maximum_speed",dev,status(d),CapabilityResolverTest.parked()).available(),"Top speed is never a guided test: "+context);
+                CapabilityResolver.Decision start=decide("start_speed",dev,d);
+                if(start.support!=CapabilityResolver.Support.KNOWN_ENCODING)continue;
+                boolean low=!m&&usa;
+                check(start.variant==(low?ModelRegistry.START_0_5:ModelRegistry.START_3_5),"Kick-start range "+context+" "+start.variant);
+                if(!start.available())continue; // a fifth-digit model keeps its full-ID gate
+                check(Arrays.equals(start.values(),low?span(0,5):span(3,5)),"Kick-start choices "+context+" "+Arrays.toString(start.values()));
+                for(int v=0;v<=2;v++)check(CapabilityResolver.admit("start_speed",v,dev,status(d),CapabilityResolverTest.parked()).available()==low,"Kick-start "+v+" admitted only where offered: "+context);
+                if(low)lows++;
+            }
+        }
+        check(rows>100&&lows>100,"Matrix covers the USA bucket across the OEM catalogue: "+rows+" Top speed, "+lows+" low kick-start");
+        // The owner's named cases.
+        DeviceDescriptor gt3=firmware("24182","ES","2.0.4.6");
+        check(decide("maximum_speed",gt3,d).reason==CapabilityResolver.Reason.REGION_RULE&&Arrays.equals(decide("start_speed",gt3,d).values(),span(3,5))
+            &&decide("start_speed",gt3,d).available(),"EU (ES) GT3 Max: 3-5 km/h and no Top speed, as its official app");
+        check(Arrays.equals(decide("start_speed",firmware("24182","US","2.0.4.6"),d).values(),span(0,5))&&decide("maximum_speed",firmware("24182","US","2.0.4.6"),d).available()
+            &&Arrays.equals(decide("maximum_speed",firmware("24182","US","2.0.4.6"),d).values(),ints(25,32)),"A US GT3 Max would get 0-5 and its 25/32 table");
+        DeviceDescriptor ut5=ModelRegistryTest.serial("Q2538ZZ9US7777777");
+        check(decide("start_speed",ut5,d).variant.id.equals("start_speed.ut5")&&decide("start_speed",ut5,d).allows(0)&&decide("maximum_speed",ut5,d).variant.id.equals("maximum_speed.ut5")
+            &&decide("maximum_speed",ut5,d).available(),"US UT5 MAX keeps 0-5 and Top speed");
+        check(Arrays.equals(decide("start_speed",model("26201","EU"),d).values(),span(3,5))&&decide("maximum_speed",model("26201","EU"),d).reason==CapabilityResolver.Reason.REGION_RULE,
+            "2620 EU: 3-5 and no Top speed (Volt can't see the official app's location cache)");
+        check(Arrays.equals(decide("start_speed",model("25041","US"),d).values(),span(3,5))&&decide("maximum_speed",model("25041","US"),d).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,
+            "A 2504-prefix USA model: 3-5 (PID.m) and no Top speed row (it opens the plugins screen)");
+        check(Arrays.equals(decide("start_speed",model("24431","RU"),d).values(),span(0,5))&&decide("maximum_speed",model("24431","CN"),d).available(),"RU and CN share the USA bucket");
+        // The developer simulator: another simulated model follows its synthetic serial region; the UT5 MAX simulator never takes one.
+        CapabilityResolver.Runtime sim=new CapabilityResolver.Runtime();sim.simulation=true;sim.ready=true;
+        for(String area:new String[]{"US","ES",null}){
+            DeviceDescriptor simulated=DeviceDescriptor.simulated("24431",0,area);boolean usa="US".equals(area);
+            CapabilityResolver.Decision top=CapabilityResolver.decide("maximum_speed",simulated,StatusFields.NONE,sim),start=CapabilityResolver.decide("start_speed",simulated,StatusFields.NONE,sim);
+            check(usa?top.available():top.reason==CapabilityResolver.Reason.REGION_RULE,"Simulated 24431 "+area+" Top speed "+top);
+            check(Arrays.equals(start.values(),usa?span(0,5):span(3,5))&&CapabilityResolver.admit("start_speed",0,simulated,StatusFields.NONE,sim).available()==usa
+                &&CapabilityResolver.admit("start_speed",4,simulated,StatusFields.NONE,sim).available(),"Simulated 24431 "+area+" kick-start "+Arrays.toString(start.values()));
+        }
+        DeviceDescriptor simUt5=DeviceDescriptor.simulated("",0,"DE");
+        check(simUt5.region==null&&CapabilityResolver.decide("maximum_speed",simUt5,StatusFields.NONE,sim).available()
+            &&CapabilityResolver.admit("start_speed",0,simUt5,StatusFields.NONE,sim).available(),"The UT5 MAX simulator keeps Top speed and 0-5 km/h whatever region is chosen");
+        // Same bytes and readback as the 0–5 table and the catalogue for every offered 3–5 value.
+        for(int v=3;v<=5;v++)check(Arrays.equals(ModelRegistry.START_3_5.encode(v),ModelRegistry.START_0_5.encode(v))&&Arrays.equals(ModelRegistry.START_3_5.encode(v),ScooterCommands.set("start_speed",v)),"Kick-start bytes "+v);
+        boolean refused=false;try{ModelRegistry.START_3_5.encode(2);}catch(IllegalArgumentException expected){refused=true;}
+        check(refused,"A shown kick-start below 3 km/h is never encoded");
     }
 
     /** Quick Access tiles: the decided variant labels the value and decides direct toggles; the UT5 MAX is unchanged. */

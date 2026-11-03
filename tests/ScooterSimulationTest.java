@@ -100,6 +100,15 @@ public final class ScooterSimulationTest {
         rejects(() -> simulation.set("pin", 0));
         rejects(() -> simulation.set("charge_start", 0));
         rejects(() -> simulation.set("unknown", 1));
+        // A UT5 MAX variant with its own narrower list (a non-US UT5 MAX's 3-5 km/h kick-start) refuses the catalogue's other values.
+        FeatureVariant narrowed = ModelRegistry.rule("start_speed", DeviceDescriptor.of("Q2538ZZ9DE7777777", "", 0, null, false, DeviceDescriptor.Transport.STANDARD, 0), null, null).variant;
+        check(narrowed.decode == FeatureVariant.Decode.UT5_FEATURE && narrowed.values.length == 3, "Non-US UT5 MAX kick-start variant: " + narrowed);
+        rejects(() -> simulation.set("start_speed", 2, narrowed));
+        simulation.set("start_speed", 4, narrowed);
+        check(simulation.featureValue("start_speed") == 4, "A narrowed UT5 MAX value is kept");
+        simulation.set("start_speed", 0, ModelRegistry.rule("start_speed", DeviceDescriptor.simulated("", 0), null, null).variant);
+        check(simulation.featureValue("start_speed") == 0, "The UT5 MAX simulator keeps Standing start");
+        simulation.set("start_speed", 3);
         rejects(() -> simulation.setChargeStart(-1, 0));
         rejects(() -> simulation.setChargeStart(Long.MAX_VALUE, 86400));
         rejects(() -> simulation.setChargeStart(1800000000, 999999));

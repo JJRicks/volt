@@ -28,15 +28,17 @@ import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
 
 /**
- * Fresh disposable emulator only. Home follows a known model (the GT5 Max, Model ID 25462): its default
- * Setting tiles swap scheduled charging, which its official app doesn't offer, for cruise control and keep
- * Top speed, including when an open Home learns the model and when defaults are restored (whose Undo survives
- * a rebuild); an owner's own tile choice is never touched; its reported drive modes read DRIVE and SPORT;
- * and a Top speed outside the model's choices shows a dash, not a raw number.
+ * Fresh disposable emulator only. Home follows a known model (the GT5 Max, Model ID 25462, with no serial region,
+ * the official app's EUR bucket): its default Setting tiles swap Top speed and scheduled charging, which its official
+ * app doesn't offer there, for cruise control and energy recovery, including when an open Home learns the model, when
+ * defaults are restored (whose Undo survives a rebuild) and when a rebuilt Home still holds Volt's earlier pick with Top
+ * speed; an owner's own tile choice is never touched; its reported drive modes read DRIVE and SPORT; and on a simulated
+ * US GT5 Max a Top speed outside the model's choices shows a dash, not a raw number.
  */
 public final class ModelHomeValidation extends Instrumentation {
     private static final List<String> DEFAULT = Arrays.asList("feature:maximum_speed", "feature:timed_charging"),
-            GT5 = Arrays.asList("feature:maximum_speed", "feature:cruise_control");
+            GT5 = Arrays.asList("feature:cruise_control", "feature:energy_recovery"),
+            GT5_BEFORE = Arrays.asList("feature:maximum_speed", "feature:cruise_control");
     private Bundle arguments;
     private MainActivity activity;
     private int assertions;
@@ -65,19 +67,28 @@ public final class ModelHomeValidation extends Instrumentation {
                 invoke(field(activity, "screen"), "refresh", new Class<?>[0]);
             });
             settle();
-            // The GT5 Max dashboard: Top speed stays, Charge schedule becomes Cruise control, and that is saved.
+            // The GT5 Max dashboard outside the USA bucket: Top speed and Charge schedule become Cruise control and Energy recovery, saved.
             main(() -> {
                 DashboardConfig saved = new DashboardConfig(settings(), gt5Id);
                 require(GT5.equals(shortcuts(saved)), "The GT5 Max's default tiles were not adapted: " + shortcuts(saved));
                 View grid = root().findViewWithTag("setting-tiles");
-                require(grid != null && described(grid, "Top speed") && described(grid, "Cruise control") && !described(grid, "Charge schedule"), "Home does not show the GT5 Max tiles");
+                require(grid != null && described(grid, "Cruise control") && described(grid, "Energy recovery") && !described(grid, "Top speed")
+                        && !described(grid, "Charge schedule"), "Home does not show the GT5 Max tiles");
             });
             screenshot("home-gt5-tiles");
             restoreKeepsUndo();
+            earlierPickAdapts();
 
-            // Simulated GT5 Max: its reported codes 2 and 3 read DRIVE and SPORT; the simulator's 50 km/h isn't a GT5 Max choice.
+            // Simulated US GT5 Max: its reported codes 2 and 3 read DRIVE and SPORT; the simulator's 50 km/h isn't a GT5 Max choice.
+            // The owner puts Top speed on Home (offered for a US serial region).
+            main(() -> {
+                DashboardConfig config = (DashboardConfig) field(field(activity, "screen"), "config");
+                for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) { w.quickActions.clear(); w.quickActions.addAll(Arrays.asList("feature:maximum_speed", "feature:headlight")); }
+                config.save(); invoke(field(activity, "screen"), "render", new Class<?>[0]);
+            });
+            settle();
             main(() -> require(activity.service().setSimulation(true), "Simulation did not start")); settle();
-            main(() -> activity.service().ble.setSimulationModel("25462")); settle();
+            main(() -> { activity.service().ble.setSimulationRegion("US"); activity.service().ble.setSimulationModel("25462"); }); settle();
             await(() -> { AtomicReference<Boolean> ready = new AtomicReference<>(false); main(() -> ready.set(activity.service().ble.ready())); return ready.get(); }, "Simulated GT5 Max did not connect");
             simulateMode(2);
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false); main(() -> shown.set(text(root(), "DRIVE") != null)); return shown.get(); }, "Mode 2 does not read DRIVE");
@@ -88,7 +99,16 @@ public final class ModelHomeValidation extends Instrumentation {
                 main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, unreadable value") && !shownText(grid, "50 km/h") && !shownText(grid, "31 mph")); });
                 return shown.get(); }, "An unreadable Top speed shows a number instead of a dash");
             screenshot("home-gt5-sport");
-            main(() -> require(activity.service().setSimulation(false), "Simulation did not stop"));
+            // The same simulated GT5 Max with an EU serial: no Top speed there, so the owner's tile is muted, says so and opens nothing.
+            main(() -> activity.service().ble.setSimulationRegion("EU")); settle();
+            main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
+            await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false);
+                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, not on this model")); });
+                return shown.get(); }, "An EU GT5 Max Top speed tile is not muted as not on this model");
+            main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:maximum_speed")); settle();
+            main(() -> require(field(activity, "choiceSheet") == null && field(activity, "controlDialog") == null, "An EU GT5 Max Top speed tile opened a sheet"));
+            screenshot("home-gt5-eu-top-speed");
+            main(() -> { activity.service().ble.setSimulationRegion(null); require(activity.service().setSimulation(false), "Simulation did not stop"); });
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -142,6 +162,30 @@ public final class ModelHomeValidation extends Instrumentation {
         settle();
     }
 
+    /**
+     * A Home saved before Top speed followed the official app's regions holds Volt's earlier GT5 Max pick (Top speed and
+     * Cruise control). The rebuilt Home (as after an update) swaps exactly that pick for today's tiles and saves it.
+     */
+    private void earlierPickAdapts() throws Exception {
+        main(() -> {
+            DashboardConfig config = (DashboardConfig) field(field(activity, "screen"), "config");
+            for (DashboardConfig.Widget w : config.widgets) if (w.type.equals("shortcuts")) { w.quickActions.clear(); w.quickActions.addAll(GT5_BEFORE); }
+            config.save();
+        });
+        ActivityMonitor recreated = addMonitor(MainActivity.class.getName(), null, false);
+        main(() -> activity.recreate());
+        MainActivity next = (MainActivity) waitForMonitorWithTimeout(recreated, 10000); removeMonitor(recreated);
+        require(next != null && next != activity, "The Activity was not recreated");
+        activity = next; await(() -> activity.service() != null, "The recreated Activity did not bind"); settle();
+        main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "home")); settle();
+        main(() -> {
+            require(GT5.equals(shortcuts(new DashboardConfig(settings(), gt5Id))), "Volt's earlier GT5 Max pick was not replaced: " + shortcuts(new DashboardConfig(settings(), gt5Id)));
+            View grid = root().findViewWithTag("setting-tiles");
+            require(grid != null && !described(grid, "Top speed") && described(grid, "Cruise control"), "Home still shows the earlier Top speed tile");
+        });
+        screenshot("home-gt5-earlier-pick");
+    }
+
     /** Before Home opens: a dashboard whose owner chose other tiles keeps them; only the untouched pair adapts. */
     private void ownersChoiceKept() {
         main(() -> {
@@ -154,6 +198,13 @@ public final class ModelHomeValidation extends Instrumentation {
             require(!chosen.adaptSettingTiles(GT5) && owner.equals(tiles.quickActions), "An owner's tile choice was replaced");
             tiles.quickActions.clear(); tiles.quickActions.addAll(DEFAULT);
             require(!chosen.adaptSettingTiles(DEFAULT) && chosen.adaptSettingTiles(GT5) && GT5.equals(tiles.quickActions) && !chosen.adaptSettingTiles(GT5), "The default pair did not adapt exactly once");
+            // Volt's earlier pick (with Top speed) adapts once too; an owner's list holding Top speed is left alone.
+            tiles.quickActions.clear(); tiles.quickActions.addAll(GT5_BEFORE);
+            require(!chosen.adaptSettingTiles(GT5) && chosen.adaptSettingTiles(GT5, GT5_BEFORE) && GT5.equals(tiles.quickActions) && !chosen.adaptSettingTiles(GT5, GT5_BEFORE),
+                    "Volt's earlier GT5 Max pick did not adapt exactly once");
+            List<String> ownTop = Arrays.asList("feature:maximum_speed", "feature:headlight");
+            tiles.quickActions.clear(); tiles.quickActions.addAll(ownTop);
+            require(!chosen.adaptSettingTiles(GT5, GT5_BEFORE) && ownTop.equals(tiles.quickActions), "An owner's Top speed tile was replaced");
             scratch.edit().clear().commit();
             // A dashboard made for a known model starts with, and restores to, that model's tiles.
             DashboardConfig fresh = new DashboardConfig(scratch, "fresh", false, GT5);
