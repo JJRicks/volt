@@ -689,6 +689,7 @@ FMT_STRINGS = """<resources>
     <string name="units_kmh">km/h</string>
     <string name="units_mph">mph</string>
     <string name="units_watt">W</string>
+    <string name="units_mi">mi</string>
 </resources>
 """
 
@@ -708,8 +709,11 @@ class FormatRowTest(RepoCase):
     static String count(int n) { return n + " km/h"; }
     static String watts(double w) { return String.format(Locale.US, "%,.0f W", w); }
     static String range(double a, double b) { return String.format(Locale.US, "%.1f–%.1f mph", a, b); }
-    static String plain(int n) { return String.format("%d mph", n); }''')}
+    static String plain(int n) { return String.format("%d mph", n); }
+    static String either(double x, String u) { return String.format(Locale.US, "%.2f %s", x,
+        u.equals("km/h") ? "mph" : "mi"); }''')}
     FMT_TEST = "tests/l10n/FmtLegacyTest.java"
+    SOURCES = "tests/l10n/b1.sources"
     SPEED = [spec("%.1f", 1, "kmh / KM_PER_MILE", "Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)"), " ",
              unit("mph", "units_mph", 2)]
     SPEED_CALL = "T.fmtQuantity(Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1), T.unitsMph())"
@@ -719,7 +723,9 @@ class FormatRowTest(RepoCase):
         self.repo.write("res/values/strings_fmt.xml", FMT_STRINGS)
         self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { DisplayUnits.speed(1); "
                                                   "DisplayUnits.count(1); DisplayUnits.watts(1); DisplayUnits.range(1, 2); "
-                                                  "DisplayUnits.plain(1); }"))
+                                                  "DisplayUnits.plain(1); Fmt.decimal(Locale.US, 1, 1); "
+                                                  "Fmt.grouped(Locale.US, 1, 0); Fmt.integer(1); }"))
+        self.repo.write(self.SOURCES, "# G10\n%s  # parity\n" % self.FMT_TEST)
 
     def convert(self, old, new):
         self.repo.write(UNITS, self.text(UNITS).replace(old, new))
@@ -741,7 +747,7 @@ class FormatRowTest(RepoCase):
                       shown[0])
         self.assertIn('text "mph" -> units_mph', shown[0])
         self.assertIn("%.1f -> Fmt.decimal(Locale.US, kmh / KM_PER_MILE, 1)", shown[0])
-        self.assertIn("DisplayUnits.speed is called by %s" % self.FMT_TEST, shown[0])
+        self.assertIn("a method named DisplayUnits.speed is called by %s" % self.FMT_TEST, shown[0])
 
     def test_honest_plus_chain_passes(self):
         self.convert('n + " km/h"', "T.fmtQuantity(Fmt.integer(n), T.unitsKmh())")
@@ -837,10 +843,26 @@ class FormatRowTest(RepoCase):
         problems, _, _ = self.check([self.row(4, split)])
         self.assertTrue(any("G1 does not know which Fmt call prints like %5.1f" in p for p in problems), problems)
 
-    def test_the_method_needs_a_test(self):
-        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { DisplayUnits.count(1); }"))
-        problems, _, _ = self.speed()
-        self.assertTrue(any("no test under tests/l10n/ calls DisplayUnits.speed(...)" in p for p in problems), problems)
+    def test_each_fmt_method_needs_a_compiled_g10_test(self):
+        """Fmt.decimal must be called by a test tests/run.sh compiles; a call in a file no .sources list
+        names does not count."""
+        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { Fmt.integer(1); }"))
+        self.repo.write("tests/l10n/Notes.java", java_class("Notes", "    static void run() { Fmt.decimal(Locale.US, 1, 1); "
+                                                            "DisplayUnits.speed(1); }"))
+        problems, warnings, _ = self.speed()
+        self.assertTrue(any("passes Fmt.decimal, and no test that tests/run.sh compiles under tests/l10n/ calls it" in p
+                            for p in problems), problems)
+        self.assertFalse(any("Notes.java" in w for w in warnings), warnings)
+
+    def test_a_method_no_test_calls_is_listed_not_failed(self):
+        """A private or instance method (RidesScreen.speed) cannot be called from a plain JVM test; Fmt's
+        parity is G10's, so the site is named for the reviewer instead."""
+        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { Fmt.decimal(Locale.US, 1, 1); }"))
+        problems, warnings, _ = self.speed()
+        self.assertEqual(problems, [])
+        self.assertTrue(any("format row at %s:4" % UNITS in w and "no compiled test under tests/l10n/ calls "
+                            "DisplayUnits.speed(...), so check by hand that its values are ones G10 covers" in w
+                            for w in warnings), warnings)
 
     def test_specifiers_must_be_split_out_and_only_from_string_format(self):
         problems, _, _ = self.speed(split=["%.1f ", unit("mph", "units_mph", 1)])
@@ -853,6 +875,55 @@ class FormatRowTest(RepoCase):
                                                   {"hole": "n", "arg": 2, "type": "s"}, " km/h"])], ledger="b3")
         self.assertTrue(any("spec items split a String.format literal, which has no holes" in p for p in problems),
                         problems)
+
+    EITHER = [spec("%.2f", 1, "x", "Fmt.decimal(Locale.US, x, 2)"), " ",
+              spec("%s", 2, 'u.equals("km/h") ? "mph" : "mi"', 'u.equals("km/h") ? T.unitsMph() : T.unitsMi()')]
+    EITHER_ROWS = [UNITS + ':10\t["mph"]\tunits_mph\texact\tmanual: ternary unit argument of String.format',
+                   UNITS + ':10\t["mi"]\tunits_mi\texact\tmanual: ternary unit argument of String.format']
+
+    def either(self, unit_arg='u.equals("km/h") ? T.unitsMph() : T.unitsMi()', split=None, rows=None):
+        old = 'String.format(Locale.US, "%.2f %s", x,\n        u.equals("km/h") ? "mph" : "mi")'
+        self.assertIn(old, self.text(UNITS))
+        self.convert(old, "T.fmtQuantity(Fmt.decimal(Locale.US, x, 2),\n        %s)" % unit_arg)
+        if split is None:
+            split = self.EITHER[:2] + [dict(self.EITHER[2], **{"as": unit_arg})]
+        return self.check([self.row(9, split)] + (self.EITHER_ROWS if rows is None else rows))
+
+    def test_a_plain_s_specifier_passes_its_argument_through(self):
+        """DisplayUnits.metricText: "%.2f %s" with a ternary unit; each unit literal gets an exact row."""
+        problems, warnings, _ = self.either()
+        self.assertEqual(problems, [])
+        self.assertTrue(any("format row at %s:9" % UNITS in w and
+                            '%s -> u.equals("km/h") ? T.unitsMph() : T.unitsMi()' in w for w in warnings), warnings)
+
+    def test_a_plain_s_specifier_with_swapped_units_fails(self):
+        problems, _, _ = self.either('u.equals("km/h") ? T.unitsMi() : T.unitsMph()')
+        self.assertTrue(any("already used by another row, or comes before the call of an earlier row" in p
+                            for p in problems), problems)
+
+    def test_a_plain_s_specifier_with_a_wrong_unit_key_fails(self):
+        rows = [self.EITHER_ROWS[0].replace("units_mph", "units_kmh"), self.EITHER_ROWS[1]]
+        problems, _, _ = self.either('u.equals("km/h") ? T.unitsKmh() : T.unitsMi()', rows=rows)
+        self.assertTrue(any("units_kmh" in p and "km/h" in p and "mph" in p for p in problems), problems)
+
+    def test_a_plain_s_specifier_with_other_code_fails(self):
+        for unit_arg in ('u.equals("km/h") ? T.unitsMph().toUpperCase() : T.unitsMi()',
+                         'u.equals("mph") ? T.unitsMph() : T.unitsMi()', 'T.unitsMph()',
+                         'u.equals("km/h") ? T.unitsMph() : T.render(T.UNITS_MI)'):
+            problems, _, _ = self.either(unit_arg)
+            self.assertTrue(any("prints u.equals(\"km/h\") ? \"mph\" : \"mi\" as it is" in p for p in problems),
+                            (unit_arg, problems))
+            self.repo.write(UNITS, self.FILES[UNITS])
+
+    def test_a_plain_s_specifier_without_rows_for_its_literals_fails(self):
+        problems, _, _ = self.either(rows=[])
+        self.assertTrue(any('literal "mph" left with no ledger row' in p for p in problems), problems)
+        self.assertTrue(any('literal "mi" left with no ledger row' in p for p in problems), problems)
+
+    def test_only_a_plain_s_passes_through(self):
+        for text in ("%S", "%-5s", "%.3s"):
+            self.assertIsNotNone(ledger_check.spec_problem(spec(text, 1, "u", "u"), ("Locale", ".", "US")), text)
+        self.assertIsNone(ledger_check.spec_problem(spec("%2$s", 1, "u", "u"), ("Locale", ".", "US")))
 
     def test_invalid_format_rows(self):
         cases = [
@@ -886,8 +957,11 @@ class FormatRowTest(RepoCase):
                         problems)
 
     def test_format_only_literals_are_listed(self):
-        self.assertTrue(all(ledger_check.is_format_only(v) for v in ("%.1f", "%d", "%,.0f", "%.1f–%.1f", "%2$s/%1$s")))
-        self.assertFalse(any(ledger_check.is_format_only(v) for v in ("%.1f mph", "%%", "50% off", "km/h", "%.", "%d%")))
+        self.assertTrue(all(ledger_check.is_format_only(v) for v in ("%.1f", "%d", "%,.0f", "%.1f–%.1f", "%1$.2f%%", "%x")))
+        # Conversions that can print words are not format-only: %s, %S, %b, %c and the %t dates.
+        self.assertFalse(any(ledger_check.is_format_only(v) for v in (
+            "%.1f mph", "%%", "50% off", "km/h", "%.", "%d%", "%2$s/%1$s", "%s", "%S", "%b", "%c", "%tB", "%TA",
+            "%.1f %s")))
         self.convert("    static String plain(int n)", '    static final String[] PATTERNS = {"%.1f", "%,.0f"};\n'
                      "    static String plain(int n)")
         problems, warnings, summary = self.check([])
@@ -922,7 +996,7 @@ class SharedConstantTest(RepoCase):
         self.convert()
         problems, warnings, _ = self.check(self.ROWS)
         self.assertEqual(problems, [])
-        self.assertTrue(any('2 occurrences of "V" moved into the one constant UnitCode.VOLT (`VOLT ( 1 , "V" )`): '
+        self.assertTrue(any('2 occurrence(s) of "V" moved into the one constant UnitCode.VOLT (`VOLT ( 1 , "V" )`): '
                             "%s:4 (l10n/ledger/b2.tsv:2), %s:6 (l10n/ledger/b2.tsv:4)" % (self.SCALE, self.SCALE) in w
                             for w in warnings), warnings)
         self.assertTrue(any("%s:4: this change adds `UnitCode . VOLT" % self.SCALE in w and "beside a stays-english" in w
@@ -966,6 +1040,26 @@ class SharedConstantTest(RepoCase):
         problems, _, _ = self.check(rows)
         self.assertTrue(any('are, in order, "V" (UnitCode.VOLT), "V" (UnitCode.VOLT), but the head lines name '
                             "UnitCode.VOLT;" in p for p in problems), problems)
+
+    def existing(self, edit, rows):
+        """A later batch: UnitCode is already in src at the merge base."""
+        self.repo.write(self.CODE, self.ENUM)
+        self.base = self.repo.commit("UnitCode exists")
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace('unit.equals("V") ? .1 : 1', edit))
+        return self.check(rows)
+
+    def test_a_later_batch_moves_a_literal_into_an_existing_constant(self):
+        problems, warnings, _ = self.existing("UnitCode.VOLT.matches(unit) ? .1 : 1", [self.ROWS[2]])
+        self.assertEqual(problems, [])
+        self.assertTrue(any('1 occurrence(s) of "V" moved into the existing constant UnitCode.VOLT (`VOLT ( 1 , "V" )`): '
+                            "%s:6 (l10n/ledger/b2.tsv:2)" % self.SCALE in w for w in warnings), warnings)
+
+    def test_an_existing_constant_must_hold_the_value_and_be_named(self):
+        for edit in ("UnitCode.WATT.matches(unit) ? .1 : 1", "VOLT.matches(unit) ? .1 : 1", "unit.isEmpty() ? .1 : 1"):
+            problems, _, _ = self.existing(edit, [self.ROWS[2]])
+            self.assertTrue(any('"V" left %s:6 and is not added anywhere else' % self.SCALE in p for p in problems),
+                            (edit, problems))
+            self.repo.git("reset", "-q", "--hard", self.base + "~1")
 
     def test_constant_name_forms(self):
         def name(source, literal):

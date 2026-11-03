@@ -20,8 +20,11 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            T.<template>(...) with the Fmt calls, holes and T.<key>() calls in
                            placeholder order, replacing the whole String.format(...) call; each key
                            must hold its text, and the template, filled with sentinels and the keys'
-                           English, must print the original. A test under tests/l10n/ must call the
-                           method that held it (Fmt's parity is G10's); every format row is listed
+                           English, must print the original. A plain %s passes its value through,
+                           with string literals turned into T.<key>() calls that have exact rows.
+                           A compiled test under tests/l10n/ must call each Fmt method it passes
+                           (G10's parity); every format row is listed, with the tests calling the
+                           method that held it, or a note that none does
   removed                  the code was deleted: the changed lines holding it only lose tokens, and
                            the whole statement holding it is gone (not just the literal and its +);
                            when its enclosing block (an if, a method) went too, every other
@@ -34,7 +37,8 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            NAME = "..." (a static final field) or an enum constant NAME(..., "..."),
                            which several sites may share; each region must then name, in the base
                            order of its literals, the constant each one moved to, and a shared
-                           constant is listed with every site
+                           constant is listed with every site. The constant may already be in src
+                           (a later batch comparing through UnitCode); each such site is listed
 
 A row whose pieces cannot match a + chain (a ternary, String.format, a StringBuilder chain) has a
 note starting "manual:"; its literals must then appear in order from its line, and it is listed
@@ -48,7 +52,7 @@ to the catalog, and a literal that moved needs a stays-english or id-kept row. T
 new lower-case key or id (a preference name, a requireNonNull message; l10nlib.is_identifier_like):
 it is not text, but a person could read one, so every such literal is listed for the reviewer with
 the statement that holds it, and it does not by itself make its changed region count as text. A new
-format-only literal ("%.1f", "%,.0f": specifiers, digits and punctuation; is_format_only) is allowed
+format-only literal ("%.1f", "%,.0f": number specifiers, digits and punctuation; is_format_only) is allowed
 and listed the same way.
 
 Nothing else may change around the text either. In a changed region of a src/ file that holds or held
@@ -149,17 +153,24 @@ def _check_sequence(sequence, where):
 
 # A java.util.Formatter specifier: %[index$][flags][width][.precision]conversion. %% and %n take no argument.
 FORMAT_SPEC = re.compile(r"%(\d+\$)?([-#+ 0,(]*)(\d+)?(\.\d+)?([tT][A-Za-z]|[A-Za-z%])")
+# Conversions that print a number and never a word (%s, %b, %c, %S and the %t dates can).
+NUMBER_CONVERSIONS = frozenset("dofeEgGxX")
 
 
 def is_format_only(value):
-    """True for a literal made of format specifiers, digits and punctuation only ("%.1f", "%d",
-    "%,.0f", "%.1f–%.1f"): no letter outside a specifier, and at least one specifier that takes an
-    argument. It holds no words, so an extraction batch may add one; every one is listed."""
+    """True for a literal made of number specifiers, digits and punctuation only ("%.1f", "%d",
+    "%,.0f", "%.1f–%.1f"): no letter outside a specifier, every specifier a number conversion
+    (NUMBER_CONVERSIONS, or %% and %n), and at least one of them. It holds no words, so an extraction
+    batch may add one; every one is listed."""
     rest, found, at = [], False, 0
     for m in FORMAT_SPEC.finditer(value):
         rest.append(value[at:m.start()])
         at = m.end()
-        found = found or m.group(5) not in ("%", "n")
+        if m.group(5) in ("%", "n"):
+            continue
+        if m.group(5) not in NUMBER_CONVERSIONS:
+            return False
+        found = True
     rest.append(value[at:])
     leftover = "".join(rest)
     return found and "%" not in leftover and not any(c.isalpha() for c in leftover)
@@ -820,9 +831,47 @@ DEFAULT_LOCALES = (("Locale", ".", "getDefault", "(", ")"),
                    ("Locale", ".", "getDefault", "(", "Locale", ".", "Category", ".", "FORMAT", ")"))
 
 
+PLAIN_STRING_SPEC = re.compile(r"%(\d+\$)?s")
+
+
+def _token_keys(source):
+    return [(t.kind, t.value if t.kind in expressions.LITERALS else t.raw) for t in _Lexed(source).tokens]
+
+
+def passthrough_problem(item):
+    """None when a plain %s spec item's "as" is its value with some string literals replaced by a
+    no-argument T.<key>() or M.<key>() call each, and nothing else changed. A template's %n$s prints
+    a CharSequence as String.format's %s did; each literal replaced needs its own exact row, which
+    checks the key's English and the call's place. Else the problem."""
+    try:
+        value, given = _token_keys(item["value"]), _token_keys(item["as"])
+    except l10nlib.LexError:
+        return "the specifier %s's value or \"as\" is not Java source" % item["spec"]
+    i = j = 0
+    while i < len(value) and j < len(given):
+        if value[i] == given[j]:
+            i, j = i + 1, j + 1
+            continue
+        call = given[j:j + 5]
+        if value[i][0] == "string" and len(call) == 5 and call[0] in (("ident", "T"), ("ident", "M")) and \
+                call[1] == ("op", ".") and call[2][0] == "ident" and call[3:] == [("op", "("), ("op", ")")] and \
+                not (j > 0 and given[j - 1] == ("op", ".")):
+            i, j = i + 1, j + 5
+            continue
+        break
+    if i == len(value) and j == len(given):
+        return None
+    return ("the specifier %s prints %s as it is, so head must pass that same expression, with only its string "
+            "literals turned into T.<key>() calls (each with an exact row), but the row passes %s" % (
+                item["spec"], item["value"], item["as"]))
+
+
 def spec_problem(item, locale):
     """None when a spec item's "as" is the Fmt call FMT_SPECS pairs with its specifier, with the
-    String.format call's locale (a source key, or None for the default) and the spec's value."""
+    String.format call's locale (a source key, or None for the default) and the spec's value. A plain
+    %s passes its value through (passthrough_problem)."""
+    if PLAIN_STRING_SPEC.fullmatch(item["spec"]):
+        return passthrough_problem(item)
     try:
         lexed = _Lexed(item["as"])
     except l10nlib.LexError:
@@ -976,9 +1025,25 @@ def enclosing_method(tokens, k):
         j = opener
 
 
+def compiled_tests(head, cwd=None):
+    """The tests/l10n/ Java files that tests/run.sh compiles at head: those a tests/l10n/*.sources list
+    names (one repository path per line, "#" starts a comment)."""
+    lists = [p for p in l10nlib.list_files(head, ["tests/l10n"], cwd)
+             if os.path.dirname(p) == "tests/l10n" and p.endswith(".sources")]
+    listed = set()
+    for text in l10nlib.read_files(head, lists, cwd).values():
+        for line in (text or "").splitlines():
+            line = line.split("#", 1)[0].strip()
+            if line.startswith("tests/l10n/") and line.endswith(".java"):
+                listed.add(line)
+    return sorted(listed)
+
+
 def test_callers(head, cwd=None):
-    """{(Class, method): [test files]} for every Class.method( call in a test under tests/l10n/ at head."""
-    names = [p for p in l10nlib.list_files(head, ["tests/l10n"], cwd) if p.endswith(".java")]
+    """{(Class, method): [test files]} for every Class.method( call in a test under tests/l10n/ that
+    tests/run.sh compiles at head (compiled_tests). Methods match by simple name, so an overload counts:
+    the result only lists tests for the reviewer, except Fmt.<method>, which G1 requires (G10)."""
+    names = compiled_tests(head, cwd)
     found = collections.defaultdict(list)
     for path, text in sorted(l10nlib.read_files(head, names, cwd).items()):
         try:
@@ -1296,28 +1361,39 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
     return problems, warnings
 
 
-def check_named_moves(named, arrivals, diffs):
+def existing_constants(sources, value):
+    """[(path, token)] of constants already in src at head, outside the batch's arrivals, whose whole
+    value is the string literal value: NAME = "..." or an enum constant NAME(..., "..."). sources is
+    [(path, tokens, tokens to skip)]."""
+    return [(path, k) for path, tokens, skip in sources for k, tok in enumerate(tokens)
+            if tok.kind == "string" and tok.value == value and k not in skip and constant_name(tokens, k)]
+
+
+def check_named_moves(named, head_tokens, diffs, existing=()):
     """(problems, warnings) for staying literals that moved into named constants.
 
-    In each changed region, the constants the head lines name must include one reference per literal
-    that left it, in the base order of those literals: unit.equals("V") ... unit.equals("W") cannot
-    become WATT ... VOLT, nor two "V" sites one VOLT. Every constant several sites share is listed with
-    each site."""
+    named maps (path, head token) of a constant's literal to the sites [(row, path, base token)] that
+    name it; head_tokens(path) gives that file's head tokens; existing holds the constants that were
+    already in src (a later batch moving its literals into B1's UnitCode). In each changed region, the
+    constants the head lines name must include one reference per literal that left it, in the base
+    order of those literals: unit.equals("V") ... unit.equals("W") cannot become WATT ... VOLT, nor
+    two "V" sites one VOLT. Every constant several sites share, and every existing constant a site
+    names, is listed with each site."""
     problems, warnings = [], []
     by_hunk = collections.defaultdict(list)  # (path, hunk) -> [(base token, (owner, name), row)]
-    for n, uses in sorted(named.items()):
-        a_path, _, a_k, _ = arrivals[n]
-        a_tokens = diffs[a_path].head.tokens
+    for (a_path, a_k), uses in sorted(named.items()):
+        a_tokens = head_tokens(a_path)
         name = constant_name(a_tokens, a_k)
         for row, path, k in uses:
             by_hunk[(path, diffs[path].gone[k])].append((k, (a_path, name), row))
-        if len(uses) > 1:
+        if len(uses) > 1 or (a_path, a_k) in existing:
             first = max(i for i in range(a_k) if a_tokens[i].kind == "ident" and a_tokens[i].value == name)
             sites = ", ".join("%s:%d (%s:%d)" % (path, diffs[path].base_token(k).line, row.source, row.line)
                               for row, path, k in uses)
-            warnings.append("%s:%d: %d occurrences of %s moved into the one constant %s.%s (`%s`): %s; check by hand "
+            warnings.append("%s:%d: %d occurrence(s) of %s moved into the %sconstant %s.%s (`%s`): %s; check by hand "
                             "that every site means this same value" % (
                                 a_path, a_tokens[a_k].line, len(uses), l10nlib.json_string(a_tokens[a_k].value),
+                                "existing " if (a_path, a_k) in existing else "one ",
                                 _class_name(a_path), name, _excerpt(a_tokens[first:a_k + 2], None),
                                 sites))
     for (path, hunk), moved in sorted(by_hunk.items()):
@@ -1345,10 +1421,26 @@ def check_named_moves(named, arrivals, diffs):
     return problems, warnings
 
 
+def fmt_methods(row):
+    """The Fmt methods a format row's spec and hole items pass, in order, once each."""
+    found = []
+    for item in row.split:
+        if isinstance(item, dict) and "as" in item:
+            try:
+                t = _Lexed(item["as"]).tokens
+            except l10nlib.LexError:
+                continue
+            if len(t) > 3 and t[0].value == "Fmt" and t[1].value == "." and t[3].value == "(" and t[2].value not in found:
+                found.append(t[2].value)
+    return found
+
+
 def format_review(row, where, diff, base_span, head_span, callers):
-    """(problem or None, warning) for a format row whose call was found: the reviewer sees the base code,
-    the call that replaced it and each specifier's Fmt call, and a test under tests/l10n/ must call the
-    method that held it, since only running it proves the numbers print as before (G10, G5)."""
+    """(problems, warning) for a format row whose call was found. Each Fmt method the row passes must be
+    called by a compiled test under tests/l10n/ (G10 FmtLegacyTest proves it prints like the specifier
+    FMT_SPECS pairs it with). The reviewer sees the base code, the call that replaced it, each
+    specifier's replacement and the tests that call the method that held the literal; a method no test
+    can call (private, an instance method of a screen) is named in the warning instead."""
     base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
     method = enclosing_method(base_tokens, base_span[0])
     owner = _class_name(row.path)
@@ -1357,19 +1449,23 @@ def format_review(row, where, diff, base_span, head_span, callers):
               if isinstance(item, dict) and "hole" in item and "as" in item]
     keys = ["%s -> %s" % (l10nlib.json_string(item["text"]), item["key"]) for item in row.split
             if isinstance(item, dict) and "key" in item]
+    problems = ["%s: format row at %s:%d passes Fmt.%s, and no test that tests/run.sh compiles under tests/l10n/ "
+                "calls it; G10 (FmtLegacyTest) must show it prints like the specifier it replaces" % (
+                    where, row.path, row.base_line, name) for name in fmt_methods(row) if not callers.get(("Fmt", name))]
     tests = callers.get((owner, method), []) if method else []
-    problem = None
-    if pairs and not tests:
-        problem = ("%s: format row at %s:%d moves number formatting into Fmt, and no test under tests/l10n/ calls "
-                   "%s.%s(...); add one (G10 FmtLegacyTest or a characterization test) that compares its output" % (
-                       where, row.path, row.base_line, owner, method or "<the enclosing method>"))
-    warning = "%s: format row at %s:%d: `%s` becomes `%s`; text %s%s%s; check by hand that each Fmt call prints " \
+    if tests:
+        site = "; a method named %s.%s is called by %s" % (owner, method, ", ".join(tests))
+    elif fmt_methods(row):
+        site = ("; no compiled test under tests/l10n/ calls %s.%s(...), so check by hand that its values are ones "
+                "G10 covers" % (owner, method or "<the enclosing method>"))
+    else:
+        site = ""
+    warning = "%s: format row at %s:%d: `%s` becomes `%s`; text %s%s%s; check by hand that each replacement prints " \
               "what its specifier did" % (
                   where, row.path, row.base_line, _excerpt(base_tokens[base_span[0]:base_span[1] + 1], None),
                   _excerpt(head_tokens[head_span[0]:head_span[1] + 1], None), ", ".join(keys) or "none",
-                  "; numbers " + ", ".join(pairs) if pairs else "",
-                  "; %s.%s is called by %s" % (owner, method, ", ".join(tests)) if tests else "")
-    return problem, warning
+                  "; specifiers " + ", ".join(pairs) if pairs else "", site)
+    return problems, warning
 
 
 def run(base, head, explicit_ledgers=None, cwd=None):
@@ -1548,22 +1644,53 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 if row.kind == "format":
                     if callers is None:
                         callers = test_callers(head, cwd)
-                    problem, warning = format_review(row, where, diffs[path], format_rows[id(row)], (first, end),
-                                                     callers)
-                    if problem:
-                        problems.append(problem)
+                    found, warning = format_review(row, where, diffs[path], format_rows[id(row)], (first, end),
+                                                   callers)
+                    problems.extend(found)
                     warnings.append(warning)
-                    # The text keys' calls inside it serve this row, not an exact row of the same key.
-                    for j in range(first, end + 1):
-                        if head_tokens[j].kind == "ident" and head_tokens[j].value in ("T", "M") and \
-                                (j == 0 or head_tokens[j - 1].value != "."):
-                            used.add((path, j))
+                    # The text keys' calls it passes serve this row, not an exact row of the same key; the T
+                    # calls inside a %s argument serve the exact rows of the literals they replaced.
+                    if head_tokens[call[2] + 3].value == "(":
+                        _, spans = _argument_spans(head_tokens, call[2] + 3)
+                    else:  # Msg.of(T.KEY, ...) or T.render(T.KEY, ...): the template's args follow the id
+                        _, spans = _argument_spans(head_tokens, call[2] - 1)
+                        spans = spans[1:]
+                    texts = sorted(item["arg"] for item in row.split if isinstance(item, dict) and "key" in item)
+                    for arg in texts:
+                        if arg <= len(spans):
+                            used.add((path, spans[arg - 1][0]))
 
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
         for k in sorted(diffs[path].added):
             arrivals.append([path, diffs[path].added[k], k, False])
-    named = collections.defaultdict(list)  # arrival index -> [(row, path, base token)] that name its constant
+    named = collections.defaultdict(list)  # (path, head token) of a constant -> [(row, path, base token)] naming it
+    existing = set()  # constants named above that were already in src (not arrivals)
+    head_lexed = {}
+
+    def head_tokens(p):
+        if p in diffs and diffs[p].head is not None:
+            return diffs[p].head.tokens
+        if p not in head_lexed:
+            head_lexed[p] = []
+            try:
+                head_lexed[p] = l10nlib.lex_java(l10nlib.read_files(head, [p], cwd).get(p) or "")
+            except l10nlib.LexError:
+                pass
+        return head_lexed[p]
+
+    def sources():
+        unchanged = [p for p in head_sources if p not in diffs and p not in head_lexed]
+        if unchanged:
+            for p, text in l10nlib.read_files(head, unchanged, cwd).items():
+                head_lexed[p] = []
+                try:
+                    head_lexed[p] = l10nlib.lex_java(text or "")
+                except l10nlib.LexError:
+                    pass
+        for p in head_sources:
+            skip = set(diffs[p].added) if p in diffs and diffs[p].head is not None else set()
+            yield p, head_tokens(p), skip
     for row, path, k in staying:
         tok = diffs[path].base_token(k)
         hunk = diffs[path].gone[k]
@@ -1578,17 +1705,27 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                        _points_to(diffs[path], hunk, path, arrivals[n][0], arrivals[n][2], diffs[arrivals[n][0]])), None)
         if chosen is not None:
             arrivals[chosen][3] = "named"
-            named[chosen].append((row, path, k))
+            named[(arrivals[chosen][0], arrivals[chosen][2])].append((row, path, k))
             continue
         chosen = next((n for n in same if arrivals[n][3] is False), None) if moved_whole else None
         if chosen is not None:
             arrivals[chosen][3] = "whole"
-        else:
-            problems.append("%s:%d: %s row: %s left %s:%d and is not added anywhere else in src where the code it "
-                            "left points (a constant those lines name, or code moved out whole); text that leaves "
-                            "src needs exact, template, plural, format or removed" % (
-                                row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
-    problems_named, warnings_named = check_named_moves(named, arrivals, diffs)
+            continue
+        # A constant already in src that holds the same value (a later batch moving its data units to
+        # B1's UnitCode), named by the code the literal left.
+        if tok.kind == "string":
+            found = next(((p, j) for p, j in existing_constants(sources(), tok.value)
+                          if _references(diffs[path], hunk, path, p, constant_name(head_tokens(p), j))), None)
+            if found is not None:
+                existing.add(found)
+                named[found].append((row, path, k))
+                continue
+        problems.append("%s:%d: %s row: %s left %s:%d and is not added anywhere else in src where the code it "
+                        "left points (a constant those lines name, or code moved out whole), nor held by an "
+                        "existing constant those lines name; text that leaves src needs exact, template, plural, "
+                        "format or removed" % (
+                            row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
+    problems_named, warnings_named = check_named_moves(named, head_tokens, diffs, existing)
     problems.extend(problems_named)
     warnings.extend(warnings_named)
 
