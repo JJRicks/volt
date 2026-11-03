@@ -22,16 +22,18 @@ Checks, per key (a plural is checked per quantity):
   dnt           volt:dnt tokens, do-not-translate glossary terms and fixed tokens (file names, CLI
                 flags, URLs, {z}/{x}/{y}, the U+FFFC placeholder) are kept exactly
   markup        the same number of ** and backtick marks, and every `code span` unchanged
-  glossary      approved glossary terms are used, as whole words (warn; error for a safety term in a
-                safety key)
+  glossary      approved glossary terms are used: as whole words in scripts with word spaces (at a
+                word start where the language takes suffixes), anywhere but beside an opposite-term
+                affix in zh, ja and Thai (warn; error for a safety term in a safety key)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
   width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
   polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
-                added where the English has none (on -> "no activada")
-  script        no letters from another script, except words copied from the English (a Latin
-                acronym or a name in LATIN_LOANS only warns)
+                added where the English has none (on -> "no activada"); per-language lexicons in
+                lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-")
+  script        no letters from another script, except words copied from the English (any case,
+                hyphen-aware); a Latin acronym or a loan in LATIN_LOANS (App, Wi-Fi) only warns
   untranslated  the target is not just the English (warn)
 """
 
@@ -45,6 +47,7 @@ import unicodedata
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fontmetrics  # noqa: E402
 import gen_catalog  # noqa: E402
+import lexicon  # noqa: E402
 import pack as packlib  # noqa: E402
 import translib  # noqa: E402
 
@@ -76,37 +79,7 @@ EN_STATE_OFF = {"off", "disabled", "inactive", "deactivated"}
 # Negation words that are also ordinary words (French "personne" is "person"): not counted as added.
 AMBIGUOUS_NEGATION = {"fr": {"personne"}}
 
-# Negation words (whole words) and negating prefixes per language (primary subtag). zh uses
-# characters, matched anywhere.
-NEGATION = {
-    "es": ({"no", "nunca", "jamás", "ni", "ningún", "ninguno", "ninguna", "nada", "nadie", "sin", "tampoco"},
-           ("des", "in", "im", "ir")),
-    "pt": ({"não", "nunca", "jamais", "nem", "nenhum", "nenhuma", "nada", "ninguém", "sem"}, ("des", "in", "im")),
-    "fr": ({"ne", "n", "pas", "jamais", "aucun", "aucune", "rien", "personne", "sans", "non", "ni"},
-           ("in", "im", "non", "dé", "dés")),
-    "it": ({"non", "mai", "nessun", "nessuno", "nessuna", "niente", "nulla", "senza", "né"}, ("in", "im", "non", "dis")),
-    "de": ({"nicht", "kein", "keine", "keinen", "keinem", "keiner", "keines", "nie", "niemals", "ohne", "nichts",
-            "weder"}, ("un", "nicht")),
-    "nl": ({"niet", "geen", "nooit", "zonder", "niets", "noch"}, ("on",)),
-    "sv": ({"inte", "ej", "ingen", "inget", "inga", "aldrig", "utan", "icke"}, ("o",)),
-    "da": ({"ikke", "ingen", "intet", "aldrig", "uden"}, ("u",)),
-    "nb": ({"ikke", "ingen", "intet", "aldri", "uten"}, ("u",)),
-    "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "bez", "ani", "nic"}, ("nie", "bez")),
-    "id": ({"tidak", "tak", "bukan", "jangan", "belum", "tanpa"}, ()),
-    "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman", "koskaan"}, ()),
-    "cs": ({"ne", "nikdy", "žádný", "žádná", "žádné", "bez", "nic"}, ("ne", "bez")),
-    "sk": ({"nie", "nikdy", "žiadny", "žiadna", "žiadne", "bez", "nič"}, ("ne", "bez")),
-    "ro": ({"nu", "niciodată", "fără", "niciun", "nicio", "nimic"}, ("ne",)),
-    "hu": ({"nem", "ne", "soha", "nincs", "sincs", "nélkül", "semmi"}, ()),
-    "hr": ({"ne", "nije", "nikad", "nikada", "bez", "nema", "ništa"}, ("ne", "bez")),
-    "tr": ({"değil", "yok", "asla", "hiç", "olmadan", "hayır"}, ()),
-    "ru": ({"не", "нет", "никогда", "без", "ни", "ничего"}, ("не", "без")),
-    "uk": ({"не", "ні", "немає", "ніколи", "без", "нічого"}, ("не", "без")),
-    "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα"}, ("μη", "α")),
-    "zh": ({"不", "没", "沒", "无", "無", "未", "非", "别", "勿", "否"}, ()),
-    "hi": ({"नहीं", "न", "मत", "कभी", "बिना"}, ("अ",)),
-    "bn": ({"না", "নয়", "নেই", "কখনো", "ছাড়া"}, ("অ",)),
-}
+NEGATION = lexicon.NEGATION
 
 # CLDR plural categories that select exactly one whole number (or none), per language: only these
 # may drop the count placeholder ("Un patinete" for n=1). Everything else ("one" in fr, pt-BR, hi, bn,
@@ -125,13 +98,14 @@ def single_number_categories(tag):
     return out
 
 
-SCRIPT_PREFIXES = (("LATIN", "Latn"), ("CYRILLIC", "Cyrl"), ("GREEK", "Grek"), ("CJK", "Hans"),
-                   ("HIRAGANA", "Jpan"), ("KATAKANA", "Jpan"), ("DEVANAGARI", "Deva"), ("BENGALI", "Beng"),
-                   ("ARABIC", "Arab"), ("HEBREW", "Hebr"), ("HANGUL", "Hang"), ("THAI", "Thai"))
-# Latin-script names a non-Latin translation may use although the English does not (a warning only).
-# Any other Latin word there is leakage from another language ("Abbrechen", "Cancelar"): an error.
-LATIN_LOANS = {"Android", "Bluetooth", "Google", "Wi", "Fi", "Volt", "NAVEE", "Play", "Pixel", "Shizuku", "iPhone"}
-WORD = re.compile(r"[^\W\d_]+(?:['’-][^\W\d_]+)*", re.UNICODE)
+SCRIPT_PREFIXES = (("LATIN", "Latn"), ("CYRILLIC", "Cyrl"), ("GREEK", "Grek"), ("CJK", "Hani"),
+                   ("IDEOGRAPHIC", "Hani"), ("HIRAGANA", "Kana"), ("KATAKANA", "Kana"), ("DEVANAGARI", "Deva"),
+                   ("BENGALI", "Beng"), ("ARABIC", "Arab"), ("HEBREW", "Hebr"), ("HANGUL", "Hang"), ("THAI", "Thai"))
+# Latin-script names a non-Latin translation may use although the English does not (a warning only;
+# compared without case, hyphen-aware). Any other Latin word there is leakage from another language
+# ("Abbrechen", "Cancelar"): an error.
+LATIN_LOANS = lexicon.LATIN_LOANS
+WORD = re.compile(r"[^\W\d_]+(?:['’\u2010\u2011-][^\W\d_]+)*", re.UNICODE)
 
 
 def finding(check, severity, message, quantity=None):
@@ -187,22 +161,29 @@ def english_negation(text):
     return plain, un
 
 
-def target_negation(primary, text, stems=()):
-    """(negation words, words that may carry a negating prefix) in a target.
+def has_negation_list(primary):
+    return primary in NEGATION or primary in lexicon.UNSPACED_NEGATION
 
-    A word that is a negating prefix plus one of stems (the approved glossary targets, such as
-    "bloquear") is the opposite term ("desbloquear"), not a negation of the sentence: it is left out.
+
+def target_negation(primary, text, stems=()):
+    """(negation words, words that may carry a negating prefix, native negated words) in a target.
+
+    Native negated words ("неизвестно", "imposible", see lexicon.py) are a negation also in a safety
+    key; the other prefixed words are only a guess ("información"). A word that is a negating
+    prefix plus one of stems (the approved glossary targets, such as "bloquear") is the opposite
+    term ("desbloquear"), not a negation of the sentence: it is left out of both.
     """
+    text = lexicon.normalize(text)
+    if primary in lexicon.UNSPACED_NEGATION:
+        return lexicon.unspaced_negations(primary, text), [], []
     words, prefixes = NEGATION[primary]
-    lower = text.lower()
-    if primary == "zh":
-        return [w for w in words if w in lower], []
-    tokens = re.findall(r"[^\W\d_]+", lower, re.UNICODE)
+    tokens = lexicon.tokens(text)
     found = [t for t in tokens if t in words]
-    prefixed = [t for t in tokens if any(t.startswith(p) and len(t) > len(p) + 3 and
-                                         not any(t[len(p):].startswith(stem) for stem in stems)
-                                         for p in prefixes)]
-    return found, prefixed
+    native = [t for t in tokens if t not in words and lexicon.native_negated(primary, t, stems)]
+    prefixed = [t for t in tokens if t not in words and (t in native or any(
+        t.startswith(p) and len(t) > len(p) + 3 and not any(t[len(p):].startswith(stem) for stem in stems)
+        for p in prefixes))]
+    return found, prefixed, native
 
 
 def glossary_targets(entry):
@@ -351,7 +332,7 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
         # script
         out.extend(_script(language, english_all, entry, text, q))
         # glossary
-        out.extend(_glossary(entry, reference, text, safety, q))
+        out.extend(_glossary(language, entry, reference, text, safety, q))
         # untranslated
         if translib.normalize(text) == translib.normalize(reference) and len(WORD.findall(reference)) >= 2:
             protected = protected_tokens(entry)
@@ -381,29 +362,30 @@ def _polarity(language, reference, text, safety, q, entry=None):
 
     A negating prefix ("des-", "in-") is only a guess: "información" is not a negation and
     "desbloquear" is the opposite of "bloquear". So in a safety key an English un-word must become a
-    negation word, or a prefixed word the glossary approves; a prefix alone is an error there.
+    negation word, the language's own negated form ("неизвестно", "nieznany", "imposible"; see
+    lexicon.py), or a prefixed word the glossary approves; any other prefixed word is an error there.
     """
     entry = entry or {}
     plain, un = english_negation(reference)
     primary = language["tag"].split("-")[0]
     severity = ERROR if safety else WARN
-    if primary not in NEGATION:
+    if not has_negation_list(primary):
         if plain or un:
             return [finding("polarity", WARN, "no negation word list for %s; the judge checks polarity" % primary, q)]
         return []
     stems = glossary_targets(entry)
-    found, prefixed = target_negation(primary, text, stems)
+    found, prefixed, native = target_negation(primary, text, stems)
     if plain or un:
         if plain and not found:
             return [finding("polarity", severity, "the English says %s; the target has no negation word" %
                             ", ".join(repr(w) for w in plain[:3]), q)]
         if un and not plain and not found:
-            approved = [w for w in prefixed if w in stems]
+            approved = [w for w in prefixed if w in stems] + native
             if safety and not approved:
                 return [finding("polarity", ERROR, "the English says %s; in a safety key the target needs a "
-                                "negation word or the glossary's term, not just a prefix%s" % (
-                                    ", ".join(repr(w) for w in un[:3]),
-                                    " (%s)" % ", ".join(prefixed[:3]) if prefixed else ""), q)]
+                                "negation word, a native negated form or the glossary's term, not just a "
+                                "prefix%s" % (", ".join(repr(w) for w in un[:3]),
+                                              " (%s)" % ", ".join(prefixed[:3]) if prefixed else ""), q)]
             if not prefixed:
                 return [finding("polarity", severity, "the English says %s; the target has no negation" %
                                 ", ".join(repr(w) for w in un[:3]), q)]
@@ -439,16 +421,21 @@ def _acronym(word):
 
 def _script(language, english, entry, text, q):
     expected = language.get("script") or "Latn"
-    allowed_words = set(WORD.findall(english)) | set(entry.get("dnt") or [])
+    native = lexicon.SCRIPT_SETS.get(expected, {expected})
+    allowed_words = set(lexicon.normalize(w) for w in WORD.findall(english)) | set(
+        lexicon.normalize(w) for w in entry.get("dnt") or [])
     bad, borrowed = [], []
     for word in WORD.findall(text):
         scripts = set(s for s in (script_of(ch) for ch in word) if s)
-        foreign = scripts - {expected}
+        foreign = scripts - native
         if not foreign:
             continue
-        if word in allowed_words or any(word in token for token in allowed_words):
+        folded = lexicon.normalize(word)
+        parts = [p for p in re.split("[%s]" % lexicon.HYPHENS, folded) if p]
+        if all(p in allowed_words or any(p in token for token in allowed_words) for p in parts):
             continue
-        if expected != "Latn" and foreign == {"Latn"} and (word in LATIN_LOANS or _acronym(word)):
+        if "Latn" not in native and foreign == {"Latn"} and (lexicon.latin_loan(word, allowed_words) or
+                                                             _acronym(word)):
             borrowed.append(word)
         else:
             bad.append(word)
@@ -460,15 +447,19 @@ def _script(language, english, entry, text, q):
     return out
 
 
-def _glossary(entry, reference, text, safety, q):
+def _glossary(language, entry, reference, text, safety, q):
+    """Approved targets used: whole words in spaced scripts, anywhere (but not as part of the
+    opposite term) in scripts without word spaces; see lexicon.term_found."""
     out = []
+    primary = language["tag"].split("-")[0]
+    script = language.get("script") or "Latn"
     for hit in entry.get("glossary") or []:
         if hit.get("dnt") or not translib.term_pattern(hit["term"]).search(reference):
             continue
         targets = hit.get("target")
         if not targets:
             continue
-        if not any(translib.term_pattern(t).search(text) for t in targets):
+        if not any(lexicon.term_found(primary, script, t, text) for t in targets):
             severity = ERROR if safety and hit.get("safety") else WARN
             out.append(finding("glossary", severity, "%r should be %s" % (
                 hit["term"], " or ".join(repr(t) for t in targets)), q))
