@@ -189,7 +189,7 @@ public final class CapabilityResolver {
      * (ModelRegistry.experimentalRule), never the ordinary one, and only a Lab variant qualifies: an
      * offered control keeps its ordinary row and anything else stays refused. Beyond decide(): no
      * guided test at all, no ride or charge recording, the field present in a fresh status and inside
-     * the variant domain (a readback is how the owner sees whether it took), then the rule's parked,
+     * the variant domain or among the settings it shows (a readback is how the owner sees whether it took), then the rule's parked,
      * owner, unlocked and no-warning conditions. Simulation needs only ready, idle and not recording.
      */
     public static Decision decideExperimental(String feature,DeviceDescriptor d,StatusFields s,Runtime rt){
@@ -243,7 +243,10 @@ public final class CapabilityResolver {
         else {
             Integer current=v.readable?v.read(status):null;
             if(current==null)reason=Reason.FIELD_ABSENT;
-            else if(!v.allows(current))reason=Reason.VALUE_UNKNOWN;
+            // A setting the variant shows but doesn't offer (a kick-start below 3 km/h outside the official app's USA bucket,
+            // perhaps kept from an earlier registry's try) is known: it can be tried up to an offered value or set back to one.
+            // Only offered values are ever admitted (admitTry), so 0–2 km/h is never sent there.
+            else if(!v.allows(current)&&!v.shows(current))reason=Reason.VALUE_UNKNOWN;
             else {choices=v.choices(status);if(v.dynamicChoices&&choices.length==0)reason=Reason.NO_CHOICES;}
         }
         if(reason==Reason.NONE)reason=preconditions(rule.preconditions,status,rt);

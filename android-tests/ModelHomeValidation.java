@@ -103,8 +103,8 @@ public final class ModelHomeValidation extends Instrumentation {
             main(() -> activity.service().ble.setSimulationRegion("EU")); settle();
             main(() -> { activity.service().ble.tickSimulation(); activity.redraw(); }); settle();
             await(() -> { AtomicReference<Boolean> shown = new AtomicReference<>(false);
-                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, not on this model")); });
-                return shown.get(); }, "An EU GT5 Max Top speed tile is not muted as not on this model");
+                main(() -> { View grid = root().findViewWithTag("setting-tiles"); shown.set(grid != null && described(grid, "Top speed, —, not offered for this region")); });
+                return shown.get(); }, "An EU GT5 Max Top speed tile is not muted as not offered for this region");
             main(() -> invoke(activity, "quickAction", new Class<?>[]{String.class}, "feature:maximum_speed")); settle();
             main(() -> require(field(activity, "choiceSheet") == null && field(activity, "controlDialog") == null, "An EU GT5 Max Top speed tile opened a sheet"));
             screenshot("home-gt5-eu-top-speed");

@@ -377,8 +377,10 @@ public final class CompatControlsValidation extends Instrumentation {
                     String description = String.valueOf(cell.getContentDescription());
                     require(description.endsWith(toggle ? ", toggle" : ", open"), label + ": tile " + feature.key + " says " + description);
                     if (Boolean.TRUE.equals(field(grid, "tiles"))) require(toggle == Boolean.TRUE.equals(field(cell, "toggle")), label + ": tile cue " + feature.key);
-                    boolean unmapped = !ble.controlOffered(feature.key);
-                    require(unmapped == description.contains("not on this model"), label + ": tile " + feature.key + " mapped state " + description);
+                    boolean unmapped = !ble.controlOffered(feature.key), region = d.reason == CapabilityResolver.Reason.REGION_RULE;
+                    // A tile hidden only by region (Top speed) says so, as its tap does; any other hidden tile is not on this model.
+                    require((unmapped && !region) == description.contains("not on this model") && (unmapped && region) == description.contains("not offered for this region"),
+                            label + ": tile " + feature.key + " mapped state " + description);
                     // An OEM-mapped non-Lab toggle toggles directly here even where the UT5 MAX keeps it in Lab.
                     if (d.variant != null && d.variant.decode != FeatureVariant.Decode.UT5_FEATURE && !d.variant.lab && feature.type == ScooterCommands.Type.TOGGLE
                             && d.support == CapabilityResolver.Support.KNOWN_ENCODING && !feature.sensitive && !feature.key.equals("proximity_key"))

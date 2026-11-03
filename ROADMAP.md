@@ -26,8 +26,6 @@ New languages ship as **beta**. On Android 13 and later, you can switch Volt alo
 
 ## Investigating
 
-- **Maximum speed on some EU models** reads 0 and can't be changed (GT5 Max, XT5 Pro). Diagnostics reports from these scooters help.
-- **GT3 Max Top speed and Kick-start speed** are accepted by the scooter but keep their old values. They show **Unconfirmed here** until a report shows a change that holds.
 - **Battery alerts** haven't been through a real charge on a scooter without a charge limit yet.
 
 ## Smaller items

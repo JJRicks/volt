@@ -416,7 +416,8 @@ are unchanged.
 Firmware conditions need the version read in the current connection, and a
 value the scooter reports outside the mapped choices reads as unknown, except
 a kick-start below 3 km/h where 3-5 is offered: it shows as it is, and only
-3-5 can be chosen.
+3-5 can be chosen (from Experimental controls too, where that try can't be
+set back).
 
 More > Compatibility runs a read-only check (nine known reads, at most 30 s)
 and builds a report for review: model ID, derived region, firmware, read

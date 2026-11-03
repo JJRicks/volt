@@ -428,7 +428,9 @@ public final class ModelRegistry {
                 FeatureVariant v=Ut5.VARIANTS.get(feature);
                 if(v==null)return excluded(); // another model's light control; the UT5 MAX has none
                 // Version 17: a serial region outside the official app's USA bucket follows its Top speed and kick-start rules.
-                // A UT5 MAX without a serial region (the simulator, an unreadable serial) keeps the choices verified on a US one.
+                // A UT5 MAX without a serial region keeps the choices verified on a US one. Only the simulator (which never takes a
+                // region) or a descriptor before any serial is read has none: Volt connects only to a serial that passes
+                // DeviceDescriptor.validSerial (BleController's 0x74 check), and every such serial names an area, as BleHandler.b reads it.
                 if(ut5OutsideUsa(d)){
                     if(feature.equals("maximum_speed"))return regionHidden();
                     if(feature.equals("start_speed"))v=Ut5.START_3_5;

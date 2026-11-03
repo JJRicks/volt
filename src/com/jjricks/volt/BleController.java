@@ -228,11 +228,14 @@ public final class BleController {
      * write, readback, the owner's answer, then the value stays until Set back. The simulator changes its memory.
      */
     public boolean setExperimental(String key,int value){return simulating()?set(key,value,MutationGate.Origin.EXPERIMENTAL):startTry(key,value);}
-    /** The value Set back returns to, or null: a kept try's value before it (the simulator: its first change this session). */
+    /**
+     * The value Set back returns to, or null: a kept try's value before it, while today's try rule still offers it under
+     * the same variant (GuidedTest.setBackValue); the simulator: its first change this session.
+     */
     public Integer experimentBaseline(String key){
         if(simulating())return experimentBaselines.get(key);
         ScooterProfiles.Profile p=profile();TestJournal.Entry e=p==null?null:testJournal.latestTry(p.id,key);
-        return e!=null&&e.resolved&&"kept".equals(e.resolution)?e.baseline:null;
+        return e==null?null:GuidedTest.setBackValue(e,tryDecision(key).variant);
     }
     /** The latest try of this control on the active scooter (journalled, so it survives restarts), or null. */
     public TestJournal.Entry latestTry(String key){ScooterProfiles.Profile p=profile();return p==null?null:testJournal.latestTry(p.id,key);}

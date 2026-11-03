@@ -203,8 +203,23 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             CapabilityResolver.Decision t=tryNow("start_speed",eu,data(),parked());
             check(t.experimental()&&t.available()&&Arrays.equals(t.values(),new int[]{3,4,5})&&t.variant.id.equals("start_speed.3_5.lab"),"N65i "+area+": kick-start try is 3–5 km/h "+t);
             for(int v=0;v<=2;v++)check(CapabilityResolver.admitExperimental("start_speed",v,eu,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"N65i "+area+": "+v+" km/h never tried");
-            byte[] slow=data();slow[19]=1;
-            check(tryNow("start_speed",eu,slow,parked()).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"A try can't start from 1 km/h it couldn't set back: "+area);
+            // A kick-start already below 3 km/h (kept from a registry 16 try, say) shows as it is and can move to 3–5 km/h, by a
+            // try or by Set back to an offered value; 0–2 km/h is never sent here.
+            for(int low=0;low<=2;low++){
+                byte[] slow=data();slow[19]=(byte)low;
+                CapabilityResolver.Decision s=tryNow("start_speed",eu,slow,parked());
+                check(s.available()&&s.experimental()&&Arrays.equals(s.values(),new int[]{3,4,5})&&s.current()==low
+                    &&s.label(low).equals(low+" km/h"),"N65i "+area+": "+low+" km/h shows as it is, 3–5 km/h offered "+s+" "+s.reasonText());
+                for(int to=3;to<=5;to++)check(CapabilityResolver.admitTry("start_speed",to,eu,status(slow),parked()).available()
+                    &&tryGate("start_speed",to,false,eu,slow,trying("start_speed")).available()&&tryGate("start_speed",to,true,eu,slow,trying("start_speed")).available(),
+                    "N65i "+area+": from "+low+" km/h a try or Set back to "+to+" km/h is admitted");
+                for(int to=0;to<=2;to++)check(CapabilityResolver.admitTry("start_speed",to,eu,status(slow),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED
+                    &&tryGate("start_speed",to,false,eu,slow,trying("start_speed")).reason==CapabilityResolver.Reason.MODEL_EXCLUDED
+                    &&tryGate("start_speed",to,true,eu,slow,trying("start_speed")).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,
+                    "N65i "+area+": from "+low+" km/h, "+to+" km/h is never sent, as a try or a Set back");
+            }
+            byte[] fastEu=data();fastEu[19]=9;
+            check(tryNow("start_speed",eu,fastEu,parked()).reason==CapabilityResolver.Reason.VALUE_UNKNOWN,"N65i "+area+": a kick-start readback outside 0–5 is still unknown");
         }
         check(CapabilityResolver.admitExperimental("prompt_tone",5,n65i,status(data()),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"Outside the five sounds refused");
         // An offered control is never tried this way (it lives in Scooter settings), nor is anything the experimental rule leaves out.

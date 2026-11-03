@@ -93,7 +93,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             checks.add("Scooter rows show only controls with a known encoding for the simulated model; the UT5 MAX keeps every row");
             checks.add("Limited-model banner, clock row and lock switch follow the resolver; lock and unlock work on every standard model");
             checks.add("Compatibility check (simulator): reads only, holds every write except the lock, finishes with a preview-only report");
-            checks.add("Unmapped Quick access tiles show a muted dash, say \"not on this model\" and stay in the saved layout");
+            checks.add("Unmapped Quick access tiles show a muted dash, say \"not on this model\" (\"not offered for this region\" for a Top speed hidden by region) and stay in the saved layout");
             main(() -> activity.service().ble.setSimulationModel("")); settle();
             require(layouts.equals(layoutSnapshot()), "Saved dashboard layouts changed while switching simulated models");
             main(() -> require(activity.service().setSimulation(false), "Simulation did not stop")); settle();
@@ -219,9 +219,11 @@ public final class CompatibilityGatingValidation extends Instrumentation {
                     Object entry = field(cell, "entry");
                     ScooterCommands.Feature feature = (ScooterCommands.Feature)invoke(entry, "feature");
                     if (feature == null || feature.key.equals("range_algorithm")) continue;
-                    boolean unmapped = !ble.controlOffered(feature.key);
-                    CharSequence description = cell.getContentDescription();
-                    require(unmapped == (description != null && description.toString().contains("not on this model")), label + ": tile " + feature.key + " muted state");
+                    boolean unmapped = !ble.controlOffered(feature.key), region = ble.decision(feature.key).reason == CapabilityResolver.Reason.REGION_RULE;
+                    String description = String.valueOf(cell.getContentDescription());
+                    // A tile hidden only by region (Top speed without a US, CN or RU serial) says so; any other unmapped tile is not on this model.
+                    require((unmapped && !region) == description.contains("not on this model") && (unmapped && region) == description.contains("not offered for this region"),
+                            label + ": tile " + feature.key + " muted state " + description);
                     if (unmapped) require(texts(cell).contains("—") && !cell.isSelected() && !Boolean.TRUE.equals(field(cell, "highlighted")), label + ": unmapped tile " + feature.key + " is not muted: " + texts(cell));
                     if (pid.isEmpty()) require(!unmapped, "UT5 MAX tile became unmapped: " + feature.key);
                     counts[unmapped ? 1 : 0]++;
