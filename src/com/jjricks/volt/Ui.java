@@ -393,8 +393,9 @@ public final class Ui {
         amount.setTextColor(color); amount.setPadding(0, dp(9), 0, dp(7));
         card.addView(amount);
         if (hint != null && !hint.isEmpty()) card.addView(caption(hint));
-        card.setContentDescription(T.uiMetricDescription(label, (value == null ? T.commonNotReported() : value),
-                (hint == null || hint.isEmpty() ? "" : T.uiDescriptionMore(hint))));
+        card.setContentDescription(hint == null || hint.isEmpty()
+                ? T.uiMetricDescription(label, (value == null ? T.commonNotReported() : value))
+                : T.uiMetricDescriptionHint(label, (value == null ? T.commonNotReported() : value), hint));
         return card;
     }
     /**
@@ -426,7 +427,7 @@ public final class Ui {
         toggle.setEnabled(enabled && value != null);
         toggle.setMinimumWidth(dp(56)); toggle.setMinimumHeight(dp(48));
         styleSwitch(toggle);
-        toggle.setContentDescription(label + (value == null ? T.uiToggleStateNotReported() : ""));
+        toggle.setContentDescription(value == null ? T.uiToggleStateNotReported(label) : String.valueOf(label));
         if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(value == null ? T.commonNotReported()
                 : value ? T.commonOn() : T.commonOff());
         toggle.setOnClickListener(v -> { if (toggle.isEnabled() && onChange != null) onChange.accept(toggle.isChecked()); });
@@ -659,6 +660,8 @@ public final class Ui {
     /**
      * The drive modes Volt gives a colour or symbol. Each keeps Telemetry's English label for the mode
      * as its id, which only the legacy {@link #styleDriveMode(TextView, String, boolean)} compares.
+     * Deferred to B3: the plan gives Telemetry a DrivingMode enum; that batch maps it onto this one,
+     * or replaces this one, so the app has a single mode type.
      */
     public enum DriveMode {
         SPORT("SPORT"), ECO("ECO"), WALK("WALK"), OTHER("");
@@ -675,6 +678,8 @@ public final class Ui {
     public class BatteryRing extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private double percent = Double.NaN;
+        // Deferred: this default caption stays English. A Msg field needs String -> CharSequence on
+        // this declaration, which G1 refuses beside text, and rendered text in a field fails R2.
         private String subtitle = "Not reported";
         private boolean charging, live = true;
         public void setLive(boolean value) { live = value; describe(); invalidate(); }
@@ -689,16 +694,20 @@ public final class Ui {
             describe(); invalidate();
         }
         private void describe() {
-            setContentDescription(T.uiBatteryDescription((Double.isNaN(percent) ? T.uiBatteryNotReported() : T.uiBatteryPercent(Fmt.integer(Math.round(percent)))),
-                    (charging ? T.uiBatteryCharging() : ""), (live ? "" : T.uiBatteryLastSeen()),
-                    (subtitle.isEmpty() ? "" : T.uiDescriptionMore(subtitle))));
+            // One whole template per state (strings_ui.xml), filled with the level and the caption.
+            setContentDescription(((java.util.function.Function<String, String>) level -> charging
+                    ? live ? (subtitle.isEmpty() ? T.uiBatteryDescriptionCharging(level) : T.uiBatteryDescriptionChargingCaption(level, subtitle))
+                            : (subtitle.isEmpty() ? T.uiBatteryDescriptionChargingLastSeen(level) : T.uiBatteryDescriptionChargingLastSeenCaption(level, subtitle))
+                    : live ? (subtitle.isEmpty() ? T.uiBatteryDescription(level) : T.uiBatteryDescriptionCaption(level, subtitle))
+                            : (subtitle.isEmpty() ? T.uiBatteryDescriptionLastSeen(level) : T.uiBatteryDescriptionLastSeenCaption(level, subtitle)))
+                    .apply(Double.isNaN(percent) ? T.uiBatteryNotReported() : T.uiBatteryPercent(Math.round(percent), Math.round(percent))));
         }
         public void set(Double percent, String subtitle, boolean charging) { set(percent == null ? Double.NaN : percent.doubleValue(), subtitle, charging); }
         @Override protected void onMeasure(int width, int height) {
             setMeasuredDimension(resolveSize(dp(160), width), resolveSize(dp(176), height));
         }
         @Override protected void onDraw(Canvas canvas) {
-            String label = charging ? T.uiBatteryChargingLabel((subtitle.isEmpty() ? "" : T.uiBatteryCaptionMore(subtitle))) : subtitle;
+            String label = charging ? (subtitle.isEmpty() ? T.uiBatteryRingCharging() : T.uiBatteryRingChargingCaption(subtitle)) : subtitle;
             float drawableHeight = Math.max(1, getHeight() - (label.isEmpty() ? 0 : dp(20)));
             float radius = Math.min(getWidth(), drawableHeight) / 2f - dp(13);
             if (radius <= 0) return;
@@ -786,6 +795,8 @@ public final class Ui {
         public static final int MAX_POINTS = 1600;
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         private final ArrayList<Point> points = new ArrayList<Point>();
+        // Deferred: the default empty-chart text here and in set() stays English, as BatteryRing's
+        // default caption does (a Msg field needs a type change G1 refuses beside text; R2).
         private String unit = "", empty = "No measured data yet", axisMetric = "";
         private boolean absoluteAxis;
         private ChartScale.Range range = ChartScale.range("", "", false, 0, 1);
@@ -861,7 +872,7 @@ public final class Ui {
                 for (Point point : points) { low = Math.min(low, point.value); high = Math.max(high, point.value); }
             }
             range = ChartScale.range(axisMetric, unit, absoluteAxis, low, high); min = range.min; max = range.max;
-            setContentDescription(points.isEmpty() ? this.empty : T.uiChartDescription(this.unit, Fmt.integer(points.size()),
+            setContentDescription(points.isEmpty() ? this.empty : T.uiChartDescription(points.size(), this.unit, points.size(),
                     axisNumber(min), axisNumber(max)));
         }
         public int pointCount() { return points.size(); }
@@ -923,7 +934,8 @@ public final class Ui {
                 paint.setColor(surface); canvas.drawCircle(xx, yy, dp(6), paint);
                 paint.setColor(color); canvas.drawCircle(xx, yy, dp(3.5f), paint);
                 paint.setTypeface(MEDIUM); paint.setTextSize(Math.min(sp(12), dp(16))); paint.setTextAlign(Paint.Align.LEFT);
-                String tooltip = T.uiChartTooltip(number(p.value), (unit.isEmpty() ? "" : " " + unit), detailTime(p.millis));
+                String tooltip = unit.isEmpty() ? T.uiChartTooltipUnitless(number(p.value), detailTime(p.millis))
+                        : T.uiChartTooltip(number(p.value), unit, detailTime(p.millis));
                 float width = Math.min(right - left, paint.measureText(tooltip) + dp(20));
                 float start = Math.max(left, Math.min(right - width, xx - width / 2));
                 paint.setColor(raised); canvas.drawRoundRect(new RectF(start, dp(4), start + width, dp(30)), dp(10), dp(10), paint);
@@ -982,6 +994,9 @@ public final class Ui {
             return true;
         }
         @Override public boolean performClick() { super.performClick(); return true; }
+        // Deferred: axis labels and number()'s values under 1000 keep Locale.US and the axis keeps
+        // its own "k" placement. Fmt.decimal for "%.0f", "%.1f" or "%.<n>f%s" has no ledger row kind
+        // (a format row needs unit text), so only the thousands in number() go through Fmt today.
         private String axisNumber(double value) {
             double scale = Math.max(Math.abs(min), Math.abs(max)) >= 1000 ? 1000 : 1;
             double step = (max / scale / 2 - min / scale / 2) * (2.0 / (absoluteAxis ? 4 : 3));
