@@ -79,10 +79,19 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             await(() -> activity.service() != null && field(activity, "screen") instanceof DashboardScreen
                     && grid().getWidth() > 0, "Dashboard did not launch");
             // G7: displayReadings lists every telemetry key at once, as an empty placeholder until
-            // TelemetryHistory's background load fills the cache, so wait for the seeded value itself.
-            await(() -> { TelemetryHistory.Reading odometer = activity.service().displayReadings().get("odometer_km");
-                    return odometer != null && odometer.value != null; }, "Cached fixture did not load");
-            stopUiPulse(); settle();
+            // TelemetryHistory's background load fills the cache, so wait for the seeded values themselves
+            // (a loaded emulator can take a while).
+            await(() -> {
+                Map<String, TelemetryHistory.Reading> shown = activity.service().displayReadings();
+                for (String key : new String[] {"odometer_km", "power_w", "temperature_c", "battery_health_percent"}) {
+                    TelemetryHistory.Reading reading = shown.get(key);
+                    if (reading == null || reading.value == null || reading.capturedWallMs <= 0) return false;
+                }
+                return true;
+            }, "Cached fixture did not load", 20000);
+            // The load's own Home refresh may still be deferred, and stopUiPulse cancels it and stops
+            // listening, which would leave every card on the placeholders; refresh Home once from the cache.
+            stopUiPulse(); main(() -> invoke(dashboard(), "refresh")); settle();
             String mode = arguments.getString("mode", "all");
             if (mode.equals("layout-modes")) {
                 verifyIndependentWindowLayouts();
@@ -2812,7 +2821,8 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         try (FileOutputStream stream = new FileOutputStream(output)) { require(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream), "Screenshot failed"); }
         finally { bitmap.recycle(); } screenshots.add(output.getAbsolutePath()); TextCensus.write(this, output);
     }
-    private void await(BooleanSupplier condition, String message) { long end=SystemClock.elapsedRealtime()+6000;
+    private void await(BooleanSupplier condition, String message) { await(condition, message, 6000); }
+    private void await(BooleanSupplier condition, String message, long timeoutMs) { long end=SystemClock.elapsedRealtime()+timeoutMs;
         while (SystemClock.elapsedRealtime()<end) { AtomicReference<Boolean> result=new AtomicReference<>(false); main(() -> result.set(condition.getAsBoolean())); if(result.get())return; SystemClock.sleep(40); } throw new IllegalStateException(message); }
     private void main(Runnable action) { AtomicReference<Throwable> failure = new AtomicReference<>(); runOnMainSync(() -> { try { action.run(); } catch(Throwable error) { failure.set(error); } }); if(failure.get()!=null) throw new IllegalStateException(failure.get().getMessage(), failure.get()); }
     private static Object field(Object target,String name) { try { Field f=target.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch(Exception error) { throw new IllegalStateException("Field " + name,error); } }
