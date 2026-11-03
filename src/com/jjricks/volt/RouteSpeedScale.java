@@ -71,7 +71,15 @@ final class RouteSpeedScale {
     int color(int index) { return color(kmh(index)); }
 
     /** "Speed · scooter" / "Speed · GPS" / "Speed". */
-    String title() { return source == null ? T.unitsRouteSpeedTitle() : T.unitsRouteSpeedTitleSource(source); }
+    String title() { return source == null ? T.unitsRouteSpeedTitle() : T.unitsRouteSpeedTitleSource(sourceLabel(source)); }
+
+    /**
+     * The display label of a speed source id (plan 1.5): {@link #source} stays the English id that
+     * code compares, and the legend shows this. Any other id is shown as it is, as before.
+     */
+    static String sourceLabel(String source) {
+        return SCOOTER.equals(source) ? T.unitsRouteSourceScooter() : GPS.equals(source) ? T.unitsRouteSourceGps() : source;
+    }
 
     /** Display label for a canonical km/h value; units are "mi", "km" or "dual". */
     static String label(double kmh, String units) {

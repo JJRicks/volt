@@ -36,6 +36,10 @@
     <!-- Title of a ride map's colour legend when it colours the route by speed and no speed was measured. -->
     <string name="units_route_speed_title" volt:screen="Rides › ride map legend" volt:purpose="legend title">Speed</string>
     <!-- Title of a ride map's colour legend when it colours the route by speed. %1$s is the source of
-         the speeds, "scooter" or "GPS" (still English here). -->
+         the speeds: units_route_source_scooter or units_route_source_gps. -->
     <string name="units_route_speed_title_source" volt:screen="Rides › ride map legend" volt:purpose="legend title">Speed · %1$s</string>
+    <!-- The source of a ride map's speeds, in the legend title "Speed · scooter": the scooter's own speedometer. Lower case in English, mid-title. -->
+    <string name="units_route_source_scooter" volt:screen="Rides › ride map legend" volt:purpose="legend title part">scooter</string>
+    <!-- The source of a ride map's speeds, in the legend title "Speed · GPS": the phone's satellite positioning. -->
+    <string name="units_route_source_gps" volt:screen="Rides › ride map legend" volt:purpose="legend title part" volt:dnt="GPS">GPS</string>
 </resources>

@@ -8,14 +8,17 @@ import java.util.function.BiFunction;
  * G10, format legacy parity (plan sections 2 and 4): while the resolved language is English, Fmt
  * returns each call site's own legacy locale and pattern, so numbers, units and dates format exactly
  * as before localization. Every check runs with the phone set to en-US, en-GB, en-IN and de-DE (a
- * German phone before German ships), and with text sources whose language is English, unshipped
- * ("de", "ar"), a pseudo-locale ("en-XA") or a mangled pseudo l10n_tag.
+ * German phone before German ships), and with text sources whose language is English, a tag that
+ * will never ship ("xx", "zz-ZZ"), a pseudo-locale ("en-XA") or a mangled pseudo l10n_tag.
  *
  * Covers: Fmt.locale and datePattern, Fmt.decimal against String.format(Locale.US, "%.Nf") over
  * random and edge values (negative zero, NaN, infinities, halves, huge and tiny values), Fmt.integer
  * against string concatenation, the unit symbols against the unit text used before, and every
- * structured (Formatted) API against the String method beside it, with its number and unit ranges.
- * A key-echo source with a reordered template checks that ranges follow positions, not assumptions.
+ * structured (Formatted) API against the String method beside it, with its number and unit ranges,
+ * and Fmt.percent against the percent formatting of today's call sites. A key-echo source with a
+ * reordered template checks that ranges follow positions, not assumptions; a translated source checks
+ * that displayed symbols and labels come from the catalog while data ids stay English; and
+ * Fmt.displayLocale is checked for the shipped-language locales directly.
  */
 public final class FmtLegacyTest {
     private static int checks;
@@ -26,24 +29,29 @@ public final class FmtLegacyTest {
         try {
             for (Locale phone : new Locale[]{Locale.US, Locale.UK, new Locale("en", "IN"), Locale.GERMANY}) {
                 Locale.setDefault(phone);
-                for (String language : new String[]{null, "en", "de", "ar", "en-XA", "[ëñ]", "»en«"}) {
+                for (String language : new String[]{null, "en", "xx", "zz-ZZ", "en-XA", "[ëñ]", "»en«"}) {
                     T.install(language == null ? null : source(language, false));
                     String where = phone.toLanguageTag() + " with " + (language == null ? "English" : "a source in " + language);
                     locales(phone, where);
                     numbers(where);
                     units(where);
                     structured(where);
+                    percents(where);
                 }
             }
             reordered();
+            translated();
+            displayLocales();
         } finally {
             T.install(null);
             Locale.setDefault(saved);
         }
-        System.out.println("FmtLegacyTest: " + checks + " checks passed (legacy formats under 4 phone locales and 7 resolved languages)");
+        System.out.println("FmtLegacyTest: " + checks + " checks passed (legacy formats under 4 phone locales and 7 resolved languages, translated symbols, display locales)");
     }
 
     private static void locales(Locale phone, String where) {
+        String tag = T.language();
+        check(tag == null || !AppLanguages.ENGLISH.equals(tag) == (AppLanguages.indexOf(tag) < 0), where + ": the test tag is English or not in the language table");
         check(Fmt.legacy(), where + ": legacy formats");
         check(Fmt.locale(Locale.US) == Locale.US, where + ": a Locale.US call site keeps Locale.US");
         check(Fmt.locale(Locale.ROOT) == Locale.ROOT, where + ": a Locale.ROOT call site keeps Locale.ROOT");
@@ -150,6 +158,38 @@ public final class FmtLegacyTest {
         }
     }
 
+    /** Fmt.percent against the percent formatting today's call sites use. */
+    private static void percents(String where) {
+        Random random = new Random(75);
+        double[] values = {0, -0d, .4, .5, 1.5, 2.5, -.5, 49.5, 75, 99.5, 99.96, 100, 150.25, -12.5, 1e15,
+                Double.NaN, Double.POSITIVE_INFINITY, Double.NEGATIVE_INFINITY};
+        for (double value : values) percent(value, where);
+        for (int i = 0; i < 200; i++) {
+            percent(random.nextDouble() * 120 - 10, where);
+            percent(random.nextInt(201) + .5, where);
+        }
+        for (long level : new long[]{0, 1, 5, 10, 50, 80, 99, 100, -1, Integer.MAX_VALUE, Long.MIN_VALUE}) {
+            // ChargeAlertPolicy.levelText and the other level + "%" chains.
+            Formatted shown = Fmt.percent(Fmt.integerNumber(level));
+            equal(level + "%", shown, where, "percent " + level);
+            texts(shown, new String[]{"" + level}, new String[0], where, "percent " + level);
+        }
+        for (double coverage : new double[]{0, .004, .005, .5, .995, 1}) {
+            // RidesScreen.percent: String.format(Locale.US, "%.0f%%", coverage * 100).
+            equal(String.format(Locale.US, "%.0f%%", coverage * 100), Fmt.percent(Fmt.decimalNumber(Locale.US, coverage * 100, 0)), where, "coverage " + coverage);
+        }
+    }
+
+    /** DashboardScreen's String.format(Locale.US, "%.0f%%", target) and Math.round(x) + "%" chains. */
+    private static void percent(double value, String where) {
+        String legacy = String.format(Locale.US, "%.0f%%", value);
+        Formatted shown = Fmt.percent(Fmt.decimalNumber(Locale.US, value, 0));
+        equal(legacy, shown, where, "percent " + value);
+        texts(shown, new String[]{legacy.substring(0, legacy.length() - 1)}, new String[0], where, "percent " + value);
+        String rounded = Math.round(value) + "%";
+        equal(rounded, Fmt.percent(Fmt.integerNumber(Math.round(value))), where, "rounded percent " + value);
+    }
+
     private static void speed(double kmh, String units, String where) {
         Formatted shown = DisplayUnits.speedQuantity(kmh, units);
         equal(DisplayUnits.speed(kmh, units), shown, where, "speed " + kmh + " in " + units);
@@ -239,6 +279,82 @@ public final class FmtLegacyTest {
         equal("<km>: 1 … 2 (1)", range, "reordered", "range repeating its low end");
         ranges(range, new int[]{6, 7, 10, 11, 13, 14}, new int[]{0, 4}, "reordered", "range");
         T.install(null);
+    }
+
+    /**
+     * A source that translates the displayed symbols and source labels (and nothing else) while its
+     * language stays English for formatting: what is shown must follow the catalog, and the data ids
+     * and preference spellings must not.
+     */
+    private static void translated() {
+        java.util.Map<Integer, String> text = new java.util.HashMap<>();
+        text.put(T.UNITS_CELSIUS, "°C!");
+        text.put(T.UNITS_FAHRENHEIT, "°F!");
+        text.put(T.UNITS_ROUTE_SPEED_TITLE, "Tempo");
+        text.put(T.UNITS_ROUTE_SPEED_TITLE_SOURCE, "Tempo · %1$s");
+        text.put(T.UNITS_ROUTE_SOURCE_SCOOTER, "Roller");
+        text.put(T.UNITS_ROUTE_SOURCE_GPS, "GPS!");
+        T.install(new T.Source() {
+            public String string(int id) { return text.get(id); }
+            public String plural(int id, long quantity) { return null; }
+            public String language() { return "en"; }
+        });
+        equal("20.0 °C!", DisplayTemperature.format(20d, "c", 1), "translated", "Celsius reading");
+        equal("68.0 °F!", DisplayTemperature.format(20d, "f", 1), "translated", "Fahrenheit reading");
+        equal("10–20 °C!", DisplayTemperature.range(10d, 20d, "c", 0), "translated", "Celsius range");
+        equal("20.0 °C!", DisplayTemperature.quantity(20d, "c", 1), "translated", "Celsius quantity");
+        Formatted range = DisplayTemperature.rangeQuantity(10d, 20d, "f", 0);
+        equal("50–68 °F!", range, "translated", "Fahrenheit range quantity");
+        texts(range, new String[]{"50", "68"}, new String[]{"°F!"}, "translated", "Fahrenheit range quantity");
+        equal("°C", DisplayTemperature.unit("c"), "translated", "the data unit stays as stored");
+        equal("°F", DisplayTemperature.unit("f"), "translated", "the data unit stays as stored");
+        Double[] none = {null, null}, gps = {20d, 30d};
+        equal("Tempo", RouteSpeedScale.of(none, none).title(), "translated", "no speed source");
+        equal("Tempo · GPS!", RouteSpeedScale.of(gps, none).title(), "translated", "GPS source");
+        equal("Tempo · Roller", RouteSpeedScale.of(gps, gps).title(), "translated", "scooter source");
+        check(RouteSpeedScale.SCOOTER.equals(RouteSpeedScale.of(gps, gps).source) && "scooter".equals(RouteSpeedScale.SCOOTER)
+                && "GPS".equals(RouteSpeedScale.GPS), "translated: the source ids stay English");
+        equal("phone", RouteSpeedScale.sourceLabel("phone"), "translated", "an unknown source id is shown as it is");
+        T.install(null);
+        for (String id : new String[]{"scooter", "GPS", "", "phone", "100%", "%s"})
+            equal(id, RouteSpeedScale.sourceLabel(id), "English", "source label " + id);
+        check(RouteSpeedScale.sourceLabel(null) == null, "English: a null source label stays null");
+    }
+
+    /**
+     * Fmt.displayLocale for shipped languages: the language plus the phone's region when the languages
+     * match, with Latin digits forced. Called directly, since no language ships yet.
+     */
+    private static void displayLocales() {
+        String[][] cases = {
+                {"de", "de-AT", "de-AT-u-nu-latn"}, {"de", "de-DE", "de-DE-u-nu-latn"}, {"de", "en-US", "de-u-nu-latn"},
+                {"ar", "ar-EG", "ar-EG-u-nu-latn"}, {"ar", "ar-EG-u-nu-arab", "ar-EG-u-nu-latn"}, {"fa", "fa-IR", "fa-IR-u-nu-latn"},
+                {"hi", "hi-IN", "hi-IN-u-nu-latn"}, {"pt-BR", "pt-PT", "pt-BR-u-nu-latn"}, {"fr", "fr-CA", "fr-CA-u-nu-latn"},
+                {"es", "und", "es-u-nu-latn"}};
+        for (String[] c : cases) {
+            Locale locale = Fmt.displayLocale(c[0], Locale.forLanguageTag(c[1]));
+            String where = c[0] + " on a " + c[1] + " phone";
+            equal(c[2], locale.toLanguageTag(), where, "display locale");
+            check("latn".equals(locale.getUnicodeLocaleType("nu")), where + ": Latin digits");
+            // Latin digits in what a shipped language's numbers print.
+            String number = String.format(locale, "%.1f", 1234567.25) + String.format(locale, "%,d", 9876543210L);
+            for (char ch : number.toCharArray()) check(!Character.isDigit(ch) || (ch >= '0' && ch <= '9'), where + ": " + number + " has Latin digits only");
+            check(number.replaceAll("[^0-9]", "").equals("12345673" + "9876543210"), where + ": " + number + " keeps every digit");
+        }
+        check(Fmt.displayLocale("de", Locale.forLanguageTag("de-AT")).getLanguage().equals("de")
+                && Fmt.displayLocale("de", Locale.forLanguageTag("en-US")).getCountry().isEmpty(), "the language's own region rule");
+        Locale saved = Locale.getDefault();
+        try {
+            for (String phone : new String[]{"ar-EG", "fa-IR", "hi-IN", "de-AT"}) {
+                Locale.setDefault(Locale.forLanguageTag(phone));
+                T.install(source("en", false));
+                check(Fmt.displayLocale().equals(Fmt.displayLocale(AppLanguages.ENGLISH, Locale.getDefault())), phone + ": displayLocale reads the resolved language and the phone");
+                check(Fmt.locale(Locale.US) == Locale.US, phone + ": English stays on the legacy locale");
+            }
+        } finally {
+            T.install(null);
+            Locale.setDefault(saved);
+        }
     }
 
     private static T.Source source(String language, boolean reorder) {

@@ -19,6 +19,12 @@ import java.util.function.BiFunction;
  * Numbers keep String.format, which rounds half up; java.text.NumberFormat would round half even.
  * Order and spacing around numbers and units belong to the templates in strings_fmt.xml, and the
  * structured results ({@link Formatted}) say where each number and unit symbol landed.
+ *
+ * Each call of {@link #locale}, {@link #datePattern} and {@link #legacy} reads the resolved language
+ * (T.language()) again. A caller that needs both a locale and a date pattern, or formats several
+ * values that must agree, should take the locale once and pass it on, rather than call each method in
+ * turn: a language change between two calls (a configuration change on another thread) could
+ * otherwise mix a legacy pattern with a display locale.
  */
 public final class Fmt {
     private Fmt() {}
@@ -43,8 +49,15 @@ public final class Fmt {
      * languages match (de-AT, pt-BR), with Latin digits forced.
      */
     static Locale displayLocale() {
-        Locale language = Locale.forLanguageTag(AppLanguages.resolve(T.language()));
-        Locale current = Locale.getDefault();
+        return displayLocale(AppLanguages.resolve(T.language()), Locale.getDefault());
+    }
+
+    /**
+     * {@link #displayLocale()} for a shipped language tag and the configuration's locale, kept apart so
+     * tests can check it before any language ships.
+     */
+    static Locale displayLocale(String languageTag, Locale current) {
+        Locale language = Locale.forLanguageTag(languageTag);
         Locale.Builder builder = new Locale.Builder().setLocale(language);
         if (language.getCountry().isEmpty() && language.getLanguage().equals(current.getLanguage())
                 && !current.getCountry().isEmpty()) {
@@ -95,7 +108,11 @@ public final class Fmt {
         return Long.toString(value);
     }
 
-    /** A formatted number as structured text: its whole text is the number. */
+    /**
+     * A formatted number as structured text: its whole text is the number. It takes plain text, so a
+     * {@link Formatted} passed here keeps its text but loses its number and unit ranges: pass a
+     * Formatted on to {@link #quantity} and the other templates as it is instead.
+     */
     public static Formatted number(CharSequence digits) {
         String text = digits.toString();
         return new Formatted(text, new int[]{0, text.length()}, new int[0]);
@@ -109,6 +126,16 @@ public final class Fmt {
     /** {@link #integer} as structured text. */
     public static Formatted integerNumber(long value) {
         return number(integer(value));
+    }
+
+    /**
+     * A percentage, "75%" in English (fmt_percent): the template owns the sign and its spacing. The
+     * number keeps its ranges; the percent sign is template text, not a unit range. In English,
+     * percent(decimalNumber(Locale.US, v, 0)) is String.format(Locale.US, "%.0f%%", v) and
+     * percent(integerNumber(n)) is n + "%".
+     */
+    public static Formatted percent(Formatted number) {
+        return compose(T.FMT_PERCENT, number);
     }
 
     // Units

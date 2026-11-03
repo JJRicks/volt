@@ -12,8 +12,19 @@ public final class DisplayTemperature {
                 || (key != null && key.endsWith("_temperature_c"));
     }
 
+    /** The unit as data and preferences spell it ("°C" or "°F"); screens show {@link #symbol}. */
     public static String unit(String preference) {
         return "f".equals(preference) ? "°F" : "°C";
+    }
+
+    /** The unit a reading is shown in, for its symbol in the current language. */
+    static UnitCode unitCode(String preference) {
+        return UnitCode.FAHRENHEIT.matches(unit(preference)) ? UnitCode.FAHRENHEIT : UnitCode.CELSIUS;
+    }
+
+    /** The displayed unit symbol, in the current language: {@link #unit}'s text in English. */
+    public static String symbol(String preference) {
+        return unitCode(preference).symbol();
     }
 
     public static double fromCelsius(double celsius, String preference) {
@@ -34,13 +45,13 @@ public final class DisplayTemperature {
 
     /**
      * {@link #format} as structured text (the same text, with the number and unit ranges), or null
-     * when no finite reading is available. The symbol stays the reading's own (°C or °F).
+     * when no finite reading is available.
      */
     public static Formatted quantity(Double celsius, String preference, int decimals) {
         if (celsius == null) return null;
         double displayed = fromCelsius(celsius, preference);
         if (!Double.isFinite(displayed)) return null;
-        return Fmt.quantity(Fmt.number(number(displayed, decimals)), Fmt.unitText(unit(preference)));
+        return Fmt.quantity(Fmt.number(number(displayed, decimals)), Fmt.unit(unitCode(preference)));
     }
 
     /** {@link #range} as structured text, or null when an endpoint is unavailable. */
@@ -49,7 +60,7 @@ public final class DisplayTemperature {
         double low = fromCelsius(lowCelsius, preference);
         double high = fromCelsius(highCelsius, preference);
         if (!Double.isFinite(low) || !Double.isFinite(high)) return null;
-        return Fmt.range(Fmt.number(number(low, decimals)), Fmt.number(number(high, decimals)), Fmt.unitText(unit(preference)));
+        return Fmt.range(Fmt.number(number(low, decimals)), Fmt.number(number(high, decimals)), Fmt.unit(unitCode(preference)));
     }
 
     /** A value and its selected unit, or an em dash when no finite reading is available. */
@@ -57,7 +68,7 @@ public final class DisplayTemperature {
         if (celsius == null) return "—";
         double displayed = fromCelsius(celsius, preference);
         if (!Double.isFinite(displayed)) return "—";
-        return T.fmtQuantity(number(displayed, decimals), unit(preference));
+        return T.fmtQuantity(number(displayed, decimals), symbol(preference));
     }
 
     /** Both endpoints share one unit; a missing endpoint leaves the range unavailable. */
@@ -66,7 +77,7 @@ public final class DisplayTemperature {
         double low = fromCelsius(lowCelsius, preference);
         double high = fromCelsius(highCelsius, preference);
         if (!Double.isFinite(low) || !Double.isFinite(high)) return "—";
-        return T.fmtRange(number(low, decimals), number(high, decimals), unit(preference));
+        return T.fmtRange(number(low, decimals), number(high, decimals), symbol(preference));
     }
 
 }
