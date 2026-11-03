@@ -60,7 +60,11 @@ a literal, the only differences from the base allowed are a row's expression rep
 that serves it (with a manual row, anywhere in the statement holding its literals) and a removed
 row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase(), or dropping code
 next to it, fails. Whole new members (a method or field added next to converted text), regions a
-stays-english or id-kept move touched, and every other src change are listed for the reviewer.
+stays-english or id-kept move touched, and every other src change are listed for the reviewer. Two
+more changes are allowed and listed: a String declaration whose initializer becomes the row's call
+turning CharSequence (for a deferred M call), with every line naming the variable; and a legacy
+locale wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)), which needs a compiled
+tests/l10n/ test calling Fmt.locale (G10).
 
 Ledger format: a TSV with the header
 
@@ -1250,6 +1254,153 @@ def deleted_scope(diff, first, last):
         first, last = head_first, close
 
 
+DECLARATION_MODIFIERS = frozenset(("private", "public", "protected", "static", "final", "transient", "volatile"))
+
+
+def declaration_type(tokens, first, last):
+    """(type token index, declarator name) when tokens first..last are the whole initializer of one
+    declarator of a declaration statement, [modifiers] Type a = ..., name = <first..last>, ...; (a
+    field or a local), with a simple, unqualified Type. Else None."""
+    def op(j, *values):
+        return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+    if first < 2 or not op(first - 1, "=") or tokens[first - 2].kind != "ident" or not op(last + 1, ";", ","):
+        return None
+    start = first
+    while start > 0 and not op(start - 1, ";", "{", "}"):
+        start -= 1
+    k = start
+    while k < len(tokens) and tokens[k].kind == "ident" and tokens[k].value in DECLARATION_MODIFIERS:
+        k += 1
+    if k + 1 >= first or tokens[k].kind != "ident" or tokens[k + 1].kind != "ident" or op(k + 2, "."):
+        return None
+    # Every declarator before the one at first: name = <expression>, at the statement's top level.
+    j, depth = k + 1, 0
+    while j < first - 2:
+        if op(j, "(", "[", "{"):
+            depth += 1
+        elif op(j, ")", "]", "}"):
+            depth -= 1
+        elif op(j, ";"):
+            return None
+        j += 1
+    if depth != 0 or not (first - 2 == k + 1 or op(first - 3, ",")):
+        return None
+    return k, tokens[first - 2].value
+
+
+def statement_bounds(tokens, k):
+    """(first, index of the ; or { or } that ends it) of the statement holding token k."""
+    start = k
+    while start > 0 and not (tokens[start - 1].kind == "op" and tokens[start - 1].value in (";", "{", "}")):
+        start -= 1
+    end = k
+    while end < len(tokens) and not (tokens[end].kind == "op" and tokens[end].value in (";", "{", "}")):
+        end += 1
+    return start, end
+
+
+def retyped_declaration(diff, base_span, head_span):
+    """(base type token, head type token, name) when a row's base expression was a declarator's whole
+    initializer in a String declaration, and the call that serves it is that declarator's whole
+    initializer in the same declaration with the type CharSequence (a deferred M call needs it). Else
+    None. Only this one type change is allowed around text."""
+    base = declaration_type(diff.base.tokens, base_span[0], base_span[-1])
+    head = declaration_type(diff.head.tokens, head_span[0], head_span[-1])
+    if base is None or head is None or base[1] != head[1]:
+        return None
+    b, h = base[0], head[0]
+    if diff.base.tokens[b].value != "String" or diff.head.tokens[h].value != "CharSequence":
+        return None
+    def modifiers(tokens, k):
+        return [t.value for t in tokens[statement_bounds(tokens, k)[0]:k]]
+    if modifiers(diff.base.tokens, b) != modifiers(diff.head.tokens, h):
+        return None
+    return b, h, base[1]
+
+
+def _declarators(tokens, k, end):
+    """[(first, last)] of the declarators of a declaration whose type token is k and whose ; is end."""
+    parts, start, depth = [], k + 1, 0
+    for j in range(k + 1, end):
+        if tokens[j].kind == "op" and tokens[j].value in ("(", "[", "{"):
+            depth += 1
+        elif tokens[j].kind == "op" and tokens[j].value in (")", "]", "}"):
+            depth -= 1
+        elif tokens[j].kind == "op" and tokens[j].value == "," and depth == 0:
+            parts.append((start, j - 1))
+            start = j + 1
+    parts.append((start, end - 1))
+    return parts
+
+
+def split_declaration(diff, base_span, head_span):
+    """(base tokens, head tokens, head type token, name) when a row's literal was one declarator of a
+    String declaration with several (String a = "", b = "x", c = "";) and head moved that declarator
+    out, unchanged otherwise, into a CharSequence declaration of its own right beside the rest
+    (String a = "", c = ""; CharSequence b = M.x();), with the same modifiers. Else None."""
+    base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
+    base = declaration_type(base_tokens, base_span[0], base_span[-1])
+    head = declaration_type(head_tokens, head_span[0], head_span[-1])
+    if base is None or head is None or base[1] != head[1]:
+        return None
+    b, h = base[0], head[0]
+    if base_tokens[b].value != "String" or head_tokens[h].value != "CharSequence":
+        return None
+
+    def key(tok):
+        return (tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw)
+
+    def statement(tokens, k):
+        start, end = statement_bounds(tokens, k)
+        return start, end if end < len(tokens) and tokens[end].value == ";" else None
+
+    b_start, b_end = statement(base_tokens, b)
+    h_start, h_end = statement(head_tokens, h)
+    if b_end is None or h_end is None or head_span[-1] != h_end - 1 or head_span[0] - 2 != h + 1:
+        return None  # head: [modifiers] CharSequence name = <call>; and nothing more
+    modifiers = [key(t) for t in base_tokens[b_start:b]]
+    if [key(t) for t in head_tokens[h_start:h]] != modifiers:
+        return None
+    parts = _declarators(base_tokens, b, b_end)
+    mine = [n for n, (f, l) in enumerate(parts) if f <= base_span[0] and base_span[-1] <= l]
+    if len(parts) < 2 or len(mine) != 1:
+        return None
+    rest = []
+    for n, (f, l) in enumerate(parts):
+        if n != mine[0]:
+            rest += ([("op", ",")] if rest else []) + [key(t) for t in base_tokens[f:l + 1]]
+    wanted = modifiers + [key(base_tokens[b])] + rest + [("op", ";")]
+    # The rest of the declaration sits right before or right after the new one.
+    neighbours = []
+    if h_start >= 2 and head_tokens[h_start - 1].value == ";":
+        neighbours.append((statement(head_tokens, h_start - 2)[0], h_start - 1))
+    if h_end + 1 < len(head_tokens):
+        after = statement(head_tokens, h_end + 1)
+        if after[0] == h_end + 1 and after[1] is not None:
+            neighbours.append(after)
+    for first, last in neighbours:
+        if [key(t) for t in head_tokens[first:last + 1]] == wanted:
+            return range(b_start, b_end + 1), range(min(first, h_start), max(last, h_end) + 1), h, base[1]
+    return None
+
+
+def retype_warning(where, path, diff, h_type, name, split_from=None):
+    """The reviewer's listing of a String declaration that became CharSequence for its catalog call,
+    with every head line of the file that names the variable: a use that picks an overload by type
+    (a String and a CharSequence overload), compares with equals or casts reads it differently now."""
+    tokens = diff.head.tokens
+    first, last, _ = expressions.statement_span(tokens, h_type)
+    uses = sorted(set(t.line for k, t in enumerate(tokens) if t.kind == "ident" and t.value == name and
+                      not first <= k <= last))
+    shown = ", ".join(str(n) for n in uses[:20]) + (" ..." if len(uses) > 20 else "")
+    return ("%s: %s:%d: the declaration `%s`%s changes from String to CharSequence for its catalog call; check by "
+            "hand that every use of %s behaves the same with a CharSequence (an overload chosen by type, equals, a "
+            "cast)%s" % (
+                where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None),
+                " (moved out of `%s`, the rest kept as it was)" % split_from if split_from else "", name,
+                ": head lines %s" % shown if uses else "; the file names it nowhere else"))
+
+
 def _class_name(path):
     return os.path.basename(path)[:-len(".java")]
 
@@ -1347,7 +1498,46 @@ def inserted_members(tokens, first, last):
     return next(((f, l) for f, l in candidates if _whole_members(tokens, f, l)), None)
 
 
-def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=()):
+# A call site's legacy locale wrapped for Fmt (plan section 4.1): Fmt.locale(Locale.US) is Locale.US
+# while Volt is English (G10's FmtLegacyTest), so this one change is allowed around text and listed.
+LOCALE_ARGUMENTS = (("Locale", ".", None), ("java", ".", "util", ".", "Locale", ".", None),
+                    ("Locale", ".", "getDefault", "(", ")"))
+
+
+def locale_wraps(tokens):
+    """{Fmt token index: (wrapper token indexes, inner token indexes)} for every Fmt.locale(<legacy>)
+    in tokens, <legacy> being Locale.X, java.util.Locale.X or Locale.getDefault()."""
+    found = {}
+    for k in range(len(tokens) - 6):
+        if tokens[k].kind != "ident" or tokens[k].value != "Fmt" or (k > 0 and tokens[k - 1].value == ".") or \
+                [t.raw for t in tokens[k + 1:k + 4]] != [".", "locale", "("]:
+            continue
+        close = expressions.match_forward(tokens, k + 3)
+        if close is None:
+            continue
+        inner = tokens[k + 4:close]
+        for shape in LOCALE_ARGUMENTS:
+            if len(inner) == len(shape) and all(t.kind == "ident" and t.value != "getDefault" if want is None
+                                                else t.raw == want for t, want in zip(inner, shape)):
+                found[k] = ([k, k + 1, k + 2, k + 3, close], list(range(k + 4, close)))
+                break
+    return found
+
+
+def to_string_uses(tokens, names):
+    """{name token index: (wrapper token indexes, [name token index])} for every name.toString() (or
+    this.name.toString()) of a variable in names."""
+    found = {}
+    for k in range(len(tokens) - 4):
+        if tokens[k].kind != "ident" or tokens[k].value not in names or \
+                (k > 0 and tokens[k - 1].value == "." and not (k > 1 and tokens[k - 2].value == "this")) or \
+                [t.raw for t in tokens[k + 1:k + 5]] != [".", "toString", "(", ")"]:
+            continue
+        found[k] = ([k + 1, k + 2, k + 3, k + 4], [k])
+    return found
+
+
+def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(), wraps=None, retyped=()):
     """(problems, warnings) for code a batch changed besides converting or deleting text.
 
     allowed_base and allowed_head map token indexes to a span id: a row's base expression (or a
@@ -1355,16 +1545,34 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
     deleted code has an id with no head side. Each span counts as one item when the changed regions
     are aligned, so only tokens outside them can differ. new_ids are head tokens of new key or id
     literals (listed elsewhere); they alone do not make a region hold text.
+
+    A legacy locale wrapped into Fmt.locale(...) (Locale.US becoming Fmt.locale(Locale.US)) is not a
+    change here: ("locale", head Fmt token) of each such wrap is added to wraps, which run() lists and
+    holds to G10. Nor is a .toString() added to a use of a variable in retyped (a String declaration
+    that became CharSequence for its catalog call), which gives the String the use had: ("string",
+    head name token) is added. Unwrapping either (Fmt.locale(Locale.US) becoming Locale.US, or
+    name.toString() becoming name) is a change.
     """
     if diff.base is None or diff.head is None:
         return [], ["%s was %s; check it by hand" % (path, "added" if diff.base is None else "deleted")]
     problems, warnings = [], []
+    groups = []
+    for tokens in (diff.base.tokens, diff.head.tokens):
+        found = dict((at, ("locale",) + group) for at, group in locale_wraps(tokens).items())
+        found.update((at, ("string",) + group) for at, group in to_string_uses(tokens, set(retyped)).items())
+        groups.append(found)
     for hunk, (b1, b2, h1, h2) in enumerate(diff.hunks):
         sides = []
-        for index, allowed, first, last in ((diff.base, allowed_base, b1, b2), (diff.head, allowed_head, h1, h2)):
-            keys, where = [], []
+        for side, (index, allowed, first, last) in enumerate(((diff.base, allowed_base, b1, b2),
+                                                              (diff.head, allowed_head, h1, h2))):
+            wrapper, inner = {}, {}
+            for at, (_, outer, inside) in groups[side].items():
+                if not any(j in allowed for j in outer + inside):
+                    wrapper.update((j, at) for j in outer)
+                    inner.update((j, at) for j in inside)
+            keys, where, wrapped = [], [], []
             for k, tok in enumerate(index.tokens):
-                if not first <= tok.line <= last:
+                if not first <= tok.line <= last or k in wrapper:
                     continue
                 if k in allowed:
                     if keys and keys[-1] == ("span", allowed[k]):
@@ -1374,14 +1582,24 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
                 else:
                     keys.append((tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw))
                     where.append(k)
-            sides.append((keys, where))
-        (a, a_at), (b, b_at) = sides
+                wrapped.append(inner.get(k))
+            sides.append((keys, where, wrapped, wrapper))
+        (a, a_at, a_wrap, a_wrapper), (b, b_at, b_wrap, b_wrapper) = sides
         text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
             any(t.kind in expressions.LITERALS and k not in new_ids
                 for k, t in enumerate(diff.head.tokens) if h1 <= t.line <= h2)
         lost, gained = [], []
         for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
-            if text and tag == "insert" and None not in b_at[j1:j2] and b_at[j2 - 1] - b_at[j1] == j2 - j1 - 1:
+            if tag == "equal":
+                for o in range(i2 - i1):
+                    was, now = a_wrap[i1 + o], b_wrap[j1 + o]
+                    if now is not None and was is None and wraps is not None:
+                        wraps.add((groups[1][now][0], now))
+                    elif was is not None and now is None:
+                        lost.extend(j for j, at in a_wrapper.items() if at == was and j not in lost)
+                continue
+            if text and tag == "insert" and None not in b_at[j1:j2] and \
+                    set(range(b_at[j1], b_at[j2 - 1] + 1)) <= set(b_at[j1:j2]) | set(b_wrapper):
                 members = inserted_members(diff.head.tokens, b_at[j1], b_at[j2 - 1])
                 if members is not None:
                     # A new method or field next to text does not run where the text is; it is listed.
@@ -1390,11 +1608,16 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
                                         path, diff.head_token(members[0]).line,
                                         _excerpt(diff.head.tokens[members[0]:members[1] + 1], 60)))
                     continue
-            if tag != "equal":
-                lost.extend(k for k in a_at[i1:i2] if k is not None)
-                gained.extend(k for k in b_at[j1:j2] if k is not None)
+            lost.extend(k for k in a_at[i1:i2] if k is not None)
+            gained.extend(k for k in b_at[j1:j2] if k is not None)
+            # Show a changed argument with its Fmt.locale( ) or .toString(), so the excerpt reads as the code.
+            for wrap, wrapper_map, out in ((a_wrap[i1:i2], a_wrapper, lost), (b_wrap[j1:j2], b_wrapper, gained)):
+                for at in set(w for w in wrap if w is not None):
+                    out.extend(j for j, w in wrapper_map.items() if w == at and j not in out)
         if not lost and not gained:
             continue
+        lost.sort()
+        gained.sort()
         parts = []
         # Beside a move the reviewer is the check, so the whole change is printed.
         limit = None if (path, hunk) in moved_hunks else 16
@@ -1521,6 +1744,62 @@ def format_review(row, where, diff, base_span, head_span, callers):
                   where, row.path, row.base_line, _excerpt(base_tokens[base_span[0]:base_span[1] + 1], None),
                   _excerpt(head_tokens[head_span[0]:head_span[1] + 1], None), ", ".join(keys) or "none",
                   "; specifiers " + ", ".join(pairs) if pairs else "", site)
+    return problems, warning
+
+
+def arrival_match(row, diff, k, hunk, arrival, diffs):
+    """How surely an added literal is the moved copy of the staying literal at base token k: 2 when it
+    arrived in an expression with the same literals as the one k left (several literals moved
+    together), plus 1 when the head lines of the region k left name the arrival's class (Class.) or
+    the method that holds it (method(...))."""
+    a_path, _, a_k, _ = arrival
+    a_diff = diffs[a_path]
+    score = 0
+    left = expressions.literal_items(diff.base.expression_of(k).pieces)
+    came = expressions.literal_items(a_diff.head.expression_of(a_k).pieces)
+    if len(left) > 1 and left == came:
+        score += 2
+    _, _, h1, h2 = diff.hunks[hunk]
+    region = _region_tokens(diff.head, h1, h2)
+    method = enclosing_method(a_diff.head.tokens, a_k)
+    owner = _class_name(a_path)
+    for j, tok in enumerate(region[:-1]):
+        if tok.kind != "ident":
+            continue
+        if (tok.value == owner and a_path != row.path and region[j + 1].value == ".") or \
+                (method and tok.value == method and region[j + 1].value == "("):
+            score += 1
+            break
+    return score
+
+
+def locale_wrap_review(path, diff, k, callers):
+    """(problems, warning) for a legacy locale wrapped into Fmt.locale(...) at head token k. G10
+    (FmtLegacyTest) shows Fmt.locale returns the legacy locale while Volt is English, so a compiled
+    test under tests/l10n/ must call Fmt.locale; the reviewer sees the statement and the tests that
+    call the method holding it (the characterization of that site), or a note that none does."""
+    tokens = diff.head.tokens
+    close = expressions.match_forward(tokens, k + 3)
+    first, last, _ = expressions.statement_span(tokens, k)
+    start, end = max(first, k - 20), min(last, close + 20)
+    problems = []
+    if not callers.get(("Fmt", "locale")):
+        problems.append("%s: legacy locales are wrapped into Fmt.locale(...), and no test that tests/run.sh compiles "
+                        "under tests/l10n/ calls Fmt.locale; G10 (FmtLegacyTest) must show it keeps the legacy "
+                        "locale while Volt is English" % path)
+    method = enclosing_method(tokens, k)
+    owner = _class_name(path)
+    tests = callers.get((owner, method), []) if method else []
+    if tests:
+        site = "a method named %s.%s is called by %s" % (owner, method, ", ".join(tests))
+    else:
+        site = "no compiled test under tests/l10n/ calls %s.%s(...), so check by hand that it formats the same" % (
+            owner, method or "<the enclosing method>")
+    warning = ("%s:%d: `%s` becomes `%s` in `%s%s%s`; Fmt.locale keeps that locale while Volt is English (G10), and "
+               "a shipped language formats in its own; %s" % (
+                   path, tokens[k].line, _excerpt(tokens[k + 4:close], None), _excerpt(tokens[k:close + 1], None),
+                   "... " if start > first else "", _excerpt(tokens[start:end + 1], None),
+                   " ..." if end < last else "", site))
     return problems, warning
 
 
@@ -1681,7 +1960,8 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                             _excerpt(tokens[span[0]:span[-1] + 1], None)))
 
     used, last, callers = set(), {}, None
-    for path, _, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
+    retyped_names = collections.defaultdict(set)  # path -> names of String declarations now CharSequence
+    for path, first_token, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
         problem, call = check_call_sites(row, calls, path, ranges, used, last.get(path, -1))
         if problem:
             problems.append("%s: %s" % (where, problem))
@@ -1697,6 +1977,34 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     first, end = call_span(head_tokens, call[2])
                 for j in range(first, end + 1):
                     allowed_head[path].setdefault(j, id(row))
+                if id(row) not in manual_rows:
+                    base_span = format_rows[id(row)] if row.kind == "format" else \
+                        diffs[path].base.expression_of(first_token).span
+                    split = split_declaration(diffs[path], base_span, (first, end))
+                    retyped = None if split is not None else retyped_declaration(diffs[path], base_span, (first, end))
+                    if retyped is not None:
+                        # A deferred M call needs a CharSequence where a String held the literal.
+                        b_type, h_type, name = retyped
+                        allowed_base[path].setdefault(b_type, ("retype", id(row)))
+                        allowed_head[path].setdefault(h_type, ("retype", id(row)))
+                        # Every declarator of the declaration is a CharSequence now.
+                        _, h_end = statement_bounds(head_tokens, h_type)
+                        retyped_names[path].update(head_tokens[f].value for f, _ in _declarators(head_tokens, h_type, h_end)
+                                                   if head_tokens[f].kind == "ident")
+                        warnings.append(retype_warning(where, path, diffs[path], h_type, name))
+                    elif split is not None:
+                        # The same, for one declarator of several, moved into a declaration of its own.
+                        b_tokens, h_tokens, h_type, name = split
+                        for j in b_tokens:
+                            if allowed_base[path].get(j) != id(row):
+                                allowed_base[path][j] = ("retype", id(row))
+                        for j in h_tokens:
+                            if allowed_head[path].get(j) != id(row):
+                                allowed_head[path][j] = ("retype", id(row))
+                        retyped_names[path].add(name)
+                        warnings.append(retype_warning(where, path, diffs[path], h_type, name,
+                                                       _excerpt(diffs[path].base.tokens[b_tokens[0]:b_tokens[-1] + 1],
+                                                                None)))
                 if row.kind == "format":
                     if callers is None:
                         callers = test_callers(head, cwd)
@@ -1747,6 +2055,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         for p in head_sources:
             skip = set(diffs[p].added) if p in diffs and diffs[p].head is not None else set()
             yield p, head_tokens(p), skip
+    guesses = collections.defaultdict(list)  # arrival number -> [(row, path, base token, chosen arrival)]
     for row, path, k in staying:
         tok = diffs[path].base_token(k)
         hunk = diffs[path].gone[k]
@@ -1763,9 +2072,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             arrivals[chosen][3] = "named"
             named[(arrivals[chosen][0], arrivals[chosen][2])].append((row, path, k))
             continue
-        chosen = next((n for n in same if arrivals[n][3] is False), None) if moved_whole else None
-        if chosen is not None:
+        free = [n for n in same if arrivals[n][3] is False] if moved_whole else []
+        if free:
+            # Code moved out whole: prefer the copy that arrived as the same expression (all the row's
+            # literals together), then one in a class or method the region's head lines name, so a new
+            # literal of the same value elsewhere (a "f" in the file that sorts first) is not taken for it.
+            ranked = sorted(free, key=lambda n: (-arrival_match(row, diffs[path], k, hunk, arrivals[n], diffs), n))
+            chosen = ranked[0]
             arrivals[chosen][3] = "whole"
+            if len(free) > 1 and arrival_match(row, diffs[path], k, hunk, arrivals[chosen], diffs) == \
+                    arrival_match(row, diffs[path], k, hunk, arrivals[ranked[1]], diffs):
+                for n in ranked[1:]:
+                    guesses[n].append((row, path, k, chosen))
             continue
         # A constant already in src that holds the same value (a later batch moving its data units to
         # B1's UnitCode), named by the code the literal left.
@@ -1798,11 +2116,30 @@ def run(base, head, explicit_ledgers=None, cwd=None):
 
     moved_hunks = set((path, diffs[path].gone[k]) for _, path, k in staying)
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
+    wrapped = 0
     for path in sorted(diffs):
+        wraps = set()
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
-                                                   moved_hunks, new_ids[path] | new_formats[path])
+                                                   moved_hunks, new_ids[path] | new_formats[path], wraps,
+                                                   retyped_names[path])
         problems.extend(problem_list)
         warnings.extend(warning_list)
+        for kind, k in sorted(wraps):
+            if kind != "string":
+                continue
+            tokens = diffs[path].head.tokens
+            first, last, _ = expressions.statement_span(tokens, k)
+            warnings.append("%s:%d: `%s` becomes `%s . toString ( )` in `%s`, since its declaration is a CharSequence "
+                            "now (listed above); check by hand that it is the String it was" % (
+                                path, tokens[k].line, tokens[k].raw, tokens[k].raw, _excerpt(tokens[first:last + 1], 40)))
+        wraps = set(k for kind, k in wraps if kind == "locale")
+        if wraps and callers is None:
+            callers = test_callers(head, cwd)
+        for k in sorted(wraps):
+            wrapped += 1
+            found, warning = locale_wrap_review(path, diffs[path], k, callers)
+            problems.extend(p for p in found if p not in problems)
+            warnings.append(warning)
 
     gone_total = 0
     gone_files = set()
@@ -1835,10 +2172,19 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             continue
         if not used_by_move and not (tok.kind == "string" and tok.value == ""):
             new_literals += 1
+            number = next(n for n, a in enumerate(arrivals) if (a[0], a[2]) == (path, k))
+            hint = "".join(
+                "; G1 could not tell which copy of %s the %s row at %s:%d (%s:%d) moved to, and took the one at "
+                "%s:%d: if this one is that copy, make the code it left name this one's class or method (or move "
+                "it as the same expression), or record the other as new text" % (
+                    l10nlib.json_string(tok.value), row.kind, row.source, row.line, left_path,
+                    diffs[left_path].base_token(left_k).line, arrivals[chosen][0],
+                    diffs[arrivals[chosen][0]].head_token(arrivals[chosen][2]).line)
+                for row, left_path, left_k, chosen in guesses.get(number, []))
             problems.append("%s:%d: new %s %s; an extraction batch adds no text to src (put it in the catalog), and "
-                            "a literal that moved needs a stays-english or id-kept row" % (
+                            "a literal that moved needs a stays-english or id-kept row%s" % (
                                 path, tok.line, "char" if tok.kind == "char" else "literal",
-                                l10nlib.json_string(tok.value)))
+                                l10nlib.json_string(tok.value), hint))
 
     catalog_problems, catalog_rows = catalog_consistency(head, cwd)
     problems.extend(catalog_problems)
@@ -1846,8 +2192,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
               "%d new key or id literal(s), listed; %s%d ledger row(s) agree with the catalog" % (
                   gone_total, len(gone_files), len(rows), " (%d manual)" % manual if manual else "",
                   new_literals, sum(len(v) for v in new_ids.values()),
-                  "%d new format-only literal(s), listed; " % sum(len(v) for v in new_formats.values())
-                  if any(new_formats.values()) else "", catalog_rows)
+                  ("%d new format-only literal(s), listed; " % sum(len(v) for v in new_formats.values())
+                   if any(new_formats.values()) else "") +
+                  ("%d legacy locale(s) wrapped in Fmt.locale, listed; " % wrapped if wrapped else ""), catalog_rows)
     return problems, warnings, summary
 
 

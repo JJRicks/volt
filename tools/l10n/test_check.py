@@ -63,6 +63,11 @@ class CheckTest(unittest.TestCase):
                          ["placeholders"])
         self.assertEqual(self.checks(self.run_check("common_move_widget", "Mover %1$d a la posición %2$s")),
                          ["placeholders"])
+        # A width or precision on a %n$s argument is refused in a translation too (Fmt.compose's marks).
+        self.assertEqual(self.checks(self.run_check("common_move_widget", "Mover %1$.3s a la posición %2$d")),
+                         ["placeholders"])
+        self.assertEqual(self.checks(self.run_check("common_move_widget", "Mover %1$-12s a la posición %2$d")),
+                         ["placeholders"])
         # Reordering is allowed.
         self.assertEqual(self.checks(self.run_check("common_move_widget", "A la posición %2$d: mover %1$s")), [])
         self.assertEqual(self.checks(self.run_check("common_battery_percent", "%1$s %")), ["placeholders"])

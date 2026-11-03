@@ -59,7 +59,10 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 - **Ladder rungs** are sibling keys: `<key>_short` with `volt:ladder="short"` and `<key>_compact`
   with `volt:ladder="compact"`. A rung may use only placeholders its full key has.
 - **Placeholders** are positional only: `%1$s` (a `CharSequence`), `%1$d` (a `long`), `%1$.1f`
-  (a `double`), and `%%` for a percent sign. Number them from `%1$` with no gaps. Any text with
+  (a `double`), and `%%` for a percent sign. Number them from `%1$` with no gaps. A `%n$s` takes no
+  width, precision or flag (`%1$-8s`, `%1$.2s`): `Fmt.compose` finds each argument by private-use
+  marks at its ends, and a cut or padding would leak a mark into the text, so `gen_catalog.py`
+  refuses them in the English and `check.py` and `merge.py` in every translation. Any text with
   `%` always goes through `String.format(Locale.ROOT, ...)`; locale-aware numbers come from `Fmt`
   as `%n$s` arguments. `formatted="false"` turns this off for a string.
 - **Plurals** take the quantity first: `T.backupScootersSkipped(long quantity, long n)`. English
@@ -144,6 +147,13 @@ its own `.sources` file (its characterization tests, its new suites) and never e
 - `ScreenHost.toast(Msg)` and `sheetContent(Msg, Msg, close)` render at display time.
 - The Shizuku shell process (`OwnerCaptureUserService` and everything it reaches) never uses any of
   these; `tests/l10n/CatalogUsageTest` checks that, and rules R2 to R6.
+- R2 (no rendered text kept in a field) looks at the field's declared type: a field of an Android view
+  type (`TextView`, `LinearLayout`, ... `ANDROID_VIEWS` in the test) or of one of Volt's view classes
+  (a class extending one, found in `src/`) keeps the view built from the text, so
+  `title = ui.text(T.uiLiveStatsTitle(), 24, true)` passes; the activity rebuilds its views when the
+  language changes. A `String`, `CharSequence`, generic (`List<TextView>`) or any other type still
+  counts, as does a name a file declares as its own data type (`ChargeScheduleController.View`) and a
+  field name declared both ways.
 
 ## Doing a batch
 
@@ -304,7 +314,29 @@ How `ledger_check.py` (G1) reads it:
   Whole new members (a method or field declared next to converted text, such as B1's
   `labelQuantity` beside `label`) do not run where the text is; they are listed with their code.
   Changes in regions with no text, and around a `stays-english` or `id-kept` move, are listed as
-  warnings.
+  warnings. Two more changes are allowed around text, and each is listed:
+  - **String to CharSequence** on the declaration whose initializer is a row's expression and becomes
+    the call that serves it: `private String subtitle = "Not reported";` becoming
+    `private CharSequence subtitle = M.commonNotReported();` (a deferred `Msg` needs it). The same
+    modifiers and name, that one type token, nothing else. For one declarator of several
+    (`private String unit = "", empty = "No data", axis = "";`), either the whole declaration changes
+    type, or that declarator moves into a declaration of its own right before or after the rest, which
+    stays exactly as it was (`private String unit = "", axis = "";` and
+    `private CharSequence empty = M.uiChartEmpty();`). The warning prints the declaration and every head line of the file that
+    names the variable: an overload chosen by type (`text(String)` against `text(CharSequence)`),
+    `equals` or a cast now sees a `CharSequence`, which the reviewer checks. A use that needs the
+    String back may add `.toString()` (`: subtitle` becoming `: subtitle.toString()`, the String it
+    was), listed too; any other change at a use, and `.toString()` on another variable, fails. Any
+    other type change (to `Object` or `Msg`, CharSequence to String, a neighbouring declaration, a
+    modifier) fails.
+  - **A legacy locale wrapped for Fmt** (plan section 4.1): `Locale.US`, `java.util.Locale.US` or
+    `Locale.getDefault()` becoming `Fmt.locale(<the same>)`, as in
+    `String.format(Fmt.locale(Locale.US), "%.1f", v)` or `toUpperCase(Fmt.locale(Locale.ROOT))`.
+    `Fmt.locale` returns its argument while Volt is English, which G10 proves, so a compiled test
+    under `tests/l10n/` must call `Fmt.locale` (else G1 fails), and each wrap is listed with its
+    statement and the compiled tests that call the method holding it (its characterization), or a
+    note that none does. Another locale, another method (`Fmt.displayLocale()`), extra arguments or
+    a call on the result fail; so does unwrapping (`Fmt.locale(Locale.US)` becoming `Locale.US`).
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
   must be added somewhere else in `src/` (outside the changed region it left), and the lines it
   left must either only lose tokens (code moved out whole) or name the constant it moved to
@@ -318,6 +350,11 @@ How `ledger_check.py` (G1) reads it:
   base order of its literals, the constant each one moved to, so `"V"` then `"W"` cannot become
   `WATT` then `VOLT`, and two `"V"` sites need two `VOLT`s. A constant several sites share is listed
   with each site; a constant holding another value, or a site naming another constant, fails.
+  When code moved out whole and several new copies of the value arrived, G1 takes the one that
+  arrived as the same expression (all of the row's literals together, B1's `"%." + precision + "f"`
+  moving into `Fmt.java`), then one in a class or method the lines it left name; so a new `"f"`
+  elsewhere fails as the new literal it is, not the real copy. When nothing tells two copies apart,
+  the one that then fails as a new literal says which copy G1 took for the row.
   A later batch may also move a literal into a constant already in `src/` (B1's `UnitCode`, whose
   doc asks each batch that owns unit data to compare through it): the region it left names that
   constant (`UnitCode.VOLT.code`), and the constant's whole value is the same literal. Each such
@@ -389,6 +426,11 @@ Known limits:
   and every changed region are listed. Whole new members next to text are listed, not checked.
 - `whole block:` removed rows, `as` holes and code changes away from any text are warnings, not
   failures: the reviewer must read them.
+- A String declaration turned CharSequence for an `M` call is listed with every line naming the
+  variable; G1 does not check what those uses do with a `CharSequence` (an overload picked by type).
+- A locale wrapped into `Fmt.locale` is checked for the wrap only: that it keeps the legacy locale in
+  English is G10's, and that the site's values format the same is its characterization test's (listed
+  when one calls the method).
 - G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
 - G7 does not compare volatile records (values whose text, not only their numbers, changed between
   the two base runs), and it checks the form of numbers, not their values: a number whose value
