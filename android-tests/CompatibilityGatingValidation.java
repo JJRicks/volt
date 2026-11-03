@@ -266,7 +266,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             require(owner == (pin.available() || pin.blockedByRide() || pin.reason == CapabilityResolver.Reason.BUSY), label + ": PIN rows follow the pin decision");
             String notice = String.valueOf(((TextView)field(more, "securityNotice")).getText());
             CapabilityResolver.Decision near = ble.decision("proximity_key");
-            String expected = owner ? "Test while parked." : near.support != CapabilityResolver.Support.KNOWN_ENCODING ? near.reasonText() : pin.reasonText();
+            String expected = owner ? "Test while parked. After proximity unlock is turned on, the scooter may disconnect for a moment; Volt reconnects and confirms the change." : near.support != CapabilityResolver.Support.KNOWN_ENCODING ? near.reasonText() : pin.reasonText();
             require(notice.equals(expected), label + ": security notice \"" + notice + "\" expected \"" + expected + "\"");
             if (!owner) require(!((View)field(field(more, "proximityRow"), "toggle")).isEnabled(), label + ": proximity toggle stays off on an unmapped model");
         });

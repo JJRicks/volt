@@ -25,8 +25,9 @@ The scooter may disconnect for a moment after proximity unlock is turned on
 (a GT3 Max restarts its Bluetooth after the change). Volt does not report that
 change as cancelled: it reconnects by itself and confirms it from the first
 status read, or says it was not confirmed. If the reconnect does not happen
-within a minute, the change is reported as not confirmed. Turning proximity
-unlock off never needs the pairing.
+within a minute, or no reconnect follows (Bluetooth turned off, the app paused
+in the background), the change is reported as not confirmed, never as
+cancelled. Turning proximity unlock off never needs the pairing.
 
 If proximity unlock reads on and this phone is not paired (for example after
 pairing did not finish, or after the official app turned it on), More says so

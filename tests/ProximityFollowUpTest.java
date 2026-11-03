@@ -17,6 +17,9 @@ public final class ProximityFollowUpTest {
         noRecheck();
         pairedPrompt();
         offNeverBlocked();
+        dropWording();
+        sentWithoutReconnect();
+        controllerWiring();
         pairingEnded();
         System.out.println("ProximityFollowUpTest: " + checks + " checks passed");
     }
@@ -32,10 +35,12 @@ public final class ProximityFollowUpTest {
         ProximityFollowUp.Recheck r = drop(ENABLE, true, 10_000, done);
         check(r != null && r.target == 1 && r.ack, "A sent enable that drops waits for the reconnect");
         check(r.completion != null && done.isEmpty(), "Its completion is carried, not fired with false at the drop");
-        check(!ProximityFollowUp.RECONNECTING_RESULT.toLowerCase().contains("cancel") && ProximityFollowUp.RECONNECTING_RESULT.contains("Reconnecting to confirm"),
-                "The row says it is confirming, never cancelled");
-        check(ProximityFollowUp.RECONNECTING_NOTICE.contains("restarted Bluetooth") && ProximityFollowUp.RECONNECTING_NOTICE.contains("reconnecting to confirm"),
-                "The notice says the scooter restarted Bluetooth and Volt reconnects to confirm");
+        String row = ProximityFollowUp.closedResult("proximity_key", true, false, true, true);
+        check(!row.toLowerCase().contains("cancel") && row.contains("may have restarted Bluetooth") && row.contains("Reconnecting to confirm"),
+                "The row says the scooter may have restarted Bluetooth and Volt is confirming, never cancelled");
+        String shown = ProximityFollowUp.dropNotice("Connection lost", true, "proximity_key", true, false, true, true, true);
+        check(shown.contains("restarted Bluetooth") && shown.contains("reconnecting to confirm") && !shown.contains("cancel"),
+                "The notice says the scooter may have restarted Bluetooth and Volt reconnects to confirm");
         check(CommandLog.closed(true, true) == CommandLog.Outcome.UNCONFIRMED, "The drop itself is logged as acknowledged but unconfirmed");
         check(ProximityFollowUp.sectionNote(true, false, null, false, true, false) == ProximityFollowUp.RECONNECTING_NOTE,
                 "The Proximity section shows the reconnect while it lasts");
@@ -102,7 +107,7 @@ public final class ProximityFollowUpTest {
         check(ProximityFollowUp.afterDrop("proximity_key", false, false, true, SCOOTER, SERIAL, ENABLE, 1, false, 0, t, null) == null, "Never sent: cancelled as before");
         check(ProximityFollowUp.afterDrop("cruise_control", true, false, true, SCOOTER, SERIAL, ENABLE, 1, true, 0, t, null) == null, "Other controls keep their behavior");
         check(ProximityFollowUp.afterDrop("proximity_key", true, true, true, SCOOTER, SERIAL, ENABLE, 1, true, 0, t, null) == null, "Guided writes keep their own outcomes");
-        check(ProximityFollowUp.afterDrop("proximity_key", true, false, false, SCOOTER, SERIAL, ENABLE, 1, true, 0, t, null) == null, "No reconnect follows: nothing to wait for");
+        check(ProximityFollowUp.afterDrop("proximity_key", true, false, false, SCOOTER, SERIAL, ENABLE, 1, true, 0, t, null) == null, "No reconnect follows: no recheck to wait for");
         check(ProximityFollowUp.afterDrop("proximity_key", true, false, true, "", SERIAL, ENABLE, 1, true, 0, t, null) == null, "No scooter profile: nothing to carry");
     }
 
@@ -128,6 +133,89 @@ public final class ProximityFollowUpTest {
                 && ProximityFollowUp.switchEnabled(true, false, 0, true, true), "On still needs the pairing and the PIN");
         check(!ProximityFollowUp.switchEnabled(true, true, 1, false, false) && !ProximityFollowUp.switchEnabled(false, false, 1, true, true)
                 && !ProximityFollowUp.switchEnabled(true, false, null, true, true), "Busy, not the owner, or unreported: disabled as before");
+    }
+
+    /** The drop's wording follows its reason: only the scooter closing the link may be its Bluetooth restart. */
+    private static void dropWording() {
+        for (boolean ack : new boolean[]{false, true}) {
+            String nativeRow = ProximityFollowUp.closedResult("proximity_key", true, false, true, true);
+            check(nativeRow.equals(ProximityFollowUp.RECONNECTING_NATIVE_RESULT), "Scooter closed the link (ack=" + ack + "): may have restarted Bluetooth");
+        }
+        for (String text : new String[]{"Send failed", "Signal lost", "Timed out"}) {
+            String row = ProximityFollowUp.closedResult("proximity_key", true, false, true, false);
+            String shown = ProximityFollowUp.dropNotice(text, true, "proximity_key", true, false, true, false, true);
+            check(row.equals(ProximityFollowUp.RECONNECTING_RESULT) && !row.contains("restart"), text + ": the row stays neutral");
+            check(shown.equals(text + " · reconnecting to confirm"), text + ": the notice keeps its own reason");
+        }
+        check(!ProximityFollowUp.RECONNECTING_NOTE.contains("restarted Bluetooth after") && ProximityFollowUp.RECONNECTING_NOTE.contains("Reconnecting to confirm"),
+                "The More note does not claim the scooter restarted");
+        // A write that never left the phone (writeCharacteristic refused it) is not sent: cancelled before sending.
+        check(ProximityFollowUp.closedResult("proximity_key", false, false, false, false).equals("Cancelled before sending")
+                && ProximityFollowUp.dropNotice("Send failed", true, "proximity_key", false, false, false, false, true).equals("Send failed · change cancelled"),
+                "Unsent: cancelled, as before");
+        // Other controls and guided writes keep their wording.
+        check(ProximityFollowUp.closedResult("cruise_control", true, false, false, true).equals("Cancelled after disconnection")
+                && ProximityFollowUp.dropNotice("Connection lost", true, "cruise_control", true, false, false, true, true).equals("Connection lost · change cancelled"),
+                "Other controls: cancelled after disconnection, as before");
+        check(ProximityFollowUp.closedResult("proximity_key", true, true, false, true).equals("Cancelled after disconnection"), "Guided: its test outcome, as before");
+        check(ProximityFollowUp.dropNotice("Connection lost", false, null, false, false, false, true, true).equals("Connection lost · retrying")
+                && ProximityFollowUp.dropNotice("Connection lost", false, null, false, false, false, true, false).equals("Connection lost"), "No change pending: unchanged");
+    }
+
+    /** Sent (acknowledged or not), then Bluetooth off, background pause or no saved address: no reconnect, and never "cancelled". */
+    private static void sentWithoutReconnect() {
+        for (boolean ack : new boolean[]{false, true}) {
+            check(ProximityFollowUp.afterDrop("proximity_key", true, false, false, SCOOTER, SERIAL, ENABLE, 1, ack, 0, 1000, null) == null, "No reconnect: no recheck");
+            String row = ProximityFollowUp.closedResult("proximity_key", true, false, false, false);
+            String shown = ProximityFollowUp.dropNotice("Bluetooth off", true, "proximity_key", true, false, false, false, false);
+            check(row.equals(ProximityFollowUp.NOT_CHECKED_RESULT) && row.startsWith("Not confirmed") && !row.toLowerCase().contains("cancel"),
+                    "Row: not confirmed, never cancelled (ack=" + ack + ")");
+            check(shown.equals("Bluetooth off · change not confirmed"), "Notice: not confirmed, never cancelled (ack=" + ack + ")");
+        }
+        // suspend() closes without a reason: the same row text.
+        check(ProximityFollowUp.closedResult("proximity_key", true, false, false, false).equals(ProximityFollowUp.NOT_CHECKED_RESULT), "Background pause: not confirmed");
+        check(CommandLog.closed(true, true) == CommandLog.Outcome.UNCONFIRMED && CommandLog.closed(true, false) == CommandLog.Outcome.INTERRUPTED,
+                "The command log keeps unconfirmed / interrupted, never a readback");
+        // Only turning proximity on waits for a fresh PIN read.
+        check(!ProximityFollowUp.pinReadFirst(0, false) && !ProximityFollowUp.pinReadFirst(0, true), "Off never waits for a PIN read");
+        check(ProximityFollowUp.pinReadFirst(1, false) && !ProximityFollowUp.pinReadFirst(1, true), "On reads a stale PIN state first");
+    }
+
+    /**
+     * BleController and MoreScreen are Android-only, so the JVM run checks that they still apply these rules at the right
+     * places (run from the app directory). Removing a call fails here, not only on the next emulator sweep.
+     */
+    private static void controllerWiring() {
+        String ble = source("src/com/jjricks/volt/BleController.java"), more = source("src/com/jjricks/volt/MoreScreen.java");
+        check(ble.contains("if(statusRead(f)){confirmRecheck();confirmMutation(f);"), "The reconnect's status read checks the recheck");
+        check(ble.contains("ProximityFollowUp.afterDrop(mutation.key,mutation.sent,guided(mutation),reconnect,"), "A drop creates the recheck");
+        check(ble.contains("if(next!=null)startRecheck(next);"), "The recheck is started");
+        check(ble.contains("String shown=ProximityFollowUp.dropNotice(text,dropped,") && ble.contains("mutation.dropResult=ProximityFollowUp.closedResult("),
+                "The drop's notice and row come from the rules");
+        check(ble.contains("ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false)"), "A pause or disconnect uses them too");
+        check(ble.contains("if(ProximityFollowUp.pinReadFirst(value,pinFresh())){readPin();"), "set() reads the PIN only before turning it on");
+        check(ble.contains("Arrays.equals(frame,mutation.bytes))mutation.sent=false;failed(\"Send failed\",true,ConnectionEventLog.Reason.WRITE_FAILED"),
+                "A refused write is not marked sent");
+        for (String end : new String[]{"disconnect(){", "suspend(){", "destroy(){"}) {
+            int at = ble.indexOf("public void " + end);
+            check(at >= 0 && ble.indexOf("endRecheck(ProximityFollowUp.Verdict.ABANDONED,null)", at) - at < 400, end + " ends a recheck");
+        }
+        check(ble.contains("notice(ProximityFollowUp.pairingEndedNotice(attempted,near))") && ble.contains("notice(ProximityFollowUp.pairedNotice(near))"),
+                "Bond-state changes use the pairing notices");
+        int receiver = ble.indexOf("private final BroadcastReceiver bluetoothReceiver"), receiverEnd = receiver < 0 ? -1 : ble.indexOf("}};", receiver);
+        check(receiver >= 0 && receiverEnd > receiver, "The Bluetooth receiver is found");
+        String body = ble.substring(receiver, receiverEnd);
+        for (String write : new String[]{"set(", "send(", "begin(", "setProximity", "writeCharacteristic"})
+            check(!body.contains(write), "The bond receiver never writes to the scooter: " + write);
+        check(more.contains("ProximityFollowUp.switchEnabled(owner, busy, proximity, paired, pinOn)")
+                && more.contains("ProximityFollowUp.pairEnabled(owner, busy, paired, pinOn, proximity)")
+                && more.contains("ProximityFollowUp.sectionNote(owner, s.ble.ready(), proximity, paired, confirming, s.ble.pairingEndedWithoutBond())"),
+                "More applies the switch, pair and note rules");
+    }
+
+    private static String source(String path) {
+        try { return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8); }
+        catch (java.io.IOException e) { throw new AssertionError("Cannot read " + path + " (run from the app directory)", e); }
     }
 
     /** A pairing attempt ended without a bond while proximity reads on: said, with Pair again and Off. */

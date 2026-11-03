@@ -63,7 +63,7 @@ public final class BleController {
     /** Handshake responses stay private until the transport's hardware belongs to this profile. */
     private Protocol.Frame pendingStatusFrame,pendingSerialFrame;private long pendingStatusMs;
     private long savedProfileMs,lastBatteryPollMs,scanSequence,backgroundDeadlineMs,batteryWatchUntilMs;private ScanCallback scanCallback;private Runnable scanTimeout;
-    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;boolean recheck;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
+    private static final class Mutation {String key;int cmd,target;long token,sentMs;boolean ack,sent;Long time;Integer lastRead;byte[] bytes;String dropResult;char[] desiredPin;MutationGate.Request request;FeatureVariant variant;Consumer<Boolean> completion;Mutation(String k,int c,int v,long t){key=k;cmd=c;target=v;token=t;}}
     /** A proximity change whose link dropped before it was confirmed (ProximityFollowUp): checked on the reconnect's first status read. */
     private ProximityFollowUp.Recheck recheck;private long recheckSequence;
     /** The scooter this phone last asked to pair with, and one whose pairing ended without a bond while proximity read on. */
@@ -382,7 +382,7 @@ public final class BleController {
         if(test!=null&&!test.terminal()){test.onDisconnect(now());event("Guided test interrupted");}testParked=false;
         readPolicy=null;authVariant="";
         ++generation;++writeOperation;stopScan();BluetoothGatt old=gatt;gatt=null;writer=null;if(old!=null){try{old.disconnect();}catch(Exception ignored){}try{old.close();}catch(Exception ignored){}}
-        queue.clear();discoveryQueue.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.recheck?ProximityFollowUp.RECONNECTING_RESULT:mutation.sent?"Cancelled after disconnection":"Cancelled before sending");
+        queue.clear();discoveryQueue.clear();outstandingStatusReads=0;decoder.reset();invalidFrameNoted=checksumNoted=false;if(mutation!=null){result(mutation.key,mutation.dropResult!=null?mutation.dropResult:ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),false,false));
             // A guided write's interruption is its test's journalled outcome (testOutcome).
             if(!guided(mutation))logMutation(mutation,CommandLog.closed(mutation.sent,mutation.ack),-1,null);}
         clearMutation();endCommandSession();pinState=null;pinStateMs=pinReadToken=0;pinReadPending=false;authenticated=writing=mtuRequested=discovered=subscribing=subscribed=challengePending=false;authRounds=0;statusFrame=pendingStatusFrame=pendingSerialFrame=null;pendingStatusMs=0;sessionFirmware=null;bondCheckedMs=0;statusMs=motionMs=warningMs=lastFrameMs=0;serial="";speedRaw=driving=-1;warning=0;state=next;changed();
@@ -400,11 +400,14 @@ public final class BleController {
         // value (and completion) waits for the automatic reconnect's first status read (confirmRecheck).
         ProximityFollowUp.Recheck next=!dropped||recheck!=null?null:ProximityFollowUp.afterDrop(mutation.key,mutation.sent,guided(mutation),reconnect,
                 profile==null?null:profile.id,serial,mutation.request,mutation.target,mutation.ack,mutation.sentMs,now(),mutation.completion);
-        if(next!=null){mutation.completion=null;mutation.recheck=true;}
+        boolean nativeDrop=reason==ConnectionEventLog.Reason.NATIVE_DISCONNECT;
+        // A sent proximity change with no reconnect to check it is "not confirmed", never "cancelled" (the scooter may have taken it).
+        String shown=ProximityFollowUp.dropNotice(text,dropped,dropped?mutation.key:null,dropped&&mutation.sent,dropped&&guided(mutation),next!=null,nativeDrop,reconnect);
+        if(dropped)mutation.dropResult=ProximityFollowUp.closedResult(mutation.key,mutation.sent,guided(mutation),next!=null,nativeDrop);
+        if(next!=null)mutation.completion=null;
         close(reconnect?State.WAITING:State.DISCONNECTED);
         if(next!=null)startRecheck(next);else if(recheck!=null&&!reconnect)endRecheck(ProximityFollowUp.Verdict.ABANDONED,null);
-        String shown=next!=null?(reason==ConnectionEventLog.Reason.NATIVE_DISCONNECT?ProximityFollowUp.RECONNECTING_NOTICE:text+" · reconnecting to confirm")
-                :text+(dropped?" · change cancelled":reconnect?" · retrying":"");notice(shown,code==-1?shown:shown+" ("+code+")");
+        notice(shown,code==-1?shown:shown+" ("+code+")");
         if(reconnect){
             int session=generation;long delay=Math.min(60000,1000L<<Math.min(6,retries++));event("Reconnect in "+delay/1000+"s");
             handler.postDelayed(()->{if(session==generation&&wanted&&gatt==null&&workAllowed())connect(profile,profile.mac);},delay);
@@ -453,7 +456,7 @@ public final class BleController {
         if(cmd==0x7a){pinReadPending=true;pinReadToken=mutation!=null&&mutation.ack?mutation.token:0;int s=generation;long request=++pinReadSequence;handler.postDelayed(()->{if(s==generation&&request==pinReadSequence&&pinReadPending){pinReadPending=false;logCommand(CommandLog.Kind.READ,null,"pin",-1,CommandLog.Outcome.TIMEOUT,-1,null,null,4500);notice("PIN status did not arrive. Tap Read PIN status to try again.");}},4500);}
         if(!ScooterCommands.sensitiveCommand(cmd))event(String.format(Locale.ROOT,"Send 0x%02X (%d bytes)",cmd,frame.length));
         int result;if(Build.VERSION.SDK_INT>=33)result=gatt.writeCharacteristic(writer,frame,type);else{writer.setWriteType(type);writer.setValue(frame);result=gatt.writeCharacteristic(writer)?0:-1;}
-        if(result!=0){writing=false;failed("Send failed",true,ConnectionEventLog.Reason.WRITE_FAILED,result);return;}int op=++writeOperation,session=generation;handler.postDelayed(()->{if(session==generation&&writing&&op==writeOperation)failed("Send failed",true,ConnectionEventLog.Reason.WRITE_TIMEOUT,-1);},3500);
+        if(result!=0){writing=false;if(mutation!=null&&Arrays.equals(frame,mutation.bytes))mutation.sent=false;failed("Send failed",true,ConnectionEventLog.Reason.WRITE_FAILED,result);return;}int op=++writeOperation,session=generation;handler.postDelayed(()->{if(session==generation&&writing&&op==writeOperation)failed("Send failed",true,ConnectionEventLog.Reason.WRITE_TIMEOUT,-1);},3500);
     }
     private boolean admitQueuedMutation(){
         Mutation pending=mutation;
@@ -613,7 +616,7 @@ public final class BleController {
         Integer current=featureValue(key);if(!force&&current!=null&&current==value){notice(f.label+" is already set.");return completed(completion,true);}
         try{
             byte[] bytes;
-            if(proximity){if(value==1&&!pinFresh()){readPin();notice("Read the PIN state, then apply proximity unlock.");return completed(completion,false);}if(!d.available()){refused(request,d);return completed(completion,false);}boolean bonded=gatt.getDevice().getBondState()==BluetoothDevice.BOND_BONDED;bytes=ScooterCommands.setProximity(value==1,profile.role==0,bonded,pinState);}
+            if(proximity){if(ProximityFollowUp.pinReadFirst(value,pinFresh())){readPin();notice("Read the PIN state, then apply proximity unlock.");return completed(completion,false);}if(!d.available()){refused(request,d);return completed(completion,false);}boolean bonded=gatt.getDevice().getBondState()==BluetoothDevice.BOND_BONDED;bytes=ScooterCommands.setProximity(value==1,profile.role==0,bonded,pinState);}
             else if(d.variant.decode==FeatureVariant.Decode.UT5_FEATURE)bytes=ScooterCommands.set(key,value,statusFrame);
             else bytes=d.variant.encode(value);
             return begin(request,d.variant,value,bytes,null,completion);

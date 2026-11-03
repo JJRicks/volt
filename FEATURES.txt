@@ -332,7 +332,8 @@ Proximity unlock      OEM protocol and pairing flow implemented; pairing and
                        proximity behavior were not changed or tested live.
                        A link drop right after the change (the scooter
                        restarting Bluetooth) is confirmed after the automatic
-                       reconnect instead of reported as cancelled. Proximity
+                       reconnect instead of reported as cancelled; with no
+                       reconnect it is reported as not confirmed. Proximity
                        on without this phone's pairing is shown with Pair and
                        Off offered; Volt never turns it off by itself.
 Local clock sync      Scooter accepted the command. No clock readback exists,

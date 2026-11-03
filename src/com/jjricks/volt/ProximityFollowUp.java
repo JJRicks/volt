@@ -19,9 +19,17 @@ final class ProximityFollowUp {
     /** How long a recheck waits for the reconnect: the 1, 2, 4, 8 and 16 s retries and an 18 s connect timeout fit. */
     static final long RECHECK_WINDOW_MS = 60_000;
 
-    static final String RECONNECTING_RESULT = "Sent; the scooter restarted Bluetooth. Reconnecting to confirm";
-    static final String RECONNECTING_NOTICE = "Scooter restarted Bluetooth · reconnecting to confirm";
-    static final String RECONNECTING_NOTE = "The scooter restarted Bluetooth after the change. Reconnecting to confirm…";
+    /**
+     * Drop wording. The scooter itself closing the link (NATIVE_DISCONNECT) may be the Bluetooth restart; a write error,
+     * timeout or lost signal says nothing about the scooter, so those stay neutral.
+     */
+    static final String RECONNECTING_RESULT = "Sent; the connection dropped. Reconnecting to confirm";
+    static final String RECONNECTING_NATIVE_RESULT = "Sent; the scooter may have restarted Bluetooth. Reconnecting to confirm";
+    static final String RECONNECTING_NATIVE_NOTICE = "Scooter may have restarted Bluetooth · reconnecting to confirm";
+    static final String RECONNECTING_NOTE = "The connection dropped after the change was sent; some scooters restart Bluetooth here. Reconnecting to confirm…";
+    /** A sent change whose link closed with no reconnect to check it: the scooter may have taken it, so never "cancelled". */
+    static final String NOT_CHECKED_RESULT = "Not confirmed: disconnected before the scooter could be checked";
+    static final String NOT_CHECKED_SUFFIX = " · change not confirmed";
     static final String NOT_PAIRED_NOTE = "Proximity unlock is on, but this phone isn't paired. Pair it here, or turn proximity unlock off.";
     static final String PAIRING_ENDED_NOTE = "Pairing didn't finish, and proximity unlock is still on. Pair again, or turn proximity unlock off.";
     static final String PAIRING_INACTIVE = "Bluetooth pairing is not active.";
@@ -118,6 +126,35 @@ final class ProximityFollowUp {
         if (!KEY.equals(key) || !sent || guided || !reconnect || profileId == null || profileId.isEmpty() || request == null) return null;
         return new Recheck(profileId, serial, request, target, ack, sentMs, nowMs, completion);
     }
+
+    /** A sent, non-guided proximity change: a drop never makes it "cancelled", since the scooter may have taken it. */
+    static boolean unconfirmedOnDrop(String key, boolean sent, boolean guided) { return KEY.equals(key) && sent && !guided; }
+
+    /**
+     * The control's row result when the link closes with this change pending. reconnecting: a Recheck carries it to the
+     * automatic reconnect; nativeDrop: the scooter closed the link (rather than a local write error or timeout).
+     */
+    static String closedResult(String key, boolean sent, boolean guided, boolean reconnecting, boolean nativeDrop) {
+        if (!sent) return "Cancelled before sending";
+        if (!unconfirmedOnDrop(key, sent, guided)) return "Cancelled after disconnection";
+        if (reconnecting) return nativeDrop ? RECONNECTING_NATIVE_RESULT : RECONNECTING_RESULT;
+        return NOT_CHECKED_RESULT;
+    }
+
+    /**
+     * The short notice for a drop. text: the drop's own wording ("Send failed", "Bluetooth is off", ...); pending: a
+     * change was in flight; retrying: Volt reconnects automatically.
+     */
+    static String dropNotice(String text, boolean pending, String key, boolean sent, boolean guided, boolean reconnecting, boolean nativeDrop, boolean retrying) {
+        if (pending && unconfirmedOnDrop(key, sent, guided)) {
+            if (reconnecting) return nativeDrop ? RECONNECTING_NATIVE_NOTICE : text + " · reconnecting to confirm";
+            return text + NOT_CHECKED_SUFFIX;
+        }
+        return text + (pending ? " · change cancelled" : retrying ? " · retrying" : "");
+    }
+
+    /** set(): only turning proximity on waits for a fresh PIN read; turning it off is sent as soon as it is admitted. */
+    static boolean pinReadFirst(int value, boolean pinFresh) { return value == 1 && !pinFresh; }
 
     /**
      * The plain line under the Proximity unlock row, or null. Shown only while connected as the owner with a fresh
