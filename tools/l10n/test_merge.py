@@ -89,6 +89,8 @@ class MergeTest(unittest.TestCase):
             (original.replace("</resources>", "    <string name=\"common_internal\">x</string>\n</resources>"),
              "translatable=\"false\""),
             (original.replace("a la posición %2$d", "a la posición"), "placeholders differ"),
+            (original.replace("Mover %1$s", "Mover %1$.4s"),
+             "width, precision or flags"),
             (original.replace("<item quantity=\"many\">%1$d de patinetes omitidos</item>", ""), "missing plural forms many"),
             (original.replace("Esperando</string>", "Esperando</string>".replace("Esperando", "Esp.")).replace(
                 '    <string name="common_lock_waiting_short">Esp.</string>\n', ""), "partly translated"),

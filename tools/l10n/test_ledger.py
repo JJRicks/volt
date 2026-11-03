@@ -1142,6 +1142,273 @@ class InsertedMemberTest(RepoCase):
         self.assertTrue(any("adds `log ( a ) ;`" in p and "around text" in p for p in problems), problems)
 
 
+class DeclarationTypeTest(RepoCase):
+    """B2: a String field whose default becomes a deferred M call must be a CharSequence. Exactly that
+    type change, on the declaration whose initializer the call is, is allowed and listed."""
+    FILES = {UI: java_class("Ui", '''    static final class Ring {
+        private String subtitle = "Not reported";
+        private String unit = "", empty = "No measured data yet", axis = "";
+        void set(String value) { subtitle = value; show(subtitle); }
+        String shown(boolean on) { return on ? "" : subtitle; }
+        String other(boolean on) { return on ? "" : unit; }
+    }
+    static String label() { String shown = "Not reported"; return shown; }''')}
+    STRINGS = ('<resources><string name="common_not_reported">Not reported</string>'
+               '<string name="ui_chart_empty">No measured data yet</string></resources>\n')
+    SUBTITLE = UI + ':5\t["Not reported"]\tcommon_not_reported\texact\t'
+    EMPTY = UI + ':6\t["No measured data yet"]\tui_chart_empty\texact\t'
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write("res/values/strings_ui.xml", self.STRINGS)
+
+    def edit(self, old, new):
+        self.repo.write(UI, self.text(UI).replace(old, new))
+
+    def test_string_to_char_sequence_for_an_m_call_passes_and_is_listed(self):
+        self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+        problems, warnings, _ = self.check([self.SUBTITLE])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "changes from String to CharSequence" in w]
+        self.assertEqual(len(shown), 1, warnings)
+        self.assertIn("%s:5: the declaration `private CharSequence subtitle = M . commonNotReported ( )`" % UI, shown[0])
+        self.assertIn("every use of subtitle behaves the same with a CharSequence", shown[0])
+        self.assertIn("head lines 7, 8", shown[0])
+
+    def test_one_declarator_of_several_and_a_local_pass(self):
+        self.edit('private String unit = "", empty = "No measured data yet", axis = "";',
+                  'private CharSequence unit = "", empty = M.uiChartEmpty(), axis = "";')
+        self.edit('String shown = "Not reported";', "CharSequence shown = T.commonNotReported();")
+        problems, warnings, _ = self.check([self.EMPTY, UI + ':11\t["Not reported"]\tcommon_not_reported\texact\t'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("`private CharSequence unit = \"\" , empty = M . uiChartEmpty ( ) , axis = \"\"` changes "
+                            "from String to CharSequence" in w for w in warnings), warnings)
+        self.assertTrue(any("`CharSequence shown = T . commonNotReported ( )` changes" in w for w in warnings), warnings)
+
+    def test_to_string_at_a_use_of_the_retyped_variable_passes_and_is_listed(self):
+        self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+        self.edit('return on ? "" : subtitle;', 'return on ? "" : subtitle.toString();')
+        problems, warnings, _ = self.check([self.SUBTITLE])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("%s:8: `subtitle` becomes `subtitle . toString ( )` in `return on ? \"\" : subtitle . toString "
+                            "( )`" % UI in w for w in warnings), warnings)
+        # A whole multi-declarator retype: each of its names may take .toString().
+        self.edit('private String unit = "", empty = "No measured data yet", axis = "";',
+                  'private CharSequence unit = "", empty = M.uiChartEmpty(), axis = "";')
+        self.edit('return on ? "" : unit;', 'return on ? "" : unit.toString();')
+        problems, _, _ = self.check([self.SUBTITLE, self.EMPTY])
+        self.assertEqual(problems, [])
+
+    def test_other_changes_at_a_use_fail(self):
+        # Only name.toString() on the retyped variable; unit is still a String declaration here.
+        for old, new in (('"" : subtitle;', '"" : subtitle.toString().trim();'), ('"" : subtitle;', '"" : subtitle.trim();'),
+                         ('"" : subtitle;', '"" : String.valueOf(subtitle);'), ('"" : unit;', '"" : unit.toString();')):
+            with self.subTest(new=new):
+                self.repo.write(UI, self.FILES[UI])
+                self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+                self.edit(old, new)
+                problems, _, _ = self.check([self.SUBTITLE])
+                self.assertTrue(any("around text" in p for p in problems), problems)
+
+    def test_one_declarator_moved_into_its_own_declaration_passes(self):
+        for code in ('private String unit = "", axis = "";\n        private CharSequence empty = M.uiChartEmpty();',
+                     'private CharSequence empty = M.uiChartEmpty();\n        private String unit = "", axis = "";'):
+            with self.subTest(code=code):
+                self.repo.write(UI, self.FILES[UI])
+                self.edit('private String unit = "", empty = "No measured data yet", axis = "";', code)
+                problems, warnings, _ = self.check([self.EMPTY])
+                self.assertEqual(problems, [])
+                self.assertTrue(any("`private CharSequence empty = M . uiChartEmpty ( )` (moved out of `private String unit "
+                                    "= \"\" , empty = \"No measured data yet\" , axis = \"\" ;`, the rest kept as it was) "
+                                    "changes from String to CharSequence" in w for w in warnings), warnings)
+
+    def test_a_careless_split_fails(self):
+        cases = [
+            # a declarator dropped, reordered or changed with the move
+            'private String unit = "";\n        private CharSequence empty = M.uiChartEmpty();',
+            'private String axis = "", unit = "";\n        private CharSequence empty = M.uiChartEmpty();',
+            'private String unit = null, axis = "";\n        private CharSequence empty = M.uiChartEmpty();',
+            # other modifiers, or the new declaration not beside the rest
+            'private String unit = "", axis = "";\n        private final CharSequence empty = M.uiChartEmpty();',
+            'private String unit = "", axis = "";\n        private int gap;\n        private CharSequence empty = M.uiChartEmpty();',
+            # two declarators in the new declaration
+            'private String unit = "";\n        private CharSequence empty = M.uiChartEmpty(), axis = "";',
+        ]
+        for code in cases:
+            with self.subTest(code=code):
+                self.repo.write(UI, self.FILES[UI])
+                self.edit('private String unit = "", empty = "No measured data yet", axis = "";', code)
+                problems, _, _ = self.check([self.EMPTY])
+                self.assertTrue(any("around text" in p for p in problems), problems)
+
+    def test_other_type_changes_fail(self):
+        cases = [
+            # another type than CharSequence
+            ("private Object subtitle = M.commonNotReported();", "adds `Object` and drops `String`"),
+            ("private Msg subtitle = M.commonNotReported();", "adds `Msg` and drops `String`"),
+            ("private java.lang.CharSequence subtitle = M.commonNotReported();", "adds `java . lang . CharSequence`"),
+            # a modifier changed with it
+            ("private final CharSequence subtitle = M.commonNotReported();", "adds `final CharSequence` and drops `String`"),
+            # the call is not the whole initializer
+            ('private CharSequence subtitle = M.commonNotReported() + "";', "around text"),
+            # another declaration retyped beside the converted one
+        ]
+        for code, message in cases:
+            with self.subTest(code=code):
+                self.repo.write(UI, self.FILES[UI])
+                self.edit('private String subtitle = "Not reported";', code)
+                problems, _, _ = self.check([self.SUBTITLE])
+                self.assertTrue(any(message in p and "around text" in p for p in problems), problems)
+
+    def test_retyping_a_neighbour_or_a_kept_literal_fails(self):
+        self.edit('private String subtitle = "Not reported";', "private CharSequence subtitle = M.commonNotReported();")
+        self.edit('private String unit = "", empty', 'private CharSequence unit = "", empty')
+        problems, _, _ = self.check([self.SUBTITLE])
+        self.assertTrue(any("%s:6: this change adds `CharSequence` and drops `String`" % UI in p and "around text" in p
+                            for p in problems), problems)
+
+    def test_char_sequence_to_string_fails(self):
+        self.edit('private String subtitle = "Not reported";', 'private CharSequence subtitle = "Not reported";')
+        self.base = self.repo.commit("a CharSequence field")
+        self.edit('private CharSequence subtitle = "Not reported";', "private String subtitle = T.commonNotReported();")
+        problems, _, _ = self.check([self.SUBTITLE])
+        self.assertTrue(any("adds `String` and drops `CharSequence`" in p for p in problems), problems)
+
+    def test_declaration_type_forms(self):
+        def found(source, literal):
+            tokens = expressions.l10nlib.lex_java(source)
+            k = next(i for i, t in enumerate(tokens) if t.value == literal)
+            result = ledger_check.declaration_type(tokens, k, k)
+            return None if result is None else (tokens[result[0]].value, result[1])
+        self.assertEqual(found('class C { private static String a = "x"; }', "x"), ("String", "a"))
+        self.assertEqual(found('class C { String a = "", b = f(1, 2), c = "x", d; }', "x"), ("String", "c"))
+        self.assertEqual(found('class C { void f() { final String a = "x"; } }', "x"), ("String", "a"))
+        self.assertIsNone(found('class C { void f() { a = "x"; } }', "x"))
+        self.assertIsNone(found('class C { void f() { this.a = "x"; } }', "x"))
+        self.assertIsNone(found('class C { String a = "x" + b; }', "x"))
+        self.assertIsNone(found('class C { void f() { g(a = "x"); } }', "x"))
+        self.assertIsNone(found('class C { List<String> a = "x"; }', "x"))
+        self.assertIsNone(found('class C { @Keep String a = "x"; }', "x"))
+
+
+class LocaleWrapTest(RepoCase):
+    """B2: a display call site's legacy locale wrapped for Fmt, Locale.US becoming Fmt.locale(Locale.US),
+    next to a format-only or stays-english literal. Exactly that wrap is allowed, listed, and held to G10."""
+    FILES = {UI: java_class("Ui", '''    static String axis(double v) { return String.format(Locale.US, "%.1f", v); }
+    static String label(String s) { return s == null ? "" : s.toUpperCase(Locale.ROOT); }
+    static String when(long t) { return new SimpleDateFormat("MMM d", Locale.getDefault()).format(t); }
+    static String full(double v) { return String.format(java.util.Locale.US, "%.2f", v); }
+    static String kept(double v) { return String.format(Fmt.locale(Locale.US), "%.0f", v); }''')}
+    FMT_TEST = "tests/l10n/FmtLegacyTest.java"
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write(self.FMT_TEST, java_class("FmtLegacyTest", "    static void run() { Fmt.locale(Locale.US); "
+                                                  "Ui.axis(1); }"))
+        self.repo.write("tests/l10n/b1.sources", self.FMT_TEST + "\n")
+
+    def edit(self, old, new):
+        self.repo.write(UI, self.text(UI).replace(old, new))
+
+    def wrap_all(self):
+        self.edit("String.format(Locale.US, \"%.1f\"", "String.format(Fmt.locale(Locale.US), \"%.1f\"")
+        self.edit("toUpperCase(Locale.ROOT)", "toUpperCase(Fmt.locale(Locale.ROOT))")
+        self.edit("Locale.getDefault()).format", "Fmt.locale(Locale.getDefault())).format")
+        self.edit("String.format(java.util.Locale.US", "String.format(Fmt.locale(java.util.Locale.US)")
+
+    def test_wrapping_legacy_locales_passes_and_is_listed(self):
+        self.wrap_all()
+        problems, warnings, summary = self.check([])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "Fmt.locale keeps that locale" in w]
+        self.assertEqual(len(shown), 4, warnings)
+        self.assertIn("%s:4: `Locale . US` becomes `Fmt . locale ( Locale . US )` in `return String . format ( Fmt . "
+                      "locale ( Locale . US ) , \"%%.1f\" , v )`" % UI, shown[0])
+        self.assertIn("a method named Ui.axis is called by %s" % self.FMT_TEST, shown[0])
+        self.assertIn("`Locale . ROOT` becomes `Fmt . locale ( Locale . ROOT )`", shown[1])
+        self.assertIn("no compiled test under tests/l10n/ calls Ui.label(...)", shown[1])
+        self.assertIn("`Locale . getDefault ( )` becomes", shown[2])
+        self.assertIn("`java . util . Locale . US` becomes", shown[3])
+        self.assertIn("4 legacy locale(s) wrapped in Fmt.locale, listed", summary)
+        self.assertFalse(any("around text" in p for p in problems))
+
+    def test_a_wrap_needs_a_compiled_g10_test(self):
+        self.repo.write("tests/l10n/b1.sources", "# nothing compiled\n")
+        self.wrap_all()
+        problems, _, _ = self.check([])
+        self.assertEqual(len([p for p in problems if "calls Fmt.locale; G10" in p]), 1, problems)
+
+    def test_careless_wraps_fail(self):
+        cases = [
+            ("String.format(Fmt.locale(Locale.ROOT), \"%.1f\"", "adds `Fmt . locale ( ROOT )` and drops `US`"),
+            ("String.format(Fmt.decimalLocale(Locale.US), \"%.1f\"", "adds `Fmt . decimalLocale ( )`"),
+            ("String.format(Fmt.locale(Locale.US).stripExtensions(), \"%.1f\"", "adds `. stripExtensions ( )`"),
+            ("String.format(Fmt.locale(Locale.US, true), \"%.1f\"", "around text"),
+            ("String.format(Fmt.displayLocale(), \"%.1f\"", "around text"),
+        ]
+        for code, message in cases:
+            with self.subTest(code=code):
+                self.repo.write(UI, self.FILES[UI])
+                self.edit("String.format(Locale.US, \"%.1f\"", code)
+                problems, _, _ = self.check([])
+                self.assertTrue(any(message in p and "around text" in p for p in problems), problems)
+
+    def test_unwrapping_a_locale_fails(self):
+        self.edit("String.format(Fmt.locale(Locale.US), \"%.0f\"", "String.format(Locale.US, \"%.0f\"")
+        problems, _, _ = self.check([])
+        self.assertTrue(any("%s:8: this change drops `Fmt . locale ( )`" % UI in p and "around text" in p
+                            for p in problems), problems)
+
+
+class ArrivalChoiceTest(RepoCase):
+    """B1 fix round: a stays-english literal moved out whole while a new literal of the same value
+    arrives in a file that sorts first; G1 must take the copy that arrived as the same expression."""
+    TEMP = "src/com/jjricks/volt/DisplayTemperature.java"
+    FMT = "src/com/jjricks/volt/Fmt.java"
+    FILES = {TEMP: java_class("DisplayTemperature", '''    static String unit(String p) { return p.isEmpty() ? "C" : "F"; }
+    private static String number(double value, int precision) {
+        return String.format(Locale.US, "%." + precision + "f", value);
+    }
+    static String format(double v) { return number(v, 1); }'''),
+             FMT: java_class("Fmt", "    static String decimal(Locale l, double v, int p) { return null; }")}
+    ROW = TEMP + ':6\t["%.", {"hole": "precision", "arg": 1, "type": "d"}, "f"]\t-\tstays-english\tJava format syntax'
+
+    def move(self, extra=""):
+        self.repo.write(self.TEMP, java_class("DisplayTemperature", '''    static String unit(String p) { return p.isEmpty() ? "C" : "F"; }
+    static String format(double v) { return number(v, 1); }
+%s    private static String number(double value, int precision) { return Fmt.decimal(Locale.US, value, precision); }''' % extra))
+        self.repo.write(self.FMT, java_class("Fmt", '    static String decimal(Locale l, double v, int p) { '
+                                                    'return String.format(l, "%." + p + "f", v); }'))
+
+    def test_the_moved_expression_passes(self):
+        self.move()
+        problems, _, _ = self.check([self.ROW])
+        self.assertEqual(problems, [])
+
+    def test_a_new_literal_of_the_same_value_fails_where_it_is(self):
+        self.move('    static boolean fahrenheit(String p) { return "f".equals(p); }\n')
+        problems, _, _ = self.check([self.ROW])
+        self.assertTrue(any('%s:6: new literal "f"' % self.TEMP in p for p in problems), problems)
+        self.assertFalse(any(self.FMT in p and "new literal" in p for p in problems), problems)
+
+    def test_an_ambiguous_copy_is_reported_as_such(self):
+        # Base: a lone "f" (line 4). Head: that method is deleted, and two unrelated new methods each
+        # return "f"; neither is named where the literal left, so G1 cannot tell which one moved.
+        self.repo.write(self.TEMP, java_class("DisplayTemperature", '    static String suffix() { return "f"; }\n'
+                                              '    static String format(double v) { return null; }'))
+        self.base = self.repo.commit("a lone f")
+        self.repo.write(self.TEMP, java_class("DisplayTemperature", '    static String format(double v) { return null; }\n'
+                                              '    static String a() { return "f"; }'))
+        self.repo.write(self.FMT, self.text(self.FMT).replace("    static String decimal",
+                                                             '    static String b() { return "f"; }\n    static String decimal'))
+        problems, _, _ = self.check([self.TEMP + ':4\t["f"]\t-\tstays-english\tsuffix'])
+        failed = [p for p in problems if 'new literal "f"' in p]
+        self.assertEqual(len(failed), 1, problems)
+        self.assertIn('%s:4: new literal "f"' % self.FMT, failed[0])
+        self.assertIn('G1 could not tell which copy of "f" the stays-english row at l10n/ledger/b2.tsv:2 (%s:4) moved '
+                      'to, and took the one at %s:5' % (self.TEMP, self.TEMP), failed[0])
+
+
 class ExpressionTest(unittest.TestCase):
     def pieces(self, expression):
         source = "class A { Object f() { return %s; } }" % expression
