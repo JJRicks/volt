@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseAuthLine, parseCapture, ownerDocument, quote, MAX_CAPTURE_BYTES, appLogcat, logFilter, logFilterCheck, logcatReply, ownRows, verifiedPids } from '../src/protocol.js';
+import { parseAuthLine, parseCapture, ownerDocument, quote, MAX_CAPTURE_BYTES, LOG_FILTERS, appLogcat, logFilter, logFilterCheck, logcatReply, ownRows, verifiedPids, writerOf, writerPattern } from '../src/protocol.js';
 import { frame, row } from './fixtures.mjs';
 import { fakeAndroid, logRow } from './fake-android.mjs';
 test('strict six-byte identity with supported roles and signed checksum', () => {
@@ -31,21 +31,25 @@ test('export format interoperates with the native owner importer and contains no
 test('shell quoting treats quotes and metacharacters as data', () => {
   assert.equal(quote("a'b;$x"), "'a'\\''b;$x'");
 });
-test('the log filter is asked of logcat itself, and anything but a clean 0 falls back to the pid', () => {
+test('the log filter is asked of logcat itself, and anything but a clean 0 falls back to each row’s writer', () => {
   assert.equal(logFilterCheck(10123), 'logcat --uid=10123 -d -t 1 >/dev/null 2>&1; echo $?');
   assert.equal(logFilter('0'), 'uid');
-  for (const reply of ['1', '255', '', ' 0', '0\n0', null, undefined]) assert.equal(logFilter(reply), 'pid', String(reply));
+  for (const reply of ['1', '255', '', ' 0', '0\n0', null, undefined]) assert.equal(logFilter(reply), 'rows', String(reply));
+  // No pid mode: logcat --pid also returns rows an earlier process wrote under a recycled pid.
+  assert.deepEqual(LOG_FILTERS, ['uid', 'rows']);
   for (const uid of ['10123;reboot', '1012', '123456', '1e4', -10123, ' 10123'])
-    for (const build of [logFilterCheck, verifiedPids, id => appLogcat(id, 'pid', '-d'), id => appLogcat(id, 'uid', '-d')]) assert.throws(() => build(uid), String(uid));
-  assert.throws(() => appLogcat(10123, 'tag', '-d'));
+    for (const build of [logFilterCheck, verifiedPids, writerOf, id => ownRows('', id), id => appLogcat(id, 'uid', '-d')]) assert.throws(() => build(uid), String(uid));
+  for (const filter of ['pid', 'tag', '']) assert.throws(() => appLogcat(10123, filter, '-d'), filter);
 });
-test('the pid fallback reads only a process whose real uid is NAVEE’s, and reports what it did', () => {
-  // The Uid: line of /proc/<pid>/status, never the process name alone or /proc/<pid>'s owner.
-  assert.equal(verifiedPids(10123), `k=0 o=0 q=; for p in $(pidof com.navee.ucaret 2>/dev/null); do set -- $(grep '^Uid:' /proc/$p/status 2>/dev/null); if [ "$2" = 10123 ]; then k=$((k+1)) q=$p; elif [ -n "$2" ]; then o=$((o+1)); fi; done`);
+test('a read is by --uid or by each row’s writer, and reports logcat’s exit status', () => {
   assert.equal(appLogcat(10123, 'uid', "-d -t '1800000000.1'", 'head -n 5'),
     `{ r=$( { { logcat --uid=10123 -d -t '1800000000.1' 2>/dev/null; echo "$?" >&3; } | head -n 5 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
-  assert.equal(appLogcat(10123, 'pid', '-d'), `${verifiedPids(10123)}
-if ! command -v pidof >/dev/null; then echo '~127'; elif [ "$k" = 1 ]; then { r=$( { { logcat --pid="$q" -d 2>/dev/null; echo "$?" >&3; } | cat >&4; } 3>&1 ); echo "~$r"; } 4>&1; elif [ "$k" = 0 ] && [ "$o" != 0 ]; then echo '~uid'; else echo "~pid$k"; fi`);
+  assert.equal(appLogcat(10123, 'rows', "-d -t '1800000000.1'", 'head -n 5'),
+    `{ r=$( { { logcat -v uid -d -t '1800000000.1' 2>/dev/null; echo "$?" >&3; } | head -n 5 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
+  assert.equal(appLogcat(10123, 'rows', '-d'), `{ r=$( { { logcat -v uid -d 2>/dev/null; echo "$?" >&3; } | cat >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
+  // The capture-health probe's running count: the Uid: line of /proc/<pid>/status, never the process
+  // name alone or /proc/<pid>'s owner. It no longer selects rows to read.
+  assert.equal(verifiedPids(10123), `k=0 o=0 q=; for p in $(pidof com.navee.ucaret 2>/dev/null); do set -- $(grep '^Uid:' /proc/$p/status 2>/dev/null); if [ "$2" = 10123 ]; then k=$((k+1)) q=$p; elif [ -n "$2" ]; then o=$((o+1)); fi; done`);
 });
 test('a logcat reply separates output from its report; a failure is never an empty read', () => {
   assert.deepEqual(logcatReply('a\nb\n~0'), { output: 'a\nb', status: 'ok' });
@@ -59,42 +63,75 @@ test('a logcat reply separates output from its report; a failure is never an emp
   assert.deepEqual(logcatReply('a\n~1', true), { output: 'a', status: 'failed' });
   assert.deepEqual(logcatReply('a\n~0', true), { output: 'a', status: 'ok' });
   assert.deepEqual(logcatReply('~0', true), { output: '', status: 'ok' });
-  assert.deepEqual(logcatReply('~pid0'), { output: '', status: 'no-pid' });
-  assert.deepEqual(logcatReply('~pid2'), { output: '', status: 'several' });
-  assert.deepEqual(logcatReply('~uid'), { output: '', status: 'other-uid' });
-  // No report: the command didn't finish normally, whatever came before.
-  for (const text of ['', null, undefined, '\n', '~', '~x', '~01234', 'a\n~0 ', 'rows ~0']) assert.equal(logcatReply(text).status, 'failed', String(text));
+  // No report: the command didn't finish normally, whatever came before. The old pid-mode reports are gone.
+  for (const text of ['', null, undefined, '\n', '~', '~x', '~01234', 'a\n~0 ', 'rows ~0', '~pid0', '~pid2', '~uid', 'a\n~uid'])
+    assert.equal(logcatReply(text).status, 'failed', String(text));
   assert.deepEqual(logcatReply('a\n~0 '), { output: 'a\n~0 ', status: 'failed' });
 });
-test('on a real shell over a fake Android 11, the fallback reads NAVEE’s own process only', async () => {
-  // head -n 2 keeps logcat's divider and one row, ending the read early.
-  const phone = await fakeAndroid(), cut = 'head -n 2', args = "-d -v epoch -t '1800000004.100' -s com.navee.ucaret:V '*:S'";
+test('on a real shell over a fake Android 11, the debugger’s fallback reads every row with its writer, cut short by head', async () => {
+  // head -n 3 keeps logcat's divider and two rows, ending the read early.
+  const phone = await fakeAndroid(), cut = 'head -n 3', args = "-d -v epoch -t '1800000004.100' -s com.navee.ucaret:V '*:S'";
   try {
     const read = async filter => logcatReply(await phone.exec(appLogcat(10123, filter, args, cut)));
     assert.equal(await phone.exec(logFilterCheck(10123)), '1');
-    await phone.log([logRow('1800000003.000', 4321, 'before the cursor'), logRow('1800000004.500', 4321, 'navee one'), logRow('1800000004.600', 7777, 'impostor'),
-      logRow('1800000004.700', 4321, 'navee two'), logRow('1800000004.800', 1000, 'system', 'ActivityManager')]);
+    await phone.log([logRow('1800000003.000', 4321, 'before the cursor'), logRow('1800000004.500', 4321, 'navee one'),
+      logRow('1800000004.600', 4321, 'impostor on a recycled pid', undefined, 10999), logRow('1800000004.700', 4321, 'navee two'),
+      logRow('1800000004.800', 1000, 'system', 'ActivityManager', 1000)]);
     // A refused --uid is reported, not read as no rows.
     assert.deepEqual(await read('uid'), { output: '', status: 'failed' });
-    assert.deepEqual(await read('pid'), { output: '', status: 'no-pid' });
-    await phone.processes([[4321, 10123]]);
-    // Owned by NAVEE's uid: rows. A read cut short by head still counts as a good read.
-    const owned = await read('pid');
-    assert.equal(owned.status, 'ok'); assert.match(owned.output, /navee one/); assert.doesNotMatch(owned.output, /navee two|impostor|before|system/);
-    assert.match((await phone.args()).at(-1), /^--pid=4321 -d -v epoch -t 1800000004\.100 -s com\.navee\.ucaret:V \*:S$/);
-    // Another uid using NAVEE's name: nothing read, a distinct report.
-    await phone.processes([[7777, 10999]]);
-    const calls = (await phone.args()).length;
-    assert.deepEqual(await read('pid'), { output: '', status: 'other-uid' });
-    assert.equal((await phone.args()).length, calls, 'logcat never ran for the impostor');
-    // Beside the real NAVEE, an impostor is ignored; two verified NAVEE processes are not guessed between.
-    await phone.processes([[7777, 10999], [4321, 10123]]);
-    assert.match((await read('pid')).output, /navee one/);
-    await phone.processes([[4321, 10123], [4400, 10123]]);
-    assert.deepEqual(await read('pid'), { output: '', status: 'several' });
+    // Rows under NAVEE's tag, each with its writer; a read cut short by head still counts as a good read.
+    const rows = await read('rows');
+    assert.equal(rows.status, 'ok');
+    assert.deepEqual(rows.output.split('\n'), ['--------- beginning of main', '1800000004.500 10123  4321  4321 D com.navee.ucaret: [2] BleHandler.l: navee one',
+      '1800000004.600 10999  4321  4321 D com.navee.ucaret: [2] BleHandler.l: impostor on a recycled pid']);
+    const writer = writerOf(10123);
+    assert.deepEqual(rows.output.split('\n').map(line => writer(line)?.own ?? null), [null, true, false]);
+    assert.equal((await phone.args()).at(-1), '-v uid -d -v epoch -t 1800000004.100 -s com.navee.ucaret:V *:S');
+    // A logcat without -v uid refuses the read: a failure, never an empty poll.
+    const old = await fakeAndroid({ uidFormat: false });
+    try {
+      await old.log([logRow('1800000004.500', 4321, 'navee one')]);
+      assert.deepEqual(logcatReply(await old.exec(appLogcat(10123, 'rows', args, cut))), { output: '', status: 'failed' });
+    } finally { await old.dispose(); }
     // With --uid (Android 12+), the check says so.
     const modern = await fakeAndroid({ uid: true });
     try { assert.equal(logFilter(await modern.exec(logFilterCheck(10123))), 'uid'); } finally { await modern.dispose(); }
+  } finally { await phone.dispose(); }
+});
+test('writerOf reads each -v uid line’s writer column: NAVEE’s uid, another uid, or none', () => {
+  const writer = writerOf(10123), own = '1800000000.125 10123  4321  4321 D com.navee.ucaret: x';
+  assert.deepEqual(writer(own), { own: true, stamp: '1800000000.125', rest: '4321  4321 D com.navee.ucaret: x' });
+  assert.deepEqual(writer(`  ${own}`), { own: true, stamp: '  1800000000.125', rest: '4321  4321 D com.navee.ucaret: x' });
+  for (const other of [own.replace('10123', '10999'), own.replace('10123', '110123'), own.replace('10123', '1012'), own.replace('10123', 'shell'), own.replace('10123', 'u0_a5')])
+    assert.deepEqual(writer(other), { own: false }, other);
+  // No writer column: a divider, a row printed without it, message text that only looks like one.
+  for (const none of ['--------- beginning of main', own.replace(' 10123 ', ' '), '10123  4321  4321 D com.navee.ucaret: x', 'x 1800000000.125 10123  4321  4321 D t: x', '', '~0'])
+    assert.equal(writer(none), null, none);
+  assert.equal(writerOf(10005)(own.replace('10123', 'u0_a5')).own, true);
+  assert.equal(writerOf(10005)(own.replace('10123', '10005')).own, true);
+});
+test('writerPattern is writerOf’s test for the phone’s grep -E, and the real shell agrees with writerOf line by line', async () => {
+  const tail = '[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[A-Z][[:space:]]', lead = '^[[:space:]]*[0-9]{9,}(\\.[0-9]+)?[[:space:]]+';
+  assert.equal(writerPattern(10123), `${lead}10123${tail}`);
+  assert.equal(writerPattern(10005), `${lead}(10005|u0_a5)${tail}`);
+  assert.equal(writerPattern(null), `${lead}[^[:space:]]+${tail}`);
+  for (const uid of ['10123;reboot', '1012', '123456', '1e4', -10123, ' 10123', "1012'"]) assert.throws(() => writerPattern(uid), String(uid));
+  const own = '1800000000.125 10123  4321  4321 D com.navee.ucaret: x';
+  const lines = [own, `  ${own}`, own.replace(/ /g, '\t'), '1800000000 10123  4321  4321 D com.navee.ucaret: x', own.replace('10123', 'u0_a5'), own.replace('10123', '10005'),
+    own.replace('10123', '10999'), own.replace('10123', '110123'), own.replace('10123', '101234'), own.replace('10123', '1012'), own.replace('10123', '10123x'), own.replace('10123', 'shell'),
+    `1800000000.125 10999  1  1 D com.navee.ucaret: ${own}`, '--------- beginning of main', own.replace(' 10123 ', ' '), own.replace(' 10123 ', '       '),
+    '10123  4321  4321 D com.navee.ucaret: x', 'x 1800000000.125 10123  4321  4321 D t: x', '1800000000.125 10123 4321 D com.navee.ucaret: x', '~0'];
+  const phone = await fakeAndroid();
+  try {
+    // The lines grep -E keeps on this machine's /bin/sh (grep exits 1 when it keeps none).
+    const kept = async uid => (await phone.exec(`{ printf '%s\\n' ${lines.map(quote).join(' ')} | grep -E ${quote(writerPattern(uid))}; } || true`)).split('\n').filter(Boolean);
+    for (const uid of [10123, 10005]) {
+      const writer = writerOf(uid);
+      assert.deepEqual(await kept(uid), lines.filter(line => writer(line)?.own), String(uid));
+      // Any writer: every line writerOf reads a writer column in, NAVEE's or not.
+      assert.deepEqual(await kept(null), lines.filter(line => writer(line) !== null));
+    }
+    assert.deepEqual(await kept(10123), [own, `  ${own}`, own.replace(/ /g, '\t'), '1800000000 10123  4321  4321 D com.navee.ucaret: x']);
   } finally { await phone.dispose(); }
 });
 test('owner capture’s fallback keeps only rows NAVEE’s uid wrote, on a real shell over a fake Android 11', async () => {

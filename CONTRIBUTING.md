@@ -21,6 +21,7 @@ Follow the [build guide](docs/building.md). The app uses Java, native Android vi
 ```sh
 bash tests/run.sh
 python3 tests/owner-capture-guard-test.py
+python3 tests/capture-owner-test.py
 bash build.sh
 bash android-tests/build.sh
 ```

@@ -35,7 +35,7 @@ The one-time capture retrieves your scooter's Bluetooth owner identity from your
 | **Shizuku on this phone** | Android 11+ and shell-backed Shizuku 13+ | Real-device validation is limited. Choose **Use Shizuku on this phone** in onboarding. [Setup and recovery](../setup/SHIZUKU.md). |
 | **Existing setup or full backup** | Your own previously exported file | Choose the corresponding import/restore option in onboarding. [Backup guide](user-guide.md#back-up-and-restore). |
 
-The browser and Shizuku helpers currently support only the main personal Android user, not work profiles or secondary users; they also reject NAVEE installations in another profile. Controlled phone checks of these two helpers exercised timeout and cleanup with the scooter out of range. A tester later reported successful onboarding without identifying the helper used, so successful real-scooter capture has not been confirmed separately for each new path.
+The browser, Shizuku and computer ADB helpers currently support only the main personal Android user, not work profiles or secondary users; they also reject NAVEE installations in another profile. All three accept only log lines Android records as written by NAVEE's own app, so another app using NAVEE's log name can't supply an identity. Controlled phone checks of the browser and Shizuku helpers exercised timeout and cleanup with the scooter out of range. A tester later reported successful onboarding without identifying the helper used, so successful real-scooter capture has not been confirmed separately for each new path.
 
 ### Computer ADB quick start
 
