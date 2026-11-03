@@ -16,6 +16,7 @@ import android.transition.TransitionManager;
 import android.transition.TransitionSet;
 import android.transition.TransitionValues;
 import android.transition.Visibility;
+import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewParent;
@@ -115,9 +116,14 @@ final class Motion {
 
     // ---- Page changes ------------------------------------------------------------------------
 
-    /** How far pages travel: enough to read as direction, never a full-width swipe. */
+    /**
+     * How far pages travel: enough to read as direction, never a full-width swipe. Negative in a
+     * right-to-left layout, where the next tab or page sits to the left, so content still arrives
+     * from the side it lies on.
+     */
     private static float travel(View view, int width) {
-        return Math.min(width * .16f, view.getResources().getDisplayMetrics().density * 48);
+        float distance = Math.min(width * .16f, view.getResources().getDisplayMetrics().density * 48);
+        return view.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -distance : distance;
     }
 
     /**
@@ -220,6 +226,8 @@ final class Motion {
         if (sibling) {
             // Directly above the page and below anything floating over it (the tab bar).
             FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(snapshot.getWidth(), snapshot.getHeight());
+            // Placed from the left edge in either layout direction (a start gravity is the right edge in RTL).
+            params.gravity = Gravity.TOP | Gravity.LEFT;
             params.leftMargin = pageView.getLeft() - parent.getPaddingLeft();
             params.topMargin = pageView.getTop() - parent.getPaddingTop();
             parent.addView(cover, parent.indexOfChild(pageView) + 1, params);

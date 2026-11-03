@@ -616,7 +616,9 @@ public final class Ui {
                     final int steps = previous - selected;
                     Motion.beforeNextDraw(item, () -> {
                         // Equal-width tabs: the dot starts under the tab being left and settles here.
-                        dot.setTranslationX(steps * item.getWidth());
+                        // Right to left, the tabs run the other way.
+                        int side = item.getLayoutDirection() == View.LAYOUT_DIRECTION_RTL ? -1 : 1;
+                        dot.setTranslationX(side * steps * item.getWidth());
                         dot.animate().translationX(0).setDuration(Motion.ENTER_MS).setInterpolator(Motion.STANDARD).start();
                     }, null);
                 }

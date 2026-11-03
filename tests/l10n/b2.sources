@@ -5,3 +5,5 @@ src/com/jjricks/volt/Fmt.java
 src/com/jjricks/volt/Formatted.java
 src/com/jjricks/volt/LockSliderGeometry.java
 tests/l10n/characterization/UiToolkitTextTest.java
+# B2's own suite: right-to-left lock geometry and the English-label fallbacks left for later batches.
+tests/l10n/UiToolkitTest.java
