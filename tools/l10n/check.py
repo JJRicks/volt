@@ -66,7 +66,8 @@ EN_NEGATION_WORDS = {"not", "no", "never", "none", "nothing", "nobody", "nowhere
                      "without", "cannot", "can't", "don't", "doesn't", "didn't", "won't", "isn't", "aren't",
                      "wasn't", "weren't", "hasn't", "haven't", "couldn't", "shouldn't", "mustn't"}
 # Words that start with "un" but carry no negation the checks care about. Lock and unlock are kept
-# distinct by the judge's safety confirmation, not by this word check.
+# distinct by the glossary check (an unlock phrasing is not the lock term; see
+# lexicon.OPPOSITE_CONTEXT) and the judge's safety confirmation, not by this word check.
 EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|univers\w*|union\w*|unif\w*|"
                               r"uninstall\w*|undo\w*|unpair\w*|unmute\w*|unzip\w*)$")
 
@@ -76,8 +77,9 @@ EN_OFF_WORDS = {"off", "disable", "disabled", "disconnect", "disconnected", "ina
                 "deny", "denied", "remove", "removed", "delete", "deleted", "clear", "cleared", "offline", "empty"}
 # The on/off state words: an "Alarm off" target with no negation at all is worth the judge's look.
 EN_STATE_OFF = {"off", "disabled", "inactive", "deactivated"}
-# Negation words that are also ordinary words (French "personne" is "person"): not counted as added.
-AMBIGUOUS_NEGATION = {"fr": {"personne"}}
+# Negation words that are also ordinary words (French "personne" is "person", Arabic "دون" is also
+# "below", Urdu "بنا" is also "made"): not counted as added.
+AMBIGUOUS_NEGATION = {"fr": {"personne"}, "ar": {"دون"}, "ur": {"بنا"}}
 
 NEGATION = lexicon.NEGATION
 
@@ -85,7 +87,7 @@ NEGATION = lexicon.NEGATION
 # may drop the count placeholder ("Un patinete" for n=1). Everything else ("one" in fr, pt-BR, hi, bn,
 # ru, uk, hr, which also covers 0, 21, 31 or 101; every "few" and "many"; "other") must keep it.
 _EXACT_ONE = {"en", "es", "it", "de", "nl", "sv", "da", "nb", "nn", "no", "fi", "el", "hu", "tr", "ro", "cs", "sk",
-              "pl", "bg", "ca", "et", "he", "ar", "pt-PT", "ja", "zh", "ko", "id", "vi", "th"}
+              "pl", "bg", "ca", "et", "he", "ar", "ur", "pt-PT", "ja", "zh", "ko", "id", "vi", "th"}
 _EXACT_OTHER = {"ar": {"zero", "two"}, "cy": {"zero", "two"}, "he": {"two"}, "cs": {"many"}, "sk": {"many"}}
 
 
@@ -173,12 +175,12 @@ def target_negation(primary, text, stems=()):
     prefix plus one of stems (the approved glossary targets, such as "bloquear") is the opposite
     term ("desbloquear"), not a negation of the sentence: it is left out of both.
     """
-    text = lexicon.normalize(text)
+    text = lexicon.negation_text(primary, text)
     if primary in lexicon.UNSPACED_NEGATION:
         return lexicon.unspaced_negations(primary, text), [], []
     words, prefixes = NEGATION[primary]
     tokens = lexicon.tokens(text)
-    found = [t for t in tokens if t in words]
+    found = [t for t in tokens if t in words or lexicon.suffix_negated(primary, t)]
     native = [t for t in tokens if t not in words and lexicon.native_negated(primary, t, stems)]
     prefixed = [t for t in tokens if t not in words and (t in native or any(
         t.startswith(p) and len(t) > len(p) + 3 and not any(t[len(p):].startswith(stem) for stem in stems)
@@ -393,6 +395,10 @@ def _polarity(language, reference, text, safety, q, entry=None):
     # The English has no negation: one in the target may invert the meaning (on -> "no activada").
     opposite = english_opposite_words(reference)
     found = [w for w in found if w not in AMBIGUOUS_NEGATION.get(primary, ())]
+    if found and q == "zero":
+        # The zero form naturally says "no scooters" ("لا توجد سكوترات") where the English has a count.
+        return [finding("polarity", WARN, "the zero form says %s; the judge checks polarity" %
+                        ", ".join(repr(w) for w in found[:3]), q)]
     if found and not opposite:
         return [finding("polarity", severity, "the target says %s; the English has no negation" %
                         ", ".join(repr(w) for w in found[:3]), q)]

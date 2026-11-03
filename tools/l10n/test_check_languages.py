@@ -194,6 +194,132 @@ class LanguageChecksTest(unittest.TestCase):
         self.assertNotIn("script", self.errors("ja", "langx_lock_level", "速度レベル1でロック"))
         self.assertEqual(self.errors("ja", "langx_lock_now", "스쿠터 ロック"), ["script"])
 
+    # Unlock written as the lock word plus another word or particle is not the lock term.
+
+    def test_unlock_phrasings_in_fixture_languages(self):
+        for tag, text in (("zh-Hans", "解除锁定滑板车"), ("zh-Hans", "解除滑板车锁定"), ("zh-Hans", "打开滑板车的锁"),
+                          ("zh-Hans", "滑板车锁定已解除"), ("ja", "スクーターのロックを解除"),
+                          ("ja", "スクーターのロックを解除する"), ("ja", "ロックを外す"), ("ar", "فتح القفل"),
+                          ("ar", "فتح قفل السكوتر"), ("ar", "إلغاء قفل السكوتر"), ("ar", "فك قفل السكوتر"),
+                          ("ar", "اضغط لفتح القفل")):
+            self.assertEqual(self.errors(tag, "langx_lock_now", text), ["glossary"], (tag, text))
+        # The same words in another role do not make the lock term its opposite.
+        self.assertClean("zh-Hans", "langx_lock_now", "取消骑行后锁定滑板车")
+        self.assertClean("zh-Hans", "langx_lock_now", "解除报警后锁定滑板车")
+        self.assertClean("ja", "langx_lock_now", "スクーターをロックする")
+        self.assertClean("ar", "langx_lock_now", "اضغط للقفل")
+
+    def test_inflected_glossary_targets(self):
+        self.assertClean("ru", "langx_lock_now", "Включите блокировку самоката")
+        self.assertClean("es", "langx_lock_now", "Patinete bloqueada")
+        self.assertEqual(self.errors("ru", "langx_lock_now", "Включите разблокировку"), ["glossary"])
+        self.assertEqual(self.errors("es", "langx_lock_now", "Patinete desbloqueada"), ["glossary"])
+
+    def test_zh_ja_ordinary_words_are_not_negation(self):
+        self.assertEqual(lexicon.unspaced_negations("ja", "バッテリーが20%未満のときにロック"), [])
+        self.assertEqual(lexicon.unspaced_negations("ja", "スクーターをロックします。すみません"), [])
+        self.assertClean("zh-Hans", "langx_lock_now", "锁定别名")
+        # A negation that extends an ordinary word is still a negation.
+        self.assertEqual(lexicon.unspaced_negations("zh", "锁不管用"), ["不管用"])
+        self.assertEqual(lexicon.unspaced_negations("zh", "请不断开连接"), ["不断开"])
+        self.assertEqual(self.errors("zh-Hans", "langx_lock_now", "滑板车锁不管用"), ["polarity"])
+
+    def test_opposite_actions_and_ordinary_prefix_words_are_not_native_negation(self):
+        self.assertIn("polarity", self.errors("es", "langx_unable", "Desactivar el bloqueo del patinete"))
+        self.assertFalse(lexicon.native_negated("es", "desactivar", {"activar"}))
+        self.assertEqual(self.errors("ru", "langx_unknown", "Некоторые блокировка"), ["polarity"])
+        self.assertEqual(self.errors("pl", "langx_unknown", "Blokada niedawno"), ["polarity"])
+        self.assertEqual(self.errors("de", "langx_unknown", "Sperre Unfall"), ["polarity"])
+        self.assertClean("es", "langx_unable", "No se puede bloquear el patinete")
+
+    def test_arabic_words_that_only_look_negated(self):
+        self.assertEqual(check.target_negation("ar", "غيّر صوت الإنذار")[0], [])
+        self.assertEqual(check.target_negation("ar", "غَيِّرْ صوت الإنذار")[0], [])
+        # Without the shadda the imperative is the negation's spelling; that stays a negation.
+        self.assertEqual(check.target_negation("ar", "غير صوت الإنذار")[0], ["غير"])
+        self.assertEqual(check.target_negation("ar", "حالة القفل غير معروفة")[0], ["غير"])
+
+
+SCRIPTS = {"el": "Grek", "hi": "Deva", "bn": "Beng", "ar": "Arab", "ur": "Arab", "zh": "Hans", "ja": "Jpan"}
+
+
+def _key_findings(tag, english, target, glossary=None, kind="string", plurals=("one", "other")):
+    entry = {"key": "k", "kind": kind, "english": english, "safety": "lock", "dnt": [], "formatted": True,
+             "glossary": [{"term": "Lock", "target": glossary, "safety": "lock", "dnt": False}] if glossary else []}
+    language = {"tag": tag, "plurals": list(plurals), "script": SCRIPTS.get(tag, "Latn"), "font": "system"}
+    return check.check_key(entry, language, kind, check._items(kind, target))
+
+
+def _errors(*args, **kwargs):
+    return sorted(set(f["check"] for f in _key_findings(*args, **kwargs) if f["severity"] == check.ERROR))
+
+
+class MoreLanguagesTest(unittest.TestCase):
+    """Safety keys checked directly for languages the fixture repository does not set up."""
+
+    def test_unlock_as_lock_word_plus_another_word(self):
+        cases = (("sv", ["lås", "låsa"], "Lås sparkcykeln", "Lås upp sparkcykeln"),
+                 ("nb", ["lås", "låse"], "Lås sparkesykkelen", "Lås opp sparkesykkelen"),
+                 ("id", ["kunci"], "Kunci skuter", "Buka kunci skuter"),
+                 ("id", ["kunci"], "Kunci skuter", "Membuka kunci skuter"),
+                 ("ur", ["لاک"], "اسکوٹر لاک کریں", "اسکوٹر ان لاک کریں"),
+                 ("hi", ["लॉक"], "स्कूटर लॉक करें", "स्कूटर का लॉक खोलें"),
+                 ("bn", ["লক"], "স্কুটার লক করুন", "স্কুটারের লক খুলুন"))
+        for tag, targets, good, bad in cases:
+            self.assertEqual(_errors(tag, "Lock scooter", good, targets), [], (tag, good))
+            self.assertEqual(_errors(tag, "Lock scooter", bad, targets), ["glossary"], (tag, bad))
+        self.assertFalse(lexicon.term_found("ko", "Hang", "잠금", "잠금해제"))
+        self.assertFalse(lexicon.term_found("ko", "Hang", "잠금", "잠금을 해제"))
+        self.assertTrue(lexicon.term_found("ko", "Hang", "잠금", "스쿠터 잠금"))
+
+    def test_glossary_inflection_and_arabic_lil(self):
+        self.assertEqual(_errors("ar", "Tap to lock", "اضغط للقفل", ["قفل"]), [])
+        self.assertEqual(_errors("pl", "Scooter locked", "Hulajnoga zablokowana", ["zablokowany", "zablokowane"]), [])
+        self.assertEqual(_errors("es", "Screen locked", "Pantalla bloqueada", ["bloqueado"]), [])
+        # A short stem does not stretch to another word ("verrou" is not in "verre").
+        self.assertFalse(lexicon.term_found("fr", "Latn", "verrou", "verre"))
+        self.assertTrue(lexicon.term_found("el", "Grek", "κλείδωμα", "Αποτυχία κλειδώματος"))
+
+    def test_natural_negations_pass(self):
+        cases = (("bn", "The scooter did not respond", "স্কুটার সাড়া দেয়নি"),
+                 ("bn", "Lock was not confirmed", "লক নিশ্চিত হয়নি"),
+                 ("bn", "Unable to lock the scooter", "স্কুটার লক করা যায়নি"),
+                 ("bn", "Unable to lock the scooter", "স্কুটার লক করতে পারেনি"),
+                 ("bn", "Lock state unverified", "লক অবস্থা যাচাই করা হয়নি"),
+                 ("sv", "Lock state unverified", "Låsstatus overifierad"),
+                 ("sv", "Lock state unverified", "Låsstatus obekräftad"),
+                 ("el", "Lock state unverified", "Ανεπιβεβαίωτη κατάσταση κλειδώματος"),
+                 ("el", "Unable to lock the scooter", "Αδυναμία κλειδώματος του πατινιού"),
+                 ("hi", "Lock state unverified", "लॉक स्थिति असत्यापित"),
+                 ("ur", "Lock was not confirmed", "لاک کی تصدیق نہیں ہوئی"))
+        for tag, english, text in cases:
+            self.assertEqual(_errors(tag, english, text), [], (tag, text, _key_findings(tag, english, text)))
+        # Ordinary Bengali words ending in নি are not a negation.
+        self.assertEqual(_errors("bn", "Lock scooter", "তিনি স্কুটার লক করবেন"), [])
+        self.assertEqual(_errors("bn", "Lock was not confirmed", "লক নিশ্চিত হয়েছে"), ["polarity"])
+
+    def test_urdu_negation_and_plural_one(self):
+        self.assertEqual(_errors("ur", "Lock was not confirmed", "لاک کی تصدیق ہو گئی"), ["polarity"])
+        self.assertEqual(_errors("ur", {"one": "%1$d scooter locked", "other": "%1$d scooters locked"},
+                                 {"one": "ایک اسکوٹر لاک ہے", "other": "%1$d اسکوٹر لاک ہیں"}, kind="plural"), [])
+
+    def test_ordinary_words_are_not_added_negation(self):
+        self.assertEqual(_errors("ar", "Change the alarm sound", "غيّر صوت الإنذار"), [])
+        self.assertEqual(_errors("ar", "Alarm when battery falls below 20%%", "تنبيه عندما تنخفض البطارية دون 20%%"), [])
+        self.assertEqual(_errors("ja", "Alarm when battery is below 20%%", "バッテリーが20%%未満のときにアラーム"), [])
+        self.assertEqual(_errors("it", "Lock as soon as the scooter stops", "Blocca non appena il monopattino si ferma"),
+                         [])
+        self.assertEqual(_errors("it", "Lock the scooter", "Non bloccare il monopattino"), ["polarity"])
+        # The Arabic zero form says "no scooters" naturally: a warning for the judge, not an error.
+        english = {"one": "%1$d scooter locked", "other": "%1$d scooters locked"}
+        target = {"zero": "لا توجد سكوترات مقفلة", "one": "سكوتر واحد مقفل", "two": "سكوتران مقفلان",
+                  "few": "%1$d سكوترات مقفلة", "many": "%1$d سكوترًا مقفلًا", "other": "%1$d سكوتر مقفل"}
+        self.assertEqual(_errors("ar", english, target, kind="plural",
+                                 plurals=("zero", "one", "two", "few", "many", "other")), [])
+        target["other"] = "%1$d سكوتر غير مقفل"
+        self.assertEqual(_errors("ar", english, target, kind="plural",
+                                 plurals=("zero", "one", "two", "few", "many", "other")), ["polarity"])
+
 
 if __name__ == "__main__":
     unittest.main()
