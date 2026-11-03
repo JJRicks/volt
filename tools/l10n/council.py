@@ -18,8 +18,8 @@ environment; see providers.py for how they are kept out of every output.
                                                         back-translate agreed safety keys with a
                                                         model that drafted nothing
   council.py import-backtranslation --tag es --area common --from reply.json --model ID
-                                                        (after prompt --role backtranslate, whose
-                                                        texts the reply is bound to)
+                                                        (after prompt --role backtranslate; the
+                                                        reply names that prompt's request id)
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
@@ -34,6 +34,11 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
   checks.jsonl             check.py's results per draft and key.
   backtranslation.jsonl    {"key", "source_sha1", "target", "back", "provider", "model",
                            "model_reported"}; target and back are a string or {quantity: text}.
+  prompts/backtranslation.request.<id>.json
+                           what one back-translation prompt showed: {"format", "id", "tag", "area",
+                           "keys": {key: {"kind", "source_sha1", "target", "target_sha1"}}}; the id
+                           hashes the rest, and the file is never overwritten. A Claude reply copies
+                           the id ("request") and each key's target_sha1.
   judge-requests.jsonl     what the judge must rule on (written here).
   judge.jsonl              the judge's rulings (written by the Claude judge session):
                            {"key", "source_sha1", "model", "verdict", "pick", "text", "back", "reason",
@@ -53,8 +58,10 @@ decisions/<tag>/<area>.jsonl: one line per key, the audit trail (see decide()).
 import argparse
 import collections
 import datetime
+import hashlib
 import json
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -575,64 +582,146 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
     return stored
 
 
-def backtranslation_request_path(paths, tag, area):
-    return paths.work(tag, area, "prompts", "backtranslation.request.json")
+BACKTRANSLATION_REQUEST_FORMAT = "volt-l10n-backtranslation-request-v1"
+REQUEST_ID = re.compile(r"^[0-9a-f]{40}$")
+
+
+def text_sha1(kind, items):
+    """The hash of a text as a prompt shows it (its JSON form), which a back-translator copies back."""
+    return hashlib.sha1(translib.dump_json_line(translib.text_value(kind, items)).encode("utf-8")).hexdigest()
+
+
+def backtranslation_request(tag, area, targets):
+    """The immutable record of one back-translation prompt: what it showed, and its id.
+
+    The id is the SHA-1 of the tag, area, and each key's kind, source hash and target text, so two
+    prompts share an id only when they showed exactly the same texts of the same English.
+    """
+    keys = collections.OrderedDict(
+        (k, collections.OrderedDict([("kind", s.entry["kind"]), ("source_sha1", s.entry["source_sha1"]),
+                                     ("target", translib.text_value(s.entry["kind"], s.agreed)),
+                                     ("target_sha1", text_sha1(s.entry["kind"], s.agreed))]))
+        for k, s in targets.items())
+    return collections.OrderedDict([("format", BACKTRANSLATION_REQUEST_FORMAT),
+                                    ("id", backtranslation_request_id(tag, area, keys)),
+                                    ("tag", tag), ("area", area), ("keys", keys)])
+
+
+def backtranslation_request_id(tag, area, keys):
+    shown = collections.OrderedDict([("format", BACKTRANSLATION_REQUEST_FORMAT), ("tag", tag), ("area", area),
+                                     ("keys", dict((k, [v.get("kind"), v.get("source_sha1"), v.get("target")])
+                                                   for k, v in keys.items()))])
+    return hashlib.sha1(translib.dump_json_line(shown).encode("utf-8")).hexdigest()
+
+
+def backtranslation_request_path(paths, tag, area, request_id):
+    return paths.work(tag, area, "prompts", "backtranslation.request.%s.json" % request_id)
+
+
+def load_backtranslation_request(paths, tag, area, request_id):
+    """The request a reply names, checked against its own id; L10nError if there is none."""
+    if not isinstance(request_id, str) or not REQUEST_ID.match(request_id):
+        raise translib.L10nError("the reply has no request id: copy `request` from the prompt you answered "
+                                 "(prompt --role backtranslate); nothing was stored")
+    path = backtranslation_request_path(paths, tag, area, request_id)
+    if not os.path.exists(path):
+        raise translib.L10nError("the reply names request %s, which %s has no record of; nothing was stored" % (
+            request_id, paths.rel(paths.work(tag, area, "prompts"))))
+    request = json.loads(l10nlib.read_text(path))
+    keys = request.get("keys") if isinstance(request, dict) else None
+    if (not isinstance(keys, dict) or request.get("format") != BACKTRANSLATION_REQUEST_FORMAT
+            or request.get("id") != request_id or request.get("tag") != tag or request.get("area") != area
+            or not all(isinstance(v, dict) for v in keys.values())
+            or backtranslation_request_id(tag, area, keys) != request_id):
+        raise translib.L10nError("%s does not match its id; write the prompt again" % paths.rel(path))
+    return request
 
 
 def import_backtranslation(paths, tag, area, source, model, use_java=True, out=None):
     """Store a Claude agent's back-translations of the texts its prompt showed.
 
-    The reply names keys only, so each key is bound to the English and text the prompt was made
-    from (prompts/backtranslation.request.json): a key whose English or agreed text changed since
-    the prompt is dropped, never stored as a back-translation of the new text.
+    The reply carries the id of the prompt it answers (`request`) and, per key, the hash of the
+    text it back-translated (`target_sha1`), both copied from that prompt. The request is loaded by
+    that id (prompts/backtranslation.request.<id>.json, never overwritten), so a later prompt does
+    not change what an earlier reply is bound to. A reply without an id, with an unknown one, or
+    with a key or text hash its request did not show is refused whole. A key is stored only while
+    the request's English and text are still the current English and agreed text; otherwise it is
+    dropped, never stored as a back-translation of the new text.
     """
     out = out or sys.stdout
+    value = json.loads(l10nlib.read_text(source))
+    if not isinstance(value, dict):
+        raise translib.L10nError("%s: not a JSON object" % source)
+    request = load_backtranslation_request(paths, tag, area, value.get("request"))
+    shown = request["keys"]
+    strings = value.get("strings") if isinstance(value.get("strings"), dict) else {}
+    hashes = value.get("target_sha1") if isinstance(value.get("target_sha1"), dict) else {}
+    problems = []
+    for key in strings:
+        if key not in shown:
+            problems.append("%s: not in request %s" % (key, request["id"][:12]))
+        elif hashes.get(key) != shown[key].get("target_sha1"):
+            problems.append("%s: target_sha1 %s is not the hash of the text request %s showed" % (
+                key, str(hashes.get(key))[:12], request["id"][:12]))
+    if problems:
+        raise translib.L10nError("the reply does not match its request; nothing was stored:\n  " +
+                                 "\n  ".join(problems))
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
-    targets = backtranslation_targets(states)
-    request_path = backtranslation_request_path(paths, tag, area)
-    if not os.path.exists(request_path):
-        raise translib.L10nError("%s is missing: write the prompt with prompt --role backtranslate first" %
-                                 paths.rel(request_path))
-    asked = json.loads(l10nlib.read_text(request_path))
-    for key in list(targets):
-        state = targets[key]
-        shown = asked.get(key) or {}
-        if shown.get("source_sha1") != state.entry["source_sha1"] or not same_text(
-                state.entry["kind"], shown.get("target"), state.agreed):
-            out.write("  %s: the text changed since the prompt; back-translate it again\n" % key)
-            del targets[key]
-    value = json.loads(l10nlib.read_text(source))
+    current = backtranslation_targets(states)
+    targets = collections.OrderedDict()
+    for key in strings:
+        state = current.get(key)
+        if (state is None or shown[key].get("source_sha1") != state.entry["source_sha1"]
+                or not same_text(state.entry["kind"], shown[key].get("target"), state.agreed)):
+            out.write("  %s: the English or text changed since request %s; back-translate it again\n" % (
+                key, request["id"][:12]))
+            continue
+        targets[key] = state
     provider = "claude" if model.startswith("claude") else "other"
-    stored = store_backtranslation(paths, pack, targets, reply_strings(value), provider, model, model,
+    stored = store_backtranslation(paths, pack, targets, strings, provider, model, model,
                                    all_drafter_models(drafts))
     log_run(paths, tag, area, collections.OrderedDict([
-        ("stage", "import-backtranslation"), ("provider", provider), ("model", model), ("received", stored)]))
+        ("stage", "import-backtranslation"), ("provider", provider), ("model", model),
+        ("request", request["id"]), ("received", stored)]))
     out.write("stored %d back-translations by %s\n" % (stored, model))
     return stored
 
 
 def backtranslation_prompt_file(paths, tag, area, use_java=True):
-    """A prompt for a Claude Code agent whose model drafted nothing in this area."""
+    """A prompt for a Claude Code agent whose model drafted nothing in this area.
+
+    Each prompt records what it showed in prompts/backtranslation.request.<id>.json, which is never
+    overwritten; the agent copies the id and each text's hash into its reply.
+    """
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     targets = backtranslation_targets(analyze(paths, pack, drafts, use_java))
-    reply = paths.work(tag, area, "replies", "backtranslation.json")
+    request = backtranslation_request(tag, area, targets)
+    request_path = backtranslation_request_path(paths, tag, area, request["id"])
+    if not os.path.exists(request_path):  # the same id is the same contents: never rewrite one
+        translib.write_json(request_path, request)
+    reply = paths.work(tag, area, "replies", "backtranslation.%s.json" % request["id"][:12])
+    body = [collections.OrderedDict([("key", k), ("kind", v["kind"]), ("text", v["target"]),
+                                     ("target_sha1", v["target_sha1"])]) for k, v in request["keys"].items()]
     text = "\n\n".join([
         "# Volt back-translation: %s, area %s" % (tag, area),
+        "Request id: `%s`" % request["id"],
         "Your model must not be one of the drafters: %s." % ", ".join(sorted(all_drafter_models(drafts))),
         "Do not open the English source, the pack or the drafts.",
         backtranslate_instructions(pack),
+        "Your JSON object must also carry this prompt's request id and, for every key, the `target_sha1` of the "
+        "text you back-translated, both copied unchanged from this prompt:\n\n"
+        "    {\"request\": \"%s\", \"strings\": {\"<key>\": ...}, \"target_sha1\": {\"<key>\": \"<its target_sha1>\"}}"
+        "\n\nThey bind your answer to the texts shown here: a reply without them, or with another prompt's, is "
+        "refused." % request["id"],
         "Write the JSON object to `%s`, then run:\n\n    python3 tools/l10n/council.py import-backtranslation "
         "--tag %s --area %s --from %s --model <your exact model id>" % (paths.rel(reply), tag, area, paths.rel(reply)),
-        "## Strings\n\n" + backtranslate_prompt(pack, targets)])
+        "## Strings\n\nBack-translate these %d strings.\n\n%s" % (
+            len(body), json.dumps(body, ensure_ascii=False, indent=1))])
     path = paths.work(tag, area, "prompts", "backtranslation.md")
     l10nlib.write_text(path, text + "\n")
-    translib.write_json(backtranslation_request_path(paths, tag, area), collections.OrderedDict(
-        (k, collections.OrderedDict([("source_sha1", s.entry["source_sha1"]),
-                                     ("target", translib.text_value(s.entry["kind"], s.agreed))]))
-        for k, s in targets.items()))
     return path, len(targets)
 
 

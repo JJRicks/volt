@@ -5,6 +5,7 @@ import email.message
 import io
 import json
 import os
+import re
 import sys
 import unittest
 import unittest.mock
@@ -83,6 +84,34 @@ class Base(unittest.TestCase):
             json.dump({"strings": texts, "src": src}, handle, ensure_ascii=False)
         args = ["import-claude", "--tag", "es", "--area", "common", "--name", name, "--model", model, "--from", path]
         return self.main(*(args + (["--redraft"] if redraft else [])))
+
+    def backtranslation_prompt(self):
+        """Write a back-translation prompt; returns its request id, as the agent reads it from the prompt."""
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "backtranslate"), 0)
+        text = self.repo.read("l10n/work/es/common/prompts/backtranslation.md")
+        return re.search(r"Request id: `([0-9a-f]{40})`", text).group(1)
+
+    def backtranslation_reply(self, request_id, texts=None, hashes=None, name="back"):
+        """An agent's reply to request_id: texts (default BACK for the keys it showed) and, unless given,
+        the target_sha1 of each shown text copied from the prompt's request."""
+        shown = json.loads(self.repo.read(
+            "l10n/work/es/common/prompts/backtranslation.request.%s.json" % request_id))["keys"]
+        if texts is None:
+            texts = dict((k, BACK[k]) for k in shown)
+        if hashes is None:
+            hashes = dict((k, shown[k]["target_sha1"]) for k in texts if k in shown)
+        reply = {"request": request_id, "strings": texts, "target_sha1": hashes}
+        path = self.repo.path("%s.json" % name)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(reply, handle, ensure_ascii=False)
+        return path
+
+    def import_back(self, path, model="claude-haiku-5"):
+        return self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path, "--model", model)
+
+    def stored_backs(self):
+        return dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/backtranslation.jsonl")))
 
     def judge(self, rows):
         sha = self.sha()
@@ -456,15 +485,10 @@ class CouncilFlowTest(Base):
 
     def test_backtranslator_must_not_have_drafted(self):
         self.draft_all()
-        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "backtranslate"), 0)
-        path = self.repo.path("back.json")
-        with open(path, "w", encoding="utf-8") as handle:
-            json.dump({"strings": BACK}, handle)
-        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
-                                   "--model", "claude-opus-5-5"), 2)
+        path = self.backtranslation_reply(self.backtranslation_prompt())
+        self.assertEqual(self.import_back(path, "claude-opus-5-5"), 2)
         self.assertIn("model that drafted nothing", self.err.getvalue())
-        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
-                                   "--model", "claude-haiku-5"), 0)
+        self.assertEqual(self.import_back(path), 0)
         rows = translib.read_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"))
         self.assertEqual(set(r["model"] for r in rows), {"claude-haiku-5"})
         # A back-translation by a drafter that is already on file does not count.
@@ -729,24 +753,104 @@ class ProvenanceTest(Base):
         self.assertEqual(d["outcome"], "fallback-english")
         self.assertIn("no current drafts", d["reason"])
 
-    def test_claude_backtranslation_is_bound_to_the_prompted_text(self):
-        self.draft_all()
-        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "backtranslate"), 0)
-        # Every drafter now writes another alarm text after the prompt was made.
+    def set_alarm_text(self, old, new):
         for name in ("openai", "google", "claude-opus-context"):
             path = self.DRAFTS + name + ".xml"
-            self.repo.write(path, self.repo.read(path).replace("Alarma activada", "Alarma silenciada"))
-        path = self.repo.path("back.json")
-        with open(path, "w", encoding="utf-8") as handle:
-            json.dump({"strings": BACK}, handle)
+            self.repo.write(path, self.repo.read(path).replace(old, new))
+
+    def test_claude_backtranslation_is_bound_to_the_prompted_text(self):
+        self.draft_all()
+        path = self.backtranslation_reply(self.backtranslation_prompt())
+        # Every drafter now writes another alarm text after the prompt was made.
+        self.set_alarm_text("Alarma activada", "Alarma silenciada")
         self.out.truncate(0)
-        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
-                                   "--model", "claude-haiku-5"), 0)
-        self.assertIn("common_alarm_on: the text changed since the prompt", self.out.getvalue())
-        rows = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
-            "l10n/work/es/common/backtranslation.jsonl")))
+        self.assertEqual(self.import_back(path), 0)
+        self.assertIn("common_alarm_on: the English or text changed since request", self.out.getvalue())
+        rows = self.stored_backs()
         self.assertNotIn("common_alarm_on", rows)
         self.assertEqual(rows["common_disclaimer"]["target"], "Volt no está afiliada a NAVEE")
+
+    def test_reply_to_an_earlier_prompt_is_not_bound_to_a_later_one(self):
+        """Codex's repro: prompt A, the text changes, prompt B, then A's unchanged reply is imported."""
+        self.draft_all()
+        request_a = self.backtranslation_prompt()
+        reply_a = self.backtranslation_reply(request_a, {"common_alarm_on": "Alarm activated"}, name="reply-a")
+        self.set_alarm_text("Alarma activada", "Alarma silenciada")
+        self.assertEqual(self.import_back(reply_a), 0)
+        self.assertEqual(self.stored_backs(), {})
+        request_b = self.backtranslation_prompt()
+        self.assertNotEqual(request_a, request_b)
+        # Prompt B did not overwrite A's record: the reply is still checked against what A showed.
+        record_a = json.loads(self.repo.read(
+            "l10n/work/es/common/prompts/backtranslation.request.%s.json" % request_a))
+        self.assertEqual(record_a["keys"]["common_alarm_on"]["target"], "Alarma activada")
+        self.out.truncate(0)
+        self.assertEqual(self.import_back(reply_a), 0)
+        self.assertIn("common_alarm_on: the English or text changed since request %s" % request_a[:12],
+                      self.out.getvalue())
+        self.assertEqual(self.stored_backs(), {})
+        state = council.analyze(self.paths, pack.load_pack(self.paths, "es", "common"), use_java=False)
+        self.assertIsNone(council.current_backtranslation(state["common_alarm_on"], None))
+        # A's reply relabelled with B's id still carries the hash of A's text: refused whole.
+        relabelled = self.backtranslation_reply(
+            request_b, {"common_alarm_on": "Alarm activated"},
+            {"common_alarm_on": record_a["keys"]["common_alarm_on"]["target_sha1"]}, name="relabelled")
+        self.assertEqual(self.import_back(relabelled), 2)
+        self.assertIn("common_alarm_on: target_sha1", self.err.getvalue())
+        self.assertIn("nothing was stored", self.err.getvalue())
+        self.assertEqual(self.stored_backs(), {})
+        # Control: a fresh reply to B is stored for the new text and counts as current.
+        reply_b = self.backtranslation_reply(request_b, {"common_alarm_on": "Alarm silenced"}, name="reply-b")
+        self.assertEqual(self.import_back(reply_b), 0)
+        back = self.stored_backs()["common_alarm_on"]
+        self.assertEqual((back["target"], back["back"]), ("Alarma silenciada", "Alarm silenced"))
+        state = council.analyze(self.paths, pack.load_pack(self.paths, "es", "common"), use_java=False)
+        self.assertEqual(council.current_backtranslation(state["common_alarm_on"], back), back)
+
+    def test_reply_with_a_wrong_target_hash_is_refused(self):
+        self.draft_all()
+        request_id = self.backtranslation_prompt()
+        path = self.backtranslation_reply(request_id, hashes=dict((k, "0" * 40) for k in BACK))
+        self.assertEqual(self.import_back(path), 2)
+        self.assertIn("target_sha1 000000000000 is not the hash", self.err.getvalue())
+        # A missing hash, or a key the request did not show, is refused the same way.
+        shown = json.loads(self.repo.read(
+            "l10n/work/es/common/prompts/backtranslation.request.%s.json" % request_id))["keys"]
+        self.assertIn("common_alarm_on", shown)
+        self.assertEqual(self.import_back(self.backtranslation_reply(request_id, hashes={})), 2)
+        self.assertNotIn("common_cancel", shown)
+        extra = dict(((k, BACK[k]) for k in shown), common_cancel="Cancel")
+        self.assertEqual(self.import_back(self.backtranslation_reply(request_id, extra, name="extra")), 2)
+        self.assertIn("common_cancel: not in request", self.err.getvalue())
+        self.assertFalse(os.path.exists(self.repo.path("l10n/work/es/common/backtranslation.jsonl")))
+
+    def test_reply_without_a_known_request_id_is_refused(self):
+        self.draft_all()
+        request_id = self.backtranslation_prompt()
+        self.assertEqual(self.import_back(self.write_reply_without_id(request_id)), 2)
+        self.assertIn("the reply has no request id", self.err.getvalue())
+        unknown = self.write_reply_without_id(request_id, request="f" * 40)
+        self.assertEqual(self.import_back(unknown), 2)
+        self.assertIn("names request %s, which" % ("f" * 40), self.err.getvalue())
+        traversal = self.write_reply_without_id(request_id, request="../../../../etc/passwd")
+        self.assertEqual(self.import_back(traversal), 2)
+        # An edited request record no longer matches its id.
+        record = "l10n/work/es/common/prompts/backtranslation.request.%s.json" % request_id
+        self.repo.write(record, self.repo.read(record).replace("Alarma activada", "Alarma silenciada"))
+        self.assertEqual(self.import_back(self.backtranslation_reply(request_id, name="edited")), 2)
+        self.assertIn("does not match its id", self.err.getvalue())
+        self.assertFalse(os.path.exists(self.repo.path("l10n/work/es/common/backtranslation.jsonl")))
+
+    def write_reply_without_id(self, request_id, request=None):
+        path = self.backtranslation_reply(request_id, name="noid")
+        with open(path, encoding="utf-8") as handle:
+            reply = json.load(handle)
+        del reply["request"]
+        if request is not None:
+            reply["request"] = request
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump(reply, handle, ensure_ascii=False)
+        return path
 
 
 class BetaBarTest(Base):

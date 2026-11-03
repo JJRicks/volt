@@ -545,7 +545,12 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
    providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
    text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
-   Claude agent on a model that did not draft); and the judge, shown that text and its
+   Claude agent on a model that did not draft: each such prompt gets a request id, the hash of
+   exactly what it showed, recorded in `prompts/backtranslation.request.<id>.json` and never
+   overwritten; the agent copies the id and each text's `target_sha1` into its reply, and
+   `import-backtranslation` refuses a reply without a known id or with a text hash its request
+   did not show, and drops a key whose English or agreed text changed since that request, so a
+   later prompt cannot adopt an earlier agent's answer); and the judge, shown that text and its
    back-translation and naming both in its ruling, confirms every item: locked and
    unlocked stay distinct, on/off and never/always are not inverted, "unverified" or "unknown"
    never reads as confirmed, numbers, units and the named action are unchanged, "not affiliated
@@ -674,10 +679,18 @@ their lists reviewed before their wave starts.
   "ok", "findings": [{"check", "severity", "quantity", "message"}], "width_method"}`; `draft_src`
   is the entry's `volt:src`, and a stale one fails the `source` check.
 - **`backtranslation.jsonl`**: `{"key", "source_sha1", "target", "back", "provider", "model",
-  "model_reported"}`; a text is a string or `{quantity: text}`. `import-backtranslation` binds a
-  Claude agent's reply to the texts its prompt showed (`prompts/backtranslation.request.json`,
-  written by `prompt --role backtranslate`): a key whose English or agreed text changed since is
-  dropped.
+  "model_reported"}`; a text is a string or `{quantity: text}`.
+- **`prompts/backtranslation.request.<id>.json`** (written by `prompt --role backtranslate`, one per
+  distinct prompt, never overwritten): `{"format": "volt-l10n-backtranslation-request-v1", "id",
+  "tag", "area", "keys": {<key>: {"kind", "source_sha1", "target", "target_sha1"}}}`. `id` is the
+  SHA-1 of the compact sorted JSON of the format, tag, area and each key's
+  `[kind, source_sha1, target]`; `target_sha1` is the SHA-1 of the target's compact sorted JSON
+  (a string or `{quantity: text}`). A Claude agent's reply is `{"request": <id>, "strings":
+  {<key>: <back-translation>}, "target_sha1": {<key>: <target_sha1>}}`, both copied from its
+  prompt. `import-backtranslation` loads the request by that id and checks it against its id;
+  it refuses the whole reply (nothing stored) when the id is missing or unknown, or a key is not
+  in that request or its `target_sha1` is not that request's, and stores a key only while the
+  request's `source_sha1` and `target` are still the current English and agreed text.
 - **`judge.jsonl`** (written by the judge): `{"key", "source_sha1", "model", "verdict", "pick",
   "text", "back", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
   `confirm` (safety keys) or `fallback`; `confirm` maps each of `lock_states_distinct`,
@@ -689,6 +702,9 @@ their lists reviewed before their wave starts.
   counts only while both still match the current agreed text and back-translation, so a changed
   draft needs a new ruling. A safety key reaches `judge-requests` only after a current
   back-translation exists. A ruling whose `source_sha1` is not the current English is ignored.
+  A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
+  and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,
+  so rewriting the requests while a judge works cannot rebind an earlier ruling.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
   (`agreed`, `judged`, `safety-agreed` or `fallback-english`), `text`, `reason`, `alternatives`
@@ -696,7 +712,8 @@ their lists reviewed before their wave starts.
   ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
 - `runs.jsonl` logs each provider call and import (stage, provider, model ids, key counts; never a
-  key). `prompts/` and `replies/` are regenerated and not committed (`l10n/.gitignore`).
+  key). `prompts/` (with its request records) and `replies/` are regenerated and not committed
+  (`l10n/.gitignore`); a reply whose request record is gone is refused, so prompt again.
 
 The B0b-harness pull request still has to add the `tests/run.sh` hook and
 `android-tests/TextCensus.java`; B0b adds `Msg`, `VoltApp` and the catalog tests (including
