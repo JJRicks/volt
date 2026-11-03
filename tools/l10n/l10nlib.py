@@ -232,6 +232,17 @@ def is_english_looking(value):
     return not _IDENTIFIER_LIKE.match(value)
 
 
+_KEY_OR_ID = re.compile(r"^[a-z][a-z0-9]*(?:[_.][a-z0-9]+)*$")
+
+
+def is_identifier_like(value):
+    """A lower-case key or id of two characters or more, words joined by _ or ., for example
+    "app_language", "com.jjricks.volt" or "msg". Narrower than what is_english_looking skips: a unit
+    such as "km/h" or a separator such as "x" is not one. A person can still read a key, so callers
+    show the code that holds it."""
+    return len(value) >= 2 and bool(_KEY_OR_ID.match(value))
+
+
 # ---------------------------------------------------------------------------
 # git
 # ---------------------------------------------------------------------------

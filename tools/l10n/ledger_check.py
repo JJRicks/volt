@@ -29,7 +29,10 @@ unless the row is manual; every "as" is listed for the reviewer. Every ledger at
 an exact row's English must still equal its literal and a template must still render the original,
 unless l10n/english-changes.tsv records an owner-approved change of that key (its keys must exist).
 Ledger files are append-only. An extraction batch adds no literal to src/ (other than ""): text goes
-to the catalog, and a literal that moved needs a stays-english or id-kept row.
+to the catalog, and a literal that moved needs a stays-english or id-kept row. The one exception is a
+new lower-case key or id (a preference name, a requireNonNull message; l10nlib.is_identifier_like):
+it is not text, but a person could read one, so every such literal is listed for the reviewer with
+the statement that holds it, and it does not by itself make its changed region count as text.
 
 Nothing else may change around the text either. In a changed region of a src/ file that holds or held
 a literal, the only differences from the base allowed are a row's expression replaced by the call
@@ -712,13 +715,14 @@ def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
     return False
 
 
-def other_changes(path, diff, allowed_base, allowed_head, moved_hunks):
+def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=()):
     """(problems, warnings) for code a batch changed besides converting or deleting text.
 
     allowed_base and allowed_head map token indexes to a span id: a row's base expression (or a
     manual row's statement) and the head call that serves it share one id, and a removed row's
     deleted code has an id with no head side. Each span counts as one item when the changed regions
-    are aligned, so only tokens outside them can differ.
+    are aligned, so only tokens outside them can differ. new_ids are head tokens of new key or id
+    literals (listed elsewhere); they alone do not make a region hold text.
     """
     if diff.base is None or diff.head is None:
         return [], ["%s was %s; check it by hand" % (path, "added" if diff.base is None else "deleted")]
@@ -755,7 +759,8 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks):
         line = diff.head_token(gained[0]).line if gained else diff.base_token(lost[0]).line
         what = "%s:%d: this change %s" % (path, line, " and ".join(parts))
         text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
-            any(t.kind in expressions.LITERALS for t in _region_tokens(diff.head, h1, h2))
+            any(t.kind in expressions.LITERALS and k not in new_ids
+                for k, t in enumerate(diff.head.tokens) if h1 <= t.line <= h2)
         if (path, hunk) in moved_hunks:
             warnings.append("%s beside a stays-english or id-kept move; check by hand that the English is the same"
                             % what)
@@ -955,11 +960,19 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                             "src needs exact, template, plural or removed" % (
                                 row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
 
+    # A new lower-case key, path or id is not text (a preference name, a requireNonNull message); it is
+    # allowed, and listed with its statement, since a person could still read one.
+    new_ids = collections.defaultdict(set)
+    for path, _, k, used_by_move in arrivals:
+        tok = diffs[path].head_token(k)
+        if not used_by_move and tok.kind == "string" and l10nlib.is_identifier_like(tok.value):
+            new_ids[path].add(k)
+
     moved_hunks = set((path, diffs[path].gone[k]) for _, path, k in staying)
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
     for path in sorted(diffs):
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
-                                                   moved_hunks)
+                                                   moved_hunks, new_ids[path])
         problems.extend(problem_list)
         warnings.extend(warning_list)
 
@@ -976,8 +989,17 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     path, tok.line, "char" if tok.kind == "char" else "literal", l10nlib.json_string(tok.value)))
 
     new_literals = 0
+    for path in sorted(new_ids):
+        head_tokens = diffs[path].head.tokens
+        for k in sorted(new_ids[path]):
+            first, last, _ = expressions.statement_span(head_tokens, k)
+            warnings.append("%s:%d: new key or id literal %s in `%s`; check by hand that no screen shows it" % (
+                path, head_tokens[k].line, l10nlib.json_string(head_tokens[k].value),
+                _excerpt(head_tokens[first:last + 1], 40)))
     for path, _, k, used_by_move in arrivals:
         tok = diffs[path].head_token(k)
+        if k in new_ids[path]:
+            continue
         if not used_by_move and not (tok.kind == "string" and tok.value == ""):
             new_literals += 1
             problems.append("%s:%d: new %s %s; an extraction batch adds no text to src (put it in the catalog), and "
@@ -988,9 +1010,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     catalog_problems, catalog_rows = catalog_consistency(head, cwd)
     problems.extend(catalog_problems)
     summary = "%d literal(s) left %d src file(s); %d new ledger row(s)%s; %d new literal(s); " \
-              "%d ledger row(s) agree with the catalog" % (
+              "%d new key or id literal(s), listed; %d ledger row(s) agree with the catalog" % (
                   gone_total, len(gone_files), len(rows), " (%d manual)" % manual if manual else "",
-                  new_literals, catalog_rows)
+                  new_literals, sum(len(v) for v in new_ids.values()), catalog_rows)
     return problems, warnings, summary
 
 

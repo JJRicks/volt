@@ -210,7 +210,10 @@ How `ledger_check.py` (G1) reads it:
   left must either only lose tokens (code moved out whole) or name the constant it moved to
   (`NAME`, or `Class.NAME` from another file).
 - An extraction batch adds no literal to `src/` other than `""`: new text goes to the catalog, and
-  a literal that moved needs a `stays-english` or `id-kept` row. Each new literal fails G1.
+  a literal that moved needs a `stays-english` or `id-kept` row. Each new literal fails G1, except
+  a lower-case key or id such as a preference name (`"app_language"`) or a `requireNonNull` message
+  (`"msg"`): letters and digits joined by `_` or `.`, two characters or more. G1 lists every such
+  literal with its statement for the reviewer, and it alone does not make a change "around text".
 - Ledger files are append-only. Every ledger at head is checked against the catalog on every pull
   request, so rewording an extracted string fails unless `l10n/english-changes.tsv` records it.
 - A row whose location is a test file must be `removed`, for a test of deleted code (G4 below).

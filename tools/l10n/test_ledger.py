@@ -420,6 +420,45 @@ class ChangesAroundTextTest(RepoCase):
         self.assertTrue(any("%s:7: this change adds `21` and drops `20`, away from any text" % self.PICKER in w
                             for w in warnings), warnings)
 
+    def test_new_preference_keys_pass_and_are_listed(self):
+        """Re-review 5: B0b's planned preference keys and requireNonNull messages are not text."""
+        self.edit("    static int size()", '    static final String CHOICE = "app_language";\n'
+                  '    static void check(Object msg) { if (msg == null) throw new NullPointerException("msg"); }\n'
+                  '    static int size()')
+        problems, warnings, summary = self.check([])
+        self.assertEqual(problems, [])
+        self.assertTrue(any('new key or id literal "app_language" in `static final String CHOICE = "app_language"`'
+                            in w for w in warnings), warnings)
+        self.assertTrue(any('new key or id literal "msg" in `if ( msg == null ) throw new NullPointerException ( "msg" )`'
+                            in w for w in warnings), warnings)
+        self.assertTrue(any("away from any text" in w for w in warnings), warnings)
+        self.assertIn("0 new literal(s); 2 new key or id literal(s), listed", summary)
+
+    def test_new_key_beside_kept_text_still_fails(self):
+        self.edit('return "Skip";', 'skipped("stats_skip"); return "Skip";')
+        problems, warnings, _ = self.check([])
+        self.assertTrue(any("%s:6: this change adds `skipped" % self.PICKER in p and "around text" in p
+                            for p in problems), problems)
+        self.assertTrue(any('new key or id literal "stats_skip"' in w for w in warnings), warnings)
+
+    def test_new_text_that_is_not_a_key_still_fails(self):
+        for literal in ("Language", "app language", "%d", " / ", "km/h", "x", "12"):
+            with self.subTest(literal=literal):
+                self.repo.write(self.PICKER, self.FILES[self.PICKER])
+                self.edit("    static int size()", '    static final String LABEL = "%s";\n    static int size()' % literal)
+                problems, _, _ = self.check([])
+                self.assertTrue(any("new literal %s" % json.dumps(literal) in p for p in problems), problems)
+
+    def test_lowering_a_literal_to_key_case_still_fails(self):
+        self.edit('return "Skip";', 'return "skip";')
+        problems, _, _ = self.check([])
+        self.assertTrue(any('literal "Skip" left with no ledger row' in p for p in problems), problems)
+        self.edit('return "skip";', 'return T.statsSkip();')
+        self.repo.write("res/values/strings_stats.xml",
+                        '<resources><string name="stats_skip">skip</string></resources>\n')
+        problems, _, _ = self.check([self.PICKER + ':6\t["Skip"]\tstats_skip\texact\t'])
+        self.assertTrue(any("stats_skip is 'skip' but the literal was 'Skip'" in p for p in problems), problems)
+
 
 class RemovedBlockTest(RepoCase):
     """Re-review 4, finding 1: a removed row's statement deleted with its enclosing block must not

@@ -75,6 +75,13 @@ class TextClassTest(unittest.TestCase):
                       "scooter/state", "--output"):
             self.assertFalse(l10nlib.is_english_looking(value), value)
 
+    def test_identifier_like(self):
+        for value in ("app_settings", "app_language_migrated", "msg", "text", "com.jjricks.volt", "v2"):
+            self.assertTrue(l10nlib.is_identifier_like(value), value)
+        for value in ("", "x", "Cancel", "app language", "%1$s", " · ", "12", "--", "km/h", "km/h:", "Über", "über",
+                      "scooter/state", "--output", "a__b", "_x", "app_"):
+            self.assertFalse(l10nlib.is_identifier_like(value), value)
+
     def test_multiword(self):
         self.assertTrue(l10nlib.is_multiword("Turn off"))
         self.assertTrue(l10nlib.is_multiword("Don't clear storage."))
