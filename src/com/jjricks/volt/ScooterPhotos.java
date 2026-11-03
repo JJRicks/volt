@@ -53,7 +53,7 @@ final class ScooterPhotos {
             view.setImageBitmap(photo);
         String model = ModelRegistry.modelName(d);
         if (view.getImportantForAccessibility() != ImageView.IMPORTANT_FOR_ACCESSIBILITY_NO)
-            view.setContentDescription("NAVEE " + (model.isEmpty() ? "" : model + " ") + "scooter");
+            view.setContentDescription(model.isEmpty() ? T.uiPhotoScooter() : T.uiPhotoModel(model));
         return true;
     }
 }

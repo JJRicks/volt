@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The shared UI toolkit (batch B2): Ui's rows, switches, battery ring and charts, the segmented
+  selector, the reorder list, the Live Stats title, the chart-window picker, the model picker and the
+  scooter photo. The English must stay exactly what the source said before the batch (G1, G2).
+
+  Several accessibility descriptions are built from parts, as the source built them: a template with
+  one placeholder per part, and the optional parts as their own strings that start with their own
+  separator (", charging"). Translate each part with its separator; the template only puts them in order.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Spoken description of a reading card: %1$s is the reading's name, %2$s its value (or "Not
+         reported"), %3$s an optional hint that starts with its own separator (ui_description_more), or empty. -->
+    <string name="ui_metric_description" volt:screen="Reading cards" volt:purpose="accessibility description">%1$s, %2$s%3$s</string>
+    <!-- One more part of a spoken description, after the parts before it: %1$s is the part. Keep the
+         leading separator (a comma and a space in English). -->
+    <string name="ui_description_more" volt:screen="Reading cards and the battery ring" volt:purpose="accessibility description part">, %1$s</string>
+    <!-- Spoken after a switch's name when the scooter has not reported whether it is on or off.
+         Keep the leading separator. -->
+    <string name="ui_toggle_state_not_reported" volt:screen="Setting switches" volt:purpose="accessibility description part">, state not reported</string>
+
+    <!-- The battery ring's spoken description: "Battery 62 percent, charging, last seen reading, Full in 40 min".
+         %1$s is the level (ui_battery_percent or ui_battery_not_reported); %2$s, %3$s and %4$s are
+         optional parts, each with its own leading separator, or empty: ui_battery_charging,
+         ui_battery_last_seen and the ring's caption (ui_description_more). -->
+    <string name="ui_battery_description" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s%2$s%3$s%4$s</string>
+    <!-- The battery level in the ring's spoken description when the scooter has not reported it. -->
+    <string name="ui_battery_not_reported" volt:screen="Home battery ring" volt:purpose="accessibility description part">not reported</string>
+    <!-- The battery level in the ring's spoken description: %1$s is a whole number from 0 to 100. -->
+    <string name="ui_battery_percent" volt:screen="Home battery ring" volt:purpose="accessibility description part">%1$s percent</string>
+    <!-- Spoken after the battery level while the scooter charges. Keep the leading separator. -->
+    <string name="ui_battery_charging" volt:screen="Home battery ring" volt:purpose="accessibility description part"
+        volt:safety="charge">, charging</string>
+    <!-- Spoken after the battery level when the ring shows the last reading from an earlier
+         connection, not a live one. Keep the leading separator. -->
+    <string name="ui_battery_last_seen" volt:screen="Home battery ring" volt:purpose="accessibility description part">, last seen reading</string>
+    <!-- Drawn under the battery ring while charging: "Charging" then, when the ring has a caption, the
+         caption with its separator (ui_battery_caption_more) as %1$s, or nothing. -->
+    <string name="ui_battery_charging_label" volt:screen="Home battery ring" volt:purpose="label"
+        volt:max="144dp@11sp" volt:safety="charge">Charging%1$s</string>
+    <!-- The ring's caption after "Charging" under the battery ring: %1$s is the caption, after a middle dot. -->
+    <string name="ui_battery_caption_more" volt:screen="Home battery ring" volt:purpose="label part">" · %1$s"</string>
+
+    <!-- Shown in an empty chart, and spoken for it, until it has a measured point. -->
+    <string name="ui_chart_empty" volt:screen="Live Stats and dashboard charts" volt:purpose="empty state">No measured data yet</string>
+    <!-- A chart's spoken description: %1$s is the unit symbol, %2$s how many points it shows (English
+         says "samples" for 1 too, kept as it was), %3$s and %4$s the lowest and highest axis values. -->
+    <string name="ui_chart_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description">Measured %1$s chart, %2$s samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</string>
+    <!-- The chart's tooltip for the touched point: %1$s is the value, %2$s a space and the unit
+         symbol (or nothing), %3$s the point's date and time. -->
+    <string name="ui_chart_tooltip" volt:screen="Live Stats and dashboard charts" volt:purpose="tooltip">"%1$s%2$s  ·  %3$s"</string>
+    <!-- Spoken for the touched chart point: %1$s is the value, %2$s the unit symbol, %3$s the date and time. -->
+    <string name="ui_chart_point_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description">%1$s %2$s at %3$s</string>
+    <!-- A chart value in thousands: %1$s is the number, %2$s the thousands suffix (ui_chart_thousands_suffix). -->
+    <string name="ui_chart_thousands" volt:screen="Live Stats and dashboard charts" volt:purpose="number format">%1$s%2$s</string>
+    <!-- After a chart value in thousands, "12.5k" for 12,500. -->
+    <string name="ui_chart_thousands_suffix" volt:screen="Live Stats and dashboard charts" volt:purpose="unit symbol">k</string>
+
+    <!-- Spoken for the Walk drive mode, which the screen shows as a walking figure. The scooter's
+         own name for the mode; the owner's default keeps drive-mode names as the scooter shows them. -->
+    <string name="ui_drive_mode_walk" volt:screen="Live Stats and dashboard drive mode" volt:purpose="accessibility description"
+        volt:safety="ride" volt:dnt="WALK">WALK</string>
+
+    <!-- Spoken for one choice of a segmented selector: %1$s is the selector's title, %2$s the choice. -->
+    <string name="ui_selector_choice" volt:screen="Segmented selectors" volt:purpose="accessibility description">%1$s: %2$s</string>
+
+    <!-- Spoken for a reorder list's drag handle: %1$s is the row's name. -->
+    <string name="ui_reorder_drag" volt:screen="Reorder lists" volt:purpose="accessibility description">Drag to reorder %1$s</string>
+    <!-- Screen-reader action that moves a row one place up a reorder list. -->
+    <string name="ui_reorder_move_up" volt:screen="Reorder lists" volt:purpose="accessibility action">Move up</string>
+    <!-- Screen-reader action that moves a row one place down a reorder list. -->
+    <string name="ui_reorder_move_down" volt:screen="Reorder lists" volt:purpose="accessibility action">Move down</string>
+    <!-- Announced after a row moves: %1$s is the row's name, %2$s its new position, %3$s how many rows there are. -->
+    <string name="ui_reorder_moved" volt:screen="Reorder lists" volt:purpose="announcement">%1$s moved to position %2$s of %3$s</string>
+
+    <!-- The Live Stats page heading. -->
+    <string name="ui_live_stats_title" volt:screen="Live Stats" volt:purpose="heading" volt:max="220dp@24sp">Live Stats</string>
+    <!-- Spoken for the Live Stats heading while the scooter is connected. -->
+    <string name="ui_live_stats_connected" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats, connected</string>
+    <!-- Spoken for the Live Stats heading while the scooter is not connected. -->
+    <string name="ui_live_stats_disconnected" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats, disconnected</string>
+
+    <!-- Spoken for the chart-window button: %1$s is the chosen window. -->
+    <string name="ui_stats_window_description" volt:screen="Live Stats chart window" volt:purpose="accessibility description">Chart time window: %1$s. Choose time window</string>
+    <!-- Heading of the chart-window choices. -->
+    <string name="ui_stats_window_title" volt:screen="Live Stats chart window" volt:purpose="heading">Chart window</string>
+    <!-- Spoken for the × that closes the chart-window choices. -->
+    <string name="ui_stats_window_close" volt:screen="Live Stats chart window" volt:purpose="accessibility description">Close chart window choices</string>
+    <!-- Spoken for one chart-window choice: %1$s is the window ("1 hour"). -->
+    <string name="ui_stats_window_choice" volt:screen="Live Stats chart window" volt:purpose="accessibility description">Chart time window: %1$s</string>
+
+    <!-- Hint in the model picker's search box. -->
+    <string name="ui_model_search_hint" volt:screen="Model picker" volt:purpose="hint">Search models</string>
+    <!-- Spoken for the model picker's search box. -->
+    <string name="ui_model_search_description" volt:screen="Model picker" volt:purpose="accessibility description">Search scooter models</string>
+    <!-- The model picker's choice for someone who does not know their model. -->
+    <string name="ui_model_not_sure" volt:screen="Model picker" volt:purpose="choice">Not sure</string>
+    <!-- Section heading above a typed model name that is not in the list. -->
+    <string name="ui_model_not_listed" volt:screen="Model picker" volt:purpose="heading">Not listed</string>
+    <!-- Choice that uses the typed name as the model: %1$s is what the person typed, in quotation marks. -->
+    <string name="ui_model_use_typed" volt:screen="Model picker" volt:purpose="choice">Use “%1$s”</string>
+    <!-- Shown when no listed model matches the search: %1$s is what the person typed. "Not sure" is
+         the choice ui_model_not_sure; use the same words. -->
+    <string name="ui_model_no_match" volt:screen="Model picker" volt:purpose="status">No listed model matches “%1$s”. Clear the search to choose one, or Not sure.</string>
+    <!-- Heading of one model series: %1$s is the series name, %2$s what it is for. -->
+    <string name="ui_model_series" volt:screen="Model picker" volt:purpose="heading">%1$s · %2$s</string>
+
+    <!-- Spoken for the scooter photo: %1$s is the model's name ("UT5 MAX"). -->
+    <string name="ui_photo_model" volt:screen="Home and My Scooter photo" volt:purpose="accessibility description"
+        volt:dnt="NAVEE">NAVEE %1$s scooter</string>
+    <!-- Spoken for the scooter photo when the model has no name. -->
+    <string name="ui_photo_scooter" volt:screen="Home and My Scooter photo" volt:purpose="accessibility description"
+        volt:dnt="NAVEE">NAVEE scooter</string>
+</resources>
