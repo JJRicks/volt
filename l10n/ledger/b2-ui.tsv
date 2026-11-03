@@ -1,0 +1,65 @@
+# Ledger for b2-ui: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/LiveStatsTitle.java:22	["Live Stats"]	ui_live_stats_title	exact	
+src/com/jjricks/volt/LiveStatsTitle.java:30	["Live Stats, connected"]	ui_live_stats_connected	exact	
+src/com/jjricks/volt/LiveStatsTitle.java:30	["Live Stats, disconnected"]	ui_live_stats_disconnected	exact	
+src/com/jjricks/volt/ModelPicker.java:45	["Search models"]	ui_model_search_hint	exact	
+src/com/jjricks/volt/ModelPicker.java:47	["Search scooter models"]	ui_model_search_description	exact	
+src/com/jjricks/volt/ModelPicker.java:84	["Not sure"]	ui_model_not_sure	exact	
+src/com/jjricks/volt/ModelPicker.java:87	["Not listed"]	ui_model_not_listed	exact	
+src/com/jjricks/volt/ModelPicker.java:88	["Use “", {"hole": "typed", "arg": 1, "type": "s"}, "”"]	ui_model_use_typed	template	
+src/com/jjricks/volt/ModelPicker.java:92	["No listed model matches “", {"hole": "typed", "arg": 1, "type": "s"}, "”. Clear the search to choose one, or Not sure."]	ui_model_no_match	template	
+src/com/jjricks/volt/ModelPicker.java:100	[{"hole": "series.name", "arg": 1, "type": "s"}, " · ", {"hole": "series.about", "arg": 2, "type": "s"}]	ui_model_series	template	
+src/com/jjricks/volt/ReorderList.java:54	["Drag to reorder ", {"hole": "said", "arg": 1, "type": "s"}]	ui_reorder_drag	template	
+src/com/jjricks/volt/ReorderList.java:63	["Move up"]	ui_reorder_move_up	exact	
+src/com/jjricks/volt/ReorderList.java:65	["Move down"]	ui_reorder_move_down	exact	
+src/com/jjricks/volt/ReorderList.java:177	[{"hole": "spoken.get(target)", "arg": 1, "type": "s"}, " moved to position ", {"hole": "(target + 1)", "arg": 2, "type": "s", "as": "Fmt.integer(target + 1)"}, " of ", {"hole": "ids.size()", "arg": 3, "type": "s", "as": "Fmt.integer(ids.size())"}]	ui_reorder_moved	template	
+src/com/jjricks/volt/ReorderList.java:215	[{"hole": "spoken.get(target)", "arg": 1, "type": "s"}, " moved to position ", {"hole": "(target + 1)", "arg": 2, "type": "s", "as": "Fmt.integer(target + 1)"}, " of ", {"hole": "ids.size()", "arg": 3, "type": "s", "as": "Fmt.integer(ids.size())"}]	ui_reorder_moved	template	
+src/com/jjricks/volt/SegmentedSelector.java:134	[{"hole": "title", "arg": 1, "type": "s"}, ": ", {"hole": "labels[i]", "arg": 2, "type": "s"}]	ui_selector_choice	template	
+src/com/jjricks/volt/SegmentedSelector.java:220	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/StatsWindowPicker.java:36	["Chart time window: ", {"hole": "labels[selected]", "arg": 1, "type": "s"}, ". Choose time window"]	ui_stats_window_description	template	
+src/com/jjricks/volt/StatsWindowPicker.java:43	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/StatsWindowPicker.java:52	["Chart window"]	ui_stats_window_title	exact	
+src/com/jjricks/volt/StatsWindowPicker.java:56	["Close chart window choices"]	ui_stats_window_close	exact	
+src/com/jjricks/volt/StatsWindowPicker.java:68	["Chart time window: ", {"hole": "labels[index]", "arg": 1, "type": "s"}]	ui_stats_window_choice	template	
+src/com/jjricks/volt/ScooterPhotos.java:56	["NAVEE ", "", {"hole": "model", "arg": 1, "type": "s"}, " ", "scooter"]	ui_photo_model	template	manual: the description named a model as "NAVEE " + (model.isEmpty() ? "" : model + " ") + "scooter"; with a name it is this template, and with none (model empty) ui_photo_scooter, "NAVEE scooter", the same English
+src/com/jjricks/volt/Ui.java:249	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/Ui.java:287	["SPORT"]	-	stays-english	Telemetry's English drive-mode label, kept as Ui.DriveMode's id; the legacy styleDriveMode(String) overload compares it
+src/com/jjricks/volt/Ui.java:288	["ECO"]	-	stays-english	Telemetry's English drive-mode label, kept as Ui.DriveMode's id; the legacy styleDriveMode(String) overload compares it
+src/com/jjricks/volt/Ui.java:289	["WALK"]	-	stays-english	Telemetry's English drive-mode label, kept as Ui.DriveMode's id; the legacy styleDriveMode(String) overload compares it
+src/com/jjricks/volt/Ui.java:292	["WALK"]	ui_drive_mode_walk	exact	the int-free DriveMode overload; same English
+src/com/jjricks/volt/Ui.java:378	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "(value == null ? \"Not reported\" : value)", "arg": 2, "type": "s", "as": "(value == null ? T.commonNotReported() : value)"}, {"hole": "(hint == null || hint.isEmpty() ? \"\" : \", \" + hint)", "arg": 3, "type": "s", "as": "(hint == null || hint.isEmpty() ? \"\" : T.uiDescriptionMore(hint))"}]	ui_metric_description	template	manual: the value hole renders common_not_reported and the hint hole ui_description_more, each the same English as its literal (their own rows)
+src/com/jjricks/volt/Ui.java:378	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/Ui.java:379	[", ", {"hole": "hint", "arg": 1, "type": "s"}]	ui_description_more	template	
+src/com/jjricks/volt/Ui.java:399	[", state not reported"]	ui_toggle_state_not_reported	exact	
+src/com/jjricks/volt/Ui.java:400	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/Ui.java:401	["On"]	common_on	exact	
+src/com/jjricks/volt/Ui.java:401	["Off"]	common_off	exact	
+src/com/jjricks/volt/Ui.java:483	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/Ui.java:501	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/Ui.java:570	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/Ui.java:603	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/Ui.java:636	["Battery ", {"hole": "(Double.isNaN(percent) ? \"not reported\" : Math.round(percent) + \" percent\")", "arg": 1, "type": "s", "as": "(Double.isNaN(percent) ? T.uiBatteryNotReported() : T.uiBatteryPercent(Fmt.integer(Math.round(percent))))"}, {"hole": "(charging ? \", charging\" : \"\")", "arg": 2, "type": "s", "as": "(charging ? T.uiBatteryCharging() : \"\")"}, {"hole": "(live ? \"\" : \", last seen reading\")", "arg": 3, "type": "s", "as": "(live ? \"\" : T.uiBatteryLastSeen())"}, {"hole": "(subtitle.isEmpty() ? \"\" : \", \" + subtitle)", "arg": 4, "type": "s", "as": "(subtitle.isEmpty() ? \"\" : T.uiDescriptionMore(subtitle))"}]	ui_battery_description	template	manual: each part hole renders its own row's key (ui_battery_not_reported, ui_battery_percent, ui_battery_charging, ui_battery_last_seen, ui_description_more) with the same English
+src/com/jjricks/volt/Ui.java:636	["not reported"]	ui_battery_not_reported	exact	
+src/com/jjricks/volt/Ui.java:636	[{"hole": "Math.round(percent)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(percent))"}, " percent"]	ui_battery_percent	template	
+src/com/jjricks/volt/Ui.java:637	[", charging"]	ui_battery_charging	exact	
+src/com/jjricks/volt/Ui.java:637	[", last seen reading"]	ui_battery_last_seen	exact	
+src/com/jjricks/volt/Ui.java:638	[", ", {"hole": "subtitle", "arg": 1, "type": "s"}]	ui_description_more	template	
+src/com/jjricks/volt/Ui.java:645	["Charging", {"hole": "(subtitle.isEmpty() ? \"\" : \" · \" + subtitle)", "arg": 1, "type": "s", "as": "(subtitle.isEmpty() ? \"\" : T.uiBatteryCaptionMore(subtitle))"}]	ui_battery_charging_label	template	manual: the caption hole renders ui_battery_caption_more (its own row) with the same English
+src/com/jjricks/volt/Ui.java:645	[" · ", {"hole": "subtitle", "arg": 1, "type": "s"}]	ui_battery_caption_more	template	
+src/com/jjricks/volt/Ui.java:720	["HH:mm:ss"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:720	["h:mm:ss a"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:721	["HH:mm"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:721	["h:mm a"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:722	["MMM d"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:723	["MMM d HH:mm"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:723	["MMM d h:mm a"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:724	["MMM d, yyyy HH:mm:ss"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:724	["MMM d, yyyy h:mm:ss a"]	-	stays-english	Ui.ChartView's legacy date pattern, moved into a CHART_* constant that Fmt.datePattern keeps while Volt is English
+src/com/jjricks/volt/Ui.java:783	["Measured ", {"hole": "this.unit", "arg": 1, "type": "s"}, " chart, ", {"hole": "points.size()", "arg": 2, "type": "s", "as": "Fmt.integer(points.size())"}, " samples. Displayed axis ", {"hole": "axisNumber(min)", "arg": 3, "type": "s"}, " to ", {"hole": "axisNumber(max)", "arg": 4, "type": "s"}, ". Touch to inspect readings."]	ui_chart_description	template	
+src/com/jjricks/volt/Ui.java:845	[{"hole": "number(p.value)", "arg": 1, "type": "s"}, {"hole": "(unit.isEmpty() ? \"\" : \" \" + unit)", "arg": 2, "type": "s"}, "  ·  ", {"hole": "detailTime(p.millis)", "arg": 3, "type": "s"}]	ui_chart_tooltip	template	
+src/com/jjricks/volt/Ui.java:896	[{"hole": "number(p.value)", "arg": 1, "type": "s"}, " ", {"hole": "unit", "arg": 2, "type": "s"}, " at ", {"hole": "detailTime(p.millis)", "arg": 3, "type": "s"}]	ui_chart_point_description	template	
+src/com/jjricks/volt/Ui.java:910	["k"]	ui_chart_thousands_suffix	exact	manual: ternary argument of the axis label's String.format
+src/com/jjricks/volt/Ui.java:914	[{"spec": "%.0f", "arg": 1, "value": "value / 1000", "as": "Fmt.decimal(Locale.US, value / 1000, 0)"}, {"text": "k", "key": "ui_chart_thousands_suffix", "arg": 2}]	ui_chart_thousands	format	
+src/com/jjricks/volt/Ui.java:915	[{"spec": "%.1f", "arg": 1, "value": "value / 1000", "as": "Fmt.decimal(Locale.US, value / 1000, 1)"}, {"text": "k", "key": "ui_chart_thousands_suffix", "arg": 2}]	ui_chart_thousands	format	

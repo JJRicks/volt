@@ -51,7 +51,7 @@ final class ReorderList extends LinearLayout {
         row.addView(name, new LayoutParams(0, -2, 1));
         FrameLayout handle = new FrameLayout(getContext());
         handle.addView(ui.icon("grip", 20, ui.muted), new FrameLayout.LayoutParams(ui.dp(20), ui.dp(20), Gravity.CENTER));
-        handle.setContentDescription("Drag to reorder " + said);
+        handle.setContentDescription(T.uiReorderDrag(said));
         // Dragging is for touch; screen readers reach the row itself and its Move actions.
         handle.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
         handle.setOnTouchListener((view, event) -> drag(row, event));
@@ -60,9 +60,9 @@ final class ReorderList extends LinearLayout {
             @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
                 super.onInitializeAccessibilityNodeInfo(host, info);
                 int index = indexOfChild(host);
-                if (index > 0) info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_UP, "Move up"));
+                if (index > 0) info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_UP, T.uiReorderMoveUp()));
                 if (index >= 0 && index < getChildCount() - 1)
-                    info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_DOWN, "Move down"));
+                    info.addAction(new AccessibilityNodeInfo.AccessibilityAction(MOVE_DOWN, T.uiReorderMoveDown()));
             }
             @Override public boolean performAccessibilityAction(View host, int action, Bundle arguments) {
                 int index = indexOfChild(host);
@@ -174,7 +174,7 @@ final class ReorderList extends LinearLayout {
             held = null;
             if (moved != target) {
                 reorder(moved, target);
-                announceForAccessibility(spoken.get(target) + " moved to position " + (target + 1) + " of " + ids.size());
+                announceForAccessibility(T.uiReorderMoved(spoken.get(target), Fmt.integer(target + 1), Fmt.integer(ids.size())));
                 if (listener != null) listener.reordered(order());
             }
         };
@@ -212,7 +212,7 @@ final class ReorderList extends LinearLayout {
                 }
             }, null);
         }
-        announceForAccessibility(spoken.get(target) + " moved to position " + (target + 1) + " of " + ids.size());
+        announceForAccessibility(T.uiReorderMoved(spoken.get(target), Fmt.integer(target + 1), Fmt.integer(ids.size())));
         if (notify && listener != null) listener.reordered(order());
     }
 }

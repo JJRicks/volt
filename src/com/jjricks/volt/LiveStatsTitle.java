@@ -19,7 +19,7 @@ final class LiveStatsTitle extends LinearLayout {
     LiveStatsTitle(Ui ui) {
         super(ui.context); this.ui = ui;
         setGravity(Gravity.CENTER_VERTICAL); setPadding(0, ui.dp(2), 0, 0);
-        title = ui.text("Live Stats", 24, true);
+        title = ui.text(M.uiLiveStatsTitle(), 24, true);
         if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
         addView(title, new LayoutParams(-2, -2));
         signal = new Signal(); LayoutParams dot = new LayoutParams(ui.dp(28), ui.dp(34)); dot.leftMargin = 0;
@@ -27,7 +27,7 @@ final class LiveStatsTitle extends LinearLayout {
     }
     void setLive(boolean value) {
         live = value; title.setTextColor(value ? ui.text : ui.muted);
-        title.setContentDescription(value ? "Live Stats, connected" : "Live Stats, disconnected");
+        title.setContentDescription(value ? T.uiLiveStatsConnected() : T.uiLiveStatsDisconnected());
         signal.invalidate();
     }
     private final class Signal extends View {

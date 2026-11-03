@@ -131,7 +131,7 @@ public final class SegmentedSelector extends HorizontalScrollView {
                 button.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), ui.dp(10));
                 button.setFocusable(true);
                 button.setClickable(true);
-                button.setContentDescription(title + ": " + labels[i]);
+                button.setContentDescription(T.uiSelectorChoice(title, labels[i]));
                 button.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 28)),
                         null, ui.shape(Color.WHITE, 14, 0)));
                 button.setAccessibilityDelegate(new View.AccessibilityDelegate() {
@@ -217,7 +217,7 @@ public final class SegmentedSelector extends HorizontalScrollView {
                 TextView button = choices.get(i);
                 button.setSelected(i == selected);
                 button.setTextColor(i == selected ? ui.onAccent : ui.text);
-                if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(i == selected ? "Selected" : "");
+                if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(i == selected ? T.commonSelected() : "");
             }
             RectF end = target();
             if (animation != null) { ValueAnimator old = animation; animation = null; old.cancel(); }

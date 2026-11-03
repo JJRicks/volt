@@ -37,6 +37,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 
+import static com.jjricks.volt.Ui.DriveMode.ECO;
+import static com.jjricks.volt.Ui.DriveMode.SPORT;
+import static com.jjricks.volt.Ui.DriveMode.WALK;
+
 /**
  * Small, dependency-free native design system ("Volt"). Shared by compact and unfolded layouts.
  * Dark-first: near-black page, soft rounded cards, Saira type and one scooter-red accent.
@@ -142,6 +146,13 @@ public final class Ui {
         view.setTextDirection(View.TEXT_DIRECTION_FIRST_STRONG);
         return view;
     }
+    /**
+     * {@link #text(String, float, boolean)} for a deferred catalog message (a Msg), rendered now: for a
+     * view kept in a field, whose text is built once (catalog rule R2 keeps rendered text out of fields).
+     */
+    public TextView text(CharSequence value, float sp, boolean bold) {
+        return text(value == null ? null : value.toString(), sp, bold);
+    }
     public TextView caption(String value) {
         TextView view = text(value, 12, false); view.setTextColor(muted); return view;
     }
@@ -246,7 +257,7 @@ public final class Ui {
         chip.setTextColor(selected ? onAccent : text);
         chip.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 40)),
                 shape(selected ? accent : raised, 100, 0), null));
-        if (Build.VERSION.SDK_INT >= 30) chip.setStateDescription(selected ? "Selected" : "");
+        if (Build.VERSION.SDK_INT >= 30) chip.setStateDescription(selected ? T.commonSelected() : "");
     }
     /** A rounded square holding an icon, used at the start of rows and cards. */
     public View iconSquare(String key, int color) {
@@ -279,17 +290,24 @@ public final class Ui {
         label.setCompoundDrawablesRelative(symbol, old[1], old[2], old[3]);
         label.setCompoundDrawablePadding(dp(12));
     }
-    /** Display-only mode cues; callers supply the formatted text, base color and spoken context. */
+    /**
+     * Display-only mode cues from the shown text, which must be Telemetry's English label; callers
+     * that know the mode pass it to {@link #styleDriveMode(TextView, DriveMode, boolean)} instead.
+     */
     public void styleDriveMode(TextView value, String formattedMode, boolean live) {
+        styleDriveMode(value, DriveMode.of(formattedMode), live);
+    }
+    /** Display-only mode cues; callers supply the formatted text, base color and spoken context. */
+    public void styleDriveMode(TextView value, DriveMode mode, boolean live) {
         value.setCompoundDrawablesRelative(null, null, null, null);
         value.setCompoundDrawablePadding(0);
         // Volt: Sport is red, Eco is green and Walk is plain text; last-known modes stay grey.
-        if ("SPORT".equals(formattedMode)) value.setTextColor(live ? accent : muted);
-        else if ("ECO".equals(formattedMode)) value.setTextColor(live ? ok : muted);
-        else if ("WALK".equals(formattedMode)) {
+        if (mode == SPORT) value.setTextColor(live ? accent : muted);
+        else if (mode == ECO) value.setTextColor(live ? ok : muted);
+        else if (mode == WALK) {
             value.setTextColor(live ? text : muted);
             CharSequence spoken = value.getContentDescription();
-            if (spoken == null || spoken.length() == 0) value.setContentDescription("WALK");
+            if (spoken == null || spoken.length() == 0) value.setContentDescription(T.uiDriveModeWalk());
             value.setText("");
             Drawable walker = new LabelIcon(value, "walk", false);
             float fontScale = context.getResources().getConfiguration().fontScale;
@@ -375,17 +393,29 @@ public final class Ui {
         amount.setTextColor(color); amount.setPadding(0, dp(9), 0, dp(7));
         card.addView(amount);
         if (hint != null && !hint.isEmpty()) card.addView(caption(hint));
-        card.setContentDescription(label + ", " + (value == null ? "Not reported" : value)
-                + (hint == null || hint.isEmpty() ? "" : ", " + hint));
+        card.setContentDescription(T.uiMetricDescription(label, (value == null ? T.commonNotReported() : value),
+                (hint == null || hint.isEmpty() ? "" : T.uiDescriptionMore(hint))));
         return card;
     }
-    /** Only a performed click dispatches a change; programmatic setChecked never sends commands. */
+    /**
+     * {@link #toggleRow(String, String, String, Boolean, boolean, Consumer)} with the icon guessed from
+     * the label's English words ({@link #labelIcon}). Kept for callers that have not moved to an
+     * explicit icon; a translated label finds no icon here.
+     */
     public View toggleRow(String label, String description, Boolean value, boolean enabled,
+            Consumer<Boolean> onChange) {
+        return toggleRow(label, labelIcon(label), description, value, enabled, onChange);
+    }
+    /**
+     * Only a performed click dispatches a change; programmatic setChecked never sends commands.
+     * iconKey names the row's icon (empty for none).
+     */
+    public View toggleRow(String label, String iconKey, String description, Boolean value, boolean enabled,
             Consumer<Boolean> onChange) {
         LinearLayout row = card(); row.setOrientation(LinearLayout.HORIZONTAL); row.setGravity(Gravity.CENTER_VERTICAL);
         row.setMinimumHeight(dp(76));
         LinearLayout words = new LinearLayout(context); words.setOrientation(LinearLayout.VERTICAL);
-        TextView heading = text(label, 15, true); decorate(heading, labelIcon(label)); words.addView(heading);
+        TextView heading = text(label, 15, true); decorate(heading, iconKey); words.addView(heading);
         if (description != null && !description.isEmpty()) {
             TextView detail = caption(description); detail.setPadding(0, dp(6), 0, 0); words.addView(detail);
         }
@@ -396,9 +426,9 @@ public final class Ui {
         toggle.setEnabled(enabled && value != null);
         toggle.setMinimumWidth(dp(56)); toggle.setMinimumHeight(dp(48));
         styleSwitch(toggle);
-        toggle.setContentDescription(label + (value == null ? ", state not reported" : ""));
-        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(value == null ? "Not reported"
-                : value ? "On" : "Off");
+        toggle.setContentDescription(label + (value == null ? T.uiToggleStateNotReported() : ""));
+        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(value == null ? T.commonNotReported()
+                : value ? T.commonOn() : T.commonOff());
         toggle.setOnClickListener(v -> { if (toggle.isEnabled() && onChange != null) onChange.accept(toggle.isChecked()); });
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(-2, -2);
         toggleParams.leftMargin = dp(14); row.addView(toggle, toggleParams);
@@ -438,8 +468,16 @@ public final class Ui {
         toggle.setThumbTintMode(android.graphics.PorterDuff.Mode.SRC_IN);
         toggle.setTrackTintMode(android.graphics.PorterDuff.Mode.SRC_IN);
     }
-    /** Quiet, aligned navigation row. Child 1 is the value text for live updates. */
+    /**
+     * {@link #settingRow(String, String, String, Runnable)} with the icon guessed from the label's
+     * English words ({@link #labelIcon}). Kept for callers that have not moved to an explicit icon; a
+     * translated label finds no icon here.
+     */
     public LinearLayout settingRow(String label, String value, Runnable action) {
+        return settingRow(label, labelIcon(label), value, action);
+    }
+    /** Quiet, aligned navigation row. Child 1 is the value text for live updates. iconKey names its icon (empty for none). */
+    public LinearLayout settingRow(String label, String iconKey, String value, Runnable action) {
         LinearLayout row = new LinearLayout(context) {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 int available = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
@@ -450,7 +488,7 @@ public final class Ui {
         }; row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(dp(56));
         row.setPadding(dp(2), dp(10), dp(2), dp(10));
-        TextView title = text(label, 15, false); decorate(title, labelIcon(label));
+        TextView title = text(label, 15, false); decorate(title, iconKey);
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         TextView amount = text(value == null ? "" : value, 14, false);
         amount.setTextColor(muted); amount.setGravity(Gravity.END); amount.setMaxLines(2);
@@ -480,7 +518,7 @@ public final class Ui {
         TextView caption = text(label, 10, selected); caption.setMaxLines(2); caption.setTextColor(selected ? text : muted);
         caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption);
         item.setContentDescription(label); item.setSelected(selected); item.setFocusable(true);
-        if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(selected ? "Selected" : "");
+        if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(selected ? T.commonSelected() : "");
         item.setOnClickListener(v -> { if (!selected) Haptics.tick(v); if (action != null) action.run(); });
         pressFeedback(item);
         return item;
@@ -498,7 +536,7 @@ public final class Ui {
                     button.setTypeface(active ? SEMIBOLD : REGULAR);
                     button.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 30)),
                             shape(active ? accent : surface, 12, 0), null));
-                    if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(active ? "Selected" : "");
+                    if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(active ? T.commonSelected() : "");
                 }
             }
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
@@ -567,7 +605,7 @@ public final class Ui {
                 item.setFocusable(false); item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             } else {
                 item.setContentDescription(labels[i]); item.setFocusable(true); item.setSelected(on);
-                if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(on ? "Selected" : "");
+                if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(on ? T.commonSelected() : "");
             }
             if (i != center) {
                 item.addView(icon(icons[i], 21, on ? text : muted), new LinearLayout.LayoutParams(dp(21), dp(21)));
@@ -600,7 +638,7 @@ public final class Ui {
             button.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(Color.WHITE, 50)), layers, null));
             button.addView(icon(icons[center], 25, onAccent), new android.widget.FrameLayout.LayoutParams(dp(25), dp(25), Gravity.CENTER));
             button.setContentDescription(labels[center]); button.setFocusable(true); button.setSelected(on);
-            if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(on ? "Selected" : "");
+            if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(on ? T.commonSelected() : "");
             button.setElevation(dp(8));
             button.setOnClickListener(v -> { if (!on) Haptics.tick(v); if (onSelect != null) onSelect.accept(center); });
             pressFeedback(button);
@@ -615,6 +653,22 @@ public final class Ui {
         if (border != 0) drawable.setStroke(dp(1), border); return drawable;
     }
     public static int withAlpha(int color, int alpha) { return (color & 0x00ffffff) | (Math.max(0, Math.min(255, alpha)) << 24); }
+
+    /**
+     * The drive modes Volt gives a colour or symbol. Each keeps Telemetry's English label for the mode
+     * as its id, which only the legacy {@link #styleDriveMode(TextView, String, boolean)} compares.
+     */
+    public enum DriveMode {
+        SPORT("SPORT"), ECO("ECO"), WALK("WALK"), OTHER("");
+        /** Telemetry's English label for this mode: data, never shown by this class. */
+        public final String id;
+        DriveMode(String id) { this.id = id; }
+        /** The mode Telemetry's English label names, or OTHER. */
+        public static DriveMode of(String label) {
+            for (DriveMode mode : values()) if (mode != OTHER && mode.id.equals(label)) return mode;
+            return OTHER;
+        }
+    }
 
     public class BatteryRing extends View {
         private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -633,16 +687,16 @@ public final class Ui {
             describe(); invalidate();
         }
         private void describe() {
-            setContentDescription("Battery " + (Double.isNaN(percent) ? "not reported" : Math.round(percent) + " percent")
-                    + (charging ? ", charging" : "") + (live ? "" : ", last seen reading")
-                    + (subtitle.isEmpty() ? "" : ", " + subtitle));
+            setContentDescription(T.uiBatteryDescription((Double.isNaN(percent) ? T.uiBatteryNotReported() : T.uiBatteryPercent(Fmt.integer(Math.round(percent)))),
+                    (charging ? T.uiBatteryCharging() : ""), (live ? "" : T.uiBatteryLastSeen()),
+                    (subtitle.isEmpty() ? "" : T.uiDescriptionMore(subtitle))));
         }
         public void set(Double percent, String subtitle, boolean charging) { set(percent == null ? Double.NaN : percent.doubleValue(), subtitle, charging); }
         @Override protected void onMeasure(int width, int height) {
             setMeasuredDimension(resolveSize(dp(160), width), resolveSize(dp(176), height));
         }
         @Override protected void onDraw(Canvas canvas) {
-            String label = charging ? "Charging" + (subtitle.isEmpty() ? "" : " · " + subtitle) : subtitle;
+            String label = charging ? T.uiBatteryChargingLabel((subtitle.isEmpty() ? "" : T.uiBatteryCaptionMore(subtitle))) : subtitle;
             float drawableHeight = Math.max(1, getHeight() - (label.isEmpty() ? 0 : dp(20)));
             float radius = Math.min(getWidth(), drawableHeight) / 2f - dp(13);
             if (radius <= 0) return;
@@ -695,6 +749,29 @@ public final class Ui {
         public CustomBatteryRing(Context ignored) { super(); }
     }
 
+    /** Ui.ChartView's date and time patterns, which English and every unshipped language keep (Fmt.datePattern). */
+    private static final String CHART_TIME_24 = "HH:mm:ss", CHART_TIME_12 = "h:mm:ss a";
+    private static final String CHART_CLOCK_24 = "HH:mm", CHART_CLOCK_12 = "h:mm a";
+    private static final String CHART_DATE = "MMM d";
+    private static final String CHART_DATE_CLOCK_24 = "MMM d HH:mm", CHART_DATE_CLOCK_12 = "MMM d h:mm a";
+    private static final String CHART_DETAIL_24 = "MMM d, yyyy HH:mm:ss", CHART_DETAIL_12 = "MMM d, yyyy h:mm:ss a";
+
+    /**
+     * A chart pattern: the legacy pattern while Volt is English, else the display language's best
+     * pattern for the same fields. The legacy pattern's letters are its skeleton; a 12-hour pattern's
+     * "h" and "a" keep the user's 12-hour choice.
+     */
+    private static String chartPattern(String legacy) {
+        return Fmt.datePattern(legacy, skeleton(legacy), android.text.format.DateFormat::getBestDateTimePattern);
+    }
+
+    /** A date pattern's fields as a skeleton: its pattern letters, without the spaces and punctuation between them. */
+    private static String skeleton(String pattern) {
+        StringBuilder letters = new StringBuilder(pattern.length());
+        for (int i = 0; i < pattern.length(); i++) if (Character.isLetter(pattern.charAt(i))) letters.append(pattern.charAt(i));
+        return letters.toString();
+    }
+
     public static final class Point {
         public final long millis;
         public final double value;
@@ -717,11 +794,13 @@ public final class Ui {
         private float left, top, right, bottom;
         private final boolean use24Hour = DisplayTime.is24Hour(context,
                 context.getSharedPreferences("app_settings", Context.MODE_PRIVATE));
-        private final SimpleDateFormat time = new SimpleDateFormat(use24Hour ? "HH:mm:ss" : "h:mm:ss a", Locale.getDefault());
-        private final SimpleDateFormat historyTime = new SimpleDateFormat(use24Hour ? "HH:mm" : "h:mm a", Locale.getDefault());
-        private final SimpleDateFormat historyDate = new SimpleDateFormat("MMM d", Locale.getDefault());
-        private final SimpleDateFormat historyDateTime = new SimpleDateFormat(use24Hour ? "MMM d HH:mm" : "MMM d h:mm a", Locale.getDefault());
-        private final SimpleDateFormat historyDetail = new SimpleDateFormat(use24Hour ? "MMM d, yyyy HH:mm:ss" : "MMM d, yyyy h:mm:ss a", Locale.getDefault());
+        // English (and every unshipped language) keeps these patterns and the phone's locale (Fmt).
+        private final Locale dateLocale = Fmt.locale(Locale.getDefault());
+        private final SimpleDateFormat time = new SimpleDateFormat(chartPattern(use24Hour ? CHART_TIME_24 : CHART_TIME_12), dateLocale);
+        private final SimpleDateFormat historyTime = new SimpleDateFormat(chartPattern(use24Hour ? CHART_CLOCK_24 : CHART_CLOCK_12), dateLocale);
+        private final SimpleDateFormat historyDate = new SimpleDateFormat(chartPattern(CHART_DATE), dateLocale);
+        private final SimpleDateFormat historyDateTime = new SimpleDateFormat(chartPattern(use24Hour ? CHART_DATE_CLOCK_24 : CHART_DATE_CLOCK_12), dateLocale);
+        private final SimpleDateFormat historyDetail = new SimpleDateFormat(chartPattern(use24Hour ? CHART_DETAIL_24 : CHART_DETAIL_12), dateLocale);
         public ChartView() {
             super(context); setMinimumHeight(dp(210)); setFocusable(true);
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
@@ -780,8 +859,8 @@ public final class Ui {
                 for (Point point : points) { low = Math.min(low, point.value); high = Math.max(high, point.value); }
             }
             range = ChartScale.range(axisMetric, unit, absoluteAxis, low, high); min = range.min; max = range.max;
-            setContentDescription(points.isEmpty() ? this.empty : "Measured " + this.unit + " chart, " + points.size()
-                    + " samples. Displayed axis " + axisNumber(min) + " to " + axisNumber(max) + ". Touch to inspect readings.");
+            setContentDescription(points.isEmpty() ? this.empty : T.uiChartDescription(this.unit, Fmt.integer(points.size()),
+                    axisNumber(min), axisNumber(max)));
         }
         public int pointCount() { return points.size(); }
         @Override protected void onMeasure(int width, int height) {
@@ -842,7 +921,7 @@ public final class Ui {
                 paint.setColor(surface); canvas.drawCircle(xx, yy, dp(6), paint);
                 paint.setColor(color); canvas.drawCircle(xx, yy, dp(3.5f), paint);
                 paint.setTypeface(MEDIUM); paint.setTextSize(Math.min(sp(12), dp(16))); paint.setTextAlign(Paint.Align.LEFT);
-                String tooltip = number(p.value) + (unit.isEmpty() ? "" : " " + unit) + "  ·  " + detailTime(p.millis);
+                String tooltip = T.uiChartTooltip(number(p.value), (unit.isEmpty() ? "" : " " + unit), detailTime(p.millis));
                 float width = Math.min(right - left, paint.measureText(tooltip) + dp(20));
                 float start = Math.max(left, Math.min(right - width, xx - width / 2));
                 paint.setColor(raised); canvas.drawRoundRect(new RectF(start, dp(4), start + width, dp(30)), dp(10), dp(10), paint);
@@ -893,7 +972,7 @@ public final class Ui {
                 while (low < high) { int mid = (low + high) / 2; if (points.get(mid).millis < requested) low = mid + 1; else high = mid; }
                 selected = low;
                 if (low > 0 && Math.abs(points.get(low - 1).millis - requested) <= Math.abs(points.get(low).millis - requested)) selected = low - 1;
-                Point p = points.get(selected); setContentDescription(number(p.value) + " " + unit + " at " + detailTime(p.millis));
+                Point p = points.get(selected); setContentDescription(T.uiChartPointDescription(number(p.value), unit, detailTime(p.millis)));
                 invalidate(); return true;
             }
             if (event.getAction() == MotionEvent.ACTION_UP) { if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false); performClick(); return true; }
@@ -907,12 +986,12 @@ public final class Ui {
             int decimals = Math.max(0, Math.min(6, (int) Math.ceil(-Math.log10(step))));
             double scaled = value / scale;
             if (Math.abs(scaled) < Math.pow(10, -decimals) / 2) scaled = 0;
-            return String.format(Locale.US, "%." + decimals + "f%s", scaled, scale == 1000 ? "k" : "");
+            return String.format(Locale.US, "%." + decimals + "f%s", scaled, scale == 1000 ? T.uiChartThousandsSuffix() : "");
         }
         private String number(double value) {
             double absolute = Math.abs(value);
-            return absolute >= 10000 ? String.format(Locale.US, "%.0fk", value / 1000)
-                    : absolute >= 1000 ? String.format(Locale.US, "%.1fk", value / 1000)
+            return absolute >= 10000 ? T.uiChartThousands(Fmt.decimal(Locale.US, value / 1000, 0), T.uiChartThousandsSuffix())
+                    : absolute >= 1000 ? T.uiChartThousands(Fmt.decimal(Locale.US, value / 1000, 1), T.uiChartThousandsSuffix())
                     : absolute >= 100 ? String.format(Locale.US, "%.0f", value)
                     : String.format(Locale.US, "%.1f", value == 0 ? 0 : value);
         }
