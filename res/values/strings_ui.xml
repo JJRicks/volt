@@ -4,53 +4,79 @@
   selector, the reorder list, the Live Stats title, the chart-window picker, the model picker and the
   scooter photo. The English must stay exactly what the source said before the batch (G1, G2).
 
-  Several accessibility descriptions are built from parts, as the source built them: a template with
-  one placeholder per part, and the optional parts as their own strings that start with their own
-  separator (", charging"). Translate each part with its separator; the template only puts them in order.
+  Where the source added optional words to a description ("..., charging"), each combination is its
+  own whole template here, so a language can order, join and inflect the whole phrase. Only values
+  (a name, a reading, a level, a caption) are filled in.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
 
     <!-- Spoken description of a reading card: %1$s is the reading's name, %2$s its value (or "Not
-         reported"), %3$s an optional hint that starts with its own separator (ui_description_more), or empty. -->
-    <string name="ui_metric_description" volt:screen="Reading cards" volt:purpose="accessibility description">%1$s, %2$s%3$s</string>
-    <!-- One more part of a spoken description, after the parts before it: %1$s is the part. Keep the
-         leading separator (a comma and a space in English). -->
-    <string name="ui_description_more" volt:screen="Reading cards and the battery ring" volt:purpose="accessibility description part">, %1$s</string>
-    <!-- Spoken after a switch's name when the scooter has not reported whether it is on or off.
-         Keep the leading separator. -->
-    <string name="ui_toggle_state_not_reported" volt:screen="Setting switches" volt:purpose="accessibility description part">, state not reported</string>
+         reported"). -->
+    <string name="ui_metric_description" volt:screen="Reading cards" volt:purpose="accessibility description">%1$s, %2$s</string>
+    <!-- Spoken description of a reading card with a hint under its value: %1$s is the reading's name,
+         %2$s its value (or "Not reported"), %3$s the hint. -->
+    <string name="ui_metric_description_hint" volt:screen="Reading cards" volt:purpose="accessibility description">%1$s, %2$s, %3$s</string>
+    <!-- Spoken for a setting switch when the scooter has not reported whether it is on or off: %1$s is
+         the switch's name. -->
+    <string name="ui_toggle_state_not_reported" volt:screen="Setting switches" volt:purpose="accessibility description">%1$s, state not reported</string>
 
-    <!-- The battery ring's spoken description: "Battery 62 percent, charging, last seen reading, Full in 40 min".
-         %1$s is the level (ui_battery_percent or ui_battery_not_reported); %2$s, %3$s and %4$s are
-         optional parts, each with its own leading separator, or empty: ui_battery_charging,
-         ui_battery_last_seen and the ring's caption (ui_description_more). -->
-    <string name="ui_battery_description" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s%2$s%3$s%4$s</string>
-    <!-- The battery level in the ring's spoken description when the scooter has not reported it. -->
+    <!-- The battery ring's spoken description. Eight whole templates, one per state: charging or not,
+         a live or a last-seen reading, with or without the ring's caption. %1$s is always the level
+         (ui_battery_percent, "62 percent", or ui_battery_not_reported); %2$s, where there is one, is
+         the caption drawn under the ring ("Full in 40 min"). -->
+    <string name="ui_battery_description" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s</string>
+    <!-- The battery ring's spoken description with its caption: %1$s is the level, %2$s the caption. -->
+    <string name="ui_battery_description_caption" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s, %2$s</string>
+    <!-- The battery ring's spoken description while the scooter charges: %1$s is the level. -->
+    <string name="ui_battery_description_charging" volt:screen="Home battery ring" volt:purpose="accessibility description"
+        volt:safety="charge">Battery %1$s, charging</string>
+    <!-- The battery ring's spoken description while the scooter charges, with its caption: %1$s is the
+         level, %2$s the caption. -->
+    <string name="ui_battery_description_charging_caption" volt:screen="Home battery ring" volt:purpose="accessibility description"
+        volt:safety="charge">Battery %1$s, charging, %2$s</string>
+    <!-- The battery ring's spoken description when it shows the last reading from an earlier
+         connection, not a live one: %1$s is the level. -->
+    <string name="ui_battery_description_last_seen" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s, last seen reading</string>
+    <!-- The same, with the ring's caption: %1$s is the level, %2$s the caption. -->
+    <string name="ui_battery_description_last_seen_caption" volt:screen="Home battery ring" volt:purpose="accessibility description">Battery %1$s, last seen reading, %2$s</string>
+    <!-- The battery ring's spoken description while charging, from the last reading of an earlier
+         connection: %1$s is the level. -->
+    <string name="ui_battery_description_charging_last_seen" volt:screen="Home battery ring" volt:purpose="accessibility description"
+        volt:safety="charge">Battery %1$s, charging, last seen reading</string>
+    <!-- The same, with the ring's caption: %1$s is the level, %2$s the caption. -->
+    <string name="ui_battery_description_charging_last_seen_caption" volt:screen="Home battery ring" volt:purpose="accessibility description"
+        volt:safety="charge">Battery %1$s, charging, last seen reading, %2$s</string>
+    <!-- The battery level (%1$s of ui_battery_description and its variants) when the scooter has not
+         reported it. -->
     <string name="ui_battery_not_reported" volt:screen="Home battery ring" volt:purpose="accessibility description part">not reported</string>
-    <!-- The battery level in the ring's spoken description: %1$s is a whole number from 0 to 100. -->
-    <string name="ui_battery_percent" volt:screen="Home battery ring" volt:purpose="accessibility description part">%1$s percent</string>
-    <!-- Spoken after the battery level while the scooter charges. Keep the leading separator. -->
-    <string name="ui_battery_charging" volt:screen="Home battery ring" volt:purpose="accessibility description part"
-        volt:safety="charge">, charging</string>
-    <!-- Spoken after the battery level when the ring shows the last reading from an earlier
-         connection, not a live one. Keep the leading separator. -->
-    <string name="ui_battery_last_seen" volt:screen="Home battery ring" volt:purpose="accessibility description part">, last seen reading</string>
-    <!-- Drawn under the battery ring while charging: "Charging" then, when the ring has a caption, the
-         caption with its separator (ui_battery_caption_more) as %1$s, or nothing. -->
-    <string name="ui_battery_charging_label" volt:screen="Home battery ring" volt:purpose="label"
-        volt:max="144dp@11sp" volt:safety="charge">Charging%1$s</string>
-    <!-- The ring's caption after "Charging" under the battery ring: %1$s is the caption, after a middle dot. -->
-    <string name="ui_battery_caption_more" volt:screen="Home battery ring" volt:purpose="label part">" · %1$s"</string>
+    <!-- The battery level (%1$s of ui_battery_description and its variants): %1$d is a whole number
+         from 0 to 100. -->
+    <plurals name="ui_battery_percent" volt:screen="Home battery ring" volt:purpose="accessibility description part">
+        <item quantity="one">%1$d percent</item>
+        <item quantity="other">%1$d percent</item>
+    </plurals>
+    <!-- Drawn under the battery ring while charging, when the ring has no caption. -->
+    <string name="ui_battery_ring_charging" volt:screen="Home battery ring" volt:purpose="label"
+        volt:max="144dp@11sp" volt:safety="charge">Charging</string>
+    <!-- Drawn under the battery ring while charging: %1$s is the ring's caption ("Full in 40 min"). -->
+    <string name="ui_battery_ring_charging_caption" volt:screen="Home battery ring" volt:purpose="label"
+        volt:max="144dp@11sp" volt:safety="charge">Charging · %1$s</string>
 
-    <!-- Shown in an empty chart, and spoken for it, until it has a measured point. -->
-    <string name="ui_chart_empty" volt:screen="Live Stats and dashboard charts" volt:purpose="empty state">No measured data yet</string>
-    <!-- A chart's spoken description: %1$s is the unit symbol, %2$s how many points it shows (English
-         says "samples" for 1 too, kept as it was), %3$s and %4$s the lowest and highest axis values. -->
-    <string name="ui_chart_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description">Measured %1$s chart, %2$s samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</string>
-    <!-- The chart's tooltip for the touched point: %1$s is the value, %2$s a space and the unit
-         symbol (or nothing), %3$s the point's date and time. -->
-    <string name="ui_chart_tooltip" volt:screen="Live Stats and dashboard charts" volt:purpose="tooltip">"%1$s%2$s  ·  %3$s"</string>
+    <!-- A chart's spoken description: %1$s is the unit symbol, %2$d how many points it shows, %3$s
+         and %4$s the lowest and highest axis values. English says "samples" for 1 too, kept as it was
+         until an English fix; a language gives each of its plural forms. -->
+    <plurals name="ui_chart_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description"
+        volt:english-fix="pending">
+        <item quantity="one">Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</item>
+        <item quantity="other">Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</item>
+    </plurals>
+    <!-- The chart's tooltip for the touched point: %1$s is the value, %2$s the unit symbol, %3$s the
+         point's date and time. -->
+    <string name="ui_chart_tooltip" volt:screen="Live Stats and dashboard charts" volt:purpose="tooltip">"%1$s %2$s  ·  %3$s"</string>
+    <!-- The chart's tooltip for the touched point of a chart with no unit: %1$s is the value, %2$s the
+         point's date and time. -->
+    <string name="ui_chart_tooltip_unitless" volt:screen="Live Stats and dashboard charts" volt:purpose="tooltip">"%1$s  ·  %2$s"</string>
     <!-- Spoken for the touched chart point: %1$s is the value, %2$s the unit symbol, %3$s the date and time. -->
     <string name="ui_chart_point_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description">%1$s %2$s at %3$s</string>
     <!-- A chart value in thousands: %1$s is the number, %2$s the thousands suffix (ui_chart_thousands_suffix). -->

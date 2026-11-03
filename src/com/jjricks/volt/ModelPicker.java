@@ -97,6 +97,7 @@ final class ModelPicker {
             NaveeModels.Series series = NaveeModels.seriesOf(model);
             if (series != shown) {
                 shown = series;
+                // series.name and series.about are still NaveeModels' English data; B4 gives them label ids.
                 list.addView(ui.sectionLabel(T.uiModelSeries(series.name, series.about)));
                 card = ui.groupCard(); list.addView(card);
             } else ui.divider(card);
