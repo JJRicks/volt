@@ -20,12 +20,20 @@ its code: its tokens at the merge base must all still be there, in order, with n
 between. Code may only be added, as whole statements or members (balanced brackets, starting after
 `;`, `{` or `}` and ending with `;` or `}`), and the added code may not:
 
-  - jump out of the code around it (return, break, continue, throw, yield inside a method),
+  - jump out of the code around it (return, break, continue, yield inside a method; throw anywhere,
+    since a new member that throws skips the existing code that called it),
   - assign to, or step, a variable it did not declare itself,
   - declare a member, or a local that hides a field or type, named like anything in the file,
   - declare a type or an initializer block, or import a name the file uses,
-  - call exit, halt, Runtime, set*UncaughtExceptionHandler, setAccessible, reflection, setOut,
-    setErr, setDefault (Locale or TimeZone), setProperty or setSecurityManager.
+  - call exit, halt, Runtime, set*UncaughtExceptionHandler, setAccessible, setOut, setErr,
+    setDefault (Locale or TimeZone), setProperty or setSecurityManager, or reach them indirectly:
+    reflection (getMethod, invoke, forName, a Class literal, getClass...), method handles, class
+    loaders, processes or script engines, whose names are not tokens a token check can see,
+  - use a type declared in a file this change adds (src/ or tests): new files are not frozen, so
+    an existing test calling into one could run anything, including an early exit.
+
+A new test file may not declare a type named like a src/ class, which would replace it in a test
+build that compiles both.
 
 Code may be deleted only where a deleted statement is recorded by a removed ledger row. New test
 files are not limited. Because of this, a statement cannot move between existing files.
@@ -95,7 +103,14 @@ ASSIGN = {"=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", ">>
 STEP = {"++", "--"}
 JUMPS = {"return", "break", "continue", "throw", "yield"}
 ESCAPES = {"exit", "halt", "Runtime", "setDefaultUncaughtExceptionHandler", "setUncaughtExceptionHandler",
-           "setAccessible", "reflect", "setOut", "setErr", "setDefault", "setProperty", "setSecurityManager"}
+           "setAccessible", "reflect", "setOut", "setErr", "setDefault", "setProperty", "setSecurityManager",
+           # Reflection and other indirect calls: the method name can hide in a string ("ex" + "it").
+           "Class", "getClass", "forName", "getMethod", "getMethods", "getDeclaredMethod", "getDeclaredMethods",
+           "getConstructor", "getConstructors", "getDeclaredConstructor", "getDeclaredConstructors", "getField",
+           "getFields", "getDeclaredField", "getDeclaredFields", "invoke", "invokeExact", "invokeWithArguments",
+           "newInstance", "MethodHandles", "MethodHandle", "MethodType", "VarHandle", "LambdaMetafactory", "Proxy",
+           "ClassLoader", "loadClass", "defineClass", "ServiceLoader", "Unsafe", "ProcessBuilder", "ProcessHandle",
+           "exec", "ScriptEngineManager", "ScriptEngine", "JShell", "ToolProvider", "Thread", "Instrumentation", "Signal"}
 TYPE_WORDS = {"class", "interface", "enum", "record"}
 PAIRS = {"(": ")", "[": "]", "{": "}"}
 NOT_TYPES = {"return", "new", "throw", "case", "else", "yield", "assert", "instanceof"}
@@ -197,7 +212,17 @@ def shape_problem(run, before_token):
     return None
 
 
-def insertion_problem(run, ctx, base_names, guarded_names, before_token):
+def declared_types(text):
+    """Names of the classes, interfaces, enums and records a Java source declares."""
+    if text is None:
+        return set()
+    tokens = l10nlib.lex_java(text)
+    return set(tokens[k + 1].value for k in range(len(tokens) - 1)
+               if tokens[k].kind == "ident" and tokens[k].value in TYPE_WORDS and tokens[k + 1].kind == "ident" and
+               not (k > 0 and _is_op(tokens[k - 1], ".")))
+
+
+def insertion_problem(run, ctx, base_names, guarded_names, before_token, new_types=frozenset()):
     """Why an inserted run of tokens is not plain new test code, or None."""
     problem = shape_problem(run, before_token)
     if problem:
@@ -207,10 +232,17 @@ def insertion_problem(run, ctx, base_names, guarded_names, before_token):
         prev = run[k - 1] if k else None
         if t.kind == "ident" and t.value in ESCAPES:
             return "it calls %s" % t.value
+        if t.kind == "ident" and t.value == "class" and _is_op(prev, "."):
+            return "it uses a Class literal (reflection)"
         if t.kind == "ident" and t.value in TYPE_WORDS and not _is_op(prev, "."):
             return "it declares a type (%s)" % t.value
+        if t.kind == "ident" and t.value == "throw":
+            return "it throws (a new member that throws skips the existing code that called it)"
         if ctx == "code" and t.kind == "ident" and t.value in JUMPS:
             return "it jumps out of the existing code (%s)" % t.value
+        if t.kind == "ident" and t.value in new_types and not _is_op(prev, "."):
+            return "it uses %s, which a file new in this change declares; an existing test may not depend on " \
+                "code that is not frozen" % t.value
         if _is_op(t, *ASSIGN) or _is_op(t, *STEP):
             if _is_op(t, *ASSIGN) and _declared(run, k - 1):
                 continue
@@ -244,7 +276,7 @@ def insertion_problem(run, ctx, base_names, guarded_names, before_token):
     return None
 
 
-def code_problems(path, before, after, removable_lines):
+def code_problems(path, before, after, removable_lines, new_types=frozenset()):
     """Problems with how an existing test file's code changed (see the module docstring).
 
     removable_lines: base (first, last) line spans of statements a removed ledger row covers.
@@ -275,7 +307,7 @@ def code_problems(path, before, after, removable_lines):
             reasons = []
             for p, j in _slides(a, b, i1, j1, j2 - j1):
                 run_tokens, before_token = head[j:j + j2 - j1], base[p - 1] if p else None
-                reason = insertion_problem(run_tokens, ctx[p], base_names, guarded, before_token)
+                reason = insertion_problem(run_tokens, ctx[p], base_names, guarded, before_token, new_types)
                 if reason is None:
                     break
                 # Prefer the reason from a placement that is whole statements: it names what is wrong.
@@ -412,9 +444,28 @@ def run(base, head, explicit_ledgers=None, per_file=False, cwd=None):
         if id(r) not in used_rows:
             problems.append("%s:%d: no frozen test statement on line %d of %s was removed; the row covers nothing" % (
                 r.source, r.line, r.base_line, r.path))
+    new_types = set()
+    others = [p for p in l10nlib.changed_files(merge, head, ["src"] + list(TEST_DIRS), cwd) if p.endswith(".java")]
+    other_before = l10nlib.read_files(merge, [p for p in others if p not in before], cwd)
+    added_files = [p for p in others if before.get(p, other_before.get(p)) is None]
+    added_text = l10nlib.read_files(head, added_files, cwd)
+    src_classes = set(os.path.basename(p)[:-len(".java")] for p in l10nlib.list_files(head, ["src"], cwd)
+                      if p.endswith(".java"))
+    for path in added_files:
+        try:
+            declared = declared_types(added_text[path])
+        except l10nlib.LexError:
+            continue  # reported above for a test file; a src file is G1's
+        declared.add(os.path.basename(path)[:-len(".java")])
+        new_types |= declared
+        if path.startswith(tuple(d + "/" for d in TEST_DIRS)):
+            for name in sorted(declared & src_classes):
+                problems.append("%s: declares %s, the name of a src/ class; a test build compiling both would use "
+                                "the test's copy" % (path, name))
     for path in files:
         try:
-            problems.extend(code_problems(path, before[path], after[path], removable[path]))
+            problems.extend(code_problems(path, before[path], after[path], removable[path],
+                                          new_types - set(declared_types(before[path]))))
         except l10nlib.LexError:
             pass  # reported above
     added = sum((new - old).values())

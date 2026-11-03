@@ -23,9 +23,10 @@ CLOSERS = {")": "(", "]": "["}
 KEYWORDS = {"if", "while", "for", "switch", "catch", "synchronized", "return", "throw", "case", "else", "do",
             "try", "assert", "new", "instanceof", "yield"}
 
-Expression = collections.namedtuple("Expression", "line first_line last_line pieces tokens")
+Expression = collections.namedtuple("Expression", "line first_line last_line pieces tokens span")
 """line: the line of its first literal; first_line and last_line: the lines it spans; pieces: ledger
-pieces; tokens: indexes (into the lexed tokens) of its top-level string and char literals."""
+pieces; tokens: indexes (into the lexed tokens) of its top-level string and char literals; span: the
+(first, last) token indexes of the whole + chain."""
 
 
 # ---------------------------------------------------------------------------
@@ -214,13 +215,47 @@ class Index(object):
                 spans = [(i, i)]
             lines = [self.tokens[k].line for k in literal_tokens]
             expression = Expression(min(lines), self.tokens[spans[0][0]].line, self.tokens[spans[-1][1]].line,
-                                    pieces, tuple(literal_tokens))
+                                    pieces, tuple(literal_tokens), (spans[0][0], spans[-1][1]))
             for k in literal_tokens:
                 self.by_token[k] = len(self.expressions)
             self.expressions.append(expression)
 
     def expression_of(self, token_index):
         return self.expressions[self.by_token[token_index]]
+
+
+def match_brace(tokens, k):
+    """Index of the } closing the { at k, or the last token."""
+    depth = 0
+    for j in range(k, len(tokens)):
+        if _is(tokens[j], "{"):
+            depth += 1
+        elif _is(tokens[j], "}"):
+            depth -= 1
+            if depth == 0:
+                return j
+    return len(tokens) - 1
+
+
+def statement_span(tokens, k):
+    """(first, last, terminator) token indexes of the innermost statement holding token k.
+
+    A statement runs from after the previous ;, { or } to the next ; or }. When a { comes first
+    (an if, a loop, a method header) the statement runs to its matching }. terminator is the index
+    of the closing ; or } (None at the end of the file); last excludes a ; or } that only ends it.
+    """
+    first = k
+    while first > 0 and not _is(tokens[first - 1], ";", "{", "}"):
+        first -= 1
+    end = k
+    while end < len(tokens) and not _is(tokens[end], ";", "{", "}"):
+        end += 1
+    if end == len(tokens):
+        return first, end - 1, None
+    if _is(tokens[end], "{"):
+        close = match_brace(tokens, end)
+        return first, close, close
+    return first, end - 1, end
 
 
 def literal_expressions(source):
@@ -297,6 +332,7 @@ class FileDiff(object):
         b = after.split("\n") if after is not None else []
         opcodes = difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes()
         self.gone, self.added = {}, {}
+        self._aligned = None
         self.hunks = []  # (base first line, base last line, head first line, head last line)
         self.hunk_added = collections.defaultdict(list)
         base_hunk, head_hunk = {}, {}
@@ -332,11 +368,40 @@ class FileDiff(object):
         return (tok.kind, tok.value)
 
     @staticmethod
-    def _bucket(tokens, hunk_of_line):
+    def _token_key(tok):
+        return (tok.kind, tok.value if tok.kind in LITERALS else tok.raw)
+
+    def changed_tokens(self):
+        """(deleted, inserted): {token index: hunk} of every base token the head lost and every head
+        token it gained, all kinds, aligned inside each changed region (spacing and comments ignored)."""
+        if self._aligned is None:
+            base_hunk, head_hunk = {}, {}
+            for number, (b1, b2, h1, h2) in enumerate(self.hunks):
+                base_hunk.update((line, number) for line in range(b1, b2 + 1))
+                head_hunk.update((line, number) for line in range(h1, h2 + 1))
+            in_base = self._bucket(self.base.tokens if self.base else [], base_hunk, all_kinds=True)
+            in_head = self._bucket(self.head.tokens if self.head else [], head_hunk, all_kinds=True)
+            deleted, inserted = {}, {}
+            for number in range(len(self.hunks)):
+                left, right = in_base.get(number, []), in_head.get(number, [])
+                matcher = difflib.SequenceMatcher(None, [self._token_key(self.base.tokens[k]) for k in left],
+                                                  [self._token_key(self.head.tokens[k]) for k in right],
+                                                  autojunk=False)
+                kept_left, kept_right = set(), set()
+                for block in matcher.get_matching_blocks():
+                    kept_left.update(range(block.a, block.a + block.size))
+                    kept_right.update(range(block.b, block.b + block.size))
+                deleted.update((k, number) for n, k in enumerate(left) if n not in kept_left)
+                inserted.update((k, number) for n, k in enumerate(right) if n not in kept_right)
+            self._aligned = (deleted, inserted)
+        return self._aligned
+
+    @staticmethod
+    def _bucket(tokens, hunk_of_line, all_kinds=False):
         """{hunk: [literal token indexes]}; a token spanning lines joins the first changed line it touches."""
         result = collections.defaultdict(list)
         for k, tok in enumerate(tokens):
-            if tok.kind not in LITERALS:
+            if tok.kind not in LITERALS and not all_kinds:
                 continue
             for line in range(tok.line, tok.line + tok.raw.count("\n") + 1):
                 if line in hunk_of_line:

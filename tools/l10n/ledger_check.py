@@ -11,7 +11,9 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            T.<key>(...) or M.<key>(...) call (or Msg.of / T.render with T.<KEY>)
                            must pass the row's holes in placeholder order in the head lines that
                            replaced it; each call serves one row, in the base order
-  removed                  the code was deleted: the changed lines holding it only lose tokens
+  removed                  the code was deleted: the changed lines holding it only lose tokens, and
+                           the whole statement holding it is gone (not just the literal and its +);
+                           every removed row is listed for the reviewer
   stays-english, id-kept   the literal moved within src/: the same value is added elsewhere (outside
                            the changed lines it left, so a reorder or swap is not a move), and the
                            code it left either only lost tokens or names the constant it moved to
@@ -25,6 +27,13 @@ an exact row's English must still equal its literal and a template must still re
 unless l10n/english-changes.tsv records an owner-approved change of that key (its keys must exist).
 Ledger files are append-only. An extraction batch adds no literal to src/ (other than ""): text goes
 to the catalog, and a literal that moved needs a stays-english or id-kept row.
+
+Nothing else may change around the text either. In a changed region of a src/ file that holds or held
+a literal, the only differences from the base allowed are a row's expression replaced by the call
+that serves it (with a manual row, anywhere in the statement holding its literals) and a removed
+row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase(), or dropping code
+next to it, fails. Regions a stays-english or id-kept move touched, and every other src change, are
+listed for the reviewer.
 
 Ledger format: a TSV with the header
 
@@ -50,6 +59,7 @@ By default the new rows are those added to l10n/ledger/*.tsv since the merge bas
 
 import argparse
 import collections
+import difflib
 import json
 import os
 import re
@@ -598,6 +608,75 @@ def added_in_hunk(diff, hunk):
     return None
 
 
+def _excerpt(tokens, limit=16):
+    text = " ".join(t.raw for t in tokens[:limit])
+    return text + (" ..." if len(tokens) > limit else "")
+
+
+def statement_of(diff, k):
+    """(first, last, terminator) of the base statement holding base token k."""
+    return expressions.statement_span(diff.base.tokens, k)
+
+
+def deleted_whole(diff, k):
+    """True when the head lost every token of the base statement holding token k."""
+    deleted, _ = diff.changed_tokens()
+    first, last, terminator = statement_of(diff, k)
+    if any(j not in deleted for j in range(first, last + 1)):
+        return False
+    if terminator is not None and terminator > last and terminator not in deleted:
+        # The aligner may keep this ; and drop the one before the statement instead.
+        return first > 0 and (first - 1) in deleted
+    return True
+
+
+def call_span(tokens, k):
+    """(first, last) head token indexes of the catalog call whose T or M token is at k, with a
+    trailing .render() (a deferred Msg rendered on the spot)."""
+    start, end = k, k + 2
+    if k + 3 < len(tokens) and tokens[k + 3].kind == "op" and tokens[k + 3].value == "(":
+        close = expressions.match_forward(tokens, k + 3)
+        end = close if close is not None else k + 3
+    elif k > 0 and tokens[k - 1].kind == "op" and tokens[k - 1].value == "(":
+        # Msg.of(T.NAME, ...) or T.render(T.NAME, ...): the whole enclosing call.
+        start = k - 1
+        if start > 0 and tokens[start - 1].kind == "ident":
+            start -= 1
+            while start >= 2 and tokens[start - 1].value == "." and tokens[start - 2].kind == "ident":
+                start -= 2
+        close = expressions.match_forward(tokens, k - 1)
+        end = close if close is not None else k + 2
+    if [t.raw for t in tokens[end + 1:end + 5]] == [".", "render", "(", ")"]:
+        end += 4
+    return start, end
+
+
+def deleted_scope(diff, first, last):
+    """(first, last) widened from a deleted statement to each enclosing block (a method, an if) whose
+    header and body were deleted with it."""
+    tokens = diff.base.tokens
+    deleted, _ = diff.changed_tokens()
+    while True:
+        depth, opener = 0, None
+        for j in range(first - 1, -1, -1):
+            if tokens[j].kind == "op" and tokens[j].value == "}":
+                depth += 1
+            elif tokens[j].kind == "op" and tokens[j].value == "{":
+                if depth == 0:
+                    opener = j
+                    break
+                depth -= 1
+        if opener is None:
+            return first, last
+        head_first = opener
+        while head_first > 0 and not (tokens[head_first - 1].kind == "op" and tokens[head_first - 1].value in ";{}"):
+            head_first -= 1
+        close = expressions.match_brace(tokens, opener)
+        if any(j not in deleted for j in range(head_first, close + 1)):
+            return first, last
+        first, last = head_first, close
+
+
 def _class_name(path):
     return os.path.basename(path)[:-len(".java")]
 
@@ -619,6 +698,63 @@ def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
         if qualified or unqualified:
             return True
     return False
+
+
+def other_changes(path, diff, allowed_base, allowed_head, moved_hunks):
+    """(problems, warnings) for code a batch changed besides converting or deleting text.
+
+    allowed_base and allowed_head map token indexes to a span id: a row's base expression (or a
+    manual row's statement) and the head call that serves it share one id, and a removed row's
+    deleted code has an id with no head side. Each span counts as one item when the changed regions
+    are aligned, so only tokens outside them can differ.
+    """
+    if diff.base is None or diff.head is None:
+        return [], ["%s was %s; check it by hand" % (path, "added" if diff.base is None else "deleted")]
+    problems, warnings = [], []
+    for hunk, (b1, b2, h1, h2) in enumerate(diff.hunks):
+        sides = []
+        for index, allowed, first, last in ((diff.base, allowed_base, b1, b2), (diff.head, allowed_head, h1, h2)):
+            keys, where = [], []
+            for k, tok in enumerate(index.tokens):
+                if not first <= tok.line <= last:
+                    continue
+                if k in allowed:
+                    if keys and keys[-1] == ("span", allowed[k]):
+                        continue
+                    keys.append(("span", allowed[k]))
+                    where.append(None)
+                else:
+                    keys.append((tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw))
+                    where.append(k)
+            sides.append((keys, where))
+        (a, a_at), (b, b_at) = sides
+        lost, gained = [], []
+        for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
+            if tag != "equal":
+                lost.extend(k for k in a_at[i1:i2] if k is not None)
+                gained.extend(k for k in b_at[j1:j2] if k is not None)
+        if not lost and not gained:
+            continue
+        parts = []
+        if gained:
+            parts.append("adds `%s`" % _excerpt([diff.head_token(k) for k in gained]))
+        if lost:
+            parts.append("drops `%s`" % _excerpt([diff.base_token(k) for k in lost]))
+        line = diff.head_token(gained[0]).line if gained else diff.base_token(lost[0]).line
+        what = "%s:%d: this change %s" % (path, line, " and ".join(parts))
+        text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
+            any(t.kind in expressions.LITERALS for t in _region_tokens(diff.head, h1, h2))
+        if (path, hunk) in moved_hunks:
+            warnings.append("%s beside a stays-english or id-kept move; check by hand that the English is the same"
+                            % what)
+        elif text:
+            problems.append("%s%s; around text, an extraction batch only replaces a ledger row's expression with "
+                            "the call that serves it (or deletes a removed row's statement)" % (
+                                what, " (base line %d)" % diff.base_token(lost[0]).line if lost and not gained
+                                else ""))
+        else:
+            warnings.append("%s, away from any text; check by hand that it changes no English" % what)
+    return problems, warnings
 
 
 def run(base, head, explicit_ledgers=None, cwd=None):
@@ -644,6 +780,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     staying = []  # (row, path, token) gone literals a stays-english or id-kept row says moved
     converted = []  # (path, first base token, row, where, head line ranges) for the call-site check
     manual = 0
+    allowed_base = collections.defaultdict(dict)  # path -> {base token: span id} a row may replace or delete
+    allowed_head = collections.defaultdict(dict)  # path -> {head token: span id} of the calls that serve rows
+    manual_rows = set()
     for row in rows:
         if not row.path.startswith("src/"):
             continue
@@ -659,7 +798,30 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             continue
         manual += 1 if is_manual else 0
         if is_manual:
-            warnings.append("%s: manual row at %s:%d; check its pieces by hand: %s" % (
+            manual_rows.add(id(row))
+        for k in tokens:
+            if row.kind == "removed":
+                first, last, terminator = statement_of(diff, k)
+                if terminator is not None and diff.base_token(terminator).value == ";":
+                    last = terminator
+                first, last = deleted_scope(diff, first, last)
+                span = range(first, last + 1)
+            elif row.kind in CATALOG_KINDS and is_manual:
+                first, last, _ = statement_of(diff, k)
+                span = range(first, last + 1)
+            elif row.kind in CATALOG_KINDS:
+                first, last = diff.base.expression_of(k).span
+                span = range(first, last + 1)
+            else:
+                continue
+            for j in span:
+                allowed_base[row.path].setdefault(j, id(row))
+        if row.kind == "removed" and tokens:
+            first, last, _ = statement_of(diff, min(tokens))
+            warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this text" % (
+                where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1])))
+        if is_manual:
+            warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
         for hole in holes(row.pieces):
             if "as" in hole:
@@ -682,6 +844,14 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                                 "place (head line %d); deleting code only loses tokens, so record where the text "
                                 "went instead" % (where, l10nlib.json_string(tok.value), replacement.raw,
                                                   replacement.line))
+            elif row.kind == "removed" and not deleted_whole(diff, k):
+                first, last, _ = statement_of(diff, k)
+                deleted, _ = diff.changed_tokens()
+                kept = [diff.base_token(j) for j in range(first, last + 1) if j not in deleted]
+                problems.append("%s: removed is for deleted code, but only part of the statement holding %s (line "
+                                "%d) was deleted; %s still runs at head. Delete the whole statement, or record "
+                                "where the text went" % (where, l10nlib.json_string(tok.value), tok.line,
+                                                        _excerpt(kept)))
             elif row.kind in STAYING and k in diff.gone:
                 staying.append((row, row.path, k))
         if row.kind in CATALOG_KINDS and calls is not None:
@@ -697,6 +867,15 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         else:
             used.add((call[0], call[2]))
             last[path] = call[2]
+            if path in diffs and diffs[path].head is not None:
+                head_tokens = diffs[path].head.tokens
+                if id(row) in manual_rows:
+                    # A manual row's base side is its whole statement, so the head side is too.
+                    first, end, _ = expressions.statement_span(head_tokens, call[2])
+                else:
+                    first, end = call_span(head_tokens, call[2])
+                for j in range(first, end + 1):
+                    allowed_head[path].setdefault(j, id(row))
 
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
@@ -721,6 +900,14 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                             "left points (a constant those lines name, or code moved out whole); text that leaves "
                             "src needs exact, template, plural or removed" % (
                                 row.source, row.line, row.kind, l10nlib.json_string(tok.value), path, tok.line))
+
+    moved_hunks = set((path, diffs[path].gone[k]) for _, path, k in staying)
+    moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
+    for path in sorted(diffs):
+        problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
+                                                   moved_hunks)
+        problems.extend(problem_list)
+        warnings.extend(warning_list)
 
     gone_total = 0
     gone_files = set()

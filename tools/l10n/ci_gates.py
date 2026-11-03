@@ -13,7 +13,11 @@ and add UI text. The kind comes from the paths changed since the merge base:
                   ledger): an extraction batch. Every gate is strict, and the proof tooling
                   (is_tooling: tools/l10n/, .github/workflows/, tests/l10n/ except
                   characterization/, golden/ and *.sources, tests/run.sh, build.sh and
-                  android-tests/build.sh) must not change in the same pull request.
+                  android-tests/build.sh) must not change in the same pull request. A new
+                  tests/l10n/<Name>.java (B0b's catalog tests, B1's FmtLegacyTest) only adds
+                  checks, so a batch may add one; editing or deleting one is a tooling change.
+                  The run.sh hook and moving test helpers (TextFit) go in a pull request of
+                  their own before the batch (l10n/README.md, "Order of the first pull requests").
   ordinary        anything else. The lint baselines must list every finding (they may grow; run
                   hardcoded_lint.py --write-baselines), and every ledger must still agree with the
                   catalog.
@@ -101,8 +105,21 @@ def golden_changes(merge, head, cwd=None):
     return l10nlib.changed_files(merge, head, [GOLDEN_DIR], cwd)
 
 
-def tooling_changes(changed):
-    return [p for p in changed if is_tooling(p)]
+def new_test_file(path):
+    """A path that, when it did not exist at the merge base, is a new test and not a tooling change."""
+    return path.startswith("tests/l10n/") and path.count("/") == 2 and path.endswith(".java")
+
+
+def tooling_changes(changed, added=()):
+    """Changed proof tooling; added is the paths that did not exist at the merge base."""
+    return [p for p in changed if is_tooling(p) and not (p in added and new_test_file(p))]
+
+
+def added_paths(merge, head, changed, cwd=None):
+    candidates = [p for p in changed if new_test_file(p)]
+    before = l10nlib.read_files(merge, candidates, cwd)
+    after = l10nlib.read_files(head, candidates, cwd)
+    return set(p for p in candidates if before[p] is None and after[p] is not None)
 
 
 def plan(kind, base, head, pr_head, root):
@@ -141,8 +158,9 @@ def main(argv=None):
     head = l10nlib.resolve(args.head)
     merge = l10nlib.merge_base(args.base, head)
     changed = l10nlib.changed_files(merge, head, ["."])
+    added = added_paths(merge, head, changed)
     if args.print_tooling:
-        for path in tooling_changes(changed):
+        for path in tooling_changes(changed, added):
             print(path)
         return 0
     gained = gained_catalog_references(merge, head, changed)
@@ -175,7 +193,7 @@ def main(argv=None):
                     "; an extraction batch must not change report output" if strict else " (reported only)"),
                     file=sys.stderr)
         else:
-            changes = tooling_changes(changed)
+            changes = tooling_changes(changed, added)
             ok, detail = not changes, ", ".join(changes) or "unchanged"
             if changes:
                 print("ci_gates: %s: %s changed; change the proof tools in their own pull request, not in a "

@@ -357,6 +357,70 @@ class RemovedAndMovedTest(RepoCase):
         self.assertTrue(any("still there at head" in p for p in problems), problems)
 
 
+class ChangesAroundTextTest(RepoCase):
+    """Re-review 3, findings 2 and 3: a removed row deletes a whole statement, and a batch changes
+    nothing around text besides replacing a row's expression with its call."""
+    PICKER = "src/com/jjricks/volt/StatsWindowPicker.java"
+    FILES = {PICKER: java_class("StatsWindowPicker", '''    static void describe(Button button, String label) { button.setContentDescription("Chart time window: " + label + ". Choose time window"); }
+    static String title() { return "Chart window"; }
+    static String skip() { return "Skip"; }
+    static int size() { return 20; }''')}
+    DESCRIBE_ROW = PICKER + ':4\t["Chart time window: ", {"hole": "label", "arg": 1, "type": "s"}, ". Choose time window"]' \
+        '\t-\tremoved\tdead text'
+    TITLE_ROW = PICKER + ':5\t["Chart window"]\tstats_window_title\texact\t'
+    STRINGS = '<resources><string name="stats_window_title">Chart window</string></resources>\n'
+
+    def edit(self, old, new):
+        self.repo.write(self.PICKER, self.text(self.PICKER).replace(old, new))
+
+    def test_removing_part_of_a_statement_fails(self):
+        self.edit('"Chart time window: " + label + ". Choose time window"', "label")
+        problems, warnings, _ = self.check([self.DESCRIBE_ROW])
+        self.assertTrue(any("only part of the statement" in p and "setContentDescription ( label )" in p
+                            for p in problems), problems)
+
+    def test_removing_the_whole_statement_passes_and_is_listed(self):
+        self.edit('button.setContentDescription("Chart time window: " + label + ". Choose time window"); ', "")
+        problems, warnings, _ = self.check([self.DESCRIBE_ROW])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("removed row at %s:4 deletes `button . setContentDescription" % self.PICKER in w
+                            for w in warnings), warnings)
+
+    def test_removing_one_of_two_statements_on_a_line_passes(self):
+        self.edit('{ button.setContentDescription(', '{ button.setEnabled(true); button.setContentDescription(')
+        self.repo.commit("two statements")
+        self.base = self.repo.git("rev-parse", "HEAD")
+        self.edit(' button.setContentDescription("Chart time window: " + label + ". Choose time window");', "")
+        problems, _, _ = self.check([self.DESCRIBE_ROW])
+        self.assertEqual(problems, [])
+
+    def test_wrapping_a_kept_literal_fails(self):
+        self.edit('return "Skip";', 'return "Skip".toUpperCase();')
+        problems, _, _ = self.check([])
+        self.assertTrue(any("%s:6: this change adds `. toUpperCase ( )`" % self.PICKER in p for p in problems), problems)
+
+    def test_wrapping_the_new_call_fails(self):
+        self.repo.write("res/values/strings_stats.xml", self.STRINGS)
+        self.edit('return "Chart window";', "return T.statsWindowTitle().toUpperCase();")
+        problems, _, _ = self.check([self.TITLE_ROW])
+        self.assertTrue(any("%s:5: this change adds `. toUpperCase ( )`" % self.PICKER in p for p in problems), problems)
+
+    def test_dropping_code_beside_text_fails(self):
+        self.edit('"Chart time window: " + label + ". Choose time window"', '"Chart time window: " + label')
+        problems, _, _ = self.check([])
+        self.assertTrue(any("drops `+`" in p or "drops `+ \". Choose" in p or ". Choose time window" in p
+                            for p in problems), problems)
+
+    def test_honest_conversion_passes_and_other_code_is_listed(self):
+        self.repo.write("res/values/strings_stats.xml", self.STRINGS)
+        self.edit('return "Chart window";', "return T.statsWindowTitle();")
+        self.edit("return 20;", "return 21;")
+        problems, warnings, _ = self.check([self.TITLE_ROW])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("%s:7: this change adds `21` and drops `20`, away from any text" % self.PICKER in w
+                            for w in warnings), warnings)
+
+
 class CallSiteTest(RepoCase):
     """Re-review finding 3: a row's call must sit where its literal was, so swapped keys fail."""
     PICKER = "src/com/jjricks/volt/StatsWindowPicker.java"

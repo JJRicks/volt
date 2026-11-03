@@ -52,6 +52,12 @@ class KindTest(unittest.TestCase):
                    "tests/l10n/b2-ui.sources", "tests/l10n/characterization/DisplayUnitsTest.java",
                    "tests/l10n/golden/phone-track.gpx", "android-tests/run-release-sweep.py"]
         self.assertEqual(ci_gates.tooling_changes(changed), changed[:8])
+        # Re-review 3, finding 4: a new tests/l10n test only adds checks; editing one is still tooling.
+        added = {"tests/l10n/LedgerTest.java", "tests/l10n/golden.sh", "tests/run.sh", "tools/l10n/new_gate.py",
+                 "tests/l10n/sub/Helper.java"}
+        self.assertEqual(ci_gates.tooling_changes(changed + ["tools/l10n/new_gate.py", "tests/l10n/sub/Helper.java"],
+                                                  added),
+                         changed[:7] + ["tools/l10n/new_gate.py", "tests/l10n/sub/Helper.java"])
 
 
 class GoldenRewriteTest(unittest.TestCase):
@@ -97,6 +103,11 @@ class GoldenRewriteTest(unittest.TestCase):
     def test_post_processing_goldens_in_the_generator_fails(self):
         """Re-review finding 5: GoldenReports.java rewrites the output so the goldens stay byte-identical."""
         self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        self.repo.git("stash", "-q")
+        self.repo.write("tests/l10n/GoldenReports.java", "class GoldenReports { String gpx(String t) { return t; } }\n")
+        self.base = self.repo.commit("golden generator")
+        self.repo.git("stash", "pop", "-q")
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
         self.repo.write("tests/l10n/GoldenReports.java", 'class GoldenReports { String gpx(String t) { '
                                                          'return t.replace("<name>Trip", "<name>Ride"); } }\n')
         self.repo.write("l10n/ledger/b9.tsv", HEADER + STORE + ':4\t["<trk><name>Ride"]\t-\tremoved\tmanual: x\n')
@@ -125,6 +136,22 @@ class GoldenRewriteTest(unittest.TestCase):
         self.assertIn("ci_gates: english-change change", output)
         self.assertIn("FAILED no ledger rows in an English change", output)
         self.assertIn("names key zz_nothing, which is not in res/values", output)
+
+    def test_a_batch_may_add_a_catalog_test_but_not_the_run_sh_hook(self):
+        """Re-review 3, finding 4: B0b and B1 add tests/l10n tests in a batch; run.sh comes first."""
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        self.repo.write(STORE, java_class("PhoneRideStore", '    String name() { return "<trk><name>Ride"; }'))
+        self.repo.write("res/values/strings_common.xml", '<resources><string name="common_x">X</string></resources>\n')
+        self.repo.write("tests/l10n/FmtLegacyTest.java", java_class("FmtLegacyTest", ""))
+        head = self.repo.commit("batch")
+        self.assertEqual(ci_gates.tooling_changes(["tests/l10n/FmtLegacyTest.java"],
+                                                  ci_gates.added_paths(self.base, head, ["tests/l10n/FmtLegacyTest.java"],
+                                                                       self.repo.root)), [])
+        self.repo.write("tests/run.sh", "#!/bin/sh\n")
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/run.sh)", output)
+        self.assertNotIn("FmtLegacyTest", output.split("proof tooling unchanged")[1].split("\n")[0])
 
     def test_tooling_edits_in_a_batch_fail(self):
         self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")

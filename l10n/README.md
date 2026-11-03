@@ -95,7 +95,27 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 `build.sh` runs the generator before aapt and the round-trip after it, but only once a
 `res/values/strings_*.xml` file exists; until then both steps are skipped and the build is
 byte-identical. Because `M.java` needs `Msg`, the first `strings_*.xml` arrives together with
-`Msg.java` in B0b. B0b also adds the generator run to `tests/run.sh`.
+`Msg.java` in B0b. The generator run in `tests/run.sh` lands before that, in the harness pull
+request (see "Order of the first pull requests").
+
+### Order of the first pull requests
+
+A batch may not change the proof tooling (below), may not edit or delete existing test code (G4),
+and may not let an existing test call into a file it adds. So the plan's B0b is two pull requests:
+
+1. **B0b-harness**, an ordinary pull request (no `strings_*.xml`, ledger or `T`/`M` reference):
+   the `tests/run.sh` hook (generator run, compiling the generated classes and every file listed in
+   `tests/l10n/*.sources`, all skipped until a `res/values/strings_*.xml` exists, like `build.sh`),
+   the `TextFit` helpers moved out of `ResponsiveDashboardValidation`, `TextCensus` with the
+   screenshot helpers calling it, the `LocaleValidation` skeleton, `Ut5SimulationScreens` and the
+   sweep changes. G4 does not run on an ordinary pull request, so moving test code is fine there.
+2. **B0b**, the first batch: `Msg`, `AppLanguage`, `VoltApp`, `strings_common.xml`,
+   `strings_fmt.xml`, `tests/l10n/b0b.sources`, and the catalog tests as **new** files
+   (`CatalogCheckTest`, `LedgerTest`, `CatalogUsageTest`, `ReportsStayEnglishTest`,
+   `GlyphCoverageTest`). A batch may add a `tests/l10n/<Name>.java`; it may not edit one.
+
+`FmtLegacyTest` is not scaffolded in B0b: B1 adds it, whole, as a new file with `Fmt`. A later
+change to any of these tests is a tooling pull request of its own.
 
 ## Doing a batch
 
@@ -139,7 +159,9 @@ hand fix. Baselines carry no line numbers and need nothing.
 **Keep the proof tooling out of batches.** A batch pull request must not change `tools/l10n/`,
 `.github/workflows/`, anything under `tests/l10n/` except `characterization/`, `golden/` and the
 batch's own `tests/l10n/<batch>.sources`, `tests/run.sh`, `build.sh` or `android-tests/build.sh`
-(`ci_gates.is_tooling`); CI fails it. Change the tools in their own pull request first.
+(`ci_gates.is_tooling`); CI fails it. The one exception is a new `tests/l10n/<Name>.java`, which
+only adds checks; editing or deleting an existing one is a tooling change. Change the tools in
+their own pull request first.
 
 ### Ledger format
 
@@ -168,7 +190,17 @@ How `ledger_check.py` (G1) reads it:
   in the head lines that replaced the literal; each call serves one row, in the base order, so
   keys swapped between converted sites fail.
 - `removed`: the code was deleted. The changed lines that held the literal may only lose tokens:
-  nothing, not even a constant's name, takes its place.
+  nothing, not even a constant's name, takes its place. The whole statement holding the literal
+  (or the member or block around it) must go: deleting only `"Chart time window: " +` from a
+  `setContentDescription(...)` call leaves shorter English running and fails. Every `removed` row
+  is listed as a warning, with the statement it deletes, for the reviewer.
+- Nothing else changes around text. In a changed region that holds or held a literal, the head may
+  differ from the base only where a row's expression became the call that serves it (plus a
+  `.render()` on a `Msg`), or a `removed` row's statement was deleted. Wrapping a kept literal or
+  the new call (`"Skip".toUpperCase()`, `T.statsWindowTitle().toUpperCase()`) or dropping code
+  beside it fails. A `manual:` row frees its whole statement, so it is listed for a hand check.
+  Changes in regions with no text, and around a `stays-english` or `id-kept` move, are listed as
+  warnings.
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
   must be added somewhere else in `src/` (outside the changed region it left), and the lines it
   left must either only lose tokens (code moved out whole) or name the constant it moved to
@@ -213,7 +245,7 @@ changes since the merge base:
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
 | G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
-| G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B0b, B1) | CI via `tests/run.sh` |
+| G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1) | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
 runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
@@ -234,12 +266,18 @@ comments and a class qualifier in front of a call (`TextFit.assertText(...)`) do
 Every existing test file also keeps all of its code, English or not: its tokens stay in order with
 nothing changed between them, so an assertion cannot be wrapped in `if (false) { ... }` and a
 helper such as `check()` cannot be edited. Code may only be added as whole statements or members,
-and added code may not jump out of the code around it (`return`, `break`, `continue`, `throw`
-inside a method), assign to a variable it did not declare, declare a member (or a local hiding a
-field or type) named like anything in the file, declare a type or initializer block, import a name
-the file uses, or call `exit`, `halt`, `Runtime`, uncaught-exception handlers, reflection,
-`setOut`/`setErr`, `setDefault`, `setProperty` or `setSecurityManager`. New test files are not
-limited, and a statement cannot move out of an existing file. A statement may disappear only for a deleted test of deleted code:
+and added code may not jump out of the code around it (`return`, `break`, `continue` inside a
+method; `throw` anywhere, since a new helper that throws skips the code that called it), assign to
+a variable it did not declare, declare a member (or a local hiding a field or type) named like
+anything in the file, declare a type or initializer block, import a name the file uses, or call
+`exit`, `halt`, `Runtime`, uncaught-exception handlers, `setOut`/`setErr`, `setDefault`,
+`setProperty` or `setSecurityManager`. Nor may it reach them indirectly: reflection (`getMethod`,
+`invoke`, `forName`, `getClass`, a `Class` literal such as `int.class`), method handles, class
+loaders, threads, processes and script engines are refused, because a method name can hide in a
+string (`"ex" + "it"`). Added code also may not use a type declared in a file the change adds (in
+`src/` or the tests): new files are not limited, so a helper there could exit before the first
+check. A new test file may not declare a type named like a `src/` class. A statement cannot move
+out of an existing file. A statement may disappear only for a deleted test of deleted code:
 a `removed` ledger row naming that test file and a line of the statement, where the change adds no
 English in its place and the English does not come back in a new statement. "English-looking"
 means a literal with two letters in a row (or a non-ASCII letter) that is not a lower-case key,
@@ -316,5 +354,5 @@ be told apart from the text; that order is G10's to catch (Fmt keeps each call s
 ## Not built yet
 
 The translation tools (`pack.py`, `merge.py`, `check.py`) arrive with the Spanish pilot, after the
-three-provider drafting pipeline is designed. B0b adds `Msg`, `VoltApp`, the `tests/run.sh` hook,
-the catalog tests and `android-tests/TextCensus.java`.
+three-provider drafting pipeline is designed. The B0b-harness pull request adds the `tests/run.sh`
+hook and `android-tests/TextCensus.java`; B0b adds `Msg`, `VoltApp` and the catalog tests.

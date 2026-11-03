@@ -224,6 +224,43 @@ class FrozenCodeTest(unittest.TestCase):
             self.repo.git("reset", "-q", "--hard", self.base)
             self.assertRejected(self.gate(old, new), reason)
 
+    def test_reflection_and_throws_from_a_new_member_fail(self):
+        """Re-review 3, finding 1: a new helper ends the test with exit 0 before its first check."""
+        main = "    public static void main(String[] args) {\n"
+        cases = [
+            ('    private static Object quietRun() throws Exception { Class.forName("java.lang.System")'
+             '.getMethod("ex" + "it", int.class).invoke(null, 0); return null; }\n', "it calls Class"),
+            ('    private static Object quietRun() throws Exception { java.lang.reflect.Method m = '
+             'Object.class.getMethods()[0]; return m; }\n', "it calls"),
+            ("    private static Object quietRun() throws Exception { return int.class; }\n",
+             "it uses a Class literal"),
+            ('    private static Object quietRun() { throw new IllegalStateException("skip"); }\n', "it throws"),
+            ('    private static Object quietRun() { return MethodHandles.lookup(); }\n', "it calls MethodHandles"),
+        ]
+        for member, reason in cases:
+            self.repo.git("reset", "-q", "--hard", self.base)
+            self.assertRejected(self.gate(main, member + "\n" + main + "        Object warmUp = quietRun();\n"),
+                                reason)
+
+    def test_calling_into_a_new_file_fails(self):
+        self.repo.write("tests/l10n/characterization/WarmUp.java", java_class(
+            "WarmUp", "    static Object quietRun() { System.exit(0); return null; }"))
+        self.assertRejected(self.gate("    public static void main(String[] args) {\n",
+                                      "    public static void main(String[] args) {\n"
+                                      "        Object warmUp = WarmUp.quietRun();\n"),
+                            "it uses WarmUp, which a file new in this change declares")
+
+    def test_a_new_test_class_may_not_shadow_a_src_class(self):
+        self.repo.write("src/com/jjricks/volt/RouteSpeedScale.java", java_class("RouteSpeedScale", ""))
+        self.repo.commit("src")
+        self.base = self.repo.git("rev-parse", "HEAD")
+        self.repo.write("tests/l10n/FakeScale.java", java_class("RouteSpeedScale", "    static String label() { return \"x\"; }"))
+        self.repo.write("tests/l10n/NewTest.java", java_class("NewTest", "    static String t() { return \"y\"; }"))
+        head = self.repo.commit("head")
+        problems = frozen_literals.run(self.base, head, cwd=self.repo.root)[0]
+        self.assertRejected(problems, "tests/l10n/FakeScale.java: declares RouteSpeedScale, the name of a src/ class")
+        self.assertFalse(any("NewTest" in p for p in problems), problems)
+
     def test_plain_new_tests_pass(self):
         added = ('''        System.out.println("RouteSpeedScaleTest: " + checks + " checks passed");
         double kmh = 45;
