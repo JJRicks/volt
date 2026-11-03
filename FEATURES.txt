@@ -330,6 +330,11 @@ Set/change/enable PIN  Implemented from the OEM protocol; no PIN was changed
                        during overnight validation.
 Proximity unlock      OEM protocol and pairing flow implemented; pairing and
                        proximity behavior were not changed or tested live.
+                       A link drop right after the change (the scooter
+                       restarting Bluetooth) is confirmed after the automatic
+                       reconnect instead of reported as cancelled. Proximity
+                       on without this phone's pairing is shown with Pair and
+                       Off offered; Volt never turns it off by itself.
 Local clock sync      Scooter accepted the command. No clock readback exists,
                        so the app reports acceptance rather than verification.
 
@@ -435,7 +440,9 @@ hidden too, and its report includes the tries.
 PHONE-FREE AND RIDING CHECKS STILL NEEDED
 
 Test your existing handlebar PIN while safely parked. Proximity unlock needs
-this phone paired with the scooter and an enabled fallback PIN. Cruise
+this phone paired with the scooter and an enabled fallback PIN; turning it off
+needs neither. Volt pairs before turning it on, the official app after; which
+order a GT3 Max needs is untested. Cruise
 engagement, assistance while moving, physical lighting, scheduled charging,
 and real battery consumption require the appropriate rider/charger checks.
 

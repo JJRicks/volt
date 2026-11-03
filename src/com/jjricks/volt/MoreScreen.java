@@ -2509,9 +2509,13 @@ public final class MoreScreen implements AppScreen {
         Integer proximity = s.ble.featureValue("proximity_key"); boolean paired = s.ble.bonded();
         boolean pinOn = pin != null && pin.status == 0 && pin.configured && Boolean.TRUE.equals(pin.enabled);
         boolean enablePrerequisites = paired && pinOn;
+        boolean confirming = s.ble.confirmingProximity();
+        // Turning proximity off never waits for the pairing (or the PIN); turning it on needs both.
         refreshSwitch(proximityRow, proximity == null ? null : proximity == 1,
-                owner && !busy && proximity != null && (proximity == 1 || enablePrerequisites));
-        proximitySpinner.setVisibility("proximity_key".equals(pending) ? View.VISIBLE : View.GONE);
+                ProximityFollowUp.switchEnabled(owner, busy, proximity, paired, pinOn));
+        proximitySpinner.setVisibility("proximity_key".equals(pending) || confirming ? View.VISIBLE : View.GONE);
+        // Proximity on without this phone's pairing is said plainly; Volt only offers Pair or Off, it never writes by itself.
+        proximityRow.sub(ProximityFollowUp.sectionNote(owner, s.ble.ready(), proximity, paired, confirming, s.ble.pairingEndedWithoutBond()));
         pill(proximityPinChip, pinOn ? "PIN ✓" : "PIN —", ui.ok, pinOn);
         proximityPinChip.setContentDescription(pinOn ? "PIN enabled" : "PIN not enabled");
         pill(proximityPairedChip, paired ? "Paired ✓" : "Paired —", ui.ok, paired);
@@ -2528,14 +2532,14 @@ public final class MoreScreen implements AppScreen {
                 : !pinOn ? "Enable the fallback PIN first"
                 : !paired ? "Pair this phone first" : null;
         if (proximityReason != null) proximityRow.toggle.setContentDescription(proximityRow.title.getText() + ", " + proximityReason);
-        bondRow.enabled(owner && !busy && !paired && pinOn);
+        bondRow.enabled(ProximityFollowUp.pairEnabled(owner, busy, paired, pinOn, proximity));
         permissionValue(bondRow, paired ? "Paired" : "", paired);
         // Step badges: green once done, red for the next step.
         pinRow.icon.step(pinOn ? 2 : 1);
-        bondRow.icon.step(paired ? 2 : pinOn ? 1 : 0);
+        bondRow.icon.step(paired ? 2 : pinOn || proximity != null && proximity == 1 ? 1 : 0);
         proximityRow.icon.step(proximity != null && proximity == 1 ? 2 : enablePrerequisites ? 1 : 0);
         securityConnect.setVisibility(link == BleController.State.DISCONNECTED ? View.VISIBLE : View.GONE);
-        String notice = owner ? "Test while parked." : link == BleController.State.READY ? modelReason : "";
+        String notice = owner ? "Test while parked. After proximity unlock is turned on, the scooter may disconnect for a moment; Volt reconnects and confirms the change." : link == BleController.State.READY ? modelReason : "";
         securityNotice.setText(notice);
         securityNotice.setVisibility(notice.isEmpty() ? View.GONE : View.VISIBLE);
         refreshLab(s);
