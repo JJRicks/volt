@@ -78,7 +78,10 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             activity = (MainActivity) startActivitySync(new Intent(getTargetContext(), MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
             await(() -> activity.service() != null && field(activity, "screen") instanceof DashboardScreen
                     && grid().getWidth() > 0, "Dashboard did not launch");
-            await(() -> activity.service().displayReadings().containsKey("odometer_km"), "Cached fixture did not load");
+            // G7: displayReadings lists every telemetry key at once, as an empty placeholder until
+            // TelemetryHistory's background load fills the cache, so wait for the seeded value itself.
+            await(() -> { TelemetryHistory.Reading odometer = activity.service().displayReadings().get("odometer_km");
+                    return odometer != null && odometer.value != null; }, "Cached fixture did not load");
             stopUiPulse(); settle();
             String mode = arguments.getString("mode", "all");
             if (mode.equals("layout-modes")) {
@@ -686,6 +689,15 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
     }
     /** Small/tall legal cards exercise drawing, text and editor hit areas with the real Android view tree. */
     private void verifyCloseoutGeometry() {
+        // G7: the detached Reading renders keep each tile's description from the card's last refresh,
+        // so wait until that refresh carries the seeded readings rather than the empty placeholders.
+        await(() -> {
+            for (Object item : (List<?>)field(field(tile("tiles"), "readingTiles"), "values")) {
+                CharSequence spoken = ((TextView)item).getContentDescription();
+                if (spoken == null || spoken.toString().contains(", —") || spoken.toString().endsWith("last seen ")) return false;
+            }
+            return true;
+        }, "Reading tiles did not show the seeded readings");
         main(() -> {
             View lockCard = (View)tile("lockbar"), readingCard = (View)tile("tiles");
             int oldLockW=lockCard.getWidth(), oldLockH=lockCard.getHeight();
