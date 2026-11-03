@@ -79,6 +79,36 @@ def _qualifier(tokens, i):
     return ".".join(parts) if j < 0 or tokens[j].value != "." else None
 
 
+def catalog_static_imports(tokens):
+    """The T, M or R members a file imports statically ("com.jjricks.volt.T.commonSave", "...M.*")."""
+    names = []
+    for i in range(len(tokens) - 1):
+        if tokens[i].value == "import" and tokens[i + 1].value == "static":
+            name = []
+            for t in tokens[i + 2:]:
+                if t.value == ";":
+                    break
+                name.append(t.value)
+            name = "".join(name)
+            if re.match(r"(%s\.)?(T|M|R)\.(\*|[A-Za-z_$])" % re.escape(CATALOG_PACKAGE), name):
+                names.append(name)
+    return names
+
+
+def static_import_problems(head, cwd=None):
+    """["path: import static ..."] for every src/ file at head that imports catalog members statically. A bare
+    call through such an import can't be told from any other method, so every PR refuses them: call T.x()."""
+    files = [p for p in l10nlib.list_files(head, ["src"], cwd) if p.endswith(".java")]
+    problems = []
+    for path, text in sorted(l10nlib.read_files(head, files, cwd).items()):
+        try:
+            tokens = l10nlib.lex_java(text or "")
+        except l10nlib.LexError:
+            continue
+        problems += ["%s: import static %s" % (path, name) for name in catalog_static_imports(tokens)]
+    return problems
+
+
 def catalog_references(text):
     """Counter of T.<name>, M.<name>, R.string.<name> and R.plurals.<name> references in Java source,
     bare or qualified with the app's package, plus static imports of T, M or R members (after which a
@@ -90,16 +120,8 @@ def catalog_references(text):
         tokens = l10nlib.lex_java(text)
     except l10nlib.LexError:
         return found
-    for i in range(len(tokens) - 1):
-        if tokens[i].value == "import" and tokens[i + 1].value == "static":
-            name = []
-            for t in tokens[i + 2:]:
-                if t.value == ";":
-                    break
-                name.append(t.value)
-            name = "".join(name)
-            if re.match(r"(%s\.)?(T|M|R)\.(\*|[A-Za-z_$])" % re.escape(CATALOG_PACKAGE), name):
-                found["import static " + name] += 1
+    for name in catalog_static_imports(tokens):
+        found["import static " + name] += 1
     for i in range(len(tokens) - 2):
         t = tokens[i]
         if t.kind != "ident" or tokens[i + 1].value != ".":
@@ -151,7 +173,8 @@ def added_paths(merge, head, changed, cwd=None):
 def plan(kind, base, head, pr_head, root):
     """[(label, argv or None, strict)] for one kind; argv None means a check done here."""
     tool = lambda name, *args: [sys.executable, os.path.join(TOOLS, name)] + list(args)  # noqa: E731
-    steps = [("ledgers agree with the catalog", tool("ledger_check.py", "--catalog-only", "--head", head), True)]
+    steps = [("ledgers agree with the catalog", tool("ledger_check.py", "--catalog-only", "--head", head), True),
+             ("no static imports of the catalog", None, True)]
     if kind == "ordinary":
         steps.append(("G8 baselines list every finding", tool("hardcoded_lint.py", "--check", "--root", root), True))
         return steps
@@ -204,6 +227,12 @@ def main(argv=None):
             result = subprocess.run(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             sys.stdout.write(result.stdout.decode("utf-8", "replace"))
             ok, detail = result.returncode == 0, "exit %d" % result.returncode
+        elif label.startswith("no static imports"):
+            problems = static_import_problems(head)
+            ok, detail = not problems, "%d found" % len(problems) if problems else "none"
+            for problem in problems:
+                print("ci_gates: %s; call T.x(), M.x() or R.string.x instead, so CI can see the catalog use" % problem,
+                      file=sys.stderr)
         elif label.startswith("no ledger rows"):
             ledgers = [p for p in changed if p.startswith(LEDGER_DIR)]
             ok, detail = not ledgers, ", ".join(ledgers) or "none"

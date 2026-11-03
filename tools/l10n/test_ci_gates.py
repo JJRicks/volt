@@ -44,7 +44,10 @@ class KindTest(unittest.TestCase):
 
     def test_plans(self):
         labels = lambda kind, pr="": [s[0] for s in ci_gates.plan(kind, "origin/main", "HEAD", pr, "/repo")]  # noqa: E731
-        self.assertEqual(labels("ordinary"), ["ledgers agree with the catalog", "G8 baselines list every finding"])
+        self.assertEqual(labels("ordinary"), ["ledgers agree with the catalog", "no static imports of the catalog",
+                                              "G8 baselines list every finding"])
+        for kind in ("batch", "english-change"):
+            self.assertIn("no static imports of the catalog", labels(kind))
         batch = labels("batch", "abc")
         for gate in ("G1 ledger", "G4 frozen test statements", "G5 characterization first", "G8 shrink-only baselines",
                      "G9 goldens unchanged since the merge base", "proof tooling unchanged"):
@@ -160,6 +163,24 @@ class GoldenRewriteTest(unittest.TestCase):
                 self.assertRegex(output, r"src gained catalog references \([^)]*%s" % re.escape(gained))
                 self.assertIn("FAILED G1 ledger", output)
                 self.repo.git("reset", "-q", "--soft", "HEAD~1")
+
+    def test_a_static_import_already_at_the_base_is_refused(self):
+        """Codex review of #149, round 2: the import and its first use are at the merge base, so a later
+        conversion through it gains no reference CI can see. Every PR refuses catalog static imports."""
+        self.repo.git("checkout", "-q", "--", ".")
+        for imported in ("com.jjricks.volt.T.ridesGpxOpen", "com.jjricks.volt.T.*"):
+            with self.subTest(imported=imported):
+                base = java_class("PhoneRideStore", '    String open() { return ridesGpxOpen(); }\n'
+                                  '    String name() { return "<trk><name>Ride"; }').replace(
+                    "\n\n", "\n\nimport static %s;\n\n" % imported, 1)
+                self.repo.write(STORE, base)
+                self.base = self.repo.commit("import at the base")
+                self.repo.write(STORE, base.replace('return "<trk><name>Ride";', "return ridesGpxOpen();"))
+                code, output = self.run_ci()
+                self.assertEqual(code, 1, output)
+                self.assertIn("ci_gates: ordinary change", output)
+                self.assertIn("%s: import static %s; call T.x()" % (STORE, imported), output)
+                self.assertIn("FAILED no static imports of the catalog (1 found)", output)
 
     def test_an_english_change_may_not_add_ledger_rows(self):
         """Re-review finding 9."""
