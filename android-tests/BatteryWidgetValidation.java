@@ -228,6 +228,6 @@ public final class BatteryWidgetValidation extends Instrumentation {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "battery-widget-validation"); dir.mkdirs();
         File file = new File(dir, name + ".png"); Bitmap bitmap = getUiAutomation().takeScreenshot();
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(Bitmap.CompressFormat.PNG, 100, out); }
-        bitmap.recycle(); screenshots.add(file.getAbsolutePath());
+        bitmap.recycle(); screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
 }

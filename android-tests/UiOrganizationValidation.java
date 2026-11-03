@@ -540,7 +540,7 @@ public final class UiOrganizationValidation extends Instrumentation {
         File output = new File(directory, variant + "-" + name + ".png");
         try (FileOutputStream stream = new FileOutputStream(output)) { require(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream), "Screenshot encoding failed"); }
         finally { bitmap.recycle(); }
-        screenshots.add(output.getAbsolutePath());
+        screenshots.add(output.getAbsolutePath()); TextCensus.write(this, output);
     }
     private void cleanup() {
         if (!admitted) return;

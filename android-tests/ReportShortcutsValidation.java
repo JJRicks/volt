@@ -195,7 +195,7 @@ public final class ReportShortcutsValidation extends Instrumentation {
         File file = new File(dir, arguments.getString("theme", "dark") + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath());
+        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
     private View root() { return (View) field(activity, "root"); }
     private Object more() { Object screen = field(activity, "screen"); require(screen != null && screen.getClass().getSimpleName().equals("MoreScreen"), "More screen is not active"); return screen; }

@@ -168,10 +168,11 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         try {
             File folder = new File(getTargetContext().getExternalFilesDir(null), "developer-validation");
             require(folder.isDirectory() || folder.mkdirs(), "Cannot save switch rendering");
-            try (FileOutputStream out = new FileOutputStream(new File(folder,
-                    "switch-" + (design.dark ? "dark" : "light") + "-" + on + "-rtl" + rtl + ".png"))) {
+            File image = new File(folder, "switch-" + (design.dark ? "dark" : "light") + "-" + on + "-rtl" + rtl + ".png");
+            try (FileOutputStream out = new FileOutputStream(image)) {
                 rendered.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out);
             }
+            TextCensus.skip(image, "pixel render of a detached switch; it has no text and is in no window");
         } catch (java.io.IOException error) { throw new IllegalStateException(error); }
         finally { rendered.recycle(); }
     }
@@ -593,6 +594,7 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         File dir=new File(getTargetContext().getExternalFilesDir(null),"developer-validation");require(dir.isDirectory()||dir.mkdirs(),"Screenshot directory unavailable");
         File file=new File(dir,arguments.getString("variant","developer").replaceAll("[^a-zA-Z0-9_-]","")+"-"+label+".png");
         try(FileOutputStream out=new FileOutputStream(file)){captured.get().compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}finally{captured.get().recycle();}screenshots.add(file.getAbsolutePath());
+        TextCensus.write(this, file);
     }
     private void assertRealCache() {
         Map<String, TelemetryHistory.Reading> shown = activity.service().displayReadings();
@@ -647,6 +649,6 @@ public final class DeveloperSettingsValidation extends Instrumentation {
         String variant = arguments.getString("variant", "developer").replaceAll("[^a-zA-Z0-9_-]", ""); File file = new File(dir, variant + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath());
+        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
 }

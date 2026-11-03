@@ -246,6 +246,7 @@ public final class BackupScenarioValidation extends Instrumentation {
             } catch (Exception e) { failure[0] = e; }
         });
         if (failure[0] != null) throw failure[0];
+        TextCensus.write(this, new File(app.getExternalFilesDir(null), name));
     }
     private void await(java.util.function.BooleanSupplier ready, String message) { long end = android.os.SystemClock.elapsedRealtime() + 20000; while (android.os.SystemClock.elapsedRealtime() < end) { if (ready.getAsBoolean()) return; android.os.SystemClock.sleep(50); } throw new AssertionError(message); }
     private static Object field(Object object, String name) throws Exception { java.lang.reflect.Field f = object.getClass().getDeclaredField(name); f.setAccessible(true); return f.get(object); }

@@ -1338,6 +1338,6 @@ public final class GuidedTestValidation extends Instrumentation {
         File file = new File(outDir(), variant() + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath());
+        screenshots.add(file.getAbsolutePath()); com.jjricks.volt.tests.TextCensus.write(this, file);
     }
 }

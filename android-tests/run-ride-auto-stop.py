@@ -56,7 +56,12 @@ try:
             # The fixture leaves "Ride saved automatically" posted; capture it in the real shade.
             run('shell', 'cmd', 'statusbar', 'expand-notifications'); time.sleep(2.5)
             shade = subprocess.run(prefix + ['exec-out', 'screencap', '-p'], stdout=subprocess.PIPE, timeout=60).stdout
-            (destination / f"{case.replace(':', '-')}-notification-shade.png").write_bytes(shade)
+            shot = destination / f"{case.replace(':', '-')}-notification-shade.png"
+            shot.write_bytes(shade)
+            # Its census (the app's notifications, TextCensus.writeNotifications) came with the pull; put it beside the PNG.
+            for suffix in ('.census.tsv', '.census-error.txt'):
+                for taken in list(destination.rglob(shot.stem + suffix)):
+                    if taken.parent != destination: taken.replace(destination / (shot.stem + suffix))
             run('shell', 'cmd', 'statusbar', 'collapse', check=False)
         passed = 'result=PASS' in output and 'result=FAIL' not in output
         results.append(dict(case=case, passed=passed)); print(f'{case}: {"PASS" if passed else "FAIL"}', flush=True)

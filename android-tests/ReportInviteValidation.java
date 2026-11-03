@@ -349,7 +349,7 @@ public final class ReportInviteValidation extends Instrumentation {
         File file = new File(dir, arguments.getString("theme", "dark") + "-" + label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath());
+        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
     private SharedPreferences settings() { return prefs("app_settings"); }
     private SharedPreferences prefs(String name) { return getTargetContext().getSharedPreferences(name, Context.MODE_PRIVATE); }

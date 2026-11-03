@@ -1690,7 +1690,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
     }
     private void saveCardBitmap(View card,String name) {
         Bitmap bitmap=Bitmap.createBitmap(card.getWidth(),card.getHeight(),Bitmap.Config.ARGB_8888);
-        try {card.draw(new android.graphics.Canvas(bitmap));saveNativeBitmap(bitmap,name);}finally{bitmap.recycle();}
+        try {card.draw(new android.graphics.Canvas(bitmap));saveNativeBitmap(bitmap,name,card);}finally{bitmap.recycle();}
     }
     private void measureCard(View card,int width,int height) {
         for(int pass=0;pass<3;pass++) {
@@ -1858,7 +1858,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
                             require(!state.equals("dual") || !((android.graphics.RectF)field(gauge, "secondaryBounds")).isEmpty(), "Dual units lost the second reading");
                             require(!state.equals("unknown") || field(gauge, "amount").equals("—"), "Unknown reading became a numeric value");
                             require(!state.equals("stale") || gauge.getContentDescription().toString().contains("last seen"), "Stale gauge lost its accessible state");
-                            if (state.equals("live") || state.equals("dual")) saveNativeBitmap(image, "gauge-"+width+"x"+height+"-"+state);
+                            if (state.equals("live") || state.equals("dual")) saveNativeBitmap(image, "gauge-"+width+"x"+height+"-"+state, gauge);
                         } finally { image.recycle(); }
                     } finally { settings().edit().putString("units", previous).commit(); settings().registerOnSharedPreferenceChangeListener(listener); }
                 });
@@ -1867,12 +1867,14 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         main(() -> { invoke(tileById(widget.id), "refresh", new Class<?>[] {Map.class}, activity.service().displayReadings()); });
         screenshot("gauge-card");
     }
-    private void saveNativeBitmap(Bitmap bitmap, String name) {
+    /** Saves bitmap, drawn from source, with source's text census beside it. */
+    private void saveNativeBitmap(Bitmap bitmap, String name, View source) {
         File folder = new File(getTargetContext().getExternalFilesDir(null), "responsive-validation"); require(folder.isDirectory() || folder.mkdirs(), "Cannot create gauge evidence folder");
         File output = new File(folder, arguments.getString("variant", "responsive").replaceAll("[^A-Za-z0-9_-]", "")+"-"+name+".png");
         try (FileOutputStream stream = new FileOutputStream(output)) { require(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream), "Gauge evidence failed"); }
         catch (Exception error) { throw new IllegalStateException(error); }
         screenshots.add(output.getAbsolutePath());
+        TextCensus.writeView(this, output, source);
     }
     private void seedEveryWidget() {
         main(() -> {
@@ -2215,23 +2217,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         require(menu != null, "Compact Options did not open an action menu");
         return menu;
     }
-    private void collectNarrowTextProblems(TextView text, String type, List<String> problems) {
-        if (!text.isShown() || text.length() == 0) return;
-        android.text.Layout layout = text.getLayout();
-        if (layout == null) { problems.add(type + " has no text layout: " + text.getText()); return; }
-        String value = text.getText().toString();
-        int width = text.getWidth() - text.getCompoundPaddingLeft() - text.getCompoundPaddingRight();
-        for (int line = 0; line < layout.getLineCount(); line++) {
-            // Deliberate title/status ellipses have their own full accessibility text.
-            if (layout.getEllipsisCount(line) != 0) continue;
-            if (layout.getLineMax(line) > width + 2)
-                problems.add(type + " clips text horizontally: " + value);
-            int end = layout.getLineEnd(line);
-            if (line + 1 < layout.getLineCount() && end > 0 && end < value.length()
-                    && Character.isLetter(value.charAt(end - 1)) && Character.isLetter(value.charAt(end)))
-                problems.add(type + " breaks a word: " + value.substring(0, end) + " / " + value.substring(end));
-        }
-    }
+    private void collectNarrowTextProblems(TextView text, String type, List<String> problems) { TextFit.collectNarrowTextProblems(text, type, problems); }
     private void verifyEditOverlays() throws Exception {
         final Map<String, Rect> normalFrames = new LinkedHashMap<>();
         main(() -> {
@@ -2788,47 +2774,12 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
             forceMeasure(((ViewGroup)view).getChildAt(i));
         view.forceLayout();
     }
-    /**
-     * Single lines that ellipsize by design: the Lock bar's "Last verified" detail, and the Lock
-     * bar's title once Connect has already collapsed to its 48 dp icon. Every other line must fit.
-     */
-    private boolean ellipsizedByDesign(TextView text) {
-        if (text.getEllipsize() == null || text.getMaxLines() != 1) return false;
-        for (Object lock : (List<?>)field(activity, "dashboardLocks")) {
-            if (!Boolean.TRUE.equals(field(lock, "compact"))) continue;
-            if (text == field(lock, "offlineDetail")) return true;
-            if (text == field(lock, "offlineTitle") && iconOnlyAction((TextView)field(lock, "connectionAction"))) return true;
-        }
-        return false;
-    }
-    /** The Lock bar's narrow Connect/Cancel: a 48 dp icon whose text stays for accessibility only. */
-    private static boolean iconOnlyAction(TextView text) {
-        android.text.method.TransformationMethod words = text.getTransformationMethod();
-        return words != null && words.getTransformation(text.getText(), text).length() == 0
-                && text.getCompoundDrawablesRelative()[0] != null;
-    }
-    private void assertText(TextView text, View ancestor, String context) { assertText(text, ancestor, context, false); }
-    private void assertText(TextView text, View ancestor, String context, boolean mayEllipsize) {
-        if (!text.isShown() || text.length() == 0) return;
-        android.text.Layout layout = text.getLayout(); require(layout != null && layout.getLineCount() > 0, context + " text has no layout: " + text.getText());
-        Rect rect = relativeBounds(text, ancestor);
-        require(rect.left >= 0 && rect.top >= 0 && rect.right <= ancestor.getWidth() + 1 && rect.bottom <= ancestor.getHeight() + 1,
-                context + " text outside viewport: " + text.getText() + " " + rect);
-        require(layout.getHeight() <= text.getHeight() - text.getCompoundPaddingTop() - text.getCompoundPaddingBottom() + 2,
-                context + " text clipped vertically: " + text.getText());
-        require(layout.getLineEnd(layout.getLineCount() - 1) >= text.length(), context + " text lost lines: " + text.getText());
-        for (int line = 0; line < layout.getLineCount(); line++) require(mayEllipsize || layout.getEllipsisCount(line) == 0, context + " text ellipsized: " + text.getText());
-    }
-    private Rect relativeBounds(View view, View ancestor) {
-        Rect box = new Rect(0, 0, view.getWidth(), view.getHeight());
-        while (view != ancestor) {
-            require(view.getParent() instanceof View, "Missing ancestor");
-            View parent = (View)view.getParent();
-            // A child's internal text scroll does not move its hit target; its parent's scroll does.
-            box.offset(view.getLeft() - parent.getScrollX(), view.getTop() - parent.getScrollY()); view = parent;
-        }
-        return box;
-    }
+    /** Single lines that ellipsize by design (TextFit): the Lock bar's detail, and its title beside an icon-only Connect. */
+    private boolean ellipsizedByDesign(TextView text) { return TextFit.ellipsizedByDesign(activity, text); }
+    private static boolean iconOnlyAction(TextView text) { return TextFit.iconOnlyAction(text); }
+    private void assertText(TextView text, View ancestor, String context) { TextFit.assertText(text, ancestor, context); }
+    private void assertText(TextView text, View ancestor, String context, boolean mayEllipsize) { TextFit.assertText(text, ancestor, context, mayEllipsize); }
+    private Rect relativeBounds(View view, View ancestor) { return TextFit.relativeBounds(view, ancestor); }
     private List<TextView> texts(View view) {
         List<TextView> found = new ArrayList<>(); if (view instanceof TextView) found.add((TextView)view);
         if (view instanceof ViewGroup) for (int i=0; i<((ViewGroup)view).getChildCount(); i++) found.addAll(texts(((ViewGroup)view).getChildAt(i)));
@@ -2847,7 +2798,7 @@ public final class ResponsiveDashboardValidation extends Instrumentation {
         File folder = new File(getTargetContext().getExternalFilesDir(null), "responsive-validation"); require(folder.isDirectory() || folder.mkdirs(), "Cannot create evidence folder");
         File output = new File(folder, arguments.getString("variant", "responsive").replaceAll("[^A-Za-z0-9_-]", "") + "-" + name + ".png");
         try (FileOutputStream stream = new FileOutputStream(output)) { require(bitmap.compress(Bitmap.CompressFormat.PNG, 100, stream), "Screenshot failed"); }
-        finally { bitmap.recycle(); } screenshots.add(output.getAbsolutePath());
+        finally { bitmap.recycle(); } screenshots.add(output.getAbsolutePath()); TextCensus.write(this, output);
     }
     private void await(BooleanSupplier condition, String message) { long end=SystemClock.elapsedRealtime()+6000;
         while (SystemClock.elapsedRealtime()<end) { AtomicReference<Boolean> result=new AtomicReference<>(false); main(() -> result.set(condition.getAsBoolean())); if(result.get())return; SystemClock.sleep(40); } throw new IllegalStateException(message); }

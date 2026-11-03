@@ -49,7 +49,8 @@ try:
                      'com.jjricks.volt.tests/com.jjricks.volt.tests.' + runner)
         destination = args.out / case.replace(':', '-'); destination.mkdir(exist_ok=True)
         (destination / 'result.txt').write_text(output)
-        for image in ('ride-backup-mapping.png', 'ride-backup-preview.png'):
+        # Each screenshot and the text census beside it (android-tests/TextCensus.java), for run-release-sweep.py --census.
+        for image in [stem + suffix for stem in ('ride-backup-mapping', 'ride-backup-preview') for suffix in ('.png', '.census.tsv', '.census-error.txt')]:
             run('pull', '/sdcard/Android/data/com.jjricks.volt/files/' + image, str(destination.resolve() / image), check=False)
         passed = 'status=PASS' in output and 'status=FAIL' not in output
         results.append(dict(case=case, passed=passed)); print(f'{case}: {"PASS" if passed else "FAIL"}', flush=True)

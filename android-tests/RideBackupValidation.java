@@ -153,7 +153,7 @@ public final class RideBackupValidation extends Instrumentation {
     private void render(View view,String name){
         try {android.graphics.Bitmap bitmap=android.graphics.Bitmap.createBitmap(view.getWidth(),view.getHeight(),android.graphics.Bitmap.Config.ARGB_8888);
             view.draw(new android.graphics.Canvas(bitmap));File output=new File(getTargetContext().getExternalFilesDir(null),name);
-            try(OutputStream out=new FileOutputStream(output)){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();
+            try(OutputStream out=new FileOutputStream(output)){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();TextCensus.write(this,output);
         } catch(IOException failure){throw new RuntimeException(failure);}
     }
     private void require(boolean value,String why){assertions++;if(!value)throw new AssertionError(why);}

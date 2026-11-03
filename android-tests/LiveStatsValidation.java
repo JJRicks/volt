@@ -358,6 +358,6 @@ public final class LiveStatsValidation extends Instrumentation {
         File directory = new File(getTargetContext().getExternalFilesDir(null), "stats-validation"); require(directory.isDirectory() || directory.mkdirs(), "Screenshot folder unavailable");
         File file = new File(directory, label + ".png"); android.graphics.Bitmap image = getUiAutomation().takeScreenshot(); require(image != null, "Screenshot unavailable");
         try (FileOutputStream output = new FileOutputStream(file)) { image.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, output); } finally { image.recycle(); }
-        shots.add(file.getAbsolutePath());
+        shots.add(file.getAbsolutePath()); TextCensus.write(this, file);
     }
 }
