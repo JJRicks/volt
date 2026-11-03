@@ -77,8 +77,9 @@ final class ConnectionReport {
             + "|Bluetooth MTU \\d+|Reconnect in \\d+s|Owner authenticated locally|Model ID captured"
             + "|Ignored a scooter reply that failed its checks|Scooter replies use the header-free checksum"
             + "|(?:Timed out|Connection lost|Signal lost|Connection failed|Send failed|Owner check failed|Owner identity rejected"
-            + "|Unsupported scooter|Unsupported firmware|Unrecognised scooter|Not the saved scooter|Bluetooth off)"
-            + "(?: · retrying| · change cancelled)?(?: \\(-?\\d+\\))?)");
+            + "|Unsupported scooter|Unsupported firmware|Unrecognised scooter|Not the saved scooter|Bluetooth off"
+            + "|Scooter may have restarted Bluetooth)"
+            + "(?: · retrying| · change cancelled| · change not confirmed| · reconnecting to confirm)?(?: \\(-?\\d+\\))?)");
     static boolean safe(String line) { return line != null && SAFE.matcher(line).matches(); }
 
     /**

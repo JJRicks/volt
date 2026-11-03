@@ -105,6 +105,11 @@ public final class MutationGateTest {
         check(reason(kind(MutationGate.Kind.PROXIMITY,1),ut5,s,rt)==CapabilityResolver.Reason.NEEDS_BOND&&reason(kind(MutationGate.Kind.PROXIMITY,0),ut5,s,rt)==CapabilityResolver.Reason.NONE,"Proximity enable needs a bond");
         rt=CapabilityResolverTest.parked();rt.pinEnabledFresh=false;
         check(reason(kind(MutationGate.Kind.PROXIMITY,1),ut5,s,rt)==CapabilityResolver.Reason.NEEDS_PIN,"Proximity enable needs a fresh enabled PIN");
+        // Turning proximity off is never blocked by a missing pairing, nor by a missing or stale PIN state.
+        rt=CapabilityResolverTest.parked();rt.bonded=false;rt.pinEnabledFresh=false;
+        check(reason(kind(MutationGate.Kind.PROXIMITY,0),ut5,s,rt)==CapabilityResolver.Reason.NONE,"Proximity off needs no bond and no PIN read");
+        check(reason(kind(MutationGate.Kind.BOND,1),ut5,s,rt)==CapabilityResolver.Reason.NONE,"Pairing itself is offered without a bond");
+        check(ScooterCommands.setProximity(false,true,false,null).length>0,"The off frame builds without a bond or PIN state");
         rt=CapabilityResolverTest.parked();rt.owner=false;
         for(MutationGate.Kind k:new MutationGate.Kind[]{MutationGate.Kind.PIN_SET,MutationGate.Kind.PIN_ENABLE,MutationGate.Kind.PIN_READ,MutationGate.Kind.BOND,MutationGate.Kind.PROXIMITY})
             check(reason(kind(k,1),ut5,s,rt)==CapabilityResolver.Reason.OWNER_ONLY,"Owner only "+k);
