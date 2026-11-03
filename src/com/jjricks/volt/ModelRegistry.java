@@ -38,10 +38,13 @@ import java.util.Set;
  * and kick-start offers 0–2 km/h only where its kick-start screen shows them (StartupSpeedActivity.onCreate); see
  * officialSpeedRegion. A UT5 MAX whose serial names another region follows them too; a US one is unchanged. Every
  * other control keeps the union (cruise control on the EU GT5 Max stays offered, as its owner reported it works).
+ * Version 18 maps traction control wherever OEM 2.1.9's More screen lists it (every model with one except 2573, 2634,
+ * 2314, 2417 and 2422), not only groups Q, O and G, after a Spanish GT3 Max's official app was recorded sending 0x5f
+ * from its settings and Volt's experimental tries worked there (November 2026).
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=17;
+    public static final int VERSION=18;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -107,12 +110,14 @@ public final class ModelRegistry {
      * report (meter 2.0.4.6, October 2026) confirmed the ID. A French owner's report (EU, meter 2.0.4.6, controller
      * 0.0.2.0, October 2026) verified dashboard units, turn signal sound and range estimate (changed, read back,
      * seen and restored) and traction control (three tries, read back and restored, seen twice), which the
-     * official app doesn't map there. The
+     * official app also offers there (version 18; before it Volt hadn't mapped it there). The
      * GT5 Max (25462, EU; meter 1.0.0.4) is named from an owner's compatibility report, its model confirmed by the
      * maintainer in October 2026. Its owner reported using cruise control (which the official app hides there by
      * region) in October 2026, and the maintainer chose to mark it verified; nothing else on it is.
      * The GT3 Max (24182, EUR; meter 2.0.4.6, controller 0.0.1.7) is named from an
-     * owner-identified read-only report in October 2026; no controls were tested.
+     * owner-identified read-only report in October 2026. In November 2026 its owner's recording showed the official
+     * app sending traction control (0x5f) there, and two Experimental tries worked; it is OEM-mapped (version 18), not
+     * listed here as verified.
      */
     private static final class Known {
         final String name,photo;final Set<String> features;
@@ -161,16 +166,6 @@ public final class ModelRegistry {
         if(t==null||!t.features.contains(feature)||rule.support!=CapabilityResolver.Support.KNOWN_ENCODING
                 ||rule.evidence!=CapabilityResolver.Evidence.OEM_MAPPED)return rule;
         return new Rule(rule.support,rule.reason,CapabilityResolver.Evidence.VOLT_VERIFIED,rule.oemNote,rule.preconditions,rule.variant);
-    }
-    /**
-     * A control the official app doesn't map for this model (null oemRule, never an exclusion) that owners verified on
-     * this exact model, with its known encoding: tries changed it, read it back and restored it, and the owner saw it.
-     */
-    private static Rule verifiedUnmapped(Known t,String feature){
-        // Only controls whose encoding Volt knows from the official app's other models; the ST3 Pro's traction control matches it.
-        FeatureVariant v=t==null||!t.features.contains(feature)?null:feature.equals("traction_control")?OEM_TCS:null;
-        return v==null?null:new Rule(CapabilityResolver.Support.KNOWN_ENCODING,CapabilityResolver.Reason.NONE,CapabilityResolver.Evidence.VOLT_VERIFIED,
-            "Not in the official app's map for this model; owners' tests confirmed it",preconditions(v),v);
     }
     /** UT5 MAX fields changed, read back and restored on the owner's parked scooter (FEATURES.txt). */
     private static final Set<String> VERIFIED=new HashSet<>(java.util.Arrays.asList("lock","cruise_control","energy_recovery","traction_control",
@@ -313,7 +308,10 @@ public final class ModelRegistry {
     /** ...and for these (plus group G) only when the serial region is known and not DE. */
     static final String[] START_SPEED_REGIONAL={"2657","2658","2707","2799","2800","2781"};
 
-    /** OEM 2.1.9 never shows traction control for these (nor for the legacy group or group M). */
+    /**
+     * OEM 2.1.9 shows traction control on every More screen except for these prefixes (DeviceMoreActionActivity.onCreate's
+     * last group skips them, and Q, O and G, which list it in the first); the legacy group and group M have no More screen.
+     */
     static final String[] NO_TCS={"2573","2634","2314","2417","2422"};
     /** Long range: OEM 2.1.9 offers it for 2745 and group H, in RU/US or (with the scooter's flag at offset 35) these regions. */
     static final String[] LONG_RANGE_FLAGGED_AREAS={"EU","AT","IT","SE","ME"};
@@ -446,7 +444,6 @@ public final class ModelRegistry {
                     "",preconditions(SHARED_LOCK),SHARED_LOCK);
                 if(r.layer==Layer.OEM_GROUP){
                     Rule oem=oemRule(feature,d,s);if(oem!=null)return verifiedOn(t,feature,oem);
-                    Rule tested=verifiedUnmapped(t,feature);if(tested!=null)return tested;
                 }
                 CapabilityResolver.Reason reason=r.conflict?CapabilityResolver.Reason.IDENTITY_CONFLICT
                     :d==null||d.pidSource()!=DeviceDescriptor.PidSource.ADVERTISED?CapabilityResolver.Reason.MODEL_NOT_IDENTIFIED:CapabilityResolver.Reason.MODEL_NOT_MAPPED;
@@ -488,10 +485,10 @@ public final class ModelRegistry {
                 return oemMapped(off?OEM_ENERGY:OEM_ENERGY_NO_OFF,note,true);
             }
             // C5 batch 1: More-screen toggles and choices.
-            case "traction_control":
-                if(any(d,Q)||any(d,O)||any(d,G))return oemMapped(OEM_TCS,"",false);
-                // OEM 2.1.9 also lists it for most other models, but that visibility trace is partial: not mapped.
-                return m||noMoreScreen(d)||any(d,NO_TCS)?excluded():null;
+            // Version 18: DeviceMoreActionActivity.onCreate lists the row (createTcsItem) in its first group for Q, O and G and in
+            // its last group for every other model, except NO_TCS. Group M opens DevicePluginsActivity, which has none; the
+            // legacy group (and an empty model ID) gets no More screen. No region, firmware or full-ID condition.
+            case "traction_control": return m||noMoreScreen(d)||any(d,NO_TCS)?excluded():oemMapped(OEM_TCS,"",false);
             case "low_power": return any(d,O)||any(d,S)||any(d,Q)||any(d,H)||any(d,G)?oemMapped(OEM_LOW_POWER,"",false):excluded();
             case "long_range_mode": {
                 if(!any(d,"2745")&&!any(d,H))return excluded();
