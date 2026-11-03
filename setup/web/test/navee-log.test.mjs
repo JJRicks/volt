@@ -5,7 +5,7 @@ import { HEALTH, LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, answerText, 
 import { COMMANDS, GROUPS, SENSITIVE, describe } from '../src/navee-commands.js';
 import { frame as authFrame } from './fixtures.mjs';
 import { START, bytes, frame, hex, line } from './navee-fixtures.mjs';
-import { appLogcat, verifiedPids } from '../src/protocol.js';
+import { appLogcat, quote, verifiedPids, writerPattern } from '../src/protocol.js';
 
 // The submit server's documented refusals. Every kept row must pass them.
 function serverAccepts(row) {
@@ -347,6 +347,50 @@ test('recorder keeps only fresh filtered rows, dedupes across polls and counts h
   r.remove(r.rows[0].id); assert.equal(r.rows.length, 4);
   assert.throws(() => new LogRecorder('soon'), { code: 'clock' });
 });
+// A row as -v uid prints it: the uid that wrote it right after the epoch.
+const by = (writer, row) => row.replace(/^(\S+) /, `$1 ${writer} `);
+test('given NAVEE’s uid, the recorder keeps only rows it wrote; no other row moves the cursor or dedupe', () => {
+  const own = `Send write command: ${frame(0x52, [1])}`, other = `Send write command: ${frame(0x6d, [2])}`;
+  const r = new LogRecorder(START, '10123');
+  // The phone's grep passes on only NAVEE's rows; these test the page's own check of every row.
+  const poll = ['--------- beginning of main', by(10999, line(other, '1800000001.000')), by(10123, line(own, '1800000001.000')), by(10123, line('getUserInfo', '1800000001.500')),
+    line(other, '1800000002.000'), by('u0_a5', line(other, '1800000002.000')), by(10999, line(other, '1800000003.000'))].join('\n');
+  assert.deepEqual(r.ingest(poll), { lines: 6, fresh: 2, added: 1 });
+  // Another uid's rows (also a short name that isn't NAVEE's) and a row without a writer column are
+  // never kept, hidden, shown or sent; they are only counted.
+  assert.deepEqual(r.rows.map(x => x.text), [own]);
+  assert.deepEqual({ own: r.own, hidden: r.hidden, foreign: r.foreign, unattributed: r.unattributed }, { own: 2, hidden: 1, foreign: 3, unattributed: 1 });
+  // The cursor stays on NAVEE's last row. Another app picks its rows' times (logd keeps them), so one
+  // stamped hours ahead must not carry the cursor, and NAVEE's later rows, past its own.
+  assert.equal(r.cursor, '1800000001.500');
+  assert.deepEqual(r.ingest(by(10999, line(other, '1800009999.000'))), { lines: 1, fresh: 0, added: 0 });
+  assert.equal(r.cursor, '1800000001.500');
+  assert.deepEqual(r.ingest(by(10123, line('Notify success', '1800000003.000'))), { lines: 1, fresh: 1, added: 1 });
+  assert.deepEqual(r.rows.map(x => x.text), [own, 'Notify success']);
+  // logcat prefixes every line of a message, so another uid's message text that looks like NAVEE's row
+  // still carries that uid's column.
+  const prefix = '1800000003.500 10999  1234  5678 D com.navee.ucaret: ';
+  r.ingest(['x', '1800000004.000 10123  1  1 D com.navee.ucaret: Notify success'].map(text => prefix + text).join('\n'));
+  assert.deepEqual([r.rows.length, r.foreign, r.cursor], [2, 6, '1800000003.000']);
+  // Another uid's row identical to NAVEE's (same time, pid, tid and text) is never taken for NAVEE's at
+  // the boundary, before or after it: NAVEE's row is kept, re-reads of it are not, and its own second
+  // occurrence is.
+  const twin = line(own, '1800000005.000'), b = new LogRecorder(START, 10123);
+  assert.deepEqual(b.ingest(by(10999, twin)), { lines: 1, fresh: 0, added: 0 });
+  assert.deepEqual(b.ingest(by(10123, twin)), { lines: 1, fresh: 1, added: 1 });
+  assert.deepEqual(b.ingest([by(10999, twin), by(10123, twin), by(10999, twin)].join('\n')), { lines: 3, fresh: 0, added: 0 });
+  assert.deepEqual(b.ingest([by(10999, twin), by(10123, twin), by(10123, twin)].join('\n')), { lines: 3, fresh: 1, added: 1 });
+  assert.deepEqual([b.rows.length, b.foreign, b.cursor], [2, 4, '1800000005.000']);
+  // getpwuid's short names stand in for uids below 10010.
+  const low = new LogRecorder(START, 10005);
+  low.ingest([by('u0_a5', line('Notify success', '1800000001.000')), by(10123, line('Notify success', '1800000002.000'))].join('\n'));
+  assert.deepEqual([low.rows.length, low.foreign], [1, 1]);
+  // Without a writer (--uid already kept only NAVEE's rows), rows are read as before.
+  const plain = new LogRecorder(START);
+  plain.ingest(line(own, '1800000001.000'));
+  assert.deepEqual([plain.rows.length, plain.own, plain.foreign, plain.unattributed], [1, 1, 0, 0]);
+  for (const uid of ['10123; id', '1012', 'shell']) assert.throws(() => new LogRecorder(START, uid), uid);
+});
 test('recorder stops at 3000 rows or its byte budget', () => {
   const r = new LogRecorder(START);
   const many = Array.from({ length: 3005 }, (_, i) => line('Notify success', `1800000${String(100 + Math.floor(i / 1000)).padStart(3, '0')}.${String(i % 1000).padStart(3, '0')}`)).join('\n');
@@ -373,10 +417,15 @@ test('clock and logcat command are strict', () => {
   // One builder for both filters; the poll reports logcat's exit status after the rows.
   assert.equal(logcatCommand(10123, '1800000000.125', 100), `{ r=$( { { logcat --uid=10123 -d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S' 2>/dev/null; echo "$?" >&3; } | head -n 100 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
   assert.equal(logcatCommand(10123, '1800000000.125', 100, 'uid'), logcatCommand(10123, '1800000000.125', 100));
-  assert.equal(logcatCommand(10123, '1800000000.125', 7, 'pid'), appLogcat(10123, 'pid', "-d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S'", 'head -n 7'));
-  assert.match(logcatCommand(10123, '1800000000.125', 7, 'pid'), /grep '\^Uid:' \/proc\/\$p\/status.*\[ "\$2" = 10123 \].*logcat --pid="\$q" -d -v epoch -t '1800000000\.125' -s com\.navee\.ucaret:V '\*:S' 2>\/dev\/null; .*\| head -n 7 >&4/s);
+  // Android 11 and older: every row under NAVEE's tag with the uid that wrote it, never a pid; the phone
+  // keeps only NAVEE's before head counts the batch.
+  const own = re => `'^[[:space:]]*[0-9]{9,}(\\.[0-9]+)?[[:space:]]+${re}[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[A-Z][[:space:]]'`;
+  assert.equal(logcatCommand(10123, '1800000000.125', 7, 'rows'),
+    `{ r=$( { { logcat -v uid -d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S' 2>/dev/null; echo "$?" >&3; } | grep -E ${own('10123')} | head -n 7 >&4; } 3>&1 ); echo "~$r"; } 4>&1`);
+  assert.equal(logcatCommand(10123, '1800000000.125', 7, 'rows'), appLogcat(10123, 'rows', "-d -v epoch -t '1800000000.125' -s com.navee.ucaret:V '*:S'", `grep -E ${quote(writerPattern(10123))} | head -n 7`));
+  assert(logcatCommand(10005, '1800000000.125', 7, 'rows').includes(`| grep -E ${own('(10005|u0_a5)')} | head -n 7 >&4;`));
   for (const args of [['10123;x', '1800000000.125', 1], [10123, "1'; reboot", 1], [10123, '1800000000.125', 0], [10123, '1800000000.125', 1001], [1, '1800000000.125', 1],
-    [10123, '1800000000.125', 1, 'tag'], [10123, '1800000000.125', 1, ''], ['1012a', '1800000000.125', 1, 'pid']])
+    [10123, '1800000000.125', 1, 'tag'], [10123, '1800000000.125', 1, ''], [10123, '1800000000.125', 1, 'pid'], ['1012a', '1800000000.125', 1, 'rows']])
     assert.throws(() => logcatCommand(...args), String(args));
 });
 test('the capture-health probe is one strict, read-only command counted on the phone, with the poll’s filter', () => {
@@ -387,13 +436,23 @@ n() { set -- $( { { logcat -d -t '1800000000.000000000' "$@" 2>/dev/null; echo "
 n
 `;
   assert.equal(probeCommand(10123, '1800000000.000000000'), `${head}n --uid=10123`);
-  assert.equal(probeCommand(10123, '1800000000.000000000', 'pid'), `${head}[ "$k" = 1 ] && n --pid="$q" || echo x`);
+  // Rows mode counts the -v uid rows whose writer column (right after the epoch) is NAVEE's uid, then the
+  // rows under NAVEE's tag the poll never reads: another uid's (c), and those without a writer column (c -v).
+  const writer = re => `'^[[:space:]]*[0-9]{9,}(\\.[0-9]+)?[[:space:]]+${re}[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+[A-Z][[:space:]]'`;
+  const rows = re => `${head}set -- $( { { logcat -d -t '1800000000.000000000' -v uid -v epoch 2>/dev/null; echo "$?" >&3; } | grep -c -E ${writer(re)}; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x
+c() { set -- $( { { logcat -d -t '1800000000.000000000' -v uid -v epoch -s com.navee.ucaret:V '*:S' 2>/dev/null; echo "$?" >&3; } | grep -v '^--------- ' | grep -v -E ${writer(re)} | grep -c "$@" -E ${writer('[^[:space:]]+')}; } 3>&1 ); [ "$1" = 0 ] && echo "$2" || echo x; }
+c
+c -v`;
+  assert.equal(probeCommand(10123, '1800000000.000000000', 'rows'), rows('10123'));
+  assert.equal(probeCommand(10005, '1800000000.000000000', 'rows'), rows('(10005|u0_a5)').replaceAll('10123', '10005'));
   // No clearing, buffer or property changes, and output goes nowhere but back or to /dev/null.
-  for (const filter of ['uid', 'pid']) {
+  for (const filter of ['uid', 'rows']) {
     assert.doesNotMatch(probeCommand(10123, '1800000000.1', filter), /logcat[^|\n]* -[cGgfrnp]\b|setprop|>(?!\/dev\/null|&[13])|\brm |\bam |\btouch |\bmkdir /);
     assert.doesNotMatch(logcatCommand(10123, '1800000000.1', 5, filter), /logcat[^|\n]* -[cGgfrnp]\b|setprop|>(?!\/dev\/null|&[134])|\brm |\bam |\btouch |\bmkdir /);
+    assert.doesNotMatch(probeCommand(10123, '1800000000.1', filter), /--pid/);
   }
-  for (const args of [['10123;x', '1800000000.125'], [10123, "1'; reboot"], [10123, '1800000000.125 -c'], [1, '1800000000.125'], [123456, '1800000000.125'], [10123, '1800000000.125', 'all']])
+  for (const args of [['10123;x', '1800000000.125'], [10123, "1'; reboot"], [10123, '1800000000.125 -c'], [1, '1800000000.125'], [123456, '1800000000.125'], [10123, '1800000000.125', 'all'],
+    [10123, '1800000000.125', 'pid'], ['1012a', '1800000000.125', 'rows']])
     assert.throws(() => probeCommand(...args));
 });
 test('probe output parses defensively: anything unexpected is unknown', () => {
@@ -406,7 +465,10 @@ test('probe output parses defensively: anything unexpected is unknown', () => {
   assert.deepEqual(parseProbe('1\nVERBOSE\n250\nx'), { propertyOk: true, running: true, phoneLines: 250, naveeLines: null });
   assert.deepEqual(parseProbe('1\nVERBOSE\nx\nx'), { ...unknown, propertyOk: true, running: true });
   assert.deepEqual(parseProbe('?\nVERBOSE\n9\n2'), { propertyOk: true, running: null, phoneLines: 9, naveeLines: 2 });
-  for (const junk of ['', 'VERBOSE', '1\nVERBOSE\n5', '1\nVERBOSE\n5\n2\nextra', null, undefined])
+  // Rows mode's two more counts: another uid's rows under NAVEE's tag, and rows there without a writer.
+  assert.deepEqual(parseProbe('1\nVERBOSE\n812\n37\n4\n0'), { propertyOk: true, running: true, phoneLines: 812, naveeLines: 37, foreign: 4, unattributed: 0 });
+  assert.deepEqual(parseProbe('1\nVERBOSE\nx\nx\nx\n2'), { ...unknown, propertyOk: true, running: true, foreign: null, unattributed: 2 });
+  for (const junk of ['', 'VERBOSE', '1\nVERBOSE\n5', '1\nVERBOSE\n5\n2\nextra', '1\nVERBOSE\n5\n2\n1\n0\nextra', null, undefined])
     assert.deepEqual(parseProbe(junk), unknown, String(junk));
   assert.deepEqual(parseProbe('sh: pidof\nV\u0000\n-1\n1e3'), { ...unknown });
   assert.deepEqual(parseProbe('4321 4400\nVERBOSE\n12345678901\n2'), { propertyOk: true, running: null, phoneLines: null, naveeLines: 2 });
@@ -420,22 +482,39 @@ test('capture health names a cause only from data, in order', () => {
   assert.equal(state({ ...fine, running: false }), 'not-running');
   assert.equal(state({ ...fine, phoneLines: 0, naveeLines: 0 }), 'phone-logs');
   assert.equal(state({ ...fine, propertyOk: false }), 'property');
-  // A failing logcat is an error, never "no lines": with --uid, the reader is refusing; with the pid
+  // A failing logcat is an error, never "no lines": with --uid, the reader is refusing; with the -v uid
   // fallback (--uid already refused), neither filter works, unless lines were kept before.
   assert.equal(state({ ...fine, logcat: 'failed' }), 'logcat-failed');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed' }), 'unsupported');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed', kept: 2 }), 'logcat-failed');
+  assert.equal(state({ ...fine, filter: 'rows', logcat: 'failed' }), 'unsupported');
+  assert.equal(state({ ...fine, filter: 'rows', logcat: 'failed', kept: 2 }), 'logcat-failed');
   assert.equal(state({ ...fine, logcat: 'failed', kept: 2 }), 'logcat-failed');
-  // Pid mode: another uid behind NAVEE's name; no NAVEE process; several are not a cause.
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid' }), 'impostor');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid', kept: 2 }), 'impostor');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'no-pid' }), 'not-running');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'no-pid', phoneLines: 0, naveeLines: 0 }), 'not-running');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'several' }), 'no-bluetooth');
+  // Rows mode: NAVEE's tag only ever from another uid; rows without a writer column can't be told apart.
+  const rows = { ...fine, filter: 'rows' };
+  assert.equal(state({ ...rows, foreign: 5 }), 'impostor');
+  assert.equal(state({ ...rows, foreign: 5, running: false, phoneLines: 0 }), 'impostor');
+  assert.equal(state({ ...rows, unattributed: 3 }), 'unsupported');
+  assert.equal(state({ ...rows, unattributed: 3, foreign: 5 }), 'unsupported');
+  // Before a poll has read anything (the first probe), there is nothing to say NAVEE's rows aren't arriving.
+  assert.equal(state({ ...rows, logcat: null, foreign: 5 }), 'no-bluetooth');
+  assert.equal(state({ ...rows, logcat: null, unattributed: 3, naveeLines: 0 }), 'navee-silent');
+  // Once NAVEE's own rows arrive (kept or not), another app's are no cause: the usual states follow.
+  assert.equal(state({ ...rows, foreign: 5, own: 2 }), 'no-bluetooth');
+  assert.equal(state({ ...rows, foreign: 5, own: 2, kept: 1 }), 'healthy');
+  assert.equal(state({ ...rows, unattributed: 3, own: 2, kept: 1 }), 'healthy');
+  assert.equal(state({ ...rows, foreign: 5, own: 2, naveeLines: 0 }), 'navee-silent');
+  // Nothing from any writer: the usual "nothing from NAVEE" path.
+  assert.equal(state({ ...rows, naveeLines: 0 }), 'navee-silent');
+  assert.equal(state({ ...rows, running: false }), 'not-running');
+  assert.equal(state(rows), 'no-bluetooth');
+  assert.equal(state({ ...rows, kept: 3 }), 'healthy');
+  // The old pid-mode reports are no longer causes.
+  for (const logcat of ['no-pid', 'several', 'other-uid']) assert.equal(state({ ...rows, logcat }), 'no-bluetooth', logcat);
   // Order: the property, the reader, an impostor, then the phone's logger before NAVEE itself.
-  assert.equal(state({ ...fine, propertyOk: false, filter: 'pid', logcat: 'failed', phoneLines: 0 }), 'property');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'failed', running: false, phoneLines: 0, naveeLines: null }), 'unsupported');
-  assert.equal(state({ ...fine, filter: 'pid', logcat: 'other-uid', running: false, phoneLines: 0 }), 'impostor');
+  assert.equal(state({ ...fine, propertyOk: false, filter: 'rows', logcat: 'failed', phoneLines: 0 }), 'property');
+  assert.equal(state({ ...fine, propertyOk: false, filter: 'rows', foreign: 5 }), 'property');
+  assert.equal(state({ ...fine, filter: 'rows', logcat: 'failed', running: false, phoneLines: 0, naveeLines: null }), 'unsupported');
+  assert.equal(state({ ...rows, logcat: 'failed', foreign: 5 }), 'unsupported');
+  assert.equal(state({ ...rows, foreign: 5, running: false, phoneLines: 0, naveeLines: 0 }), 'impostor');
   assert.equal(state({ ...fine, running: false, phoneLines: 0, naveeLines: 0 }), 'not-running');
   assert.equal(state({ ...fine, running: false, kept: 3 }), 'not-running');
   // A NAVEE line counted after an empty all-apps read means the phone does log.
@@ -443,8 +522,9 @@ test('capture health names a cause only from data, in order', () => {
   // Kept rows prove lines arrive: a rotated buffer's zero counts never contradict them.
   assert.equal(state({ ...fine, phoneLines: 0, naveeLines: 0, kept: 1 }), 'healthy');
   assert.equal(state({ ...fine, naveeLines: 0, kept: 1 }), 'healthy');
-  assert.equal(captureHealth({ ...fine, filter: 'pid', logcat: 'other-uid' }).text, 'Another app is using NAVEE’s name, so nothing is recorded.');
-  assert.equal(captureHealth({ ...fine, filter: 'pid', logcat: 'failed' }).text, 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.');
+  assert.equal(captureHealth({ ...fine, filter: 'rows', foreign: 1 }).text, 'Another app is writing under NAVEE’s name; its lines are ignored.');
+  assert.equal(captureHealth({ ...fine, filter: 'rows', logcat: 'failed' }).text, 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.');
+  assert.equal(captureHealth({ ...fine, filter: 'rows', unattributed: 1 }).text, 'This phone’s log reader can’t pick out NAVEE’s lines, so nothing can be recorded on it yet.');
   assert.equal(captureHealth({ ...fine, logcat: 'failed' }).text, 'This phone’s log reader is refusing the request, so no NAVEE lines are arriving. Try recording again.');
   // Unknown facts (a failed probe) claim nothing.
   assert.equal(state({}), 'checking'); assert.equal(state(), 'checking');

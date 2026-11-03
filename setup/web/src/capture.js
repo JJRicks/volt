@@ -104,7 +104,7 @@ export class CaptureSession {
     const deadline = this.now() + 90_000;
     // Once per capture: --uid where logcat has it (Android 12+). Otherwise, or if the check fails, every
     // row is read with the uid that wrote it and only NAVEE's are kept, never by a pid that may be reused.
-    const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }), 'rows');
+    const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }));
     while (this.now() < deadline) {
       this.checkCancelled();
       const reply = logcatReply(await this.run(appLogcat(uid, filter, `-d -v epoch -t ${quote(stamp)} -e 'Send authData:' -s ${PACKAGE}:D '*:S'`),
