@@ -183,27 +183,28 @@ COMPOUND_OPPOSITE = {
 # "på") count only at the end of the text or before punctuation. Matched on normalized text.
 _STATE_END = "(?=\\s*(?:$|[.,;:!?)\\]]))"
 STATE_WORDS = {
-    "es": ("activad\\w*|activar|activa|activo|actívala|actívalo|encendid\\w*|encender|enciende|encienda|"
-           "habilitad\\w*|habilitar|habilita",
-           "desactivad\\w*|desactivar|desactiva|desactive|desactívala|desactívalo|apagad\\w*|apagar|apaga|apague|"
-           "deshabilitad\\w*|deshabilitar|deshabilita|inactiv\\w*|quitad\\w*|retirad\\w*"),
-    "pt": ("ativad\\w*|activad\\w*|ativar|activar|ative|active|ativa|activa|ativo|activo|ligad\\w*|ligar|ligue|"
+    "es": ("activad\\w*|activar\\w*|activa|activo|actívala|actívalo|encendid\\w*|encender\\w*|enciende|encienda|"
+           "habilitad\\w*|habilitar\\w*|habilita",
+           "desactivad\\w*|desactivar\\w*|desactiva|desactive|desactívala|desactívalo|apagad\\w*|apagar\\w*|apaga|apague|"
+           "deshabilitad\\w*|deshabilitar\\w*|deshabilita|inactiv\\w*|quitad\\w*|retirad\\w*"),
+    "pt": ("ativad\\w*|activad\\w*|ativar|activar|ative|active|ativa|activa|ativo|activo|ligad\\w*|ligar|ligue|ligá|ativá|activá|"
            "habilitad\\w*",
            "desativad\\w*|desactivad\\w*|desativar|desactivar|desative|desactive|desativa|desactiva|desligad\\w*|"
-           "desligar|desligue|desliga|inativ\\w*|inactiv\\w*|desabilitad\\w*|removid\\w*|retirad\\w*"),
+           "desligar|desligue|desliga|desligá|desativá|desactivá|inativ\\w*|inactiv\\w*|desabilitad\\w*|removid\\w*|retirad\\w*"),
     "fr": ("activé\\w*|activer|activez|active|actif|allumé\\w*|allumer|allumez",
            "désactivé\\w*|désactiver|désactivez|désactive|éteint\\w*|éteindre|éteignez|coupé\\w*|inactif|inactive|"
            "retiré\\w*|supprimé\\w*"),
-    "it": ("attivat\\w*|attivare|attiva|attivo|attivi|accesa|acceso|accesi|accese|accendi|accendere|abilitat\\w*",
-           "disattivat\\w*|disattivare|disattiva|disattivo|spenta|spento|spenti|spente|spegni|spegnere|"
+    "it": ("attivat\\w*|attivar\\w*|attiva|attivo|attivi|accesa|acceso|accesi|accese|accendi\\w*|accender\\w*|"
+           "abilitat\\w*",
+           "disattivat\\w*|disattivar\\w*|disattiva|disattivo|spenta|spento|spenti|spente|spegni\\w*|spegner\\w*|"
            "disabilitat\\w*|inattiv\\w*|rimoss\\w*"),
     "de": ("an" + _STATE_END + "|ein" + _STATE_END + "|eingeschaltet\\w*|einschalten|"
-           "aktiviert\\w*|aktivieren|aktiv\\w*",
-           "aus" + _STATE_END + "|ausgeschaltet\\w*|ausschalten|abgeschaltet\\w*|abschalten|deaktiviert\\w*|"
+           "einzuschalten|aktiviert\\w*|aktivieren|aktiv\\w*",
+           "aus" + _STATE_END + "|ausgeschaltet\\w*|ausschalten|auszuschalten|abgeschaltet\\w*|abschalten|abzuschalten|deaktiviert\\w*|"
            "deaktivieren|inaktiv\\w*|aufgehoben"),
     "nl": ("aan" + _STATE_END + "|in" + _STATE_END + "|ingeschakeld\\w*|inschakelen|aangezet|aanzetten|"
-           "geactiveerd\\w*|activeren|actief|actieve",
-           "uit" + _STATE_END + "|uitgeschakeld\\w*|uitschakelen|uitgezet|uitzetten|gedeactiveerd\\w*|"
+           "aan\\s+te\\s+zetten|in\\s+te\\s+schakelen|geactiveerd\\w*|activeren|actief|actieve",
+           "uit\\s+te\\s+(?:zetten|schakelen)|uit" + _STATE_END + "|uitgeschakeld\\w*|uitschakelen|uitgezet|uitzetten|gedeactiveerd\\w*|"
            "deactiveren|inactief|inactieve|opgeheven"),
     "pl": ("włączon\\w*|włącz|włączyć|włączcie|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
            "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|zdjęt\\w*|"
@@ -213,21 +214,40 @@ STATE_WORDS = {
            "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
            "inaktiverad\\w*|inaktiverat|inaktivera|avaktiverad\\w*|avaktiverat|avaktivera|inaktiv|inaktivt|"
            "hävd|hävt"),
-    "id": ("aktif|diaktifkan|aktifkan|mengaktifkan|menyala|nyala|nyalakan|dinyalakan|hidup|dihidupkan|hidupkan",
-           "nonaktif|dinonaktifkan|nonaktifkan|menonaktifkan|mati|dimatikan|matikan|mematikan|padam|dilepas|"
+    "id": ("aktif|diaktifkan|aktifkan(?:nya)?|mengaktifkan(?:nya)?|menyala|nyala|nyalakan(?:nya)?|"
+           "menyalakan(?:nya)?|dinyalakan|hidup|dihidupkan|hidupkan(?:nya)?",
+           "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
+           "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
 
 
+# A state word counts as the opposite state when one of the two words before it, in the same clause,
+# is a negation word: "nicht aktiv" and "tidak aktif" say off, "nicht ausgeschaltet" says on.
+_CLAUSE_BREAK = re.compile("[.,;:!?()\\[\\]–—]")
+_WORD = re.compile("[^\\W\\d_]+")
+
+
+def _negated(primary, head):
+    negation = NEGATION.get(primary, (set(), ()))[0]
+    clause = _CLAUSE_BREAK.split(head)[-1]
+    return any(w in negation for w in _WORD.findall(clause)[-2:])
+
+
 def state_words(primary, text):
-    """(on words, off words) found in a target text, for the languages in STATE_WORDS."""
+    """(on words, off words) found in a target text, for the languages in STATE_WORDS. A state word
+    right after a negation word ("nicht aktiv", "no desactivado") counts as the other state."""
     patterns = STATE_WORDS.get(primary)
     if not patterns:
         return None
     text = normalize(text)
-    return tuple([m.group(0) for m in p.finditer(text)] for p in patterns)
+    found = ([], [])
+    for side, p in enumerate(patterns):
+        for m in p.finditer(text):
+            found[1 - side if _negated(primary, text[:m.start()]) else side].append(m.group(0))
+    return found
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
 PROCLITICS = {"ar": "(?:[وف]?(?:لل|[بلك]?(?:ال)?))", "he": "(?:[ושהבלמכ]{0,3})"}
@@ -523,7 +543,15 @@ def _compound(primary, word):
     return re.escape(stem) + r"(?P<cx>[^\W\d_]*)"
 
 
-def term_found(primary, script, term, text, opposite=True, removal=True):
+def _loose(word, group=False):
+    """A pattern for one word of a target in any form: its first letters (all but the last three,
+    and at least four) at the start of a word, then any letters ("bloque" in "bloqueando", "trav"
+    in "travando", "zablok" in "zablokowaniem")."""
+    stem = word[:max(min(len(word), 4), len(word) - 3)]
+    return re.escape(stem) + ("(?P<cx>[^\\W\\d_]*)" if group else "[^\\W\\d_]*")
+
+
+def term_found(primary, script, term, text, opposite=True, removal=True, loose=False):
     """Whether a glossary target appears in a text, matched the way the language writes words.
 
     Spaced scripts: the target starts a word ("bloquear" is not inside "desbloquear"), and ends one
@@ -533,6 +561,9 @@ def term_found(primary, script, term, text, opposite=True, removal=True):
     words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND). A lock term in a
     compounding language (COMPOUNDING) may start a compound, unless the rest of the compound
     removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung").
+    With loose (the English has only an -s or -ing form of a lock verb: "Locking…"), each word of
+    the target matches in any form that starts like it (_loose), still at the start of a word and
+    still subject to the contexts above.
     """
     text, term = normalize(text), normalize(term)
     if primary == "el":
@@ -545,11 +576,13 @@ def term_found(primary, script, term, text, opposite=True, removal=True):
         pattern = body
     else:
         words = term.split()
-        parts = [_inflected(primary, p) for p in words]
-        if compound:
+        parts = [(_loose(p) if loose else _inflected(primary, p)) for p in words]
+        if loose:
+            parts[-1] = _loose(words[-1], group=compound)
+        elif compound:
             parts[-1] = _compound(primary, words[-1])
         body = r"\s+".join(parts)
-        end = "" if compound or primary in SUFFIXING or body.endswith("{0,4}") else r"(?![^\W_])"
+        end = "" if loose or compound or primary in SUFFIXING or body.endswith("{0,4}") else r"(?![^\W_])"
         pattern = r"(?<![^\W_])" + PROCLITICS.get(primary, "") + body + end
     contexts, around = [], []
     if opposite:

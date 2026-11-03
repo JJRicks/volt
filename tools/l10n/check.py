@@ -532,7 +532,7 @@ def _glossary(language, entry, reference, text, safety, q):
     hits = entry.get("glossary") or []
     names = [h["term"] for h in hits]
     for hit in hits:
-        if hit.get("dnt") or not translib.term_pattern(hit["term"]).search(reference):
+        if hit.get("dnt") or not translib.term_pattern(hit["term"], hit.get("safety") == "lock").search(reference):
             continue
         if translib.nested_in_longer(hit["term"], names, reference):
             continue  # "Lock" in "Lock duration": the longer term's translation is required
@@ -541,7 +541,10 @@ def _glossary(language, entry, reference, text, safety, q):
             continue
         lock = bool(LOCK_TERM.search(hit["term"]))
         removal = lock and not EN_REMOVAL.search(reference)
-        if not any(lexicon.term_found(primary, script, t, text, lock, removal) for t in targets):
+        # Only an -s or -ing form in the English ("before locking", "Unlocking…"): any form of the
+        # target counts ("bloqueando", "Blokowanie"), not just the listed ones.
+        loose = not translib.term_pattern(hit["term"]).search(reference)
+        if not any(lexicon.term_found(primary, script, t, text, lock, removal, loose) for t in targets):
             severity = ERROR if safety and hit.get("safety") else WARN
             out.append(finding("glossary", severity, "%r should be %s" % (
                 hit["term"], " or ".join(repr(t) for t in targets)), q))

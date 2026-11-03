@@ -576,7 +576,12 @@ the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmi
 dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
 list; and, in a safety key of a first-wave language, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
-alarma activado"; `lexicon.STATE_WORDS`).
+alarma activado"; `lexicon.STATE_WORDS`). A state word right after a negation word counts as the
+other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on). Lock and Unlock
+also match their English -s and -ing forms ("before locking", "This file unlocks your scooter",
+"Unlocking…"); there the target may take any form that starts like an approved one ("bloqueando",
+"Blokowanie", "zablokowaniem"), or the Locked or Unlocked target ("Wird gesperrt…"), still never
+inside the opposite term.
 
 Two rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
 duration", "Low" in "Low battery alert") is not required on its own. A one-word adjective whose id
@@ -590,7 +595,9 @@ Known gaps, by language family:
 
 - **Romance (es, pt, fr, it) and Germanic (de, nl, sv, nb, da)**: the removal and on/off state
   words are lists; an on or off said another way, or a target with both states' words, is left to
-  step 5. A lock compound is found only with the lock word first ("Rollersperre" is not), and the
+  step 5. The state of a whole sentence is one bag of words, so a long sentence that names one
+  state and turns another thing off must use a listed verb form (clitic forms such as "apagarla",
+  "spegnerlo", "desligá-lo", "mematikannya", "auszuschalten" and "uit te zetten" are listed). A lock compound is found only with the lock word first ("Rollersperre" is not), and the
   other terms match as whole words, so their compound forms go in the glossary. The removal words
   are common verbs, nouns and participles, with articles and one genitive ("del patinete") allowed
   between. A rarer verb, a longer gap, or the verb far from the lock word ("Quita ahora mismo el

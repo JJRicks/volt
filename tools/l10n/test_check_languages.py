@@ -565,6 +565,15 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("nl", "Lock: on", "Vergrendeling: uit"),
         ("sv", "Lock: on", "Lås: av"),
         ("id", "Lock: on", "Kunci: dinonaktifkan"),
+        # A negated state word is the other state: "not switched off" is on.
+        ("de", "Alarm sound off", "Alarmton nicht ausgeschaltet"),
+        ("es", "Alarm sound off", "Sonido de alarma no desactivado"),
+        ("id", "Alarm sound off", "Suara alarm tidak dimatikan"),
+        ("pl", "Alarm sound off", "Dźwięk alarmu nie wyłączony"),
+        ("fr", "Alarm sound off", "Son d'alarme non désactivé"),
+        ("it", "Lock: off", "Blocco: non disattivato"),
+        ("id", "Alarm sound on", "Suara alarm tidak aktif"),
+        ("es", "Alarm sound on", "Sonido de alarma sin activar"),
     )
     STATE_KEPT = (
         ("es", "Alarm sound on", "Sonido de alarma activado"),
@@ -581,7 +590,82 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("es", "Alarm not active", "Alarma no activa"),
         ("pl", "Lock and power down", "Zablokuj i wyłącz"),
         ("pl", "Alarm on", "Alarm włączony, tylko wyłącznie dźwięk"),
+        # "Not active" is off: the standard Inactive/Off wording, not an inversion.
+        ("id", "Alarm sound off", "Suara alarm tidak aktif"),
+        ("id", "Low battery alert inactive", "Peringatan baterai lemah tidak aktif"),
+        ("de", "Alarm sound off", "Alarmton nicht aktiv"),
+        ("nl", "Alarm sound off", "Alarmgeluid niet actief"),
+        ("sv", "Alarm sound off", "Larmljud inte aktivt"),
+        ("it", "Alarm sound off", "Suono di allarme non attivo"),
+        ("es", "Alarm sound off", "Sonido de alarma no activo"),
+        ("pt-BR", "Alarm sound off", "Som de alarme não ativado"),
+        ("fr", "Alarm sound off", "Son d'alarme non activé"),
+        ("fr", "Alarm sound off", "Le son d'alarme n'est pas activé"),
     )
+    # Locked here is the state, and the turn-off verb takes a clitic, -nya or a zu/te infinitive.
+    TURN_IT_OFF = "The alarm sounds if the scooter moves while locked. Tap Stop to turn it off."
+    TURN_IT_OFF_KEPT = (
+        ("es", "La alarma suena si el patinete se mueve con el bloqueo activado. Toca Detener para apagarla."),
+        ("it", "L'allarme suona se il monopattino si muove con il blocco attivo. Tocca Stop per spegnerlo."),
+        ("pt-BR", "O alarme toca se o patinete se mover com a trava ativada. Toque em Parar para desligá-lo."),
+        ("nl", "Het alarm gaat af als de scooter beweegt terwijl de vergrendeling actief is. Tik op Stop om "
+               "het uit te zetten."),
+        ("id", "Alarm berbunyi jika skuter bergerak saat kunci aktif. Ketuk Berhenti untuk mematikannya."),
+        ("de", "Der Alarm ertönt, wenn der Roller bei aktivierter Sperre bewegt wird. Tippe auf Stopp, um ihn "
+               "auszuschalten."),
+    )
+
+    def test_turn_off_clitic_and_infinitive_forms(self):
+        for tag, text in self.TURN_IT_OFF_KEPT:
+            self.assertNotIn("polarity", _real_errors(tag, self.TURN_IT_OFF, text, "alarm"),
+                             (tag, text, _real_findings(tag, self.TURN_IT_OFF, text, "alarm")))
+        self.assertEqual(lexicon.state_words("es", "para apagarla")[1], ["apagarla"])
+        self.assertEqual(lexicon.state_words("es", "para activarla")[0], ["activarla"])
+        self.assertEqual(lexicon.state_words("es", "para desactivarla"), ([], ["desactivarla"]))
+
+    LOCK_VERB_FORMS = (
+        # (tag, English, correct, inverted)
+        ("es", "Resolve scooter warning %1$s before locking.",
+         "Resuelve la advertencia %1$s del patinete antes de bloquearlo.",
+         "Resuelve la advertencia %1$s del patinete antes de desbloquearlo."),
+        ("de", "Resolve scooter warning %1$s before locking.", "Behebe die Rollerwarnung %1$s vor dem Sperren.",
+         "Behebe die Rollerwarnung %1$s vor dem Entsperren."),
+        ("fr", "Resolve scooter warning %1$s before locking.",
+         "Résolvez l'avertissement %1$s de la trottinette avant de la verrouiller.",
+         "Résolvez l'avertissement %1$s de la trottinette avant de la déverrouiller."),
+        ("pl", "Resolve scooter warning %1$s before locking.", "Usuń ostrzeżenie hulajnogi %1$s przed zablokowaniem.",
+         "Usuń ostrzeżenie hulajnogi %1$s przed odblokowaniem."),
+        ("es", "This file unlocks your scooter. Keep it private.",
+         "Este archivo desbloquea tu patinete. Mantenlo en privado.",
+         "Este archivo bloquea tu patinete. Mantenlo en privado."),
+        ("de", "This file unlocks your scooter. Keep it private.", "Diese Datei entsperrt deinen Roller. Halte sie privat.",
+         "Diese Datei sperrt deinen Roller. Halte sie privat."),
+        ("pl", "This file unlocks your scooter. Keep it private.",
+         "Ten plik odblokowuje twoją hulajnogę. Zachowaj go w tajemnicy.",
+         "Ten plik blokuje twoją hulajnogę. Zachowaj go w tajemnicy."),
+        ("es", "Locking…", "Bloqueando…", "Desbloqueando…"),
+        ("de", "Locking…", "Wird gesperrt…", "Wird entsperrt…"),
+        ("pt-BR", "Locking…", "Travando…", "Destravando…"),
+        ("pl", "Locking…", "Blokowanie…", "Odblokowywanie…"),
+        ("sv", "Locking…", "Låser…", "Låser upp…"),
+        ("id", "Locking…", "Mengunci…", "Membuka kunci…"),
+        ("de", "Unlocking…", "Wird entsperrt…", "Wird gesperrt…"),
+        ("it", "Unlocking…", "Sblocco in corso…", "Blocco in corso…"),
+        ("nl", "Unlocking…", "Ontgrendelen…", "Vergrendelen…"),
+        ("sv", "Unlocking…", "Låser upp…", "Låser…"),
+        ("fr", "Unlocking…", "Déverrouillage…", "Verrouillage…"),
+    )
+
+    def test_lock_verb_forms_are_glossary_hits(self):
+        es = _real_terms("es")
+        self.assertEqual([t.id for t in translib.glossary_hits(es, "Unlocking…")], ["unlock"])
+        self.assertEqual([t.id for t in translib.glossary_hits(es, "before locking")], ["lock"])
+        self.assertEqual([t.id for t in translib.glossary_hits(es, "This file unlocks it")], ["unlock"])
+        # Locked and Unlocked keep their own rows; Lock is not found inside them.
+        self.assertEqual([t.id for t in translib.glossary_hits(es, "Locked")], ["locked"])
+        for tag, english, good, bad in self.LOCK_VERB_FORMS:
+            self.assertEqual(_real_errors(tag, english, good), [], (tag, good, _real_findings(tag, english, good)))
+            self.assertIn("glossary", _real_errors(tag, english, bad), (tag, bad))
 
     def test_on_off_state_inversion_fails_a_safety_key(self):
         for tag, english, text in self.STATE_INVERTED:

@@ -254,10 +254,25 @@ def load_glossary(paths, tag):
     return terms
 
 
-def term_pattern(term):
-    """A case-insensitive whole-word pattern for a glossary term."""
+def term_pattern(term, inflect=False):
+    """A case-insensitive whole-word pattern for a glossary term. With inflect (a lock verb, see
+    inflects), the English -s and -ing forms match too ("locks", "Unlocking…"); the -ed forms are
+    rows of their own (Locked, Unlocked)."""
     body = re.escape(term).replace("\\ ", r"\s+")
+    if inflect:
+        body += "(?:s|ing)?"
     return re.compile(r"(?<![^\W_])" + body + r"(?![^\W_])", re.IGNORECASE | re.UNICODE)
+
+
+def inflects(term):
+    """Whether a glossary term matches its English -s and -ing forms: the one-word lock verbs (Lock,
+    Unlock), so "before locking" and "This file unlocks your scooter" still require their targets."""
+    return term.pos == "verb" and term.safety == "lock" and len(term.term.split()) == 1
+
+
+def _participle(term, terms):
+    """The row for a lock verb's -ed form (Locked for Lock), or None."""
+    return next((t for t in terms if t.term.lower() == term.term.lower() + "ed"), None)
 
 
 def nested_in_longer(term, others, text):
@@ -297,13 +312,23 @@ def value_out_of_context(term, terms, text):
 
 
 def glossary_hits(terms, text):
-    """The terms a text uses: whole-word matches, without a term found only inside a longer one
-    (nested_in_longer) or a setting value used in another sense (value_out_of_context)."""
+    """The terms a text uses: whole-word matches (lock verbs also in their -s and -ing forms, see
+    inflects), without a term found only inside a longer one (nested_in_longer) or a setting value
+    used in another sense (value_out_of_context)."""
     terms = list(terms)
-    found = [t for t in terms if term_pattern(t.term).search(text)]
+    found = [t for t in terms if term_pattern(t.term, inflects(t)).search(text)]
     names = [t.term for t in found]
-    return [t for t in found if not nested_in_longer(t.term, names, text) and
+    hits = [t for t in found if not nested_in_longer(t.term, names, text) and
             not value_out_of_context(t, terms, text)]
+    out = []
+    for t in hits:
+        participle = _participle(t, terms) if inflects(t) else None
+        if t.targets and participle and participle.targets and not term_pattern(t.term).search(text):
+            # Only an -s or -ing form: the -ed row's targets also translate it ("Locking…" as
+            # "Wird gesperrt…").
+            t = t._replace(targets=t.targets + [x for x in participle.targets if x not in t.targets])
+        out.append(t)
+    return out
 
 
 # ---------------------------------------------------------------------------
