@@ -1,0 +1,476 @@
+"""The council runner, with mocked HTTP only: no test reaches the network or reads a keys file."""
+
+import contextlib
+import io
+import json
+import os
+import sys
+import unittest
+import unittest.mock
+import urllib.error
+import urllib.request
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import council  # noqa: E402
+import council_fixture as cf  # noqa: E402
+import fontmetrics  # noqa: E402
+import pack  # noqa: E402
+import providers  # noqa: E402
+import translib  # noqa: E402
+
+OPENAI_KEY = "sk-test-OPENAI-SECRET-0123456789abcdef"
+GEMINI_KEY = "AIzaTEST-GEMINI-SECRET-0123456789abcdef"
+OPENAI_MODELS = ["gpt-4o", "gpt-4o-mini", "gpt-5", "gpt-5.1", "gpt-5.1-mini", "gpt-5.1-realtime",
+                 "gpt-6-audio-preview", "text-embedding-3-large"]
+GOOGLE_MODELS = ["gemini-2.5-pro", "gemini-3-pro", "gemini-3-flash", "gemini-3-pro-preview-tts"]
+BACK = {
+    "common_lock_waiting": "Waiting for the scooter",
+    "common_lock_waiting_short": "Waiting",
+    "common_disclaimer": "Volt is not affiliated with NAVEE",
+    "common_alarm_on": "Alarm activated",
+}
+
+
+def env():
+    return unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": OPENAI_KEY, "GEMINI_API_KEY": GEMINI_KEY})
+
+
+class Base(unittest.TestCase):
+    def setUp(self):
+        self.repo = cf.FixtureRepo()
+        self.paths = self.repo.paths
+        measurer = fontmetrics.Measurer(self.paths.font(), use_java=False)
+        for area in ("common", "ble"):
+            pack.write_pack(self.paths, pack.build_pack(self.paths, "es", area, measurer))
+        self.network = cf.NoNetwork().__enter__()
+        self.env = env()
+        self.env.start()
+        self.out, self.err = io.StringIO(), io.StringIO()
+
+    def tearDown(self):
+        self.env.stop()
+        self.network.__exit__(None, None, None)
+        self.repo.close()
+
+    def transport(self, **replies):
+        fake = cf.FakeTransport(OPENAI_MODELS, GOOGLE_MODELS, replies)
+        previous = providers.set_transport(fake, sleep=lambda seconds: None)
+        self.addCleanup(providers.set_transport, previous)
+        return fake
+
+    def main(self, *args):
+        with contextlib.redirect_stdout(self.out), contextlib.redirect_stderr(self.err):
+            return council.main(["--root", self.repo.root, "--no-java"] + list(args))
+
+    def assert_no_secret(self, *texts):
+        for text in texts + (self.out.getvalue(), self.err.getvalue(), self.repo.tree_text()):
+            self.assertNotIn(OPENAI_KEY, text)
+            self.assertNotIn(GEMINI_KEY, text)
+            self.assertNotIn("SECRET", text)
+
+    def claude_reply(self, texts, name="opus-context", model="claude-opus-5-5", redraft=False):
+        path = self.repo.path("reply-%s.json" % name)
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump({"strings": texts}, handle, ensure_ascii=False)
+        args = ["import-claude", "--tag", "es", "--area", "common", "--name", name, "--model", model, "--from", path]
+        return self.main(*(args + (["--redraft"] if redraft else [])))
+
+    def judge(self, rows):
+        sha = dict((e["key"], e["source_sha1"]) for e in pack.load_pack(self.paths, "es", "common")["entries"])
+        lines = []
+        for row in rows:
+            row = dict(row)
+            row.setdefault("source_sha1", sha[row["key"]])
+            row.setdefault("model", "claude-opus-5-5")
+            row.setdefault("reason", "fits the screen")
+            lines.append(json.dumps(row, ensure_ascii=False))
+        self.repo.write("l10n/work/es/common/judge.jsonl", "\n".join(lines) + "\n")
+
+    def decisions(self, area="common"):
+        return dict((r["key"], r) for r in translib.read_jsonl(self.paths.decisions("es", area)))
+
+
+class ModelChoiceTest(Base):
+    def test_choose_from_the_model_list(self):
+        fake = self.transport()
+        openai = providers.list_models("openai")
+        google = providers.list_models("google")
+        self.assertNotIn("text-embedding-9", google)
+        self.assertEqual(providers.choose_model("openai", "draft", openai), "gpt-5.1")
+        self.assertEqual(providers.choose_model("openai", "backtranslate", openai), "gpt-5.1-mini")
+        self.assertEqual(providers.choose_model("openai", "backtranslate", openai, avoid={"gpt-5.1-mini"}), "gpt-4o-mini")
+        self.assertEqual(providers.choose_model("google", "draft", google), "gemini-3-pro")
+        self.assertEqual(providers.choose_model("google", "backtranslate", google), "gemini-3-flash")
+        self.assertEqual(providers.choose_model("openai", "draft", openai, prefer=[r"^gpt-4o$"]), "gpt-4o")
+        with self.assertRaises(providers.ProviderError):
+            providers.choose_model("openai", "draft", ["gpt-5.1-realtime", "whisper-1"])
+        # Each provider's key goes only in its own header, never in a URL.
+        for method, url, headers, _ in fake.requests:
+            self.assertNotIn(OPENAI_KEY, url)
+            self.assertNotIn(GEMINI_KEY, url)
+            if "openai" in url:
+                self.assertEqual(headers["Authorization"], "Bearer " + OPENAI_KEY)
+                self.assertNotIn("x-goog-api-key", headers)
+            else:
+                self.assertEqual(headers["x-goog-api-key"], GEMINI_KEY)
+                self.assertNotIn("Authorization", headers)
+        self.assertEqual(self.main("models", "openai"), 0)
+        self.assertIn("draft: gpt-5.1", self.out.getvalue())
+        self.assert_no_secret()
+
+
+class SecretHandlingTest(Base):
+    def test_http_error_echoing_the_key_is_redacted(self):
+        fake = self.transport()
+        fake.errors["/models"] = (401, json.dumps({"error": {"message": "Incorrect API key provided: %s. Sent "
+                                                             "Authorization: Bearer %s, x-goog-api-key: %s" % (
+                                                                 OPENAI_KEY, OPENAI_KEY, GEMINI_KEY)}}).encode())
+        self.assertEqual(self.main("models", "openai"), 2)
+        self.assertIn("HTTP 401", self.err.getvalue())
+        self.assertIn("[redacted]", self.err.getvalue())
+        self.assert_no_secret()
+
+    def test_transport_exception_is_reduced(self):
+        class Exploding(object):
+            def send(self, method, url, headers, body):
+                raise RuntimeError("failed with headers %r" % headers)
+        previous = providers.set_transport(Exploding())
+        self.addCleanup(providers.set_transport, previous)
+        with self.assertRaises(providers.ProviderError) as caught:
+            providers.list_models("google")
+        self.assertNotIn(GEMINI_KEY, str(caught.exception))
+        self.assertIsNone(caught.exception.__cause__)
+        self.assertTrue(caught.exception.__suppress_context__)
+
+    def test_urllib_transport_errors(self):
+        transport = providers.UrllibTransport()
+
+        def refuse(request, timeout=None):
+            raise urllib.error.URLError("proxy rejected key=%s" % OPENAI_KEY)
+        with unittest.mock.patch.object(urllib.request, "urlopen", refuse):
+            with self.assertRaises(providers.ProviderError) as caught:
+                transport.send("GET", "https://api.openai.com/v1/models", {"Authorization": "Bearer " + OPENAI_KEY}, None)
+        self.assertIn("URLError", str(caught.exception))
+        self.assertNotIn(OPENAI_KEY, str(caught.exception))
+
+        def http_error(request, timeout=None):
+            raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, io.BytesIO(b'{"error": "denied"}'))
+        with unittest.mock.patch.object(urllib.request, "urlopen", http_error):
+            status, data = transport.send("GET", "https://api.openai.com/v1/models", {}, None)
+        self.assertEqual((status, data), (403, b'{"error": "denied"}'))
+
+    def test_missing_key_names_the_variable_only(self):
+        self.transport()
+        with unittest.mock.patch.dict(os.environ, {"GEMINI_API_KEY": ""}):
+            self.assertEqual(self.main("models", "google"), 2)
+        self.assertIn("GEMINI_API_KEY is not set", self.err.getvalue())
+
+    def test_redact(self):
+        text = "Bearer abc.def x-goog-api-key: AIzaSyD-0123456789012345678901 key=hunter2 sk-proj-abcdefghij"
+        cleaned = providers.redact(text)
+        for secret in ("abc.def", "AIzaSyD", "hunter2", "sk-proj-abcdefghij"):
+            self.assertNotIn(secret, cleaned)
+        self.assertEqual(providers.redact("model gpt-5.1 is fine"), "model gpt-5.1 is fine")
+
+    def test_tools_never_name_the_keys_file(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        for name in ("providers.py", "council.py", "pack.py", "check.py", "merge.py", "translib.py"):
+            with open(os.path.join(here, name), encoding="utf-8") as handle:
+                source = handle.read()
+            self.assertNotIn("keys.env", source, name)
+            self.assertNotIn("volt-council", source, name)
+            self.assertNotIn("print(os.environ", source, name)
+
+
+class DraftingTest(Base):
+    def test_api_drafts_record_exact_models(self):
+        fake = self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common", "--style", "glossary-first"), 0)
+        openai = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/openai.xml"))
+        google = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/google.xml"))
+        self.assertEqual((openai.model, openai.model_reported), ("gpt-5.1", "gpt-5.1-2026-10-01"))
+        self.assertEqual((google.model, google.model_reported, google.prompt), ("gemini-3-pro", "gemini-3-pro-001",
+                                                                                "glossary-first"))
+        self.assertEqual(openai.entries["common_scooters_skipped"].items["many"], "%1$d de patinetes omitidos")
+        self.assertEqual(len(openai.entries), len(cf.SPANISH))
+        posts = [(url, payload) for method, url, _, payload in fake.requests if method == "POST"]
+        self.assertEqual(len(posts), 2)
+        responses = [p for u, p in posts if u.endswith("/responses")][0]
+        self.assertEqual(responses["text"], {"format": {"type": "json_object"}})
+        self.assertFalse(responses["store"])
+        self.assertIn("tú", responses["instructions"])
+        self.assertIn("Bloq.", responses["instructions"])  # the style guide
+        # Only UI strings and their context reach a model: no source sha, status or pack internals.
+        sent = json.loads(responses["input"][responses["input"].index("["):])
+        self.assertEqual(set().union(*[set(e) for e in sent]) - set(council.MODEL_FIELDS), set())
+        self.assertNotIn("volt-internal-id", responses["input"])
+        runs = translib.read_jsonl(self.repo.path("l10n/work/es/common/runs.jsonl"))
+        self.assertEqual([(r["provider"], r["model"], r["model_reported"]) for r in runs],
+                         [("openai", "gpt-5.1", "gpt-5.1-2026-10-01"), ("google", "gemini-3-pro", "gemini-3-pro-001")])
+        self.assert_no_secret()
+
+    def test_only_changed_strings_are_drafted_with_their_ladder(self):
+        def current(key, english, text):
+            return '    <!-- src:%s -->\n    <string name="%s">%s</string>\n' % (
+                translib.source_sha1("string", {"other": english}), key, text)
+        self.repo.write("res/values-es/strings_common.xml", "<resources>\n" + "".join([
+            current("common_cancel", "Cancel", "Cancelar"),
+            current("common_lock_waiting", "Waiting for the scooter", "Esperando al patinete"),
+            current("common_lock_waiting_short", "Waiting (old English)", "Esperando")]) + "</resources>\n")
+        measurer = fontmetrics.Measurer(self.paths.font(), use_java=False)
+        p = pack.build_pack(self.paths, "es", "common", measurer)
+        keys = [e["key"] for e in council.needed_entries(p)]
+        self.assertNotIn("common_cancel", keys)
+        self.assertIn("common_lock_waiting_short", keys)  # stale
+        self.assertIn("common_lock_waiting", keys)        # current, but its rung changed
+        self.assertIn("common_cancel", [e["key"] for e in council.needed_entries(p, include_current=True)])
+
+    def test_unknown_model_is_refused(self):
+        self.transport()
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-9"), 2)
+        self.assertIn("not in the openai model list", self.err.getvalue())
+
+    def test_redraft_sends_only_failed_keys_once(self):
+        texts = dict(cf.SPANISH, common_move_widget="Mover %1$s")
+        fake = self.transport(**{"gpt-5.1": cf.drafting_reply(texts)})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
+        fake.replies["gpt-5.1"] = cf.drafting_reply(cf.SPANISH)
+        self.assertEqual(self.main("redraft", "openai", "--tag", "es", "--area", "common"), 0)
+        last = fake.requests[-1][3]
+        self.assertEqual(cf.requested_keys(last["input"]), ["common_move_widget"])
+        self.assertIn("failed_checks", last["input"])
+        draft = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/openai.xml"))
+        self.assertEqual(draft.entries["common_move_widget"].attempt, 2)
+        self.assertEqual(draft.entries["common_cancel"].attempt, 1)
+        self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 0)
+        # A failed second attempt is not sent back again.
+        self.repo.write("l10n/work/es/common/checks.jsonl", json.dumps(
+            {"draft": "openai", "key": "common_cancel", "attempt": 2, "ok": False, "findings": []}) + "\n")
+        self.assertEqual(self.main("redraft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertIn("no failed first attempts", self.out.getvalue())
+
+
+class ClaudeImportTest(Base):
+    def test_prompt_and_json_import(self):
+        self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--name", "opus-context",
+                                   "--style", "context-first"), 0)
+        prompt = self.repo.read("l10n/work/es/common/prompts/claude-opus-context.md")
+        self.assertIn("import-claude --tag es --area common --name opus-context", prompt)
+        self.assertIn("Work alone", prompt)
+        self.assertIn("common_lock_waiting_short", prompt)
+        self.assertNotIn("source_sha1", prompt)
+        self.assertEqual(self.claude_reply(dict(cf.SPANISH)), 0)
+        draft = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/claude-opus-context.xml"))
+        self.assertEqual((draft.provider, draft.model), ("claude", "claude-opus-5-5"))
+        self.assertEqual(draft.entries["common_dont"].items["other"], "No borres el almacenamiento.")
+
+    def test_agent_written_xml_is_validated(self):
+        self.repo.write("l10n/work/es/common/drafts/claude-haiku.xml",
+                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" '
+                        'volt:model="claude-haiku-5">\n  <string name="common_cancel">Cancelar</string>\n'
+                        '  <string name="common_unknown">x</string>\n'
+                        '  <string name="common_scooters_skipped">%1$d patinetes</string>\n</resources>\n')
+        self.assertEqual(self.main("import-claude", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("common_unknown is not in the pack", self.out.getvalue())
+        self.assertIn("common_scooters_skipped: a string where English has a plural", self.out.getvalue())
+        self.repo.write("l10n/work/es/common/drafts/claude-haiku.xml",
+                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:model="gpt-5.1">\n'
+                        '  <string name="common_cancel">Cancelar</string>\n</resources>\n')
+        self.assertEqual(self.main("import-claude", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("not a Claude model id", self.out.getvalue())
+
+
+class CouncilFlowTest(Base):
+    """Three providers draft; the checks, back-translation, judge and decisions follow plan 7.2."""
+
+    def draft_all(self, google_overrides=None, claude_overrides=None, skip_claude=False):
+        google_texts = dict(cf.SPANISH, common_move_widget="Mueve %1$s al hueco %2$d")
+        google_texts.update(google_overrides or {})
+        fake = self.transport(**{
+            "gpt-5.1": cf.drafting_reply(cf.SPANISH),
+            "gemini-3-pro": cf.drafting_reply(google_texts),
+            "gemini-3-flash": lambda prompt: {"strings": dict((k, BACK[k]) for k in cf.requested_keys(prompt))}})
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
+        self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
+        if not skip_claude:
+            claude = dict(cf.SPANISH, common_not_reported="Sin informar")
+            claude.update(claude_overrides or {})
+            self.assertEqual(self.claude_reply(claude), 0)
+        return fake
+
+    def test_full_flow(self):
+        fake = self.draft_all()
+        self.main("check", "--tag", "es", "--area", "common")
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+        # The back-translator is a model that drafted nothing.
+        backs = translib.read_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"))
+        self.assertEqual(sorted(r["key"] for r in backs), sorted(BACK))
+        self.assertEqual(set(r["model"] for r in backs), {"gemini-3-flash"})
+        back_prompt = fake.requests[-1][3]["contents"][0]["parts"][0]["text"]
+        self.assertNotIn("Waiting for the scooter", back_prompt)  # it never sees the English
+        # Without the judge, the run is incomplete and nothing is written.
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("waiting for", self.out.getvalue())
+        self.assertFalse(os.path.exists(self.paths.decisions("es", "common")))
+
+        self.assertEqual(self.main("judge-requests", "--tag", "es", "--area", "common"), 0)
+        requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path("l10n/work/es/common/judge-requests.jsonl")))
+        self.assertEqual(requests["common_move_widget"]["reason"], "disagreement")
+        self.assertEqual(requests["common_not_reported"]["reason"], "disagreement")
+        self.assertEqual(requests["common_lock_waiting"]["reason"], "safety-confirmation")
+        self.assertEqual(requests["common_lock_waiting_short"]["safety"], ["lock"])  # inherited from its full key
+        self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm activated")
+        self.assertNotIn("common_cancel", requests)
+        self.assertIn("judge.jsonl", self.repo.read("l10n/work/es/common/prompts/judge.md"))
+
+        yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
+        self.judge([
+            {"key": "common_move_widget", "verdict": "pick", "pick": "openai"},
+            {"key": "common_not_reported", "verdict": "merge", "text": "No informado"},
+            {"key": "common_lock_waiting", "verdict": "confirm", "confirm": yes, "backtranslation_meaning_kept": True},
+            {"key": "common_lock_waiting_short", "verdict": "confirm", "confirm": yes,
+             "backtranslation_meaning_kept": True},
+            {"key": "common_alarm_on", "verdict": "confirm", "confirm": dict(yes, on_off_never_always_not_inverted=False),
+             "backtranslation_meaning_kept": True},
+            {"key": "common_disclaimer", "verdict": "fallback", "reason": "softened"},
+        ])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        d = self.decisions()
+        self.assertEqual(d["common_cancel"]["outcome"], "agreed")
+        self.assertEqual(d["common_cancel"]["text"], "Cancelar")
+        self.assertEqual(d["common_move_widget"]["outcome"], "judged")
+        self.assertEqual(d["common_move_widget"]["text"], "Mover %1$s a la posición %2$d")
+        self.assertEqual(d["common_not_reported"]["outcome"], "judged")
+        self.assertEqual(d["common_lock_waiting"]["outcome"], "safety-agreed")
+        self.assertEqual(d["common_lock_waiting"]["models"], {
+            "drafters": ["claude-opus-5-5", "gemini-3-pro", "gpt-5.1"], "judge": "claude-opus-5-5",
+            "backtranslator": "gemini-3-flash"})
+        self.assertEqual(d["common_lock_waiting"]["backtranslation"]["back"], "Waiting for the scooter")
+        self.assertEqual(d["common_alarm_on"]["outcome"], "fallback-english")
+        self.assertIn("on_off_never_always_not_inverted", d["common_alarm_on"]["reason"])
+        self.assertEqual(d["common_disclaimer"]["outcome"], "fallback-english")
+        self.assertEqual(d["common_scooters_skipped"]["text"]["many"], "%1$d de patinetes omitidos")
+        alternatives = d["common_move_widget"]["alternatives"]
+        self.assertEqual(sorted(a["draft"] for a in alternatives), ["claude-opus-context", "google", "openai"])
+        self.assertEqual([a["model_reported"] for a in alternatives if a["draft"] == "openai"], ["gpt-5.1-2026-10-01"])
+        for row in d.values():
+            self.assertEqual(row["format"], council.DECISION_FORMAT)
+            self.assertEqual(len(row["source_sha1"]), 40)
+        self.assert_no_secret()
+
+    def test_safety_needs_every_drafter_to_agree(self):
+        self.draft_all(google_overrides={"common_lock_waiting": "Esperando el patinete"})
+        self.main("backtranslate", "google", "--tag", "es", "--area", "common")
+        yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
+        self.judge([{"key": k, "verdict": "confirm", "confirm": yes, "backtranslation_meaning_kept": True}
+                    for k in ("common_lock_waiting_short", "common_alarm_on", "common_disclaimer")] +
+                   [{"key": "common_move_widget", "verdict": "pick", "pick": "google"},
+                    {"key": "common_not_reported", "verdict": "pick", "pick": "openai"}])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        d = self.decisions()
+        self.assertEqual(d["common_lock_waiting"]["outcome"], "fallback-english")
+        self.assertIn("disagree", d["common_lock_waiting"]["reason"])
+        # Its short rung was confirmed, but a half-translated ladder falls back as a whole.
+        self.assertEqual(d["common_lock_waiting_short"]["outcome"], "fallback-english")
+        self.assertIn("ladder group incomplete", d["common_lock_waiting_short"]["reason"])
+        self.assertEqual(d["common_alarm_on"]["outcome"], "safety-agreed")
+
+    def test_safety_needs_all_three_providers(self):
+        self.draft_all(skip_claude=True)
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()
+        self.assertEqual(d["common_alarm_on"]["outcome"], "fallback-english")
+        self.assertIn("no draft from claude", d["common_alarm_on"]["reason"])
+        # Two agreeing drafts are enough for an ordinary key.
+        self.assertEqual(d["common_cancel"]["outcome"], "agreed")
+        # --final lets a key still waiting for the judge fall back, and says so.
+        self.assertIn("final run", d["common_move_widget"]["reason"])
+
+    def test_backtranslator_must_not_have_drafted(self):
+        self.draft_all()
+        path = self.repo.path("back.json")
+        with open(path, "w", encoding="utf-8") as handle:
+            json.dump({"strings": BACK}, handle)
+        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
+                                   "--model", "claude-opus-5-5"), 2)
+        self.assertIn("model that drafted nothing", self.err.getvalue())
+        self.assertEqual(self.main("import-backtranslation", "--tag", "es", "--area", "common", "--from", path,
+                                   "--model", "claude-haiku-5"), 0)
+        rows = translib.read_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"))
+        self.assertEqual(set(r["model"] for r in rows), {"claude-haiku-5"})
+        # A back-translation by a drafter that is already on file does not count.
+        self.repo.write("l10n/work/es/common/backtranslation.jsonl", "".join(
+            json.dumps(dict(r, model="gpt-5.1")) + "\n" for r in rows))
+        yes = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
+        self.judge([{"key": "common_alarm_on", "verdict": "confirm", "confirm": yes,
+                     "backtranslation_meaning_kept": True}])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertIn("also drafted", self.decisions()["common_alarm_on"]["reason"])
+
+    def test_judge_merge_is_checked_again(self):
+        self.draft_all()
+        self.judge([{"key": "common_move_widget", "verdict": "merge", "text": "Mover %1$s"},
+                    {"key": "common_not_reported", "verdict": "pick", "pick": "nobody"}])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        d = self.decisions()
+        self.assertEqual(d["common_move_widget"]["outcome"], "fallback-english")
+        self.assertIn("failed the checks", d["common_move_widget"]["reason"])
+        self.assertEqual(d["common_not_reported"]["outcome"], "fallback-english")
+
+    def test_stale_judge_rulings_are_ignored(self):
+        self.draft_all()
+        self.judge([{"key": "common_move_widget", "verdict": "pick", "pick": "openai", "source_sha1": "0" * 40}])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("common_move_widget: waiting for a judge ruling", self.out.getvalue())
+
+
+class BetaBarTest(Base):
+    def write_bulk(self, count):
+        lines = ['<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">']
+        lines += ['    <string name="bulk_item_%d">Item number</string>' % i for i in range(count)]
+        lines.append("</resources>")
+        self.repo.write("res/values/strings_bulk.xml", "\n".join(lines) + "\n")
+
+    def decide_all(self, fallback=(), area_skip=()):
+        sources, _ = translib.load_source(self.paths)
+        for area, rows in sources.items():
+            if area in area_skip:
+                continue
+            out = []
+            for s in rows:
+                if not s.translatable:
+                    continue
+                outcome = "fallback-english" if s.key in fallback else "agreed"
+                out.append({"key": s.key, "source_sha1": translib.source_sha1(s.kind, s.items), "outcome": outcome,
+                            "text": None if outcome != "agreed" else translib.text_value(s.kind, s.items)})
+            translib.write_jsonl(self.paths.decisions("es", area), out)
+
+    def test_two_percent_and_no_lock_or_alarm(self):
+        self.write_bulk(87)  # 100 translatable keys with common (11) and ble (2)
+        self.decide_all(fallback=("bulk_item_1", "bulk_item_2"))
+        passes, lines = council.beta_report(self.paths, "es")
+        self.assertTrue(passes, lines)
+        self.assertIn("2 of 100 keys", lines[0])
+        self.decide_all(fallback=("bulk_item_1", "bulk_item_2", "bulk_item_3"))
+        self.assertFalse(council.beta_report(self.paths, "es")[0])
+        # One lock key (a rung inherits its full key's safety) blocks the beta on its own.
+        self.decide_all(fallback=("common_lock_waiting_short",))
+        passes, lines = council.beta_report(self.paths, "es")
+        self.assertFalse(passes)
+        self.assertIn("common_lock_waiting_short (lock)", "\n".join(lines))
+        self.decide_all(fallback=("common_alarm_on",))
+        self.assertFalse(council.beta_report(self.paths, "es")[0])
+        # A decision made for older English counts as a fallback.
+        self.decide_all()
+        self.repo.write("res/values/strings_ble.xml", self.repo.read("res/values/strings_ble.xml").replace(
+            "Searching for 2 scooters", "Searching for two scooters"))
+        passes, lines = council.beta_report(self.paths, "es")
+        self.assertIn("1 of 100 keys", lines[0])
+        self.assertEqual(self.main("beta", "--tag", "es"), 0)
+        self.assertIn("beta bar: PASS", self.out.getvalue())
+
+
+if __name__ == "__main__":
+    unittest.main()

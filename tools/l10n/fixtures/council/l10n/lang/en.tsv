@@ -1,0 +1,17 @@
+# Volt's source language. One file per language (l10n/lang/<tag>.tsv); see l10n/README.md for each field.
+field	value
+tag	en
+folder	values
+endonym	English
+wave	source
+status	stable
+formality	n/a
+plurals	one,other
+quote_style	“…” ‘…’
+percent_style	%1$s%%
+decimal_style	1,234.5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english

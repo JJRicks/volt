@@ -1,0 +1,4 @@
+# Fixture Spanish glossary: the term column holds the approved forms.
+id	term	definition	pos	dnt	safety	source
+scooter	patinete | patinetes	The connected e-scooter.	noun	no	-	fixture
+not-affiliated	no está afiliada a NAVEE	The disclaimer.	adjective phrase	no	disclaimer	fixture
