@@ -142,6 +142,16 @@ navee_volt_checkout() {
     top="$(git -C "$APP_DIR" rev-parse --show-toplevel 2>/dev/null)" && [[ -n "$top" && "$top" -ef "$APP_DIR" ]]
 }
 
+# Every change git sees, untracked files included, plus ignored files in the paths the APK is
+# built from. Prints nothing for a clean tree; fails when git can't read the status.
+navee_build_changes() {
+    local all ignored
+    all="$(git -C "$APP_DIR" status --porcelain --untracked-files=all 2>/dev/null)" || return 1
+    ignored="$(git -C "$APP_DIR" status --porcelain --untracked-files=all --ignored=matching -- \
+        src res aidl licenses AndroidManifest.xml setup/owner-capture-guard.sh 2>/dev/null)" || return 1
+    { printf '%s\n' "$all"; printf '%s\n' "$ignored" | grep -E '^!! ' | grep -vE '(^!! |/)\.[^/]*/?$'; } | grep -v '^$' || true
+}
+
 navee_version_name() {
     local manifest sha dirty=""
     manifest="$(python3 -I - "$APP_DIR/AndroidManifest.xml" <<'PYVERSION'
@@ -158,16 +168,18 @@ PYVERSION
         *) echo "VOLT_RELEASE must be 1 (release build) or unset; got: $VOLT_RELEASE" >&2; return 1 ;;
     esac
     if navee_volt_checkout && sha="$(git -C "$APP_DIR" rev-parse --short=7 HEAD 2>/dev/null)" && [[ "$sha" =~ ^[0-9a-f]{7,12}$ ]]; then
-        # Untracked files count too; a failed status counts as dirty.
+        # Untracked files count too, whatever status.showUntrackedFiles says, and so do ignored files
+        # in what the APK is built from (hidden ones like .DS_Store are never packaged). A failed
+        # status counts as dirty.
         local status
-        if ! status="$(git -C "$APP_DIR" status --porcelain 2>/dev/null)" || [[ -n "$status" ]]; then dirty="-dirty"; fi
+        if ! status="$(navee_build_changes)" || [[ -n "$status" ]]; then dirty="-dirty"; fi
     else
         sha=""
     fi
     if [[ "${VOLT_RELEASE:-}" == 1 ]]; then
         if [[ -n "$dirty" ]]; then
-            echo "VOLT_RELEASE=1 refuses uncommitted or untracked changes (or an unreadable git status); commit, stash or remove them first:" >&2
-            git -C "$APP_DIR" status --short >&2 || true
+            echo "VOLT_RELEASE=1 refuses uncommitted, untracked or ignored changes (or an unreadable git status); commit, stash or remove them first:" >&2
+            navee_build_changes >&2 || true
             return 1
         fi
         if [[ -n "$sha" ]]; then

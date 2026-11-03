@@ -35,6 +35,22 @@ expect "$(name "$WORK/own")" "$VERSION-dev+$sha-dirty" "Untracked files"
 expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses untracked files"
 rm "$WORK/own/notes.txt"
 expect "$(name "$WORK/own" VOLT_RELEASE=1)" "$VERSION" "Clean again"
+# status.showUntrackedFiles=no hides untracked files from a plain status, but the build still compiles them.
+g -C "$WORK/own" config status.showUntrackedFiles no
+mkdir -p "$WORK/own/src/com/example"; echo "class Untracked {}" > "$WORK/own/src/com/example/Untracked.java"
+expect "$(name "$WORK/own")" "$VERSION-dev+$sha-dirty" "Untracked source with status.showUntrackedFiles=no"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses it with status.showUntrackedFiles=no"
+rm -r "$WORK/own/src"; g -C "$WORK/own" config --unset status.showUntrackedFiles
+# An ignored file the APK is built from counts; a hidden one (never packaged) or one outside those paths doesn't.
+printf '*.json\n.DS_Store\n' >> "$WORK/own/.git/info/exclude"
+mkdir -p "$WORK/own/res/raw"; echo "{}" > "$WORK/own/res/raw/owner_table.json"
+expect "$(name "$WORK/own")" "$VERSION-dev+$sha-dirty" "An ignored resource"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "FAIL" "A release build refuses an ignored resource"
+rm "$WORK/own/res/raw/owner_table.json"; touch "$WORK/own/res/raw/.DS_Store"
+mkdir -p "$WORK/own/dist"; echo "{}" > "$WORK/own/dist/report.json"
+expect "$(name "$WORK/own")" "$VERSION-dev+$sha" "A hidden file in res and an ignored file outside the build"
+expect "$(name "$WORK/own" VOLT_RELEASE=1)" "$VERSION" "A release build with only those"
+rm -r "$WORK/own/res" "$WORK/own/dist"
 
 # A source ZIP unpacked inside an unrelated, dirty repository: never that repository's commit.
 mkdir "$WORK/outer"; g -C "$WORK/outer" init -q; g -C "$WORK/outer" commit -q --allow-empty -m outer
