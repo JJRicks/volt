@@ -1,0 +1,5 @@
+# Hard-coded English in src/com/jjricks/volt/FoldMonitor.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Adaptive window"
+multiword	"Half folded"
+multiword	"OEM fold bounds"

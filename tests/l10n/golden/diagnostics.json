@@ -1,0 +1,932 @@
+{
+  "format": "volt-diagnostics-v1",
+  "app_version": "1.11.1",
+  "created_wall_ms": 1792026010000,
+  "simulated": false,
+  "phone": {
+    "android_release": "16",
+    "android_sdk": 36,
+    "model": "Google Pixel 9"
+  },
+  "compatibility_report": {
+    "format": "volt-compat-report-v1",
+    "report_id": "beece3a4170dbcc4",
+    "app_version": "1.11.1",
+    "registry_version": 18,
+    "device": {
+      "pid": "25462",
+      "pid_prefix": "2546",
+      "pid_source": "advertised",
+      "pid_digits": 5,
+      "pid_conflict": false,
+      "region": "DE",
+      "region_source": "serial",
+      "sku": "ITA",
+      "firmware": {
+        "meter": "2031"
+      },
+      "transport": "standard",
+      "auth": "aes",
+      "layer": "oem_group",
+      "role": "owner"
+    },
+    "status_length": 44,
+    "fields": [
+      {
+        "offset": 0,
+        "name": "binding_status",
+        "present": true
+      },
+      {
+        "offset": 1,
+        "name": "driving_mode",
+        "present": true,
+        "value": 3
+      },
+      {
+        "offset": 2,
+        "name": "lock_status",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 3,
+        "name": "cruise_control",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 4,
+        "name": "tail_light",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 5,
+        "name": "energy_recovery",
+        "present": true,
+        "value": 60
+      },
+      {
+        "offset": 6,
+        "name": "range_algorithm",
+        "present": true,
+        "value": 2
+      },
+      {
+        "offset": 7,
+        "name": "display_units",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 8,
+        "name": "auto_sensor",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 9,
+        "name": "tyre_reminder",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 10,
+        "name": "lighting_byte_10",
+        "present": true,
+        "value": 129
+      },
+      {
+        "offset": 11,
+        "name": "traction_control",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 12,
+        "name": "turn_sound",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 13,
+        "name": "proximity_key",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 14,
+        "name": "night_mode",
+        "present": true
+      },
+      {
+        "offset": 15,
+        "name": "range_algorithm_mode",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 16,
+        "name": "lighting_byte_16",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 17,
+        "name": "lighting_byte_17",
+        "present": true,
+        "value": 130
+      },
+      {
+        "offset": 18,
+        "name": "lighting_byte_18",
+        "present": true,
+        "value": 16
+      },
+      {
+        "offset": 19,
+        "name": "start_speed",
+        "present": true,
+        "value": 3
+      },
+      {
+        "offset": 20,
+        "name": "speed_limit",
+        "present": true,
+        "value": 153
+      },
+      {
+        "offset": 21,
+        "name": "volume",
+        "present": true,
+        "value": 2
+      },
+      {
+        "offset": 22,
+        "name": "voice_language",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 23,
+        "name": "logo_light",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 24,
+        "name": "daytime_light",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 25,
+        "name": "maximum_speed_setting",
+        "present": true,
+        "value": 40
+      },
+      {
+        "offset": 26,
+        "name": "drive_mode_setting",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 31,
+        "name": "charge_limit_percent",
+        "present": true,
+        "value": 90
+      },
+      {
+        "offset": 32,
+        "name": "low_power",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 33,
+        "name": "timed_charging",
+        "present": true,
+        "value": 1
+      },
+      {
+        "offset": 34,
+        "name": "auto_lock_time",
+        "present": true,
+        "value": 2
+      },
+      {
+        "offset": 35,
+        "name": "speed_limit_eligibility",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 36,
+        "name": "weather",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 37,
+        "name": "slope_assist",
+        "present": true,
+        "value": 5
+      },
+      {
+        "offset": 38,
+        "name": "long_range_mode",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 39,
+        "name": "overspeed_control",
+        "present": true,
+        "value": 0
+      },
+      {
+        "offset": 40,
+        "name": "osa_flag_unmapped",
+        "present": true
+      },
+      {
+        "offset": 41,
+        "name": "unread_41",
+        "present": true
+      },
+      {
+        "offset": 42,
+        "name": "drive_speed_limit",
+        "present": true,
+        "value": 143
+      }
+    ]
+  },
+  "connection_log": {
+    "loaded": true,
+    "storage_healthy": true,
+    "events": [
+      {
+        "wall_ms": 1792026000000,
+        "elapsed_ms": 491000,
+        "reason": "CONNECT_ATTEMPT",
+        "phase": "CONNECTING",
+        "ui_visible": true,
+        "recording": false
+      },
+      {
+        "wall_ms": 1792026002000,
+        "elapsed_ms": 493000,
+        "reason": "AUTHENTICATED_READY",
+        "phase": "READY",
+        "status_code": 0,
+        "ui_visible": true,
+        "recording": false,
+        "status_age_ms": 40,
+        "frame_age_ms": 20
+      },
+      {
+        "wall_ms": 1792026009000,
+        "elapsed_ms": 499000,
+        "reason": "NATIVE_DISCONNECT",
+        "phase": "READY",
+        "status_code": 8,
+        "ui_visible": true,
+        "recording": false,
+        "status_age_ms": 1000,
+        "frame_age_ms": 500
+      }
+    ]
+  },
+  "command_log": {
+    "loaded": true,
+    "storage_healthy": true,
+    "events": [
+      {
+        "wall_ms": 1792026002100,
+        "type": "session",
+        "app_version": "1.11.1",
+        "model_id": "25462",
+        "layer": "oem_group",
+        "meter_firmware": "2031",
+        "simulated": false
+      },
+      {
+        "wall_ms": 1792026003000,
+        "type": "command",
+        "kind": "set",
+        "origin": "user",
+        "key": "headlight",
+        "value": 1,
+        "outcome": "ack",
+        "elapsed_ms": 120
+      },
+      {
+        "wall_ms": 1792026003200,
+        "type": "command",
+        "kind": "set",
+        "origin": "user",
+        "key": "headlight",
+        "value": 1,
+        "outcome": "readback_same",
+        "read": 1,
+        "elapsed_ms": 640
+      },
+      {
+        "wall_ms": 1792026005000,
+        "type": "command",
+        "kind": "try",
+        "origin": "guided_test",
+        "key": "prompt_tone",
+        "value": 4,
+        "outcome": "readback_other",
+        "read": 3,
+        "elapsed_ms": 900
+      },
+      {
+        "wall_ms": 1792026006000,
+        "type": "command",
+        "kind": "set",
+        "origin": "automatic_range_follow",
+        "key": "maximum_speed",
+        "value": 30,
+        "outcome": "refused",
+        "reason": "moving"
+      }
+    ]
+  },
+  "readings": [
+    {
+      "group": "Battery",
+      "key": "battery_percent",
+      "value": "66 %",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Battery",
+      "key": "voltage_v",
+      "value": "52.250 V",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "current_a",
+      "value": "-1.250 A",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "power_w",
+      "value": "-65.3 W",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "temperature_c",
+      "value": "-5 \u00b0C",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "battery_health_percent",
+      "value": "97 %",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "battery_status",
+      "value": "Normal (0)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Battery",
+      "key": "charging_state",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Battery",
+      "key": "charge_cycles",
+      "value": "4660 charges",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "energy_throughput_wh",
+      "value": "66051 Wh",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "capacity_throughput_ah",
+      "value": "1029 Ah",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "deep_discharge",
+      "value": "1543",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "self_discharge_raw",
+      "value": "9 (raw)",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "rated_capacity_ah",
+      "value": "13.50 Ah",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "health_adjusted_capacity_ah",
+      "value": "13.10 Ah",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "battery_manufactured",
+      "value": "2026-04-09",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "high_temperature_duration",
+      "value": "1 y 2 mo 3 d 4 h 5 min 6 s",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Battery",
+      "key": "extreme_temperature_charge_raw",
+      "value": "2057 (raw)",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Ride",
+      "key": "speed_kmh",
+      "value": "18.5 km/h",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "remaining_range_km",
+      "value": "30 km (estimate)",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "trip_km",
+      "value": "4.7 km",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "trip_minutes",
+      "value": "12 min",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "maximum_speed_kmh",
+      "value": "25.2 km/h",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "average_speed_kmh",
+      "value": "16.1 km/h",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "odometer_km",
+      "value": "1234.5 km",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Ride",
+      "key": "driving_status",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Settings",
+      "key": "binding_status",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "driving_mode",
+      "value": "3 (raw)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Settings",
+      "key": "lock_status",
+      "value": "Locked (1)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Settings",
+      "key": "cruise_control",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "tail_light",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "energy_recovery",
+      "value": "60 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "range_algorithm",
+      "value": "2 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "display_units",
+      "value": "Metric (1)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "auto_sensor",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "tyre_reminder",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "ambient_light",
+      "value": "129 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "traction_control",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "turn_sound",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "proximity_key",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "night_mode",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "range_algorithm_mode",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "eco_light",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "drive_light",
+      "value": "130 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "sport_light",
+      "value": "16 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "start_speed",
+      "value": "3 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "speed_limit",
+      "value": "153 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "volume",
+      "value": "2 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "voice_language",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "logo_light",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "daytime_light",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "maximum_speed_setting",
+      "value": "40 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "drive_mode_setting",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "settings_mode_raw",
+      "value": "3 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "scheduled_charge_time_raw",
+      "value": "16909060 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "charge_limit_percent",
+      "value": "90 %",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "low_power",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "timed_charging",
+      "value": "1 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "auto_lock_time",
+      "value": "2 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "speed_limit_eligibility",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "weather",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "slope_assist",
+      "value": "5 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "long_range_mode",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "overspeed_control",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "overspeed_alert",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Settings",
+      "key": "drive_speed_limit",
+      "value": "143 (raw)",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Device",
+      "key": "meter_version",
+      "value": "2.0.3.1",
+      "age_ms": 1000,
+      "source": "0x73"
+    },
+    {
+      "group": "Device",
+      "key": "controller_version",
+      "value": "V.1...4",
+      "age_ms": 1000,
+      "source": "0x73"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "warning_code",
+      "value": "None (0)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "lock_push_warning",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "hide_e9",
+      "value": "0 (raw)",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "ride_report_format",
+      "value": "v1: tenths; optional 32-bit odometer",
+      "age_ms": 1000,
+      "source": "0x92"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "response_70",
+      "value": "OK; 44 data bytes",
+      "age_ms": 1000,
+      "source": "0x70"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "response_72",
+      "value": "OK; 36 data bytes",
+      "age_ms": 1000,
+      "source": "0x72"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "response_73",
+      "value": "OK; 8 data bytes",
+      "age_ms": 1000,
+      "source": "0x73"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "response_90",
+      "value": "OK; 18 data bytes",
+      "age_ms": 1000,
+      "source": "0x90"
+    },
+    {
+      "group": "Diagnostics",
+      "key": "response_92",
+      "value": "OK; 18 data bytes",
+      "age_ms": 1000,
+      "source": "0x92"
+    }
+  ],
+  "charge_schedule": {
+    "mode": "none",
+    "armed_wall_ms": 1792026000000,
+    "start_wall_ms": 1792029600000,
+    "wire_start": 1792008000,
+    "clock_offset_s": -21600,
+    "soc_at_arming": 41,
+    "target": 100,
+    "outcome": "missed",
+    "outcome_wall_ms": 1792029730000,
+    "outcome_mode": "manual",
+    "outcome_start_wall_ms": 1792029600000,
+    "outcome_soc_at_arming": 41,
+    "outcome_soc": 41,
+    "outcome_enabled": 1,
+    "outcome_wire_start": 1792008000,
+    "alert": "shown",
+    "test": {
+      "wall_ms": 1792026000000,
+      "start_wall_ms": 1792026120000,
+      "outcome": "passed",
+      "offset_s": 6,
+      "paused": true,
+      "schedule_off": 1
+    },
+    "readback": {
+      "wall_ms": 1792029740000,
+      "enabled": 1,
+      "wire_start": 1792008000
+    }
+  }
+}

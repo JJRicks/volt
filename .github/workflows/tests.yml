@@ -23,6 +23,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # The localization gates compare the head with its merge base, so they need full history.
+          fetch-depth: 0
       - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
@@ -35,6 +37,16 @@ jobs:
           python3 tests/capture-owner-test.py
           python3 tests/hardware-sweep-test.py
           python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
+      - name: Localization proof gates (l10n/README.md)
+        env:
+          L10N_BASE: origin/${{ github.base_ref || 'main' }}
+          L10N_PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          python3 -m unittest discover -s tools/l10n
+          python3 tools/l10n/gen_catalog.py --check
+          bash tests/l10n/golden.sh
+          # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
+          python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"
   web-setup:
     # Private workers require trusted collaborators and disabled fork workflows.
     # Job/run labels route eligible work; they are not an authorization boundary.

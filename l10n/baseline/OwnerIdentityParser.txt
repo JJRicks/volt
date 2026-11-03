@@ -1,0 +1,11 @@
+# Hard-coded English in src/com/jjricks/volt/OwnerIdentityParser.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"(?i)(?<![\\w])(?:\"owner_identity\"|owner_identity|owner identity|\"identity\"|identity)\\s*:"
+multiword	"(?im)(?<![\\w])(?:\"owner_identity\"|owner_identity|owner identity|\"identity\"|identity)\\s*:\\s*\"?([0-9a-f]{12})(?=\"?(?:\\s*(?:[,}\\r\\n]|$)))"
+multiword	"(?im)^\\s*Shared-user option\\s*:\\s*(ON|OFF)\\s*$"
+multiword	"Need 12 hex characters"
+multiword	"No owner identity in file"
+multiword	"Send authData:"
+multiword	"Setup file is empty or too large."
+multiword	"This file contains conflicting owner identities or roles. Capture one NAVEE account connection or import one private setup backup."
+multiword	"Unsupported owner role"

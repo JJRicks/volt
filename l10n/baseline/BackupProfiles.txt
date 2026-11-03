@@ -1,0 +1,13 @@
+# Hard-coded English in src/com/jjricks/volt/BackupProfiles.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"The backup has an invalid scooter connection date."
+multiword	"The backup has an invalid scooter owner role."
+multiword	"The backup has an invalid scooter setup identity."
+multiword	"The backup has invalid scooter profile fields."
+multiword	"The backup has invalid scooter profile fields."
+multiword	"The backup has invalid scooter profile identifiers."
+multiword	"The backup has invalid scooter profiles."
+multiword	"The backup has too many scooter profiles."
+multiword	"The backup has unreadable scooter profiles."
+multiword	"The backup has unreadable scooter profiles."
+multiword	"UT5 MAX"

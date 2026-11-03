@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Round-trip fixture: what aapt 36.1.0 stores for each spelling. Names starting with ok_ are spellings
+  gen_catalog accepts and that compile to exactly the text the generator expects. Names starting
+  with bad_ are spellings aapt silently rewrites; gen_catalog refuses them and roundtrip.py must
+  flag them. Regenerate the captured outputs with capture.sh after editing this file.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="app_name" volt:dnt="Volt">Volt</string>
+    <!-- Every volt:* attribute, to show aapt1 accepts the custom namespace. -->
+    <string name="ok_metadata" volt:screen="Home" volt:purpose="Lock button caption" volt:max="96dp@14sp"
+        volt:ladder="full" volt:safety="lock" volt:dnt="NAVEE" volt:english-fix="pending">Lock NAVEE scooter</string>
+    <string name="ok_metadata_short" volt:ladder="short">Lock</string>
+    <string name="ok_plain">Lock scooter</string>
+    <string name="ok_wrapped_edges">"  both  "</string>
+    <string name="ok_wrapped_double_space">"Connecting…  ￼"</string>
+    <string name="ok_wrapped_apostrophe">"Don't clear storage."</string>
+    <string name="ok_escaped_apostrophe">Don\'t clear storage.</string>
+    <string name="ok_escaped_quote">Tap \"Save\"</string>
+    <string name="ok_escaped_newline">Line one\nLine two</string>
+    <string name="ok_escaped_tab">a\tb</string>
+    <string name="ok_escaped_edges">\nlead and trail\t</string>
+    <string name="ok_backslash">C:\\volt</string>
+    <string name="ok_at">\@home</string>
+    <string name="ok_question">\?maybe</string>
+    <string name="ok_hash">\#1</string>
+    <string name="ok_unicode_escape">Wait\u2026</string>
+    <string name="ok_unicode_raw">Odo. · 12 km</string>
+    <string name="ok_surrogates">Battery \ud83d\udd0b</string>
+    <string name="ok_emoji_raw">Battery 🔋</string>
+    <string name="ok_nbsp">10&#160;km</string>
+    <string name="ok_entities">Rides &amp; charges &lt;3</string>
+    <string name="ok_percent">%1$s%%</string>
+    <string name="ok_template">Move %1$s to slot %2$d</string>
+    <string name="ok_decimal">%1$.1f km</string>
+    <string name="ok_xliff">Hello <xliff:g id="name">%1$s</xliff:g>!</string>
+    <string name="ok_not_formatted" formatted="false">%s and %s</string>
+    <string name="ok_not_translatable" translatable="false">NAVEE</string>
+    <string name="ok_empty"></string>
+    <string name="ok_only_space">" "</string>
+    <string name="ok_wrapped_line_break">"line
+  next"</string>
+    <string name="bad_leading_space"> leading</string>
+    <string name="bad_trailing_space">trailing </string>
+    <string name="bad_double_space">two  spaces</string>
+    <string name="bad_unquoted_double_space">Connecting…  ￼</string>
+    <string name="bad_raw_line_break">line one
+        line two</string>
+    <string name="bad_raw_tab">a&#9;b</string>
+    <string name="bad_unknown_escape">a\qb</string>
+    <string name="bad_carriage_return_escape">a\rb</string>
+    <string name="bad_backslash_space">a\ b</string>
+    <string name="ok_trailing_unicode_space">end\u0020</string>
+    <string name="ok_leading_unicode_space">\u0020lead</string>
+    <string name="ok_unicode_quotes">Say \u0022hi\u0022</string>
+    <string name="ok_unicode_apostrophe">Don\u0027t</string>
+    <string name="bad_partial_quote">a "b  c" d</string>
+    <string name="bad_unbalanced_quote">Say "hi</string>
+    <string name="bad_xliff_spacing">Hi <xliff:g id="n"> %1$s </xliff:g>!</string>
+    <plurals name="ok_rides" volt:english-fix="pending">
+        <item quantity="one">%1$d rides</item>
+        <item quantity="other">%1$d rides</item>
+    </plurals>
+    <plurals name="ok_scooters_skipped">
+        <item quantity="one">One scooter skipped</item>
+        <item quantity="other">%1$d scooters skipped</item>
+    </plurals>
+    <plurals name="bad_plural_trailing_space">
+        <item quantity="one">%1$d minute </item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+</resources>

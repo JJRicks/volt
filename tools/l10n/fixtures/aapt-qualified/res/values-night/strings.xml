@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Refused: a night-mode folder would replace the catalog English in dark mode. -->
+<resources>
+    <string name="units_dual">%1$s | %2$s</string>
+</resources>

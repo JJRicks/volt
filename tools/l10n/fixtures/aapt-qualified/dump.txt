@@ -1,0 +1,28 @@
+Package Groups (1)
+Package Group 0 id=0x7f packageCount=1 name=com.jjricks.volt.l10nfixture
+  Package 0 id=0x7f name=com.jjricks.volt.l10nfixture
+    type 1 configCount=6 entryCount=2
+      spec resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: flags=0x00000404
+      spec resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: flags=0x00001404
+      config (default):
+        resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: t=0x03 d=0x00000000 (s=0x0008 r=0x00)
+          (string16) "Volt"
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: t=0x03 d=0x00000001 (s=0x0008 r=0x00)
+          (string16) "%1$s / %2$s"
+      config night-v8:
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: t=0x03 d=0x00000003 (s=0x0008 r=0x00)
+          (string16) "%1$s | %2$s"
+      config v31:
+        resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: t=0x03 d=0x00000002 (s=0x0008 r=0x00)
+          (string16) "Volt 31"
+      config b+zh+Hans:
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: t=0x03 d=0x00000001 (s=0x0008 r=0x00)
+          (string16) "%1$s / %2$s"
+      config en:
+        resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: t=0x03 d=0x00000004 (s=0x0008 r=0x00)
+          (string16) "Volt!"
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: t=0x03 d=0x00000005 (s=0x0008 r=0x00)
+          (string16) "%2$s or %1$s"
+      config es:
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/units_dual: t=0x03 d=0x00000001 (s=0x0008 r=0x00)
+          (string16) "%1$s / %2$s"
