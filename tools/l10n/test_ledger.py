@@ -434,6 +434,18 @@ class ChangesAroundTextTest(RepoCase):
         self.assertTrue(any("away from any text" in w for w in warnings), warnings)
         self.assertIn("0 new literal(s); 2 new key or id literal(s), listed", summary)
 
+    def test_a_long_statement_shows_the_code_around_its_key(self):
+        """Re-review 6: the excerpt used to stop after 40 tokens, before a key late in a long statement."""
+        args = ", ".join("a%d" % i for i in range(30))
+        self.edit("    static int size()", '    static void store(Object %s) { put(%s, "late_key"); }\n'
+                  '    static int size()' % (", Object ".join("a%d" % i for i in range(30)), args))
+        problems, warnings, _ = self.check([])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if 'new key or id literal "late_key"' in w]
+        self.assertEqual(len(shown), 1, warnings)
+        self.assertIn('a29 , "late_key" )', shown[0])
+        self.assertIn("`... ", shown[0])
+
     def test_new_key_beside_kept_text_still_fails(self):
         self.edit('return "Skip";', 'skipped("stats_skip"); return "Skip";')
         problems, warnings, _ = self.check([])

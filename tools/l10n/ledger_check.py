@@ -993,9 +993,12 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         head_tokens = diffs[path].head.tokens
         for k in sorted(new_ids[path]):
             first, last, _ = expressions.statement_span(head_tokens, k)
-            warnings.append("%s:%d: new key or id literal %s in `%s`; check by hand that no screen shows it" % (
+            # A window centred on the literal, so a long statement never hides the code that uses it.
+            start, end = max(first, k - 20), min(last, k + 20)
+            warnings.append("%s:%d: new key or id literal %s in `%s%s%s`; check by hand that no screen shows it" % (
                 path, head_tokens[k].line, l10nlib.json_string(head_tokens[k].value),
-                _excerpt(head_tokens[first:last + 1], 40)))
+                "... " if start > first else "", _excerpt(head_tokens[start:end + 1], None),
+                " ..." if end < last else ""))
     for path, _, k, used_by_move in arrivals:
         tok = diffs[path].head_token(k)
         if k in new_ids[path]:
