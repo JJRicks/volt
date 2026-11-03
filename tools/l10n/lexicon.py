@@ -164,6 +164,70 @@ SUFFIXING = {"tr", "fi", "hu", "et", "ko", "az", "kk", "uz"}
 INFLECTING = {"es", "pt", "fr", "it", "ro", "ca", "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bs",
               "bg", "mk", "el"}
 _ENDING_LETTERS = "aeiouyáéíóúàèìòùâêîôûãõăаеёиоуыэюяьйъіїєαεηιουωάέήίόύώ"
+# Languages that write a noun phrase as one compound word ("Sperrdauer", "Vergrendelstatus",
+# "Låstid"), with the endings dropped from a lock target before it joins one (longest first). Only
+# the lock terms match this way, and only at the start of a word, so the unlock words (ent-, ont-,
+# upp-) never match; other terms list their compound forms in the glossary.
+COMPOUNDING = {"de": ("ung", "en", "e"), "nl": ("ing", "en", "e"), "sv": ("ning", "a", "e")}
+# The rest of a compound that removes or opens the lock ("Sperraufhebung", "Vergrendelingsopheffing",
+# "Låsupplåsning"): the compound is then not the lock term.
+COMPOUND_OPPOSITE = {
+    "de": re.compile("aufheb|aufgehob|lös|freigab|freigeb|entfern|deaktiv|ausschalt|abschalt|öffn|beend"),
+    "nl": re.compile("opheff|opgehev|uitschakel|uitgeschakel|uitzet|verwijder|deactiv|gedeactiv|open|vrijgeg|vrijgev"),
+    "sv": re.compile("upp|häv|borttag|inaktiv|avaktiv|deaktiv|öppn|avstäng"),
+}
+
+# On and off state words, for a safety key whose English says one and not the other ("Lock: on",
+# "Alarm sound off", "Low battery alert enabled"). A target that has only the other state's words is
+# inverted. Bare particles that are also prepositions (de "aus", "an"; nl "uit", "aan"; sv "av",
+# "på") count only at the end of the text or before punctuation. Matched on normalized text.
+_STATE_END = "(?=\\s*(?:$|[.,;:!?)\\]]))"
+STATE_WORDS = {
+    "es": ("activad\\w*|activar|activa|activo|actívala|actívalo|encendid\\w*|encender|enciende|encienda|"
+           "habilitad\\w*|habilitar|habilita",
+           "desactivad\\w*|desactivar|desactiva|desactive|desactívala|desactívalo|apagad\\w*|apagar|apaga|apague|"
+           "deshabilitad\\w*|deshabilitar|deshabilita|inactiv\\w*|quitad\\w*|retirad\\w*"),
+    "pt": ("ativad\\w*|activad\\w*|ativar|activar|ative|active|ativa|activa|ativo|activo|ligad\\w*|ligar|ligue|"
+           "habilitad\\w*",
+           "desativad\\w*|desactivad\\w*|desativar|desactivar|desative|desactive|desativa|desactiva|desligad\\w*|"
+           "desligar|desligue|desliga|inativ\\w*|inactiv\\w*|desabilitad\\w*|removid\\w*|retirad\\w*"),
+    "fr": ("activé\\w*|activer|activez|active|actif|allumé\\w*|allumer|allumez",
+           "désactivé\\w*|désactiver|désactivez|désactive|éteint\\w*|éteindre|éteignez|coupé\\w*|inactif|inactive|"
+           "retiré\\w*|supprimé\\w*"),
+    "it": ("attivat\\w*|attivare|attiva|attivo|attivi|accesa|acceso|accesi|accese|accendi|accendere|abilitat\\w*",
+           "disattivat\\w*|disattivare|disattiva|disattivo|spenta|spento|spenti|spente|spegni|spegnere|"
+           "disabilitat\\w*|inattiv\\w*|rimoss\\w*"),
+    "de": ("an" + _STATE_END + "|ein" + _STATE_END + "|eingeschaltet\\w*|einschalten|"
+           "aktiviert\\w*|aktivieren|aktiv\\w*",
+           "aus" + _STATE_END + "|ausgeschaltet\\w*|ausschalten|abgeschaltet\\w*|abschalten|deaktiviert\\w*|"
+           "deaktivieren|inaktiv\\w*|aufgehoben"),
+    "nl": ("aan" + _STATE_END + "|in" + _STATE_END + "|ingeschakeld\\w*|inschakelen|aangezet|aanzetten|"
+           "geactiveerd\\w*|activeren|actief|actieve",
+           "uit" + _STATE_END + "|uitgeschakeld\\w*|uitschakelen|uitgezet|uitzetten|gedeactiveerd\\w*|"
+           "deactiveren|inactief|inactieve|opgeheven"),
+    "pl": ("włączon\\w*|włącz|włączyć|włączcie|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
+           "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|zdjęt\\w*|"
+           "usunięt\\w*"),
+    "sv": ("på" + _STATE_END + "|sl[åa]r?\\s+på|sätt\\s+på|påslag\\w*|aktiverad\\w*|aktiverat|aktivera|aktiv|"
+           "aktivt|aktiva",
+           "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
+           "inaktiverad\\w*|inaktiverat|inaktivera|avaktiverad\\w*|avaktiverat|avaktivera|inaktiv|inaktivt|"
+           "hävd|hävt"),
+    "id": ("aktif|diaktifkan|aktifkan|mengaktifkan|menyala|nyala|nyalakan|dinyalakan|hidup|dihidupkan|hidupkan",
+           "nonaktif|dinonaktifkan|nonaktifkan|menonaktifkan|mati|dimatikan|matikan|mematikan|padam|dilepas|"
+           "dihapus"),
+}
+STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
+                             for p in v)) for k, v in STATE_WORDS.items())
+
+
+def state_words(primary, text):
+    """(on words, off words) found in a target text, for the languages in STATE_WORDS."""
+    patterns = STATE_WORDS.get(primary)
+    if not patterns:
+        return None
+    text = normalize(text)
+    return tuple([m.group(0) for m in p.finditer(text)] for p in patterns)
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
 PROCLITICS = {"ar": "(?:[وف]?(?:لل|[بلك]?(?:ال)?))", "he": "(?:[ושהבלמכ]{0,3})"}
@@ -204,13 +268,18 @@ def _before(verbs, determiners=""):
     return "(?<![^\\W_])(?:%s)\\s+%s$" % (verbs, det)
 
 
+# Between the lock word and a participle after it: spaces, or a status layout's colon, dash or
+# opening parenthesis ("Sperre: aus", "Bloqueo — quitado", "Blokada (wyłączona)").
+_SEP = "(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)"
+
+
 def _after(participles, gap="", aux="", tail=""):
     """Text after a target: the rest of its word, an optional genitive gap ("del patinete"), an
     optional auxiliary, then a participle; or one of the tail words at the end of the text."""
-    body = "[^\\W\\d_]*(?:%s)?\\s+(?:(?:%s)\\s+)?(?:%s)" % (gap, aux, participles) if aux else \
-        "[^\\W\\d_]*(?:%s)?\\s+(?:%s)" % (gap, participles)
+    body = "[^\\W\\d_]*(?:%s)?%s(?:(?:%s)\\s+)?(?:%s)" % (gap, _SEP, aux, participles) if aux else \
+        "[^\\W\\d_]*(?:%s)?%s(?:%s)" % (gap, _SEP, participles)
     if tail:
-        return "^(?:%s|[^\\W\\d_]*\\s+(?:%s)\\s*[.!?]?\\s*$)" % (body, tail)
+        return "^(?:%s|[^\\W\\d_]*%s(?:%s)\\s*[.!?)]?\\s*$)" % (body, _SEP, tail)
     return "^" + body
 
 
@@ -442,6 +511,18 @@ def _inflected(primary, word):
     return re.escape(word)
 
 
+def _compound(primary, word):
+    """A pattern for the last word of a lock target in a compounding language: its stem at the
+    start of a word, then the rest of the compound in the group "cx" ("Sperre" in "Sperrdauer",
+    "lås" in "Låsstatus", "vergrendeling" in "Vergrendelstatus")."""
+    stem = word
+    for ending in COMPOUNDING[primary]:
+        if word.endswith(ending) and len(word) - len(ending) >= 3:
+            stem = word[:-len(ending)]
+            break
+    return re.escape(stem) + r"(?P<cx>[^\W\d_]*)"
+
+
 def term_found(primary, script, term, text, opposite=True, removal=True):
     """Whether a glossary target appears in a text, matched the way the language writes words.
 
@@ -449,19 +530,26 @@ def term_found(primary, script, term, text, opposite=True, removal=True):
     unless the language takes suffixes or inflects (INFLECTING). Unspaced scripts: anywhere.
     With opposite (a lock term), a match next to words that make it the opposite term
     (OPPOSITE_CONTEXT, OPPOSITE_AROUND) does not count; with removal as well, nor does one next to
-    words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND).
+    words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND). A lock term in a
+    compounding language (COMPOUNDING) may start a compound, unless the rest of the compound
+    removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung").
     """
     text, term = normalize(text), normalize(term)
     if primary == "el":
         text, term = _strip_accents(text), _strip_accents(term)
     if not term.split():
         return False
+    compound = opposite and primary in COMPOUNDING and script not in UNSPACED_SCRIPTS
     if script in UNSPACED_SCRIPTS:
         body = r"\s*".join(r"\s*".join(re.escape(c) for c in p) for p in term.split())
         pattern = body
     else:
-        body = r"\s+".join(_inflected(primary, p) for p in term.split())
-        end = "" if primary in SUFFIXING or body.endswith("{0,4}") else r"(?![^\W_])"
+        words = term.split()
+        parts = [_inflected(primary, p) for p in words]
+        if compound:
+            parts[-1] = _compound(primary, words[-1])
+        body = r"\s+".join(parts)
+        end = "" if compound or primary in SUFFIXING or body.endswith("{0,4}") else r"(?![^\W_])"
         pattern = r"(?<![^\W_])" + PROCLITICS.get(primary, "") + body + end
     contexts, around = [], []
     if opposite:
@@ -472,6 +560,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True):
             around.extend(REMOVAL_AROUND.get(primary, ()))
     for m in re.finditer(pattern, text, re.UNICODE):
         head, tail = text[:m.start()], text[m.end():]
+        if compound and m.group("cx") and COMPOUND_OPPOSITE[primary].search(m.group("cx")):
+            continue
         if any((b is not None and b.search(head)) or (a is not None and a.search(tail)) for b, a in contexts):
             continue
         if any(b.search(head) and a.search(tail) for b, a in around):

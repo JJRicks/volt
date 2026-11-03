@@ -260,8 +260,50 @@ def term_pattern(term):
     return re.compile(r"(?<![^\W_])" + body + r"(?![^\W_])", re.IGNORECASE | re.UNICODE)
 
 
+def nested_in_longer(term, others, text):
+    """Whether every match of term in text lies inside a longer match of one of the other terms
+    ("Lock" in "Lock duration", "Low" in "Low battery alert"): then the longer term is the one the
+    text uses, and only its translation is required."""
+    spans = [m.span() for m in term_pattern(term).finditer(text)]
+    if not spans:
+        return False
+    longer = [m.span() for other in others if other.lower() != term.lower()
+              for m in term_pattern(other).finditer(text)]
+    return all(any(s <= a and b <= e and e - s > b - a for s, e in longer) for a, b in spans)
+
+
+def _bare(text):
+    return re.sub(r"[\W\d_]+", " ", text, flags=re.UNICODE).strip().lower()
+
+
+def value_out_of_context(term, terms, text):
+    """Whether a one-word adjective term is a setting value used here in another sense.
+
+    A row whose id is another row's id plus a suffix, and whose term does not contain that row's
+    term, names one value of that setting ("energy-recovery-off" is the Off level of Energy
+    recovery). Such a common word ("Off", "Low", "High") is the setting value only in a text that
+    is the word alone or names the setting; elsewhere ("Turn off charge alerts", "Low battery
+    alert") it is an ordinary word and its level-name translation is not required.
+    """
+    if term.pos != "adjective" or len(term.term.split()) != 1:
+        return False
+    parents = [t for t in terms if term.id.startswith(t.id + "-") and t.term.lower() not in term.term.lower()]
+    if not parents:
+        return False
+    if _bare(text) == _bare(term.term):
+        return False
+    parent = max(parents, key=lambda t: len(t.id))
+    return not term_pattern(parent.term).search(text)
+
+
 def glossary_hits(terms, text):
-    return [t for t in terms if term_pattern(t.term).search(text)]
+    """The terms a text uses: whole-word matches, without a term found only inside a longer one
+    (nested_in_longer) or a setting value used in another sense (value_out_of_context)."""
+    terms = list(terms)
+    found = [t for t in terms if term_pattern(t.term).search(text)]
+    names = [t.term for t in found]
+    return [t for t in found if not nested_in_longer(t.term, names, text) and
+            not value_out_of_context(t, terms, text)]
 
 
 # ---------------------------------------------------------------------------

@@ -201,9 +201,11 @@ class CheckTest(unittest.TestCase):
         self.assertEqual(check.single_number_categories("cs"), {"one", "many"})
 
     def test_added_negation(self):
-        # Alarm on -> "alarm not on" is an error in a safety key; a prefix alone warns for the judge.
+        # Alarm on -> "alarm not on" is an error in a safety key, and so is the off word itself
+        # ("desactivada", lexicon.STATE_WORDS); another prefixed word alone warns for the judge.
         self.assertEqual(self.checks(self.run_check("common_alarm_on", "Alarma no activada")), ["polarity"])
-        findings = self.run_check("common_alarm_on", "Alarma desactivada")
+        self.assertEqual(self.checks(self.run_check("common_alarm_on", "Alarma desactivada")), ["polarity"])
+        findings = self.run_check("common_alarm_on", "Alarma desconectada")
         self.assertEqual(self.checks(findings), [])
         self.assertIn("polarity", self.checks(findings, check.WARN))
         self.assertNotIn("polarity", self.checks(self.run_check("common_alarm_on", "Alarma activada"), check.WARN))

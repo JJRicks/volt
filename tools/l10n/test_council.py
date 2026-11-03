@@ -465,15 +465,16 @@ class CouncilFlowTest(Base):
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
         self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "safety-agreed")
         self.assertEqual(self.decisions()["common_alarm_on"]["judge"]["text"], "Alarma activada")
-        # Every drafter now writes the inverted text, and it gets a fresh, faithful back-translation.
+        # Every drafter now writes an inverted text the word checks cannot see ("Alarma desactivada"
+        # is caught by the state check, so this uses "silenced"), with a fresh, faithful back-translation.
         for name in ("openai", "google"):
             path = "l10n/work/es/common/drafts/%s.xml" % name
-            self.repo.write(path, self.repo.read(path).replace("Alarma activada", "Alarma desactivada"))
+            self.repo.write(path, self.repo.read(path).replace("Alarma activada", "Alarma silenciada"))
         self.assertEqual(self.claude_reply(dict(cf.SPANISH, common_not_reported="Sin informar",
-                                                common_alarm_on="Alarma desactivada")), 0)
+                                                common_alarm_on="Alarma silenciada")), 0)
         path = "l10n/work/es/common/backtranslation.jsonl"
         rows = translib.read_jsonl(self.repo.path(path))
-        rows = [dict(r, target="Alarma desactivada", back="Alarm off") if r["key"] == "common_alarm_on" else r
+        rows = [dict(r, target="Alarma silenciada", back="Alarm silenced") if r["key"] == "common_alarm_on" else r
                 for r in rows]
         translib.write_jsonl(self.repo.path(path), rows)
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
@@ -487,10 +488,10 @@ class CouncilFlowTest(Base):
         self.main("judge-requests", "--tag", "es", "--area", "common")
         requests = dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
             "l10n/work/es/common/judge-requests.jsonl")))
-        self.assertEqual(requests["common_alarm_on"]["text"], "Alarma desactivada")
-        self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm off")
+        self.assertEqual(requests["common_alarm_on"]["text"], "Alarma silenciada")
+        self.assertEqual(requests["common_alarm_on"]["backtranslation"]["back"], "Alarm silenced")
         # A confirm that names the right text but another back-translation does not count either.
-        self.judge([self.confirm("common_alarm_on", text="Alarma desactivada")])
+        self.judge([self.confirm("common_alarm_on", text="Alarma silenciada")])
         self.main("decide", "--tag", "es", "--area", "common", "--final")
         self.assertEqual(self.decisions()["common_alarm_on"]["outcome"], "fallback-english")
         # A confirm without the texts (the old format) confirms nothing.

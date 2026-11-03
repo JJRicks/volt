@@ -565,18 +565,34 @@ English. The checks' job for a safety key is to fail closed: a false alarm sends
 back to English (a coverage cost), and a miss is left to step 5.
 
 What they catch reliably: broken placeholders, numbers, plural categories, escapes, markup,
-protected tokens, glyphs and widths, which are mechanical; a glossary term that is missing; the
-lock word inside its own unlock word (desbloquear, entsperren, разблокировать, 解锁, ロック解除);
+protected tokens, glyphs and widths, which are mechanical; a glossary term that is missing
+(Unlock is a term of its own, so "Unlock scooter" drafted as "Bloquear el patinete" lacks
+"desbloquear"); the lock word inside its own unlock word (desbloquear, entsperren,
+разблокировать, 解锁, ロック解除);
 unlock written as the lock word plus the common separate word (sv "lås upp", id "buka kunci", ar
 "فتح القفل", zh 解除锁定, ja ロックを解除, ko 잠금 해제); the lock said to be removed or turned off in
 the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
-"Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"); and a negation dropped or
-added where the language has a negation list.
+"Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"), also after a status colon,
+dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
+list; and, in a safety key of a first-wave language, an English on or off state drafted with only
+the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
+alarma activado"; `lexicon.STATE_WORDS`).
+
+Two rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
+duration", "Low" in "Low battery alert") is not required on its own. A one-word adjective whose id
+is another term's id plus a suffix (`energy-recovery-off`) is that setting's value, required only
+where the text is the value alone or names the setting, so "Turn off charge alerts" does not need
+the Energy recovery level "Desactivada". In German, Dutch and Swedish a lock target may start a
+compound ("Sperrdauer", "Vergrendelstatus", "Låstid"), never after ent-, ont- or upp- and not when
+the rest of the compound removes the lock ("Sperraufhebung").
 
 Known gaps, by language family:
 
-- **Romance (es, pt, fr, it) and Germanic (de, nl, sv, nb, da)**: the removal words are a list of
-  common verbs, nouns and participles, with articles and one genitive ("del patinete") allowed
+- **Romance (es, pt, fr, it) and Germanic (de, nl, sv, nb, da)**: the removal and on/off state
+  words are lists; an on or off said another way, or a target with both states' words, is left to
+  step 5. A lock compound is found only with the lock word first ("Rollersperre" is not), and the
+  other terms match as whole words, so their compound forms go in the glossary. The removal words
+  are common verbs, nouns and participles, with articles and one genitive ("del patinete") allowed
   between. A rarer verb, a longer gap, or the verb far from the lock word ("Quita ahora mismo el
   bloqueo") passes. German and Dutch separable verbs are caught only at the end of the text
   ("Hebe die Sperre auf"). A prefix like "des-" or "dé-" is only a guess for polarity.
@@ -597,9 +613,11 @@ Known gaps, by language family:
   removal are not checked at all; polarity only warns, and the judge decides.
 - **Everywhere**: the removal context is skipped when the English itself says off, remove,
   disable, release, clear, cancel, delete, open or end, so an inversion in such a key is left to
-  step 5. Word lists apply to the lock terms only (an alarm or cruise-control term keeps its
-  ordinary verbs). Polarity cannot see an inversion made with an antonym ("on" drafted as "off"
-  in a language without a negating prefix), nor a sentence that is fluent and wrong.
+  step 5. Removal word lists apply to the lock terms only (an alarm or cruise-control term keeps
+  its ordinary verbs); the on/off state lists apply to every safety key. A term needs an approved
+  target in the language before it is required (Unlock included). Polarity cannot see an inversion
+  made with another antonym, an on/off inversion in a later-wave language (no state list yet), nor
+  a sentence that is fluent and wrong.
 
 Later-wave languages (ru, uk, el, zh, ja, hi, bn, ar, ur, da, nb, fi, cs, sk, ro, hu, hr, tr) need
 their lists reviewed before their wave starts.

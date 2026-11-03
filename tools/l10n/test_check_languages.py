@@ -14,6 +14,7 @@ import council_fixture  # noqa: E402
 import fontmetrics  # noqa: E402
 import lexicon  # noqa: E402
 import pack  # noqa: E402
+import translib  # noqa: E402
 
 STRINGS = (
     '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">\n'
@@ -422,6 +423,184 @@ class MoreLanguagesTest(unittest.TestCase):
         self.assertEqual(lexicon.unspaced_negations("zh", "我不同意"), ["不同意"])
         self.assertEqual(lexicon.unspaced_negations("zh", "不同的颜色"), [])
         self.assertEqual(_errors("zh", "Data synced", "数据不同步"), ["polarity"])
+
+
+# First-wave approved targets by en.tsv id, as a council-drafted l10n/glossary/<tag>.tsv would hold them.
+FIRST_WAVE_TARGETS = {
+    "es": {"lock": "bloquear | bloqueo", "locked": "bloqueado | bloqueada", "unlock": "desbloquear | desbloqueo",
+           "unlocked": "desbloqueado | desbloqueada", "energy-recovery": "recuperación de energía",
+           "energy-recovery-off": "Desactivada | Desactivado", "energy-recovery-low": "Baja | Bajo",
+           "low-battery-alert": "alerta de batería baja", "charge-alert": "alerta de carga | alertas de carga",
+           "alarm-sound": "sonido de alarma", "lock-duration": "duración del bloqueo", "scooter": "patinete",
+           "cruise-control": "control de crucero"},
+    "de": {"lock": "sperren | Sperre", "locked": "gesperrt", "unlock": "entsperren", "unlocked": "entsperrt",
+           "energy-recovery-off": "Aus", "energy-recovery-low": "Niedrig",
+           "low-battery-alert": "Warnung bei niedrigem Akkustand", "charge-alert": "Ladealarm",
+           "alarm-sound": "Alarmton", "lock-duration": "Sperrdauer", "lock-bar": "Sperrleiste", "scooter": "Roller",
+           "lock-state-unknown": "Sperrstatus unbekannt"},
+    "fr": {"lock": "verrouiller | verrouillage", "unlock": "déverrouiller | déverrouillage", "scooter": "trottinette",
+           "low-battery-alert": "alerte de batterie faible"},
+    "it": {"lock": "bloccare | blocca | blocco", "unlock": "sbloccare | sblocca", "scooter": "monopattino",
+           "low-battery-alert": "avviso batteria scarica"},
+    "pt-BR": {"lock": "travar | trava | bloquear", "unlock": "destravar | desbloquear", "scooter": "patinete",
+              "low-battery-alert": "alerta de bateria fraca"},
+    "nl": {"lock": "vergrendelen | vergrendeling | vergrendel", "unlock": "ontgrendelen | ontgrendel",
+           "scooter": "scooter", "low-battery-alert": "waarschuwing bij lage batterij"},
+    "pl": {"lock": "zablokuj | zablokować | blokada", "unlock": "odblokuj | odblokować", "scooter": "hulajnoga",
+           "low-battery-alert": "alert niskiego poziomu baterii"},
+    "sv": {"lock": "lås | låsa", "unlock": "lås upp | låsa upp", "scooter": "skotern",
+           "low-battery-alert": "varning för låg batterinivå"},
+    "id": {"lock": "kunci | mengunci", "unlock": "buka kunci | membuka kunci", "scooter": "skuter",
+           "low-battery-alert": "peringatan baterai lemah"},
+}
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+
+def _real_terms(tag):
+    targets = FIRST_WAVE_TARGETS[tag]
+    rows = translib._read_glossary(os.path.join(REPO_ROOT, "l10n", "glossary", "en.tsv"))
+    return [translib.Term(i, term, d, pos, dnt == "yes", safety if safety != "-" else "",
+                          [t.strip() for t in targets[i].split("|")] if i in targets else None)
+            for i, term, d, pos, dnt, safety, _ in rows]
+
+
+def _real_findings(tag, english, text, safety="lock"):
+    """check_key on a safety key whose glossary hits come from the real en.tsv, as pack.py builds them."""
+    hits = [{"id": t.id, "term": t.term, "dnt": t.dnt, "safety": t.safety or None, "target": t.targets}
+            for t in translib.glossary_hits(_real_terms(tag), english)]
+    entry = {"key": "k", "kind": "string", "english": english, "safety": safety, "dnt": [], "formatted": True,
+             "glossary": hits}
+    language = {"tag": tag, "plurals": ["one", "other"], "script": "Latn", "font": "system"}
+    return check.check_key(entry, language, "string", {"other": text})
+
+
+def _real_errors(tag, english, text, safety="lock"):
+    return sorted(set(f["check"] for f in _real_findings(tag, english, text, safety) if f["severity"] == check.ERROR))
+
+
+class FirstWaveRealGlossaryTest(unittest.TestCase):
+    """First-wave safety keys checked against the real English glossary (review round 4)."""
+
+    def test_unlock_drafted_as_lock_fails(self):
+        # en.tsv has an Unlock row, so the unlock word is required; the lock word alone fails.
+        for tag, good, bad in (("es", "Desbloquear el patinete", "Bloquear el patinete"),
+                               ("de", "Roller entsperren", "Roller sperren"),
+                               ("fr", "Déverrouiller la trottinette", "Verrouiller la trottinette"),
+                               ("it", "Sbloccare il monopattino", "Bloccare il monopattino"),
+                               ("pt-BR", "Destravar o patinete", "Travar o patinete"),
+                               ("nl", "Ontgrendel de scooter", "Vergrendel de scooter"),
+                               ("pl", "Odblokuj hulajnogę", "Zablokuj hulajnogę"),
+                               ("sv", "Lås upp skotern", "Lås skotern"),
+                               ("id", "Buka kunci skuter", "Kunci skuter")):
+            self.assertEqual(_real_errors(tag, "Unlock scooter", good), [],
+                             (tag, good, _real_findings(tag, "Unlock scooter", good)))
+            self.assertIn("glossary", _real_errors(tag, "Unlock scooter", bad), (tag, bad))
+        # "proximity unlock" is its own term; the Unlock inside it is not required separately.
+        hits = [t.id for t in translib.glossary_hits(_real_terms("es"), "Turn on proximity unlock")]
+        self.assertIn("proximity-unlock", hits)
+        self.assertNotIn("unlock", hits)
+
+    def test_longest_term_wins(self):
+        for tag, english, text in (("de", "Lock duration", "Sperrdauer"), ("de", "Lock bar", "Sperrleiste"),
+                                   ("de", "Low battery alert", "Warnung bei niedrigem Akkustand"),
+                                   ("es", "Low battery alert", "Alerta de batería baja")):
+            self.assertEqual(_real_errors(tag, english, text, "alarm"), [],
+                             (tag, text, _real_findings(tag, english, text, "alarm")))
+        hits = [t.id for t in translib.glossary_hits(_real_terms("de"), "Lock duration")]
+        self.assertEqual(hits, ["lock-duration"])
+        # The longer term is still required.
+        self.assertEqual(_real_errors("de", "Lock duration", "Fahrdauer"), ["glossary"])
+
+    def test_lock_target_starts_a_compound(self):
+        for tag, text, targets in (("de", "Sperrstatus unbekannt", ["sperren", "Sperre"]),
+                                   ("de", "Gesperrter Roller", ["gesperrt"]),
+                                   ("nl", "Vergrendelstatus onbekend", ["vergrendeling"]),
+                                   ("nl", "Vergrendelingsstatus niet bevestigd", ["vergrendeling"]),
+                                   ("sv", "Låsstatus okänd", ["lås", "låsa"]),
+                                   ("sv", "Låstid", ["lås", "låsa"]),
+                                   ("sv", "Låsstatus inte verifierad", ["lås", "låsa"])):
+            self.assertTrue(any(lexicon.term_found(tag, "Latn", t, text) for t in targets), (tag, text))
+        # Never after an unlock prefix, nor when the rest of the compound removes the lock.
+        for tag, text, targets in (("de", "Entsperrstatus", ["sperren", "Sperre"]),
+                                   ("de", "Sperraufhebung", ["sperren", "Sperre"]),
+                                   ("de", "Sperre lösen", ["sperren", "Sperre"]),
+                                   ("nl", "Ontgrendelstatus", ["vergrendeling", "vergrendel"]),
+                                   ("nl", "Vergrendelingsopheffing", ["vergrendeling"]),
+                                   ("sv", "Upplåst", ["lås", "låsa"]),
+                                   ("sv", "Låsupplåsning", ["lås"]),
+                                   ("sv", "Lås upp skotern", ["lås", "låsa"])):
+            self.assertFalse(any(lexicon.term_found(tag, "Latn", t, text) for t in targets), (tag, text))
+        # Other terms stay whole words.
+        self.assertFalse(lexicon.term_found("de", "Latn", "Alarm", "Alarmton", opposite=False))
+
+    def test_setting_value_only_in_its_own_sense(self):
+        for tag, english, text in (("es", "Turn off charge alerts", "Desactivar las alertas de carga"),
+                                   ("es", "Alarm sound off", "Sonido de alarma apagado"),
+                                   ("de", "Turn off charge alerts", "Ladealarm ausschalten")):
+            self.assertEqual(_real_errors(tag, english, text, "alarm"), [],
+                             (tag, text, _real_findings(tag, english, text, "alarm")))
+        es = _real_terms("es")
+        self.assertIn("energy-recovery-off", [t.id for t in translib.glossary_hits(es, "Off")])
+        self.assertIn("energy-recovery-off", [t.id for t in translib.glossary_hits(es, "Energy recovery: Off")])
+        self.assertNotIn("energy-recovery-off", [t.id for t in translib.glossary_hits(es, "Alarm sound off")])
+        self.assertEqual(_real_errors("es", "Off", "Apagada", "ride"), ["glossary"])
+
+    STATE_INVERTED = (
+        ("es", "Alarm sound on", "Sonido de alarma desactivado"),
+        ("es", "Alarm sound off", "Sonido de alarma activado"),
+        ("es", "Cruise control on", "Control de crucero desactivado"),
+        ("fr", "Low battery alert enabled", "Alerte de batterie faible désactivée"),
+        ("it", "Low battery alert enabled", "Avviso batteria scarica disattivato"),
+        ("pt-BR", "Low battery alert enabled", "Alerta de bateria fraca desativado"),
+        ("de", "Low battery alert on", "Warnung bei niedrigem Akkustand aus"),
+        ("de", "Low battery alert off", "Warnung bei niedrigem Akkustand an"),
+        ("pl", "Low battery alert enabled", "Alert niskiego poziomu baterii wyłączony"),
+        ("nl", "Low battery alert enabled", "Waarschuwing bij lage batterij uitgeschakeld"),
+        ("sv", "Low battery alert enabled", "Varning för låg batterinivå avstängd"),
+        ("id", "Low battery alert enabled", "Peringatan baterai lemah dinonaktifkan"),
+        ("es", "Lock: on", "Bloqueo: desactivado"),
+        ("de", "Lock: on", "Sperre: aus"),
+        ("de", "Lock: on", "Sperre: deaktiviert"),
+        ("pl", "Lock: on", "Blokada: wyłączona"),
+        ("nl", "Lock: on", "Vergrendeling: uit"),
+        ("sv", "Lock: on", "Lås: av"),
+        ("id", "Lock: on", "Kunci: dinonaktifkan"),
+    )
+    STATE_KEPT = (
+        ("es", "Alarm sound on", "Sonido de alarma activado"),
+        ("es", "Alarm sound off", "Sonido de alarma desactivado"),
+        ("fr", "Low battery alert disabled", "Alerte de batterie faible désactivée"),
+        ("de", "Low battery alert on", "Warnung bei niedrigem Akkustand an"),
+        ("pl", "Low battery alert enabled", "Alert niskiego poziomu baterii włączony"),
+        ("nl", "Low battery alert enabled", "Waarschuwing bij lage batterij ingeschakeld"),
+        ("sv", "Low battery alert on", "Varning för låg batterinivå på"),
+        ("id", "Low battery alert enabled", "Peringatan baterai lemah diaktifkan"),
+        ("es", "Lock: on", "Bloqueo: activado"),
+        # "on" as a preposition is no state; nor is an off word next to an English negation.
+        ("de", "Alarm sounds on the phone", "Alarm ertönt auf dem Telefon, Display aus"),
+        ("es", "Alarm not active", "Alarma no activa"),
+        ("pl", "Lock and power down", "Zablokuj i wyłącz"),
+        ("pl", "Alarm on", "Alarm włączony, tylko wyłącznie dźwięk"),
+    )
+
+    def test_on_off_state_inversion_fails_a_safety_key(self):
+        for tag, english, text in self.STATE_INVERTED:
+            self.assertIn("polarity", _real_errors(tag, english, text, "alarm"),
+                          (tag, english, text, _real_findings(tag, english, text, "alarm")))
+        for tag, english, text in self.STATE_KEPT:
+            self.assertNotIn("polarity", _real_errors(tag, english, text, "alarm"),
+                             (tag, english, text, _real_findings(tag, english, text, "alarm")))
+
+    def test_lock_removed_after_a_status_colon(self):
+        for tag, text, target in (("es", "Bloqueo — quitado", "bloqueo"), ("de", "Sperre: aus", "Sperre"),
+                                  ("pl", "Blokada: wyłączona", "blokada"),
+                                  ("nl", "Vergrendeling: uit", "vergrendeling"),
+                                  ("sv", "Lås: av", "lås"), ("es", "Bloqueo (desactivado)", "bloqueo")):
+            self.assertFalse(lexicon.term_found(tag, "Latn", target, text), (tag, text))
+        for tag, text, target in (("de", "Sperre: Motor bleibt ausgeschaltet", "Sperre"),
+                                  ("it", "Bloccato: motore spento", "bloccato"),
+                                  ("es", "Bloqueo: activado", "bloqueo")):
+            self.assertTrue(lexicon.term_found(tag, "Latn", target, text), (tag, text))
 
 if __name__ == "__main__":
     unittest.main()

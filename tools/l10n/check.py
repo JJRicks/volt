@@ -23,31 +23,42 @@ Checks, per key (a plural is checked per quantity):
                 flags, URLs, {z}/{x}/{y}, the U+FFFC placeholder) are kept exactly
   markup        the same number of ** and backtick marks, and every `code span` unchanged
   glossary      approved glossary terms are used: as whole words in scripts with word spaces (at a
-                word start where the language takes suffixes, with endings where it inflects),
-                anywhere in zh, ja and Thai; a lock term next to words that make it unlock or remove
-                the lock is not found (warn; error for a safety term in a safety key)
+                word start where the language takes suffixes, with endings where it inflects; a lock
+                term may start a compound in de, nl and sv), anywhere in zh, ja and Thai; a lock term
+                next to words that make it unlock or remove the lock is not found (warn; error for a
+                safety term in a safety key). A term found only inside a longer term ("Lock" in "Lock
+                duration") is not required on its own, and a setting value ("Off", an Energy recovery
+                level) only where it has that sense (translib.glossary_hits)
   whitespace    no leading or trailing whitespace drift; no new repeated spaces or line breaks
   glyphs        Saira has every character (Latin-script languages)
   ladder        every rung English has (full, _short, _compact) is drafted together
   width         each key with volt:max fits its budget, measured with Saira (see fontmetrics.py)
   polarity      negation in the English (not, no, never, un-...) is present in the target, and none is
                 added where the English has none (on -> "no activada"); per-language lexicons in
-                lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-")
+                lexicon.py (word-level for zh and ja, native negating prefixes such as ru "не-"); and
+                an English on or off state not drafted as only the other state's words
+                (lexicon.STATE_WORDS, first-wave languages: "Lock: on" -> "Sperre: aus")
   script        no letters from another script, except words copied from the English (any case,
                 hyphen-aware); a Latin acronym or a loan in LATIN_LOANS (App, Wi-Fi) only warns
   untranslated  the target is not just the English (warn)
 
 Limits. These checks are a first filter, not the guarantee. They catch the mechanical faults
 (placeholders, numbers, plurals, escapes, markup, tokens, glyphs, widths) reliably, and the
-common meaning faults by word lists: a missing glossary term, the lock word inside its unlock word,
+common meaning faults by word lists: a missing glossary term (Unlock has its own term, so an unlock
+key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
 removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
-ja, zh), and negation dropped or added where the language has a list. Known gaps: a removal verb
+ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
+as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
 text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
 where polarity only warns; English that itself says off or remove (the removal context is skipped);
-and inversions by antonym. For safety keys (lock, unlock, alarms, power, speed) the guarantee is
+on or off said with a word not in STATE_WORDS, in a later-wave language (no state list), or in a
+target that has both states' words; a glossary term without an approved target in the language
+(nothing is required, Unlock included); a lock compound whose rest is a removal word not in
+lexicon.COMPOUND_OPPOSITE, or with the lock word in second place ("Rollersperre" is not found);
+and other inversions by antonym. For safety keys (lock, unlock, alarms, power, speed) the guarantee is
 the council's later stages: every drafter must agree, a model that drafted nothing back-translates
 the agreed text, the judge rules on that exact text, and a failure falls back to English. A false
 alarm here fails closed (the key falls back to English). See l10n/README.md, "Limits of the
@@ -103,6 +114,13 @@ EN_OFF_WORDS = {"off", "disable", "disabled", "disconnect", "disconnected", "ina
                 "deny", "denied", "remove", "removed", "delete", "deleted", "clear", "cleared", "offline", "empty"}
 # The on/off state words: an "Alarm off" target with no negation at all is worth the judge's look.
 EN_STATE_OFF = {"off", "disabled", "inactive", "deactivated"}
+# English that states on or off ("Lock: on", "Alarm sound off", "Low battery alert enabled", "Turn on
+# alerts"). A bare "on" counts only at the end of the text, before punctuation or after turn/switch/
+# stay/keep, so the preposition ("on this model") does not.
+EN_SAYS_ON = re.compile(r"(?<![a-z])(?:on(?=\s*(?:$|[.,;:!?)\]]))|(?:turn\w*|switch\w*|stay\w*|keep\w*|"
+                         r"is|are|always|:)\s+on|enabl(?:e|ed|es)|activ(?:e|ated?|ates))(?![a-z])", re.IGNORECASE)
+EN_SAYS_OFF = re.compile(r"(?<![a-z])(?:off|disabl(?:e|ed|es)|inactive|deactivat\w*|power\w*\s+down|shut\w*\s+down)"
+                          r"(?![a-z])", re.IGNORECASE)
 # Negation words that are also ordinary words (French "personne" is "person", Arabic "دون" is also
 # "below", Urdu "بنا" is also "made"): not counted as added.
 AMBIGUOUS_NEGATION = {"fr": {"personne"}, "ar": {"دون"}, "ur": {"بنا"}}
@@ -386,6 +404,30 @@ def _chars(chars):
 
 
 def _polarity(language, reference, text, safety, q, entry=None):
+    """Negation kept or not added (_negation), and an on or off state not inverted (_state)."""
+    return _negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q)
+
+
+def _state(language, reference, text, safety, q):
+    """An English on (or off) state drafted as only the other state's words (lexicon.STATE_WORDS):
+    "Lock: on" as "Sperre: aus", "Alarm sound off" as "Sonido de alarma activado". An error in a
+    safety key. English with a negation is left to _negation ("Alarm not active")."""
+    found = lexicon.state_words(language["tag"].split("-")[0], text)
+    if found is None:
+        return []
+    plain, un = english_negation(reference)
+    english_on, english_off = EN_SAYS_ON.search(reference), EN_SAYS_OFF.search(reference)
+    if plain or un or bool(english_on) == bool(english_off):
+        return []
+    on, off = found
+    english, wrong, right = (english_on, off, on) if english_on else (english_off, on, off)
+    if wrong and not right:
+        return [finding("polarity", ERROR if safety else WARN, "the English says %r; the target says %s, the "
+                        "opposite state" % (english.group(0), ", ".join(repr(w) for w in wrong[:3])), q)]
+    return []
+
+
+def _negation(language, reference, text, safety, q, entry=None):
     """Negation kept, and none added, in either direction.
 
     A negating prefix ("des-", "in-") is only a guess: "información" is not a negation and
@@ -434,7 +476,9 @@ def _polarity(language, reference, text, safety, q, entry=None):
     if prefixed and not opposite:
         return [finding("polarity", WARN, "%s may carry a negating prefix the English does not have; the judge "
                         "checks polarity" % ", ".join(repr(w) for w in prefixed[:3]), q)]
-    if not prefixed and opposite & EN_STATE_OFF:
+    state = lexicon.state_words(primary, text)
+    if not prefixed and opposite & EN_STATE_OFF and not (state and state[1]):
+        # A target with the language's own off word ("apagado", "ausschalten") already says off.
         return [finding("polarity", WARN, "the English says %s; check the target is not the opposite" % ", ".join(
             repr(w) for w in sorted(opposite & EN_STATE_OFF)), q)]
     return []
@@ -485,9 +529,13 @@ def _glossary(language, entry, reference, text, safety, q):
     out = []
     primary = language["tag"].split("-")[0]
     script = language.get("script") or "Latn"
-    for hit in entry.get("glossary") or []:
+    hits = entry.get("glossary") or []
+    names = [h["term"] for h in hits]
+    for hit in hits:
         if hit.get("dnt") or not translib.term_pattern(hit["term"]).search(reference):
             continue
+        if translib.nested_in_longer(hit["term"], names, reference):
+            continue  # "Lock" in "Lock duration": the longer term's translation is required
         targets = hit.get("target")
         if not targets:
             continue
