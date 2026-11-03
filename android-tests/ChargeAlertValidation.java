@@ -447,6 +447,6 @@ public final class ChargeAlertValidation extends Instrumentation {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "charge-alert-validation"); require(dir.isDirectory() || dir.mkdirs(), "Screenshot directory missing");
         File file = new File(dir, label + ".png"); android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
-        screenshots.add(file.getAbsolutePath()); TextCensus.write(this, file);
+        screenshots.add(file.getAbsolutePath()); TextCensus.writeWithNotifications(this, file);
     }
 }

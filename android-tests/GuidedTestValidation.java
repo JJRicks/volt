@@ -1334,51 +1334,8 @@ public final class GuidedTestValidation extends Instrumentation {
     Object field(Object target, String name) { try { Class<?> type = target.getClass(); while (type != null) { try { Field f = type.getDeclaredField(name); f.setAccessible(true); return f.get(target); } catch (NoSuchFieldException e) { type = type.getSuperclass(); } } throw new NoSuchFieldException(name); } catch (Exception e) { throw new IllegalStateException("Field " + name, e); } }
     Object invoke(Object target, String name) { return invoke(target, name, new Class<?>[0]); }
     Object invoke(Object target, String name, Class<?>[] types, Object... args) { try { Class<?> type = target.getClass(); while (type != null) { try { Method m = type.getDeclaredMethod(name, types); m.setAccessible(true); return m.invoke(target, args); } catch (NoSuchMethodException e) { type = type.getSuperclass(); } } throw new NoSuchMethodException(name); } catch (Exception e) { throw new IllegalStateException("Method " + name, e); } }
-    /**
-     * G7: Volt's connection notice (id 71) is spaced by NotificationPacer and posted through the system, so a
-     * screenshot taken as soon as the screen changes could census the notice from before the change ("Scooter
-     * connected" over a dropped link one run, "Disconnected" after the reconnect the next). Waits up to 3 s until
-     * nothing waits in the pacer and the posted notice's title, text and actions are those the service builds
-     * now, or no notice is posted while it is not in the foreground. Waiting keeps the notice in the census;
-     * leaving it out or normalizing it in TextCensus would hide a real change to its text, and TextCensus uses
-     * no Volt classes. Best effort: it never fails the run, and the census shows whatever is posted.
-     */
-    private void settleConnectionNotice() {
-        long end = SystemClock.uptimeMillis() + 3000;
-        while (SystemClock.uptimeMillis() < end) {
-            final String[] wanted = {null}; final boolean[] ready = {false};
-            try {
-                main(() -> {
-                    ScooterService service = activity == null ? null : activity.service();
-                    if (service == null || Boolean.TRUE.equals(invoke(field(service, "notices"), "waiting", new Class<?>[]{int.class}, 71))) return;
-                    boolean foreground = Boolean.TRUE.equals(field(service, "foregroundStarted"));
-                    // A foreground notice the service may not update now (workAllowed false) stays as posted.
-                    if (foreground && !service.workAllowed()) { ready[0] = true; return; }
-                    wanted[0] = foreground ? notice((android.app.Notification)invoke(service, "notification")) : "";
-                    ready[0] = true;
-                });
-            } catch (RuntimeException unavailable) { android.util.Log.w("GuidedTestValidation", "connection notice not settled", unavailable); return; }
-            if (ready[0] && (wanted[0] == null || wanted[0].equals(postedNotice()))) return;
-            SystemClock.sleep(60);
-        }
-        android.util.Log.w("GuidedTestValidation", "connection notice did not settle within 3 s");
-    }
-    private String postedNotice() {
-        android.app.NotificationManager manager = getTargetContext().getSystemService(android.app.NotificationManager.class);
-        if (manager == null) return "";
-        for (android.service.notification.StatusBarNotification posted : manager.getActiveNotifications())
-            if (posted.getId() == 71 && posted.getTag() == null) return notice(posted.getNotification());
-        return "";
-    }
-    private static String notice(android.app.Notification n) {
-        StringBuilder out = new StringBuilder(); Bundle extras = n.extras == null ? Bundle.EMPTY : n.extras;
-        out.append(extras.getCharSequence(android.app.Notification.EXTRA_TITLE)).append('\n').append(extras.getCharSequence(android.app.Notification.EXTRA_TEXT));
-        if (n.actions != null) for (android.app.Notification.Action action : n.actions) out.append('\n').append(action.title);
-        return out.toString();
-    }
     private void screenshot(String label) throws Exception {
         File file = new File(outDir(), variant() + "-" + label + ".png");
-        settleConnectionNotice();
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot(); require(bitmap != null, "Screenshot unavailable");
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath()); com.jjricks.volt.tests.TextCensus.write(this, file);

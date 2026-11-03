@@ -2,7 +2,10 @@
 windows, TextCensus.writeView for a render of one view) or says why it has no census (TextCensus.skip),
 so run-release-sweep.py --census finds a census beside every screenshot. Skip is only for renders that
 hold no text, so each method that calls it is listed in SKIPS with what it draws. A runner script that
-saves its own screencap (run-ride-auto-stop.py's notification shade) moves a device census beside it."""
+saves its own screencap (run-ride-auto-stop.py's notification shade) moves a device census beside it.
+Notifications join a screen's census only in the validations listed in NOTIFICATIONS, whose checks are
+about Volt's notification text (TextCensus.writeWithNotifications); elsewhere the connection notice is
+incidental and races the screen."""
 
 import os
 import re
@@ -16,7 +19,15 @@ DECLARATION = re.compile(
     r"(?:^\s*|[;{}]\s*)(?:@\w+\s+)*(?:(?:public|private|protected|static|final|synchronized|abstract)\s+)*"
     r"(?:<[^>]*>\s*)?[\w.]+(?:<[^()]*?>)?(?:\[\])*\s+(\w+)\s*\([^()]*(?:\([^()]*\)[^()]*)*\)\s*(?:throws\s+[\w.,\s]+)?\{")
 NOT_NAMES = {"if", "for", "while", "switch", "catch", "synchronized", "return", "new", "try", "else"}
-CENSUS = re.compile(r"\bTextCensus\.(?:write|writeView|skip)\(")
+CENSUS = re.compile(r"\bTextCensus\.(?:write|writeWithNotifications|writeView|skip)\(")
+WITH_NOTIFICATIONS = re.compile(r"\bTextCensus\.writeWithNotifications\(")
+# Validations whose census includes the app's notifications: each checks Volt's notification text.
+NOTIFICATIONS = {
+    "ChargeAlertValidation.java": "the charge alert's watch, alarm and lost-watch notices",
+    "ChargeCaptureValidation.java": "the charge recording notice, its recovery and pause texts",
+    "ChargeScheduleValidation.java": "the measure and schedule test notices",
+    "RideAutoStopValidation.java": "the ride saved automatically notice",
+}
 SKIP = re.compile(r"\bTextCensus\.skip\(")
 # (file, method) -> what it renders. A render with any text must be censused instead (writeView).
 SKIPS = {
@@ -132,6 +143,12 @@ class CensusCoverageTest(unittest.TestCase):
         unlisted = ["android-tests/%s:%d (%s)" % (name, line, method) for name, method, line in sites if (name, method) not in SKIPS]
         self.assertEqual(unlisted, [], "TextCensus.skip outside SKIPS; census the render with TextCensus.writeView instead")
         self.assertEqual(sorted(SKIPS), sorted({(name, method) for name, method, _ in sites}), "a SKIPS entry no longer skips")
+
+    def test_notifications_only_where_listed(self):
+        found = {name for name in os.listdir(TESTS) if name.endswith(".java") and name != "TextCensus.java"
+                 and WITH_NOTIFICATIONS.search(open(os.path.join(TESTS, name), encoding="utf-8").read())}
+        self.assertEqual(sorted(found), sorted(NOTIFICATIONS),
+                         "TextCensus.writeWithNotifications only where the validation checks notification text; list it in NOTIFICATIONS")
 
     def test_skip_sites_name_their_method(self):
         text = ("    private void thumbs() {\n        TextCensus.skip(file, \"no text\");\n    }\n"

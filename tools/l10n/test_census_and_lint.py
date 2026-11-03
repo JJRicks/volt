@@ -230,6 +230,29 @@ class VolatileTest(unittest.TestCase):
         result = census_diff.compare_runs([a, a2], h)
         self.assertEqual((result.text, len(result.volatile)), ([], 1))
 
+    def test_stable_numbers_that_differ_are_reported_not_failed(self):
+        """A drifting reading can match in both base runs by chance; its number is G10's to check."""
+        for head, fails in (("24 °C", False), ("9 °C", False), ("24 °F", True), ("24°C", True), ("24,0 °C", True)):
+            a, a2, h = self.runs("23 °C", "23 °C", head)
+            result = census_diff.compare_runs([a, a2], h)
+            self.assertEqual((bool(result.text), len(result.numbers)), (fails, 0 if fails else 1), head)
+        for base, head, fails in (("14.2 W", "22.1 W", False), ("14.2 W", "14.25 W", True), ("14.2 W", "14 W", True),
+                                  ("14.2 W", "14,2 W", True), ("Charge done by time, 08:00", "Charge done by time, 8:00", True),
+                                  ("2 rides", "3 rides", False), ("2 rides", "3 ride", True), ("1,234 km", "1,567 km", False),
+                                  ("1,234 km", "1234 km", True)):
+            a, a2, h = self.runs(base, base, head)
+            result = census_diff.compare_runs([a, a2], h)
+            self.assertEqual((bool(result.text), len(result.numbers)), (fails, 0 if fails else 1), (base, head))
+        a, a2, h = self.runs("23 °C", "23 °C", "24 °C")
+        self.assertEqual(census_diff.compare_runs([a, a2], h).numbers, ['text tag=power: "23 °C" -> "24 °C"'])
+
+    def test_form_keeps_precision_and_padding(self):
+        self.assertEqual(census_diff.form("18.7 W · 1,234 km · 08:05"), "<n>.<n:1> W · <n>,<n:3> km · <n>:<n>")
+        self.assertEqual(census_diff.form("Volt 1.11.1"), "Volt <n>.<n:2>.<n:1>")
+        self.assertTrue(census_diff.same_form("18.7 W", "21.3 W"))
+        for a, b in (("18.7 W", "18.75 W"), ("08:05", "8:05"), ("18.7 W", "18,7 W")):
+            self.assertFalse(census_diff.same_form(a, b), (a, b))
+
     def test_records_only_some_base_runs_have_are_volatile(self):
         a, a2, _ = self.runs("1 W", "1 W", "1 W")
         a2 = a2 + self.records([("toast", "tag=hint", "-", "Saved")])
@@ -313,6 +336,7 @@ class VolatileTest(unittest.TestCase):
             code, out, err = self.main([a, head])
             self.assertEqual(code, 1)
             self.assertIn("warning: one base run", err)
+            self.assertIn("with numbers that differ", out)
             self.assertIn("home.census.tsv: - text tag=power", err)
             self.assertIn("only-a.census.tsv: only in base", err)
             with contextlib.redirect_stderr(io.StringIO()):

@@ -5,7 +5,8 @@ identifiers and clock, duration and date values are masked. Bounds differences a
 Sweep the base APK twice and the head APK once (l10n/README.md, step 7). A record whose value differs
 between the base runs only in its digits (drifting simulated telemetry) is compared by form, digit
 runs masked; one that differs otherwise (a timing-dependent capture) is volatile: listed and counted,
-never compared. Every other record must match HEAD. With one base run nothing can
+never compared. Every other record must match HEAD, except that a HEAD value whose numbers alone differ
+is reported ("numbers differ"), not failed: number values are G10's to check. With one base run nothing can
 be told volatile, so run-to-run noise fails like a text change (a warning says so). Records are keyed
 by screen file, field, locator with identifiers masked and the occurrence of that pair; a list that
 reorders between the base runs is compared without its order (see compare_runs).
@@ -28,7 +29,8 @@ then optional lines starting with #, then one record per line with four tab-sepa
   value     the text
 
 In locator and value, backslash, tab, line feed and carriage return are written as \\\\, \\t, \\n and \\r.
-Records are in view-tree order (depth first), then dialogs, then notifications.
+Records are in view-tree order (depth first), then dialogs, then notifications (only in the validations
+whose checks are about notification text: TextCensus.writeWithNotifications).
 
   census_diff.py --base A --base A2 HEAD [--show-volatile] [--show-bounds]
                                                 two or more base runs, then HEAD: census files or folders
@@ -285,14 +287,28 @@ def _line(sign, key, value):
     return "%s %s: %s" % (sign, _where(key), l10nlib.json_string(value))
 
 
-Result = collections.namedtuple("Result", "text bounds volatile reordered formed")
-_DIGITS = re.compile(r"\d+")
+Result = collections.namedtuple("Result", "text bounds volatile reordered formed numbers")
+# A digit run right after a digit and a decimal point or comma is a fraction (or a thousands group):
+# its length is the precision, which formatting sets, so the form keeps it.
+_DIGITS = re.compile(r"(?<=\d[.,])\d+|\d+")
 
 
 def form(value):
-    """value with identifiers masked and every digit run as <n>: what is left of a reading whose number
-    drifts between runs ("137 W" and "145 W" are both "<n> W"; "18.7 W" and "18,7 W" are not)."""
-    return _DIGITS.sub("<n>", mask_ids(value))
+    """value with identifiers masked and every digit run as <n>, a fraction's as <n:length>: what is
+    left of a reading whose number drifts between runs ("137 W" and "145 W" are both "<n> W"; "18.7 W",
+    "18,7 W" and "18.75 W" are three forms)."""
+    value = mask_ids(value)
+    return _DIGITS.sub(lambda m: "<n:%d>" % len(m.group(0)) if m.start() > 1 and value[m.start() - 1] in ".,"
+                       and value[m.start() - 2].isdigit() else "<n>", value)
+
+
+def same_form(base_value, head_value):
+    """True when two texts differ at most in the values of their numbers: the same form (see form),
+    and no digit run turns from zero-padded to unpadded or back ("08:00" against "8:00")."""
+    if form(base_value) != form(head_value):
+        return False
+    pairs = zip(_DIGITS.findall(mask_ids(base_value)), _DIGITS.findall(mask_ids(head_value)))
+    return not any({_padding(a), _padding(b)} == {"0", "1"} for a, b in pairs)
 
 
 def _match(wanted, offered):
@@ -331,20 +347,26 @@ def compare_runs(bases, head):
     values there in some order, they are a reordered list. HEAD must hold those values at those keys,
     in any order (each matched under the masks), and they count as reordered, not volatile.
 
-    A key whose values differ between the base runs only in their digits (see form: drifting simulated
-    telemetry) is compared by form: HEAD must have it with the same form, so a changed separator, unit,
-    space, plural or capital still fails; only the numbers, and so their zero padding, go unchecked.
+    A key whose values differ between the base runs only in their numbers (see same_form: drifting
+    simulated telemetry) is compared by form: HEAD must have it with the same form, so a changed
+    separator, precision, padding, unit, space, plural or capital still fails; the numbers' values go
+    unchecked.
+
+    A stable key whose HEAD value differs from the base value only in its numbers' values is reported
+    as "numbers differ", not failed: two base runs cannot show that a drifting reading was equal by
+    chance ("23 °C" both times), and number values are G10's to check (FmtLegacyTest), not G7's.
 
     HEAD keys that no base run has fail. text lists the failures, bounds the bounds notes (HEAD bounds
     unlike every base run's), volatile (key, [base values]) the records not compared, reordered the
-    keys compared without their order and formed the keys compared by form.
+    keys compared without their order, formed the keys compared by form and numbers the
+    "<key>: <base> -> <head>" lines of the numbers that differ.
     """
     maps, now = [keyed(b) for b in bases], keyed(head)
     order = collections.OrderedDict()
     for m in maps:
         for key in m:
             order[key] = True
-    text, bounds, volatile, reordered, formed = [], [], [], [], []
+    text, bounds, volatile, reordered, formed, numbers = [], [], [], [], [], []
     lists = collections.OrderedDict()
     for key in order:
         if all(key in m for m in maps) and any(mask_ids(m[key].value) != mask_ids(maps[0][key].value) for m in maps[1:]):
@@ -371,19 +393,22 @@ def compare_runs(bases, head):
         first = maps[0][key]
         record = now.get(key)
         if not all(same_after_masking(first.value, m[key].value) for m in maps[1:]):
-            if any(form(m[key].value) != form(first.value) for m in maps[1:]):
+            if not all(same_form(first.value, m[key].value) for m in maps[1:]):
                 volatile.append((key, [m[key].value for m in maps]))
                 continue
             formed.append(key)
             if record is None:
                 text.append(_line("-", key, first.value) + " (compared by form: its numbers drift)")
-            elif form(record.value) != form(first.value):
+            elif not same_form(first.value, record.value):
                 text.append(_line("-", key, first.value) + " (compared by form: its numbers drift)")
                 text.append(_line("+", key, record.value) + " (compared by form: its numbers drift)")
             continue
         if record is None:
             text.append(_line("-", key, first.value))
         elif not same_after_masking(first.value, record.value):
+            if same_form(first.value, record.value):
+                numbers.append("%s: %s -> %s" % (_where(key), l10nlib.json_string(first.value), l10nlib.json_string(record.value)))
+                continue
             text.append(_line("-", key, first.value))
             text.append(_line("+", key, record.value))
         elif all(m[key].bounds != record.bounds for m in maps):
@@ -391,7 +416,7 @@ def compare_runs(bases, head):
     for key, record in now.items():
         if key not in order:
             text.append(_line("+", key, record.value))
-    return Result(text, bounds, volatile, reordered, formed)
+    return Result(text, bounds, volatile, reordered, formed, numbers)
 
 
 def compare(base, head):
@@ -412,7 +437,7 @@ def _collect(path):
     return {os.path.basename(path): path}
 
 
-Summary = collections.namedtuple("Summary", "problems notes screens volatile reordered formed records warnings")
+Summary = collections.namedtuple("Summary", "problems notes screens volatile reordered formed numbers records warnings")
 SWEEP = "sweep.json"
 
 
@@ -455,7 +480,8 @@ def diff_runs(base_paths, head_path):
     """Summary of HEAD against the BASE runs. problems lists the failures; volatile holds
     "<screen>: <field> <locator>: <base values>" lines for the records and screens not compared
     (a screen only some base runs have counts each of its records); reordered counts the records
-    compared without their order and formed those compared by form; records counts the records of the screens HEAD was compared on."""
+    compared without their order and formed those compared by form; numbers lists the stable records
+    whose numbers alone differ in HEAD; records counts the records of the screens HEAD was compared on."""
     run_problems, warnings = check_runs(base_paths, head_path)
     base_files = [_collect(p) for p in base_paths]
     head_files = _collect(head_path)
@@ -466,7 +492,7 @@ def diff_runs(base_paths, head_path):
         for files in base_files:
             names |= set(files)
         pairs = [(name, [files.get(name) for files in base_files], head_files.get(name)) for name in sorted(names)]
-    problems, notes, volatile, reordered, formed, records = list(run_problems), [], [], 0, 0, 0
+    problems, notes, volatile, reordered, formed, numbers, records = list(run_problems), [], [], 0, 0, [], 0
     for name, bases, head in pairs:
         present = [b for b in bases if b is not None]
         if not present:
@@ -493,7 +519,8 @@ def diff_runs(base_paths, head_path):
                         for k, values in result.volatile)
         reordered += len(result.reordered)
         formed += len(result.formed)
-    return Summary(problems, notes, len(pairs), volatile, reordered, formed, records, warnings)
+        numbers.extend("%s: %s" % (name, line) for line in result.numbers)
+    return Summary(problems, notes, len(pairs), volatile, reordered, formed, numbers, records, warnings)
 
 
 def diff_paths(base_path, head_path):
@@ -514,6 +541,7 @@ def main(argv=None):
     parser.add_argument("--mask", metavar="FILE", help="print FILE with masks applied")
     parser.add_argument("--show-bounds", action="store_true", help="list each bounds difference")
     parser.add_argument("--show-volatile", action="store_true", help="list each volatile record with its base values")
+    parser.add_argument("--show-numbers", action="store_true", help="list each stable record whose numbers alone differ in HEAD")
     args = parser.parse_args(argv)
     if args.mask:
         for record in parse(l10nlib.read_text(args.mask), args.mask):
@@ -529,8 +557,8 @@ def main(argv=None):
         bases, head = args.paths[:1], args.paths[1]
     summary = diff_runs(bases, head)
     if len(bases) == 1:
-        print("census_diff: warning: one base run, so run-to-run noise (drifting telemetry, timing-dependent "
-              "captures) cannot be told apart from a text change; sweep the base twice and pass --base twice",
+        print("census_diff: warning: one base run, so run-to-run noise (timing-dependent captures, reordered "
+              "lists) cannot be told apart from a text change; sweep the base twice and pass --base twice",
               file=sys.stderr)
     for warning in summary.warnings:
         print("census_diff: warning: " + warning, file=sys.stderr)
@@ -542,14 +570,18 @@ def main(argv=None):
     if args.show_volatile:
         for line in summary.volatile:
             print("census_diff: volatile: " + line)
+    if args.show_numbers:
+        for line in summary.numbers:
+            print("census_diff: numbers differ: " + line)
     if summary.volatile:
         steps = collections.Counter(_step(line) for line in summary.volatile)
         print("census_diff: volatile by step: " + ", ".join("%s %d" % (s, n) for s, n in sorted(steps.items())))
     print("census_diff: %s: %d screen(s), %d base run(s), %d text difference(s), %d of %d record(s) volatile "
-          "(not compared), %d compared by form (numbers drift), %d in reordered lists (compared without order), "
-          "%d bounds difference(s) (reported only)" % (
+          "(not compared), %d compared by form (numbers drift), %d with numbers that differ (reported only; G10 checks "
+          "numbers), %d in reordered lists (compared without order), %d bounds difference(s) (reported only)" % (
               "FAILED" if summary.problems else "PASS", summary.screens, len(bases), len(summary.problems),
-              len(summary.volatile), summary.records, summary.formed, summary.reordered, len(summary.notes)))
+              len(summary.volatile), summary.records, summary.formed, len(summary.numbers), summary.reordered,
+              len(summary.notes)))
     return 1 if summary.problems else 0
 
 
