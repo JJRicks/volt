@@ -299,8 +299,11 @@ How `ledger_check.py` (G1) reads it:
 - `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
   must be added somewhere else in `src/` (outside the changed region it left), and the lines it
   left must either only lose tokens (code moved out whole) or name the constant it moved to
-  (`NAME`, or `Class.NAME` from another file). The constant is a field, `NAME = "V";`, or an enum
-  constant whose argument the literal is, `VOLT(T.UNITS_VOLT, "V")`. Several occurrences of one
+  (`NAME`, or `Class.NAME` from another file). The constant is a `final` field of a class, enum or
+  record body (or an interface field), `static final String NAME = "V";`, or an enum constant
+  whose argument the literal is, `VOLT(T.UNITS_VOLT, "V")`. A local variable, an assignment
+  (`source = "GPS";` in a method) or a field that is not `final` is never a constant, for an
+  arrival or for a constant already in `src/`. Several occurrences of one
   literal may move into the same constant, one row each (ChartScale's three `unit.equals("V")`
   becoming `UnitCode.VOLT.matches(unit)`); then every changed region they left must name, in the
   base order of its literals, the constant each one moved to, so `"V"` then `"W"` cannot become

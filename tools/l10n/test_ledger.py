@@ -1061,6 +1061,22 @@ class SharedConstantTest(RepoCase):
                             (edit, problems))
             self.repo.git("reset", "-q", "--hard", self.base + "~1")
 
+    def test_a_local_variable_or_plain_field_is_not_an_existing_constant(self):
+        # review repro: PhoneRideStore's local `source = "GPS";` let a dropped "GPS" check pass
+        for code in ('static void unused(String unit) { unit = "V"; }',
+                     'static void unused() { String unit = "V"; }',
+                     'static void unused() { final String unit = "V"; }',
+                     'static String unit = "V";'):
+            self.repo.write(self.SCALE, self.text(self.SCALE).replace("static int unused() { return 0; }", code))
+            self.base = self.repo.commit("a V that is not a constant")
+            self.repo.write(self.SCALE, self.text(self.SCALE).replace('unit.equals("V") ? .1 : 1',
+                                                                      "unit.isEmpty() ? .1 : 1"))
+            problems, warnings, _ = self.check([self.ROWS[2]])
+            self.assertTrue(any('"V" left %s:6 and is not added anywhere else' % self.SCALE in p for p in problems),
+                            (code, problems))
+            self.assertFalse(any("existing constant" in w for w in warnings), (code, warnings))
+            self.repo.git("reset", "-q", "--hard", self.base + "~1")
+
     def test_constant_name_forms(self):
         def name(source, literal):
             tokens = expressions.l10nlib.lex_java(source)
@@ -1072,6 +1088,21 @@ class SharedConstantTest(RepoCase):
         self.assertIsNone(name('class C { void f() { g(1, "x"); } }', "x"))
         self.assertIsNone(name('enum U { A; void f() { B("x"); } }', "x"))
         self.assertIsNone(name('enum U { A(f("x")) }', "x"))
+        # only a final field is a constant (review: PhoneRideStore's local `source = "GPS";`)
+        self.assertEqual(name('class C { private static final String A = "a", X = "x"; }', "x"), "X")
+        self.assertEqual(name('class C { @Deprecated(since = "1") final Map<K, V> X = "x"; }', "x"), "X")
+        self.assertEqual(name('interface I { String X = "x"; }', "x"), "X")
+        self.assertEqual(name('enum U { A; static final String X = "x"; }', "x"), "X")
+        self.assertIsNone(name('class C { void f() { source = "GPS"; } }', "GPS"))
+        self.assertIsNone(name('class C { void f() { String s = "x"; } }', "x"))
+        self.assertIsNone(name('class C { void f() { final String s = "x"; } }', "x"))
+        self.assertIsNone(name('class C { static { s = "x"; } }', "x"))
+        self.assertIsNone(name('class C { String title = "x"; }', "x"))
+        self.assertIsNone(name('class C { C() { this.title = "x"; } }', "x"))
+        self.assertIsNone(name('class C { void f() { g(t = "x"); } }', "x"))
+        self.assertIsNone(name('class C { Runnable r = () -> { final String s = "x"; }; }', "x"))
+        self.assertIsNone(name('class C { Object o = new Object() { final String s = "x"; }; }', "x"))
+        self.assertIsNone(name('class C { void f() { if (a == C.class) { final String s = "x"; } } }', "x"))
 
 
 class InsertedMemberTest(RepoCase):

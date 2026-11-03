@@ -1057,13 +1057,69 @@ def test_callers(head, cwd=None):
     return found
 
 
+_TYPE_KEYWORDS = ("class", "enum", "interface", "record")
+
+
+def _final_field(tokens, k):
+    """True when NAME at token k (in NAME = ...) is declared by a final field of a class, enum or record
+    body, or by a field of an interface body (implicitly static final): a local variable, an assignment
+    statement or a non-final field is not a constant."""
+    def op(j, *values):
+        return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+    depth, start = 0, k - 1
+    while start >= 0:  # back to the start of the statement
+        if op(start, ")", "]"):
+            depth += 1
+        elif op(start, "(", "["):
+            if depth == 0:
+                return False  # inside a call or an index: f(x = "..."), not a declaration
+            depth -= 1
+        elif depth == 0 and op(start, ";", "{", "}"):
+            break
+        start -= 1
+    end, depth = start + 1, 0
+    while end <= k and not (depth == 0 and op(end, "=")):  # the first declarator's =
+        if op(end, "(", "["):
+            depth += 1
+        elif op(end, ")", "]"):
+            depth -= 1
+        end += 1
+    if end != k + 1 and not op(k - 1, ","):
+        return False
+    modifiers = tokens[start + 1:end]
+    if len(modifiers) < 2 or modifiers[-1].kind != "ident" or not (
+            modifiers[-2].kind == "ident" or op(start + len(modifiers) - 1, ">", "]")):
+        return False  # an assignment (NAME = ..., this.NAME = ...), not a declaration (Type NAME = ...)
+    depth, j = 0, start
+    while j >= 0:  # the block that holds the declaration
+        if op(j, "}"):
+            depth += 1
+        elif op(j, "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        j -= 1
+    if j < 0:
+        return False
+    header = j
+    while header > 0 and not op(header - 1, ";", "{", "}"):
+        header -= 1
+    kinds = [tokens[i].value for i in range(header, j) if tokens[i].kind == "ident"
+             and tokens[i].value in _TYPE_KEYWORDS and not op(i - 1, ".")]
+    if not kinds:
+        return False  # a method, constructor, initializer or lambda body
+    final = any(t.kind == "ident" and t.value == "final" for t in modifiers)
+    return final or kinds[-1] == "interface"
+
+
 def constant_name(tokens, k):
-    """NAME when the literal at token k is all of a constant's value: NAME = "..." (a field such as
-    static final String NAME = "V";) or the whole argument of an enum constant NAME(..., "V", ...)."""
+    """NAME when the literal at token k is all of a constant's value: NAME = "..." declared by a final
+    field (static final String NAME = "V";, not a local variable or an assignment) or the whole argument
+    of an enum constant NAME(..., "V", ...)."""
     def op(j, *values):
         return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
     if k >= 2 and op(k - 1, "=") and tokens[k - 2].kind == "ident" and op(k + 1, ";", ","):
-        return tokens[k - 2].value
+        return tokens[k - 2].value if _final_field(tokens, k - 2) else None
     if not (op(k - 1, "(", ",") and op(k + 1, ")", ",")):
         return None
     depth, j = 0, k - 1
@@ -1217,7 +1273,7 @@ def _references(diff, hunk, row_path, arrival_path, name):
 
 def _points_to(diff, hunk, row_path, arrival_path, arrival_index, arrival_diff):
     """The constant's name when the code a staying literal left names the constant it arrived in: the
-    arrival is NAME = "..." or an enum constant NAME(..., "...", ...), and the region's head lines say
+    arrival is a final field NAME = "..." or an enum constant NAME(..., "...", ...), and the region's head lines say
     NAME (same file) or Class.NAME. Else None."""
     name = constant_name(arrival_diff.head.tokens, arrival_index)
     if name is None or not _references(diff, hunk, row_path, arrival_path, name):
@@ -1363,7 +1419,7 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
 
 def existing_constants(sources, value):
     """[(path, token)] of constants already in src at head, outside the batch's arrivals, whose whole
-    value is the string literal value: NAME = "..." or an enum constant NAME(..., "..."). sources is
+    value is the string literal value: a final field NAME = "..." or an enum constant NAME(..., "..."). sources is
     [(path, tokens, tokens to skip)]."""
     return [(path, k) for path, tokens, skip in sources for k, tok in enumerate(tokens)
             if tok.kind == "string" and tok.value == value and k not in skip and constant_name(tokens, k)]
