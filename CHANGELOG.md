@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- NAVEE debugger: on Android 11 and older, recordings now read each log line with the app that wrote it, as Android records it, and keep only NAVEE's, as owner setup already does. Following NAVEE's process could occasionally take in another app's lines when Android reused NAVEE's process number. Lines another app writes under NAVEE's name are dropped on the phone, so they're never kept or sent and can't hold back NAVEE's own; when they're all that arrives, the status line says another app is writing under NAVEE's name and its lines are ignored.
 - Computer setup helper (`setup/capture-owner.py`): it now accepts only log lines Android records as written by NAVEE itself, as the setup page and the app already do, so another app logging under NAVEE's name can't hand it a fake owner identity. On Android 11 and older, which can't filter by app, it reads each line with the app that wrote it and keeps only NAVEE's. Like the other two routes, it now supports only the phone's main Android user and stops before changing anything if NAVEE is also installed in a work profile or another user. If the phone refuses the log read, it says it couldn't read NAVEE's log instead of reporting that nothing arrived.
 
 ## 1.11.1 — 2026-11-02

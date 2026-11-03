@@ -30,10 +30,11 @@ export class DebugCaptureSession extends CaptureSession {
     this.offset = Number(now[1]) * 1000 - this.wall();
     // The only device facts sent: NAVEE version, Android version and phone model.
     const facts = await this.deviceFacts();
-    // Once per recording: --uid where logcat has it (Android 12+), else NAVEE's verified pid. A failed
-    // check also uses the pid, which every supported Android can filter by.
+    // Once per recording: --uid where logcat has it (Android 12+). Otherwise, or if the check fails, the
+    // phone reads every row under NAVEE's tag with the uid that wrote it and passes on only NAVEE's, never
+    // by a pid that may be reused.
     const filter = logFilter(await this.spare(logFilterCheck(uid), { maxBytes: 256, timeout: 8_000 }));
-    const recorder = this.recorder = new LogRecorder(stamp);
+    const recorder = this.recorder = new LogRecorder(stamp, filter === 'rows' ? uid : null);
     const started = this.now();
     this.deadline = started + RECORD_MS;
     this.update('recording', 'Recording. Use NAVEE on your phone now.');
@@ -65,6 +66,7 @@ export class DebugCaptureSession extends CaptureSession {
       polled = reply.status;
       this.onRecord(recorder); report();
       if (recorder.full) { reason = 'full'; break; }
+      // In both modes the window holds only NAVEE's rows (rows mode drops the rest on the phone, before head).
       const more = poll.lines >= count;
       if (more && !poll.fresh) count = Math.min(count * 2, 1000); // one crowded timestamp
       else if (!more && count < BATCH) count = Math.min(BATCH, count * 2);
@@ -78,7 +80,11 @@ export class DebugCaptureSession extends CaptureSession {
       durationS: Math.min(LIMITS.duration, Math.max(0, Math.round((this.now() - started) / 1000))) };
   }
   report(facts) {
-    const health = captureHealth({ ...facts, kept: this.recorder.rows.filter(row => !row.note).length });
+    // Other writers' rows under NAVEE's tag are counted by the probe (rows mode); the recorder counts any
+    // that got past the phone's grep, which never should.
+    const { rows, own, foreign, unattributed } = this.recorder;
+    const health = captureHealth({ ...facts, kept: rows.filter(row => !row.note).length, own,
+      foreign: (facts.foreign ?? 0) + foreign, unattributed: (facts.unattributed ?? 0) + unattributed });
     if (health.state !== this.health?.state) this.onHealth(this.health = health);
   }
   async pause() {
