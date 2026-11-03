@@ -54,12 +54,23 @@ public final class CapabilityResolverTest {
         }
         CapabilityResolver.Decision range=decide("range_algorithm",serial("X2538-SYNTHETIC"),s,parked());
         check(Arrays.equals(range.values(),new int[]{0,2,3})&&range.allows(2)&&!range.allows(1)&&range.current()==2,"Dynamic range choices");
-        // Non-US UT5 MAX: identical choices and availability (owner decision); the OEM rule is a note.
+        // Non-US UT5 MAX (owner decision, November 2026): Top speed and kick-start follow the official app's region rules;
+        // every other control keeps its choices and availability, with the OEM's rule as a note.
         CapabilityResolver.Decision de=decide("maximum_speed",serial("Q2538ZZ9DE7777777"),s,parked());
-        check(de.available()&&Arrays.equals(de.values(),new int[]{25,32,40,50})&&!de.oemNote.isEmpty(),"DE UT5 MAX keeps maximum speed");
-        CapabilityResolver.Decision start=decide("start_speed",serial("Q2538ZZ9NL7777777"),s,parked());
-        check(start.available()&&start.allows(0)&&start.allows(5),"Non-US UT5 MAX keeps start speed 0-5");
-        check(decide("cruise_control",serial("Q2538ZZ9NL7777777"),s,parked()).available(),"Non-US UT5 MAX keeps cruise");
+        check(!de.available()&&de.support==CapabilityResolver.Support.INCOMPATIBLE&&de.reason==CapabilityResolver.Reason.REGION_RULE
+            &&de.reasonText().equals("Not offered for this region"),"DE UT5 MAX has no Top speed");
+        DeviceDescriptor nl=serial("Q2538ZZ9NL7777777");
+        CapabilityResolver.Decision start=decide("start_speed",nl,s,parked());
+        check(start.available()&&Arrays.equals(start.values(),new int[]{3,4,5})&&!start.allows(0)&&!start.allows(2)&&start.allows(3)&&start.allows(5),"NL UT5 MAX kick-start 3-5");
+        check(Arrays.equals(start.variant.encode(4),ScooterCommands.set("start_speed",4)),"Same kick-start bytes as the catalogue");
+        // Already below 3 km/h (set elsewhere): shown as it is, still changeable to 3-5, never written back.
+        byte[] low=full();low[19]=1;
+        CapabilityResolver.Decision lowStart=decide("start_speed",nl,status(low,SEEN),parked());
+        check(lowStart.available()&&Integer.valueOf(1).equals(lowStart.current())&&"1 km/h".equals(lowStart.label(1))&&Arrays.equals(lowStart.values(),new int[]{3,4,5}),"A kick-start of 1 km/h shows, with 3-5 offered");
+        check(CapabilityResolver.admit("start_speed",3,nl,status(low,SEEN),parked()).available()
+            &&CapabilityResolver.admit("start_speed",1,nl,status(low,SEEN),parked()).reason==CapabilityResolver.Reason.MODEL_EXCLUDED,"3 is admitted over it; 1 is never sent");
+        check(decide("cruise_control",nl,s,parked()).available(),"Non-US UT5 MAX keeps cruise");
+        check(decide("start_speed",serial("Q2538ZZ9US7777777"),status(low,SEEN),parked()).allows(1),"US UT5 MAX keeps 0-5");
         check(decide("cruise_control",ModelRegistryTest.both("Q2538ZZ9US7777777","24431"),s,parked()).available(),"Mismatched owner UT5 MAX keeps every control");
     }
 

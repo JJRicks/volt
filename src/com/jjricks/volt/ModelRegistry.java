@@ -32,10 +32,16 @@ import java.util.Set;
  * flags remain provenance, not capability negotiation; model, firmware and runtime guards remain.
  * Version 11 adds the experimental table (experimentalRule): controls the official app hides for an
  * identified OEM-group model can be tried from Experimental controls; ordinary rules are unchanged.
+ * Version 17 ends the union for two speed controls only (owner decision, November 2026), after a Spanish GT3 Max
+ * acknowledged Top speed and kick-start values below 3 km/h without keeping them. Both now follow OEM 2.1.9's own
+ * rules on every model: Top speed shows only where its More screen lists the row (DeviceMoreActionActivity.onCreate),
+ * and kick-start offers 0–2 km/h only where its kick-start screen shows them (StartupSpeedActivity.onCreate); see
+ * officialSpeedRegion. A UT5 MAX whose serial names another region follows them too; a US one is unchanged. Every
+ * other control keeps the union (cruise control on the EU GT5 Max stays offered, as its owner reported it works).
  */
 public final class ModelRegistry {
     /** Bump on ANY rule or table change; recorded in reports and test journals. */
-    public static final int VERSION=16;
+    public static final int VERSION=17;
     public enum Layer { UT5_MAX, OEM_GROUP, SHARED, UNSUPPORTED_PRODUCT, UNSUPPORTED_TRANSPORT }
     public enum Tri { YES, NO, UNKNOWN }
 
@@ -58,7 +64,10 @@ public final class ModelRegistry {
     // Prefix groups as the OEM 2.1.9 app tests them (startsWith on its advertised model ID).
     static final String[] Q={"2538","2547","2585"};
     static final String[] O={"2619","2620","2646"};
-    /** OEM 2.1.9 adds EU + server-location visibility branches for this prefix; Volt defers regional UI policy. */
+    /**
+     * OEM 2.1.9 adds EU + server-location visibility branches for this prefix (cruise, Top speed, kick-start 0–2 km/h).
+     * Volt can't see that location (officialSpeedRegion), so for Top speed and kick-start the branch counts as not shown.
+     */
     static final String[] P={"2620"};
     static final String[] G={"2701","2745"};
     static final String[] H={"2543","2449","2657","2658","2707","2799","2800"};
@@ -137,11 +146,11 @@ public final class ModelRegistry {
     }
     /**
      * Controls an owner's scooter acknowledged and then read back unchanged, by exact model. They stay offered (the
-     * scooter may need conditions Volt can't see) but say so until a report shows them kept. GT3 Max (24182, ES):
-     * maximum speed 25 read back 32 twice; kick-start 2 and 1 read back 3.
+     * scooter may need conditions Volt can't see) but say so until a report shows them kept. Empty for now: the GT3 Max
+     * (24182, ES), whose maximum speed 25 read back 32 twice and kick-start 2 and 1 read back 3, was listed for both
+     * until version 17, whose official regional rules hide its Top speed and kick-start values below 3 km/h.
      */
-    private static final Map<String,Set<String>> NOT_KEPT=new java.util.HashMap<>();
-    static{NOT_KEPT.put("24182",new HashSet<>(java.util.Arrays.asList("maximum_speed","start_speed")));}
+    static final Map<String,Set<String>> NOT_KEPT=new java.util.HashMap<>();
     /** True when an owner saw this exact model acknowledge a change to this control and keep its old value. */
     public static boolean unconfirmed(DeviceDescriptor d,String feature){
         Known t=known(d);if(t==null||feature==null)return false;
@@ -254,9 +263,10 @@ public final class ModelRegistry {
     static final FeatureVariant LIMIT_8_16=speedLimit("8_16",range(8,16));
     static final FeatureVariant LIMIT_8_20=speedLimit("8_20",range(8,20));
     static final FeatureVariant LIMIT_8_32=speedLimit("8_32",range(8,32));
-    /** Kick-start speed: 0-5 km/h only in the OEM's USA bucket (not group M); 3-5 elsewhere. */
+    /** Kick-start speed: 0-5 km/h only in the OEM's USA bucket (not group M); 3-5 elsewhere (officialLowStart). */
     static final FeatureVariant START_0_5=startSpeed("0_5",range(0,5));
-    static final FeatureVariant START_3_5=startSpeed("3_5",range(3,5));
+    /** A scooter already below 3 km/h (set where 0–2 are offered) shows that speed truthfully and can move to 3–5. */
+    static final FeatureVariant START_3_5=startSpeed("3_5",range(3,5)).withShown(range(0,2),kmhLabels(range(0,2),false));
     /** Group M's energy recovery is on/off (offset 5 == 1), not levels. */
     static final FeatureVariant OEM_ENERGY_BINARY=oem("energy_recovery.binary","energy_recovery",0x53,new int[]{0,1},OFF_ON,5,true);
 
@@ -285,7 +295,10 @@ public final class ModelRegistry {
     /** OEM 2.1.9's line/star lights outside the UT5 MAX: 2547 (two colours) and 2585 (six colours). */
     static final String[] ZONE_LIGHTS={"2547","2585"};
 
-    /** Maximum speed: OEM 2.1.9 shows the row only in its USA bucket, for these prefixes plus groups S, Q, H, K, L, B, C, D, O and G. */
+    /**
+     * Maximum speed: OEM 2.1.9 shows the row only in its USA bucket, for these prefixes plus groups S, Q, H, K, L, B, C, D, O
+     * and G (maximumSpeedRow; officialSpeedRegion decides the region since version 17).
+     */
     static final String[] MAX_SPEED_ROW={"2509"};
     /** OEM 2.1.9 choice tables (km/h) by prefix; anything else in the row gets 25/32/40/45. */
     static final String[] MAX_25_32={"2611","2753","2612","2643","2754","2701"};
@@ -343,10 +356,17 @@ public final class ModelRegistry {
     /** Built on first use so ScooterCommands and this class never wait on each other's static initialiser. */
     private static final class Ut5 {
         static final Map<String,FeatureVariant> VARIANTS;
+        /**
+         * Kick-start on a UT5 MAX whose serial region is outside the official app's USA bucket (version 17): the catalogue
+         * field and bytes, offering 3–5 km/h as choices; a setting below 3 km/h shows as it is.
+         */
+        static final FeatureVariant START_3_5;
         static {
             LinkedHashMap<String,FeatureVariant> map=new LinkedHashMap<>();
             for(ScooterCommands.Feature f:ScooterCommands.catalog())map.put(f.key,FeatureVariant.ut5(f));
             map.put(CLOCK.feature,CLOCK);VARIANTS=Collections.unmodifiableMap(map);
+            START_3_5=VARIANTS.get("start_speed").narrowed("start_speed.ut5_3_5",range(3,5),kmhLabels(range(3,5),false))
+                .withShown(range(0,2),kmhLabels(range(0,2),false));
         }
     }
 
@@ -407,6 +427,14 @@ public final class ModelRegistry {
             case UT5_MAX: {
                 FeatureVariant v=Ut5.VARIANTS.get(feature);
                 if(v==null)return excluded(); // another model's light control; the UT5 MAX has none
+                // Version 17: a serial region outside the official app's USA bucket follows its Top speed and kick-start rules.
+                // A UT5 MAX without a serial region keeps the choices verified on a US one. Only the simulator (which never takes a
+                // region) or a descriptor before any serial is read has none: Volt connects only to a serial that passes
+                // DeviceDescriptor.validSerial (BleController's 0x74 check), and every such serial names an area, as BleHandler.b reads it.
+                if(ut5OutsideUsa(d)){
+                    if(feature.equals("maximum_speed"))return regionHidden();
+                    if(feature.equals("start_speed"))v=Ut5.START_3_5;
+                }
                 CapabilityResolver.Evidence evidence=v.lab?CapabilityResolver.Evidence.VOLT_LAB
                     :VERIFIED.contains(feature)?CapabilityResolver.Evidence.VOLT_VERIFIED:CapabilityResolver.Evidence.OEM_MAPPED;
                 return new Rule(CapabilityResolver.Support.KNOWN_ENCODING,CapabilityResolver.Reason.NONE,evidence,ut5Note(feature,d),preconditions(v),v);
@@ -428,9 +456,10 @@ public final class ModelRegistry {
     }
     /**
      * The OEM 2.1.9 home-screen family for an advertised, listed PID, or null when not mapped yet.
-     * Regional visibility is provenance only. Choices are the union of the OEM's regional
-     * tables for this same model; this does not borrow another model's values or bypass its
-     * firmware, full-PID or actual setting-field requirements.
+     * Regional visibility is provenance only, except Top speed and kick-start's 0–2 km/h (version 17,
+     * officialSpeedRegion). Other choices are the union of the OEM's regional tables for this same model;
+     * this does not borrow another model's values or bypass its firmware, full-PID or actual setting-field
+     * requirements.
      */
     private static Rule oemRule(String feature,DeviceDescriptor d,StatusFields s){
         boolean m=any(d,M);
@@ -505,14 +534,15 @@ public final class ModelRegistry {
                 // OEM 2.1.9 blocks its Bluetooth lock screen for K and C up to meter firmware 2.0.0.4.
                 return any(d,K)||any(d,C)?firmware(rule,meterAtMost(d,"2.0.0.4")):rule;
             }
-            // C5 batch 2: the speed family. Per-model union of OEM regional choices.
+            // C5 batch 2: the speed family. Per-model union of OEM regional choices, except Top speed and kick-start's
+            // 0–2 km/h, which follow OEM 2.1.9's own region rules since version 17 (officialSpeedRegion).
             case "maximum_speed": {
-                if(!any(d,MAX_SPEED_ROW)&&!any(d,S)&&!any(d,Q)&&!any(d,H)&&!any(d,K)&&!any(d,L)&&!any(d,B)&&!any(d,C)&&!any(d,D)&&!any(d,O)&&!any(d,G))return excluded();
+                if(!maximumSpeedRow(d))return excluded();
+                if(!officialSpeedRegion(d))return regionHidden();
                 FeatureVariant table=maxSpeedTable(d);
                 if(table==null)return gated(oemMapped(SPEED_25_40_STEP5,"",false),CapabilityResolver.Reason.FULL_PID_NEEDED,CapabilityResolver.Precondition.FULL_PID);
                 // The official prompt is for the US area only; CN and RU share the USA row without it.
-                String note=any(d,"2585")&&"US".equals(d.oemArea())?SPEED_PROMPT_NOTE:
-                    "USA".equals(d.sku())?"":"OEM 2.1.9 limits this row by region; Volt offers this model's same OEM speed table";
+                String note=any(d,"2585")&&"US".equals(d.oemArea())?SPEED_PROMPT_NOTE:"";
                 Rule rule=oemMapped(table,note,false);
                 // OEM 2.1.9 blocks maximum speed for K and C below meter firmware 2.0.1.2.
                 if(any(d,K)||any(d,C)){rule=firmware(rule,meterBelow(d,"2.0.1.2"));if(rule.reason!=CapabilityResolver.Reason.NONE)return rule;}
@@ -532,9 +562,9 @@ public final class ModelRegistry {
                 boolean regional=any(d,G)||any(d,START_SPEED_REGIONAL);
                 if(!always&&!regional)return excluded();
                 String area=d.oemArea();
-                String note=!always&&(area==null||"DE".equals(area))?"OEM 2.1.9 hides this without a serial region or in DE; Volt defers this policy":
-                    !m&&!"USA".equals(d.sku())?"OEM 2.1.9 offers 3–5 km/h here; Volt uses this model's 0–5 km/h regional choices":"";
-                Rule rule=oemMapped(m?START_3_5:START_0_5,note,false);
+                // The row itself keeps the regional union; its range follows the official app (0–2 km/h only where it shows them).
+                String note=!always&&(area==null||"DE".equals(area))?"OEM 2.1.9 hides this without a serial region or in DE; Volt defers this policy":"";
+                Rule rule=oemMapped(officialLowStart(d)?START_0_5:START_3_5,note,false);
                 if(any(d,"2314")){
                     // OEM 2.1.9 gates 2314 by the fifth digit: 1 below meter 0.0.0.8, 2 below meter 2.0.0.9.
                     Tri one=endsWith(d,'1');
@@ -604,8 +634,12 @@ public final class ModelRegistry {
     static final String[] NEVER_EXPERIMENTAL={"lock","lock_expiry","pin","proximity_key","maximum_speed","drive_speed_limit",
         "overspeed_control","acceleration","dual_drive","charge_limit","timed_charging","charge_start","low_power","long_range_mode","clock_sync",
         "energy_recovery","display_units","range_algorithm","ambient_light_mode","logo_light","daytime_light"};
-    /** Lab copies of the variants the official app uses where it offers each EXPERIMENTAL control (0–5 km/h kick-start; its widest speed cap, 8–32 km/h). */
+    /**
+     * Lab copies of the variants the official app uses where it offers each EXPERIMENTAL control (its widest speed cap,
+     * 8–32 km/h; kick-start 0–5 km/h, or 3–5 km/h where it wouldn't show 0–2: START_3_5_TRY, version 17).
+     */
     private static final Map<String,FeatureVariant> TRY=new LinkedHashMap<>();
+    private static final FeatureVariant START_3_5_TRY=START_3_5.lab();
     static{
         for(FeatureVariant v:new FeatureVariant[]{OEM_CRUISE,OEM_TCS,START_0_5,OEM_WALK_ASSIST,OEM_POWER_ASSIST,OEM_DESCENT,OEM_TAIL,OEM_AUTO,OEM_TURN,OEM_PROMPT_TONE,LIMIT_8_32})
             TRY.put(v.feature,v.lab());
@@ -627,6 +661,8 @@ public final class ModelRegistry {
         // too; the try gate still needs the scooter to report the field with a known value.
         boolean unmapped=rule.support==CapabilityResolver.Support.UNKNOWN_MAPPING&&rule.reason==CapabilityResolver.Reason.MODEL_NOT_MAPPED;
         FeatureVariant v=r.layer==Layer.OEM_GROUP&&!r.conflict&&(hidden||unmapped)?TRY.get(feature):null;
+        // Version 17: a kick-start try offers 0–2 km/h only where the official app's kick-start screen would show them.
+        if(v!=null&&feature.equals("start_speed")&&!officialLowStart(d))v=START_3_5_TRY;
         return v==null?rule:tryable(v,CapabilityResolver.Evidence.VOLT_LAB,hidden?"OEM 2.1.9 hides this for this model":"Volt hasn't mapped whether the official app offers this here");
     }
     /** A key Experimental controls may try as an experiment on some layer: EXPERIMENTAL, or a UT5 MAX catalogue Lab row. */
@@ -732,6 +768,34 @@ public final class ModelRegistry {
     }
     /** OEM 2.1.9 hides these light screens without a serial region or in DE/AT; Volt notes it (permissive). */
     private static String lightNote(DeviceDescriptor d){String a=d.oemArea();return a==null||"DE".equals(a)||"AT".equals(a)?"OEM 2.1.9 hides this in this region":"";}
+    /**
+     * OEM 2.1.9's region test for Top speed and kick-start's 0–2 km/h (version 17). Both rules read
+     * {@code skuVersion() == USA || PID.p(pid) && areaCode() == EU && DeviceLocationCaches.b(mac)}:
+     * Top speed's More-screen row also needs maximumSpeedRow (DeviceMoreActionActivity.onCreate, the
+     * max_speed_setting row; group M opens DevicePluginsActivity, which has none), and kick-start's 0, 1 and 2
+     * km/h also need a model outside group M (StartupSpeedActivity.onCreate). skuVersion is BleHandler.a0 of
+     * the serial area: USA for US, CN and RU (DeviceDescriptor.sku). DeviceLocationCaches.b is true when the
+     * official app's own server, asked from that phone's location (DeviceLocationActivity: /device/identify,
+     * confirmed by the owner, cached per MAC), placed the scooter in Russia ("ru"). Volt has no such server or
+     * cache, so that 2620 EU branch counts as not shown, the cautious choice.
+     */
+    static boolean officialSpeedRegion(DeviceDescriptor d){return d!=null&&"USA".equals(d.sku());}
+    /** OEM 2.1.9 shows kick-start 0, 1 and 2 km/h (StartupSpeedActivity.onCreate): outside group M, in officialSpeedRegion. */
+    static boolean officialLowStart(DeviceDescriptor d){return !any(d,M)&&officialSpeedRegion(d);}
+    /** The models whose OEM 2.1.9 More screen can list Top speed (in officialSpeedRegion): 2509 and groups S, Q, H, K, L, B, C, D, O and G. */
+    static boolean maximumSpeedRow(DeviceDescriptor d){
+        return any(d,MAX_SPEED_ROW)||any(d,S)||any(d,Q)||any(d,H)||any(d,K)||any(d,L)||any(d,B)||any(d,C)||any(d,D)||any(d,O)||any(d,G);
+    }
+    /** A UT5 MAX whose serial names a region outside the official app's USA bucket. Without a serial region it keeps today's choices. */
+    private static boolean ut5OutsideUsa(DeviceDescriptor d){return d!=null&&d.region!=null&&!officialSpeedRegion(d);}
+    /**
+     * Before version 17 every region of these models got Top speed: the UT5 MAX and the OEM groups in maximumSpeedRow.
+     * ModelTiles uses it to recognise Home tiles Volt picked then.
+     */
+    static boolean topSpeedBeforeRegionRule(DeviceDescriptor d){
+        Resolution r=resolve(d);
+        return r.layer==Layer.UT5_MAX||r.layer==Layer.OEM_GROUP&&maximumSpeedRow(d);
+    }
     /** OEM 2.1.9's maximum-speed choices for this model ID, or null when the fifth digit decides and is unknown. */
     static FeatureVariant maxSpeedTable(DeviceDescriptor d){
         if(any(d,C)||any(d,B)||any(d,E)||any(d,MAX_25_32))return SPEED_25_32;
@@ -791,6 +855,11 @@ public final class ModelRegistry {
         return new Rule(CapabilityResolver.Support.INCOMPATIBLE,CapabilityResolver.Reason.MODEL_EXCLUDED,CapabilityResolver.Evidence.NONE,
             "OEM 2.1.9 hides this for this model",EnumSet.noneOf(CapabilityResolver.Precondition.class),null);
     }
+    /** Top speed outside officialSpeedRegion (version 17): hidden as the official app hides it, and never tried as an experiment. */
+    private static Rule regionHidden(){
+        return new Rule(CapabilityResolver.Support.INCOMPATIBLE,CapabilityResolver.Reason.REGION_RULE,CapabilityResolver.Evidence.NONE,
+            "OEM 2.1.9 shows this only for US, CN and RU serial regions",EnumSet.noneOf(CapabilityResolver.Precondition.class),null);
+    }
     private static Rule refused(CapabilityResolver.Support support,CapabilityResolver.Reason reason){
         return new Rule(support,reason,CapabilityResolver.Evidence.NONE,"",EnumSet.noneOf(CapabilityResolver.Precondition.class),null);
     }
@@ -802,14 +871,18 @@ public final class ModelRegistry {
         if(v.feature.equals("proximity_key")){p.add(CapabilityResolver.Precondition.BONDED);p.add(CapabilityResolver.Precondition.PIN_ENABLED);}
         return p;
     }
-    /** Every UT5 MAX keeps today's choices in every region; the OEM's regional rule is recorded only as a note. */
+    /**
+     * Every UT5 MAX keeps today's choices in every region, except Top speed and kick-start under a serial region outside
+     * the official app's USA bucket (version 17, ut5OutsideUsa); the OEM's other regional rules are recorded only as notes.
+     */
     private static String ut5Note(String feature,DeviceDescriptor d){
         // A serial without a valid region is the OEM's strictest case (SKU EUR, light rules as DE); no serial notes nothing.
         if(d==null||d.region==null&&d.serialPid.isEmpty())return "";
         boolean usa="USA".equals(d.sku());String area=d.oemArea();
         switch(feature){
             case "maximum_speed": return usa?"":"OEM 2.1.9 hides this outside US-region models";
-            case "start_speed": return usa?"":"OEM 2.1.9 offers only 3–5 km/h in this region";
+            // With a serial region Volt follows that rule (3–5 km/h), so only a UT5 MAX without one keeps the note.
+            case "start_speed": return usa||d.region!=null?"":"OEM 2.1.9 offers only 3–5 km/h in this region";
             case "cruise_control": return usa?"":area==null?"OEM 2.1.9 hides this without a serial region":"OEM 2.1.9 shows this here only when the scooter flags it";
             case "headlight": case "turn_sound": return area==null||"DE".equals(area)?"OEM 2.1.9 hides this in this region":"";
             default:

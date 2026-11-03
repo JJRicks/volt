@@ -17,7 +17,7 @@ public final class GuidedTestTest {
     private static final String PROFILE="owner-1";
     public static void main(String[] args) throws Exception {
         eligibility(); gate(); happyPaths(); rejected(); ackWithoutReadback(); readbackUnchanged(); readbackDifferent(); staleAndDuplicates();
-        tries(); sliderTries(); reportedThenSetBack(); staleReport(); writeRefused(); disconnectAtEveryPhase(); processDeath(); profileSwitch(); conflicts(); restartZeroWrites(); resume(); preconditions(); vocabulary(); inheritedPolls(); lostPollTimeout(); queuedWriteState(); outOfOrderReplies();
+        tries(); sliderTries(); shownBaselineTries(); reportedThenSetBack(); staleReport(); writeRefused(); disconnectAtEveryPhase(); processDeath(); profileSwitch(); conflicts(); restartZeroWrites(); resume(); preconditions(); vocabulary(); inheritedPolls(); lostPollTimeout(); queuedWriteState(); outOfOrderReplies();
         System.out.println("GuidedTest tests passed: "+assertions+" assertions");
     }
 
@@ -194,6 +194,50 @@ public final class GuidedTestTest {
         check(coupled.approve(NOW)&&coupled.writeNow()==0,"Assist try sent");coupled.onAck(assist.variant.cmd,0,NOW+50);coupled.onReadRequested(0x70,NOW+300);
         coupled.onStatus(with(37,4|2),NOW+400);
         check(coupled.phase()==GuidedTest.Phase.CONFLICT&&coupled.note().contains("related"),"Another assist changed with the try: conflict "+coupled.note());
+    }
+
+    /**
+     * Outside the official app's USA bucket a kick-start try offers 3–5 km/h (registry 17). From a setting below 3 km/h
+     * (kept from a registry 16 try, say) a try moves up for good: journalled and read back like any try, with no Set back
+     * to 0–2 km/h. A kept 3–5 km/h try is set back even from below 3 km/h, and one kept under registry 16's 0–5 km/h
+     * variant isn't offered for Set back, because restoreFrom refuses its changed rules.
+     */
+    private static void shownBaselineTries() throws IOException {
+        DeviceDescriptor d=DeviceDescriptor.of("Q2213ZZ9ES7777777","22131",1,FW,true,DeviceDescriptor.Transport.STANDARD,0);
+        StatusFields slow=with(19,1),up=with(19,3);
+        FeatureVariant v=CapabilityResolver.decideTry("start_speed",d,slow,parked()).variant;
+        check(v!=null&&v.id.equals("start_speed.3_5.lab")&&!v.allows(1)&&v.shows(1),"Fixture: the Spanish N65i's 3–5 km/h kick-start try shows 1 km/h "+v);
+        Memory m=new Memory();TestJournal j=new TestJournal(m);
+        GuidedTest t=tried(j,d,v,TestJournal.EXPERIMENTAL,3,1,slow);
+        check(t.phase()==GuidedTest.Phase.BASELINE&&t.baseline()==1&&m.writes==0,"A try may start from 1 km/h, which it shows: "+t.phase()+" "+t.note());
+        sendTarget(t,0x6a);t.onStatus(up,NOW+400);
+        check(t.phase()==GuidedTest.Phase.OBSERVE,"3 km/h read back: "+t.phase()+" "+t.note());
+        t.ownerEffect(true,NOW+500);
+        TestJournal.Entry e=j.find(t.testId());
+        check(e.resolved&&"kept".equals(e.resolution)&&e.baseline==1&&e.target==3&&CompatibilityReport.tryResult(e).equals("worked_here"),"Kept at 3 km/h: "+TestJournal.line(e));
+        check(GuidedTest.setBackValue(e,v)==null,"No Set back to 1 km/h");
+        try{GuidedTest.restoreFrom(j,e,v,d,up,NOW+5000,WALL+5000);check(false,"Set back never writes 1 km/h");}
+        catch(IllegalArgumentException expected){check(j.find(t.testId()).resolved,"Set back never writes 1 km/h; the try stays kept");}
+        // Interrupted after the write: reviewed like any try, but never restorable to 1 km/h (Keep or Dismiss).
+        TestJournal j2=new TestJournal(new Memory());
+        GuidedTest cut=tried(j2,d,v,TestJournal.EXPERIMENTAL,4,1,slow);
+        check(cut.approve(NOW)&&cut.writeNow()==4,"Interrupted try sent");cut.onDisconnect(NOW+20);
+        GuidedTest.Review r=GuidedTest.review(j2.find(cut.testId()),PROFILE,true,d,with(19,4),NOW,v,false);
+        check(r.state==GuidedTest.ReviewState.RESTORE_NEEDED&&!r.restorable,"Unfinished from 1 km/h: not restorable "+r.state+" "+r.text);
+        // A kept 3 → 4 km/h try under this variant: Set back to 3 km/h, even once the scooter reads below 3 km/h.
+        TestJournal j3=new TestJournal(new Memory());
+        GuidedTest kept=tried(j3,d,v,TestJournal.EXPERIMENTAL,4,3,up);sendTarget(kept,0x6a);kept.onStatus(with(19,4),NOW+400);kept.ownerEffect(null,NOW+500);
+        TestJournal.Entry k=j3.find(kept.testId()).copy();
+        check(k.resolved&&"kept".equals(k.resolution)&&GuidedTest.setBackValue(k,v)==3,"Set back to 3 km/h offered: "+TestJournal.line(k));
+        // A try kept under registry 16's 0–5 km/h variant: restoreFrom refuses its changed rules, so Set back isn't offered.
+        TestJournal.Entry old=k.copy();old.variantId="start_speed.0_5.lab";
+        check(GuidedTest.setBackValue(old,v)==null,"A registry 16 kick-start try isn't offered for Set back");
+        try{GuidedTest.restoreFrom(j3,old,v,d,slow,NOW+5000,WALL+5000);check(false,"restoreFrom refuses a registry 16 variant");}
+        catch(IllegalArgumentException expected){check(true,"restoreFrom refuses a registry 16 variant");}
+        GuidedTest back=GuidedTest.restoreFrom(j3,k,v,d,slow,NOW+6000,WALL+6000);
+        Integer sent=back.writeNow();
+        check(sent!=null&&sent==3&&Arrays.equals(v.encode(3),WireCommands.scalar(0x6a,3)),"Set back from 1 km/h writes 3 km/h");
+        try{v.encode(1);check(false,"1 km/h never encoded");}catch(IllegalArgumentException expected){check(true,"1 km/h never encoded");}
     }
 
     /**

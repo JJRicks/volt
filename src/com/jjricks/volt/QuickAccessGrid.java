@@ -144,7 +144,9 @@ final class QuickAccessGrid extends ViewGroup {
             }
             cell.setEnabled(!editing);
             String description = (tiles ? tileLabel(cell.entry) : cell.entry.label) + (state.isEmpty() ? "" : ", " + state)
-                    + (unmapped ? ", not on this model" : unreadable ? ", unreadable value" : chargeControl && chargeBlocked != null ? ", " + chargeBlocked
+                    // A control the official app hides only by region (Top speed) says so, as its tap does.
+                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? ", not offered for this region" : ", not on this model")
+                            : unreadable ? ", unreadable value" : chargeControl && chargeBlocked != null ? ", " + chargeBlocked
                             : feature != null && !featureLive ? ", last seen" : "")
                     + (toggle ? ", toggle" : ", open");
             cell.setContentDescription(description);

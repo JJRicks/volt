@@ -1979,6 +1979,9 @@ public final class MoreScreen implements AppScreen {
                     : (refused ? "Try again: " : "Try ") + labValue(feature, d, selected));
             go.setContentDescription(go.getText()); go.setEnabled(d.available() && !busy && change);
             String caution = change ? ModelRegistry.experimentalCaution(feature.key, selected) : null;
+            // From a setting shown but not offered here (kick-start below 3 km/h), a try moves to an offered value for good.
+            if (caution == null && change && d.variant != null && !d.variant.allows(current) && d.variant.shows(current))
+                caution = "Volt can't set it back to " + labValue(feature, d, current) + " afterwards: the official app doesn't offer that here.";
             warn.setText(caution == null ? "" : caution); warn.setVisibility(caution == null ? View.GONE : View.VISIBLE);
             String why = d.available() || d.reason == CapabilityResolver.Reason.BUSY ? "" : d.reasonText();
             reason.setText(why); reason.setVisibility(why.isEmpty() ? View.GONE : View.VISIBLE);
