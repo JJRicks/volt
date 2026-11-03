@@ -496,9 +496,10 @@ Identified OEM models  Each of these the official app hides for that model:
 Anything else          Nothing: unidentified, model ID mismatch, models the
                        official app does not list, golf carts, e-bikes, Exo
 
-For example the N65i (22131) lists kick-start speed, turn signal sound,
-traction control, the three assists and prompt sound; the ST3 Pro (23452)
-and the GT5 Max (25462) the three assists and prompt sound; 2585 nothing.
+For example the N65i (22131) lists, in this order, traction control,
+kick-start speed, turn signal sound, the custom speed cap, the three assists
+and prompt sound; the ST3 Pro (23452) and the GT5 Max (25462) the custom
+speed cap, the three assists and prompt sound; 2585 nothing.
 The GT5 Max's kick-start speed (3-5 km/h on an EU one) stays in Scooter
 settings: the official app offers kick-start speed for that model.
 

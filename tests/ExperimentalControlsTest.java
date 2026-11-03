@@ -168,8 +168,12 @@ System.out.println("ExperimentalControls tests passed: "+assertions+" assertions
             }
             System.out.println("Experimental order "+(ModelRegistry.modelLine(d).isEmpty()?d.rulePid():ModelRegistry.modelLine(d))+": "+shown.toString().trim());
         }
-        // The N65i: turn-signal sound and kick-start (common on other models) lead; the assists tie and follow the owner list.
+        // The N65i: traction control, kick-start and turn-signal sound (common on other models) lead; the assists tie and
+        // follow the owner list. The exact order is pinned because the emulator's GuidedTestValidation (experimental mode)
+        // compares the Experimental controls rows in order; change both together.
         List<String> n65i=ModelRegistry.experimental(model("22131"));
+        check(n65i.equals(Arrays.asList("traction_control","start_speed","turn_sound","speed_limit","hill_start_assist","parking_assist","hill_descent_control","prompt_tone")),
+            "N65i Experimental controls order matches GuidedTestValidation "+n65i);
         check(n65i.indexOf("hill_start_assist")<n65i.indexOf("parking_assist")&&n65i.indexOf("parking_assist")<n65i.indexOf("hill_descent_control"),"Ties follow TRY_PRIORITY "+n65i);
         check(n65i.indexOf("prompt_tone")==n65i.size()-1,"The rarest control comes last "+n65i);
         int[] none=ModelRegistry.offeredElsewhere("drive_speed_limit",ut5());check(none[2]==0,"Drive-mode cap is mapped on no other model");
