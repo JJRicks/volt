@@ -55,7 +55,10 @@ text (de, nl); Slavic stems under five letters; Arabic text without vowel marks 
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
 where polarity only warns; English that itself says off or remove (the removal context is skipped);
 on or off said with a word not in STATE_WORDS, in a later-wave language (no state list), or in a
-target that has both states' words; a glossary term without an approved target in the language
+target that has both states' words; a negation further from the state word than the word right
+before it or one copula or particle between (lexicon.STATE_NEGATION_GAP: "no se encuentra activa");
+an -s or -ing lock verb inside a longer term ("Lock duration: time before locking"), where only the
+longer term is required; in loose matching, a different word that starts like an approved target; a glossary term without an approved target in the language
 (nothing is required, Unlock included); a lock compound whose rest is a removal word not in
 lexicon.COMPOUND_OPPOSITE, or with the lock word in second place ("Rollersperre" is not found);
 and other inversions by antonym. For safety keys (lock, unlock, alarms, power, speed) the guarantee is

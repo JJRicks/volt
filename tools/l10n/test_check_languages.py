@@ -654,7 +654,69 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("nl", "Unlocking…", "Ontgrendelen…", "Vergrendelen…"),
         ("sv", "Unlocking…", "Låser upp…", "Låser…"),
         ("fr", "Unlocking…", "Déverrouillage…", "Verrouillage…"),
+        # Indonesian pe(N)-...-an nouns of the approved roots (kunci, buka kunci).
+        ("id", "Locking failed", "Penguncian gagal", "Pembukaan kunci gagal"),
+        ("id", "Auto-locking", "Penguncian otomatis", "Pembukaan kunci otomatis"),
+        ("id", "Unlocking failed", "Pembukaan kunci gagal", "Penguncian gagal"),
     )
+
+    def test_indonesian_pen_an_nouns(self):
+        for root, noun in (("kunci", "penguncian"), ("buka", "pembukaan"), ("tutup", "penutupan"),
+                           ("simpan", "penyimpanan"), ("pakai", "pemakaian"), ("aktif", "pengaktifan"),
+                           ("hapus", "penghapusan"), ("lepas", "pelepasan"), ("daftar", "pendaftaran")):
+            self.assertEqual(lexicon.pen_an(root), noun)
+        # Loose (-ing) matching only, and never for a prefixed or negation word.
+        self.assertTrue(lexicon.term_found("id", "Latn", "kunci", "Penguncian gagal", True, True, True))
+        self.assertFalse(lexicon.term_found("id", "Latn", "kunci", "Penguncian gagal", True, True, False))
+        self.assertFalse(lexicon.term_found("id", "Latn", "kunci", "Pembukaan kunci gagal", True, True, True))
+        self.assertIsNone(lexicon._nominal("id", "mengunci"))
+        self.assertIsNone(lexicon._nominal("id", "tidak"))
+        self.assertIsNone(lexicon._nominal("es", "bloquear"))
+
+    # A negation word before a state word negates it only when nothing but a copula, auxiliary,
+    # reflexive or clitic particle stands between; it negates a verb in between instead.
+    NEGATION_OF_ANOTHER_VERB = (
+        ("es", "Remember to turn off the alarm", "No olvides apagar la alarma"),
+        ("es", "Remember to disable the alarm", "No olvides desactivar la alarma"),
+        ("fr", "Remember to turn off the alarm", "N'oubliez pas d'éteindre l'alarme"),
+        ("fr", "Remember to turn off the alarm", "N'oubliez pas de désactiver l'alarme"),
+        ("pl", "Remember to turn off the alarm", "Nie zapomnij wyłączyć alarmu"),
+        ("id", "Remember to turn off the alarm", "Jangan lupa matikan alarm"),
+        ("id", "Remember to turn off the alarm", "Jangan lupa mematikan alarm"),
+        ("sv", "Remember to turn off the alarm", "Glöm inte att stänga av larmet"),
+        ("it", "Remember to turn off the alarm", "Non dimenticare di spegnere l'allarme"),
+        ("pt-BR", "Remember to turn off the alarm", "Não se esqueça de desligar o alarme"),
+        ("de", "Remember to turn off the alarm", "Vergiss nicht, den Alarm auszuschalten"),
+        ("nl", "Remember to turn off the alarm", "Vergeet niet het alarm uit te zetten"),
+        # fr "ne ... que" is only; it "non appena" is as soon as.
+        ("fr", "The alarm activates only when movement is detected",
+         "L'alarme ne s'active que si un mouvement est détecté"),
+        ("it", "Once enabled, the alarm sounds when movement is detected",
+         "Non appena attivato, l'allarme suona quando viene rilevato un movimento"),
+        # fr "ne ... plus" (no longer) negates.
+        ("fr", "Alarm sound off", "Le son d'alarme ne sera plus activé"),
+    )
+    NEGATED_THROUGH_A_COPULA = (
+        ("fr", "Alarm stays on when the device is moved", "L'alarme ne sera plus activée quand l'appareil est déplacé"),
+        ("de", "Alarm stays on when the device is moved", "Der Alarm ist dann nicht mehr aktiv, wenn das Gerät bewegt wird"),
+        ("de", "Alarm stays on when the device is moved",
+         "Der Alarm ist dann nicht länger aktiv, wenn das Gerät bewegt wird"),
+        ("sv", "Alarm stays on when the device is moved", "Larmet är inte längre aktivt när enheten flyttas"),
+        ("es", "Alarm sound on", "Sonido de alarma no está activado"),
+        ("pl", "Alarm sound on", "Dźwięk alarmu nie jest włączony"),
+    )
+
+    def test_negation_reads_only_the_state_it_negates(self):
+        for tag, english, text in self.NEGATION_OF_ANOTHER_VERB:
+            self.assertNotIn("polarity", _real_errors(tag, english, text, "alarm"),
+                             (tag, english, text, _real_findings(tag, english, text, "alarm")))
+        for tag, english, text in self.NEGATED_THROUGH_A_COPULA:
+            self.assertIn("polarity", _real_errors(tag, english, text, "alarm"),
+                          (tag, english, text, _real_findings(tag, english, text, "alarm")))
+        self.assertEqual(lexicon.state_words("fr", "l'alarme ne s'active que si"), (["active"], []))
+        self.assertEqual(lexicon.state_words("fr", "l'alarme ne s'active pas"), ([], ["active"]))
+        self.assertEqual(lexicon.state_words("es", "no olvides apagarla"), ([], ["apagarla"]))
+        self.assertEqual(lexicon.state_words("es", "no está activada"), ([], ["activada"]))
 
     def test_lock_verb_forms_are_glossary_hits(self):
         es = _real_terms("es")

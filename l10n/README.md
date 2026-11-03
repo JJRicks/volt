@@ -450,8 +450,11 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
 2. `l10n/style/<tag>.md`: punctuation, capitalization and how to abbreviate ladder rungs.
 3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen: the same
    columns as `en.tsv`, where `id` names the `en.tsv` term and `term` holds the approved
-   translation, with inflected forms separated by ` | ` (`patinete | patinetes`). Do-not-translate
-   terms need no row.
+   translation, with inflected forms separated by ` | ` (`patinete | patinetes`). List the nominal
+   forms too where the language makes nouns from verbs (`bloquear | bloqueo`, `verrouiller |
+   verrouillage`): only the listed forms count where the English has the exact term, and the
+   automatic -ing matching covers few of them (Indonesian pe(N)-...-an nouns such as "penguncian").
+   Do-not-translate terms need no row.
 
 ### API keys
 
@@ -577,11 +580,17 @@ dash or parenthesis ("Sperre: aus"); a negation dropped or added where the langu
 list; and, in a safety key of a first-wave language, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
 alarma activado"; `lexicon.STATE_WORDS`). A state word right after a negation word counts as the
-other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on). Lock and Unlock
+other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on), and so does
+one after a negation with only a copula, auxiliary or reflexive or clitic particle between ("no
+está activada", "nie jest włączony", "nicht mehr aktiv", French "ne sera plus activée"). Any other
+word between, such as a verb that takes an infinitive, takes the negation instead ("No olvides
+apagar la alarma", "N'oubliez pas d'éteindre", "Jangan lupa matikan", "Glöm inte att stänga av"),
+and French "ne ... que" (only) and Italian "non appena" (as soon as) negate nothing. Lock and Unlock
 also match their English -s and -ing forms ("before locking", "This file unlocks your scooter",
 "Unlocking…"); there the target may take any form that starts like an approved one ("bloqueando",
 "Blokowanie", "zablokowaniem"), or the Locked or Unlocked target ("Wird gesperrt…"), still never
-inside the opposite term.
+inside the opposite term. In Indonesian the target's first word may also take its pe(N)-...-an
+noun ("Penguncian gagal" for "Locking failed", "Pembukaan kunci gagal" for "Unlocking failed").
 
 Two rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
 duration", "Low" in "Low battery alert") is not required on its own. A one-word adjective whose id
@@ -618,6 +627,15 @@ Known gaps, by language family:
   lock term. zh 打开…的锁 and 关闭…锁定 count as unlock only when the lock word ends the clause.
 - **Languages with no list yet** (fi, hu, ro, tr and others in the later waves): negation and
   removal are not checked at all; polarity only warns, and the judge decides.
+- **Negated states**: a negation further from the state word than the allowed distance (the word
+  right before it, or one listed copula or particle between) is not read, so the state counts as written ("no se encuentra activa", "non sarà più attivo" are
+  read as on); the lists of words allowed between are short (`lexicon.STATE_NEGATION_GAP`).
+- **Lock verb forms**: when the English has the exact term inside a longer term ("Lock duration:
+  time before locking"), the -s or -ing form of the inner term is not required, so "antes de
+  desbloquear" there passes. Where only an -s or -ing form is required (loose mode), any word
+  that begins with an approved target's opening letters counts, so a different word with the same
+  start passes (the opening "bloqu" of "bloquear" accepts any "bloqu-" word, and "kunc" any "kunc-"
+  word).
 - **Everywhere**: the removal context is skipped when the English itself says off, remove,
   disable, release, clear, cancel, delete, open or end, so an inversion in such a key is left to
   step 5. Removal word lists apply to the lock terms only (an alarm or cruise-control term keeps

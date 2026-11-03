@@ -224,21 +224,71 @@ STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicod
                              for p in v)) for k, v in STATE_WORDS.items())
 
 
-# A state word counts as the opposite state when one of the two words before it, in the same clause,
-# is a negation word: "nicht aktiv" and "tidak aktif" say off, "nicht ausgeschaltet" says on.
+# A state word counts as the opposite state when a negation word negates it: the word right before
+# it ("nicht aktiv", "tidak aktif", "sin activar", "n'est pas activé"), or the one before that with
+# only a copula, auxiliary, reflexive or clitic particle, or a "no longer" word, between
+# (STATE_NEGATION_GAP: "no está activada", "ne s'active", "nie jest włączony", "nicht mehr aktiv"). Any other word between, such as a verb that takes
+# an infinitive ("No olvides apagar", "Nie zapomnij wyłączyć", "Jangan lupa matikan", "Glöm inte att
+# stänga av"), means the negation belongs to that word, and the state is read as written. A
+# negation further away ("no se encuentra activa", "non sarà più attivo") is not read.
+STATE_NEGATION_GAP = {
+    "es": {"está", "estará", "esté", "es", "será", "se", "lo", "la", "le"},
+    "pt": {"está", "estará", "esteja", "é", "será", "fica", "ficará", "se", "o", "a"},
+    "fr": {"est", "sera", "soit", "se", "s", "l", "le", "la"},
+    "it": {"è", "sarà", "sia", "si", "lo", "la", "più"},
+    "de": {"ist", "wird", "sind", "werden", "mehr", "länger"},
+    "nl": {"is", "wordt", "zijn", "worden", "meer", "langer"},
+    "pl": {"jest", "będzie", "są", "się"},
+    "sv": {"är", "blir", "längre"},
+    "id": {"sedang", "akan", "lagi"},
+}
+STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
+# French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
+# "que" before a real second part (pas, plus, jamais...) negates nothing. "ne ... plus" (no longer)
+# negates: "plus" counts as a negation word after a "ne" in the same clause.
+_FR_NE = {"ne", "n"}
+_FR_NE_PARTNER = {"pas", "plus", "jamais", "rien", "aucun", "aucune", "personne", "guère", "point"}
 _CLAUSE_BREAK = re.compile("[.,;:!?()\\[\\]–—]")
 _WORD = re.compile("[^\\W\\d_]+")
 
 
-def _negated(primary, head):
-    negation = NEGATION.get(primary, (set(), ()))[0]
+def _negation_word(primary, word, before, after):
+    """Whether word, with the words before and after it in its clause, negates."""
+    if primary == "fr":
+        if word == "plus":
+            return any(w in _FR_NE for w in before)
+        if word in _FR_NE:
+            for w in after:
+                if w in _FR_NE_PARTNER:
+                    break
+                if w in ("que", "qu"):
+                    return False
+    return word in NEGATION.get(primary, (set(), ()))[0]
+
+
+def _negated(primary, head, tail=""):
+    """Whether a state word, with the text head before it and tail after it, is negated."""
+    for phrase in NON_NEGATING_PHRASES.get(primary, ()):
+        # "non appena attivato" (as soon as): the phrase ends a clause of its own.
+        head = re.sub(r"(?<![^\W_])" + r"\s+".join(map(re.escape, phrase.split())) + r"(?![^\W_])", ".", head)
     clause = _CLAUSE_BREAK.split(head)[-1]
-    return any(w in negation for w in _WORD.findall(clause)[-2:])
+    words = _WORD.findall(clause)
+    after = _WORD.findall(_CLAUSE_BREAK.split(tail)[0])
+    gap = STATE_NEGATION_GAP.get(primary, set())
+    for back in (1, 2):
+        if len(words) < back:
+            return False
+        if _negation_word(primary, words[-back], words[:-back], words[len(words) - back + 1:] + after):
+            return True
+        if words[-back] not in gap:
+            return False
+    return False
 
 
 def state_words(primary, text):
     """(on words, off words) found in a target text, for the languages in STATE_WORDS. A state word
-    right after a negation word ("nicht aktiv", "no desactivado") counts as the other state."""
+    a negation word negates ("nicht aktiv", "no desactivado", "no está activada"; see _negated)
+    counts as the other state."""
     patterns = STATE_WORDS.get(primary)
     if not patterns:
         return None
@@ -246,7 +296,7 @@ def state_words(primary, text):
     found = ([], [])
     for side, p in enumerate(patterns):
         for m in p.finditer(text):
-            found[1 - side if _negated(primary, text[:m.start()]) else side].append(m.group(0))
+            found[1 - side if _negated(primary, text[:m.start()], text[m.end():]) else side].append(m.group(0))
     return found
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
@@ -551,6 +601,46 @@ def _loose(word, group=False):
     return re.escape(stem) + ("(?P<cx>[^\\W\\d_]*)" if group else "[^\\W\\d_]*")
 
 
+# Indonesian pe(N)-...-an nouns of a verb root ("penguncian" from "kunci", "pembukaan" from "buka"):
+# the nasal of peN- takes the place of the root's first sound. Used for a loose match (the English
+# has an -ing form: "Locking failed" -> "Penguncian gagal"). Roots that already carry a prefix
+# (me-, di-, ter-, ber-, pe-) or are negation words are not nominalised.
+NOMINALISING = {"id"}
+_ID_PREFIXED = re.compile("^(?:me|di|ter|ber|pe)")
+
+
+def pen_an(root):
+    """The Indonesian pe(N)-root-an noun of a verb root: kunci -> penguncian, buka -> pembukaan,
+    tutup -> penutupan, simpan -> penyimpanan, pakai -> pemakaian, aktif -> pengaktifan,
+    lepas -> pelepasan."""
+    first = root[:1]
+    if first in "bfv":
+        stem = "pem" + root
+    elif first == "p":
+        stem = "pem" + root[1:]
+    elif first in "dcjz":
+        stem = "pen" + root
+    elif first == "t":
+        stem = "pen" + root[1:]
+    elif first == "s":
+        stem = "peny" + root[1:]
+    elif first == "k":
+        stem = "peng" + root[1:]
+    elif first in "gh" or first in "aeiou":
+        stem = "peng" + root
+    else:
+        stem = "pe" + root
+    return stem + "an"
+
+
+def _nominal(primary, word):
+    """A pattern for the nominal form of a target's first word, or None (see NOMINALISING)."""
+    if primary not in NOMINALISING or len(word) < 3 or _ID_PREFIXED.match(word) or \
+            word in NEGATION.get(primary, (set(), ()))[0]:
+        return None
+    return re.escape(pen_an(word)) + "(?:nya)?"
+
+
 def term_found(primary, script, term, text, opposite=True, removal=True, loose=False):
     """Whether a glossary target appears in a text, matched the way the language writes words.
 
@@ -563,7 +653,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
     removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung").
     With loose (the English has only an -s or -ing form of a lock verb: "Locking…"), each word of
     the target matches in any form that starts like it (_loose), still at the start of a word and
-    still subject to the contexts above.
+    still subject to the contexts above; in Indonesian its first word may also take its pe(N)-...-an
+    noun form (pen_an: "Penguncian gagal", "Pembukaan kunci gagal").
     """
     text, term = normalize(text), normalize(term)
     if primary == "el":
@@ -579,6 +670,9 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
         parts = [(_loose(p) if loose else _inflected(primary, p)) for p in words]
         if loose:
             parts[-1] = _loose(words[-1], group=compound)
+            nominal = _nominal(primary, words[0])
+            if nominal:  # "Penguncian" (kunci), "Pembukaan kunci" (buka kunci)
+                parts[0] = "(?:%s|%s)" % (nominal, parts[0])
         elif compound:
             parts[-1] = _compound(primary, words[-1])
         body = r"\s+".join(parts)
