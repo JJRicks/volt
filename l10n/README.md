@@ -225,7 +225,7 @@ changes since the merge base:
 
 | Kind | When | Gates |
 |---|---|---|
-| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference | every gate, strict; proof tooling unchanged |
+| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference (bare or spelled `com.jjricks.volt.T.`, and so on) or a static import of one | every gate, strict; proof tooling unchanged |
 | `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog |
 | `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
 

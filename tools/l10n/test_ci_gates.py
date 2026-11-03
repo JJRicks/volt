@@ -3,6 +3,7 @@
 import contextlib
 import io
 import os
+import re
 import sys
 import unittest
 
@@ -29,6 +30,17 @@ class KindTest(unittest.TestCase):
         refs = ci_gates.catalog_references('class A { void f() { a(T.statsWindowTitle()); b(R.string.app_name); '
                                            'c(Msg.of(T.STATS_X)); d(x.T.y); e(M.rides(n)); } }')
         self.assertEqual(sorted(refs), ["M.rides", "R.string.app_name", "T.STATS_X", "T.statsWindowTitle"])
+
+    def test_qualified_and_static_imported_catalog_references(self):
+        """Codex review of #149: the app's package spelled out, or a static import, is still the catalog."""
+        refs = ci_gates.catalog_references(
+            "import static com.jjricks.volt.T.commonSave; import static com.jjricks.volt.M.*; "
+            "import static java.lang.Math.max; class A { void f() { a(com.jjricks.volt.T.commonSave()); "
+            "b(com.jjricks.volt.R.string.app_name); c(com.jjricks.volt.M.rides(n)); d(android.R.string.ok); "
+            "e(x.T.y); g(foo().T.z); h(other.pkg.T.q()); } }")
+        self.assertEqual(sorted(refs), ["M.rides", "R.string.app_name", "T.commonSave",
+                                        "import static com.jjricks.volt.M.*",
+                                        "import static com.jjricks.volt.T.commonSave"])
 
     def test_plans(self):
         labels = lambda kind, pr="": [s[0] for s in ci_gates.plan(kind, "origin/main", "HEAD", pr, "/repo")]  # noqa: E731
@@ -124,6 +136,30 @@ class GoldenRewriteTest(unittest.TestCase):
         self.assertIn("ci_gates: batch change", output)
         self.assertIn("src gained catalog references (T.ridesGpxOpen)", output)
         self.assertIn("FAILED G1 ledger", output)
+
+    def test_a_qualified_conversion_to_an_existing_key_without_a_ledger_is_a_batch(self):
+        """Codex review of #149: neither the catalog nor the ledger changes, and the call is spelled out
+        with the app's package (or reached through a static import), but it is still a batch."""
+        self.repo.git("stash", "-q")
+        self.repo.write("res/values/strings_rides.xml", '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">'
+                        '<string name="rides_gpx_open">&lt;trk&gt;&lt;name&gt;Ride</string></resources>\n')
+        self.base = self.repo.commit("existing key")
+        self.repo.git("stash", "pop", "-q")
+        self.repo.write(GOLDEN, "<trk><name>Ride GOLDEN-RIDE-1</name>\n")
+        for body, gained in (
+                ("    String name() { return com.jjricks.volt.T.ridesGpxOpen(); }", "T.ridesGpxOpen"),
+                ("    String name() { return ridesGpxOpen(); }", "import static com.jjricks.volt.T.ridesGpxOpen")):
+            with self.subTest(body=body):
+                text = java_class("PhoneRideStore", body)
+                if "import" in gained:
+                    text = text.replace("\n\n", "\n\nimport static com.jjricks.volt.T.ridesGpxOpen;\n\n", 1)
+                self.repo.write(STORE, text)
+                code, output = self.run_ci()
+                self.assertEqual(code, 1, output)
+                self.assertIn("ci_gates: batch change", output)
+                self.assertRegex(output, r"src gained catalog references \([^)]*%s" % re.escape(gained))
+                self.assertIn("FAILED G1 ledger", output)
+                self.repo.git("reset", "-q", "--soft", "HEAD~1")
 
     def test_an_english_change_may_not_add_ledger_rows(self):
         """Re-review finding 9."""

@@ -67,8 +67,22 @@ def kind_of(changed, gains_catalog_references=False):
     return "ordinary"
 
 
+CATALOG_PACKAGE = "com.jjricks.volt"
+
+
+def _qualifier(tokens, i):
+    """The dotted name in front of tokens[i] ("com.jjricks.volt" for com.jjricks.volt.T), or "" for none."""
+    parts, j = [], i - 1
+    while j >= 1 and tokens[j].value == "." and tokens[j - 1].kind == "ident":
+        parts.insert(0, tokens[j - 1].value)
+        j -= 2
+    return ".".join(parts) if j < 0 or tokens[j].value != "." else None
+
+
 def catalog_references(text):
-    """Counter of T.<name>, M.<name>, R.string.<name> and R.plurals.<name> references in Java source."""
+    """Counter of T.<name>, M.<name>, R.string.<name> and R.plurals.<name> references in Java source,
+    bare or qualified with the app's package, plus static imports of T, M or R members (after which a
+    bare name is a catalog call). Another object's member (x.T.y) or the framework's android.R is not."""
     found = collections.Counter()
     if text is None:
         return found
@@ -76,9 +90,21 @@ def catalog_references(text):
         tokens = l10nlib.lex_java(text)
     except l10nlib.LexError:
         return found
+    for i in range(len(tokens) - 1):
+        if tokens[i].value == "import" and tokens[i + 1].value == "static":
+            name = []
+            for t in tokens[i + 2:]:
+                if t.value == ";":
+                    break
+                name.append(t.value)
+            name = "".join(name)
+            if re.match(r"(%s\.)?(T|M|R)\.(\*|[A-Za-z_$])" % re.escape(CATALOG_PACKAGE), name):
+                found["import static " + name] += 1
     for i in range(len(tokens) - 2):
         t = tokens[i]
-        if t.kind != "ident" or (i > 0 and tokens[i - 1].value == ".") or tokens[i + 1].value != ".":
+        if t.kind != "ident" or tokens[i + 1].value != ".":
+            continue
+        if i > 0 and tokens[i - 1].value == "." and _qualifier(tokens, i) != CATALOG_PACKAGE:
             continue
         if t.value in ("T", "M") and tokens[i + 2].kind == "ident":
             found[t.value + "." + tokens[i + 2].value] += 1
