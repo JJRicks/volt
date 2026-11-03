@@ -469,6 +469,26 @@ class RemovedBlockTest(RepoCase):
         self.assertTrue(any("deletes the whole block (base lines 11-13)" in w and "if ( temperature > 60 )" in w
                             for w in warnings), warnings)
 
+    def test_a_row_spanning_a_deleted_block_and_a_lone_statement_lists_both(self):
+        """Re-review 5: a manual removed row covering a literal in a deleted block and one in a lone
+        deleted statement must still print the lone statement (the temperature readout)."""
+        card = "src/com/jjricks/volt/Card.java"
+        self.repo.write(card, java_class("Card", '''    void update(TextView t, double temp) {
+        t.setText(format(temp) + " C");
+        if (t != null) {
+            describe(t, "Battery temperature");
+        }
+        refresh();
+    }'''))
+        self.base = self.repo.commit("card")
+        lines = self.text(card).split("\n")
+        self.repo.write(card, "\n".join(lines[:4] + lines[8:]))
+        problems, warnings, _ = self.check([card + ':5\t[" C", "Battery temperature"]\t-\tremoved\tmanual: two dead labels'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("deletes `t . setText ( format ( temp ) + \" C\" )`" in w for w in warnings), warnings)
+        self.assertTrue(any("deletes the whole block (base lines 6-8)" in w for w in warnings), warnings)
+        self.assertFalse(any("deletes `describe" in w for w in warnings), warnings)
+
     def test_a_deleted_statement_alone_still_passes(self):
         self.delete_lines(12, 12)
         problems, warnings, _ = self.check([self.CARD + ':12\t["Battery hot"]\t-\tremoved\tdead warning',

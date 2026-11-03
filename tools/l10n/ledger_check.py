@@ -836,10 +836,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 continue
             for j in span:
                 allowed_base[row.path].setdefault(j, id(row))
-        if row.kind == "removed" and tokens and not any(w[0] is row for w in widened):
-            first, last, _ = statement_of(diff, min(tokens))
-            warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this text" % (
-                where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1], None)))
+        if row.kind == "removed" and tokens:
+            # Each statement the row deletes is listed, unless a whole-block warning already prints it;
+            # a row may cover literals in several statements, only some of them inside a deleted block.
+            shown = set()
+            for k in sorted(tokens):
+                first, last, _ = statement_of(diff, k)
+                if (first, last) in shown or any(
+                        w[2] == row.path and w[4][0] <= first and last <= w[4][-1] for w in widened):
+                    continue
+                shown.add((first, last))
+                warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this "
+                                "text" % (where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1], None)))
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
