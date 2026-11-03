@@ -149,7 +149,7 @@ public final class BleController {
         DeviceDescriptor d=descriptor();boolean fw=d.firmwareThisSession;
         if(commandSession&&(commandFirmware||!fw))return;
         String model=!d.rulePid().isEmpty()?d.rulePid():d.family(),version=AppVersion.name(context);
-        try{commands.record(new CommandLog.Session(System.currentTimeMillis(),version.matches(CommandLog.APP_VERSION)?version:"unknown",model.matches("[0-9]{1,5}")?model:"",
+        try{commands.record(new CommandLog.Session(System.currentTimeMillis(),CommandLog.journalVersion(version),model.matches("[0-9]{1,5}")?model:"",
                 ModelRegistry.resolve(d).layer,firmware(fw?d.firmware.meter:null),firmware(fw?d.firmware.controller:null),simulating()));}
         catch(IllegalArgumentException unloggable){/* every field is sanitized above */}
         commandSession=true;commandFirmware=fw;
