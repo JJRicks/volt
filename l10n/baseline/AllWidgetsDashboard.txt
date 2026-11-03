@@ -1,0 +1,9 @@
+# Hard-coded English in src/com/jjricks/volt/AllWidgetsDashboard.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Battery charge"
+multiword	"Battery power"
+multiword	"Charge history"
+multiword	"Check tyre pressure"
+multiword	"Electrical readings"
+multiword	"Example row must fill its columns"
+multiword	"Missing example span"

@@ -1,0 +1,163 @@
+Package Groups (1)
+Package Group 0 id=0x7f packageCount=1 name=com.jjricks.volt.l10nfixture
+  Package 0 id=0x7f name=com.jjricks.volt.l10nfixture
+    type 1 configCount=1 entryCount=47
+      spec resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: flags=0x00000000
+      spec resource 0x7f020001 com.jjricks.volt.l10nfixture:string/ok_metadata: flags=0x00000000
+      spec resource 0x7f020002 com.jjricks.volt.l10nfixture:string/ok_metadata_short: flags=0x00000000
+      spec resource 0x7f020003 com.jjricks.volt.l10nfixture:string/ok_plain: flags=0x00000000
+      spec resource 0x7f020004 com.jjricks.volt.l10nfixture:string/ok_wrapped_edges: flags=0x00000000
+      spec resource 0x7f020005 com.jjricks.volt.l10nfixture:string/ok_wrapped_double_space: flags=0x00000000
+      spec resource 0x7f020006 com.jjricks.volt.l10nfixture:string/ok_wrapped_apostrophe: flags=0x00000000
+      spec resource 0x7f020007 com.jjricks.volt.l10nfixture:string/ok_escaped_apostrophe: flags=0x00000000
+      spec resource 0x7f020008 com.jjricks.volt.l10nfixture:string/ok_escaped_quote: flags=0x00000000
+      spec resource 0x7f020009 com.jjricks.volt.l10nfixture:string/ok_escaped_newline: flags=0x00000000
+      spec resource 0x7f02000a com.jjricks.volt.l10nfixture:string/ok_escaped_tab: flags=0x00000000
+      spec resource 0x7f02000b com.jjricks.volt.l10nfixture:string/ok_escaped_edges: flags=0x00000000
+      spec resource 0x7f02000c com.jjricks.volt.l10nfixture:string/ok_backslash: flags=0x00000000
+      spec resource 0x7f02000d com.jjricks.volt.l10nfixture:string/ok_at: flags=0x00000000
+      spec resource 0x7f02000e com.jjricks.volt.l10nfixture:string/ok_question: flags=0x00000000
+      spec resource 0x7f02000f com.jjricks.volt.l10nfixture:string/ok_hash: flags=0x00000000
+      spec resource 0x7f020010 com.jjricks.volt.l10nfixture:string/ok_unicode_escape: flags=0x00000000
+      spec resource 0x7f020011 com.jjricks.volt.l10nfixture:string/ok_unicode_raw: flags=0x00000000
+      spec resource 0x7f020012 com.jjricks.volt.l10nfixture:string/ok_surrogates: flags=0x00000000
+      spec resource 0x7f020013 com.jjricks.volt.l10nfixture:string/ok_emoji_raw: flags=0x00000000
+      spec resource 0x7f020014 com.jjricks.volt.l10nfixture:string/ok_nbsp: flags=0x00000000
+      spec resource 0x7f020015 com.jjricks.volt.l10nfixture:string/ok_entities: flags=0x00000000
+      spec resource 0x7f020016 com.jjricks.volt.l10nfixture:string/ok_percent: flags=0x00000000
+      spec resource 0x7f020017 com.jjricks.volt.l10nfixture:string/ok_template: flags=0x00000000
+      spec resource 0x7f020018 com.jjricks.volt.l10nfixture:string/ok_decimal: flags=0x00000000
+      spec resource 0x7f020019 com.jjricks.volt.l10nfixture:string/ok_xliff: flags=0x00000000
+      spec resource 0x7f02001a com.jjricks.volt.l10nfixture:string/ok_not_formatted: flags=0x00000000
+      spec resource 0x7f02001b com.jjricks.volt.l10nfixture:string/ok_not_translatable: flags=0x00000000
+      spec resource 0x7f02001c com.jjricks.volt.l10nfixture:string/ok_empty: flags=0x00000000
+      spec resource 0x7f02001d com.jjricks.volt.l10nfixture:string/ok_only_space: flags=0x00000000
+      spec resource 0x7f02001e com.jjricks.volt.l10nfixture:string/ok_wrapped_line_break: flags=0x00000000
+      spec resource 0x7f02001f com.jjricks.volt.l10nfixture:string/bad_leading_space: flags=0x00000000
+      spec resource 0x7f020020 com.jjricks.volt.l10nfixture:string/bad_trailing_space: flags=0x00000000
+      spec resource 0x7f020021 com.jjricks.volt.l10nfixture:string/bad_double_space: flags=0x00000000
+      spec resource 0x7f020022 com.jjricks.volt.l10nfixture:string/bad_unquoted_double_space: flags=0x00000000
+      spec resource 0x7f020023 com.jjricks.volt.l10nfixture:string/bad_raw_line_break: flags=0x00000000
+      spec resource 0x7f020024 com.jjricks.volt.l10nfixture:string/bad_raw_tab: flags=0x00000000
+      spec resource 0x7f020025 com.jjricks.volt.l10nfixture:string/bad_unknown_escape: flags=0x00000000
+      spec resource 0x7f020026 com.jjricks.volt.l10nfixture:string/bad_carriage_return_escape: flags=0x00000000
+      spec resource 0x7f020027 com.jjricks.volt.l10nfixture:string/bad_backslash_space: flags=0x00000000
+      spec resource 0x7f020028 com.jjricks.volt.l10nfixture:string/ok_trailing_unicode_space: flags=0x00000000
+      spec resource 0x7f020029 com.jjricks.volt.l10nfixture:string/ok_leading_unicode_space: flags=0x00000000
+      spec resource 0x7f02002a com.jjricks.volt.l10nfixture:string/ok_unicode_quotes: flags=0x00000000
+      spec resource 0x7f02002b com.jjricks.volt.l10nfixture:string/ok_unicode_apostrophe: flags=0x00000000
+      spec resource 0x7f02002c com.jjricks.volt.l10nfixture:string/bad_partial_quote: flags=0x00000000
+      spec resource 0x7f02002d com.jjricks.volt.l10nfixture:string/bad_unbalanced_quote: flags=0x00000000
+      spec resource 0x7f02002e com.jjricks.volt.l10nfixture:string/bad_xliff_spacing: flags=0x00000000
+      config (default):
+        resource 0x7f020000 com.jjricks.volt.l10nfixture:string/app_name: t=0x03 d=0x00000000 (s=0x0008 r=0x00)
+          (string16) "Volt"
+        resource 0x7f020001 com.jjricks.volt.l10nfixture:string/ok_metadata: t=0x03 d=0x00000001 (s=0x0008 r=0x00)
+          (string16) "Lock NAVEE scooter"
+        resource 0x7f020002 com.jjricks.volt.l10nfixture:string/ok_metadata_short: t=0x03 d=0x00000002 (s=0x0008 r=0x00)
+          (string16) "Lock"
+        resource 0x7f020003 com.jjricks.volt.l10nfixture:string/ok_plain: t=0x03 d=0x00000003 (s=0x0008 r=0x00)
+          (string16) "Lock scooter"
+        resource 0x7f020004 com.jjricks.volt.l10nfixture:string/ok_wrapped_edges: t=0x03 d=0x00000004 (s=0x0008 r=0x00)
+          (string16) "  both  "
+        resource 0x7f020005 com.jjricks.volt.l10nfixture:string/ok_wrapped_double_space: t=0x03 d=0x00000005 (s=0x0008 r=0x00)
+          (string16) "Connecting…  ￼"
+        resource 0x7f020006 com.jjricks.volt.l10nfixture:string/ok_wrapped_apostrophe: t=0x03 d=0x00000006 (s=0x0008 r=0x00)
+          (string16) "Don't clear storage."
+        resource 0x7f020007 com.jjricks.volt.l10nfixture:string/ok_escaped_apostrophe: t=0x03 d=0x00000006 (s=0x0008 r=0x00)
+          (string16) "Don't clear storage."
+        resource 0x7f020008 com.jjricks.volt.l10nfixture:string/ok_escaped_quote: t=0x03 d=0x00000007 (s=0x0008 r=0x00)
+          (string16) "Tap \"Save\""
+        resource 0x7f020009 com.jjricks.volt.l10nfixture:string/ok_escaped_newline: t=0x03 d=0x00000008 (s=0x0008 r=0x00)
+          (string16) "Line one\nLine two"
+        resource 0x7f02000a com.jjricks.volt.l10nfixture:string/ok_escaped_tab: t=0x03 d=0x00000009 (s=0x0008 r=0x00)
+          (string16) "a	b"
+        resource 0x7f02000b com.jjricks.volt.l10nfixture:string/ok_escaped_edges: t=0x03 d=0x0000000a (s=0x0008 r=0x00)
+          (string16) "\nlead and trail	"
+        resource 0x7f02000c com.jjricks.volt.l10nfixture:string/ok_backslash: t=0x03 d=0x0000000b (s=0x0008 r=0x00)
+          (string16) "C:\\volt"
+        resource 0x7f02000d com.jjricks.volt.l10nfixture:string/ok_at: t=0x03 d=0x0000000c (s=0x0008 r=0x00)
+          (string16) "@home"
+        resource 0x7f02000e com.jjricks.volt.l10nfixture:string/ok_question: t=0x03 d=0x0000000d (s=0x0008 r=0x00)
+          (string16) "?maybe"
+        resource 0x7f02000f com.jjricks.volt.l10nfixture:string/ok_hash: t=0x03 d=0x0000000e (s=0x0008 r=0x00)
+          (string16) "#1"
+        resource 0x7f020010 com.jjricks.volt.l10nfixture:string/ok_unicode_escape: t=0x03 d=0x0000000f (s=0x0008 r=0x00)
+          (string16) "Wait…"
+        resource 0x7f020011 com.jjricks.volt.l10nfixture:string/ok_unicode_raw: t=0x03 d=0x00000010 (s=0x0008 r=0x00)
+          (string16) "Odo. · 12 km"
+        resource 0x7f020012 com.jjricks.volt.l10nfixture:string/ok_surrogates: t=0x03 d=0x00000011 (s=0x0008 r=0x00)
+          (string16) "Battery 🔋"
+        resource 0x7f020013 com.jjricks.volt.l10nfixture:string/ok_emoji_raw: t=0x03 d=0x00000011 (s=0x0008 r=0x00)
+          (string16) "Battery 🔋"
+        resource 0x7f020014 com.jjricks.volt.l10nfixture:string/ok_nbsp: t=0x03 d=0x00000012 (s=0x0008 r=0x00)
+          (string16) "10 km"
+        resource 0x7f020015 com.jjricks.volt.l10nfixture:string/ok_entities: t=0x03 d=0x00000013 (s=0x0008 r=0x00)
+          (string16) "Rides & charges <3"
+        resource 0x7f020016 com.jjricks.volt.l10nfixture:string/ok_percent: t=0x03 d=0x00000014 (s=0x0008 r=0x00)
+          (string16) "%1$s%%"
+        resource 0x7f020017 com.jjricks.volt.l10nfixture:string/ok_template: t=0x03 d=0x00000015 (s=0x0008 r=0x00)
+          (string16) "Move %1$s to slot %2$d"
+        resource 0x7f020018 com.jjricks.volt.l10nfixture:string/ok_decimal: t=0x03 d=0x00000016 (s=0x0008 r=0x00)
+          (string16) "%1$.1f km"
+        resource 0x7f020019 com.jjricks.volt.l10nfixture:string/ok_xliff: t=0x03 d=0x00000017 (s=0x0008 r=0x00)
+          (string16) "Hello %1$s!"
+        resource 0x7f02001a com.jjricks.volt.l10nfixture:string/ok_not_formatted: t=0x03 d=0x00000018 (s=0x0008 r=0x00)
+          (string16) "%s and %s"
+        resource 0x7f02001b com.jjricks.volt.l10nfixture:string/ok_not_translatable: t=0x03 d=0x00000019 (s=0x0008 r=0x00)
+          (string16) "NAVEE"
+        resource 0x7f02001c com.jjricks.volt.l10nfixture:string/ok_empty: t=0x03 d=0x0000001a (s=0x0008 r=0x00)
+          (string16) ""
+        resource 0x7f02001d com.jjricks.volt.l10nfixture:string/ok_only_space: t=0x03 d=0x0000001b (s=0x0008 r=0x00)
+          (string16) " "
+        resource 0x7f02001e com.jjricks.volt.l10nfixture:string/ok_wrapped_line_break: t=0x03 d=0x0000001c (s=0x0008 r=0x00)
+          (string16) "line\n  next"
+        resource 0x7f02001f com.jjricks.volt.l10nfixture:string/bad_leading_space: t=0x03 d=0x0000001d (s=0x0008 r=0x00)
+          (string16) "leading"
+        resource 0x7f020020 com.jjricks.volt.l10nfixture:string/bad_trailing_space: t=0x03 d=0x0000001e (s=0x0008 r=0x00)
+          (string16) "trailing"
+        resource 0x7f020021 com.jjricks.volt.l10nfixture:string/bad_double_space: t=0x03 d=0x0000001f (s=0x0008 r=0x00)
+          (string16) "two spaces"
+        resource 0x7f020022 com.jjricks.volt.l10nfixture:string/bad_unquoted_double_space: t=0x03 d=0x00000020 (s=0x0008 r=0x00)
+          (string16) "Connecting… ￼"
+        resource 0x7f020023 com.jjricks.volt.l10nfixture:string/bad_raw_line_break: t=0x03 d=0x00000021 (s=0x0008 r=0x00)
+          (string16) "line one line two"
+        resource 0x7f020024 com.jjricks.volt.l10nfixture:string/bad_raw_tab: t=0x03 d=0x00000022 (s=0x0008 r=0x00)
+          (string16) "a b"
+        resource 0x7f020025 com.jjricks.volt.l10nfixture:string/bad_unknown_escape: t=0x03 d=0x00000023 (s=0x0008 r=0x00)
+          (string16) "ab"
+        resource 0x7f020026 com.jjricks.volt.l10nfixture:string/bad_carriage_return_escape: t=0x03 d=0x00000023 (s=0x0008 r=0x00)
+          (string16) "ab"
+        resource 0x7f020027 com.jjricks.volt.l10nfixture:string/bad_backslash_space: t=0x03 d=0x00000023 (s=0x0008 r=0x00)
+          (string16) "ab"
+        resource 0x7f020028 com.jjricks.volt.l10nfixture:string/ok_trailing_unicode_space: t=0x03 d=0x00000024 (s=0x0008 r=0x00)
+          (string16) "end "
+        resource 0x7f020029 com.jjricks.volt.l10nfixture:string/ok_leading_unicode_space: t=0x03 d=0x00000025 (s=0x0008 r=0x00)
+          (string16) " lead"
+        resource 0x7f02002a com.jjricks.volt.l10nfixture:string/ok_unicode_quotes: t=0x03 d=0x00000026 (s=0x0008 r=0x00)
+          (string16) "Say \"hi\""
+        resource 0x7f02002b com.jjricks.volt.l10nfixture:string/ok_unicode_apostrophe: t=0x03 d=0x00000027 (s=0x0008 r=0x00)
+          (string16) "Don't"
+        resource 0x7f02002c com.jjricks.volt.l10nfixture:string/bad_partial_quote: t=0x03 d=0x00000028 (s=0x0008 r=0x00)
+          (string16) "a b  c d"
+        resource 0x7f02002d com.jjricks.volt.l10nfixture:string/bad_unbalanced_quote: t=0x03 d=0x00000029 (s=0x0008 r=0x00)
+          (string16) "Say hi"
+        resource 0x7f02002e com.jjricks.volt.l10nfixture:string/bad_xliff_spacing: t=0x03 d=0x0000002a (s=0x0008 r=0x00)
+          (string16) "Hi %1$s !"
+    type 2 configCount=1 entryCount=3
+      spec resource 0x7f030000 com.jjricks.volt.l10nfixture:plurals/ok_rides: flags=0x00000000
+      spec resource 0x7f030001 com.jjricks.volt.l10nfixture:plurals/ok_scooters_skipped: flags=0x00000000
+      spec resource 0x7f030002 com.jjricks.volt.l10nfixture:plurals/bad_plural_trailing_space: flags=0x00000000
+      config (default):
+        resource 0x7f030000 com.jjricks.volt.l10nfixture:plurals/ok_rides: <bag>
+          Parent=0x00000000(Resolved=0x00000000), Count=2
+          #0 (Key=0x01000004): (string16) "%1$d rides"
+          #1 (Key=0x01000006): (string16) "%1$d rides"
+        resource 0x7f030001 com.jjricks.volt.l10nfixture:plurals/ok_scooters_skipped: <bag>
+          Parent=0x00000000(Resolved=0x00000000), Count=2
+          #0 (Key=0x01000004): (string16) "%1$d scooters skipped"
+          #1 (Key=0x01000006): (string16) "One scooter skipped"
+        resource 0x7f030002 com.jjricks.volt.l10nfixture:plurals/bad_plural_trailing_space: <bag>
+          Parent=0x00000000(Resolved=0x00000000), Count=2
+          #0 (Key=0x01000004): (string16) "%1$d minutes"
+          #1 (Key=0x01000006): (string16) "%1$d minute"

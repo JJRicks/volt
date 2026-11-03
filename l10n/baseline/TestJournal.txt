@@ -1,0 +1,15 @@
+# Hard-coded English in src/com/jjricks/volt/TestJournal.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"No test journal folder"
+multiword	"Test journal is too large"
+multiword	"Test journal is unreadable"
+multiword	"Test record is invalid"
+multiword	"Test records are unavailable"
+multiword	"Test records are unavailable"
+multiword	"Test records are unavailable"
+multiword	"Test records unavailable. A previous test may not have been set back; check the scooter's settings."
+multiword	"Too many unfinished tests"
+multiword	"Unknown resolution"
+multiword	"Unknown test journal format"
+multiword	"volt-compat-tests v1"
+multiword	"volt-compat-tests v2"

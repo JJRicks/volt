@@ -56,3 +56,6 @@ __pycache__/
 
 # Sanitized calibration evidence: relative elapsed time and electrical measurements only.
 !/tests/fixtures/ut5-max-fast-charge-calibration.csv
+# Synthetic report goldens for the localization proof (tests/l10n/GoldenReports.java; no real data).
+!/tests/l10n/golden/*.csv
+!/tests/l10n/golden/*.gpx

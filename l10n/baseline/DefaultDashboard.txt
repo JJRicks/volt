@@ -1,0 +1,8 @@
+# Hard-coded English in src/com/jjricks/volt/DefaultDashboard.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Lock bar"
+multiword	"Reading tiles"
+multiword	"Ride recorder"
+multiword	"Scooter overview"
+multiword	"Setting tiles"
+multiword	"Usable ride energy"

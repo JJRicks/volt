@@ -1,0 +1,17 @@
+# Hard-coded English in src/com/jjricks/volt/LearnedRangeEstimate.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Battery and distance endpoints missing"
+multiword	"Battery coverage below 95%"
+multiword	"Battery drop below two points"
+multiword	"Battery gauge rose"
+multiword	"Charging occurred during recording"
+multiword	"Distance readings disagree"
+multiword	"Full ride samples unavailable"
+multiword	"More recorded riding needed"
+multiword	"Movement coverage below 95%"
+multiword	"Odometer distance unavailable"
+multiword	"Recording has gaps or clock changes"
+multiword	"Recording is unfinished"
+multiword	"Recording timeline changed"
+multiword	"Some recorded rides could not be read"
+multiword	"Too little recorded movement"

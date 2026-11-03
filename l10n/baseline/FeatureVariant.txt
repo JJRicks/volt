@@ -1,0 +1,8 @@
+# Hard-coded English in src/com/jjricks/volt/FeatureVariant.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"A sentinel is never an offered value"
+multiword	"Feature has no wire encoder"
+multiword	"Feature needs its dedicated builder"
+multiword	"Narrowed value is outside the variant domain"
+multiword	"Value is outside the OEM feature domain"
+multiword	"Variant domain is malformed"

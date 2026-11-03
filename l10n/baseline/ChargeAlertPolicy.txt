@@ -1,0 +1,16 @@
+# Hard-coded English in src/com/jjricks/volt/ChargeAlertPolicy.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	" hours. Open Volt to keep watching this charge."
+multiword	" is at "
+multiword	". Open Volt to keep watching this charge."
+multiword	"Battery low"
+multiword	"Charge alert paused"
+multiword	"Charged to "
+multiword	"Charging to "
+multiword	"Charging to full"
+multiword	"Fully charged"
+multiword	"Last seen "
+multiword	"Volt lost the connection to "
+multiword	"Volt stopped watching after "
+multiword	"alert at "
+multiword	"alert when full"

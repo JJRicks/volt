@@ -1,0 +1,17 @@
+# Hard-coded English in src/com/jjricks/volt/CommandLog.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Command journal too large"
+multiword	"Corrupt command journal"
+multiword	"Incomplete command journal"
+multiword	"Invalid command event"
+multiword	"Invalid command outcome"
+multiword	"Invalid command record count"
+multiword	"Invalid command session"
+multiword	"Invalid time"
+multiword	"Oversized command journal"
+multiword	"Oversized command journal"
+multiword	"Storage unavailable"
+multiword	"This control never carries a value"
+multiword	"Unexpected command journal data"
+multiword	"Unknown command journal"
+multiword	"Unknown command record"

@@ -1,0 +1,63 @@
+# Volt's English glossary, seeded from the localization inventory's starter glossary (english-and-safety).
+# D3 (terminology cleanup) finalizes it. Columns: id, English term, definition, part of speech, do-not-translate
+# (yes/no), safety flag (a volt:safety value or -), source location (src/com/jjricks/volt/ unless a path is given).
+id	term	definition	pos	dnt	safety	source
+volt	Volt	The app's name. Never translated.	proper noun	yes	-	res/values/strings.xml app_name
+navee	NAVEE	The scooter maker. Keep the name exactly as written.	proper noun	yes	disclaimer	MoreScreen.java:184
+not-affiliated	not affiliated with NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	MoreScreen.java:184, 2360
+official-app	official app; the NAVEE app	NAVEE's own app. Translate "official app" the same way everywhere; keep "NAVEE".	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
+scooter	scooter	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	throughout
+owner	owner; owner profile; owner role	The account role the scooter grants to its owner, as opposed to shared access.	noun	no	owner-key	Protocol.java:79; MoreScreen.java:2441
+shared-access	shared access; shared user; shared role	A role the owner grants to another account.	noun phrase	no	owner-key	Protocol.java:79; MoreScreen.java:2441
+owner-identity	owner identity (also owner key, setup key, scooter key)	The 12-hex-character credential Volt authenticates with. The source uses four names; D3 picks one target term. Treat it as a secret.	noun phrase	no	owner-key	BackupRegistry.java:19; OnboardingScreen.java:927
+owner-setup	owner setup; owner setup file; capture; capture helper	Getting the owner identity from the NAVEE app. The file name navee-owner-setup.json and setup/capture-owner.py stay as written.	noun phrase	no	owner-key	OnboardingScreen.java:722-1083; setup/capture-owner.py
+shizuku	Shizuku	Third-party app name.	proper noun	yes	-	ShizukuSetupActivity.java
+adb	ADB	Android Debug Bridge; keep the name.	proper noun	yes	-	OnboardingScreen.java
+platform-tools	Platform-Tools	Google's command-line tools package; keep the name.	proper noun	yes	-	OnboardingScreen.java
+usb-debugging	USB debugging	Android's setting. Use Android's own localized wording.	noun phrase	no	-	OnboardingScreen.java
+developer-options	Developer options	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	OnboardingScreen.java
+build-number	Build number	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	OnboardingScreen.java
+electronic-lock	electronic lock; Lock; Locked; Unlocked	Volt's lock control and its states. Locked and unlocked must stay clearly distinct.	noun; adjective	no	lock	MainActivity.java:448-1114
+lock-bar	Lock bar	The lock row on Home.	noun phrase	no	lock	DashboardConfig.java:58
+lock-state-unverified	Lock state unverified; lock state unknown	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	MainActivity.java:448-1114
+lock-duration	Lock duration	How long the scooter stays locked when off.	noun phrase	no	lock	ScooterCommands.java:136
+handlebar-pin	handlebar PIN (also fallback PIN, dashboard PIN)	The 4-digit code entered on the handlebar. The source uses three names; D3 picks one.	noun phrase	no	pin	MoreScreen.java:1213, 1215; BleController.java:286
+proximity-unlock	proximity unlock	Unlocking when the paired phone is near.	noun phrase	no	pin	ScooterCommands.java:153
+pair	pair (code: bond)	Bluetooth bonding. The UI says "pair" and the code says "bond"; use "pair" in the UI.	verb	no	-	BleController.java:559
+connection	Connect; Disconnect; Connection details; Signal lost	Bluetooth link actions and states.	verb; noun	no	-	MainActivity.java:969
+parked	parked	Stationary; some changes require it.	adjective	no	ride	CapabilityResolver.java:312
+model-id	Model ID (PID)	The numeric model code the scooter advertises. Keep the term "Model ID" and the number.	noun phrase	no	-	ReportInvite.java:32
+firmware	firmware	The scooter's software. Volt never changes it.	noun	no	-	MoreScreen.java:1552
+compatibility-check	compatibility check; compatibility checker; compatibility report	A read-only check and an emailed report. The UI is translated; the report content stays English.	noun phrase	no	-	MoreScreen.java:2150; CompatibilityPanel.java
+report-an-issue	Report an issue; Diagnostics; diagnostics file	An email to Volt with an English attachment.	verb phrase; noun	no	privacy	MoreScreen.java:188; MainActivity.java:2719
+experimental-controls	Experimental controls (internal id Lab; card title Untested controls)	Controls the official app does not offer, or that Volt has not verified on this model. D3 resolves the three names.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
+try-outcomes	Try; Set back; Help verify; Unverified; Untested; Unconfirmed; Refused by scooter; Worked here	Outcomes of an experimental try. "Unconfirmed" means the scooter acknowledged but the value was not kept or read back.	verb; adjective	no	experimental	MoreScreen.java:1666-1728
+readback	readback; confirmed; Not confirmed; Rejected	Whether the scooter reported the new value. Unverified or unknown must never read as confirmed.	noun; adjective	no	experimental	MainActivity.java:1717-1722
+drive-modes	WALK; ECO; DRIVE (D-mode); SPORT	Drive mode names. Match the scooter's display or the NAVEE app in that language; until the owner decides, keep English.	noun	yes	ride	Telemetry.java:228-240; ScooterCommands.java:119
+acceleration-profile	Acceleration profile: Eco; Turbo	How hard the motor accelerates.	noun phrase	no	ride	ScooterCommands.java:108
+energy-recovery	Energy recovery (regen, motor braking): Off; Low; Medium; High	Regenerative braking strength.	noun phrase	no	ride	ScooterCommands.java:106; ModelRegistry.java:861
+ride-controls	Cruise control; Traction control (TCS); Overspeed active control; Hill descent control (HDC); Dual motor drive; Single motor	Ride controls.	noun phrase	no	ride	ScooterCommands.java:105-148
+kick-start-speed	Kick-start speed (Standing start)	The speed before the motor engages from a push.	noun phrase	no	ride	ScooterCommands.java:120
+speed-cap	Custom speed cap; Drive mode speed cap; Maximum speed; Top speed	Speed limits. The source uses speed cap, speed limit and Top speed; D3 defines each.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
+walk-assist	Walk Assist (key hill_start_assist)	Translate from the label; the key does not match it.	noun phrase	no	ride	ScooterCommands.java:142-144
+power-assist	Power Assist (key parking_assist)	Translate from the label; the key does not match it.	noun phrase	no	ride	ScooterCommands.java:142-144
+boost	Boost	Extra power in Sport mode.	noun	no	ride	ScooterCommands.java:142-144
+battery-modes	Low Battery Mode; Long range mode	Battery toggles.	noun phrase	no	-	ScooterCommands.java:138-140
+lights	Tail light (key headlight); Automatic lights; Line lights; Star lights; Ambient light; Logo light; Daytime running light; Turn signal (sound); Prompt sound; Red; Ice blue; Follow headlight; Always on	Light and sound controls and their colours.	noun phrase	no	-	ScooterCommands.java:112
+display-units	Dashboard units; Scooter display units (Miles, mph; Kilometers, km/h)	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	ScooterCommands.java:116; MainActivity.java:1736
+dashboard	Dashboard; widget; Quick access	Volt's Home screen layout and its tiles.	noun	no	-	DashboardConfig.java; QuickAccessActions.java
+live-stats	Live Stats; readings; Readings history	Telemetry pages and stored history.	noun phrase	no	-	MainActivity.java:78; BackupRegistry.java:19
+odometer	Odometer; Odo.; Trip	Distance totals. The narrow-label ladder is full, then abbreviated, then icon, with no mid-word breaks.	noun	no	-	ScooterReadingLabels.java:30, 74
+range-estimate	Range estimate; learned range; Theoretical; Actual riding	Remaining-distance estimates.	noun phrase	no	-	ScooterCommands.java:118; LearnedRangeEstimate.java
+charge-limit	Charge limit (also charge ceiling)	The maximum charge percentage. D3 picks one term.	noun phrase	no	charge	ScooterCommands.java:130; MainActivity.java:1734
+scheduled-charging	Scheduled charging; Charge start; Charging start time; Next charge start	The scooter-side delayed start (on the hour).	noun phrase	no	charge	ScooterCommands.java:132-134; MainActivity.java:3251
+charge-done-by	Charge done by	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	MainActivity.java:2149; QuickAccessActions.java:59
+test-scheduled-charging	Test scheduled charging	A check of the scooter's clock and schedule.	verb phrase	no	charge	MainActivity.java:2072
+measure	Measure; measuring	Watching the charger for about 10 minutes before planning.	verb	no	charge	MainActivity.java:2018-2045
+battery-alerts	Battery alerts; Charge alert; Low battery alert; Notify me; Alarm sound; Stop; Stop watching	Alerts on models without a charge limit.	noun phrase; verb	no	alarm	MainActivity.java:1872-1990
+charge-recording	Charge recording; charger profile; Time to full	Charging sessions and estimates.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288
+rides	Rides; ride recording; Phone journal; Motion; Route	Recorded ride data.	noun	no	-	RidesScreen.java:1218, 1422
+gpx	GPX	File format name; keep it.	proper noun	yes	-	RidesScreen.java:1422
+csv	CSV	File format name; keep it.	proper noun	yes	-	RidesScreen.java:1422
+backup	Backup; Full backup; Selected data; Restore; Replace everything; Owner setup file · scooter access only	Backing up and restoring Volt's data.	noun; verb	no	privacy	BackupActivity.java:176-414
+simulated-scooter	Simulated scooter; simulation	Demo mode with no real scooter.	noun phrase	no	-	CompatibilityReport.java:246; IssueReport.java:18

@@ -1,0 +1,8 @@
+# Hard-coded English in src/com/jjricks/volt/DashboardLayout.java when this baseline was generated. It may only shrink.
+# Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
+multiword	"Dashboard has too many rows"
+multiword	"Duplicate dashboard cell ID"
+multiword	"Missing dashboard cell ID"
+multiword	"Missing dashboard cell"
+multiword	"Missing dashboard cell"
+multiword	"Missing dashboard cells"

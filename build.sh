@@ -129,11 +129,74 @@ navee_load_signing_identity() {
     export NAVEE_SIGNING_PASSWORD
 }
 
+# Localization (tools/l10n, l10n/README.md). The text catalog is generated from the
+# res/values/strings_<area>.xml files; until the first one exists these steps do nothing, so the
+# build output stays byte-identical.
+navee_l10n_active() {
+    local strings_file
+    for strings_file in "$APP_DIR"/res/values/strings_*.xml; do
+        [[ -f "$strings_file" ]] && return 0
+    done
+    return 1
+}
+
+# G3: the English aapt compiled into $1 must equal the generator's English, byte for byte.
+navee_l10n_roundtrip() {
+    navee_l10n_active || return 0
+    python3 "$APP_DIR/tools/l10n/roundtrip.py" --apk "$1" --expected "$BUILD_DIR/l10n/en.expected.tsv"
+}
+
+# Pseudo-locales (en-XA, ar-XB) are for local layout tests only; an APK that has them must not ship.
+navee_release_guard() {
+    local configs
+    configs="$("$BUILD_TOOLS/aapt" dump configurations "$1")" || {
+        echo "Release guard: cannot list the resource configurations of $1" >&2
+        return 1
+    }
+    if grep -Eq '(^|-)r?X[AB](-|$)|\+X[AB](\+|-|$)' <<<"$configs"; then
+        echo "Release guard: $1 has pseudo-locale configurations (en-XA or ar-XB); it must not be released." >&2
+        return 1
+    fi
+}
+
+# VOLT_PSEUDO_LOCALES=1 also packages the same classes.dex with aapt --pseudo-localize into
+# build/pseudo/volt-pseudo.apk for emulator layout checks. It never writes to dist/.
+navee_build_pseudo() {
+    local work="$BUILD_DIR/pseudo" out_dir="$APP_DIR/build/pseudo"
+    local pseudo_apk="$out_dir/volt-pseudo.apk"
+    rm -rf -- "$work"
+    mkdir -p "$work/generated" "$out_dir"
+    "$BUILD_TOOLS/aapt" package -f -m --pseudo-localize \
+        -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
+        -J "$work/generated" -F "$work/resources.apk"
+    # Pseudo-localization adds configurations, not resources, so the ids and classes.dex are unchanged.
+    cmp -s "$BUILD_DIR/generated/com/jjricks/volt/R.java" "$work/generated/com/jjricks/volt/R.java" || {
+        echo "Pseudo build: aapt assigned different resource ids; refusing to reuse classes.dex." >&2
+        return 1
+    }
+    navee_l10n_roundtrip "$work/resources.apk"
+    cp "$work/resources.apk" "$work/unsigned.apk"
+    zip -q -j "$work/unsigned.apk" "$BUILD_DIR"/dex/classes*.dex
+    "$BUILD_TOOLS/zipalign" -P 16 -f 4 "$work/unsigned.apk" "$work/aligned.apk"
+    "$BUILD_TOOLS/apksigner" sign --ks "$SIGNING_KEYSTORE" \
+        --ks-key-alias "$SIGNING_ALIAS" --ks-pass env:NAVEE_SIGNING_PASSWORD \
+        --key-pass env:NAVEE_SIGNING_PASSWORD \
+        --out "$pseudo_apk" "$work/aligned.apk"
+    "$BUILD_TOOLS/apksigner" verify "$pseudo_apk"
+    "$BUILD_TOOLS/zipalign" -c -P 16 4 "$pseudo_apk"
+    if navee_release_guard "$pseudo_apk" 2>/dev/null; then
+        echo "Pseudo build: aapt added no en-XA or ar-XB configurations." >&2
+        return 1
+    fi
+    echo "Built pseudo-locale APK (en-XA, ar-XB; never release it): $pseudo_apk"
+}
+
 navee_build_app() {
     navee_find_sdk
     navee_find_java
     mkdir -p "$BUILD_DIR" "$(dirname -- "$APK_PATH")"
-    rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies"
+    rm -rf -- "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex" "$BUILD_DIR/dependencies" \
+        "$BUILD_DIR/l10n" "$BUILD_DIR/pseudo"
     mkdir -p "$BUILD_DIR/generated" "$BUILD_DIR/classes" "$BUILD_DIR/dex"
 
     python3 - "$APP_DIR/setup/owner-capture-guard.sh" "$BUILD_DIR/generated" <<'PYGUARD'
@@ -157,9 +220,15 @@ PYGUARD
             -o"$BUILD_DIR/generated" "$source_file"
     done
 
+    if navee_l10n_active; then
+        python3 "$APP_DIR/tools/l10n/gen_catalog.py" --android --res "$APP_DIR/res" --lang "$APP_DIR/l10n/lang" \
+            --out "$BUILD_DIR/generated" --tsv "$BUILD_DIR/l10n/en.expected.tsv"
+    fi
+
     "$BUILD_TOOLS/aapt" package -f -m \
         -M "$APP_DIR/AndroidManifest.xml" -S "$APP_DIR/res" -A "$APP_DIR/licenses" -I "$ANDROID_JAR" \
         -J "$BUILD_DIR/generated" -F "$BUILD_DIR/resources.apk"
+    navee_l10n_roundtrip "$BUILD_DIR/resources.apk"
 
     # javac argument files support quoted paths, including spaces in source paths.
     : > "$BUILD_DIR/sources.txt"
@@ -189,9 +258,13 @@ PYGUARD
         --out "$APK_PATH" "$BUILD_DIR/aligned.apk"
     "$BUILD_TOOLS/apksigner" verify --verbose "$APK_PATH"
     "$BUILD_TOOLS/zipalign" -c -P 16 4 "$APK_PATH"
+    navee_release_guard "$APK_PATH"
     # v0.5 adds optional map tiles. Bluetooth/authentication and recording remain
     # local; INTERNET is used only by the route viewer's replaceable tile source.
     echo "Built and verified: $APK_PATH"
+    if [[ "${VOLT_PSEUDO_LOCALES:-}" == 1 ]]; then
+        navee_build_pseudo
+    fi
 }
 
 navee_load_config
