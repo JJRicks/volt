@@ -4,3 +4,8 @@
 src/com/jjricks/volt/DisplayUnits.java
 tests/l10n/characterization/DisplayUnitsTest.java
 tests/l10n/characterization/DisplayTextTest.java
+# The formatting core and G10, format legacy parity.
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/Formatted.java
+src/com/jjricks/volt/UnitCode.java
+tests/l10n/FmtLegacyTest.java

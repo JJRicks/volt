@@ -1,0 +1,8 @@
+# Ledger for b1-formatting: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/DisplayTemperature.java:32	[{"hole": "number(displayed, decimals)", "arg": 1, "type": "s"}, " ", {"hole": "unit(preference)", "arg": 2, "type": "s"}]	fmt_quantity	template	
+src/com/jjricks/volt/DisplayTemperature.java:41	[{"hole": "number(low, decimals)", "arg": 1, "type": "s"}, "–", {"hole": "number(high, decimals)", "arg": 2, "type": "s"}, " ", {"hole": "unit(preference)", "arg": 3, "type": "s"}]	fmt_range	template	
+src/com/jjricks/volt/DisplayTemperature.java:48	["%.", {"hole": "precision", "arg": 1, "type": "d"}, "f"]	-	stays-english	the decimal pattern moved with DisplayTemperature.number's formatting into Fmt.decimal; Java format syntax, not text
+src/com/jjricks/volt/RouteSpeedScale.java:74	["Speed"]	units_route_speed_title	exact	
+src/com/jjricks/volt/RouteSpeedScale.java:74	["Speed · ", {"hole": "source", "arg": 1, "type": "s"}]	units_route_speed_title_source	template	source is the id scooter or GPS, still English

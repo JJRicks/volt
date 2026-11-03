@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Unit symbols and unit-related display text (plan section 4.4, batch B1). UnitCode maps each internal
+  unit code to its symbol here; Fmt joins numbers and symbols with the templates in strings_fmt.xml, so
+  a language owns the order and spacing there. The English must stay exactly what the source says
+  today. By default every language keeps these SI and imperial symbols (owner default, 2026-11-02);
+  change one only where the glossary says that language writes it differently.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Speed in kilometres per hour, after a number: "12.5 km/h". -->
+    <string name="units_kmh" volt:screen="Readings, controls and charts" volt:purpose="unit symbol">km/h</string>
+    <!-- Speed in miles per hour, after a number: "7.8 mph". -->
+    <string name="units_mph" volt:screen="Readings, controls and charts" volt:purpose="unit symbol">mph</string>
+    <!-- Distance in kilometres, after a number. -->
+    <string name="units_km" volt:screen="Readings and charts" volt:purpose="unit symbol">km</string>
+    <!-- Distance in miles, after a number. -->
+    <string name="units_mi" volt:screen="Readings and charts" volt:purpose="unit symbol">mi</string>
+    <!-- Electric potential in volts, after a number. -->
+    <string name="units_volt" volt:screen="Readings and charts" volt:purpose="unit symbol">V</string>
+    <!-- Electric current in amperes, after a number. -->
+    <string name="units_amp" volt:screen="Readings and charts" volt:purpose="unit symbol">A</string>
+    <!-- Power in watts, after a number. -->
+    <string name="units_watt" volt:screen="Readings and charts" volt:purpose="unit symbol">W</string>
+    <!-- Energy in watt-hours, after a number. -->
+    <string name="units_watt_hour" volt:screen="Readings and charts" volt:purpose="unit symbol">Wh</string>
+    <!-- Battery charge in ampere-hours, after a number. -->
+    <string name="units_amp_hour" volt:screen="Readings and charts" volt:purpose="unit symbol">Ah</string>
+    <!-- Temperature in degrees Celsius, after a number. -->
+    <string name="units_celsius" volt:screen="Readings and charts" volt:purpose="unit symbol">°C</string>
+    <!-- Temperature in degrees Fahrenheit, after a number. -->
+    <string name="units_fahrenheit" volt:screen="Readings and charts" volt:purpose="unit symbol">°F</string>
+    <!-- Minutes, after a number: "45 min". An abbreviation, so translate it. -->
+    <string name="units_minute" volt:screen="Charge charts" volt:purpose="unit symbol">min</string>
+
+    <!-- Title of a ride map's colour legend when it colours the route by speed and no speed was measured. -->
+    <string name="units_route_speed_title" volt:screen="Rides › ride map legend" volt:purpose="legend title">Speed</string>
+    <!-- Title of a ride map's colour legend when it colours the route by speed. %1$s is the source of
+         the speeds, "scooter" or "GPS" (still English here). -->
+    <string name="units_route_speed_title_source" volt:screen="Rides › ride map legend" volt:purpose="legend title">Speed · %1$s</string>
+</resources>

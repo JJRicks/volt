@@ -43,6 +43,24 @@ public final class DisplayUnits {
         return result.toString();
     }
 
+    /** {@link #speed} as structured text: the same text, with the number and unit ranges. */
+    public static Formatted speedQuantity(double kmh, String units) {
+        return choose(Fmt.quantity(Fmt.decimalNumber(Locale.US, kmh, 1), Fmt.unit(UnitCode.KMH)),
+                Fmt.quantity(Fmt.decimalNumber(Locale.US, kmh / KM_PER_MILE, 1), Fmt.unit(UnitCode.MPH)), units);
+    }
+
+    /** {@link #speedRange} as structured text: the same text, with the number and unit ranges. */
+    public static Formatted speedRangeQuantity(int minimumKmh, int maximumKmh, String units) {
+        return choose(Fmt.range(Fmt.integerNumber(minimumKmh), Fmt.integerNumber(maximumKmh), Fmt.unit(UnitCode.KMH)),
+                Fmt.range(Fmt.decimalNumber(Locale.US, minimumKmh / KM_PER_MILE, 1),
+                        Fmt.decimalNumber(Locale.US, maximumKmh / KM_PER_MILE, 1), Fmt.unit(UnitCode.MPH)), units);
+    }
+
+    private static Formatted choose(Formatted metric, Formatted imperial, String units) {
+        if ("km".equals(units)) return metric;
+        return "dual".equals(units) ? Fmt.dual(imperial, metric) : imperial;
+    }
+
     private static String choose(String metric, String imperial, String units) {
         if ("km".equals(units)) return metric;
         return "dual".equals(units) ? imperial + " / " + metric : imperial;

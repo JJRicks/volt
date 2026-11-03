@@ -71,13 +71,20 @@ final class RouteSpeedScale {
     int color(int index) { return color(kmh(index)); }
 
     /** "Speed · scooter" / "Speed · GPS" / "Speed". */
-    String title() { return source == null ? "Speed" : "Speed · " + source; }
+    String title() { return source == null ? T.unitsRouteSpeedTitle() : T.unitsRouteSpeedTitleSource(source); }
 
     /** Display label for a canonical km/h value; units are "mi", "km" or "dual". */
     static String label(double kmh, String units) {
         String metric = String.format(Locale.US, "%.0f km/h", kmh),
                 imperial = String.format(Locale.US, "%.0f mph", kmh / RideStore.KM_PER_MILE);
         return "km".equals(units) ? metric : "dual".equals(units) ? imperial + " / " + metric : imperial;
+    }
+
+    /** {@link #label} as structured text: the same text, with the number and unit ranges. */
+    static Formatted labelQuantity(double kmh, String units) {
+        Formatted metric = Fmt.quantity(Fmt.decimalNumber(Locale.US, kmh, 0), Fmt.unit(UnitCode.KMH));
+        Formatted imperial = Fmt.quantity(Fmt.decimalNumber(Locale.US, kmh / RideStore.KM_PER_MILE, 0), Fmt.unit(UnitCode.MPH));
+        return "km".equals(units) ? metric : "dual".equals(units) ? Fmt.dual(imperial, metric) : imperial;
     }
 
     static int blend(int a, int b, double fraction) {
