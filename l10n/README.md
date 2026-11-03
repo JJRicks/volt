@@ -539,7 +539,9 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    all agree are accepted. Otherwise `judge-requests` lists the key for a separate Opus judge
    session, which picks or merges; a merged text must pass the checks again. A pick names the draft
    and copies its text, and counts only while that draft still has that text: a redrafted
-   candidate needs a new ruling and falls back until it has one.
+   candidate needs a new ruling and falls back until it has one. A `fallback` ruling is not bound
+   to the drafts it saw (it keeps English, so it can never ship a wrong text): after redrafting a
+   key the judge sent to English, delete that ruling or judge the key again, or it stays English.
 5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
    providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
    text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
