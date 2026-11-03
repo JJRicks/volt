@@ -11,7 +11,9 @@ Outputs, all into a build directory and never committed:
 
 The generator refuses any string that aapt would silently store differently from what it says
 (edge or repeated whitespace, raw line breaks, unknown escapes, stray quotes), so EnglishText and
-the compiled resources agree. tools/l10n/roundtrip.py checks that against real aapt output.
+the compiled resources agree. tools/l10n/roundtrip.py checks that against real aapt output. It also
+refuses text resources in any res/values-* folder that is not an approved non-English language
+folder from l10n/lang/*.tsv (values-en, values-night or values-v31 text would override the catalog).
 
 Msg contract (B0b writes Msg.java): static Msg of(int id, Object... args) and
 static Msg plural(int id, long quantity, Object... args). Rendering goes through
@@ -489,6 +491,61 @@ def load_languages(lang_dir):
     return english + others
 
 
+TEXT_ELEMENTS = ("string", "plurals", "string-array")
+
+
+def _text_resources(path):
+    """Names of the text resources (string, plurals, string-array, item type=string) one values XML defines."""
+    names, depth = [], [0]
+
+    def start(name, attributes):
+        depth[0] += 1
+        if depth[0] == 2 and (name in TEXT_ELEMENTS or (name == "item" and attributes.get("type") in TEXT_ELEMENTS)):
+            names.append("%s/%s" % (attributes.get("type", name), attributes.get("name", "?")))
+
+    def end(name):
+        depth[0] -= 1
+    parser = xml.parsers.expat.ParserCreate()
+    parser.StartElementHandler, parser.EndElementHandler = start, end
+    with open(path, "rb") as handle:
+        parser.ParseFile(handle)
+    return names
+
+
+def check_text_folders(res_dir, languages, display_root=None):
+    """Problems: text resources outside res/values/ that are not an approved, non-English language folder.
+
+    A qualified folder (values-en, values-en-rGB, values-night, values-v31, ...) would override the catalog
+    English on every phone it matches, while EnglishText, the tests and the round-trip still see the default.
+    Only language folders listed in l10n/lang/*.tsv may hold text, and never an English one.
+    """
+    allowed = set(l.folder for l in languages if l.tag != "en" and not l.tag.startswith("en-"))
+    problems = []
+    if not os.path.isdir(res_dir):
+        return problems
+    for folder in sorted(os.listdir(res_dir)):
+        if not folder.startswith("values-") or folder in allowed:
+            continue
+        directory = os.path.join(res_dir, folder)
+        if not os.path.isdir(directory):
+            continue
+        for filename in sorted(os.listdir(directory)):
+            if not filename.endswith(".xml"):
+                continue
+            path = os.path.join(directory, filename)
+            display = os.path.relpath(path, display_root) if display_root else path
+            try:
+                names = _text_resources(path)
+            except xml.parsers.expat.ExpatError as error:
+                problems.append("%s: not well-formed XML: %s" % (display, error))
+                continue
+            if names:
+                problems.append("%s: %s in %s would replace the catalog English wherever %s matches; only language "
+                                "folders from l10n/lang/*.tsv (not English) may hold text" % (
+                                    display, ", ".join(names[:3]) + (" ..." if len(names) > 3 else ""), folder, folder))
+    return problems
+
+
 # ---------------------------------------------------------------------------
 # Java output
 # ---------------------------------------------------------------------------
@@ -834,6 +891,9 @@ def read_expected_tsv(text):
 def generate(res_dir, lang_dir, out_dir, tsv_path, android, package=PACKAGE, display_root=None):
     entries, tag = load_catalog(os.path.join(res_dir, "values"), display_root)
     languages = load_languages(lang_dir)
+    folder_problems = check_text_folders(res_dir, languages, display_root)
+    if folder_problems:
+        raise CatalogError(folder_problems)
     written = []
     if out_dir:
         java_dir = os.path.join(out_dir, *package.split("."))
@@ -868,7 +928,9 @@ def main(argv=None):
     try:
         if args.check:
             entries, tag = load_catalog(os.path.join(args.res, "values"), root)
-            load_languages(args.lang)
+            folder_problems = check_text_folders(args.res, load_languages(args.lang), root)
+            if folder_problems:
+                raise CatalogError(folder_problems)
             written = []
         else:
             entries, tag, written = generate(args.res, args.lang, args.out, args.tsv, args.android, args.package, root)

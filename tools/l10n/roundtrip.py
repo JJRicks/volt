@@ -6,15 +6,19 @@ resources.arsc inside an APK (a lossless read of the binary table; `aapt dump --
 escapes some characters and not others), and compares them with en.expected.tsv from
 gen_catalog.py. It fails on any difference, which catches aapt's silent rewriting: stripped edge
 spaces, collapsed whitespace, dropped escapes and quote marks. It also fails on compiled strings the
-catalog does not know (a <string> outside strings*.xml) and on styled strings (markup spans).
+catalog does not know (a <string> outside strings*.xml), on styled strings (markup spans), and on
+text in any English or non-locale configuration (values-en, values-night, values-v31...), which
+would replace the catalog English on the phones it matches.
 
   roundtrip.py --apk build/resources.apk --expected build/l10n/en.expected.tsv
   roundtrip.py --dump aapt-dump.txt --expected en.expected.tsv     (aapt dump text instead)
   roundtrip.py --configs --apk some.apk                             (list configurations)
+  roundtrip.py --guard --apk dist/volt.apk                           (only the configuration check)
 """
 
 import argparse
 import os
+import re
 import struct
 import sys
 import zipfile
@@ -119,7 +123,7 @@ def read_string_pool(data, at):
 
 
 def describe_config(data, at):
-    """'default', or a short qualifier string such as 'en-rXA', 'ar-rXB' or 'v26'."""
+    """'default', or a short qualifier string such as 'en-rXA', 'ar-rXB', 'b+zh+Hans' or 'v26'."""
     size = _u32(data, at)
     body = bytes(data[at + 4:at + size])
     if not any(body):
@@ -138,10 +142,14 @@ def describe_config(data, at):
 
     language = letters(body[4:6], ord("a"))
     country = letters(body[6:8], ord("0"))
-    if language:
-        parts.append(language)
-    if country:
-        parts.append("r" + country)
+    script = bytes(body[32:36]).decode("ascii", "replace").rstrip("\0") if len(body) >= 36 else ""
+    if script:
+        parts.append("b+" + "+".join(x for x in (language, script, country) if x))
+    else:
+        if language:
+            parts.append(language)
+        if country:
+            parts.append("r" + country)
     density = _u16(data, at + 14) if size >= 16 else 0
     if density:
         parts.append({0xFFFE: "anydpi", 0xFFFF: "nodpi"}.get(density, "%ddpi" % density))
@@ -149,7 +157,7 @@ def describe_config(data, at):
     if sdk:
         parts.append("v%d" % sdk)
     rest = bytearray(body)
-    for i in (4, 5, 6, 7, 10, 11, 20, 21):  # language, country, density, sdk already described
+    for i in (4, 5, 6, 7, 10, 11, 20, 21, 32, 33, 34, 35):  # language, country, density, sdk, script
         if i < len(rest):
             rest[i] = 0
     if any(rest):
@@ -250,6 +258,33 @@ def read_apk(path):
 
 def configurations(entries):
     return sorted(set(e.config for e in entries))
+
+
+PSEUDO_CONFIGS = ("en-rXA", "ar-rXB")
+LOCALE_ONLY = re.compile(r"^(?:([a-z]{2,3})(?:-r[A-Z0-9]{2,3})?|b\+([a-z]{2,3})\+[A-Z][a-z]{3}(?:\+[A-Z0-9]{2,3})?)$")
+
+
+def qualified_text_problems(entries, allow_pseudo=False):
+    """Text compiled into a non-default configuration that is English or not just a language.
+
+    values-en, values-en-rGB, values-night or values-v31 text replaces the catalog English on every phone
+    that matches, while EnglishText, the pure tests and the default-configuration round-trip still see
+    the default. Only translations (a non-English locale) may add text configurations; the pseudo build
+    may add en-rXA and ar-rXB.
+    """
+    problems = []
+    for entry in entries:
+        if entry.type_name not in ("string", "plurals", "array") or entry.config == "default":
+            continue
+        if allow_pseudo and entry.config in PSEUDO_CONFIGS:
+            continue
+        m = LOCALE_ONLY.match(entry.config)
+        language = m and (m.group(1) or m.group(2))
+        if not language or language == "en":
+            problems.append("%s/%s has a value in configuration %s, which would replace the catalog English "
+                            "there; only non-English language folders may hold text" % (
+                                entry.type_name, entry.name, entry.config))
+    return problems
 
 
 def compiled_english(entries):
@@ -364,10 +399,13 @@ def main(argv=None):
     source.add_argument("--dump", help="output of aapt dump --values resources")
     parser.add_argument("--expected", help="en.expected.tsv from gen_catalog.py")
     parser.add_argument("--configs", action="store_true", help="list the configurations and exit")
+    parser.add_argument("--guard", action="store_true",
+                        help="only refuse text in English or non-locale configurations (the release guard)")
+    parser.add_argument("--allow-pseudo", action="store_true", help="accept en-rXA and ar-rXB text (pseudo build)")
     args = parser.parse_args(argv)
     if args.dump:
-        if args.configs:
-            parser.error("--configs needs --apk or --arsc")
+        if args.configs or args.guard:
+            parser.error("--configs and --guard need --apk or --arsc")
         compiled, problems = read_dump(l10nlib.read_text(args.dump)), []
     else:
         try:
@@ -379,6 +417,11 @@ def main(argv=None):
             print("\n".join(configurations(entries)))
             return 0
         compiled, problems = compiled_english(entries)
+        problems += qualified_text_problems(entries, args.allow_pseudo)
+        if args.guard:
+            for problem in problems:
+                print("roundtrip: " + problem, file=sys.stderr)
+            return 1 if problems else 0
     if not args.expected:
         parser.error("--expected is required")
     expected = gen_catalog.read_expected_tsv(l10nlib.read_text(args.expected))

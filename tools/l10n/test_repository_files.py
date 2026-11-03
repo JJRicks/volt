@@ -36,9 +36,14 @@ class RepositoryFilesTest(unittest.TestCase):
                 self.assertTrue(term and definition and pos and source, where)
                 self.assertIn(dnt, ("yes", "no"), where)
                 self.assertTrue(safety == "-" or safety in gen_catalog.SAFETY, where)
+                # One matchable term and one part of speech per row; aliases get rows of their own.
+                self.assertNotIn(";", term, where)
+                self.assertNotIn("(", term, where)
+                self.assertNotIn(";", pos, where)
             if name == "en.tsv":
                 self.assertGreaterEqual(len(rows), 50)
-                self.assertIn("not-affiliated", ids)
+                for term_id in ("not-affiliated", "owner-identity", "owner-key", "handlebar-pin", "charge-ceiling"):
+                    self.assertIn(term_id, ids)
 
     def test_ledgers_parse(self):
         directory = os.path.join(L10N, "ledger")
@@ -47,10 +52,10 @@ class RepositoryFilesTest(unittest.TestCase):
                 ledger_check.parse_ledger(l10nlib.read_text(os.path.join(directory, name)), name)
 
     def test_baselines_parse_and_name_real_files(self):
+        # Baselines only shrink as batches convert files, so this checks their shape, not their number.
         sources = set(hardcoded_lint.baseline_name(p) for p in hardcoded_lint.source_files(ROOT))
         directory = os.path.join(L10N, "baseline")
-        names = [n for n in os.listdir(directory) if n.endswith(".txt")]
-        self.assertGreater(len(names), 50)
+        names = [n for n in os.listdir(directory) if n.endswith(".txt")] if os.path.isdir(directory) else []
         for name in names:
             self.assertIn(name, sources)
             counter = hardcoded_lint.parse_baseline(l10nlib.read_text(os.path.join(directory, name)))

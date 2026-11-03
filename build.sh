@@ -141,12 +141,17 @@ navee_l10n_active() {
 }
 
 # G3: the English aapt compiled into $1 must equal the generator's English, byte for byte.
+# Extra arguments go to roundtrip.py (the pseudo build passes --allow-pseudo).
 navee_l10n_roundtrip() {
     navee_l10n_active || return 0
-    python3 "$APP_DIR/tools/l10n/roundtrip.py" --apk "$1" --expected "$BUILD_DIR/l10n/en.expected.tsv"
+    local apk="$1"
+    shift
+    python3 "$APP_DIR/tools/l10n/roundtrip.py" --apk "$apk" --expected "$BUILD_DIR/l10n/en.expected.tsv" ${1+"$@"}
 }
 
 # Pseudo-locales (en-XA, ar-XB) are for local layout tests only; an APK that has them must not ship.
+# Text in an English or non-locale configuration (values-en, values-night, values-v31) must not ship
+# either: it would replace the catalog English on the phones it matches.
 navee_release_guard() {
     local configs
     configs="$("$BUILD_TOOLS/aapt" dump configurations "$1")" || {
@@ -157,6 +162,10 @@ navee_release_guard() {
         echo "Release guard: $1 has pseudo-locale configurations (en-XA or ar-XB); it must not be released." >&2
         return 1
     fi
+    python3 "$APP_DIR/tools/l10n/roundtrip.py" --guard --apk "$1" || {
+        echo "Release guard: $1 has text that would override the English catalog; it must not be released." >&2
+        return 1
+    }
 }
 
 # VOLT_PSEUDO_LOCALES=1 also packages the same classes.dex with aapt --pseudo-localize into
@@ -174,7 +183,7 @@ navee_build_pseudo() {
         echo "Pseudo build: aapt assigned different resource ids; refusing to reuse classes.dex." >&2
         return 1
     }
-    navee_l10n_roundtrip "$work/resources.apk"
+    navee_l10n_roundtrip "$work/resources.apk" --allow-pseudo
     cp "$work/resources.apk" "$work/unsigned.apk"
     zip -q -j "$work/unsigned.apk" "$BUILD_DIR"/dex/classes*.dex
     "$BUILD_TOOLS/zipalign" -P 16 -f 4 "$work/unsigned.apk" "$work/aligned.apk"

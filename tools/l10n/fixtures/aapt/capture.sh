@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Recapture the round-trip fixtures from the local aapt (build-tools 36.1.0, the build's pinned version).
 # Writes resources.arsc (aapt's compiled table), dump.txt (aapt dump --values resources) and
-# resources-pseudo.arsc (the same package step with --pseudo-localize) here.
+# resources-pseudo.arsc (the same package step with --pseudo-localize) here, and
+# ../aapt-qualified/resources.arsc (text in values-en, values-v31, values-night and two translations).
 set -euo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
@@ -16,5 +17,10 @@ cp "$WORK/resources.arsc" "$HERE/resources.arsc"
 "$AAPT" package -f --pseudo-localize -M "$HERE/AndroidManifest.xml" -S "$HERE/res" -I "$ANDROID_JAR" -F "$WORK/pseudo.apk"
 (cd "$WORK" && mkdir pseudo && cd pseudo && unzip -q -o ../pseudo.apk resources.arsc)
 cp "$WORK/pseudo/resources.arsc" "$HERE/resources-pseudo.arsc"
+QUALIFIED="$HERE/../aapt-qualified"
+"$AAPT" package -f -M "$QUALIFIED/AndroidManifest.xml" -S "$QUALIFIED/res" -I "$ANDROID_JAR" -F "$WORK/qualified.apk"
+(cd "$WORK" && mkdir qualified && cd qualified && unzip -q -o ../qualified.apk resources.arsc)
+cp "$WORK/qualified/resources.arsc" "$QUALIFIED/resources.arsc"
+"$AAPT" dump --values resources "$WORK/qualified.apk" > "$QUALIFIED/dump.txt"
 "$AAPT" version > "$HERE/aapt-version.txt"
 echo "Captured $HERE/resources.arsc and dump.txt with $(cat "$HERE/aapt-version.txt")"

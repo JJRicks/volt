@@ -8,13 +8,17 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import expressions  # noqa: E402
 import extract  # noqa: E402
 import ledger_check  # noqa: E402
 from repo_fixture import TempRepo, java_class  # noqa: E402
 
 UI = "src/com/jjricks/volt/Ui.java"
+UNITS = "src/com/jjricks/volt/DisplayUnits.java"
 HEADER = "\t".join(ledger_check.HEADER) + "\n"
+APP_NAME = "<resources><string name=\"app_name\">Volt</string></resources>\n"
 
+# java_class puts the body's first line on line 4.
 BASE_UI = java_class("Ui", """    static String move(String title) { return "Move " + title + " to the top"; }
     static String cancel() { return "Cancel"; }
     static String rides(int n) { return n + (n == 1 ? " ride" : " rides"); }
@@ -36,7 +40,8 @@ ROWS = [
     UI + ':4\t["Move ", {"hole": "title", "arg": 1, "type": "s"}, " to the top"]\tdash_move_top\ttemplate\t',
     UI + ':5\t["Cancel"]\tcommon_cancel\texact\t',
     UI + ':6\t{"one": [{"hole": "n", "arg": 1, "type": "d", "quantity": true}, " ride"], '
-         '"other": [{"hole": "n", "arg": 1, "type": "d", "quantity": true}, " rides"]}\trides_count\tplural\t',
+         '"other": [{"hole": "n", "arg": 1, "type": "d", "quantity": true}, " rides"]}\trides_count\tplural\t'
+         'manual: ternary on n == 1',
 ]
 
 
@@ -66,6 +71,9 @@ class LedgerFormatTest(unittest.TestCase):
             (UI + ":3\t[{\"hole\": \"x\", \"arg\": 1, \"type\": \"q\"}]\tk\ttemplate\t", "type"),
             (UI + ":3\t[\"a\"]\tk\tplural\t", "plural pieces"),
             (UI + ":3\t[{\"char\": \"ab\"}]\tk\ttemplate\t", "char piece"),
+            (UI + ":3\t[{\"hole\": \"a\", \"arg\": 1, \"type\": \"s\"}, {\"hole\": \"b\", \"arg\": 1, \"type\": \"s\"}]"
+                  "\tk\ttemplate\t", "two holes claim arg 1"),
+            ("tests/UiTest.java:3\t[\"a\"]\tk\texact\t", "must be kind removed"),
         ]
         for row, message in cases:
             with self.assertRaises(ledger_check.LedgerError) as caught:
@@ -79,23 +87,36 @@ class LedgerFormatTest(unittest.TestCase):
         self.assertIsNone(ledger_check.render_simple("%1$d rides", [{"hole": "n", "arg": 1, "type": "d"}, " rides"]))
 
 
-class LedgerRepoTest(unittest.TestCase):
+class RepoCase(unittest.TestCase):
+    """A repository whose base commit holds the given src files and app_name only."""
+    FILES = {UI: BASE_UI}
+
     def setUp(self):
         self.repo = TempRepo()
-        self.repo.write(UI, BASE_UI)
-        self.repo.write("res/values/strings.xml", "<resources><string name=\"app_name\">Volt</string></resources>\n")
+        for path, text in self.FILES.items():
+            self.repo.write(path, text)
+        self.repo.write("res/values/strings.xml", APP_NAME)
         self.base = self.repo.commit("base")
-        self.repo.write(UI, HEAD_UI)
-        self.repo.write("res/values/strings_common.xml", STRINGS)
 
     def tearDown(self):
         self.repo.close()
 
-    def check(self, ledger_rows=None):
+    def check(self, ledger_rows=None, ledger="b2"):
         if ledger_rows is not None:
-            self.repo.write("l10n/ledger/b2.tsv", HEADER + "\n".join(ledger_rows) + "\n")
+            self.repo.write("l10n/ledger/%s.tsv" % ledger, HEADER + "\n".join(ledger_rows) + "\n")
         head = self.repo.commit("head")
         return ledger_check.run(self.base, head, cwd=self.repo.root)
+
+    def text(self, path):
+        with open(self.repo.path(path), encoding="utf-8") as handle:
+            return handle.read()
+
+
+class LedgerRepoTest(RepoCase):
+    def setUp(self):
+        super().setUp()
+        self.repo.write(UI, HEAD_UI)
+        self.repo.write("res/values/strings_common.xml", STRINGS)
 
     def test_missing_rows_fail(self):
         problems, _, summary = self.check()
@@ -107,28 +128,39 @@ class LedgerRepoTest(unittest.TestCase):
     def test_complete_ledger_passes(self):
         problems, warnings, summary = self.check(ROWS)
         self.assertEqual(problems, [])
-        self.assertEqual(warnings, [])
-        self.assertIn("3 ledger row(s)", summary)
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("manual row", warnings[0])
+        self.assertIn("3 new ledger row(s) (1 manual)", summary)
+        self.assertIn("3 ledger row(s) agree with the catalog", summary)
 
     def test_wrong_line_and_wrong_text_fail(self):
         rows = [ROWS[0].replace(":4\t", ":5\t"), ROWS[1].replace('["Cancel"]', '["Cancel."]'), ROWS[2]]
         problems, _, _ = self.check(rows)
         text = "\n".join(problems)
-        self.assertIn("line 5", text)
+        self.assertIn("do not match the expression on line 5", text)
         self.assertIn("exact row: common_cancel is 'Cancel' but the literal was 'Cancel.'", text)
 
     def test_template_mismatch_and_unknown_key_fail(self):
-        rows = [ROWS[0].replace('" to the top"', '" to top"'), ROWS[1].replace("common_cancel", "common_cancle"), ROWS[2]]
+        rows = [ROWS[0], ROWS[1].replace("common_cancel", "common_cancle"), ROWS[2]]
+        self.repo.write("res/values/strings_common.xml", STRINGS.replace("to the top", "to top"))
         problems, _, _ = self.check(rows)
         text = "\n".join(problems)
         self.assertIn("template dash_move_top renders", text)
         self.assertIn("common_cancle is not in res/values/strings*.xml", text)
 
-    def test_over_claiming_warns(self):
+    def test_claiming_a_literal_that_stayed_fails(self):
         rows = ROWS + [UI + ':7\t["Cancel"]\tcommon_cancel\texact\t']
-        problems, warnings, _ = self.check(rows)
-        self.assertEqual(problems, [])
-        self.assertTrue(any("1 more time" in w for w in warnings), warnings)
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any("line 7) left, but it is still there at head" in p for p in problems), problems)
+
+    def test_a_hand_written_row_needs_the_manual_note(self):
+        problems, _, _ = self.check(ROWS[:2] + [ROWS[2].replace("manual: ternary on n == 1", "")])
+        self.assertTrue(any("needs a note starting \"manual:\"" in p for p in problems), problems)
+
+    def test_the_key_must_be_used_at_head(self):
+        self.repo.write(UI, HEAD_UI.replace("T.commonCancel()", "\"\""))
+        problems, _, _ = self.check(ROWS)
+        self.assertTrue(any("key common_cancel is not used in src at head" in p for p in problems), problems)
 
     def test_extract_drafts_one_row_per_expression(self):
         head = self.repo.commit("head without ledger")
@@ -138,12 +170,214 @@ class LedgerRepoTest(unittest.TestCase):
         self.assertEqual(first[0], UI + ":4")
         self.assertEqual(json.loads(first[1]), ["Move ", {"hole": "title", "arg": 1, "type": "s"}, " to the top"])
         self.assertEqual(first[2:4], ["TODO", "TODO"])
-        # Once rows cover the literals, nothing is drafted.
         rows = ledger_check.parse_ledger(HEADER + "\n".join(ROWS) + "\n")
         self.assertEqual(extract.draft_rows(self.base, head, rows, cwd=self.repo.root), [])
 
 
-class ConcatenationTest(unittest.TestCase):
+class TemplateOrderTest(RepoCase):
+    """Finding 1: holes swapped in the ledger, or arguments swapped at the call site."""
+    FILES = {UNITS: java_class("DisplayUnits",
+                               '    static String dual(String metric, String imperial) { return imperial + " / " + metric; }')}
+    STRINGS = '<resources><string name="units_dual">%s</string></resources>\n'
+
+    def convert(self, call, template="%1$s / %2$s"):
+        self.repo.write(UNITS, java_class("DisplayUnits",
+                                          "    static String dual(String metric, String imperial) { return %s; }" % call))
+        self.repo.write("res/values/strings_units.xml", self.STRINGS % template)
+
+    def row(self, pieces):
+        return UNITS + ":4\t%s\tunits_dual\ttemplate\t" % json.dumps(pieces)
+
+    IMPERIAL_FIRST = [{"hole": "imperial", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]
+
+    def test_honest_template_passes(self):
+        self.convert("T.unitsDual(imperial, metric)")
+        problems, _, _ = self.check([self.row(self.IMPERIAL_FIRST)])
+        self.assertEqual(problems, [])
+
+    def test_reordered_placeholders_with_matching_call_pass(self):
+        self.convert("T.unitsDual(metric, imperial)", "%2$s / %1$s")
+        pieces = [{"hole": "imperial", "arg": 2, "type": "s"}, " / ", {"hole": "metric", "arg": 1, "type": "s"}]
+        problems, _, _ = self.check([self.row(pieces)])
+        self.assertEqual(problems, [])
+
+    def test_swapped_holes_in_the_ledger_fail(self):
+        self.convert("T.unitsDual(metric, imperial)")
+        pieces = [{"hole": "metric", "arg": 1, "type": "s"}, " / ", {"hole": "imperial", "arg": 2, "type": "s"}]
+        problems, _, _ = self.check([self.row(pieces)])
+        self.assertTrue(any("do not match the expression on line 4" in p and "imperial" in p for p in problems), problems)
+
+    def test_swapped_arguments_at_the_call_fail(self):
+        self.convert("T.unitsDual(metric, imperial)")
+        problems, _, _ = self.check([self.row(self.IMPERIAL_FIRST)])
+        self.assertTrue(any("no call of unitsDual passes the holes in placeholder order (imperial, metric)" in p
+                            for p in problems), problems)
+
+    def test_msg_of_id_counts_as_a_call(self):
+        self.convert("Msg.of(T.UNITS_DUAL, imperial, metric).render()")
+        problems, _, _ = self.check([self.row(self.IMPERIAL_FIRST)])
+        self.assertEqual(problems, [])
+
+    def test_as_names_a_transformed_argument(self):
+        self.convert("T.unitsDual(Fmt.text(imperial), metric)")
+        pieces = [{"hole": "imperial", "arg": 1, "type": "s", "as": "Fmt.text(imperial)"}, " / ",
+                  {"hole": "metric", "arg": 2, "type": "s"}]
+        problems, _, _ = self.check([self.row(pieces)])
+        self.assertEqual(problems, [])
+
+
+class RemovedAndMovedTest(RepoCase):
+    """Findings 2a, 8, 10 and 11: removed rows, swaps, stays-english moves and char literals."""
+    SCALE = "src/com/jjricks/volt/RouteSpeedScale.java"
+    FILES = {
+        SCALE: java_class("RouteSpeedScale", '''    static final String SCOOTER = "scooter", GPS = "GPS";
+    static String label(double v) { return String.format(java.util.Locale.US, "%.0f km/h", v); }
+    static String dead() { return "Unused"; }
+    static String backup() { return "Choose what to back up."; }
+    static String report(StringBuilder b, String k) { return b.append(' ').append(k).toString(); }
+    static String restore() { return "Choose what to restore."; }'''),
+    }
+
+    def edit(self, old, new):
+        self.repo.write(self.SCALE, self.text(self.SCALE).replace(old, new))
+
+    def test_removed_for_deleted_code_passes(self):
+        self.edit('    static String dead() { return "Unused"; }\n', "")
+        problems, _, _ = self.check([self.SCALE + ':6\t["Unused"]\t-\tremoved\tdead code'])
+        self.assertEqual(problems, [])
+
+    def test_removed_for_a_changed_literal_fails(self):
+        self.edit('"%.0f km/h"', '"%.0f kph"')
+        problems, warnings, summary = self.check([self.SCALE + ':5\t["%.0f km/h"]\t-\tremoved\tdead code'])
+        self.assertTrue(any("removed is for deleted code" in p and "%.0f kph" in p for p in problems), problems)
+
+    def test_moving_the_changed_literal_elsewhere_is_reported(self):
+        self.edit('    static String label(double v) { return String.format(java.util.Locale.US, "%.0f km/h", v); }\n', "")
+        self.edit('    static String restore()', '    static String label(double v) { return String.format('
+                  'java.util.Locale.US, "%.0f kph", v); }\n    static String restore()')
+        problems, warnings, summary = self.check([self.SCALE + ':5\t["%.0f km/h"]\t-\tremoved\tdead code'])
+        self.assertEqual(problems, [])
+        self.assertTrue(any('new English-looking literal "%.0f kph"' in w for w in warnings), warnings)
+        self.assertIn("1 new English-looking literal(s)", summary)
+
+    def test_swapping_two_literals_fails(self):
+        self.edit("Choose what to back up.", "PLACEHOLDER")
+        self.edit("Choose what to restore.", "Choose what to back up.")
+        self.edit("PLACEHOLDER", "Choose what to restore.")
+        problems, _, _ = self.check()
+        self.assertTrue(any('"Choose what to back up." left with no ledger row' in p for p in problems), problems)
+        self.assertTrue(any('"Choose what to restore." left with no ledger row' in p for p in problems), problems)
+
+    def test_changed_char_literal_fails(self):
+        self.edit("b.append(' ')", "b.append(':')")
+        problems, _, _ = self.check()
+        self.assertTrue(any('char " " left with no ledger row' in p for p in problems), problems)
+
+    def test_stays_english_move_to_another_class_passes(self):
+        self.edit('    static final String SCOOTER = "scooter", GPS = "GPS";\n', "")
+        self.repo.write("src/com/jjricks/volt/SpeedSources.java",
+                        java_class("SpeedSources", '    static final String SCOOTER = "scooter", GPS = "GPS";'))
+        rows = [self.SCALE + ':4\t["scooter"]\t-\tstays-english\tsource ids',
+                self.SCALE + ':4\t["GPS"]\t-\tstays-english\tsource ids']
+        problems, warnings, _ = self.check(rows)
+        self.assertEqual(problems, [])
+        self.assertFalse(any("new English-looking" in w for w in warnings), warnings)
+
+    def test_stays_english_needs_the_literal_to_arrive_elsewhere(self):
+        self.edit('    static final String SCOOTER = "scooter", GPS = "GPS";\n', "")
+        rows = [self.SCALE + ':4\t["scooter"]\t-\tstays-english\t', self.SCALE + ':4\t["GPS"]\t-\tstays-english\t']
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any('"GPS" left' in p and "not added anywhere else" in p for p in problems), problems)
+
+    def test_a_swap_is_not_a_stays_english_move(self):
+        self.edit('"scooter", GPS = "GPS"', '"GPS", GPS = "scooter"')
+        rows = [self.SCALE + ':4\t["scooter"]\t-\tstays-english\t', self.SCALE + ':4\t["GPS"]\t-\tstays-english\t']
+        problems, _, _ = self.check(rows)
+        self.assertTrue(any("not added anywhere else" in p for p in problems), problems)
+
+    def test_decoy_keeping_the_old_literal_fails(self):
+        self.repo.write("res/values/strings_backup.xml",
+                        '<resources><string name="backup_choose">Choose what to back up.</string></resources>\n')
+        self.edit('return "Choose what to back up.";', 'String unused = "Choose what to back up."; return T.backupChoose();')
+        problems, _, _ = self.check([self.SCALE + ':7\t["Choose what to back up."]\tbackup_choose\texact\t'])
+        self.assertTrue(any("still there at head" in p for p in problems), problems)
+
+
+class CatalogHistoryTest(RepoCase):
+    """Finding 14: a later pull request rewording an extracted string; ledgers are append-only."""
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write(UI, HEAD_UI)
+        self.repo.write("res/values/strings_common.xml", STRINGS)
+        self.repo.write("l10n/ledger/b2.tsv", HEADER + "\n".join(ROWS) + "\n")
+        self.base = self.repo.commit("batch merged")
+
+    def test_rewording_an_extracted_string_fails(self):
+        self.repo.write("res/values/strings_common.xml", STRINGS.replace(">Cancel<", ">Cancel now<"))
+        problems, _, _ = self.check()
+        self.assertTrue(any("exact row: common_cancel is 'Cancel now' but the literal was 'Cancel'" in p
+                            for p in problems), problems)
+        head = self.repo.git("rev-parse", "HEAD")
+        self.assertTrue(ledger_check.catalog_consistency(head, self.repo.root)[0])
+
+    def test_a_recorded_english_change_passes(self):
+        self.repo.write("res/values/strings_common.xml", STRINGS.replace(">Cancel<", ">Cancel now<"))
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\n"
+                                                    "common_cancel\t-\tCancel\tCancel now\towner approved in D1\n")
+        problems, _, _ = self.check()
+        self.assertEqual(problems, [])
+
+    def test_ledgers_are_append_only(self):
+        self.repo.write("l10n/ledger/b2.tsv", HEADER + "\n".join(ROWS[:2]) + "\n")
+        problems, _, _ = self.check()
+        self.assertTrue(any("append-only" in p for p in problems), problems)
+
+
+class DraftAndRelocateTest(RepoCase):
+    """Findings 24 and 25: drafts name the converted expression; rows follow a rebase."""
+    PICKER = "src/com/jjricks/volt/StatsWindowPicker.java"
+    FILES = {PICKER: java_class("StatsWindowPicker", '''    String a(String[] labels, int selected) { return "Chart time window: " + labels[selected] + ". Choose time window"; }
+    String b(String[] labels, int index) { return "Chart time window: " + labels[index]; }''')}
+
+    def convert_b(self):
+        self.repo.write(self.PICKER, self.text(self.PICKER).replace(
+            'return "Chart time window: " + labels[index];', "return T.statsWindowCurrent(labels[index]);"))
+        self.repo.write("res/values/strings_stats.xml",
+                        '<resources><string name="stats_window_current">Chart time window: %1$s</string></resources>\n')
+
+    def test_draft_names_the_converted_expression(self):
+        self.convert_b()
+        head = self.repo.commit("convert b")
+        lines = extract.draft_rows(self.base, head, [], cwd=self.repo.root)
+        self.assertEqual(len(lines), 1, lines)
+        location, pieces = lines[0].split("\t")[:2]
+        self.assertEqual(location, self.PICKER + ":5")
+        self.assertEqual(json.loads(pieces), ["Chart time window: ", {"hole": "labels[index]", "arg": 1, "type": "s"}])
+
+    def test_relocate_after_main_moved_lines(self):
+        self.repo.git("checkout", "-q", "-b", "batch")
+        self.convert_b()
+        row = self.PICKER + ':5\t["Chart time window: ", {"hole": "labels[index]", "arg": 1, "type": "s"}]' \
+                            '\tstats_window_current\ttemplate\t'
+        self.repo.write("l10n/ledger/b2.tsv", HEADER + row + "\n")
+        self.repo.commit("batch")
+        self.repo.git("checkout", "-q", "main")
+        self.repo.write(self.PICKER, "// moved\n// down\n" + self.text(self.PICKER))
+        main_tip = self.repo.commit("main moved lines")
+        self.repo.git("checkout", "-q", "batch")
+        self.repo.git("rebase", "-q", "main")
+        head = self.repo.git("rev-parse", "HEAD")
+        self.assertTrue(any("line 5" in p for p in ledger_check.run(main_tip, head, cwd=self.repo.root)[0]))
+        text, moved, problems = extract.relocate(self.text("l10n/ledger/b2.tsv"), main_tip, cwd=self.repo.root)
+        self.assertEqual((moved, problems), (1, []))
+        self.assertIn(self.PICKER + ":7\t", text)
+        self.repo.write("l10n/ledger/b2.tsv", text)
+        head = self.repo.commit("relocated")
+        self.assertEqual(ledger_check.run(main_tip, head, cwd=self.repo.root)[0], [])
+
+
+class ExpressionTest(unittest.TestCase):
     def pieces(self, expression):
         source = "class A { Object f() { return %s; } }" % expression
         return [p for _, value, p, _, _ in extract.literal_expressions(source)][0]
@@ -158,6 +392,22 @@ class ConcatenationTest(unittest.TestCase):
         self.assertEqual(self.pieces('label(x)[0] + ": " + values.get(k).trim()'),
                          [{"hole": "label(x)[0]", "arg": 1, "type": "s"}, ": ",
                           {"hole": "values.get(k).trim()", "arg": 2, "type": "s"}])
+
+    def test_source_key_ignores_spacing_and_outer_parentheses(self):
+        self.assertEqual(expressions.source_key("( i+1 )"), expressions.source_key("i + 1"))
+        self.assertNotEqual(expressions.source_key("(a) + (b)"), expressions.source_key("a + b"))
+
+    def test_file_diff_is_positional(self):
+        before = 'class A {\n  String a = "one";\n  String b = "two";\n}\n'
+        after = 'class A {\n  String a = "two";\n  String b = "one";\n}\n'
+        diff = expressions.FileDiff(before, after)
+        # Neighbours swapped in one changed region: at least one of them is gone, so G1 needs a row.
+        self.assertEqual(len(diff.gone), 1)
+        far = expressions.FileDiff('class A {\n  String a = "one";\n  int x;\n  String b = "two";\n}\n',
+                                   'class A {\n  String a = "two";\n  int x;\n  String b = "one";\n}\n')
+        self.assertEqual(sorted(far.base_token(k).value for k in far.gone), ["one", "two"])
+        unchanged = expressions.FileDiff(before, before.replace("  String", "    String"))
+        self.assertEqual(unchanged.gone, {})
 
     def test_scan_cli(self):
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "extract.py")

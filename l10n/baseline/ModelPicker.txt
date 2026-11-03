@@ -1,8 +1,9 @@
 # Hard-coded English in src/com/jjricks/volt/ModelPicker.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
-multiword	"No listed model matches “"
-multiword	"Not listed"
-multiword	"Not sure"
-multiword	"”. Clear the search to choose one, or Not sure."
+helper	"No listed model matches “"
+helper	"Not listed"
+helper	"Not sure"
+helper	"Use “"
+helper	"”. Clear the search to choose one, or Not sure."
 sink	"Search models"
 sink	"Search scooter models"

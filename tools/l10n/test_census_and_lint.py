@@ -18,34 +18,43 @@ NNBSP = chr(0x202F)
 
 
 class MaskTest(unittest.TestCase):
-    def test_masks_clock_duration_and_date_only(self):
+    def test_masks_clock_duration_and_date_values_only(self):
         cases = {
-            "Updated 7:45" + NNBSP + "PM": "Updated <time:h:mm a>",
-            "Done by 19:05": "Done by <time:h:mm>",
-            "Ride 0:12:34": "Ride <time:h:mm:ss>",
-            "Mar 5": "<date:MMM d>",
-            "Mon, Mar 5": "<date:EEE, MMM d>",
-            "Mar 5, 2026 · 12 km": "<date:MMM d, yyyy> · 12 km",
-            "05 MAR": "<date:dd MMM>",
-            "2026-03-05T12:00:01.123Z": "<date:iso>",
+            "Updated 7:45" + NNBSP + "PM": "Updated <n>:<n>" + NNBSP + "<a:upper>",
+            "Done by 19:05": "Done by <n>:<n>",
+            "Ride 0:12:34": "Ride <n>:<n>:<n>",
+            "Mar 5": "<MMM> <n>",
+            "Mon, Mar 5": "<EEE>, <MMM> <n>",
+            "Mar 5, 2026 · 12 km": "<MMM> <n>, <n> · 12 km",
+            "October 5": "<MMMM> <n>",
+            "05 MAR": "<n> <MMM:upper>",
+            "2026-03-05T12:00:01.123Z": "<n>-<n>-<n>T<n>:<n>:<n>Z",
             "1h 05m left": "<n>h <n>m left",
-            "12 min": "<n> min",
             "3 minutes ago": "<n> minute(s) ago",
-            "1 minute ago": "<n> minute(s) ago",
-            "1 y 2 mo 3 d 4 h 5 min 6 s": "<n> y <n> mo <n> d <n> h <n> min <n> s",
+            "1 y 2 mo 3 d 4 h 5 s": "<n> y <n> mo(s) <n> d <n> h <n> s",
             "Battery 80%": "Battery 80%",
             "18.5 km/h": "18.5 km/h",
             "12 mph": "12 mph",
             "3 scooters": "3 scooters",
             "Lock scooter": "Lock scooter",
+            "Deceleration 3": "Deceleration 3",
+            "Mark 2": "Mark 2",
         }
         for value, masked in cases.items():
             self.assertEqual(census_diff.mask(value), masked, value)
 
-    def test_wording_around_masked_values_still_counts(self):
-        self.assertNotEqual(census_diff.mask("12 min left"), census_diff.mask("12 minutes left"))
-        self.assertNotEqual(census_diff.mask("Mar 5"), census_diff.mask("05 MAR"))
-        self.assertEqual(census_diff.mask("9:59 AM"), census_diff.mask("10:01 PM"))
+    def test_values_may_change(self):
+        for a, b in (("Updated 9:59 AM", "Updated 10:01 PM"), ("Oct 31", "Nov 1"), ("12 min left", "13 min left"),
+                     ("1 minute ago", "2 minutes ago"), ("Mon, Mar 5", "Tue, Mar 6"), ("2026-03-05", "2026-11-02")):
+            self.assertTrue(census_diff.same_after_masking(a, b), (a, b))
+
+    def test_wording_and_form_changes_still_count(self):
+        """Findings 5 and 18: unit words, plural forms, month forms and words that start like months."""
+        for a, b in (("1 seconds left", "1 second left"), ("1 minutes ago", "1 minute ago"),
+                     ("Charged in 2 hrs", "Charged in 2 h"), ("5 secs", "5 s"), ("12 min left", "12 minutes left"),
+                     ("Oct 5", "October 5"), ("Mar 5", "05 MAR"), ("Mark 2", "Marker 2"), ("Deceleration 3", "Decel 3"),
+                     ("7:45 PM", "7:45 pm"), ("Mar 5", "Mar 5, 2026")):
+            self.assertFalse(census_diff.same_after_masking(a, b), (a, b))
 
 
 class CensusTest(unittest.TestCase):
@@ -78,6 +87,12 @@ class CensusTest(unittest.TestCase):
         text, bounds = census_diff.compare(self.records(self.BASE), self.records(head))
         self.assertEqual(text, [])
         self.assertEqual(len(bounds), 2)
+
+    def test_a_preserved_plural_bug_cannot_be_fixed_unseen(self):
+        base = [("text", "tag=eta", "0,0,10,10", "1 seconds left"), ("text", "tag=decel", "0,20,10,10", "Deceleration 3")]
+        head = [("text", "tag=eta", "0,0,10,10", "1 second left"), ("text", "tag=decel", "0,20,10,10", "Decel 3")]
+        text, _ = census_diff.compare(self.records(base), self.records(head))
+        self.assertEqual(len(text), 4, text)
 
     def test_text_changes_fail(self):
         head = list(self.BASE)
@@ -117,12 +132,18 @@ class LintTest(unittest.TestCase):
         canvas.drawText("S", x, y, paint);
         prefs.edit().putString("units_mode", "km").apply();
         Log.w(TAG, "Something went wrong here");
-    }''')
+        ui.secondaryButton("Skip", () -> host.toast("Saved"));
+        ui.segmentedField("Units", "units_mode", new String[] {"Metric", "Imperial"}, values, "km");
+        new SegmentedSelector(ui, "Window", labels, this::pick);
+    }
+    private TextView button(String label, Runnable action) { return null; }''')
 
     def test_findings(self):
         found = [(f.rule, f.value) for f in hardcoded_lint.findings(self.SOURCE)]
-        self.assertEqual(found, [("sink", "Cancel"), ("sink", "Lock scooter"), ("sink", "x"), ("sink", "%d km"),
-                                 ("sink", "OK"), ("sink", "Stop"), ("sink", "S"), ("multiword", "Something went wrong here")])
+        self.assertEqual(found, [("sink", "Cancel"), ("sink", "Lock scooter"), ("sink", "%d km"),
+                                 ("sink", "OK"), ("sink", "Stop"), ("sink", "S"), ("multiword", "Something went wrong here"),
+                                 ("helper", "Skip"), ("sink", "Saved"), ("helper", "Units"), ("helper", "Metric"),
+                                 ("helper", "Imperial"), ("helper", "Window")])
 
     def test_baseline_render_and_parse(self):
         found = hardcoded_lint.findings(self.SOURCE)
@@ -140,6 +161,7 @@ class LintRepoTest(unittest.TestCase):
         self.repo = TempRepo()
         self.repo.write(self.PATH, java_class("Screen", '    void a(TextView v) { v.setText("Cancel"); v.setHint("Search settings"); }'))
         self.repo.write("src/com/jjricks/volt/Clean.java", java_class("Clean", '    String key = "units_mode";'))
+        self.repo.write(hardcoded_lint.TOOL_PATH, "# stands in for the tool\n")
         hardcoded_lint.write_baselines(self.repo.root, hardcoded_lint.scan(self.repo.root))
         self.base = self.repo.commit("base with baselines")
 
@@ -174,6 +196,34 @@ class LintRepoTest(unittest.TestCase):
         self.repo.commit("grow")
         problems, _ = self.check()
         self.assertTrue(any("Screen.txt grew by 1 entry" in p for p in problems), problems)
+
+    def test_helper_labels_are_findings(self):
+        """Findings 9 and 23: single-word labels passed to Volt's own helpers."""
+        self.repo.write("src/com/jjricks/volt/Clean.java", java_class("Clean", '    void a(Ui ui) { ui.button("Done", null); }'))
+        problems, _ = self.check()
+        self.assertTrue(any('new hard-coded English (helper) "Done"' in p for p in problems), problems)
+
+    def test_growth_after_every_baseline_was_deleted_fails(self):
+        """Finding 20: a base with the tool but no baselines (every file converted) is not a first run."""
+        self.repo.git("rm", "-q", "-r", "l10n/baseline")
+        self.repo.write(self.PATH, java_class("Screen", '    void a(TextView v) { v.setText(T.commonCancel()); }'))
+        converted = self.repo.commit("every file converted")
+        self.repo.write(self.PATH, java_class("Screen", '    void a(TextView v) { v.setTooltipText("Tap here to close"); }'))
+        hardcoded_lint.write_baselines(self.repo.root, hardcoded_lint.scan(self.repo.root))
+        self.repo.commit("new English with a new baseline")
+        problems, notes = hardcoded_lint.check(self.repo.root, hardcoded_lint.scan(self.repo.root), converted, None,
+                                               self.repo.root)
+        self.assertTrue(any("Screen.txt grew by 1 entry" in p for p in problems), (problems, notes))
+
+    def test_first_run_when_the_base_has_no_tool(self):
+        self.repo.git("rm", "-q", hardcoded_lint.TOOL_PATH)
+        self.repo.commit("before B0a")
+        self.repo.git("checkout", "-q", "-b", "b0a", "HEAD")
+        before = self.repo.git("rev-parse", "HEAD")
+        self.repo.write(hardcoded_lint.TOOL_PATH, "# the tool arrives\n")
+        self.repo.commit("b0a")
+        _, notes = hardcoded_lint.check(self.repo.root, hardcoded_lint.scan(self.repo.root), before, None, self.repo.root)
+        self.assertTrue(any("first run" in n for n in notes), notes)
 
     def test_orphan_baseline_fails(self):
         self.repo.remove(self.PATH)

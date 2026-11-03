@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default English for the qualified-folder fixture (tools/l10n/test_roundtrip.py). -->
+<resources>
+    <string name="app_name">Volt</string>
+    <string name="units_dual">%1$s / %2$s</string>
+</resources>

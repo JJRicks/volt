@@ -17,6 +17,14 @@ import roundtrip  # noqa: E402
 AAPT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "aapt")
 
 
+QUALIFIED = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "aapt-qualified")
+
+
+def qualified_bytes(name):
+    with open(os.path.join(QUALIFIED, name), "rb") as handle:
+        return handle.read()
+
+
 def fixture_bytes(name):
     with open(os.path.join(AAPT, name), "rb") as handle:
         return handle.read()
@@ -147,6 +155,40 @@ class FixtureTest(unittest.TestCase):
             self.assertEqual(out.getvalue().split(), ["default"])
         finally:
             shutil.rmtree(work, ignore_errors=True)
+
+    def test_text_in_english_or_qualified_configurations_fails(self):
+        """Finding 4, on a table real aapt compiled from values-en, values-v31, values-night, values-es and
+        values-b+zh+Hans (fixtures/aapt-qualified)."""
+        entries = roundtrip.read_arsc(qualified_bytes("resources.arsc"))
+        self.assertEqual(roundtrip.configurations(entries), ["b+zh+Hans", "default", "en", "es", "v31", "v8-+other"])
+        problems = roundtrip.qualified_text_problems(entries)
+        self.assertEqual(sorted(p.split(" has a value in configuration ")[1].split(",")[0] for p in problems),
+                         ["en", "en", "v31", "v8-+other"])
+        self.assertEqual(roundtrip.qualified_text_problems(self.entries), [])
+        pseudo = roundtrip.read_arsc(fixture_bytes("resources-pseudo.arsc"))
+        self.assertTrue(roundtrip.qualified_text_problems(pseudo))
+        self.assertEqual(roundtrip.qualified_text_problems(pseudo, allow_pseudo=True), [])
+        work = tempfile.mkdtemp(prefix="l10n-roundtrip-")
+        try:
+            arsc = os.path.join(work, "resources.arsc")
+            with open(arsc, "wb") as handle:
+                handle.write(qualified_bytes("resources.arsc"))
+            tsv = os.path.join(work, "en.expected.tsv")
+            catalog, _ = gen_catalog.read_strings_file(os.path.join(QUALIFIED, "res", "values", "strings.xml"))
+            l10nlib.write_text(tsv, gen_catalog.expected_tsv(catalog, None))
+            err = io.StringIO()
+            with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(err):
+                # The default English matches; the values-en override still fails the round-trip.
+                self.assertEqual(roundtrip.main(["--arsc", arsc, "--expected", tsv]), 1)
+                self.assertEqual(roundtrip.main(["--guard", "--arsc", arsc]), 1)
+            self.assertIn("string/units_dual has a value in configuration en,", err.getvalue())
+        finally:
+            shutil.rmtree(work, ignore_errors=True)
+
+    def test_dump_agrees_on_the_qualified_configurations(self):
+        dump = l10nlib.read_text(os.path.join(QUALIFIED, "dump.txt"))
+        for config in ("config en:", "config v31:", "config night-v8:", "config es:", "config b+zh+Hans:"):
+            self.assertIn(config, dump)
 
     def test_not_a_table(self):
         with self.assertRaises(roundtrip.ArscError):

@@ -1,13 +1,16 @@
 #!/usr/bin/env python3
-"""G5, characterization tests first: tests a PR adds under tests/l10n/ in its first commit stay
-untouched by every later commit.
+"""G5, characterization tests first: the tests that pin a batch's English output are committed
+before the change, pass on the base, and stay untouched afterwards.
 
-For a template or pure-output change, the PR's first commit adds characterization tests under
-tests/l10n/ that pass on the base. This script finds the first commit on head's first-parent line
-after the merge base and checks:
-  1. every tests/l10n/ file that commit adds or changes is identical at head (later commits left it alone);
-  2. that commit changes nothing under src/ or res/, so the tests ran against base behaviour.
-A PR whose first commit has no tests/l10n/ files passes with a note, unless --require is given.
+Characterization tests live under tests/l10n/characterization/ (other tests/l10n files, such as a
+batch's .sources list or B0b's catalog tests, are not characterization tests). For the commits on
+head's first-parent line after the merge base:
+  1. every characterization file the range adds or changes must be added or changed by the first
+     commit, and by no later commit;
+  2. that first commit changes nothing under src/ or res/, so the tests ran against base behaviour;
+  3. characterization is required when the range adds a template or plural ledger row (or with
+     --require): such a batch fails when its first commit holds no characterization tests.
+A range with no characterization files and no template or plural rows passes with a note.
 
   char_first.py --base origin/main [--head <sha>] [--require] [--print-first]
 
@@ -20,8 +23,9 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import l10nlib  # noqa: E402
+import ledger_check  # noqa: E402
 
-CHAR_DIR = "tests/l10n/"
+CHAR_DIR = "tests/l10n/characterization/"
 
 
 def run(base, head, require=False, cwd=None):
@@ -30,13 +34,25 @@ def run(base, head, require=False, cwd=None):
     commits = l10nlib.first_parent_commits(merge, head, cwd)
     if not commits:
         return [], ["no commits after the merge base"], None, []
+    rows, row_problems = ledger_check.range_rows(merge, head, None, cwd)
+    templated = [r for r in rows if r.kind in ("template", "plural")]
+    if templated:
+        require = True
+    in_range = l10nlib.changed_files(merge, head, [CHAR_DIR], cwd)
     first = commits[0]
     changed = l10nlib.changed_files(first + "^", first, ["."], cwd)
     characterization = [p for p in changed if p.startswith(CHAR_DIR)]
-    problems, notes = [], []
-    if not characterization:
-        message = "the first commit %s adds no characterization tests under %s" % (l10nlib.short(first), CHAR_DIR)
+    problems, notes = list(row_problems), []
+    if not in_range:
+        message = "no characterization tests under %s%s" % (
+            CHAR_DIR, " but the batch adds %d template or plural ledger row(s)" % len(templated) if templated else "")
         (problems if require else notes).append(message)
+        return problems, notes, first, []
+    for path in in_range:
+        if path not in characterization:
+            problems.append("%s is a characterization test but the first commit %s does not add it; "
+                            "characterization tests come first" % (path, l10nlib.short(first)))
+    if not characterization:
         return problems, notes, first, []
     behaviour = [p for p in changed if p.startswith(("src/", "res/"))]
     for path in behaviour:

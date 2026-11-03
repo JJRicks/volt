@@ -70,7 +70,10 @@ gate() { # label log command...
     fi
 }
 
-echo "prove-english: base $(git rev-parse --short=12 "$BASE"), merge base $(git rev-parse --short=12 "$MERGE"), head $(git rev-parse --short=12 HEAD)$DIRTY" >&2
+KIND="$(python3 tools/l10n/ci_gates.py --base "$BASE" --print-mode 2>/dev/null || echo unknown)"
+echo "prove-english: base $(git rev-parse --short=12 "$BASE"), merge base $(git rev-parse --short=12 "$MERGE"), head $(git rev-parse --short=12 HEAD), $KIND change$DIRTY" >&2
+REPORT_ONLY=()
+[[ "$KIND" == english-change ]] && REPORT_ONLY=(--report)
 
 # Tools.
 log="$WORK/unittest.log"
@@ -93,7 +96,7 @@ if [[ -f tests/l10n/LedgerTest.java ]]; then
 else
     record "G2 template equivalence" "n/a" "tests/l10n/LedgerTest arrives with the catalog (B0b)"
 fi
-gate "G4 frozen test literals" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE"
+gate "G4 frozen test statements" "$WORK/g4.log" python3 tools/l10n/frozen_literals.py --base "$BASE" ${REPORT_ONLY[@]+"${REPORT_ONLY[@]}"}
 gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
 if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
@@ -101,10 +104,19 @@ if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then
         WORKTREES+=("$tree")
         log="$WORK/g5-first.log"
-        if (cd "$tree" && NAVEE_BUILD_DIR="$WORK/first-build" bash tests/run.sh) >"$log" 2>&1; then
-            record "G5 tests pass at the first commit" PASS "tests/run.sh at $(git rev-parse --short=12 "$FIRST") (base code plus the new tests)"
+        # The characterization tests must be compiled by tests/run.sh (a tests/l10n/*.sources list, B0b on).
+        unwired=()
+        while IFS= read -r test_file; do
+            [[ -n "$test_file" ]] || continue
+            grep -qsF "$test_file" "$tree"/tests/l10n/*.sources || unwired+=("$test_file")
+        done < <(git -C "$tree" diff --name-only "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
+        if (( ${#unwired[@]} )); then
+            record "G5 tests pass at the first commit" FAIL "not in any tests/l10n/*.sources, so tests/run.sh never runs them: ${unwired[*]}"
+        elif (cd "$tree" && NAVEE_BUILD_DIR="$WORK/first-build" bash tests/run.sh && \
+                { [[ ! -f tests/l10n/golden.sh ]] || NAVEE_BUILD_DIR="$WORK/first-build" bash tests/l10n/golden.sh; }) >"$log" 2>&1; then
+            record "G5 tests pass at the first commit" PASS "tests/run.sh and tests/l10n/golden.sh at $(git rev-parse --short=12 "$FIRST") (base code plus the new tests)"
         else
-            record "G5 tests pass at the first commit" FAIL "tests/run.sh at $(git rev-parse --short=12 "$FIRST")"; show_failure G5 "$log"
+            record "G5 tests pass at the first commit" FAIL "tests/run.sh or golden.sh at $(git rev-parse --short=12 "$FIRST")"; show_failure G5 "$log"
         fi
     fi
 fi
@@ -141,12 +153,26 @@ gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.
 log="$WORK/g9.log"
 if bash tests/l10n/golden.sh >"$log" 2>&1; then
     if git cat-file -e "$MERGE:tests/l10n/golden" 2>/dev/null && ! git diff --quiet "$MERGE" HEAD -- tests/l10n/golden; then
-        record "G9 reports stay English (goldens)" FAIL "tests/l10n/golden changed since the merge base"
+        if [[ "$KIND" == english-change ]]; then
+            record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base (owner-approved change)"
+        else
+            record "G9 reports stay English (goldens)" FAIL "tests/l10n/golden changed since the merge base"
+        fi
     else
         record "G9 reports stay English (goldens)" PASS "$(tail -1 "$log" | sed 's/^golden: PASS: //')"
     fi
 else
     record "G9 reports stay English (goldens)" FAIL "$(tail -1 "$log")"; show_failure G9 "$log"
+fi
+tooling_files=($(git diff --name-only "$MERGE" HEAD -- tools/l10n .github/workflows tests/l10n/golden.sh))
+tooling="${#tooling_files[@]} file(s)"
+(( ${#tooling_files[@]} )) && tooling+=", e.g. ${tooling_files[0]}"
+if (( ${#tooling_files[@]} == 0 )); then
+    record "Proof tooling unchanged" PASS "tools/l10n, .github/workflows and tests/l10n/golden.sh as at the merge base"
+elif [[ "$KIND" == ordinary ]]; then
+    record "Proof tooling unchanged" "n/a" "a tooling change, not a batch: $tooling"
+else
+    record "Proof tooling unchanged" FAIL "changed in a $KIND pull request: $tooling"
 fi
 if [[ -f tests/l10n/FmtLegacyTest.java ]]; then
     record "G10 format legacy parity" "in G6" "tests/l10n/FmtLegacyTest runs inside tests/run.sh"
@@ -206,7 +232,7 @@ fi
 {
     echo
     echo "<!-- l10n-english-proof -->"
-    echo "**English proof** · \`tools/l10n/prove-english.sh $BASE_ARG\` · merge base \`$(git rev-parse --short=12 "$MERGE")\` · head \`$(git rev-parse --short=12 HEAD)\`$DIRTY"
+    echo "**English proof** · \`tools/l10n/prove-english.sh $BASE_ARG\` · $KIND change · merge base \`$(git rev-parse --short=12 "$MERGE")\` · head \`$(git rev-parse --short=12 HEAD)\`$DIRTY"
     echo
     echo "| Gate | Result | Detail |"
     echo "|---|---|---|"

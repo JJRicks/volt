@@ -2,8 +2,8 @@
 
 Volt moves its English UI text out of Java into Android string resources in small batches, then
 translates it. Every batch must prove that **English did not change**. This folder holds the
-committed data; `tools/l10n/` holds the tools; `tests/l10n/` holds the report goldens and,
-from B0b on, the catalog tests.
+committed data; `tools/l10n/` holds the tools; `tests/l10n/` holds the report goldens,
+characterization tests and, from B0b on, the catalog tests.
 
 The batch list, the architecture and the reasons behind each rule live in the localization plan of
 record, which is kept with the owner's working notes rather than in this repository. This file is
@@ -15,11 +15,13 @@ the working manual.
 |---|---|
 | `res/values/strings_<area>.xml` | English source text with `volt:*` metadata, one file per batch area (from B0b) |
 | `l10n/lang/<tag>.tsv` | One language's settings; `en.tsv` is the source language |
-| `l10n/glossary/en.tsv` | English terms: id, term, definition, part of speech, do-not-translate, safety, source |
-| `l10n/ledger/<batch>.tsv` | G1: one row per Java expression whose literals left `src/` in that batch |
+| `l10n/glossary/en.tsv` | English terms, one per row: id, term, definition, part of speech, do-not-translate, safety, source |
+| `l10n/ledger/<batch>.tsv` | G1: one row per Java expression whose literals left `src/` in that batch (append-only) |
+| `l10n/english-changes.tsv` | Owner-approved changes to already-extracted English (plan part D); absent until the first one |
 | `l10n/baseline/<File>.txt` | G8: the hard-coded English each unconverted source file still has |
+| `tests/l10n/characterization/` | G5: tests that pin a batch's English output, committed first |
 | `tests/l10n/GoldenReports.java`, `golden.sh`, `golden/` | G9: report outputs that must stay byte-identical |
-| `tools/l10n/` | Generator, round-trip, gates and their unit tests |
+| `tools/l10n/` | Generator, round-trip, gates, the CI driver (`ci_gates.py`) and their unit tests |
 
 Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `AppLanguages.java`,
 `en.expected.tsv`) go to the build output only and are never committed.
@@ -65,6 +67,11 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   - markup other than `<xliff:g>` (styled spans are not supported).
   `\uXXXX` escapes are kept as written, including spaces. `tools/l10n/fixtures/aapt/` shows every
   case with what aapt 36.1.0 actually stored.
+- **Only `res/values/` holds English.** Text (`string`, `plurals`, `string-array`) in any other
+  `res/values-*` folder must be a non-English language folder listed in `l10n/lang/*.tsv`.
+  `values-en`, `values-en-rGB`, `values-night` or `values-v31` text would replace the catalog
+  English on the phones that match, while `EnglishText` and the tests still see the default, so
+  `gen_catalog.py`, the round-trip and the release guard all refuse it.
 - `l10n_tag` (`<string name="l10n_tag">en</string>`) records which language folder resolved. It has
   no accessor; `AndroidText.language()` reads it and treats anything that is not exactly a shipped
   tag as English.
@@ -87,17 +94,20 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 
 `build.sh` runs the generator before aapt and the round-trip after it, but only once a
 `res/values/strings_*.xml` file exists; until then both steps are skipped and the build is
-byte-identical. B0b adds the generator run to `tests/run.sh`.
+byte-identical. Because `M.java` needs `Msg`, the first `strings_*.xml` arrives together with
+`Msg.java` in B0b. B0b also adds the generator run to `tests/run.sh`.
 
 ## Doing a batch
 
 1. **Branch** from `main`. If the batch changes a template or the output of a pure class, make the
-   **first commit** add characterization tests under `tests/l10n/` that pass on the base, and never
-   touch them again (G5). That commit changes nothing under `src/` or `res/`.
+   **first commit** add characterization tests under `tests/l10n/characterization/` (plus the
+   `tests/l10n/<batch>.sources` line that makes `tests/run.sh` compile them) that pass on the base,
+   and never touch them again (G5). That commit changes nothing under `src/` or `res/`. A batch with
+   any `template` or `plural` ledger row must have one.
 2. **Move the text.** Add the keys to the batch's `res/values/strings_<area>.xml`, and replace the
-   Java literals with `T` (rendered now) or `M` (rendered later) calls. Keep every existing test's
-   English literal exactly as it is (G4). Known English bugs stay byte for byte; tag those plurals
-   `volt:english-fix="pending"`.
+   Java literals with `T` (rendered now) or `M` (rendered later) calls. Keep every existing test
+   statement that holds English exactly as it is (G4). Known English bugs stay byte for byte; tag
+   those plurals `volt:english-fix="pending"`.
 3. **Record the ledger.** Commit or keep the changes in the working tree, then run
 
    ```sh
@@ -106,9 +116,11 @@ byte-identical. B0b adds the generator run to `tests/run.sh`.
 
    It appends one draft row per original expression to `l10n/ledger/b2-ui.tsv`. Replace every
    `TODO`: set `key` and `kind`, and fix each hole's `arg` (placeholder index) and `type` (`s`, `d`
-   or `f`). The draft follows `+` chains only: ternaries, `String.format`, `StringBuilder.append`
-   chains and numeric sums such as `a + b + "x"` must be written by hand. `extract.py scan <files>`
-   lists a file's literals, which helps plan a batch.
+   or `f`). Keep the pieces as drafted: `ledger_check` compares them with the base expression. The
+   draft follows `+` chains only; for a ternary, `String.format`, a `StringBuilder.append` chain or a
+   numeric sum such as `a + b + "x"`, write the row by hand with a note starting `manual:` (the
+   reviewer checks those by hand). `extract.py scan <files>` lists a file's literals, which helps
+   plan a batch.
 4. **Shrink the baselines.** `python3 tools/l10n/hardcoded_lint.py --write-baselines` rewrites
    `l10n/baseline/`; a converted file's baseline disappears. Baselines may only shrink.
 5. **Build** with `bash build.sh` (catalog plus round-trip), then `bash android-tests/build.sh`.
@@ -118,6 +130,15 @@ byte-identical. B0b adds the generator run to `tests/run.sh`.
    the base and the head APK, then `python3 tools/l10n/census_diff.py base-dir head-dir`, and paste
    its last line.
 
+**After a rebase** onto a `main` that moved lines, the ledger's base lines are stale. Run
+`python3 tools/l10n/extract.py relocate --base origin/main --batch b2-ui`: it moves every row whose
+pieces match exactly one expression in that file at the new merge base, and lists the rest for a
+hand fix. Baselines carry no line numbers and need nothing.
+
+**Keep the proof tooling out of batches.** A batch pull request must not change `tools/l10n/`,
+`.github/workflows/` or `tests/l10n/golden.sh`; CI fails it. Change the tools in their own pull
+request first.
+
 ### Ledger format
 
 `l10n/ledger/<batch>.tsv`, tab-separated, with the header
@@ -125,61 +146,118 @@ byte-identical. B0b adds the generator run to `tests/run.sh`.
 
 | Column | Meaning |
 |---|---|
-| `location` | base `file:line` of the original expression, e.g. `src/com/jjricks/volt/Ui.java:812` |
-| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`. For `plural`, an object of English forms: `{"one": [...], "other": [...]}` |
+| `location` | merge-base `file:line` of the expression's first literal, e.g. `src/com/jjricks/volt/Ui.java:812` |
+| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently (e.g. through `Fmt`). For `plural`, an object of English forms: `{"one": [...], "other": [...]}` |
 | `key` | the resource key, or `-` for `stays-english` and `removed` |
 | `kind` | `exact`, `template`, `plural`, `id-kept`, `stays-english` or `removed` |
-| `note` | free text |
+| `note` | free text; `manual: <why>` for a hand-written row |
 
-`ledger_check.py` lexes every changed `src/` file at the merge base and at head and fails when a
-literal disappears without enough `exact`, `template`, `plural` or `removed` rows. It also checks
-that each row's line holds one of its literals, that keys exist with the right kind, that an exact
-row's English equals its literal, and that a template with only `%n$s` holes renders the original
-concatenation (`tests/l10n/LedgerTest`, B0b, covers the rest with Java's formatter). A test file's
-literal may be removed only for a test of deleted code, recorded as a `removed` row whose location
-is that test file.
+How `ledger_check.py` (G1) reads it:
+
+- It compares every changed `src/` file's string **and char** literals at the merge base and at
+  head **by position**: lines are aligned first, then the literals inside each changed region. A
+  literal is gone when it no longer sits in the same place in the same order, so changing,
+  swapping or reordering literals removes them. Every gone literal needs exactly one row.
+- `exact`, `template`, `plural`: the pieces must equal the base expression on that line (hole
+  sources compared token by token), every literal of it must be gone, the key must exist with that
+  kind, an exact row's English must equal its literal, and a template must render the original
+  concatenation. At head, some `T.<key>(...)`, `M.<key>(...)`, `Msg.of(T.<KEY>, ...)` or
+  `T.render(T.<KEY>, ...)` must pass the holes in placeholder order (a plural's quantity first).
+- `removed`: the code was deleted. The changed region that removes the literal must add no literal
+  in its place.
+- `stays-english`, `id-kept`: the literal moved within `src/` and is still English. The same value
+  must be added somewhere else in `src/` (outside the changed region it left).
+- New English-looking literals in `src/` are listed as warnings and counted in the summary; an
+  extraction batch normally adds none.
+- Ledger files are append-only. Every ledger at head is checked against the catalog on every pull
+  request, so rewording an extracted string fails unless `l10n/english-changes.tsv` records it.
+- A row whose location is a test file must be `removed`, for a test of deleted code (G4 below).
+
+### Pull requests that are not batches
+
+CI (`tools/l10n/ci_gates.py`) decides what kind of change a pull request is from the paths it
+changes since the merge base:
+
+| Kind | When | Gates |
+|---|---|---|
+| `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml` | every gate, strict; proof tooling unchanged |
+| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only |
+| `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
+
+- **An ordinary feature or fix** may change English, tests and report formats. If it adds UI text
+  to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
+  `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
+  prefer putting new text in the catalog). If it changes a report format, update the goldens with
+  `bash tests/l10n/golden.sh --update` and say so in the PR.
+- **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
+  adds one row per changed key to `l10n/english-changes.tsv`
+  (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
+  approval), updates the tests that assert the old English, and shows the census diff.
 
 ## The gates
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI, prove-english |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
-| G4 frozen test literals | `tools/l10n/frozen_literals.py --base origin/main` | CI, prove-english |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (pull requests), prove-english |
+| G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches), prove-english |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch pull requests), prove-english |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
-| G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main` | CI, prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh` (and `ReportsStayEnglishTest`, B0b) | CI, prove-english |
+| G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B0b, B1) | CI via `tests/run.sh` |
 
-The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only).
+The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
+runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
+`ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
+changes in a batch) and review are what keep a batch from weakening them.
 
 **G3.** The round-trip reads the default-configuration strings and plurals straight from the
 `resources.arsc` aapt wrote and compares them with `en.expected.tsv`. It also fails on compiled
-strings the catalog does not know and on styled strings. CI cannot run aapt, so CI runs the unit
-tests against fixtures captured from the real aapt; refresh them with
-`tools/l10n/fixtures/aapt/capture.sh` after changing `fixtures/aapt/res/`.
+strings the catalog does not know, on styled strings, and on text in any English or non-locale
+configuration. CI cannot run aapt, so CI runs the unit tests against fixtures captured from the
+real aapt (`fixtures/aapt/`, `fixtures/aapt-qualified/`); refresh them with
+`tools/l10n/fixtures/aapt/capture.sh` after changing a fixture's `res/`.
 
-**G4.** "English-looking" means a literal with two letters in a row (or a non-ASCII letter) that is
-not a lower-case key, path or id. Literals are compared across all changed test files together,
-so moving a helper between files is fine (`--per-file` forbids that too).
+**G4.** A test *statement* (the tokens between `;`, `{` and `}`) that holds an English-looking
+literal must stay token for token as it was; new statements may be added. So an assertion cannot be
+weakened, swapped, or have its expected text changed while a decoy keeps the old literal. Spacing,
+comments and a class qualifier in front of a call (`TextFit.assertText(...)`) do not count, and
+statements are compared across all changed test files, so moving a helper between files is fine
+(`--per-file` forbids that too). A statement may disappear only for a deleted test of deleted code:
+a `removed` ledger row naming that test file and a line of the statement, where the change adds no
+English in its place and the English does not come back in a new statement. "English-looking"
+means a literal with two letters in a row (or a non-ASCII letter) that is not a lower-case key,
+path or id.
+
+**G5.** Characterization tests are the files under `tests/l10n/characterization/`. Every one the
+pull request adds or changes must be added by its first commit and left alone afterwards, and that
+commit changes nothing under `src/` or `res/`. A batch with a `template` or `plural` ledger row must
+have them. `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
+and fails when a characterization test is not listed in a `tests/l10n/*.sources` file.
 
 **G8** is a Python tool run in CI, instead of the plan's `tests/l10n/HardcodedTextLint.java`, so it
-shares the Java lexer with the other gates. It flags any literal with letters inside a UI sink
-call (`setText`, `setContentDescription`, `setHint`, `setTooltipText`, `setStateDescription`,
+shares the Java lexer with the other gates. It flags any literal with letters inside a platform UI
+sink call (`setText`, `setContentDescription`, `setHint`, `setTooltipText`, `setStateDescription`,
 `setError`, `setTitle`, `setMessage`, `set*Button`, `toast`, `makeText`, `notice`, notification
 titles, texts and actions, `announceForAccessibility`, `setAccessibilityPaneTitle`,
-`setChartTitle`, `drawText`) and any other literal of two or more words. Baselines list findings
+`setChartTitle`, `drawText`); any English-looking literal inside a call of one of Volt's own text
+helpers (`HELPER_SINKS` in the tool: `ui.text`, `button`, `secondaryButton`, `caption`,
+`sectionLabel`, `row`, `detailRow`, `dialogButtons`, `new SegmentedSelector`, and more), so
+single-word labels count; and any other literal of two or more words. Baselines list findings
 without line numbers, so a rebase only needs `--write-baselines` when text really changed. A file
-with no findings has no baseline, so any new English in it fails. The allowlist for converted files
-that must keep English (reports, tags, keys) arrives with the first batch that needs one.
+with no findings has no baseline, so any new English in it fails. The shrink-only check counts from
+the first merge base that has the tool, so deleting every baseline does not switch it off. The
+allowlist for converted files that must keep English (reports, tags, keys) arrives with the first
+batch that needs one.
 
 **G9.** `tests/l10n/golden.sh` compiles `GoldenReports.java` against the pure classes, runs it under
 en-US, de-DE, tr-TR and ar-EG with different time zones, and compares the diagnostics JSON, the ride
 journal CSV, the phone ride CSV and the GPX with `tests/l10n/golden/`. `--update` rewrites them;
-use it only for an intended, reviewed format change.
+use it only for an intended, reviewed format change, never in a batch: CI fails a batch whose
+goldens differ from the merge base.
 
 **B0a extra check.** `prove-english.sh <base> --same-apk` builds the merge base and head in clean
 worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
@@ -189,9 +267,9 @@ worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 `VOLT_PSEUDO_LOCALES=1 bash build.sh` also packages the same `classes.dex` with
 `aapt --pseudo-localize` into `build/pseudo/volt-pseudo.apk` (never `dist/`), with en-XA (accented,
 bracketed, longer) and ar-XB (right-to-left). The build checks that the resource ids are unchanged
-and that both configurations are present. Every build runs a release guard: `aapt dump
-configurations` on `dist/volt.apk` must not list en-XA or ar-XB. Known aapt1 quirk: a trailing `%`
-is mangled (`75%` becomes `[75»%`).
+and that both configurations are present. Every build runs a release guard on `dist/volt.apk`:
+`aapt dump configurations` must not list en-XA or ar-XB, and no text may sit in an English or
+non-locale configuration. Known aapt1 quirk: a trailing `%` is mangled (`75%` becomes `[75»%`).
 
 ## Census format (G7)
 
@@ -201,8 +279,15 @@ Fields: `text`, `desc`, `hint`, `tooltip`, `state`, `error`, `title`, `message`,
 `toast`, `notif-title`, `notif-text`, `notif-subtext`, `notif-action`, `notif-channel`. The locator
 is `tag=<tag>` when the view has a String tag, else the class path with child indexes; bounds are
 `x,y,width,height` or `-`. Backslash, tab, line feed and carriage return are escaped as `\\`, `\t`,
-`\n`, `\r`. `census_diff.py` masks clock times, durations and dates (keeping their shape, such as
-`<date:MMM d>` or `<n> min`) and reports bounds changes without failing.
+`\n`, `\r`.
+
+`census_diff.py` masks the *values* of clock times, durations and dates and keeps their form: each
+number becomes `<n>`, a month or weekday becomes its form (`<MMM>`, `<MMMM>`, `<MMM:upper>`,
+`<EEE>`, `<EEEE>`), AM/PM keeps its case, and unit words stay as written (`<n> min`, `<n> hrs`).
+Singular and plural unit words may differ only when the number differs too (`1 minute ago` then
+`2 minutes ago`); with the same number they must match, so `1 seconds left` cannot become
+`1 second left` unseen. Bounds changes are reported without failing. Numeric dates (`10/5`) mask
+to `<n>/<n>`, so a day/month order change is G10's to catch, not G7's.
 
 ## Languages
 

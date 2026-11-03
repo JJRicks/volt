@@ -43,13 +43,9 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/l10n
           python3 tools/l10n/gen_catalog.py --check
-          python3 tools/l10n/ledger_check.py --base "$L10N_BASE"
-          python3 tools/l10n/frozen_literals.py --base "$L10N_BASE"
-          python3 tools/l10n/hardcoded_lint.py --check --base "$L10N_BASE"
-          if [ -n "$L10N_PR_HEAD" ]; then
-            python3 tools/l10n/char_first.py --base "$L10N_BASE" --head "$L10N_PR_HEAD"
-          fi
           bash tests/l10n/golden.sh
+          # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
+          python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"
   web-setup:
     # Private workers require trusted collaborators and disabled fork workflows.
     # Job/run labels route eligible work; they are not an authorization boundary.

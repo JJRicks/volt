@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""G1 helper: list a batch's literals, and draft ledger rows for the literals a batch moved.
+"""G1 helper: list a batch's literals, draft ledger rows for the literals a batch moved, and move
+ledger rows to new merge-base lines after a rebase.
 
   extract.py scan src/com/jjricks/volt/Ui.java ...
       Every string literal with its location, whether it looks like English text, whether it sits
@@ -7,201 +8,31 @@
 
   extract.py draft --base origin/main --batch b2-ui [--head HEAD|WORKTREE]
       After moving text into res/values/strings_<area>.xml and T calls, finds every literal that left
-      src/ and has no ledger row yet, and appends one draft row per original expression to
-      l10n/ledger/<batch>.tsv with key and kind set to TODO. Fill in key, kind, each hole's arg and
-      type (the draft guesses "s"), and fix the pieces where the guess is wrong; ledger_check.py
-      refuses TODO rows. The guess follows + chains only: a ternary, String.format or a numeric
-      sum before the first string (a + b + "x") must be written by hand.
+      src/ (by position, as ledger_check.py counts them) and has no ledger row yet, and appends one draft
+      row per original expression to l10n/ledger/<batch>.tsv with key and kind set to TODO. Fill in key,
+      kind, each hole's arg and type (the draft guesses "s"), and fix the pieces where the guess is wrong;
+      ledger_check.py refuses TODO rows. The guess follows + chains only: for a ternary, String.format,
+      an append chain or a numeric sum before the first string, write the row by hand with a note
+      starting "manual:".
+
+  extract.py relocate --base origin/main --batch b2-ui
+      After a rebase moved lines, rewrites each of the batch's rows whose line no longer holds its
+      expression at the new merge base, when exactly one expression in that file has the same pieces.
+      Rows it cannot place unambiguously are listed for a hand fix.
 """
 
 import argparse
-import collections
 import json
 import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import l10nlib  # noqa: E402
+import expressions  # noqa: E402
 import ledger_check  # noqa: E402
 import hardcoded_lint  # noqa: E402
 
-TERM_OPS = ("*", "/", "%")
-OPENERS = {"(": ")", "[": "]"}
-CLOSERS = {")": "(", "]": "["}
-
-
-def _match_forward(tokens, k):
-    want, depth = OPENERS[tokens[k].value], 0
-    for j in range(k, len(tokens)):
-        if tokens[j].kind == "op" and tokens[j].value == tokens[k].value:
-            depth += 1
-        elif tokens[j].kind == "op" and tokens[j].value == want:
-            depth -= 1
-            if depth == 0:
-                return j
-    return None
-
-
-def _match_backward(tokens, k):
-    want, depth = CLOSERS[tokens[k].value], 0
-    for j in range(k, -1, -1):
-        if tokens[j].kind == "op" and tokens[j].value == tokens[k].value:
-            depth += 1
-        elif tokens[j].kind == "op" and tokens[j].value == want:
-            depth -= 1
-            if depth == 0:
-                return j
-    return None
-
-
-def _is(tok, *values):
-    return tok is not None and tok.kind == "op" and tok.value in values
-
-
-def _primary_end(tokens, k):
-    """Last index of the primary expression starting at k, or None."""
-    if k >= len(tokens):
-        return None
-    t = tokens[k]
-    if _is(t, "-", "!", "~"):
-        return _primary_end(tokens, k + 1)
-    if t.kind == "ident" and t.value == "new":
-        j = k + 1
-        while j < len(tokens) and (tokens[j].kind == "ident" or _is(tokens[j], ".")):
-            j += 1
-        if j < len(tokens) and _is(tokens[j], "(", "["):
-            end = _match_forward(tokens, j)
-            return None if end is None else _postfix_end(tokens, end)
-        return None
-    if t.kind in ("string", "char", "number", "ident"):
-        return _postfix_end(tokens, k)
-    if _is(t, "("):
-        end = _match_forward(tokens, k)
-        return None if end is None else _postfix_end(tokens, end)
-    return None
-
-
-def _postfix_end(tokens, k):
-    while k + 1 < len(tokens):
-        nxt = tokens[k + 1]
-        if _is(nxt, "(", "["):
-            end = _match_forward(tokens, k + 1)
-            if end is None:
-                return k
-            k = end
-        elif _is(nxt, ".") and k + 2 < len(tokens) and tokens[k + 2].kind == "ident":
-            k += 2
-        else:
-            return k
-    return k
-
-
-KEYWORDS = {"if", "while", "for", "switch", "catch", "synchronized", "return", "throw", "case", "else", "do",
-            "try", "assert", "new", "instanceof", "yield"}
-
-
-def _callee(tok):
-    """True when tok can be called or indexed: a name, or the end of another call, index or group."""
-    return (tok.kind == "ident" and tok.value not in KEYWORDS) or _is(tok, ")", "]")
-
-
-def _primary_start(tokens, k):
-    """First index of the primary expression ending at k (a name, literal, call or index chain), or None."""
-    if k < 0:
-        return None
-    j = k
-    while True:
-        t = tokens[j]
-        if _is(t, ")", "]"):
-            opener = _match_backward(tokens, j)
-            if opener is None:
-                return None
-            if opener > 0 and _callee(tokens[opener - 1]):
-                j = opener - 1
-                continue
-            start = opener
-        elif t.kind in ("string", "char", "number", "ident"):
-            start = j
-            if start > 0 and tokens[start - 1].kind == "ident" and tokens[start - 1].value == "new":
-                start -= 1
-        else:
-            return None
-        if start >= 2 and _is(tokens[start - 1], ".") and (tokens[start - 2].kind in ("ident", "string") or
-                                                           _is(tokens[start - 2], ")", "]")):
-            j = start - 2
-            continue
-        break
-    if start > 0 and _is(tokens[start - 1], "-", "!", "~") and (start == 1 or tokens[start - 2].kind == "op"
-                                                               and tokens[start - 2].value not in (")", "]")):
-        start -= 1
-    return start
-
-
-def _term_end(tokens, k):
-    end = _primary_end(tokens, k)
-    while end is not None and end + 2 < len(tokens) and _is(tokens[end + 1], *TERM_OPS):
-        nxt = _primary_end(tokens, end + 2)
-        if nxt is None:
-            break
-        end = nxt
-    return end
-
-
-def _term_start(tokens, k):
-    start = _primary_start(tokens, k)
-    while start is not None and start >= 2 and _is(tokens[start - 1], *TERM_OPS):
-        prev = _primary_start(tokens, start - 2)
-        if prev is None:
-            break
-        start = prev
-    return start
-
-
-def concatenation(tokens, i):
-    """[(first, last), ...] token spans of the + operands around the literal at index i."""
-    spans = [(i, i)]
-    k = i
-    while k >= 2 and _is(tokens[k - 1], "+"):
-        start = _term_start(tokens, k - 2)
-        if start is None:
-            break
-        spans.insert(0, (start, k - 2))
-        k = start
-    k = i
-    while k + 2 < len(tokens) and _is(tokens[k + 1], "+"):
-        end = _term_end(tokens, k + 2)
-        if end is None:
-            break
-        spans.append((k + 2, end))
-        k = end
-    return spans
-
-
-def pieces_for(text, tokens, spans):
-    pieces, arg = [], 0
-    for first, last in spans:
-        if first == last and tokens[first].kind == "string":
-            pieces.append(tokens[first].value)
-        elif first == last and tokens[first].kind == "char":
-            pieces.append({"char": tokens[first].value})
-        else:
-            arg += 1
-            source = text[tokens[first].pos:tokens[last].pos + len(tokens[last].raw)]
-            pieces.append({"hole": " ".join(source.split()), "arg": arg, "type": "s"})
-    return pieces
-
-
-def literal_expressions(source):
-    """[(line, value, pieces, span)] for every string literal, grouping each + chain once."""
-    text = l10nlib.translate_unicode_escapes(source)
-    tokens = l10nlib.lex_java(source)
-    result = []
-    for i, tok in enumerate(tokens):
-        if tok.kind != "string":
-            continue
-        spans = concatenation(tokens, i)
-        result.append((tok.line, tok.value, pieces_for(text, tokens, spans), (spans[0][0], spans[-1][1]), i))
-    return result
+literal_expressions = expressions.literal_expressions
 
 
 def cmd_scan(paths):
@@ -220,37 +51,53 @@ def cmd_scan(paths):
     return 0
 
 
+def _covered(rows, diffs):
+    """(path, token) pairs the existing rows already cover (rows that fail to locate cover nothing)."""
+    claimed = {}
+    for row in rows:
+        diff = diffs.get(row.path)
+        if diff is None or diff.base is None or not row.path.startswith("src/"):
+            continue
+        tokens, _, problem = ledger_check.locate(row, diff, claimed)
+        for k in tokens or []:
+            claimed[(row.path, k)] = row
+    return claimed
+
+
 def draft_rows(base, head, existing_rows, cwd=None):
-    """Draft ledger lines for literals that left src/ and are not yet covered."""
+    """Draft ledger lines for literals that left src/ and are not yet covered, one per base expression."""
     merge = l10nlib.merge_base(base, head, cwd)
     files = [p for p in l10nlib.changed_files(merge, head, ["src"], cwd) if p.endswith(".java")]
     before = l10nlib.read_files(merge, files, cwd)
     after = l10nlib.read_files(head, files, cwd)
-    covered = collections.defaultdict(collections.Counter)
-    for row in existing_rows:
-        if row.kind in ledger_check.MOVING:
-            covered[row.path].update(row.literals)
+    diffs = {p: expressions.FileDiff(before[p], after[p]) for p in files if before[p] is not None}
+    claimed = _covered(existing_rows, diffs)
     lines = []
     for path in files:
-        gone = ledger_check.literal_counter(before[path]) - ledger_check.literal_counter(after[path])
-        gone = gone - covered[path]
-        if not gone:
+        diff = diffs.get(path)
+        if diff is None:
             continue
-        seen_spans = set()
-        for line, value, pieces, span, _ in literal_expressions(before[path]):
-            if gone[value] <= 0 or span in seen_spans:
+        seen = set()
+        for k in sorted(diff.gone):
+            if (path, k) in claimed:
                 continue
-            seen_spans.add(span)
-            for literal, count in ledger_check.literal_counts(pieces).items():
-                gone[literal] -= count
-            lines.append("%s:%d\t%s\tTODO\tTODO\t" % (path, line, json.dumps(pieces, ensure_ascii=False)))
+            number = diff.base.by_token[k]
+            if number in seen:
+                continue
+            seen.add(number)
+            e = diff.base.expressions[number]
+            lines.append("%s:%d\t%s\tTODO\tTODO\t" % (path, e.line, json.dumps(e.pieces, ensure_ascii=False)))
     return lines
+
+
+def _ledger_path(batch):
+    return os.path.join(l10nlib.repo_root(), "l10n", "ledger", batch + ".tsv")
 
 
 def cmd_draft(args):
     head = l10nlib.resolve(args.head)
     root = l10nlib.repo_root()
-    path = os.path.join(root, "l10n", "ledger", args.batch + ".tsv")
+    path = _ledger_path(args.batch)
     existing_text = l10nlib.read_text(path) if os.path.exists(path) else ""
     rows = []
     if existing_text.strip():
@@ -277,6 +124,56 @@ def cmd_draft(args):
     return 0
 
 
+def relocate(text, merge, cwd=None, source="ledger"):
+    """(new ledger text, moved count, problems): rows placed on their expression's line at merge."""
+    rows = ledger_check.parse_ledger(text, source)
+    paths = sorted(set(r.path for r in rows))
+    bases = l10nlib.read_files(merge, paths, cwd)
+    indexes = {p: expressions.Index(t) for p, t in bases.items() if t is not None}
+    lines = text.split("\n")
+    moved, problems = 0, []
+    for row in rows:
+        index = indexes.get(row.path)
+        where = "%s:%d" % (source, row.line)
+        if index is None:
+            problems.append("%s: %s does not exist at %s" % (where, row.path, l10nlib.short(merge)))
+            continue
+        wanted = set(expressions.shape(s) for s in ledger_check.sequences(row.pieces))
+        if len(wanted) != 1:
+            problems.append("%s: forms differ; place this row by hand" % where)
+            continue
+        wanted = wanted.pop()
+        matches = [e for e in index.expressions if expressions.shape(e.pieces) == wanted]
+        if any(e.first_line <= row.base_line <= e.last_line for e in matches):
+            continue
+        if len(matches) != 1:
+            problems.append("%s: %d expressions in %s have these pieces; place this row by hand" % (
+                where, len(matches), row.path))
+            continue
+        fields = lines[row.line - 1].split("\t")
+        fields[0] = "%s:%d" % (row.path, matches[0].line)
+        lines[row.line - 1] = "\t".join(fields)
+        moved += 1
+    return "\n".join(lines), moved, problems
+
+
+def cmd_relocate(args):
+    path = _ledger_path(args.batch)
+    merge = l10nlib.merge_base(args.base, "HEAD")
+    try:
+        text, moved, problems = relocate(l10nlib.read_text(path), merge, source=os.path.basename(path))
+    except ledger_check.LedgerError as error:
+        print("extract: fix %s first:\n%s" % (path, error), file=sys.stderr)
+        return 1
+    if moved:
+        l10nlib.write_text(path, text)
+    for problem in problems:
+        print("extract: " + problem, file=sys.stderr)
+    print("extract: moved %d row(s) to their lines at %s; %d need a hand fix" % (
+        moved, l10nlib.short(merge), len(problems)))
+    return 1 if problems else 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     sub = parser.add_subparsers(dest="command")
@@ -286,11 +183,16 @@ def main(argv=None):
     draft.add_argument("--base", required=True)
     draft.add_argument("--head", default=l10nlib.WORKTREE, help="head revision (default: the working tree)")
     draft.add_argument("--batch", required=True, help="ledger name, l10n/ledger/<batch>.tsv")
+    move = sub.add_parser("relocate", help="move ledger rows to their lines at a new merge base")
+    move.add_argument("--base", required=True)
+    move.add_argument("--batch", required=True)
     args = parser.parse_args(argv)
     if args.command == "scan":
         return cmd_scan(args.paths)
     if args.command == "draft":
         return cmd_draft(args)
+    if args.command == "relocate":
+        return cmd_relocate(args)
     parser.print_help()
     return 2
 

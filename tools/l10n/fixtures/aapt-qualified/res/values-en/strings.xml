@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Refused: an English folder would replace the catalog English on every English phone. -->
+<resources>
+    <string name="app_name">Volt!</string>
+    <string name="units_dual">%2$s or %1$s</string>
+</resources>

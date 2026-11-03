@@ -44,36 +44,111 @@ BOUNDS = re.compile(r"^-?\d+,-?\d+,\d+,\d+$")
 
 Record = collections.namedtuple("Record", "field locator bounds value line")
 
-MONTH = r"(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Sept|Oct|Nov|Dec)[a-z]*\.?"
-MONTH_UPPER = r"(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)"
-WEEKDAY = r"(?:Mon|Tue|Tues|Wed|Thu|Thur|Thurs|Fri|Sat|Sun)[a-z]*,?"
-SPACE = "[ \u00a0\u202f]"
-AMPM = r"(?:%s?[AaPp]\.?[Mm]\.?)" % SPACE
-UNITS = {"y": "y", "yr": "y", "yrs": "y", "year": "year(s)", "years": "year(s)", "mo": "mo", "month": "month(s)",
-         "months": "month(s)", "w": "w", "wk": "w", "wks": "w", "week": "week(s)", "weeks": "week(s)", "d": "d",
-         "day": "day(s)", "days": "day(s)", "h": "h", "hr": "h", "hrs": "h", "hour": "hour(s)", "hours": "hour(s)",
-         "m": "m", "min": "min", "mins": "min", "minute": "minute(s)", "minutes": "minute(s)", "s": "s",
-         "sec": "s", "secs": "s", "second": "second(s)", "seconds": "second(s)", "ms": "ms"}
+MONTHS_SHORT = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Sept", "Oct", "Nov", "Dec")
+MONTHS_LONG = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+               "November", "December")
+DAYS_SHORT = ("Mon", "Tue", "Tues", "Wed", "Thu", "Thur", "Thurs", "Fri", "Sat", "Sun")
+DAYS_LONG = ("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")
 
-MASKS = [
-    (re.compile(r"\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z?)?\b"), lambda m: "<date:iso>"),
-    (re.compile(r"\b\d{4}-\d{3}\b"), lambda m: "<date:yyyy-DDD>"),
-    (re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"), lambda m: "<date:numeric>"),
-    (re.compile(r"\b(%s%s)?%s%s\d{1,2}(,%s\d{4})?\b" % (WEEKDAY, SPACE, MONTH, SPACE, SPACE)),
-     lambda m: "<date:%sMMM d%s>" % ("EEE, " if m.group(1) else "", ", yyyy" if m.group(2) else "")),
-    (re.compile(r"\b\d{1,2}%s%s\b" % (SPACE, MONTH_UPPER)), lambda m: "<date:dd MMM>"),
-    (re.compile(r"\b\d{1,2}%s%s(?:%s\d{4})?\b" % (SPACE, MONTH, SPACE)), lambda m: "<date:d MMM>"),
-    (re.compile(r"\b\d{1,2}:\d{2}(:\d{2})?(%s)?" % AMPM),
-     lambda m: "<time:h:mm%s%s>" % (":ss" if m.group(1) else "", " a" if m.group(2) else "")),
-    (re.compile(r"\b\d+(?:\.\d+)?%s?(%s)\b" % (SPACE, "|".join(sorted(UNITS, key=len, reverse=True)))),
-     lambda m: "<n>%s%s" % (" " if re.search(r"\d%s" % SPACE, m.group(0)) else "", UNITS[m.group(1)])),
+
+def _words(*groups):
+    every = [w for g in groups for w in g]
+    return "(?:%s)" % "|".join(sorted(set(every), key=len, reverse=True))
+
+
+MONTH = r"(?:%s|%s|%s)\.?" % (_words(MONTHS_LONG), _words(MONTHS_SHORT), _words(m.upper() for m in MONTHS_SHORT))
+WEEKDAY = r"(?:%s|%s|%s),?" % (_words(DAYS_LONG), _words(DAYS_SHORT), _words(d.upper() for d in DAYS_SHORT))
+SPACE = "[ \u00a0\u202f]"
+AMPM = r"(?:[AaPp]\.?[Mm]\.?)(?![A-Za-z])"
+UNITS = ("y", "yr", "yrs", "year", "years", "mo", "mos", "month", "months", "w", "wk", "wks", "week", "weeks",
+         "d", "day", "days", "h", "hr", "hrs", "hour", "hours", "m", "min", "mins", "minute", "minutes",
+         "s", "sec", "secs", "second", "seconds", "ms")
+# Singular and plural spellings of one unit. They may differ between base and head only when the number
+# differs too ("1 minute ago" then "2 minutes ago"); with the same number the words must match, so a
+# preserved English bug such as "1 seconds left" cannot change unseen.
+PLURAL_PAIRS = {"yrs": "yr", "years": "year", "mos": "mo", "months": "month", "wks": "wk", "weeks": "week",
+                "days": "day", "hrs": "hr", "hours": "hour", "mins": "min", "minutes": "minute", "secs": "sec",
+                "seconds": "second"}
+
+# Each pattern finds one clock, duration or date value. Inside it, every digit run becomes <n>, every
+# month or weekday word becomes its form (<MMM>, <MMMM>, <MMM:upper>, <EEE>, <EEEE>), AM/PM becomes
+# <a> in its own spelling class, and every other character, unit words included, stays as written.
+PATTERNS = [
+    re.compile(r"\b\d{4}-\d{2}-\d{2}(?:[T ]\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?Z?)?\b"),
+    re.compile(r"\b\d{4}-\d{3}\b"),
+    re.compile(r"\b\d{1,2}/\d{1,2}(?:/\d{2,4})?\b"),
+    re.compile(r"\b(?:%s%s)?%s%s\d{1,2}(?:,%s\d{4})?\b" % (WEEKDAY, SPACE, MONTH, SPACE, SPACE)),
+    re.compile(r"\b\d{1,2}%s%s(?:%s\d{4})?(?![A-Za-z])" % (SPACE, MONTH, SPACE)),
+    re.compile(r"\b\d{1,2}:\d{2}(?::\d{2})?(?:%s?%s)?" % (SPACE, AMPM)),
+    re.compile(r"\b\d+(?:\.\d+)?%s?(?:%s)\b" % (SPACE, "|".join(sorted(UNITS, key=len, reverse=True)))),
 ]
+_WORD = re.compile(r"[A-Za-z]+\.?|\d+(?:\.\d+)?")
+_DURATION = re.compile(r"^(\d+(?:\.\d+)?)(%s?)([A-Za-z]+)$" % SPACE)
+
+
+def _form(word):
+    bare = word.rstrip(".")
+    dot = "." if word.endswith(".") else ""
+    if bare in MONTHS_LONG and bare != "May":
+        return "<MMMM>" + dot
+    if bare in MONTHS_SHORT:
+        return "<MMM>" + dot
+    if bare in [m.upper() for m in MONTHS_SHORT]:
+        return "<MMM:upper>" + dot
+    if bare in DAYS_LONG:
+        return "<EEEE>" + dot
+    if bare in DAYS_SHORT:
+        return "<EEE>" + dot
+    if bare in [d.upper() for d in DAYS_SHORT]:
+        return "<EEE:upper>" + dot
+    if re.match(r"^[AaPp]\.?[Mm]\.?$", word):
+        return "<a:%s>" % ("upper" if word[0].isupper() else "lower") + ("." if "." in word else "")
+    return word
+
+
+def _shape(value):
+    return _WORD.sub(lambda m: "<n>" if m.group(0)[0].isdigit() else _form(m.group(0)), value)
+
+
+def masked(value):
+    """(comparison key, durations): the key has values masked and plural unit spellings merged; durations
+    lists (number, unit as written) for the extra singular/plural check."""
+    out, durations, at = [], [], 0
+    spans = []
+    for pattern in PATTERNS:
+        for m in pattern.finditer(value):
+            if not any(m.start() < e and s < m.end() for s, e in spans):
+                spans.append((m.start(), m.end()))
+    for s, e in sorted(spans):
+        out.append(value[at:s])
+        piece = value[s:e]
+        duration = _DURATION.match(piece)
+        if duration and duration.group(3) in UNITS:
+            unit = duration.group(3)
+            durations.append((duration.group(1), unit))
+            out.append("<n>" + duration.group(2) + PLURAL_PAIRS.get(unit, unit) + ("(s)" if unit in PLURAL_PAIRS or
+                                                                                    unit in PLURAL_PAIRS.values() else ""))
+        else:
+            out.append(_shape(piece))
+        at = e
+    out.append(value[at:])
+    return "".join(out), tuple(durations)
 
 
 def mask(value):
-    for pattern, replacement in MASKS:
-        value = pattern.sub(replacement, value)
-    return value
+    return masked(value)[0]
+
+
+def same_after_masking(base_value, head_value):
+    """True when two texts differ only in clock, duration and date values."""
+    a, a_durations = masked(base_value)
+    b, b_durations = masked(head_value)
+    if a != b:
+        return False
+    for (n1, u1), (n2, u2) in zip(a_durations, b_durations):
+        if n1 == n2 and u1 != u2:
+            return False
+    return True
 
 
 class CensusError(ValueError):
@@ -121,7 +196,10 @@ def compare(base, head):
     for tag, i1, i2, j1, j2 in matcher.get_opcodes():
         if tag == "equal":
             for i, j in zip(range(i1, i2), range(j1, j2)):
-                if base[i].bounds != head[j].bounds:
+                if not same_after_masking(base[i].value, head[j].value):
+                    text.append("- %s %s: %s" % (base[i].field, base[i].locator, l10nlib.json_string(base[i].value)))
+                    text.append("+ %s %s: %s" % (head[j].field, head[j].locator, l10nlib.json_string(head[j].value)))
+                elif base[i].bounds != head[j].bounds:
                     bounds.append("%s %s: %s -> %s" % (base[i].field, base[i].locator, base[i].bounds, head[j].bounds))
             continue
         for i in range(i1, i2):

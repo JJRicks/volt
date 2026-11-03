@@ -214,6 +214,33 @@ class CatalogTest(unittest.TestCase):
             gen_catalog.load_languages(os.path.join(self.dir, "lang"))
         self.assertTrue(any("status" in p for p in caught.exception.problems))
 
+    def test_text_only_in_approved_language_folders(self):
+        """Finding 4: values-en, values-night or values-v31 text would override the catalog English."""
+        res = os.path.join(self.dir, "res")
+        resources = '<resources><string name="app_name">%s</string></resources>\n'
+        for folder in ("values-en", "values-en-rGB", "values-night", "values-v31", "values-es"):
+            l10nlib.write_text(os.path.join(res, folder, "strings.xml"), resources % "Volt!")
+        l10nlib.write_text(os.path.join(res, "values-night", "colors.xml"),
+                           '<resources><color name="bg">#000000</color></resources>\n')
+        l10nlib.write_text(os.path.join(res, "values-v31", "more.xml"),
+                           '<resources><item name="x" type="string">Hi</item></resources>\n')
+        languages = gen_catalog.load_languages(os.path.join(self.dir, "lang"))
+        problems = gen_catalog.check_text_folders(res, languages, self.dir)
+        flagged = sorted(p.split(":")[0] for p in problems)
+        self.assertEqual(flagged, ["res/values-en-rGB/strings.xml", "res/values-en/strings.xml",
+                                   "res/values-es/strings.xml", "res/values-night/strings.xml",
+                                   "res/values-v31/more.xml", "res/values-v31/strings.xml"])
+        l10nlib.write_text(os.path.join(self.dir, "lang", "es.tsv"), LANG.replace("\ten\n", "\tes\n", 1)
+                           .replace("values\n", "values-es\n").replace("English", "Español"))
+        languages = gen_catalog.load_languages(os.path.join(self.dir, "lang"))
+        self.assertNotIn("res/values-es/strings.xml",
+                         [p.split(":")[0] for p in gen_catalog.check_text_folders(res, languages, self.dir)])
+        self.write("strings.xml", resources % "Volt")
+        quiet = io.StringIO()
+        with contextlib.redirect_stdout(quiet), contextlib.redirect_stderr(quiet):
+            self.assertEqual(gen_catalog.main(["--res", res, "--lang", os.path.join(self.dir, "lang"), "--check"]), 1)
+        self.assertIn("would replace the catalog English wherever values-en matches", quiet.getvalue())
+
     def test_cli(self):
         self.write("strings_test.xml", CATALOG)
         out = os.path.join(self.dir, "out")
