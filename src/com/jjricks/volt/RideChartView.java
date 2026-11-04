@@ -189,14 +189,14 @@ public final class RideChartView extends View {
         if (series.isEmpty()) description.append(T.mapsChartDescNoReadings());
         else if (!Double.isFinite(inspectedTime)) description.append(T.mapsChartDescNoSamples());
         else {
-            description.append(T.mapsChartDescAt(sampleTime((long) inspectedTime)));
+            description.append(T.mapsChartDescAt()).append(sampleTime((long) inspectedTime));
             for (RideChartData.Series selected : series) {
                 RideChartData.Value value = selected.sampleAt(inspectedTime);
                 description.append(T.mapsChartDescReading(selected.displayLabel()));
                 if (value == null || value.value == null || !Double.isFinite(value.value)) description.append(T.mapsChartDescNoReading());
                 else {
                     description.append(valueFormatter.sample(selected, value));
-                    if (value.time != inspectedTime) description.append(T.mapsChartDescValueAt(sampleTime(value.time)));
+                    if (value.time != inspectedTime) description.append(T.mapsChartDescValueAt()).append(sampleTime(value.time));
                 }
             }
         }
