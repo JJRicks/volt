@@ -327,15 +327,14 @@ How `ledger_check.py` (G1) reads it:
   prints for each form. A helper with any other body (`count()` in
   BackupArchive, which picks the noun by category) needs a model added in a tooling pull request,
   with a test, or stays English.
-- **Not yet usable: a plural key whose English items differ.** `AndroidText.plural` still returns
-  `resources.getQuantityString`, which picks the item by the plural rules of the phone's first
-  locale, so where Volt ships no translation a Russian phone at 21, or a French or Portuguese phone
-  at 0, would print `one` ("Readings for 21 scooter") where the base printed "21 scooters". G1
-  fails every `plural` row whose key's English `one` and `other` items differ (every helper row,
-  and a `manual:` row for `n + (n == 1 ? " ride" : " rides")`), until `tools/l10n/gen_catalog.py` sets `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`. Only the
-  pull request that makes AndroidText pick default English items by English rules sets it (the
-  runtime track, "plural rules follow the text served"), with a test. Until then those phrases stay
-  English.
+- **Plural keys whose English items differ need the runtime fix.** Android's
+  `resources.getQuantityString` picks the item by the plural rules of the phone's first locale, so
+  without help a Russian phone at 21, or a French or Portuguese phone at 0, would print `one`
+  ("Readings for 21 scooter") where the base printed "21 scooters". Gates round 3A made
+  AndroidText pick the item of default English text by English rules ("plural rules follow the text
+  served"), and `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
+  G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
+  a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
 - **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
   summary picks words in a local and uses it later: `String what = ... ? "layouts" : "settings";`
   then `"replaces " + what + " for " + ...` (merge-base lines 656-657), and
