@@ -163,6 +163,17 @@ public final class PhoneRideStore {
         private final List<Point> allPoints;
         /** Every accepted source fix; the map/inline preview list remains bounded separately. */
         public List<Point> fullPoints() { return allPoints; }
+        /**
+         * The fix counts as display text, in the current language. status stays the same sentence in
+         * English (the ride screen, exports and reports read it as data); in English the two are equal.
+         */
+        public Msg statusText() {
+            if (locationCount == 0) return M.mapsTrackNoFixes();
+            Msg text = M.mapsTrackFixes(locationCount, locationCount);
+            if (rejectedLocationCount > 0) text = M.mapsTrackFixesLowQuality(rejectedLocationCount, text, rejectedLocationCount);
+            if (rejectedElevationCount > 0) text = M.mapsTrackFixesOutliers(rejectedElevationCount, text, rejectedElevationCount);
+            return text;
+        }
         public final int locationCount, rejectedLocationCount, rejectedElevationCount;
         public final long motionSampleCount;
         public final Double distanceMeters,
