@@ -1,0 +1,614 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  First-run setup (batch B17): OnboardingScreen, the step-by-step flow that takes a new owner from no
+  scooter to a verified connection. The English must stay exactly what the source said before the batch
+  (G1, G2).
+
+  Safety: this flow handles the scooter's owner key (the 12-character owner identity, an owner setup
+  file, a private backup). Never soften a privacy warning ("Keep it private", "Not a password",
+  "Revoke Shizuku now", "Turn off USB debugging"), never say a file or identity is safe to share, and
+  keep owner and shared user distinct.
+
+  Markup: **text** is shown in semibold and `text` in a monospace chip. Keep every ** pair and every
+  backtick pair, and keep the text inside backticks exactly as written (it is a command or a word a
+  computer prints). Commands, file names and option names (adb devices, setup/capture-owner.py,
+  navee-owner-setup.json, - -output) are never translated.
+
+  Mock screens: the setup draws small pictures of Android's own Settings page and USB debugging prompt.
+  Their words must match what Android itself shows in the language (its Settings app and its "Allow USB
+  debugging?" prompt), so the owner can find the same words on their phone.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===================================================================== steps -->
+
+    <!-- Step 1 of 7 in the setup step list (wide screens) and its spoken descriptions: gather what you need. -->
+    <string name="onboarding_step_prepare" volt:screen="Setup step list" volt:purpose="step name">Prepare</string>
+    <!-- Step 2 of 7: turn on Android's USB debugging. Use Android's own name for the setting. -->
+    <string name="onboarding_step_usb_debugging" volt:screen="Setup step list" volt:purpose="step name"
+        volt:dnt="USB">USB debugging</string>
+    <!-- Step 3 of 7: connect the phone to a computer with a cable. -->
+    <string name="onboarding_step_connect_computer" volt:screen="Setup step list" volt:purpose="step name">Connect computer</string>
+    <!-- Step 4 of 7: run the capture helper, a program on the computer that reads the owner key. -->
+    <string name="onboarding_step_run_helper" volt:screen="Setup step list" volt:purpose="step name"
+        volt:safety="owner-key">Run helper</string>
+    <!-- Step 5 of 7: import the owner setup file into Volt. -->
+    <string name="onboarding_step_import" volt:screen="Setup step list" volt:purpose="step name"
+        volt:safety="owner-key">Import</string>
+    <!-- Step 6 of 7: allow Android's Nearby devices permission (Bluetooth). Use Android's own name for the permission. -->
+    <string name="onboarding_step_nearby" volt:screen="Setup step list" volt:purpose="step name">Nearby devices</string>
+    <!-- Step 7 of 7: connect to the scooter over Bluetooth. -->
+    <string name="onboarding_step_connect_scooter" volt:screen="Setup step list" volt:purpose="step name">Connect scooter</string>
+
+    <!-- Spoken title of the setup screen for screen readers: %1$d is the step number (1 to 7). -->
+    <string name="onboarding_pane_step" volt:screen="Setup" volt:purpose="accessibility pane title">Setup step %1$d of 7</string>
+    <!-- Spoken title of the setup screen on the welcome, path and finished screens. -->
+    <string name="onboarding_pane_setup" volt:screen="Setup" volt:purpose="accessibility pane title">Setup</string>
+    <!-- Heading above the step list on wide screens. -->
+    <string name="onboarding_side_title" volt:screen="Setup step list" volt:purpose="title">Set up your scooter</string>
+    <!-- Spoken description of one step in the step list: %1$d is its number, %2$s its name (onboarding_step_*), %3$s its state (onboarding_step_state_*). -->
+    <string name="onboarding_step_row" volt:screen="Setup step list" volt:purpose="accessibility description">Step %1$d, %2$s, %3$s</string>
+    <!-- State word at the end of a step's spoken description (onboarding_step_row): the step on screen now. -->
+    <string name="onboarding_step_state_current" volt:screen="Setup step list" volt:purpose="accessibility state">current</string>
+    <!-- State word at the end of a step's spoken description: a finished step. -->
+    <string name="onboarding_step_state_done" volt:screen="Setup step list" volt:purpose="accessibility state">done</string>
+    <!-- State word at the end of a step's spoken description: a step still to come. -->
+    <string name="onboarding_step_state_to_do" volt:screen="Setup step list" volt:purpose="accessibility state">to do</string>
+    <!-- State word at the end of a step's spoken description: a step this setup method skips (a backup file or a typed identity starts at Import). -->
+    <string name="onboarding_step_state_not_needed" volt:screen="Setup step list" volt:purpose="accessibility state">not needed</string>
+    <!-- Spoken description of the round back button at the top left of every step. -->
+    <string name="onboarding_back" volt:screen="Setup header" volt:purpose="accessibility description">Back</string>
+    <!-- Link at the top right of "How would you like to set up?": leave setup for now. -->
+    <string name="onboarding_skip" volt:screen="Setup header, skip dialog" volt:purpose="button"
+        volt:max="96dp@14.5sp">Skip</string>
+    <!-- Spoken description of the top-right Cancel link when setup was opened again from More to add a scooter. -->
+    <string name="onboarding_cancel_adding" volt:screen="Setup header" volt:purpose="accessibility description">Cancel adding a scooter</string>
+    <!-- Spoken description of the top-right Skip link. -->
+    <string name="onboarding_skip_description" volt:screen="Setup header" volt:purpose="accessibility description">Skip setup for now</string>
+    <!-- Small counter at the top right of each step: %1$d is the step number, 7 the number of steps. -->
+    <string name="onboarding_step_counter" volt:screen="Setup header" volt:purpose="label"
+        volt:max="34dp@12.5sp">%1$d/7</string>
+    <!-- Spoken description of the progress bar: %1$d is the step number (1 to 7). -->
+    <string name="onboarding_progress_step" volt:screen="Setup header" volt:purpose="accessibility description">Step %1$d of 7</string>
+    <!-- Spoken description of the progress bar on "How would you like to set up?". -->
+    <string name="onboarding_progress_choose" volt:screen="Setup header" volt:purpose="accessibility description">Setup, choose a path</string>
+
+    <!-- ===================================================================== welcome -->
+
+    <!-- Big heading on the first screen: Volt works with the scooter directly, without any online account or server. -->
+    <string name="onboarding_welcome_title" volt:screen="Welcome" volt:purpose="title">Your scooter, no cloud</string>
+    <!-- Main button on the first screen. -->
+    <string name="onboarding_welcome_get_started" volt:screen="Welcome" volt:purpose="button">Get started</string>
+    <!-- Button and setup choice: restore a backup file of Volt (scooters, rides and settings). -->
+    <string name="onboarding_restore_backup" volt:screen="Welcome, setup choices" volt:purpose="button"
+        volt:dnt="Volt">Restore Volt backup</string>
+    <!-- Spoken description of the Restore Volt backup button on the first screen. -->
+    <string name="onboarding_welcome_restore_description" volt:screen="Welcome" volt:purpose="accessibility description"
+        volt:dnt="Volt">Restore Volt backup: scooters, rides, history, dashboards and settings</string>
+    <!-- Link on the first screen: skip straight to importing an owner setup file. -->
+    <string name="onboarding_welcome_have_owner_file" volt:screen="Welcome" volt:purpose="link"
+        volt:safety="owner-key">I already have an owner file</string>
+
+    <!-- Welcome tile under a lock icon: Volt locks and unlocks the scooter. One short word; the tile is about 62dp wide. -->
+    <string name="onboarding_welcome_tile_lock" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="full" volt:max="62dp@12.5sp" volt:safety="lock">Lock</string>
+    <!-- Shorter form of onboarding_welcome_tile_lock, used only when the full word does not fit the tile. -->
+    <string name="onboarding_welcome_tile_lock_short" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="short" volt:max="62dp@12.5sp" volt:safety="lock">Lock</string>
+    <!-- Welcome tile under a slider icon: Volt changes the scooter's settings. One short word. -->
+    <string name="onboarding_welcome_tile_settings" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="full" volt:max="62dp@12.5sp">Settings</string>
+    <!-- Shorter form of onboarding_welcome_tile_settings, used only when the full word does not fit the tile. -->
+    <string name="onboarding_welcome_tile_settings_short" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="short" volt:max="62dp@12.5sp">Settings</string>
+    <!-- Welcome tile under a battery icon: Volt shows battery and charging. One short word. -->
+    <string name="onboarding_welcome_tile_battery" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="full" volt:max="62dp@12.5sp">Battery</string>
+    <!-- Shorter form of onboarding_welcome_tile_battery, used only when the full word does not fit the tile. -->
+    <string name="onboarding_welcome_tile_battery_short" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="short" volt:max="62dp@12.5sp">Battery</string>
+    <!-- Welcome tile under a route icon: Volt records rides. One short word. -->
+    <string name="onboarding_welcome_tile_rides" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="full" volt:max="62dp@12.5sp">Rides</string>
+    <!-- Shorter form of onboarding_welcome_tile_rides, used only when the full word does not fit the tile. -->
+    <string name="onboarding_welcome_tile_rides_short" volt:screen="Welcome tiles" volt:purpose="label"
+        volt:ladder="short" volt:max="62dp@12.5sp">Rides</string>
+    <!-- Spoken summary of the four welcome tiles (Lock, Settings, Battery, Rides). -->
+    <string name="onboarding_welcome_tiles_description" volt:screen="Welcome tiles" volt:purpose="accessibility description"
+        volt:dnt="Bluetooth">Lock, settings, battery and rides, over Bluetooth</string>
+
+    <!-- ===================================================================== choose a path -->
+
+    <!-- Heading of the screen that lists the setup methods. -->
+    <string name="onboarding_path_title" volt:screen="Setup choices" volt:purpose="title">How would you like to set up?</string>
+    <!-- Setup method: a website on a computer reads the owner key from the phone over a USB cable. -->
+    <string name="onboarding_path_webadb" volt:screen="Setup choices" volt:purpose="option"
+        volt:dnt="Chrome|USB">Use Chrome and a USB cable</string>
+    <!-- Under "Use Chrome and a USB cable": needs a computer, takes a few minutes. -->
+    <string name="onboarding_path_webadb_detail" volt:screen="Setup choices" volt:purpose="option detail">Computer · a few minutes</string>
+    <!-- Small chip above the recommended setup method. -->
+    <string name="onboarding_path_recommended" volt:screen="Setup choices" volt:purpose="chip">Recommended</string>
+    <!-- Under "Restore Volt backup": what a Volt backup brings back. -->
+    <string name="onboarding_path_restore_detail" volt:screen="Setup choices" volt:purpose="option detail">Scooters, rides, dashboards &amp; settings</string>
+    <!-- Setup method: a helper program on a computer captures the owner key while NAVEE's app connects. -->
+    <string name="onboarding_path_capture" volt:screen="Setup choices" volt:purpose="option"
+        volt:safety="owner-key" volt:dnt="NAVEE">Capture it from the NAVEE app</string>
+    <!-- Under "Capture it from the NAVEE app": needs a computer, about 10 minutes. -->
+    <string name="onboarding_path_capture_detail" volt:screen="Setup choices" volt:purpose="option detail">Computer · 10 min</string>
+    <!-- Setup method: the Shizuku app on this phone does the capture, no computer needed. -->
+    <string name="onboarding_path_shizuku" volt:screen="Setup choices" volt:purpose="option"
+        volt:dnt="Shizuku">Use Shizuku on this phone</string>
+    <!-- Under "Use Shizuku on this phone": no computer needed; needs Android 11 or newer. -->
+    <string name="onboarding_path_shizuku_detail" volt:screen="Setup choices" volt:purpose="option detail"
+        volt:dnt="Android 11+">No computer · Android 11+</string>
+    <!-- Setup method: import an owner setup file made earlier. It holds the owner key only. -->
+    <string name="onboarding_path_owner_file" volt:screen="Setup choices" volt:purpose="option"
+        volt:safety="owner-key">Import an owner setup file</string>
+    <!-- Under "Import an owner setup file": it gives access to the scooter but brings back no rides or history. -->
+    <string name="onboarding_path_owner_file_detail" volt:screen="Setup choices" volt:purpose="option detail"
+        volt:safety="owner-key">Scooter access only · no rides or history</string>
+    <!-- Setup method: type the 12-character owner identity by hand. -->
+    <string name="onboarding_path_identity" volt:screen="Setup choices" volt:purpose="option"
+        volt:safety="owner-key">Enter a 12-character identity</string>
+    <!-- Toast, and the end of the spoken description of the Shizuku choice, on Android 10 and older. -->
+    <string name="onboarding_needs_android_11" volt:screen="Setup choices" volt:purpose="message"
+        volt:dnt="Android">Needs Android 11 or newer</string>
+    <!-- Spoken description of a setup method: %1$s is its name. -->
+    <string name="onboarding_option_spoken" volt:screen="Setup choices" volt:purpose="accessibility description">%1$s</string>
+    <!-- Spoken description of a setup method that is not available: %1$s is its name. -->
+    <string name="onboarding_option_spoken_unavailable" volt:screen="Setup choices" volt:purpose="accessibility description"
+        volt:dnt="Android">%1$s. Needs Android 11 or newer</string>
+    <!-- Spoken description of a setup method: %1$s is its name, %2$s its detail line. -->
+    <string name="onboarding_option_spoken_detail" volt:screen="Setup choices" volt:purpose="accessibility description">%1$s. %2$s</string>
+    <!-- Spoken description of an unavailable setup method: %1$s is its name, %2$s its detail line. -->
+    <string name="onboarding_option_spoken_detail_unavailable" volt:screen="Setup choices" volt:purpose="accessibility description"
+        volt:dnt="Android">%1$s. %2$s. Needs Android 11 or newer</string>
+    <!-- Spoken description of a setup method: %1$s is its name, %2$s its chip (Recommended). -->
+    <string name="onboarding_option_spoken_chip" volt:screen="Setup choices" volt:purpose="accessibility description">%1$s, %2$s</string>
+    <!-- Spoken description of an unavailable setup method: %1$s is its name, %2$s its chip. -->
+    <string name="onboarding_option_spoken_chip_unavailable" volt:screen="Setup choices" volt:purpose="accessibility description"
+        volt:dnt="Android">%1$s, %2$s. Needs Android 11 or newer</string>
+    <!-- Spoken description of a setup method: %1$s is its name, %2$s its chip (Recommended), %3$s its detail line. -->
+    <string name="onboarding_option_spoken_chip_detail" volt:screen="Setup choices" volt:purpose="accessibility description">%1$s, %2$s. %3$s</string>
+    <!-- Spoken description of an unavailable setup method: %1$s is its name, %2$s its chip, %3$s its detail line. -->
+    <string name="onboarding_option_spoken_chip_detail_unavailable" volt:screen="Setup choices" volt:purpose="accessibility description"
+        volt:dnt="Android">%1$s, %2$s. %3$s. Needs Android 11 or newer</string>
+    <!-- Main button on most setup steps. -->
+    <string name="onboarding_continue" volt:screen="Setup" volt:purpose="button">Continue</string>
+    <!-- Toast: an owner file was already picked; it must be imported before choosing the Shizuku method. -->
+    <string name="onboarding_finish_import_first" volt:screen="Setup choices" volt:purpose="message"
+        volt:safety="owner-key">Finish importing your selected owner file first.</string>
+    <!-- Dialog title after tapping Skip. -->
+    <string name="onboarding_skip_title" volt:screen="Skip dialog" volt:purpose="title">Skip setup for now?</string>
+    <!-- Dialog message: the scooter can be added later from the More tab. "More" is the name of Volt's tab. -->
+    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add it later in More.</string>
+    <!-- Dialog button: stay in setup. -->
+    <string name="onboarding_skip_keep_going" volt:screen="Skip dialog" volt:purpose="button">Keep going</string>
+
+    <!-- ===================================================================== prepare -->
+
+    <!-- Heading of the checklist of what the owner needs before a computer capture. -->
+    <string name="onboarding_prepare_title" volt:screen="Before you start" volt:purpose="title">Before you start</string>
+    <!-- Checklist item: NAVEE's own app is installed and working. -->
+    <string name="onboarding_prepare_navee" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:dnt="NAVEE">NAVEE app works</string>
+    <!-- Under "NAVEE app works": signed in to NAVEE's app and it connects to the scooter. -->
+    <string name="onboarding_prepare_navee_detail" volt:screen="Before you start" volt:purpose="checklist detail">Signed in and connecting</string>
+    <!-- Checklist item for the browser method. -->
+    <string name="onboarding_prepare_browser_computer" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:dnt="Chrome|Edge">A computer with Chrome or Edge</string>
+    <!-- Checklist item for the computer helper method: ADB is Android's debugging tool, Python 3 a programming language. -->
+    <string name="onboarding_prepare_adb_computer" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:dnt="ADB|Python 3">A computer with ADB and Python 3</string>
+    <!-- Checklist item: Volt's source code downloaded and unpacked on the computer. -->
+    <string name="onboarding_prepare_source" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:dnt="Volt">The Volt source, extracted</string>
+    <!-- Under the source item: "Get source" is the link below the list; setup/capture-owner.py is a file name. -->
+    <string name="onboarding_prepare_source_detail" volt:screen="Before you start" volt:purpose="checklist detail"
+        volt:dnt="setup/capture-owner.py">Get source below; it holds setup/capture-owner.py</string>
+    <!-- Checklist item: a USB cable that carries data. -->
+    <string name="onboarding_prepare_cable" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:dnt="USB">A USB data cable</string>
+    <!-- Under the cable item: some cables only charge and cannot carry data. -->
+    <string name="onboarding_prepare_cable_detail" volt:screen="Before you start" volt:purpose="checklist detail">Not charge-only</string>
+    <!-- Checklist item: the scooter is parked and switched on. -->
+    <string name="onboarding_prepare_parked" volt:screen="Before you start" volt:purpose="checklist item"
+        volt:safety="ride">Scooter parked and powered on</string>
+    <!-- Under the scooter item: other scooter apps would hold the Bluetooth connection. -->
+    <string name="onboarding_prepare_parked_detail" volt:screen="Before you start" volt:purpose="checklist detail">Close any other scooter apps</string>
+    <!-- Link: where to download ADB. -->
+    <string name="onboarding_prepare_where_adb" volt:screen="Before you start" volt:purpose="link"
+        volt:dnt="ADB">Where do I get ADB?</string>
+    <!-- Spoken description of that link: it opens Google's Platform-Tools download page. -->
+    <string name="onboarding_prepare_where_adb_description" volt:screen="Before you start" volt:purpose="accessibility description"
+        volt:dnt="ADB|Platform-Tools">Where do I get ADB? Opens the Platform-Tools download</string>
+    <!-- Link: download Volt's source bundle, which holds the capture helper. -->
+    <string name="onboarding_prepare_get_source" volt:screen="Before you start" volt:purpose="link">Get source</string>
+    <!-- Spoken description of the Get source link. -->
+    <string name="onboarding_prepare_get_source_description" volt:screen="Before you start" volt:purpose="accessibility description">Get source. Opens the source bundle with the capture helper</string>
+    <!-- Toast: the phone has no web browser to open a link with. -->
+    <string name="onboarding_no_browser" volt:screen="Setup" volt:purpose="message">No browser found</string>
+
+    <!-- ===================================================================== USB debugging -->
+
+    <!-- Heading: turn on Android's USB debugging. Use Android's own name for the setting. -->
+    <string name="onboarding_usb_title" volt:screen="Turn on USB debugging" volt:purpose="title"
+        volt:dnt="USB">Turn on USB debugging</string>
+    <!-- Mock of Android's Settings: the title of the "About phone" page. Use the exact name Android's Settings app shows in this language. -->
+    <string name="onboarding_mock_about_phone" volt:screen="Turn on USB debugging, mock Settings" volt:purpose="mock system text">About phone</string>
+    <!-- Mock of Android's Settings, "About phone" page: the "Android version" row. Use the exact name Android shows in this language. -->
+    <string name="onboarding_mock_android_version" volt:screen="Turn on USB debugging, mock Settings" volt:purpose="mock system text"
+        volt:dnt="Android">Android version</string>
+    <!-- Mock of Android's Settings, "About phone" page: the "Build number" row to tap seven times. Use the exact name Android shows in this language. -->
+    <string name="onboarding_mock_build_number" volt:screen="Turn on USB debugging, mock Settings" volt:purpose="mock system text">Build number</string>
+    <!-- Spoken description of the mock Settings picture. Use Android's own names for Settings, About phone and Build number. -->
+    <string name="onboarding_usb_example_description" volt:screen="Turn on USB debugging" volt:purpose="accessibility description">Example: Settings, About phone. Tap Build number seven times.</string>
+    <!-- Where to go in Android's Settings app: Settings, then About phone. Use the names Android's Settings app shows in this language. › points to the next menu; right-to-left languages mirror it automatically. -->
+    <string name="onboarding_usb_path_about" volt:screen="Turn on USB debugging" volt:purpose="instruction">Settings › About phone</string>
+    <!-- Under that path: tap the Build number row seven times (this turns on Developer options). Keep the ** marks around Android's name for the row. -->
+    <string name="onboarding_usb_tap_build" volt:screen="Turn on USB debugging" volt:purpose="instruction">Tap **Build number** seven times</string>
+    <!-- Where to go in Android's Settings app: Settings, System, Developer options. Use the names Android's Settings app shows in this language; › mirrors automatically in right-to-left languages. -->
+    <string name="onboarding_usb_path_developer" volt:screen="Turn on USB debugging" volt:purpose="instruction">Settings › System › Developer options</string>
+    <!-- Under that path: switch on USB debugging. Keep the ** marks around Android's name for the switch. -->
+    <string name="onboarding_usb_turn_on" volt:screen="Turn on USB debugging" volt:purpose="instruction"
+        volt:dnt="USB">Turn on **USB debugging**</string>
+    <!-- Main button: USB debugging is now on. -->
+    <string name="onboarding_usb_done" volt:screen="Turn on USB debugging" volt:purpose="button">I\'ve turned it on</string>
+    <!-- Link: open the phone's Settings app. -->
+    <string name="onboarding_open_settings" volt:screen="Turn on USB debugging" volt:purpose="link">Open Settings</string>
+
+    <!-- ===================================================================== computer -->
+
+    <!-- Heading: connect the phone to the computer with the cable. -->
+    <string name="onboarding_computer_title" volt:screen="Plug into your computer" volt:purpose="title">Plug into your computer</string>
+    <!-- Mock of Android's own prompt: its title. Use the exact words Android's "Allow USB debugging?" prompt shows in this language. -->
+    <string name="onboarding_mock_allow_title" volt:screen="Plug into your computer, mock prompt" volt:purpose="mock system text"
+        volt:dnt="USB">Allow USB debugging?</string>
+    <!-- Mock of Android's own prompt: its message, with a shortened example fingerprint on the second line. Use the words Android shows in this language; keep the example fingerprint 4F:2A:…:9C as it is. -->
+    <string name="onboarding_mock_fingerprint" volt:screen="Plug into your computer, mock prompt" volt:purpose="mock system text"
+        volt:dnt="RSA|4F:2A:…:9C">The computer\'s RSA key fingerprint is:\n4F:2A:…:9C</string>
+    <!-- Mock of Android's own prompt: the checkbox label (drawn unticked). Use the exact words Android's prompt shows in this language. -->
+    <string name="onboarding_mock_always_allow" volt:screen="Plug into your computer, mock prompt" volt:purpose="mock system text"
+        volt:safety="privacy">Always allow from this computer</string>
+    <!-- Mock of Android's own prompt: its Cancel button. Use the word Android's prompt shows in this language. -->
+    <string name="onboarding_mock_cancel" volt:screen="Plug into your computer, mock prompt" volt:purpose="mock system text">Cancel</string>
+    <!-- Mock of Android's own prompt: its Allow button. Use the word Android's prompt shows in this language. -->
+    <string name="onboarding_mock_allow" volt:screen="Plug into your computer, mock prompt" volt:purpose="mock system text">Allow</string>
+    <!-- Spoken description of the mock prompt. Use Android's own words for the prompt and its checkbox. -->
+    <string name="onboarding_computer_example_description" volt:screen="Plug into your computer" volt:purpose="accessibility description"
+        volt:safety="privacy" volt:dnt="USB">Example: the Allow USB debugging prompt on your phone, with Always allow from this computer unticked.</string>
+    <!-- Instruction 1: connect the phone to the computer with the data cable. -->
+    <string name="onboarding_computer_connect_cable" volt:screen="Plug into your computer" volt:purpose="instruction">Connect your phone with the data cable</string>
+    <!-- Instruction 2: tap Allow on Android's prompt pictured above. Keep the ** marks around Android's button word. -->
+    <string name="onboarding_computer_tap_allow" volt:screen="Plug into your computer" volt:purpose="instruction">Tap **Allow** on the prompt above</string>
+    <!-- Instruction 3: the computer command `adb devices` prints the word "device" next to the phone. Keep `adb devices` and **device** exactly as written: they are what the computer prints. -->
+    <string name="onboarding_computer_adb_devices" volt:screen="Plug into your computer" volt:purpose="instruction"
+        volt:dnt="`adb devices`|**device**">`adb devices` shows **device**</string>
+    <!-- Main button: `adb devices` printed "device". Keep the word device in English: it is what the computer prints. -->
+    <string name="onboarding_computer_shows_device" volt:screen="Plug into your computer" volt:purpose="button"
+        volt:dnt="device">It shows “device”</string>
+    <!-- Link: `adb devices` printed "unauthorized" instead. Keep the word unauthorized in English: it is what the computer prints. -->
+    <string name="onboarding_computer_unauthorized" volt:screen="Plug into your computer" volt:purpose="link"
+        volt:dnt="unauthorized">It says unauthorized</string>
+    <!-- Help dialog title: `adb devices` shows the phone as unauthorized. -->
+    <string name="onboarding_computer_unauthorized_title" volt:screen="Plug into your computer, help" volt:purpose="title"
+        volt:dnt="unauthorized">Phone says unauthorized</string>
+    <!-- Help dialog message: three numbered lines, each a number and two spaces. Use Android's own words for the prompt, Developer options and "Revoke USB debugging authorizations". -->
+    <string name="onboarding_computer_unauthorized_help" volt:screen="Plug into your computer, help" volt:purpose="message"
+        volt:dnt="USB">"1  Unlock your phone, unplug the cable and plug it back in.\n2  Tap Allow on the “Allow USB debugging?” prompt.\n3  No prompt? In Developer options, tap Revoke USB debugging authorizations, then reconnect."</string>
+
+    <!-- ===================================================================== capture helper -->
+
+    <!-- Heading: run the capture helper program on the computer. -->
+    <string name="onboarding_helper_title" volt:screen="Run the capture helper" volt:purpose="title"
+        volt:safety="owner-key">Run the capture helper</string>
+    <!-- Above the command box: in the unpacked source folder on the computer, run this command. -->
+    <string name="onboarding_helper_run_in_folder" volt:screen="Run the capture helper" volt:purpose="instruction">In the extracted source folder on your computer, run:</string>
+    <!-- Spoken description of the command box: %1$s is the command, always in English (python3 setup/capture-owner.py - -push). -->
+    <string name="onboarding_helper_command_description" volt:screen="Run the capture helper" volt:purpose="accessibility description">Command: %1$s</string>
+    <!-- Button in the command box: copy the command. -->
+    <string name="onboarding_helper_copy" volt:screen="Run the capture helper" volt:purpose="button"
+        volt:max="80dp@14sp">Copy</string>
+    <!-- Spoken description of the Copy button. -->
+    <string name="onboarding_helper_copy_description" volt:screen="Run the capture helper" volt:purpose="accessibility description">Copy command</string>
+    <!-- Instruction 1: connect to the scooter in NAVEE's app while the helper waits. -->
+    <string name="onboarding_helper_connect_navee" volt:screen="Run the capture helper" volt:purpose="instruction"
+        volt:dnt="NAVEE">Connect in NAVEE</string>
+    <!-- Instruction 2: the helper waits up to 90 seconds; "s" is the seconds symbol. -->
+    <string name="onboarding_helper_wait" volt:screen="Run the capture helper" volt:purpose="instruction">Wait up to 90 s</string>
+    <!-- Instruction 3: the owner setup file is saved to the phone's Downloads folder. Use Android's name for Downloads. -->
+    <string name="onboarding_helper_file_saves" volt:screen="Run the capture helper" volt:purpose="instruction"
+        volt:safety="owner-key">File saves to Downloads</string>
+    <!-- Main button: the helper has finished. -->
+    <string name="onboarding_helper_finished" volt:screen="Run the capture helper" volt:purpose="button">The helper finished</string>
+    <!-- Link, help title and sheet heading: the capture did not work. -->
+    <string name="onboarding_capture_failed" volt:screen="Run the capture helper, troubleshooting" volt:purpose="title">Capture didn\'t work</string>
+    <!-- Label of the copied command on the clipboard (some phones show it). -->
+    <string name="onboarding_helper_clip_label" volt:screen="Run the capture helper" volt:purpose="clipboard label">Capture command</string>
+    <!-- Toast after copying the command (Android 12 and older). -->
+    <string name="onboarding_helper_copied" volt:screen="Run the capture helper" volt:purpose="message">Command copied.</string>
+    <!-- Toast when the command could not be copied. -->
+    <string name="onboarding_helper_copy_failed" volt:screen="Run the capture helper" volt:purpose="message">Copy failed</string>
+
+    <!-- ===================================================================== browser -->
+
+    <!-- Heading: connect the phone to a website through a computer's browser. -->
+    <string name="onboarding_browser_title" volt:screen="Connect through your browser" volt:purpose="title">Connect through your browser</string>
+    <!-- Above the website address: open this address on the computer. -->
+    <string name="onboarding_browser_open" volt:screen="Connect through your browser" volt:purpose="instruction">On your computer, open:</string>
+    <!-- Instruction 1. -->
+    <string name="onboarding_browser_connect_cable" volt:screen="Connect through your browser" volt:purpose="instruction"
+        volt:dnt="USB">Connect your phone with a USB data cable</string>
+    <!-- Instruction 2: choose this phone in Chrome's device list. -->
+    <string name="onboarding_browser_pick_phone" volt:screen="Connect through your browser" volt:purpose="instruction"
+        volt:dnt="Chrome">Pick your phone in Chrome</string>
+    <!-- Instruction 3: approve Android's USB debugging prompt on the phone. -->
+    <string name="onboarding_browser_approve" volt:screen="Connect through your browser" volt:purpose="instruction"
+        volt:dnt="USB">Approve USB debugging on this phone</string>
+    <!-- Under instruction 3: do not tick the prompt's "Always allow from this computer" box. Use Android's own words for the box, and keep the ** marks around them. -->
+    <string name="onboarding_browser_leave_unchecked" volt:screen="Connect through your browser" volt:purpose="instruction"
+        volt:safety="privacy">Leave **Always allow from this computer** unchecked</string>
+    <!-- Main button: the website shows the phone as connected. -->
+    <string name="onboarding_browser_connected" volt:screen="Connect through your browser" volt:purpose="button">The website connected</string>
+    <!-- Link: the phone is not in Chrome's device list. -->
+    <string name="onboarding_browser_not_listed" volt:screen="Connect through your browser" volt:purpose="link">Phone isn\'t listed</string>
+    <!-- Help dialog title. -->
+    <string name="onboarding_browser_help_title" volt:screen="Connect through your browser, help" volt:purpose="title"
+        volt:dnt="Chrome">Connecting in Chrome</string>
+    <!-- Help dialog message: four bulleted lines, each a bullet and two spaces. -->
+    <string name="onboarding_browser_help" volt:screen="Connect through your browser, help" volt:purpose="message"
+        volt:dnt="USB|Android Studio|ADB|Chrome|Edge|Safari|Firefox">"•  Phone unlocked, USB debugging on\n•  A data cable, not charge-only\n•  Android Studio, other ADB tools and setup tabs closed\n•  Chrome or Edge, not Safari or Firefox"</string>
+    <!-- Heading while the website captures the owner key. -->
+    <string name="onboarding_browser_capture_title" volt:screen="Approve the capture" volt:purpose="title"
+        volt:safety="owner-key">Approve the capture on the website</string>
+    <!-- Keep the cable plugged in until the website has finished cleaning up (it turns logging back off). -->
+    <string name="onboarding_browser_keep_cable" volt:screen="Approve the capture" volt:purpose="instruction"
+        volt:safety="privacy">Keep the cable in until cleanup finishes.</string>
+    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep the ** marks; use the button word the website shows. -->
+    <string name="onboarding_browser_start" volt:screen="Approve the capture" volt:purpose="instruction">Read the capture explanation and choose **Start**</string>
+    <!-- Instruction 2: in NAVEE's app, select the scooter and connect. -->
+    <string name="onboarding_browser_select_scooter" volt:screen="Approve the capture" volt:purpose="instruction"
+        volt:dnt="NAVEE">Select your scooter in NAVEE and connect</string>
+    <!-- Under instruction 2: it can take up to 90 seconds; "s" is the seconds symbol. Keep the ** marks. -->
+    <string name="onboarding_browser_up_to" volt:screen="Approve the capture" volt:purpose="instruction">Up to **90 s**</string>
+    <!-- Instruction 3: after cleanup, press the website's button that saves the file to the phone. Keep the ** marks; use the button words the website shows. -->
+    <string name="onboarding_browser_save" volt:screen="Approve the capture" volt:purpose="instruction"
+        volt:safety="owner-key">After cleanup, choose **Save to phone Downloads**</string>
+    <!-- Warning: the saved file works like a key to the scooter. Never soften it. -->
+    <string name="onboarding_browser_key_private" volt:screen="Approve the capture" volt:purpose="warning"
+        volt:safety="owner-key">This file is a scooter key. Keep it private.</string>
+    <!-- Main button: the file is now in the phone's Downloads folder. -->
+    <string name="onboarding_browser_in_downloads" volt:screen="Approve the capture" volt:purpose="button"
+        volt:safety="owner-key">The file is in Downloads</string>
+    <!-- Help dialog title. -->
+    <string name="onboarding_browser_capture_help_title" volt:screen="Approve the capture, help" volt:purpose="title">Browser capture</string>
+    <!-- Help dialog message: three bulleted lines, each a bullet and two spaces. -->
+    <string name="onboarding_browser_capture_help" volt:screen="Approve the capture, help" volt:purpose="message"
+        volt:safety="privacy" volt:dnt="NAVEE">"•  NAVEE signed in, scooter nearby\n•  Other scooter apps closed\n•  Stopped early? Finish cleanup in the same browser first"</string>
+
+    <!-- ===================================================================== import -->
+
+    <!-- Heading of the import step after a phone-only (Shizuku) capture. -->
+    <string name="onboarding_import_shizuku_title" volt:screen="Import" volt:purpose="title"
+        volt:safety="owner-key">Your owner setup</string>
+    <!-- Heading of the import step. -->
+    <string name="onboarding_import_title" volt:screen="Import" volt:purpose="title"
+        volt:safety="owner-key">Import your owner file</string>
+    <!-- Explains which file to pick and what it restores. navee-owner-setup.json is a file name. -->
+    <string name="onboarding_import_pick" volt:screen="Import" volt:purpose="instruction"
+        volt:safety="owner-key" volt:dnt="navee-owner-setup.json">Pick navee-owner-setup.json. This restores scooter access only, not rides or other app data.</string>
+    <!-- File card while the owner profile loads. -->
+    <string name="onboarding_import_loading" volt:screen="Import" volt:purpose="status">Loading your owner profile…</string>
+    <!-- File card before a file is picked. -->
+    <string name="onboarding_import_no_file" volt:screen="Import" volt:purpose="status">No file chosen yet</string>
+    <!-- Error: the picked file is not an owner setup file. -->
+    <string name="onboarding_import_not_owner_file" volt:screen="Import" volt:purpose="error"
+        volt:safety="owner-key">Not an owner file.</string>
+    <!-- Warning: the owner file works like a key to the scooter. Never soften it. -->
+    <string name="onboarding_import_keep_private" volt:screen="Import" volt:purpose="warning"
+        volt:safety="owner-key">This file unlocks your scooter. Keep it private.</string>
+    <!-- Main button: pick the owner file. -->
+    <string name="onboarding_import_choose" volt:screen="Import" volt:purpose="button"
+        volt:safety="owner-key">Choose owner file</string>
+    <!-- Link: type the 12-character owner identity instead. -->
+    <string name="onboarding_import_enter_identity" volt:screen="Import" volt:purpose="link"
+        volt:safety="owner-key">Enter the identity instead</string>
+    <!-- Link: restore a full Volt backup instead. -->
+    <string name="onboarding_import_restore_instead" volt:screen="Import" volt:purpose="link"
+        volt:dnt="Volt">Restore Volt backup instead</string>
+    <!-- The kind of access an owner file gives: a shared user's access, not the owner's. Keep "shared" and "owner" distinct; lower case, it follows a scooter name. -->
+    <string name="onboarding_role_shared" volt:screen="Import" volt:purpose="label"
+        volt:safety="owner-key">shared role</string>
+    <!-- The kind of access an owner file gives: the owner's. Keep "owner" and "shared" distinct; lower case, it follows a scooter name. -->
+    <string name="onboarding_role_owner" volt:screen="Import" volt:purpose="label"
+        volt:safety="owner-key">owner role</string>
+    <!-- Card title after a file was read: an owner identity was found in it. -->
+    <string name="onboarding_import_found" volt:screen="Import" volt:purpose="title"
+        volt:safety="owner-key">Owner identity found</string>
+    <!-- Card line: %1$s is the scooter's name from the file, %2$s its role (onboarding_role_owner or onboarding_role_shared). -->
+    <string name="onboarding_import_summary" volt:screen="Import" volt:purpose="detail"
+        volt:safety="owner-key">%1$s · %2$s</string>
+    <!-- Spoken description of that card: %1$s is the card line (name · role). -->
+    <string name="onboarding_import_found_description" volt:screen="Import" volt:purpose="accessibility description"
+        volt:safety="owner-key">Owner identity found, stored privately on this phone. %1$s</string>
+    <!-- After a phone-only capture: the key is stored privately; now remove Volt's access in Shizuku. Never soften it. -->
+    <string name="onboarding_import_revoke_shizuku" volt:screen="Import" volt:purpose="warning"
+        volt:safety="owner-key,privacy" volt:dnt="Shizuku">Stored privately. Revoke Shizuku now.</string>
+    <!-- Link: delete the copy of the owner file left in the Downloads folder. -->
+    <string name="onboarding_import_delete_copy" volt:screen="Import" volt:purpose="link"
+        volt:safety="owner-key">Delete Downloads copy</string>
+    <!-- Toast after the Downloads copy was deleted. -->
+    <string name="onboarding_import_copy_deleted" volt:screen="Import" volt:purpose="message"
+        volt:safety="owner-key">Downloads copy deleted</string>
+    <!-- Toast when the Downloads copy could not be deleted: delete it in the Files app instead. -->
+    <string name="onboarding_import_copy_not_deleted" volt:screen="Import" volt:purpose="message"
+        volt:safety="owner-key">Couldn\'t delete · remove it in Files</string>
+    <!-- Main button on the import and identity steps: save the scooter and go on. -->
+    <string name="onboarding_save_continue" volt:screen="Import, Enter owner identity" volt:purpose="button">Save and continue</string>
+    <!-- Link: open the Shizuku app (to remove Volt's access there). -->
+    <string name="onboarding_open_shizuku" volt:screen="Import" volt:purpose="link"
+        volt:dnt="Shizuku">Open Shizuku</string>
+    <!-- Link: pick another owner file. -->
+    <string name="onboarding_import_choose_different" volt:screen="Import" volt:purpose="link">Choose a different file</string>
+    <!-- Toast: the Shizuku app is not on this phone. -->
+    <string name="onboarding_shizuku_missing" volt:screen="Import, done" volt:purpose="message"
+        volt:dnt="Shizuku">Shizuku isn\'t installed</string>
+    <!-- Toast: stop the ride recording before changing the scooter. -->
+    <string name="onboarding_stop_recording" volt:screen="Import" volt:purpose="message"
+        volt:safety="ride">Stop recording first</string>
+
+    <!-- ===================================================================== identity -->
+
+    <!-- Heading: type the owner identity. -->
+    <string name="onboarding_identity_title" volt:screen="Enter owner identity" volt:purpose="title"
+        volt:safety="owner-key">Enter owner identity</string>
+    <!-- Under the heading: the identity is not a password (it is a code read from the scooter's owner data). Never soften or invert it. -->
+    <string name="onboarding_identity_not_password" volt:screen="Enter owner identity" volt:purpose="instruction"
+        volt:safety="owner-key">Not a password.</string>
+    <!-- Hint read by screen readers in the identity field: 12 characters, or a pasted private backup. -->
+    <string name="onboarding_identity_hint" volt:screen="Enter owner identity" volt:purpose="hint"
+        volt:safety="owner-key">Owner identity, 12 characters, or a private backup</string>
+    <!-- Spoken description of the Save and continue button while Volt is still starting. -->
+    <string name="onboarding_save_continue_starting" volt:screen="Enter owner identity" volt:purpose="accessibility description">Save and continue, starting</string>
+    <!-- Status line: a pasted private backup was recognised; it gives a shared user's access. Keep "shared" and "owner" distinct. -->
+    <string name="onboarding_identity_backup_shared" volt:screen="Enter owner identity" volt:purpose="status"
+        volt:safety="owner-key">Private backup recognised · shared role</string>
+    <!-- Status line: a pasted private backup was recognised; it gives the owner's access. Keep "owner" and "shared" distinct. -->
+    <string name="onboarding_identity_backup_owner" volt:screen="Enter owner identity" volt:purpose="status"
+        volt:safety="owner-key">Private backup recognised · owner role</string>
+    <!-- Error: the identity takes only the digits 0 to 9 and the letters A to F. Keep the characters as written. -->
+    <string name="onboarding_identity_hex_only" volt:screen="Enter owner identity" volt:purpose="error"
+        volt:dnt="0–9|A–F">Only 0–9 and A–F.</string>
+    <!-- Toast: an owner file picked earlier could not be removed; try again. -->
+    <string name="onboarding_identity_clear_failed" volt:screen="Enter owner identity" volt:purpose="message"
+        volt:safety="owner-key">Couldn\'t clear old file. Retry.</string>
+
+    <!-- ===================================================================== nearby devices -->
+
+    <!-- Heading: allow Android's Nearby devices permission. Use Android's own name for the permission. -->
+    <string name="onboarding_nearby_title" volt:screen="Allow Nearby devices" volt:purpose="title">Allow Nearby devices</string>
+    <!-- Volt uses the permission only for Bluetooth to the scooter, with no servers. -->
+    <string name="onboarding_nearby_body" volt:screen="Allow Nearby devices" volt:purpose="message"
+        volt:safety="privacy" volt:dnt="Bluetooth">Bluetooth only. No servers.</string>
+    <!-- Main button: ask for the permission. -->
+    <string name="onboarding_nearby_allow" volt:screen="Allow Nearby devices" volt:purpose="button">Allow</string>
+    <!-- Link: open Volt's page in Android's Settings (after the permission was refused). -->
+    <string name="onboarding_nearby_app_settings" volt:screen="Allow Nearby devices" volt:purpose="link">Open app settings</string>
+
+    <!-- ===================================================================== connect -->
+
+    <!-- Heading while looking for the scooter. -->
+    <string name="onboarding_connect_title" volt:screen="Find your scooter" volt:purpose="title">Find your scooter</string>
+    <!-- Checklist row 1: the scooter was found over Bluetooth. -->
+    <string name="onboarding_connect_found" volt:screen="Find your scooter" volt:purpose="checklist item">Found your scooter</string>
+    <!-- Checklist row 2: the Bluetooth connection is open. -->
+    <string name="onboarding_connect_bluetooth" volt:screen="Find your scooter" volt:purpose="checklist item"
+        volt:dnt="Bluetooth">Bluetooth connected</string>
+    <!-- Checklist row 3: the scooter is checking the owner identity. -->
+    <string name="onboarding_connect_checking" volt:screen="Find your scooter" volt:purpose="checklist item"
+        volt:safety="owner-key">Checking owner identity</string>
+    <!-- Checklist row 4: Volt saves this scooter. -->
+    <string name="onboarding_connect_saving" volt:screen="Find your scooter" volt:purpose="checklist item">Saving this scooter</string>
+    <!-- Main button: connect to the scooter. -->
+    <string name="onboarding_connect_button" volt:screen="Find your scooter" volt:purpose="button">Connect</string>
+    <!-- Heading while connecting: %1$s is the scooter's name (as the owner typed it). -->
+    <string name="onboarding_connect_connecting" volt:screen="Find your scooter" volt:purpose="title">Connecting to %1$s</string>
+    <!-- Checklist row 1 while the scan runs. -->
+    <string name="onboarding_connect_looking" volt:screen="Find your scooter" volt:purpose="checklist item">Looking for your scooter</string>
+    <!-- Spoken description of a finished checklist row: %1$s is the row's text. -->
+    <string name="onboarding_connect_row_done" volt:screen="Find your scooter" volt:purpose="accessibility description">%1$s, done</string>
+    <!-- Spoken description of the checklist row in progress: %1$s is the row's text. -->
+    <string name="onboarding_connect_row_in_progress" volt:screen="Find your scooter" volt:purpose="accessibility description">%1$s, in progress</string>
+    <!-- Spoken description of a checklist row not reached yet: %1$s is the row's text. Never say it is done. -->
+    <string name="onboarding_connect_row_not_yet" volt:screen="Find your scooter" volt:purpose="accessibility description">%1$s, not yet</string>
+    <!-- Status line while Volt's connection service starts. -->
+    <string name="onboarding_connect_starting" volt:screen="Find your scooter" volt:purpose="status">Starting…</string>
+    <!-- Status line while the owner profile is still being saved. -->
+    <string name="onboarding_connect_waiting_profile" volt:screen="Find your scooter" volt:purpose="status"
+        volt:safety="owner-key">Waiting for your owner profile…</string>
+    <!-- Status line when no scooter was found: is the scooter switched on, and is NAVEE's app closed (it would hold the connection)? -->
+    <string name="onboarding_connect_is_it_on" volt:screen="Find your scooter" volt:purpose="status"
+        volt:dnt="NAVEE">Is it on? Is NAVEE closed?</string>
+    <!-- Main button when the service cannot start yet: ask for Android's Nearby devices permission. -->
+    <string name="onboarding_connect_allow_nearby" volt:screen="Find your scooter" volt:purpose="button">Allow Nearby devices</string>
+
+    <!-- ===================================================================== done -->
+
+    <!-- Big heading after the first connection. -->
+    <string name="onboarding_done_title" volt:screen="You\'re connected" volt:purpose="title">You\'re connected</string>
+    <!-- Under the heading when the scooter has no name. -->
+    <string name="onboarding_done_ready_default" volt:screen="You\'re connected" volt:purpose="message">Your scooter is ready.</string>
+    <!-- Under the heading: %1$s is the scooter's name (as the owner typed it). -->
+    <string name="onboarding_done_ready" volt:screen="You\'re connected" volt:purpose="message">%1$s is ready.</string>
+    <!-- Button: make a full Volt backup now. -->
+    <string name="onboarding_done_backup" volt:screen="You\'re connected" volt:purpose="button"
+        volt:dnt="Volt">Back up Volt</string>
+    <!-- Spoken description of that button: what a backup holds (it includes the scooter's owner access). -->
+    <string name="onboarding_done_backup_description" volt:screen="You\'re connected" volt:purpose="accessibility description"
+        volt:safety="owner-key" volt:dnt="Volt">Back up Volt: scooter access and all saved app data</string>
+    <!-- Reminder after a computer capture: switch USB debugging off again. Use Android's own name for the setting. -->
+    <string name="onboarding_done_usb_off" volt:screen="You\'re connected" volt:purpose="checklist item"
+        volt:safety="privacy" volt:dnt="USB">Turn off USB debugging</string>
+    <!-- Under that reminder. -->
+    <string name="onboarding_done_usb_off_detail" volt:screen="You\'re connected" volt:purpose="checklist detail">You don\'t need the computer any more</string>
+    <!-- Button after a phone-only capture: remove Volt's access in Shizuku. -->
+    <string name="onboarding_done_revoke" volt:screen="You\'re connected" volt:purpose="button"
+        volt:safety="privacy" volt:dnt="Shizuku">Revoke Shizuku</string>
+    <!-- Spoken description of that button. -->
+    <string name="onboarding_done_revoke_description" volt:screen="You\'re connected" volt:purpose="accessibility description"
+        volt:safety="privacy" volt:dnt="Shizuku|Volt">Revoke Shizuku. Opens Shizuku to remove Volt\'s access</string>
+    <!-- Main button: leave setup and open Volt's Home tab. "Home" is the name of Volt's tab. -->
+    <string name="onboarding_done_home" volt:screen="You\'re connected" volt:purpose="button">Go to Home</string>
+
+    <!-- ===================================================================== troubleshooting -->
+
+    <!-- Problem: `adb devices` does not list the phone as "device". -->
+    <string name="onboarding_fix_not_listed" volt:screen="Capture didn\'t work" volt:purpose="problem"
+        volt:dnt="device">Phone not listed as device</string>
+    <!-- Fix: approve Android's prompt and use a cable that carries data. -->
+    <string name="onboarding_fix_not_listed_detail" volt:screen="Capture didn\'t work" volt:purpose="fix">Approve prompt · use data cable</string>
+    <!-- Problem: NAVEE's app did not connect to the scooter. -->
+    <string name="onboarding_fix_navee" volt:screen="Capture didn\'t work" volt:purpose="problem"
+        volt:dnt="NAVEE">NAVEE didn\'t connect</string>
+    <!-- Fix: check that NAVEE's app connects on its own. -->
+    <string name="onboarding_fix_navee_detail" volt:screen="Capture didn\'t work" volt:purpose="fix"
+        volt:dnt="NAVEE">Check NAVEE connects alone</string>
+    <!-- Problem: the helper waited too long. -->
+    <string name="onboarding_fix_timeout" volt:screen="Capture didn\'t work" volt:purpose="problem">Helper timed out</string>
+    <!-- Fix: close other apps and run the helper again. -->
+    <string name="onboarding_fix_timeout_detail" volt:screen="Capture didn\'t work" volt:purpose="fix">Close other apps, rerun</string>
+    <!-- Problem: the helper will not overwrite an existing file. -->
+    <string name="onboarding_fix_exists" volt:screen="Capture didn\'t work" volt:purpose="problem">File already exists</string>
+    <!-- Fix: add the helper's option "- -output" with a new file name. Keep "- -output newname" exactly as written (without the space between the dashes): it is typed on the computer. -->
+    <string name="onboarding_fix_exists_detail" volt:screen="Capture didn\'t work" volt:purpose="fix"
+        volt:dnt="--output newname">Add --output newname</string>
+    <!-- Spoken description of a row with a title and a detail line: %1$s is the title, %2$s the detail. -->
+    <string name="onboarding_heading_detail" volt:screen="Setup" volt:purpose="accessibility description">%1$s. %2$s</string>
+
+    <!-- ===================================================================== shared pieces -->
+
+    <!-- Spoken state of a reminder row with a checkbox. -->
+    <string name="onboarding_tick_checked" volt:screen="Setup checklists" volt:purpose="accessibility state">Checked</string>
+    <!-- Spoken state of a reminder row with a checkbox. -->
+    <string name="onboarding_tick_not_checked" volt:screen="Setup checklists" volt:purpose="accessibility state">Not checked</string>
+    <!-- Spoken description of a numbered instruction: %1$d is its number, %2$s the instruction. -->
+    <string name="onboarding_numbered_spoken" volt:screen="Setup" volt:purpose="accessibility description">Step %1$d. %2$s</string>
+    <!-- Spoken description of a numbered instruction with a detail line: %1$d is its number, %2$s the instruction, %3$s the detail. -->
+    <string name="onboarding_numbered_spoken_detail" volt:screen="Setup" volt:purpose="accessibility description">Step %1$d. %2$s. %3$s</string>
+    <!-- Label above the scooter name field, and its spoken description. -->
+    <string name="onboarding_name_label" volt:screen="Import, Enter owner identity" volt:purpose="label">Name your scooter</string>
+    <!-- Placeholder in the empty scooter name field. -->
+    <string name="onboarding_name_hint" volt:screen="Import, Enter owner identity" volt:purpose="hint">Scooter name</string>
+    <!-- Toast: neither the wanted Settings page nor Android's Settings app could be opened. -->
+    <string name="onboarding_open_settings_app" volt:screen="Setup" volt:purpose="message">Open your phone\'s Settings app to continue.</string>
+    <!-- Spoken description of the scooter picture after connecting: %1$s is the model name (always as NAVEE writes it). -->
+    <string name="onboarding_hero_model_connected" volt:screen="Welcome, You\'re connected" volt:purpose="accessibility description"
+        volt:dnt="NAVEE">NAVEE %1$s scooter, connected</string>
+    <!-- Spoken description of the scooter picture after connecting, when the generic picture is shown. UT5 MAX is a model name. -->
+    <string name="onboarding_hero_connected" volt:screen="You\'re connected" volt:purpose="accessibility description"
+        volt:dnt="NAVEE UT5 MAX">NAVEE UT5 MAX scooter, connected</string>
+    <!-- Spoken description of the scooter picture on the welcome screens. UT5 MAX is a model name. -->
+    <string name="onboarding_hero" volt:screen="Welcome" volt:purpose="accessibility description"
+        volt:dnt="NAVEE UT5 MAX">NAVEE UT5 MAX scooter</string>
+</resources>

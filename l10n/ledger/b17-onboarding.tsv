@@ -1,0 +1,17 @@
+# Ledger for b17-onboarding: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/OnboardingScreen.java:457	["Setup step ", {"hole": "number(step)", "arg": 1, "type": "d"}, " of 7"]	onboarding_pane_step	template	
+src/com/jjricks/volt/OnboardingScreen.java:457	["Setup"]	onboarding_pane_setup	exact	
+src/com/jjricks/volt/OnboardingScreen.java:514	["Set up your scooter"]	onboarding_side_title	exact	
+src/com/jjricks/volt/OnboardingScreen.java:555	["Step ", {"hole": "n", "arg": 1, "type": "d"}, ", ", {"hole": "STEP_NAMES[n - 1]", "arg": 2, "type": "s", "as": "STEP_LABELS[n - 1]"}, ", ", {"hole": "(now ? \"current\" : done ? \"done\" : applies ? \"to do\" : \"not needed\")", "arg": 3, "type": "s", "as": "now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone() : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()"}]	onboarding_step_row	template	manual: the step name comes from STEP_LABELS, the catalog names of the English STEP_NAMES table by index (same English); the state word's ternary keeps its conditions, each branch one state key (rows below)
+src/com/jjricks/volt/OnboardingScreen.java:556	["current"]	onboarding_step_state_current	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["done"]	onboarding_step_state_done	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["to do"]	onboarding_step_state_to_do	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:556	["not needed"]	onboarding_step_state_not_needed	exact	manual: one branch of the step state ternary, now the third argument of onboarding_step_row
+src/com/jjricks/volt/OnboardingScreen.java:569	["Back"]	onboarding_back	exact	
+src/com/jjricks/volt/OnboardingScreen.java:578	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/OnboardingScreen.java:578	["Skip"]	onboarding_skip	exact	
+src/com/jjricks/volt/OnboardingScreen.java:582	["Cancel adding a scooter"]	onboarding_cancel_adding	exact	
+src/com/jjricks/volt/OnboardingScreen.java:582	["Skip setup for now"]	onboarding_skip_description	exact	
+src/com/jjricks/volt/OnboardingScreen.java:585	[{"hole": "n", "arg": 1, "type": "d"}, "/7"]	onboarding_step_counter	template	

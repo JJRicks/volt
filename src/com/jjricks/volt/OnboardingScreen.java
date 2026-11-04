@@ -98,6 +98,14 @@ public final class OnboardingScreen implements AppScreen {
     private static final int MAX_WIDTH_DP = 560;
     /** Unfolded and other wide screens put the step list beside the current step (MainActivity's threshold). */
     private static final int WIDE_DP = 650;
+    /**
+     * The seven step names from the catalog, deferred (rendered where shown: the step list and its
+     * spoken rows), by index. STEP_NAMES above is their English and no longer shown; G1 cannot yet
+     * delete an array table (its removed rows leave the declaration's ; unaccounted for).
+     */
+    private static final Msg[] STEP_LABELS = {M.onboardingStepPrepare(), M.onboardingStepUsbDebugging(),
+            M.onboardingStepConnectComputer(), M.onboardingStepRunHelper(), M.onboardingStepImport(),
+            M.onboardingStepNearby(), M.onboardingStepConnectScooter()};
     private static Bitmap photo;
 
     private final ScreenHost host;
@@ -454,7 +462,7 @@ public final class OnboardingScreen implements AppScreen {
         if (keepName != null && nameField != null && keepStep == step) nameField.setText(keepName);
         renderedKey = structureKey();
         if (Build.VERSION.SDK_INT >= 28) root.setAccessibilityPaneTitle(number(step) > 0
-                ? "Setup step " + number(step) + " of 7" : "Setup");
+                ? T.onboardingPaneStep(number(step)) : T.onboardingPaneSetup());
         for (Runnable updater : updaters) updater.run();
     }
 
@@ -511,13 +519,13 @@ public final class OnboardingScreen implements AppScreen {
         // The step's own content carries the page; the picture here is decoration.
         hero.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         side.addView(hero, new LinearLayout.LayoutParams(-1, ui.dp(170)));
-        TextView heading = ui.text("Set up your scooter", 24, true);
+        TextView heading = ui.text(T.onboardingSideTitle(), 24, true);
         if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2); hp.topMargin = ui.dp(14);
         side.addView(heading, hp);
         boolean capture = isComputerCapture();
         int current = number(step);
-        for (int n = 1; n <= STEP_NAMES.length; n++) {
+        for (int n = 1; n <= STEP_LABELS.length; n++) {
             LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
             sp.topMargin = ui.dp(n == 1 ? 18 : 4);
             // Backup files and typed identities start at Import; the computer steps don't apply.
@@ -544,7 +552,7 @@ public final class OnboardingScreen implements AppScreen {
             badge.addView(number, new FrameLayout.LayoutParams(-1, -1));
         }
         item.addView(badge, new LinearLayout.LayoutParams(ui.dp(26), ui.dp(26)));
-        TextView name = ui.text(STEP_NAMES[n - 1], 14.5f, now);
+        TextView name = ui.text(STEP_LABELS[n - 1], 14.5f, now);
         name.setTextColor(now ? ui.text : applies ? ui.muted : ui.dim);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = ui.dp(12);
         item.addView(name, lp);
@@ -552,8 +560,9 @@ public final class OnboardingScreen implements AppScreen {
         badge.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        item.setContentDescription("Step " + n + ", " + STEP_NAMES[n - 1] + ", "
-                + (now ? "current" : done ? "done" : applies ? "to do" : "not needed"));
+        item.setContentDescription(T.onboardingStepRow(n, STEP_LABELS[n - 1],
+                now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone()
+                        : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()));
         if (Build.VERSION.SDK_INT >= 28) item.setScreenReaderFocusable(true);
         return item;
     }
@@ -566,7 +575,7 @@ public final class OnboardingScreen implements AppScreen {
         backButton.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
                 oval(ui.surface), null));
         backButton.addView(ui.icon("back", 20, ui.text), new FrameLayout.LayoutParams(ui.dp(20), ui.dp(20), Gravity.CENTER));
-        backButton.setContentDescription("Back"); backButton.setFocusable(true); backButton.setClickable(true);
+        backButton.setContentDescription(T.onboardingBack()); backButton.setFocusable(true); backButton.setClickable(true);
         backButton.setOnClickListener(v -> back());
         row.addView(backButton, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         Progress progress = new Progress(n);
@@ -575,14 +584,14 @@ public final class OnboardingScreen implements AppScreen {
         row.addView(progress, bar);
         TextView end;
         if (step == PATH) {
-            end = link(prefs.getBoolean(KEY_RERUN, false) ? "Cancel" : "Skip", () -> {
+            end = link(prefs.getBoolean(KEY_RERUN, false) ? T.commonCancel() : T.onboardingSkip(), () -> {
                 if (prefs.getBoolean(KEY_RERUN, false)) finish(true); else confirmSkip();
             });
             end.setTextColor(ui.muted);
-            end.setContentDescription(prefs.getBoolean(KEY_RERUN, false) ? "Cancel adding a scooter" : "Skip setup for now");
+            end.setContentDescription(prefs.getBoolean(KEY_RERUN, false) ? T.onboardingCancelAdding() : T.onboardingSkipDescription());
             end.setPadding(ui.dp(8), 0, ui.dp(4), 0);
         } else {
-            end = ui.text(n > 0 ? n + "/7" : "", 12.5f, false);
+            end = ui.text(n > 0 ? T.onboardingStepCounter(n) : "", 12.5f, false);
             end.setTextColor(ui.muted); end.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
             end.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
