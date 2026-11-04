@@ -555,11 +555,20 @@ the first merge base that has the tool, so deleting every baseline does not swit
 allowlist for converted files that must keep English (reports, tags, keys) arrives with the first
 batch that needs one.
 
-**G9.** `tests/l10n/golden.sh` compiles `GoldenReports.java` against the pure classes, runs it under
-en-US, de-DE, tr-TR and ar-EG with different time zones, and compares the diagnostics JSON, the ride
-journal CSV, the phone ride CSV and the GPX with `tests/l10n/golden/`. `--update` rewrites them;
-use it only for an intended, reviewed format change, never in a batch: CI fails a batch whose
-goldens differ from the merge base.
+**G9.** `tests/l10n/golden.sh` generates the catalog as `tests/run.sh` does (`gen_catalog.py`
+without `--android`) and compiles `GoldenReports.java` against the pure classes in `src/` and that
+catalog, so a class the reports reach (Telemetry, ModelRegistry, CapabilityResolver,
+ChargeScheduleController, GuidedTest, ...) may use `T`, `M` and `Msg` for its display text. It runs the
+reports under en-US, de-DE, tr-TR and ar-EG with different time zones and the built-in English, then
+twice more under en-US: with a non-English source that answers every id with its marked key, and with
+one that throws on any use. All of them must write the same files, which must equal
+`tests/l10n/golden/` (the diagnostics JSON, the ride journal CSV, the phone ride CSV and the GPX). So a
+report field that moves to the catalog fails even when its English is the same (`"group": "Battery"`
+becoming `T.readingsGroupBattery()`), and so does a report path that only reads catalog text, as
+`ReportsStayEnglishTest` already requires of the report builders. The display text of those classes
+stays off the report paths: keep an English id beside a display accessor (plan section 1.5). `--update`
+rewrites the goldens; use it only for an intended, reviewed format change, never in a batch: CI fails
+a batch whose goldens differ from the merge base.
 
 **G10.** `FmtLegacyTest` pins each `UnitCode` that exists by name, data code and English symbol, so
 changing or removing one fails. A batch that owns unit data may add a code (B3's chart "Time"): a

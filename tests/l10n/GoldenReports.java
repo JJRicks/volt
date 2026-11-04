@@ -24,6 +24,11 @@ import java.util.TimeZone;
  * byte for byte, so these English, ROOT-formatted files cannot change during localization.
  *
  * The fixtures are synthetic. Every value is chosen to print the same with any JDK's Double.toString.
+ *
+ * The classes the reports reach may use the catalog (T, M, Msg) for their own display text, so golden.sh
+ * compiles this with the generated catalog. An optional second argument installs another text source
+ * first: "foreign" answers every id with a marked key and a non-English language, "throwing" fails on
+ * any use. golden.sh requires both to give the same files as the built-in English.
  */
 public final class GoldenReports {
     private static final long WALL = 1792026000000L, NOW = 500_000L;
@@ -31,7 +36,8 @@ public final class GoldenReports {
     private GoldenReports() {}
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) throw new IllegalArgumentException("usage: GoldenReports <output folder>");
+        if (args.length < 1 || args.length > 2) throw new IllegalArgumentException("usage: GoldenReports <output folder> [english|foreign|throwing]");
+        T.install(textSource(args.length == 2 ? args[1] : "english"));
         File out = new File(args[0]);
         if (!out.isDirectory() && !out.mkdirs()) throw new IOException("Cannot create " + out);
         File work = new File(out, ".work");
@@ -44,6 +50,24 @@ public final class GoldenReports {
             write(new File(out, "phone-track.gpx"), track.toGpx());
         } finally {
             deleteTree(work);
+        }
+    }
+
+    /** The text source a run installs: null (the built-in English), a non-English echo, or one that throws. */
+    static T.Source textSource(String name) {
+        switch (name) {
+            case "english": return null;
+            case "foreign": return new T.Source() {
+                public String string(int id) { return T.isPlural(id) ? null : "\u2039" + T.key(id) + "\u203a"; }
+                public String plural(int id, long quantity) { return T.isPlural(id) ? "\u2039" + T.key(id) + "#" + quantity + "\u203a" : null; }
+                public String language() { return "de"; }
+            };
+            case "throwing": return new T.Source() {
+                public String string(int id) { throw new AssertionError("a report read catalog text " + T.key(id)); }
+                public String plural(int id, long quantity) { throw new AssertionError("a report read catalog plural " + T.key(id)); }
+                public String language() { throw new AssertionError("a report asked for the language"); }
+            };
+            default: throw new IllegalArgumentException("text source " + name + " is not english, foreign or throwing");
         }
     }
 
