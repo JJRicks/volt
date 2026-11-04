@@ -1,0 +1,8 @@
+# B14, ride data, maps and the ride chart (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: PhoneRideStore's track status, run for real, and the base English of RouteMapView, RideChartView
+# and MapTiles, copied from the merge base, pinned before the batch.
+tests/l10n/characterization/RideMapsEnglishTest.java
+# B14's own suite: Track.statusText() against Track.status for built tracks and every count, and the
+# route tooltip, chart description and numbers and tile status from the catalog against the base copies.
+tests/l10n/RideMapsTextTest.java

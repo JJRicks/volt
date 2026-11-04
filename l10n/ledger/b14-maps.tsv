@@ -1,0 +1,71 @@
+# Ledger for b14-maps: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MapPreferences.java:42	["Basemap"]	maps_basemap	exact	
+src/com/jjricks/volt/MapPreferences.java:44	["Basemap"]	maps_basemap	exact	
+src/com/jjricks/volt/MapPreferences.java:95	["Show online map?"]	maps_consent_title	exact	
+src/com/jjricks/volt/MapPreferences.java:96	["Provider sees your IP and map area. Rides stay on phone."]	maps_consent_message	exact	
+src/com/jjricks/volt/MapPreferences.java:100	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MapPreferences.java:101	["Enable basemap"]	maps_consent_enable	exact	
+src/com/jjricks/volt/MapPreferences.java:137	["Online map"]	maps_online_map	exact	
+src/com/jjricks/volt/MapPreferences.java:142	["Edit custom provider"]	maps_edit_custom	exact	
+src/com/jjricks/volt/MapPreferences.java:200	["Map settings"]	maps_settings_title	exact	
+src/com/jjricks/volt/MapPreferences.java:203	["Done"]	common_done	exact	
+src/com/jjricks/volt/MapPreferences.java:210	["Custom map provider"]	maps_custom_title	exact	
+src/com/jjricks/volt/MapPreferences.java:211	["Tile URL"]	maps_custom_tile_url	exact	
+src/com/jjricks/volt/MapPreferences.java:211	["https://…/{z}/{x}/{y}.png"]	maps_custom_tile_url_hint	exact	the example address keeps {z}, {x} and {y} (dnt)
+src/com/jjricks/volt/MapPreferences.java:212	["Attribution"]	maps_custom_attribution	exact	
+src/com/jjricks/volt/MapPreferences.java:213	["HTTPS attribution link"]	maps_custom_attribution_link	exact	
+src/com/jjricks/volt/MapPreferences.java:215	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MapPreferences.java:215	["Save"]	maps_custom_save	exact	
+src/com/jjricks/volt/MapPreferences.java:220	["Use HTTPS with {z}, {x} and {y}."]	maps_custom_error_url	exact	
+src/com/jjricks/volt/MapPreferences.java:221	["Add the provider’s required attribution."]	maps_custom_error_attribution	exact	
+src/com/jjricks/volt/MapPreferences.java:223	["Use an HTTPS license or copyright link."]	maps_custom_error_link	exact	
+src/com/jjricks/volt/MapTiles.java:108	["Map provider blocked access"]	maps_tiles_blocked	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/MapTiles.java:112	["Map provider rate limit · try later"]	maps_tiles_rate_limited	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/MapTiles.java:116	["Map tiles unavailable (HTTP ", {"hole": "code", "arg": 1, "type": "d"}, ")"]	maps_tiles_http	template	pause() now takes the reason as a Msg (see the row at line 108); the HTTP status code is the one number
+src/com/jjricks/volt/MapTiles.java:120	["Map provider returned an invalid response"]	maps_tiles_invalid_response	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/MapTiles.java:204	["Map tiles unavailable · check connection"]	maps_tiles_offline	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/MapTiles.java:207	["Map tiles unavailable"]	maps_tiles_unavailable	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/RouteMapView.java:86	["Ride route map"]	maps_route_description	exact	
+src/com/jjricks/volt/RouteMapView.java:282	["S"]	maps_route_marker_start	exact	one glyph in the start marker; translators may keep S
+src/com/jjricks/volt/RouteMapView.java:283	["E"]	maps_route_marker_end	exact	one glyph in the end marker; translators may keep E
+src/com/jjricks/volt/RouteMapView.java:301	["No GPS route recorded"]	maps_route_no_gps	exact	
+src/com/jjricks/volt/RouteMapView.java:372	["scooter"]	units_route_source_scooter	exact	the speed source's display label; RouteSpeedScale.SCOOTER stays the id compared above
+src/com/jjricks/volt/RouteMapView.java:372	["GPS"]	units_route_source_gps	exact	the speed source's display label; RouteSpeedScale.GPS stays the id
+src/com/jjricks/volt/RouteMapView.java:373	["Speed not measured"]	maps_route_speed_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:373	["No scooter speed"]	maps_route_no_scooter_speed	exact	
+src/com/jjricks/volt/RouteMapView.java:373	["No GPS speed"]	maps_route_no_gps_speed	exact	
+src/com/jjricks/volt/RouteMapView.java:374	[{"hole": "RouteSpeedScale.label(chosen, units())", "arg": 1, "type": "s"}, " · ", {"hole": "name", "arg": 2, "type": "s"}]	maps_route_speed_source	template	name is the source label from units_route_source_scooter or units_route_source_gps (rows at line 372)
+src/com/jjricks/volt/RouteMapView.java:376	["GPS ", {"hole": "speed", "arg": 1, "type": "s"}]	maps_route_gps_speed	template	
+src/com/jjricks/volt/RouteMapView.java:377	["Scooter ", {"hole": "RouteSpeedScale.label(p.scooterSpeedKmh, units())", "arg": 1, "type": "s"}]	maps_route_scooter_speed	template	
+src/com/jjricks/volt/RouteMapView.java:380	["Grade not measured"]	maps_route_grade_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:383	["Elevation not measured"]	maps_route_elevation_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:386	["GPS accel not measured"]	maps_route_accel_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:389	["Power not measured"]	maps_route_power_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:453	[{"spec": "%.2f", "arg": 1, "value": "watts / 1000", "as": "Fmt.decimal(Locale.US, watts / 1000, 2)"}, " ", {"text": "kW", "key": "maps_unit_kilowatt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteMapView.java:454	[{"spec": "%.0f", "arg": 1, "value": "watts", "as": "Fmt.decimal(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteMapView.java:470	[{"spec": "%.0f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 0)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	the tooltip's GPS speed; review finding: units_mph/units_kmh are catalog symbols, as in the primary line (RouteSpeedScale.label)
+src/com/jjricks/volt/RouteMapView.java:472	[{"spec": "%.0f", "arg": 1, "value": "mph", "as": "Fmt.decimal(Locale.US, mph, 0)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}, " / ", {"spec": "%.0f", "arg": 3, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 0)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 4}]	maps_route_speed_dual	format	one String.format of both systems, so one four-placeholder template (a format row replaces the whole call with one template call)
+src/com/jjricks/volt/RouteMapView.java:473	[{"spec": "%.0f", "arg": 1, "value": "mph", "as": "Fmt.decimal(Locale.US, mph, 0)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RideChartView.java:35	["Ride chart"]	maps_chart_ride	exact	the private field chartTitle becomes a CharSequence holding the deferred Msg (R2), with fitActionLabel in the same declaration
+src/com/jjricks/volt/RideChartView.java:35	["Fit whole ride"]	maps_chart_fit_ride	exact	the private field fitActionLabel becomes a CharSequence holding the deferred Msg (R2)
+src/com/jjricks/volt/RideChartView.java:55	["Zoom in"]	maps_chart_zoom_in	exact	
+src/com/jjricks/volt/RideChartView.java:56	["Zoom out"]	maps_chart_zoom_out	exact	
+src/com/jjricks/volt/RideChartView.java:59	["Previous recorded sample"]	maps_chart_previous_sample	exact	
+src/com/jjricks/volt/RideChartView.java:61	["Next recorded sample"]	maps_chart_next_sample	exact	
+src/com/jjricks/volt/RideChartView.java:131	["Recording chart"]	maps_chart_recording	exact	chartTitle is now a CharSequence (the default is a deferred Msg), so the ternary between the default and the caller's String title assigns it directly
+src/com/jjricks/volt/RideChartView.java:132	["Fit whole recording"]	maps_chart_fit_recording	exact	fitActionLabel is now a CharSequence, as chartTitle (row at line 131)
+src/com/jjricks/volt/RideChartView.java:189	[". No readings selected"]	maps_chart_desc_no_readings	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
+src/com/jjricks/volt/RideChartView.java:190	[". No recorded samples"]	maps_chart_desc_no_samples	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
+src/com/jjricks/volt/RideChartView.java:192	[". At "]	maps_chart_desc_at	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator; the cursor time is appended after it
+src/com/jjricks/volt/RideChartView.java:195	[". ", {"hole": "selected.label", "arg": 1, "type": "s", "as": "selected.displayLabel()"}, ": "]	maps_chart_desc_reading	template	manual: the append chain .append(". ").append(selected.label).append(": ") became one append of the template; B3 handoff: the reading name is Series.displayLabel() (the catalog legend name, equal to the English label in English) where label stays the English data name
+src/com/jjricks/volt/RideChartView.java:196	["No reading"]	maps_chart_desc_no_reading	exact	
+src/com/jjricks/volt/RideChartView.java:199	[" at "]	maps_chart_desc_value_at	exact	the nearest sample time is appended after it
+src/com/jjricks/volt/RideChartView.java:272	["Choose readings above"]	maps_chart_choose_readings	exact	
+src/com/jjricks/volt/RideChartView.java:329	["At ", {"hole": "sampleTime((long)inspectedTime)", "arg": 1, "type": "s"}]	maps_chart_cursor_at	template	
+src/com/jjricks/volt/RideChartView.java:376	["mph"]	units_mph	id-kept	chart series unit compared through B1's UnitCode.MPH (data code "mph"); the series unit stays the data spelling; recorded decision (review): a null Series unit, which no producer builds, now gives text ("10.25 null", "10.3") where the base threw NullPointerException in s.unit.equals
+src/com/jjricks/volt/RideChartView.java:376	["km/h"]	units_kmh	id-kept	chart series unit compared through B1's UnitCode.KMH (data code "km/h"); the series unit stays the data spelling
+src/com/jjricks/volt/RideChartView.java:387	["mph"]	units_mph	id-kept	chart series unit compared through B1's UnitCode.MPH (data code "mph"); the series unit stays the data spelling; recorded decision (review): a null Series unit, which no producer builds, now gives text ("10.25 null", "10.3") where the base threw NullPointerException in s.unit.equals
+src/com/jjricks/volt/RideChartView.java:387	["km/h"]	units_kmh	id-kept	chart series unit compared through B1's UnitCode.KMH (data code "km/h"); the series unit stays the data spelling
+src/com/jjricks/volt/RideChartView.java:389	[{"hole": "String.format(Locale.US, \"%.\" + places + \"f\", raw)", "arg": 1, "type": "s", "as": "String.format(Fmt.locale(Locale.US), \"%.\" + places + \"f\", raw)"}, " ", {"hole": "s.unit", "arg": 2, "type": "s", "as": "unitSymbol(s.unit)"}]	fmt_quantity	template	manual: the number keeps its String.format with the Fmt.locale wrap (places is 1 or 2, a run-time precision a format row cannot name); the unit is shown as unitSymbol(s.unit), UnitCode's catalog symbol, the same text as the data unit in English (any other unit as it is); the series keeps its data unit. Display only: the ride and charge chart readouts and the chart's accessibility description
