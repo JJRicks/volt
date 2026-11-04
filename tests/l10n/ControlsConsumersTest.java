@@ -26,6 +26,10 @@ import java.util.regex.Pattern;
  * (a new English consumer nobody listed) and when one goes away without its row being updated, so the hand-off
  * list cannot go stale silently. The patterns go by name, so a row may count a read of another type with the
  * same name; the rows are per file, so that is noise for the follow-up to check, never a missed file.
+ *
+ * Batches are meant to shrink the table to its header, so the guard that the scan is not blind cannot be a row
+ * count: instead every pattern must count a probe read exactly and miss its near-misses (selfTest), and the
+ * source walk must read the app's named files.
  */
 public final class ControlsConsumersTest {
     /** B4's own files (plan 3.B "B4"): they define the accessors and are not consumers. */
@@ -54,10 +58,44 @@ public final class ControlsConsumersTest {
     static final Pattern FEATURE_VARIABLE = Pattern.compile("\\bScooterCommands\\.Feature\\s+([a-zA-Z_]\\w*)");
     static final String TSV = "l10n/pending/b4-controls-consumers.tsv";
 
+    /** Files the real walk must always see, so a broken walk cannot pass by finding nothing. */
+    static final List<String> ALWAYS = Arrays.asList("MainActivity.java", "BleController.java", "ScooterService.java");
+
+    /**
+     * One read per pattern, each of which scan() must count. Every PATTERNS key and feature-field needs a probe, so a
+     * pattern added without one fails here. Each probe goes in its own synthetic file, twice, to pin the count.
+     */
+    static final Map<String, String> PROBES = new LinkedHashMap<>();
+    static {
+        PROBES.put("reason-text", "notice(d.reasonText());");
+        PROBES.put("resolver-text", "muted(CapabilityResolver.text(d));");
+        PROBES.put("variant-label", "button(variant.label(v));");
+        PROBES.put("oem-label", "value(decision.oemLabel(raw));");
+        PROBES.put("find-field", "title(find(list.get(0).feature).label);");
+        PROBES.put("value-label", "value(f.valueLabel(3));");
+        PROBES.put("search-text", "haystack.add(f.searchText());");
+        PROBES.put("model-line", "title(ModelRegistry.modelLine(id));");
+        PROBES.put("series-about", "body(series.about);");
+        PROBES.put("refusal-message", "notice(e.getMessage());");
+        PROBES.put("feature-field", "show(feature.label);");
+    }
+    /** Reads that must not be counted: call forms, display accessors, names that only contain a field, no Feature. */
+    static final String NEAR_MISSES = "ScooterCommands.Feature feature = f;\n"
+            + "show(feature.label()); show(feature.description()); show(feature.optionLabel(0)); show(feature.labels);\n"
+            + "show(myfeature.label); show(featureX.group); show(other.label); show(find(key).label());\n"
+            + "button(decision.labelText(v)); button(other.label(v)); value(decision.oemText(raw));\n"
+            + "notice(d.reasonMessage()); title(ModelRegistry.modelLineText); body(series.aboutLabel); body(x.about());\n"
+            + "notice(((ScooterCommands.Refused) e).msg()); haystack.add(f.search());\n";
+
     private static int checks;
 
     public static void main(String[] args) {
-        Map<String, Integer> found = scan(L10nFiles.appSources());
+        selfTest();
+        Map<String, String> sources = L10nFiles.appSources();
+        check(sources.size() > 100, "the source walk sees the app (" + sources.size() + " files)");
+        for (String name : ALWAYS)
+            check(sources.containsKey(name) && sources.get(name).contains("class "), "the source walk reads " + name);
+        Map<String, Integer> found = scan(sources);
         if (args.length > 0 && args[0].equals("--print")) {
             for (Map.Entry<String, Integer> e : found.entrySet()) System.out.println(e.getKey() + "\t" + e.getValue());
             return;
@@ -77,8 +115,36 @@ public final class ControlsConsumersTest {
                     + " read(s) but " + TSV + " lists " + listed.get(e.getKey()) + ": wire them to B4's display accessors, or update the row");
         for (Map.Entry<String, Integer> e : listed.entrySet())
             check(found.containsKey(e.getKey()), TSV + " lists " + e.getValue() + " " + e.getKey().replace('\t', ' ') + " read(s) that src no longer has: update the row");
-        check(found.size() > 20, "the scan sees the consumers (" + found.size() + " file/pattern pairs)");
         System.out.println("ControlsConsumersTest: " + checks + " checks passed (" + found.size() + " consumer rows).");
+    }
+
+    /**
+     * The scanner is not blind, whatever the table holds (batches shrink it to its header): every pattern counts its
+     * probe exactly, in its own file and nowhere else, and the near-misses and B4's own files count nothing.
+     */
+    static void selfTest() {
+        Set<String> ids = new LinkedHashSet<>(PATTERNS.keySet());
+        ids.add("feature-field");
+        check(PROBES.keySet().equals(ids), "every pattern has a probe (patterns " + ids + ", probes " + PROBES.keySet() + ")");
+        Map<String, String> sources = new TreeMap<>();
+        Map<String, Integer> expected = new TreeMap<>();
+        StringBuilder all = new StringBuilder("ScooterCommands.Feature feature = f;\n");
+        for (Map.Entry<String, String> probe : PROBES.entrySet()) {
+            String file = "Probe_" + probe.getKey() + ".java";
+            sources.put(file, "class P {\n  void a(ScooterCommands.Feature feature) {\n    " + probe.getValue() + "\n    "
+                    + probe.getValue() + "\n  }\n}\n");
+            expected.put(file + "\t" + probe.getKey(), 2);
+            all.append(probe.getValue()).append('\n');
+        }
+        sources.put("NearMisses.java", NEAR_MISSES);
+        for (String own : OWN) sources.put(own, all.toString());
+        Map<String, Integer> found = scan(sources);
+        for (Map.Entry<String, Integer> e : expected.entrySet())
+            check(e.getValue().equals(found.get(e.getKey())), "self-test: the scan counts " + found.get(e.getKey())
+                    + " " + e.getKey().replace('\t', ' ') + " read(s), expected " + e.getValue());
+        for (Map.Entry<String, Integer> e : found.entrySet())
+            check(expected.containsKey(e.getKey()), "self-test: the scan counts " + e.getValue() + " "
+                    + e.getKey().replace('\t', ' ') + " read(s) that are not reads (near-miss, own file or another probe)");
     }
 
     /** "File.java\tpattern" to the number of reads, for every pair with at least one, in file then pattern order. */
