@@ -189,7 +189,8 @@ its own `.sources` file (its characterization tests, its new suites) and never e
     stores differently from how it is written, or an Android that resolves differently.
   - **Gates.** The table can't rank every folder layout, so `gen_catalog.py` refuses two kinds.
     One is a language folder for a region that other regions inherit from in CLDR's parentLocales:
-    a numeric region such as `values-b+es+419`, `values-pt-rPT` or `values-zh-rHK`. The other is a
+    a numeric region such as `values-b+es+419`, or a parent region such as `values-pt-rPT` or
+    `values-zh-rHK`. The other is a
     plural held by two or more region folders of one language and script, but not by that
     language's folder without a region.
   - **Known limits.**

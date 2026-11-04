@@ -456,6 +456,15 @@ class CatalogTest(unittest.TestCase):
         self.assertEqual(held["rides_count"], [(0, [("one", "Une course"), ("other", "%1$d courses")])])
         # aapt would reject the unescaped apostrophe: no text, so AndroidText keeps Android's choice.
         self.assertEqual(held["backup_scooters_skipped"], [(0, [("one", None), ("other", "%1$d")])])
+        # Markup blanks only the item that has it, not the plain items after it.
+        marked = folder_xml({"l10n_tag": "fr", "rides_count": {"one": "Une course", "other": "%1$d courses"}}).replace(
+            "<item quantity=\"one\">Une course</item>", "<item quantity=\"one\"><b>Une</b> course</item>")
+        l10nlib.write_text(os.path.join(res, "values-fr", "strings.xml"), marked)
+        self.assertEqual(gen_catalog.load_folder_plurals(res, languages, entries)[1]["rides_count"],
+                         [(0, [("one", None), ("other", "%1$d courses")])])
+        l10nlib.write_text(os.path.join(res, "values-fr", "strings.xml"), folder_xml({
+            "l10n_tag": "fr", "rides_count": {"one": "Une course", "other": "%1$d courses"},
+            "backup_scooters_skipped": {"one": "Don't", "other": "%1$d"}, "not_english": {"other": "x"}}))
         self.assertNotIn("not_english", held)
         java = gen_catalog.gen_android(entries, None, "com.jjricks.volt", folders, held)
         self.assertIn('FOLDER_TAGS = {"fr"};', java)
@@ -710,7 +719,7 @@ ICU_CHECK = """import java.util.Locale;
 public final class IcuCheck {
     public static void main(String[] args) {
         String[] tags = {"en", "en-GB", "en-IN", "de", "sv", "nl", "it", "es", "fr", "pt", "pt-PT", "pt-BR", "pt-AO", "th", "ja",
-                "zh", "ko", "vi", "id", "ru", "uk", "pl", "cs", "lv", "ar"};
+                "zh", "ko", "vi", "id", "ru", "uk", "pl", "cs", "lv", "ar", "hi", "tr"};
         long[] extra = {1000000, 2000000, 21000000, 1000000000L};
         int bad = 0;
         for (String tag : tags) {
@@ -723,7 +732,7 @@ public final class IcuCheck {
             }
         }
         String[] scripts = {"en", "en_US", "en_XA", "fr", "es", "pt", "pt_PT", "pt_BR", "pt_AO", "ja", "ru", "th", "lv", "ar", "ar_XB",
-                "zh", "zh_TW", "zh_HK"};
+                "zh", "zh_TW", "zh_HK", "hi", "tr"};
         for (String tag : scripts) {
             String stub = android.icu.util.ULocale.addLikelySubtags(new android.icu.util.ULocale(tag)).getScript();
             String real = com.ibm.icu.util.ULocale.addLikelySubtags(new com.ibm.icu.util.ULocale(tag)).getScript();
@@ -871,7 +880,8 @@ public final class PluralRules {
         long n = (long) Math.abs(number), d = n % 10, h = n % 100;
         boolean million = n != 0 && n % 1000000 == 0;
         switch (language) {
-            case "en": case "de": case "sv": case "nl": return n == 1 ? "one" : "other";
+            case "en": case "de": case "sv": case "nl": case "tr": return n == 1 ? "one" : "other";
+            case "hi": return n <= 1 ? "one" : "other";
             case "es": case "it": return n == 1 ? "one" : million ? "many" : "other";
             case "fr": return n <= 1 ? "one" : million ? "many" : "other";
             case "pt": return (region.equals("PT") ? n == 1 : n <= 1) ? "one" : million ? "many" : "other";
@@ -906,9 +916,10 @@ public final class ULocale {
             case "ko": s = "Kore"; break;
             case "th": s = "Thai"; break;
             case "ru": case "uk": s = "Cyrl"; break;
+            case "hi": s = "Deva"; break;
             case "ar": s = "Arab"; break;
             case "en": case "de": case "sv": case "nl": case "it": case "es": case "fr": case "pt": case "pl": case "cs":
-            case "lv": case "vi": case "id": case "in": s = "Latn"; break;
+            case "lv": case "vi": case "id": case "in": case "tr": s = "Latn"; break;
             default: throw new IllegalArgumentException("no test script for " + l.language);
         }
         return new ULocale(l.language, s, l.region);

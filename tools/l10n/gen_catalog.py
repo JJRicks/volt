@@ -644,10 +644,11 @@ def load_folder_plurals(res_dir, languages, entries, display_root=None):
             for node in (root.children if root is not None else []):
                 if isinstance(node, str) or _local(node.tag) != "plurals" or node.attrs.get("name") not in plural_names:
                     continue
-                items, ignored = [], []
+                items = []
                 for child in node.children:
                     if isinstance(child, str) or _local(child.tag) != "item":
                         continue
+                    ignored = []  # per item: one item's markup must not blank its plain siblings
                     text, item_problems, _ = decode_resource_text(_flatten(child, display, ignored))
                     items.append((child.attrs.get("quantity", ""), None if item_problems or ignored else text))
                 found[node.attrs["name"]] = items
