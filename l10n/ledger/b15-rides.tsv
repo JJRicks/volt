@@ -252,7 +252,7 @@ src/com/jjricks/volt/RidesScreen.java:1500	["Could not compare the recordings."]
 src/com/jjricks/volt/RidesScreen.java:1502	["Ride"]	rides_default_name	exact	
 src/com/jjricks/volt/RidesScreen.java:307	{"if": "recording.label.isEmpty()", "then": ["Notes for ", "this ride"], "else": ["Notes for ", {"hole": "recording.label", "arg": 1, "type": "s"}]}	rides_notes_title_unnamed,rides_notes_title	choice	the ride's name is the owner's text, shown as typed; an unnamed ride gets its own whole sentence
 src/com/jjricks/volt/RidesScreen.java:325	["Off"]	common_off	exact	
-src/com/jjricks/volt/RidesScreen.java:325	[{"hole": "on", "arg": 1, "type": "d"}, " on"]	rides_sensors_on_count	template	
+src/com/jjricks/volt/RidesScreen.java:325	{"one": [{"hole": "on", "arg": 1, "type": "d", "quantity": true}, " on"], "other": [{"hole": "on", "arg": 1, "type": "d", "quantity": true}, " on"]}	rides_sensors_on_count	plural	a plural so a language can agree the word with the number of sensors on (1 to 3); English one and other are the same
 src/com/jjricks/volt/RidesScreen.java:339	{"if": "error == null", "then": ["Recording · ", {"hole": "name", "arg": 1, "type": "s"}], "else": ["Recording needs attention · ", {"hole": "name", "arg": 1, "type": "s"}]}	rides_live_title,rides_live_title_attention	choice	name is the owner's ride name or rides_default_name
 src/com/jjricks/volt/RidesScreen.java:343	["Elapsed ", {"hole": "duration(elapsed)", "arg": 1, "type": "s"}]	rides_elapsed_description	template	
 src/com/jjricks/volt/RidesScreen.java:359	["1 gap"]	rides_gap_one	exact	
