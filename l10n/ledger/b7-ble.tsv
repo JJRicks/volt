@@ -24,7 +24,7 @@ src/com/jjricks/volt/BleController.java:360	["Scan failed"]	ble_scan_failed	exac
 src/com/jjricks/volt/BleController.java:361	["Searching…"]	ble_status_searching	exact	
 src/com/jjricks/volt/BleController.java:362	["Scan failed"]	ble_scan_failed	exact	
 src/com/jjricks/volt/BleController.java:364	["Model ID not captured"]	ble_model_id_not_captured	exact	
-src/com/jjricks/volt/BleController.java:365	["Choose your scooter."]	ble_choose_scooter	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:365	["Choose your scooter."]	ble_choose_scooter	exact	manual: one branch of a ternary whose other branch is NOTHING_FOUND, a shared English id that stays (displayMessage shows it through ConnectionText); this literal became its catalog call, in place
 src/com/jjricks/volt/BleController.java:374	["Connecting…"]	ble_status_connecting	exact	
 src/com/jjricks/volt/BleController.java:376	["Connection failed"]	ble_failed_connection	exact	
 src/com/jjricks/volt/BleController.java:377	["Timed out"]	ble_failed_timed_out	exact	
@@ -65,7 +65,7 @@ src/com/jjricks/volt/BleController.java:580	["Not connected"]	ble_status_not_con
 src/com/jjricks/volt/BleController.java:581	["Wait for the current change to finish."]	ble_wait_current_change	exact	
 src/com/jjricks/volt/BleController.java:582	["Resolve scooter warning ", {"hole": "warning", "arg": 1, "type": "d"}, " before locking."]	ble_resolve_warning	template	
 src/com/jjricks/volt/BleController.java:583	["Stop the scooter first"]	ble_stop_scooter_first	exact	
-src/com/jjricks/volt/BleController.java:584	["Stop the scooter first"]	ble_stop_scooter_first	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:584	["Stop the scooter first"]	ble_stop_scooter_first	exact	manual: one branch of a ternary whose other branch is d.reasonText(), CapabilityResolver's text, which stays a String; this literal became its catalog call, in place
 src/com/jjricks/volt/BleController.java:585	["PIN settings require the owner profile."]	ble_pin_owner_only	exact	
 src/com/jjricks/volt/BleController.java:586	["Bond this phone before enabling proximity unlock"]	ble_needs_bond	exact	
 src/com/jjricks/volt/BleController.java:587	["Enable a configured handlebar PIN before proximity unlock"]	ble_needs_pin	exact	
@@ -101,10 +101,10 @@ src/com/jjricks/volt/BleController.java:770	["Nothing to set back"]	ble_nothing_
 src/com/jjricks/volt/BleController.java:774	["Couldn't set it back. Nothing was changed."]	ble_set_back_failed	exact	
 src/com/jjricks/volt/BleController.java:780	["Test records are unavailable"]	ble_test_records_unavailable	exact	
 src/com/jjricks/volt/BleController.java:810	["Finish the current test first"]	ble_finish_test	exact	
-src/com/jjricks/volt/BleController.java:812	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:812	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary whose other branch is r.text, GuidedTest's review text, which stays a String; this literal became its catalog call, in place
 src/com/jjricks/volt/BleController.java:817	["Couldn't start the restore. Nothing was changed."]	ble_restore_failed	exact	
 src/com/jjricks/volt/BleController.java:822	["Finish the current test first"]	ble_finish_test	exact	
-src/com/jjricks/volt/BleController.java:824	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:824	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary whose other branch is r.text, GuidedTest's review text, which stays a String; this literal became its catalog call, in place
 src/com/jjricks/volt/BleController.java:825	["Test records are unavailable"]	ble_test_records_unavailable	exact	
 src/com/jjricks/volt/BleController.java:832	["Finish the current test first"]	ble_finish_test	exact	
 src/com/jjricks/volt/BleController.java:833	["Test records are unavailable"]	ble_test_records_unavailable	exact	
@@ -112,7 +112,7 @@ src/com/jjricks/volt/BleController.java:852	["Guided test"]	ble_result_guided_te
 src/com/jjricks/volt/BleController.java:852	["Connected"]	ble_status_connected	exact	
 src/com/jjricks/volt/BleController.java:879	["Setting the scooter’s clock from this phone…"]	ble_status_setting_clock	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
 src/com/jjricks/volt/BleController.java:879	["Applying ", {"hole": "ScooterCommands.find(key).label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}, "…"]	ble_applying	template	manual: the else branch of a ternary with the clock text; the hole stays the English Feature.label lowercased with Locale.ROOT, so English is byte-identical. When the controls batch (B4) gives labels display text, this call needs a mid-sentence label form that is exactly this lowercased English in English (no case mapping on translated text, plan 4.6); a plain ControlsText.label(feature) would print "Reading Headlight…"
-src/com/jjricks/volt/BleController.java:882	["Accepted; state not exposed by firmware"]	ble_result_accepted_unreadable	id-kept	English result token, moved into the BleController constant RESULT_ACCEPTED_UNREADABLE; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:882	["Accepted; state not exposed by firmware"]	ble_result_accepted_unreadable	id-kept	manual: one branch of a ternary between result tokens; English result token, moved into the BleController constant RESULT_ACCEPTED_UNREADABLE; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
 src/com/jjricks/volt/BleController.java:882	["Change not confirmed"]	ble_result_not_confirmed	id-kept	manual: one branch of a ternary between result tokens; English result token, moved into the BleController constant RESULT_NOT_CONFIRMED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows ble_result_not_confirmed
 src/com/jjricks/volt/BleController.java:886	["Change not confirmed"]	ble_failed_not_confirmed	exact	
 src/com/jjricks/volt/BleController.java:942	["Charging start time confirmed."]	ble_charge_start_confirmed	exact	
