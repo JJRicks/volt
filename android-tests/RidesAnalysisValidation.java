@@ -141,7 +141,7 @@ public final class RidesAnalysisValidation extends Instrumentation {
                 check(started.label.equals(DisplayTime.rideName(activity, settings, started.startWallMs, "SPORT")), "Actual journal gets its date and time at capture start");
                 check(((List<?>)field(screen, "dialogs")).isEmpty() && find(screen.view(), EditText.class) == null, "Record opens no pre-start naming dialog or text editor");
                 screen.beginRecording(); check(started.id.equals(service.rides.activeId()), "Repeated Home Record leaves the existing recording intact");
-            }); settle(); screenshot("immediate-ride-recording");
+            }); settle(); awaitPhoneSensorsStarted(); screenshot("immediate-ride-recording");
             main(() -> service.stopRide()); awaitPhoneSave();
             final String first = created.get(0);
             main(() -> invoke(screen, "showDetails", new Class[]{String.class}, first)); settle();
@@ -212,6 +212,27 @@ public final class RidesAnalysisValidation extends Instrumentation {
             setField(ble, "statusMs", SystemClock.elapsedRealtime()); setField(ble, "state", BleController.State.READY);
             check(ble.ready(), "Synthetic connection is ready without any Bluetooth writer");
         } catch (Exception e) { throw new IllegalStateException("Synthetic ready state unavailable", e); }
+    }
+    /**
+     * G7: Record starts PhoneRideRecorder, which shows "Starting phone sensors" until its worker
+     * thread has opened the journal and registered the sensors, then holds the settled status
+     * ("Location permission not granted · barometer" here). Nothing tells the Rides screen when
+     * that happens; its sensor row only changes on the next refresh. A loaded emulator caught the
+     * starting text, a faster one the settled text. Wait until the worker has run everything
+     * posted before this call (its start), refresh the screen, and require the row to show the
+     * recorder's current status before the screenshot and its census.
+     */
+    void awaitPhoneSensorsStarted() throws Exception {
+        ScooterService service = activity.service(); AtomicReference<Object> recorder = new AtomicReference<>();
+        long until = SystemClock.uptimeMillis() + 10000;
+        while (SystemClock.uptimeMillis() < until) { main(() -> recorder.set(field(service, "phoneRecorder"))); if (recorder.get() != null) break; SystemClock.sleep(40); }
+        check(recorder.get() != null, "Recording started the phone sensor recorder");
+        Handler worker = (Handler) field(recorder.get(), "worker"); CountDownLatch started = new CountDownLatch(1);
+        check(worker != null && worker.post(started::countDown), "Phone sensor worker accepts work");
+        check(started.await(10, TimeUnit.SECONDS), "Phone sensor worker finished starting");
+        main(() -> screen.refresh()); settle();
+        main(() -> { String status = service.phoneStatus(); CharSequence shown = ((View) field(screen, "sensorIcons")).getContentDescription();
+            check(!status.startsWith("Starting") && status.contentEquals(shown == null ? "" : shown), "Sensor row shows the started phone sensor status: " + shown + " / " + status); });
     }
     void awaitPhoneSave() {
         long until = SystemClock.uptimeMillis() + 8000;
