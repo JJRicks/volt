@@ -972,24 +972,33 @@ public final class MoreScreen implements AppScreen {
     // ---- App preferences ----------------------------------------------------------------
 
     /**
-     * The Language row (plan 5.1), directly below Appearance. Hidden, and so absent from English layouts,
-     * until a language other than English ships, or with the pseudo APK while Developer options are on.
+     * The Language row (plan 5.1), directly below Appearance, offered only once a language other than
+     * English ships, or with the pseudo APK while Developer options are on. The card is built here but
+     * stays out of the section until offered: a GONE child would still take a child slot and shift every
+     * later sibling's index, so English view trees must not hold it at all.
      */
     private void languageRow() {
+        LinearLayout section = cardDestination;
         LinearLayout language = ui.groupCard();
         language.setTag("preference_language");
-        language.setVisibility(View.GONE);
-        int below = cardDestination.getChildCount();
-        for (int i = 0; i < cardDestination.getChildCount(); i++)
-            if (cardDestination.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
-        cardDestination.addView(language, below);
         Row row = row(language, "text", T.moreLanguageTitle(), null,
                 () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
         valueRefreshers.add(() -> {
             boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
-            language.setVisibility(offered ? View.VISIBLE : View.GONE);
             if (offered) row.value(LanguageSheet.value(host.activity()));
+            placeLanguageRow(section, language, offered);
         });
+    }
+
+    /** Attaches the Language card below the first selector (Appearance) once, and detaches it when not offered. */
+    private static void placeLanguageRow(LinearLayout section, View language, boolean offered) {
+        boolean attached = language.getParent() == section;
+        if (!offered) { if (attached) section.removeView(language); return; }
+        if (attached) return;
+        int below = section.getChildCount();
+        for (int i = 0; i < section.getChildCount(); i++)
+            if (section.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
+        section.addView(language, below);
     }
 
     private void preferences() {
