@@ -10,9 +10,9 @@
   and an owner's own title is shown as typed. Only a title that is still its type's default (or one of
   the shipped example's titles, or a default slot name) is shown through these entries.
 
-  Shortcut names are a narrow-label ladder: the full name (Quick access buttons, tooltips, screen
-  readers, the shortcut picker) and a _short rung (the single-line label of a Setting tile, about
-  90 dp wide at 12.5 sp). In English both rungs are the same text; translate both, and make the short
+  Shortcut names are a narrow-label ladder: the full name (Quick access buttons, their tooltips and
+  screen-reader names, the shortcut picker) and a _short rung (the single-line label of a Setting
+  tile, about 90 dp wide at 12.5 sp, which the tile is also announced by). In English both rungs are the same text; translate both, and make the short
   one shorter where the full name would not fit.
 
   Tile announcements (the _desc_ entries) are joined in a fixed order after the shortcut's name:
