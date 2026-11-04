@@ -159,7 +159,7 @@ jobs:
           D="$RUNNER_TEMP/diff"
           cat "$D/verdict.txt"
           if [ ! -f "$D/census-failed.txt" ] || [ -s "$D/census-failed.txt" ]; then
-            echo "::error::CENSUS FAILED: $(cut -f1 "$D/census-failed.txt" 2>/dev/null | sort | uniq -c | awk '{printf "%s%s on %s step(s)", NR>1?", ":"", $2, $1}'); see census-failed.txt and diff-<head>.txt in the census-diff artifact"
+            echo "::error::CENSUS FAILED: $(cut -f1 "$D/census-failed.txt" 2>/dev/null | sort | uniq -c | awk '{printf "%s%s on %s step(s)", (NR > 1 ? ", " : ""), $2, $1}'); see census-failed.txt and diff-<head>.txt in the census-diff artifact"
             cat "$D/census-failed.txt"
             exit 1
           fi
