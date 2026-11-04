@@ -41,7 +41,11 @@ final class NaveeModels {
 
     /** Lower case without spaces, hyphens or brackets, so "ut5max", "UT5 MAX" and "ut-5 max" all match. */
     static String fold(String text) {
-        return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[\\s\\-_()]+", "");
+        return text == null ? "" : squeeze(text.toLowerCase(Locale.ROOT));
+    }
+
+    private static String squeeze(String lower) {
+        return lower.replaceAll("[\\s\\-_()]+", "");
     }
 
     /**
@@ -50,8 +54,14 @@ final class NaveeModels {
      */
     static String displayFold(String text) {
         if (text == null) return "";
-        String lower = text.toLowerCase(Fmt.displayLocale());
-        return Normalizer.normalize(lower, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").replaceAll("[\\s\\-_()]+", "");
+        String split = Normalizer.normalize(text.toLowerCase(Fmt.displayLocale()), Normalizer.Form.NFD);
+        StringBuilder out = new StringBuilder(split.length());
+        for (int i = 0; i < split.length(); i++) {
+            char c = split.charAt(i);
+            int type = Character.getType(c);
+            if (type != Character.NON_SPACING_MARK && type != Character.COMBINING_SPACING_MARK && type != Character.ENCLOSING_MARK) out.append(c);
+        }
+        return squeeze(out.toString());
     }
 
     /** Models whose name, or whose series' name or description, contains the query; all models for an empty one. */
