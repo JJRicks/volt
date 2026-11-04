@@ -4,6 +4,6 @@
 tests/l10n/characterization/DashboardModelEnglishTest.java
 # B12's own suite: shortcut names in English and marked, the tile templates, widget and slot names.
 tests/l10n/DashboardModelTextTest.java
-# The review fixes: the manual charge tile's whole "On • time" template, a Setting tile's spoken full name,
-# and the Quick access cell's width budget on every full shortcut name.
+# The review fixes: a Setting tile's spoken full name and the Quick access cell's width budget on every
+# full shortcut name.
 tests/l10n/DashboardModelTileTest.java

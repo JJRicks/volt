@@ -50,9 +50,10 @@ src/com/jjricks/volt/QuickAccessGrid.java:104	["Measuring"]	dashboard_model_tile
 src/com/jjricks/volt/QuickAccessGrid.java:104	["On • ", {"hole": "activeTime", "arg": 1, "type": "s"}]	dashboard_model_tile_on_at	template	
 src/com/jjricks/volt/QuickAccessGrid.java:104	["Off"]	common_off	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:105	["Updating…"]	dashboard_model_tile_updating	exact	
-src/com/jjricks/volt/QuickAccessGrid.java:105	["On", " • ", {"hole": "DisplayTime.clock(host.activity(), preferences, charge.startWallMs)", "arg": 1, "type": "s"}]	dashboard_model_tile_on_at	template	manual: the manual charge tile set state = charge.manualEnabled ? "On" : "Off" (line 105), then, when charge.startWallMs > 0 (and, as line 105 already held, manual, mapped, a charge view and not pending), appended " • " + DisplayTime.clock(..., charge.startWallMs) (lines 108-109); the append statement is gone and line 105 became charge.manualEnabled ? (charge.startWallMs > 0 ? T.dashboardModelTileOnAt(clock) : T.commonOn()) : T.commonOff(), so the whole "On • time" is this template. Without a start time it is common_on, "On", which G1 cannot prove (the literal is this row's) and DashboardModelTileTest checks
+src/com/jjricks/volt/QuickAccessGrid.java:105	["On"]	common_on	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:105	["Off"]	common_off	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:106	["Not scheduled"]	dashboard_model_tile_not_scheduled	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:109	[" • ", {"hole": "DisplayTime.clock(host.activity(), preferences, charge.startWallMs)", "arg": 1, "type": "s"}]	dashboard_model_tile_at_time	template	
 src/com/jjricks/volt/QuickAccessGrid.java:146	[", ", {"hole": "state", "arg": 1, "type": "s"}]	dashboard_model_tile_desc_part	template	
 src/com/jjricks/volt/QuickAccessGrid.java:148	[", not offered for this region"]	dashboard_model_tile_desc_region	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:148	[", not on this model"]	dashboard_model_tile_desc_model	exact	

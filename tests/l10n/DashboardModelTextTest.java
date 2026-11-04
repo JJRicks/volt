@@ -99,6 +99,7 @@ public final class DashboardModelTextTest {
     private static void templates() {
         for (String v : new String[]{"", "7:00 PM", "19:00", "80%", "Wait for the current change to finish", "a%sb", "$1"}) {
             same("On • " + v, T.dashboardModelTileOnAt(v), "tile on at");
+            same(" • " + v, T.dashboardModelTileAtTime(v), "tile at time");
             same(", " + v, T.dashboardModelTileDescPart(v), "tile description part");
         }
         for (int index = 0; index < 12; index++)

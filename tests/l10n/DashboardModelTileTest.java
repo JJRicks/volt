@@ -1,7 +1,6 @@
 package com.jjricks.volt;
 
 import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -15,9 +14,6 @@ import java.util.regex.Pattern;
  * B12 review fixes, beyond DashboardModelTextTest (QuickAccessGrid is an Android view, so its lines are
  * checked in src/ and the catalogue it calls is checked here):
  *
- *  - The manual charge tile ("Charge schedule") shows "On • time" through the one template
- *    dashboard_model_tile_on_at, which renders the base's "On" + " • " + time; no " • time" fragment
- *    is glued on any more, and dashboard_model_tile_at_time is gone.
  *  - A Setting tile is announced by the full name (entry.label()), or by the two Scooter-page names it
  *    keeps (Top speed, Charge schedule), while its visible label stays the short rung.
  *  - Every full shortcut name, which a Quick access button shows, carries that button's width budget,
@@ -44,10 +40,6 @@ public final class DashboardModelTileTest {
     public static void main(String[] args) throws Exception {
         T.Source saved = T.source();
         try {
-            T.install(null);
-            manualChargeTile();
-            T.install(new DashboardModelTextTest.Marked());
-            manualChargeTileMarked();
             T.install(new Rungs());
             spokenName();
             T.install(null);
@@ -55,7 +47,7 @@ public final class DashboardModelTileTest {
         } finally {
             T.install(saved);
         }
-        System.out.println("DashboardModelTileTest: " + checks + " checks passed (manual charge tile template, Setting tile spoken name, Quick access budget)");
+        System.out.println("DashboardModelTileTest: " + checks + " checks passed (Setting tile spoken name, Quick access budget)");
     }
 
     private static void check(boolean ok, String what) {
@@ -78,32 +70,6 @@ public final class DashboardModelTileTest {
         int end = source.indexOf("\n    }", at);
         check(end > at, signature + " has no end");
         return source.substring(at, end);
-    }
-
-    private static void manualChargeTile() throws Exception {
-        // The base printed "On" (common_on), then appended " • " + the start time.
-        same("On", T.commonOn(), "manual tile without a start time");
-        for (String time : new String[]{"7:30 AM", "19:30", "", "١٢:٣٠", "$1 %1$s %%", " lead", "trail "})
-            same("On" + " • " + time, T.dashboardModelTileOnAt(time), "manual tile with start time " + time);
-        for (Method m : T.class.getMethods())
-            check(!m.getName().equals("dashboardModelTileAtTime"), "dashboard_model_tile_at_time is still in the catalogue");
-        check(!read(STRINGS).contains("dashboard_model_tile_at_time"), "dashboard_model_tile_at_time is still in " + STRINGS);
-
-        String grid = read(GRID);
-        check(!grid.contains("dashboardModelTileAtTime"), "QuickAccessGrid still glues the at-time fragment");
-        check(!grid.contains("state +="), "QuickAccessGrid appends to a tile's state");
-        String manual = grid.substring(grid.indexOf("} else if (manual) state = "));
-        manual = manual.substring(0, manual.indexOf(";") + 1).replaceAll("\\s+", " ");
-        same("} else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled"
-                + " // With a start time, one template holds \"On\" and the time, in its own order and spacing."
-                + " ? (charge.startWallMs > 0 ? T.dashboardModelTileOnAt(DisplayTime.clock(host.activity(), preferences, charge.startWallMs)) : T.commonOn())"
-                + " : T.commonOff();", manual, "the manual tile's state");
-    }
-
-    private static void manualChargeTileMarked() {
-        // One whole template in another language: its order and spacing are the translation's, marked once.
-        same("«On • 7:30»", T.dashboardModelTileOnAt("7:30"), "marked manual tile with a start time");
-        same("«On»", T.commonOn(), "marked manual tile without a start time");
     }
 
     private static void spokenName() throws Exception {

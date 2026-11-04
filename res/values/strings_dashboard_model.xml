@@ -111,10 +111,12 @@
     <string name="dashboard_model_tile_range_scooter" volt:screen="Home Setting tiles (range estimate)" volt:purpose="value">Scooter</string>
     <!-- Volt measures the charging power before it plans the charge. -->
     <string name="dashboard_model_tile_measuring" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">Measuring</string>
-    <!-- The charge plan is on, or the scooter's own timed charging is on with a start time; %1$s is the time of day the battery should be charged by, or charging starts (7:30 AM). -->
-    <string name="dashboard_model_tile_on_at" volt:screen="Home Setting tiles (Charge done by, Charge schedule)" volt:purpose="value" volt:safety="charge">On • %1$s</string>
+    <!-- The charge plan is on; %1$s is the time of day the battery should be charged by (7:30 AM). -->
+    <string name="dashboard_model_tile_on_at" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">On • %1$s</string>
     <!-- No start time is set for the scooter's own timed charging. -->
     <string name="dashboard_model_tile_not_scheduled" volt:screen="Home Setting tiles (charge start)" volt:purpose="value" volt:safety="charge">Not scheduled</string>
+    <!-- Added after "On" when the scooter's timed charging has a start time; %1$s is that time (7:30 AM). -->
+    <string name="dashboard_model_tile_at_time" volt:screen="Home Setting tiles (Charge schedule)" volt:purpose="value" volt:safety="charge">" • %1$s"</string>
 
     <!-- Why a charging tile cannot be used now (QuickAccessGrid; read out after the tile's name). -->
     <!-- No scooter is chosen, so there is no charge plan to set. -->
