@@ -63,11 +63,14 @@
     <!-- Spoken reading group heading: %1$s is the group's name ("Battery"). -->
     <string name="stats_group_readings" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">%1$s readings</string>
     <!-- Spoken reading group heading on older Android: %1$s is the group's name ("Battery"), %2$s
-         "expanded" or "collapsed". -->
+         stats_group_readings_expanded_said or stats_group_readings_collapsed_said. -->
     <string name="stats_group_readings_state" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">%1$s readings, %2$s</string>
-    <!-- Said after a group heading on older Android, which has no separate state. -->
-    <string name="stats_state_expanded_said" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">expanded</string>
-    <string name="stats_state_collapsed_said" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">collapsed</string>
+    <!-- Said after "<group> readings" on older Android, which has no separate state: the readings of
+         that group are shown. Used only in stats_group_readings_state, so it may agree with "readings". -->
+    <string name="stats_group_readings_expanded_said" volt:screen="Live Stats › Readings" volt:purpose="accessibility state">expanded</string>
+    <!-- Said after "<group> readings" on older Android, which has no separate state: the readings of
+         that group are hidden. Used only in stats_group_readings_state, so it may agree with "readings". -->
+    <string name="stats_group_readings_collapsed_said" volt:screen="Live Stats › Readings" volt:purpose="accessibility state">collapsed</string>
     <string name="stats_state_expanded" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Expanded</string>
     <string name="stats_state_collapsed" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Collapsed</string>
     <!-- Spoken star button: %1$s is the reading's name. -->
@@ -125,8 +128,15 @@
         <item quantity="one">%1$d chart</item>
         <item quantity="other">%1$d charts</item>
     </plurals>
-    <!-- Spoken chart group heading: %1$s is the group's name ("Battery"), %2$s "expanded" or "collapsed". -->
+    <!-- Spoken chart group heading: %1$s is the group's name ("Battery"), %2$s
+         stats_chart_group_expanded_said or stats_chart_group_collapsed_said. -->
     <string name="stats_chart_group_state" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">%1$s charts, %2$s</string>
+    <!-- Said after "<group> charts": the charts of that group are shown. Used only in
+         stats_chart_group_state, so it may agree with "charts". -->
+    <string name="stats_chart_group_expanded_said" volt:screen="Live Stats › Charts" volt:purpose="accessibility state">expanded</string>
+    <!-- Said after "<group> charts": the charts of that group are hidden. Used only in
+         stats_chart_group_state, so it may agree with "charts". -->
+    <string name="stats_chart_group_collapsed_said" volt:screen="Live Stats › Charts" volt:purpose="accessibility state">collapsed</string>
     <!-- Spoken expand button: %1$s is the reading's name. -->
     <string name="stats_chart_expand" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Expand %1$s chart</string>
     <!-- Spoken star button: %1$s is the reading's name. -->
@@ -185,7 +195,11 @@
     <string name="stats_charge_full_observed" formatted="false" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">100% observed</string>
     <!-- Follows the recording's status: %1$s is how long a Volt charging schedule paused charging ("1 h 5 min"). -->
     <string name="stats_charge_paused_schedule" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">" · paused %1$s for the schedule"</string>
-    <!-- Follows the recording's status: %1$d is how many times the charger stopped charging, %2$s for how long in all ("12 min"). -->
+    <!-- Follows the recording's status: %1$d is how many times the charger stopped charging, %2$s for how long in all ("12 min").
+         English "once" means exactly 1 stop. In a language whose "one" category also covers other
+         counts (Russian, Ukrainian, Belarusian, Lithuanian, Latvian, Croatian, Serbian and Bosnian
+         "one" covers 21, 31, 41...; Brazilian Portuguese and French "one" covers 0), the "one" item
+         must keep %1$d and say the count ("%1$d time"), never a word for once. -->
     <plurals name="stats_charge_charger_stopped" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">
         <item quantity="one">" · charger stopped once (%2$s)"</item>
         <item quantity="other">" · charger stopped %1$d times (%2$s)"</item>

@@ -6,3 +6,5 @@ tests/l10n/characterization/StatsTextTest.java
 # B16's pure helper and its catalog test.
 src/com/jjricks/volt/StatsLabels.java
 tests/l10n/StatsCatalogTest.java
+# B16 review fixes: per-heading spoken state words and the charger-stopped plural note.
+tests/l10n/StatsStateWordsTest.java

@@ -472,7 +472,7 @@ public final class StatsScreen implements AppScreen {
             group.title.setCompoundDrawablesRelative(null, null, arrow, null);
             group.title.setContentDescription(T.statsGroupReadings(ScooterReadingLabels.group(group.name)));
             if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? T.statsStateExpanded() : T.statsStateCollapsed());
-            else group.title.setContentDescription(T.statsGroupReadingsState(ScooterReadingLabels.group(group.name), open ? T.statsStateExpandedSaid() : T.statsStateCollapsedSaid()));
+            else group.title.setContentDescription(T.statsGroupReadingsState(ScooterReadingLabels.group(group.name), open ? T.statsGroupReadingsExpandedSaid() : T.statsGroupReadingsCollapsedSaid()));
         }
         resultCount.setText(count == 0 ? T.statsReadingsNoMatches()
                 : T.statsReadingsCount(count, count));

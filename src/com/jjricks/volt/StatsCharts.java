@@ -163,7 +163,7 @@ final class StatsCharts {
             android.graphics.drawable.Drawable arrow = new StatsScreen.StatsGlyph(false, open, ui.text);
             arrow.setBounds(0, 0, ui.dp(26), ui.dp(26));
             group.title.setCompoundDrawablesRelative(null, null, arrow, null);
-            group.title.setContentDescription(T.statsChartGroupState(ScooterReadingLabels.group(entry.getKey()), open ? T.statsStateExpandedSaid() : T.statsStateCollapsedSaid()));
+            group.title.setContentDescription(T.statsChartGroupState(ScooterReadingLabels.group(entry.getKey()), open ? T.statsChartGroupExpandedSaid() : T.statsChartGroupCollapsedSaid()));
             if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? T.statsStateExpanded() : T.statsStateCollapsed());
             matches += groupMatches;
         }
