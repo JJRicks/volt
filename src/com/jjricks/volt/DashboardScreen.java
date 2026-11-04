@@ -1907,7 +1907,7 @@ public final class DashboardScreen implements AppScreen {
             addView(content, new FrameLayout.LayoutParams(-1, -1));
             heading = row();
             heading.setGravity(Gravity.CENTER_VERTICAL);
-            title = ui.text(widget.title, 13, false);
+            title = ui.text(DashboardConfig.displayTitle(widget), 13, false);
             title.setTypeface(ui.medium());
             title.setTextColor(ui.muted);
             title.setMaxLines(2);
@@ -1954,7 +1954,7 @@ public final class DashboardScreen implements AppScreen {
             build();
             if (editing) {
                 FrameLayout grip =
-                        overlay("grip", "Move " + widget.title, () -> position(widget));
+                        overlay("grip", T.dashboardMoveWidgetNamed(DashboardConfig.displayTitle(widget)), () -> position(widget));
                 EditorTouch touch = new EditorTouch(this, false);
                 grip.setTag(touch);
                 grip.setOnTouchListener(touch);
@@ -1966,7 +1966,7 @@ public final class DashboardScreen implements AppScreen {
                 EditorBar editor = new EditorBar(grip);
                 editor.setTag("widget-editor-bar");
                 addView(editor, new FrameLayout.LayoutParams(-1, -2, Gravity.TOP));
-                FrameLayout resize = cornerHandle("Resize " + widget.title, () -> size(widget));
+                FrameLayout resize = cornerHandle(T.dashboardResizeWidgetNamed(DashboardConfig.displayTitle(widget)), () -> size(widget));
                 resizeControl = resize;
                 resize.setOnTouchListener(new EditorTouch(this, true));
                 addFloating(resize, Gravity.BOTTOM | Gravity.RIGHT);
@@ -2039,12 +2039,12 @@ public final class DashboardScreen implements AppScreen {
                 super(host.activity());
                 this.grip = grip;
                 grip.setOnClickListener(v -> { if (singleAction) showActions(); else position(widget); });
-                editButton = overlay("gear", "Options for " + widget.title, () -> options(widget));
+                editButton = overlay("gear", T.dashboardOptionsFor(DashboardConfig.displayTitle(widget)), () -> options(widget));
                 editButton.setOnClickListener(v -> {
                     if (compactRail) showActions(); else options(widget);
                 });
-                duplicateButton = overlay("copy", "Duplicate " + widget.title, () -> duplicateWidget(widget));
-                removeButton = overlay("trash", "Remove " + widget.title, () -> removeWidget(widget));
+                duplicateButton = overlay("copy", T.dashboardDuplicateNamed(DashboardConfig.displayTitle(widget)), () -> duplicateWidget(widget));
+                removeButton = overlay("trash", T.dashboardRemoveNamed(DashboardConfig.displayTitle(widget)), () -> removeWidget(widget));
                 duplicateButton.setEnabled(!lockType(widget.type) && config.widgets.size() < WIDGET_LIMIT);
                 duplicateButton.setAlpha(duplicateButton.isEnabled() ? 1f : .42f);
                 duplicateButton.setTooltipText(lockType(widget.type) ? T.dashboardOneLockWidget()
@@ -2055,11 +2055,11 @@ public final class DashboardScreen implements AppScreen {
             private void showActions() {
                 if (actionsMenu != null) actionsMenu.dismiss();
                 actionsMenu = new PopupMenu(host.activity(), singleAction ? grip : editButton);
-                if (singleAction) actionsMenu.getMenu().add(0, 4, 0, "Move widget").setIcon(glyphDrawable("grip", ui.text, 20));
-                actionsMenu.getMenu().add(0, 1, 0, "Edit widget").setIcon(glyphDrawable("gear", ui.text, 20));
-                actionsMenu.getMenu().add(0, 2, 1, "Duplicate widget").setIcon(glyphDrawable("copy", ui.text, 20))
+                if (singleAction) actionsMenu.getMenu().add(0, 4, 0, T.dashboardMoveWidget()).setIcon(glyphDrawable("grip", ui.text, 20));
+                actionsMenu.getMenu().add(0, 1, 0, T.dashboardEditWidget()).setIcon(glyphDrawable("gear", ui.text, 20));
+                actionsMenu.getMenu().add(0, 2, 1, T.dashboardDuplicateWidget()).setIcon(glyphDrawable("copy", ui.text, 20))
                         .setEnabled(!lockType(widget.type) && config.widgets.size() < WIDGET_LIMIT);
-                android.text.SpannableString removeLabel = new android.text.SpannableString("Remove widget");
+                android.text.SpannableString removeLabel = new android.text.SpannableString(T.dashboardRemoveWidget());
                 removeLabel.setSpan(new android.text.style.ForegroundColorSpan(ui.danger), 0,
                         removeLabel.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 actionsMenu.getMenu().add(0, 3, 2, removeLabel).setIcon(glyphDrawable("trash", ui.danger, 20));
@@ -2090,7 +2090,7 @@ public final class DashboardScreen implements AppScreen {
                 int available = Math.max(1, width - resizeInset);
                 singleAction = resizeInset > 0 && available < ui.dp(96);
                 editButton.setVisibility(singleAction ? GONE : VISIBLE);
-                grip.setTooltipText(singleAction ? "Move or edit widget" : "Move widget");
+                grip.setTooltipText(singleAction ? T.dashboardMoveOrEditWidget() : T.dashboardMoveWidget());
                 controlColumns = available < ui.dp(144) ? (available >= ui.dp(96) ? 2 : 1) : 4;
                 target = Math.min(ui.dp(controlColumns < 4 ? 48 : 52), available / controlColumns);
                 // A short two-column card cannot fit two action rows above Resize.
@@ -2175,13 +2175,13 @@ public final class DashboardScreen implements AppScreen {
                     photoPane = new FrameLayout(host.activity());
                     photo = new ImageView(host.activity());
                     photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-                    photo.setContentDescription("NAVEE scooter");
+                    photo.setContentDescription(T.uiPhotoScooter());
                     photoPane.addView(photo, new FrameLayout.LayoutParams(-1, -1));
                     // Without a model photo: a generic scooter glyph, not a word.
                     photoHint = ui.caption("");
                     photoHint.setGravity(Gravity.CENTER);
                     photoHint.setCompoundDrawablesRelative(null, glyphDrawable("scooter", ui.dim, 40), null, null);
-                    photoHint.setContentDescription("Scooter");
+                    photoHint.setContentDescription(T.dashboardScooter());
                     photoPane.addView(photoHint, new FrameLayout.LayoutParams(-1, -1));
                     scooterRow.addView(
                             photoPane, new LinearLayout.LayoutParams(ui.dp(88), ui.dp(100)));
@@ -2292,13 +2292,13 @@ public final class DashboardScreen implements AppScreen {
                     chart.setHistoryMode(true);
                     body.addView(chart, new LinearLayout.LayoutParams(-1, ui.dp(190)));
                     // The default title says "Reported health"; the controller caveat stays on long press.
-                    String reported = "Controller-reported, not a capacity test";
+                    String reported = T.dashboardControllerReported();
                     title.setTooltipText(reported);
                     chart.setTooltipText(reported);
                     health.setTooltipText(reported);
                     break;
                 case "capacity":
-                    TextView name = ui.text(widget.title, 14, false);
+                    TextView name = ui.text(DashboardConfig.displayTitle(widget), 14, false);
                     name.setTextColor(ui.muted);
                     name.setCompoundDrawablesRelative(glyphDrawable("lab", ui.accent, 18), null, null, null);
                     name.setCompoundDrawablePadding(ui.dp(6));
@@ -2308,15 +2308,15 @@ public final class DashboardScreen implements AppScreen {
                     LinearLayout.LayoutParams methodSpace = new LinearLayout.LayoutParams(-2, -2);
                     methodSpace.topMargin = ui.dp(6);
                     body.addView(capacityMethod, methodSpace);
-                    capacityValue = new FittedValue("Processing…", 16, 34, 2);
+                    capacityValue = new FittedValue(T.dashboardProcessing(), 16, 34, 2);
                     capacityValue.setTextColor(ui.muted);
                     capacityValue.setPadding(0, ui.dp(8), 0, ui.dp(4));
                     body.addView(capacityValue, new LinearLayout.LayoutParams(-1, -2));
                     capacityCompare = ui.text("", 14, true);
                     capacityCompare.setVisibility(View.GONE);
                     body.addView(capacityCompare);
-                    capacityReference = actionPill("Set reference", "plus", ui.blue, () -> advertisedCapacity(widget));
-                    capacityReference.setContentDescription("Set reference capacity");
+                    capacityReference = actionPill(T.dashboardSetReference(), "plus", ui.blue, () -> advertisedCapacity(widget));
+                    capacityReference.setContentDescription(T.dashboardSetReferenceCapacity());
                     capacityReference.setVisibility(View.GONE);
                     body.addView(capacityReference, new LinearLayout.LayoutParams(-2, -2));
                     // The bar compares with the reference, or fills toward the evidence minimum.
@@ -2325,9 +2325,9 @@ public final class DashboardScreen implements AppScreen {
                     LinearLayout.LayoutParams barSpace = new LinearLayout.LayoutParams(-1, ui.dp(10));
                     barSpace.topMargin = barSpace.bottomMargin = ui.dp(10);
                     body.addView(capacityBar, barSpace);
-                    capacitySummary = ui.caption("Checking recorded rides…");
+                    capacitySummary = ui.caption(T.dashboardCheckingRides());
                     body.addView(capacitySummary);
-                    capacityDetails = ui.secondaryButton("Estimate details", this::showCapacityDetails);
+                    capacityDetails = ui.secondaryButton(T.dashboardEstimateDetails(), this::showCapacityDetails);
                     LinearLayout.LayoutParams evidenceSpace = new LinearLayout.LayoutParams(-1, -2);
                     evidenceSpace.topMargin = ui.dp(8);
                     body.addView(capacityDetails, evidenceSpace);
@@ -2366,9 +2366,11 @@ public final class DashboardScreen implements AppScreen {
                     buildRecorder();
                     break;
                 case "note":
-                    subtitle = ui.text(widget.note.isEmpty() ? "Empty note" : widget.note, 15, false);
+                    subtitle = ui.text(widget.note.isEmpty() ? T.dashboardEmptyNote() : widget.note, 15, false);
                     // Reserve the edit tap target in both modes so short notes never move.
                     subtitle.setMinHeight(ui.dp(48));
+                    // The shipped example's note shows in the current language; the saved note stays as it is.
+                    if (!widget.note.isEmpty()) subtitle.setText(DashboardConfig.displayNote(widget));
                     if (widget.note.isEmpty()) {
                         subtitle.setTextColor(ui.muted);
                         subtitle.setCompoundDrawablesRelative(glyphDrawable("note", ui.muted, 18), null, null, null);
@@ -2380,10 +2382,11 @@ public final class DashboardScreen implements AppScreen {
                         subtitle.setTag(EDIT_ACTION);
                         subtitle.setClickable(true);
                         subtitle.setFocusable(true);
-                        subtitle.setContentDescription((widget.note.isEmpty() ? "Empty note" : widget.note)
-                                + ". Edit note");
-                        subtitle.setOnClickListener(v -> editText(widget, "Note", widget.note,
+                        subtitle.setContentDescription((widget.note.isEmpty() ? T.dashboardEmptyNoteEdit() : T.dashboardEditNote(widget.note)));
+                        subtitle.setOnClickListener(v -> editText(widget, M.dashboardNote(), widget.note,
                                 value -> widget.note = value));
+                        // The shipped example's note is announced as shown, in the current language.
+                        if (!widget.note.isEmpty()) subtitle.setContentDescription(T.dashboardEditNote(DashboardConfig.displayNote(widget)));
                     }
                     body.addView(subtitle);
                     break;
@@ -2411,7 +2414,7 @@ public final class DashboardScreen implements AppScreen {
             recordGlyph = new GlyphView("record", ui.onAccent);
             disc.addView(recordGlyph, new FrameLayout.LayoutParams(ui.dp(20), ui.dp(20), Gravity.CENTER));
             LinearLayout words = column();
-            rideTitle = ui.text("Record ride", 15, false);
+            rideTitle = ui.text(T.dashboardRecordRide(), 15, false);
             rideTitle.setTypeface(ui.medium());
             words.addView(rideTitle);
             rideDetail = ui.caption("");
@@ -2433,7 +2436,7 @@ public final class DashboardScreen implements AppScreen {
             FrameLayout more = new FrameLayout(host.activity());
             more.addView(new GlyphView("chevron", ui.muted),
                     new FrameLayout.LayoutParams(ui.dp(16), ui.dp(16), Gravity.CENTER));
-            more.setContentDescription("View rides");
+            more.setContentDescription(T.dashboardViewRides());
             more.setFocusable(true);
             more.setClickable(true);
             more.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 14, 0)));
@@ -2603,7 +2606,7 @@ public final class DashboardScreen implements AppScreen {
                     TextView name = key == null ? ui.caption(label) : readingCaption(key);
                     cell.addView(name, new LinearLayout.LayoutParams(-1, -2));
                 }
-                value.setContentDescription(label + ", not reported");
+                value.setContentDescription(T.dashboardNotReportedNamed(label));
                 cells.add(cell);
                 return value;
             }
@@ -2741,7 +2744,7 @@ public final class DashboardScreen implements AppScreen {
                 top.setBaselineAligned(false);
                 left = column();
                 left.setGravity(Gravity.CENTER_VERTICAL);
-                caption = ui.text("Battery", 13, false);
+                caption = ui.text(T.dashboardBattery(), 13, false);
                 caption.setTextColor(ui.muted);
                 caption.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
                 left.addView(caption, new LinearLayout.LayoutParams(-1, -2));
@@ -2899,15 +2902,18 @@ public final class DashboardScreen implements AppScreen {
                 if (!shown.toString().contentEquals(percent.getText())) percent.setText(shown);
                 percent.setTextColor(live ? ui.text : ui.muted);
                 String distance = rangeText(values.get("remaining_range_km"));
-                String line = charging ? "Charging" : distance.isEmpty() ? "" : distance + " left";
+                String line = charging ? T.dashboardCharging() : distance.isEmpty() ? "" : T.dashboardRangeLeft(distance);
                 if (!line.contentEquals(range.getText())) range.setText(line);
                 if (rangeWanted != !line.isEmpty()) { rangeWanted = !line.isEmpty(); requestLayout(); }
                 range.setVisibility(rangeWanted && rangeFits ? VISIBLE : GONE);
                 bar.set(level, live, charging);
-                spoken = "Battery " + (level == null ? "not reported" : amount + " percent")
-                        + (line.isEmpty() ? "" : ", " + line)
-                        + (charge != null && charge.value != null && !live
-                                ? ", last seen " + when(charge.capturedWallMs) : "");
+                spoken = level == null
+                        ? (line.isEmpty()
+                                ? (charge != null && charge.value != null && !live ? T.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : T.dashboardOverviewNotReported())
+                                : (charge != null && charge.value != null && !live ? T.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : T.dashboardOverviewNotReportedLine(line)))
+                        : (line.isEmpty()
+                                ? (charge != null && charge.value != null && !live ? T.dashboardOverviewPercentSeen(amount, when(charge.capturedWallMs)) : T.dashboardOverviewPercent(amount))
+                                : (charge != null && charge.value != null && !live ? T.dashboardOverviewPercentLineSeen(amount, line, when(charge.capturedWallMs)) : T.dashboardOverviewPercentLine(amount, line)));
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }
@@ -5071,7 +5077,8 @@ public final class DashboardScreen implements AppScreen {
         // Title is edited in place and saved when the sheet closes.
         list.addView(sheetLabel("Title"));
         EditText titleInput = new EditText(dialogContext);
-        titleInput.setText(widget.title);
+        String shownTitle = DashboardConfig.displayTitle(widget);
+        titleInput.setText(shownTitle);
         titleInput.setSingleLine(true);
         titleInput.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_DONE);
         titleInput.setFilters(new android.text.InputFilter[] {new android.text.InputFilter.LengthFilter(80)});
@@ -5087,7 +5094,8 @@ public final class DashboardScreen implements AppScreen {
         Runnable applyTitle =
                 () -> {
                     String value = titleInput.getText().toString().trim();
-                    if (!value.isEmpty() && !value.equals(widget.title)) {
+                    // A title left as shown (a default in the current language) keeps its saved English.
+                    if (!value.isEmpty() && !value.equals(widget.title) && !value.equals(shownTitle)) {
                         widget.title = value;
                         config.save();
                         render();
@@ -5147,7 +5155,7 @@ public final class DashboardScreen implements AppScreen {
                             () ->
                                     editText(
                                             widget,
-                                            "Note",
+                                            M.dashboardNote(),
                                             widget.note,
                                             value -> widget.note = value)), "text");
         if (widget.type.equals("capacity"))
@@ -5702,17 +5710,19 @@ public final class DashboardScreen implements AppScreen {
 
     private void editText(
             DashboardConfig.Widget widget,
-            String label,
+            CharSequence label,
             String value,
             java.util.function.Consumer<String> apply) {
         dismiss();
         EditText input = new EditText(dialogContext);
-        input.setText(value);
+        // A note edits as shown (the shipped example's note in the current language); left unchanged, it keeps its saved text.
+        String shown = value != null && value.equals(widget.note) ? DashboardConfig.displayNote(widget) : value;
+        input.setText(shown);
         input.setSelectAllOnFocus(true);
-        input.setMaxLines(label.equals("Note") ? 6 : 2);
+        input.setMaxLines(label.equals(M.dashboardNote()) ? 6 : 2);
         input.setFilters(
                 new android.text.InputFilter[] {
-                    new android.text.InputFilter.LengthFilter(label.equals("Note") ? 1200 : 80)
+                    new android.text.InputFilter.LengthFilter(label.equals(M.dashboardNote()) ? 1200 : 80)
                 });
         dialog =
                 new AlertDialog.Builder(dialogContext)
@@ -5722,7 +5732,7 @@ public final class DashboardScreen implements AppScreen {
                         .setPositiveButton(
                                 "Save",
                                 (d, w) -> {
-                                    apply.accept(input.getText().toString());
+                                    apply.accept(input.getText().toString().equals(shown) ? value : input.getText().toString());
                                     changedWidget(widget);
                                 })
                         .show();

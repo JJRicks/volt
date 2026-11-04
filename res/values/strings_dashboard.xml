@@ -143,4 +143,67 @@
     <string name="dashboard_charging_description" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s</string>
     <!-- The same with an explanation: %3$s is a sentence or a short note ("Battery-side power"). -->
     <string name="dashboard_charging_description_detail" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s. %3$s</string>
+    <!-- Editing a widget -->
+    <!-- Spoken for a widget's move handle: %1$s is the widget's title. -->
+    <string name="dashboard_move_widget_named" volt:screen="Home, editing a widget" volt:purpose="accessibility description">Move %1$s</string>
+    <!-- Spoken for a widget's resize corner: %1$s is the widget's title. -->
+    <string name="dashboard_resize_widget_named" volt:screen="Home, editing a widget" volt:purpose="accessibility description">Resize %1$s</string>
+    <!-- Spoken for a widget's options button: %1$s is the widget's title. -->
+    <string name="dashboard_options_for" volt:screen="Home, editing a widget" volt:purpose="accessibility description">Options for %1$s</string>
+    <!-- Spoken for a widget's duplicate button: %1$s is the widget's title. -->
+    <string name="dashboard_duplicate_named" volt:screen="Home, editing a widget" volt:purpose="accessibility description">Duplicate %1$s</string>
+    <!-- Spoken for a widget's remove button: %1$s is the widget's title. -->
+    <string name="dashboard_remove_named" volt:screen="Home, editing a widget" volt:purpose="accessibility description">Remove %1$s</string>
+    <!-- A small widget's action menu, and its move handle's tooltip. -->
+    <string name="dashboard_move_widget" volt:screen="Home, editing a widget" volt:purpose="menu item">Move widget</string>
+    <string name="dashboard_edit_widget" volt:screen="Home, editing a widget" volt:purpose="menu item">Edit widget</string>
+    <string name="dashboard_remove_widget" volt:screen="Home, editing a widget" volt:purpose="menu item">Remove widget</string>
+    <!-- Tooltip of a small widget's handle, which opens the action menu. -->
+    <string name="dashboard_move_or_edit_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip">Move or edit widget</string>
+
+    <!-- Widget cards -->
+    <!-- Spoken for the scooter glyph a scooter widget shows when Volt has no photo of the model. -->
+    <string name="dashboard_scooter" volt:screen="Home scooter widget" volt:purpose="accessibility description">Scooter</string>
+    <!-- Long-press note of the battery health widget: the health is what the scooter's controller
+         reports, not a measured capacity test. -->
+    <string name="dashboard_controller_reported" volt:screen="Home battery health widget" volt:purpose="tooltip">Controller-reported, not a capacity test</string>
+    <!-- The capacity widget's value while its first estimate is computed. -->
+    <string name="dashboard_processing" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Processing…</string>
+    <!-- Button that sets the capacity to compare the estimate with. -->
+    <string name="dashboard_set_reference" volt:screen="Home capacity widget" volt:purpose="button" volt:safety="experimental">Set reference</string>
+    <!-- Spoken for Set reference. -->
+    <string name="dashboard_set_reference_capacity" volt:screen="Home capacity widget" volt:purpose="accessibility description" volt:safety="experimental">Set reference capacity</string>
+    <!-- The capacity widget's summary while it reads the recorded rides. -->
+    <string name="dashboard_checking_rides" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Checking recorded rides…</string>
+    <!-- Button that opens the capacity estimate's evidence. -->
+    <string name="dashboard_estimate_details" volt:screen="Home capacity widget" volt:purpose="button" volt:safety="experimental">Estimate details</string>
+    <!-- A note widget with no text yet. -->
+    <string name="dashboard_empty_note" volt:screen="Home note widget" volt:purpose="placeholder">Empty note</string>
+    <!-- Spoken for a note widget while editing: %1$s is the note's text. -->
+    <string name="dashboard_edit_note" volt:screen="Home note widget, editing" volt:purpose="accessibility description">%1$s. Edit note</string>
+    <!-- Spoken for an empty note widget while editing. -->
+    <string name="dashboard_empty_note_edit" volt:screen="Home note widget, editing" volt:purpose="accessibility description">Empty note. Edit note</string>
+    <!-- Title of the note editor and the note's settings row. -->
+    <string name="dashboard_note" volt:screen="Note widget options" volt:purpose="title">Note</string>
+    <!-- The ride recorder widget's title and button. -->
+    <string name="dashboard_record_ride" volt:screen="Home ride recorder widget" volt:purpose="button">Record ride</string>
+    <!-- Spoken for the recorder's arrow, which opens the ride list. -->
+    <string name="dashboard_view_rides" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">View rides</string>
+    <!-- Spoken for a reading the scooter has not sent: %1$s is the reading's name. -->
+    <string name="dashboard_not_reported_named" volt:screen="Home cards" volt:purpose="accessibility description">%1$s, not reported</string>
+    <!-- The battery overview widget's caption. -->
+    <string name="dashboard_battery" volt:screen="Home battery overview widget" volt:purpose="label">Battery</string>
+    <!-- The battery overview's range line: %1$s is the range ("about 31 mi"). -->
+    <string name="dashboard_range_left" volt:screen="Home battery overview widget" volt:purpose="value" volt:safety="ride">%1$s left</string>
+    <!-- Spoken for the battery overview widget. %1$s is the level, a whole number of percent; the
+         _line forms add the range line (%1$s or %2$s: "about 31 mi left", or "Charging"); the _seen
+         forms say when the level was read (the last placeholder: a date and time) when it is not live. -->
+    <string name="dashboard_overview_not_reported" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported</string>
+    <string name="dashboard_overview_not_reported_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, last seen %1$s</string>
+    <string name="dashboard_overview_not_reported_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s</string>
+    <string name="dashboard_overview_not_reported_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, last seen %2$s</string>
+    <string name="dashboard_overview_percent" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent</string>
+    <string name="dashboard_overview_percent_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen %2$s</string>
+    <string name="dashboard_overview_percent_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
+    <string name="dashboard_overview_percent_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen %3$s</string>
 </resources>
