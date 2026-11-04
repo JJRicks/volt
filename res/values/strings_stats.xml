@@ -1,0 +1,285 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Live Stats and charge history (batch B16): the Live Stats sections, Overview, Readings, the chart
+  browser and Diagnostics, and the charge recordings pages. The English must stay exactly what the
+  source said before the batch (G1, G2).
+
+  Where the source added optional words to a sentence, each combination is its own whole template, so
+  a language can order, join and inflect the whole phrase; only values (a reading's name, a value, a
+  time) are filled in. Reading names, group names and unit symbols come from the readings and units
+  catalogs. Section, group and chart-window choices are stored by their English ids, never by these
+  texts.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Sections -->
+    <!-- Spoken name of the Live Stats section tabs. -->
+    <string name="stats_sections_description" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats section</string>
+    <string name="stats_section_overview" volt:screen="Live Stats section tabs" volt:purpose="tab" volt:max="76dp@14sp">Overview</string>
+    <string name="stats_section_readings" volt:screen="Live Stats section tabs" volt:purpose="tab" volt:max="76dp@14sp">Readings</string>
+    <string name="stats_section_charts" volt:screen="Live Stats section tabs" volt:purpose="tab" volt:max="76dp@14sp">Charts</string>
+    <string name="stats_section_diagnostics" volt:screen="Live Stats section tabs" volt:purpose="tab" volt:max="76dp@14sp">Diagnostics</string>
+
+    <!-- Overview -->
+    <string name="stats_overview_waiting" volt:screen="Live Stats › Overview" volt:purpose="heading">Waiting for readings</string>
+    <!-- Under the battery ring when the scooter has not reported its battery level. -->
+    <string name="stats_battery_no_reading" volt:screen="Live Stats › Overview battery ring" volt:purpose="caption" volt:max="96dp@11sp">No reading</string>
+    <!-- Under the battery ring when the level shown is the last one saved. -->
+    <string name="stats_battery_last_seen" volt:screen="Live Stats › Overview battery ring" volt:purpose="caption" volt:max="96dp@11sp">Last seen</string>
+    <string name="stats_range_not_reported" volt:screen="Live Stats › Overview" volt:purpose="heading">Range not reported</string>
+    <!-- %1$s is the range as the scooter reported it, when it is not a number. -->
+    <string name="stats_range_value" volt:screen="Live Stats › Overview" volt:purpose="heading">Range %1$s</string>
+    <!-- %1$s is the remaining range with its unit ("12 km", "7 mi / 12 km"). -->
+    <string name="stats_range_left" volt:screen="Live Stats › Overview" volt:purpose="heading">≈ %1$s left</string>
+    <!-- The pack temperature on Overview: %1$s is the temperature with its unit. -->
+    <string name="stats_pack_temperature" volt:screen="Live Stats › Overview" volt:purpose="detail">Pack %1$s</string>
+    <!-- The battery health on Overview: %1$s is the percentage. A small "est." tag follows it. -->
+    <string name="stats_health" volt:screen="Live Stats › Overview" volt:purpose="detail">Health %1$s</string>
+    <!-- The battery health after the pack temperature: %1$s is the percentage. A small "est." tag follows it. -->
+    <string name="stats_health_after" volt:screen="Live Stats › Overview" volt:purpose="detail">" · Health %1$s"</string>
+    <!-- Small tag after the health figure: the controller's health is an estimate. Keep it short. -->
+    <string name="stats_health_chip" volt:screen="Live Stats › Overview" volt:purpose="tag" volt:max="40dp@9sp">est.</string>
+    <!-- Spoken battery health: %1$s is the percentage; the visible "est." tag is said as "estimated". -->
+    <string name="stats_health_said" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">Health %1$s estimated</string>
+    <!-- Spoken battery health after the pack temperature: %1$s is the percentage. -->
+    <string name="stats_health_said_after" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">" · Health %1$s estimated"</string>
+    <string name="stats_favourites_title" volt:screen="Live Stats › Overview" volt:purpose="heading">Favourites</string>
+    <string name="stats_favourites_reorder_description" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">Reorder favourite readings and charts</string>
+    <!-- The reorder button's tooltip and the reorder sheet's title. -->
+    <string name="stats_favourites_reorder" volt:screen="Live Stats › Overview, reorder sheet" volt:purpose="heading">Reorder favourites</string>
+    <string name="stats_favourites_empty" volt:screen="Live Stats › Overview" volt:purpose="empty state">☆ Star readings to pin here</string>
+    <!-- A favourite chart in the reorder list: %1$s is the reading's name. -->
+    <string name="stats_order_chart" volt:screen="Live Stats › Reorder favourites" volt:purpose="list item">%1$s · Chart</string>
+    <!-- Spoken favourite chart in the reorder list: %1$s is the reading's name. -->
+    <string name="stats_order_chart_said" volt:screen="Live Stats › Reorder favourites" volt:purpose="accessibility description">%1$s chart</string>
+    <!-- Spoken favourite reading in the reorder list: %1$s is the reading's name. -->
+    <string name="stats_order_reading_said" volt:screen="Live Stats › Reorder favourites" volt:purpose="accessibility description">%1$s reading</string>
+
+    <!-- Readings -->
+    <string name="stats_search_hint" volt:screen="Live Stats › Readings and Charts" volt:purpose="hint">Search</string>
+    <string name="stats_readings_search_description" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">Search scooter measurements</string>
+    <string name="stats_readings_no_matches" volt:screen="Live Stats › Readings" volt:purpose="status">No matching readings</string>
+    <plurals name="stats_readings_count" volt:screen="Live Stats › Readings" volt:purpose="status">
+        <item quantity="one">%1$d reading</item>
+        <item quantity="other">%1$d readings</item>
+    </plurals>
+    <!-- Spoken reading group heading: %1$s is the group's name ("Battery"). -->
+    <string name="stats_group_readings" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">%1$s readings</string>
+    <!-- Spoken open reading group heading on older Android: %1$s is the group's name. -->
+    <string name="stats_group_readings_expanded" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">%1$s readings, expanded</string>
+    <!-- Spoken closed reading group heading on older Android: %1$s is the group's name. -->
+    <string name="stats_group_readings_collapsed" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">%1$s readings, collapsed</string>
+    <string name="stats_state_expanded" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Expanded</string>
+    <string name="stats_state_collapsed" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Collapsed</string>
+    <!-- Spoken star button: %1$s is the reading's name. -->
+    <string name="stats_favourite_add" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">Add %1$s to favourites</string>
+    <!-- Spoken star button: %1$s is the reading's name. -->
+    <string name="stats_favourite_remove" volt:screen="Live Stats › Readings" volt:purpose="accessibility description">Remove %1$s from favourites</string>
+    <string name="stats_favourite_on" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Favourite</string>
+    <string name="stats_favourite_off" volt:screen="Live Stats › Readings and Charts" volt:purpose="accessibility state">Not a favourite</string>
+    <!-- Under a reading's name when the scooter has not supplied a value. -->
+    <string name="stats_age_not_supplied" volt:screen="Live Stats rows" volt:purpose="status">Not supplied</string>
+    <!-- Said for a reading the scooter is reporting now. -->
+    <string name="stats_age_live" volt:screen="Live Stats rows" volt:purpose="status">Live</string>
+    <!-- A saved reading's age when its time is unknown. -->
+    <string name="stats_last_seen" volt:screen="Live Stats rows" volt:purpose="status">Last seen</string>
+    <!-- A saved reading's age: %1$s is when it was seen ("14:02", "Yesterday 14:02"). -->
+    <string name="stats_last_seen_when" volt:screen="Live Stats rows" volt:purpose="status">Last seen %1$s</string>
+    <!-- Spoken reading row: %1$s is the reading's name, %2$s its value, %3$s its age ("Live", "Last seen 14:02"). -->
+    <string name="stats_row_description" volt:screen="Live Stats rows" volt:purpose="accessibility description">%1$s, %2$s, %3$s. Tap for details.</string>
+    <!-- Spoken drive mode value: %1$s is the mode as the scooter names it, %2$s its age. -->
+    <string name="stats_drive_mode_description" volt:screen="Live Stats rows" volt:purpose="accessibility description">Drive mode, %1$s, %2$s</string>
+    <!-- Small tag before a value the scooter reports undecoded. Keep it short. -->
+    <string name="stats_raw_chip" volt:screen="Live Stats rows" volt:purpose="tag" volt:max="40dp@10sp">RAW</string>
+    <!-- Spoken undecoded value: %1$s is the value. -->
+    <string name="stats_raw_said" volt:screen="Live Stats rows" volt:purpose="accessibility description">raw %1$s</string>
+    <!-- A distance or speed in both unit systems: %1$s as the scooter reports it, %2$s converted. -->
+    <string name="stats_value_dual" volt:screen="Live Stats rows" volt:purpose="value">"%1$s  /  %2$s"</string>
+    <!-- The scooter's own range report, beside Volt's estimate. -->
+    <string name="stats_scooter_range" volt:screen="Live Stats rows and charts" volt:purpose="reading name">Scooter range</string>
+    <!-- A known UT5 MAX drive mode reading. -->
+    <string name="stats_drive_mode" volt:screen="Live Stats rows" volt:purpose="reading name">Drive mode</string>
+
+    <!-- Reading details -->
+    <!-- %1$s is the value, %2$s "Live" or "Last seen". -->
+    <string name="stats_detail" volt:screen="Live Stats › reading details" volt:purpose="message">%1$s · %2$s</string>
+    <!-- %1$s is the value, %2$s "Live" or "Last seen", %3$s when it was seen ("14:02"). -->
+    <string name="stats_detail_when" volt:screen="Live Stats › reading details" volt:purpose="message">%1$s · %2$s %3$s</string>
+    <!-- An undecoded value in the details: %1$s is the value. -->
+    <string name="stats_detail_raw" volt:screen="Live Stats › reading details" volt:purpose="value">%1$s (raw)</string>
+    <string name="stats_detail_live" volt:screen="Live Stats › reading details" volt:purpose="status">Live</string>
+    <string name="stats_detail_last_seen" volt:screen="Live Stats › reading details" volt:purpose="status">Last seen</string>
+    <string name="stats_detail_health_note" volt:screen="Live Stats › battery health details" volt:purpose="message">Reported health is a controller estimate, not a measured capacity test.</string>
+    <string name="stats_detail_energy_note" volt:screen="Live Stats › energy throughput details" volt:purpose="message">Not used for ride energy.</string>
+    <string name="stats_detail_add_favourite" volt:screen="Live Stats › reading details" volt:purpose="button">Add favourite</string>
+    <string name="stats_detail_remove_favourite" volt:screen="Live Stats › reading details" volt:purpose="button">Remove favourite</string>
+
+    <!-- Charts -->
+    <string name="stats_charts_search_description" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Search recorded charts</string>
+    <string name="stats_charts_empty" volt:screen="Live Stats › Charts" volt:purpose="status">No chart data yet</string>
+    <string name="stats_charts_no_matches" volt:screen="Live Stats › Charts" volt:purpose="status">No matching charts</string>
+    <plurals name="stats_charts_count" volt:screen="Live Stats › Charts" volt:purpose="status">
+        <item quantity="one">%1$d chart</item>
+        <item quantity="other">%1$d charts</item>
+    </plurals>
+    <!-- Spoken open chart group heading: %1$s is the group's name ("Battery"). -->
+    <string name="stats_chart_group_expanded" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">%1$s charts, expanded</string>
+    <!-- Spoken closed chart group heading: %1$s is the group's name. -->
+    <string name="stats_chart_group_collapsed" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">%1$s charts, collapsed</string>
+    <!-- Spoken expand button: %1$s is the reading's name. -->
+    <string name="stats_chart_expand" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Expand %1$s chart</string>
+    <!-- Spoken star button: %1$s is the reading's name. -->
+    <string name="stats_chart_favourite_add" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Add %1$s chart to favourites</string>
+    <!-- Spoken star button: %1$s is the reading's name. -->
+    <string name="stats_chart_favourite_remove" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Remove %1$s chart from favourites</string>
+    <!-- A chart's latest value from the sample source: %1$s is the value. -->
+    <string name="stats_chart_sample" volt:screen="Live Stats › Charts" volt:purpose="caption">%1$s · Sample</string>
+    <!-- A chart's latest saved value: %1$s is the value, %2$s when it was seen ("14:02"). -->
+    <string name="stats_chart_last_seen" volt:screen="Live Stats › Charts" volt:purpose="caption">%1$s · Last seen %2$s</string>
+    <string name="stats_chart_no_data" volt:screen="Live Stats › Charts" volt:purpose="empty state">No data in this window</string>
+    <string name="stats_chart_loading" volt:screen="Live Stats › Charts" volt:purpose="accessibility description">Loading chart</string>
+    <string name="stats_chart_close" volt:screen="Live Stats › expanded chart" volt:purpose="accessibility description">Close expanded chart</string>
+    <!-- Chart time windows -->
+    <string name="stats_window_2_min" volt:screen="Live Stats › Charts time window" volt:purpose="choice">2 min</string>
+    <string name="stats_window_10_min" volt:screen="Live Stats › Charts time window" volt:purpose="choice">10 min</string>
+    <string name="stats_window_1_hour" volt:screen="Live Stats › Charts time window" volt:purpose="choice">1 hour</string>
+    <string name="stats_window_6_hours" volt:screen="Live Stats › Charts time window" volt:purpose="choice">6 hours</string>
+    <string name="stats_window_24_hours" volt:screen="Live Stats › Charts time window" volt:purpose="choice">24 hours</string>
+    <string name="stats_window_7_days" volt:screen="Live Stats › Charts time window" volt:purpose="choice">7 days</string>
+    <string name="stats_window_30_days" volt:screen="Live Stats › Charts time window" volt:purpose="choice">30 days</string>
+    <string name="stats_window_all" volt:screen="Live Stats › Charts time window" volt:purpose="choice">All</string>
+
+    <!-- Diagnostics -->
+    <string name="stats_diagnostics_title" volt:screen="Live Stats › Diagnostics" volt:purpose="heading">Diagnostics</string>
+    <string name="stats_diagnostics_refresh" volt:screen="Live Stats › Diagnostics" volt:purpose="button">Refresh</string>
+    <string name="stats_diagnostics_refresh_description" volt:screen="Live Stats › Diagnostics" volt:purpose="accessibility description">Refresh diagnostic reads</string>
+    <string name="stats_diagnostics_refreshing" volt:screen="Live Stats › Diagnostics" volt:purpose="accessibility description">Refreshing diagnostic reads</string>
+    <string name="stats_diagnostics_export" volt:screen="Live Stats › Diagnostics" volt:purpose="button">Export</string>
+    <string name="stats_diagnostics_export_description" volt:screen="Live Stats › Diagnostics" volt:purpose="accessibility description"
+        volt:safety="privacy" volt:dnt="JSON|PIN">Export diagnostics JSON. Excludes owner keys and PIN</string>
+    <string name="stats_diagnostics_privacy" volt:screen="Live Stats › Diagnostics" volt:purpose="caption"
+        volt:safety="privacy" volt:dnt="PIN">Excludes owner keys &amp; PIN</string>
+    <string name="stats_diagnostics_device" volt:screen="Live Stats › Diagnostics" volt:purpose="section title">Device</string>
+    <string name="stats_diagnostics_events" volt:screen="Live Stats › Diagnostics" volt:purpose="section title">Recent connection events</string>
+    <string name="stats_diagnostics_payloads" volt:screen="Live Stats › Diagnostics" volt:purpose="section title">Raw read payloads</string>
+    <string name="stats_none_yet" volt:screen="Live Stats › Diagnostics" volt:purpose="empty state">None yet</string>
+    <!-- Spoken connection event: %1$s is the event, %2$s its time. -->
+    <string name="stats_event_description" volt:screen="Live Stats › Diagnostics" volt:purpose="accessibility description">%1$s, %2$s</string>
+
+    <!-- Charge recordings -->
+    <string name="stats_charge_history_title" volt:screen="More › Charge recordings" volt:purpose="heading">Charge recordings</string>
+    <string name="stats_charge_recording_title" volt:screen="More › Charge recordings › recording" volt:purpose="heading">Charge recording</string>
+    <string name="stats_charge_history_loading" volt:screen="More › Charge recordings" volt:purpose="status">Loading recordings…</string>
+    <string name="stats_charge_history_failed" volt:screen="More › Charge recordings" volt:purpose="error">Could not load recordings.</string>
+    <string name="stats_charge_history_retry" volt:screen="More › Charge recordings" volt:purpose="button">Retry</string>
+    <string name="stats_charge_history_empty" volt:screen="More › Charge recordings" volt:purpose="empty state">No saved charge recordings yet.</string>
+    <string name="stats_charge_history_current" volt:screen="More › Charge recordings" volt:purpose="note">The current recording appears here after it stops.</string>
+    <string name="stats_charge_history_back" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Back to charge recordings</string>
+    <string name="stats_charge_history_close" volt:screen="More › Charge recordings" volt:purpose="accessibility description">Close charge recordings</string>
+    <!-- Spoken recording row: %1$s is when it started, %2$s the charger and battery span, %3$s how it ended. -->
+    <string name="stats_charge_row_description" volt:screen="More › Charge recordings" volt:purpose="accessibility description">%1$s, %2$s, %3$s</string>
+    <string name="stats_charge_finish_not_observed" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">Finish not observed</string>
+    <string name="stats_charge_full_observed" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">100%% observed</string>
+    <!-- Follows the recording's status: %1$s is how long a Volt charging schedule paused charging ("1 h 5 min"). -->
+    <string name="stats_charge_paused_schedule" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">" · paused %1$s for the schedule"</string>
+    <!-- Follows the recording's status: %1$d is how many times the charger stopped charging, %2$s for how long in all ("12 min"). -->
+    <plurals name="stats_charge_charger_stopped" volt:screen="More › Charge recordings" volt:purpose="status" volt:safety="charge">
+        <item quantity="one">" · charger stopped once (%2$s)"</item>
+        <item quantity="other">" · charger stopped %1$d times (%2$s)"</item>
+    </plurals>
+    <!-- A duration: %1$s hours and %2$s minutes. -->
+    <string name="stats_charge_duration_hours" volt:screen="More › Charge recordings" volt:purpose="duration">%1$s h %2$s min</string>
+    <!-- A duration under an hour: %1$s minutes. -->
+    <string name="stats_charge_duration_minutes" volt:screen="More › Charge recordings" volt:purpose="duration">%1$s min</string>
+    <!-- The battery level at the start and end of a recording: %1$s and %2$s are whole percentages. -->
+    <string name="stats_charge_battery_span" volt:screen="More › Charge recordings" volt:purpose="detail">%1$s%% → %2$s%%</string>
+    <string name="stats_charge_no_battery_samples" volt:screen="More › Charge recordings" volt:purpose="detail">No battery samples</string>
+    <string name="stats_charge_high_speed_charger" volt:screen="More › Charge recordings" volt:purpose="detail">High-speed charger</string>
+    <string name="stats_charge_stock_charger" volt:screen="More › Charge recordings" volt:purpose="detail">Stock charger</string>
+    <!-- Where a saved estimate came from. -->
+    <string name="stats_charge_source_personal" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Personal curve</string>
+    <string name="stats_charge_source_stock" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Stock reference</string>
+    <string name="stats_charge_source_fast" volt:screen="More › Charge recordings › recording" volt:purpose="detail">High-speed reference</string>
+    <string name="stats_charge_source_current_rate" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Current rate</string>
+    <string name="stats_charge_source_unavailable" volt:screen="More › Charge recordings › recording" volt:purpose="detail">Unavailable</string>
+    <!-- %1$s is where the estimate came from ("Personal curve"), %2$s the estimator's version number. -->
+    <string name="stats_charge_estimator" volt:screen="More › Charge recordings › recording" volt:purpose="detail">%1$s · Estimator %2$s</string>
+    <!-- Follows the estimate's source: %1$d is how many past charges the estimate learned from. -->
+    <plurals name="stats_charge_learned" volt:screen="More › Charge recordings › recording" volt:purpose="detail"
+        volt:english-fix="pending">
+        <item quantity="one">" · %1$d learned charges"</item>
+        <item quantity="other">" · %1$d learned charges"</item>
+    </plurals>
+    <!-- Follows the estimate's source: %1$s is the charge limit, a whole percentage. -->
+    <string name="stats_charge_target" volt:screen="More › Charge recordings › recording" volt:purpose="detail">" · %1$s%% target"</string>
+    <string name="stats_charge_readings" volt:screen="More › Charge recordings › recording" volt:purpose="heading">Charge readings</string>
+    <string name="stats_charge_expand" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Expand charge graph</string>
+    <string name="stats_charge_chart" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Charge chart</string>
+    <string name="stats_charge_fit_whole" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Fit whole charge</string>
+    <string name="stats_charge_fit" volt:screen="More › Charge recordings › recording" volt:purpose="button" volt:max="72dp@14sp">Fit</string>
+    <string name="stats_charge_zoom_out" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Zoom out charge chart</string>
+    <string name="stats_charge_zoom_in" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">Zoom in charge chart</string>
+    <string name="stats_charge_no_comparison" volt:screen="More › Charge recordings › recording" volt:purpose="note" volt:safety="charge">Finish not observed; no actual comparison.</string>
+    <!-- %1$s is when the battery reached 100%. -->
+    <string name="stats_charge_observed_full" volt:screen="More › Charge recordings › recording" volt:purpose="note" volt:safety="charge">Observed 100%% · %1$s</string>
+    <!-- Before the comparison note when the recording has no saved estimates: %1$s is that note. -->
+    <string name="stats_charge_estimates_not_saved" volt:screen="More › Charge recordings › recording" volt:purpose="note">Estimates weren\'t saved in this recording.\n%1$s</string>
+    <!-- A chart series with no samples: %1$s is the series' name. -->
+    <string name="stats_charge_series_no_data" volt:screen="More › Charge recordings › recording" volt:purpose="choice">%1$s · no data</string>
+    <!-- Spoken chart series with no samples: %1$s is the series' name. -->
+    <string name="stats_charge_series_no_samples" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">%1$s, no samples recorded</string>
+    <!-- When an inspected sample was taken: %1$s is the time ("14:02:10"). -->
+    <string name="stats_charge_sample_at" volt:screen="More › Charge recordings › recording" volt:purpose="caption">At %1$s</string>
+    <!-- Spoken inspected sample: %1$s is the series' name, %2$s its value, %3$s when it was taken. -->
+    <string name="stats_charge_cell_description" volt:screen="More › Charge recordings › recording" volt:purpose="accessibility description">%1$s: %2$s, %3$s</string>
+    <string name="stats_charge_close_expanded" volt:screen="More › Charge recordings › expanded graph" volt:purpose="accessibility description">Close expanded charge graph</string>
+
+    <!-- Live Stats row names: a reading's short name without "(raw)", since the RAW tag beside an
+         undecoded value says it. Match the readings catalog's short name. -->
+    <string name="stats_row_charging_state" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Charging</string>
+    <string name="stats_row_self_discharge_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Self-discharge</string>
+    <string name="stats_row_extreme_temperature_charge_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Hot/cold charge time</string>
+    <string name="stats_row_temperature_sign_state" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Temp. sign</string>
+    <string name="stats_row_current_sign_state" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Current sign</string>
+    <string name="stats_row_driving_status" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Ride status</string>
+    <string name="stats_row_binding_status" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Account binding</string>
+    <string name="stats_row_cruise_control" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Cruise</string>
+    <string name="stats_row_tail_light" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Tail light</string>
+    <string name="stats_row_energy_recovery" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Recovery</string>
+    <string name="stats_row_range_algorithm" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Range algorithm</string>
+    <string name="stats_row_auto_sensor" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Auto light</string>
+    <string name="stats_row_tyre_reminder" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Tyre reminder</string>
+    <string name="stats_row_ambient_light" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Line pattern</string>
+    <string name="stats_row_traction_control" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Traction</string>
+    <string name="stats_row_turn_sound" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Turn sound</string>
+    <string name="stats_row_proximity_key" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Proximity key</string>
+    <string name="stats_row_night_mode" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Night mode</string>
+    <string name="stats_row_range_algorithm_mode" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Range mode</string>
+    <string name="stats_row_drive_light" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Star pattern</string>
+    <string name="stats_row_start_speed" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Start speed</string>
+    <string name="stats_row_speed_limit" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Speed limit</string>
+    <string name="stats_row_volume" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Audio</string>
+    <string name="stats_row_voice_language" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Voice language</string>
+    <string name="stats_row_logo_light" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Logo light</string>
+    <string name="stats_row_daytime_light" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Daytime light</string>
+    <string name="stats_row_maximum_speed_setting" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Max. speed setting</string>
+    <string name="stats_row_drive_mode_setting" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Mode setting</string>
+    <string name="stats_row_settings_mode_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Settings mode byte</string>
+    <string name="stats_row_scheduled_charge_time_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Charge schedule</string>
+    <string name="stats_row_low_power" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Low-battery mode</string>
+    <string name="stats_row_timed_charging" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Timed charging</string>
+    <string name="stats_row_auto_lock_time" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Lock duration</string>
+    <string name="stats_row_speed_limit_eligibility" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Speed eligibility</string>
+    <string name="stats_row_weather" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Weather</string>
+    <string name="stats_row_slope_assist" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Hill assist</string>
+    <string name="stats_row_long_range_mode" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Long range</string>
+    <string name="stats_row_overspeed_control" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Overspeed control</string>
+    <string name="stats_row_overspeed_alert" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Overspeed alert</string>
+    <string name="stats_row_drive_speed_limit" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Drive speed limit</string>
+    <string name="stats_row_battery_serial_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Battery serial</string>
+    <string name="stats_row_lock_push_warning" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Lock movement</string>
+    <string name="stats_row_hide_e9" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">E9 flag</string>
+    <string name="stats_row_ride_read_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Ride read</string>
+    <string name="stats_row_fault_history_raw" volt:screen="Live Stats rows, favourites, device list" volt:purpose="reading name">Fault history</string>
+</resources>
