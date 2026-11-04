@@ -125,9 +125,11 @@ public final class FeatureVariant {
         if(decode==Decode.CAP7&&value==0)return "Off";
         return Integer.toString(value)+(unit.isEmpty()?"":" "+unit);
     }
+    /** label(value) in the current language; label keeps the English (guided-test notes, logs). */
+    public Msg text(int value){return ScooterCommands.shown(label(value));}
     /** Frame for one allowed value. Time, clock and PIN writes keep their dedicated builders. */
     public byte[] encode(int value){
-        require(allows(value),"Value is outside the OEM feature domain");
+        require(allows(value),M.controlsRefusalOutsideDomain());
         if(decode==Decode.UT5_FEATURE)return ScooterCommands.set(feature,value);
         require(decode!=Decode.BE32,"Feature needs its dedicated builder");
         if(decode==Decode.CAP7)return WireCommands.enabledCap(cmd,selector.length==0?-1:selector[0],value,value!=0);
@@ -140,4 +142,6 @@ public final class FeatureVariant {
 
     private static boolean contains(int[] values,int value){for(int v:values)if(v==value)return true;return false;}
     private static void require(boolean condition,String message){if(!condition)throw new IllegalArgumentException(message);}
+    /** A refusal a person may see, as ScooterCommands' builders give it. */
+    private static void require(boolean condition,Msg message){if(!condition)throw new ScooterCommands.Refused(message);}
 }
