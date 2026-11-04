@@ -12,7 +12,9 @@
   Markup: **text** is shown in semibold and `text` in a monospace chip. Keep every ** pair and every
   backtick pair, and keep the text inside backticks exactly as written (it is a command or a word a
   computer prints). Commands, file names and option names (adb devices, setup/capture-owner.py,
-  navee-owner-setup.json, - -output) are never translated.
+  navee-owner-setup.json, - -output) are never translated. The pairscooter website and the capture
+  helper are English only, so a word quoted from them (a website button such as **Start**, a word the
+  computer prints such as **device**) stays in English and is marked do-not-translate.
 
   Mock screens: the setup draws small pictures of Android's own Settings page and USB debugging prompt.
   Their words must match what Android itself shows in the language (its Settings app and its "Allow USB
@@ -365,16 +367,17 @@
     <!-- Keep the cable plugged in until the website has finished cleaning up (it turns logging back off). -->
     <string name="onboarding_browser_keep_cable" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:safety="privacy">Keep the cable in until cleanup finishes.</string>
-    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep the ** marks; use the button word the website shows. -->
-    <string name="onboarding_browser_start" volt:screen="Approve the capture" volt:purpose="instruction">Read the capture explanation and choose **Start**</string>
+    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep **Start** exactly as written, in English: the website is English only and shows its button in English. -->
+    <string name="onboarding_browser_start" volt:screen="Approve the capture" volt:purpose="instruction"
+        volt:dnt="**Start**">Read the capture explanation and choose **Start**</string>
     <!-- Instruction 2: in NAVEE's app, select the scooter and connect. -->
     <string name="onboarding_browser_select_scooter" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:dnt="NAVEE">Select your scooter in NAVEE and connect</string>
     <!-- Under instruction 2: it can take up to 90 seconds; "s" is the seconds symbol. Keep the ** marks. -->
     <string name="onboarding_browser_up_to" volt:screen="Approve the capture" volt:purpose="instruction">Up to **90 s**</string>
-    <!-- Instruction 3: after cleanup, press the website's button that saves the file to the phone. Keep the ** marks; use the button words the website shows. -->
+    <!-- Instruction 3: after cleanup, press the website's button that saves the file to the phone. Keep **Save to phone Downloads** exactly as written, in English: the website is English only and shows its button in English. -->
     <string name="onboarding_browser_save" volt:screen="Approve the capture" volt:purpose="instruction"
-        volt:safety="owner-key">After cleanup, choose **Save to phone Downloads**</string>
+        volt:safety="owner-key" volt:dnt="**Save to phone Downloads**">After cleanup, choose **Save to phone Downloads**</string>
     <!-- Warning: the saved file works like a key to the scooter. Never soften it. -->
     <string name="onboarding_browser_key_private" volt:screen="Approve the capture" volt:purpose="warning"
         volt:safety="owner-key">This file is a scooter key. Keep it private.</string>

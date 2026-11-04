@@ -17,6 +17,8 @@ import java.util.regex.Pattern;
  *     unchanged;
  *   - the spoken templates render the old concatenations for sample values (the step row, a numbered
  *     instruction with and without a detail, a setup choice with every optional part);
+ *   - the words quoted from the English-only pairscooter website and the computer's output are marked
+ *     do-not-translate, and no note asks for "the button word the website shows";
  *   - the source: the nothing-found test compares BleController.NOTHING_FOUND, the status line shows
  *     displayMessage(), and a refused typed identity is toasted through SetupException.shown.
  * Runs from the repository root (it reads sources and resources).
@@ -33,6 +35,7 @@ public final class OnboardingTextTest {
         ladders();
         templates();
         source();
+        websiteWords();
         System.out.println("OnboardingTextTest: " + checks + " checks passed (markup, ladders, templates, source)");
     }
 
@@ -133,6 +136,25 @@ public final class OnboardingTextTest {
         check(screen.contains("service.ble.displayMessage()"), "the status line shows the display message");
         check(screen.contains("host.toast(String.valueOf(SetupException.shown(invalid)))"), "a refused identity shows its catalog text");
         check(!screen.contains("invalid.getMessage()"), "no refusal is toasted as its English getMessage()");
+    }
+
+    /** The website (setup/web) and the helper's computer are English only, so their quoted words stay English. */
+    private static void websiteWords() {
+        String xml = L10nFiles.read(new File(L10nFiles.root(), "res/values/strings_onboarding.xml"));
+        String[][] kept = {
+                {"onboarding_browser_start", "**Start**"},
+                {"onboarding_browser_save", "**Save to phone Downloads**"},
+                {"onboarding_computer_adb_devices", "`adb devices`|**device**"},
+                {"onboarding_computer_shows_device", "device"},
+                {"onboarding_computer_unauthorized", "unauthorized"},
+                {"onboarding_fix_exists_detail", "--output newname"}};
+        for (String[] row : kept) {
+            Matcher m = Pattern.compile("<string name=\"" + row[0] + "\"([^>]*)>").matcher(xml);
+            check(m.find(), row[0] + " is in strings_onboarding.xml");
+            check(m.group(1).contains("volt:dnt=\"" + row[1] + "\""), row[0] + " keeps " + row[1] + " untranslated");
+        }
+        check(!xml.contains("the website shows."), "no note asks for the website's button word in the language");
+        check(!xml.contains("use the button word"), "no note asks translators to use a website button word");
     }
 
     private static int idOf(String key) {
