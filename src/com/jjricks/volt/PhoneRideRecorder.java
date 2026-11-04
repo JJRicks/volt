@@ -8,12 +8,57 @@ import android.location.*;
 import android.os.*;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.Locale;
+
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_LOCATION_OFF;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_NO_PERMISSION;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_OFF;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_PERMISSION_UNAVAILABLE;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_RECORDING;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_SIGNAL_LOST;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_SIGNAL_UNAVAILABLE;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_STARTING;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_UNAVAILABLE;
+import static com.jjricks.volt.PhoneRideRecorder.Gps.GPS_WAITING;
 
 /**
  * Explicit-ride-only sensor owner. All callbacks, batching and disk writes run off the UI thread.
  */
 public final class PhoneRideRecorder implements SensorEventListener, LocationListener {
+    /**
+     * What {@link #status()} says, for a screen to label in any language (plan section 1.5). status() stays
+     * the English id that the ride screen, reports and comparisons read.
+     */
+    public enum StatusFlag {
+        STORAGE_ERROR, SAVING, IDLE,
+        GPS_OFF, GPS_STARTING, GPS_WAITING, GPS_LOCATION_OFF, GPS_UNAVAILABLE, GPS_PERMISSION_UNAVAILABLE,
+        GPS_NO_PERMISSION, GPS_RECORDING, GPS_SIGNAL_LOST, GPS_SIGNAL_UNAVAILABLE,
+        BAROMETER, MOTION_EXPERIMENTAL, MOTION_RAW, MOTION_UNAVAILABLE
+    }
+
+    /** The GPS part of status(): each state's English (the id status() prints) and its flag. */
+    enum Gps {
+        GPS_OFF(StatusFlag.GPS_OFF, "GPS off"),
+        GPS_STARTING(StatusFlag.GPS_STARTING, "Starting phone sensors"),
+        GPS_WAITING(StatusFlag.GPS_WAITING, "Waiting for GPS"),
+        GPS_LOCATION_OFF(StatusFlag.GPS_LOCATION_OFF, "Location is off"),
+        GPS_UNAVAILABLE(StatusFlag.GPS_UNAVAILABLE, "GPS unavailable"),
+        GPS_PERMISSION_UNAVAILABLE(StatusFlag.GPS_PERMISSION_UNAVAILABLE, "GPS permission unavailable"),
+        GPS_NO_PERMISSION(StatusFlag.GPS_NO_PERMISSION, "Location permission not granted"),
+        GPS_RECORDING(StatusFlag.GPS_RECORDING, "GPS recording"),
+        GPS_SIGNAL_LOST(StatusFlag.GPS_SIGNAL_LOST, "GPS signal lost"),
+        GPS_SIGNAL_UNAVAILABLE(StatusFlag.GPS_SIGNAL_UNAVAILABLE, "GPS signal unavailable");
+
+        final StatusFlag flag;
+        final String text;
+
+        Gps(StatusFlag flag, String text) {
+            this.flag = flag;
+            this.text = text;
+        }
+    }
+
     private final Context context;
     private final PhoneRideStore store;
     private final SensorManager sensors;
@@ -21,9 +66,9 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
     private HandlerThread thread;
     private volatile Handler worker;
     private volatile boolean active, locationActive, closing;
-    private volatile String status = "Phone sensors idle",
-            gpsStatus = "GPS off",
-            storageError,
+    private volatile String status = "Phone sensors idle";
+    private volatile Gps gpsStatus = GPS_OFF;
+    private volatile String storageError,
             latestMotion = "Waiting for motion sensors";
     private String id;
     private boolean motionEnabled, hasLinear, hasRotation, hasPressure, hasRaw;
@@ -65,21 +110,40 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
         if (storageError != null) return storageError;
         if (closing) return "Saving phone sensors";
         if (!active) return "Phone sensors idle";
-        String gps =
+        Gps gps =
                 locationActive
                         ? (lastFixMs < 0
                                 ? gpsStatus
                                 : SystemClock.elapsedRealtime() - lastFixMs > 10000
-                                        ? "GPS signal lost"
-                                        : "GPS recording")
+                                        ? GPS_SIGNAL_LOST
+                                        : GPS_RECORDING)
                         : gpsStatus;
-        return gps
+        return gps.text
                 + (hasPressure ? " · barometer" : "")
                 + (motionEnabled
                         ? (hasLinear
                                 ? " · experimental motion"
                                 : hasRaw ? " · raw motion" : " · motion sensor unavailable")
                         : "");
+    }
+
+    /** The flags of what status() says now: one of storage error, saving or idle, else a GPS state plus barometer and motion. */
+    public EnumSet<StatusFlag> statusFlags() {
+        EnumSet<StatusFlag> flags = EnumSet.noneOf(StatusFlag.class);
+        if (storageError != null) flags.add(StatusFlag.STORAGE_ERROR);
+        else if (closing) flags.add(StatusFlag.SAVING);
+        else if (!active) flags.add(StatusFlag.IDLE);
+        else {
+            // The same choice status() makes for its GPS part.
+            Gps gps = locationActive && lastFixMs >= 0
+                    ? SystemClock.elapsedRealtime() - lastFixMs > 10000 ? Gps.GPS_SIGNAL_LOST : Gps.GPS_RECORDING
+                    : gpsStatus;
+            flags.add(gps.flag);
+            if (hasPressure) flags.add(StatusFlag.BAROMETER);
+            if (motionEnabled)
+                flags.add(hasLinear ? StatusFlag.MOTION_EXPERIMENTAL : hasRaw ? StatusFlag.MOTION_RAW : StatusFlag.MOTION_UNAVAILABLE);
+        }
+        return flags;
     }
 
     public String liveMotion() {
@@ -99,7 +163,7 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
         this.motionEnabled = motionEnabled;
         active = true;
         status = "Starting phone sensors";
-        gpsStatus = "Starting phone sensors";
+        gpsStatus = GPS_STARTING;
         thread = new HandlerThread("Volt-phone-ride");
         thread.start();
         worker = new Handler(thread.getLooper());
@@ -143,18 +207,18 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                                         this,
                                         sessionWorker.getLooper());
                                 locationActive = true;
-                                gpsStatus = "Waiting for GPS";
-                            } else gpsStatus = "Location is off";
+                                gpsStatus = GPS_WAITING;
+                            } else gpsStatus = GPS_LOCATION_OFF;
                         } catch (SecurityException | IllegalArgumentException e) {
-                            gpsStatus = "GPS unavailable";
+                            gpsStatus = GPS_UNAVAILABLE;
                         }
                     else
                         gpsStatus =
                                 gpsEnabled
-                                        ? "GPS permission unavailable"
+                                        ? GPS_PERMISSION_UNAVAILABLE
                                         : hasLocationPermission(context)
-                                                ? "GPS off"
-                                                : "Location permission not granted";
+                                                ? GPS_OFF
+                                                : GPS_NO_PERMISSION;
                     updateStatus();
                     if (active) sessionWorker.postDelayed(flush, 1000);
                 });
@@ -313,19 +377,19 @@ public final class PhoneRideRecorder implements SensorEventListener, LocationLis
                         altitude,
                         vertical));
         lastFixMs = mono;
-        gpsStatus = "GPS recording";
+        gpsStatus = GPS_RECORDING;
         updateStatus();
     }
 
     @Override
     public void onProviderEnabled(String provider) {
-        if (locationActive) gpsStatus = "Waiting for GPS";
+        if (locationActive) gpsStatus = GPS_WAITING;
     }
 
     @Override
     public void onProviderDisabled(String provider) {
         if (locationActive) {
-            gpsStatus = "GPS signal unavailable";
+            gpsStatus = GPS_SIGNAL_UNAVAILABLE;
             lastFixMs = -1;
             journal.append(
                     PhoneRideStore.row(
