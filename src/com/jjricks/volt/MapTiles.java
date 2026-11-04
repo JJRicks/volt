@@ -58,7 +58,11 @@ final class MapTiles {
     }
 
     /** The pause reason in the current language, or "" while tiles load normally. */
-    String status() { return shown == null ? status : shown.render(); }
+    String status() {
+        // One read of shown: a tile worker's succeeded() may clear it between two reads.
+        Msg message = shown;
+        return message == null ? status : message.render();
+    }
     boolean blocked() { return blocked; }
     boolean networkPaused() { return blocked || pausedUntil > clock.getAsLong(); }
 
@@ -263,8 +267,9 @@ final class MapTiles {
      */
     static Msg restored(String reason, String http, String legacy) {
         if ("http".equals(reason)) {
-            long code = number(http, -1);
-            if (code >= 0) return M.mapsTilesHttp(code);
+            // Any saved code, -1 included (getResponseCode() for a response that is not valid HTTP).
+            long code = number(http, Long.MIN_VALUE);
+            if (code != Long.MIN_VALUE) return M.mapsTilesHttp(code);
         }
         for (int i = 0; i < REASONS.length; i++) if (REASONS[i].equals(reason)) return Msg.of(REASON_IDS[i]);
         for (int id : REASON_IDS) if (Msg.of(id).english().equals(legacy)) return Msg.of(id);
@@ -273,6 +278,8 @@ final class MapTiles {
         for (int i = 0; i < legacy.length(); i++) if (Character.isDigit(legacy.charAt(i))) digits.append(legacy.charAt(i));
         long code = number(digits.toString(), -1);
         if (code >= 0 && M.mapsTilesHttp(code).english().equals(legacy)) return M.mapsTilesHttp(code);
+        // The scan drops a minus sign: HTTP -1 is the same digits, negated.
+        if (code >= 0 && M.mapsTilesHttp(-code).english().equals(legacy)) return M.mapsTilesHttp(-code);
         return Msg.verbatim(legacy);
     }
 

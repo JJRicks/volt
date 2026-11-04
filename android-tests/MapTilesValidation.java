@@ -241,6 +241,12 @@ public final class MapTilesValidation extends Instrumentation {
         require(MapTiles.restored("rate_limited", null, "").english().equals("Map provider rate limit · try later")
                 && MapTiles.restored("http", "404", "").english().equals("Map tiles unavailable (HTTP 404)")
                 && MapTiles.restored(null, null, "Map tiles unavailable").id() == T.MAPS_TILES_UNAVAILABLE, "Reason ids");
+        // getResponseCode() is -1 for a response that is not valid HTTP: it restores as that pause too.
+        require(MapTiles.restored("http", "-1", "Map tiles unavailable (HTTP -1)").id() == T.MAPS_TILES_HTTP
+                && MapTiles.restored("http", "-1", "").english().equals("Map tiles unavailable (HTTP -1)")
+                && MapTiles.restored(null, null, "Map tiles unavailable (HTTP -1)").id() == T.MAPS_TILES_HTTP
+                && MapTiles.restored(null, null, "Map tiles unavailable (HTTP -1)").english().equals("Map tiles unavailable (HTTP -1)")
+                && MapTiles.restored("http", "x", "Map tiles unavailable (HTTP 1-2)").id() == Msg.VERBATIM, "HTTP -1 restored");
         checks.add("pause reasons saved beside the English status; older English-only network.meta files restore their text");
     }
 
