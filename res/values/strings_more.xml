@@ -25,10 +25,20 @@
     <string name="more_back_to" volt:screen="More" volt:purpose="accessibility">Back to %1$s</string>
     <!-- Menu row: back up all of Volt's data to a file, or restore from one. -->
     <string name="more_backup_restore" volt:screen="More" volt:purpose="menu row">Back up &amp; restore</string>
-    <!-- The back link from Units to the app's own settings page (the menu row's name). -->
+    <!-- Menu row for the app's own settings page, and the back link to it from Units. -->
     <string name="more_section_app" volt:screen="More" volt:purpose="navigation">App preferences</string>
-    <!-- The back link from Compatibility to the hidden testing tools page (the menu row's name). -->
+    <!-- Menu row for the hidden testing tools page, and the back link to it from Compatibility. -->
     <string name="more_section_developer" volt:screen="More" volt:purpose="navigation">Developer options</string>
+    <!-- Menu row: the scooters Volt knows and their settings. -->
+    <string name="more_section_scooters" volt:screen="More" volt:purpose="menu row">My scooters</string>
+    <!-- Menu row: the scooter's handlebar PIN and unlocking when the phone comes near. -->
+    <string name="more_section_security" volt:screen="More" volt:purpose="menu row" volt:safety="pin">PIN &amp; proximity unlock</string>
+    <!-- Menu row: controls the official app may not offer on this model, to try with care. -->
+    <string name="more_section_lab" volt:screen="More" volt:purpose="menu row" volt:safety="experimental">Experimental controls</string>
+    <!-- Menu row: ride and telemetry history stored on the phone. -->
+    <string name="more_section_data" volt:screen="More" volt:purpose="menu row">Data &amp; history</string>
+    <!-- Menu row: version, licences, disclaimers and Android permissions. -->
+    <string name="more_section_about" volt:screen="More" volt:purpose="menu row">About &amp; permissions</string>
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
     <!-- Screen-reader text of the LAB badge. -->
@@ -212,17 +222,17 @@
     <string name="more_history_checking" volt:screen="Data &amp; history" volt:purpose="status">Checking…</string>
     <!-- History kind: every reading. -->
     <string name="more_history_detailed" volt:screen="Data &amp; history" volt:purpose="label">Detailed samples</string>
-    <!-- How long detailed samples are kept. -->
+    <!-- How long detailed samples are kept. Used only as %1$s of more_history_up_to ("up to 2 years"), so write it in the case that phrase needs (Russian "до 2 лет", not "2 года"; Polish "do 2 lat", not "2 lata"). -->
     <string name="more_history_7_days" volt:screen="Data &amp; history" volt:purpose="value">7 days</string>
     <!-- History kind: one summary per minute. -->
     <string name="more_history_minutes" volt:screen="Data &amp; history" volt:purpose="label">Minute summaries</string>
-    <!-- How long minute summaries are kept. -->
+    <!-- How long minute summaries are kept. Used only as %1$s of more_history_up_to ("up to 2 years"), so write it in the case that phrase needs (Russian "до 2 лет", not "2 года"; Polish "do 2 lat", not "2 lata"). -->
     <string name="more_history_30_days" volt:screen="Data &amp; history" volt:purpose="value">30 days</string>
     <!-- History kind: one summary per day. -->
     <string name="more_history_daily" volt:screen="Data &amp; history" volt:purpose="label">Daily summaries</string>
-    <!-- How long daily summaries are kept. -->
+    <!-- How long daily summaries are kept. Used only as %1$s of more_history_up_to ("up to 2 years"), so write it in the case that phrase needs (Russian "до 2 лет", not "2 года"; Polish "do 2 lat", not "2 lata"). -->
     <string name="more_history_2_years" volt:screen="Data &amp; history" volt:purpose="value">2 years</string>
-    <!-- How long a history kind is kept. %1$s is the period ("7 days"). Lower case on purpose. -->
+    <!-- How long a history kind is kept. %1$s is the period ("7 days"; more_history_7_days, _30_days, _2_years, written in the case this phrase needs). Lower case on purpose. -->
     <string name="more_history_up_to" volt:screen="Data &amp; history" volt:purpose="value">up to %1$s</string>
     <!-- Red row: delete the current scooter's saved history (asks first). -->
     <string name="more_history_clear_scooter" volt:screen="Data &amp; history" volt:purpose="row">Clear this scooter\'s history</string>
@@ -342,10 +352,11 @@
     <string name="more_lab_clear_body" volt:screen="Experimental controls" volt:purpose="dialog" volt:safety="experimental">Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them.</string>
     <!-- Shown after Clear when there was nothing to clear. -->
     <string name="more_lab_cleared_none" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">No finished tries to clear</string>
-    <!-- Shown after Clear removed one try's result. -->
-    <string name="more_lab_cleared_one" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
-    <!-- Shown after Clear removed two or more tries' results. %1$d is how many (2 or more). -->
-    <string name="more_lab_cleared_many" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
+    <!-- Shown after Clear removed tries' results. %1$d is how many (1 or more; none has its own text, more_lab_cleared_none). The English one item writes the 1 out; where your language's one form also covers other counts (Russian 21), write %1$d in it. -->
+    <plurals name="more_lab_cleared" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">
+        <item quantity="one">Cleared 1 try</item>
+        <item quantity="other">Cleared %1$d tries</item>
+    </plurals>
     <!-- Added after the footnote (more_lab_foot, _oem, _elsewhere) when there are rows to try; it starts with a space because it follows that sentence. Drop the space if your language joins sentences without one. -->
     <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."</string>
     <!-- Footnote for a model whose controls the official app lists. -->

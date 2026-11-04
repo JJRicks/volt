@@ -70,7 +70,7 @@ public final class MoreTextTest {
             equal(MoreScreenTextTest.Base.clearHistory(all, "Blue"), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody("Blue"), "clear " + all);
         }
         for (int n = 0; n <= 25; n++) {
-            equal(MoreScreenTextTest.Base.clearTries(n), n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n), "tries " + n);
+            equal(MoreScreenTextTest.Base.clearTries(n), n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n), "tries " + n);
             equal(MoreScreenTextTest.Base.labWhy(n), n > 0 ? (n == 1 ? T.moreLabWhyOne(n) : T.moreLabWhyMany(n)) : T.moreLabWhyNone(), "why " + n);
             equal(MoreScreenTextTest.Base.taps(n), T.moreDevTaps(n, n), "taps " + n);
             for (boolean stock : new boolean[]{true, false}) {
@@ -117,13 +117,42 @@ public final class MoreTextTest {
         }
         equal(MoreScreenTextTest.Base.proximity("Proximity unlock", "Owner only"), T.moreProximityDescription("Proximity unlock", "Owner only"), "proximity");
         equal(MoreScreenTextTest.Base.profileStatus("Owner", "Connected"), T.moreIndexStatus("Owner", "Connected"), "index status");
+        sectionLabels();
+    }
+
+    /** The menu rows: SECTION_LABEL_IDS, read from MoreScreen's source, render SECTION_LABELS in order. */
+    private static void sectionLabels() {
+        String source;
+        try {
+            source = new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("src/com/jjricks/volt/MoreScreen.java")),
+                    java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) { throw new AssertionError("MoreScreen.java: " + e); }
+        java.util.List<String> labels = items(source, "String[] SECTION_LABELS = {", "\"([^\"]*)\"");
+        java.util.List<String> ids = items(source, "int[] SECTION_LABEL_IDS = {", "T\\.([A-Z0-9_]+)");
+        check(labels.size() == 7 && ids.size() == labels.size(), "SECTION_LABELS " + labels + " and SECTION_LABEL_IDS " + ids);
+        for (int i = 0; i < labels.size(); i++) {
+            int id;
+            try { id = T.class.getField(ids.get(i)).getInt(null); }
+            catch (ReflectiveOperationException e) { throw new AssertionError("T." + ids.get(i) + ": " + e); }
+            equal(labels.get(i), T.render(id), "menu row " + i);
+        }
+    }
+
+    private static java.util.List<String> items(String source, String head, String item) {
+        int at = source.indexOf(head);
+        check(at >= 0, "MoreScreen declares " + head);
+        String body = source.substring(at + head.length(), source.indexOf("};", at));
+        java.util.List<String> found = new java.util.ArrayList<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(item).matcher(body);
+        while (m.find()) found.add(m.group(1));
+        return found;
     }
 
     private static void follows() {
         String[][] shown = {
                 {T.moreLabRow("a", "b"), "more_lab_row"}, {T.moreLabRowValue("a", "b", "c"), "more_lab_row_value"},
                 {T.moreLabKept(), "more_lab_kept"}, {T.moreScootersSharedSuffix(), "more_scooters_shared_suffix"},
-                {T.moreDevTaps(2, 2), "more_dev_taps"}, {T.moreLabClearedMany(3), "more_lab_cleared_many"},
+                {T.moreDevTaps(2, 2), "more_dev_taps"}, {T.moreLabCleared(3, 3), "more_lab_cleared"},
                 {T.fmtQuantity(Fmt.decimal(Locale.US, 1.5, 1), T.moreUnitMib()), "fmt_quantity"},
                 {T.moreUnitMib(), "more_unit_mib"}, {T.moreUnitSecond(), "more_unit_second"},
                 {T.moreHistoryUsed("1", "2", T.moreUnitMib()), "more_history_used"},

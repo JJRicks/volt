@@ -73,6 +73,10 @@ public final class MoreScreen implements AppScreen {
             "Experimental controls", "Data & history", "About & permissions", "Developer options"};
     private static final String[] SECTION_TITLES = {"App preferences", "My scooters", "PIN & proximity",
             "Experimental controls", "Data & history", "About & permissions", "Developer options"};
+    /** SECTION_LABELS as the menu shows them, from the catalog, by index (MoreTextTest checks the English). SECTION_TITLES stays
+     * English for now: G1 refuses changing its use beside the Units and Compatibility titles (l10n/pending/b18-more-followups.md). */
+    private static final int[] SECTION_LABEL_IDS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY,
+            T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
@@ -171,7 +175,7 @@ public final class MoreScreen implements AppScreen {
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
             if (!knownSection(section)) continue;
-            Row row = row(sectionMenu, SECTION_ICONS[i], SECTION_LABELS[i], null, () -> selectSection(section));
+            Row row = row(sectionMenu, SECTION_ICONS[i], T.render(SECTION_LABEL_IDS[i]), null, () -> selectSection(section));
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
@@ -1177,6 +1181,8 @@ public final class MoreScreen implements AppScreen {
             long[] rows = {storage.detailedRows, storage.minuteRows, storage.dailyRows};
             for (int i = 0; i < rows.length; i++) historyCounts[i].setText(String.format(Locale.US, "%,d saved", rows[i]));
             historyStatus.setText(storage.status == null ? "" : storage.status);
+            // Shown in the current language; storage.status stays TelemetryHistory's English id (statusMsg's English is the id).
+            if (storage.status != null) historyStatus.setText(storage.statusMsg().toString());
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
             historyStorageCard.setContentDescription("Local storage, " + used + " used. "
                     + String.format(Locale.US, "%,d detailed, %,d minute and %,d daily samples saved.", rows[0], rows[1], rows[2]));
@@ -1549,7 +1555,7 @@ public final class MoreScreen implements AppScreen {
     /** The owner clears this scooter's finished tries: their results, report entries and Set back. Unfinished ones stay. */
     private void clearTries() {
         confirm(T.moreLabClearTitle(), T.moreLabClearBody(),
-                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n)); refresh(); });
+                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n)); refresh(); });
     }
     private void refreshLab(ScooterService s) {
         BleController ble = s.ble; boolean ready = ble.ready();

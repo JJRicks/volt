@@ -176,8 +176,7 @@ src/com/jjricks/volt/MoreScreen.java:1523	["Clear try results?"]	more_lab_clear_
 src/com/jjricks/volt/MoreScreen.java:1523	["Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them."]	more_lab_clear_body	exact	
 src/com/jjricks/volt/MoreScreen.java:1524	["Clear"]	more_clear	exact	
 src/com/jjricks/volt/MoreScreen.java:1524	["No finished tries to clear"]	more_lab_cleared_none	exact	
-src/com/jjricks/volt/MoreScreen.java:1524	["Cleared 1 try"]	more_lab_cleared_one	exact	
-src/com/jjricks/volt/MoreScreen.java:1524	["Cleared ", {"hole": "n", "arg": 1, "type": "d"}, " tries"]	more_lab_cleared_many	template	
+src/com/jjricks/volt/MoreScreen.java:1524	{"one": ["Cleared 1 try"], "other": ["Cleared ", {"hole": "n", "arg": 1, "type": "d", "quantity": true}, " tries"]}	more_lab_cleared	plural	manual: n == 1 ? "Cleared 1 try" : "Cleared " + n + " tries" became T.moreLabCleared(n, n); the branch for exactly 1 is the one item, every other count (2 or more here; 0 keeps more_lab_cleared_none) the other item
 src/com/jjricks/volt/MoreScreen.java:1546	["Untested controls"]	more_lab_untested	exact	
 src/com/jjricks/volt/MoreScreen.java:1546	["Help verify"]	more_lab_help_verify	exact	
 src/com/jjricks/volt/MoreScreen.java:1546	["Nothing to try"]	more_lab_nothing	exact	
