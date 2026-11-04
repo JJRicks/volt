@@ -177,14 +177,15 @@
     <string name="maps_chart_desc_no_readings" volt:screen="Rides, chart" volt:purpose="description">". No readings selected"</string>
     <!-- After the chart name: the chosen readings have no samples. -->
     <string name="maps_chart_desc_no_samples" volt:screen="Rides, chart" volt:purpose="description">". No recorded samples"</string>
-    <!-- After the chart name: %1$s is the cursor's time into the ride (1:05.250). -->
-    <string name="maps_chart_desc_at" volt:screen="Rides, chart" volt:purpose="description">". At %1$s"</string>
+    <!-- After the chart name, before the cursor's time into the ride (1:05.250), which follows it. -->
+    <string name="maps_chart_desc_at" volt:screen="Rides, chart" volt:purpose="description">". At "</string>
     <!-- Starts one reading at the cursor; %1$s is the reading's name (Power). Its value follows. -->
     <string name="maps_chart_desc_reading" volt:screen="Rides, chart" volt:purpose="description">". %1$s: "</string>
     <!-- The reading has no value at the cursor. -->
     <string name="maps_chart_desc_no_reading" volt:screen="Rides, chart" volt:purpose="description">No reading</string>
-    <!-- After a reading's value: %1$s is the time of the nearest sample when it is not at the cursor. -->
-    <string name="maps_chart_desc_value_at" volt:screen="Rides, chart" volt:purpose="description">" at %1$s"</string>
+    <!-- After a reading's value, before the time of its nearest sample (which follows it) when that
+         sample is not at the cursor. -->
+    <string name="maps_chart_desc_value_at" volt:screen="Rides, chart" volt:purpose="description">" at "</string>
     <!-- Drawn in an empty chart. -->
     <string name="maps_chart_choose_readings" volt:screen="Rides, chart" volt:purpose="instruction">Choose readings above</string>
     <!-- Drawn above the chart cursor; %1$s is its time into the ride (1:05.250). -->
