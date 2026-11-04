@@ -20,6 +20,8 @@ public enum UnitCode {
     AMP_HOUR(T.UNITS_AMP_HOUR, "Ah"),
     CELSIUS(T.UNITS_CELSIUS, "°C"),
     FAHRENHEIT(T.UNITS_FAHRENHEIT, "°F"),
+    /** The charge chart's clock-time axis (finish times as epoch milliseconds), added by B3. */
+    TIME(T.READINGS_UNIT_TIME, "Time"),
     MINUTE(T.UNITS_MINUTE, "min");
 
     /** The catalog id of the symbol (an id, rule R5: rendered only when shown). */
