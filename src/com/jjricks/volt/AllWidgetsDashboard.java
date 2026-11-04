@@ -7,8 +7,54 @@ import java.util.Arrays;
 final class AllWidgetsDashboard {
     static final int COLUMNS = 6;
     private static final long DAY = 86400000L;
+    /** The example's own titles and note, saved in English like any widget's (data); exampleTitle and
+     * exampleNote say what they show. */
+    static final String SPEED_TITLE = "Speed", BATTERY_CHARGE_TITLE = "Battery charge",
+            ELECTRICAL_TITLE = "Electrical readings", BATTERY_POWER_TITLE = "Battery power",
+            CHARGE_HISTORY_TITLE = "Charge history", NOTE_TEXT = "Check tyre pressure";
 
     private AllWidgetsDashboard() {}
+
+    /**
+     * True when widget is one of the example's own: create() gave it an example id (DashboardExampleIds),
+     * which saves, exports and imports keep and no other widget gets. Only on those are the titles and
+     * note below Volt's; the same words on any other widget are the owner's.
+     */
+    static boolean isExample(DashboardConfig.Widget widget) {
+        return widget != null && DashboardExampleIds.is(widget.id);
+    }
+
+    /**
+     * The current language's name for one of the example's own titles, when widget is the example's own
+     * widget of that type and still holds it; else null (the owner's title, shown as saved). An owner
+     * who retitles such a widget and later types its example title back gets the example's title again:
+     * the saved widget cannot tell the two apart, and it is the example's own widget.
+     */
+    static Msg exampleTitle(DashboardConfig.Widget widget) {
+        if (!isExample(widget)) return null;
+        String type = widget.type, title = widget.title;
+        if (type == null || title == null) return null;
+        switch (type) {
+            case "gauge": return SPEED_TITLE.equals(title) ? M.dashboardModelExampleSpeed() : null;
+            case "metric": return BATTERY_CHARGE_TITLE.equals(title) ? M.dashboardModelExampleBatteryCharge() : null;
+            case "readings": return ELECTRICAL_TITLE.equals(title) ? M.dashboardModelExampleElectrical() : null;
+            case "live": return BATTERY_POWER_TITLE.equals(title) ? M.dashboardModelExampleBatteryPower() : null;
+            case "history": return CHARGE_HISTORY_TITLE.equals(title) ? M.dashboardModelExampleChargeHistory() : null;
+            default: return null;
+        }
+    }
+
+    /**
+     * The current language's example note, when widget is the example's own note widget and still holds
+     * it; else null. Any other note is the owner's and shows as saved, even one that says NOTE_TEXT: a
+     * note widget the owner added or duplicated, or one saved by an older version, has a random id. (As
+     * with titles, the example's own note widget edited and then given NOTE_TEXT back counts as the
+     * example's again.)
+     */
+    static Msg exampleNote(DashboardConfig.Widget widget) {
+        return isExample(widget) && "note".equals(widget.type) && NOTE_TEXT.equals(widget.note)
+                ? M.dashboardModelExampleNote() : null;
+    }
 
     static ArrayList<DashboardConfig.Widget> create() {
         ArrayList<DashboardConfig.Widget> result = new ArrayList<>();
@@ -17,19 +63,19 @@ final class AllWidgetsDashboard {
         DashboardConfig.Widget battery = add(result, "battery");
         DashboardConfig.Widget quick = add(result, "quick");
         DashboardConfig.Widget gauge = add(result, "gauge");
-        gauge.title = "Speed"; gauge.metric = "speed_kmh"; gauge.maximum = 50;
+        gauge.title = SPEED_TITLE; gauge.metric = "speed_kmh"; gauge.maximum = 50;
         DashboardConfig.Widget metric = add(result, "metric");
-        metric.title = "Battery charge"; metric.metric = "battery_percent";
+        metric.title = BATTERY_CHARGE_TITLE; metric.metric = "battery_percent";
         DashboardConfig.Widget ride = add(result, "ride");
         DashboardConfig.Widget trip = add(result, "trip");
         DashboardConfig.Widget readings = add(result, "readings");
-        readings.title = "Electrical readings";
+        readings.title = ELECTRICAL_TITLE;
         readings.keys.clear();
         readings.keys.addAll(Arrays.asList("voltage_v", "current_a", "power_w", "temperature_c"));
         DashboardConfig.Widget live = add(result, "live");
-        live.title = "Battery power"; live.metric = "power_w"; live.windowMs = 2 * 60000L;
+        live.title = BATTERY_POWER_TITLE; live.metric = "power_w"; live.windowMs = 2 * 60000L;
         DashboardConfig.Widget history = add(result, "history");
-        history.title = "Charge history"; history.metric = "battery_percent"; history.windowMs = 7 * DAY;
+        history.title = CHARGE_HISTORY_TITLE; history.metric = "battery_percent"; history.windowMs = 7 * DAY;
         DashboardConfig.Widget health = add(result, "health");
         health.windowMs = 30 * DAY;
         DashboardConfig.Widget capacity = add(result, "capacity");
@@ -37,7 +83,7 @@ final class AllWidgetsDashboard {
         DashboardConfig.Widget charging = add(result, "charging");
         DashboardConfig.Widget note = add(result, "note");
         note.title = "Note";
-        note.note = "Check tyre pressure";
+        note.note = NOTE_TEXT;
         // A dashboard shows one lock control; this bar demonstrates the compact style beside it.
         DashboardConfig.Widget lockbar = add(result, "lockbar");
         DashboardConfig.Widget overview = add(result, "overview");
@@ -114,7 +160,8 @@ final class AllWidgetsDashboard {
     }
 
     private static DashboardConfig.Widget add(ArrayList<DashboardConfig.Widget> result, String type) {
-        DashboardConfig.Widget widget = new DashboardConfig.Widget(type);
+        // The example's ids mark its widgets as Volt's (isExample); every other widget's id is random.
+        DashboardConfig.Widget widget = new DashboardConfig.Widget(DashboardExampleIds.create(), type);
         result.add(widget);
         return widget;
     }

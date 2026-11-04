@@ -20,6 +20,4 @@ MoreScreen.java	model-line	3	B18	model line shown on the saved scooter, the lab 
 MoreScreen.java	oem-label	1	B18	d.oemLabel(value) in the experimental value line (1608): d.oemText(value)
 MoreScreen.java	reason-text	4	B18	lab and PIN reasons (1662, 1986, 2529): rendered at display, current language already; B18 joins them into whole templates
 MoreScreen.java	resolver-text	1	B18	CapabilityResolver.text(reason) default branch (1689): rendered at display, current language already
-QuickAccessActions.java	feature-field	2	B12	ENTRIES title feature.label and subtitle feature.group (62, 63): int label ids or feature.label()/groupLabel() per plan 1.5 static catalogs
-QuickAccessGrid.java	oem-label	2	B12	decision.oemLabel(value) on the tile (79): decision.oemText(value)
 DisplayUnits.java	value-label	1	stays (data)	featureValue keeps feature.valueLabel(value) for values that are not speeds: its text is compared and trimmed as English (MoreScreen.labValue into CompatibilityPanel.question's "On"/"Off"/"mph"; MainActivity's " hours" shortening and shared-unit trim). F2 adds featureValueText (valueText) for display: B12 (QuickAccessGrid tile), B18 (MoreScreen labValue shown text) and B19 (MainActivity value lines) show featureValueText once their English text operations on it are gone
