@@ -1,0 +1,23 @@
+# Ledger for b14-maps: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MapPreferences.java:42	["Basemap"]	maps_basemap	exact	
+src/com/jjricks/volt/MapPreferences.java:44	["Basemap"]	maps_basemap	exact	
+src/com/jjricks/volt/MapPreferences.java:95	["Show online map?"]	maps_consent_title	exact	
+src/com/jjricks/volt/MapPreferences.java:96	["Provider sees your IP and map area. Rides stay on phone."]	maps_consent_message	exact	
+src/com/jjricks/volt/MapPreferences.java:100	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MapPreferences.java:101	["Enable basemap"]	maps_consent_enable	exact	
+src/com/jjricks/volt/MapPreferences.java:137	["Online map"]	maps_online_map	exact	
+src/com/jjricks/volt/MapPreferences.java:142	["Edit custom provider"]	maps_edit_custom	exact	
+src/com/jjricks/volt/MapPreferences.java:200	["Map settings"]	maps_settings_title	exact	
+src/com/jjricks/volt/MapPreferences.java:203	["Done"]	common_done	exact	
+src/com/jjricks/volt/MapPreferences.java:210	["Custom map provider"]	maps_custom_title	exact	
+src/com/jjricks/volt/MapPreferences.java:211	["Tile URL"]	maps_custom_tile_url	exact	
+src/com/jjricks/volt/MapPreferences.java:211	["https://…/{z}/{x}/{y}.png"]	maps_custom_tile_url_hint	exact	the example address keeps {z}, {x} and {y} (dnt)
+src/com/jjricks/volt/MapPreferences.java:212	["Attribution"]	maps_custom_attribution	exact	
+src/com/jjricks/volt/MapPreferences.java:213	["HTTPS attribution link"]	maps_custom_attribution_link	exact	
+src/com/jjricks/volt/MapPreferences.java:215	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MapPreferences.java:215	["Save"]	maps_custom_save	exact	
+src/com/jjricks/volt/MapPreferences.java:220	["Use HTTPS with {z}, {x} and {y}."]	maps_custom_error_url	exact	
+src/com/jjricks/volt/MapPreferences.java:221	["Add the provider’s required attribution."]	maps_custom_error_attribution	exact	
+src/com/jjricks/volt/MapPreferences.java:223	["Use an HTTPS license or copyright link."]	maps_custom_error_link	exact	
