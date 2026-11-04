@@ -79,7 +79,6 @@ src/com/jjricks/volt/StatsScreen.java:173	["Waiting for readings"]	stats_overvie
 src/com/jjricks/volt/StatsScreen.java:176	["Favourites"]	stats_favourites_title	exact	
 src/com/jjricks/volt/StatsScreen.java:184	["Reorder favourite readings and charts"]	stats_favourites_reorder_description	exact	
 src/com/jjricks/volt/StatsScreen.java:185	["Reorder favourites"]	stats_favourites_reorder	exact	
-src/com/jjricks/volt/StatsScreen.java:192	["☆ Star readings to pin here"]	stats_favourites_empty	exact	
 src/com/jjricks/volt/StatsScreen.java:209	["Search"]	stats_search_hint	exact	
 src/com/jjricks/volt/StatsScreen.java:210	["Search scooter measurements"]	stats_readings_search_description	exact	
 src/com/jjricks/volt/StatsScreen.java:232	["Diagnostics"]	stats_diagnostics_title	exact	

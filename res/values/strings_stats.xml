@@ -45,7 +45,6 @@
     <string name="stats_favourites_reorder_description" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">Reorder favourite readings and charts</string>
     <!-- The reorder button's tooltip and the reorder sheet's title. -->
     <string name="stats_favourites_reorder" volt:screen="Live Stats › Overview, reorder sheet" volt:purpose="heading">Reorder favourites</string>
-    <string name="stats_favourites_empty" volt:screen="Live Stats › Overview" volt:purpose="empty state">☆ Star readings to pin here</string>
     <!-- A favourite chart in the reorder list: %1$s is the reading's name. -->
     <string name="stats_order_chart" volt:screen="Live Stats › Reorder favourites" volt:purpose="list item">%1$s · Chart</string>
     <!-- Spoken favourite chart in the reorder list: %1$s is the reading's name. -->

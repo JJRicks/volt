@@ -191,7 +191,7 @@ public final class StatsScreen implements AppScreen {
         favouriteHeader.addView(reorderFavourites, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         overviewSection.addView(favouriteHeader);
         favouritesCard = ui.groupCard(); overviewSection.addView(favouritesCard);
-        favouritesHint = ui.text(T.statsFavouritesEmpty(), 14, false);
+        favouritesHint = ui.text("☆ Star readings to pin here", 14, false);
         favouritesHint.setTextColor(ui.muted); favouritesHint.setGravity(Gravity.CENTER);
         favouritesHint.setMinHeight(ui.dp(120)); favouritesHint.setPadding(ui.dp(20), ui.dp(22), ui.dp(20), ui.dp(22));
         GradientDrawable empty = new GradientDrawable(); empty.setColor(Ui.withAlpha(ui.surface, 140));
@@ -740,8 +740,8 @@ public final class StatsScreen implements AppScreen {
         if (key.equals("battery_health_percent")) detail += T.statsDetailHealthNote();
         if (key.equals("energy_throughput_wh")) detail += T.statsDetailEnergyNote();
         metricDialog = new AlertDialog.Builder(host.activity()).setTitle(rowLabel(reading)).setMessage(detail)
-                .setNeutralButton(favourites.contains(key) ? T.statsDetailRemoveFavourite() : T.statsDetailAddFavourite(), (d, which) -> toggleFavourite(key))
-                .setPositiveButton(T.commonClose(), null).create(); metricDialog.show();
+                .setNeutralButton(favourites.contains(key) ? M.statsDetailRemoveFavourite() : M.statsDetailAddFavourite(), (d, which) -> toggleFavourite(key))
+                .setPositiveButton(M.commonClose(), null).create(); metricDialog.show();
     }
     void resetScroll() { sectionScroll.scrollTo(0, 0); if (readingsScroll != null) readingsScroll.scrollTo(0, 0); clearSavedScroll(); }
     static void clearSavedScroll() { savedSectionScroll = savedReadingsScroll = 0; }
