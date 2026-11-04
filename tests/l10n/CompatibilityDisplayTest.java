@@ -86,8 +86,8 @@ public final class CompatibilityDisplayTest {
     /** The English plurals print what the code before B9 printed, at every quantity English and the tests use. */
     private static void plurals() {
         for (long n : new long[]{0, 1, 2, 3, 4, 5, 11, 12, 21, 22, 25, 100, 101, 111, 1000000}) {
-            equal(n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n), "tests elsewhere at " + n);
-            equal(n + " minutes ago", T.compatAgeMinutes(n), "minutes ago at " + n);
+            equal(n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
+            equal(n + " minutes ago", T.compatAgeMinutes(n, n), "minutes ago at " + n);
             equal("Too short (" + n + " bytes)", T.compatReadTooShort(n, n), "too short at " + n);
         }
     }
