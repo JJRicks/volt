@@ -1,0 +1,2 @@
+location	pieces	key	kind	note
+src/com/jjricks/volt/DisplayUnits.java:14	["km/h"]	units_kmh	id-kept	the speed-unit compare moves onto B1's UnitCode.KMH (same value, matches is code.equals); the line now shows feature.valueText
