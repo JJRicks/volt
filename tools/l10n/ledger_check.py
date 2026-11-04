@@ -1428,50 +1428,77 @@ def _opener(tokens, j):
     return None
 
 
-def only_this_file_names(tokens, start, end):
-    """True when the declaration whose modifiers and type are tokens start..end-1 can be named only in
+def _supertype_use(tokens, names):
+    """(line, excerpt) of the first extends or implements clause in the file that names one of NAMES
+    (class Ring extends Base, class Shown implements Labels, <T extends Base>), or None. The clause runs to
+    the next { or ;. A subclass inherits a package-private field, and an implementing class an
+    interface constant, so Ui.Ring r; r.subtitle names a private Base's field from another file."""
+    for i, t in enumerate(tokens):
+        if t.kind != "ident" or t.value not in ("extends", "implements"):
+            continue
+        j = i + 1
+        while j < len(tokens) and not (tokens[j].kind == "op" and tokens[j].value in ("{", ";")):
+            if tokens[j].kind == "ident" and tokens[j].value in names:
+                return tokens[j].line, _excerpt(tokens[max(0, i - 3):j + 1], None)
+            j += 1
+    return None
+
+
+def file_reach(tokens, start, end):
+    """None when the declaration whose modifiers and type are tokens start..end-1 can be named only in
     its own file: a local (a method, lambda, initializer or anonymous class body), a private field of
     a class, enum or record, or any field of a type that is itself private or local (a package-private
-    field of a private nested class, a field of a class declared in a method)."""
+    field of a private nested class, a field of a class declared in a method). A private type counts
+    only when no extends or implements clause in the file names it or a type between it and the field:
+    a subclass or an implementing class that other files can name inherits the field. Else a short
+    reason: "not private", or the clause that hands the field on."""
     kind = body_kind(tokens, start)
     if kind is None:
-        return True
+        return None
     if kind != "interface" and any(t.kind == "ident" and t.value == "private" for t in tokens[start:end]):
-        return True
+        return None  # a private member is never inherited
+    names = set()
     opener = _opener(tokens, start - 1)
     while opener is not None:  # the type body holding the declaration, then each type around it
         header = opener
         while header > 0 and not (tokens[header - 1].kind == "op" and tokens[header - 1].value in ";{}"):
             header -= 1
         keyword = max(i for i in range(header, opener) if tokens[i].kind == "ident" and tokens[i].value in _TYPE_KEYWORDS)
+        if keyword + 1 < opener and tokens[keyword + 1].kind == "ident":
+            names.add(tokens[keyword + 1].value)
         if any(t.kind == "ident" and t.value == "private" for t in tokens[header:keyword]):
-            return True
+            inherited = _supertype_use(tokens, names)
+            if inherited is None:
+                return None
+            return ("in a private type that line %d hands on (`%s`: a subclass or implementing class "
+                    "inherits it)" % inherited)
         outer = _opener(tokens, header - 1)
         if outer is None:
-            return False  # a top-level type
+            return "not private"  # a top-level type
         if body_kind(tokens, header) is None:
-            return True  # a class declared in a method or other block
+            return None  # a class declared in a method or other block
         opener = outer
-    return False
+    return "not private"
 
 
 def retype_reach_problem(where, path, diff, h_type):
     """A problem when the declaration whose type token is head token h_type is a field other files can
     name (not private, or any interface field): G1 lists the uses of a retyped variable from its own
     file only, and r.subtitle.equals("Not reported") in another file compiles on and turns false. A
-    private field, a local, or a field of a private or local type is named only in its own file
-    (only_this_file_names), which retype_warning lists. Else None."""
+    private field, a local, or a field of a private or local type that no extends or implements
+    clause hands on is named only in its own file (file_reach), which retype_warning lists. Else None."""
     tokens = diff.head.tokens
     start, _ = statement_bounds(tokens, h_type)
-    if only_this_file_names(tokens, start, h_type):
+    reach = file_reach(tokens, start, h_type)
+    if reach is None:
         return None
     first, last, _ = expressions.statement_span(tokens, h_type)
-    return ("%s: %s:%d: `%s` changes from String to CharSequence on a field that is not private, so code in "
+    return ("%s: %s:%d: `%s` changes from String to CharSequence on a field that is %s, so code in "
             "other files can name it and G1 cannot list those uses (an equals, an overload chosen by type); an "
             "extraction batch retypes only a field other files cannot name (a private field, or any field of a "
-            "private or local class) or a local: make the field private in an earlier "
-            "commit of its own, or keep the String and convert where it is shown" % (
-                where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None)))
+            "private or local class that nothing in the file extends or implements) or a local: make the field "
+            "private in an earlier commit of its own, or keep the String and convert where it is shown" % (
+                where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None), reach))
 
 
 def retype_warning(where, path, diff, h_type, name, split_from=None):
@@ -1901,6 +1928,13 @@ DATA_TIER = frozenset(name + ".java" for name in (
     "AppDataBackup", "TestJournal", "ChargeScheduleController"))
 
 
+# Names whose presence in a wrap's statement means it builds a Telemetry or TelemetryHistory reading
+# (Telemetry.putSimulationSample, new TelemetryHistory.Reading): plan section 4.1 puts Telemetry
+# labels and values in the data tier, and plan section 4.3 keeps ScooterService's synthetic
+# remaining_range_km reading canonical, so such a wrap in a display file gets the data-tier note.
+TELEMETRY_WRITERS = frozenset(("Telemetry", "TelemetryHistory", "putSimulationSample"))
+
+
 def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
     """(problems, warning) for a legacy locale wrapped into Fmt.locale(...) at head token k. G10
     (FmtLegacyTest) shows Fmt.locale returns the legacy locale while Volt is English, so a compiled
@@ -1932,15 +1966,20 @@ def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
         site = "no compiled test under tests/l10n/ calls %s.%s(...), so check by hand that it formats the same" % (
             owner, method or "<the enclosing method>")
     root = [t.value for t in tokens[k + 4:close]][-1:] == ["ROOT"]
+    telemetry = sorted({t.value for t in tokens[first:last + 1] if t.kind == "ident" and t.value in TELEMETRY_WRITERS})
     warning = ("%s:%d: `%s` becomes `%s` in `%s%s%s`; Fmt.locale keeps that locale while Volt is English (G10), and "
-               "a shipped language formats in its own; %s%s" % (
+               "a shipped language formats in its own; %s%s%s" % (
                    path, tokens[k].line, _excerpt(tokens[k + 4:close], None), _excerpt(tokens[k:close + 1], None),
                    "... " if start > first else "", _excerpt(tokens[start:end + 1], None),
                    " ..." if end < last else "", site,
                    "; Locale.ROOT is the data tier (plan section 4: ids, enum tokens, stored values and logs never "
                    "localize), so check that this is text a screen shows, such as a decorative upper-casing, and "
                    "not an id or a value that is stored, sent or compared (Turkish upper-cases i to a dotted capital I)"
-                   if root else ""))
+                   if root else "",
+                   "; the statement names %s, and a Telemetry or TelemetryHistory label or value is the data tier (plan "
+                   "section 4.1; the ScooterService remaining_range_km reading stays canonical, plan section 4.3), so "
+                   "check that the wrapped text is only shown and never becomes a reading's stored, sent or logged "
+                   "value, which keeps its legacy locale" % ", ".join(telemetry) if telemetry else ""))
     return problems, warning
 
 

@@ -1244,6 +1244,54 @@ class DeclarationTypeTest(RepoCase):
                 self.assertEqual(problems, [])
                 self.assertTrue(any("only this file can name it" in w for w in warnings), warnings)
 
+    def test_a_field_of_a_private_type_that_the_file_hands_on_fails(self):
+        # Gates round 2 re-review: a non-private subclass inherits a private class's package-private
+        # field, and an implementing class a private interface's constant, so another file can write
+        # Ui.Ring r; r.subtitle or Ui.Shown.UNIT (javac --release 8 accepts both).
+        screen = "src/com/jjricks/volt/Screen.java"
+        for body, use, old in (
+                ('    private static class Base {\n        String subtitle = "Not reported";\n    }\n'
+                 '    static final class Ring extends Base { }', "r.subtitle", 'String subtitle = "Not reported";'),
+                ('    private interface Base {\n        String subtitle = "Not reported";\n    }\n'
+                 '    static final class Ring implements Base { }', "Ui.Ring.subtitle", 'String subtitle = "Not reported";'),
+                ('    private static class Base {\n        String subtitle = "Not reported";\n    }\n'
+                 '    private static class Mid extends Base { }\n    static final class Ring extends Mid { }',
+                 "r.subtitle", 'String subtitle = "Not reported";'),
+                ('    private static class Base {\n        static class In {\n            String subtitle = "Not reported";\n'
+                 '        }\n    }\n    static final class Ring extends Base.In { }', "r.subtitle",
+                 'String subtitle = "Not reported";')):
+            with self.subTest(body=body):
+                self.repo.write(UI, java_class("Ui", body))
+                self.repo.write(screen, java_class("Screen", '    static boolean missing(Ui.Ring r) { return '
+                                                   '%s.equals("Not reported"); }' % use))
+                self.repo.write("l10n/ledger/b2.tsv", HEADER)
+                self.base = self.repo.commit("a private type handed on")
+                line = 1 + self.text(UI).splitlines().index(next(
+                    l for l in self.text(UI).splitlines() if old in l))
+                self.edit(old, "CharSequence subtitle = M.commonNotReported();")
+                problems, warnings, _ = self.check([UI + ':%d\t["Not reported"]\tcommon_not_reported\texact\t' % line])
+                self.assertTrue(any("changes from String to CharSequence on a field that is in a private type that "
+                                    "line" in p and "a subclass or implementing class inherits it), so code in other files" in p
+                                    for p in problems), problems)
+                self.assertFalse(any("only this file can name it" in w for w in warnings), warnings)
+
+    def test_file_reach(self):
+        def reach(source):
+            tokens = expressions.l10nlib.lex_java(source)
+            k = next(i for i, t in enumerate(tokens) if t.value == "x")
+            start, _ = ledger_check.statement_bounds(tokens, k)
+            return ledger_check.file_reach(tokens, start, start + 1)
+        self.assertIsNone(reach('class C { private static class B { String a = "x"; } }'))
+        self.assertIsNone(reach('class C { private static class B { String a = "x"; } static class D { } }'))
+        self.assertIsNone(reach('class C { private String a = "x"; } class D extends C { }'))
+        self.assertIsNone(reach('class C { void f() { class L { String a = "x"; } class M extends L { } } }'))
+        self.assertEqual(reach('class C { String a = "x"; }'), "not private")
+        self.assertIn("line 1 hands on (`static class D extends B`: a subclass",
+                      reach('class C { private static class B { String a = "x"; } static class D extends B { } }'))
+        self.assertIn("implements", reach('class C { private interface B { String a = "x"; } enum E implements B { ONE } }'))
+        self.assertIn("extends", reach('class C { private static class B { String a = "x"; } '
+                                       'static <T extends B> T g() { return null; } }'))
+
     def test_a_local_in_a_method_with_a_record_parameter_passes(self):
         # Gates round 2 review: record is a contextual keyword, so label(Object record) { is a method.
         self.repo.write(UI, self.FILES[UI].replace("static String label() { String shown = \"Not reported\"; return shown; }",
@@ -1507,6 +1555,31 @@ class LocaleWrapTest(RepoCase):
                 problems, _, _ = self.check([])
                 self.assertTrue(any("%s:4: `%s` is wrapped into Fmt.locale(...) in a data-tier file" % (
                     path, locale.replace(".", " . ")) in p for p in problems), problems)
+
+    def test_a_wrap_that_builds_a_telemetry_reading_gets_the_data_tier_note(self):
+        # Gates round 2 re-review: DATA_TIER is by file, so a Telemetry value built in a display file
+        # (ScooterService's remaining_range_km reading, ScooterSimulation's samples) needs the note.
+        service = "src/com/jjricks/volt/ScooterService.java"
+        self.repo.write(service, java_class("ScooterService", '''    static Object range(double km) {
+        return new TelemetryHistory.Reading("remaining_range_km", "Learned remaining range",
+                "Ride", String.format(Locale.US, "%.2f km", km), "km", km, 0L, false);
+    }
+    static void sample(Telemetry telemetry, double n) {
+        telemetry.putSimulationSample("speed", String.format(Locale.US, "%.1f km/h", n), n, 0L);
+    }'''))
+        self.base = self.repo.commit("telemetry readings")
+        self.repo.write(service, self.text(service).replace("String.format(Locale.US", "String.format(Fmt.locale(Locale.US)"))
+        self.wrap_all()
+        problems, warnings, _ = self.check([])
+        self.assertEqual(problems, [])
+        notes = [w for w in warnings if "Fmt.locale keeps that locale" in w and service in w]
+        self.assertEqual(len(notes), 2, warnings)
+        self.assertIn("the statement names TelemetryHistory, and a Telemetry or TelemetryHistory label or value is "
+                      "the data tier", notes[0])
+        self.assertIn("the statement names putSimulationSample, and", notes[1])
+        self.assertTrue(all("never becomes a reading's stored, sent or logged value" in w for w in notes), notes)
+        others = [w for w in warnings if "Fmt.locale keeps that locale" in w and UI in w]
+        self.assertFalse(any("Telemetry" in w for w in others), others)
 
     def test_an_unreadable_english_only_list_fails(self):
         self.repo.write(ledger_check.CATALOG_USAGE_TEST, java_class("CatalogUsageTest", '    static final List<String> '

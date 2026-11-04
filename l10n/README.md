@@ -325,10 +325,15 @@ How `ledger_check.py` (G1) reads it:
     `private CharSequence empty = M.uiChartEmpty();`). Only a declaration no other file can name
     may change type: a local (in a method, lambda, initializer or anonymous class), a `private`
     field, or any field of a type that is itself `private` or declared in a method (a
-    package-private field of a `private static class`). G1 reads one file, and a field other files
-    can name (package-private, `protected` or `public` in a type they can reach, an interface field
-    of such a type) fails, since `r.subtitle.equals("Not reported")` elsewhere would compile on and
-    turn false. Make such a field private first, in a commit of its own, or keep the String. The
+    package-private field of a `private static class`). A private type counts only when no
+    `extends` or `implements` clause in the file names it or a type between it and the field
+    (`static final class Ring extends Base`, `class Shown implements Labels`, `<T extends Base>`):
+    a subclass or implementing class that other files can name inherits the field, so
+    `Ui.Ring r; r.subtitle` or `Ui.Shown.UNIT` reaches it (javac allows it; a private type reached
+    only through a return value or a generic is refused by javac). G1 reads one file, and a field
+    other files can name (package-private, `protected` or `public` in a type they can reach, an
+    interface field of such a type, a field a reachable type inherits) fails, since
+    `r.subtitle.equals("Not reported")` elsewhere would compile on and turn false. Make such a field private first, in a commit of its own, or keep the String. The
     warning prints the declaration and, for every use of the variable in the file, the code around
     it (up to 12 tokens each side within its statement; a use already inside an earlier window is
     not printed twice, so two uses in one long statement get a window each, and nothing is cut to
@@ -346,7 +351,11 @@ How `ledger_check.py` (G1) reads it:
     statement and the compiled tests that call the method holding it (its characterization), or a
     note that none does. A `Locale.ROOT` wrap's warning also says that ROOT is the data tier: the
     reviewer checks that the text is shown on a screen (decorative upper-casing), not an id, enum
-    token or stored value, which a shipped language would case-map by its own rules. A wrap in a
+    token or stored value, which a shipped language would case-map by its own rules. A wrap whose
+    statement names `Telemetry`, `TelemetryHistory` or `putSimulationSample` (a display file building
+    a reading, such as ScooterService's synthetic `remaining_range_km` value, which plan section 4.3
+    keeps canonical) gets the data-tier note too: the reviewer checks that the wrapped text is only
+    shown and never becomes a reading's stored, sent or logged value. A wrap in a
     file of `CatalogUsageTest.ENGLISH_ONLY` (reports, logs, the shell process) fails, and so does a
     `CatalogUsageTest` whose `ENGLISH_ONLY` list G1 cannot read. So does a wrap in a data-tier
     file of plan section 4.1 (`ledger_check.DATA_TIER`: Telemetry, RideStore, RideArchive,
@@ -450,7 +459,12 @@ Known limits:
   variable; G1 does not check what those uses do with a `CharSequence` (an overload picked by type).
 - A locale wrapped into `Fmt.locale` is checked for the wrap only: that it keeps the legacy locale in
   English is G10's, and that the site's values format the same is its characterization test's (listed
-  when one calls the method).
+  when one calls the method). Data-tier wraps fail by file (`DATA_TIER`, `ENGLISH_ONLY`); in any
+  other file, a data-tier value is found by name only (`Telemetry`, `TelemetryHistory`,
+  `putSimulationSample` in the statement) and gets a note, not a failure. A value stored through a
+  variable or another helper gets the ordinary display warning, and the reviewer judges it.
+- A private type's field may be retyped only when no `extends` or `implements` clause in its file
+  names the type, matched by simple name: a same-named type elsewhere in the file is refused too.
 - G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
 - G7 does not compare volatile records (values whose text, not only their numbers, changed between
   the two base runs), and it checks the form of numbers, not their values: a number whose value
