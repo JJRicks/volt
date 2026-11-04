@@ -40,7 +40,7 @@ lines = [l.rstrip('\n') for l in open(path)]
 keep = [l for l in lines if l.split('=', 1)[0].strip() not in want]
 open(path, 'w').write('\n'.join(keep + [f'{k}={v}' for k, v in want.items()]) + '\n')
 PY
-  echo "AVD $AVD from $image ($("$AVDMANAGER" --version 2>/dev/null | tail -1)):"; cat "$ANDROID_AVD_HOME/$AVD.ini"; grep -E '^(hw\.lcd|hw\.ramSize|hw\.cpu|hw\.gpu|hw\.keyboard|PlayStore|image\.sysdir)' "$config" ;;
+  echo "AVD $AVD from $image (avdmanager $(grep -s '^Pkg.Revision' "$SDK/cmdline-tools/latest/source.properties" | cut -d= -f2)):"; cat "$ANDROID_AVD_HOME/$AVD.ini"; grep -E '^(hw\.lcd|hw\.ramSize|hw\.cpu|hw\.gpu|hw\.keyboard|PlayStore|image\.sysdir)' "$config" ;;
 boot)
   LOG=${2:?}
   # A secure-adb image only answers an adb key it was booted with: the emulator hands the guest
