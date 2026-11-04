@@ -1,0 +1,5 @@
+# B6, owner setup and Shizuku (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the parser's refusals, the engine's conflict hand-off and the capture client's status lines,
+# pinned before the batch.
+tests/l10n/characterization/OwnerSetupTextTest.java
