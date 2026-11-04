@@ -23,6 +23,8 @@ final class FastChargeTaperReplay {
     }
     static final class Row {
         Sample sample; double minutes; Double actual; Double full; String source; int learned;
+        /** The charge's own taper was established (FastChargeTaper.ownTaper) at this sample's live reading. */
+        boolean ownTaper;
     }
 
     static List<List<Sample>> read(Path csv) throws IOException {
@@ -69,13 +71,14 @@ final class FastChargeTaperReplay {
         List<List<Sample>> sessions = read(csv);
         Class<?> taperClass = null;
         try { taperClass = Class.forName("com.jjricks.volt.FastChargeTaper"); } catch (ClassNotFoundException baseline) {}
-        Method withTaper = null, observe = null, tracking = null;
+        Method withTaper = null, observe = null, tracking = null, ownTaper = null;
         if (taperClass != null) {
             withTaper = ChargingEstimate.class.getMethod("forScooter", ChargingEstimate.Result.class, ChargingEstimate.Value.class,
                     ChargingEstimate.Value.class, int.class, ChargeSessionStore.Charger.class, ChargeSessionStore.Curve.class,
                     ChargeReferenceGate.class, String.class, long.class, long.class, ChargeProgressTracker.Progress.class, taperClass);
             observe = taperClass.getMethod("observe", String.class, Boolean.class, Double.class, Double.class, long.class);
             tracking = taperClass.getMethod("tracking", String.class);
+            try { ownTaper = taperClass.getDeclaredMethod("ownTaper", double.class, double.class); } catch (NoSuchMethodException v7) {}
         }
         Path tmp = Files.createTempDirectory("fast-taper-replay-");
         List<Row> rows = new ArrayList<>();
@@ -112,6 +115,8 @@ final class FastChargeTaperReplay {
                         Row row = new Row();
                         row.sample = s; row.minutes = (t - start) / 60000d; row.actual = complete == null ? null : (complete - t) / 60000d;
                         row.full = r.remainingMinutesToFull; row.source = source(r); row.learned = r.learnedSessions;
+                        row.ownTaper = ownTaper != null && base.inputWatts != null && base.inputAmps != null && base.inputAmps > 0
+                                && (Boolean) ownTaper.invoke(taper, base.inputWatts / base.inputAmps, base.inputAmps);
                         rows.add(row);
                     }
                 } finally { clear(history); clear(alone); }

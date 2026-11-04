@@ -25,6 +25,7 @@ public final class FastChargeTaperTest {
         model();
         tracker();
         composition();
+        ownTaper();
         replay(Paths.get(args[0]));
         System.out.println("FastChargeTaper: " + checks + " checks passed");
     }
@@ -115,7 +116,7 @@ public final class FastChargeTaperTest {
                 "A 100% limit and Charge done by use the same displayed time");
         check(saved.fullSource == ChargeSessionStore.Source.FAST_REFERENCE && saved.limitSource == ChargeSessionStore.Source.FAST_REFERENCE
                 && saved.learnedSessions == 0, "Recorded as the bundled high-speed reference");
-        check(saved.version.equals("ut5-fast-taper-v7"), "Algorithm changes carry a new capture version");
+        check(saved.version.equals("ut5-fast-taper-v8"), "Algorithm changes carry a new capture version");
         ChargingEstimate.Result lower = estimate(91, 53.551, 8.04, 95d, 2538, FAST, null, T0);
         near(15.3 * .04 / 8.04 * 60, lower.remainingMinutesToLimit, 1e-9, "A lower cutoff keeps the current rate");
         check(ChargingEstimate.recordingSnapshot(lower).limitSource == ChargeSessionStore.Source.CURRENT_RATE, "and says so");
@@ -155,18 +156,100 @@ public final class FastChargeTaperTest {
         }
     }
 
-    /** Owner charges: high-speed fixes and parity for everything the new step must not touch. */
+    /** A taper of tau 11 at 54 V, observed every 10 s for the given samples (first decay point at 0.5 min). */
+    private static FastChargeTaper decayed(int samples) {
+        FastChargeTaper t = new FastChargeTaper();
+        for (int i = 0; i < samples; i++) t.observe("a", true, 54.0, 8.0 * Math.exp(-(i / 6d) / 11), T0 + i * 10 * SEC);
+        return t;
+    }
+
+    private static boolean same(ChargingEstimate.Result a, ChargingEstimate.Result b) {
+        return a == null ? b == null : b != null && Objects.equals(a.remainingMinutesToFull, b.remainingMinutesToFull)
+                && Objects.equals(a.remainingMinutesToLimit, b.remainingMinutesToLimit) && Objects.equals(a.planningMinutesToFull, b.planningMinutesToFull)
+                && Objects.equals(a.planningMinutesToLimit, b.planningMinutesToLimit) && Objects.equals(a.targetPercent, b.targetPercent)
+                && Objects.equals(a.label, b.label) && Objects.equals(a.status, b.status) && a.charging == b.charging
+                && a.learnedToFull == b.learnedToFull && a.learnedToLimit == b.learnedToLimit && a.learnedSessions == b.learnedSessions
+                && a.referenceToFull == b.referenceToFull && a.referenceToLimit == b.referenceToLimit && a.referenceCharger == b.referenceCharger
+                && a.stockVoltageToFull == b.stockVoltageToFull && a.stockPackModel == b.stockPackModel;
+    }
+
+    /** ut5-fast-taper-v8: once FIT_FULL minutes of this charge's own decay are watched, its taper owns the estimate. */
+    private static void ownTaper() {
+        // Decay points start at sample 3 (0.5 min); FIT_FULL (6 min) of them span samples 3-39.
+        FastChargeTaper five = decayed(39), six = decayed(40);
+        check(five.tapering(54.0, 3.3) && !five.ownTaper(54.0, 3.3), "Under FIT_FULL minutes of decay the taper is not yet this charge's own");
+        check(six.ownTaper(54.0, 3.3), "FIT_FULL minutes of decay establish this charge's own taper");
+        check(!six.ownTaper(53.2, 3.3) && !six.ownTaper(54.0, 7.9), "Only while tapering: below CV voltage or near the CV current it is not");
+        check(!decayed(3).ownTaper(54.0, 7.0) && !new FastChargeTaper().ownTaper(54.0, 3.3), "No decay, no own taper");
+        six.observe("a", false, null, null, T0 + 10 * MIN);
+        check(!six.ownTaper(54.0, 3.3), "Charging off forgets it");
+
+        // 95% at 3 A: the SOC-indexed reference places this sample (about 21 minutes), v7's choice.
+        FastChargeTaper own = decayed(61), early = decayed(39);
+        double soc = 95, volts = 54.25, amps = 3.0;
+        long t = T0 + 11 * MIN;
+        ChargingEstimate.Result v7 = estimate(soc, volts, amps, 100d, 2538, FAST, null, t);
+        check(v7.referenceToFull && v7.status.startsWith("Experimental UT5 MAX high-speed reference"), "The reference covers this sample");
+        check(same(v7, estimate(soc, volts, amps, 100d, 2538, FAST, early, t)), "Before its own taper is established the reference stays");
+        ChargingEstimate.Result mine = estimate(soc, volts, amps, 100d, 2538, FAST, own, t);
+        near(FastChargeTaper.minutes(volts, amps, 15.3, own), mine.remainingMinutesToFull, 1e-12, "Its own taper replaces the reference");
+        near(own.tau() * Math.log(amps / FastChargeTaper.END_AMPS), mine.remainingMinutesToFull, 1e-12, "using this charge's tau");
+        check(Math.abs(own.tau() - 11) < .1 && Math.abs(mine.remainingMinutesToFull - v7.remainingMinutesToFull) > 3, "A different answer from the reference");
+        check(mine.referenceToFull && !mine.learnedToFull && mine.learnedSessions == 0 && mine.referenceCharger == FAST
+                && mine.status.startsWith("Experimental UT5 MAX high-speed estimate from pack voltage")
+                && mine.label.equals(v7.label), "Shown and labelled as the existing high-speed estimate");
+        ChargeSessionStore.Estimate saved = ChargingEstimate.recordingSnapshot(mine);
+        check(saved.version.equals("ut5-fast-taper-v8") && saved.fullSource == ChargeSessionStore.Source.FAST_REFERENCE
+                && saved.limitSource == ChargeSessionStore.Source.FAST_REFERENCE, "Recorded as FAST_REFERENCE under the new estimator version");
+        check(mine.remainingMinutesToLimit.equals(mine.remainingMinutesToFull) && mine.planningMinutesToFull.equals(mine.remainingMinutesToFull),
+                "A 100% limit and Charge done by use the displayed time");
+        ChargingEstimate.Result cutoff = estimate(soc, volts, amps, 99d, 2538, FAST, own, t), cutoffV7 = estimate(soc, volts, amps, 99d, 2538, FAST, null, t);
+        check(cutoff.remainingMinutesToFull.equals(mine.remainingMinutesToFull)
+                && cutoff.remainingMinutesToLimit.equals(Math.min(cutoffV7.remainingMinutesToLimit, mine.remainingMinutesToFull))
+                && cutoff.referenceToLimit == cutoffV7.referenceToLimit, "A lower cutoff keeps its evidence and source, never past 100%");
+
+        // Every other case is exactly v7: the branch does not apply, whatever the taper state says.
+        Object[][] others = {
+            {soc, volts, amps, 2538, STOCK, "standard charger"},
+            {soc, volts, amps, -1, FAST, "another model"},
+            {100d, 54.47, .7, 2538, FAST, "100% displayed"},
+            {soc, volts, .03, 2538, FAST, "current too low for an estimate"},
+        };
+        for (Object[] o : others) {
+            double s = (Double) o[0], v = (Double) o[1], a = (Double) o[2];
+            int pid = (Integer) o[3];
+            ChargeSessionStore.Charger family = (ChargeSessionStore.Charger) o[4];
+            check(same(estimate(s, v, a, 100d, pid, family, early, t), estimate(s, v, a, 100d, pid, family, own, t)), "Unchanged for " + o[5]);
+        }
+        ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(volts, t), live(-amps, t), live(soc, t), live(15.3, t), live(100, t));
+        ChargingEstimate.Value stale = new ChargingEstimate.Value(soc, false, t), small = live(10, t);
+        check(same(ChargingEstimate.forScooter(base, stale, live(15.3, t), 2538, FAST, null, null, null, t, t, null, early),
+                ChargingEstimate.forScooter(base, stale, live(15.3, t), 2538, FAST, null, null, null, t, t, null, own)), "Unchanged without a valid battery %");
+        check(same(ChargingEstimate.forScooter(base, live(soc, t), small, 2538, FAST, null, null, null, t, t, null, early),
+                ChargingEstimate.forScooter(base, live(soc, t), small, 2538, FAST, null, null, null, t, t, null, own)), "Unchanged outside the calibrated pack");
+        check(same(ChargingEstimate.forScooter(base, live(soc, t), live(15.3, t), 2538, null, null, null, null, t, t, null, own), base),
+                "Unknown charger keeps the live rate");
+    }
+
+    /** Owner charges: high-speed fixes and parity for everything each step must not touch. */
     private static void replay(Path data) throws Exception {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
         List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
         check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
-        int stock = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0;
+        int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, changed = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
             String[] base = v7.get(i);
             Double before = base[2].isEmpty() ? null : Double.valueOf(base[2]);
-            check(before == null ? row.full == null : row.full != null && Math.abs(before - row.full) <= 1e-6, "v7 estimate, session " + row.sample.session);
-            check(base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned, "v7 source, session " + row.sample.session);
+            boolean same = before == null ? row.full == null : row.full != null && Math.abs(before - row.full) <= 1e-6;
+            same = same && base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned;
+            // v8 changes only samples where this charge's own taper is established.
+            if (row.ownTaper) own++;
+            if (!same) {
+                changed++;
+                check(row.ownTaper && row.sample.charger.equals("HIGH_SPEED") && row.source.equals("FAST_REFERENCE") && row.learned == 0,
+                        "Outside its own taper, session " + row.sample.session + " at " + row.minutes + " min keeps the v7 estimate");
+            }
             if (row.sample.recordedVersion.equals("ut5-fast-taper-v7") && row.sample.recordedFull != null) {
                 recordedV7++;
                 if (before != null && Math.abs(before - row.sample.recordedFull) <= .1) liveV7++;
@@ -180,31 +263,40 @@ public final class FastChargeTaperTest {
                 check(older != null && Math.abs(older - row.sample.recordedFull) <= .05 && old[3].equals(row.sample.recordedSource),
                         "The v6 baseline replay reproduces the app's recorded prediction");
             }
-            if (row.sample.charger.equals("STOCK") || row.sample.session == 4) {
-                stock++;
+            if (row.sample.charger.equals("STOCK") || row.sample.session == 4 && !row.ownTaper) {
+                if (row.sample.charger.equals("STOCK")) stock++; else reference++;
                 check(older == null ? row.full == null : row.full != null && Math.abs(older - row.full) <= 1e-6, "Unchanged estimate, session " + row.sample.session);
                 check(old[3].equals(row.source) && Integer.parseInt(old[4]) == row.learned, "Unchanged source, session " + row.sample.session);
             }
         }
-        check(stock == 5990 && recorded == 1028, "Parity covers all standard-charger and calibration samples");
+        check(stock == 5457 && reference == 343 && recorded == 1028, "Parity covers all standard-charger samples and the reference charge before its own taper");
+        check(own == 1736 && changed == 1110, "Own-taper samples " + own + ", changed from v7 " + changed);
         // expected-v7.csv replays what the app showed live (journal samples are 10 s apart, the app
         // re-evaluates every frame, so held countdowns and taper fits can start a sample apart).
         check(recordedV7 == 1167 && liveV7 >= 1100 && liveSource >= 1166, "The v7 baseline replay reproduces the app's recorded predictions");
-        double[][] bounds = {{12, 0, 5, 12}, {12, 5, 0, 5}, {12, 10, -1.5, 1.5}, {11, 0, -3, 3}, {11, 5, -3, 3}, {11, 10, -3, 3}, {6, 5, -1, 3}};
+        double[][] bounds = {{12, 0, 5, 12}, {12, 5, 0, 5}, {12, 10, -1.5, 1.5}, {11, 0, -3, 3}, {11, 5, -3, 3}, {11, 10, -3, 3}, {6, 5, -1, 3},
+            {13, 40, -1, 1}, {13, 50, -1, 1}, {13, 60, -1.5, 0}};
         for (double[] b : bounds) {
             FastChargeTaperReplay.Row row = FastChargeTaperReplay.at(rows, (int) b[0], b[1]);
             double error = row.full - row.actual;
             check(error >= b[2] && error <= b[3], "Session " + (int) b[0] + " at " + b[1] + " min: " + error);
         }
-        for (int session : new int[]{6, 11, 12}) {
-            double sum = 0; int n = 0; boolean personal = false;
+        for (int session : new int[]{4, 6, 11, 12, 13, 14, 15}) {
+            double sum = 0; int n = 0; boolean personal = false, ownTaper = false;
             for (FastChargeTaperReplay.Row row : rows) if (row.sample.session == session && row.actual != null && row.actual > 0) {
-                sum += Math.abs(row.full - row.actual); n++;
-                if (session == 12 && row.source.equals("PERSONAL")) personal = true;
-                else if (session == 12) check(!personal, "Once personal, session 12 never drops back to a fallback");
+                double error = row.full - row.actual;
+                sum += Math.abs(error); n++;
+                if (row.source.equals("PERSONAL")) personal = true;
+                else if (session == 12) check(!personal || row.ownTaper, "Once personal, session 12 leaves it only for its own taper");
                 if (session == 12) check(!row.source.equals("CURRENT_RATE"), "Session 12 never shows the current rate");
+                if (row.ownTaper) ownTaper = true;
+                else check(!ownTaper, "Session " + session + " keeps its own taper to the end");
+                if (row.ownTaper) check(row.source.equals("FAST_REFERENCE"), "Its own taper is recorded as the high-speed reference");
+                // The cost: the last 15 minutes read slightly short, never by more than about a minute.
+                if (row.actual <= 15) check(error >= -1.1 && error <= 1, "Session " + session + " with " + row.actual + " min left: " + error);
             }
-            check(sum / n <= (session == 11 ? 1.0 : 2.5), "Session " + session + " mean absolute error " + sum / n);
+            check(ownTaper, "Session " + session + " reaches its own taper");
+            check(sum / n <= (session == 11 || session == 4 ? 1.0 : session == 13 ? 4.5 : 2.5), "Session " + session + " mean absolute error " + sum / n);
         }
     }
 

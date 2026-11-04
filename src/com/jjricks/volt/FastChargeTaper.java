@@ -73,6 +73,16 @@ public final class FastChargeTaper {
         return cvCeiling > 0 && decay.size() >= 2 && volts >= CV_VOLTS && amps < cvCeiling * FALLING;
     }
 
+    /**
+     * The charge's own taper is established: it is tapering at these readings and its watched
+     * decay points span at least FIT_FULL minutes, the span from which tau() uses this charge's
+     * fit alone rather than blending in the reference (unless it shows no real decay).
+     * ChargingEstimate then lets this taper, not the battery percentage, place the finish.
+     */
+    boolean ownTaper(double volts, double amps) {
+        return tapering(volts, amps) && decay.size() >= 3 && decay.peekLast()[0] - decay.peekFirst()[0] >= FIT_FULL;
+    }
+
     /** The reference tau until three minutes of decay are watched, this charge's own by six. */
     public double tau() {
         if (decay.size() < 3) return TAU_MINUTES;
