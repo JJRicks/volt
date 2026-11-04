@@ -3,3 +3,5 @@
 # G5: the display accessors F2 switches to print the English ids they replace, and keep them as english(),
 # pinned before the batch. It reuses ControlsEnglishTest's variant and descriptor lists (tests/l10n/b4.sources).
 tests/l10n/characterization/ControllerConsumersTextTest.java
+# F2 behaviour: the consumers show the display text under another source and keep the English ids (data, logs).
+tests/l10n/ControllerConsumersTest.java
