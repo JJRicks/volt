@@ -16,7 +16,7 @@ booted() { [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | t
 echo "$(date +%T) shard $N: base $B heads $CENSUS_HEADS steps $CENSUS_STEPS" >> "$R"
 # The job goes red (after every run has been tried) when an emulator never came up.
 bootfail=0
-if bash "$HERE/emulator.sh" boot "$L/emu.log"; then echo "$(date +%T) booted $SER" >> "$R"
+if bash "$HERE/emulator.sh" boot "$L/emu.log"; then echo "$(date +%T) booted $SER (-gpu $(cat "$RUNNER_TEMP/census-gpu.txt" 2>/dev/null))" >> "$R"
 else echo "$(date +%T) first boot failed" >> "$R"; echo "::error::shard $N: the emulator did not boot"; bootfail=1; fi
 for STEP in $CENSUS_STEPS; do
   for TAG in "$B-r1" $CENSUS_HEADS "$B-r2"; do

@@ -2,7 +2,7 @@
 # usage: emulator.sh install | create | boot LOG | kill
 # The cloud twin of the local census AVD (Medium_Phone_API_36.1: android-36.1 google_apis_playstore,
 # 1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data), but x86_64 under KVM, booted headless
-# with the local flags except the GPU: -gpu swiftshader_indirect (software) instead of -gpu host.
+# with the local flags except the GPU: a software -gpu mode (see boot) instead of -gpu host.
 set -euo pipefail
 SDK="${ANDROID_HOME:?}"; ADB="$SDK/platform-tools/adb"; SER=emulator-5554; AVD=census
 SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"; AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
@@ -49,15 +49,36 @@ boot)
     [[ -s "$HOME/.android/adbkey.pub" ]] || { echo "could not make an adb key" >&2; exit 1; }
     "$ADB" kill-server > /dev/null 2>&1 || true; "$ADB" start-server > /dev/null 2>&1
   fi
-  "$SDK/emulator/emulator" -avd "$AVD" -no-window -no-audio -no-boot-anim -read-only -no-snapshot \
-      -gpu swiftshader_indirect -port 5554 >> "$LOG" 2>&1 &
-  timeout 600 "$ADB" -s $SER wait-for-device
-  end=$((SECONDS + 900))
-  until [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; do
-    (( SECONDS < end )) || { echo "emulator did not finish booting: $("$ADB" devices | tr '\n' ' ')" >&2; exit 1; }
-    sleep 5
+  # Software GPU. Plain -gpu swiftshader_indirect on emulator 37 + android-36.1 x86_64 aborts
+  # surfaceflinger every ~20 s ("Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma" in
+  # the goldfish mapper), so System UI never settles. Try each mode in turn and keep the first whose
+  # surfaceflinger survives a minute after boot; a restart reuses the mode that worked.
+  GPU_FILE="$RUNNER_TEMP/census-gpu.txt"
+  if [[ -s "$GPU_FILE" ]]; then modes=("$(cat "$GPU_FILE")")
+  else modes=("swiftshader_indirect -feature -ReadColorBufferDma" "guest" "swangle_indirect -feature -ReadColorBufferDma" "swiftshader_indirect"); fi
+  ok=0
+  for mode in "${modes[@]}"; do
+    "$ADB" -s $SER emu kill > /dev/null 2>&1 || true; sleep 3; pkill -9 -f "qemu-system.*-avd $AVD" 2>/dev/null || true
+    echo "=== boot with -gpu $mode" >> "$LOG"
+    # shellcheck disable=SC2086
+    "$SDK/emulator/emulator" -avd "$AVD" -no-window -no-audio -no-boot-anim -read-only -no-snapshot \
+        -gpu $mode -port 5554 >> "$LOG" 2>&1 &
+    pid=$!; end=$((SECONDS + 900)); ok=0
+    until [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; do
+      kill -0 $pid 2>/dev/null || { echo "::warning::emulator exited during boot with -gpu $mode"; continue 2; }
+      (( SECONDS < end )) || { echo "::warning::no boot in 900 s with -gpu $mode"; continue 2; }
+      sleep 5
+    done
+    sf1="$("$ADB" -s $SER shell pidof surfaceflinger 2>/dev/null | tr -d '\r')"; sleep 75
+    sf2="$("$ADB" -s $SER shell pidof surfaceflinger 2>/dev/null | tr -d '\r')"
+    aborts="$("$ADB" -s $SER logcat -d -b crash 2>/dev/null | grep -c 'pid [0-9]* (surfaceflinger)' || true)"
+    if [[ -n "$sf1" && "$sf1" == "$sf2" && "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; then ok=1; fi
+    echo "-gpu $mode: surfaceflinger pid $sf1 -> $sf2, $aborts surfaceflinger crash(es) since boot" | tee -a "$LOG"
+    if [[ $ok == 1 ]]; then echo "$mode" > "$GPU_FILE"; break; fi
+    echo "::warning::surfaceflinger not stable with -gpu $mode"
   done
-  echo "booted $SER: $("$ADB" -s $SER shell getprop ro.build.fingerprint | tr -d '\r') locale=$("$ADB" -s $SER shell getprop persist.sys.locale | tr -d '\r')/$("$ADB" -s $SER shell getprop ro.product.locale | tr -d '\r') size=$("$ADB" -s $SER shell wm size | tr -d '\r' | tail -1) density=$("$ADB" -s $SER shell wm density | tr -d '\r' | head -1)" ;;
+  [[ $ok == 1 ]] || { echo "emulator did not boot stably with any GPU mode: $("$ADB" devices | tr '\n' ' ')" >&2; exit 1; }
+  echo "booted $SER (-gpu $mode): $("$ADB" -s $SER shell getprop ro.build.fingerprint | tr -d '\r') locale=$("$ADB" -s $SER shell getprop persist.sys.locale | tr -d '\r')/$("$ADB" -s $SER shell getprop ro.product.locale | tr -d '\r') size=$("$ADB" -s $SER shell wm size | tr -d '\r' | tail -1) density=$("$ADB" -s $SER shell wm density | tr -d '\r' | head -1)" ;;
 kill)
   "$ADB" -s $SER emu kill > /dev/null 2>&1 || true
   for _ in $(seq 30); do pgrep -f "qemu-system.*-avd $AVD|emulator.*-avd $AVD" > /dev/null || exit 0; sleep 2; done
