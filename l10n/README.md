@@ -561,6 +561,11 @@ journal CSV, the phone ride CSV and the GPX with `tests/l10n/golden/`. `--update
 use it only for an intended, reviewed format change, never in a batch: CI fails a batch whose
 goldens differ from the merge base.
 
+**G10.** `FmtLegacyTest` pins each `UnitCode` that exists by name, data code and English symbol, so
+changing or removing one fails. A batch that owns unit data may add a code (B3's chart "Time"): a
+new code needs a non-empty data code no other code has and its own plain catalog string as its
+symbol, never another code's.
+
 **B0a extra check.** `prove-english.sh <base> --same-apk` builds the merge base and head in clean
 worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 
