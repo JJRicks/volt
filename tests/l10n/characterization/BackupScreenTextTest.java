@@ -135,21 +135,27 @@ public final class BackupScreenTextTest {
         }
         check(changedKeys.equals(Collections.singletonList("backup_engine_saved_data_changed_review")), "one engine string says " + changed);
         check(spaceKeys.equals(Collections.singletonList("backup_engine_not_enough_free_storage")), "one engine string says " + space);
+        // Every throw of either message (the screen may name the same keys, for its note and its copy).
         int changedThrows = 0, spaceThrows = 0;
+        for (String[] site : throwsInSource()) {
+            if (site[2].equals("backupEngineSavedDataChangedReview")) changedThrows++;
+            if (site[2].equals("backupEngineNotEnoughFreeStorage")) spaceThrows++;
+        }
+        // No other refusal carries either code, so the screen's branch on code() is the old text test.
+        int changedCodes = 0, spaceCodes = 0, changedCoded = 0, spaceCoded = 0;
         try (Stream<Path> files = Files.list(Paths.get("src/com/jjricks/volt"))) {
             for (Path file : (Iterable<Path>) files.sorted()::iterator) {
                 if (!file.toString().endsWith(".java")) continue;
                 String code = new String(Files.readAllBytes(file), StandardCharsets.UTF_8);
-                changedThrows += count(code, "M.backupEngineSavedDataChangedReview()");
-                spaceThrows += count(code, "M.backupEngineNotEnoughFreeStorage()");
-                if (code.contains("M.backupEngineSavedDataChangedReview()"))
-                    check(code.contains("new BackupException(BackupException.Code.CHANGED, M.backupEngineSavedDataChangedReview())"),
-                            file + ": the changed-data refusal carries CHANGED");
-                if (code.contains("M.backupEngineNotEnoughFreeStorage()"))
-                    check(code.contains("new BackupException(BackupException.Code.NO_SPACE, M.backupEngineNotEnoughFreeStorage())"),
-                            file + ": the free-space refusal carries NO_SPACE");
+                changedCodes += count(code, "new BackupException(BackupException.Code.CHANGED,");
+                spaceCodes += count(code, "new BackupException(BackupException.Code.NO_SPACE,");
+                changedCoded += count(code, "new BackupException(BackupException.Code.CHANGED, M.backupEngineSavedDataChangedReview())");
+                spaceCoded += count(code, "new BackupException(BackupException.Code.NO_SPACE, M.backupEngineNotEnoughFreeStorage())");
             }
         }
+        check(changedCodes == 1 && spaceCodes == 1, "one throw each carries CHANGED and NO_SPACE: " + changedCodes + ", " + spaceCodes);
+        check(changedCoded == 1, "the changed-data refusal carries CHANGED: " + changedCoded);
+        check(spaceCoded == 1, "the free-space refusal carries NO_SPACE: " + spaceCoded);
         check(changedThrows == 1, "one throw says " + changed + ": " + changedThrows);
         check(spaceThrows == 1, "one throw says " + space + ": " + spaceThrows);
     }

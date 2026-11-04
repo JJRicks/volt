@@ -1,0 +1,102 @@
+# Ledger for b11-backup-screen: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/BackupActivity.java:28	["Not enough free storage"]	backup_engine_not_enough_free_storage	exact	the screen's copy of the engine's free-space refusal is now B10's key (the same English); applyRestore branches on BackupException.code() and shows the refusal's own msg(), so nothing reads NO_SPACE now
+src/com/jjricks/volt/BackupActivity.java:28	["Saved data changed. Review again."]	backup_engine_saved_data_changed_review	exact	the screen's copy of the engine's changed-data refusal is now B10's key (the same English): the note the next review shows; applyRestore branches on BackupException.code()
+src/com/jjricks/volt/BackupActivity.java:87	["Backup session interrupted"]	backup_session_interrupted_title	exact	
+src/com/jjricks/volt/BackupActivity.java:88	["Close Volt"]	backup_close_volt	exact	
+src/com/jjricks/volt/BackupActivity.java:92	["Finishing the previous operation. Keep Volt open."]	backup_finishing_previous	exact	
+src/com/jjricks/volt/BackupActivity.java:93	["Close and reopen Volt."]	backup_close_and_reopen	exact	
+src/com/jjricks/volt/BackupActivity.java:97	["Recovering your app data"]	backup_recovering_title	exact	
+src/com/jjricks/volt/BackupActivity.java:97	["Keep Volt open while the previous restore is rolled back."]	backup_recovering_keep_open	exact	
+src/com/jjricks/volt/BackupActivity.java:99	["Your previous app data was recovered. Close and reopen Volt."]	backup_recovered	exact	
+src/com/jjricks/volt/BackupActivity.java:100	["Recovery failed. Free space, reopen. Don't clear storage."]	backup_recovery_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:104	["Backup session ended"]	backup_session_ended_title	exact	
+src/com/jjricks/volt/BackupActivity.java:105	["Reopen Volt to continue."]	backup_reopen_to_continue	exact	
+src/com/jjricks/volt/BackupActivity.java:108	["App data is paused"]	backup_paused_title	exact	
+src/com/jjricks/volt/BackupActivity.java:123	["Close Volt"]	backup_close_volt	exact	
+src/com/jjricks/volt/BackupActivity.java:150	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "detail.replace(\" · \",\", \")", "arg": 2, "type": "s"}]	backup_category_spoken	template	a category row's spoken label; the detail's " · " still reads as a comma (the private count keeps " · ", see its note)
+src/com/jjricks/volt/BackupActivity.java:153	["Private"]	-	removed	the Private colour no longer reads the rendered detail: warn() colours the Scooters row when it has items, the only row whose detail ended with "Private"
+src/com/jjricks/volt/BackupActivity.java:164	["Select all"]	backup_select_all	exact	
+src/com/jjricks/volt/BackupActivity.java:176	["Back up"]	backup_back_up_title	exact	
+src/com/jjricks/volt/BackupActivity.java:176	["Counting your data…"]	backup_counting	exact	
+src/com/jjricks/volt/BackupActivity.java:178	["App data can't be read. Reopen Volt."]	backup_inventory_unreadable	exact	
+src/com/jjricks/volt/BackupActivity.java:182	["Back up"]	backup_back_up_title	exact	
+src/com/jjricks/volt/BackupActivity.java:188	["None"]	backup_detail_none	exact	rendered into the list's String detail; relabelCounts shows it again after a language change
+src/com/jjricks/volt/BackupActivity.java:189	[{"hole": "items", "arg": 1, "type": "d"}, " · Private"]	backup_detail_private	template	rendered into the list's String detail; relabelCounts shows it again after a language change
+src/com/jjricks/volt/BackupActivity.java:200	["Full backup · all saved app data, including scooter access."]	backup_scope_full	exact	
+src/com/jjricks/volt/BackupActivity.java:201	{"one": ["Selected data only · ", {"hole": "missing", "arg": 1, "type": "d", "quantity": true}, " ", "category", " excluded."], "other": ["Selected data only · ", {"hole": "missing", "arg": 1, "type": "d", "quantity": true}, " ", "categories", " excluded."]}	backup_scope_selected	plural	manual: "Selected data only · " + missing + " " + (missing==1?"category":"categories") + " excluded." became M.backupScopeSelected(missing, missing); one is the missing == 1 branch, other every other count (missing is at least 1 here), so English is unchanged at every count
+src/com/jjricks/volt/BackupActivity.java:202	["About ", {"hole": "size(total)", "arg": 1, "type": "s"}]	backup_estimate	template	
+src/com/jjricks/volt/BackupActivity.java:204	["Permissions and Bluetooth pairing aren't included. Scooter preferences are saved in Volt; restoring them doesn't change settings on the scooter."]	backup_not_included_preferences	exact	
+src/com/jjricks/volt/BackupActivity.java:205	["New password"]	backup_new_password	exact	
+src/com/jjricks/volt/BackupActivity.java:205	["Repeat password"]	backup_repeat_password	exact	
+src/com/jjricks/volt/BackupActivity.java:205	["Password can't be recovered."]	backup_password_unrecoverable	exact	
+src/com/jjricks/volt/BackupActivity.java:206	["Create backup"]	backup_create	exact	
+src/com/jjricks/volt/BackupActivity.java:218	["Choose what to back up."]	backup_choose_what	exact	
+src/com/jjricks/volt/BackupActivity.java:221	["Use at least 8 characters."]	backup_password_short	exact	
+src/com/jjricks/volt/BackupActivity.java:224	["The passwords do not match."]	backup_passwords_differ	exact	
+src/com/jjricks/volt/BackupActivity.java:228	["Encrypting your backup…"]	backup_encrypting	exact	
+src/com/jjricks/volt/BackupActivity.java:234	["Backup failed. Check free space."]	backup_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:240	["The backup is unavailable. Create it again."]	backup_unavailable	exact	
+src/com/jjricks/volt/BackupActivity.java:242	["Save backup"]	backup_save	exact	
+src/com/jjricks/volt/BackupActivity.java:245	["A file picker could not open. Tap ", {"text": "Save", "key": "backup_save_short", "arg": 1}, " to try again."]	backup_picker_failed_save	format	"Save" names the Save backup button by its short rung, backup_save_short
+src/com/jjricks/volt/BackupActivity.java:251	["Restore"]	backup_restore_title	exact	
+src/com/jjricks/volt/BackupActivity.java:251	["Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you’ll see exactly what they contain before restoring."]	backup_restore_intro	exact	
+src/com/jjricks/volt/BackupActivity.java:251	["Permissions and Bluetooth pairing aren't included."]	backup_not_included	exact	
+src/com/jjricks/volt/BackupActivity.java:252	["Choose file"]	backup_choose_file	exact	
+src/com/jjricks/volt/BackupActivity.java:257	["A file picker could not open."]	backup_picker_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:262	["No file selected"]	backup_no_file	exact	
+src/com/jjricks/volt/BackupActivity.java:264	["Checking the file…"]	backup_checking_file	exact	
+src/com/jjricks/volt/BackupActivity.java:267	["The file could not be opened."]	backup_file_unopenable	exact	
+src/com/jjricks/volt/BackupActivity.java:268	["Choose a Volt backup file."]	backup_choose_volt_file	exact	
+src/com/jjricks/volt/BackupActivity.java:271	["Saving the backup…"]	backup_saving	exact	
+src/com/jjricks/volt/BackupActivity.java:273	["Save failed. Try another place."]	backup_save_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:280	["Save failed. Try another place."]	backup_save_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:281	["Backup saved."]	backup_saved	exact	
+src/com/jjricks/volt/BackupActivity.java:286	["Backup password"]	backup_password_hint	exact	
+src/com/jjricks/volt/BackupActivity.java:287	["Open backup"]	backup_open	exact	
+src/com/jjricks/volt/BackupActivity.java:289	["Choose another file"]	backup_choose_another	exact	Ui.secondaryButton takes a String; relabel labels the button again by its tag
+src/com/jjricks/volt/BackupActivity.java:289	["Choose another file"]	backup_choose_another	exact	
+src/com/jjricks/volt/BackupActivity.java:295	["Use at least 8 characters."]	backup_password_short	exact	
+src/com/jjricks/volt/BackupActivity.java:296	["Checking backup…"]	backup_checking_backup	exact	
+src/com/jjricks/volt/BackupActivity.java:305	["Wrong password or bad file."]	backup_wrong_password	exact	
+src/com/jjricks/volt/BackupActivity.java:309	["Restore"]	backup_restore_title	exact	
+src/com/jjricks/volt/BackupActivity.java:311	["Owner setup file · scooter access only"]	backup_file_owner	exact	
+src/com/jjricks/volt/BackupActivity.java:312	["Layout file"]	backup_file_layout	exact	
+src/com/jjricks/volt/BackupActivity.java:312	{"if": "date==null", "then": {"if": "staged.format.equals(\"rides\")", "then": ["Ride backup", ""], "else": {"if": "staged.complete", "then": ["Full backup", ""], "else": ["Selected data backup", ""]}}, "else": {"if": "staged.format.equals(\"rides\")", "then": ["Ride backup", " from ", {"hole": "date", "arg": 1, "type": "s"}], "else": {"if": "staged.complete", "then": ["Full backup", " from ", {"hole": "date", "arg": 1, "type": "s"}], "else": ["Selected data backup", " from ", {"hole": "date", "arg": 1, "type": "s"}]}}}	backup_file_rides,backup_file_full,backup_file_selected,backup_file_rides_from,backup_file_full_from,backup_file_selected_from	choice	the kind of backup joined with (date==null?"":" from "+date) becomes one whole summary per kind, with and without the date; the date stays the legacy DateFormat text until D1
+src/com/jjricks/volt/BackupActivity.java:314	["This file has no rides, charges, history, dashboards or app settings. It only restores scooter access. Your existing data stays on this phone."]	backup_owner_only_detail	exact	
+src/com/jjricks/volt/BackupActivity.java:316	["Only the categories listed below are in this file. Other app data stays on this phone."]	backup_partial_file	exact	
+src/com/jjricks/volt/BackupActivity.java:321	["None"]	backup_detail_none	exact	rendered into the list's String detail; relabelCounts shows it again after a language change
+src/com/jjricks/volt/BackupActivity.java:331	["Replace everything on this phone"]	backup_replace_all	exact	
+src/com/jjricks/volt/BackupActivity.java:338	["Next"]	backup_next	exact	
+src/com/jjricks/volt/BackupActivity.java:346	["Choose what to restore."]	backup_choose_what_restore	exact	
+src/com/jjricks/volt/BackupActivity.java:348	["Checking scooters…"]	backup_checking_scooters	exact	
+src/com/jjricks/volt/BackupActivity.java:355	["Scooters"]	backup_scooters_title	exact	
+src/com/jjricks/volt/BackupActivity.java:364	["Which scooter is this setup for?"]	backup_destination_setup	exact	
+src/com/jjricks/volt/BackupActivity.java:364	["Layout goes to:"]	backup_destination_layout	exact	
+src/com/jjricks/volt/BackupActivity.java:364	["Data from “", {"hole": "d.name", "arg": 1, "type": "s"}, "” goes to:"]	backup_destination_data	template	d.name is the backup scooter's saved name (data)
+src/com/jjricks/volt/BackupActivity.java:365	["More than one scooter can use this setup file. Choose an existing scooter or add another."]	backup_owner_choice	exact	
+src/com/jjricks/volt/BackupActivity.java:367	["Choose a scooter…"]	backup_choose_scooter_item	exact	a list item: rendered when the Scooters page is built, and relabel builds the page again
+src/com/jjricks/volt/BackupActivity.java:369	["Add another scooter"]	backup_add_another_scooter	exact	a list item: rendered when the Scooters page is built, and relabel builds the page again
+src/com/jjricks/volt/BackupActivity.java:369	["Add from backup"]	backup_add_from_backup	exact	a list item: rendered when the Scooters page is built, and relabel builds the page again
+src/com/jjricks/volt/BackupActivity.java:370	["Don't restore"]	backup_dont_restore	exact	a list item: rendered when the Scooters page is built, and relabel builds the page again
+src/com/jjricks/volt/BackupActivity.java:374	["Destination for ", {"hole": "d.name", "arg": 1, "type": "s"}]	backup_destination_for	template	d.name is the backup scooter's saved name (data)
+src/com/jjricks/volt/BackupActivity.java:379	["Destination for ", {"hole": "source", "arg": 1, "type": "s"}, ": ", {"hole": "names.get(position)", "arg": 2, "type": "s"}]	backup_destination_for_choice	template	source is the backup scooter's saved name (data); the chosen item is the list's rendered text
+src/com/jjricks/volt/BackupActivity.java:381	["Destination for ", {"hole": "source", "arg": 1, "type": "s"}, ": ", {"hole": "names.get(choice.getSelectedItemPosition())", "arg": 2, "type": "s"}]	backup_destination_for_choice	template	source is the backup scooter's saved name (data); the chosen item is the list's rendered text
+src/com/jjricks/volt/BackupActivity.java:384	["Include Scooters or set up a scooter first."]	backup_scooter_first	exact	
+src/com/jjricks/volt/BackupActivity.java:385	["Review"]	backup_review_button	exact	
+src/com/jjricks/volt/BackupActivity.java:389	["Choose a scooter first."]	backup_choose_scooter_first	exact	
+src/com/jjricks/volt/BackupActivity.java:398	["Comparing with this phone…"]	backup_comparing	exact	
+src/com/jjricks/volt/BackupActivity.java:404	["Review"]	backup_review_title	exact	
+src/com/jjricks/volt/BackupActivity.java:408	["Volt closes when the restore is done."]	backup_closes_when_done	exact	
+src/com/jjricks/volt/BackupActivity.java:409	["Replace everything"]	backup_replace_everything	exact	
+src/com/jjricks/volt/BackupActivity.java:409	["Restore"]	backup_restore_button	exact	
+src/com/jjricks/volt/BackupActivity.java:413	["Restoring your data…"]	backup_restoring	exact	
+src/com/jjricks/volt/BackupActivity.java:414	["Restored. Reopen Volt."]	backup_restored	exact	
+src/com/jjricks/volt/BackupActivity.java:421	["Restore failed. Reopen Volt. Don't clear storage."]	common_restore_failed	exact	
+src/com/jjricks/volt/BackupActivity.java:427	["The file could not be read."]	backup_file_unreadable	exact	message() keeps its String result for any IOException that is not a BackupException (a system message of 80 characters or fewer, as before); refusal() shows a BackupException's msg()
+src/com/jjricks/volt/BackupActivity.java:434	["Close Volt"]	backup_close_volt	exact	
+src/com/jjricks/volt/BackupActivity.java:439	["Close Volt?"]	backup_close_title	exact	
+src/com/jjricks/volt/BackupActivity.java:439	["Nothing has changed."]	backup_close_nothing_changed	exact	
+src/com/jjricks/volt/BackupActivity.java:440	["Stay here"]	backup_stay_here	exact	
+src/com/jjricks/volt/BackupActivity.java:440	["Close"]	common_close	exact	
