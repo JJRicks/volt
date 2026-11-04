@@ -36,7 +36,7 @@ src/com/jjricks/volt/CompatibilityPanel.java:114	["OEM-mapped (untested)"]	compa
 src/com/jjricks/volt/CompatibilityPanel.java:115	["Lock and readings"]	compat_layer_shared	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:116	["Not supported"]	compat_layer_none	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:139	["1 unfinished test on another scooter. Select it to review."]	compat_test_elsewhere_one	exact	
-src/com/jjricks/volt/CompatibilityPanel.java:139	[{"hole": "elsewhere", "arg": 1, "type": "d"}, " unfinished tests on other scooters. Select one to review."]	compat_tests_elsewhere	template	the count, 2 or more here, printed as Java prints an int (a plural row is blocked; see the batch concerns)
+src/com/jjricks/volt/CompatibilityPanel.java:139	{"one": [{"hole": "elsewhere", "arg": 1, "type": "d", "quantity": true}, " unfinished tests on other scooters. Select one to review."], "other": [{"hole": "elsewhere", "arg": 1, "type": "d", "quantity": true}, " unfinished tests on other scooters. Select one to review."]}	compat_tests_elsewhere	plural	the count, 2 or more here (1 has its own exact row); one item equals other (volt:english-fix pending)
 src/com/jjricks/volt/CompatibilityPanel.java:147	{"if": "t.keeps()", "then": ["Try · ", {"hole": "label", "arg": 1, "type": "s"}], "else": ["Test · ", {"hole": "label", "arg": 1, "type": "s"}]}	compat_try_title,compat_test_title	choice	a try (t.keeps()) or a guided test, each its whole card title
 src/com/jjricks/volt/CompatibilityPanel.java:152	["Reading the current value…"]	compat_reading_current	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:152	["Cancel"]	common_cancel	exact	
@@ -106,7 +106,7 @@ src/com/jjricks/volt/CompatibilityPanel.java:293	{"if": "d.available()", "then":
 src/com/jjricks/volt/CompatibilityPanel.java:300	["Just now"]	compat_age_just_now	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:301	["Under a minute ago"]	compat_age_under_minute	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:301	["1 minute ago"]	compat_age_one_minute	exact	
-src/com/jjricks/volt/CompatibilityPanel.java:301	[{"hole": "minutes", "arg": 1, "type": "d"}, " minutes ago"]	compat_age_minutes	template	the minutes, 2 or more here, printed as Java prints a long (a plural row is blocked; see the batch concerns)
+src/com/jjricks/volt/CompatibilityPanel.java:301	{"one": [{"hole": "minutes", "arg": 1, "type": "d", "quantity": true}, " minutes ago"], "other": [{"hole": "minutes", "arg": 1, "type": "d", "quantity": true}, " minutes ago"]}	compat_age_minutes	plural	the count, 2 or more here (1 has its own exact row); one item equals other (volt:english-fix pending)
 src/com/jjricks/volt/CompatibilityPanel.java:305	["Serial check"]	compat_read_serial	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:305	["Status"]	compat_read_status	exact	
 src/com/jjricks/volt/CompatibilityPanel.java:305	["Firmware"]	compat_read_firmware	exact	
