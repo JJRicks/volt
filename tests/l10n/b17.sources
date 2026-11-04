@@ -1,0 +1,6 @@
+# B17, first-run setup (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the refusal toasts, the connection status line and the roles the setup screens show from pure
+# code, pinned before the batch. SetupException (B6) and ConnectionText (B7) come from their batches'
+# lists.
+tests/l10n/characterization/OnboardingEnglishTest.java
