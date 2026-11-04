@@ -143,15 +143,10 @@ public final class DashboardConfig {
     }
 
     /**
-     * A slot name as shown, from the name alone: this slot's own "Slot N" in the current language, else
-     * the name as saved. A name alone cannot say it is the shipped example's; {@link
-     * #displaySlotName(SavedSlot, int)} can. SavedSlot.name stays English.
+     * A saved slot's name as shown: {@link #voltSlotName} in the current language, else the owner's name
+     * as saved. SavedSlot.name stays English. There is no name-only form: a name alone cannot say it is
+     * the shipped example's (exampleSlot); an empty slot shows {@link #defaultSlotName}.
      */
-    public static String displaySlotName(String name, int index) {
-        return name == null || name.equals(slotName("", index)) ? defaultSlotName(index) : name;
-    }
-
-    /** A saved slot's name as shown: {@link #voltSlotName} in the current language, else the owner's name as saved. */
     public static String displaySlotName(SavedSlot slot, int index) {
         Msg volt = voltSlotName(slot, index);
         return volt != null ? volt.render() : slot.name;

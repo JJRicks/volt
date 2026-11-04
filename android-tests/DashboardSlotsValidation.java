@@ -1417,17 +1417,22 @@ public final class DashboardSlotsValidation extends Instrumentation {
                         "English type name of " + DashboardConfig.TYPES[i] + " changed");
             }
             require(DashboardConfig.typeName("unknown").equals(DashboardConfig.NAMES[0]), "Unknown type name changed");
+            // Saved under each name in each slot (another profile, so the example slot above stays).
+            DashboardConfig named = new DashboardConfig(preferences, "display-slot-names");
             for (int i = 0; i < DashboardConfig.SLOT_COUNT; i++) {
                 require(DashboardConfig.defaultSlotName(i).equals("Slot " + (i + 1)), "English default slot name " + i);
-                require(DashboardConfig.displaySlotName("Slot " + (i + 1), i).equals("Slot " + (i + 1)), "English slot name " + i);
-                require(DashboardConfig.displaySlotName("All widgets", i).equals("All widgets"), "English example slot name " + i);
-                require(DashboardConfig.displaySlotName("Commute", i).equals("Commute"), "Owner slot name " + i);
+                require(named.saveSlot(i, "Slot " + (i + 1), 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("Slot " + (i + 1)), "English slot name " + i);
+                require(named.saveSlot(i, "All widgets", 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("All widgets"), "English example slot name " + i);
+                require(named.saveSlot(i, "Commute", 2)
+                        && DashboardConfig.displaySlotName(named.slot(i), i).equals("Commute"), "Owner slot name " + i);
             }
             require(config.slot(2).name.equals("All widgets"), "Example slot name not saved in English");
 
             require(config.saveSlot(0, "", 2), "Blank-named slot did not save");
             require(config.slot(0).name.equals("Slot 1"), "Blank slot name not saved in English");
-            require(DashboardConfig.displaySlotName(config.slot(0).name, 0).equals("Slot 1"), "English blank slot name shown");
+            require(DashboardConfig.displaySlotName(config.slot(0), 0).equals("Slot 1"), "English blank slot name shown");
             require(config.slot(2).name.equals("All widgets"), "Example slot name not kept in English");
             DashboardConfig.Widget owner = new DashboardConfig.Widget("gauge");
             require(DashboardConfig.displayTitle(owner).equals(DashboardConfig.NAMES[4]), "English default gauge title");

@@ -273,6 +273,7 @@ public final class DashboardModelTextTest {
                 "the example is not saved to slot index 2 under EXAMPLE_SLOT_NAME");
         check(!config.contains("definitions.length() != TYPES.length") && !config.contains("TYPES.length) return false"),
                 "exampleSlot counts the example's widgets against TYPES again");
+        check(!config.contains("public static String displaySlotName(String"), "displaySlotName takes a name alone again");
     }
 
     private static String[] without(String[] values, int index) {
