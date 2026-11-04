@@ -6552,7 +6552,7 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout card = sheetCard();
         card.setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
         TextView heading = ui.text(saved == null || saved.name.equals(slotName) ? DashboardConfig.defaultSlotName(index)
-                : T.dashboardSlotTitle(DashboardConfig.defaultSlotName(index), DashboardConfig.displaySlotName(saved.name, index)), 15, true);
+                : T.dashboardSlotTitle(DashboardConfig.defaultSlotName(index), DashboardConfig.displaySlotName(saved, index)), 15, true);
         if (android.os.Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         card.addView(heading);
         String detail = saved == null
@@ -6571,7 +6571,7 @@ public final class DashboardScreen implements AppScreen {
         load.setContentDescription(saved == null ? T.dashboardRestoreSlot(Fmt.integer(index + 1))
                 : T.dashboardRestoreSlotNamed(Fmt.integer(index + 1), saved.name));
         load.setTag("dashboard-slot-restore-" + index);
-        if (saved != null) load.setContentDescription(T.dashboardRestoreSlotNamed(Fmt.integer(index + 1), DashboardConfig.displaySlotName(saved.name, index)));
+        if (saved != null) load.setContentDescription(T.dashboardRestoreSlotNamed(Fmt.integer(index + 1), DashboardConfig.displaySlotName(saved, index)));
         load.setEnabled(saved != null);
         LinearLayout.LayoutParams saveSize = new LinearLayout.LayoutParams(0, -2, 1);
         saveSize.setMarginEnd(ui.dp(8));
@@ -6633,7 +6633,7 @@ public final class DashboardScreen implements AppScreen {
         }
         dismiss();
         AlertDialog created = new AlertDialog.Builder(dialogContext)
-                .setTitle(T.dashboardRestoreTitle(DashboardConfig.displaySlotName(saved.name, index)))
+                .setTitle(T.dashboardRestoreTitle(DashboardConfig.displaySlotName(saved, index)))
                 .setMessage(T.dashboardRestoreMessage())
                 .setNegativeButton(T.commonCancel(), (d, which) -> returnToLayoutOptions(d))
                 .setOnCancelListener(this::returnToLayoutOptions)
@@ -6653,7 +6653,7 @@ public final class DashboardScreen implements AppScreen {
             clearRestoreUndo();
             dismiss();
             render();
-            host.toast(T.dashboardRestored(DashboardConfig.displaySlotName(saved.name, index)));
+            host.toast(T.dashboardRestored(DashboardConfig.displaySlotName(saved, index)));
         });
     }
 
