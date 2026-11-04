@@ -18,7 +18,9 @@ import java.util.regex.Pattern;
  *   English exactly as the base's text kept when the alert fired, and in the shown language under another one;
  * - the connection notice falls back to BleController.displayMessage(), and the alert and connection notices
  *   name the scooter with Profile.displayName();
- * - the first applyLocale() (service start) re-labels an existing alerts channel;
+ * - the first applyLocale() (service start) re-labels an existing alerts channel and posts nothing; a later
+ *   language change also re-posts a battery alert notice still showing (alertNoticeKept or the alarm, and listed
+ *   as active, finishAlertNotice()'s condition), silently in place, and never one cleared or never posted;
  * - the charge status line keeps the capture refusals deferred.
  */
 public final class ServiceConsumersTest {
@@ -136,9 +138,42 @@ public final class ServiceConsumersTest {
         Matcher first = Pattern.compile("if\\(first\\)\\{(.*?)return;\\s*\\}", Pattern.DOTALL).matcher(s);
         check(first.find() && first.group(1).contains("if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);"),
                 "the first applyLocale() re-labels an existing alerts channel");
+        relabel(s);
         check(!s.contains("unavailable=chargeCaptureUnavailable()") && count(s, "CharSequence unavailable=chargeCaptureBlocked();") == 1,
                 "the charge status keeps the deferred refusal");
         check(!Pattern.compile("error\\s*=\\s*T\\.serviceCharge").matcher(s).find(), "the clear and export errors stay deferred");
+    }
+
+    /** applyLocale()'s change path re-posts a still-showing alert notice in the new language, without alerting. */
+    private static void relabel(String s) {
+        Matcher apply = Pattern.compile("void applyLocale\\(\\)\\{(.*?)\n    \\}\n", Pattern.DOTALL).matcher(s);
+        check(apply.find(), "applyLocale() found");
+        String body = apply.group(1);
+        Matcher first = Pattern.compile("if\\(first\\)\\{(.*?)return;\\s*\\}", Pattern.DOTALL).matcher(body);
+        check(first.find() && !first.group(1).contains("relabelAlertNotice") && !first.group(1).contains("post(")
+                && !first.group(1).contains("updateNotification"), "the first applyLocale() posts no notice, as before");
+        check(count(body, "relabelAlertNotice();updateNotification();changed();") == 1
+                && body.trim().endsWith("relabelAlertNotice();updateNotification();changed();")
+                && body.indexOf("relabelAlertNotice") > first.end(), "a language change re-posts the alert notice, then the connection notice");
+        check(count(s, "relabelAlertNotice()") == 2, "only applyLocale() re-posts it");
+        Matcher method = Pattern.compile("private void relabelAlertNotice\\(\\)\\{(.*?)\n    \\}\n", Pattern.DOTALL).matcher(s);
+        check(method.find(), "relabelAlertNotice() found");
+        String relabel = method.group(1);
+        check(relabel.contains("if(!(alertNoticeKept||alarmPlaying())||!alertNoticeShown())return;"),
+                "it re-posts only a notice still showing (kept or sounding, and active)");
+        check(relabel.contains("post(CHARGE_ALERT_NOTICE,()->(alertNoticeKept||alarmPlaying())&&alertNoticeShown()?alertNoticeContent():null);"),
+                "under the same id, built when taken, and dropped if cleared meanwhile");
+        for (String never : new String[]{"alertNotice(", "alertNoticeKept=", "startChargeAlarm", "stopChargeAlarm", "alarmTimeout",
+                "alarmEndMono", "handler.", "cancelNotice", "setOnlyAlertOnce(false)", "Builder"})
+            check(!relabel.contains(never), "the re-post leaves the alarm, its timer and the kept state alone: no " + never);
+        check(count(s, "if(!alertNoticeShown())return;\n            if(alertNoticeKept)alertNotice(true);else cancelNotice(CHARGE_ALERT_NOTICE);") == 1,
+                "finishAlertNotice() reads the same shown check");
+        check(count(s, "shown|=n.getId()==CHARGE_ALERT_NOTICE;") == 1, "one active-notice check");
+        Matcher content = Pattern.compile("private Notification alertNoticeContent\\(\\)\\{(.*?)\n    \\}\n", Pattern.DOTALL).matcher(s);
+        check(content.find() && content.group(1).contains(".setOnlyAlertOnce(true)") && !content.group(1).contains("setSound")
+                && !content.group(1).contains("setVibrate") && !content.group(1).contains("setDefaults")
+                && content.group(1).contains("new Notification.Builder(this,ALERT_CHANNEL)"),
+                "the alert notice only alerts once, so the in-place re-post is silent");
     }
 
     private static int count(String text, String part) {
