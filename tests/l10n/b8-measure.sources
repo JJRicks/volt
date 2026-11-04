@@ -1,0 +1,4 @@
+# B8 follow-up: Charge done by's "not set" notice takes ChargeMeasureWindow.Decision.message (B5), so a
+# translated build shows the whole notice in one language. tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+tests/l10n/MeasureNoticeTest.java
