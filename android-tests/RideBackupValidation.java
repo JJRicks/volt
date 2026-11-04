@@ -87,11 +87,13 @@ public final class RideBackupValidation extends Instrumentation {
         require(field(transfer,"password")==null,"An unencrypted ride file asks for no password");
         CheckBox rides=(CheckBox)root(transfer).findViewWithTag("backup-category-rides");require(rides!=null&&rides.isChecked()&&root(transfer).findViewWithTag("restore-replace-all")==null,"A ride file offers Rides only, without Replace everything");
         onMain(()->root(transfer).findViewWithTag("restore-next").performClick());await(()->root(transfer).findViewWithTag("restore-review")!=null,"Unknown scooter did not reach the destination step");
+        awaitOnlyWindow(transfer,"ride-backup-mapping");
         onMain(()->render(root(transfer),"ride-backup-mapping.png"));
         Spinner spinner=(Spinner)root(transfer).findViewWithTag("restore-destination");require(spinner!=null&&"Don't restore".equals(spinner.getSelectedItem()),"An unknown scooter defaults to Don't restore");
         onMain(()->spinner.setSelection(0));waitForIdleSync();onMain(()->root(transfer).findViewWithTag("restore-review").performClick());
         await(()->root(transfer).findViewWithTag("restore-apply")!=null,"Restore review did not appear");
         require(textContaining(root(transfer),"Rides: 0 new · 3 already here · 0 kept here")!=null,"Review reports the mapped rides as already here");
+        awaitOnlyWindow(transfer,"ride-backup-preview");
         onMain(()->render(root(transfer),"ride-backup-preview.png"));
         require(new RideStore(ridesFolder).list().size()==4,"Review changes nothing");
         onMain(()->root(transfer).findViewWithTag("restore-apply").performClick());await(()->Boolean.TRUE.equals(fieldQuiet(transfer,"terminal")),"Restore did not finish");
@@ -155,6 +157,30 @@ public final class RideBackupValidation extends Instrumentation {
             view.draw(new android.graphics.Canvas(bitmap));File output=new File(getTargetContext().getExternalFilesDir(null),name);
             try(OutputStream out=new FileOutputStream(output)){bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG,100,out);}bitmap.recycle();TextCensus.write(this,output);
         } catch(IOException failure){throw new RuntimeException(failure);}
+    }
+    /**
+     * G7: render() draws only the backup screen, but its census lists every shown window of the process.
+     * Three MainActivity instances (the one that began the restore and the two relaunched during the drain
+     * and the in-flight save) each show "Preparing your app data..." and finish behind BackupActivity; a
+     * finished activity's window stays attached, and shown until the system stops it after the backup screen
+     * goes idle. A loaded emulator still had one when the census ran, which added its record and moved the
+     * whole backup screen to dialog[1]/; a faster one had already hidden it. Wait (bounded, reading windows on
+     * the main thread) until the backup screen is the only shown window, as on a faster device.
+     */
+    private void awaitOnlyWindow(Activity owner,String image){
+        long end=SystemClock.elapsedRealtime()+20000;String[] others={""};
+        while(SystemClock.elapsedRealtime()<end){boolean[] alone={false};runOnMainSync(()->{others[0]=otherShownWindows(root(owner));alone[0]=others[0].isEmpty();});if(alone[0])return;SystemClock.sleep(50);}
+        throw new AssertionError("Another Volt window stayed shown behind the backup screen before "+image+": "+others[0]);
+    }
+    /** The shown windows of this process other than root, by class and title; empty below API 29 (no WindowInspector). */
+    private static String otherShownWindows(View root){
+        if(Build.VERSION.SDK_INT<29)return "";StringBuilder found=new StringBuilder();
+        for(View window:android.view.inspector.WindowInspector.getGlobalWindowViews()){
+            if(window==root||!window.isShown())continue;
+            CharSequence title=window.getLayoutParams() instanceof WindowManager.LayoutParams?((WindowManager.LayoutParams)window.getLayoutParams()).getTitle():"";
+            found.append(found.length()==0?"":", ").append(window.getClass().getSimpleName()).append(' ').append(title);
+        }
+        return found.toString();
     }
     private void require(boolean value,String why){assertions++;if(!value)throw new AssertionError(why);}
     private void onMain(Runnable work){runOnMainSync(work);waitForIdleSync();}

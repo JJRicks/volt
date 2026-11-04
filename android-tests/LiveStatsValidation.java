@@ -137,7 +137,18 @@ public final class LiveStatsValidation extends Instrumentation {
                 require(decor.getPaddingLeft() == 0 && decor.getPaddingRight() == 0, "Fullscreen still has theme window insets");
                 require(decor.getWidth() == getTargetContext().getResources().getDisplayMetrics().widthPixels,
                         "Expanded chart window does not fill display width");
-            }); screenshot("chart-fullscreen");
+            });
+            // The census must read one steady description. The touch puts the point's description on
+            // the chart, but the next 1 s body refresh redraws the card and ChartView.set restores the
+            // chart's own description (the marker stays), so whether that refresh landed before the
+            // screenshot decided which text the census read. Wait for a body refresh that starts after
+            // the touch, so every run censuses the restored chart description.
+            final long touchedAt = mainLong(() -> SystemClock.elapsedRealtime());
+            await(() -> mainLong(() -> (Long)field(activity, "lastBodyRefreshMs")) > touchedAt, "Fullscreen chart was not refreshed after the touch");
+            settle();
+            main(() -> require(((Number)field(field(field(field(stats(), "chartBrowser"), "fullscreenCard"), "graph"), "selected")).intValue() >= 0,
+                    "Fullscreen trace inspection marker lost on refresh"));
+            screenshot("chart-fullscreen");
             verifyWindowPicker(true);
             main(() -> ((android.app.Dialog)field(field(stats(), "chartBrowser"), "fullscreen")).dismiss());
             main(() -> ((EditText)field(field(stats(), "chartBrowser"), "search")).setText("temperature_c")); settle();
@@ -349,6 +360,10 @@ public final class LiveStatsValidation extends Instrumentation {
         java.util.concurrent.atomic.AtomicReference<Throwable> failure = new java.util.concurrent.atomic.AtomicReference<>();
         runOnMainSync(() -> { try { action.run(); } catch (Throwable error) { failure.set(error); } });
         if (failure.get() != null) throw new IllegalStateException("UI assertion failed", failure.get());
+    }
+    /** A long read on the main thread, where the app writes it. */
+    private long mainLong(java.util.function.LongSupplier read) {
+        long[] value = new long[1]; runOnMainSync(() -> value[0] = read.getAsLong()); return value[0];
     }
     private void require(boolean condition, String message) { checks++; if (!condition) throw new IllegalStateException(message); }
     private void await(BooleanSupplier condition, String message) { long end = SystemClock.uptimeMillis() + 8000; while (!condition.getAsBoolean() && SystemClock.uptimeMillis() < end) SystemClock.sleep(40); require(condition.getAsBoolean(), message); }

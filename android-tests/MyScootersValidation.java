@@ -85,6 +85,7 @@ public final class MyScootersValidation extends Instrumentation {
             bluetoothPrompt = addMonitor(new IntentFilter(BluetoothAdapter.ACTION_REQUEST_ENABLE), new ActivityResult(Activity.RESULT_CANCELED, null), true);
             openMenu();
             visibleCards(); offlineSelectionAndConnection(); savedScannerLabels(); guards(); simulationSwitches(); forgetWithConfirmation(); onboardingCancellation();
+            shizukuSetup();
             result.putString("result", "PASS");
         } catch (Throwable error) {
             result.putString("result", "FAIL"); result.putString("error", error.toString()); error.printStackTrace();
@@ -331,6 +332,217 @@ public final class MyScootersValidation extends Instrumentation {
         // Back from the Add path chooser cancels this re-run directly.
         await(() -> field(activity, "onboarding") == null, "Back did not leave adding flow");
         main(() -> require(activity.service().profiles.all().size() == 1 && activity.service().profiles.active().id.equals(a.id), "Cancelling setup altered existing scooters"));
+    }
+
+    /**
+     * G7 coverage of ShizukuSetupActivity, opened through Add's real "Use Shizuku on this phone" route. The
+     * emulator has no Shizuku, so the screens reachable are those that need no Shizuku service: step 1
+     * (start Shizuku), the cleanup-first screen and its connection check, the busy screens with the
+     * countdown ring and the stop dialog, and the import screen. The cleanup record is this test's own
+     * marker with no token (nothing can be restored from it), and the busy and import screens are the
+     * capture client's in-process state set directly, never a real capture: no Shizuku call reaches a
+     * service, no NAVEE app is touched, and the synthetic identity is never shown or imported (Discard
+     * drops it). Each screenshot waits until the setup screen is laid out, focused and the only shown
+     * window of the process: MainActivity's window stays shown until it stops, and the census lists
+     * every window, so a capture before that put the setup screen under dialog[1]/ in some runs.
+     */
+    private void shizukuSetup() throws Exception {
+        require(Build.VERSION.SDK_INT >= 30, "Phone-only setup needs Android 11 or newer for its census");
+        boolean shizukuPresent;
+        try { getTargetContext().getPackageManager().getPackageInfo("moe.shizuku.privileged.api", 0); shizukuPresent = true; }
+        catch (PackageManager.NameNotFoundException absent) { shizukuPresent = false; }
+        require(!shizukuPresent, "Shizuku is installed on this emulator; the setup census needs it absent");
+        SharedPreferences journal = prefs("owner_capture_cleanup");
+        require(journal.getAll().isEmpty(), "Existing owner-capture cleanup record refused");
+        int preparing = captureConstant("PREPARING"), connecting = captureConstant("CONNECT_NAVEE"), cleaning = captureConstant("CLEANING");
+        Constructor<?> identity = Class.forName("com.jjricks.volt.OwnerIdentityParser$Result").getDeclaredConstructor(String.class, int.class);
+        identity.setAccessible(true);
+        openMenu(); click("scooters-add");
+        await(() -> field(activity, "onboarding") != null, "Add did not enter onboarding for Shizuku setup");
+        click("onboarding-path-shizuku");
+        // The Bluetooth prompt monitor also matches setup's explicit, action-less intent and would block it.
+        removeMonitor(bluetoothPrompt);
+        ActivityMonitor opened = addMonitor(com.jjricks.volt.ShizukuSetupActivity.class.getName(), null, false);
+        Activity setup = null;
+        Object client = null;
+        try {
+            main(() -> {
+                TextView next = text(root(), "Continue");
+                require(next != null && next.isShown(), "Setup choices lost Continue");
+                next.performClick();
+            });
+            setup = waitForMonitorWithTimeout(opened, 10000);
+            require(setup instanceof com.jjricks.volt.ShizukuSetupActivity, "Continue did not open Shizuku setup");
+            Activity screen = setup;
+            client = field(screen, "capture");
+            Object capture = client;
+            main(() -> require(!(Boolean) invoke(capture, "available", new Class<?>[]{})
+                    && !(Boolean) invoke(capture, "pendingCleanup", new Class<?>[]{})
+                    && "".equals(field(capture, "message")) && !(Boolean) field(capture, "busy") && field(capture, "owner") == null,
+                    "Shizuku setup did not start without Shizuku, a cleanup record or a capture"));
+            setupShot(screen, "start", null, "Phone-only setup", "Start Shizuku", "Shizuku installed", "Install", "Shizuku running", "Open",
+                    "Shizuku setup guide", "Back to setup choices");
+
+            require(journal.edit().putBoolean("pending", true).commit(), "Cleanup record fixture failed");
+            main(() -> invoke(screen, "render", new Class<?>[]{}));
+            setupShot(screen, "cleanup", null, "Finish cleanup first", "NAVEE logging may still be on.", "Install Shizuku",
+                    "Check Shizuku connection", "Back");
+            main(() -> {
+                TextView check = text(setupRoot(screen), "Check Shizuku connection");
+                require(check != null && check.isShown(), "Cleanup screen lost its connection check");
+                check.performClick();
+            });
+            setupShot(screen, "cleanup-checked", null, "Finish cleanup first", "Shizuku isn't running");
+            require(journal.edit().clear().commit(), "Cleanup record fixture was not removed");
+
+            main(() -> {
+                set(capture, "message", ""); set(capture, "busy", true); set(capture, "phase", preparing); set(capture, "captureSinceMs", 0L);
+                invoke(screen, "render", new Class<?>[]{});
+            });
+            setupShot(screen, "preparing", null, "Preparing capture…", "Keep Shizuku running.", "Cancel capture");
+            main(() -> { set(capture, "phase", cleaning); invoke(screen, "render", new Class<?>[]{}); });
+            setupShot(screen, "restoring", null, "Restoring NAVEE logging…", "Keep Shizuku running.", "Cancel capture");
+            // About 60 s left: the ring's spoken seconds drift between runs, which G7 compares by form.
+            main(() -> {
+                set(capture, "phase", connecting); set(capture, "captureSinceMs", System.nanoTime() / 1000000L - 30000L);
+                invoke(screen, "render", new Class<?>[]{});
+            });
+            setupShot(screen, "connecting", null, "Connect your scooter in NAVEE", "Connect in NAVEE, then return.", "Cancel capture");
+            main(screen::onBackPressed);
+            setupShot(screen, "stop-dialog", "Stop setup?", "Connect your scooter in NAVEE");
+            main(() -> {
+                View dialog = otherShownWindow(setupRoot(screen));
+                require(dialog != null, "Stop setup dialog vanished");
+                View keep = dialog.findViewById(android.R.id.button2);
+                require(keep instanceof TextView && "Keep waiting".contentEquals(((TextView) keep).getText()), "Stop setup dialog lost Keep waiting");
+                keep.performClick();
+            });
+            main(() -> {
+                TextView cancel = text(setupRoot(screen), "Cancel capture");
+                require(cancel != null && cancel.isShown(), "Busy screen lost Cancel capture");
+                cancel.performClick();
+            });
+            setupShot(screen, "stopped", null, "Start Shizuku", "Stopped", "Shizuku installed");
+            main(() -> require(!(Boolean) field(capture, "busy") && journal.getAll().isEmpty(), "Cancelling the fixture capture left work behind"));
+
+            main(() -> {
+                set(capture, "message", ""); set(capture, "owner", identity.newInstance("000000000000", 0));
+                invoke(screen, "render", new Class<?>[]{});
+            });
+            setupShot(screen, "ready-owner", null, "Ready to import", "Owner identity found", "NAVEE restored", "Import owner setup", "Discard");
+            main(() -> { set(capture, "owner", identity.newInstance("000000000000", 1)); invoke(screen, "render", new Class<?>[]{}); });
+            setupShot(screen, "ready-shared", null, "Ready to import", "Shared-user identity found", "NAVEE restored", "Import owner setup", "Discard");
+            main(() -> {
+                require(text(setupRoot(screen), "000000000000") == null, "Shizuku setup showed the captured identity");
+                TextView discard = text(setupRoot(screen), "Discard");
+                require(discard != null && discard.isShown(), "Import screen lost Discard");
+                discard.performClick();
+            });
+            awaitOnMain(() -> field(capture, "owner") == null && setupSteady(screen, null, "Start Shizuku", "Back to setup choices"),
+                    "Discard did not return Shizuku setup to step 1", 20000);
+            main(() -> {
+                TextView leave = text(setupRoot(screen), "Back to setup choices");
+                require(leave != null && leave.isShown(), "Step 1 lost Back to setup choices");
+                leave.performClick();
+            });
+            awaitOnMain(() -> screen.isDestroyed() && activity.getWindow().getDecorView().hasWindowFocus(),
+                    "Back to setup choices did not return to Volt", 20000);
+        } finally {
+            removeMonitor(opened);
+            addMonitor(bluetoothPrompt);
+            journal.edit().clear().commit();
+            if (client != null) {
+                Object capture = client;
+                main(() -> {
+                    set(capture, "busy", false); set(capture, "phase", 0); set(capture, "captureSinceMs", 0L);
+                    set(capture, "owner", null); set(capture, "message", "");
+                });
+            }
+            if (setup != null && !setup.isDestroyed()) { Activity open = setup; main(open::finish); }
+        }
+        main(() -> {
+            require(field(activity, "onboarding") != null, "Leaving Shizuku setup also left the setup choices");
+            ((OnboardingScreen) field(activity, "onboarding")).back();
+        });
+        await(() -> field(activity, "onboarding") == null, "Back did not leave adding flow after Shizuku setup");
+        main(() -> require(activity.service().profiles.all().size() == 1 && activity.service().profiles.active().id.equals(a.id),
+                "Shizuku setup altered existing scooters"));
+    }
+    /** A Shizuku setup screenshot and census, once setupSteady holds; dialogTitle names a dialog that must be up. */
+    private void setupShot(Activity screen, String state, String dialogTitle, String... shown) throws Exception {
+        awaitOnMain(() -> setupSteady(screen, dialogTitle, shown), "Shizuku setup " + state + " did not settle as the only Volt window", 20000);
+        SystemClock.sleep(300); waitForIdleSync();
+        awaitOnMain(() -> setupSteady(screen, dialogTitle, shown), "Shizuku setup " + state + " did not stay settled", 4000);
+        File dir = new File(getTargetContext().getExternalFilesDir(null), "my-scooters-validation");
+        require(dir.mkdirs() || dir.isDirectory(), "Screenshot directory");
+        File file = new File(dir, "shizuku-setup-" + theme + "-" + state + ".png");
+        Bitmap shot = dialogTitle == null ? null : getUiAutomation().takeScreenshot();
+        if (shot == null) {
+            AtomicReference<Bitmap> image = new AtomicReference<>();
+            main(() -> {
+                View window = setupRoot(screen);
+                Bitmap drawn = Bitmap.createBitmap(window.getWidth(), window.getHeight(), Bitmap.Config.ARGB_8888);
+                window.draw(new Canvas(drawn)); image.set(drawn);
+            });
+            shot = image.get();
+        }
+        try (FileOutputStream out = new FileOutputStream(file)) { shot.compress(Bitmap.CompressFormat.PNG, 100, out); } finally { shot.recycle(); }
+        // Check and census in one main-thread turn, so nothing can land between them.
+        main(() -> {
+            require(setupSteady(screen, dialogTitle, shown), "Shizuku setup " + state + " changed before its census");
+            TextCensus.write(this, file);
+        });
+    }
+    /**
+     * Main thread only. True when the setup window is laid out with every shown text in it, its countdown ring
+     * (if any) has spoken its seconds, and it is the only shown window of this process (with dialogTitle, it
+     * and one focused dialog holding that title).
+     */
+    private boolean setupSteady(Activity screen, String dialogTitle, String... shown) {
+        View decor = setupRoot(screen);
+        if (screen.isFinishing() || !decor.isShown() || !decor.isLaidOut() || decor.isLayoutRequested() || decor.getWidth() == 0) return false;
+        for (String value : shown) {
+            TextView view = text(decor, value);
+            if (view == null || !view.isShown() || !view.isLaidOut() || view.getWidth() == 0) return false;
+        }
+        if (!countdownSpoken(decor)) return false;
+        java.util.List<View> windows = new java.util.ArrayList<>();
+        for (View window : android.view.inspector.WindowInspector.getGlobalWindowViews()) if (window.isShown()) windows.add(window);
+        if (!windows.contains(decor)) return false;
+        if (dialogTitle == null) return windows.size() == 1 && decor.hasWindowFocus();
+        if (windows.size() != 2) return false;
+        View dialog = windows.get(windows.get(0) == decor ? 1 : 0);
+        TextView title = text(dialog, dialogTitle);
+        return dialog.isLaidOut() && !dialog.isLayoutRequested() && dialog.hasWindowFocus() && title != null && title.isShown();
+    }
+    /** False while a shown countdown ring has not drawn yet: it sets its spoken seconds in onDraw. */
+    private static boolean countdownSpoken(View view) {
+        if (!view.isShown()) return true;
+        if ("Countdown".equals(view.getClass().getSimpleName()) && view.getContentDescription() == null) return false;
+        if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup) view).getChildCount(); i++) if (!countdownSpoken(((ViewGroup) view).getChildAt(i))) return false;
+        return true;
+    }
+    /** The shown window of this process other than root's, or null. */
+    private static View otherShownWindow(View root) {
+        for (View window : android.view.inspector.WindowInspector.getGlobalWindowViews()) if (window != root && window.isShown()) return window;
+        return null;
+    }
+    private static View setupRoot(Activity screen) { return screen.getWindow().getDecorView(); }
+    private static int captureConstant(String name) throws Exception {
+        Field constant = Class.forName("com.jjricks.volt.OwnerCaptureEngine").getDeclaredField(name);
+        constant.setAccessible(true);
+        return constant.getInt(null);
+    }
+    /** Like await, with a longer bound for a loaded machine. */
+    private void awaitOnMain(BooleanSupplier condition, String message, long timeoutMs) {
+        long until = SystemClock.elapsedRealtime() + timeoutMs;
+        while (SystemClock.elapsedRealtime() < until) {
+            AtomicReference<Boolean> ready = new AtomicReference<>();
+            main(() -> ready.set(condition.getAsBoolean()));
+            if (ready.get()) return;
+            SystemClock.sleep(40);
+        }
+        throw new AssertionError(message);
     }
 
     private void click(String tag) { main(() -> { View view=tag(tag); require(view!=null,"Missing action "+tag); view.performClick(); }); waitForIdleSync(); }
