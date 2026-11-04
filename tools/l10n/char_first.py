@@ -8,9 +8,9 @@ head's first-parent line after the merge base:
   1. every characterization file the range adds or changes must be added or changed by the first
      commit, and by no later commit;
   2. that first commit changes nothing under src/ or res/, so the tests ran against base behaviour;
-  3. characterization is required when the range adds a template, plural or format ledger row (or with
+  3. characterization is required when the range adds a template, plural, format or choice ledger row (or with
      --require): such a batch fails when its first commit holds no characterization tests.
-A range with no characterization files and no template, plural or format rows passes with a note.
+A range with no characterization files and no template, plural, format or choice rows passes with a note.
 
   char_first.py --base origin/main [--head <sha>] [--require] [--print-first]
 
@@ -35,7 +35,7 @@ def run(base, head, require=False, cwd=None):
     if not commits:
         return [], ["no commits after the merge base"], None, []
     rows, row_problems = ledger_check.range_rows(merge, head, None, cwd)
-    templated = [r for r in rows if r.kind in ("template", "plural", "format")]
+    templated = [r for r in rows if r.kind in ("template", "plural", "format", "choice")]
     if templated:
         require = True
     in_range = l10nlib.changed_files(merge, head, [CHAR_DIR], cwd)
