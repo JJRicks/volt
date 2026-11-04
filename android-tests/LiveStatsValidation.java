@@ -124,20 +124,37 @@ public final class LiveStatsValidation extends Instrumentation {
                 require(settings().getInt("stats_chart_window", -1) == 7, "All window not persisted");
                 invoke(browser, "expand", new Class<?>[]{String.class}, "power_w");
             }); settle();
+            // The census must read one steady description. A touch puts the point's description on the
+            // chart, but the next 1 s body refresh redraws the card and ChartView.set restores the
+            // chart's own description (the marker stays), so the touched text lasts until a refresh
+            // that may or may not land before the screenshot. Check the touched text here, then wait
+            // for that refresh so every run censuses the restored chart description.
+            final CharSequence[] inspected = new CharSequence[2];
             main(() -> {
                 Object browser = field(stats(), "chartBrowser"); Object card = field(browser, "fullscreenCard");
                 Ui.ChartView graph = (Ui.ChartView)field(card, "graph");
                 require(graph != null && graph.pointCount() > 1 && graph.getHeight() > activity.ui().dp(220), "Fullscreen graph did not expand/load");
+                inspected[0] = graph.getContentDescription();
                 long time = SystemClock.uptimeMillis();
                 graph.dispatchTouchEvent(android.view.MotionEvent.obtain(time, time, 0, graph.getWidth() * .5f, graph.getHeight() * .5f, 0));
                 graph.dispatchTouchEvent(android.view.MotionEvent.obtain(time, time + 10, 1, graph.getWidth() * .5f, graph.getHeight() * .5f, 0));
                 require(((Number)field(graph, "selected")).intValue() >= 0, "Fullscreen trace inspection missing");
+                inspected[1] = graph.getContentDescription();
+                require(inspected[1] != null && inspected[1].length() > 0 && !String.valueOf(inspected[1]).equals(String.valueOf(inspected[0])),
+                        "Fullscreen trace inspection did not describe the touched point");
                 android.app.Dialog expanded = (android.app.Dialog)field(browser, "fullscreen");
                 View decor = expanded.getWindow().getDecorView();
                 require(decor.getPaddingLeft() == 0 && decor.getPaddingRight() == 0, "Fullscreen still has theme window insets");
                 require(decor.getWidth() == getTargetContext().getResources().getDisplayMetrics().widthPixels,
                         "Expanded chart window does not fill display width");
-            }); screenshot("chart-fullscreen");
+            });
+            await(() -> { String[] now = new String[1];
+                runOnMainSync(() -> now[0] = String.valueOf(((Ui.ChartView)field(field(field(stats(), "chartBrowser"), "fullscreenCard"), "graph")).getContentDescription()));
+                return !now[0].equals(String.valueOf(inspected[1])); }, "Fullscreen chart kept the touched point's description");
+            settle();
+            main(() -> require(((Number)field(field(field(field(stats(), "chartBrowser"), "fullscreenCard"), "graph"), "selected")).intValue() >= 0,
+                    "Fullscreen trace inspection marker lost on refresh"));
+            screenshot("chart-fullscreen");
             verifyWindowPicker(true);
             main(() -> ((android.app.Dialog)field(field(stats(), "chartBrowser"), "fullscreen")).dismiss());
             main(() -> ((EditText)field(field(stats(), "chartBrowser"), "search")).setText("temperature_c")); settle();
