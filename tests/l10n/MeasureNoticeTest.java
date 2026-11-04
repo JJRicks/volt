@@ -1,6 +1,11 @@
 package com.jjricks.volt;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Charge done by's "not set" notice (ScooterService.endChargeMeasure). B8 converted the sentence while
@@ -11,7 +16,9 @@ import java.util.Locale;
  *   by G5, from the English reason), under several phone locales;
  * - under a marked language the reason inside the notice is marked too, so the whole notice comes
  *   from the catalog, while Decision.reason (the English id for logs) stays English.
- * Each head expression below is copied from ScooterService.
+ * ScooterService is an Android class, so notice() repeats its notice expression, and service() checks the
+ * service source: the NOT_SET branch passes Decision.message, endChargeMeasure builds the notice with that
+ * expression, and Decision.reason reaches neither.
  */
 public final class MeasureNoticeTest {
     private static int checks;
@@ -24,7 +31,8 @@ public final class MeasureNoticeTest {
         @Override public String language() { return "xx"; }
     };
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
+        service();
         Locale saved = Locale.getDefault();
         try {
             for (Locale phone : new Locale[]{Locale.US, Locale.GERMANY, new Locale("tr", "TR"),
@@ -45,7 +53,7 @@ public final class MeasureNoticeTest {
             Locale.setDefault(saved);
         }
         System.out.println("MeasureNoticeTest: " + checks + " checks passed (Charge done by's not-set notice: English unchanged, "
-                + "built from Decision.message, reason id English)");
+                + "the service passes Decision.message, reason id English)");
     }
 
     /** The five NOT_SET decisions evaluate() can give, with the English the base showed for each. */
@@ -93,9 +101,30 @@ public final class MeasureNoticeTest {
                 "the permission-removed notice is the shown language's");
     }
 
-    /** ScooterService.endChargeMeasure(CharSequence reason)'s notice at head. */
+    /** endChargeMeasure's notice expression, which service() checks in ScooterService. */
     private static String notice(CharSequence reason) {
         return T.serviceMeasureNotSet(reason);
+    }
+
+    /** The service passes Decision.message, builds the notice as notice() does, and never reads Decision.reason. */
+    private static void service() throws Exception {
+        String src = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/ScooterService.java")), StandardCharsets.UTF_8);
+        check(count(src, "endChargeMeasure(") == 3, "ScooterService declares endChargeMeasure once and calls it twice");
+        check(count(src, "else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);") == 1,
+                "the NOT_SET branch passes Decision.message");
+        check(count(src, "endChargeMeasure(T.serviceMeasureBluetoothRemoved());") == 1, "the permission path passes the catalog reason");
+        Matcher body = Pattern.compile("private void endChargeMeasure\\(CharSequence reason\\)\\{([^}]*)\\}").matcher(src);
+        check(body.find(), "endChargeMeasure takes a CharSequence reason");
+        check(count(body.group(1), "chargeDoneNotice(false,T.serviceMeasureNotSet(reason));") == 1,
+                "endChargeMeasure's notice is notice(reason)");
+        check(!Pattern.compile("\\bdecision\\s*\\.\\s*reason\\b").matcher(src).find(), "ScooterService never reads Decision.reason");
+        check(count(src, "T.serviceMeasureNotSet(") == 1, "only endChargeMeasure builds the not-set notice");
+    }
+
+    private static int count(String text, String part) {
+        int n = 0;
+        for (int at = text.indexOf(part); at >= 0; at = text.indexOf(part, at + 1)) n++;
+        return n;
     }
 
     private static ChargeMeasureWindow started() {
