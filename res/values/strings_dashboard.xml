@@ -232,4 +232,39 @@
     <string name="dashboard_start_recording" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Start recording</string>
     <string name="dashboard_record_connecting" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Connecting</string>
     <string name="dashboard_record_connect" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Connect to scooter</string>
+    <!-- The usable ride energy (capacity) widget and its details sheet -->
+    <!-- An estimated energy: %1$s is a number, %2$s the unit symbol ("Wh"). -->
+    <string name="dashboard_approx_energy" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">≈ %1$s %2$s</string>
+    <!-- Marks the sample-data preview. -->
+    <string name="dashboard_sample" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Sample</string>
+    <!-- The sample preview's summary: %1$s and %2$s are the low and high energy, %3$s the unit ("Wh"). -->
+    <string name="dashboard_sample_rides" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">8 rides · %1$s–%2$s %3$s</string>
+    <string name="dashboard_no_scooter" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">No scooter set up</string>
+    <string name="dashboard_updating_rides" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Updating recorded rides…</string>
+    <string name="dashboard_refresh_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Last estimate · refresh unavailable</string>
+    <string name="dashboard_estimate_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Estimate unavailable</string>
+    <string name="dashboard_not_enough_data" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">Not enough ride data</string>
+    <!-- The summary: %1$s is how many rides were used (English keeps "rides" for every number), %2$s and %3$s the low and high energy, %4$s the unit ("Wh"). -->
+    <string name="dashboard_rides_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s–%3$s %4$s</string>
+    <!-- The summary without a range: %1$s rides, %2$s battery percentage points. -->
+    <string name="dashboard_rides_points" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s points used</string>
+    <!-- How the estimate compares with the reference: %1$s is a whole percent, %2$s the reference energy, %3$s the unit ("Wh"). -->
+    <string name="dashboard_percent_of" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s%% of %2$s %3$s</string>
+    <!-- Detail row names in the estimate details sheet. -->
+    <string name="dashboard_rides" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Rides</string>
+    <string name="dashboard_points" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Points</string>
+    <string name="dashboard_window" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Window</string>
+    <string name="dashboard_rides_needed" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Rides needed</string>
+    <string name="dashboard_range_90" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental" formatted="false">90% range</string>
+    <string name="dashboard_charge_per_gauge" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Charge per gauge</string>
+    <string name="dashboard_charging_check" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Charging check</string>
+    <string name="dashboard_coverage" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Coverage</string>
+    <string name="dashboard_pack_temp" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Pack temp</string>
+    <string name="dashboard_rejected" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Rejected</string>
+    <!-- Charge per gauge with its range: %1$s is the value, %2$s the unit ("Ah"), %3$s and %4$s the low and high values. -->
+    <string name="dashboard_ah_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s %2$s (%3$s–%4$s)</string>
+    <string name="dashboard_proxy_caveat" volt:screen="Home capacity widget" volt:purpose="caveat" volt:safety="experimental">Proxy: may overstate; not health.</string>
+    <string name="dashboard_energy_caveat" volt:screen="Home capacity widget" volt:purpose="caveat" volt:safety="experimental">Energy your rides drew per full gauge. Not a battery health or capacity test.</string>
+    <!-- The estimate details sheet's title. -->
+    <string name="dashboard_usable_energy" volt:screen="Home capacity widget" volt:purpose="title" volt:safety="experimental">Usable ride energy</string>
 </resources>

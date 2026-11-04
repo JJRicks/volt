@@ -3610,16 +3610,16 @@ public final class DashboardScreen implements AppScreen {
                 double sample = advertised == null ? 610 : advertised * .95;
                 capacityResult = null;
                 capacityUnavailable = null;
-                capacityValue.setText(String.format(Locale.US, "≈ %.0f Wh", sample));
+                capacityValue.setText(T.dashboardApproxEnergy(Fmt.decimal(Locale.US, sample, 0), T.unitsWattHour()));
                 capacityValue.setTextColor(ui.text);
-                styleTag(capacityMethod, "Sample", false);
-                capacitySummary.setText(String.format(Locale.US, "8 rides · %.0f–%.0f Wh", sample * .96, sample * 1.04));
+                styleTag(capacityMethod, T.dashboardSample(), false);
+                capacitySummary.setText(T.dashboardSampleRides(Fmt.decimal(Locale.US, sample * .96, 0), Fmt.decimal(Locale.US, sample * 1.04, 0), T.unitsWattHour()));
                 showComparison(advertised == null ? null : 95d, advertised, false, true);
                 return;
             }
             if (capacitySample) {
                 capacitySample = false;
-                capacityMessage("Processing…", "Checking recorded rides…");
+                capacityMessage(T.dashboardProcessing(), T.dashboardCheckingRides());
             }
             ScooterProfiles.Profile current = service.profiles.active();
             if (current == null || !profileId.equals(current.id)) {
@@ -3627,9 +3627,9 @@ public final class DashboardScreen implements AppScreen {
                 capacityPending = false;
                 capacityChecked = 0;
                 capacityResult = null;
-                capacityUnavailable = current == null ? "No scooter set up" : null;
-                capacityMessage(current == null ? capacityUnavailable : "Processing…",
-                        current == null ? capacityUnavailable : "Checking recorded rides…");
+                capacityUnavailable = current == null ? T.dashboardNoScooter() : null;
+                capacityMessage(current == null ? capacityUnavailable : T.dashboardProcessing(),
+                        current == null ? capacityUnavailable : T.dashboardCheckingRides());
                 return;
             }
             if (capacityPending) return;
@@ -3642,9 +3642,9 @@ public final class DashboardScreen implements AppScreen {
             // Keep a genuine last estimate during refresh; no completed evidence means processing.
             if (!hasCapacityValue()) {
                 capacityResult = null;
-                capacityMessage("Processing…", "Checking recorded rides…");
+                capacityMessage(T.dashboardProcessing(), T.dashboardCheckingRides());
             } else {
-                capacitySummary.setText("Updating recorded rides…");
+                capacitySummary.setText(T.dashboardUpdatingRides());
             }
             service.requestCapacityEstimate(
                     rating(widget),
@@ -3662,10 +3662,10 @@ public final class DashboardScreen implements AppScreen {
                         if (result.unavailableReason != null) {
                             capacityUnavailable = result.unavailableReason;
                             if (hasCapacityValue()) {
-                                capacitySummary.setText("Last estimate · refresh unavailable");
+                                capacitySummary.setText(T.dashboardRefreshUnavailable());
                             } else {
                                 capacityResult = null;
-                                capacityMessage("Estimate unavailable", capacityUnavailable);
+                                capacityMessage(T.dashboardEstimateUnavailable(), capacityUnavailable);
                             }
                             return;
                         }
@@ -3683,8 +3683,8 @@ public final class DashboardScreen implements AppScreen {
                                         : result.throughputPercentOfAdvertised;
                         capacityValue.setText(
                                 value == null
-                                        ? "Not enough ride data"
-                                        : String.format(Locale.US, "≈ %.0f Wh", value));
+                                        ? T.dashboardNotEnoughData()
+                                        : T.dashboardApproxEnergy(Fmt.decimal(Locale.US, value, 0), T.unitsWattHour()));
                         capacityValue.setTextColor(
                                 value == null ? ui.muted : proxy ? ui.orange : ui.text);
                         // The title and lab glyph say "experiment"; only the proxy keeps an honesty chip.
@@ -3709,9 +3709,8 @@ public final class DashboardScreen implements AppScreen {
                         Double low = estimated ? result.estimatedLowWh : result.throughputLowWh;
                         Double high = estimated ? result.estimatedHighWh : result.throughputHighWh;
                         capacitySummary.setText(low != null && high != null
-                                ? String.format(Locale.US, "%d rides · %.0f–%.0f Wh", rides, low, high)
-                                : String.format(Locale.US, "%d rides · %.0f points used", rides,
-                                        estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints));
+                                ? T.dashboardRidesRange(Fmt.integer(rides), Fmt.decimal(Locale.US, low, 0), Fmt.decimal(Locale.US, high, 0), T.unitsWattHour())
+                                : T.dashboardRidesPoints(Fmt.integer(rides), Fmt.decimal(Locale.US, estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints, 0)));
                         showComparison(percent, result.advertisedWh, proxy, false);
                     });
         }
@@ -3735,7 +3734,7 @@ public final class DashboardScreen implements AppScreen {
         private void showComparison(Double percent, Double reference, boolean proxy, boolean sample) {
             boolean compared = percent != null && reference != null;
             capacityCompare.setText(compared
-                    ? String.format(Locale.US, "%.0f%% of %.0f Wh", percent, reference) : "");
+                    ? T.dashboardPercentOf(Fmt.decimal(Locale.US, percent, 0), Fmt.decimal(Locale.US, reference, 0), T.unitsWattHour()) : "");
             capacityCompare.setTextColor(proxy ? ui.orange : ui.muted);
             capacityCompare.setVisibility(compared ? View.VISIBLE : View.GONE);
             capacityReference.setVisibility(reference == null && !sample ? View.VISIBLE : View.GONE);
@@ -3750,54 +3749,54 @@ public final class DashboardScreen implements AppScreen {
             BatteryCapacityEstimate.Result r = capacityResult;
             boolean sample = service != null && service.simulating();
             if (sample) {
-                details.addView(detailRow("Rides", "8"));
-                details.addView(detailRow("Points", "72"));
-                details.addView(detailRow("Window", shortWindow(widget.windowMs)));
-                details.addView(caveat("Sample"));
+                details.addView(detailRow(T.dashboardRides(), "8"));
+                details.addView(detailRow(T.dashboardPoints(), "72"));
+                details.addView(detailRow(T.dashboardWindow(), shortWindow(widget.windowMs)));
+                details.addView(caveat(T.dashboardSample()));
             } else if (r == null) {
-                details.addView(caveat(capacityUnavailable != null ? capacityUnavailable : "Checking recorded rides…"));
+                details.addView(caveat(capacityUnavailable != null ? capacityUnavailable : T.dashboardCheckingRides()));
             } else {
                 boolean estimated = r.estimatedUsableWh != null;
                 boolean proxy = !estimated && r.throughputEquivalentWh != null;
                 boolean confirmedGroup = estimated || (!proxy && r.batteryDropPoints >= r.proxyBatteryDropPoints);
                 int rides = confirmedGroup ? r.qualifiedRides : r.proxyRides;
                 double points = confirmedGroup ? r.batteryDropPoints : r.proxyBatteryDropPoints;
-                details.addView(detailRow("Rides", Integer.toString(rides)));
-                details.addView(detailRow("Points", estimated || proxy
+                details.addView(detailRow(T.dashboardRides(), Integer.toString(rides)));
+                details.addView(detailRow(T.dashboardPoints(), estimated || proxy
                         ? String.format(Locale.US, "%.0f", points)
                         : String.format(Locale.US, "%.0f / %.0f", Math.floor(r.progressPoints),
                                 BatteryCapacityEstimate.MIN_TOTAL_DROP)));
                 if (!estimated && !proxy && rides > 0 && rides < BatteryCapacityEstimate.MIN_RIDES)
-                    details.addView(detailRow("Rides needed", Integer.toString(BatteryCapacityEstimate.MIN_RIDES)));
+                    details.addView(detailRow(T.dashboardRidesNeeded(), Integer.toString(BatteryCapacityEstimate.MIN_RIDES)));
                 Double low = estimated ? r.estimatedLowWh : proxy ? r.throughputLowWh : null;
                 Double high = estimated ? r.estimatedHighWh : proxy ? r.throughputHighWh : null;
                 if (low != null && high != null)
-                    details.addView(detailRow("90% range", String.format(Locale.US, "%.0f–%.0f Wh", low, high)));
+                    details.addView(detailRow(T.dashboardRange90(), T.fmtRange(Fmt.decimal(Locale.US, low, 0), Fmt.decimal(Locale.US, high, 0), T.unitsWattHour())));
                 if (r.ahPerGauge != null)
-                    details.addView(detailRow("Charge per gauge", r.ahPerGaugeLow != null && r.ahPerGaugeHigh != null
-                            ? String.format(Locale.US, "%.1f Ah (%.1f–%.1f)", r.ahPerGauge, r.ahPerGaugeLow, r.ahPerGaugeHigh)
-                            : String.format(Locale.US, "%.1f Ah", r.ahPerGauge)));
+                    details.addView(detailRow(T.dashboardChargePerGauge(), r.ahPerGaugeLow != null && r.ahPerGaugeHigh != null
+                            ? T.dashboardAhRange(Fmt.decimal(Locale.US, r.ahPerGauge, 1), T.unitsAmpHour(), Fmt.decimal(Locale.US, r.ahPerGaugeLow, 1), Fmt.decimal(Locale.US, r.ahPerGaugeHigh, 1))
+                            : T.fmtQuantity(Fmt.decimal(Locale.US, r.ahPerGauge, 1), T.unitsAmpHour())));
                 if (r.chargingAhPerGauge != null)
-                    details.addView(detailRow("Charging check", String.format(Locale.US, "%.1f Ah · %d charge%s",
+                    details.addView(detailRow(T.dashboardChargingCheck(), String.format(Locale.US, "%.1f Ah · %d charge%s",
                             r.chargingAhPerGauge, r.chargingSessions, r.chargingSessions == 1 ? "" : "s")));
                 if (rides > 0)
-                    details.addView(detailRow("Coverage",
-                            String.format(Locale.US, "%.0f%%", r.electricalCoverage * 100)));
+                    details.addView(detailRow(T.dashboardCoverage(),
+                            T.fmtPercent(Fmt.decimal(Locale.US, r.electricalCoverage * 100, 0))));
                 if (r.minimumTemperatureC != null && r.maximumTemperatureC != null)
-                    details.addView(detailRow("Pack temp", DisplayTemperature.range(
+                    details.addView(detailRow(T.dashboardPackTemp(), DisplayTemperature.range(
                             r.minimumTemperatureC, r.maximumTemperatureC, temperatureUnit(), 0)));
-                details.addView(detailRow("Window", r.windowDays + (r.windowDays == 1 ? " day" : " days")
+                details.addView(detailRow(T.dashboardWindow(), r.windowDays + (r.windowDays == 1 ? " day" : " days")
                         + (r.includesActive ? " · live" : "")));
                 if (r.rejectedRides > 0)
-                    details.addView(detailRow("Rejected", r.rejectedRides
+                    details.addView(detailRow(T.dashboardRejected(), r.rejectedRides
                             + (r.reason == null ? "" : " · " + r.reason)));
                 if (!estimated && !proxy && r.qualifiedRides + r.proxyRides == 0 && r.rejectedRides == 0)
                     details.addView(caveat(r.label));
-                details.addView(caveat(proxy ? "Proxy: may overstate; not health."
-                        : "Energy your rides drew per full gauge. Not a battery health or capacity test."));
+                details.addView(caveat(proxy ? T.dashboardProxyCaveat()
+                        : T.dashboardEnergyCaveat()));
                 if (capacityUnavailable != null) details.addView(caveat(capacityUnavailable));
             }
-            show("Usable ride energy", details);
+            show(T.dashboardUsableEnergy(), details);
         }
 
         private LinearLayout detailRow(String label, String value) {
@@ -3812,7 +3811,7 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(-2, -2);
             space.setMarginStart(ui.dp(12));
             line.addView(amount, space);
-            line.setContentDescription(label + ", " + value);
+            line.setContentDescription(T.dashboardReading(label, value));
             line.setFocusable(true);
             return line;
         }

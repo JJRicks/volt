@@ -118,6 +118,47 @@ src/com/jjricks/volt/DashboardScreen.java:3537	["Record ride. Connect to scooter
 src/com/jjricks/volt/DashboardScreen.java:3552	[{"spec": "%.1f", "arg": 1, "value": "km", "as": "Fmt.decimal(Locale.US, km, 1)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/DashboardScreen.java:3553	[{"spec": "%.1f", "arg": 1, "value": "km / 1.609344", "as": "Fmt.decimal(Locale.US, km / 1.609344, 1)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/DashboardScreen.java:3555	[{"hole": "miles", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/DashboardScreen.java:3592	["≈ ", {"spec": "%.0f", "arg": 1, "value": "sample", "as": "Fmt.decimal(Locale.US, sample, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	dashboard_approx_energy	format	
+src/com/jjricks/volt/DashboardScreen.java:3594	["Sample"]	dashboard_sample	exact	
+src/com/jjricks/volt/DashboardScreen.java:3595	["8 rides · ", {"spec": "%.0f", "arg": 1, "value": "sample * .96", "as": "Fmt.decimal(Locale.US, sample * .96, 0)"}, "–", {"spec": "%.0f", "arg": 2, "value": "sample * 1.04", "as": "Fmt.decimal(Locale.US, sample * 1.04, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	dashboard_sample_rides	format	
+src/com/jjricks/volt/DashboardScreen.java:3601	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3601	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3609	["No scooter set up"]	dashboard_no_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:3610	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3611	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3624	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3624	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3626	["Updating recorded rides…"]	dashboard_updating_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3644	["Last estimate · refresh unavailable"]	dashboard_refresh_unavailable	exact	
+src/com/jjricks/volt/DashboardScreen.java:3647	["Estimate unavailable"]	dashboard_estimate_unavailable	exact	
+src/com/jjricks/volt/DashboardScreen.java:3665	["Not enough ride data"]	dashboard_not_enough_data	exact	
+src/com/jjricks/volt/DashboardScreen.java:3666	["≈ ", {"spec": "%.0f", "arg": 1, "value": "value", "as": "Fmt.decimal(Locale.US, value, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	dashboard_approx_energy	format	
+src/com/jjricks/volt/DashboardScreen.java:3691	[{"spec": "%d", "arg": 1, "value": "rides", "as": "Fmt.integer(rides)"}, " rides · ", {"spec": "%.0f", "arg": 2, "value": "low", "as": "Fmt.decimal(Locale.US, low, 0)"}, "–", {"spec": "%.0f", "arg": 3, "value": "high", "as": "Fmt.decimal(Locale.US, high, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 4}]	dashboard_rides_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3692	[{"spec": "%d", "arg": 1, "value": "rides", "as": "Fmt.integer(rides)"}, " rides · ", {"spec": "%.0f", "arg": 2, "value": "estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints", "as": "Fmt.decimal(Locale.US, estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints, 0)"}, " points used"]	dashboard_rides_points	format	
+src/com/jjricks/volt/DashboardScreen.java:3717	[{"spec": "%.0f", "arg": 1, "value": "percent", "as": "Fmt.decimal(Locale.US, percent, 0)"}, "%% of ", {"spec": "%.0f", "arg": 2, "value": "reference", "as": "Fmt.decimal(Locale.US, reference, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	dashboard_percent_of	format	
+src/com/jjricks/volt/DashboardScreen.java:3732	["Rides"]	dashboard_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3733	["Points"]	dashboard_points	exact	
+src/com/jjricks/volt/DashboardScreen.java:3734	["Window"]	dashboard_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:3735	["Sample"]	dashboard_sample	exact	
+src/com/jjricks/volt/DashboardScreen.java:3737	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3744	["Rides"]	dashboard_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3745	["Points"]	dashboard_points	exact	
+src/com/jjricks/volt/DashboardScreen.java:3750	["Rides needed"]	dashboard_rides_needed	exact	
+src/com/jjricks/volt/DashboardScreen.java:3754	["90% range"]	dashboard_range_90	exact	
+src/com/jjricks/volt/DashboardScreen.java:3754	[{"spec": "%.0f", "arg": 1, "value": "low", "as": "Fmt.decimal(Locale.US, low, 0)"}, "–", {"spec": "%.0f", "arg": 2, "value": "high", "as": "Fmt.decimal(Locale.US, high, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	fmt_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3756	["Charge per gauge"]	dashboard_charge_per_gauge	exact	
+src/com/jjricks/volt/DashboardScreen.java:3757	[{"spec": "%.1f", "arg": 1, "value": "r.ahPerGauge", "as": "Fmt.decimal(Locale.US, r.ahPerGauge, 1)"}, " ", {"text": "Ah", "key": "units_amp_hour", "arg": 2}, " (", {"spec": "%.1f", "arg": 3, "value": "r.ahPerGaugeLow", "as": "Fmt.decimal(Locale.US, r.ahPerGaugeLow, 1)"}, "–", {"spec": "%.1f", "arg": 4, "value": "r.ahPerGaugeHigh", "as": "Fmt.decimal(Locale.US, r.ahPerGaugeHigh, 1)"}, ")"]	dashboard_ah_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3758	[{"spec": "%.1f", "arg": 1, "value": "r.ahPerGauge", "as": "Fmt.decimal(Locale.US, r.ahPerGauge, 1)"}, " ", {"text": "Ah", "key": "units_amp_hour", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3760	["Charging check"]	dashboard_charging_check	exact	
+src/com/jjricks/volt/DashboardScreen.java:3763	["Coverage"]	dashboard_coverage	exact	
+src/com/jjricks/volt/DashboardScreen.java:3764	[{"spec": "%.0f", "arg": 1, "value": "r.electricalCoverage * 100", "as": "Fmt.decimal(Locale.US, r.electricalCoverage * 100, 0)"}, "%%"]	fmt_percent	format	
+src/com/jjricks/volt/DashboardScreen.java:3766	["Pack temp"]	dashboard_pack_temp	exact	
+src/com/jjricks/volt/DashboardScreen.java:3768	["Window"]	dashboard_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:3771	["Rejected"]	dashboard_rejected	exact	
+src/com/jjricks/volt/DashboardScreen.java:3775	["Proxy: may overstate; not health."]	dashboard_proxy_caveat	exact	
+src/com/jjricks/volt/DashboardScreen.java:3776	["Energy your rides drew per full gauge. Not a battery health or capacity test."]	dashboard_energy_caveat	exact	
+src/com/jjricks/volt/DashboardScreen.java:3779	["Usable ride energy"]	dashboard_usable_energy	exact	
+src/com/jjricks/volt/DashboardScreen.java:3794	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value", "arg": 2, "type": "s"}]	dashboard_reading	template	
 src/com/jjricks/volt/DashboardScreen.java:5130	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5692	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5695	["Note"]	dashboard_note	exact	
