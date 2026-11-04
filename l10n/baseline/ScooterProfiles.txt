@@ -1,7 +1,5 @@
 # Hard-coded English in src/com/jjricks/volt/ScooterProfiles.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
-multiword	"Enter a 12-character owner identity."
-multiword	"Import failed. Pick file again."
 multiword	"My UT5 MAX"
 multiword	"Owner import profile already exists"
 multiword	"UT5 MAX"
