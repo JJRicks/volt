@@ -59,6 +59,8 @@ public final class BatteryCapacityEstimateTest {
         check(r.qualifiedRides == 6 && r.rejectedRides == 1 && "Gauge jumped".equals(r.reason)
                         && r.rejectionReasons.get(BatteryCapacityEstimate.GAUGE_JUMP) == 1,
                 "The set-aside ride is counted and named");
+        check(r.reasonMsg != null && r.reasonMsg.id() == T.CHARGING_CAPACITY_REASON_GAUGE_JUMPED,
+                "The set-aside ride's reason is the gauge-jump message, not just its English");
         // 700 Wh per gauge is within tolerance and stays.
         Fixture high = fixture("A", 80, 60, 1400, 360, RideStore.CurrentDirection.POSITIVE_IS_DRAW, "normal", false);
         r = calculate("A", with(normal, high.ride()), 716.04);

@@ -1,0 +1,105 @@
+# Ledger for b5-charging: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+#
+# B5, the charging domain. Converted: ChargeAlertPolicy's level, watch title, alert titles and alert
+# texts (whole templates, no case change); ChargingEstimate's short labels (Result.labelMsg; label keeps
+# its English, LOW_CURRENT stays an id and its message is that English verbatim until B13);
+# ChargeMeasureWindow's reasons (Decision.message; reason keeps its English for ScooterService's notice
+# and logs); BatteryCapacityEstimate's short rejection reasons (shortReasonMsg, Result.reasonMsg;
+# shortReason and reason keep their English); the ChargeScheduleController refusals that go straight
+# to the caller (setDoneTime, enableDone, setManualEnabled, setManualStart, startTest).
+#
+# Not converted, still English and in l10n/baseline/:
+# - ChargingEstimate.Result.status (the ETA tooltip and spoken description, DashboardScreen) is built
+#   with status += across many branches, and withObservedCurve's caller edits it with replace(): no
+#   whole-template structure exists without restructuring the estimator. Deferred to B13 (owner of the
+#   dashboard call sites), which also renders labelMsg and maps LOW_CURRENT.
+# - ChargeAlertPolicy.watchText (the charge-watch notification's text: "42% now · alert at 80%",
+#   "Last seen 42% · alert when full", "Alert at 80%"). Its goal is picked on an earlier line
+#   (String goal = target >= 100 ? "alert when full" : "alert at " + target + "%") and upper-cased in
+#   code for the no-reading case; whole templates need a choice on that local, which G1 cannot model
+#   (README "Still blocked: a helper argument or a choice set on an earlier line"). Alarm text: needs a
+#   tooling change before the first language ships (beta bar: no alarm string in fallback).
+# - BatteryCapacityEstimate.Result.label ("Experimental estimate", "%d / %d rides", "%.0f / %.0f pts",
+#   ...): a public String field assigned in the constructor's if-chain and cached by ScooterService, so
+#   catalog text there is rendered text kept in a field (R2); it needs a Msg-typed field, which means
+#   retyping a public field that DashboardScreen reads (B13). The plan's rejection enum is deferred
+#   with it: the long rejection reasons stay English ids (rejectionReasons' keys, counted and compared).
+# - ChargeScheduleController: the View's blocked reasons, State.status (shown as View.status), the
+#   TestResult failure and cleanup texts, and every refusal of program(), disable(), interrupt(),
+#   restoreManualStart() and endTest() (they end up in View, State.status or TestResult, so catalog
+#   text there is rendered text kept in a field, R2), including the "Charge done by is off; " and
+#   "Scheduled charging is off; " restore texts (the prefix is also chosen at the call site, which G1
+#   cannot model as a whole template). These need BlockReason and Consumer<Msg>: the public String
+#   fields and Consumer<String> completions are read by MainActivity, QuickAccessGrid and ScooterService,
+#   so the API change belongs with those callers (B8, B13, B19) in one change. plan() and
+#   nextOccurrence()'s IllegalArgumentException texts are internal (caught, never shown).
+# - Kept English on purpose: ChargeMeasureWindow.start's IllegalArgumentException (internal);
+#   LearnedRangeEstimate's rejection reasons (ids for replay and diagnostics; screens use its Status
+#   enum); ChargeSessionStore (data tier: stored records, its exception texts reach screens through
+#   callers' getMessage(), which their batches move to messages); ChargeRecoveryPolicy's exception.
+# - No text (reviewed): ChargeScheduleTest, ChargerDetection, ChargeProgressTracker, ChargeReferenceGate,
+#   ChargeTaperMatcher, FastChargeTaper, Ut5MaxStockPackModel, Ut5MaxStockChargeReference,
+#   Ut5MaxStockVoltageReference, Ut5MaxFastChargeReference; RangeFollowPolicy has only a ":" key join.
+location	pieces	key	kind	note
+src/com/jjricks/volt/BatteryCapacityEstimate.java:418	["Clock changed"]	charging_capacity_reason_clock	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:419	["Recording gaps"]	charging_capacity_reason_gaps	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:420	["Current direction changed"]	charging_capacity_reason_direction	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:421	["Under 1 minute"]	charging_capacity_reason_short	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:422	["Battery ends missing"]	charging_capacity_reason_battery_ends	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:423	["Drop under 5%"]	charging_capacity_reason_drop	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:424	["Coverage under 95%"]	charging_capacity_reason_coverage	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:425	["Too little movement"]	charging_capacity_reason_movement	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:426	["No energy reading"]	charging_capacity_reason_no_energy	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:427	["No net energy"]	charging_capacity_reason_no_net_energy	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:428	["End readings missing"]	charging_capacity_reason_end_readings	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:429	["Ends misaligned"]	charging_capacity_reason_misaligned	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:430	["Battery gauge rose"]	charging_capacity_reason_gauge_rose	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:431	["Gauge jumped"]	charging_capacity_reason_gauge_jumped	exact	
+src/com/jjricks/volt/BatteryCapacityEstimate.java:432	["Insufficient data"]	charging_capacity_reason_insufficient	exact	
+src/com/jjricks/volt/ChargeAlertPolicy.java:235	["Full"]	charging_alert_level_full	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeAlertPolicy.java:235	[{"hole": "level", "arg": 1, "type": "s", "as": "Fmt.integer(level)"}, "%"]	fmt_percent	template	the other branch of levelText's ternary ("Full" is its own row)
+src/com/jjricks/volt/ChargeAlertPolicy.java:236	["Charging to full"]	charging_alert_watch_full	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeAlertPolicy.java:236	["Charging to ", {"hole": "target", "arg": 1, "type": "s", "as": "Fmt.integer(target)"}, "%"]	charging_alert_watch_title	template	the other branch of watchTitle's ternary ("Charging to full" is its own row)
+src/com/jjricks/volt/ChargeAlertPolicy.java:246	["Fully charged"]	charging_alert_title_full	exact	a branch of alertTitle's ternary chain on the event; each branch is its own row
+src/com/jjricks/volt/ChargeAlertPolicy.java:246	["Battery low"]	charging_alert_title_low	exact	a branch of alertTitle's ternary chain on the event; each branch is its own row
+src/com/jjricks/volt/ChargeAlertPolicy.java:246	["Charged to ", {"hole": "level", "arg": 1, "type": "s", "as": "Fmt.integer(level)"}, "%"]	charging_alert_title_charged	template	the CHARGE branch of alertTitle's ternary chain on the event
+src/com/jjricks/volt/ChargeAlertPolicy.java:246	["Charge alert paused"]	charging_alert_title_paused	exact	a branch of alertTitle's ternary chain on the event; each branch is its own row
+src/com/jjricks/volt/ChargeAlertPolicy.java:249	["Volt lost the connection to ", {"hole": "scooter", "arg": 1, "type": "s"}, ". Open Volt to keep watching this charge."]	charging_alert_text_paused	template	
+src/com/jjricks/volt/ChargeAlertPolicy.java:250	{"one": ["Volt stopped watching after ", {"hole": "HOLD_MS / 3_600_000L", "arg": 1, "type": "d", "quantity": true}, " hours. Open Volt to keep watching this charge."], "other": ["Volt stopped watching after ", {"hole": "HOLD_MS / 3_600_000L", "arg": 1, "type": "d", "quantity": true}, " hours. Open Volt to keep watching this charge."]}	charging_alert_text_time_limit	plural	a plural tagged volt:english-fix="pending": English keeps "hours" for every count (HOLD_MS is 12 hours) until an owner-approved fix; languages inflect it by count
+src/com/jjricks/volt/ChargeAlertPolicy.java:251	[{"hole": "scooter", "arg": 1, "type": "s"}, " is at ", {"hole": "percent", "arg": 2, "type": "s", "as": "Fmt.integer(percent)"}, "%."]	charging_alert_text_level	template	
+src/com/jjricks/volt/ChargeMeasureWindow.java:52	["The selected scooter changed while measuring"]	charging_measure_scooter_changed	exact	
+src/com/jjricks/volt/ChargeMeasureWindow.java:53	["The phone clock changed while measuring"]	charging_measure_clock_changed	exact	
+src/com/jjricks/volt/ChargeMeasureWindow.java:54	["Charging stopped before the schedule was set"]	charging_measure_charging_stopped	exact	
+src/com/jjricks/volt/ChargeMeasureWindow.java:59	["Charging readings stopped while measuring"]	charging_measure_readings_stopped	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeMeasureWindow.java:59	["The scooter disconnected while measuring"]	charging_measure_disconnected	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeScheduleController.java:270	["Choose a valid time"]	charging_schedule_choose_valid_time	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:282	["Wait for the current change to finish"]	common_wait_current_change	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeScheduleController.java:293	["A fresh charging estimate is needed; disable Charge done by and charge briefly"]	charging_schedule_fresh_estimate_needed	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:298	["Battery is already at its charge limit"]	charging_schedule_at_limit	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeScheduleController.java:298	["Wait for a charging time estimate"]	charging_schedule_wait_estimate	exact	a branch of a ternary between literals; the other branch is its own row
+src/com/jjricks/volt/ChargeScheduleController.java:301	["Charging time is outside a usable range"]	charging_schedule_outside_range	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:306	["Charging now — not enough time to wait before the deadline"]	charging_schedule_charging_now	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:319	["Choose Charge start first"]	charging_schedule_choose_start_first	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:333	["Choose a charge start within 48 hours"]	charging_schedule_start_within_48h	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:334	["Choose a whole hour within 48 hours"]	charging_schedule_whole_hour	exact	
+src/com/jjricks/volt/ChargeScheduleController.java:461	["Wait for the schedule test to finish"]	charging_schedule_wait_test	exact	
+src/com/jjricks/volt/ChargingEstimate.java:152	["Waiting for data"]	charging_estimate_waiting_data	exact	
+src/com/jjricks/volt/ChargingEstimate.java:154	["Not charging"]	charging_estimate_not_charging	exact	
+src/com/jjricks/volt/ChargingEstimate.java:160	["Waiting for readings"]	charging_estimate_waiting_readings	exact	
+src/com/jjricks/volt/ChargingEstimate.java:165	["Readings out of range"]	charging_estimate_out_of_range	exact	
+src/com/jjricks/volt/ChargingEstimate.java:169	["Capacity unknown"]	charging_estimate_capacity_unknown	exact	
+src/com/jjricks/volt/ChargingEstimate.java:171	["Waiting for battery %"]	charging_estimate_waiting_battery	exact	
+src/com/jjricks/volt/ChargingEstimate.java:176	["No estimate"]	charging_estimate_no_estimate	exact	
+src/com/jjricks/volt/ChargingEstimate.java:182	["Current rate"]	charging_estimate_current_rate	exact	
+src/com/jjricks/volt/ChargingEstimate.java:287	{"one": ["From ", {"hole": "learned.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " past charge", ""], "other": ["From ", {"hole": "learned.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " past charge", "s"]}	charging_estimate_past_charges	plural	manual: "From " + n + " past charge" + (n==1?"":"s") became M.chargingEstimatePastCharges(n, n); one is the n == 1 branch (""), other the "s" branch, so English is unchanged at every count; the runtime picks English items by English rules (PLURAL_ITEMS_FOLLOW_SERVED_TEXT)
+src/com/jjricks/volt/ChargingEstimate.java:292	{"one": ["From ", {"hole": "learned.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " past charge", ""], "other": ["From ", {"hole": "learned.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " past charge", "s"]}	charging_estimate_past_charges	plural	manual: "From " + n + " past charge" + (n==1?"":"s") became M.chargingEstimatePastCharges(n, n); one is the n == 1 branch (""), other the "s" branch, so English is unchanged at every count; the runtime picks English items by English rules (PLURAL_ITEMS_FOLLOW_SERVED_TEXT)
+src/com/jjricks/volt/ChargingEstimate.java:315	["High-speed reference"]	charging_estimate_high_speed_reference	exact	
+src/com/jjricks/volt/ChargingEstimate.java:337	["High-speed reference"]	charging_estimate_high_speed_reference	exact	
+src/com/jjricks/volt/ChargingEstimate.java:356	{"one": ["From ", {"hole": "sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", ""], "other": ["From ", {"hole": "sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", "s"]}	charging_estimate_past_charges	plural	manual: "From " + n + " past charge" + (n==1?"":"s") became M.chargingEstimatePastCharges(n, n); one is the n == 1 branch (""), other the "s" branch, so English is unchanged at every count; the runtime picks English items by English rules (PLURAL_ITEMS_FOLLOW_SERVED_TEXT)
+src/com/jjricks/volt/ChargingEstimate.java:394	["Stock reference"]	charging_estimate_stock_reference	exact	
+src/com/jjricks/volt/ChargingEstimate.java:421	["Stock reference"]	charging_estimate_stock_reference	exact	
+src/com/jjricks/volt/ChargingEstimate.java:453	{"one": ["From ", {"hole": "finishing.sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", ""], "other": ["From ", {"hole": "finishing.sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", "s"]}	charging_estimate_past_charges	plural	manual: "From " + n + " past charge" + (n==1?"":"s") became M.chargingEstimatePastCharges(n, n); one is the n == 1 branch (""), other the "s" branch, so English is unchanged at every count; the runtime picks English items by English rules (PLURAL_ITEMS_FOLLOW_SERVED_TEXT)
+src/com/jjricks/volt/ChargingEstimate.java:461	["Charger mismatch · rate estimate"]	charging_estimate_charger_mismatch	exact	
+src/com/jjricks/volt/ChargingEstimate.java:471	["Rate-based estimate"]	charging_estimate_rate_based	exact	
+src/com/jjricks/volt/ChargingEstimate.java:482	{"one": ["From ", {"hole": "sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", ""], "other": ["From ", {"hole": "sessions", "arg": 1, "type": "d", "quantity": true}, " past charge", "s"]}	charging_estimate_past_charges	plural	manual: "From " + n + " past charge" + (n==1?"":"s") became M.chargingEstimatePastCharges(n, n); one is the n == 1 branch (""), other the "s" branch, so English is unchanged at every count; the runtime picks English items by English rules (PLURAL_ITEMS_FOLLOW_SERVED_TEXT)

@@ -232,8 +232,8 @@ public final class ChargeAlertPolicy {
     }
 
     // Notification wording, kept here so the formatting is unit-tested.
-    public static String levelText(int level) { return level >= 100 ? "Full" : level + "%"; }
-    public static String watchTitle(int target) { return target >= 100 ? "Charging to full" : "Charging to " + target + "%"; }
+    public static String levelText(int level) { return level >= 100 ? T.chargingAlertLevelFull() : T.fmtPercent(Fmt.integer(level)); }
+    public static String watchTitle(int target) { return target >= 100 ? T.chargingAlertWatchFull() : T.chargingAlertWatchTitle(Fmt.integer(target)); }
     /** "42% now · alert at 80%"; a stale reading says "Last seen" instead of passing for live. */
     public static String watchText(Integer percent, boolean fresh, int target) {
         String goal = target >= 100 ? "alert when full" : "alert at " + target + "%";
@@ -243,12 +243,12 @@ public final class ChargeAlertPolicy {
     /** Determinate progress on a 0–target bar (stable across reconnects); -1 hides the bar when nothing was seen. */
     public static int watchProgress(Integer percent, int target) { return percent == null ? -1 : Math.max(0, Math.min(target, percent)); }
     public static String alertTitle(Event event, int level) {
-        return event == Event.FULL ? "Fully charged" : event == Event.LOW ? "Battery low" : event == Event.CHARGE ? "Charged to " + level + "%" : "Charge alert paused";
+        return event == Event.FULL ? T.chargingAlertTitleFull() : event == Event.LOW ? T.chargingAlertTitleLow() : event == Event.CHARGE ? T.chargingAlertTitleCharged(Fmt.integer(level)) : T.chargingAlertTitlePaused();
     }
     public static String alertText(Event event, String scooter, int percent) {
-        if (event == Event.PAUSED) return "Volt lost the connection to " + scooter + ". Open Volt to keep watching this charge.";
-        if (event == Event.TIME_LIMIT) return "Volt stopped watching after " + HOLD_MS / 3_600_000L + " hours. Open Volt to keep watching this charge.";
-        return scooter + " is at " + percent + "%.";
+        if (event == Event.PAUSED) return T.chargingAlertTextPaused(scooter);
+        if (event == Event.TIME_LIMIT) return T.chargingAlertTextTimeLimit(HOLD_MS / 3_600_000L, HOLD_MS / 3_600_000L);
+        return T.chargingAlertTextLevel(scooter, Fmt.integer(percent));
     }
 
     private static int snap(int value, int min, int max) {
