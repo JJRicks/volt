@@ -475,6 +475,86 @@ class ChoiceRowTest(GrammarCase):
             self.assertIn(needle, str(caught.exception))
 
 
+class ChoiceTypeTest(GrammarCase):
+    """A ternary's Java result type: char and number choices promote (5 + '*' is 47, 2 : 1.5 prints 2.0), so a
+    choice row refuses them; a ternary with no text in its branches is one hole, passed as it is."""
+    FILES = {SERVICE: java_class("Service", """    static String a(int n, boolean c) { return n + (c ? 1 : 2) + " items"; }
+    static String b(int n, boolean c) { return n + (c ? '*' : '-') + " items"; }
+    static String r(boolean fast) { return "Rate " + (fast ? 2 : 1.5) + "x"; }
+    static String x(boolean c) { return "Mark " + (c ? 'a' : 'b'); }
+    static String s(boolean fast, Integer v) { return (fast ? "Fast: " : "Slow: ") + (v == null ? 0 : v) + " sessions"; }
+    static String i(boolean fast, String v) { return (fast ? "Fast " : "Slow ") + ("On".equals(v) ? 1 : 2); }""")}
+    STRINGS = """<resources>
+    <string name="k_one">%1$s%2$s items</string>
+    <string name="k_two">%1$s%2$s items</string>
+    <string name="k_star">%1$s* items</string>
+    <string name="k_dash">%1$s- items</string>
+    <string name="k_fast">Rate %1$sx</string>
+    <string name="k_slow">Rate %1$sx</string>
+    <string name="k_ma">Mark a</string>
+    <string name="k_mb">Mark b</string>
+    <string name="s_fast">Fast: %1$s sessions</string>
+    <string name="s_slow">Slow: %1$s sessions</string>
+    <string name="i_fast">Fast %1$s</string>
+    <string name="i_slow">Slow %1$s</string>
+</resources>
+"""
+    SESSIONS = choice_row(8, {"if": "fast", "then": ["Fast: ", hole("v == null ? 0 : v", 1), " sessions"],
+                              "else": ["Slow: ", hole("v == null ? 0 : v", 1), " sessions"]}, ["s_fast", "s_slow"])
+
+    def test_a_value_ternary_is_one_hole(self):
+        self.edit(SERVICE, '(fast ? "Fast: " : "Slow: ") + (v == null ? 0 : v) + " sessions"',
+                  "fast ? T.sFast(v == null ? 0 : v) : T.sSlow((v == null ? 0 : v))")
+        problems, warnings, _ = self.check([self.SESSIONS])
+        self.assertEqual(problems, [])
+        self.assertEqual(len([w for w in warnings if "choice row at" in w]), 1, warnings)
+
+    def test_a_value_ternary_with_an_id_literal_is_not_copied(self):
+        # A literal in a value ternary's condition stays one hole, but passing it to both calls copies the
+        # literal, which G1 still refuses.
+        self.edit(SERVICE, '(fast ? "Fast " : "Slow ") + ("On".equals(v) ? 1 : 2)',
+                  'fast ? T.iFast("On".equals(v) ? 1 : 2) : T.iSlow("On".equals(v) ? 1 : 2)')
+        ids = choice_row(9, {"if": "fast", "then": ["Fast ", hole('"On".equals(v) ? 1 : 2', 1)],
+                             "else": ["Slow ", hole('"On".equals(v) ? 1 : 2', 1)]}, ["i_fast", "i_slow"])
+        self.assertFails([ids], 'new literal "On"')
+
+    def test_splitting_a_value_ternary_still_fails(self):
+        self.edit(SERVICE, '(fast ? "Fast: " : "Slow: ") + (v == null ? 0 : v) + " sessions"',
+                  "fast ? (v == null ? T.sFast(0) : T.sFast(v)) : T.sSlow(v == null ? 0 : v)")
+        split = choice_row(8, {"if": "fast", "then": {"if": "v == null", "then": ["Fast: ", hole("0", 1), " sessions"],
+                                                      "else": ["Fast: ", hole("v", 1), " sessions"]},
+                               "else": ["Slow: ", hole("v == null ? 0 : v", 1), " sessions"]},
+                           ["s_fast", "s_fast", "s_slow"])
+        self.assertFails([split], "is neither a choice of the base expression")
+
+    def test_char_and_number_choices_fail(self):
+        cases = [
+            ('n + (c ? 1 : 2) + " items"', "c ? T.kOne(n, 1) : T.kTwo(n, 2)",
+             choice_row(4, {"if": "c", "then": [hole("n", 1), hole("1", 2), " items"],
+                            "else": [hole("n", 1), hole("2", 2), " items"]}, ["k_one", "k_two"]),
+             "adds numbers before its first string"),
+            ("n + (c ? '*' : '-') + \" items\"", "c ? T.kStar(n) : T.kDash(n)",
+             choice_row(5, {"if": "c", "then": [hole("n", 1), {"char": "*"}, " items"],
+                            "else": [hole("n", 1), {"char": "-"}, " items"]}, ["k_star", "k_dash"]),
+             "adds numbers before its first string"),
+            ('"Rate " + (fast ? 2 : 1.5) + "x"', "fast ? T.kFast(2) : T.kSlow(1.5)",
+             choice_row(6, {"if": "fast", "then": ["Rate ", hole("2", 1), "x"],
+                            "else": ["Rate ", hole("1.5", 1), "x"]}, ["k_fast", "k_slow"]),
+             "is neither a choice of the base expression"),
+            ("\"Mark \" + (c ? 'a' : 'b')", "c ? T.kMa() : T.kMb()",
+             choice_row(7, {"if": "c", "then": ["Mark ", {"char": "a"}], "else": ["Mark ", {"char": "b"}]},
+                        ["k_ma", "k_mb"]),
+             "chooses between char or number values"),
+        ]
+        for old, head, row, needle in cases:
+            with self.subTest(old=old):
+                self.edit(SERVICE, old, head)
+                self.assertFails([row], needle)
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.repo.write(SERVICE, self.FILES[SERVICE])
+                self.base = self.repo.commit("reset")
+
+
 # ---------------------------------------------------------------------------
 # 5. A plural row through a modelled helper: plural(n, "scooter")
 # ---------------------------------------------------------------------------
@@ -483,13 +563,15 @@ ARCHIVE = PKG + "BackupArchive.java"
 HELPER_BODY = 'static String plural(int count, String noun) { return count + " " + noun + (count == 1 ? "" : "s"); }'
 
 
-def readings(noun="scooter", kind="d", model="count_noun"):
+def readings(noun="scooter", kind="d", model="count_noun", quantity=True, row_kind="plural", forms=("one", "other")):
     import json
-    helper = {"helper": "plural", "model": model,
-              "args": [{"hole": "skipped", "arg": 1, "type": kind, "quantity": True}, noun]}
+    count = {"hole": "skipped", "arg": 1, "type": kind}
+    if quantity:
+        count["quantity"] = True
+    helper = {"helper": "plural", "model": model, "args": [count, noun]}
     form = ["Readings for ", helper, " skipped · not restored"]
-    return ARCHIVE + ":5\t%s\tbackup_readings_skipped\tplural\t" % json.dumps({"one": form, "other": form},
-                                                                              ensure_ascii=False)
+    pieces = form if row_kind != "plural" else {f: form for f in forms}
+    return ARCHIVE + ":5\t%s\tbackup_readings_skipped\t%s\t" % (json.dumps(pieces, ensure_ascii=False), row_kind)
 
 
 class HelperPluralTest(GrammarCase):
@@ -511,7 +593,11 @@ class HelperPluralTest(GrammarCase):
         self.convert()
         problems, warnings, summary = self.check([readings()])
         self.assertEqual(problems, [])
-        self.assertTrue(any('`plural(skipped, "scooter")` is modelled as count_noun' in w for w in warnings), warnings)
+        shown = [w for w in warnings if '`plural(skipped, "scooter")` is modelled as count_noun' in w]
+        self.assertEqual(len(shown), 1, warnings)
+        self.assertIn('with the quantity skipped', shown[0])
+        self.assertIn('one at 1: "Readings for 1 scooter skipped · not restored"', shown[0])
+        self.assertIn('other at 2: "Readings for 2 scooters skipped · not restored"', shown[0])
         self.assertIn("3 literal(s) left", summary)
 
     def test_careless_variants_fail(self):
@@ -530,8 +616,32 @@ class HelperPluralTest(GrammarCase):
                 self.convert()
                 self.assertFails([readings()], "helper plural")
 
+    def test_a_wrong_form_fails_in_g1(self):
+        # Review round 1: "1 scooters" for "1 scooter" passed when the helper sat in a template row, or its count
+        # was no quantity; now the helper row is a plural whose forms G1 renders at 1, 0, 2 and 21.
+        self.repo.write("res/values/strings_test.xml", self.STRINGS.replace("%1$d scooter skipped", "%1$d scooters skipped"))
+        self.convert()
+        self.assertFails([readings()], "backup_readings_skipped[one] at quantity 1 renders 'Readings for 1 scooters")
+        self.repo.write("res/values/strings_test.xml", self.STRINGS.replace("%1$d scooters skipped", "%1$d scooter skipped"))
+        self.assertFails([readings()], "[other] at quantity 0 renders 'Readings for 0 scooter")
+
+    def test_a_template_row_with_a_helper_fails(self):
+        self.repo.write("res/values/strings_test.xml", """<resources>
+    <string name="backup_readings_skipped">Readings for %1$d scooters skipped · not restored</string>
+</resources>
+""")
+        self.edit(ARCHIVE, '"Readings for " + plural(skipped, "scooter") + " skipped · not restored"',
+                  "T.backupReadingsSkipped(skipped)")
+        for row, needle in ((readings(row_kind="template"), "a helper piece belongs only in a plural row"),
+                            (readings(row_kind="template", quantity=False), "must be the plural's quantity")):
+            with self.subTest(row=row):
+                self.assertFails([row], needle)
+
     def test_helper_pieces_parse(self):
-        for row, needle in ((readings(kind="s"), "whole-number (type d)"), (readings(model="plural_s"), "unknown helper model")):
+        for row, needle in ((readings(kind="s"), "whole-number (type d)"), (readings(model="plural_s"), "unknown helper model"),
+                            (readings(quantity=False), "must be the plural's quantity"),
+                            (readings(forms=("other",)), "has one and other forms"),
+                            (readings(row_kind="template"), "belongs only in a plural row")):
             with self.assertRaises(ledger_check.LedgerError) as caught:
                 ledger_check.parse_ledger(HEADER + row + "\n")
             self.assertIn(needle, str(caught.exception))

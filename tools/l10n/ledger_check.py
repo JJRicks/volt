@@ -203,6 +203,73 @@ def _check_helper(piece, where):
         if "hole" not in arg or (want == "count") != (arg["type"] == "d"):
             raise LedgerError("%s: helper model %s's %s argument is a %s hole" % (
                 where, piece["model"], want, "whole-number (type d)" if want == "count" else "text (type s)"))
+        if (want == "count") != bool(arg.get("quantity")):
+            raise LedgerError("%s: helper model %s's %s argument %s the plural's quantity (\"quantity\": true), so "
+                              "G2 checks each form at the quantities that pick it" % (
+                                  where, piece["model"], want, "must be" if want == "count" else "cannot be"))
+
+
+def _check_helper_row(pieces, kind, where):
+    """A helper piece only in a plural row whose forms are all the one base expression, with one and other,
+    and a single quantity source: the helper pluralizes, the catalog's forms must print what it prints."""
+    if not helper_pieces(pieces):
+        return
+    if kind != "plural":
+        raise LedgerError("%s: a helper piece belongs only in a plural row (its count is the plural's quantity)" % where)
+    forms = list(pieces.values())
+    if "one" not in pieces or any(f != forms[0] for f in forms):
+        raise LedgerError("%s: a plural row with a helper piece has one and other forms, each the same base expression "
+                          "(the helper chooses the words)" % where)
+    sources = set(expressions.source_key(h.get("as", h["hole"])) for h in holes(pieces) if h.get("quantity"))
+    if len(sources) != 1:
+        raise LedgerError("%s: a plural row with a helper piece has exactly one quantity source" % where)
+
+
+# What each model prints, for G1's own check of a helper plural row (LedgerTest.helper is the Java twin).
+HELPER_OUTPUT = {
+    "count_noun": lambda count, noun: "%d %s%s" % (count, noun, "" if count == 1 else "s"),
+}
+# The quantities G1 and G2 check each English plural form at (LedgerTest.compare).
+FORM_QUANTITIES = {"one": (1,), "other": (0, 2, 21)}
+HELPER_PLACEHOLDER = re.compile(r"%(\d+)\$([sd])|%%")
+
+
+def _sentinel(hole, quantity):
+    if hole.get("quantity"):
+        return quantity
+    return 1234567 if hole["type"] == "d" else chr(1) + chr(64 + hole["arg"])
+
+
+def evaluate_helper_form(sequence, quantity):
+    """What the base expression of a helper plural row prints at quantity, with sentinel holes."""
+    out = []
+    for p in sequence:
+        if isinstance(p, str):
+            out.append(p)
+        elif "char" in p:
+            out.append(p["char"])
+        elif "helper" in p:
+            out.append(HELPER_OUTPUT[p["model"]](*[a if isinstance(a, str) else _sentinel(a, quantity)
+                                                   for a in p["args"]]))
+        else:
+            out.append(str(_sentinel(p, quantity)))
+    return "".join(out)
+
+
+def render_helper_form(template, sequence, quantity):
+    """The catalog form filled with the same sentinels, or None when it uses other conversions (G2 checks it)."""
+    if re.search(r"%(?!(\d+\$[sd]|%))", template):
+        return None
+    by_arg = {h["arg"]: h for h in holes(sequence) if "arg" in h}
+
+    def substitute(m):
+        if m.group(0) == "%%":
+            return "%"
+        hole = by_arg.get(int(m.group(1)))
+        if hole is None or (hole["type"] == "d") != (m.group(2) == "d"):
+            return m.group(0)
+        return str(_sentinel(hole, quantity))
+    return HELPER_PLACEHOLDER.sub(substitute, template)
 
 
 def helper_source(piece):
@@ -457,10 +524,12 @@ def parse_ledger(text, source="ledger"):
                     raise LedgerError("%s: plural pieces are {\"one\": [...], \"other\": [...]}" % where)
                 for quantity, sequence in pieces.items():
                     _check_sequence(sequence, "%s[%s]" % (where, quantity))
+                _check_helper_row(pieces, kind, where)
             elif kind == CHOICE:
                 if note.startswith("manual:"):
                     raise LedgerError("%s: a choice row is checked whole; it takes no \"manual:\" note" % where)
                 _check_choice(pieces, where)
+                _check_helper_row(pieces, kind, where)
                 if len(choice_leaves(pieces)) != len(key.split(",")):
                     raise LedgerError("%s: a choice row has %d branch(es) and %d key(s)" % (
                         where, len(choice_leaves(pieces)), len(key.split(","))))
@@ -468,8 +537,10 @@ def parse_ledger(text, source="ledger"):
                 if note.startswith("manual:"):
                     raise LedgerError("%s: a format row is checked whole; it takes no \"manual:\" note" % where)
                 split, pieces = pieces, _check_split(pieces, where)
+                _check_helper_row(pieces, kind, where)
             else:
                 _check_sequence(pieces, where)
+                _check_helper_row(pieces, kind, where)
             if kind == "exact" and (len(pieces) != 1 or not isinstance(pieces[0], str)):
                 raise LedgerError("%s: an exact row has exactly one string piece" % where)
             # A choice row's branches are templates of their own; plural forms share their args.
@@ -718,6 +789,19 @@ def check_against_catalog(rows, catalog, changes=None):
             if rendered is not None and rendered[0] != rendered[1]:
                 problems.append("%s: template %s renders %r with sentinels, the original %r" % (
                     where, row.key, rendered[0], rendered[1]))
+        elif helper_pieces(row.pieces):
+            for quantity in sorted(entry.items):
+                if quantity not in row.pieces:
+                    problems.append("%s: plural %s has a %s item, but the helper row models no %s form" % (
+                        where, row.key, quantity, quantity))
+                    continue
+                text = extraction_text(entry, quantity, changes, problems, where)
+                for q in FORM_QUANTITIES.get(quantity, ()) if text is not None else ():
+                    rendered = render_helper_form(text, row.pieces[quantity], q)
+                    expected = evaluate_helper_form(row.pieces[quantity], q)
+                    if rendered is not None and rendered != expected:
+                        problems.append("%s: plural %s[%s] at quantity %d renders %r, but the base expression prints "
+                                        "%r" % (where, row.key, quantity, q, rendered, expected))
         else:
             for quantity, sequence in row.pieces.items():
                 if quantity not in entry.items:
@@ -2845,6 +2929,41 @@ def _chain_around(tokens, first, last):
     return lo, hi
 
 
+def _has_text_literal(tokens, first, last):
+    """True when a branch of the ternary first..last (or ( ... ) around it) holds a string or char literal;
+    literals in its condition (an id test) do not count."""
+    while _group(tokens, first, last):
+        first, last = first + 1, last - 1
+    parts = _ternary(tokens, first, last)
+    if parts is None:
+        return any(tokens[j].kind in ("string", "char") for j in range(first, last + 1))
+    return any(tokens[j].kind in ("string", "char") for j in range(parts[1][0], parts[2][1] + 1))
+
+
+def _string_typed(tokens, first, last):
+    """True when first..last is surely a String in Java: a string literal, a + chain with a String among its
+    first two operands, or a ternary one of whose branches is (then its result is a reference and no
+    numeric promotion happens). Unknown values (names, calls) are not."""
+    while _group(tokens, first, last):
+        first, last = first + 1, last - 1
+    if first == last:
+        return tokens[first].kind == "string"
+    parts = _ternary(tokens, first, last)
+    if parts is not None:
+        return _string_typed(tokens, *parts[1]) or _string_typed(tokens, *parts[2])
+    top = _top_level(tokens, first, last)
+    if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS for j in top):
+        return False
+    cuts = [j for j in top if _op(tokens, j, "+")]
+    if not cuts:
+        return False
+    operands, start = [], first
+    for j in cuts + [last + 1]:
+        operands.append((start, j - 1))
+        start = j + 1
+    return any(_string_typed(tokens, a, b) for a, b in operands[:2])
+
+
 def parse_choice(index, first, last, literals, conditions):
     """The base expression first..last as items: ("s", text), ("c", char), ("h", source) or
     ("t", condition source key, condition source, then items, else items). literals collects the
@@ -2857,8 +2976,14 @@ def parse_choice(index, first, last, literals, conditions):
             break
         first, last = first + 1, last - 1
     parts = _ternary(tokens, first + 1, last - 1) if _group(tokens, first, last) else _ternary(tokens, first, last)
+    if parts is not None and not _has_text_literal(tokens, first, last):
+        # A ternary with no text in it picks a value, not words: it is one hole, passed as it is.
+        return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
     if parts is not None:
         (c1, c2), (t1, t2), (e1, e2) = parts
+        if not (_string_typed(tokens, t1, t2) or _string_typed(tokens, e1, e2)):
+            raise LedgerError("`%s` chooses between char or number values (Java promotes them to one type), which a "
+                              "choice row does not model" % expressions.source_of(index.text, tokens, first, last))
         conditions.update(j for j in range(c1, c2 + 1) if tokens[j].kind in expressions.LITERALS)
         source = expressions.source_of(index.text, tokens, c1, c2)
         return [("t", expressions.source_key(source), " ".join(source.split()),
@@ -2874,7 +2999,7 @@ def parse_choice(index, first, last, literals, conditions):
         start = j + 1
     items = []
     texty = [n for n, (a, b) in enumerate(operands) if (a == b and tokens[a].kind == "string") or
-             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1))]
+             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _string_typed(tokens, a, b))]
     if len(operands) > 1 and (not texty or texty[0] > 1 or (texty[0] == 1 and tokens[operands[0][0]].kind == "char"
                                                             and operands[0][0] == operands[0][1])):
         if not texty:
@@ -2888,7 +3013,7 @@ def parse_choice(index, first, last, literals, conditions):
         elif a == b and tokens[a].kind == "char":
             items.append(("c", tokens[a].value))
             literals.add(a)
-        elif _group(tokens, a, b) and _ternary(tokens, a + 1, b - 1):
+        elif _group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _has_text_literal(tokens, a, b):
             items.extend(parse_choice(index, a, b, literals, conditions))
         else:
             items.append(("h", " ".join(expressions.source_of(index.text, tokens, a, b).split())))
@@ -3244,9 +3369,14 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             if problem:
                 problems.append("%s: %s" % (where, problem))
             else:
+                shown = "; ".join("%s at %d: %s" % (form, q, json.dumps(evaluate_helper_form(row.pieces[form], q),
+                                                                         ensure_ascii=False))
+                                  for form in ("one", "other") for q in FORM_QUANTITIES[form][:2])
                 warnings.append("%s: at %s:%d `%s` is modelled as %s (its declaration matches the model token for token); "
-                                "G2 renders the row's forms against that model's output at each sentinel quantity" % (
-                                    where, row.path, row.base_line, helper_source(piece), piece["model"]))
+                                "key %s's forms must print what the base prints with the quantity %s (G1 and G2 check "
+                                "one at 1 and other at 0, 2 and 21): %s" % (
+                                    where, row.path, row.base_line, helper_source(piece), piece["model"], row.key,
+                                    " ".join(expected_arguments(row)[0]), shown))
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
