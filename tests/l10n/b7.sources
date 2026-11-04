@@ -1,0 +1,10 @@
+# B7, the connection controller (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the lock tap's reasons, the dropped-connection notices and the shared connection ids, pinned before the batch.
+src/com/jjricks/volt/LockTapQueue.java
+# ConnectionText: the English ids' display text, which LockTapQueue and BleController use (pure).
+src/com/jjricks/volt/ConnectionText.java
+src/com/jjricks/volt/ProximityFollowUp.java
+tests/l10n/characterization/ConnectionTextTest.java
+# B7's own suite: the drop templates, the shared ids and result tokens kept as English, and the lock tap reasons.
+tests/l10n/BleTextTest.java
