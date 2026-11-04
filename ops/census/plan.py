@@ -19,7 +19,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 SHA = re.compile(r'[0-9a-f]{40}')
 TAG = re.compile(r'[a-z0-9][a-z0-9-]{0,39}')
-MAX_SHARDS = 12
+MAX_SHARDS = 18  # max-parallel in census.yml: 18 run jobs leave 2 of 20 for CI
 MAX_HEADS = 8
 
 
@@ -102,7 +102,7 @@ def main():
     runs = len(steps) * (2 + len(heads))
     print(f'base {base_tag} {base_sha}; heads {" ".join(t for t, _ in heads)}; {len(steps)} step(s), {runs} run(s), {count} shard(s)')
     for s in shards:
-        print(f'  shard {s["index"]}: ~{s["load"] * (2 + len(heads))} s local-equivalent: {" ".join(s["steps"])}')
+        print(f'  shard {s["index"]}: ~{s["load"] * (2 + len(heads))} s estimated: {" ".join(s["steps"])}')
 
 
 if __name__ == '__main__':

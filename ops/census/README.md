@@ -74,9 +74,11 @@ run job is red when its emulator did not boot (or a restart failed); its runs ar
 
 ## What is different from the local census
 
-- **Machine.** A standard `ubuntu-latest` runner per shard (up to 12 at once), each with one emulator.
-  Steps are spread over shards by their local run time (`weights.tsv`); every tag of a step runs on
-  the same emulator, in the order `B-r1`, heads, `B-r2`.
+- **Machine.** A standard `ubuntu-latest` runner per shard, each with one emulator: up to 18
+  concurrent run jobs (`max-parallel: 18`, at most 18 shards), owner-authorized 2026-11-04, which
+  leaves 2 of the free plan's 20 concurrent jobs for CI. Steps are spread over shards by their run
+  time (`weights.tsv`: cloud seconds where measured, else local); every tag of a step runs on the
+  same emulator, in the order `B-r1`, heads, `B-r2`, so the longest step (`guided`) sets the floor.
 - **Image.** `system-images;android-36;google_apis;x86_64` (Android 16, API 36, a userdebug build
   without Play) under KVM, instead of the local `android-36.1;google_apis_playstore;arm64-v8a`. If it
   can't be installed, `android-35;google_apis;x86_64` is used, with a warning; `results.txt` names the

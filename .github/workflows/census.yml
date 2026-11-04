@@ -53,7 +53,7 @@ jobs:
     timeout-minutes: 360
     strategy:
       fail-fast: false
-      max-parallel: 12
+      max-parallel: 18
       matrix:
         include: ${{ fromJSON(needs.build.outputs.shards) }}
     steps:

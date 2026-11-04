@@ -1,13 +1,15 @@
-# step\tseconds: mean local time of one census run (Apple silicon, -gpu host; wave3 b11+b16 sweeps).
+# step\tseconds: time of one census run. Cloud seconds (ubuntu-latest, smoke-6 mean) where measured:
+# backup-render, compat-gating, rides, dashboard; else the mean local time (Apple silicon, -gpu host;
+# wave3 b11+b16 sweeps).
 # Only used to balance shards; a missing step counts 60.
 backups	274
 backup-scenario	120
-backup-render	162
+backup-render	54
 backup-render-damaged	91
 backup-render-scooters	62
 guided	818
 guided-queue	116
-compat-gating	210
+compat-gating	236
 compat-controls	210
 compat-ut5-screens	60
 compat-import-name	30
@@ -18,7 +20,7 @@ battery-widgets	46
 learned-range	26
 ride-auto-stop	73
 ride-backups	28
-rides	232
+rides	397
 live-stats	161
 responsive	321
 responsive-modes	114
@@ -34,7 +36,7 @@ charge-alerts-725	34
 my-scooters-725	28
 developer-settings-725	43
 dashboard-offline-lock-725	14
-dashboard	52
+dashboard	193
 dashboard-layout-slots	25
 dashboard-home-widgets	14
 dashboard-slots	5
