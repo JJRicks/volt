@@ -1,0 +1,5 @@
+# Steps the cloud emulator cannot run, one per line: step<TAB>reason. report.py marks every run of a
+# listed step NOT CLEAN ("NOT COVERED in the cloud"), whatever its result, so the laptop census must
+# run it. Empty since 2026-11-04: on the android-36 image guided, guided-queue and
+# charge-schedule-wire could not run (its BluetoothGatt has no mClientRegistered field for the
+# synthetic GATT link); the 36.1 image used now has it.

@@ -10,9 +10,13 @@ on:
 permissions:
   contents: read
 
+# One census or probe run at a time across every branch (census-probe.yml shares this group), so the
+# run jobs (max-parallel 18) leave 2 of the free plan's 20 concurrent jobs for CI. A run pushed while
+# another is going waits for it; GitHub keeps only the newest waiting run per group (it cancels an
+# older waiting one), so push one census-run branch at a time.
 concurrency:
-  group: census-${{ github.ref }}
-  cancel-in-progress: true
+  group: census-cloud
+  cancel-in-progress: false
 
 jobs:
   build:
@@ -50,7 +54,9 @@ jobs:
   run:
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    # The longest shard is guided alone: 5 runs of about 15-20 min on the cloud emulator, plus about
+    # 4 min of install and boot. A shard stops after 2 boot failures in a row (shard.sh).
+    timeout-minutes: 240
     strategy:
       fail-fast: false
       max-parallel: 18
@@ -96,7 +102,8 @@ jobs:
 
   diff:
     needs: [build, run]
-    if: always() && needs.build.result == 'success'
+    # Not after a cancel: a cancelled run's census-diff would be mostly missing runs.
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

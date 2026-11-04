@@ -20,8 +20,11 @@ compared. So a run is NOT CLEAN when
     volatile, so a head change on it would never be seen);
   - (base runs of the commit screens.tsv was measured on) its screen count differs from the local
     census's count for that step.
-A head with fewer census screens than the base is listed too, as a note: census_diff.py reports
-each screen it lacks ("only in base"), so that already fails its step's diff.
+A step listed in cloud-gaps.tsv (a step the cloud emulator cannot run; the laptop census must) is NOT
+CLEAN for every run whatever its result: its PASS would prove nothing. Runs that shard.sh retried after
+a known cloud flake are listed (the retry's result is the one used). A head with fewer census screens
+than the base is listed too, as a note: census_diff.py reports each screen it lacks ("only in base"),
+so that already fails its step's diff.
 """
 import json
 import os
@@ -46,8 +49,18 @@ for line in (HERE / 'screens.tsv').read_text().splitlines():
         name, count = line.split('\t'); reference[name] = int(count)
 exact_reference = reference_sha == plan['base']['sha']
 
+gaps = {}
+gap_file = HERE / 'cloud-gaps.tsv'
+if gap_file.is_file():
+    for line in gap_file.read_text().splitlines():
+        if line and not line.startswith('#'):
+            name, _, why = line.partition('\t'); gaps[name.strip()] = why.strip()
+
 LINE = re.compile(r'^\S+ \[\S+ (\d+)s\] (\S+) (\S+): rc=(-?\d+) ?(.*)$')
-ran = {}
+RETRY = re.compile(r'^\S+ retry: (\S+) (\S+) (.*)$')
+NOT_RUN = re.compile(r'^\S+ not run: (\S+) (\S+) \((.*)\)$')
+BOOTED = re.compile(r'^\S+ booted \S+ \((system-images;[^,]+),')
+ran, retries, skipped, images = {}, [], {}, {}
 shard_logs = sorted((out / 'logs').glob('shard-*/results.txt'), key=lambda p: int(p.parent.name.split('-')[1]))
 with (diff_dir / 'results.txt').open('w') as merged:
     for path in shard_logs:
@@ -56,6 +69,12 @@ with (diff_dir / 'results.txt').open('w') as merged:
             merged.write(line + '\n')
             m = LINE.match(line)
             if m: ran[(m.group(2), m.group(3))] = (m.group(4), m.group(1), m.group(5))
+            m = RETRY.match(line)
+            if m: retries.append(f'{m.group(1)}\t{m.group(2)}\t{m.group(3)}')
+            m = NOT_RUN.match(line)
+            if m: skipped[(m.group(1), m.group(2))] = m.group(3)
+            m = BOOTED.match(line)
+            if m: images.setdefault(m.group(1), []).append(path.parent.name)
 
 
 def census_files(tag, step):
@@ -70,7 +89,7 @@ rows, missing, not_clean, notes = [], [], [], []
 for step in steps:
     screens_of = {}
     for tag in tags:
-        rc, seconds, line = ran.get((tag, step), ('', '', 'not run'))
+        rc, seconds, line = ran.get((tag, step), ('', '', 'not run: ' + skipped.get((tag, step), 'no result line')))
         summary = out / 'out' / tag / step / 'summary.json'
         screens = problems = ''
         reasons = []
@@ -89,7 +108,9 @@ for step in steps:
         else:
             missing.append(f'{tag}\t{step}'); reasons.append('no summary.json')
         if rc != '0':
-            reasons.append(f'sweep rc={rc or "none (not run)"}')
+            reasons.append(f'sweep rc={rc}' if rc else line)
+        if step in gaps:
+            reasons.append(f'NOT COVERED in the cloud ({gaps[step]}); run this step on the laptop census')
         if tag in screens_of and screens_of[tag] == 0 and reference.get(step, 0) > 0:
             reasons.append(f'no census screens (local census: {reference[step]})')
         if tag in base_runs and exact_reference and tag in screens_of and step in reference \
@@ -120,6 +141,9 @@ for h in plan['heads']:
 print(f'\n{len(steps)} step(s) x {len(tags)} run(s) = {len(rows)} runs on {len(plan["shards"])} shard(s); '
       f'{failed} run(s) with a non-zero sweep rc; **{len(missing)} missing summary.json**; '
       f'**{len(bad_steps)} step(s) not clean** (their PASS proves nothing until rerun).\n')
+print('System image: ' + ('; '.join(f'`{i}` on {len(s)} shard(s)' + (f' ({", ".join(s)})' if len(images) > 1 else '')
+                                   for i, s in sorted(images.items())) or 'none booted')
+      + ('. **Shards used different images**: compare a step only within its shard.' if len(images) > 1 else '') + '\n')
 print(f'Screen counts checked against the local census of {reference_sha}'
       + (' (this base): every base run must match it.\n' if exact_reference else ' (not this base): only zero-screen runs are flagged.\n'))
 for h in heads:
@@ -128,6 +152,12 @@ for h in heads:
 if not_clean:
     print('### Not clean (rerun these steps before trusting their result)\n\n```\n'
           + '\n'.join(n.replace('\t', ' ') for n in not_clean) + '\n```\n')
+if gaps and any(st in gaps for st in steps):
+    print('### Steps the cloud cannot cover (cloud-gaps.tsv): run them on the laptop census\n\n```\n'
+          + '\n'.join(f'{st}: {gaps[st]}' for st in steps if st in gaps) + '\n```\n')
+if retries:
+    print('### Runs retried after a known cloud flake (the retry\'s result is used)\n\n```\n'
+          + '\n'.join(r.replace('\t', ' ') for r in retries) + '\n```\n')
 if notes:
     print('### Heads with fewer census screens than the base (their diff lists each as "only in base")\n\n```\n'
           + '\n'.join(n.replace('\t', ' ') for n in notes) + '\n```\n')

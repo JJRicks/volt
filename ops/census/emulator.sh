@@ -1,22 +1,26 @@
 #!/usr/bin/env bash
 # usage: emulator.sh install | create | boot LOG | kill
 # The cloud twin of the local census AVD (Medium_Phone_API_36.1: 1080x2400 at 420 dpi, 2 GB RAM,
-# hardware keyboard, 6 GB data), but x86_64 under KVM on system-images;android-36;google_apis (not the
-# local 36.1 Play image, whose x86_64 build crash-loops surfaceflinger on GitHub runners; see
-# README.md), booted headless with the local flags except -gpu swiftshader_indirect for -gpu host.
+# hardware keyboard, 6 GB data): the same android-36.1 Play build (BE4B.251210.005), but x86_64 under
+# KVM, booted headless with the local flags except -gpu swiftshader_indirect for -gpu host. The AVD is
+# made with cmdline-tools 23.0's avdmanager: the runner's (12.0) writes target=android-0 for a 36.1
+# image, the emulator then skips that API's GPU features, and surfaceflinger crash-loops (README.md).
 set -euo pipefail
 SDK="${ANDROID_HOME:?}"; ADB="$SDK/platform-tools/adb"; SER=emulator-5554; AVD=census
-SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"; AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
+SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"; AVDMANAGER="$SDK/cmdline-tools/23.0/bin/avdmanager"
 IMAGE_FILE="${RUNNER_TEMP:?}/census-image.txt"
 # One known AVD home for avdmanager and the emulator (the runner image's default moved once).
 export ANDROID_AVD_HOME="$RUNNER_TEMP/avd"; mkdir -p "$ANDROID_AVD_HOME"
 case "${1:-}" in
 install)
   yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
-  "$SDKMANAGER" --install platform-tools emulator > /dev/null
-  # Only images the boot-stability probe (census-probe.yml) found stable with plain
-  # swiftshader_indirect on the latest emulator: android-36 (c2), then android-35 (c4).
-  for image in "system-images;android-36;google_apis;x86_64" "system-images;android-35;google_apis;x86_64"; do
+  "$SDKMANAGER" --install platform-tools emulator "cmdline-tools;23.0" > /dev/null
+  [[ -x "$AVDMANAGER" ]] || { echo "::error::cmdline-tools 23.0 has no avdmanager" >&2; exit 1; }
+  # Only images the boot-stability probe (census-probe.yml, probe-4) found stable with plain
+  # swiftshader_indirect, the latest emulator and avdmanager 23.0, and whose BluetoothGatt has the
+  # fields android-tests' synthetic GATT link sets (android-36 lacks mClientRegistered, so guided,
+  # guided-queue and charge-schedule-wire cannot run there; it is deliberately not a fallback).
+  for image in "system-images;android-36.1;google_apis_playstore;x86_64" "system-images;android-36.1;google_apis;x86_64"; do
     if "$SDKMANAGER" --install "$image" > /dev/null; then echo "$image" > "$IMAGE_FILE"; echo "installed $image"; exit 0; fi
     echo "::warning::could not install $image"
   done
@@ -40,13 +44,15 @@ lines = [l.rstrip('\n') for l in open(path)]
 keep = [l for l in lines if l.split('=', 1)[0].strip() not in want]
 open(path, 'w').write('\n'.join(keep + [f'{k}={v}' for k, v in want.items()]) + '\n')
 PY
-  echo "AVD $AVD from $image (avdmanager $(grep -s '^Pkg.Revision' "$SDK/cmdline-tools/latest/source.properties" | cut -d= -f2)):"; cat "$ANDROID_AVD_HOME/$AVD.ini"; grep -E '^(hw\.lcd|hw\.ramSize|hw\.cpu|hw\.gpu|hw\.keyboard|PlayStore|image\.sysdir)' "$config" ;;
+  want="android-$(cut -d';' -f2 <<< "$image" | sed 's/^android-//')"
+  grep -qx "target=$want" "$ANDROID_AVD_HOME/$AVD.ini" || { echo "::error::AVD target is not $want:" >&2; cat "$ANDROID_AVD_HOME/$AVD.ini" >&2; exit 1; }
+  echo "AVD $AVD from $image (avdmanager $(grep -s '^Pkg.Revision' "$SDK/cmdline-tools/23.0/source.properties" | cut -d= -f2)):"; cat "$ANDROID_AVD_HOME/$AVD.ini"; grep -E '^(hw\.lcd|hw\.ramSize|hw\.cpu|hw\.gpu|hw\.keyboard|PlayStore|image\.sysdir)' "$config" ;;
 boot)
   LOG=${2:?}
   # A secure-adb image only answers an adb key it was booted with: the emulator hands the guest
   # ~/.android/adbkey.pub at launch, and a fresh runner has none ("device unauthorized"). Make one
-  # (a throwaway adb key, not a signing key) and restart the adb server so it uses it. The
-  # google_apis images used now don't need it (the Play image did); it is harmless.
+  # (a throwaway adb key, not a signing key) and restart the adb server so it uses it. The Play
+  # image needs it; the google_apis fallback doesn't, and it is harmless there.
   if [[ ! -s "$HOME/.android/adbkey.pub" ]]; then
     mkdir -p "$HOME/.android"; rm -f "$HOME/.android/adbkey"
     "$ADB" keygen "$HOME/.android/adbkey" > /dev/null 2>&1

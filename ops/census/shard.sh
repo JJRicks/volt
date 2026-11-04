@@ -14,25 +14,56 @@ for t in ${CENSUS_HEADS:?} ${CENSUS_STEPS:?}; do [[ "$t" =~ ^[a-z0-9][a-z0-9-]*$
 L="$OUT/logs/shard-$N"; R="$L/results.txt"; RUNNER="$APKS/runner.apk"; mkdir -p "$L" "$OUT/out"
 booted() { [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; }
 echo "$(date +%T) shard $N: base $B heads $CENSUS_HEADS steps $CENSUS_STEPS" >> "$R"
-# The job goes red (after every run has been tried) when an emulator never came up.
-bootfail=0
-if bash "$HERE/emulator.sh" boot "$L/emu.log"; then echo "$(date +%T) booted $SER ($(cat "$RUNNER_TEMP/census-image.txt"), -gpu swiftshader_indirect)" >> "$R"
-else echo "$(date +%T) first boot failed" >> "$R"; echo "::error::shard $N: the emulator did not boot"; bootfail=1; fi
+# The job goes red (after every run has been tried) when an emulator never came up. Two boot
+# failures in a row stop the shard: every run left is recorded as not run (report.py flags each one),
+# instead of a broken image or emulator holding the runner for hours.
+bootfail=0; failstreak=0
+boot() {
+  if bash "$HERE/emulator.sh" boot "$L/emu.log"; then failstreak=0; return 0; fi
+  bootfail=1; failstreak=$((failstreak + 1)); return 1
+}
+if boot; then echo "$(date +%T) booted $SER ($(cat "$RUNNER_TEMP/census-image.txt"), -gpu swiftshader_indirect)" >> "$R"
+else echo "$(date +%T) first boot failed" >> "$R"; echo "::error::shard $N: the emulator did not boot"; fi
+# Known cloud-emulator flakes, matched in a failed run's sweep log: that run is retried once on the
+# same emulator (both attempts are logged; report.py lists every retry). Only the IME is retried:
+# Gboard on the swiftshader emulator sometimes takes over the tests' 8 s wait to show its password
+# keyboard (ImeTracker: onFailed at PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT), mostly in the first minutes
+# after boot. A head whose own change breaks the keyboard fails both attempts.
+FLAKE='Enable the emulator software keyboard for password validation'
+stopped=""
 for STEP in $CENSUS_STEPS; do
   for TAG in "$B-r1" $CENSUS_HEADS "$B-r2"; do
+    if [[ -n $stopped ]]; then echo "$(date +%T) not run: $TAG $STEP ($stopped)" >> "$R"; continue; fi
     case "$TAG" in "$B-r1"|"$B-r2") APP="$APKS/$B/app.apk" ;; *) APP="$APKS/$TAG/app.apk" ;; esac
     if ! booted; then
       echo "$(date +%T) emulator not booted; restarting it" >> "$R"
-      bash "$HERE/emulator.sh" kill; bash "$HERE/emulator.sh" boot "$L/emu.log" || { echo "$(date +%T) restart failed" >> "$R"; echo "::error::shard $N: emulator restart failed"; bootfail=1; }
+      bash "$HERE/emulator.sh" kill
+      if ! boot; then
+        echo "$(date +%T) restart failed ($failstreak boot failure(s) in a row)" >> "$R"; echo "::error::shard $N: emulator restart failed"
+        if (( failstreak >= 2 )); then
+          stopped="shard stopped after $failstreak boot failures in a row"; echo "::error::shard $N: $stopped"
+          echo "$(date +%T) not run: $TAG $STEP ($stopped)" >> "$R"; continue
+        fi
+      fi
     fi
-    echo "::group::$TAG $STEP"
-    T0=$(date +%s); "$ADB" -s $SER logcat -c 2>/dev/null
-    (cd "$WT" && timeout -k 60 5400 python3 -I android-tests/run-release-sweep.py --adb "$ADB" --serial $SER --census \
-        --app "$APP" --runner "$RUNNER" --out "$OUT/out/$TAG/$STEP" --only "$STEP") > "$L/log-$TAG-$STEP.txt" 2>&1
-    RC=$?
-    mkdir -p "$OUT/out/$TAG/$STEP"; timeout 120 "$ADB" -s $SER logcat -d -b main,system,crash > "$OUT/out/$TAG/$STEP/logcat.txt" 2>/dev/null
-    SUM=$(grep -E "PASS|FAIL" "$L/log-$TAG-$STEP.txt" | grep -v -E "blake2|hashlib" | tail -1 | cut -c1-170)
-    tail -n 4 "$L/log-$TAG-$STEP.txt"; echo "::endgroup::"
+    for attempt in 1 2; do
+      label=""; (( attempt == 2 )) && label=" (retry)"
+      echo "::group::$TAG $STEP$label"
+      rm -rf "$OUT/out/$TAG/$STEP"
+      T0=$(date +%s); "$ADB" -s $SER logcat -c 2>/dev/null
+      (cd "$WT" && timeout -k 60 5400 python3 -I android-tests/run-release-sweep.py --adb "$ADB" --serial $SER --census \
+          --app "$APP" --runner "$RUNNER" --out "$OUT/out/$TAG/$STEP" --only "$STEP") > "$L/log-$TAG-$STEP.txt" 2>&1
+      RC=$?
+      mkdir -p "$OUT/out/$TAG/$STEP"; timeout 120 "$ADB" -s $SER logcat -d -b main,system,crash > "$OUT/out/$TAG/$STEP/logcat.txt" 2>/dev/null
+      SUM=$(grep -E "PASS|FAIL" "$L/log-$TAG-$STEP.txt" | grep -v -E "blake2|hashlib" | tail -1 | cut -c1-170)
+      tail -n 4 "$L/log-$TAG-$STEP.txt"; echo "::endgroup::"
+      if (( RC != 0 && attempt == 1 )) && grep -qF "$FLAKE" "$L/log-$TAG-$STEP.txt"; then
+        cp "$L/log-$TAG-$STEP.txt" "$L/log-$TAG-$STEP-attempt1.txt"
+        echo "$(date +%T) retry: $TAG $STEP after $(( $(date +%s)-T0 ))s: rc=$RC keyboard flake ($FLAKE)" | tee -a "$R"
+        continue
+      fi
+      break
+    done
     echo "$(date +%T) [$SER $(( $(date +%s)-T0 ))s] $TAG $STEP: rc=$RC $SUM" | tee -a "$R"
   done
 done

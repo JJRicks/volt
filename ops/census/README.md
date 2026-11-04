@@ -32,8 +32,12 @@ git push origin census-run/b16-vs-main
   named `<tag>-r1` and `<tag>-r2`, so a head may not use those names. One to eight heads.
 - `steps` is `"all"` (the 64 steps of `steps.txt`, a copy of the local census list) or a list of
   step names from `steps.txt`, e.g. `["backup-render", "compat-gating"]`.
-- Pushing the same branch again cancels the run in progress and starts over. A new comparison wants a
-  new branch name (or a new commit on the old one).
+- **One census or probe run at a time, across every branch.** `census.yml` and `census-probe.yml`
+  share the concurrency group `census-cloud` (`cancel-in-progress: false`), so 18 run jobs at most
+  are ever busy and 2 of the free plan's 20 concurrent jobs stay free for CI. A run pushed while
+  another is going waits for it. GitHub keeps only the newest waiting run of the group and cancels an
+  older waiting one, so push the next `census-run/*` branch only once the previous run has started
+  (or finished). Pushing a new commit to a running branch no longer cancels it.
 
 The request is validated by `plan.py` before anything is built (SHAs, tags and steps are checked and
 only then handed to scripts, through environment variables).
@@ -84,6 +88,21 @@ as you would locally). The run job is red when its emulator did not boot (or a r
 runs are still tried. `diff.sh` itself stays the local script, so its `NOT CLEAN` block still only
 looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the complete list.
 
+Also not clean, for every run of the step: a step listed in **`cloud-gaps.tsv`** (a step the cloud
+emulator cannot run, marked "NOT COVERED in the cloud": run it on the laptop census). The file is
+empty now; see "Known cloud gaps" below. And every run a shard never got to: a shard **stops after 2
+boot failures in a row** and records each remaining run as `not run: ... (shard stopped ...)`, so a
+broken image cannot hold 18 runners for hours (the run job's timeout is 240 minutes).
+
+**Retries.** One known emulator flake is retried once, on the same emulator: a run whose sweep failed
+with "Enable the emulator software keyboard for password validation" (`PasswordKeyboardChecks`, in the
+backup steps). On the swiftshader emulator Gboard sometimes needs longer than the test's 8 s to show
+its password keyboard, mostly in the first minutes after a boot (logcat: `ImeTracker ... onFailed at
+PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT`, keyboard ready about 8.7 s after the request). The retry's result
+is the one used; the first attempt's log is kept as `log-<tag>-<step>-attempt1.txt` and every retry is
+listed in `results.txt` (`retry: ...`) and on the summary page. A head that really breaks the keyboard
+fails both attempts.
+
 ## What is different from the local census
 
 - **Machine.** A standard `ubuntu-latest` runner per shard, each with one emulator: up to 18
@@ -91,18 +110,22 @@ looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the com
   leaves 2 of the free plan's 20 concurrent jobs for CI. Steps are spread over shards by their run
   time (`weights.tsv`: cloud seconds where measured, else local); every tag of a step runs on the
   same emulator, in the order `B-r1`, heads, `B-r2`, so the longest step (`guided`) sets the floor.
-- **Image.** `system-images;android-36;google_apis;x86_64` (Android 16, API 36, a userdebug build
-  without Play) under KVM, instead of the local `android-36.1;google_apis_playstore;arm64-v8a`. If it
-  can't be installed, `android-35;google_apis;x86_64` is used, with a warning; `results.txt` names the
-  image of each shard. Same 1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 2 CPU
-  cores (the local AVD has 1). Why not 36.1: on `ubuntu-latest` its x86_64 Play image (BE4B.251210.005)
-  aborts surfaceflinger every few seconds ("Assertion failed:
-  !rcEnc->featureInfo()->hasReadColorBufferDma" in the goldfish mapper) under every GPU mode tried
-  (swiftshader, swangle, guest, host Mesa), so System UI never settles and every run hangs. A likely
-  cause is the runner's old avdmanager (command-line tools 12.0) writing `target=android-0` for
-  Major.Minor platforms, so the emulator skips its per-API GPU features; `create` prints the AVD's
-  root ini so this can be checked. The census only compares cloud runs with cloud runs of the same
-  workflow run, so the image needn't match the local one; per-app languages need API 33 or newer.
+- **Image.** `system-images;android-36.1;google_apis_playstore;x86_64`: the same Android 16 QPR2 Play
+  build as the local AVD (BE4B.251210.005, a user build), but x86_64 under KVM instead of arm64-v8a.
+  If it can't be installed, `android-36.1;google_apis;x86_64` (the same build, userdebug, no Play) is
+  used with a warning; `results.txt` and the summary page name the image of each shard. Same
+  1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 2 CPU cores (the local AVD has 1).
+  **The AVD must be made with a new avdmanager**: `emulator.sh` installs `cmdline-tools;23.0` and
+  uses its avdmanager. The runner's own (command-line tools 12.0) writes `target=android-0` for a
+  Major.Minor image such as 36.1; the emulator then skips that API's GPU features and surfaceflinger
+  aborts every few seconds ("Assertion failed: !rcEnc->featureInfo()->hasReadColorBufferDma"), under
+  every GPU mode and emulator build tried. `create` now fails unless the AVD's `target=` names the
+  image's API. Until 2026-11-04 the census used `android-36;google_apis;x86_64` to dodge that crash,
+  but that image's BluetoothGatt has no `mClientRegistered` field, which android-tests' synthetic GATT
+  link sets by reflection, so `guided`, `guided-queue` and `charge-schedule-wire` failed for every tag
+  ("Synthetic link unavailable (is hidden_api_policy relaxed?)", caused by "Missing field
+  mClientRegistered") with 2 census screens instead of 132. Android 36 and 35 images are therefore not
+  fallbacks.
 - **GPU.** `-gpu swiftshader_indirect` (software) instead of `-gpu host`; the other boot flags are the
   local ones (`-no-window -no-audio -no-boot-anim -read-only -no-snapshot`). Screens render the same
   text, but timing differs, so compare cloud runs only with cloud runs: base and heads of one
@@ -115,24 +138,40 @@ looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the com
 - **Restarts.** If a shard's emulator stops answering between runs it is restarted, and
   `results.txt` says so; each sweep run is limited to 90 minutes.
 
+## Known cloud gaps
+
+None at the moment: every step of `steps.txt` runs in the cloud on the 36.1 image. When a step cannot
+(an image without a field or service a validation needs, say), add it to `cloud-gaps.tsv` with the
+reason: `report.py` then marks every run of it NOT COVERED and the diff job fails, so the step's
+cloud PASS is never taken for coverage, and the laptop census has to run it.
+
 ## Boot-stability probe
 
 `.github/workflows/census-probe.yml` (with `probe.sh`) boots one emulator per configuration in
 parallel and watches surfaceflinger, uiautomator and a screenshot for 180 s after boot. It is kept
 for the next emulator or image update: push a `census-run/probe-<name>` branch (census.yml ignores
-those) and read each job's verdict. Its 2026-11-04 result (run 41887703341, commit 43ee2e5;
-emulator 37.2.13 unless pinned; host CPUs varied and changed nothing):
+those) and read each job's verdict. Probe-2 (2026-11-04, run 41887703341, commit 43ee2e5; emulator
+37.2.13 unless pinned; host CPUs varied and changed nothing; every AVD made by the runner's avdmanager
+12.0, so the 36.1 rows had `target=android-0`, see below):
 
 | Config | Stable | Boot |
 |---|---|---|
 | android-36.1 google_apis_playstore, swiftshader_indirect (-feature -Vulkan) | no: 15 surfaceflinger crashes in 180 s | 51 s |
 | android-36.1 google_apis_playstore, -gpu host (Mesa llvmpipe on Xvfb) | no: 25 crashes | 55 s |
-| **android-36 google_apis, swiftshader_indirect** (used) | yes, 0 crashes | 50 s |
-| android-35 google_apis, swiftshader_indirect (fallback) | yes | 35 s |
+| android-36 google_apis, swiftshader_indirect (used until probe-4; lacks a BluetoothGatt field) | yes, 0 crashes | 50 s |
+| android-35 google_apis, swiftshader_indirect | yes | 35 s |
 | android-34 / android-33 google_apis, swiftshader_indirect | yes | 40 / 31 s |
 | android-35 google_apis, -gpu host (Mesa llvmpipe) | yes | 40 s |
 | `-feature -Vulkan` on any stable image | no difference | |
 | pinned emulator 35.6.11 (13610412) with android-35 / android-36 | yes | 41 / 56 s |
+
+Probe-3 and probe-4 (2026-11-04, runs 41898211252 and 41899423791) found why 36.1 crashed: with the
+runner's avdmanager 12.0 (AVD `target=android-0`), android-36.1 google_apis, 36.1 Play and 37.0
+google_apis all crash surfaceflinger (6 to 9 aborts in 180 s), also with the pinned 35.6.11 emulator.
+With cmdline-tools 23.0's avdmanager (`target=android-36.1` / `android-37.0`) all three are stable
+(0 crashes, boot 35 to 45 s) and have every BluetoothGatt field the tests set; android-36,
+36-ext18 and 36-ext19 (BE2A builds) are stable but lack `mClientRegistered`. `probe.sh` reports
+`avd_target` and `gatt_missing` for each configuration (`PROBE_AVDTOOLS=new` uses avdmanager 23.0).
 
 Earlier smoke runs also tried android-36.1 Play with `swiftshader_indirect -feature
 -ReadColorBufferDma`, `guest` and `swangle_indirect -feature -ReadColorBufferDma`: all unstable
