@@ -22,7 +22,5 @@ MoreScreen.java	model-line	3	B18	model line shown on the saved scooter, the lab 
 MoreScreen.java	oem-label	1	B18	d.oemLabel(value) in the experimental value line (1608): d.oemText(value)
 MoreScreen.java	reason-text	4	B18	lab and PIN reasons (1662, 1986, 2529): rendered at display, current language already; B18 joins them into whole templates
 MoreScreen.java	resolver-text	1	B18	CapabilityResolver.text(reason) default branch (1689): rendered at display, current language already
-QuickAccessActions.java	feature-field	2	B12	ENTRIES title feature.label and subtitle feature.group (62, 63): int label ids or feature.label()/groupLabel() per plan 1.5 static catalogs
-QuickAccessGrid.java	oem-label	2	B12	decision.oemLabel(value) on the tile (79): decision.oemText(value)
 ScooterService.java	reason-text	2	B8 with B5	toggleReason/timeReason (990) go into ChargeScheduleController.Context and a persisted status (ChargeScheduleController 365/382): carry reasonMessage() or the Reason enum, render at display (R2, BlockReason in plan 1.5)
 DisplayUnits.java	value-label	1	follow-up after wave 2 (B1 merged)	featureValue shows feature.valueLabel(value) for non-speed values (14): feature.valueText(value). Not done in B4: G1 rejects swapping a call outside a ledger row in another batch's file (ledger_check DisplayUnits.java:14, 58e46c8)

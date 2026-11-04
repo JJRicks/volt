@@ -75,18 +75,18 @@ final class QuickAccessGrid extends ViewGroup {
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
             String state = feature == null || feature.sensitive && !unmapped ? ""
-                    : unmapped ? "—" : pending ? "Updating…" : value == null ? "—"
-                    : decision != null && decision.oemLabel(value) != null ? decision.oemLabel(value)
+                    : unmapped ? "—" : pending ? T.dashboardModelTileUpdating() : value == null ? "—"
+                    : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValue(feature, value, units);
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
-                state = featureLive && service.usesLearnedRange() ? "Volt (learned)" : "Scooter";
+                state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
             }
-            String chargeBlocked = charge == null ? (doneTime ? "Select a scooter first" : "Connect a charger first") : doneTime ? charge.timeBlockedReason
+            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : doneTime ? charge.timeBlockedReason
                     : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason;
             // An armed plan deliberately pauses charging; its own off action remains available.
             if (doneBy && charge != null && charge.doneByEnabled)
-                chargeBlocked = !live ? "Connect your scooter first" : charge.busy ? "Wait for the current change to finish" : null;
+                chargeBlocked = !live ? T.dashboardModelTileConnectScooter() : charge.busy ? T.commonWaitCurrentChange() : null;
             // A measuring window opens its own Keep / Schedule now / Stop choice.
             boolean measuring = doneBy && service != null && service.isChargeMeasuring();
             if (measuring) chargeBlocked = null;
@@ -101,12 +101,12 @@ final class QuickAccessGrid extends ViewGroup {
                     String time = DisplayTime.clock(host.activity(), preferences, deadline.getTimeInMillis());
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
-                    state = pending ? "Updating…" : doneTime ? time : measuring ? "Measuring" : charge.doneByEnabled ? "On • " + activeTime : "Off";
-                } else if (manual) state = pending ? "Updating…" : charge.manualEnabled ? "On" : "Off";
-                else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : "Not scheduled";
+                    state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : T.commonOff();
+                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : T.commonOff();
+                else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
             if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
-                state += " • " + DisplayTime.clock(host.activity(), preferences, charge.startWallMs);
+                state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
@@ -143,12 +143,12 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
             }
             cell.setEnabled(!editing);
-            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label) + (state.isEmpty() ? "" : ", " + state)
+            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label()) + (state.isEmpty() ? "" : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
-                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? ", not offered for this region" : ", not on this model")
-                            : unreadable ? ", unreadable value" : chargeControl && chargeBlocked != null ? ", " + chargeBlocked
-                            : feature != null && !featureLive ? ", last seen" : "")
-                    + (toggle ? ", toggle" : ", open");
+                    + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
+                            : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
+                            : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
+                    + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
             cell.setContentDescription(description);
             if (android.os.Build.VERSION.SDK_INT >= 30) cell.setStateDescription(state);
         }
@@ -230,7 +230,7 @@ final class QuickAccessGrid extends ViewGroup {
                 LinearLayout.LayoutParams indicator = new LinearLayout.LayoutParams(side, side);
                 indicator.setMarginStart(ui.dp(6));
                 addView(icon, indicator);
-                setTooltipText(entry.label); updateBackground();
+                setTooltipText(entry.label()); updateBackground();
                 for (View child : new View[]{words, label, value, icon})
                     child.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
                 return;
@@ -240,14 +240,14 @@ final class QuickAccessGrid extends ViewGroup {
             setClickable(true); setFocusable(true); setMinimumHeight(ui.dp(48));
             icon = ui.icon(entry.icon, 20, ui.accent);
             addView(icon, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-            label = ui.text(entry.label, 12, false);
+            label = ui.text(entry.label(), 12, false);
             label.setGravity(Gravity.CENTER); label.setIncludeFontPadding(false);
             label.setBreakStrategy(android.text.Layout.BREAK_STRATEGY_SIMPLE);
             addView(label, new LinearLayout.LayoutParams(-1, -2));
             value = ui.text("", 11, false); value.setTypeface(ui.medium());
             value.setGravity(Gravity.CENTER); value.setIncludeFontPadding(false);
             addView(value, new LinearLayout.LayoutParams(-1, -2));
-            setTooltipText(entry.label); updateBackground();
+            setTooltipText(entry.label()); updateBackground();
             // The grouped button announces both its label and the current state once.
             for (View child : new View[]{icon, label, value})
                 child.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
@@ -424,10 +424,10 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles use short names: the Scooter page's "Top speed", and "Charge schedule". */
+    /** Setting tiles use short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
-        if ("feature:maximum_speed".equals(entry.id)) return "Top speed";
-        if ("feature:timed_charging".equals(entry.id)) return "Charge schedule";
-        return entry.label;
+        if ("feature:maximum_speed".equals(entry.id)) return T.dashboardModelTileTopSpeed();
+        if ("feature:timed_charging".equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        return entry.shortLabel().render();
     }
 }

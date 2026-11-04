@@ -1,0 +1,66 @@
+# Ledger for b12-dashboard-model: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/QuickAccessActions.java:42	["Lights"]	dashboard_model_qa_lights	exact	
+src/com/jjricks/volt/QuickAccessActions.java:42	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:43	["Settings"]	dashboard_model_qa_settings	exact	
+src/com/jjricks/volt/QuickAccessActions.java:43	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:44	["Live Stats"]	dashboard_model_qa_live_stats	exact	
+src/com/jjricks/volt/QuickAccessActions.java:44	["Pages"]	dashboard_model_qa_group_pages	exact	
+src/com/jjricks/volt/QuickAccessActions.java:45	["Rides"]	dashboard_model_qa_rides	exact	
+src/com/jjricks/volt/QuickAccessActions.java:45	["Pages"]	dashboard_model_qa_group_pages	exact	
+src/com/jjricks/volt/QuickAccessActions.java:46	["Ride settings"]	dashboard_model_qa_ride_settings	exact	
+src/com/jjricks/volt/QuickAccessActions.java:46	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:47	["Battery settings"]	dashboard_model_qa_battery_settings	exact	
+src/com/jjricks/volt/QuickAccessActions.java:47	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:48	["Line lights"]	dashboard_model_qa_line_lights	exact	
+src/com/jjricks/volt/QuickAccessActions.java:48	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:49	["Star lights"]	dashboard_model_qa_star_lights	exact	
+src/com/jjricks/volt/QuickAccessActions.java:49	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:50	["Dashboard & sound"]	dashboard_model_qa_dashboard_sound	exact	
+src/com/jjricks/volt/QuickAccessActions.java:50	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:51	["PIN & proximity"]	dashboard_model_qa_pin_proximity	exact	
+src/com/jjricks/volt/QuickAccessActions.java:51	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:52	["Scooter name"]	dashboard_model_qa_scooter_name	exact	
+src/com/jjricks/volt/QuickAccessActions.java:52	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:53	["App preferences"]	dashboard_model_qa_app_preferences	exact	
+src/com/jjricks/volt/QuickAccessActions.java:53	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:54	["My scooters"]	dashboard_model_qa_my_scooters	exact	
+src/com/jjricks/volt/QuickAccessActions.java:54	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:55	["Experimental controls"]	dashboard_model_qa_experimental	exact	
+src/com/jjricks/volt/QuickAccessActions.java:55	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:56	["Data & history"]	dashboard_model_qa_data_history	exact	
+src/com/jjricks/volt/QuickAccessActions.java:56	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:57	["About & permissions"]	dashboard_model_qa_about_permissions	exact	
+src/com/jjricks/volt/QuickAccessActions.java:57	["Menus"]	dashboard_model_qa_group_menus	exact	
+src/com/jjricks/volt/QuickAccessActions.java:59	["Charge done by"]	dashboard_model_qa_charge_done_by	exact	
+src/com/jjricks/volt/QuickAccessActions.java:59	["Battery"]	controls_group_battery	exact	
+src/com/jjricks/volt/QuickAccessActions.java:60	["Charge done by time"]	dashboard_model_qa_charge_done_time	exact	
+src/com/jjricks/volt/QuickAccessActions.java:60	["Battery"]	controls_group_battery	exact	
+src/com/jjricks/volt/QuickAccessActions.java:63	["Experimental controls"]	dashboard_model_qa_group_experimental	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:78	["Updating…"]	dashboard_model_tile_updating	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:83	["Volt (learned)"]	dashboard_model_tile_range_learned	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:83	["Scooter"]	dashboard_model_tile_range_scooter	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:85	["Select a scooter first"]	dashboard_model_tile_select_scooter	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:85	["Connect a charger first"]	common_connect_charger_first	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:89	["Connect your scooter first"]	dashboard_model_tile_connect_scooter	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:89	["Wait for the current change to finish"]	common_wait_current_change	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:104	["Updating…"]	dashboard_model_tile_updating	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:104	["Measuring"]	dashboard_model_tile_measuring	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:104	["On • ", {"hole": "activeTime", "arg": 1, "type": "s"}]	dashboard_model_tile_on_at	template	
+src/com/jjricks/volt/QuickAccessGrid.java:104	["Off"]	common_off	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:105	["Updating…"]	dashboard_model_tile_updating	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:105	["On"]	common_on	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:105	["Off"]	common_off	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:106	["Not scheduled"]	dashboard_model_tile_not_scheduled	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:109	[" • ", {"hole": "DisplayTime.clock(host.activity(), preferences, charge.startWallMs)", "arg": 1, "type": "s"}]	dashboard_model_tile_at_time	template	
+src/com/jjricks/volt/QuickAccessGrid.java:146	[", ", {"hole": "state", "arg": 1, "type": "s"}]	dashboard_model_tile_desc_part	template	
+src/com/jjricks/volt/QuickAccessGrid.java:148	[", not offered for this region"]	dashboard_model_tile_desc_region	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:148	[", not on this model"]	dashboard_model_tile_desc_model	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:149	[", unreadable value"]	dashboard_model_tile_desc_unreadable	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:149	[", ", {"hole": "chargeBlocked", "arg": 1, "type": "s"}]	dashboard_model_tile_desc_part	template	
+src/com/jjricks/volt/QuickAccessGrid.java:150	[", last seen"]	dashboard_model_tile_desc_last_seen	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:151	[", toggle"]	dashboard_model_tile_desc_toggle	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:151	[", open"]	dashboard_model_tile_desc_open	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:429	["Top speed"]	dashboard_model_tile_top_speed	exact	
+src/com/jjricks/volt/QuickAccessGrid.java:430	["Charge schedule"]	dashboard_model_tile_charge_schedule	exact	

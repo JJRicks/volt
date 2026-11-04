@@ -10,10 +10,44 @@ import java.util.List;
 public final class QuickAccessActions {
     public static final int MIN_ITEMS = 2, MAX_ITEMS = 8;
     public static final class Entry {
+        /** label and group stay the English (search, older screens); label(), shortLabel() and groupLabel() are shown. */
         public final String id, label, icon, group, featureKey;
-        private Entry(String id, String label, String icon, String group, String featureKey) {
-            this.id = id; this.label = label; this.icon = icon; this.group = group;
+        private final Msg labelMsg, groupMsg;
+        private Entry(String id, Msg label, String icon, Msg group, String featureKey) {
+            this.id = id; this.labelMsg = label; this.label = label.english(); this.icon = icon;
+            this.groupMsg = group; this.group = group.english();
             this.featureKey = featureKey;
+        }
+        /** The full name in the current language: Quick access buttons, tooltips, screen readers, the picker. */
+        public Msg label() { return labelMsg; }
+        /** The group caption in the current language (the shortcut picker). */
+        public Msg groupLabel() { return groupMsg; }
+        /**
+         * The short rung of the name (the narrow-label ladder), for a Setting tile's one-line label. A control's
+         * shortcut has none of its own and shows the control's name. In English both rungs are the same text.
+         */
+        public Msg shortLabel() {
+            switch (labelMsg.id()) {
+                case T.DASHBOARD_MODEL_QA_LIGHTS: return M.dashboardModelQaLightsShort();
+                case T.DASHBOARD_MODEL_QA_SETTINGS: return M.dashboardModelQaSettingsShort();
+                case T.DASHBOARD_MODEL_QA_LIVE_STATS: return M.dashboardModelQaLiveStatsShort();
+                case T.DASHBOARD_MODEL_QA_RIDES: return M.dashboardModelQaRidesShort();
+                case T.DASHBOARD_MODEL_QA_RIDE_SETTINGS: return M.dashboardModelQaRideSettingsShort();
+                case T.DASHBOARD_MODEL_QA_BATTERY_SETTINGS: return M.dashboardModelQaBatterySettingsShort();
+                case T.DASHBOARD_MODEL_QA_LINE_LIGHTS: return M.dashboardModelQaLineLightsShort();
+                case T.DASHBOARD_MODEL_QA_STAR_LIGHTS: return M.dashboardModelQaStarLightsShort();
+                case T.DASHBOARD_MODEL_QA_DASHBOARD_SOUND: return M.dashboardModelQaDashboardSoundShort();
+                case T.DASHBOARD_MODEL_QA_PIN_PROXIMITY: return M.dashboardModelQaPinProximityShort();
+                case T.DASHBOARD_MODEL_QA_SCOOTER_NAME: return M.dashboardModelQaScooterNameShort();
+                case T.DASHBOARD_MODEL_QA_APP_PREFERENCES: return M.dashboardModelQaAppPreferencesShort();
+                case T.DASHBOARD_MODEL_QA_MY_SCOOTERS: return M.dashboardModelQaMyScootersShort();
+                case T.DASHBOARD_MODEL_QA_EXPERIMENTAL: return M.dashboardModelQaExperimentalShort();
+                case T.DASHBOARD_MODEL_QA_DATA_HISTORY: return M.dashboardModelQaDataHistoryShort();
+                case T.DASHBOARD_MODEL_QA_ABOUT_PERMISSIONS: return M.dashboardModelQaAboutPermissionsShort();
+                case T.DASHBOARD_MODEL_QA_CHARGE_DONE_BY: return M.dashboardModelQaChargeDoneByShort();
+                case T.DASHBOARD_MODEL_QA_CHARGE_DONE_TIME: return M.dashboardModelQaChargeDoneTimeShort();
+                default: return labelMsg;
+            }
         }
         public ScooterCommands.Feature feature() {
             return featureKey == null ? null : ScooterCommands.find(featureKey);
@@ -39,31 +73,31 @@ public final class QuickAccessActions {
     }
     private static final LinkedHashMap<String, Entry> ENTRIES = new LinkedHashMap<>();
     static {
-        add("lights", "Lights", "lights", "Menus", null);
-        add("controls", "Settings", "settings", "Menus", null);
-        add("stats", "Live Stats", "stats", "Pages", null);
-        add("rides", "Rides", "rides", "Pages", null);
-        add("section:Ride", "Ride settings", "scooter", "Menus", null);
-        add("section:Battery", "Battery settings", "battery", "Menus", null);
-        add("section:Line lights", "Line lights", "lights", "Menus", null);
-        add("section:Star lights", "Star lights", "star", "Menus", null);
-        add("section:Dashboard & sound", "Dashboard & sound", "sound", "Menus", null);
-        add("section:Security", "PIN & proximity", "shield", "Menus", null);
-        add("section:Profile", "Scooter name", "pencil", "Menus", null);
-        add("more:App", "App preferences", "settings", "Menus", null);
-        add("more:Scooters", "My scooters", "scooter", "Menus", null);
-        add("more:Lab", "Experimental controls", "lab", "Menus", null);
-        add("more:Data", "Data & history", "history", "Menus", null);
-        add("more:About", "About & permissions", "info", "Menus", null);
+        add("lights", M.dashboardModelQaLights(), "lights", M.dashboardModelQaGroupMenus(), null);
+        add("controls", M.dashboardModelQaSettings(), "settings", M.dashboardModelQaGroupMenus(), null);
+        add("stats", M.dashboardModelQaLiveStats(), "stats", M.dashboardModelQaGroupPages(), null);
+        add("rides", M.dashboardModelQaRides(), "rides", M.dashboardModelQaGroupPages(), null);
+        add("section:Ride", M.dashboardModelQaRideSettings(), "scooter", M.dashboardModelQaGroupMenus(), null);
+        add("section:Battery", M.dashboardModelQaBatterySettings(), "battery", M.dashboardModelQaGroupMenus(), null);
+        add("section:Line lights", M.dashboardModelQaLineLights(), "lights", M.dashboardModelQaGroupMenus(), null);
+        add("section:Star lights", M.dashboardModelQaStarLights(), "star", M.dashboardModelQaGroupMenus(), null);
+        add("section:Dashboard & sound", M.dashboardModelQaDashboardSound(), "sound", M.dashboardModelQaGroupMenus(), null);
+        add("section:Security", M.dashboardModelQaPinProximity(), "shield", M.dashboardModelQaGroupMenus(), null);
+        add("section:Profile", M.dashboardModelQaScooterName(), "pencil", M.dashboardModelQaGroupMenus(), null);
+        add("more:App", M.dashboardModelQaAppPreferences(), "settings", M.dashboardModelQaGroupMenus(), null);
+        add("more:Scooters", M.dashboardModelQaMyScooters(), "scooter", M.dashboardModelQaGroupMenus(), null);
+        add("more:Lab", M.dashboardModelQaExperimental(), "lab", M.dashboardModelQaGroupMenus(), null);
+        add("more:Data", M.dashboardModelQaDataHistory(), "history", M.dashboardModelQaGroupMenus(), null);
+        add("more:About", M.dashboardModelQaAboutPermissions(), "info", M.dashboardModelQaGroupMenus(), null);
         // Volt schedules a supported charge-start command; these are not new BLE opcodes.
-        add("charge_done_by", "Charge done by", "clock", "Battery", null);
-        add("charge_done_time", "Charge done by time", "clock", "Battery", null);
+        add("charge_done_by", M.dashboardModelQaChargeDoneBy(), "clock", M.controlsGroupBattery(), null);
+        add("charge_done_time", M.dashboardModelQaChargeDoneTime(), "clock", M.controlsGroupBattery(), null);
         for (ScooterCommands.Feature feature : ScooterCommands.catalog())
-            add("feature:" + feature.key, feature.label, icon(feature.key),
-                    feature.experimental ? "Experimental controls" : feature.group, feature.key);
+            add("feature:" + feature.key, feature.label(), icon(feature.key),
+                    feature.experimental ? M.dashboardModelQaGroupExperimental() : feature.groupLabel(), feature.key);
     }
     private QuickAccessActions() {}
-    private static void add(String id, String label, String icon, String group, String featureKey) {
+    private static void add(String id, Msg label, String icon, Msg group, String featureKey) {
         ENTRIES.put(id, new Entry(id, label, icon, group, featureKey));
     }
     public static List<Entry> catalog() {

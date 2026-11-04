@@ -1,0 +1,192 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The dashboard model and quick access (batch B12): the names of the Home shortcuts (Quick access and
+  Setting tiles), the shortcut groups, what a tile shows as its value, how a tile is announced to a
+  screen reader, the names of the dashboard widget types and the shipped example's titles, and the
+  default names of the saved layout slots. The English must stay exactly what the source said before
+  the batch (G1, G2; tests/l10n/characterization/DashboardModelEnglishTest.java pins every shortcut).
+
+  Stored values stay English: a widget's saved title, an export and an import keep the English text,
+  and an owner's own title is shown as typed. Only a title that is still its type's default (or one of
+  the shipped example's titles, or a default slot name) is shown through these entries.
+
+  Shortcut names are a narrow-label ladder: the full name (Quick access buttons, tooltips, screen
+  readers, the shortcut picker) and a _short rung (the single-line label of a Setting tile, about
+  90 dp wide at 12.5 sp). In English both rungs are the same text; translate both, and make the short
+  one shorter where the full name would not fit.
+
+  Tile announcements (the _desc_ entries) are joined in a fixed order after the shortcut's name:
+  name, then the value, then why it is muted, then "toggle" or "open". Each entry carries its own
+  separator (", ") so a language with another list separator can change it.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Shortcut names (QuickAccessActions.Entry.label(), shortLabel()). Entry.label stays the English. -->
+    <!-- Opens the lights menu. -->
+    <string name="dashboard_model_qa_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Lights</string>
+    <string name="dashboard_model_qa_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Lights</string>
+    <!-- Opens the scooter settings menu. -->
+    <string name="dashboard_model_qa_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Settings</string>
+    <string name="dashboard_model_qa_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Settings</string>
+    <!-- Opens the Live Stats page (the page's own name). -->
+    <string name="dashboard_model_qa_live_stats" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Live Stats</string>
+    <string name="dashboard_model_qa_live_stats_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Live Stats</string>
+    <!-- Opens the Rides page (recorded rides). -->
+    <string name="dashboard_model_qa_rides" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Rides</string>
+    <string name="dashboard_model_qa_rides_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Rides</string>
+    <!-- Opens the scooter's ride settings (cruise control, energy recovery, speed). -->
+    <string name="dashboard_model_qa_ride_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Ride settings</string>
+    <string name="dashboard_model_qa_ride_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Ride settings</string>
+    <!-- Opens the scooter's battery settings (charge limit, charge schedule). -->
+    <string name="dashboard_model_qa_battery_settings" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Battery settings</string>
+    <string name="dashboard_model_qa_battery_settings_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Battery settings</string>
+    <!-- Opens the settings of the scooter's line (strip) lights. -->
+    <string name="dashboard_model_qa_line_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Line lights</string>
+    <string name="dashboard_model_qa_line_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Line lights</string>
+    <!-- Opens the settings of the scooter's star (ambient) lights. -->
+    <string name="dashboard_model_qa_star_lights" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Star lights</string>
+    <string name="dashboard_model_qa_star_lights_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Star lights</string>
+    <!-- Opens the settings of the scooter's own display and its sounds. -->
+    <string name="dashboard_model_qa_dashboard_sound" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Dashboard &amp; sound</string>
+    <string name="dashboard_model_qa_dashboard_sound_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Dashboard &amp; sound</string>
+    <!-- Opens the security menu: the scooter's PIN and the phone-proximity unlock. -->
+    <string name="dashboard_model_qa_pin_proximity" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:safety="pin" volt:dnt="PIN">PIN &amp; proximity</string>
+    <string name="dashboard_model_qa_pin_proximity_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="pin" volt:dnt="PIN">PIN &amp; proximity</string>
+    <!-- Opens the menu where the scooter's name is changed. -->
+    <string name="dashboard_model_qa_scooter_name" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Scooter name</string>
+    <string name="dashboard_model_qa_scooter_name_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Scooter name</string>
+    <!-- Opens Volt's own app preferences (units, theme). -->
+    <string name="dashboard_model_qa_app_preferences" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">App preferences</string>
+    <string name="dashboard_model_qa_app_preferences_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">App preferences</string>
+    <!-- Opens the list of saved scooters. -->
+    <string name="dashboard_model_qa_my_scooters" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">My scooters</string>
+    <string name="dashboard_model_qa_my_scooters_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">My scooters</string>
+    <!-- Opens the experimental controls (settings the official app hides or that Volt cannot confirm). -->
+    <string name="dashboard_model_qa_experimental" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:safety="experimental">Experimental controls</string>
+    <string name="dashboard_model_qa_experimental_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="experimental">Experimental controls</string>
+    <!-- Opens recorded data, history and backups. -->
+    <string name="dashboard_model_qa_data_history" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">Data &amp; history</string>
+    <string name="dashboard_model_qa_data_history_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">Data &amp; history</string>
+    <!-- Opens the app's about page and its Android permissions. -->
+    <string name="dashboard_model_qa_about_permissions" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full">About &amp; permissions</string>
+    <string name="dashboard_model_qa_about_permissions_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp">About &amp; permissions</string>
+    <!-- Turns on or off Volt's plan to have the battery charged by a chosen time of day. -->
+    <string name="dashboard_model_qa_charge_done_by" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:safety="charge">Charge done by</string>
+    <string name="dashboard_model_qa_charge_done_by_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by</string>
+    <!-- Picks the time of day by which the battery should be charged. -->
+    <string name="dashboard_model_qa_charge_done_time" volt:screen="Home Quick access, shortcut picker" volt:purpose="shortcut name" volt:ladder="full" volt:safety="charge">Charge done by time</string>
+    <string name="dashboard_model_qa_charge_done_time_short" volt:screen="Home Setting tiles" volt:purpose="shortcut name" volt:ladder="short" volt:max="90dp@12.5sp" volt:safety="charge">Charge done by time</string>
+
+    <!-- Shortcut groups, the caption under a name in the shortcut picker (Entry.groupLabel()). -->
+    <!-- Shortcuts that open a menu. -->
+    <string name="dashboard_model_qa_group_menus" volt:screen="Shortcut picker" volt:purpose="group caption">Menus</string>
+    <!-- Shortcuts that open one of the app's pages. -->
+    <string name="dashboard_model_qa_group_pages" volt:screen="Shortcut picker" volt:purpose="group caption">Pages</string>
+    <!-- Shortcuts to an experimental control. -->
+    <string name="dashboard_model_qa_group_experimental" volt:screen="Shortcut picker" volt:purpose="group caption" volt:safety="experimental">Experimental controls</string>
+
+    <!-- Setting tile names that differ from the control's own name (QuickAccessGrid). -->
+    <!-- The tile for the Maximum speed control, named as on the Scooter page. -->
+    <string name="dashboard_model_tile_top_speed" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="ride">Top speed</string>
+    <!-- The tile for the scooter's own timed charging control. -->
+    <string name="dashboard_model_tile_charge_schedule" volt:screen="Home Setting tiles" volt:purpose="tile name" volt:max="90dp@12.5sp" volt:safety="charge">Charge schedule</string>
+
+    <!-- What a tile shows as its value (QuickAccessGrid). -->
+    <!-- A change was sent to the scooter and Volt waits for it to be confirmed. -->
+    <string name="dashboard_model_tile_updating" volt:screen="Home Quick access, Setting tiles" volt:purpose="value">Updating…</string>
+    <!-- The range estimate comes from Volt's learned model. -->
+    <string name="dashboard_model_tile_range_learned" volt:screen="Home Setting tiles (range estimate)" volt:purpose="value" volt:dnt="Volt">Volt (learned)</string>
+    <!-- The range estimate is the scooter's own. -->
+    <string name="dashboard_model_tile_range_scooter" volt:screen="Home Setting tiles (range estimate)" volt:purpose="value">Scooter</string>
+    <!-- Volt measures the charging power before it plans the charge. -->
+    <string name="dashboard_model_tile_measuring" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">Measuring</string>
+    <!-- The charge plan is on; %1$s is the time of day the battery should be charged by (7:30 AM). -->
+    <string name="dashboard_model_tile_on_at" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="value" volt:safety="charge">On • %1$s</string>
+    <!-- No start time is set for the scooter's own timed charging. -->
+    <string name="dashboard_model_tile_not_scheduled" volt:screen="Home Setting tiles (charge start)" volt:purpose="value" volt:safety="charge">Not scheduled</string>
+    <!-- Added after "On" when the scooter's timed charging has a start time; %1$s is that time (7:30 AM). -->
+    <string name="dashboard_model_tile_at_time" volt:screen="Home Setting tiles (Charge schedule)" volt:purpose="value" volt:safety="charge">" • %1$s"</string>
+
+    <!-- Why a charging tile cannot be used now (QuickAccessGrid; read out after the tile's name). -->
+    <!-- No scooter is chosen, so there is no charge plan to set. -->
+    <string name="dashboard_model_tile_select_scooter" volt:screen="Home Setting tiles (Charge done by time)" volt:purpose="reason" volt:safety="charge">Select a scooter first</string>
+    <!-- The charge plan needs the scooter connected. -->
+    <string name="dashboard_model_tile_connect_scooter" volt:screen="Home Setting tiles (Charge done by)" volt:purpose="reason" volt:safety="charge">Connect your scooter first</string>
+
+    <!-- A tile's screen-reader announcement, after its name (QuickAccessGrid). -->
+    <!-- %1$s is the tile's value (On, 25 km/h) or why it cannot be used now. -->
+    <string name="dashboard_model_tile_desc_part" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, %1$s</string>
+    <!-- The official app hides this control in the scooter's region. -->
+    <string name="dashboard_model_tile_desc_region" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, not offered for this region</string>
+    <!-- The connected model has no such control. -->
+    <string name="dashboard_model_tile_desc_model" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, not on this model</string>
+    <!-- The scooter reported a value this model does not offer. -->
+    <string name="dashboard_model_tile_desc_unreadable" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, unreadable value</string>
+    <!-- The value is the last one Volt saw; the scooter is not connected now. -->
+    <string name="dashboard_model_tile_desc_last_seen" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, last seen</string>
+    <!-- Tapping the tile switches the setting on or off. -->
+    <string name="dashboard_model_tile_desc_toggle" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, toggle</string>
+    <!-- Tapping the tile opens a menu or page. -->
+    <string name="dashboard_model_tile_desc_open" volt:screen="Home Quick access, Setting tiles (screen reader)" volt:purpose="accessibility description">, open</string>
+
+    <!-- Widget type names (DashboardConfig.typeName(); the default title of a new widget). DashboardConfig.NAMES stays English. -->
+    <!-- The lock switch with the connection status. -->
+    <string name="dashboard_model_type_lock" volt:screen="Home widgets, Add widget" volt:purpose="widget name" volt:safety="lock">Lock &amp; connection</string>
+    <!-- The scooter's photo with its name and a few readings. -->
+    <string name="dashboard_model_type_scooter" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Your scooter</string>
+    <!-- Battery level, range and charging. -->
+    <string name="dashboard_model_type_battery" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Battery overview</string>
+    <!-- One reading, large. -->
+    <string name="dashboard_model_type_metric" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Single reading</string>
+    <!-- One reading as a dial. -->
+    <string name="dashboard_model_type_gauge" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Gauge</string>
+    <!-- A chart of the last minutes of one reading. -->
+    <string name="dashboard_model_type_live" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Live trend</string>
+    <!-- A chart of one reading over days. -->
+    <string name="dashboard_model_type_history" volt:screen="Home widgets, Add widget" volt:purpose="widget name">History chart</string>
+    <!-- A list of chosen readings. -->
+    <string name="dashboard_model_type_readings" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Readings</string>
+    <!-- The current trip's distance, time and speeds. -->
+    <string name="dashboard_model_type_trip" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Trip overview</string>
+    <!-- The battery health the scooter reports. -->
+    <string name="dashboard_model_type_health" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Reported health</string>
+    <!-- Volt's estimate of how much energy a full battery gives a ride. -->
+    <string name="dashboard_model_type_capacity" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Usable ride energy</string>
+    <!-- Charging progress and the time to full. -->
+    <string name="dashboard_model_type_charging" volt:screen="Home widgets, Add widget" volt:purpose="widget name" volt:safety="charge">Charging</string>
+    <!-- A grid of shortcut buttons (Quick access). -->
+    <string name="dashboard_model_type_quick" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Shortcuts</string>
+    <!-- Start and stop recording a ride. -->
+    <string name="dashboard_model_type_ride" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Ride recorder</string>
+    <!-- A note the owner writes. -->
+    <string name="dashboard_model_type_note" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Note</string>
+    <!-- A slim lock switch in one row. -->
+    <string name="dashboard_model_type_lockbar" volt:screen="Home widgets, Add widget" volt:purpose="widget name" volt:safety="lock">Lock bar</string>
+    <!-- The compact scooter card with battery and readings. -->
+    <string name="dashboard_model_type_overview" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Scooter overview</string>
+    <!-- Small cards of chosen readings. -->
+    <string name="dashboard_model_type_tiles" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Reading tiles</string>
+    <!-- Small cards of chosen settings (Setting tiles). -->
+    <string name="dashboard_model_type_shortcuts" volt:screen="Home widgets, Add widget" volt:purpose="widget name">Setting tiles</string>
+
+    <!-- The shipped example layout (slot 3, AllWidgetsDashboard): its titles and note while unchanged. -->
+    <!-- A gauge of the riding speed. -->
+    <string name="dashboard_model_example_speed" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Speed</string>
+    <!-- One reading: the battery level. -->
+    <string name="dashboard_model_example_battery_charge" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Battery charge</string>
+    <!-- Voltage, current, power and temperature. -->
+    <string name="dashboard_model_example_electrical" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Electrical readings</string>
+    <!-- A live chart of the battery's power. -->
+    <string name="dashboard_model_example_battery_power" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Battery power</string>
+    <!-- A week's chart of the battery level. -->
+    <string name="dashboard_model_example_charge_history" volt:screen="Home widgets (All widgets example)" volt:purpose="widget title">Charge history</string>
+    <!-- The example note's text. -->
+    <string name="dashboard_model_example_note" volt:screen="Home widgets (All widgets example)" volt:purpose="note text">Check tyre pressure</string>
+
+    <!-- Saved layout slots (DashboardConfig.displaySlotName(), defaultSlotName()). The stored names stay English. -->
+    <!-- A slot the owner did not name; %1$s is its number (1 to 3). -->
+    <string name="dashboard_model_slot_default" volt:screen="Dashboard layout slots" volt:purpose="slot name">Slot %1$s</string>
+    <!-- The slot that holds the shipped example of every widget. -->
+    <string name="dashboard_model_slot_example" volt:screen="Dashboard layout slots" volt:purpose="slot name">All widgets</string>
+</resources>
