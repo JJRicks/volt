@@ -97,8 +97,9 @@ final class ModelPicker {
             NaveeModels.Series series = NaveeModels.seriesOf(model);
             if (series != shown) {
                 shown = series;
-                // series.name and series.about are still NaveeModels' English data; B4 gives them label ids.
-                list.addView(ui.sectionLabel(T.uiModelSeries(series.name, series.about)));
+                // series.name is NAVEE's series name as the scooter line uses it; aboutLabel is B4's shown description,
+                // the one NaveeModels.search also matches in the shown language.
+                list.addView(ui.sectionLabel(T.uiModelSeries(series.name, series.aboutLabel)));
                 card = ui.groupCard(); list.addView(card);
             } else ui.divider(card);
             card.addView(row(model, NaveeModels.Choice.listed(model), "model-" + NaveeModels.fold(model)));
