@@ -15,8 +15,13 @@ public final class ChargeMeasureWindow {
         public final Step step;
         /** ARM: true when the charge's age is known; false for the cautious fresh-charge plan. */
         public final boolean measured;
+        /** Why nothing was armed (NOT_SET), in English for logs and the legacy notice; null otherwise. */
         public final String reason;
-        Decision(Step step, boolean measured, String reason) { this.step = step; this.measured = measured; this.reason = reason; }
+        /** The same reason for display, rendered when shown; null when reason is. */
+        public final Msg message;
+        Decision(Step step, boolean measured, Msg message) {
+            this.step = step; this.measured = measured; this.message = message; this.reason = message == null ? null : message.english();
+        }
     }
     private static final Decision WAIT = new Decision(Step.WAIT, false, null);
     private String profile = "";
@@ -49,14 +54,14 @@ public final class ChargeMeasureWindow {
      */
     public Decision evaluate(long nowMono, String selectedProfile, boolean ready, Integer charging, boolean ageKnown) {
         if (!active || arming) return WAIT;
-        if (!profile.equals(selectedProfile)) return new Decision(Step.NOT_SET, false, "The selected scooter changed while measuring");
-        if (nowMono < startedMono) return new Decision(Step.NOT_SET, false, "The phone clock changed while measuring");
-        if (ready && Integer.valueOf(0).equals(charging)) return new Decision(Step.NOT_SET, false, "Charging stopped before the schedule was set");
+        if (!profile.equals(selectedProfile)) return new Decision(Step.NOT_SET, false, M.chargingMeasureScooterChanged());
+        if (nowMono < startedMono) return new Decision(Step.NOT_SET, false, M.chargingMeasureClockChanged());
+        if (ready && Integer.valueOf(0).equals(charging)) return new Decision(Step.NOT_SET, false, M.chargingMeasureChargingStopped());
         boolean charge = ready && Integer.valueOf(1).equals(charging);
         if (charge && ageKnown) return new Decision(Step.ARM, true, null);
         if (nowMono < deadlineMono) return WAIT;
         return charge ? new Decision(Step.ARM, false, null)
-                : new Decision(Step.NOT_SET, false, ready ? "Charging readings stopped while measuring" : "The scooter disconnected while measuring");
+                : new Decision(Step.NOT_SET, false, ready ? M.chargingMeasureReadingsStopped() : M.chargingMeasureDisconnected());
     }
 
     /** A new finish time: keep the bound, and end no later than the new cautious start. */

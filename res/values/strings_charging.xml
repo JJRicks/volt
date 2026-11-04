@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The charging domain (batch B5): charge alerts, the charging estimate's short labels, Charge done
+  by's measuring window, the capacity card's short rejection reasons and the charge schedule's
+  refusals. The English must stay exactly what the source said before the batch (G1, G2), including
+  the known English bugs tagged volt:english-fix="pending".
+
+  Percentages are filled in already formatted (Fmt.integer), as %1$s followed by %%, so a language
+  can put the sign before the number or space it. Whole sentences are whole templates: a scooter's
+  name or a level is the only thing filled in.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Charge alerts (ChargeAlertPolicy), for scooters without a native charge limit. -->
+
+    <!-- The charge alert level when the owner chose to be alerted at a full battery (the other levels
+         are percentages). Shown as the Charge alert row's value and its state description. -->
+    <string name="charging_alert_level_full" volt:screen="Charge alerts settings" volt:purpose="value"
+        volt:safety="alarm,charge">Full</string>
+    <!-- Title of the ongoing notification while Volt watches a charge that should alert at full. -->
+    <string name="charging_alert_watch_full" volt:screen="Charge watch notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Charging to full</string>
+    <!-- Title of the ongoing notification while Volt watches a charge: %1$s is the alert level, a whole
+         number ("80"), followed by the percent sign. -->
+    <string name="charging_alert_watch_title" volt:screen="Charge watch notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Charging to %1$s%%</string>
+    <!-- Alert notification title: the battery reached 100% (or stopped charging at 99%). -->
+    <string name="charging_alert_title_full" volt:screen="Charge alert notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Fully charged</string>
+    <!-- Alert notification title: the battery fell below the owner's low-battery level. -->
+    <string name="charging_alert_title_low" volt:screen="Charge alert notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Battery low</string>
+    <!-- Alert notification title: the charge reached the owner's level. %1$s is that level, a whole
+         number ("80"), followed by the percent sign. -->
+    <string name="charging_alert_title_charged" volt:screen="Charge alert notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Charged to %1$s%%</string>
+    <!-- Notification title when Volt stops watching a charge: the connection was lost, or the
+         watch reached its time limit. -->
+    <string name="charging_alert_title_paused" volt:screen="Charge alert notification" volt:purpose="notification title"
+        volt:safety="alarm,charge">Charge alert paused</string>
+    <!-- Notification text when Volt lost the scooter while watching a charge: %1$s is the scooter's
+         name. -->
+    <string name="charging_alert_text_paused" volt:screen="Charge alert notification" volt:purpose="notification text"
+        volt:safety="alarm,charge" volt:dnt="Volt">Volt lost the connection to %1$s. Open Volt to keep watching this charge.</string>
+    <!-- Notification text when Volt stopped watching a charge after its time limit: %1$d is the number
+         of hours (12 today). English says "hours" for every count, a known bug kept until an
+         owner-approved English fix. -->
+    <plurals name="charging_alert_text_time_limit" volt:screen="Charge alert notification" volt:purpose="notification text"
+        volt:safety="alarm,charge" volt:dnt="Volt" volt:english-fix="pending">
+        <item quantity="one">Volt stopped watching after %1$d hours. Open Volt to keep watching this charge.</item>
+        <item quantity="other">Volt stopped watching after %1$d hours. Open Volt to keep watching this charge.</item>
+    </plurals>
+    <!-- Alert notification text: %1$s is the scooter's name, %2$s the battery level, a whole number
+         ("80"), followed by the percent sign. -->
+    <string name="charging_alert_text_level" volt:screen="Charge alert notification" volt:purpose="notification text"
+        volt:safety="alarm,charge">%1$s is at %2$s%%.</string>
+
+    <!-- The charging estimate's short state (ChargingEstimate), on the Home charging card beside the
+         time estimate. -->
+
+    <!-- No fresh charging state from the scooter yet. -->
+    <string name="charging_estimate_waiting_data" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Waiting for data</string>
+    <!-- The scooter reports that it is not charging. -->
+    <string name="charging_estimate_not_charging" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Not charging</string>
+    <!-- Charging, but paired voltage and current readings have not arrived. -->
+    <string name="charging_estimate_waiting_readings" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Waiting for readings</string>
+    <!-- The charging measurements are outside a usable range. -->
+    <string name="charging_estimate_out_of_range" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Readings out of range</string>
+    <!-- No fresh rated battery capacity, so no time estimate. -->
+    <string name="charging_estimate_capacity_unknown" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Capacity unknown</string>
+    <!-- No fresh battery percentage yet. The percent sign stands for "battery percentage". -->
+    <string name="charging_estimate_waiting_battery" formatted="false" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Waiting for battery %</string>
+    <!-- The readings give no usable time estimate. -->
+    <string name="charging_estimate_no_estimate" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">No estimate</string>
+    <!-- The time estimate assumes the present charging current continues. -->
+    <string name="charging_estimate_current_rate" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Current rate</string>
+    <!-- The estimate comes from Volt's experimental reference for the high-speed charger. -->
+    <string name="charging_estimate_high_speed_reference" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge,experimental">High-speed reference</string>
+    <!-- The estimate comes from Volt's experimental reference for the standard (stock) charger. -->
+    <string name="charging_estimate_stock_reference" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge,experimental">Stock reference</string>
+    <!-- The estimate comes from this scooter's own saved charges: %1$d is how many. -->
+    <plurals name="charging_estimate_past_charges" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">
+        <item quantity="one">From %1$d past charge</item>
+        <item quantity="other">From %1$d past charges</item>
+    </plurals>
+    <!-- Live power does not match the selected charger's saved charges, so the current-rate estimate is
+         shown instead. -->
+    <string name="charging_estimate_charger_mismatch" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Charger mismatch · rate estimate</string>
+    <!-- Saved charges do not cover the remaining range, so the estimate is current-rate based. -->
+    <string name="charging_estimate_rate_based" volt:screen="Home charging card" volt:purpose="status"
+        volt:safety="charge">Rate-based estimate</string>
+
+    <!-- Why Charge done by's measuring window ended without arming (ChargeMeasureWindow). The
+         notification adds that Charge done by is off. -->
+
+    <string name="charging_measure_scooter_changed" volt:screen="Charge done by notification" volt:purpose="reason"
+        volt:safety="charge">The selected scooter changed while measuring</string>
+    <string name="charging_measure_clock_changed" volt:screen="Charge done by notification" volt:purpose="reason"
+        volt:safety="charge">The phone clock changed while measuring</string>
+    <string name="charging_measure_charging_stopped" volt:screen="Charge done by notification" volt:purpose="reason"
+        volt:safety="charge">Charging stopped before the schedule was set</string>
+    <string name="charging_measure_readings_stopped" volt:screen="Charge done by notification" volt:purpose="reason"
+        volt:safety="charge">Charging readings stopped while measuring</string>
+    <string name="charging_measure_disconnected" volt:screen="Charge done by notification" volt:purpose="reason"
+        volt:safety="charge">The scooter disconnected while measuring</string>
+
+    <!-- The capacity card's short reason (four words or fewer) why recorded rides were set aside
+         (BatteryCapacityEstimate). -->
+
+    <string name="charging_capacity_reason_clock" volt:screen="Capacity card details" volt:purpose="reason">Clock changed</string>
+    <string name="charging_capacity_reason_gaps" volt:screen="Capacity card details" volt:purpose="reason">Recording gaps</string>
+    <string name="charging_capacity_reason_direction" volt:screen="Capacity card details" volt:purpose="reason">Current direction changed</string>
+    <string name="charging_capacity_reason_short" volt:screen="Capacity card details" volt:purpose="reason">Under 1 minute</string>
+    <string name="charging_capacity_reason_battery_ends" volt:screen="Capacity card details" volt:purpose="reason">Battery ends missing</string>
+    <!-- The ride's battery drop was under 5 percentage points. -->
+    <string name="charging_capacity_reason_drop" formatted="false" volt:screen="Capacity card details" volt:purpose="reason">Drop under 5%</string>
+    <!-- Electrical readings covered under 95% of the ride. -->
+    <string name="charging_capacity_reason_coverage" formatted="false" volt:screen="Capacity card details" volt:purpose="reason">Coverage under 95%</string>
+    <string name="charging_capacity_reason_movement" volt:screen="Capacity card details" volt:purpose="reason">Too little movement</string>
+    <string name="charging_capacity_reason_no_energy" volt:screen="Capacity card details" volt:purpose="reason">No energy reading</string>
+    <string name="charging_capacity_reason_no_net_energy" volt:screen="Capacity card details" volt:purpose="reason">No net energy</string>
+    <string name="charging_capacity_reason_end_readings" volt:screen="Capacity card details" volt:purpose="reason">End readings missing</string>
+    <string name="charging_capacity_reason_misaligned" volt:screen="Capacity card details" volt:purpose="reason">Ends misaligned</string>
+    <string name="charging_capacity_reason_gauge_rose" volt:screen="Capacity card details" volt:purpose="reason">Battery gauge rose</string>
+    <string name="charging_capacity_reason_gauge_jumped" volt:screen="Capacity card details" volt:purpose="reason">Gauge jumped</string>
+    <string name="charging_capacity_reason_insufficient" volt:screen="Capacity card details" volt:purpose="reason">Insufficient data</string>
+
+    <!-- Why a charge schedule change was refused (ChargeScheduleController), shown as a toast or in
+         the Charge done by notification. -->
+
+    <string name="charging_schedule_choose_valid_time" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Choose a valid time</string>
+    <!-- Charge done by is on, but charging is paused and the readings changed since it was armed. -->
+    <string name="charging_schedule_fresh_estimate_needed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">A fresh charging estimate is needed; disable Charge done by and charge briefly</string>
+    <string name="charging_schedule_at_limit" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Battery is already at its charge limit</string>
+    <string name="charging_schedule_wait_estimate" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Wait for a charging time estimate</string>
+    <string name="charging_schedule_outside_range" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charging time is outside a usable range</string>
+    <!-- Charge done by could not wait: the deadline is too close, so charging continues now. -->
+    <string name="charging_schedule_charging_now" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charging now — not enough time to wait before the deadline</string>
+    <string name="charging_schedule_choose_start_first" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Choose Charge start first</string>
+    <string name="charging_schedule_start_within_48h" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Choose a charge start within 48 hours</string>
+    <!-- Models other than the UT5 MAX take whole-hour charge starts only. -->
+    <string name="charging_schedule_whole_hour" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Choose a whole hour within 48 hours</string>
+    <string name="charging_schedule_wait_test" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Wait for the schedule test to finish</string>
+</resources>

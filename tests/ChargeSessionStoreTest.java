@@ -307,6 +307,7 @@ public final class ChargeSessionStoreTest {
         check(adjusted.learnedToLimit&&!adjusted.learnedToFull&&adjusted.learnedSessions==2,"Result exposes mixed estimate sources");near(30,adjusted.remainingMinutesToLimit,"Learned cutoff replaces baseline");near(217.5,adjusted.remainingMinutesToFull,"Current-rate fallback retained for uncovered taper");
         check(adjusted.status.contains("taper")&&adjusted.status.contains("stock"),"Fallback and selected charger are explained");
         check("From 2 past charges".equals(adjusted.label),"Short label names the learned source: "+adjusted.label);
+        check(adjusted.labelMsg.id()==T.CHARGING_ESTIMATE_PAST_CHARGES&&adjusted.labelMsg.quantity()==2,"Short label is the past-charges plural for two charges");
         ChargingEstimate.Result unknownCutoff=ChargingEstimate.calculate(live,new ChargingEstimate.Value(52d,true,100),new ChargingEstimate.Value(-2d,true,100),new ChargingEstimate.Value(50d,true,100),new ChargingEstimate.Value(14.5,true,100),new ChargingEstimate.Value(null,true,100));
         ChargingEstimate.Result learnedUnknown=ChargingEstimate.withObservedCurve(unknownCutoff,new ChargingEstimate.Value(50d,true,100),learned);
         check(learnedUnknown.learnedToFull&&learnedUnknown.remainingMinutesToLimit==null,"Legacy learned full ETA with unknown cutoff preserves null instead of unboxing it");
