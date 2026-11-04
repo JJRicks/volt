@@ -73,6 +73,8 @@ public final class ScooterService extends Service {
     private EnumSet<PhoneRideRecorder.StatusFlag> phoneFinalFlags;
     /** The locales the notices were last labelled in; null until onCreate records them (plan section 5.4). */
     private android.os.LocaleList noticeLocales;
+    /** The language the notices' text resolved to then (shownLanguage()); null until onCreate records it. */
+    private String noticeLanguage;
     private static final long RECORDING_WAKE_TIMEOUT_MS=10*60*1000L, RECORDING_WAKE_RENEW_MS=5*60*1000L;
     private long wakeLockRenewedMs;
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
@@ -88,6 +90,8 @@ public final class ScooterService extends Service {
      * Both render when shown (plan R2); alertTitle and alertText stay the empty text shown before any alert fired.
      */
     private AlertShown alertShown,pendingChargeAlert;
+    /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
+    private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
     private android.media.MediaPlayer alarm;private android.media.AudioFocusRequest alarmFocus;private long alarmEndMono;
     private final Runnable alarmTimeout=this::stopChargeAlarm;
@@ -145,11 +149,13 @@ public final class ScooterService extends Service {
         super.onConfigurationChanged(configuration);applyLocale();
     }
     /**
-     * Re-labels the notification channels, the connection notice and a battery alert notice still showing when the
-     * language Volt's text comes from changes. A rotation, fold, night mode or font change keeps the locale list, so
-     * nothing happens then. The first call (onCreate) records the list and re-labels an existing alerts channel. The
-     * in-app language choice on API 26-32 calls this too (plan section 5.3). The service keeps running; other notices
-     * already posted keep their language (plan section 5.4), though they render again whenever they post.
+     * Re-labels the notification channels and the connection notice when the language Volt's text comes from
+     * changes. A rotation, fold, night mode or font change keeps the locale list, so nothing happens then. The first
+     * call (onCreate) records the list and the shown language, and re-labels an existing alerts channel. The in-app
+     * language choice on API 26-32 calls this too (plan section 5.3). The service keeps running; other notices already
+     * posted keep their language (plan section 5.4), though they render again whenever they post. A battery alert
+     * notice still showing posts again only when the shown language itself changed (shownLanguage()), not for a
+     * locale list change that keeps it, such as [en-US] to [en-US, es] with Volt still in English.
      */
     void applyLocale(){
         if(destroyed||ble==null)return;
@@ -157,6 +163,7 @@ public final class ScooterService extends Service {
         try{locales=AppLanguage.resources(this).getConfiguration().getLocales();}catch(RuntimeException unavailable){return;}
         if(locales.equals(noticeLocales))return;
         boolean first=noticeLocales==null;noticeLocales=locales;
+        String language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;
         if(first){
             // A service started in a new language: the scooter channel is re-labelled by every post, but an existing alerts
             // channel only here, so Android's notification settings name it in the shown language from the start.
@@ -173,8 +180,14 @@ public final class ScooterService extends Service {
             if(scooter!=null){scooter.setName(T.serviceChannelScooter());manager.createNotificationChannel(scooter);}
             if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);
         }catch(RuntimeException unavailable){}
-        relabelAlertNotice();updateNotification();changed();
+        if(relabel)relabelAlertNotice();
+        updateNotification();changed();
     }
+    /**
+     * The language Volt's text renders in now: the catalog's resolved language (T.language(), "en" for English or
+     * anything unrecognised), and outside English the locale its numbers format in (Fmt.displayLocale()).
+     */
+    private static String shownLanguage(){return T.language()+(Fmt.legacy()?"":"|"+Fmt.displayLocale().toLanguageTag());}
     @Override public int onStartCommand(Intent intent,int flags,int startId){
         if (destroyed || DataMaintenance.active()) { stopSelf(); return START_NOT_STICKY; }
         if(!ble.permissions()){finishChargeCapture(ChargeSessionStore.Stop.PERMISSION_LOST);endChargeMeasure(T.serviceMeasureBluetoothRemoved());stopIdleWork();return START_NOT_STICKY;}
@@ -973,9 +986,20 @@ public final class ScooterService extends Service {
         String title(){return ChargeAlertPolicy.alertTitle(event,level);}
         String text(){return ChargeAlertPolicy.alertText(event,defaultName?T.ownerProfileDefaultName():scooter,percent);}
     }
+    /**
+     * What one post of the battery alert notice showed: its alert (null before any fired), whether it carried the
+     * sounding alarm's Stop and the swipe's DISMISS_CHARGE_ALERT, and its time. A language change renders this again.
+     */
+    private static final class AlertPost{
+        final AlertShown shown;final boolean sounding;final long when;
+        AlertPost(AlertShown shown,boolean sounding,long when){this.shown=shown;this.sounding=sounding;this.when=when;}
+    }
     /** The last alert's title and text in the current language; before any alert fired, the empty alertTitle and alertText. */
-    private String alertTitle(){return alertShown==null?alertTitle:alertShown.title();}
-    private String alertText(){return alertShown==null?alertText:alertShown.text();}
+    private String alertTitle(){return alertTitle(alertShown);}
+    private String alertText(){return alertText(alertShown);}
+    /** An alert's title and text in the current language; before any alert fired, the empty alertTitle and alertText. */
+    private String alertTitle(AlertShown shown){return shown==null?alertTitle:shown.title();}
+    private String alertText(AlertShown shown){return shown==null?alertText:shown.text();}
     private void alertChannel(NotificationManager manager){
         NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,T.serviceChannelAlerts(),NotificationManager.IMPORTANCE_HIGH);
         channel.setDescription(T.serviceChannelAlertsDescription());
@@ -990,12 +1014,16 @@ public final class ScooterService extends Service {
         // Built when it posts: with Notify me off it's only the alarm's Stop, so once the alarm ends there's nothing to post.
         post(CHARGE_ALERT_NOTICE,()->keep||alarmPlaying()?alertNoticeContent():null);
     }
-    private Notification alertNoticeContent(){
+    private Notification alertNoticeContent(){return alertNoticeContent(alertShown,alarmPlaying(),0);}
+    /**
+     * The notice for an alert, with Stop and the swipe's DISMISS_CHARGE_ALERT while sounding; when is the time it
+     * shows, 0 for the builder's own (now). Recorded in alertPosted as what notice 76 shows.
+     */
+    private Notification alertNoticeContent(AlertShown shown,boolean sounding,long when){
         NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
-        boolean sounding=alarmPlaying();
         PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
-                .setContentTitle(alertTitle()).setContentText(alertText()).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
+                .setContentTitle(alertTitle(shown)).setContentText(alertText(shown)).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                 .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
         if(sounding){
             PendingIntent stop=PendingIntent.getService(this,6,new Intent(this,ScooterService.class).setAction("STOP_CHARGE_ALARM"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
@@ -1005,7 +1033,9 @@ public final class ScooterService extends Service {
             // NotificationCompat.setSilent's method: a group child that alerts only for its (absent) summary stays quiet.
             builder.setGroup("volt-charge-alarm").setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY);
         }
-        return builder.build();
+        if(when!=0)builder.setWhen(when);
+        Notification notice=builder.build();alertPosted=new AlertPost(shown,sounding,notice.when);
+        return notice;
     }
     /**
      * The owner swiped the sounding notice away: end the alarm and post nothing more for it. A kept notice queued when
@@ -1026,16 +1056,25 @@ public final class ScooterService extends Service {
         return shown;
     }
     /**
-     * The shown language changed: a battery alert notice still showing (kept by Notify me, or carrying the sounding
-     * alarm's Stop) posts again in place under its id, its title, text and Stop in the new language. setOnlyAlertOnce
-     * keeps that update silent (no sound, vibration or heads-up); the alarm, its timeout and alertNoticeKept are left
-     * as they are. A notice the owner cleared, or one that never posted, stays gone, checked again when the post is taken.
+     * The shown language changed: a battery alert notice still showing posts again in place under its id, with what it
+     * showed (alertPosted: the same alert, Stop and the swipe's DISMISS_CHARGE_ALERT or neither, and its time) in the
+     * new language. A newer alert that fired in sight never takes its place, and Stop is never added or removed.
+     * setOnlyAlertOnce keeps that update silent (no sound, vibration or heads-up); the alarm, its timeout and
+     * alertNoticeKept are left as they are. It is skipped when that post no longer matches the state behind it (a
+     * kept notice no longer kept, Stop with the alarm ended), when another post of it waits in the pacer (that one
+     * renders when taken, in the new language), and for a notice the owner cleared or one that never posted, all
+     * checked again when the post is taken.
      */
     private void relabelAlertNotice(){
         try{
-            if(!(alertNoticeKept||alarmPlaying())||!alertNoticeShown())return;
-            post(CHARGE_ALERT_NOTICE,()->(alertNoticeKept||alarmPlaying())&&alertNoticeShown()?alertNoticeContent():null);
+            AlertPost posted=alertPosted;
+            if(!relabelDue(posted))return;
+            post(CHARGE_ALERT_NOTICE,()->posted==alertPosted&&relabelDue(posted)?alertNoticeContent(posted.shown,posted.sounding,posted.when):null);
         }catch(RuntimeException unavailable){}
+    }
+    /** Whether that post of the alert notice still shows, unchanged, and the state behind it holds. */
+    private boolean relabelDue(AlertPost posted){
+        return posted!=null&&(posted.sounding?alarmPlaying():alertNoticeKept)&&!notices.waiting(CHARGE_ALERT_NOTICE)&&alertNoticeShown();
     }
     /** One per lost watch, on the connection channel like Volt's other status notices. */
     private void alertPausedNotice(ChargeAlertPolicy.Event event,String scooter){
@@ -2082,7 +2121,7 @@ public final class ScooterService extends Service {
     /** Every notification Volt posts goes through here, spaced so Android never sheds one (NotificationPacer). */
     private void post(int id,Notification notice){post(id,()->notice);}
     private void post(int id,java.util.function.Supplier<Notification> build){notices.offer(id,build);drainNotices();}
-    private void cancelNotice(int id){notices.cancel(id);try{getSystemService(NotificationManager.class).cancel(id);}catch(RuntimeException ignored){}}
+    private void cancelNotice(int id){if(id==CHARGE_ALERT_NOTICE)alertPosted=null;notices.cancel(id);try{getSystemService(NotificationManager.class).cancel(id);}catch(RuntimeException ignored){}}
     private void drainNotices(){
         handler.removeCallbacks(noticeDrain);
         long now=SystemClock.elapsedRealtime();
