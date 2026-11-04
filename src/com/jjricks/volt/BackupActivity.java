@@ -512,6 +512,7 @@ public final class BackupActivity extends Activity {
             if(note!=null&&status!=null)status.setText(note);
             scroll.post(()->scroll.scrollTo(0,y));
         }
+        for(Map.Entry<TextView,CharSequence> e:words.entrySet())e.setValue(fresh(e.getValue()));
         for(Map.Entry<TextView,CharSequence> e:new ArrayList<>(words.entrySet())){TextView view=e.getKey();if(view!=null)view.setText(e.getValue());}
         for(Map.Entry<EditText,CharSequence> e:new ArrayList<>(hints.entrySet())){EditText field=e.getKey();if(field!=null&&e.getValue()!=null)field.setHint(e.getValue());}
         for(EditText field:new ArrayList<>(hints.keySet())){if(field==null)continue;CharSequence shown=field.getError();CharSequence error=shown==null?null:shownErrors.get(shown.toString());if(error!=null)field.setError(error);}
@@ -527,18 +528,21 @@ public final class BackupActivity extends Activity {
         if(view instanceof TextView&&M.backupChooseAnother().equals(view.getContentDescription()))((TextView)view).setText(M.backupChooseAnother());
         if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)relabel(group.getChildAt(i));}
     }
-    /** The errors a password field can show (createBackup, openEncrypted), by their text in the current language. */
+    /** The errors a password field can show (createBackup, openEncrypted), by their text in the current language,
+     * and message()'s unreadable-file text, which the status line is given rendered (a String). */
     private void noteErrors(){
         Map<String,CharSequence> errors=new HashMap<>();
-        for(CharSequence error:new CharSequence[]{M.backupPasswordShort(),M.backupPasswordsDiffer()})errors.put(error.toString(),error);
+        for(CharSequence error:new CharSequence[]{M.backupPasswordShort(),M.backupPasswordsDiffer(),M.backupFileUnreadable()})errors.put(error.toString(),error);
         shownErrors=errors;
     }
     /** Records each text a paragraph is given (status.setText included) in words, as given (a Msg stays a Msg): TextView
      * runs its filters on every setText with the text it was passed, before rendering it, and this one changes nothing. */
     private InputFilter keep(TextView view){return (source,start,end,dest,dstart,dend)->{words.put(view,source);return null;};}
-    /** The category counts from the catalog ("None", the private scooter count), as backupCategories and
-     * restoreCategories render them; the other counts and sizes stay English in this batch. A row built
-     * again by checkRow, off screen, gives the shown row its detail and spoken label. */
+    /** The category details backupCategories and restoreCategories render in the language of that moment: the
+     * catalog's ("None", the private scooter count) and the Readings history size (Formatter, in this Activity's
+     * locale). The counts from BackupArchive.plural are English in every language, and the rides and charges rows'
+     * "12 · 3.4 MB" keeps the size as built (G1 refuses moving its " · " beside that line's labelMsg change). A row
+     * built again by checkRow, off screen, gives the shown row its detail and spoken label. */
     private void relabelCounts(){
         LinearLayout scratch=new LinearLayout(this);
         for(Map.Entry<String,CheckBox> e:boxes.entrySet()){
@@ -547,6 +551,7 @@ public final class BackupActivity extends Activity {
             else if(inventory!=null&&inventory.containsKey(id)){
                 if(!hasItems(id))detail=T.backupDetailNone();
                 else if(id.equals(BackupRegistry.SCOOTERS))detail=T.backupDetailPrivate(inventory.get(id)[0]);
+                else if(id.equals(BackupRegistry.HISTORY))detail=size(inventory.get(id)[1]);
             }
             if(detail==null)continue;
             scratch.removeAllViews();CheckBox fresh=checkRow(scratch,null,AppDataBackup.labelMsg(id),detail,true,false);words.remove(fresh);
@@ -555,6 +560,20 @@ public final class BackupActivity extends Activity {
             if(value instanceof TextView&&freshValue instanceof TextView)((TextView)value).setText(((TextView)freshValue).getText());
             box.setContentDescription(fresh.getContentDescription());
         }
+    }
+    /** A recorded text again for the language now installed. Most are a Msg, which renders again by itself; these hold
+     * words rendered when given: message()'s String (T.backupFileUnreadable, found by its text in noteErrors), the
+     * Save hint's button name (T.backupSaveShort) and the Restore page's file line, whose date restoreCategories
+     * formats once, in the locale of that moment, and which takes it formatted again now. Anything else stays. */
+    private CharSequence fresh(CharSequence given){
+        if(given instanceof String){CharSequence known=shownErrors.get(given);return known==null?given:known;}
+        if(!(given instanceof Msg))return given;
+        int id=((Msg)given).id();
+        Msg hint=M.backupPickerFailedSave(M.backupSaveShort());if(id==hint.id())return hint;
+        if(staged==null||staged.createdAtMs<=0)return given;
+        String date=java.text.DateFormat.getDateTimeInstance(java.text.DateFormat.MEDIUM,java.text.DateFormat.SHORT).format(new Date(staged.createdAtMs));
+        return id==M.backupFileRidesFrom(date).id()?M.backupFileRidesFrom(date):id==M.backupFileFullFrom(date).id()?M.backupFileFullFrom(date)
+                :id==M.backupFileSelectedFrom(date).id()?M.backupFileSelectedFrom(date):given;
     }
     /** The Scooters row on Back up: its count says the file holds the owner keys. */
     private void warn(CheckBox box){View value=((android.view.ViewGroup)box.getParent()).getChildAt(1);if(value instanceof TextView)((TextView)value).setTextColor(ui.danger);}

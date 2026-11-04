@@ -5,9 +5,20 @@
   before the batch (G1, G2).
 
   The engine's own text (category labels, review lines, refusals) is strings_backup_engine.xml (B10);
-  the screen shows it as it is. Counts the screen still builds with BackupArchive.plural ("2 rides"),
-  the backup's date and file names stay English in this batch. The file name a backup is saved under
-  (volt-full-..., volt-selected-...) is data and never translated.
+  the screen shows it as it is. What these pages still show in English, and why:
+  - counts built with BackupArchive.plural ("2 rides", "3 scooters"): G1 models that helper only in
+    the file that declares it, and BackupActivity does not;
+  - the Review page's lines for Replace everything ("Rides: 2 rides"): the engine joins
+    BackupRegistry.label's English with BackupArchive.count, and G1 refuses both a Msg label there and
+    count, which picks its noun by category;
+  - the owner-key note on the Review page: G1 refuses it beside the switch to Review.messages;
+  - the Paused page's reason, which MainActivity passes rendered (preparation_error), and a system
+    message of 80 characters or fewer that a failed read carries;
+  - the file name a backup is saved under (volt-full-..., volt-selected-...): data, never translated.
+  Dates and sizes are not English: the backup's date (DateFormat, MEDIUM date, SHORT time) and sizes
+  (Android's Formatter) follow Volt's locale, as before. After a language change the Restore page's
+  date and the Readings history size are formatted again; the rides and charges rows ("12 · 3.4 MB")
+  keep the size as built, because G1 refuses moving their " · " beside the row's labelMsg change.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
