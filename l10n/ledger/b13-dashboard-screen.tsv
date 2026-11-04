@@ -1,0 +1,22 @@
+# Ledger for b13-dashboard-screen: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/DashboardScreen.java:65	["32-widget limit"]	dashboard_widget_limit	exact	the constant becomes a CharSequence holding the deferred M.dashboardWidgetLimit(), rendered where each use shows it (R5: no rendered text in a static field)
+src/com/jjricks/volt/DashboardScreen.java:121	["Connection details"]	dashboard_connection_details	exact	
+src/com/jjricks/volt/DashboardScreen.java:130	["Your scooter"]	dashboard_your_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:134	["Rename scooter"]	dashboard_rename_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:166	["Undo dashboard edit"]	dashboard_undo_edit	exact	
+src/com/jjricks/volt/DashboardScreen.java:167	["Redo dashboard edit"]	dashboard_redo_edit	exact	
+src/com/jjricks/volt/DashboardScreen.java:179	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:183	["Layout"]	dashboard_layout	exact	
+src/com/jjricks/volt/DashboardScreen.java:591	["Undo"]	dashboard_undo	exact	
+src/com/jjricks/volt/DashboardScreen.java:591	["Redo"]	dashboard_redo	exact	
+src/com/jjricks/volt/DashboardScreen.java:674	["Done"]	common_done	exact	
+src/com/jjricks/volt/DashboardScreen.java:691	["Finish editing dashboard"]	dashboard_finish_editing	exact	
+src/com/jjricks/volt/DashboardScreen.java:691	["Edit dashboard"]	dashboard_edit_dashboard	exact	
+src/com/jjricks/volt/DashboardScreen.java:700	["Add widget, ", {"hole": "WIDGET_LIMIT_TEXT", "arg": 1, "type": "s"}]	dashboard_add_widget_limit	template	
+src/com/jjricks/volt/DashboardScreen.java:700	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:753	["Your scooter"]	dashboard_your_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:812	["Connecting…  ￼"]	dashboard_connecting_spinner	exact	
+src/com/jjricks/volt/DashboardScreen.java:2030	["One lock widget per dashboard"]	dashboard_one_lock_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2031	["Duplicate widget"]	dashboard_duplicate_widget	exact	

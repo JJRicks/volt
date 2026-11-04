@@ -62,7 +62,7 @@ public final class DashboardScreen implements AppScreen {
     private static final int WIDGET_LIMIT = 32;
     /** Tag for card content that edits the widget itself, so it stays enabled while editing. */
     private static final String EDIT_ACTION = "dashboard-edit-action";
-    private static final String WIDGET_LIMIT_TEXT = "32-widget limit";
+    private static final CharSequence WIDGET_LIMIT_TEXT = M.dashboardWidgetLimit();
     private AlertDialog dialog;
     /**
      * Holds the layout from before Restore defaults while that step is still the latest edit, so
@@ -118,7 +118,7 @@ public final class DashboardScreen implements AppScreen {
         ui.fitStatusLine(status);
         // Extra padding gives the one-line status a full touch target without moving the name.
         status.setPadding(0, ui.dp(15), 0, ui.dp(15));
-        status.setTooltipText("Connection details");
+        status.setTooltipText(T.dashboardConnectionDetails());
         status.setOnClickListener(
                 v -> {
                     if (!editing) actions.connectionDetails();
@@ -127,11 +127,11 @@ public final class DashboardScreen implements AppScreen {
         statusSize.topMargin = -ui.dp(15);
         statusSize.bottomMargin = -ui.dp(15);
         words.addView(status, statusSize);
-        profileName = ui.text("Your scooter", 23, true);
+        profileName = ui.text(T.dashboardYourScooter(), 23, true);
         profileName.setMaxLines(2);
         profileName.setEllipsize(android.text.TextUtils.TruncateAt.END);
         if (android.os.Build.VERSION.SDK_INT >= 28) profileName.setAccessibilityHeading(true);
-        renameControl = roundAction("pencil", "Rename scooter", 24, 12, actions::rename);
+        renameControl = roundAction("pencil", T.dashboardRenameScooter(), 24, 12, actions::rename);
         LinearLayout nameRow =
                 new LinearLayout(host.activity()) {
                     @Override
@@ -163,8 +163,8 @@ public final class DashboardScreen implements AppScreen {
         historyActions.setTag("dashboard-history-controls");
         historyActions.setBackground(ui.shape(ui.surface, 14, ui.outline));
         historyActions.setClipToOutline(true);
-        undo = historyAction("undo", "Undo dashboard edit", () -> restoreEdit(false));
-        redo = historyAction("redo", "Redo dashboard edit", () -> restoreEdit(true));
+        undo = historyAction("undo", T.dashboardUndoEdit(), () -> restoreEdit(false));
+        redo = historyAction("redo", T.dashboardRedoEdit(), () -> restoreEdit(true));
         historyActions.addView(undo, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         View divider = new View(host.activity()); divider.setBackgroundColor(ui.outline);
         historyActions.addView(divider, new LinearLayout.LayoutParams(ui.dp(1), ui.dp(20)));
@@ -176,11 +176,11 @@ public final class DashboardScreen implements AppScreen {
         toolbar.addView(headerActions, new LinearLayout.LayoutParams(-2, -2));
         view.addView(toolbar);
         tools = row();
-        add = toolButton("Add widget", "plus", this::palette);
+        add = toolButton(T.dashboardAddWidget(), "plus", this::palette);
         LinearLayout.LayoutParams addSpace = new LinearLayout.LayoutParams(0, -2, 1);
         addSpace.setMarginEnd(ui.dp(8));
         tools.addView(add, addSpace);
-        layoutButton = toolButton("Layout", "grid", this::layoutOptions);
+        layoutButton = toolButton(T.dashboardLayout(), "grid", this::layoutOptions);
         tools.addView(layoutButton, new LinearLayout.LayoutParams(0, -2, 1));
         // The grip and corner marks show how to move and resize; no caption repeats it.
         tools.setPadding(0, ui.dp(2), 0, ui.dp(12));
@@ -588,7 +588,7 @@ public final class DashboardScreen implements AppScreen {
                 new FrameLayout.LayoutParams(ui.dp(21), ui.dp(21), Gravity.CENTER));
         control.setBackground(ripple(Ui.withAlpha(ui.accent, 45), null, ui.shape(Color.WHITE, 10, 0)));
         control.setContentDescription(label);
-        control.setTooltipText(icon.equals("undo") ? "Undo" : "Redo");
+        control.setTooltipText(icon.equals("undo") ? T.dashboardUndo() : T.dashboardRedo());
         control.setFocusable(true); control.setClickable(true);
         control.setOnClickListener(v -> action.run());
         return control;
@@ -671,7 +671,7 @@ public final class DashboardScreen implements AppScreen {
         edit.removeAllViews();
         if (editing) {
             // A red Done pill replaces the round pencil.
-            TextView done = ui.text("Done", 14, true);
+            TextView done = ui.text(T.commonDone(), 14, true);
             done.setTextColor(ui.onAccent);
             done.setGravity(Gravity.CENTER);
             done.setMinHeight(ui.dp(38));
@@ -688,7 +688,7 @@ public final class DashboardScreen implements AppScreen {
             edit.addView(disc, new FrameLayout.LayoutParams(ui.dp(38), ui.dp(38), Gravity.CENTER));
             edit.setBackground(ripple(Ui.withAlpha(ui.accent, 35), null, roundDisc()));
         }
-        edit.setContentDescription(editing ? "Finish editing dashboard" : "Edit dashboard");
+        edit.setContentDescription(editing ? T.dashboardFinishEditing() : T.dashboardEditDashboard());
         updateHistoryControls();
         renameControl.setVisibility(
                 editing && service != null && service.profiles.active() != null ? View.VISIBLE : View.GONE);
@@ -697,7 +697,7 @@ public final class DashboardScreen implements AppScreen {
         boolean full = config.widgets.size() >= WIDGET_LIMIT;
         add.setAlpha(full ? .42f : 1f);
         add.setTooltipText(full ? WIDGET_LIMIT_TEXT : null);
-        add.setContentDescription(full ? "Add widget, " + WIDGET_LIMIT_TEXT : "Add widget");
+        add.setContentDescription(full ? T.dashboardAddWidgetLimit(WIDGET_LIMIT_TEXT) : T.dashboardAddWidget());
         status.setClickable(!editing);
         for (DashboardConfig.Widget widget : config.widgets) {
             Tile tile = new Tile(widget);
@@ -750,7 +750,7 @@ public final class DashboardScreen implements AppScreen {
     /** Home status line: Connected · drive mode, Connecting… or Disconnected · last seen. */
     private void refreshHeader(
             ScooterProfiles.Profile profile, Map<String, TelemetryHistory.Reading> readings) {
-        profileName.setText(profile == null ? "Your scooter" : profile.name);
+        profileName.setText(profile == null ? T.dashboardYourScooter() : profile.name);
         BleController ble = service == null ? null : service.ble;
         boolean ready = ble != null && ble.ready();
         BleController.State state = ble == null ? null : ble.state();
@@ -809,7 +809,7 @@ public final class DashboardScreen implements AppScreen {
 
     /** An inline spinner keeps "Connecting…" on its single status line. */
     private CharSequence connectingLabel() {
-        android.text.SpannableString text = new android.text.SpannableString("Connecting…  ￼");
+        android.text.SpannableString text = new android.text.SpannableString(T.dashboardConnectingSpinner());
         TextView owner = status;
         android.graphics.drawable.Drawable spinner =
                 new android.graphics.drawable.Drawable() {
@@ -2027,8 +2027,8 @@ public final class DashboardScreen implements AppScreen {
                 removeButton = overlay("trash", "Remove " + widget.title, () -> removeWidget(widget));
                 duplicateButton.setEnabled(!lockType(widget.type) && config.widgets.size() < WIDGET_LIMIT);
                 duplicateButton.setAlpha(duplicateButton.isEnabled() ? 1f : .42f);
-                duplicateButton.setTooltipText(lockType(widget.type) ? "One lock widget per dashboard"
-                        : config.widgets.size() >= WIDGET_LIMIT ? WIDGET_LIMIT_TEXT : "Duplicate widget");
+                duplicateButton.setTooltipText(lockType(widget.type) ? T.dashboardOneLockWidget()
+                        : config.widgets.size() >= WIDGET_LIMIT ? WIDGET_LIMIT_TEXT : T.dashboardDuplicateWidget());
                 for (View control : new View[] {grip, editButton, duplicateButton, removeButton}) addView(control);
             }
 

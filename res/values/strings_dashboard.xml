@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Home dashboard screen (batch B13, DashboardScreen): the header and its edit tools, the charging
+  card, the widget cards and their editor controls, the Add widget palette, the widget options, the
+  shortcut and reading pickers, and the layout, size, position, scale and saved-slot dialogs. The
+  English must stay exactly what the source said before the batch (G1, G2; the whole templates a
+  condition picks are checked against the original chain by tests/l10n/DashboardScreenTextTest.java,
+  and the numbers and names by tests/l10n/characterization/DashboardScreenEnglishTest.java).
+
+  Stored values stay English: a widget's saved title and note, an export and an import keep the
+  English text. Widget type names, default titles and slot names come from strings_dashboard_model.xml.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Header -->
+    <!-- Tooltip of the status line under the scooter's name; a tap opens the connection details. -->
+    <string name="dashboard_connection_details" volt:screen="Home header" volt:purpose="tooltip">Connection details</string>
+    <!-- The header's name when no scooter is set up. -->
+    <string name="dashboard_your_scooter" volt:screen="Home header" volt:purpose="title">Your scooter</string>
+    <!-- Spoken for the pencil beside the scooter's name while editing the dashboard. -->
+    <string name="dashboard_rename_scooter" volt:screen="Home header" volt:purpose="accessibility description">Rename scooter</string>
+    <!-- Spoken for the undo arrow while editing the dashboard. -->
+    <string name="dashboard_undo_edit" volt:screen="Home header, editing" volt:purpose="accessibility description">Undo dashboard edit</string>
+    <!-- Spoken for the redo arrow while editing the dashboard. -->
+    <string name="dashboard_redo_edit" volt:screen="Home header, editing" volt:purpose="accessibility description">Redo dashboard edit</string>
+    <!-- Tooltip of the undo arrow. -->
+    <string name="dashboard_undo" volt:screen="Home header, editing" volt:purpose="tooltip">Undo</string>
+    <!-- Tooltip of the redo arrow. -->
+    <string name="dashboard_redo" volt:screen="Home header, editing" volt:purpose="tooltip">Redo</string>
+    <!-- Button that opens the widget palette, and the palette's title. -->
+    <string name="dashboard_add_widget" volt:screen="Home, editing" volt:purpose="button">Add widget</string>
+    <!-- Button that opens the dashboard layout sheet. -->
+    <string name="dashboard_layout" volt:screen="Home, editing" volt:purpose="button">Layout</string>
+    <!-- Spoken for the header's Done pill while editing. -->
+    <string name="dashboard_finish_editing" volt:screen="Home header, editing" volt:purpose="accessibility description">Finish editing dashboard</string>
+    <!-- Spoken for the header's pencil, which starts editing the dashboard. -->
+    <string name="dashboard_edit_dashboard" volt:screen="Home header" volt:purpose="accessibility description">Edit dashboard</string>
+    <!-- Why no widget can be added or duplicated: a dashboard holds at most 32 widgets. -->
+    <string name="dashboard_widget_limit" volt:screen="Home, editing" volt:purpose="tooltip">32-widget limit</string>
+    <!-- Spoken for Add widget at the limit: %1$s is dashboard_widget_limit. -->
+    <string name="dashboard_add_widget_limit" volt:screen="Home, editing" volt:purpose="accessibility description">Add widget, %1$s</string>
+    <!-- The status line while Volt connects; the last character (an object replacement character) is
+         replaced by a small spinner, so keep it last and keep the two spaces before it. -->
+    <string name="dashboard_connecting_spinner" volt:screen="Home header" volt:purpose="status" volt:dnt="￼">"Connecting…  ￼"</string>
+    <!-- Tooltip of a widget's duplicate button: a dashboard has a single lock widget. -->
+    <string name="dashboard_one_lock_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip" volt:safety="lock">One lock widget per dashboard</string>
+    <!-- Tooltip of a widget's duplicate button. -->
+    <string name="dashboard_duplicate_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip">Duplicate widget</string>
+</resources>
