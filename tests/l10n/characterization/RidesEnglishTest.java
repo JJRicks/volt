@@ -141,6 +141,19 @@ public final class RidesEnglishTest {
         return title + ": first ride " + spokenFirst + ", second ride " + spokenSecond;
     }
 
+    /** RidesScreen.java:854, a chart inspection cell's description. */
+    static String cellDescription(String label, boolean available, CharSequence reading, CharSequence stamp) {
+        return label + ": " + (available ? reading + ", " + stamp : "no recorded sample");
+    }
+
+    /** RidesScreen.java:868, the energy-per-distance chip's speed limit. */
+    static String chipLimit(String key, boolean miles) { return "wh_per_distance".equals(key) ? " · ≥" + (miles ? "2 mph" : "3 km/h") : ""; }
+
+    /** RidesScreen.java:871, a chart series chip's description. */
+    static String chipDescription(String label, String key, boolean miles, boolean available) {
+        return label + ("wh_per_distance".equals(key) ? ", only at " + (miles ? "2 mph" : "3 km/h") + " or faster" : "") + (available ? "" : ", no samples recorded");
+    }
+
     /**
      * ScooterService.phoneStatus() with PhoneRideRecorder.status(): storageError is null or
      * "Phone sensor storage unavailable" (the only text PhoneRideRecorder sets), gpsText one of the
@@ -200,6 +213,14 @@ public final class RidesEnglishTest {
         eq("Delete this ride?", deleteTitle("")); eq("Delete Hill?", deleteTitle("Hill"));
         eq("View route of Ride", viewRoute("Ride"));
         eq("Distance: first ride 1 km, second ride Not measured", compareLine("Distance", "1 km", "Not measured"));
+        eq("Power: 120 W, At 12:04:05", cellDescription("Power", true, "120 W", "At 12:04:05"));
+        eq("Speed: no recorded sample", cellDescription("Speed", false, "—", "—"));
+        eq(" · ≥2 mph", chipLimit("wh_per_distance", true)); eq(" · ≥3 km/h", chipLimit("wh_per_distance", false));
+        eq("", chipLimit("power_w", true));
+        eq("Wh/mi, only at 2 mph or faster", chipDescription("Wh/mi", "wh_per_distance", true, true));
+        eq("Wh/km, only at 3 km/h or faster, no samples recorded", chipDescription("Wh/km", "wh_per_distance", false, false));
+        eq("Power", chipDescription("Power", "power_w", true, true));
+        eq("Power, no samples recorded", chipDescription("Power", "power_w", false, false));
         eq("Saving phone sensors", phoneStatus(true, false, null, false, true, "GPS recording", true, true, true, false));
         eq("Phone sensor storage unavailable", phoneStatus(false, true, null, false, true, "GPS off", false, false, false, false));
         eq("Phone sensors idle", phoneStatus(false, false, null, false, false, "GPS off", true, true, true, true));
