@@ -902,20 +902,20 @@ public final class ModelRegistry {
      * Confirmation text before sending this value, or null. Only for OEM-mapped variants off the UT5 MAX
      * layer, where the official app asks first; the UT5 MAX keeps today's direct controls.
      */
-    private static final String ASKS="The official app asks before this change. Volt has not tested it on this model.";
-    private static final String UNTESTED="Volt has not tested it on this model.";
+    private static final CharSequence ASKS=Msg.of(T.CONTROLS_CAUTION_ASKS);
+    private static final CharSequence UNTESTED=Msg.of(T.CONTROLS_CAUTION_UNTESTED);
     private static final String SPEED_PROMPT_NOTE="OEM 2.1.9 asks before speeds above 32 km/h";
-    private static final String SHOWS="The official app shows a caution for this change. Volt has not tested it on this model.";
+    private static final CharSequence SHOWS=Msg.of(T.CONTROLS_CAUTION_SHOWS);
     public static String caution(CapabilityResolver.Decision d,int value){
         if(d==null||d.layer==Layer.UT5_MAX||d.variant==null||d.evidence!=CapabilityResolver.Evidence.OEM_MAPPED)return null;
         switch(d.feature){
-            case "traction_control": return value==0?"Turn off traction control? "+ASKS:null;
-            case "low_power": return value==0?"Turn off Low Battery Mode? "+ASKS:null;
-            case "dual_drive": return value==0?"Switch to single motor? "+ASKS:null;
-            case "energy_recovery": return d.variant==OEM_ENERGY_BINARY&&value==0?"Turn off energy recovery? "+SHOWS:null;
-            case "start_speed": return value<3?"Kick-start speed below 3 km/h. "+SHOWS:null;
-            case "maximum_speed": return value>32&&d.variant==SPEED_25_70?"Above 32 km/h: check the rules where you ride. "
-                    +(SPEED_PROMPT_NOTE.equals(d.oemNote)?ASKS:UNTESTED):null;
+            case "traction_control": return value==0?T.controlsCautionTractionControl(ASKS):null;
+            case "low_power": return value==0?T.controlsCautionLowPower(ASKS):null;
+            case "dual_drive": return value==0?T.controlsCautionDualDrive(ASKS):null;
+            case "energy_recovery": return d.variant==OEM_ENERGY_BINARY&&value==0?T.controlsCautionEnergyRecovery(SHOWS):null;
+            case "start_speed": return value<3?T.controlsCautionStartSpeed(SHOWS):null;
+            case "maximum_speed": return value>32&&d.variant==SPEED_25_70?T.controlsCautionMaximumSpeed(
+                    SPEED_PROMPT_NOTE.equals(d.oemNote)?ASKS:UNTESTED):null;
             default: return null;
         }
     }
@@ -926,10 +926,10 @@ public final class ModelRegistry {
      */
     public static String experimentalCaution(String feature,int value){
         switch(feature){
-            case "traction_control": return value==0?"Turns traction control off. Ride gently on wet or loose ground until you know how it behaves.":null;
-            case "start_speed": return value<3?"Below 3 km/h, the motor can pull from a standstill as soon as you use the throttle.":null;
-            case "energy_recovery": return value==0?"Turns motor braking off, so your brakes do more of the stopping.":null;
-            case "speed_limit": return value!=0?"Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.":null;
+            case "traction_control": return value==0?T.controlsExperimentalTractionControl():null;
+            case "start_speed": return value<3?T.controlsExperimentalStartSpeed():null;
+            case "energy_recovery": return value==0?T.controlsExperimentalEnergyRecovery():null;
+            case "speed_limit": return value!=0?T.controlsExperimentalSpeedLimit():null;
             default: return null;
         }
     }
@@ -972,11 +972,19 @@ public final class ModelRegistry {
         for(Known k:KNOWN.values())if(k.name.equals(model))return k.photo;
         String waiting=WAITING_PHOTOS.get(model);return waiting==null?"":waiting;
     }
-    /** "UT5 MAX", a known name such as "N65i", "Model 24431" (advertised), "Model 2443 (unconfirmed)" (serial only) or "". */
-    public static String modelLine(DeviceDescriptor d){
+    /**
+     * The model line as a screen shows it: "UT5 MAX", a known name such as "N65i", "Model 24431" (advertised),
+     * "Model 2443 (unconfirmed)" (serial only) or "". The words around a Model ID are a Msg in the current language.
+     */
+    public static CharSequence modelLineText(DeviceDescriptor d){
         if(d==null)return "";if(ut5Max(d))return "UT5 MAX";
         Known t=known(d);if(t!=null)return t.name;
-        if(!d.rulePid().isEmpty())return "Model "+d.rulePid();
-        return d.serialPid.isEmpty()?"":"Model "+d.serialPid+" (unconfirmed)";
+        if(!d.rulePid().isEmpty())return Msg.of(T.CONTROLS_MODEL_LINE,d.rulePid());
+        return d.serialPid.isEmpty()?"":Msg.of(T.CONTROLS_MODEL_LINE_UNCONFIRMED,d.serialPid);
+    }
+    /** modelLineText in English, whatever language is shown: IssueReport and the compatibility reports keep it. */
+    public static String modelLine(DeviceDescriptor d){
+        CharSequence line=modelLineText(d);
+        return line instanceof Msg?((Msg)line).english():line.toString();
     }
 }

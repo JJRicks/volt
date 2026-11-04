@@ -1,0 +1,28 @@
+# B4's display accessors not yet used outside B4's files (tests/l10n/ControlsConsumersTest.java holds src to
+# these counts exactly). Each row: the file, the pattern (see the test), how many reads, the batch that switches
+# them, and what it switches to or why the read stays English. Delete a row when its reads are gone.
+file	pattern	count	owner	follow_up
+BleController.java	feature-field	3	B7	notice/finishMutation sentences around feature.label (616, 942): whole templates taking feature.label() (Msg), the event log keeping english()
+BleController.java	find-field	3	B7	find(key).label in notice and message (758, 762, 879): whole templates with find(key).label(); the lowercased label goes (plan 4, no mid-sentence lowercasing)
+BleController.java	reason-text	10	B7	notice(d.reasonText()): pass d.reasonMessage() so the screen shows the current language and the event log and journal keep english() (R2)
+BleController.java	refusal-message	8	B7	notice(e.getMessage()) after a ScooterCommands/FeatureVariant builder: e instanceof ScooterCommands.Refused ? notice(((Refused)e).msg()) : one localized refusal (plan 1.6; Refused is an IllegalArgumentException, not a UserFacingException); safety: PIN owner check, PIN digits, proximity bond and PIN, values outside the domain
+CompatibilityPanel.java	find-field	4	B9	find(feature).label shown in the test cards and the capability table (146, 177, 207, 292): feature.label()
+CompatibilityPanel.java	model-line	2	B9	52 is the panel's refresh key (data, stays modelLine); 97 is shown: switch it to ModelRegistry.modelLineText
+CompatibilityPanel.java	reason-text	2	B9	muted(d.reasonText()) and the capability table value (186, 293): rendered at display, current language already; B9 joins them into whole templates
+CompatibilityPanel.java	variant-label	8	B9	d.label(v) inside Restore/Keep/Set buttons and before/after lines: d.labelText(v) inside whole templates
+GuidedTest.java	variant-label	13	B9	variant.label(v) in test notes and reviews, which TestJournal stores and CompatibilityReport emails: stay English as stored data; B9 renders the shown note from a Msg carrying variant.text(v) (plan 1.5 GuidedTest notes)
+MainActivity.java	feature-field	10	B19	f.label/feature.label/feature.options shown in rows, sheets and SegmentedSelector (1740, 2216, 2227): label(), optionLabel(i); f.group compares (1428, 1656, 1658) are ids and stay; 1754 f.description for lock_expiry: description()
+MainActivity.java	find-field	2	B19	find(...feature).label in the test banner, "Unfinished try/test · <label>" and "Trying <label>…" (1527, 1530): whole templates with find(...).label(); the lowercased label goes (plan 4, no mid-sentence lowercasing)
+MainActivity.java	oem-label	1	B19	decision.oemLabel(value) shown in the value line (1252): oemText(value)
+MainActivity.java	reason-text	4	B19	toast/lock-queue reasons (943, 1592, 1597, 2311): rendered at display, already in the current language; LockTapQueue.reject stores it, so 943 takes reasonMessage() (B7 LockTapQueue R2)
+MainActivity.java	search-text	1	B19	settings search haystack (2199) matches English only: add feature.label() and description() as shown, folded with NaveeModels.displayFold-style rules
+MainActivity.java	variant-label	1	B19	decision.label(v) shown as a choice label (2326): decision.labelText(v)
+MoreScreen.java	feature-field	9	B18	f.label titles, sheets, slider and content descriptions, the experimental notes (1620-2017): feature.label(); the lowercased content descriptions (1667-1669) become whole templates
+MoreScreen.java	model-line	3	B18	model line shown on the saved scooter, the lab row and the about card (913, 1603, 2149): ModelRegistry.modelLineText
+MoreScreen.java	oem-label	1	B18	d.oemLabel(value) in the experimental value line (1608): d.oemText(value)
+MoreScreen.java	reason-text	4	B18	lab and PIN reasons (1662, 1986, 2529): rendered at display, current language already; B18 joins them into whole templates
+MoreScreen.java	resolver-text	1	B18	CapabilityResolver.text(reason) default branch (1689): rendered at display, current language already
+QuickAccessActions.java	feature-field	2	B12	ENTRIES title feature.label and subtitle feature.group (62, 63): int label ids or feature.label()/groupLabel() per plan 1.5 static catalogs
+QuickAccessGrid.java	oem-label	2	B12	decision.oemLabel(value) on the tile (79): decision.oemText(value)
+ScooterService.java	reason-text	2	B8 with B5	toggleReason/timeReason (990) go into ChargeScheduleController.Context and a persisted status (ChargeScheduleController 365/382): carry reasonMessage() or the Reason enum, render at display (R2, BlockReason in plan 1.5)
+DisplayUnits.java	value-label	1	follow-up after wave 2 (B1 merged)	featureValue shows feature.valueLabel(value) for non-speed values (14): feature.valueText(value). Not done in B4: G1 rejects swapping a call outside a ledger row in another batch's file (ledger_check DisplayUnits.java:14, 58e46c8)

@@ -68,14 +68,27 @@ public final class CapabilityResolver {
         public String oemLabel(int v){
             if(variant==null||variant.decode==FeatureVariant.Decode.UT5_FEATURE)return null;
             ScooterCommands.Feature f=ScooterCommands.find(feature);
-            return "km/h".equals(f==null?variant.unit:f.unit)?null:variant.label(v);
+            return UnitCode.KMH.code.equals(f==null?variant.unit:f.unit)?null:variant.label(v);
         }
+        /** label(v) in the current language. */
+        public Msg labelText(int v){return variant==null?Msg.verbatim(Fmt.integer(v)):variant.text(v);}
+        /** labels() in the current language. */
+        public Msg[] labelTexts(){Msg[] out=new Msg[choices.length];for(int i=0;i<choices.length;i++)out[i]=labelText(choices[i]);return out;}
+        /** oemLabel(v) in the current language, or null where oemLabel is null. */
+        public Msg oemText(int v){return oemLabel(v)==null?null:variant.text(v);}
         public boolean allows(int v){
             if(variant==null||!variant.allows(v))return false;
             if(!variant.dynamicChoices)return true;
             for(int c:choices)if(c==v)return true;return false;
         }
+        /**
+         * The reason rendered in the current language at call time, for a screen that shows it now. Text that is
+         * logged (BleController.notice's event log and journal) or stored (ChargeScheduleController's status) takes
+         * reasonMessage() instead and keeps its english() (plan R2).
+         */
         public String reasonText(){return text(reason);}
+        /** reasonText() deferred: "" for no reason, else a Msg whose english() is what a log or a stored status keeps. */
+        public CharSequence reasonMessage(){return message(reason);}
         /** variant.read(status) or null. */
         public Integer current(){return variant==null?null:variant.read(status);}
         @Override public String toString(){return feature+":"+support+"/"+reason+(variant==null?"":"/"+variant.id);}
@@ -287,39 +300,42 @@ public final class CapabilityResolver {
         return Reason.NONE;
     }
 
-    /** Short UI copy. */
-    static String text(Reason reason){
+    /** Short UI copy, deferred: "" for NONE, else a Msg (its english() is what logs keep). */
+    static CharSequence message(Reason reason){
         switch(reason){
             case NONE: return "";
-            case NOT_CONNECTED: return "Connect first";
-            case STATUS_STALE: return "Waiting for fresh status";
-            case FIELD_ABSENT: return "Not reported";
-            case VALUE_UNKNOWN: return "Unknown value · can't change safely";
-            case NO_CHOICES: return "No choices reported";
-            case BUSY: return "Wait for the current change";
-            case MOVING: return "Stop the scooter first";
-            case NO_MOTION_REPORT: return "No motion report yet";
-            case WARNING_ACTIVE: return "Resolve scooter warning first";
-            case LOCKED: return "Unlock first";
-            case OWNER_ONLY: return "Owner only";
-            case NEEDS_BOND: return "Pair this phone first";
-            case NEEDS_PIN: return "Enable the handlebar PIN first";
-            case FIRMWARE_UNKNOWN: return "Firmware not read yet";
-            case FIRMWARE_OLD: return "Needs newer scooter firmware";
-            case FULL_PID_NEEDED: case MODEL_NOT_IDENTIFIED: return "Identify model first";
-            case IDENTITY_CONFLICT: return "Model ID mismatch";
-            case MODEL_NOT_MAPPED: return "Not mapped for this model";
-            case MODEL_EXCLUDED: return "Not on this model";
-            case REGION_RULE: return "Not offered for this region";
-            case PRODUCT_UNSUPPORTED: case TRANSPORT_UNSUPPORTED: return "Not supported";
-            case DISCOVERY_ACTIVE: return "Checking compatibility…";
-            case TEST_ACTIVE: return "Test in progress";
-            case NOT_TESTABLE: return "Not offered as a test";
-            case RECORDING: return "Stop recording first";
-            case NEEDS_REAL_SCOOTER: return "Needs a real scooter";
-            case PARKED_UNCONFIRMED: return "Confirm the scooter is parked";
-            case NO_TEST: return "No test running";
+            case NOT_CONNECTED: return M.controlsReasonNotConnected();
+            case STATUS_STALE: return M.controlsReasonStatusStale();
+            case FIELD_ABSENT: return M.commonNotReported();
+            case VALUE_UNKNOWN: return M.controlsReasonValueUnknown();
+            case NO_CHOICES: return M.controlsReasonNoChoices();
+            case BUSY: return M.controlsReasonBusy();
+            case MOVING: return M.controlsReasonMoving();
+            case NO_MOTION_REPORT: return M.controlsReasonNoMotionReport();
+            case WARNING_ACTIVE: return M.controlsReasonWarningActive();
+            case LOCKED: return M.controlsReasonLocked();
+            case OWNER_ONLY: return M.controlsReasonOwnerOnly();
+            case NEEDS_BOND: return M.controlsReasonNeedsBond();
+            case NEEDS_PIN: return M.controlsReasonNeedsPin();
+            case FIRMWARE_UNKNOWN: return M.controlsReasonFirmwareUnknown();
+            case FIRMWARE_OLD: return M.controlsReasonFirmwareOld();
+            case FULL_PID_NEEDED: case MODEL_NOT_IDENTIFIED: return M.controlsReasonIdentifyModel();
+            case IDENTITY_CONFLICT: return M.controlsReasonIdentityConflict();
+            case MODEL_NOT_MAPPED: return M.controlsReasonModelNotMapped();
+            case MODEL_EXCLUDED: return M.controlsReasonModelExcluded();
+            case REGION_RULE: return M.controlsReasonRegionRule();
+            case PRODUCT_UNSUPPORTED: case TRANSPORT_UNSUPPORTED: return M.controlsReasonUnsupported();
+            case DISCOVERY_ACTIVE: return M.controlsReasonDiscoveryActive();
+            case TEST_ACTIVE: return M.controlsReasonTestActive();
+            case NOT_TESTABLE: return M.controlsReasonNotTestable();
+            case RECORDING: return M.controlsReasonRecording();
+            case NEEDS_REAL_SCOOTER: return M.controlsReasonNeedsRealScooter();
+            case PARKED_UNCONFIRMED: return M.controlsReasonParkedUnconfirmed();
+            case NO_TEST: return M.controlsReasonNoTest();
             default: return "";
         }
     }
+
+    /** Short UI copy in the current language. */
+    static String text(Reason reason){return message(reason).toString();}
 }
