@@ -4,7 +4,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -22,6 +26,11 @@ import java.util.regex.Pattern;
  *  - Widget names: dashboard_model_type_* match DashboardConfig.NAMES, in TYPES order, and the example
  *    titles and note match AllWidgetsDashboard's saved English (both read from src/, since DashboardConfig
  *    needs org.json; DashboardSlotsValidation checks the accessors on Android).
+ *  - Example ids (DashboardExampleIds): only the shipped example's widgets show its titles, note and slot
+ *    name through the catalogue, and their ids say which. Every id it makes is a canonical UUID, distinct,
+ *    tagged and version 8, which no random (version 4) UUID is: not another widget's, not an older
+ *    version's example. Only AllWidgetsDashboard makes them, and the accessors check them (read from src/;
+ *    DashboardSlotsValidation.exampleProvenance runs them on Android with the real example).
  */
 public final class DashboardModelTextTest {
     private static int checks;
@@ -39,12 +48,13 @@ public final class DashboardModelTextTest {
             english();
             templates();
             widgetNames();
+            exampleIds();
             T.install(new Marked());
             marked();
         } finally {
             T.install(saved);
         }
-        System.out.println("DashboardModelTextTest: " + checks + " checks passed (shortcut names in English and marked, tile templates, widget and slot names)");
+        System.out.println("DashboardModelTextTest: " + checks + " checks passed (shortcut names in English and marked, tile templates, widget and slot names, example ids)");
     }
 
     private static void check(boolean ok, String what) {
@@ -145,6 +155,61 @@ public final class DashboardModelTextTest {
         Matcher slot = Pattern.compile("EXAMPLE_SLOT_NAME = \"([^\"]*)\"").matcher(config);
         check(slot.find(), "EXAMPLE_SLOT_NAME not declared");
         same(slot.group(1), T.dashboardModelSlotExample(), "example slot name");
+    }
+
+    /** DashboardExampleIds against random UUIDs and malformed ids, and who makes and checks them (src/). */
+    private static void exampleIds() throws Exception {
+        Set<String> made = new HashSet<>();
+        for (int i = 0; i < 5000; i++) {
+            String id = DashboardExampleIds.create();
+            UUID uuid = UUID.fromString(id);
+            check(made.add(id), "example id repeated: " + id);
+            // The form every widget id has, which older versions save, export and import as they always have.
+            same(id, uuid.toString(), "example id is a canonical UUID");
+            check(id.length() == 36 && id.startsWith("566f6c74-") && uuid.version() == 8 && uuid.variant() == 2,
+                    "example id layout: " + id);
+            check(DashboardExampleIds.is(id), "example id not recognised: " + id);
+            check(!DashboardExampleIds.is(id.toUpperCase(Locale.ROOT)) && !DashboardExampleIds.is(" " + id)
+                    && !DashboardExampleIds.is(id + " ") && !DashboardExampleIds.is(id.substring(1)), "altered example id: " + id);
+            // Every other widget's id, and every example id an older version saved.
+            String random = UUID.randomUUID().toString();
+            check(!DashboardExampleIds.is(random), "random UUID taken for the example's: " + random);
+            String tagged = "566f6c74" + random.substring(8);
+            check(UUID.fromString(tagged).version() == 4 && !DashboardExampleIds.is(tagged), "version 4 with the tag taken: " + tagged);
+        }
+        String sample = DashboardExampleIds.create();
+        String[] refused = {null, "", "note", "Slot 1", "566f6c74", "566f6c74-0-8000-8000-0",
+            "566f6c74-0000-8000-8000-00000000000g", "566f6c75" + sample.substring(8),
+            sample.substring(0, 14) + "7" + sample.substring(15), sample.substring(0, 19) + "c" + sample.substring(20),
+            "3b241101-e2bb-4255-8caf-4136c566a962", "00000000-0000-0000-0000-000000000000"};
+        for (String id : refused) check(!DashboardExampleIds.is(id), "not an example id, yet taken: " + id);
+
+        // Only the example makes them; every other widget (new, duplicated, read back) keeps its random or saved id.
+        String example = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/AllWidgetsDashboard.java")), StandardCharsets.UTF_8);
+        String config = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/DashboardConfig.java")), StandardCharsets.UTF_8);
+        int makers = 0;
+        for (java.io.File file : new java.io.File("src/com/jjricks/volt").listFiles()) {
+            if (!file.getName().endsWith(".java")) continue;
+            String source = new String(Files.readAllBytes(file.toPath()), StandardCharsets.UTF_8);
+            if (source.contains("DashboardExampleIds.create()")) {
+                makers++;
+                same("AllWidgetsDashboard.java", file.getName(), "only the example makes example ids");
+            }
+        }
+        check(makers == 1, "example ids made in " + makers + " files");
+        check(example.contains("new DashboardConfig.Widget(DashboardExampleIds.create(), type)"), "the example's widgets get example ids");
+        check(config.contains("this(UUID.randomUUID().toString(), type);"), "other widgets get random ids");
+        // The example title and note, and the example slot name, ask for them.
+        Matcher title = Pattern.compile("static Msg exampleTitle\\(DashboardConfig\\.Widget widget\\) \\{\\s*if \\(!isExample\\(widget\\)\\) return null;").matcher(example);
+        check(title.find(), "exampleTitle does not check the widget is the example's");
+        check(example.contains("return isExample(widget) && \"note\".equals(widget.type) && NOTE_TEXT.equals(widget.note)"),
+                "exampleNote does not check the widget is the example's");
+        check(example.contains("return widget != null && DashboardExampleIds.is(widget.id);"), "isExample does not read the id");
+        check(config.contains("if (!DashboardExampleIds.is(widget.optString(\"id\")) || !types.add(widget.optString(\"type\"))) return false;"),
+                "exampleSlot does not check every widget's id");
+        check(config.contains("if (slot.example) return M.dashboardModelSlotExample();")
+                && !config.contains("EXAMPLE_SLOT_NAME.equals(name) ? T.dashboardModelSlotExample()"),
+                "a slot shows the example's name for its name alone");
     }
 
     private static String block(String source, String start) {

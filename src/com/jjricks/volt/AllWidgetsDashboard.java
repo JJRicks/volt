@@ -15,8 +15,24 @@ final class AllWidgetsDashboard {
 
     private AllWidgetsDashboard() {}
 
-    /** The current language's name for one of the example's own titles on its own widget type, else null. */
-    static Msg exampleTitle(String type, String title) {
+    /**
+     * True when widget is one of the example's own: create() gave it an example id (DashboardExampleIds),
+     * which saves, exports and imports keep and no other widget gets. Only on those are the titles and
+     * note below Volt's; the same words on any other widget are the owner's.
+     */
+    static boolean isExample(DashboardConfig.Widget widget) {
+        return widget != null && DashboardExampleIds.is(widget.id);
+    }
+
+    /**
+     * The current language's name for one of the example's own titles, when widget is the example's own
+     * widget of that type and still holds it; else null (the owner's title, shown as saved). An owner
+     * who retitles such a widget and later types its example title back gets the example's title again:
+     * the saved widget cannot tell the two apart, and it is the example's own widget.
+     */
+    static Msg exampleTitle(DashboardConfig.Widget widget) {
+        if (!isExample(widget)) return null;
+        String type = widget.type, title = widget.title;
         if (type == null || title == null) return null;
         switch (type) {
             case "gauge": return SPEED_TITLE.equals(title) ? M.dashboardModelExampleSpeed() : null;
@@ -28,9 +44,16 @@ final class AllWidgetsDashboard {
         }
     }
 
-    /** The current language's example note when a note widget still holds it, else null. */
-    static Msg exampleNote(String type, String note) {
-        return "note".equals(type) && NOTE_TEXT.equals(note) ? M.dashboardModelExampleNote() : null;
+    /**
+     * The current language's example note, when widget is the example's own note widget and still holds
+     * it; else null. Any other note is the owner's and shows as saved, even one that says NOTE_TEXT: a
+     * note widget the owner added or duplicated, or one saved by an older version, has a random id. (As
+     * with titles, the example's own note widget edited and then given NOTE_TEXT back counts as the
+     * example's again.)
+     */
+    static Msg exampleNote(DashboardConfig.Widget widget) {
+        return isExample(widget) && "note".equals(widget.type) && NOTE_TEXT.equals(widget.note)
+                ? M.dashboardModelExampleNote() : null;
     }
 
     static ArrayList<DashboardConfig.Widget> create() {
@@ -137,7 +160,8 @@ final class AllWidgetsDashboard {
     }
 
     private static DashboardConfig.Widget add(ArrayList<DashboardConfig.Widget> result, String type) {
-        DashboardConfig.Widget widget = new DashboardConfig.Widget(type);
+        // The example's ids mark its widgets as Volt's (isExample); every other widget's id is random.
+        DashboardConfig.Widget widget = new DashboardConfig.Widget(DashboardExampleIds.create(), type);
         result.add(widget);
         return widget;
     }
