@@ -32,7 +32,7 @@ public final class RideChartView extends View {
     private boolean draggingAxes, panningTime, horizontalGesture, scrollingPage, suppressSingle;
     private final int touchSlop; private InspectionListener inspectionListener;
     private ValueFormatter valueFormatter = DEFAULT_FORMATTER;
-    private String chartTitle = "Ride chart", fitActionLabel = "Fit whole ride";
+    private CharSequence chartTitle = M.mapsChartRide(), fitActionLabel = M.mapsChartFitRide();
     private final ScaleGestureDetector scale; private final GestureDetector gestures;
     private final RectF plot = new RectF();
     public RideChartView(Ui ui) {
@@ -52,13 +52,13 @@ public final class RideChartView extends View {
     private static final int ACTION_PREVIOUS_SAMPLE = 0x7e0a0004, ACTION_NEXT_SAMPLE = 0x7e0a0005;
     @Override public void onInitializeAccessibilityNodeInfo(android.view.accessibility.AccessibilityNodeInfo info) {
         super.onInitializeAccessibilityNodeInfo(info);
-        info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_ZOOM_IN, "Zoom in"));
-        info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_ZOOM_OUT, "Zoom out"));
+        info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_ZOOM_IN, T.mapsChartZoomIn()));
+        info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_ZOOM_OUT, T.mapsChartZoomOut()));
         info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_FIT, fitActionLabel));
         if (Double.isFinite(adjacentSampleTime(false)))
-            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_PREVIOUS_SAMPLE, "Previous recorded sample"));
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_PREVIOUS_SAMPLE, T.mapsChartPreviousSample()));
         if (Double.isFinite(adjacentSampleTime(true)))
-            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_NEXT_SAMPLE, "Next recorded sample"));
+            info.addAction(new android.view.accessibility.AccessibilityNodeInfo.AccessibilityAction(ACTION_NEXT_SAMPLE, T.mapsChartNextSample()));
     }
     @Override public boolean performAccessibilityAction(int action, android.os.Bundle arguments) {
         if (action == ACTION_ZOOM_IN) { zoomBy(2); return true; }
@@ -128,8 +128,8 @@ public final class RideChartView extends View {
         axisScroll = closest;
     }
     public void setChartTitle(String title, String fitActionLabel) {
-        chartTitle = title == null || title.trim().isEmpty() ? "Recording chart" : title;
-        this.fitActionLabel = fitActionLabel == null ? "Fit whole recording" : fitActionLabel;
+        chartTitle = title == null || title.trim().isEmpty() ? M.mapsChartRecording() : title;
+        this.fitActionLabel = fitActionLabel == null ? M.mapsChartFitRecording() : fitActionLabel;
         updateAccessibilityDescription();
     }
     public State getState() { return new State(from, to, inspectedTime, axisScroll); }
@@ -186,17 +186,17 @@ public final class RideChartView extends View {
     }
     private void updateAccessibilityDescription() {
         StringBuilder description = new StringBuilder(chartTitle);
-        if (series.isEmpty()) description.append(". No readings selected");
-        else if (!Double.isFinite(inspectedTime)) description.append(". No recorded samples");
+        if (series.isEmpty()) description.append(T.mapsChartDescNoReadings());
+        else if (!Double.isFinite(inspectedTime)) description.append(T.mapsChartDescNoSamples());
         else {
-            description.append(". At ").append(sampleTime((long) inspectedTime));
+            description.append(T.mapsChartDescAt()).append(sampleTime((long) inspectedTime));
             for (RideChartData.Series selected : series) {
                 RideChartData.Value value = selected.sampleAt(inspectedTime);
-                description.append(". ").append(selected.label).append(": ");
-                if (value == null || value.value == null || !Double.isFinite(value.value)) description.append("No reading");
+                description.append(T.mapsChartDescReading(selected.displayLabel()));
+                if (value == null || value.value == null || !Double.isFinite(value.value)) description.append(T.mapsChartDescNoReading());
                 else {
                     description.append(valueFormatter.sample(selected, value));
-                    if (value.time != inspectedTime) description.append(" at ").append(sampleTime(value.time));
+                    if (value.time != inspectedTime) description.append(T.mapsChartDescValueAt()).append(sampleTime(value.time));
                 }
             }
         }
@@ -269,7 +269,7 @@ public final class RideChartView extends View {
             canvas.drawText(label, x, plot.bottom + ui.dp(24), paint);
         }
         paint.setTextAlign(Paint.Align.CENTER);
-        if (series.isEmpty()) { canvas.drawText("Choose readings above", plot.centerX(), plot.centerY(), paint); return; }
+        if (series.isEmpty()) { canvas.drawText(T.mapsChartChooseReadings(), plot.centerX(), plot.centerY(), paint); return; }
         drawHatches(canvas);
         float axisEnd = 0, axisTextSize = paint.getTextSize();
         for (RideChartData.Series s : axes) {
@@ -280,7 +280,7 @@ public final class RideChartView extends View {
             // A shared scale belongs to both colored traces, rather than favoring either one.
             paint.setColor(shared ? ui.muted : ui.dark ? s.color : darken(s.color)); paint.setTextAlign(Paint.Align.RIGHT);
             paint.setTextSize(axisTextSize);
-            String[] labels = new String[5]; float textWidth = paint.measureText(s.unit);
+            String[] labels = new String[5]; String unit = unitSymbol(s.unit); float textWidth = paint.measureText(unit);
             for (int tick = 0; tick < labels.length; tick++) {
                 labels[tick] = s.available() ? valueFormatter.axis(s, s.scale.at(1 - tick / 4d)) : "—";
                 textWidth = Math.max(textWidth, paint.measureText(labels[tick]));
@@ -289,7 +289,7 @@ public final class RideChartView extends View {
             float labelRoom = Math.max(1, width - ui.dp(12));
             if (textWidth > labelRoom) paint.setTextSize(axisTextSize * labelRoom / textWidth);
             canvas.save(); canvas.clipRect(ui.dp(8), 0, plot.left - ui.dp(4), getHeight());
-            canvas.drawText(s.unit, x, plot.top - ui.dp(12), paint);
+            canvas.drawText(unit, x, plot.top - ui.dp(12), paint);
             for (int tick = 0; tick < labels.length; tick++) canvas.drawText(labels[tick], x, plot.top + plot.height() * tick / 4 + ui.dp(4), paint);
             paint.setStrokeWidth(ui.dp(1)); canvas.drawLine(x + ui.dp(3), plot.top, x + ui.dp(3), plot.bottom, paint);
             canvas.restore(); paint.setTextSize(axisTextSize);
@@ -326,7 +326,7 @@ public final class RideChartView extends View {
                 paint.setColor(ui.dark ? s.color : darken(s.color)); canvas.drawCircle(x, y, ui.dp(3.5f), paint);
             }
             canvas.restore(); paint.setColor(ui.text); paint.setTextAlign(Paint.Align.CENTER);
-            canvas.drawText("At " + sampleTime((long)inspectedTime), plot.centerX(), plot.top - ui.dp(12), paint);
+            canvas.drawText(T.mapsChartCursorAt(sampleTime((long)inspectedTime)), plot.centerX(), plot.top - ui.dp(12), paint);
         }
     }
     /** Light diagonal hatching along the plot floor where energy / distance is below its speed limit. */
@@ -373,8 +373,8 @@ public final class RideChartView extends View {
         return ui.surface;
     }
     private static int darken(int color) { return Color.rgb((int)(Color.red(color) * .65), (int)(Color.green(color) * .65), (int)(Color.blue(color) * .65)); }
-    private static String axisNumber(RideChartData.Series series, double value) { return series.unit.equals("mph") || series.unit.equals("km/h") ? String.format(Locale.US, "%.1f", Math.abs(value) < .05 ? 0 : value) : number(value); }
-    private static String number(double value) { if (Math.abs(value) < .005) value = 0; return String.format(Locale.US, Math.abs(value) >= 100 ? "%.0f" : Math.abs(value) >= 10 ? "%.1f" : "%.2f", value); }
+    private static String axisNumber(RideChartData.Series series, double value) { return UnitCode.MPH.matches(series.unit) || UnitCode.KMH.matches(series.unit) ? String.format(Fmt.locale(Locale.US), "%.1f", Math.abs(value) < .05 ? 0 : value) : number(value); }
+    private static String number(double value) { if (Math.abs(value) < .005) value = 0; return String.format(Fmt.locale(Locale.US), Math.abs(value) >= 100 ? "%.0f" : Math.abs(value) >= 10 ? "%.1f" : "%.2f", value); }
     private static String time(double ms) { long seconds = Math.max(0, (long)(ms / 1000)); return String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60); }
     public static String tickTime(double ms, double spacingMs) {
         if (spacingMs >= 1000) return time(ms);
@@ -384,9 +384,19 @@ public final class RideChartView extends View {
     public static String sampleTime(long ms) { return time(ms) + String.format(Locale.US, ".%03d", Math.max(0, ms) % 1000); }
     public static String sampleValue(RideChartData.Series s, RideChartData.Value value) {
         if (value == null || value.value == null || !Double.isFinite(value.value)) return "—";
-        int places = s.unit.equals("mph") || s.unit.equals("km/h") ? 1 : 2;
+        int places = UnitCode.MPH.matches(s.unit) || UnitCode.KMH.matches(s.unit) ? 1 : 2;
         double raw = Math.abs(value.value) < Math.pow(10, -places) / 2 ? 0 : value.value;
-        return String.format(Locale.US, "%." + places + "f", raw) + " " + s.unit;
+        return T.fmtQuantity(String.format(Fmt.locale(Locale.US), "%." + places + "f", raw), unitSymbol(s.unit));
+    }
+    /**
+     * The unit drawn above an axis: a data unit UnitCode knows ("mph", "W", "V", "Time") as its catalog
+     * symbol, which is the same text in English; any other unit ("Wh/mi", "ft", "%") as it is. Display
+     * only: the series keeps its data unit, which code compares. sampleValue() shows the same symbol
+     * after its number through fmt_quantity.
+     */
+    static String unitSymbol(String unit) {
+        for (UnitCode code : UnitCode.values()) if (code.matches(unit)) return code.symbol();
+        return unit;
     }
     @Override public boolean onTouchEvent(MotionEvent event) {
         int action = event.getActionMasked();
