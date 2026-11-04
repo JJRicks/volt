@@ -2095,6 +2095,8 @@ public final class MoreScreen implements AppScreen {
             box = dialogBox("Volt " + r.latest + " is available", "You have " + installed + ". Get it from the release page and install it over this version; your data stays.");
             if (!r.notes.isEmpty()) {
                 TextView notes = ui.caption(r.notes); notes.setTextIsSelectable(true); notes.setPadding(0, ui.dp(10), 0, ui.dp(4));
+                String language = UpdateCheck.notesLanguageNote();
+                if (!language.isEmpty()) { TextView english = ui.caption(language); english.setPadding(0, ui.dp(10), 0, 0); box.addView(english); }
                 notes.setTag("update-notes"); box.addView(notes);
             }
         } else if (r != null && r.outcome == UpdateCheck.Outcome.CURRENT) {

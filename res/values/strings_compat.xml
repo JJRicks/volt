@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Compatibility and guided tests (batch B9): More › Developer options › Compatibility (the scooter's
+  identity, the read-only check and its results, running and unfinished tries and guided tests, the
+  report preview), the notes and reviews of a try or guided test, and the line that says release notes
+  are in English. The English must stay exactly what the source said before the batch (G1, G2).
+
+  The compatibility report itself, the command and event logs and every email stay English (plan G9):
+  nothing here is ever written into them. Where the source added a word to a sentence ("Try · " or
+  "Test · ", "expanded" or "collapsed"), each combination is its own whole template here, so a language
+  can order, join and inflect the whole phrase. Only values (a setting's name, a value, a code, a count)
+  are filled in.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Panel: start, identity and the check ===== -->
+
+    <!-- Shown while Volt's scooter service has not started yet. -->
+    <string name="compat_service_starting" volt:screen="Compatibility" volt:purpose="status">Your local scooter service is starting.</string>
+    <!-- Button: connect to the scooter. -->
+    <string name="compat_connect" volt:screen="Compatibility" volt:purpose="button">Connect</string>
+    <!-- Shown on the recovery route when no unfinished try or test is waiting. -->
+    <string name="compat_no_unfinished_tests" volt:screen="Compatibility" volt:purpose="status">No unfinished tests.</string>
+    <!-- Button: start the read-only compatibility check. It only reads from the scooter. -->
+    <string name="compat_run_check" volt:screen="Compatibility" volt:purpose="button">Run check</string>
+    <!-- Button: run the read-only compatibility check again. -->
+    <string name="compat_run_again" volt:screen="Compatibility" volt:purpose="button">Run again</string>
+    <!-- Button: draft an email to Volt with the compatibility report (the owner sends it). -->
+    <string name="compat_email" volt:screen="Compatibility" volt:purpose="button" volt:dnt="Volt">Email to Volt</string>
+    <!-- Button: show the report before anything is shared. -->
+    <string name="compat_preview_report" volt:screen="Compatibility" volt:purpose="button">Preview report</string>
+    <!-- Toast when there is no finished check to report yet. -->
+    <string name="compat_no_finished_check" volt:screen="Compatibility" volt:purpose="toast">No finished check yet</string>
+    <!-- Caption at the foot of the panel. "More › Experimental controls" names a place in the app. -->
+    <string name="compat_footer" volt:screen="Compatibility" volt:purpose="caption" volt:safety="disclaimer">The check only reads. Tries are in More › Experimental controls, and the report includes their results. Never changes firmware.</string>
+    <!-- Shown when no scooter is connected. -->
+    <string name="compat_connect_to_check" volt:screen="Compatibility" volt:purpose="status">Connect to check this scooter.</string>
+    <!-- Title of the identity card when the scooter's model ID was not captured. -->
+    <string name="compat_model_not_captured" volt:screen="Compatibility identity" volt:purpose="title">Model ID not captured</string>
+    <!-- Shown under the title for Volt's simulated scooter. -->
+    <string name="compat_simulated" volt:screen="Compatibility identity" volt:purpose="label">Simulated scooter</string>
+    <!-- Identity line: one fact about the scooter. %1$s is the fact's name ("Model ID", "Region"), %2$s its value. -->
+    <string name="compat_identity_line" volt:screen="Compatibility identity" volt:purpose="label">%1$s · %2$s</string>
+    <!-- Name of the identity line for the scooter's model ID (a number the scooter broadcasts). -->
+    <string name="compat_model_id" volt:screen="Compatibility identity" volt:purpose="label">Model ID</string>
+    <!-- Model ID line value: read from the scooter's broadcast. -->
+    <string name="compat_model_id_advertised" volt:screen="Compatibility identity" volt:purpose="value">Advertised</string>
+    <!-- Model ID line value: guessed from the serial number, not confirmed. -->
+    <string name="compat_model_id_serial" volt:screen="Compatibility identity" volt:purpose="value">From serial (unconfirmed)</string>
+    <!-- Model ID line value: no model ID was captured. -->
+    <string name="compat_model_id_not_captured" volt:screen="Compatibility identity" volt:purpose="value">Not captured</string>
+    <!-- Name of the identity line that reports a problem with the check. -->
+    <string name="compat_check" volt:screen="Compatibility identity" volt:purpose="label">Check</string>
+    <!-- Check line value: the broadcast and serial model IDs disagree. -->
+    <string name="compat_model_id_mismatch" volt:screen="Compatibility identity" volt:purpose="value">Model ID mismatch</string>
+    <!-- Name of the identity line for the sales region read from the serial number. -->
+    <string name="compat_region" volt:screen="Compatibility identity" volt:purpose="label">Region</string>
+    <!-- Region line value when the serial number gives no region. -->
+    <string name="compat_region_unknown" volt:screen="Compatibility identity" volt:purpose="value">Unknown</string>
+    <!-- Region line value: %1$s is the region code as the serial number writes it ("US", "EU"). -->
+    <string name="compat_region_from_serial" volt:screen="Compatibility identity" volt:purpose="value">%1$s (from serial)</string>
+    <!-- Name of the identity line for the dashboard (meter) firmware version. -->
+    <string name="compat_firmware" volt:screen="Compatibility identity" volt:purpose="label">Firmware</string>
+    <!-- Firmware line value before the version was read. -->
+    <string name="compat_firmware_not_read" volt:screen="Compatibility identity" volt:purpose="value">Not read yet</string>
+    <!-- Name of the identity line for the rules Volt uses for this model. -->
+    <string name="compat_rules" volt:screen="Compatibility identity" volt:purpose="label">Rules</string>
+    <!-- Name of the identity line for the model the owner said they have. -->
+    <string name="compat_your_answer" volt:screen="Compatibility identity" volt:purpose="label">Your answer</string>
+    <!-- Explains the Identify button below it. -->
+    <string name="compat_identify_note" volt:screen="Compatibility identity" volt:purpose="description">Identify reads the model ID from the scooter\'s broadcast. It sends no command.</string>
+    <!-- Button: read the model ID from the scooter's broadcast. -->
+    <string name="compat_identify" volt:screen="Compatibility identity" volt:purpose="button">Identify</string>
+    <!-- Rules line value: the NAVEE UT5 MAX's own rules. A model name, kept as written. -->
+    <string name="compat_layer_ut5_max" volt:screen="Compatibility identity" volt:purpose="value" volt:dnt="UT5 MAX">UT5 MAX</string>
+    <!-- Rules line value: rules mapped from the official app for this model group, not tested by Volt. -->
+    <string name="compat_layer_oem" volt:screen="Compatibility identity" volt:purpose="value" volt:dnt="OEM">OEM-mapped (untested)</string>
+    <!-- Rules line value: only the lock and readings shared by every model. -->
+    <string name="compat_layer_shared" volt:screen="Compatibility identity" volt:purpose="value">Lock and readings</string>
+    <!-- Rules line value: Volt does not support this model. -->
+    <string name="compat_layer_none" volt:screen="Compatibility identity" volt:purpose="value">Not supported</string>
+
+    <!-- ===== Running and unfinished tries and tests ===== -->
+
+    <!-- Exactly one unfinished test on another saved scooter, which is reviewed there. -->
+    <string name="compat_test_elsewhere_one" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental">1 unfinished test on another scooter. Select it to review.</string>
+    <!-- Two or more unfinished tests on other saved scooters (one is compat_test_elsewhere_one). %1$d is how many. -->
+    <plurals name="compat_tests_elsewhere" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental" volt:english-fix="pending">
+        <item quantity="one">%1$d unfinished tests on other scooters. Select one to review.</item>
+        <item quantity="other">%1$d unfinished tests on other scooters. Select one to review.</item>
+    </plurals>
+    <!-- Shown when Volt cannot read its record of tries and tests (the same text as the test journal's own
+         note): an earlier change may still be on the scooter. -->
+    <string name="compat_test_records_unavailable" volt:screen="Compatibility" volt:purpose="warning" volt:safety="experimental">Test records unavailable. A previous test may not have been set back; check the scooter\'s settings.</string>
+    <!-- Title of the card for a running try (a setting tried from Experimental controls). %1$s is the setting's name. -->
+    <string name="compat_try_title" volt:screen="Compatibility try card" volt:purpose="title">Try · %1$s</string>
+    <!-- Title of the card for a running guided test. %1$s is the setting's name. -->
+    <string name="compat_test_title" volt:screen="Compatibility try card" volt:purpose="title">Test · %1$s</string>
+    <!-- Status while Volt reads the setting's value before changing anything. -->
+    <string name="compat_reading_current" volt:screen="Compatibility try card" volt:purpose="status">Reading the current value…</string>
+    <!-- Status while the scooter changes to the value being tried. %1$s is that value ("On", "25 km/h"). -->
+    <string name="compat_changing_to" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Changing to %1$s…</string>
+    <!-- Status while Volt reads the setting again to check that nothing changed. -->
+    <string name="compat_checking_unchanged" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Checking it is unchanged…</string>
+    <!-- Status while the scooter goes back to the value it had. %1$s is that value. -->
+    <string name="compat_setting_back" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Setting it back to %1$s…</string>
+    <!-- Answer to the try's question: yes, the owner saw the change. -->
+    <string name="compat_yes" volt:screen="Compatibility try card" volt:purpose="button">Yes</string>
+    <!-- Answer to the try's question: no, the owner did not see the change. -->
+    <string name="compat_no" volt:screen="Compatibility try card" volt:purpose="button">No</string>
+    <!-- Button: do not answer the try's question. -->
+    <string name="compat_skip" volt:screen="Compatibility try card" volt:purpose="button">Skip</string>
+    <!-- A finished try kept its value; Set back is a button in Experimental controls. -->
+    <string name="compat_kept_set_back" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Kept · Set back is in Experimental controls</string>
+    <!-- A finished try kept its value. -->
+    <string name="compat_kept" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Kept</string>
+    <!-- The scooter was read back at its earlier value after the test. -->
+    <string name="compat_restoration_confirmed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Restoration confirmed</string>
+    <!-- The earlier value is not confirmed back yet; the card below reviews it. -->
+    <string name="compat_restoration_outstanding" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Restoration outstanding · review below</string>
+    <!-- Title of the card for an unfinished try. %1$s is the setting's name. -->
+    <string name="compat_unfinished_try_title" volt:screen="Compatibility unfinished card" volt:purpose="title">Unfinished try · %1$s</string>
+    <!-- Title of the card for an unfinished guided test. %1$s is the setting's name. -->
+    <string name="compat_unfinished_test_title" volt:screen="Compatibility unfinished card" volt:purpose="title">Unfinished test · %1$s</string>
+    <!-- Line name: the value the setting had before the try. -->
+    <string name="compat_before_try" volt:screen="Compatibility unfinished card" volt:purpose="label">Before the try</string>
+    <!-- Line name: the value the setting had before the test. -->
+    <string name="compat_before_test" volt:screen="Compatibility unfinished card" volt:purpose="label">Before the test</string>
+    <!-- Line name: the value the try set. -->
+    <string name="compat_value_tried" volt:screen="Compatibility unfinished card" volt:purpose="label">Value tried</string>
+    <!-- Line name: the value the test set. -->
+    <string name="compat_test_value" volt:screen="Compatibility unfinished card" volt:purpose="label">Test value</string>
+    <!-- Switch: the owner confirms the scooter is parked, so Volt may set the value back. -->
+    <string name="compat_parked" volt:screen="Compatibility unfinished card" volt:purpose="switch label" volt:safety="ride">Scooter is parked</string>
+    <!-- Under the switch: the scooter has not reported whether it is moving on this connection. -->
+    <string name="compat_parked_no_motion" volt:screen="Compatibility unfinished card" volt:purpose="description" volt:safety="ride">No motion report yet on this connection.</string>
+    <!-- Button: go on although the scooter's firmware changed since the test. -->
+    <string name="compat_continue_anyway" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Continue anyway</string>
+    <!-- Button: the setting is already back to its earlier value; mark the test finished. -->
+    <string name="compat_mark_restored" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Mark restored</string>
+    <!-- Button: write the earlier value back. %1$s is that value. -->
+    <string name="compat_restore_to" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Restore to %1$s</string>
+    <!-- Button: keep the value the scooter has now. %1$s is that value. -->
+    <string name="compat_keep_value" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Keep %1$s</string>
+    <!-- Button: set the earlier value again. %1$s is that value. -->
+    <string name="compat_set_value" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Set %1$s</string>
+    <!-- Button: close the unfinished card without changing the scooter. -->
+    <string name="compat_dismiss_leave" volt:screen="Compatibility unfinished card" volt:purpose="button" volt:safety="experimental">Dismiss · leave as is</string>
+    <!-- Spoken description of the Dismiss button on an unfinished try. %1$s is the setting's name. -->
+    <string name="compat_dismiss_try_description" volt:screen="Compatibility unfinished card" volt:purpose="accessibility description" volt:safety="experimental">Dismiss the unfinished %1$s try without restoring it</string>
+    <!-- Spoken description of the Dismiss button on an unfinished test. %1$s is the setting's name. -->
+    <string name="compat_dismiss_test_description" volt:screen="Compatibility unfinished card" volt:purpose="accessibility description" volt:safety="experimental">Dismiss the unfinished %1$s test without restoring it</string>
+    <!-- On an unfinished test whose scooter was removed from Volt. -->
+    <string name="compat_orphan_body" volt:screen="Compatibility unfinished card" volt:purpose="description" volt:safety="experimental">Its scooter was forgotten, so Volt can\'t check this setting or set it back. Check it on the scooter itself.</string>
+    <!-- Button: close the card of a forgotten scooter's test. -->
+    <string name="compat_dismiss" volt:screen="Compatibility unfinished card" volt:purpose="button">Dismiss</string>
+    <!-- Spoken description of Dismiss on a forgotten scooter's test. %1$s is the setting's name. -->
+    <string name="compat_dismiss_orphan_description" volt:screen="Compatibility unfinished card" volt:purpose="accessibility description">Dismiss the unfinished %1$s test of a forgotten scooter</string>
+
+    <!-- ===== The try's question ===== -->
+
+    <!-- Question while the dashboard units are being tried: the value tried shows miles per hour. -->
+    <string name="compat_question_units_mph" volt:screen="Compatibility try card" volt:purpose="question" volt:dnt="mph">Does the dashboard show mph?</string>
+    <!-- Question while the dashboard units are being tried: the value tried shows kilometres per hour. -->
+    <string name="compat_question_units_kmh" volt:screen="Compatibility try card" volt:purpose="question" volt:dnt="km/h">Does the dashboard show km/h?</string>
+    <!-- Question while the tail light is tried on. -->
+    <string name="compat_question_tail_light_on" volt:screen="Compatibility try card" volt:purpose="question">Is the tail light on?</string>
+    <!-- Question while the tail light is tried off. -->
+    <string name="compat_question_tail_light_off" volt:screen="Compatibility try card" volt:purpose="question">Is the tail light off?</string>
+    <!-- Question while the tail light is tried at another value. %1$s is that value's name in lower case. -->
+    <string name="compat_question_tail_light" volt:screen="Compatibility try card" volt:purpose="question">Is the tail light %1$s?</string>
+    <!-- Question while the turn signal sound is tried on. -->
+    <string name="compat_question_turn_sound_on" volt:screen="Compatibility try card" volt:purpose="question">With a turn signal on, is the sound on?</string>
+    <!-- Question while the turn signal sound is tried off. -->
+    <string name="compat_question_turn_sound_off" volt:screen="Compatibility try card" volt:purpose="question">With a turn signal on, is the sound off?</string>
+    <!-- Question while the turn signal sound is tried at another value. %1$s is that value's name in lower case. -->
+    <string name="compat_question_turn_sound" volt:screen="Compatibility try card" volt:purpose="question">With a turn signal on, is the sound %1$s?</string>
+    <!-- Question while automatic lights are tried on. -->
+    <string name="compat_question_auto_lights_on" volt:screen="Compatibility try card" volt:purpose="question">Are automatic lights on?</string>
+    <!-- Question while automatic lights are tried off. -->
+    <string name="compat_question_auto_lights_off" volt:screen="Compatibility try card" volt:purpose="question">Are automatic lights off?</string>
+    <!-- Question while automatic lights are tried at another value. %1$s is that value's name in lower case. -->
+    <string name="compat_question_auto_lights" volt:screen="Compatibility try card" volt:purpose="question">Are automatic lights %1$s?</string>
+    <!-- Question while the range estimate is tried. -->
+    <string name="compat_question_range" volt:screen="Compatibility try card" volt:purpose="question">Did the range estimate on the dashboard change?</string>
+    <!-- Question while any other setting is tried. -->
+    <string name="compat_question_default" volt:screen="Compatibility try card" volt:purpose="question">Did you see it change?</string>
+
+    <!-- ===== The check's progress and results ===== -->
+
+    <!-- Button: stop the running check. -->
+    <string name="compat_stop" volt:screen="Compatibility" volt:purpose="button">Stop</string>
+    <!-- Progress after every read: Volt waits for reports the scooter sends by itself. -->
+    <string name="compat_listening" volt:screen="Compatibility" volt:purpose="status">Listening for scooter reports…</string>
+    <!-- Progress of the check. %1$s is the read in progress, %2$s how many reads there are. -->
+    <string name="compat_reading_progress" volt:screen="Compatibility" volt:purpose="status">Reading %1$s of %2$s…</string>
+    <!-- Shown above the results of a check that was interrupted. -->
+    <string name="compat_check_interrupted" volt:screen="Compatibility results" volt:purpose="status">The check was interrupted. Results so far:</string>
+    <!-- Heading of the group of read results. -->
+    <string name="compat_group_reads" volt:screen="Compatibility results" volt:purpose="heading">Reads</string>
+    <!-- Heading of the group of status fields. -->
+    <string name="compat_group_fields" volt:screen="Compatibility results" volt:purpose="heading">Fields</string>
+    <!-- Heading of the group of controls. -->
+    <string name="compat_group_controls" volt:screen="Compatibility results" volt:purpose="heading">Controls</string>
+    <!-- Beside a group heading: tap to collapse the group. -->
+    <string name="compat_group_hide" volt:screen="Compatibility results" volt:purpose="button">Hide</string>
+    <!-- Beside a group heading: tap to expand the group. -->
+    <string name="compat_group_show" volt:screen="Compatibility results" volt:purpose="button">Show</string>
+    <!-- Spoken description of an expanded group heading. %1$s is the group's name. -->
+    <string name="compat_group_expanded" volt:screen="Compatibility results" volt:purpose="accessibility description">%1$s, expanded</string>
+    <!-- Spoken description of a collapsed group heading. %1$s is the group's name. -->
+    <string name="compat_group_collapsed" volt:screen="Compatibility results" volt:purpose="accessibility description">%1$s, collapsed</string>
+    <!-- Title of a read result: %1$s is the read's command code ("0x70"), %2$s the read's name. -->
+    <string name="compat_read_title" volt:screen="Compatibility results" volt:purpose="label">%1$s · %2$s</string>
+    <!-- Row: the reports the scooter sent by itself. -->
+    <string name="compat_reports" volt:screen="Compatibility results" volt:purpose="label">Reports from the scooter</string>
+    <!-- Reports row value when the scooter sent none. -->
+    <string name="compat_reports_none" volt:screen="Compatibility results" volt:purpose="value">None seen (they may only arrive while riding)</string>
+    <!-- The scooter's status read (command 0x70): a read's name, and the Fields row when it did not arrive. -->
+    <string name="compat_read_status" volt:screen="Compatibility results" volt:purpose="label">Status</string>
+    <!-- Status row value when the status read did not arrive. -->
+    <string name="compat_status_not_received" volt:screen="Compatibility results" volt:purpose="value">Not received</string>
+    <!-- Fields row: how long ago the status was read. -->
+    <string name="compat_status_read" volt:screen="Compatibility results" volt:purpose="label">Read</string>
+    <!-- The controls row for the scooter's clock. -->
+    <string name="compat_control_clock" volt:screen="Compatibility results" volt:purpose="label">Clock</string>
+    <!-- A control's row value when Volt offers it. %1$s is the evidence for it ("Volt-verified", "Shared"). -->
+    <string name="compat_control_available" volt:screen="Compatibility results" volt:purpose="value">Available · %1$s</string>
+    <!-- A control's row value when Volt does not offer it. %1$s is why, %2$s the evidence for it. -->
+    <string name="compat_control_unavailable" volt:screen="Compatibility results" volt:purpose="value">%1$s · %2$s</string>
+    <!-- How long ago the status was read: just now. -->
+    <string name="compat_age_just_now" volt:screen="Compatibility results" volt:purpose="value">Just now</string>
+    <!-- How long ago the status was read: less than a minute. -->
+    <string name="compat_age_under_minute" volt:screen="Compatibility results" volt:purpose="value">Under a minute ago</string>
+    <!-- How long ago the status was read: exactly one minute. -->
+    <string name="compat_age_one_minute" volt:screen="Compatibility results" volt:purpose="value">1 minute ago</string>
+    <!-- How long ago the status was read, two minutes or more (one is compat_age_one_minute). %1$d is the number of minutes. -->
+    <plurals name="compat_age_minutes" volt:screen="Compatibility results" volt:purpose="value" volt:english-fix="pending">
+        <item quantity="one">%1$d minutes ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
+    <!-- Name of a read: the serial number check (command 0x74). -->
+    <string name="compat_read_serial" volt:screen="Compatibility results" volt:purpose="label">Serial check</string>
+    <!-- Name of a read: the firmware versions (command 0x73). -->
+    <string name="compat_read_firmware" volt:screen="Compatibility results" volt:purpose="label">Firmware</string>
+    <!-- Name of a read: the battery (command 0x72). -->
+    <string name="compat_read_battery" volt:screen="Compatibility results" volt:purpose="label">Battery</string>
+    <!-- Name of a read: the ride history (command 0x76). -->
+    <string name="compat_read_ride_history" volt:screen="Compatibility results" volt:purpose="label">Ride history</string>
+    <!-- Name of a read: the fault history (command 0x7b). -->
+    <string name="compat_read_fault_history" volt:screen="Compatibility results" volt:purpose="label">Fault history</string>
+    <!-- Name of a probing read: driving data (command 0x71). -->
+    <string name="compat_read_driving" volt:screen="Compatibility results" volt:purpose="label">Driving (probe)</string>
+    <!-- Name of a probing read: the battery's identity (command 0x75). -->
+    <string name="compat_read_battery_id" volt:screen="Compatibility results" volt:purpose="label">Battery ID (probe)</string>
+    <!-- Name of a probing read: the battery's signs (command 0x79). -->
+    <string name="compat_read_battery_signs" volt:screen="Compatibility results" volt:purpose="label">Battery signs (probe)</string>
+    <!-- Name of any other read. -->
+    <string name="compat_read_other" volt:screen="Compatibility results" volt:purpose="label">Read</string>
+    <!-- Read result: the scooter rejected the read. %1$d is the scooter's status code. -->
+    <string name="compat_read_rejected" volt:screen="Compatibility results" volt:purpose="value">Rejected %1$d</string>
+    <!-- Read result: the reply was too short. %1$d is the reply's length in bytes. English keeps "1 bytes". -->
+    <plurals name="compat_read_too_short" volt:screen="Compatibility results" volt:purpose="value" volt:english-fix="pending">
+        <item quantity="one">Too short (%1$d bytes)</item>
+        <item quantity="other">Too short (%1$d bytes)</item>
+    </plurals>
+    <!-- Read result: the scooter replied without data. -->
+    <string name="compat_read_empty" volt:screen="Compatibility results" volt:purpose="value">Replied with no data</string>
+    <!-- Read result: no reply. -->
+    <string name="compat_read_no_response" volt:screen="Compatibility results" volt:purpose="value">No response</string>
+    <!-- Read result: the check stopped before the reply. -->
+    <string name="compat_read_interrupted" volt:screen="Compatibility results" volt:purpose="value">Interrupted</string>
+    <!-- Read result: the reply has not arrived yet. -->
+    <string name="compat_read_waiting" volt:screen="Compatibility results" volt:purpose="value">Waiting</string>
+    <!-- Evidence for a control: tested by Volt on this model. -->
+    <string name="compat_evidence_volt_verified" volt:screen="Compatibility results" volt:purpose="value" volt:dnt="Volt">Volt-verified</string>
+    <!-- Evidence for a control: Volt's lab rules for this model. -->
+    <string name="compat_evidence_lab" volt:screen="Compatibility results" volt:purpose="value">Lab</string>
+    <!-- Evidence for a control: mapped from the official app (OEM), not tested by Volt. -->
+    <string name="compat_evidence_oem" volt:screen="Compatibility results" volt:purpose="value" volt:dnt="OEM">OEM-mapped</string>
+    <!-- Evidence for a control: shared by every model. -->
+    <string name="compat_evidence_shared" volt:screen="Compatibility results" volt:purpose="value">Shared</string>
+    <!-- Evidence for a control: a test on this phone. -->
+    <string name="compat_evidence_local" volt:screen="Compatibility results" volt:purpose="value">Tested here</string>
+    <!-- Evidence for a control: none. -->
+    <string name="compat_evidence_none" volt:screen="Compatibility results" volt:purpose="value">No evidence</string>
+    <!-- A result row's spoken description. %1$s is the row's name, %2$s its value. -->
+    <string name="compat_row_description" volt:screen="Compatibility results" volt:purpose="accessibility description">%1$s: %2$s</string>
+
+    <!-- ===== Report preview ===== -->
+
+    <!-- Heading of the report preview (shown in capitals). -->
+    <string name="compat_report_preview" volt:screen="Compatibility report preview" volt:purpose="heading">Report preview</string>
+    <!-- What the report leaves out. MAC is a Bluetooth address; PIN is the scooter's PIN. -->
+    <string name="compat_report_privacy" volt:screen="Compatibility report preview" volt:purpose="description" volt:safety="privacy" volt:dnt="MAC|PIN">Only what is shown here is shared. No serial, MAC, owner key, PIN, names or routes.</string>
+    <!-- Shown above the report only in a translated app: the report below, and anything shared or emailed
+         from it, stays in English. Never shown in English. -->
+    <string name="compat_report_in_english" volt:screen="Compatibility report preview" volt:purpose="description">The report is in English.</string>
+    <!-- Button: show the report as a readable summary. -->
+    <string name="compat_show_summary" volt:screen="Compatibility report preview" volt:purpose="button">Show summary</string>
+    <!-- Button: show the report's JSON (a data format). -->
+    <string name="compat_show_json" volt:screen="Compatibility report preview" volt:purpose="button" volt:dnt="JSON">Show JSON</string>
+    <!-- Spoken description of Show summary. -->
+    <string name="compat_show_summary_description" volt:screen="Compatibility report preview" volt:purpose="accessibility description">Show report summary</string>
+    <!-- Spoken description of Show JSON. -->
+    <string name="compat_show_json_description" volt:screen="Compatibility report preview" volt:purpose="accessibility description" volt:dnt="JSON">Show report JSON</string>
+    <!-- Button: share the report with another app. -->
+    <string name="compat_share" volt:screen="Compatibility report preview" volt:purpose="button">Share</string>
+    <!-- Button: save the report as a file. -->
+    <string name="compat_save_file" volt:screen="Compatibility report preview" volt:purpose="button">Save file</string>
+    <!-- Button: close the report preview. -->
+    <string name="compat_close_preview" volt:screen="Compatibility report preview" volt:purpose="button">Close preview</string>
+    <!-- Title of Android's share sheet for the report. -->
+    <string name="compat_share_chooser" volt:screen="Compatibility report preview" volt:purpose="title">Share compatibility report</string>
+    <!-- Toast when no app on the phone can share the report. -->
+    <string name="compat_share_none" volt:screen="Compatibility report preview" volt:purpose="toast">No app can share this report</string>
+
+    <!-- ===== Status fields (the Fields group) ===== -->
+
+    <!-- The Fields group lists the scooter's status fields by name. Each is a short label for one field of
+         the scooter's status reply (command 0x70), as Volt names it; the report keeps its own English names. -->
+    <string name="compat_field_binding_status" volt:screen="Compatibility fields" volt:purpose="label">Binding status</string>
+    <string name="compat_field_driving_mode" volt:screen="Compatibility fields" volt:purpose="label">Driving mode</string>
+    <string name="compat_field_lock_status" volt:screen="Compatibility fields" volt:purpose="label" volt:safety="lock">Lock status</string>
+    <string name="compat_field_cruise_control" volt:screen="Compatibility fields" volt:purpose="label">Cruise control</string>
+    <string name="compat_field_tail_light" volt:screen="Compatibility fields" volt:purpose="label">Tail light</string>
+    <string name="compat_field_energy_recovery" volt:screen="Compatibility fields" volt:purpose="label">Energy recovery</string>
+    <string name="compat_field_range_algorithm" volt:screen="Compatibility fields" volt:purpose="label">Range algorithm</string>
+    <string name="compat_field_display_units" volt:screen="Compatibility fields" volt:purpose="label">Display units</string>
+    <string name="compat_field_auto_sensor" volt:screen="Compatibility fields" volt:purpose="label">Auto sensor</string>
+    <string name="compat_field_tyre_reminder" volt:screen="Compatibility fields" volt:purpose="label">Tyre reminder</string>
+    <string name="compat_field_ambient_light" volt:screen="Compatibility fields" volt:purpose="label">Ambient light</string>
+    <string name="compat_field_traction_control" volt:screen="Compatibility fields" volt:purpose="label">Traction control</string>
+    <string name="compat_field_turn_sound" volt:screen="Compatibility fields" volt:purpose="label">Turn sound</string>
+    <string name="compat_field_proximity_key" volt:screen="Compatibility fields" volt:purpose="label">Proximity key</string>
+    <string name="compat_field_night_mode" volt:screen="Compatibility fields" volt:purpose="label">Night mode</string>
+    <string name="compat_field_range_algorithm_mode" volt:screen="Compatibility fields" volt:purpose="label">Range algorithm mode</string>
+    <string name="compat_field_eco_light" volt:screen="Compatibility fields" volt:purpose="label">Eco light</string>
+    <string name="compat_field_drive_light" volt:screen="Compatibility fields" volt:purpose="label">Drive light</string>
+    <string name="compat_field_sport_light" volt:screen="Compatibility fields" volt:purpose="label">Sport light</string>
+    <string name="compat_field_start_speed" volt:screen="Compatibility fields" volt:purpose="label">Start speed</string>
+    <string name="compat_field_speed_limit" volt:screen="Compatibility fields" volt:purpose="label">Speed limit</string>
+    <string name="compat_field_volume" volt:screen="Compatibility fields" volt:purpose="label">Volume</string>
+    <string name="compat_field_voice_language" volt:screen="Compatibility fields" volt:purpose="label">Voice language</string>
+    <string name="compat_field_logo_light" volt:screen="Compatibility fields" volt:purpose="label">Logo light</string>
+    <string name="compat_field_daytime_light" volt:screen="Compatibility fields" volt:purpose="label">Daytime light</string>
+    <string name="compat_field_maximum_speed_setting" volt:screen="Compatibility fields" volt:purpose="label">Maximum speed setting</string>
+    <string name="compat_field_drive_mode_setting" volt:screen="Compatibility fields" volt:purpose="label">Drive mode setting</string>
+    <string name="compat_field_charge_limit_percent" volt:screen="Compatibility fields" volt:purpose="label" volt:safety="charge">Charge limit percent</string>
+    <string name="compat_field_low_power" volt:screen="Compatibility fields" volt:purpose="label">Low power</string>
+    <string name="compat_field_timed_charging" volt:screen="Compatibility fields" volt:purpose="label" volt:safety="charge">Timed charging</string>
+    <string name="compat_field_auto_lock_time" volt:screen="Compatibility fields" volt:purpose="label" volt:safety="lock">Auto lock time</string>
+    <string name="compat_field_speed_limit_eligibility" volt:screen="Compatibility fields" volt:purpose="label">Speed limit eligibility</string>
+    <string name="compat_field_weather" volt:screen="Compatibility fields" volt:purpose="label">Weather</string>
+    <string name="compat_field_slope_assist" volt:screen="Compatibility fields" volt:purpose="label">Slope assist</string>
+    <string name="compat_field_long_range_mode" volt:screen="Compatibility fields" volt:purpose="label">Long range mode</string>
+    <string name="compat_field_overspeed_control" volt:screen="Compatibility fields" volt:purpose="label">Overspeed control</string>
+    <string name="compat_field_drive_speed_limit" volt:screen="Compatibility fields" volt:purpose="label">Drive speed limit</string>
+    <!-- A status byte about lighting that Volt has not mapped on this model, shown raw. %1$d is its offset in the reply. -->
+    <string name="compat_field_lighting_byte" volt:screen="Compatibility fields" volt:purpose="label">Lighting byte %1$d (raw)</string>
+    <!-- A status flag (OSA) whose meaning Volt has not mapped. -->
+    <string name="compat_field_osa_flag" volt:screen="Compatibility fields" volt:purpose="label" volt:dnt="OSA">OSA flag (unmapped)</string>
+    <!-- Status byte 41, which Volt does not read. -->
+    <string name="compat_field_byte_41" volt:screen="Compatibility fields" volt:purpose="label">Byte 41 (unread)</string>
+
+    <!-- ===== Guided test and try outcomes (shown in the panel; the journal and report keep their own tokens) ===== -->
+
+    <!-- Outcome: the scooter answered the read. -->
+    <string name="compat_outcome_read_supported" volt:screen="Compatibility try card" volt:purpose="status">Read supported</string>
+    <!-- Outcome: the scooter rejected the write. %1$d is its code. -->
+    <string name="compat_outcome_rejected" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Rejected, code %1$d</string>
+    <!-- Outcome: the scooter acknowledged the write, but no reading confirmed it. -->
+    <string name="compat_outcome_ack_unconfirmed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Acknowledged, unconfirmed</string>
+    <!-- Outcome: the reading after the write still shows the earlier value. %1$d is the raw value read. -->
+    <string name="compat_outcome_readback_unchanged" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Readback unchanged, value %1$d</string>
+    <!-- Outcome: the reading after the write shows another value. %1$d is the raw value read. -->
+    <string name="compat_outcome_readback_different" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Readback different, value %1$d</string>
+    <!-- Outcome: a reading confirmed the value written. -->
+    <string name="compat_outcome_setting_confirmed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Setting confirmed</string>
+    <!-- Outcome: the owner saw the change on the scooter. -->
+    <string name="compat_outcome_effect_observed" volt:screen="Compatibility try card" volt:purpose="status">Effect observed</string>
+    <!-- Outcome: a reading confirmed the earlier value is back. -->
+    <string name="compat_outcome_restoration_confirmed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Restoration confirmed</string>
+    <!-- Outcome: the connection or the reply was lost. -->
+    <string name="compat_outcome_interrupted" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Interrupted/no response</string>
+    <!-- Outcome: Volt refused or could not send the write, so nothing reached the scooter. -->
+    <string name="compat_outcome_not_sent" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Not sent</string>
+
+    <!-- ===== Notes of a try or guided test (why it ended or what it waits for) ===== -->
+    <!-- In these notes %1$s is a value of the setting as the app shows it ("On", "25 km/h"). -->
+
+    <string name="compat_note_not_saved" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Couldn\'t save the test record. Nothing was changed.</string>
+    <string name="compat_note_cancelled" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Cancelled. Nothing was changed.</string>
+    <string name="compat_note_not_saved_not_set_back" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Couldn\'t save the test record, so Volt did not set it back.</string>
+    <!-- The setting got another value during the test. The English has no full stop at the end, unlike the
+         review below (kept as the source had it). -->
+    <string name="compat_note_changed_outside" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Changed outside the test (now %1$s)</string>
+    <!-- %1$d is the scooter's rejection code. -->
+    <string name="compat_note_restore_rejected" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The scooter rejected setting it back (code %1$d).</string>
+    <string name="compat_note_no_fresh_reading" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">No fresh reading arrived.</string>
+    <string name="compat_note_accepted_unconfirmed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Accepted, but no conclusive reading arrived.</string>
+    <string name="compat_note_no_reply" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">No reply from the scooter.</string>
+    <string name="compat_note_restore_not_sent" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Volt could not send the restore.</string>
+    <string name="compat_note_no_baseline" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Couldn\'t get a fresh baseline. Reconnect and try again. Nothing was changed.</string>
+    <string name="compat_note_not_verified" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Couldn\'t verify the setting. Reconnect and review the unfinished test.</string>
+    <string name="compat_note_disconnected" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The connection ended during the test.</string>
+    <string name="compat_note_profile_switched" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Another scooter profile was selected during the test.</string>
+    <string name="compat_note_restarted" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Volt restarted during the test.</string>
+    <string name="compat_note_changed_waiting" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">A setting changed while the test was waiting. Review it before restoring.</string>
+    <string name="compat_note_not_reported" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">This scooter isn\'t reporting this setting.</string>
+    <string name="compat_note_value_unknown" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The current value is unknown, so Volt won\'t test it.</string>
+    <string name="compat_note_baseline_moved" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The scooter now shows %1$s. Nothing was changed.</string>
+    <string name="compat_note_already_set" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">It\'s already set to %1$s.</string>
+    <string name="compat_note_target_not_offered" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">%1$s isn\'t offered now.</string>
+    <string name="compat_note_cannot_set_back" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The current value can\'t be set back, so Volt won\'t test it.</string>
+    <string name="compat_note_related_changed" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">A related setting changed during the test.</string>
+    <string name="compat_note_unchanged" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The scooter accepted it but still shows %1$s.</string>
+    <string name="compat_note_now_shows" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">The scooter now shows %1$s.</string>
+    <string name="compat_note_still_shows" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">It still shows %1$s.</string>
+    <string name="compat_note_shows_test_value" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">It shows the test value, %1$s.</string>
+    <string name="compat_note_stopped" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Stopped before any change. Nothing was changed.</string>
+    <string name="compat_note_restored_not_saved" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Set back and confirmed, but the record couldn\'t be saved.</string>
+    <string name="compat_note_kept_not_saved" volt:screen="Compatibility try card" volt:purpose="status" volt:safety="experimental">Kept, but the record couldn\'t be saved. It will show as unfinished.</string>
+
+    <!-- ===== Reviews of an unfinished try or test (what it needs now) ===== -->
+
+    <string name="compat_review_connect" volt:screen="Compatibility unfinished card" volt:purpose="status">Connect to this scooter to review.</string>
+    <string name="compat_review_model_changed" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Model ID differs from the test. Volt won\'t change it.</string>
+    <string name="compat_review_rules_changed" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Volt\'s rules for this setting changed. Volt won\'t change it.</string>
+    <string name="compat_review_firmware_changed" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Firmware changed since the test.</string>
+    <string name="compat_review_firmware_not_read" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Firmware not read since the test.</string>
+    <string name="compat_review_waiting" volt:screen="Compatibility unfinished card" volt:purpose="status">Waiting for a fresh reading.</string>
+    <string name="compat_review_not_reported" volt:screen="Compatibility unfinished card" volt:purpose="status">The scooter isn\'t reporting this setting now.</string>
+    <string name="compat_review_related_not_reported" volt:screen="Compatibility unfinished card" volt:purpose="status">The scooter isn\'t reporting a related setting now.</string>
+    <string name="compat_review_related_changed" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">A related setting changed since the test. Volt won\'t set it back.</string>
+    <!-- The setting has another value than the test left: %1$s. -->
+    <string name="compat_review_changed_outside" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Changed outside the test (now %1$s).</string>
+    <!-- %1$s is the earlier value, which the setting already has again. -->
+    <string name="compat_review_already_back" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Already back to %1$s.</string>
+    <!-- %1$s is the value the test set, which the setting still has. -->
+    <string name="compat_review_still_test_value" volt:screen="Compatibility unfinished card" volt:purpose="status" volt:safety="experimental">Still on the test value, %1$s.</string>
+
+    <!-- ===== Update check ===== -->
+
+    <!-- Shown above a new release's notes only in a translated app: the notes come from GitHub in English.
+         Never shown in English. -->
+    <string name="compat_update_notes_in_english" volt:screen="More update check" volt:purpose="description">Release notes are in English.</string>
+</resources>
+
