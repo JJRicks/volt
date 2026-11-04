@@ -380,7 +380,7 @@ public final class RouteMapView extends View {
             primary = grade == null ? T.mapsRouteGradeNotMeasured() : grade;
             if (power != null) rest.add(power);
         } else if ("elevation".equals(metric)) {
-            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : imperial() ? T.mapsRouteElevationFeet(signed(p.relativeAltitudeM * 3.280839895, 0)) : T.mapsRouteElevationMeters(signed(p.relativeAltitudeM * 1, 0));
+            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1));
             if (power != null) rest.add(power);
         } else if ("accel".equals(metric)) {
             primary = accel == null ? T.mapsRouteAccelNotMeasured() : accel;
@@ -455,17 +455,11 @@ public final class RouteMapView extends View {
     }
 
     private static String grade(Double percent) {
-        return percent == null ? null : T.mapsRouteGrade(signed(percent, 1));
+        return percent == null ? null : String.format(Locale.US, "≈%+.1f%% grade", percent);
     }
 
     private static String accel(Double mps2) {
-        return mps2 == null ? null : T.mapsRouteGpsAccel(signed(mps2, 2));
-    }
-
-    /** A signed number with a fixed number of decimals ("+2.5", "-10"): String.format(Locale.US, "%+.Nf")
-     * while the app shows English, the display locale's separator otherwise. */
-    private static String signed(double value, int decimals) {
-        return String.format(Fmt.locale(Locale.US), "%+." + Math.max(0, Math.min(6, decimals)) + "f", value);
+        return mps2 == null ? null : String.format(Locale.US, "%+.2f m/s² GPS accel", mps2);
     }
 
     private String speed(Double mps) {

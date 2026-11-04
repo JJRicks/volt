@@ -146,18 +146,10 @@
     <string name="maps_route_scooter_speed" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Scooter %1$s</string>
     <!-- No road grade could be worked out at this point. -->
     <string name="maps_route_grade_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Grade not measured</string>
-    <!-- The approximate road grade; %1$s is the signed percentage number (+2.5 or -0.4). -->
-    <string name="maps_route_grade" volt:screen="Rides, map tooltip" volt:purpose="tooltip">≈%1$s%% grade</string>
     <!-- No elevation could be worked out at this point. -->
     <string name="maps_route_elevation_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Elevation not measured</string>
-    <!-- Elevation relative to the ride's start; %1$s is the signed number of feet (+33 or -10). -->
-    <string name="maps_route_elevation_feet" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Elevation %1$s ft</string>
-    <!-- Elevation relative to the ride's start; %1$s is the signed number of metres (+10 or -3). -->
-    <string name="maps_route_elevation_meters" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Elevation %1$s m</string>
     <!-- No acceleration could be worked out from GPS at this point. -->
     <string name="maps_route_accel_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">GPS accel not measured</string>
-    <!-- Acceleration worked out from GPS speed; %1$s is the signed number (+0.25 or -1.00). -->
-    <string name="maps_route_gps_accel" volt:screen="Rides, map tooltip" volt:purpose="tooltip">%1$s m/s² GPS accel</string>
     <!-- No power was recorded at this point. -->
     <string name="maps_route_power_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Power not measured</string>
 

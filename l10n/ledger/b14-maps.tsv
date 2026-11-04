@@ -41,11 +41,7 @@ src/com/jjricks/volt/RouteMapView.java:376	["GPS ", {"hole": "speed", "arg": 1, 
 src/com/jjricks/volt/RouteMapView.java:377	["Scooter ", {"hole": "RouteSpeedScale.label(p.scooterSpeedKmh, units())", "arg": 1, "type": "s"}]	maps_route_scooter_speed	template	
 src/com/jjricks/volt/RouteMapView.java:380	["Grade not measured"]	maps_route_grade_not_measured	exact	
 src/com/jjricks/volt/RouteMapView.java:383	["Elevation not measured"]	maps_route_elevation_not_measured	exact	
-src/com/jjricks/volt/RouteMapView.java:383	["Elevation ", {"hole": "p.relativeAltitudeM * 3.280839895", "arg": 1, "type": "s", "as": "signed(p.relativeAltitudeM * 3.280839895, 0)"}, " ft"]	maps_route_elevation_feet	template	manual: String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1)) became a ternary between the two templates; signed() is String.format(Fmt.locale(Locale.US), "%+.0f", value), the same text while English shows
-src/com/jjricks/volt/RouteMapView.java:383	["Elevation ", {"hole": "p.relativeAltitudeM * 1", "arg": 1, "type": "s", "as": "signed(p.relativeAltitudeM * 1, 0)"}, " m"]	maps_route_elevation_meters	template	manual: the metric branch of the ternary above (factor 1, as the base multiplied)
 src/com/jjricks/volt/RouteMapView.java:386	["GPS accel not measured"]	maps_route_accel_not_measured	exact	
 src/com/jjricks/volt/RouteMapView.java:389	["Power not measured"]	maps_route_power_not_measured	exact	
 src/com/jjricks/volt/RouteMapView.java:453	[{"spec": "%.2f", "arg": 1, "value": "watts / 1000", "as": "Fmt.decimal(Locale.US, watts / 1000, 2)"}, " ", {"text": "kW", "key": "maps_unit_kilowatt", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/RouteMapView.java:454	[{"spec": "%.0f", "arg": 1, "value": "watts", "as": "Fmt.decimal(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
-src/com/jjricks/volt/RouteMapView.java:458	["≈", {"spec": "%+.1f", "arg": 1, "value": "percent", "as": "signed(percent, 1)"}, "%% grade"]	maps_route_grade	format	
-src/com/jjricks/volt/RouteMapView.java:462	[{"spec": "%+.2f", "arg": 1, "value": "mps2", "as": "signed(mps2, 2)"}, " m/s² GPS accel"]	maps_route_gps_accel	format	
