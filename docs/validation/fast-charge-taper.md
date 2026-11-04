@@ -1,9 +1,11 @@
 # High-speed charger voltage/current estimates
 
-Estimator `ut5-fast-taper-v7`, following [standard-charger pack-model estimates](stock-pack-estimates.md)
-and [buffered scheduling](charge-done-by-buffer.md). It changes UT5 MAX **high-speed** estimates only where
-the bundled high-speed reference and personal curves could not place a charge and Volt fell back to the
-current rate. Standard-charger, unknown-charger and other-model estimates are unchanged.
+Estimator `ut5-fast-taper-v8` (introduced as `ut5-fast-taper-v7`), following [standard-charger
+pack-model estimates](stock-pack-estimates.md) and [buffered scheduling](charge-done-by-buffer.md). v7
+changed UT5 MAX **high-speed** estimates only where the bundled high-speed reference and personal curves
+could not place a charge and Volt fell back to the current rate. v8 also lets a charge's own measured
+taper replace both once it is established ([below](#v8-the-charges-own-taper)). Standard-charger,
+unknown-charger and other-model estimates are unchanged.
 
 ## What went wrong
 
@@ -68,12 +70,13 @@ with 49.6 left.
 
 ## Replay
 
-[`fast-charge-taper-v7`](data/fast-charge-taper-v7/) holds the owner's 13 UT5 MAX recordings (8
-standard, 5 high-speed) reduced to numeric replay fields by `strip_export.py`: no IDs, dates or wall
-clocks. `tests/FastChargeTaperReplay.java` replays each one through the production store and
-estimator, learning only from the recordings before it. `expected-v6.csv` is the same replay of the
-previous release (b21d3f6); it reproduces the predictions the app recorded live for all three charges
-captured under `ut5-stock-pack-v6` (high-speed exactly, standard within 0.02 minutes).
+[`fast-charge-taper-v7`](data/fast-charge-taper-v7/) holds the owner's UT5 MAX recordings reduced to
+numeric replay fields by `strip_export.py`: no IDs, dates or wall clocks. v7 was introduced with the
+first 13 (8 standard, 5 high-speed, sessions 0-12); v8 appended three later complete high-speed charges
+(sessions 13-15) recorded live under v7. `tests/FastChargeTaperReplay.java` replays each one through the
+production store and estimator, learning only from the recordings before it. `expected-v6.csv` is the
+same replay of the release before v7 (b21d3f6); it reproduces the predictions the app recorded live for
+all three charges captured under `ut5-stock-pack-v6` (high-speed exactly, standard within 0.02 minutes).
 
 Predicted / observed minutes to the first displayed 100% (error), at the start of the recording and
 after 5 and 10 minutes; MAE over every sample:
@@ -94,8 +97,67 @@ The largest jump in the displayed estimate between samples beyond the elapsed ti
 0.9 minutes (charge 4) and from 13.0 to 4.5 (charge 3). Charge 4 never shows the current rate, and once
 it shows a personal estimate it keeps one to the end.
 
-All 5,457 standard-charger samples and the reference high-speed charge are identical to v6
-(`FastChargeTaperTest` checks every one against `expected-v6.csv`).
+All 5,457 standard-charger samples and the reference high-speed charge were identical to v6
+(`FastChargeTaperTest` checks every one against `expected-v6.csv`; since v8, the reference charge only
+until its own taper is established, after 57.5 of its 89.1 minutes).
+
+## v8: the charge's own taper
+
+**What changed.** Once the charge is in the taper (`FastChargeTaper.tapering`) and at least six
+minutes (`FIT_FULL`) of its own decay are watched, which is when its own τ has fully replaced the
+reference 14.1, the time to 100% comes from the voltage/current model with that τ
+(`FastChargeTaper.ownTaper`, the first high-speed step in `ChargingEstimate.forScooter`). It now
+replaces the SOC-indexed reference and personal curves too, not only the current rate. Those place the
+charge by the battery percentage, which steps unevenly in the taper; the measured decay does not. The
+result and its label are the existing high-speed estimate (High-speed reference, recorded as
+`FAST_REFERENCE`, 0 learned sessions) instead of "From N past charges". A lower cutoff keeps the
+reference or current-rate time it had, never longer than the time to 100%; a personal time to a
+lower cutoff is not used while the charge's own taper applies. It applies only to the high-speed
+charger on the UT5 MAX (product 2538) with a usable live estimate (at least 0.05 A, voltage and power
+present), a valid rated capacity and battery below 100%. Nothing was fitted: the switch-over point is
+the existing `FIT_FULL`, and the model, τ limits and 0.68 A end current are v7's.
+
+**Replay.** `expected-v7.csv` is `FastChargeTaperReplay` compiled against v7 (f529f43) on all 16
+recordings; for sessions 13-15 it reproduces the app's live v7 predictions within 0.1 minutes on 1,107
+of 1,167 samples, with the same source on 1,166 (live, the app re-evaluates every frame, the journal
+keeps one sample per 10 s). Against it, v8 changes 1,110 samples, every one a high-speed sample where
+the charge's own taper is established, now `FAST_REFERENCE`. All 5,457 standard-charger samples and
+every high-speed sample before the own taper are identical to v7. Complete high-speed charges, v7 → v8
+(minutes; error is displayed minus actual time to the first displayed 100%; t0-t10 are the errors at
+the start and after 5 and 10 minutes, identical in both; jump is the largest change between samples
+beyond the elapsed time; switches are changes of source; the Charge done by margin is the smallest
+displayed + 20 − actual):
+
+| Session | MAE | t0 / t5 / t10 | Biggest jump | Switches | Done-by margin |
+|---|---|---|---|---|---|
+| 4 reference, 16% | 0.41 → 0.46 | +2.9 / +0.8 / +0.2 | 2.4 → 2.4 | 0 → 0 | +19.7 → +19.0 |
+| 6, 73%\* | 1.33 → 1.15 | +81.9 / +1.3 / +1.3 | 80.6 → 80.6\* | 2 → 3 | +19.4 → +19.4 |
+| 11, 73% | 0.75 → 0.68 | −0.9 / −1.0 / +0.7 | 4.5 → 1.0 | 1 → 0 | +16.7 → +19.0 |
+| 12, 91% | 1.90 → 1.69 | +8.7 / +3.4 / +0.3 | 0.9 → 0.5 | 1 → 0 | +19.4 → +19.2 |
+| 13, 58%, current-limited start | 6.03 → 4.22 | +13.7 / +10.4 / −6.7 | 25.0 → 25.0 | 1 → 0 | +4.9 → +4.9 |
+| 14, 80% | 0.69 → 0.70 | +2.8 / +0.7 / +0.3 | 3.2 → 0.4 | 1 → 0 | +19.8 → +19.2 |
+| 15, 27% | 1.38 → 1.29 | −2.0 / −1.9 / −1.6 | 4.4 → 2.1 | 3 → 2 | +17.6 → +17.6 |
+| All | 1.88 → 1.51 | unchanged | | 9 → 5 | +4.9 → +4.9 |
+
+\* Session 6's first sample and its 80.6-minute jump are the 2 A ramp sample and recording gap described
+above. Its extra switch is the hand-over from personal history to its own taper.
+
+- **Steadier, not earlier.** Source switches fall from 9 to 5 and the largest jumps in sessions 11, 14
+  and 15 fall by 2-3.5 minutes. The first estimates (t0 to t10) and the smallest Charge done by margin
+  are unchanged; v8 does nothing about a charge's start.
+- **Session 13.** Its charger started at a limited current and rose later, which no estimate could see
+  at the start (that is its +13.7, its 25-minute drop and its +4.9 margin, all unchanged). Its final
+  taper was also slower than past charges, so v7's personal history read up to 10 minutes short
+  through the taper (about 5 minutes short halfway). Its own taper reads within about ±1 minute
+  there; the hand-over itself starts 7.3 minutes long (the safe side) and settles within about 5
+  minutes.
+- **Warm charges** are about as accurate as before (MAE within ±0.2 minutes).
+
+**Costs.** In the last 15 minutes every charge now reads short, by 0.2-0.6 minutes on average per
+charge; the worst sample is −1.0 minutes, against v7's −3.9. In the taper the estimate rests on the
+fixed 0.68 A end current and the charger's voltage limit; every complete high-speed charge ended at
+0.68 A, but they are one charger and one pack. The label reads High-speed reference instead of "From
+N past charges" while the own taper applies. This is stability polish, not an accuracy fix.
 
 ## Limits
 
@@ -107,5 +169,6 @@ The bulk stage assumes the reference charge's volts per Ah at 10 A; 8 A charges 
 minute. Why the charger sometimes delivers 8 A instead of 10 A is unknown. Times are to the first
 displayed 100%, not balancing or charger shutoff.
 
-Rerun: `JAVA_HOME=... tests/run.sh` (includes the replay). To regenerate the baseline, compile
-`tests/FastChargeTaperReplay.java` against the v6 source tree and run it on `sessions.csv`.
+Rerun: `JAVA_HOME=... tests/run.sh` (includes the replay). To regenerate a baseline, compile
+`tests/FastChargeTaperReplay.java` against that release's source tree (v6: b21d3f6, v7: f529f43, with
+its generated text catalog) and run it on `sessions.csv`; `expected-v6.csv` covers sessions 0-12.
