@@ -19,10 +19,10 @@ final class BackupTransaction {
     private BackupTransaction() { }
 
     static void apply(BackupArchive.Storage storage, BackupArchive.Plan approved) throws IOException {
-        if (approved == null) throw new IOException("Review the backup first.");
+        if (approved == null) throw new BackupException(M.backupEngineReviewBackupFirst());
         BackupArchive.Prepared prepared = approved.prepared;
         BackupArchive.Plan current = BackupArchive.plan(storage, prepared, approved.categories, approved.replace, approved.mapping);
-        if (!current.same(approved)) throw new IOException("Saved data changed. Review again.");
+        if (!current.same(approved)) throw new BackupException(BackupException.Code.CHANGED, M.backupEngineSavedDataChangedReview());
         AppDataArchive.checkDatabaseClosed(storage);
         File database = storage.database(), incomingDatabase = new File(prepared.data, "database/" + AppDataArchive.DATABASE);
         boolean databaseExisted = database.isFile(), history = approved.history;
@@ -35,7 +35,7 @@ final class BackupTransaction {
         if (history && databaseExisted) need += database.length() * (approved.replace ? 1 : 2);
         if (history && !approved.replace && incomingDatabase.isFile()) need += incomingDatabase.length();
         for (String root : roots) need += size(new File(storage.files(), root));
-        if (storage.usableSpace(storage.work()) < need) throw new IOException("Not enough free storage");
+        if (storage.usableSpace(storage.work()) < need) throw new BackupException(BackupException.Code.NO_SPACE, M.backupEngineNotEnoughFreeStorage());
         File merged = new File(prepared.directory, "merged.db");
         try {
             if (history && !approved.replace) { storage.mergeHistory(databaseExisted ? database : null, incomingDatabase, approved.historyMapping, merged); storage.validateDatabase(merged); }
@@ -43,7 +43,7 @@ final class BackupTransaction {
             storage.step("build");
         } catch (Exception failure) {
             try { AppDataArchive.deleteTree(merged); } catch (IOException cleanup) { failure.addSuppressed(cleanup); }
-            throw io(failure, "The restore could not be prepared.");
+            throw io(failure, M.backupEngineRestoreCouldNotBePrepared());
         }
         File transaction = new File(storage.work(), "transaction"), previous = new File(transaction, "previous"), incoming = new File(transaction, "incoming");
         AppDataArchive.ensureNoTransaction(storage);
@@ -63,7 +63,7 @@ final class BackupTransaction {
             for (String root : roots) {
                 File from = new File(storage.files(), root), to = new File(previous, "files/" + root); AppDataArchive.mkdir(to);
                 File[] children = from.listFiles();
-                if (from.exists() && children == null) throw new IOException("A recording folder could not be read.");
+                if (from.exists() && children == null) throw new BackupException(M.backupEngineRecordingFolderCouldNotRead());
                 if (children != null) for (File child : children) AppDataArchive.copyFile(child, new File(to, child.getName()), AppDataArchive.MAX_FILE_BYTES);
             }
             File data = new File(prepared.directory, "data");
@@ -72,7 +72,7 @@ final class BackupTransaction {
                 for (String path : approved.additions) { out.writeUTF(path); out.writeUTF(RideArchive.identity(AppDataArchive.contained(data, "files/" + path))); }
             }
             sync(new File(transaction, "additions.bin"));
-            if (!prepared.directory.renameTo(incoming)) throw new IOException("Could not prepare the restore.");
+            if (!prepared.directory.renameTo(incoming)) throw new BackupException(M.backupEngineCouldNotPrepareRestore());
             prepared.consumed = true;
             // The whole snapshot and its parent chain are durable before live writes are allowed.
             AppDataArchive.syncDirectories(storage, transaction);
@@ -87,7 +87,7 @@ final class BackupTransaction {
                 String owned = RideArchive.identity(source);
                 // Same filesystem; never replaces an existing name, and the file keeps its identity.
                 Files.move(source.toPath(), target.toPath());
-                if (!owned.equals(RideArchive.identity(target))) throw new IOException("Recording storage changed during restore.");
+                if (!owned.equals(RideArchive.identity(target))) throw new BackupException(M.backupEngineRecordingStorageChangedDuring());
                 storage.step("move:" + path);
             }
             for (String root : roots) {
@@ -112,9 +112,9 @@ final class BackupTransaction {
         } catch (Exception failure) {
             if (active) {
                 try { rollback(storage, transaction); }
-                catch (Exception rollback) { failure.addSuppressed(rollback); throw new IOException("Restore failed. Reopen Volt. Don't clear storage.", failure); }
+                catch (Exception rollback) { failure.addSuppressed(rollback); throw new BackupException(M.commonRestoreFailed(), failure); }
             } else try { AppDataArchive.deleteTree(transaction); } catch (IOException cleanup) { failure.addSuppressed(cleanup); }
-            throw io(failure, "The restore failed; your data was kept.");
+            throw io(failure, M.backupEngineRestoreFailedDataKept());
         }
         // A committed restore stays committed if removing its private recovery copy fails; startup cleans it.
         try { storage.step("cleanup"); AppDataArchive.deleteTree(transaction); } catch (Exception ignored) { }
@@ -128,27 +128,27 @@ final class BackupTransaction {
     static boolean recover(BackupArchive.Storage storage) throws IOException {
         File work = storage.work();
         if (!work.exists()) return false;
-        if (!work.isDirectory() || Files.isSymbolicLink(work.toPath()) || work.listFiles() == null) throw new IOException("The restore recovery folder is unavailable. Keep app storage intact.");
+        if (!work.isDirectory() || Files.isSymbolicLink(work.toPath()) || work.listFiles() == null) throw new BackupException(M.backupEngineRestoreRecoveryFolderUnavailable());
         File transaction = new File(work, "transaction");
         // Version 1 full restores (and a category restore that died before its scope existed).
         if (transaction.exists() && !new File(transaction, "scope.bin").exists()) return AppDataArchive.recover(storage);
         boolean recovered = false;
         if (transaction.exists()) {
-            if (!transaction.isDirectory() || Files.isSymbolicLink(transaction.toPath())) throw new IOException("The restore recovery record is unavailable. Keep app storage intact.");
+            if (!transaction.isDirectory() || Files.isSymbolicLink(transaction.toPath())) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnavailable());
             File marker = new File(transaction, "state");
             if (!marker.exists()) AppDataArchive.deleteTree(transaction); // Live data was never touched.
             else {
                 String value = new String(AppDataArchive.readFile(marker, 32), StandardCharsets.UTF_8);
                 if (value.equals("committed")) AppDataArchive.deleteTree(transaction);
                 else if (value.equals("active")) { rollback(storage, transaction); recovered = true; }
-                else throw new IOException("The restore recovery record is unreadable. Keep app storage intact.");
+                else throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadableKeep());
             }
         }
         File[] children = work.listFiles();
-        if (children == null) throw new IOException("The restore recovery folder cannot be read. Keep app storage intact.");
+        if (children == null) throw new BackupException(M.backupEngineRestoreRecoveryFolderCannotRead());
         for (File file : children) {
             if (file.getName().matches("stage-[a-f0-9-]{36}")) AppDataArchive.deleteTree(file);
-            else throw new IOException("An unexpected restore recovery file needs attention. Keep app storage intact.");
+            else throw new BackupException(M.backupEngineUnexpectedRestoreRecoveryFile());
         }
         return recovered;
     }
@@ -156,26 +156,26 @@ final class BackupTransaction {
     private static void rollback(BackupArchive.Storage storage, File transaction) throws IOException {
         boolean replace, history, databaseExisted; List<String> roots = new ArrayList<>(), namespaces = new ArrayList<>();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(AppDataArchive.readFile(new File(transaction, "scope.bin"), 4096)))) {
-            if (in.readInt() != 2) throw new IOException("The restore recovery record is unreadable. Keep app storage intact.");
+            if (in.readInt() != 2) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadableKeep());
             replace = in.readBoolean(); history = in.readBoolean(); databaseExisted = in.readBoolean();
-            int count = in.readInt(); if (count < 0 || count > FOLDERS.length) throw new IOException("The restore recovery record is unreadable.");
-            for (int i = 0; i < count; i++) { String root = in.readUTF(); if (!Arrays.asList(FOLDERS).contains(root) || roots.contains(root)) throw new IOException("The restore recovery record is unreadable."); roots.add(root); }
-            count = in.readInt(); if (count < 0 || count > BackupRegistry.NAMESPACES.length) throw new IOException("The restore recovery record is unreadable.");
-            for (int i = 0; i < count; i++) { String name = in.readUTF(); if (!BackupRegistry.namespace(name) || namespaces.contains(name)) throw new IOException("The restore recovery record is unreadable."); namespaces.add(name); }
-            if (in.read() != -1) throw new IOException("The restore recovery record is unreadable.");
+            int count = in.readInt(); if (count < 0 || count > FOLDERS.length) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable());
+            for (int i = 0; i < count; i++) { String root = in.readUTF(); if (!Arrays.asList(FOLDERS).contains(root) || roots.contains(root)) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable()); roots.add(root); }
+            count = in.readInt(); if (count < 0 || count > BackupRegistry.NAMESPACES.length) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable());
+            for (int i = 0; i < count; i++) { String name = in.readUTF(); if (!BackupRegistry.namespace(name) || namespaces.contains(name)) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable()); namespaces.add(name); }
+            if (in.read() != -1) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable());
         }
-        if (replace && roots.size() != FOLDERS.length) throw new IOException("The restore recovery record is unreadable.");
+        if (replace && roots.size() != FOLDERS.length) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable());
         File previous = new File(transaction, "previous");
         Map<String, Map<String, Object>> prefs = AppDataArchive.decodePreferences(AppDataArchive.readFile(new File(previous, "prefs.bin"), AppDataArchive.MAX_PREFERENCES), true);
-        if (!new ArrayList<>(prefs.keySet()).equals(namespaces)) throw new IOException("The restore recovery record is unreadable.");
+        if (!new ArrayList<>(prefs.keySet()).equals(namespaces)) throw new BackupException(M.backupEngineRestoreRecoveryRecordUnreadable());
         LinkedHashMap<String, String> additions = new LinkedHashMap<>();
         try (DataInputStream in = new DataInputStream(new ByteArrayInputStream(AppDataArchive.readFile(new File(transaction, "additions.bin"), 16 * 1024 * 1024)))) {
-            int count = in.readInt(); if (count < 0 || count > AppDataArchive.MAX_ENTRIES) throw new IOException("Invalid restore recovery list.");
+            int count = in.readInt(); if (count < 0 || count > AppDataArchive.MAX_ENTRIES) throw new BackupException(M.backupEngineInvalidRestoreRecoveryList());
             for (int i = 0; i < count; i++) {
                 String path = in.readUTF(), owned = in.readUTF();
-                if (!AppDataArchive.allowedFile("files/" + path) || owned.isEmpty() || owned.length() > 512 || additions.put(path, owned) != null) throw new IOException("Invalid restore recovery path.");
+                if (!AppDataArchive.allowedFile("files/" + path) || owned.isEmpty() || owned.length() > 512 || additions.put(path, owned) != null) throw new BackupException(M.backupEngineInvalidRestoreRecoveryPath());
             }
-            if (in.read() != -1) throw new IOException("Invalid restore recovery list.");
+            if (in.read() != -1) throw new BackupException(M.backupEngineInvalidRestoreRecoveryList());
         }
         // A committed rename can succeed before its directory sync fails: re-arm before any rollback write.
         state(storage, transaction, "active");
@@ -185,13 +185,13 @@ final class BackupTransaction {
         for (String path : reversed) {
             File file = AppDataArchive.contained(storage.files(), path);
             // Only a file this restore installed is removed; anything unrelated at that name stays.
-            if (file.exists() && additions.get(path).equals(RideArchive.identity(file)) && !file.delete()) throw new IOException("Could not roll back an interrupted restore.");
+            if (file.exists() && additions.get(path).equals(RideArchive.identity(file)) && !file.delete()) throw new BackupException(M.backupEngineCouldNotRollBackInterruptedRestore());
         }
         for (String root : roots) {
             File target = new File(storage.files(), root), source = new File(previous, "files/" + root);
             AppDataArchive.deleteTree(target); AppDataArchive.mkdir(target);
             File[] children = source.listFiles();
-            if (children == null) throw new IOException("The restore snapshot is incomplete. Keep app storage intact.");
+            if (children == null) throw new BackupException(M.backupEngineRestoreSnapshotIncompleteKeep());
             for (File child : children) AppDataArchive.copyFile(child, new File(target, child.getName()), AppDataArchive.MAX_FILE_BYTES);
         }
         if (history) {
@@ -214,7 +214,7 @@ final class BackupTransaction {
     private static void state(BackupArchive.Storage storage, File transaction, String value) throws IOException {
         File temporary = new File(transaction, "state.tmp");
         try (FileOutputStream out = new FileOutputStream(temporary)) { out.write(value.getBytes(StandardCharsets.UTF_8)); out.getFD().sync(); }
-        if (!temporary.renameTo(new File(transaction, "state"))) throw new IOException("Could not save restore recovery state.");
+        if (!temporary.renameTo(new File(transaction, "state"))) throw new BackupException(M.backupEngineCouldNotSaveRestore());
         storage.syncDirectory(transaction);
     }
     private static void writeFile(File file, byte[] bytes) throws IOException {
@@ -222,5 +222,5 @@ final class BackupTransaction {
     }
     private static void sync(File file) throws IOException { try (FileOutputStream out = new FileOutputStream(file, true)) { out.getFD().sync(); } }
     private static long size(File folder) { long total = 0; File[] children = folder.listFiles(); if (children != null) for (File child : children) total += child.length(); return total; }
-    private static IOException io(Exception failure, String message) { return failure instanceof IOException ? (IOException) failure : new IOException(message, failure); }
+    private static IOException io(Exception failure, Msg message) { return failure instanceof IOException ? (IOException) failure : new BackupException(message, failure); }
 }

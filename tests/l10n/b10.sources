@@ -3,3 +3,6 @@
 # G5: the restore review lines and refusal messages, pinned before the batch. The fixtures come from
 # tests/BackupTestStore.java and tests/BackupArchiveTest.java, which tests/run.sh already compiles.
 tests/l10n/characterization/BackupPlanLinesTest.java
+# The engine's refusals carry a Msg (getMessage() stays English); RideArchive, AppDataArchive and the
+# backup classes that tests/run.sh compiles throw it.
+src/com/jjricks/volt/BackupException.java

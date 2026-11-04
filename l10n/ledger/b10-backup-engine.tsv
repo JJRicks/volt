@@ -1,0 +1,270 @@
+# Ledger for b10-backup-engine: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/AppDataArchive.java:74	["App data changed during backup. Try again with recordings stopped."]	backup_engine_app_data_changed_during_backup_try_again_recordings	exact	
+src/com/jjricks/volt/AppDataArchive.java:78	["App data changed during backup. Try again with recordings stopped."]	backup_engine_app_data_changed_during_backup_try_again_recordings	exact	
+src/com/jjricks/volt/AppDataArchive.java:95	["Could not remove temporary encrypted-backup payload."]	backup_engine_could_not_remove_temporary_encrypted	exact	
+src/com/jjricks/volt/AppDataArchive.java:100	["The backup could not be opened."]	backup_engine_backup_could_not_opened	exact	
+src/com/jjricks/volt/AppDataArchive.java:109	["This is not a supported Volt app backup."]	backup_engine_not_supported_volt_app	exact	
+src/com/jjricks/volt/AppDataArchive.java:111	["Unsupported backup format."]	backup_engine_unsupported_backup_format	exact	
+src/com/jjricks/volt/AppDataArchive.java:114	["The backup needs a compatible or newer app version, or has invalid metadata."]	backup_engine_backup_needs_compatible_newer	exact	
+src/com/jjricks/volt/AppDataArchive.java:118	["The backup contains an unsupported or duplicate entry."]	backup_engine_backup_contains_unsupported_duplicate	exact	
+src/com/jjricks/volt/AppDataArchive.java:119	["The backup contains too many files."]	backup_engine_backup_contains_too_many	exact	
+src/com/jjricks/volt/AppDataArchive.java:132	["The backup is incomplete or has inconsistent contents."]	backup_engine_backup_incomplete_inconsistent_contents	exact	
+src/com/jjricks/volt/AppDataArchive.java:141	["Choose the backup again before restoring."]	backup_engine_choose_backup_again_before	exact	
+src/com/jjricks/volt/AppDataArchive.java:149	["Could not prepare the restore transaction."]	backup_engine_could_not_prepare_restore_transaction	exact	
+src/com/jjricks/volt/AppDataArchive.java:162	["Restore was interrupted. Reopen Volt to recover the previous data; do not clear app storage."]	backup_engine_restore_was_interrupted_reopen	exact	
+src/com/jjricks/volt/AppDataArchive.java:167	["The restore failed; the previous data was retained."]	backup_engine_restore_failed_previous_data	exact	
+src/com/jjricks/volt/AppDataArchive.java:176	["The restore recovery folder is unavailable. Keep app storage intact."]	backup_engine_restore_recovery_folder_unavailable	exact	
+src/com/jjricks/volt/AppDataArchive.java:179	["The restore recovery record is unavailable. Keep app storage intact."]	backup_engine_restore_recovery_record_unavailable	exact	
+src/com/jjricks/volt/AppDataArchive.java:181	["The restore recovery record needs this app version's recovery. Keep app storage intact."]	backup_engine_restore_recovery_record_needs_app	exact	
+src/com/jjricks/volt/AppDataArchive.java:188	["The restore recovery record is unreadable. Keep app storage intact."]	backup_engine_restore_recovery_record_unreadable_keep	exact	
+src/com/jjricks/volt/AppDataArchive.java:192	["The restore recovery folder cannot be read. Keep app storage intact."]	backup_engine_restore_recovery_folder_cannot_read	exact	
+src/com/jjricks/volt/AppDataArchive.java:195	["An unexpected restore recovery file needs attention. Keep app storage intact."]	backup_engine_unexpected_restore_recovery_file	exact	
+src/com/jjricks/volt/AppDataArchive.java:242	["History is still open. Close recordings and try the backup again."]	backup_engine_history_still_open_close	exact	
+src/com/jjricks/volt/AppDataArchive.java:246	["Reopen Volt to finish recovering the previous restore first."]	backup_engine_reopen_volt_finish_recovering	exact	
+src/com/jjricks/volt/AppDataArchive.java:254	["Could not save restore recovery state."]	backup_engine_could_not_save_restore	exact	
+src/com/jjricks/volt/AppDataArchive.java:260	["Restore storage cannot be synchronized."]	backup_engine_restore_storage_cannot_synchronized	exact	
+src/com/jjricks/volt/AppDataArchive.java:264	["Unexpected restore storage link."]	backup_engine_unexpected_restore_storage_link	exact	
+src/com/jjricks/volt/AppDataArchive.java:266	["Restore storage cannot be read."]	backup_engine_restore_storage_cannot_read	exact	
+src/com/jjricks/volt/AppDataArchive.java:278	["A recording folder could not be read."]	backup_engine_recording_folder_could_not_read	exact	
+src/com/jjricks/volt/AppDataArchive.java:282	["An unsupported recording file needs attention before backup."]	backup_engine_unsupported_recording_file_needs_attention	exact	
+src/com/jjricks/volt/AppDataArchive.java:283	["Unexpected recording file."]	backup_engine_unexpected_recording_file	exact	
+src/com/jjricks/volt/AppDataArchive.java:284	["One recording is too large for this backup format."]	backup_engine_one_recording_too_large_backup_format	exact	
+src/com/jjricks/volt/AppDataArchive.java:289	["History storage is not a supported database."]	backup_engine_history_storage_not_supported	exact	
+src/com/jjricks/volt/AppDataArchive.java:292	["There are too many recording files for this backup format."]	backup_engine_there_too_many_recording	exact	
+src/com/jjricks/volt/AppDataArchive.java:304	["Invalid archive path."]	backup_engine_invalid_archive_path	exact	
+src/com/jjricks/volt/AppDataArchive.java:307	["A restore file is unavailable."]	backup_engine_restore_file_unavailable	exact	
+src/com/jjricks/volt/AppDataArchive.java:312	["Could not remove temporary data."]	backup_engine_could_not_remove_temporary_data	exact	
+src/com/jjricks/volt/AppDataArchive.java:313	["Could not read temporary data."]	backup_engine_could_not_read_temporary	exact	
+src/com/jjricks/volt/AppDataArchive.java:314	["Could not remove temporary data."]	backup_engine_could_not_remove_temporary_data	exact	
+src/com/jjricks/volt/AppDataArchive.java:317	["There is not enough available app storage."]	backup_engine_there_not_enough_available	exact	
+src/com/jjricks/volt/AppDataArchive.java:318	["Unexpected storage link."]	backup_engine_unexpected_storage_link	exact	
+src/com/jjricks/volt/AppDataArchive.java:324	["The backup exceeds the supported storage limit."]	backup_engine_backup_exceeds_supported_storage	exact	
+src/com/jjricks/volt/AppDataArchive.java:340	["Unsupported app preference group."]	backup_engine_unsupported_app_preference_group	exact	
+src/com/jjricks/volt/AppDataArchive.java:343	["Missing app preferences."]	backup_engine_missing_app_preferences	exact	
+src/com/jjricks/volt/AppDataArchive.java:344	["Too many app preferences."]	backup_engine_too_many_app_preferences	exact	
+src/com/jjricks/volt/AppDataArchive.java:346	["An app preference key is too long."]	backup_engine_app_preference_key_too_long	exact	
+src/com/jjricks/volt/AppDataArchive.java:352	["An app preference set is too large."]	backup_engine_app_preference_set_too_large	exact	
+src/com/jjricks/volt/AppDataArchive.java:352	["Unsupported app preference."]	backup_engine_unsupported_app_preference	exact	
+src/com/jjricks/volt/AppDataArchive.java:353	["Unsupported app preference type."]	backup_engine_unsupported_app_preference_type	exact	
+src/com/jjricks/volt/AppDataArchive.java:354	["App preferences exceed the backup limit."]	backup_engine_app_preferences_exceed_backup	exact	
+src/com/jjricks/volt/AppDataArchive.java:362	["App preferences exceed the backup limit."]	backup_engine_app_preferences_exceed_backup	exact	
+src/com/jjricks/volt/AppDataArchive.java:365	["Unsupported app preference inventory."]	backup_engine_unsupported_app_preference_inventory	exact	
+src/com/jjricks/volt/AppDataArchive.java:369	["Unsupported app preference inventory."]	backup_engine_unsupported_app_preference_inventory	exact	
+src/com/jjricks/volt/AppDataArchive.java:370	["Invalid preference count."]	backup_engine_invalid_preference_count	exact	
+src/com/jjricks/volt/AppDataArchive.java:372	["Invalid or duplicate preference key."]	backup_engine_invalid_duplicate_preference_key	exact	
+src/com/jjricks/volt/AppDataArchive.java:376	["Invalid preference boolean."]	backup_engine_invalid_preference_boolean	exact	
+src/com/jjricks/volt/AppDataArchive.java:378	["Invalid preference set size."]	backup_engine_invalid_preference_set_size	exact	
+src/com/jjricks/volt/AppDataArchive.java:378	["Duplicate preference set item."]	backup_engine_duplicate_preference_set_item	exact	
+src/com/jjricks/volt/AppDataArchive.java:379	["Unsupported preference type."]	backup_engine_unsupported_preference_type	exact	
+src/com/jjricks/volt/AppDataArchive.java:385	["Unexpected preference payload."]	backup_engine_unexpected_preference_payload	exact	
+src/com/jjricks/volt/AppDataArchive.java:391	["App preference is too large."]	backup_engine_app_preference_too_large	exact	
+src/com/jjricks/volt/AppDataArchive.java:394	["Invalid preference string."]	backup_engine_invalid_preference_string	exact	
+src/com/jjricks/volt/AppDataArchive.java:397	["Invalid preference text."]	backup_engine_invalid_preference_text	exact	
+src/com/jjricks/volt/AppDataArchive.java:401	["Use a backup password of 8 to 1,024 characters."]	backup_engine_use_backup_password_characters	exact	
+src/com/jjricks/volt/AppDataArchive.java:411	["Backup encryption is unavailable on this device."]	backup_engine_backup_encryption_unavailable_device	exact	
+src/com/jjricks/volt/AppDataArchive.java:424	["Choose a Volt encrypted app backup."]	backup_engine_choose_volt_encrypted_app	exact	
+src/com/jjricks/volt/AppDataArchive.java:427	["Invalid encrypted backup record."]	backup_engine_invalid_encrypted_backup_record	exact	
+src/com/jjricks/volt/AppDataArchive.java:430	["The backup has unexpected trailing data."]	backup_engine_backup_unexpected_trailing_data	exact	
+src/com/jjricks/volt/AppDataArchive.java:439	["Backup already completed."]	backup_engine_backup_already_completed	exact	
+src/com/jjricks/volt/AppDataBackup.java:106	["Choose the backup again."]	backup_engine_choose_backup_again	exact	
+src/com/jjricks/volt/AppDataBackup.java:112	["The backup has invalid scooter profiles."]	backup_engine_backup_invalid_scooter_profiles	exact	
+src/com/jjricks/volt/AppDataBackup.java:114	["The backup has too many scooter profiles."]	backup_engine_backup_too_many_scooter	exact	
+src/com/jjricks/volt/AppDataBackup.java:117	["The backup has invalid scooter profile identifiers."]	backup_engine_backup_invalid_scooter_profile_identifiers	exact	
+src/com/jjricks/volt/AppDataBackup.java:118	["The backup has invalid scooter profile fields."]	backup_engine_backup_invalid_scooter_profile_fields	exact	
+src/com/jjricks/volt/AppDataBackup.java:119	["The backup has an invalid scooter owner role."]	backup_engine_backup_invalid_scooter_owner	exact	
+src/com/jjricks/volt/AppDataBackup.java:120	["The backup has an invalid scooter connection date."]	backup_engine_backup_invalid_scooter_connection	exact	
+src/com/jjricks/volt/AppDataBackup.java:121	["The backup has invalid scooter profile fields."]	backup_engine_backup_invalid_scooter_profile_fields	exact	
+src/com/jjricks/volt/AppDataBackup.java:122	["The backup has an invalid scooter setup identity."]	backup_engine_backup_invalid_scooter_setup	exact	
+src/com/jjricks/volt/AppDataBackup.java:124	["The backup has unreadable scooter profiles."]	backup_engine_backup_unreadable_scooter_profiles	exact	
+src/com/jjricks/volt/AppDataBackup.java:169	["The backup has an unsupported preference type."]	backup_engine_backup_unsupported_preference_type	exact	
+src/com/jjricks/volt/AppDataBackup.java:172	["App preferences could not be written. Previous data will be recovered."]	backup_engine_app_preferences_could_not_written	exact	
+src/com/jjricks/volt/AppDataBackup.java:181	["Not a dashboard layout file."]	backup_engine_not_dashboard_layout_file	exact	
+src/com/jjricks/volt/AppDataBackup.java:187	["The backup history database could not be read."]	backup_engine_backup_history_database_could_not_read	exact	
+src/com/jjricks/volt/AppDataBackup.java:188	["The backup history has too many scooters."]	backup_engine_backup_history_too_many	exact	
+src/com/jjricks/volt/AppDataBackup.java:223	["Readings history could not be merged."]	backup_engine_readings_history_could_not_merged	exact	
+src/com/jjricks/volt/AppDataBackup.java:224	["Readings history could not be merged."]	backup_engine_readings_history_could_not_merged	exact	
+src/com/jjricks/volt/AppDataBackup.java:225	["Readings history is too large to merge."]	backup_engine_readings_history_too_large	exact	
+src/com/jjricks/volt/AppDataBackup.java:228	["Readings history could not be merged."]	backup_engine_readings_history_could_not_merged	exact	
+src/com/jjricks/volt/AppDataBackup.java:233	["The backup history database is invalid."]	backup_engine_backup_history_database_invalid	exact	
+src/com/jjricks/volt/AppDataBackup.java:235	["The backup history database is damaged or uses a newer format."]	backup_engine_backup_history_database_damaged	exact	
+src/com/jjricks/volt/AppDataBackup.java:244	["The backup history database has an unsupported schema."]	backup_engine_backup_history_database_unsupported	exact	
+src/com/jjricks/volt/AppDataBackup.java:250	["The backup history database is missing required readings tables."]	backup_engine_backup_history_database_missing	exact	
+src/com/jjricks/volt/AppDataBackup.java:252	["The backup history database could not be verified."]	backup_engine_backup_history_database_could_not_verified	exact	
+src/com/jjricks/volt/BackupArchive.java:147	["Choose what to back up."]	backup_engine_choose_what_back_up	exact	
+src/com/jjricks/volt/BackupArchive.java:164	["There are too many files for one backup."]	backup_engine_there_too_many_files	exact	
+src/com/jjricks/volt/BackupArchive.java:176	["Backup metadata is too large."]	backup_engine_backup_metadata_too_large	exact	
+src/com/jjricks/volt/BackupArchive.java:186	["App data changed during backup. Try again."]	backup_engine_app_data_changed_during_backup_try_again	exact	
+src/com/jjricks/volt/BackupArchive.java:190	["App data changed during backup. Try again."]	backup_engine_app_data_changed_during_backup_try_again	exact	
+src/com/jjricks/volt/BackupArchive.java:205	["A recording folder could not be read."]	backup_engine_recording_folder_could_not_read	exact	
+src/com/jjricks/volt/BackupArchive.java:208	["An unsupported recording file needs attention before backup."]	backup_engine_unsupported_recording_file_needs_attention	exact	
+src/com/jjricks/volt/BackupArchive.java:209	["Unexpected recording file."]	backup_engine_unexpected_recording_file	exact	
+src/com/jjricks/volt/BackupArchive.java:210	["One recording is too large for a backup."]	backup_engine_one_recording_too_large_backup	exact	
+src/com/jjricks/volt/BackupArchive.java:216	["History storage is not a supported database."]	backup_engine_history_storage_not_supported	exact	
+src/com/jjricks/volt/BackupArchive.java:245	["Choose a Volt backup file."]	backup_engine_choose_volt_backup_file	exact	
+src/com/jjricks/volt/BackupArchive.java:257	["The backup could not be opened."]	backup_engine_backup_could_not_opened	exact	
+src/com/jjricks/volt/BackupArchive.java:270	["This is not a supported Volt app backup."]	backup_engine_not_supported_volt_app	exact	
+src/com/jjricks/volt/BackupArchive.java:279	["Unsupported backup format."]	backup_engine_unsupported_backup_format	exact	
+src/com/jjricks/volt/BackupArchive.java:280	["Could not remove the temporary backup payload."]	backup_engine_could_not_remove_temporary_backup	exact	
+src/com/jjricks/volt/BackupArchive.java:292	["Unsupported backup format."]	backup_engine_unsupported_backup_format	exact	
+src/com/jjricks/volt/BackupArchive.java:294	["The backup needs a newer app version, or has invalid metadata."]	backup_engine_backup_needs_newer_app	exact	
+src/com/jjricks/volt/BackupArchive.java:295	["The backup has invalid metadata."]	backup_engine_backup_invalid_metadata	exact	
+src/com/jjricks/volt/BackupArchive.java:298	["The backup has invalid categories."]	backup_engine_backup_invalid_categories	exact	
+src/com/jjricks/volt/BackupArchive.java:300	["The backup has invalid categories."]	backup_engine_backup_invalid_categories	exact	
+src/com/jjricks/volt/BackupArchive.java:301	["The backup has invalid scooters."]	backup_engine_backup_invalid_scooters	exact	
+src/com/jjricks/volt/BackupArchive.java:304	["The backup has invalid scooters."]	backup_engine_backup_invalid_scooters	exact	
+src/com/jjricks/volt/BackupArchive.java:307	["The backup has invalid metadata."]	backup_engine_backup_invalid_metadata	exact	
+src/com/jjricks/volt/BackupArchive.java:312	["The backup contains an unsupported or duplicate entry."]	backup_engine_backup_contains_unsupported_duplicate	exact	
+src/com/jjricks/volt/BackupArchive.java:316	["The backup contains an unsupported entry."]	backup_engine_backup_contains_unsupported_entry	exact	
+src/com/jjricks/volt/BackupArchive.java:321	["The backup repeats an app preference."]	backup_engine_backup_repeats_app_preference	exact	
+src/com/jjricks/volt/BackupArchive.java:326	["The backup contains an unsupported or out-of-category file."]	backup_engine_backup_contains_unsupported_out	exact	
+src/com/jjricks/volt/BackupArchive.java:336	["The backup is incomplete or has inconsistent contents."]	backup_engine_backup_incomplete_inconsistent_contents	exact	
+src/com/jjricks/volt/BackupArchive.java:339	["The backup is incomplete or has inconsistent contents."]	backup_engine_backup_incomplete_inconsistent_contents	exact	
+src/com/jjricks/volt/BackupArchive.java:371	["Choose a Volt backup file."]	backup_engine_choose_volt_backup_file	exact	
+src/com/jjricks/volt/BackupArchive.java:381	["Not a dashboard layout file."]	backup_engine_not_dashboard_layout_file	exact	
+src/com/jjricks/volt/BackupArchive.java:383	["Not a dashboard layout file."]	backup_engine_not_dashboard_layout_file	exact	
+src/com/jjricks/volt/BackupArchive.java:397	["The pairing file is too large."]	backup_engine_pairing_file_too_large	exact	
+src/com/jjricks/volt/BackupArchive.java:399	["The pairing file contains unsupported fields."]	backup_engine_pairing_file_contains_unsupported	exact	
+src/com/jjricks/volt/BackupArchive.java:401	["The pairing file has an invalid owner identity."]	backup_engine_pairing_file_invalid_owner_identity	exact	
+src/com/jjricks/volt/BackupArchive.java:404	["The pairing file has an invalid owner role."]	backup_engine_pairing_file_invalid_owner_role	exact	
+src/com/jjricks/volt/BackupArchive.java:412	["The pairing file has an invalid Bluetooth address."]	backup_engine_pairing_file_invalid_bluetooth	exact	
+src/com/jjricks/volt/BackupArchive.java:441	["The backup has an unsupported preference group."]	backup_engine_backup_unsupported_preference_group	exact	
+src/com/jjricks/volt/BackupArchive.java:475	["The backup repeats a charge recording."]	backup_engine_backup_repeats_charge_recording	exact	
+src/com/jjricks/volt/BackupArchive.java:544	["Choose what to restore."]	backup_engine_choose_what_restore	exact	
+src/com/jjricks/volt/BackupArchive.java:545	["Replace everything needs a complete backup with every category."]	backup_engine_replace_everything_needs_complete	exact	
+src/com/jjricks/volt/BackupArchive.java:564	["Choose where each scooter's data goes."]	backup_engine_choose_where_each_scooters	exact	
+src/com/jjricks/volt/BackupArchive.java:565	["Choose where each scooter's data goes."]	backup_engine_choose_where_each_scooters	exact	
+src/com/jjricks/volt/BackupArchive.java:567	["Choose a scooter using this setup identity, or add another scooter."]	backup_engine_choose_scooter_using_setup	exact	
+src/com/jjricks/volt/BackupArchive.java:666	["Saved recordings cannot be read."]	backup_engine_saved_recordings_cannot_read	exact	
+src/com/jjricks/volt/BackupArchive.java:692	["Unexpected recording file."]	backup_engine_unexpected_recording_file	exact	
+src/com/jjricks/volt/BackupArchive.java:719	["The backup contains an unreadable ride."]	backup_engine_backup_contains_unreadable_ride	exact	
+src/com/jjricks/volt/BackupArchive.java:754	["Choose the backup again."]	backup_engine_choose_backup_again	exact	
+src/com/jjricks/volt/BackupArchive.java:759	["Saved scooters on this phone can't be read."]	backup_engine_saved_scooters_phone_cant_read	exact	
+src/com/jjricks/volt/BackupJson.java:21	["Expected a JSON list."]	backup_engine_expected_json_list	exact	
+src/com/jjricks/volt/BackupJson.java:26	["Expected a JSON object."]	backup_engine_expected_json_object	exact	
+src/com/jjricks/volt/BackupJson.java:41	["Missing JSON."]	backup_engine_missing_json	exact	
+src/com/jjricks/volt/BackupJson.java:44	["Unexpected JSON content."]	backup_engine_unexpected_json_content	exact	
+src/com/jjricks/volt/BackupJson.java:49	["Incomplete JSON."]	backup_engine_incomplete_json	exact	
+src/com/jjricks/volt/BackupJson.java:52	["JSON is nested too deeply."]	backup_engine_json_nested_too_deeply	exact	
+src/com/jjricks/volt/BackupJson.java:60	["Invalid JSON key."]	backup_engine_invalid_json_key	exact	
+src/com/jjricks/volt/BackupJson.java:64	["Invalid JSON object."]	backup_engine_invalid_json_object	exact	
+src/com/jjricks/volt/BackupJson.java:65	["Duplicate JSON key."]	backup_engine_duplicate_json_key	exact	
+src/com/jjricks/volt/BackupJson.java:68	["Invalid JSON object."]	backup_engine_invalid_json_object	exact	
+src/com/jjricks/volt/BackupJson.java:81	["Invalid JSON list."]	backup_engine_invalid_json_list	exact	
+src/com/jjricks/volt/BackupJson.java:96	["Unterminated JSON text."]	backup_engine_unterminated_json_text	exact	
+src/com/jjricks/volt/BackupJson.java:99	["Invalid JSON text."]	backup_engine_invalid_json_text	exact	
+src/com/jjricks/volt/BackupJson.java:101	["Invalid JSON escape."]	backup_engine_invalid_json_escape	exact	
+src/com/jjricks/volt/BackupJson.java:107	["Invalid JSON escape."]	backup_engine_invalid_json_escape	exact	
+src/com/jjricks/volt/BackupJson.java:109	["Invalid JSON escape."]	backup_engine_invalid_json_escape	exact	
+src/com/jjricks/volt/BackupJson.java:117	["Invalid JSON value."]	backup_engine_invalid_json_value	exact	
+src/com/jjricks/volt/BackupJson.java:119	["Invalid JSON number."]	backup_engine_invalid_json_number	exact	
+src/com/jjricks/volt/BackupJson.java:124	["Invalid JSON number."]	backup_engine_invalid_json_number	exact	
+src/com/jjricks/volt/BackupJson.java:127	["Invalid JSON number."]	backup_engine_invalid_json_number	exact	
+src/com/jjricks/volt/BackupJson.java:130	["Invalid JSON number."]	backup_engine_invalid_json_number	exact	
+src/com/jjricks/volt/BackupProfiles.java:31	["The backup has invalid scooter profiles."]	backup_engine_backup_invalid_scooter_profiles	exact	
+src/com/jjricks/volt/BackupProfiles.java:33	["The backup has unreadable scooter profiles."]	backup_engine_backup_unreadable_scooter_profiles	exact	
+src/com/jjricks/volt/BackupProfiles.java:34	["The backup has too many scooter profiles."]	backup_engine_backup_too_many_scooter	exact	
+src/com/jjricks/volt/BackupProfiles.java:38	["The backup has unreadable scooter profiles."]	backup_engine_backup_unreadable_scooter_profiles	exact	
+src/com/jjricks/volt/BackupProfiles.java:40	["The backup has invalid scooter profile identifiers."]	backup_engine_backup_invalid_scooter_profile_identifiers	exact	
+src/com/jjricks/volt/BackupProfiles.java:41	["The backup has invalid scooter profile fields."]	backup_engine_backup_invalid_scooter_profile_fields	exact	
+src/com/jjricks/volt/BackupProfiles.java:43	["The backup has an invalid scooter owner role."]	backup_engine_backup_invalid_scooter_owner	exact	
+src/com/jjricks/volt/BackupProfiles.java:44	["The backup has an invalid scooter connection date."]	backup_engine_backup_invalid_scooter_connection	exact	
+src/com/jjricks/volt/BackupProfiles.java:45	["The backup has invalid scooter profile fields."]	backup_engine_backup_invalid_scooter_profile_fields	exact	
+src/com/jjricks/volt/BackupProfiles.java:46	["The backup has an invalid scooter setup identity."]	backup_engine_backup_invalid_scooter_setup	exact	
+src/com/jjricks/volt/BackupRegistry.java:136	["The backup has an unsupported preference group."]	backup_engine_backup_unsupported_preference_group	exact	
+src/com/jjricks/volt/BackupRegistry.java:139	["The backup has an incompatible app preference type."]	backup_engine_backup_incompatible_app_preference	exact	
+src/com/jjricks/volt/BackupRegistry.java:143	["The backup has an invalid display text scale."]	backup_engine_backup_invalid_display_text	exact	
+src/com/jjricks/volt/BackupTransaction.java:22	["Review the backup first."]	backup_engine_review_backup_first	exact	
+src/com/jjricks/volt/BackupTransaction.java:25	["Saved data changed. Review again."]	backup_engine_saved_data_changed_review	exact	
+src/com/jjricks/volt/BackupTransaction.java:38	["Not enough free storage"]	backup_engine_not_enough_free_storage	exact	
+src/com/jjricks/volt/BackupTransaction.java:46	["The restore could not be prepared."]	backup_engine_restore_could_not_be_prepared	exact	
+src/com/jjricks/volt/BackupTransaction.java:66	["A recording folder could not be read."]	backup_engine_recording_folder_could_not_read	exact	
+src/com/jjricks/volt/BackupTransaction.java:75	["Could not prepare the restore."]	backup_engine_could_not_prepare_restore	exact	
+src/com/jjricks/volt/BackupTransaction.java:90	["Recording storage changed during restore."]	backup_engine_recording_storage_changed_during	exact	
+src/com/jjricks/volt/BackupTransaction.java:115	["Restore failed. Reopen Volt. Don't clear storage."]	common_restore_failed	exact	
+src/com/jjricks/volt/BackupTransaction.java:117	["The restore failed; your data was kept."]	backup_engine_restore_failed_data_kept	exact	
+src/com/jjricks/volt/BackupTransaction.java:131	["The restore recovery folder is unavailable. Keep app storage intact."]	backup_engine_restore_recovery_folder_unavailable	exact	
+src/com/jjricks/volt/BackupTransaction.java:137	["The restore recovery record is unavailable. Keep app storage intact."]	backup_engine_restore_recovery_record_unavailable	exact	
+src/com/jjricks/volt/BackupTransaction.java:144	["The restore recovery record is unreadable. Keep app storage intact."]	backup_engine_restore_recovery_record_unreadable_keep	exact	
+src/com/jjricks/volt/BackupTransaction.java:148	["The restore recovery folder cannot be read. Keep app storage intact."]	backup_engine_restore_recovery_folder_cannot_read	exact	
+src/com/jjricks/volt/BackupTransaction.java:151	["An unexpected restore recovery file needs attention. Keep app storage intact."]	backup_engine_unexpected_restore_recovery_file	exact	
+src/com/jjricks/volt/BackupTransaction.java:159	["The restore recovery record is unreadable. Keep app storage intact."]	backup_engine_restore_recovery_record_unreadable_keep	exact	
+src/com/jjricks/volt/BackupTransaction.java:161	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:162	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:163	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:164	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:165	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:167	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:170	["The restore recovery record is unreadable."]	backup_engine_restore_recovery_record_unreadable	exact	
+src/com/jjricks/volt/BackupTransaction.java:173	["Invalid restore recovery list."]	backup_engine_invalid_restore_recovery_list	exact	
+src/com/jjricks/volt/BackupTransaction.java:176	["Invalid restore recovery path."]	backup_engine_invalid_restore_recovery_path	exact	
+src/com/jjricks/volt/BackupTransaction.java:178	["Invalid restore recovery list."]	backup_engine_invalid_restore_recovery_list	exact	
+src/com/jjricks/volt/BackupTransaction.java:188	["Could not roll back an interrupted restore."]	backup_engine_could_not_roll_back_interrupted_restore	exact	
+src/com/jjricks/volt/BackupTransaction.java:194	["The restore snapshot is incomplete. Keep app storage intact."]	backup_engine_restore_snapshot_incomplete_keep	exact	
+src/com/jjricks/volt/BackupTransaction.java:217	["Could not save restore recovery state."]	backup_engine_could_not_save_restore	exact	
+src/com/jjricks/volt/RideArchive.java:53	["Ride storage cannot be read."]	backup_engine_ride_storage_cannot_read	exact	
+src/com/jjricks/volt/RideArchive.java:57	["Unsupported ride file."]	backup_engine_unsupported_ride_file	exact	
+src/com/jjricks/volt/RideArchive.java:59	["Too many rides for one backup."]	backup_engine_too_many_rides_one	exact	
+src/com/jjricks/volt/RideArchive.java:61	["Invalid scooter association."]	backup_engine_invalid_scooter_association	exact	
+src/com/jjricks/volt/RideArchive.java:66	["A ride file is too large."]	backup_engine_ride_file_too_large	exact	
+src/com/jjricks/volt/RideArchive.java:71	["There are no saved rides to back up."]	backup_engine_there_no_saved_rides	exact	
+src/com/jjricks/volt/RideArchive.java:78	["Ride manifest is too large."]	backup_engine_ride_manifest_too_large	exact	
+src/com/jjricks/volt/RideArchive.java:85	["A ride changed during backup. Try again."]	backup_engine_ride_changed_during_backup	exact	
+src/com/jjricks/volt/RideArchive.java:97	["Choose a Volt ride backup."]	backup_engine_choose_volt_ride_backup	exact	
+src/com/jjricks/volt/RideArchive.java:100	["Unsupported ride backup version."]	backup_engine_unsupported_ride_backup_version	exact	
+src/com/jjricks/volt/RideArchive.java:101	["Invalid backup date."]	backup_engine_invalid_backup_date	exact	
+src/com/jjricks/volt/RideArchive.java:102	["Invalid scooter count."]	backup_engine_invalid_scooter_count	exact	
+src/com/jjricks/volt/RideArchive.java:103	["Invalid scooter list."]	backup_engine_invalid_scooter_list	exact	
+src/com/jjricks/volt/RideArchive.java:105	["Ride backup is too large or empty."]	backup_engine_ride_backup_too_large	exact	
+src/com/jjricks/volt/RideArchive.java:107	["Invalid or duplicate recording path."]	backup_engine_invalid_duplicate_recording_path	exact	
+src/com/jjricks/volt/RideArchive.java:108	["Unexpected backup metadata."]	backup_engine_unexpected_backup_metadata	exact	
+src/com/jjricks/volt/RideArchive.java:111	["Unexpected or duplicate recording file."]	backup_engine_unexpected_duplicate_recording_file	exact	
+src/com/jjricks/volt/RideArchive.java:114	["The backup is incomplete or damaged."]	backup_engine_backup_incomplete_damaged	exact	
+src/com/jjricks/volt/RideArchive.java:117	["The backup is missing recording files."]	backup_engine_backup_missing_recording_files	exact	
+src/com/jjricks/volt/RideArchive.java:122	["Missing scooter association."]	backup_engine_missing_scooter_association	exact	
+src/com/jjricks/volt/RideArchive.java:125	["The ride list is inconsistent."]	backup_engine_ride_list_inconsistent	exact	
+src/com/jjricks/volt/RideArchive.java:128	["Phone samples are missing their ride."]	backup_engine_phone_samples_missing_their	exact	
+src/com/jjricks/volt/RideArchive.java:140	["Choose a destination for every scooter."]	backup_engine_choose_destination_every_scooter	exact	
+src/com/jjricks/volt/RideArchive.java:157	["Review the backup first."]	backup_engine_review_backup_first	exact	
+src/com/jjricks/volt/RideArchive.java:159	["Saved rides changed. Review the backup again."]	backup_engine_saved_rides_changed_review	exact	
+src/com/jjricks/volt/RideArchive.java:168	["Could not prepare the ride restore."]	backup_engine_could_not_prepare_ride	exact	
+src/com/jjricks/volt/RideArchive.java:179	["Recording storage changed during restore."]	backup_engine_recording_storage_changed_during	exact	
+src/com/jjricks/volt/RideArchive.java:184	["Restore interrupted. Reopen Volt; do not clear storage."]	backup_engine_restore_interrupted_reopen_volt	exact	
+src/com/jjricks/volt/RideArchive.java:201	["Ride restore recovery needs attention. Keep app storage intact."]	backup_engine_ride_restore_recovery_needs_attention	exact	
+src/com/jjricks/volt/RideArchive.java:203	["Ride restore storage is unavailable."]	backup_engine_ride_restore_storage_unavailable	exact	
+src/com/jjricks/volt/RideArchive.java:204	["Unexpected ride restore recovery data."]	backup_engine_unexpected_ride_restore_recovery	exact	
+src/com/jjricks/volt/RideArchive.java:210	["Invalid ride recovery list."]	backup_engine_invalid_ride_recovery_list	exact	
+src/com/jjricks/volt/RideArchive.java:211	["Invalid ride recovery path."]	backup_engine_invalid_ride_recovery_path	exact	
+src/com/jjricks/volt/RideArchive.java:212	["Invalid ride recovery list."]	backup_engine_invalid_ride_recovery_list	exact	
+src/com/jjricks/volt/RideArchive.java:217	["Could not roll back an interrupted ride restore."]	backup_engine_could_not_roll_back_interrupted_ride	exact	
+src/com/jjricks/volt/RideArchive.java:226	["Could not save ride restore recovery."]	backup_engine_could_not_save_ride	exact	
+src/com/jjricks/volt/RideArchive.java:229	["Choose the ride backup again."]	backup_engine_choose_ride_backup_again	exact	
+src/com/jjricks/volt/RideArchive.java:231	["Reopen Volt to finish ride recovery first."]	backup_engine_reopen_volt_finish_ride	exact	
+src/com/jjricks/volt/RideArchive.java:235	["Invalid ride path."]	backup_engine_invalid_ride_path	exact	
+src/com/jjricks/volt/RideArchive.java:236	["Invalid ride path."]	backup_engine_invalid_ride_path	exact	
+src/com/jjricks/volt/RideArchive.java:237	["Unexpected ride storage link."]	backup_engine_unexpected_ride_storage_link	exact	
+src/com/jjricks/volt/RideArchive.java:240	["A ride file is too large."]	backup_engine_ride_file_too_large	exact	
+src/com/jjricks/volt/RideArchive.java:245	["A ride record is too large."]	backup_engine_ride_record_too_large	exact	
+src/com/jjricks/volt/RideArchive.java:250	["Unsupported ride journal format."]	backup_engine_unsupported_ride_journal_format	exact	
+src/com/jjricks/volt/RideArchive.java:253	["An incomplete ride record was found."]	backup_engine_incomplete_ride_record_was	exact	
+src/com/jjricks/volt/RideArchive.java:269	["A phone sensor record is invalid."]	backup_engine_phone_sensor_record_invalid	exact	
+src/com/jjricks/volt/RideArchive.java:275	["Ride backup exceeds its size limit."]	backup_engine_ride_backup_exceeds_size	exact	
+src/com/jjricks/volt/RideArchive.java:280	["Recording storage does not support safe restore recovery."]	backup_engine_recording_storage_does_not_support	exact	
+src/com/jjricks/volt/RideArchive.java:283	["Unexpected recording file."]	backup_engine_unexpected_recording_file	exact	
+src/com/jjricks/volt/RideArchive.java:284	["Ride backup storage is unavailable."]	backup_engine_ride_backup_storage_unavailable	exact	
+src/com/jjricks/volt/RideArchive.java:285	["Not enough available storage."]	backup_engine_not_enough_available_storage	exact	
+src/com/jjricks/volt/RideArchive.java:286	["The ride backup could not be processed."]	backup_engine_ride_backup_could_not_processed	exact	
+src/com/jjricks/volt/BackupArchive.java:554	["Replaces everything on this phone"]	backup_engine_plan_replace_everything	exact	
+src/com/jjricks/volt/BackupArchive.java:577	["“", {"hole": "d.name", "arg": 1, "type": "s"}, "” → ", {"hole": "names.get(target)", "arg": 2, "type": "s"}]	backup_engine_plan_destination	template	
+src/com/jjricks/volt/BackupArchive.java:586	{"one": ["App preferences: replaces ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "count(incoming)", "arg": 1, "type": "d", "quantity": true}, "setting"]}], "other": ["App preferences: replaces ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "count(incoming)", "arg": 1, "type": "d", "quantity": true}, "setting"]}]}	backup_engine_plan_preferences	plural	
+src/com/jjricks/volt/BackupArchive.java:593	["Readings history: nothing to add"]	backup_engine_plan_history_nothing	exact	then-branch of the ternary; its else-branch is the plural row below
+src/com/jjricks/volt/BackupArchive.java:593	{"one": ["Readings history: adds to ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "targets.size()", "arg": 1, "type": "d", "quantity": true}, "scooter"]}], "other": ["Readings history: adds to ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "targets.size()", "arg": 1, "type": "d", "quantity": true}, "scooter"]}]}	backup_engine_plan_history_adds	plural	else-branch of the ternary; the then-branch is the exact row above
+src/com/jjricks/volt/BackupArchive.java:594	{"one": ["Readings for ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 1, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"], "other": ["Readings for ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 1, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"]}	backup_engine_plan_history_skipped	plural	
+src/com/jjricks/volt/BackupArchive.java:599	["Online map: on"]	backup_engine_plan_online_map	exact	
+src/com/jjricks/volt/BackupArchive.java:630	["Scooters: adds ", {"hole": "added.size()", "arg": 1, "type": "d"}, " · ", {"hole": "here", "arg": 2, "type": "d"}, " already here"]	backup_engine_plan_scooters	template	
+src/com/jjricks/volt/BackupArchive.java:631	{"one": [{"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 1, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"], "other": [{"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 1, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"]}	backup_engine_plan_scooters_skipped	plural	
+src/com/jjricks/volt/BackupArchive.java:658	[{"hole": "label", "arg": 1, "type": "s"}, " kept for ", {"hole": "names.getOrDefault(target, \"Saved scooter\")", "arg": 2, "type": "s"}, " · two scooters chose it"]	backup_engine_plan_kept	template	"Saved scooter" stays in the hole: the name Volt stores for a scooter it knows nothing about (data)
+src/com/jjricks/volt/BackupArchive.java:659	{"one": [{"hole": "label", "arg": 1, "type": "s"}, " for ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 2, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"], "other": [{"hole": "label", "arg": 1, "type": "s"}, " for ", {"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 2, "type": "d", "quantity": true}, "scooter"]}, " skipped · not restored"]}	backup_engine_plan_category_skipped	plural	
+src/com/jjricks/volt/BackupArchive.java:711	{"if": "charges", "then": ["Charges: ", {"hole": "candidates.size()", "arg": 1, "type": "d"}, " new · ", {"hole": "identical", "arg": 2, "type": "d"}, " already here · ", {"hole": "conflicts", "arg": 3, "type": "d"}, " kept here"], "else": ["Rides: ", {"hole": "candidates.size()", "arg": 1, "type": "d"}, " new · ", {"hole": "identical", "arg": 2, "type": "d"}, " already here · ", {"hole": "conflicts", "arg": 3, "type": "d"}, " kept here"]}	backup_engine_plan_charges,backup_engine_plan_rides	choice	
+src/com/jjricks/volt/BackupArchive.java:715	{"one": [{"helper": "plural", "model": "count_noun", "args": [{"hole": "orphans.size()", "arg": 1, "type": "d", "quantity": true}, "phone file"]}, " skipped · no ride"], "other": [{"helper": "plural", "model": "count_noun", "args": [{"hole": "orphans.size()", "arg": 1, "type": "d", "quantity": true}, "phone file"]}, " skipped · no ride"]}	backup_engine_plan_phone_files_skipped	plural	
