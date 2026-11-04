@@ -8,6 +8,6 @@ tests/l10n/characterization/BackupScreenTextTest.java
 tests/l10n/BackupScreenTest.java
 # The Backup views stay base's classes (the census keys views by class) and still relabel through maps.
 tests/l10n/BackupViewsTest.java
-# A language change formats the Restore page's date and the history size again and rebuilds the texts
-# that were given rendered (the Save hint's button name, the unreadable-file String).
+# A language change formats the Restore page's date and the history, rides and charges sizes again and
+# rebuilds the texts that were given rendered (the Save hint's button name, the unreadable-file String).
 tests/l10n/BackupRelabelTest.java

@@ -8,9 +8,16 @@
   the screen shows it as it is. What these pages still show in English, and why:
   - counts built with BackupArchive.plural ("2 rides", "3 scooters"): G1 models that helper only in
     the file that declares it, and BackupActivity does not;
-  - the Review page's lines for Replace everything ("Rides: 2 rides"): the engine joins
-    BackupRegistry.label's English with BackupArchive.count, and G1 refuses both a Msg label there and
-    count, which picks its noun by category;
+  - the Review page's lines that BackupArchive.plan (B10's file) still builds as Strings, deferred to
+    a tooling round (an argument change in an extraction batch, a model for count and plural) in
+    gate-blocks.md, "B11 relabel fix":
+    - for Replace everything, each category's line ("Rides: 2 rides"): the engine joins
+      BackupRegistry.label's English with BackupArchive.count, and G1 refuses both a Msg label there
+      and count, which picks its noun by category;
+    - for a merge, the Dashboards and Scooter preferences lines ("Dashboards: nothing to replace",
+      "Dashboards: replaces layouts for <scooters>", "Scooter preferences: replaces settings for
+      <scooters>") and the rides and charges lines for what is skipped ("2 rides skipped · scooter
+      not restored", "1 charge skipped · unreadable", "3 charges skipped · 20-charge limit");
   - the owner-key note on the Review page: G1 refuses it beside the switch to Review.messages;
   - the Paused page's reason, which MainActivity passes rendered (preparation_error), and a system
     message of 80 characters or fewer that a failed read carries;

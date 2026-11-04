@@ -15,7 +15,9 @@ import java.util.regex.Pattern;
  *     so fresh() formats it again with the same DateFormat call, for the same three keys;
  *   - the Save hint, built with the button's short name rendered (T.backupSaveShort);
  *   - message()'s unreadable-file String, found by its text through noteErrors;
- *   - the Readings history size on Back up, which relabelCounts formats again as backupCategories does.
+ *   - the Readings history size on Back up, which relabelCounts formats again as backupCategories does;
+ *   - the rides and charges rows on Back up ("12 · 3.4 MB"), which keep the count and " · " as shown and
+ *     take the size formatted again.
  * BackupActivity is an Activity, so this JVM test reads its source (as BackupScreenTest does) and runs the
  * Msg behaviour fresh() relies on.
  */
@@ -66,9 +68,24 @@ public final class BackupRelabelTest {
         check(body(code, "private void relabelCounts(){").contains("else if(id.equals(BackupRegistry.HISTORY))detail=size(inventory.get(id)[1]);"),
                 "relabelCounts formats the history size again");
 
+        String backUp = body(code, "private void backupCategories(){"), recount = body(code, "private void relabelCounts(){");
+        check(backUp.contains("else detail=items+\" · \"+size(bytes);"), "Back up shows a rides or charges row as its count, \" · \" and its size");
+        check(BackupRegistry.RIDES.equals("rides") && BackupRegistry.CHARGES.equals("charges") && !backUp.contains("\"rides\"") && !backUp.contains("\"charges\""),
+                "BackupRegistry.RIDES and CHARGES are ids no earlier branch of backupCategories takes");
+        String rows = body(recount, "else if(id.equals(BackupRegistry.RIDES)||id.equals(BackupRegistry.CHARGES)){").replaceAll("\\s+", " ");
+        check(rows.equals("View shown=((android.view.ViewGroup)e.getValue().getParent()).getChildAt(1);int cut=Long.toString(inventory.get(id)[0]).length()+3; "
+                        + "if(shown instanceof TextView&&((TextView)shown).length()>cut)detail=((TextView)shown).getText().toString().substring(0,cut)+size(inventory.get(id)[1]);"),
+                "relabelCounts keeps a rides or charges row's count and separator as shown and formats its size again: " + rows);
+        Set<String> separator = keys(backUp, "else detail=items\\+\"([^\"]*)\"\\+size\\(bytes\\);"), kept = keys(rows, "\\.length\\(\\)\\+(\\d+);");
+        check(separator.size() == 1 && kept.equals(Collections.singleton(Integer.toString(separator.iterator().next().length()))),
+                "the kept part ends after the count's digits and backupCategories' separator " + separator + ": +" + kept);
+        check(recount.indexOf("if(!hasItems(id))detail=T.backupDetailNone();") >= 0
+                && recount.indexOf("if(!hasItems(id))detail=T.backupDetailNone();") < recount.indexOf("else if(id.equals(BackupRegistry.RIDES)"),
+                "an empty rides or charges row keeps None, as on Back up");
+
         rendering();
         System.out.println("BackupRelabelTest: " + checks + " checks passed (Restore date, Save hint, unreadable file, "
-                + "history size formatted again on a language change)");
+                + "history, rides and charges sizes formatted again on a language change)");
     }
 
     private static void rendering() {
