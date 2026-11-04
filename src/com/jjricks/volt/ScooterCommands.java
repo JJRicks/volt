@@ -517,7 +517,7 @@ public final class ScooterCommands {
         static final java.util.Map<String, Integer> BY_ENGLISH;
         static {
             java.util.Map<String, Integer> map = new java.util.HashMap<>();
-            for (int id : IDS) if (map.put(Msg.of(id).english(), id) != null) throw new IllegalStateException(T.key(id));
+            for (int id : IDS) if (map.put(Msg.of(id).english(), id) != null) throw new IllegalStateException(String.valueOf(id));
             BY_ENGLISH = java.util.Collections.unmodifiableMap(map);
         }
         /** The option ids, for the tests. */
