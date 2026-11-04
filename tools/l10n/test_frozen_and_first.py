@@ -203,6 +203,16 @@ class FrozenCodeTest(unittest.TestCase):
                                       "    public static void main(String[] args) {\n        if (true) return;\n"),
                             "it jumps out of the existing code (return)")
 
+    def test_a_method_with_a_parameter_named_record_is_code(self):
+        # Gates round 2 review: record is a contextual keyword; check(boolean value, String record) {
+        # opens a method body, where an inserted return jumps out of the existing checks.
+        self.SCALE = self.SCALE.replace("String message)", "String record)").replace("AssertionError(message)",
+                                                                                      "AssertionError(record)")
+        self.repo.write(SCALE_TEST, self.SCALE)
+        self.base = self.repo.commit("a record parameter")
+        self.assertRejected(self.gate("        checks++;\n", "        checks++;\n        if (value) return;\n"),
+                            "it jumps out of the existing code (return)")
+
     def test_inserted_escapes_initializers_and_shadows_fail(self):
         cases = [
             ("    private static int checks;\n", "    private static int checks;\n    static { "

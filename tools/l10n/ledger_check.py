@@ -60,7 +60,13 @@ a literal, the only differences from the base allowed are a row's expression rep
 that serves it (with a manual row, anywhere in the statement holding its literals) and a removed
 row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase(), or dropping code
 next to it, fails. Whole new members (a method or field added next to converted text), regions a
-stays-english or id-kept move touched, and every other src change are listed for the reviewer.
+stays-english or id-kept move touched, and every other src change are listed for the reviewer. Two
+more changes are allowed and listed: a String declaration (a private field, a local, or a field
+declared in a private type itself or in a local type) whose initializer becomes the row's call
+turning CharSequence (for a deferred M call), with the code around every use of the variable in
+its file; and a legacy locale wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside
+CatalogUsageTest.ENGLISH_ONLY files and the plan's data-tier files (DATA_TIER), which needs a
+compiled tests/l10n/ test calling Fmt.locale (G10).
 
 Ledger format: a TSV with the header
 
@@ -1011,7 +1017,7 @@ def enclosing_method(tokens, k):
             first -= 1
         header = tokens[first:opener]
         values = [t.value for t in header]
-        if any(v in values for v in ("class", "enum", "interface", "record")):
+        if header_type_keywords(header):
             return None
         if header and values[0] not in NOT_METHOD_HEADERS and not any(v in values for v in ("=", "->", "new")):
             p = 0
@@ -1060,6 +1066,25 @@ def test_callers(head, cwd=None):
 _TYPE_KEYWORDS = ("class", "enum", "interface", "record")
 
 
+def header_type_keywords(header):
+    """The type keywords (class, enum, interface, record) that declare a type in the tokens of one
+    block header, in order. A keyword inside parentheses (a parameter, an annotation's arguments) or
+    after a . (C.class) declares nothing, and record is a contextual keyword: it declares a record
+    only when a name follows it (record Point(int x), not void save(Ride record) or Ride record :)."""
+    found, depth = [], 0
+    for i, t in enumerate(header):
+        if t.kind == "op" and t.value in ("(", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", "]"):
+            depth -= 1
+        elif depth == 0 and t.kind == "ident" and t.value in _TYPE_KEYWORDS and not (
+                i > 0 and header[i - 1].kind == "op" and header[i - 1].value == "."):
+            if t.value == "record" and not (i + 1 < len(header) and header[i + 1].kind == "ident"):
+                continue
+            found.append(t.value)
+    return found
+
+
 def _final_field(tokens, k):
     """True when NAME at token k (in NAME = ...) is declared by a final field of a class, enum or record
     body, or by a field of an interface body (implicitly static final): a local variable, an assignment
@@ -1090,8 +1115,21 @@ def _final_field(tokens, k):
     if len(modifiers) < 2 or modifiers[-1].kind != "ident" or not (
             modifiers[-2].kind == "ident" or op(start + len(modifiers) - 1, ">", "]")):
         return False  # an assignment (NAME = ..., this.NAME = ...), not a declaration (Type NAME = ...)
-    depth, j = 0, start
-    while j >= 0:  # the block that holds the declaration
+    kind = body_kind(tokens, start)
+    if kind is None:
+        return False  # a method, constructor, initializer or lambda body
+    final = any(t.kind == "ident" and t.value == "final" for t in modifiers)
+    return final or kind == "interface"
+
+
+def body_kind(tokens, j):
+    """The keyword (class, enum, interface, record) of the type body whose { holds token j directly, or
+    None when the nearest enclosing { opens a method, constructor, initializer, lambda, anonymous class
+    or other block (or there is none)."""
+    def op(i, *values):
+        return 0 <= i < len(tokens) and tokens[i].kind == "op" and tokens[i].value in values
+    depth = 0
+    while j >= 0:  # the block that holds token j
         if op(j, "}"):
             depth += 1
         elif op(j, "{"):
@@ -1100,16 +1138,12 @@ def _final_field(tokens, k):
             depth -= 1
         j -= 1
     if j < 0:
-        return False
+        return None
     header = j
     while header > 0 and not op(header - 1, ";", "{", "}"):
         header -= 1
-    kinds = [tokens[i].value for i in range(header, j) if tokens[i].kind == "ident"
-             and tokens[i].value in _TYPE_KEYWORDS and not op(i - 1, ".")]
-    if not kinds:
-        return False  # a method, constructor, initializer or lambda body
-    final = any(t.kind == "ident" and t.value == "final" for t in modifiers)
-    return final or kinds[-1] == "interface"
+    kinds = header_type_keywords(tokens[header:j])
+    return kinds[-1] if kinds else None
 
 
 def constant_name(tokens, k):
@@ -1250,6 +1284,263 @@ def deleted_scope(diff, first, last):
         first, last = head_first, close
 
 
+DECLARATION_MODIFIERS = frozenset(("private", "public", "protected", "static", "final", "transient", "volatile"))
+
+
+def declaration_type(tokens, first, last):
+    """(type token index, declarator name) when tokens first..last are the whole initializer of one
+    declarator of a declaration statement, [modifiers] Type a = ..., name = <first..last>, ...; (a
+    field or a local), with a simple, unqualified Type. Else None."""
+    def op(j, *values):
+        return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+    if first < 2 or not op(first - 1, "=") or tokens[first - 2].kind != "ident" or not op(last + 1, ";", ","):
+        return None
+    start = first
+    while start > 0 and not op(start - 1, ";", "{", "}"):
+        start -= 1
+    k = start
+    while k < len(tokens) and tokens[k].kind == "ident" and tokens[k].value in DECLARATION_MODIFIERS:
+        k += 1
+    if k + 1 >= first or tokens[k].kind != "ident" or tokens[k + 1].kind != "ident" or op(k + 2, "."):
+        return None
+    # Every declarator before the one at first: name = <expression>, at the statement's top level.
+    j, depth = k + 1, 0
+    while j < first - 2:
+        if op(j, "(", "[", "{"):
+            depth += 1
+        elif op(j, ")", "]", "}"):
+            depth -= 1
+        elif op(j, ";"):
+            return None
+        j += 1
+    if depth != 0 or not (first - 2 == k + 1 or op(first - 3, ",")):
+        return None
+    return k, tokens[first - 2].value
+
+
+def statement_bounds(tokens, k):
+    """(first, index of the ; or { or } that ends it) of the statement holding token k."""
+    start = k
+    while start > 0 and not (tokens[start - 1].kind == "op" and tokens[start - 1].value in (";", "{", "}")):
+        start -= 1
+    end = k
+    while end < len(tokens) and not (tokens[end].kind == "op" and tokens[end].value in (";", "{", "}")):
+        end += 1
+    return start, end
+
+
+def retyped_declaration(diff, base_span, head_span):
+    """(base type token, head type token, name) when a row's base expression was a declarator's whole
+    initializer in a String declaration, and the call that serves it is that declarator's whole
+    initializer in the same declaration with the type CharSequence (a deferred M call needs it). Else
+    None. Only this one type change is allowed around text."""
+    base = declaration_type(diff.base.tokens, base_span[0], base_span[-1])
+    head = declaration_type(diff.head.tokens, head_span[0], head_span[-1])
+    if base is None or head is None or base[1] != head[1]:
+        return None
+    b, h = base[0], head[0]
+    if diff.base.tokens[b].value != "String" or diff.head.tokens[h].value != "CharSequence":
+        return None
+    def modifiers(tokens, k):
+        return [t.value for t in tokens[statement_bounds(tokens, k)[0]:k]]
+    if modifiers(diff.base.tokens, b) != modifiers(diff.head.tokens, h):
+        return None
+    return b, h, base[1]
+
+
+def _declarators(tokens, k, end):
+    """[(first, last)] of the declarators of a declaration whose type token is k and whose ; is end."""
+    parts, start, depth = [], k + 1, 0
+    for j in range(k + 1, end):
+        if tokens[j].kind == "op" and tokens[j].value in ("(", "[", "{"):
+            depth += 1
+        elif tokens[j].kind == "op" and tokens[j].value in (")", "]", "}"):
+            depth -= 1
+        elif tokens[j].kind == "op" and tokens[j].value == "," and depth == 0:
+            parts.append((start, j - 1))
+            start = j + 1
+    parts.append((start, end - 1))
+    return parts
+
+
+def split_declaration(diff, base_span, head_span):
+    """(base tokens, head tokens, head type token, name) when a row's literal was one declarator of a
+    String declaration with several (String a = "", b = "x", c = "";) and head moved that declarator
+    out, unchanged otherwise, into a CharSequence declaration of its own right beside the rest
+    (String a = "", c = ""; CharSequence b = M.x();), with the same modifiers. Else None."""
+    base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
+    base = declaration_type(base_tokens, base_span[0], base_span[-1])
+    head = declaration_type(head_tokens, head_span[0], head_span[-1])
+    if base is None or head is None or base[1] != head[1]:
+        return None
+    b, h = base[0], head[0]
+    if base_tokens[b].value != "String" or head_tokens[h].value != "CharSequence":
+        return None
+
+    def key(tok):
+        return (tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw)
+
+    def statement(tokens, k):
+        start, end = statement_bounds(tokens, k)
+        return start, end if end < len(tokens) and tokens[end].value == ";" else None
+
+    b_start, b_end = statement(base_tokens, b)
+    h_start, h_end = statement(head_tokens, h)
+    if b_end is None or h_end is None or head_span[-1] != h_end - 1 or head_span[0] - 2 != h + 1:
+        return None  # head: [modifiers] CharSequence name = <call>; and nothing more
+    modifiers = [key(t) for t in base_tokens[b_start:b]]
+    if [key(t) for t in head_tokens[h_start:h]] != modifiers:
+        return None
+    parts = _declarators(base_tokens, b, b_end)
+    mine = [n for n, (f, l) in enumerate(parts) if f <= base_span[0] and base_span[-1] <= l]
+    if len(parts) < 2 or len(mine) != 1:
+        return None
+    rest = []
+    for n, (f, l) in enumerate(parts):
+        if n != mine[0]:
+            rest += ([("op", ",")] if rest else []) + [key(t) for t in base_tokens[f:l + 1]]
+    wanted = modifiers + [key(base_tokens[b])] + rest + [("op", ";")]
+    # The rest of the declaration sits right before or right after the new one.
+    neighbours = []
+    if h_start >= 2 and head_tokens[h_start - 1].value == ";":
+        neighbours.append((statement(head_tokens, h_start - 2)[0], h_start - 1))
+    if h_end + 1 < len(head_tokens):
+        after = statement(head_tokens, h_end + 1)
+        if after[0] == h_end + 1 and after[1] is not None:
+            neighbours.append(after)
+    for first, last in neighbours:
+        if [key(t) for t in head_tokens[first:last + 1]] == wanted:
+            return range(b_start, b_end + 1), range(min(first, h_start), max(last, h_end) + 1), h, base[1]
+    return None
+
+
+def _opener(tokens, j):
+    """The index of the { whose block holds token j directly, or None at file level."""
+    depth = 0
+    while j >= 0:
+        if tokens[j].kind == "op" and tokens[j].value == "}":
+            depth += 1
+        elif tokens[j].kind == "op" and tokens[j].value == "{":
+            if depth == 0:
+                return j
+            depth -= 1
+        j -= 1
+    return None
+
+
+def _supertype_use(tokens, names):
+    """(line, excerpt) of the first extends or implements clause in the file that names one of NAMES
+    (class Ring extends Base, class Shown implements Labels, <T extends Base>), or None. The clause runs to
+    the next { or ;. A subclass inherits a package-private field, and an implementing class an
+    interface constant, so Ui.Ring r; r.subtitle names a private Base's field from another file."""
+    for i, t in enumerate(tokens):
+        if t.kind != "ident" or t.value not in ("extends", "implements"):
+            continue
+        j = i + 1
+        while j < len(tokens) and not (tokens[j].kind == "op" and tokens[j].value in ("{", ";")):
+            if tokens[j].kind == "ident" and tokens[j].value in names:
+                return tokens[j].line, _excerpt(tokens[max(0, i - 3):j + 1], None)
+            j += 1
+    return None
+
+
+def file_reach(tokens, start, end):
+    """None when the declaration whose modifiers and type are tokens start..end-1 can be named only in
+    its own file: a local (a method, lambda, initializer or anonymous class body), a private field of
+    a class, enum or record, a field declared directly in a private type (a package-private field of a
+    private nested class), or a field of a type declared in a method or other block, at any depth.
+    The private type counts only when it is the field's own enclosing type and no extends or
+    implements clause in the file names it: a subclass or an implementing class that other files can
+    name inherits the field. javac checks only the access flags of the field's own class, so a
+    package-private field of a non-private class nested in a private one is reachable through any
+    field or method of that type (Ui.IN.subtitle with static final Base.In IN). Else a short
+    reason: "not private", or what hands the field on."""
+    kind = body_kind(tokens, start)
+    if kind is None:
+        return None
+    if kind != "interface" and any(t.kind == "ident" and t.value == "private" for t in tokens[start:end]):
+        return None  # a private member is never inherited
+    opener = _opener(tokens, start - 1)
+    direct, hidden_in = True, None
+    while opener is not None:  # the type body holding the declaration, then each type around it
+        header = opener
+        while header > 0 and not (tokens[header - 1].kind == "op" and tokens[header - 1].value in ";{}"):
+            header -= 1
+        keyword = max(i for i in range(header, opener) if tokens[i].kind == "ident" and tokens[i].value in _TYPE_KEYWORDS)
+        name = tokens[keyword + 1].value if keyword + 1 < opener and tokens[keyword + 1].kind == "ident" else None
+        if any(t.kind == "ident" and t.value == "private" for t in tokens[header:keyword]):
+            if direct:
+                inherited = _supertype_use(tokens, {name} if name else set())
+                if inherited is None:
+                    return None
+                return ("in a private type that line %d hands on (`%s`: a subclass or implementing class "
+                        "inherits it)" % inherited)
+            if hidden_in is None:
+                hidden_in = (tokens[keyword].line, name)
+        outer = _opener(tokens, header - 1)
+        if outer is None:
+            break  # a top-level type
+        if body_kind(tokens, header) is None:
+            return None  # a class declared in a method or other block
+        direct = False
+        opener = outer
+    if hidden_in is not None:
+        return ("in a non-private type nested in the private %s (line %d): javac checks only the field's own "
+                "class, so any field or method whose type is that nested class (static final %s.In IN) hands "
+                "it to other files (Ui.IN.subtitle)" % (hidden_in[1], hidden_in[0], hidden_in[1]))
+    return "not private"
+
+
+def retype_reach_problem(where, path, diff, h_type):
+    """A problem when the declaration whose type token is head token h_type is a field other files can
+    name (not private, or any interface field): G1 lists the uses of a retyped variable from its own
+    file only, and r.subtitle.equals("Not reported") in another file compiles on and turns false. A
+    private field, a local, a field of a type declared in a block, or a field declared directly in a
+    private type that no extends or implements clause hands on is named only in its own file (file_reach), which retype_warning lists. Else None."""
+    tokens = diff.head.tokens
+    start, _ = statement_bounds(tokens, h_type)
+    reach = file_reach(tokens, start, h_type)
+    if reach is None:
+        return None
+    first, last, _ = expressions.statement_span(tokens, h_type)
+    return ("%s: %s:%d: `%s` changes from String to CharSequence on a field that is %s, so code in "
+            "other files can name it and G1 cannot list those uses (an equals, an overload chosen by type); an "
+            "extraction batch retypes only a field other files cannot name (a private field, a field declared "
+            "directly in a private class that nothing in the file extends or implements, or any field of a class "
+            "declared in a method) or a local: make the field "
+            "private in an earlier commit of its own, or keep the String and convert where it is shown" % (
+                where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None), reach))
+
+
+def retype_warning(where, path, diff, h_type, name, split_from=None):
+    """The reviewer's listing of a String declaration that became CharSequence for its catalog call,
+    with the code around every use of the variable in the file, a window of up to 12 tokens each side
+    for each use not already inside a printed window (only this file can name it; retype_reach_problem
+    refuses the rest): a use that picks an overload by type
+    (a String and a CharSequence overload), compares with equals or casts reads it differently now."""
+    tokens = diff.head.tokens
+    first, last, _ = expressions.statement_span(tokens, h_type)
+    uses, printed = [], -1
+    for k, t in enumerate(tokens):
+        if t.kind != "ident" or t.value != name or first <= k <= last or k <= printed:
+            continue  # not a use, the declaration itself, or inside a window already printed
+        s_first, s_last, _ = expressions.statement_span(tokens, k)
+        # A window centred on the use, so a long statement never hides it; a later use of the same
+        # statement outside this window gets a window of its own. Every use is printed, none capped.
+        start, end = max(s_first, k - 12), min(s_last, k + 12)
+        printed = end
+        uses.append("line %d `%s%s%s`" % (t.line, "... " if start > s_first else "",
+                                          _excerpt(tokens[start:end + 1], None), " ..." if end < s_last else ""))
+    shown = "; ".join(uses)
+    return ("%s: %s:%d: the declaration `%s`%s changes from String to CharSequence for its catalog call; check by "
+            "hand that every use of %s behaves the same with a CharSequence (an overload chosen by type, equals, a "
+            "cast)%s" % (
+                where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None),
+                " (moved out of `%s`, the rest kept as it was)" % split_from if split_from else "", name,
+                "; only this file can name it (private or local), at: %s" % shown if uses else
+                "; only this file can name it (private or local), and it names it nowhere else"))
+
+
 def _class_name(path):
     return os.path.basename(path)[:-len(".java")]
 
@@ -1301,7 +1592,7 @@ def _whole_members(tokens, first, last):
     start = opener
     while start > 0 and not op(start - 1, ";", "{", "}"):
         start -= 1
-    if not any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record") for t in tokens[start:opener]):
+    if not header_type_keywords(tokens[start:opener]):
         return False
     j = first
     while j <= last:
@@ -1316,8 +1607,7 @@ def _whole_members(tokens, first, last):
                 continue
             header.append(tokens[k])
             k += 1
-        if k > last or not header or any(t.kind == "ident" and t.value in ("class", "enum", "interface", "record")
-                                         for t in header):
+        if k > last or not header or header_type_keywords(header):
             return False
         if op(k, "{"):
             # A method: a name and parameters before its body; an initializer block has none.
@@ -1347,7 +1637,46 @@ def inserted_members(tokens, first, last):
     return next(((f, l) for f, l in candidates if _whole_members(tokens, f, l)), None)
 
 
-def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=()):
+# A call site's legacy locale wrapped for Fmt (plan section 4.1): Fmt.locale(Locale.US) is Locale.US
+# while Volt is English (G10's FmtLegacyTest), so this one change is allowed around text and listed.
+LOCALE_ARGUMENTS = (("Locale", ".", None), ("java", ".", "util", ".", "Locale", ".", None),
+                    ("Locale", ".", "getDefault", "(", ")"))
+
+
+def locale_wraps(tokens):
+    """{Fmt token index: (wrapper token indexes, inner token indexes)} for every Fmt.locale(<legacy>)
+    in tokens, <legacy> being Locale.X, java.util.Locale.X or Locale.getDefault()."""
+    found = {}
+    for k in range(len(tokens) - 6):
+        if tokens[k].kind != "ident" or tokens[k].value != "Fmt" or (k > 0 and tokens[k - 1].value == ".") or \
+                [t.raw for t in tokens[k + 1:k + 4]] != [".", "locale", "("]:
+            continue
+        close = expressions.match_forward(tokens, k + 3)
+        if close is None:
+            continue
+        inner = tokens[k + 4:close]
+        for shape in LOCALE_ARGUMENTS:
+            if len(inner) == len(shape) and all(t.kind == "ident" and t.value != "getDefault" if want is None
+                                                else t.raw == want for t, want in zip(inner, shape)):
+                found[k] = ([k, k + 1, k + 2, k + 3, close], list(range(k + 4, close)))
+                break
+    return found
+
+
+def to_string_uses(tokens, names):
+    """{name token index: (wrapper token indexes, [name token index])} for every name.toString() (or
+    this.name.toString()) of a variable in names."""
+    found = {}
+    for k in range(len(tokens) - 4):
+        if tokens[k].kind != "ident" or tokens[k].value not in names or \
+                (k > 0 and tokens[k - 1].value == "." and not (k > 1 and tokens[k - 2].value == "this")) or \
+                [t.raw for t in tokens[k + 1:k + 5]] != [".", "toString", "(", ")"]:
+            continue
+        found[k] = ([k + 1, k + 2, k + 3, k + 4], [k])
+    return found
+
+
+def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(), wraps=None, retyped=()):
     """(problems, warnings) for code a batch changed besides converting or deleting text.
 
     allowed_base and allowed_head map token indexes to a span id: a row's base expression (or a
@@ -1355,16 +1684,34 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
     deleted code has an id with no head side. Each span counts as one item when the changed regions
     are aligned, so only tokens outside them can differ. new_ids are head tokens of new key or id
     literals (listed elsewhere); they alone do not make a region hold text.
+
+    A legacy locale wrapped into Fmt.locale(...) (Locale.US becoming Fmt.locale(Locale.US)) is not a
+    change here: ("locale", head Fmt token) of each such wrap is added to wraps, which run() lists and
+    holds to G10. Nor is a .toString() added to a use of a variable in retyped (a String declaration
+    that became CharSequence for its catalog call), which gives the String the use had: ("string",
+    head name token) is added. Unwrapping either (Fmt.locale(Locale.US) becoming Locale.US, or
+    name.toString() becoming name) is a change.
     """
     if diff.base is None or diff.head is None:
         return [], ["%s was %s; check it by hand" % (path, "added" if diff.base is None else "deleted")]
     problems, warnings = [], []
+    groups = []
+    for tokens in (diff.base.tokens, diff.head.tokens):
+        found = dict((at, ("locale",) + group) for at, group in locale_wraps(tokens).items())
+        found.update((at, ("string",) + group) for at, group in to_string_uses(tokens, set(retyped)).items())
+        groups.append(found)
     for hunk, (b1, b2, h1, h2) in enumerate(diff.hunks):
         sides = []
-        for index, allowed, first, last in ((diff.base, allowed_base, b1, b2), (diff.head, allowed_head, h1, h2)):
-            keys, where = [], []
+        for side, (index, allowed, first, last) in enumerate(((diff.base, allowed_base, b1, b2),
+                                                              (diff.head, allowed_head, h1, h2))):
+            wrapper, inner = {}, {}
+            for at, (_, outer, inside) in groups[side].items():
+                if not any(j in allowed for j in outer + inside):
+                    wrapper.update((j, at) for j in outer)
+                    inner.update((j, at) for j in inside)
+            keys, where, wrapped = [], [], []
             for k, tok in enumerate(index.tokens):
-                if not first <= tok.line <= last:
+                if not first <= tok.line <= last or k in wrapper:
                     continue
                 if k in allowed:
                     if keys and keys[-1] == ("span", allowed[k]):
@@ -1374,14 +1721,24 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
                 else:
                     keys.append((tok.kind, tok.value if tok.kind in expressions.LITERALS else tok.raw))
                     where.append(k)
-            sides.append((keys, where))
-        (a, a_at), (b, b_at) = sides
+                wrapped.append(inner.get(k))
+            sides.append((keys, where, wrapped, wrapper))
+        (a, a_at, a_wrap, a_wrapper), (b, b_at, b_wrap, b_wrapper) = sides
         text = any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, b1, b2)) or \
             any(t.kind in expressions.LITERALS and k not in new_ids
                 for k, t in enumerate(diff.head.tokens) if h1 <= t.line <= h2)
         lost, gained = [], []
         for tag, i1, i2, j1, j2 in difflib.SequenceMatcher(None, a, b, autojunk=False).get_opcodes():
-            if text and tag == "insert" and None not in b_at[j1:j2] and b_at[j2 - 1] - b_at[j1] == j2 - j1 - 1:
+            if tag == "equal":
+                for o in range(i2 - i1):
+                    was, now = a_wrap[i1 + o], b_wrap[j1 + o]
+                    if now is not None and was is None and wraps is not None:
+                        wraps.add((groups[1][now][0], now))
+                    elif was is not None and now is None:
+                        lost.extend(j for j, at in a_wrapper.items() if at == was and j not in lost)
+                continue
+            if text and tag == "insert" and None not in b_at[j1:j2] and \
+                    set(range(b_at[j1], b_at[j2 - 1] + 1)) <= set(b_at[j1:j2]) | set(b_wrapper):
                 members = inserted_members(diff.head.tokens, b_at[j1], b_at[j2 - 1])
                 if members is not None:
                     # A new method or field next to text does not run where the text is; it is listed.
@@ -1390,11 +1747,16 @@ def other_changes(path, diff, allowed_base, allowed_head, moved_hunks, new_ids=(
                                         path, diff.head_token(members[0]).line,
                                         _excerpt(diff.head.tokens[members[0]:members[1] + 1], 60)))
                     continue
-            if tag != "equal":
-                lost.extend(k for k in a_at[i1:i2] if k is not None)
-                gained.extend(k for k in b_at[j1:j2] if k is not None)
+            lost.extend(k for k in a_at[i1:i2] if k is not None)
+            gained.extend(k for k in b_at[j1:j2] if k is not None)
+            # Show a changed argument with its Fmt.locale( ) or .toString(), so the excerpt reads as the code.
+            for wrap, wrapper_map, out in ((a_wrap[i1:i2], a_wrapper, lost), (b_wrap[j1:j2], b_wrapper, gained)):
+                for at in set(w for w in wrap if w is not None):
+                    out.extend(j for j, w in wrapper_map.items() if w == at and j not in out)
         if not lost and not gained:
             continue
+        lost.sort()
+        gained.sort()
         parts = []
         # Beside a move the reviewer is the check, so the whole change is printed.
         limit = None if (path, hunk) in moved_hunks else 16
@@ -1521,6 +1883,114 @@ def format_review(row, where, diff, base_span, head_span, callers):
                   where, row.path, row.base_line, _excerpt(base_tokens[base_span[0]:base_span[1] + 1], None),
                   _excerpt(head_tokens[head_span[0]:head_span[1] + 1], None), ", ".join(keys) or "none",
                   "; specifiers " + ", ".join(pairs) if pairs else "", site)
+    return problems, warning
+
+
+def arrival_match(row, diff, k, hunk, arrival, diffs):
+    """How surely an added literal is the moved copy of the staying literal at base token k: 2 when it
+    arrived in an expression with the same literals as the one k left (several literals moved
+    together), plus 1 when the head lines of the region k left name the arrival's class (Class.) or
+    the method that holds it (method(...))."""
+    a_path, _, a_k, _ = arrival
+    a_diff = diffs[a_path]
+    score = 0
+    left = expressions.literal_items(diff.base.expression_of(k).pieces)
+    came = expressions.literal_items(a_diff.head.expression_of(a_k).pieces)
+    if len(left) > 1 and left == came:
+        score += 2
+    _, _, h1, h2 = diff.hunks[hunk]
+    region = _region_tokens(diff.head, h1, h2)
+    method = enclosing_method(a_diff.head.tokens, a_k)
+    owner = _class_name(a_path)
+    for j, tok in enumerate(region[:-1]):
+        if tok.kind != "ident":
+            continue
+        if (tok.value == owner and a_path != row.path and region[j + 1].value == ".") or \
+                (method and tok.value == method and region[j + 1].value == "("):
+            score += 1
+            break
+    return score
+
+
+CATALOG_USAGE_TEST = "tests/l10n/CatalogUsageTest.java"
+_ENGLISH_ONLY = re.compile(r"\bENGLISH_ONLY\s*=\s*Arrays\s*\.\s*asList\s*\(([^;]*)\)\s*;")
+
+
+def english_only_files(head, cwd=None):
+    """(file names, problem or None): CatalogUsageTest.ENGLISH_ONLY at head, the files that stay English
+    in every language (reports, logs, the shell process). No such test at head gives no files; a test
+    whose list G1 cannot read is a problem, so a renamed list never lets a wrap through unseen."""
+    text = l10nlib.read_files(head, [CATALOG_USAGE_TEST], cwd).get(CATALOG_USAGE_TEST)
+    if text is None:
+        return frozenset(), None
+    found = _ENGLISH_ONLY.search(text)
+    if not found:
+        return frozenset(), ("%s: G1 cannot read its ENGLISH_ONLY = Arrays.asList(...) list of English-only files, "
+                             "which a Fmt.locale wrap must stay out of" % CATALOG_USAGE_TEST)
+    return frozenset(re.findall(r'"([^"\\]+)"', found.group(1))), None
+
+
+# Plan section 4.1, the data tier: these files write journals, CSV, GPX, JSON, backups, hex and the
+# Telemetry labels and values, which never localize (a decimal comma or a localized date would be
+# stored or sent), and plan section 4.3 lists no display call site in them. A Fmt.locale wrap there
+# fails like one in an ENGLISH_ONLY file; a display site found in one moves out in a commit of its own.
+DATA_TIER = frozenset(name + ".java" for name in (
+    "Telemetry", "RideStore", "RideArchive", "PhoneRideStore", "ChargeSessionStore", "BackupArchive", "BackupJson",
+    "AppDataBackup", "TestJournal", "ChargeScheduleController"))
+
+
+# Names whose presence in a wrap's statement means it builds a Telemetry or TelemetryHistory reading
+# (Telemetry.putSimulationSample, new TelemetryHistory.Reading): plan section 4.1 puts Telemetry
+# labels and values in the data tier, and plan section 4.3 keeps ScooterService's synthetic
+# remaining_range_km reading canonical, so such a wrap in a display file gets the data-tier note.
+TELEMETRY_WRITERS = frozenset(("Telemetry", "TelemetryHistory", "putSimulationSample"))
+
+
+def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
+    """(problems, warning) for a legacy locale wrapped into Fmt.locale(...) at head token k. G10
+    (FmtLegacyTest) shows Fmt.locale returns the legacy locale while Volt is English, so a compiled
+    test under tests/l10n/ must call Fmt.locale; the reviewer sees the statement and the tests that
+    call the method holding it (the characterization of that site), or a note that none does."""
+    tokens = diff.head.tokens
+    close = expressions.match_forward(tokens, k + 3)
+    first, last, _ = expressions.statement_span(tokens, k)
+    start, end = max(first, k - 20), min(last, close + 20)
+    problems = []
+    if not callers.get(("Fmt", "locale")):
+        problems.append("%s: legacy locales are wrapped into Fmt.locale(...), and no test that tests/run.sh compiles "
+                        "under tests/l10n/ calls Fmt.locale; G10 (FmtLegacyTest) must show it keeps the legacy "
+                        "locale while Volt is English" % path)
+    if os.path.basename(path) in english_only:
+        problems.append("%s:%d: `%s` is wrapped into Fmt.locale(...) in an English-only file (%s ENGLISH_ONLY): "
+                        "its text and data stay English in every language, so it keeps its legacy locale" % (
+                            path, tokens[k].line, _excerpt(tokens[k + 4:close], None), CATALOG_USAGE_TEST))
+    if os.path.basename(path) in DATA_TIER:
+        problems.append("%s:%d: `%s` is wrapped into Fmt.locale(...) in a data-tier file (plan section 4.1; "
+                        "ledger_check.DATA_TIER): what it formats is stored, sent or logged and never localizes, so "
+                        "it keeps its legacy locale" % (path, tokens[k].line, _excerpt(tokens[k + 4:close], None)))
+    method = enclosing_method(tokens, k)
+    owner = _class_name(path)
+    tests = callers.get((owner, method), []) if method else []
+    if tests:
+        site = "a method named %s.%s is called by %s" % (owner, method, ", ".join(tests))
+    else:
+        site = "no compiled test under tests/l10n/ calls %s.%s(...), so check by hand that it formats the same" % (
+            owner, method or "<the enclosing method>")
+    root = [t.value for t in tokens[k + 4:close]][-1:] == ["ROOT"]
+    telemetry = sorted({t.value for t in tokens[first:last + 1] if t.kind == "ident" and t.value in TELEMETRY_WRITERS})
+    warning = ("%s:%d: `%s` becomes `%s` in `%s%s%s`; Fmt.locale keeps that locale while Volt is English (G10), and "
+               "a shipped language formats in its own; %s%s%s" % (
+                   path, tokens[k].line, _excerpt(tokens[k + 4:close], None), _excerpt(tokens[k:close + 1], None),
+                   "... " if start > first else "", _excerpt(tokens[start:end + 1], None),
+                   " ..." if end < last else "", site,
+                   "; Locale.ROOT is the data tier (plan section 4: ids, enum tokens, stored values and logs never "
+                   "localize), so check that this is text a screen shows, such as a decorative upper-casing, and "
+                   "not an id or a value that is stored, sent or compared (Turkish upper-cases i to a dotted capital I)"
+                   if root else "",
+                   "; the statement names %s, and a Telemetry or TelemetryHistory label or value is the data tier (plan "
+                   "section 4.1; the ScooterService remaining_range_km reading stays canonical, plan section 4.3), so "
+                   "check that the wrapped text is only shown and never becomes a reading's stored, sent or logged "
+                   "value, which keeps its legacy locale" % ", ".join(telemetry) if telemetry else ""))
     return problems, warning
 
 
@@ -1681,7 +2151,8 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                             _excerpt(tokens[span[0]:span[-1] + 1], None)))
 
     used, last, callers = set(), {}, None
-    for path, _, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
+    retyped_names = collections.defaultdict(set)  # path -> names of String declarations now CharSequence
+    for path, first_token, row, where, ranges in sorted(converted, key=lambda c: (c[0], c[1])):
         problem, call = check_call_sites(row, calls, path, ranges, used, last.get(path, -1))
         if problem:
             problems.append("%s: %s" % (where, problem))
@@ -1697,6 +2168,42 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     first, end = call_span(head_tokens, call[2])
                 for j in range(first, end + 1):
                     allowed_head[path].setdefault(j, id(row))
+                if id(row) not in manual_rows:
+                    base_span = format_rows[id(row)] if row.kind == "format" else \
+                        diffs[path].base.expression_of(first_token).span
+                    split = split_declaration(diffs[path], base_span, (first, end))
+                    retyped = None if split is not None else retyped_declaration(diffs[path], base_span, (first, end))
+                    if retyped is not None:
+                        # A deferred M call needs a CharSequence where a String held the literal.
+                        b_type, h_type, name = retyped
+                        allowed_base[path].setdefault(b_type, ("retype", id(row)))
+                        allowed_head[path].setdefault(h_type, ("retype", id(row)))
+                        # Every declarator of the declaration is a CharSequence now.
+                        _, h_end = statement_bounds(head_tokens, h_type)
+                        retyped_names[path].update(head_tokens[f].value for f, _ in _declarators(head_tokens, h_type, h_end)
+                                                   if head_tokens[f].kind == "ident")
+                        reach = retype_reach_problem(where, path, diffs[path], h_type)
+                        if reach:
+                            problems.append(reach)
+                        else:
+                            warnings.append(retype_warning(where, path, diffs[path], h_type, name))
+                    elif split is not None:
+                        # The same, for one declarator of several, moved into a declaration of its own.
+                        b_tokens, h_tokens, h_type, name = split
+                        for j in b_tokens:
+                            if allowed_base[path].get(j) != id(row):
+                                allowed_base[path][j] = ("retype", id(row))
+                        for j in h_tokens:
+                            if allowed_head[path].get(j) != id(row):
+                                allowed_head[path][j] = ("retype", id(row))
+                        retyped_names[path].add(name)
+                        reach = retype_reach_problem(where, path, diffs[path], h_type)
+                        if reach:
+                            problems.append(reach)
+                        else:
+                            warnings.append(retype_warning(
+                                where, path, diffs[path], h_type, name,
+                                _excerpt(diffs[path].base.tokens[b_tokens[0]:b_tokens[-1] + 1], None)))
                 if row.kind == "format":
                     if callers is None:
                         callers = test_callers(head, cwd)
@@ -1747,6 +2254,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         for p in head_sources:
             skip = set(diffs[p].added) if p in diffs and diffs[p].head is not None else set()
             yield p, head_tokens(p), skip
+    guesses = collections.defaultdict(list)  # arrival number -> [(row, path, base token, chosen arrival)]
     for row, path, k in staying:
         tok = diffs[path].base_token(k)
         hunk = diffs[path].gone[k]
@@ -1763,9 +2271,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             arrivals[chosen][3] = "named"
             named[(arrivals[chosen][0], arrivals[chosen][2])].append((row, path, k))
             continue
-        chosen = next((n for n in same if arrivals[n][3] is False), None) if moved_whole else None
-        if chosen is not None:
+        free = [n for n in same if arrivals[n][3] is False] if moved_whole else []
+        if free:
+            # Code moved out whole: prefer the copy that arrived as the same expression (all the row's
+            # literals together), then one in a class or method the region's head lines name, so a new
+            # literal of the same value elsewhere (a "f" in the file that sorts first) is not taken for it.
+            ranked = sorted(free, key=lambda n: (-arrival_match(row, diffs[path], k, hunk, arrivals[n], diffs), n))
+            chosen = ranked[0]
             arrivals[chosen][3] = "whole"
+            if len(free) > 1 and arrival_match(row, diffs[path], k, hunk, arrivals[chosen], diffs) == \
+                    arrival_match(row, diffs[path], k, hunk, arrivals[ranked[1]], diffs):
+                for n in ranked[1:]:
+                    guesses[n].append((row, path, k, chosen))
             continue
         # A constant already in src that holds the same value (a later batch moving its data units to
         # B1's UnitCode), named by the code the literal left.
@@ -1798,11 +2315,34 @@ def run(base, head, explicit_ledgers=None, cwd=None):
 
     moved_hunks = set((path, diffs[path].gone[k]) for _, path, k in staying)
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
+    wrapped, english_only = 0, None
     for path in sorted(diffs):
+        wraps = set()
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
-                                                   moved_hunks, new_ids[path] | new_formats[path])
+                                                   moved_hunks, new_ids[path] | new_formats[path], wraps,
+                                                   retyped_names[path])
         problems.extend(problem_list)
         warnings.extend(warning_list)
+        for kind, k in sorted(wraps):
+            if kind != "string":
+                continue
+            tokens = diffs[path].head.tokens
+            first, last, _ = expressions.statement_span(tokens, k)
+            warnings.append("%s:%d: `%s` becomes `%s . toString ( )` in `%s`, since its declaration is a CharSequence "
+                            "now (listed above); check by hand that it is the String it was" % (
+                                path, tokens[k].line, tokens[k].raw, tokens[k].raw, _excerpt(tokens[first:last + 1], 40)))
+        wraps = set(k for kind, k in wraps if kind == "locale")
+        if wraps and callers is None:
+            callers = test_callers(head, cwd)
+        if wraps and english_only is None:
+            english_only, unread = english_only_files(head, cwd)
+            if unread:
+                problems.append(unread)
+        for k in sorted(wraps):
+            wrapped += 1
+            found, warning = locale_wrap_review(path, diffs[path], k, callers, english_only)
+            problems.extend(p for p in found if p not in problems)
+            warnings.append(warning)
 
     gone_total = 0
     gone_files = set()
@@ -1835,10 +2375,19 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             continue
         if not used_by_move and not (tok.kind == "string" and tok.value == ""):
             new_literals += 1
+            number = next(n for n, a in enumerate(arrivals) if (a[0], a[2]) == (path, k))
+            hint = "".join(
+                "; G1 could not tell which copy of %s the %s row at %s:%d (%s:%d) moved to, and took the one at "
+                "%s:%d: if this one is that copy, make the code it left name this one's class or method (or move "
+                "it as the same expression), or record the other as new text" % (
+                    l10nlib.json_string(tok.value), row.kind, row.source, row.line, left_path,
+                    diffs[left_path].base_token(left_k).line, arrivals[chosen][0],
+                    diffs[arrivals[chosen][0]].head_token(arrivals[chosen][2]).line)
+                for row, left_path, left_k, chosen in guesses.get(number, []))
             problems.append("%s:%d: new %s %s; an extraction batch adds no text to src (put it in the catalog), and "
-                            "a literal that moved needs a stays-english or id-kept row" % (
+                            "a literal that moved needs a stays-english or id-kept row%s" % (
                                 path, tok.line, "char" if tok.kind == "char" else "literal",
-                                l10nlib.json_string(tok.value)))
+                                l10nlib.json_string(tok.value), hint))
 
     catalog_problems, catalog_rows = catalog_consistency(head, cwd)
     problems.extend(catalog_problems)
@@ -1846,8 +2395,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
               "%d new key or id literal(s), listed; %s%d ledger row(s) agree with the catalog" % (
                   gone_total, len(gone_files), len(rows), " (%d manual)" % manual if manual else "",
                   new_literals, sum(len(v) for v in new_ids.values()),
-                  "%d new format-only literal(s), listed; " % sum(len(v) for v in new_formats.values())
-                  if any(new_formats.values()) else "", catalog_rows)
+                  ("%d new format-only literal(s), listed; " % sum(len(v) for v in new_formats.values())
+                   if any(new_formats.values()) else "") +
+                  ("%d legacy locale(s) wrapped in Fmt.locale, listed; " % wrapped if wrapped else ""), catalog_rows)
     return problems, warnings, summary
 
 

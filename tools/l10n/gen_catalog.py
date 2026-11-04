@@ -159,6 +159,11 @@ def analyze_format(text):
             problems.append("non-positional %r: write %%1$%s (positional only)" % (m.group(0), conversion))
         elif conversion not in JAVA_TYPES:
             problems.append("unsupported conversion %r: use s, d or f, and pass other values as %%n$s" % m.group(0))
+        elif conversion == "s" and (flags or width or precision):
+            # Fmt.compose finds each %n$s argument by private-use marks around it: a precision would cut
+            # the end mark off (leaking a mark into the text), and padding or a flag would move or change it.
+            problems.append("width, precision or flags on %r: a %%n$s argument is printed whole (Fmt.compose marks "
+                            "its ends); write %%%s$s" % (m.group(0), index))
         else:
             i = int(index)
             if i < 1:

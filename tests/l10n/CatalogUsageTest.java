@@ -4,6 +4,7 @@ import java.io.File;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Deque;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,6 +20,9 @@ import java.util.regex.Pattern;
  * BackupRegistryTest does:
  *   R2  rendered text is never kept in a field: no rendered text initializes a field or is assigned to
  *       one, with or without this. (a T call, a Msg's render() or toString(), or a Msg joined with +)
+ *       A field whose declared type is an Android view (TextView, LinearLayout, ...) or one of Volt's view
+ *       classes keeps the view built from the text, not the text (title = ui.text(T.x(), ...)), so it is
+ *       not checked; a String, CharSequence, any other type, a generic or a name declared both ways is.
  *   R3  rendered text is never compared, parsed, re-cased, replaced in or cut
  *   R4  English-only files (reports, logs, the Shizuku shell process) never reference T, M, Msg or R
  *   R5  no rendered text in a static initializer or a static field (double-brace initializers included)
@@ -57,7 +61,16 @@ public final class CatalogUsageTest {
             + "\\s*\\(\\s*(?:T\\.[a-z]\\w*\\s*\\(|[\\w.]+\\.render\\s*\\()");
     private static final Pattern RESOURCE_READ = Pattern.compile("\\b(?:getString|getText|getQuantityString|getQuantityText|getStringArray)\\s*\\(\\s*(?:[\\w.]+\\.)?R\\.(?:string|plurals|array)\\.");
     /** this.name = ... anywhere: the target is a field whatever locals exist. */
-    private static final Pattern THIS_ASSIGN = Pattern.compile("\\bthis\\s*\\.\\s*\\w+\\s*\\+?=(?!=)");
+    private static final Pattern THIS_ASSIGN = Pattern.compile("\\bthis\\s*\\.\\s*(\\w+)\\s*\\+?=(?!=)");
+    /** A field declaration's type: [annotations and modifiers] Type name [, name ...] (no initializer). */
+    private static final Pattern FIELD_TYPE = Pattern.compile("^\\s*(?:(?:@\\w+|public|private|protected|static|final|transient|volatile)\\s+)*"
+            + "([\\w.]+(?:\\s*<.*>)?(?:\\s*\\[\\s*\\])*)\\s+\\w+\\s*(?:,|$)");
+    /** Android views a field may keep (R2): the field holds the view built from catalog text, not the text. */
+    static final Set<String> ANDROID_VIEWS = new HashSet<>(Arrays.asList("View", "ViewGroup", "TextView", "Button", "ImageButton",
+            "ImageView", "EditText", "CheckBox", "Switch", "RadioButton", "ToggleButton", "LinearLayout", "FrameLayout", "RelativeLayout",
+            "GridLayout", "ScrollView", "HorizontalScrollView", "SeekBar", "ProgressBar", "NumberPicker", "Spinner"));
+    private static final Pattern CLASS_EXTENDS = Pattern.compile("\\bclass\\s+(\\w+)(?:\\s*<[^{]*?>)?\\s+extends\\s+([\\w.]+)");
+    private static final Pattern TYPE_DECLARED = Pattern.compile("\\b(?:class|interface|enum|record)\\s+(\\w+)");
     /** A local declaration at the start of a statement: [final] Type name [= ...], Type allowing generics and arrays. */
     private static final Pattern LOCAL_DECLARATION = Pattern.compile("^\\s*(?:final\\s+)?([\\w.]+)(?:\\s*<[^;()=]*>)?(?:\\s*\\[\\s*\\])*\\s+(\\w+)\\s*(?:=|,|$)");
     /** A parameter or resource in a block header: (Type name or , Type name, followed by : , ) or =. */
@@ -72,7 +85,8 @@ public final class CatalogUsageTest {
         selfTest();
         Map<String, String> sources = L10nFiles.appSources();
         List<String> problems = new ArrayList<>();
-        for (Map.Entry<String, String> file : sources.entrySet()) problems.addAll(scan(file.getKey(), file.getValue()));
+        Views views = Views.of(sources.values());
+        for (Map.Entry<String, String> file : sources.entrySet()) problems.addAll(scan(file.getKey(), file.getValue(), views));
         for (String name : ENGLISH_ONLY) {
             check(sources.containsKey(name), "English-only file " + name + " exists");
             problems.addAll(englishOnly(name, sources.get(name)));
@@ -169,6 +183,42 @@ public final class CatalogUsageTest {
                 + "  }\n"
                 + "}\n";
         check(scan("Good.java", good).isEmpty(), "self-test: allowed forms pass: " + scan("Good.java", good));
+        // R2 (B2): a field that keeps a view built from catalog text keeps the view, not the text.
+        String views = "final class Screen {\n"
+                + "  static final class ChartView extends View { }\n"
+                + "  static final class Ring extends ChartView { }\n"
+                + "  private TextView title, amount;\n"
+                + "  private final LinearLayout row = ui.row(T.commonOk(), null);\n"
+                + "  private Screen.ChartView chart;\n"
+                + "  private Ring ring;\n"
+                + "  private android.widget.Button button; private TextView[] labels;\n"
+                + "  void f() {\n"
+                + "    title = ui.text(T.commonDone(), 24, true);\n"
+                + "    this.amount = ui.caption(M.commonOk().render());\n"
+                + "    chart = ui.chart(T.commonOn()); ring = ui.ring(T.commonOff()); button = ui.button(T.commonOk(), null);\n"
+                + "    labels = new TextView[] {ui.text(T.commonOk())};\n"
+                + "  }\n"
+                + "}\n";
+        check(scan("Screen.java", views).isEmpty(), "self-test: view fields built from catalog text pass: " + scan("Screen.java", views));
+        // ... but text in a field of any other type, and a View that is the file's own data class, still count.
+        String kept = "final class Kept {\n"
+                + "  static final class View { String status; }\n"
+                + "  static final class Other { String caption; }\n"
+                + "  private View state;\n"
+                + "  private TextView caption;\n"
+                + "  private StaticLayout layout;\n"
+                + "  private List<TextView> list;\n"
+                + "  private CharSequence text = T.commonOk().toString();\n"
+                + "  private Kept.View copy = make(T.commonOn());\n"
+                + "  void f() {\n"
+                + "    state = make(T.commonOk());\n"
+                + "    caption = ui.text(T.commonOk());\n"
+                + "    layout = new StaticLayout(T.commonOk(), paint, 10);\n"
+                + "    list = Arrays.asList(ui.text(T.commonOk()));\n"
+                + "  }\n"
+                + "}\n";
+        expect("Kept.java", kept, "Kept.java:8: R2", "Kept.java:9: R2", "Kept.java:11: R2", "Kept.java:12: R2", "Kept.java:13: R2",
+                "Kept.java:14: R2");
         check(!englishOnly("Report.java", "class Report { String s = Msg.of(1).render(); }").isEmpty()
                 && englishOnly("Report.java", "class Report { String s = \"T.x\"; /* Msg */ }").isEmpty(), "self-test: R4 sees code, not text");
         shellSelfTest();
@@ -184,14 +234,58 @@ public final class CatalogUsageTest {
         check(found.size() == rules.length, "self-test: exactly the planted problems: " + found);
     }
 
-    static List<String> scan(String name, String source) {
+    /**
+     * The view types of the app (R2): ANDROID_VIEWS and every class whose superclass is one, transitively. A
+     * file that declares a type of its own named like an Android view (ChargeScheduleController.View, a
+     * data class) means its own type by that name, and a qualified Outer.Name is a view only when Name is
+     * one of Volt's view classes.
+     */
+    static final class Views {
+        final Set<String> volt = new HashSet<>();
+
+        static Views of(java.util.Collection<String> sources) {
+            Views views = new Views();
+            Map<String, String> parents = new LinkedHashMap<>();
+            for (String source : sources) {
+                Matcher extend = CLASS_EXTENDS.matcher(L10nFiles.code(source));
+                while (extend.find()) parents.put(extend.group(1), extend.group(2));
+            }
+            for (boolean grew = true; grew; ) {
+                grew = false;
+                for (Map.Entry<String, String> e : parents.entrySet())
+                    if (!views.volt.contains(e.getKey()) && views.isView(e.getValue(), Collections.<String>emptySet()))
+                        grew |= views.volt.add(e.getKey());
+            }
+            return views;
+        }
+
+        /** True when a type as a file writes it is a view; local holds the file's own other types' names. */
+        boolean isView(String type, Set<String> local) {
+            String t = type.replaceAll("\\s+", "");
+            while (t.endsWith("[]")) t = t.substring(0, t.length() - 2);
+            if (t.contains("<")) return false;
+            String last = t.substring(t.lastIndexOf('.') + 1);
+            if (t.startsWith("android.view.") || t.startsWith("android.widget.")) return ANDROID_VIEWS.contains(last);
+            if (t.contains(".")) return volt.contains(last);
+            return (volt.contains(last) || ANDROID_VIEWS.contains(last)) && !local.contains(last);
+        }
+    }
+
+    static List<String> scan(String name, String source) { return scan(name, source, Views.of(Arrays.asList(source))); }
+
+    static List<String> scan(String name, String source, Views views) {
         String code = L10nFiles.code(source);
         List<String> problems = new ArrayList<>();
         Set<String> fields = new HashSet<>();
-        walk(name, code, fields, null);
-        walk(name, code, fields, problems);
+        Set<String> local = new HashSet<>();
+        Matcher declared = TYPE_DECLARED.matcher(code);
+        while (declared.find()) if (!views.volt.contains(declared.group(1))) local.add(declared.group(1));
+        Map<String, Boolean> viewFields = new java.util.HashMap<>();
+        walk(name, code, fields, viewFields, views, local, null);
+        walk(name, code, fields, viewFields, views, local, problems);
         Matcher assign = THIS_ASSIGN.matcher(code);
         while (assign.find()) {
+            if (Boolean.TRUE.equals(viewFields.get(assign.group(1)))) continue;
             int end = code.indexOf(';', assign.end());
             if (rendered(code.substring(assign.end(), end < 0 ? code.length() : end)) >= 0)
                 problems.add(where(name, code, assign.start()) + ": R2 rendered text kept in a field; store a Msg or an id");
@@ -247,7 +341,8 @@ public final class CatalogUsageTest {
      * the file's fields is checked. Lambda and anonymous-class method bodies run later and are not.
      * With problems null, only collects the file's field names.
      */
-    private static void walk(String name, String code, Set<String> fields, List<String> problems) {
+    private static void walk(String name, String code, Set<String> fields, Map<String, Boolean> viewFields, Views views, Set<String> ownTypes,
+            List<String> problems) {
         Deque<Block> blocks = new ArrayDeque<>();
         // The locals (parameters included) each block declares, parallel to blocks: a local hides a field.
         Deque<Set<String>> locals = new ArrayDeque<>();
@@ -273,7 +368,8 @@ public final class CatalogUsageTest {
                 else if (top == Block.STATIC || top == Block.STATIC_INNER) kind = Block.STATIC_INNER;
                 else if (top == Block.INIT_STATIC || top == Block.INIT_FIELD) kind = top;
                 else kind = Block.OTHER;
-                if (inType && kind != Block.TYPE && kind != Block.STATIC) field(name, code, header, statementStart, fields, problems);
+                if (inType && kind != Block.TYPE && kind != Block.STATIC)
+                    field(name, code, header, statementStart, fields, viewFields, views, ownTypes, problems);
                 Set<String> declared = new HashSet<>();
                 if (kind == Block.OTHER) {
                     Matcher parameter = HEADER_DECLARATION.matcher(header);
@@ -291,7 +387,7 @@ public final class CatalogUsageTest {
                 if (now == null || !now.type()) { statement.setLength(0); statementStart = i + 1; }
             } else if (c == ';') {
                 String text = statement.toString();
-                if (inType) field(name, code, text, statementStart, fields, problems);
+                if (inType) field(name, code, text, statementStart, fields, viewFields, views, ownTypes, problems);
                 else if (problems != null && top != null && top.staticInit()) {
                     int at = rendered(text);
                     if (at >= 0) problems.add(where(name, code, statementStart + at) + ": R5 rendered text in a static initializer; hold an id (T.KEY)");
@@ -308,7 +404,7 @@ public final class CatalogUsageTest {
                             if (more.find()) locals.peek().add(more.group(1));
                         }
                     }
-                    if (problems != null) assignment(name, code, text, statementStart, fields, visibleLocals(blocks, locals), problems);
+                    if (problems != null) assignment(name, code, text, statementStart, fields, viewFields, visibleLocals(blocks, locals), problems);
                 }
                 statement.setLength(0);
                 statementStart = i + 1;
@@ -320,22 +416,32 @@ public final class CatalogUsageTest {
     }
 
     /** A field declaration or enum constant: collect its name, and report rendered text in its initializer. */
-    private static void field(String name, String code, String statement, int start, Set<String> fields, List<String> problems) {
+    private static void field(String name, String code, String statement, int start, Set<String> fields, Map<String, Boolean> viewFields,
+            Views views, Set<String> local, List<String> problems) {
         int arrow = statement.indexOf("->");
         String head = arrow < 0 ? statement : statement.substring(0, arrow);
         int equals = head.replace("==", "  ").indexOf('=');
         String declaration = equals < 0 ? head : head.substring(0, equals);
+        boolean view = false;
         if (!declaration.contains("(")) {
+            Matcher type = FIELD_TYPE.matcher(declaration.split(",")[0]);
+            view = type.find() && views.isView(type.group(1), local);
             // "String a, b": every comma part ends in a name (a generic's type argument may slip in; harmless).
             for (String part : declaration.split(",")) {
                 Matcher id = Pattern.compile("(\\w+)\\s*$").matcher(part);
-                if (id.find()) fields.add(id.group(1));
+                if (id.find()) {
+                    fields.add(id.group(1));
+                    // A name declared as a view and as anything else (in two nested classes) is not a view field.
+                    Boolean before = viewFields.get(id.group(1));
+                    viewFields.put(id.group(1), (before == null || before) && view);
+                }
             }
         }
         if (problems == null) return;
         int at = rendered(head);
         if (at < 0) return;
         boolean isStatic = statement.matches("(?s).*\\bstatic\\b.*") || !statement.contains("=");
+        if (view && !isStatic) return;  // the field keeps the view built from the text
         problems.add(where(name, code, start + at) + (isStatic
                 ? ": R5 rendered text in a static field or enum constant; hold an id (T.KEY) and render when shown"
                 : ": R2 rendered text initializes a field; store a Msg (M...) or an id and render when shown"));
@@ -371,11 +477,12 @@ public final class CatalogUsageTest {
      * R2 in a method: one of the file's fields assigned rendered text (message = T.x()); a local of the same
      * name hides the field. this.message = ... is scan's, whatever the locals.
      */
-    private static void assignment(String name, String code, String statement, int start, Set<String> fields, Set<String> locals,
-            List<String> problems) {
+    private static void assignment(String name, String code, String statement, int start, Set<String> fields, Map<String, Boolean> viewFields,
+            Set<String> locals, List<String> problems) {
         Matcher assign = PLAIN_ASSIGN.matcher(statement);
         while (assign.find()) {
             if (!fields.contains(assign.group(1)) || locals.contains(assign.group(1))) continue;
+            if (Boolean.TRUE.equals(viewFields.get(assign.group(1)))) continue;  // a view built from the text
             int at = rendered(statement.substring(assign.end()));
             if (at >= 0) {
                 problems.add(where(name, code, start + assign.start(1)) + ": R2 rendered text assigned to field " + assign.group(1)

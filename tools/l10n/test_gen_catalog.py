@@ -110,7 +110,11 @@ class DecodeTest(unittest.TestCase):
         self.assertEqual(gen_catalog.analyze_format("%1$.1f km, %2$02d min, %1$.2f"), ({1: "f", 2: "d"}, []))
         self.assertEqual(gen_catalog.analyze_format("100%%"), ({}, []))
         for text, message in (("%s", "non-positional"), ("75% full", "lone %"), ("%1$x", "unsupported"),
-                              ("%1$s %1$d", "both"), ("%1$tH", "unsupported"), ("%0$s", "start at 1")):
+                              ("%1$s %1$d", "both"), ("%1$tH", "unsupported"), ("%0$s", "start at 1"),
+                              # B1 review: Fmt.compose marks each %n$s argument's ends; a cut leaks a mark.
+                              ("%1$.2s", "width, precision or flags"), ("%1$-8s", "width, precision or flags"),
+                              ("%1$8s", "width, precision or flags"), ("%2$#s %1$s", "width, precision or flags"),
+                              ("%1$S", "unsupported")):
             problems = gen_catalog.analyze_format(text)[1]
             self.assertTrue(any(message in p for p in problems), "%r: %r" % (text, problems))
 
@@ -188,6 +192,9 @@ class CatalogTest(unittest.TestCase):
             ('<plurals name="a"><item quantity="one">%1$s</item><item quantity="other">%1$d</item></plurals>',
              "different conversions"),
             ('<string name="a">%2$s</string>', "no gaps"),
+            ('<string name="a">%1$-8s|</string>', "width, precision or flags"),
+            ('<plurals name="a"><item quantity="one">%1$.1s</item><item quantity="other">%1$s</item></plurals>',
+             "width, precision or flags"),
             ('<string name="a_short" volt:ladder="short">x</string>', "rung must be named"),
             ('<string name="a">%1$s</string><string name="a_short" volt:ladder="short">%1$d</string>', "rung placeholder"),
             ('<string name="l10n_tag">fr</string>', "l10n_tag"),
