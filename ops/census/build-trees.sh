@@ -15,7 +15,7 @@ KEYS="${RUNNER_TEMP:?}/census-throwaway-key"
   od -An -N32 -tx1 /dev/urandom | tr -d ' \n' > "$KEYS/navee-offline-lock.pass"
   NAVEE_SIGNING_PASSWORD="$(cat "$KEYS/navee-offline-lock.pass")" keytool -genkeypair -noprompt \
       -alias navee-offline -keyalg RSA -keysize 3072 -validity 30 \
-      -dname "CN=Volt census throwaway (GitHub Actions run, never released)" \
+      -dname "CN=Volt census throwaway key (GitHub Actions run - never released)" \
       -storetype PKCS12 -keystore "$KEYS/navee-offline-lock.p12" \
       -storepass:env NAVEE_SIGNING_PASSWORD -keypass:env NAVEE_SIGNING_PASSWORD ) 2>&1 | grep -v -i pass || true
 [[ -f "$KEYS/navee-offline-lock.p12" ]] || { echo "keystore was not created" >&2; exit 1; }
