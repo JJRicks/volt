@@ -96,8 +96,10 @@ final class LanguageSheet {
             option.setOnClickListener(v -> {
                 if (self[0] != null) self[0].dismiss();
                 if (tag.equals(current)) return;
-                // Applied after the dismissal is drawn, so a recreate never finds the sheet's window.
-                v.getRootView().post(() -> apply(host, tag, changed));
+                // Applied after the dismissal, so a recreate never finds the sheet's window. Posted to the
+                // activity's window: the sheet's own views are detached by dismiss(), and a detached view
+                // keeps a posted action until it is attached again, which a dismissed sheet never is.
+                activity.getWindow().getDecorView().post(() -> apply(host, tag, changed));
             });
             if (i > 0) ui.divider(options);
             options.addView(option, new LinearLayout.LayoutParams(-1, -2));
@@ -160,9 +162,10 @@ final class LanguageSheet {
     }
 
     /**
-     * True for the pseudo APK: its en-XA or ar-XB text differs from English. The release APK has no such
-     * folder (build.sh fails if one appears), so Android falls back to English there; the framework's own
-     * pseudo locales on an emulator do not count. Checked once per process.
+     * True for the pseudo APK: its en-XA text differs from English. The release APK has no such folder
+     * (build.sh fails if one appears), so Android falls back to English there; the framework's own pseudo
+     * locales on an emulator do not count. Only en-XA is asked: ar-XB falls back to values-ar once Arabic
+     * ships, which would differ from English in a release APK too. Checked once per process.
      */
     static boolean pseudoBuild(Context context) {
         if (pseudo == null) {
@@ -170,7 +173,7 @@ final class LanguageSheet {
             try {
                 Context app = context.getApplicationContext() == null ? context : context.getApplicationContext();
                 String english = title(app, Locale.ENGLISH);
-                for (Locale locale : pseudoLocales()) found |= !english.equals(title(app, locale));
+                found = !english.equals(title(app, pseudoLocales()[0]));
             } catch (RuntimeException unavailable) {
                 found = false;
             }
