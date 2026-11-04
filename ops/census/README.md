@@ -77,19 +77,54 @@ run job is red when its emulator did not boot (or a restart failed); its runs ar
 - **Machine.** A standard `ubuntu-latest` runner per shard (up to 12 at once), each with one emulator.
   Steps are spread over shards by their local run time (`weights.tsv`); every tag of a step runs on
   the same emulator, in the order `B-r1`, heads, `B-r2`.
-- **Image.** `system-images;android-36.1;google_apis_playstore;x86_64` under KVM (falls back to
-  `google_apis;x86_64`, with a warning, if the Play image can't be installed) instead of the local
-  arm64-v8a one. Same 1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 2 CPU cores
-  (the local AVD has 1).
+- **Image.** `system-images;android-36;google_apis;x86_64` (Android 16, API 36, a userdebug build
+  without Play) under KVM, instead of the local `android-36.1;google_apis_playstore;arm64-v8a`. If it
+  can't be installed, `android-35;google_apis;x86_64` is used, with a warning; `results.txt` names the
+  image of each shard. Same 1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 2 CPU
+  cores (the local AVD has 1). Why not 36.1: on `ubuntu-latest` its x86_64 Play image (BE4B.251210.005)
+  aborts surfaceflinger every few seconds ("Assertion failed:
+  !rcEnc->featureInfo()->hasReadColorBufferDma" in the goldfish mapper) under every GPU mode tried
+  (swiftshader, swangle, guest, host Mesa), so System UI never settles and every run hangs. A likely
+  cause is the runner's old avdmanager (command-line tools 12.0) writing `target=android-0` for
+  Major.Minor platforms, so the emulator skips its per-API GPU features; `create` prints the AVD's
+  root ini so this can be checked. The census only compares cloud runs with cloud runs of the same
+  workflow run, so the image needn't match the local one; per-app languages need API 33 or newer.
 - **GPU.** `-gpu swiftshader_indirect` (software) instead of `-gpu host`; the other boot flags are the
   local ones (`-no-window -no-audio -no-boot-anim -read-only -no-snapshot`). Screens render the same
   text, but timing differs, so compare cloud runs only with cloud runs: base and heads of one
-  comparison always run in the same workflow run.
+  comparison always run in the same workflow run. After boot, `emulator.sh boot` checks that
+  surfaceflinger keeps one pid for 75 s and fails the boot (and so the shard) if it doesn't.
+- **Emulator.** The latest `emulator` package from sdkmanager (37.2.13 when this was set up).
 - **Signing.** One throwaway key per workflow run (made with keytool in the build job, never uploaded)
   signs every APK of that run, instead of the shared local key.
 - **rc.** `results.txt`'s `rc=` is the sweep's own exit code (the local worker logs logcat's).
 - **Restarts.** If a shard's emulator stops answering between runs it is restarted, and
   `results.txt` says so; each sweep run is limited to 90 minutes.
+
+## Boot-stability probe
+
+`.github/workflows/census-probe.yml` (with `probe.sh`) boots one emulator per configuration in
+parallel and watches surfaceflinger, uiautomator and a screenshot for 180 s after boot. It is kept
+for the next emulator or image update: push a `census-run/probe-<name>` branch (census.yml ignores
+those) and read each job's verdict. Its 2026-11-04 result (run 41887703341, commit 43ee2e5;
+emulator 37.2.13 unless pinned; host CPUs varied and changed nothing):
+
+| Config | Stable | Boot |
+|---|---|---|
+| android-36.1 google_apis_playstore, swiftshader_indirect (-feature -Vulkan) | no: 15 surfaceflinger crashes in 180 s | 51 s |
+| android-36.1 google_apis_playstore, -gpu host (Mesa llvmpipe on Xvfb) | no: 25 crashes | 55 s |
+| **android-36 google_apis, swiftshader_indirect** (used) | yes, 0 crashes | 50 s |
+| android-35 google_apis, swiftshader_indirect (fallback) | yes | 35 s |
+| android-34 / android-33 google_apis, swiftshader_indirect | yes | 40 / 31 s |
+| android-35 google_apis, -gpu host (Mesa llvmpipe) | yes | 40 s |
+| `-feature -Vulkan` on any stable image | no difference | |
+| pinned emulator 35.6.11 (13610412) with android-35 / android-36 | yes | 41 / 56 s |
+
+Earlier smoke runs also tried android-36.1 Play with `swiftshader_indirect -feature
+-ReadColorBufferDma`, `guest` and `swangle_indirect -feature -ReadColorBufferDma`: all unstable
+(turning ReadColorBufferDma off makes it worse; the mapper aborts when that feature is absent). If a
+future emulator update breaks the stable images, `probe.sh` already knows how to pin
+`emulator-linux_x64-13610412.zip` (35.6.11), a proven way back.
 
 ## Cost
 
