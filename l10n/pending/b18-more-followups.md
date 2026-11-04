@@ -1,8 +1,9 @@
 # B18 follow-ups: More screen text that stays English after the batch
 
 B18 (MoreScreen, LanguageSheet) leaves these shown strings in English. Each one is either blocked by
-G1 in an extraction batch, or kept English on purpose. Each blocked item needs an ordinary (non-extraction) follow-up pull request,
-or a tooling pull request where noted. The B4 consumer reads that stay are in
+G1 in an extraction batch, blocked by GlyphCoverageTest (item 7), or kept English on purpose. Each
+blocked item needs an ordinary (non-extraction) follow-up pull request, or a tooling pull request
+where noted. The B4 consumer reads that stay are in
 `l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an entry when it is done.
 
 Repro for each G1 block: make the change in a scratch worktree of the B18 head, then run
@@ -48,6 +49,27 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
 6. **Units summary** row value (`unitsSummary()`: "mi + km · °C · 24h"). Its separators and
    "mi + km" sit beside the unit ids it tests, which stay data. Follow-up: whole template with unit
    keys.
+
+## Blocked by GlyphCoverageTest
+
+7. **Battery row value** in App preferences
+   (`background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠")`, base :996). Its screen-reader
+   text is translated (`more_prefs_battery_unrestricted`, `more_prefs_battery_optimized`); the value
+   the row shows is English in every language. Moving the pair passes G1 (two `exact` rows at base
+   :996), but English uses `font=saira` and none of the four Saira weights maps U+2713 ✓ or U+26A0 ⚠,
+   so `tests/run.sh` fails: "en: saira_bold.ttf has no glyph for U+2713 '✓'; use font=system for this
+   language". Keeping the mark in Java (`T.x() + " ✓"`) adds a literal, which G1 refuses in an
+   extraction batch. It is the same block as B16's "☆ Star readings to pin here". G8 never listed it
+   either: `Row.value(...)` is not a sink or text helper, and `is_multiword` counts "Unrestricted ✓"
+   as one word, so `l10n/baseline/MoreScreen.txt` has no entry for it. Follow-up: a tooling PR that
+   lets GlyphCoverageTest accept the symbol marks the English build already shows through Android's
+   font fallback, then keys `more_prefs_battery_value_unrestricted` and
+   `more_prefs_battery_value_optimized` with `volt:dnt="✓"` and `volt:dnt="⚠"` and a note that the
+   mark is a status mark to keep. Repro: change that line to the two `T.` calls, add the keys and the
+   two rows; `ledger_check.py` passes and `tests/run.sh` stops at GlyphCoverageTest. The PIN &
+   proximity chips ("PIN ✓" and "Paired ✓" with their "—" forms, listed in
+   `l10n/baseline/MoreScreen.txt`; their screen-reader text is translated) carry the same ✓, so they
+   wait on the same fix.
 
 ## Kept English on purpose
 

@@ -1029,7 +1029,8 @@ public final class MoreScreen implements AppScreen {
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Battery use is the one setting that decides whether long background recordings survive:
-        // show it as the value and open Android's page for this app directly.
+        // show it as the value and open Android's page for this app directly. The shown value stays English
+        // for now: Saira has no ✓ or ⚠ glyph, so GlyphCoverageTest refuses it in the catalog (l10n/pending/b18-more-followups.md).
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {

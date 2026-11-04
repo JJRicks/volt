@@ -11,6 +11,11 @@
   word or a name into a sentence ("the " + model, a scooter's "'s history", a setting lower-cased into
   "Try ..."), each combination is a whole template here, so a language can order and inflect it. PIN,
   experimental-control and disclaimer text is whole sentences.
+
+  The App preferences battery row's shown value ("Unrestricted ✓", "Optimized ⚠") stays English for now:
+  none of the Saira weights has a glyph for its status marks, so GlyphCoverageTest refuses that text here.
+  Its screen-reader text (more_prefs_battery_unrestricted, more_prefs_battery_optimized) is translated.
+  What else stays English, and why, is in l10n/pending/b18-more-followups.md.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
