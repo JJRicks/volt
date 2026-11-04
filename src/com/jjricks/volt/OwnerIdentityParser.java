@@ -18,6 +18,23 @@ public final class OwnerIdentityParser {
     private static final Pattern SHARED_FIELD = Pattern.compile(
             "(?im)^\\s*Shared-user option\\s*:\\s*(ON|OFF)\\s*$");
     private static final String AUTH_MARKER = "Send authData:";
+    /*
+     * Why parse refuses a file: each is the English getMessage() of the IllegalArgumentException it throws.
+     * They stay English here (the Shizuku shell process runs this parser, and logs and tests read them);
+     * screens show their catalog text through SetupException.shown.
+     */
+    static final String EMPTY_OR_TOO_LARGE = "Setup file is empty or too large.";
+    static final String NEED_HEX = "Need 12 hex characters";
+    static final String NO_IDENTITY = "No owner identity in file";
+    static final String UNSUPPORTED_ROLE = "Unsupported owner role";
+    static final String CONFLICTING =
+            "This file contains conflicting owner identities or roles. Capture one NAVEE account connection or import one private setup backup.";
+
+    /** A file (or a capture) holding more than one identity or role; getMessage() is {@link #CONFLICTING}. */
+    public static final class ConflictingIdentityException extends IllegalArgumentException {
+        private static final long serialVersionUID = 1L;
+        ConflictingIdentityException(String message) { super(message); }
+    }
 
     public static final class Result {
         public final String identity;
@@ -27,7 +44,7 @@ public final class OwnerIdentityParser {
 
     public static Result parse(String input) {
         if (input == null || input.trim().isEmpty() || input.length() > MAX_INPUT)
-            throw new IllegalArgumentException("Setup file is empty or too large.");
+            throw new IllegalArgumentException(EMPTY_OR_TOO_LARGE);
         String trimmed = input.trim();
         if (trimmed.matches("(?i)[0-9a-f]{12}"))
             return new Result(trimmed.toUpperCase(Locale.ROOT), 0);
@@ -42,7 +59,7 @@ public final class OwnerIdentityParser {
             explicitId = value;
         }
         if (count(ID_KEY, input) != identityFields)
-            throw new IllegalArgumentException("Need 12 hex characters");
+            throw new IllegalArgumentException(NEED_HEX);
         if (explicitId != null) return new Result(explicitId, explicitRole(input));
 
         Result found = null;
@@ -72,7 +89,7 @@ public final class OwnerIdentityParser {
                 ambiguous();
             found = captured;
         }
-        if (found == null) throw new IllegalArgumentException("No owner identity in file");
+        if (found == null) throw new IllegalArgumentException(NO_IDENTITY);
         return found;
     }
 
@@ -87,7 +104,7 @@ public final class OwnerIdentityParser {
             role = value;
         }
         if (count(ROLE_KEY, input) != roleFields)
-            throw new IllegalArgumentException("Unsupported owner role");
+            throw new IllegalArgumentException(UNSUPPORTED_ROLE);
         Matcher shared = SHARED_FIELD.matcher(input);
         while (shared.find()) {
             int value = "ON".equalsIgnoreCase(shared.group(1)) ? 1 : 0;
@@ -105,8 +122,8 @@ public final class OwnerIdentityParser {
     }
 
     private static void ambiguous() {
-        throw new IllegalArgumentException(
-                "This file contains conflicting owner identities or roles. Capture one NAVEE account connection or import one private setup backup.");
+        throw new ConflictingIdentityException(
+                CONFLICTING);
     }
     private OwnerIdentityParser() { }
 }
