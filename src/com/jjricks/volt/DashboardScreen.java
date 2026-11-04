@@ -3310,13 +3310,6 @@ public final class DashboardScreen implements AppScreen {
             amounts.put(key, line.value);
         }
 
-        private TextView chargingRow(LinearLayout container, String label) {
-            ReadingRow line = new ReadingRow(label);
-            container.addView(line, new LinearLayout.LayoutParams(-1, -2));
-            if (label.equals("Time to full")) chargingEtaLabel = line.name;
-            return line.value;
-        }
-
         /** A value never takes the entire width away from its label; rows are divided by a hairline. */
         private final class ReadingRow extends LinearLayout {
             final TextView name, value;
@@ -5756,7 +5749,11 @@ public final class DashboardScreen implements AppScreen {
                     rows.removeAllViews();
                     String q = search.getText().toString().toLowerCase(Locale.ROOT);
                     for (Telemetry.Metric metric : metrics)
-                        if ((ScooterReadingLabels.full(metric.key, metric.label)
+                        // The English name and group still match, beside the shown ones.
+                        if ((metric.label + metric.group + metric.key)
+                                        .toLowerCase(Locale.ROOT)
+                                        .contains(q)
+                                || (ScooterReadingLabels.full(metric.key, metric.label)
                                         + ScooterReadingLabels.group(metric.group) + metric.key)
                                 .toLowerCase(Locale.ROOT)
                                 .contains(q)) {
@@ -5828,7 +5825,7 @@ public final class DashboardScreen implements AppScreen {
             item.setClickable(true);
             item.setFocusable(true);
             item.setTag("reading-choice:" + metric.key);
-            item.setContentDescription(metric.label + ", " + metric.group);
+            item.setContentDescription(T.dashboardReadingGroup(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group)));
             GlyphView icon = new GlyphView(readingIcon(metric.key), ui.accent);
             icon.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             item.addView(icon, new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
@@ -5942,6 +5939,10 @@ public final class DashboardScreen implements AppScreen {
                 boolean visible = (metric.label + " " + metric.group + " " + metric.key
                         + " " + ScooterReadingLabels.label(metric.key, metric.label))
                         .toLowerCase(Locale.ROOT).contains(query);
+                // The shown name and group match too (in English they are the names above).
+                if (!visible)
+                    visible = ScooterReadingLabels.full(metric.key, metric.label).toLowerCase(Locale.ROOT).contains(query)
+                            || ScooterReadingLabels.group(metric.group).toLowerCase(Locale.ROOT).contains(query);
                 items.get(i).setVisibility(visible ? View.VISIBLE : View.GONE);
                 if (visible) matches++;
             }

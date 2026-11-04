@@ -208,6 +208,9 @@
          _seen form adds when it was read (%3$s: a date and time) when it is not live. -->
     <string name="dashboard_reading" volt:screen="Home cards" volt:purpose="accessibility description">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:screen="Home cards" volt:purpose="accessibility description">%1$s, %2$s, last seen %3$s</string>
+    <!-- Spoken for a row of the Choose readings sheet: %1$s is the reading's name, %2$s its group
+         ("Battery", "Motor"). -->
+    <string name="dashboard_reading_group" volt:screen="Choose readings sheet" volt:purpose="accessibility description">%1$s, %2$s</string>
     <!-- Spoken for the drive mode card: %1$s is the mode's name as the scooter reports it; the _seen
          form adds when it was read (%2$s: a date and time). -->
     <string name="dashboard_drive_mode_reading" volt:screen="Home drive mode card" volt:purpose="accessibility description">Drive mode, %1$s</string>
