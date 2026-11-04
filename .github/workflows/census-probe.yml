@@ -1,0 +1,87 @@
+name: Census emulator boot-stability probe
+
+# A push to census-run/probe-<name> boots one emulator per configuration below and reports whether
+# its display stack stays up (ops/census/probe.sh). census.yml ignores these branches.
+# Standard GitHub-hosted runners only; no secrets.
+on:
+  push:
+    branches: ['census-run/probe-*']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: census-probe-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    if: github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        include:
+          - {id: c1, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
+          - {id: c2, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c3, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
+          - {id: c4, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c5, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
+          - {id: c6, emu: latest, image: 'system-images;android-34;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c7, emu: latest, image: 'system-images;android-34;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
+          - {id: c8, emu: latest, image: 'system-images;android-33;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c9, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'host', hostgl: '1'}
+          - {id: c10, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'host', hostgl: '1'}
+          - {id: c11, emu: pin35, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c12, emu: pin35, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: ctl
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Probe this configuration
+        env:
+          PROBE_ID: ${{ matrix.id }}
+          PROBE_EMU: ${{ matrix.emu }}
+          PROBE_IMAGE: ${{ matrix.image }}
+          PROBE_GPU: ${{ matrix.gpu }}
+          PROBE_HOSTGL: ${{ matrix.hostgl }}
+        run: bash ctl/ops/census/probe.sh "$RUNNER_TEMP/probe"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: probe-${{ matrix.id }}
+          path: ${{ runner.temp }}/probe
+          retention-days: 2
+          if-no-files-found: warn
+
+  summary:
+    needs: probe
+    if: always() && github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: probe-*
+          path: ${{ runner.temp }}/all
+      - name: Tabulate
+        run: |
+          cat "$RUNNER_TEMP"/all/probe-*/result.json > "$RUNNER_TEMP/results.jsonl" || true
+          python3 -I - "$RUNNER_TEMP/results.jsonl" >> "$GITHUB_STEP_SUMMARY" <<'PY'
+          import json, sys
+          rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
+          rows.sort(key=lambda r: int(r.get('id', 'c0')[1:]))
+          cols = ['id', 'verdict', 'sf_pid_changes', 'sf_fatal_in_window', 'boot_s', 'uiautomator_ok',
+                  'screenshot_ok', 'renderer', 'emulator_version', 'fingerprint', 'notes']
+          print('| ' + ' | '.join(cols) + ' |'); print('|' + '---|' * len(cols))
+          for r in rows:
+              print('| ' + ' | '.join(str(r.get(c, '')).replace('|', '/') for c in cols) + ' |')
+          PY

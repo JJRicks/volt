@@ -5,7 +5,7 @@ name: Census (G7) on emulators
 # public repository. Nothing here uses secrets; the APKs are signed with a throwaway key made per run.
 on:
   push:
-    branches: ['census-run/**']
+    branches: ['census-run/**', '!census-run/probe-*']
 
 permissions:
   contents: read
