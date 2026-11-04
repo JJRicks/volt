@@ -5,3 +5,5 @@
 tests/l10n/characterization/ControllerConsumersTextTest.java
 # G5: the observation question's English, and the English ids its callers pass it (featureValue, d.label).
 tests/l10n/characterization/CompatQuestionTextTest.java
+# F2 behaviour: the consumers show the display text under another source and keep the English ids (data, logs).
+tests/l10n/ControllerConsumersTest.java
