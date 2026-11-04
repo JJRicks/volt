@@ -98,6 +98,26 @@ src/com/jjricks/volt/DashboardScreen.java:3361	["Battery-side power"]	dashboard_
 src/com/jjricks/volt/DashboardScreen.java:3364	[{"hole": "etaLabels[0]", "arg": 1, "type": "s"}, " (", {"hole": "chargingEtaTag.getText()", "arg": 2, "type": "s"}, ")", ""]	dashboard_charging_time_tag	template	manual: etaLabels[0] + (tag shown ? " (" + tag + ")" : "") became tag shown ? T.dashboardChargingTimeTag(etaLabels[0], tag) : etaLabels[0]; without the chip the name is passed as it is (no text of its own)
 src/com/jjricks/volt/DashboardScreen.java:3371	["Battery temperature"]	dashboard_battery_temperature	exact	
 src/com/jjricks/volt/DashboardScreen.java:3376	{"if": "detail.isEmpty()", "then": [{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value.getText()", "arg": 2, "type": "s"}, ""], "else": [{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value.getText()", "arg": 2, "type": "s"}, ". ", {"hole": "detail", "arg": 3, "type": "s"}]}	dashboard_charging_description,dashboard_charging_description_detail	choice	the optional detail becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3415	{"if": "r != null && !live", "then": [{"hole": "label(key)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(r.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(key)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3432	{"if": "selected != null && !selectedLive", "then": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(selected.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3435	{"if": "selected != null && !selectedLive", "then": ["Drive mode, ", {"hole": "text", "arg": 1, "type": "s"}, ", last seen ", {"hole": "when(selected.capturedWallMs)", "arg": 2, "type": "s"}], "else": ["Drive mode, ", {"hole": "text", "arg": 1, "type": "s"}, ""]}	dashboard_drive_mode_reading_seen,dashboard_drive_mode_reading	choice	the optional last-seen time becomes two whole templates; the mode's name is the scooter's own
+src/com/jjricks/volt/DashboardScreen.java:3468	[{"hole": "(cycles.number != null ? String.format(Locale.US, \"%.0f\", cycles.number) : format(cycles))", "arg": 1, "type": "s"}, " reported charges"]	dashboard_reported_charges	template	
+src/com/jjricks/volt/DashboardScreen.java:3469	[{"hole": "format(rated)", "arg": 1, "type": "s"}, " rated"]	dashboard_rated	template	
+src/com/jjricks/volt/DashboardScreen.java:3485	["Last seen ", {"hole": "when(oldest)", "arg": 1, "type": "s"}]	dashboard_last_seen	template	
+src/com/jjricks/volt/DashboardScreen.java:3486	["Last seen ", {"hole": "when(oldest)", "arg": 1, "type": "s"}]	dashboard_last_seen	template	
+src/com/jjricks/volt/DashboardScreen.java:3520	["Recording · ", {"hole": "clock", "arg": 1, "type": "s"}]	dashboard_recording_clock	template	
+src/com/jjricks/volt/DashboardScreen.java:3526	[{"spec": "%.0f", "arg": 1, "value": "summary.measuredThroughputWh", "as": "Fmt.decimal(Locale.US, summary.measuredThroughputWh, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3527	["Measuring…"]	dashboard_measuring	exact	
+src/com/jjricks/volt/DashboardScreen.java:3531	["Record ride"]	dashboard_record_ride	exact	
+src/com/jjricks/volt/DashboardScreen.java:3534	["Saving the last ride…"]	dashboard_saving_ride	exact	
+src/com/jjricks/volt/DashboardScreen.java:3534	["Connecting…"]	dashboard_connecting	exact	
+src/com/jjricks/volt/DashboardScreen.java:3535	["Record ride. Saving the last ride"]	dashboard_record_saving	exact	
+src/com/jjricks/volt/DashboardScreen.java:3536	["Start recording"]	dashboard_start_recording	exact	
+src/com/jjricks/volt/DashboardScreen.java:3536	["Record ride. Connecting"]	dashboard_record_connecting	exact	
+src/com/jjricks/volt/DashboardScreen.java:3537	["Record ride. Connect to scooter"]	dashboard_record_connect	exact	
+src/com/jjricks/volt/DashboardScreen.java:3552	[{"spec": "%.1f", "arg": 1, "value": "km", "as": "Fmt.decimal(Locale.US, km, 1)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3553	[{"spec": "%.1f", "arg": 1, "value": "km / 1.609344", "as": "Fmt.decimal(Locale.US, km / 1.609344, 1)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3555	[{"hole": "miles", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]	fmt_dual	template	
 src/com/jjricks/volt/DashboardScreen.java:5130	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5692	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5695	["Note"]	dashboard_note	exact	

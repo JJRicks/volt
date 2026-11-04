@@ -3437,12 +3437,9 @@ public final class DashboardScreen implements AppScreen {
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
                         amount.setTextColor(r.number < 0 ? ui.ok : r.number > 0 ? ui.danger : ui.text);
                     amount.setContentDescription(
-                            label(key)
-                                    + ", "
-                                    + text
-                                    + (r != null && !live
-                                            ? ", last seen " + when(r.capturedWallMs)
-                                            : ""));
+                            r != null && !live
+                                    ? T.dashboardReadingSeen(label(key), text, when(r.capturedWallMs))
+                                    : T.dashboardReading(label(key), text));
                     if (batteryData != null && amount.getParent() instanceof View)
                         ((View) amount.getParent()).setTooltipText(amount.getContentDescription());
                     if (key.equals("driving_mode"))
@@ -3455,22 +3452,20 @@ public final class DashboardScreen implements AppScreen {
                 String text = format(selected);
                 big.setText(widget.metric.equals("driving_mode") ? text : withUnit(text, selectedLive));
                 big.setTextColor(selectedLive ? ui.text : ui.muted);
-                big.setContentDescription(label(widget.metric) + ", " + text
-                        + (selected != null && !selectedLive ? ", last seen " + when(selected.capturedWallMs) : ""));
+                big.setContentDescription(selected != null && !selectedLive ? T.dashboardReadingSeen(label(widget.metric), text, when(selected.capturedWallMs)) : T.dashboardReading(label(widget.metric), text));
                 if (widget.metric.equals("driving_mode")) {
-                    big.setContentDescription("Drive mode, " + text
-                            + (selected != null && !selectedLive
-                                    ? ", last seen " + when(selected.capturedWallMs) : ""));
+                    big.setContentDescription(selected != null && !selectedLive
+                                    ? T.dashboardDriveModeReadingSeen(text, when(selected.capturedWallMs)) : T.dashboardDriveModeReading(text));
                     ui.styleDriveMode(big, text, selectedLive);
                 }
                 if (subtitle != null && widget.type.equals("metric"))
-                    subtitle.setVisibility(widget.title.equalsIgnoreCase(label(widget.metric))
+                    subtitle.setVisibility(widget.title.equalsIgnoreCase(englishLabel(widget.metric))
                             ? View.GONE : View.VISIBLE);
             }
             if (headingIcon != null) headingIcon.set(readingIcon(widget.metric), selectedLive ? color(widget) : ui.dim);
             if (gauge != null) {
                 gauge.set(selected);
-                subtitle.setVisibility(widget.title.equalsIgnoreCase(label(widget.metric))
+                subtitle.setVisibility(widget.title.equalsIgnoreCase(englishLabel(widget.metric))
                         ? View.GONE : View.VISIBLE);
             }
             if (battery != null) {
@@ -3490,9 +3485,9 @@ public final class DashboardScreen implements AppScreen {
                         rated = values.get("rated_capacity_ah");
                 ArrayList<String> parts = new ArrayList<>();
                 if (cycles != null && cycles.value != null)
-                    parts.add((cycles.number != null ? String.format(Locale.US, "%.0f", cycles.number)
-                            : format(cycles)) + " reported charges");
-                if (rated != null && rated.value != null) parts.add(format(rated) + " rated");
+                    parts.add(T.dashboardReportedCharges(cycles.number != null ? String.format(Locale.US, "%.0f", cycles.number)
+                            : format(cycles)));
+                if (rated != null && rated.value != null) parts.add(T.dashboardRated(format(rated)));
                 healthDetail.setText(android.text.TextUtils.join("\n", parts));
                 healthDetail.setVisibility(parts.isEmpty() ? View.GONE : View.VISIBLE);
             }
@@ -3508,8 +3503,8 @@ public final class DashboardScreen implements AppScreen {
             boolean sameAsHeader = anyStale && headerSeenMs > 0 && when(oldest).equals(when(headerSeenMs));
             boolean aged = !newHome(widget.type) && anyStale && !sameAsHeader;
             footer.setText(aged ? shortAge(oldest) : "");
-            footer.setContentDescription(aged ? "Last seen " + when(oldest) : "");
-            footer.setTooltipText(aged ? "Last seen " + when(oldest) : null);
+            footer.setContentDescription(aged ? T.dashboardLastSeen(when(oldest)) : "");
+            footer.setTooltipText(aged ? T.dashboardLastSeen(when(oldest)) : null);
             footer.setVisibility(aged ? View.VISIBLE : View.GONE);
             if (chargingData != null && chargingData.getVisibility() == View.VISIBLE)
                 footer.setVisibility(View.GONE);
@@ -3543,24 +3538,24 @@ public final class DashboardScreen implements AppScreen {
                 String clock = seconds >= 3600
                         ? String.format(Locale.US, "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
                         : String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60);
-                rideTitle.setText("Recording · " + clock);
+                rideTitle.setText(T.dashboardRecordingClock(clock));
                 rideTitle.setTextColor(ui.danger);
                 rideTitle.setTypeface(ui.semibold());
                 ArrayList<String> parts = new ArrayList<>();
                 if (summary != null && summary.distanceKm != null) parts.add(distance(summary.distanceKm));
                 if (summary != null && summary.measuredThroughputWh != null)
-                    parts.add(String.format(Locale.US, "%.0f Wh", summary.measuredThroughputWh));
-                rideDetail.setText(parts.isEmpty() ? "Measuring…" : android.text.TextUtils.join(" · ", parts));
+                    parts.add(T.fmtQuantity(Fmt.decimal(Locale.US, summary.measuredThroughputWh, 0), T.unitsWattHour()));
+                rideDetail.setText(parts.isEmpty() ? T.dashboardMeasuring() : android.text.TextUtils.join(" · ", parts));
                 rideButton.setContentDescription("Recording " + clock
                         + (parts.isEmpty() ? "" : ", " + android.text.TextUtils.join(", ", parts)) + ". Stop & save");
             } else {
-                rideTitle.setText("Record ride");
+                rideTitle.setText(T.dashboardRecordRide());
                 rideTitle.setTextColor(enabled ? ui.text : ui.muted);
                 rideTitle.setTypeface(ui.medium());
-                rideDetail.setText(saving ? "Saving the last ride…" : connecting ? "Connecting…" : "");
-                rideButton.setContentDescription(saving ? "Record ride. Saving the last ride"
-                        : ready ? "Start recording" : connecting ? "Record ride. Connecting"
-                        : "Record ride. Connect to scooter");
+                rideDetail.setText(saving ? T.dashboardSavingRide() : connecting ? T.dashboardConnecting() : "");
+                rideButton.setContentDescription(saving ? T.dashboardRecordSaving()
+                        : ready ? T.dashboardStartRecording() : connecting ? T.dashboardRecordConnecting()
+                        : T.dashboardRecordConnect());
             }
             // A hidden caption is never re-measured by setText alone; show it when it has words.
             int detail = rideDetail.length() > 0 && !compactRecorder ? View.VISIBLE : View.GONE;
@@ -3575,10 +3570,10 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private String distance(double km) {
-            String metric = String.format(Locale.US, "%.1f km", km),
-                    miles = String.format(Locale.US, "%.1f mi", km / 1.609344);
+            String metric = T.fmtQuantity(Fmt.decimal(Locale.US, km, 1), T.unitsKm()),
+                    miles = T.fmtQuantity(Fmt.decimal(Locale.US, km / 1.609344, 1), T.unitsMi());
             String units = units();
-            return units.equals("km") ? metric : units.equals("dual") ? miles + " / " + metric : miles;
+            return units.equals("km") ? metric : units.equals("dual") ? T.fmtDual(miles, metric) : miles;
         }
 
         /** Side by side, or the details stacked under the percentage for narrow cards. */

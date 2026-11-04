@@ -206,4 +206,30 @@
     <string name="dashboard_overview_percent_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen %2$s</string>
     <string name="dashboard_overview_percent_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
     <string name="dashboard_overview_percent_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen %3$s</string>
+    <!-- Widget bodies -->
+    <!-- Spoken for a reading on a card: %1$s is the reading's name, %2$s its value with unit; the
+         _seen form adds when it was read (%3$s: a date and time) when it is not live. -->
+    <string name="dashboard_reading" volt:screen="Home cards" volt:purpose="accessibility description">%1$s, %2$s</string>
+    <string name="dashboard_reading_seen" volt:screen="Home cards" volt:purpose="accessibility description">%1$s, %2$s, last seen %3$s</string>
+    <!-- Spoken for the drive mode card: %1$s is the mode's name as the scooter reports it; the _seen
+         form adds when it was read (%2$s: a date and time). -->
+    <string name="dashboard_drive_mode_reading" volt:screen="Home drive mode card" volt:purpose="accessibility description">Drive mode, %1$s</string>
+    <string name="dashboard_drive_mode_reading_seen" volt:screen="Home drive mode card" volt:purpose="accessibility description">Drive mode, %1$s, last seen %2$s</string>
+    <!-- The battery health card: %1$s is how many charges the scooter reports (a number). -->
+    <string name="dashboard_reported_charges" volt:screen="Home battery health widget" volt:purpose="value">%1$s reported charges</string>
+    <!-- The battery health card: %1$s is the pack's rated capacity with unit ("15.0 Ah"). -->
+    <string name="dashboard_rated" volt:screen="Home battery health widget" volt:purpose="value">%1$s rated</string>
+    <!-- A card's age footer, spoken and as a tooltip: %1$s is a date and time. -->
+    <string name="dashboard_last_seen" volt:screen="Home cards" volt:purpose="tooltip">Last seen %1$s</string>
+    <!-- The ride recorder's title while recording: %1$s is the elapsed time ("4:05" or "1:04:05"). -->
+    <string name="dashboard_recording_clock" volt:screen="Home ride recorder widget" volt:purpose="title">Recording · %1$s</string>
+    <!-- The ride recorder's detail before distance or energy is known. -->
+    <string name="dashboard_measuring" volt:screen="Home ride recorder widget" volt:purpose="status">Measuring…</string>
+    <string name="dashboard_saving_ride" volt:screen="Home ride recorder widget" volt:purpose="status">Saving the last ride…</string>
+    <string name="dashboard_connecting" volt:screen="Home ride recorder widget" volt:purpose="status">Connecting…</string>
+    <!-- Spoken for the recorder's button when not recording. -->
+    <string name="dashboard_record_saving" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Saving the last ride</string>
+    <string name="dashboard_start_recording" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Start recording</string>
+    <string name="dashboard_record_connecting" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Connecting</string>
+    <string name="dashboard_record_connect" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">Record ride. Connect to scooter</string>
 </resources>
