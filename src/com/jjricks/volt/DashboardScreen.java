@@ -4998,8 +4998,8 @@ public final class DashboardScreen implements AppScreen {
                     : T.dashboardAddType(DashboardConfig.NAMES[i]));
             row.addView(square(widgetIcon(type), present ? ui.dim : ui.accent, 38),
                     new LinearLayout.LayoutParams(ui.dp(38), ui.dp(38)));
-            row.setContentDescription(type.equals("capacity") ? T.dashboardAddTypeExperimental(DashboardConfig.typeName(i))
-                    : T.dashboardAddType(DashboardConfig.typeName(i)));
+            if (type.equals("capacity")) row.setContentDescription(T.dashboardAddTypeExperimental(DashboardConfig.typeName(i)));
+            else row.setContentDescription(T.dashboardAddType(DashboardConfig.typeName(i)));
             // Names only: the icon and name identify each widget without a description line.
             LinearLayout words = row();
             words.setGravity(Gravity.CENTER_VERTICAL);
