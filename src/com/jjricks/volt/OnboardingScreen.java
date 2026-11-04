@@ -1528,9 +1528,14 @@ public final class OnboardingScreen implements AppScreen {
         words.setPadding(0, ui.dp(4), 0, 0);
         TextView name = ui.text("", 15.5f, false); name.setText(rich(heading));
         words.addView(name);
+        // Breadcrumbs (Settings › About phone) read in the layout's direction, not their first letter's.
+        int direction = host.activity().getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
+                ? View.TEXT_DIRECTION_RTL : View.TEXT_DIRECTION_LTR;
+        name.setTextDirection(direction);
         if (detail != null) {
             TextView sub = ui.text("", 13, false); sub.setText(rich(detail)); sub.setTextColor(ui.muted);
             sub.setPadding(0, ui.dp(3), 0, 0); words.addView(sub);
+            sub.setTextDirection(direction);
         }
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(14);
         item.addView(words, wp);
