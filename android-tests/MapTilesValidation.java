@@ -217,9 +217,9 @@ public final class MapTilesValidation extends Instrumentation {
         for (int i = 0; i < older.length; i++) {
             Fixture fixture = new Fixture("older-status-" + i);
             Properties file = new Properties();
-            file.setProperty("until", Long.toString(fixture.now + 60_000));
-            file.setProperty("blocked", "false");
-            if (older[i][0] != null) file.setProperty("status", older[i][0]);
+            file.put("until", Long.toString(fixture.now + 60_000));
+            file.put("blocked", "false");
+            if (older[i][0] != null) file.put("status", older[i][0]);
             save(new File(fixture.provider(), "network.meta"), file);
             String shown = fixture.create(MapSource.USGS_URL).status();
             require(older[i][1].equals(shown), "Older network.meta status " + older[i][0] + " shown as " + shown);
