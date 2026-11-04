@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The Rides screen (batch B15): the live recording card, saved ride history, ride details, the
+  phone sensors sheet, the phone track and route map panel, exports, delete and the two-ride
+  comparison. The English must stay exactly what the source said before the batch (G1, G2),
+  including its known bugs ("1 fixes", "1 percentage points").
+
+  Unit symbols (km, mi, km/h, mph, Wh, W, V, m/s², g, ft, m) stay the international symbols in
+  every language; the words around them are translated. GPS, CSV, JSON, GPX and Bluetooth are
+  names. Ride names the owner typed are never translated; "Ride" is only shown for an unnamed one.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Title of the live card while a ride records, before its name is known. -->
+    <string name="rides_live_recording" volt:screen="Rides, recording" volt:purpose="label">Recording</string>
+    <string name="rides_live_disconnected" volt:screen="Rides, recording" volt:purpose="label">Disconnected</string>
+    <!-- Caption under the live power number, in watts (W is the unit symbol). -->
+    <string name="rides_live_power_now" volt:screen="Rides, recording" volt:purpose="label">W now</string>
+    <!-- Caption under the live battery percentage. -->
+    <string name="rides_live_battery" volt:screen="Rides, recording" volt:purpose="label">battery</string>
+    <!-- Chip: the ride was recovered after the app stopped; the missing stretch is left out of the totals. -->
+    <string name="rides_recovered_gap" volt:screen="Rides, recording" volt:purpose="label">Recovered · gap excluded</string>
+    <string name="rides_live_chart_title" volt:screen="Rides, recording" volt:purpose="label">Live recording chart</string>
+    <string name="rides_chart_power" volt:screen="Rides, recording" volt:purpose="option">Power</string>
+    <string name="rides_chart_speed" volt:screen="Rides, recording" volt:purpose="option">Speed</string>
+    <string name="rides_chart_voltage" volt:screen="Rides, recording" volt:purpose="option">Voltage</string>
+    <!-- Live chart choice: the battery percentage. -->
+    <string name="rides_chart_battery" formatted="false" volt:screen="Rides, recording" volt:purpose="option">Battery %</string>
+    <string name="rides_reconnect" volt:screen="Rides, recording" volt:purpose="label">Reconnect</string>
+    <string name="rides_reconnect_description" volt:screen="Rides, recording" volt:purpose="accessibility description">Reconnect to the scooter</string>
+    <!-- Button that opens the notes of the ride being recorded. -->
+    <string name="rides_notes" volt:screen="Rides, recording" volt:purpose="label">Notes</string>
+    <string name="rides_notes_description" volt:screen="Rides, recording" volt:purpose="accessibility description">Recording notes</string>
+    <!-- Button that ends the ride being recorded and saves it. -->
+    <string name="rides_end" volt:screen="Rides, recording" volt:purpose="label">End</string>
+    <string name="rides_end_description" volt:screen="Rides, recording" volt:purpose="accessibility description">End and save the ride</string>
+    <string name="rides_start_recording" volt:screen="Rides, recording" volt:purpose="label">Start recording</string>
+    <string name="rides_connect_to_record" volt:screen="Rides, recording" volt:purpose="label">Connect to record</string>
+    <string name="rides_phone_sensors" volt:screen="Rides, recording" volt:purpose="label">Phone sensors</string>
+    <string name="rides_compare_two" volt:screen="Rides, recording" volt:purpose="label">Compare two rides</string>
+    <string name="rides_backups" volt:screen="Rides, recording" volt:purpose="label">Ride backups</string>
+    <string name="rides_history" volt:screen="Rides, recording" volt:purpose="label">History</string>
+    <!-- The record button while a simulated scooter runs: tapping it leaves the simulation. -->
+    <string name="rides_simulating_exit" volt:screen="Rides, live recording" volt:purpose="label">Simulating · Exit</string>
+    <!-- The record button while the previous ride's phone sensor files are still being written. -->
+    <string name="rides_saving_sensors_button" volt:screen="Rides, live recording" volt:purpose="label">Saving phone sensors…</string>
+    <string name="rides_simulating_exit_description" volt:screen="Rides, live recording" volt:purpose="accessibility description">Simulating. Exit simulation</string>
+    <!-- Button: saving the ended ride failed; try saving again. -->
+    <string name="rides_retry_save" volt:screen="Rides, live recording" volt:purpose="label">Retry save</string>
+    <string name="rides_toast_exit_simulation" volt:screen="Rides, live recording" volt:purpose="message">Exit simulation first</string>
+    <string name="rides_toast_could_not_stop" volt:screen="Rides, live recording" volt:purpose="error">Couldn\'t stop · still recording</string>
+    <string name="rides_toast_finishing_previous" volt:screen="Rides, live recording" volt:purpose="message">Finishing the previous ride…</string>
+    <string name="rides_toast_storage_unavailable" volt:screen="Rides, live recording" volt:purpose="error">Ride storage is unavailable.</string>
+    <string name="rides_toast_connect_first" volt:screen="Rides, live recording" volt:purpose="message">Connect first</string>
+    <!-- Hint in the empty notes field: examples of what to write about a ride. -->
+    <string name="rides_notes_hint" volt:screen="Rides, live recording" volt:purpose="label">Mode, route, load…</string>
+    <string name="rides_notes_save" volt:screen="Rides, live recording" volt:purpose="label">Save notes</string>
+    <string name="rides_toast_notes_not_saved" volt:screen="Rides, live recording" volt:purpose="message">Ride ended · notes not saved</string>
+    <string name="rides_toast_notes_failed" volt:screen="Rides, live recording" volt:purpose="error">Could not save the notes.</string>
+    <!-- Part of the phone sensors summary, joined with ' · ' and capitalized: GPS is on. -->
+    <string name="rides_sensors_gps" volt:screen="Rides, live recording" volt:purpose="label" volt:dnt="GPS">GPS</string>
+    <!-- Part of the phone sensors summary, joined with ' · ': elevation is recorded (lower case, after GPS). -->
+    <string name="rides_sensors_elevation" volt:screen="Rides, live recording" volt:purpose="label">elevation</string>
+    <!-- Part of the phone sensors summary, joined with ' · ': motion sensors are on (lower case; the first part is capitalized by the app). -->
+    <string name="rides_sensors_motion" volt:screen="Rides, live recording" volt:purpose="label">motion</string>
+    <string name="rides_sensors_scooter_only" volt:screen="Rides, live recording" volt:purpose="label">Scooter readings only</string>
+    <!-- Shown for a saved ride the owner has not named. Never saved as the ride's name. -->
+    <string name="rides_default_name" volt:screen="Rides, live recording" volt:purpose="label">Ride</string>
+    <string name="rides_toast_chart_failed" volt:screen="Rides, live recording" volt:purpose="error">Could not read the ride chart.</string>
+    <!-- Shown in the empty live chart before the first reading. -->
+    <string name="rides_chart_waiting" volt:screen="Rides, live recording" volt:purpose="label">Waiting for readings</string>
+    <!-- A value the ride did not measure. -->
+    <string name="rides_not_measured" volt:screen="Rides, live recording" volt:purpose="label">Not measured</string>
+    <string name="rides_storage_unavailable" volt:screen="Rides, history" volt:purpose="label">Ride storage unavailable</string>
+    <string name="rides_show_more" volt:screen="Rides, history" volt:purpose="label">Show more recordings</string>
+    <string name="rides_no_rides_yet" volt:screen="Rides, history" volt:purpose="label">No rides yet</string>
+    <string name="rides_history_unreadable" volt:screen="Rides, history" volt:purpose="label">Could not read saved rides</string>
+    <string name="rides_compare_two_selected" volt:screen="Rides, history" volt:purpose="label">Compare two rides, 2 rides selected</string>
+    <string name="rides_toast_compare_needs_two" volt:screen="Rides, history" volt:purpose="message">Save two rides to compare them.</string>
+    <string name="rides_compare_title" volt:screen="Rides, history" volt:purpose="label">Compare rides</string>
+    <!-- Button that opens the comparison of the two chosen rides. -->
+    <string name="rides_compare_action" volt:screen="Rides, history" volt:purpose="label">Compare</string>
+    <string name="rides_toast_saved_unreadable" volt:screen="Rides, history" volt:purpose="error">Could not read saved rides.</string>
+    <string name="rides_toast_recording_unavailable" volt:screen="Rides, history" volt:purpose="error">This recording is unavailable.</string>
+    <string name="rides_toast_recording_unreadable" volt:screen="Rides, history" volt:purpose="error">Could not read this recording.</string>
+    <string name="rides_rename" volt:screen="Rides, history" volt:purpose="label">Rename ride</string>
+    <string name="rides_rename_hint" volt:screen="Rides, history" volt:purpose="label">Ride name</string>
+    <string name="rides_rename_save" volt:screen="Rides, history" volt:purpose="label">Save</string>
+    <string name="rides_rename_empty" volt:screen="Rides, history" volt:purpose="label">Enter a name</string>
+    <string name="rides_toast_rename_failed" volt:screen="Rides, history" volt:purpose="error">Could not rename this ride.</string>
+    <string name="rides_journey" volt:screen="Rides, history" volt:purpose="label">Journey</string>
+    <string name="rides_tile_distance" volt:screen="Rides, history" volt:purpose="label">Distance</string>
+    <string name="rides_tile_duration" volt:screen="Rides, history" volt:purpose="label">Duration</string>
+    <string name="rides_tile_avg_speed" volt:screen="Rides, history" volt:purpose="label">Avg speed</string>
+    <string name="rides_tile_max_speed" volt:screen="Rides, history" volt:purpose="label">Max speed</string>
+    <string name="rides_reason_odometer_reset" volt:screen="Rides, history" volt:purpose="reason">Odometer reset</string>
+    <string name="rides_battery_energy" volt:screen="Rides, history" volt:purpose="label">Battery &amp; energy</string>
+    <string name="rides_tile_battery_gain" volt:screen="Rides, history" volt:purpose="label">Battery gain</string>
+    <string name="rides_tile_battery_drop" volt:screen="Rides, history" volt:purpose="label">Battery drop</string>
+    <!-- Tile: energy used per distance travelled. -->
+    <string name="rides_tile_per_distance" volt:screen="Rides, history" volt:purpose="label">Per distance</string>
+    <!-- Tile: total battery energy that flowed during the ride (draw plus input). -->
+    <string name="rides_tile_throughput" volt:screen="Rides, history" volt:purpose="label">Throughput</string>
+    <!-- How much of the ride had power readings, as a percentage. -->
+    <string name="rides_power_coverage" volt:screen="Rides, history" volt:purpose="label">Power coverage</string>
+    <string name="rides_route_finishing" volt:screen="Rides, ride details" volt:purpose="label">Finishing the sensor files</string>
+    <string name="rides_route_loading" volt:screen="Rides, ride details" volt:purpose="label">Loading route</string>
+    <string name="rides_route_unavailable" volt:screen="Rides, ride details" volt:purpose="label">Route unavailable</string>
+    <string name="rides_readings_title" volt:screen="Rides, ride details" volt:purpose="label">Ride readings</string>
+    <string name="rides_loading" volt:screen="Rides, ride details" volt:purpose="label">Loading…</string>
+    <!-- Opens the ride chart full screen. -->
+    <string name="rides_expand" volt:screen="Rides, ride details" volt:purpose="label">Expand</string>
+    <!-- Chart button that fits the whole ride in view. -->
+    <string name="rides_chart_fit" volt:screen="Rides, ride details" volt:purpose="label">Fit</string>
+    <string name="rides_chart_zoom_out" volt:screen="Rides, ride details" volt:purpose="label">Zoom out ride chart</string>
+    <string name="rides_chart_fit_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Fit the whole ride in the chart</string>
+    <string name="rides_chart_zoom_in" volt:screen="Rides, ride details" volt:purpose="label">Zoom in ride chart</string>
+    <string name="rides_chart_no_sample" volt:screen="Rides, ride details" volt:purpose="label">no recorded sample</string>
+    <string name="rides_saving" volt:screen="Rides, ride details" volt:purpose="label">Saving…</string>
+    <string name="rides_saving_sensors" volt:screen="Rides, ride details" volt:purpose="label">Saving phone sensors</string>
+    <string name="rides_all_samples" volt:screen="Rides, ride details" volt:purpose="label">All samples</string>
+    <string name="rides_all_samples_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">All recorded chart samples loaded</string>
+    <string name="rides_toast_low_memory" volt:screen="Rides, ride details" volt:purpose="error">Low memory · preview only</string>
+    <string name="rides_preview_retry" volt:screen="Rides, ride details" volt:purpose="label">Preview · Retry</string>
+    <string name="rides_preview_retry_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Preview only. Retry loading all recorded chart samples</string>
+    <string name="rides_electrical_energy" volt:screen="Rides, ride details" volt:purpose="label">Electrical energy</string>
+    <string name="rides_direction_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Current direction confirmed</string>
+    <string name="rides_direction_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction not confirmed for the whole ride · values are absolute throughput</string>
+    <!-- Short form of rides_draw, used where direction was confirmed only part of the time. -->
+    <string name="rides_draw_short" volt:screen="Rides, ride details" volt:purpose="label">Draw</string>
+    <string name="rides_draw" volt:screen="Rides, ride details" volt:purpose="label">Battery draw</string>
+    <!-- Short form of rides_input, used where direction was confirmed only part of the time. -->
+    <string name="rides_input_short" volt:screen="Rides, ride details" volt:purpose="label">Input</string>
+    <string name="rides_input" volt:screen="Rides, ride details" volt:purpose="label">Battery input / charging</string>
+    <string name="rides_draw_partial" volt:screen="Rides, ride details" volt:purpose="label">Battery draw, confirmed intervals only</string>
+    <string name="rides_input_partial" volt:screen="Rides, ride details" volt:purpose="label">Battery input or charging, confirmed intervals only</string>
+    <string name="rides_net_energy" volt:screen="Rides, ride details" volt:purpose="label">Net measured energy</string>
+    <string name="rides_throughput_per_distance" volt:screen="Rides, ride details" volt:purpose="label">Throughput per distance</string>
+    <string name="rides_net_per_distance" volt:screen="Rides, ride details" volt:purpose="label">Net energy per distance</string>
+    <string name="rides_measurement_quality" volt:screen="Rides, ride details" volt:purpose="label">Measurement quality</string>
+    <string name="rides_observed_recorded" volt:screen="Rides, ride details" volt:purpose="label">Observed / recorded</string>
+    <!-- Time in the ride with no power readings. -->
+    <string name="rides_unobserved_power" volt:screen="Rides, ride details" volt:purpose="label">Unobserved power</string>
+    <string name="rides_samples_gaps" volt:screen="Rides, ride details" volt:purpose="label">Samples / gaps</string>
+    <string name="rides_moving_stationary" volt:screen="Rides, ride details" volt:purpose="label">Moving / stationary</string>
+    <string name="rides_moving_throughput" volt:screen="Rides, ride details" volt:purpose="label">Moving throughput</string>
+    <string name="rides_stationary_throughput" volt:screen="Rides, ride details" volt:purpose="label">Stationary throughput</string>
+    <!-- Energy used while it is unknown whether the scooter was moving. -->
+    <string name="rides_unknown_motion" volt:screen="Rides, ride details" volt:purpose="label">Unknown motion</string>
+    <string name="rides_voltage_min_max" volt:screen="Rides, ride details" volt:purpose="label">Voltage min / max</string>
+    <string name="rides_peak_power" volt:screen="Rides, ride details" volt:purpose="label">Peak power</string>
+    <string name="rides_temperature" volt:screen="Rides, ride details" volt:purpose="label">Temperature</string>
+    <string name="rides_saved_automatically" volt:screen="Rides, ride details" volt:purpose="label">Saved automatically</string>
+    <string name="rides_saved_automatically_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="Bluetooth">Saved automatically after Bluetooth was lost while parked</string>
+    <string name="rides_notes_section" volt:screen="Rides, ride details" volt:purpose="label">Notes</string>
+    <string name="rides_export_csv" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="CSV">Export CSV</string>
+    <string name="rides_export_csv_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="CSV">Export the complete ride sensor CSV</string>
+    <string name="rides_export_json" volt:screen="Rides, ride details" volt:purpose="option" volt:dnt="JSON">Export JSON</string>
+    <string name="rides_export_json_description" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:dnt="JSON">Export ride analysis JSON</string>
+    <string name="rides_delete_ride" volt:screen="Rides, ride details" volt:purpose="label">Delete ride</string>
+    <string name="rides_reason_no_odometer" volt:screen="Rides, ride details" volt:purpose="reason">No odometer distance</string>
+    <string name="rides_reason_too_short" volt:screen="Rides, ride details" volt:purpose="reason">Too short</string>
+    <!-- Why energy per distance is missing: power readings cover under 80% of the ride. -->
+    <string name="rides_reason_low_coverage" formatted="false" volt:screen="Rides, ride details" volt:purpose="reason">Coverage &lt;80%</string>
+    <string name="rides_empty_none" volt:screen="Rides, ride details" volt:purpose="label">No ride to show yet</string>
+    <string name="rides_empty_unreadable" volt:screen="Rides, ride details" volt:purpose="label">Saved rides could not be read</string>
+    <string name="rides_phone_files" volt:screen="Rides, ride details" volt:purpose="label">Phone data files</string>
+    <string name="rides_phone_files_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Export the original phone data files</string>
+    <!-- Chip in the phone sensors sheet while recording: changes apply to the next ride. -->
+    <string name="rides_next_ride" volt:screen="Rides, ride details" volt:purpose="label">Next ride</string>
+    <string name="rides_gps_route" volt:screen="Rides, phone sensors sheet" volt:purpose="label" volt:dnt="GPS">GPS route</string>
+    <string name="rides_gps_route_sub" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Only while recording</string>
+    <string name="rides_barometer" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Barometer elevation</string>
+    <!-- Elevation comes from the phone barometer, chosen automatically. -->
+    <string name="rides_barometer_auto" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Auto</string>
+    <!-- Elevation comes from GPS altitude (the phone has no barometer). -->
+    <string name="rides_barometer_gps" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="GPS">GPS altitude</string>
+    <string name="rides_motion_sensors" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Motion sensors</string>
+    <string name="rides_placement" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Phone placement</string>
+    <!-- Phone placement: mounted on the handlebar. -->
+    <string name="rides_placement_mounted" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Mounted</string>
+    <!-- Phone placement: in a pocket or bag. -->
+    <string name="rides_placement_pocket" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
+    <!-- A small all-caps badge on experimental settings. Keep it very short. -->
+    <string name="rides_lab_badge" volt:screen="Rides, phone sensors sheet" volt:purpose="label">LAB</string>
+    <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Lab, experimental</string>
+    <string name="rides_changes_next_ride" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Changes apply to the next ride</string>
+    <string name="rides_toast_no_browser" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No browser available.</string>
+    <string name="rides_export_raw" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
+    <string name="rides_export_phone_journal" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Phone journal CSV</string>
+    <string name="rides_export_motion_csv" volt:screen="Rides, phone sensors sheet" volt:purpose="option" volt:dnt="CSV">Motion CSV</string>
+    <string name="rides_toast_no_phone_data" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No phone data recorded for this ride.</string>
+    <string name="rides_route" volt:screen="Rides, phone and route" volt:purpose="label">Route</string>
+    <string name="rides_phone_route" volt:screen="Rides, phone and route" volt:purpose="label">Phone &amp; route</string>
+    <string name="rides_tile_gps_distance" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS distance</string>
+    <string name="rides_tile_ascent_descent" volt:screen="Rides, phone and route" volt:purpose="label">Ascent / descent</string>
+    <string name="rides_acceleration" volt:screen="Rides, phone and route" volt:purpose="label">Acceleration</string>
+    <string name="rides_gps_speed_change" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS speed change · min / max</string>
+    <string name="rides_scooter_speed_change" volt:screen="Rides, phone and route" volt:purpose="label">Scooter speed change · min / max</string>
+    <string name="rides_linear_peak" volt:screen="Rides, phone and route" volt:purpose="label">Phone linear acceleration · peak</string>
+    <string name="rides_export_phone" volt:screen="Rides, phone and route" volt:purpose="option">Export phone data</string>
+    <string name="rides_route_selection_description" volt:screen="Rides, phone and route" volt:purpose="accessibility description">Selected route measurements</string>
+    <string name="rides_route_color" volt:screen="Rides, phone and route" volt:purpose="label">Route color</string>
+    <string name="rides_route_color_power" volt:screen="Rides, phone and route" volt:purpose="option">Power</string>
+    <string name="rides_route_color_speed" volt:screen="Rides, phone and route" volt:purpose="option">Speed</string>
+    <string name="rides_route_color_grade" volt:screen="Rides, phone and route" volt:purpose="option">Grade</string>
+    <!-- Route color choice, short for GPS acceleration. -->
+    <string name="rides_route_color_accel" volt:screen="Rides, phone and route" volt:purpose="option">Accel</string>
+    <!-- Route color choice, short for elevation. Keep it very short. -->
+    <string name="rides_route_color_elevation" volt:screen="Rides, phone and route" volt:purpose="option">Elev.</string>
+    <string name="rides_map_zoom_in" volt:screen="Rides, phone and route" volt:purpose="label">Zoom in</string>
+    <string name="rides_map_zoom_out" volt:screen="Rides, phone and route" volt:purpose="label">Zoom out</string>
+    <string name="rides_map_fit" volt:screen="Rides, phone and route" volt:purpose="label">Fit route</string>
+    <string name="rides_map_expand" volt:screen="Rides, phone and route" volt:purpose="label">Expand route map</string>
+    <!-- Route color legend for grade. Keep the numbers and arrows. -->
+    <string name="rides_legend_grade" formatted="false" volt:screen="Rides, phone and route" volt:purpose="legend">Grade · blue −12% → gray 0% → orange +12% · gray dashed: missing</string>
+    <!-- Route color legend for GPS acceleration; m/s² is the unit symbol. -->
+    <string name="rides_legend_accel" volt:screen="Rides, phone and route" volt:purpose="legend" volt:dnt="GPS">GPS acceleration · blue −2 → gray 0 → orange +2 m/s² · gray dashed: missing</string>
+    <string name="rides_map_controls_description" volt:screen="Rides, phone and route" volt:purpose="accessibility description">Route map readings and colors</string>
+    <string name="rides_map_close_expanded" volt:screen="Rides, phone and route" volt:purpose="label">Close expanded route map</string>
+    <string name="rides_legend_speed_none" volt:screen="Rides, phone and route" volt:purpose="legend">Speed not recorded · gray dashed: missing</string>
+    <string name="rides_point_time" volt:screen="Rides, phone and route" volt:purpose="label">Time</string>
+    <string name="rides_point_gps" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS</string>
+    <string name="rides_point_scooter" volt:screen="Rides, phone and route" volt:purpose="label">Scooter</string>
+    <string name="rides_point_power" volt:screen="Rides, phone and route" volt:purpose="label">Power</string>
+    <string name="rides_point_battery" volt:screen="Rides, phone and route" volt:purpose="label">Battery</string>
+    <string name="rides_point_grade" volt:screen="Rides, phone and route" volt:purpose="label">Grade</string>
+    <!-- Readout cell: acceleration from GPS speed. -->
+    <string name="rides_point_gps_accel" volt:screen="Rides, phone and route" volt:purpose="label" volt:dnt="GPS">GPS accel</string>
+    <string name="rides_point_scooter_accel" volt:screen="Rides, phone and route" volt:purpose="label">Scooter accel</string>
+    <!-- Spoken after a readout name when the value is missing (lower case, after a comma). -->
+    <string name="rides_point_not_measured" volt:screen="Rides, phone and route" volt:purpose="label">not measured</string>
+    <string name="rides_export_route_csv" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Route CSV</string>
+    <!-- GPX is a file format name. -->
+    <string name="rides_export_gpx" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="GPX">GPX</string>
+    <string name="rides_export_phone_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Phone raw CSV</string>
+    <string name="rides_export_motion_raw" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="CSV">Motion raw CSV</string>
+    <string name="rides_export_all_json" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
+    <string name="rides_toast_export_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not export this ride.</string>
+    <string name="rides_toast_export_csv_failed" volt:screen="Rides, export and delete" volt:purpose="error" volt:dnt="CSV">Could not export the ride CSV.</string>
+    <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Route and sensor data. Can\'t undo.</string>
+    <!-- Cancels deleting the ride. -->
+    <string name="rides_delete_keep" volt:screen="Rides, export and delete" volt:purpose="label">Keep ride</string>
+    <!-- Confirms deleting the ride. -->
+    <string name="rides_delete_action" volt:screen="Rides, export and delete" volt:purpose="label">Delete</string>
+    <string name="rides_toast_saving_try_again" volt:screen="Rides, export and delete" volt:purpose="message">Saving… try again</string>
+    <string name="rides_toast_deleted" volt:screen="Rides, export and delete" volt:purpose="message">Recording deleted.</string>
+    <string name="rides_toast_delete_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not delete this recording.</string>
+    <string name="rides_toast_select_two" volt:screen="Rides, compare" volt:purpose="message">Select two available recordings.</string>
+    <string name="rides_compare_battery_change" volt:screen="Rides, compare" volt:purpose="label">Battery change</string>
+    <string name="rides_compare_measured_throughput" volt:screen="Rides, compare" volt:purpose="label">Measured throughput</string>
+    <string name="rides_compare_energy_per_distance" volt:screen="Rides, compare" volt:purpose="label">Energy per distance</string>
+    <!-- Number of gaps in the readings of each ride. -->
+    <string name="rides_compare_gaps" volt:screen="Rides, compare" volt:purpose="label">Gaps</string>
+    <string name="rides_compare_min_voltage" volt:screen="Rides, compare" volt:purpose="label">Minimum voltage</string>
+    <string name="rides_view_first" volt:screen="Rides, compare" volt:purpose="label">View first</string>
+    <string name="rides_view_second" volt:screen="Rides, compare" volt:purpose="label">View second</string>
+    <string name="rides_compare_ascent" volt:screen="Rides, compare" volt:purpose="label">Estimated ascent</string>
+    <string name="rides_compare_descent" volt:screen="Rides, compare" volt:purpose="label">Estimated descent</string>
+    <!-- Small line above the comparison title: two rides are compared. -->
+    <string name="rides_compare_sheet_rides" volt:screen="Rides, compare" volt:purpose="label">2 rides</string>
+    <!-- Title of the two-ride comparison. -->
+    <string name="rides_compare_sheet_title" volt:screen="Rides, compare" volt:purpose="label">Compare</string>
+    <string name="rides_toast_compare_failed" volt:screen="Rides, compare" volt:purpose="error">Could not compare the recordings.</string>
+
+</resources>

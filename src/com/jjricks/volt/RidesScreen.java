@@ -122,11 +122,11 @@ public final class RidesScreen implements AppScreen {
         activeCard = vertical(); activeCard.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
         LinearLayout.LayoutParams activeParams = new LinearLayout.LayoutParams(-1, -2); activeParams.bottomMargin = ui.dp(10);
         LinearLayout top = horizontal(); top.setGravity(Gravity.CENTER_VERTICAL);
-        activeTitle = ui.text("Recording", 14, true); activeTitle.setMaxLines(1); activeTitle.setEllipsize(TextUtils.TruncateAt.END);
+        activeTitle = ui.text(T.ridesLiveRecording(), 14, true); activeTitle.setMaxLines(1); activeTitle.setEllipsize(TextUtils.TruncateAt.END);
         Drawable dot = new RecordingDot(); int dotSize = ui.dp(15); dot.setBounds(0, 0, dotSize, dotSize);
         activeTitle.setCompoundDrawablesRelative(dot, null, null, null); activeTitle.setCompoundDrawablePadding(ui.dp(8));
         top.addView(activeTitle, new LinearLayout.LayoutParams(0, -2, 1));
-        disconnectedPill = pill("Disconnected", ui.orange); disconnectedPill.setVisibility(View.GONE);
+        disconnectedPill = pill(T.ridesLiveDisconnected(), ui.orange); disconnectedPill.setVisibility(View.GONE);
         LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(-2, -2); pillParams.leftMargin = ui.dp(8);
         top.addView(disconnectedPill, pillParams);
         activeElapsed = ui.text("0:00", 30, true);
@@ -136,7 +136,7 @@ public final class RidesScreen implements AppScreen {
         TextView[] distance = stat(stats), power = stat(stats), energy = stat(stats), battery = stat(stats);
         activeDistance = distance[0]; activeDistanceUnit = distance[1]; activePower = power[0]; activeEnergy = energy[0];
         activeBattery = battery[0]; activeBatteryUnit = battery[1];
-        power[1].setText("W now"); energy[1].setText("Wh"); activeBatteryUnit.setText("battery");
+        power[1].setText(T.ridesLivePowerNow()); energy[1].setText(T.unitsWattHour()); activeBatteryUnit.setText(T.ridesLiveBattery());
         // The fourth stat carries a battery glyph beside its value.
         LinearLayout batteryValue = horizontal(); batteryValue.setGravity(Gravity.CENTER_VERTICAL);
         LinearLayout batteryColumn = (LinearLayout) activeBattery.getParent(); batteryColumn.removeView(activeBattery);
@@ -153,49 +153,49 @@ public final class RidesScreen implements AppScreen {
             sensorIcons.addView(icon, iconParams);
         }
         sensorIcons.setFocusable(true); quality.addView(sensorIcons);
-        gapChip = pill("", ui.orange); recoveredChip = pill("Recovered · gap excluded", ui.orange);
+        gapChip = pill("", ui.orange); recoveredChip = pill(T.ridesRecoveredGap(), ui.orange);
         coverageText = ui.caption(""); coverageText.setGravity(Gravity.CENTER_VERTICAL); coverageText.setMinHeight(ui.dp(28));
         for (TextView chip : new TextView[]{gapChip, recoveredChip}) { chip.setMinHeight(ui.dp(28)); chip.setVisibility(View.GONE); quality.addView(chip); }
         quality.addView(coverageText); activeCard.addView(quality);
         activeQuality = ui.caption(""); activeQuality.setTextColor(ui.danger); activeQuality.setVisibility(View.GONE); activeCard.addView(activeQuality);
         String[] liveKeys = {"power_w", "speed_kmh", "voltage_v", "battery_percent"};
-        SegmentedSelector liveChips = new SegmentedSelector(ui, "Live recording chart", new String[]{"Power", "Speed", "Voltage", "Battery %"}, choice -> {
+        SegmentedSelector liveChips = new SegmentedSelector(ui, T.ridesLiveChartTitle(), new String[]{T.ridesChartPower(), T.ridesChartSpeed(), T.ridesChartVoltage(), T.ridesChartBattery()}, choice -> {
             chartKey = liveKeys[choice]; preferences.edit().putString("ride_chart_key", chartKey).apply(); refreshActive();
         });
         int liveChoice = 0; for (int i = 0; i < liveKeys.length; i++) if (liveKeys[i].equals(chartKey)) liveChoice = i;
         liveChips.select(liveChoice, false); activeCard.addView(liveChips);
         liveChart = ui.new ChartView(); activeCard.addView(liveChart, new LinearLayout.LayoutParams(-1, ui.dp(180)));
-        reconnectButton = ui.secondaryButton("Reconnect", host::connect); iconize(reconnectButton, "bluetooth");
-        reconnectButton.setContentDescription("Reconnect to the scooter"); reconnectButton.setVisibility(View.GONE);
+        reconnectButton = ui.secondaryButton(T.ridesReconnect(), host::connect); iconize(reconnectButton, "bluetooth");
+        reconnectButton.setContentDescription(T.ridesReconnectDescription()); reconnectButton.setVisibility(View.GONE);
         activeCard.addView(reconnectButton);
-        TextView notes = ui.secondaryButton("Notes", this::recordingNotes); iconize(notes, "note");
-        notes.setContentDescription("Recording notes");
-        endButton = ui.button("End", this::toggleRecording); iconize(endButton, "stop");
-        endButton.setContentDescription("End and save the ride");
+        TextView notes = ui.secondaryButton(T.ridesNotes(), this::recordingNotes); iconize(notes, "note");
+        notes.setContentDescription(T.ridesNotesDescription());
+        endButton = ui.button(T.ridesEnd(), this::toggleRecording); iconize(endButton, "stop");
+        endButton.setContentDescription(T.ridesEndDescription());
         activeCard.addView(pair(notes, endButton));
         page.addView(activeCard, activeParams);
 
         // Record controls: the red record button, then direction and phone sensor rows.
         recordCard = ui.card(); recordCard.setPadding(ui.dp(12), ui.dp(10), ui.dp(12), 0);
-        recordButton = ui.button("Start recording", this::toggleRecording); iconize(recordButton, "record");
+        recordButton = ui.button(T.ridesStartRecording(), this::toggleRecording); iconize(recordButton, "record");
         recordFill = recordButton.getBackground(); recordInk = recordButton.getTextColors();
         LinearLayout.LayoutParams recordParams = new LinearLayout.LayoutParams(-1, -2); recordParams.bottomMargin = ui.dp(4);
         recordCard.addView(recordButton, recordParams);
-        connectButton = ui.secondaryButton("Connect to record", host::connect);
+        connectButton = ui.secondaryButton(T.ridesConnectToRecord(), host::connect);
         LinearLayout.LayoutParams connectParams = new LinearLayout.LayoutParams(-1, -2); connectParams.topMargin = ui.dp(4); connectParams.bottomMargin = ui.dp(4);
         recordCard.addView(connectButton, connectParams);
-        sensorsRow = navRow("sensors", "Phone sensors", "", "", this::phoneOptions); recordCard.addView(sensorsRow.view);
+        sensorsRow = navRow("sensors", M.ridesPhoneSensors(), "", "", this::phoneOptions); recordCard.addView(sensorsRow.view);
         page.addView(recordCard);
 
         LinearLayout comparison = ui.card(); comparison.setPadding(ui.dp(12), ui.dp(4), ui.dp(12), ui.dp(4));
-        compareRow = navRow("compare", "Compare two rides", "", "", this::chooseComparison);
+        compareRow = navRow("compare", M.ridesCompareTwo(), "", "", this::chooseComparison);
         comparison.addView(compareRow.view);
         ui.divider(comparison);
-        Row backups = navRow("download", "Ride backups", "", "", this::rideBackups);
+        Row backups = navRow("download", M.ridesBackups(), "", "", this::rideBackups);
         backups.view.setTag("ride-backups-menu");comparison.addView(backups.view);page.addView(comparison);
 
         LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL);
-        head.addView(ui.sectionLabel("History"), new LinearLayout.LayoutParams(0, -2, 1));
+        head.addView(ui.sectionLabel(T.ridesHistory()), new LinearLayout.LayoutParams(0, -2, 1));
         historyCount = ui.caption(""); historyCount.setGravity(Gravity.END); historyCount.setPadding(ui.dp(4), ui.dp(14), ui.dp(4), ui.dp(6));
         head.addView(historyCount); page.addView(head);
         history = vertical(); page.addView(history);
@@ -217,17 +217,17 @@ public final class RidesScreen implements AppScreen {
         boolean recording = service.isRecording(), ready = service.ble.ready(), saving = service.phoneSaving();
         String error = service.recordingError();
         boolean simulating = service.simulating();
-        label(recordButton, simulating ? "Simulating · Exit" : saving ? "Saving phone sensors…" : "Start recording");
+        label(recordButton, simulating ? T.ridesSimulatingExit() : saving ? T.ridesSavingSensorsButton() : T.ridesStartRecording());
         // While simulating the button looks disabled, but a tap exits simulation.
         recordButton.setEnabled(simulating || (service.rides != null && !saving && ready));
         if (simulating) { recordButton.setBackground(ui.shape(ui.raised, 14, 0)); recordButton.setTextColor(ui.muted); }
         else if (recordButton.getBackground() != recordFill) { recordButton.setBackground(recordFill); recordButton.setTextColor(recordInk); }
-        if (simulating) recordButton.setContentDescription("Simulating. Exit simulation");
+        if (simulating) recordButton.setContentDescription(T.ridesSimulatingExitDescription());
         recordButton.setVisibility(recording ? View.GONE : View.VISIBLE);
         connectButton.setVisibility(!ready && !recording ? View.VISIBLE : View.GONE);
         recordCard.setPadding(recordCard.getPaddingLeft(), recording ? 0 : ui.dp(10), recordCard.getPaddingRight(), 0);
-        label(endButton, error == null ? "End" : "Retry save");
-        endButton.setContentDescription(error == null ? "End and save the ride" : "Retry save");
+        label(endButton, error == null ? T.ridesEnd() : T.ridesRetrySave());
+        endButton.setContentDescription(error == null ? T.ridesEndDescription() : T.ridesRetrySave());
         endButton.setEnabled(service.rides != null && !saving);
         updateSensorsRow();
         if ((activeCard.getVisibility() == View.VISIBLE) != recording && activeCard.getParent() instanceof ViewGroup)
@@ -244,19 +244,19 @@ public final class RidesScreen implements AppScreen {
     /** Home's Record ride; unlike the Rides record button, it never leaves simulation. */
     public void beginRecording() {
         if (service.isRecording()) return;
-        if (service.simulating()) { host.toast("Exit simulation first"); return; }
+        if (service.simulating()) { host.toast(T.ridesToastExitSimulation()); return; }
         toggleRecording();
     }
     private void toggleRecording() {
         if (service.simulating() && !service.isRecording()) { service.setSimulation(false); host.rebuild(); return; }
         if (service.isRecording()) {
             service.stopRide();
-            if (service.isRecording()) host.toast("Couldn't stop · still recording"); else Haptics.confirm(scroll);
+            if (service.isRecording()) host.toast(T.ridesToastCouldNotStop()); else Haptics.confirm(scroll);
             refresh(); return;
         }
-        if (service.phoneSaving()) { host.toast("Finishing the previous ride…"); return; }
-        if (service.rides == null) { host.toast("Ride storage is unavailable."); return; }
-        if (!service.ble.ready()) { host.toast("Connect first"); return; }
+        if (service.phoneSaving()) { host.toast(T.ridesToastFinishingPrevious()); return; }
+        if (service.rides == null) { host.toast(T.ridesToastStorageUnavailable()); return; }
+        if (!service.ble.ready()) { host.toast(T.ridesToastConnectFirst()); return; }
         // Keep permission handling ahead of capture; name the ride at its actual start,
         // since the permission prompt can stay open for an arbitrary amount of time.
         Runnable begin = () -> {
@@ -302,20 +302,20 @@ public final class RidesScreen implements AppScreen {
     private void recordingNotes() {
         if (service.rides == null) return;
         RideStore.Summary recording = service.rides.activeSummary(); if (recording == null) return;
-        EditText notes = input("Mode, route, load…"); notes.setSingleLine(false); notes.setMinLines(3); notes.setMaxLines(8);
+        EditText notes = input(T.ridesNotesHint()); notes.setSingleLine(false); notes.setMinLines(3); notes.setMaxLines(8);
         notes.setGravity(Gravity.TOP | Gravity.START); notes.setText(recording.notes);
         LinearLayout box = dialogBody("Notes for " + (recording.label.isEmpty() ? "this ride" : recording.label), null);
         box.addView(notes);
-        TextView cancel = ui.secondaryButton("Cancel", null), save = ui.button("Save notes", null);
+        TextView cancel = ui.secondaryButton(T.commonCancel(), null), save = ui.button(T.ridesNotesSave(), null);
         LinearLayout buttons = pair(cancel, save); ((LinearLayout.LayoutParams) buttons.getLayoutParams()).topMargin = ui.dp(12);
         box.addView(buttons);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
         cancel.setOnClickListener(v -> dialog.dismiss());
         save.setOnClickListener(v -> {
             dialog.dismiss();
-            if (!recording.id.equals(service.rides.activeId())) { host.toast("Ride ended · notes not saved"); return; }
+            if (!recording.id.equals(service.rides.activeId())) { host.toast(T.ridesToastNotesNotSaved()); return; }
             try { service.rides.setNotes(notes.getText().toString()); }
-            catch (IOException e) { host.toast("Could not save the notes."); }
+            catch (IOException e) { host.toast(T.ridesToastNotesFailed()); }
         });
         show(dialog, DIALOG, null);
     }
@@ -327,15 +327,15 @@ public final class RidesScreen implements AppScreen {
     /** "GPS · elevation · motion": elevation is attached to GPS fixes (barometer when present, else GPS altitude), so it needs GPS. */
     private String sensorSummary() {
         boolean gps = preferences.getBoolean("phone_gps", true), motion = preferences.getBoolean("phone_motion", true);
-        List<String> on = new ArrayList<String>(); if (gps) { on.add("GPS"); on.add("elevation"); } if (motion) on.add("motion");
-        String sub = on.isEmpty() ? "Scooter readings only" : TextUtils.join(" · ", on);
+        List<String> on = new ArrayList<String>(); if (gps) { on.add(T.ridesSensorsGps()); on.add(T.ridesSensorsElevation()); } if (motion) on.add(T.ridesSensorsMotion());
+        String sub = on.isEmpty() ? T.ridesSensorsScooterOnly() : TextUtils.join(" · ", on);
         return Character.toUpperCase(sub.charAt(0)) + sub.substring(1);
     }
     private void refreshActive() {
         if (service.rides == null) return;
         RideStore.Summary s = service.rides.activeSummary(); if (s == null) return;
         String error = service.recordingError();
-        String name = s.label.isEmpty() ? "Ride" : s.label;
+        String name = s.label.isEmpty() ? T.ridesDefaultName() : s.label;
         activeTitle.setText((error == null ? "Recording · " : "Recording needs attention · ") + name);
         activeTitle.setTextColor(ui.danger);
         styleActiveCard(error != null);
@@ -345,7 +345,7 @@ public final class RidesScreen implements AppScreen {
         activeDistance.setText(distance == null ? "—" : distance[0]);
         activeDistanceUnit.setText(distance == null ? ("km".equals(preferences.getString("units", "mi")) ? "km" : "mi") : distance[1]);
         List<RideStore.Point> trend = Collections.emptyList();
-        try { trend = service.rides.trend(s.id, 600); } catch (IOException e) { host.toast("Could not read the ride chart."); }
+        try { trend = service.rides.trend(s.id, 600); } catch (IOException e) { host.toast(T.ridesToastChartFailed()); }
         RideStore.Point latest = trend.isEmpty() ? null : trend.get(trend.size() - 1);
         boolean fresh = latest != null && latest.powerW != null && Math.abs(System.currentTimeMillis() - latest.wallMs) <= 5000;
         activePower.setText(fresh ? String.format(Locale.US, "%.0f", latest.powerW) : "—");
@@ -366,7 +366,7 @@ public final class RidesScreen implements AppScreen {
         reconnectButton.setVisibility(disconnected ? View.VISIBLE : View.GONE);
         activeQuality.setText(error == null ? "" : error);
         activeQuality.setVisibility(error == null ? View.GONE : View.VISIBLE);
-        liveChart.set(points(trend, chartKey), chartUnit(chartKey), chartColor(chartKey), "Waiting for readings");
+        liveChart.set(points(trend, chartKey), chartUnit(chartKey), chartColor(chartKey), T.ridesChartWaiting());
     }
     /** GPS, barometer and motion icons: green when live, orange when the signal is lost or missing, grey when off. */
     private void refreshSensorIcons() {
@@ -385,7 +385,7 @@ public final class RidesScreen implements AppScreen {
     private void describeStat(TextView value, TextView unit) {
         View column = (View) value.getParent();
         TextView caption = unit != null ? unit : (TextView) ((ViewGroup) column).getChildAt(1);
-        column.setContentDescription(("—".contentEquals(value.getText()) ? "Not measured" : value.getText()) + " " + caption.getText());
+        column.setContentDescription(("—".contentEquals(value.getText()) ? T.ridesNotMeasured() : value.getText()) + " " + caption.getText());
     }
     private void styleActiveCard(boolean error) {
         if (activeStyled != null && activeStyled == error) return; activeStyled = error;
@@ -419,7 +419,7 @@ public final class RidesScreen implements AppScreen {
         view.setContentDescription((spoken == null ? "" : spoken + ", ") + reason);
     }
     private void refreshHistory() {
-        if (service.rides == null) { historyCount.setText("Ride storage unavailable"); if (wide) emptyDetail("unavailable"); return; }
+        if (service.rides == null) { historyCount.setText(T.ridesStorageUnavailable()); if (wide) emptyDetail("unavailable"); return; }
         try {
             List<RideStore.Summary> summaries = service.rides.list();
             List<RideStore.Summary> stopped = new ArrayList<RideStore.Summary>();
@@ -444,15 +444,15 @@ public final class RidesScreen implements AppScreen {
                     group.addView(historyRow(stopped.get(i), stopped.get(i).id.equals(chosen))); shown.add(stopped.get(i).id);
                 }
                 history.addView(group);
-                if (stopped.size() > visibleHistory) history.addView(ui.secondaryButton("Show more recordings", () -> { visibleHistory += 20; refreshHistory(); }));
+                if (stopped.size() > visibleHistory) history.addView(ui.secondaryButton(T.ridesShowMore(), () -> { visibleHistory += 20; refreshHistory(); }));
             } else {
                 LinearLayout empty = ui.card(); empty.addView(ui.icon("route", 30, ui.muted), new LinearLayout.LayoutParams(ui.dp(30), ui.dp(30)));
-                TextView copy = ui.text("No rides yet", 18, true); copy.setPadding(0, ui.dp(10), 0, ui.dp(2)); empty.addView(copy);
+                TextView copy = ui.text(T.ridesNoRidesYet(), 18, true); copy.setPadding(0, ui.dp(10), 0, ui.dp(2)); empty.addView(copy);
                 history.addView(empty);
             }
             updateHistoryCount(); loadThumbnails(shown); measureStorage();
             if (wide) refreshDetail(chosen, stopped);
-        } catch (IOException e) { historyCount.setText("Could not read saved rides"); if (wide) emptyDetail("unreadable"); }
+        } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); }
     }
     private void updateHistoryCount() {
         String count = savedCount == 0 ? "No saved rides" : savedCount + (savedCount == 1 ? " ride" : " rides");
@@ -471,7 +471,7 @@ public final class RidesScreen implements AppScreen {
         RouteThumb thumb = new RouteThumb(); thumbs.put(s.id, thumb);
         row.addView(thumb, new LinearLayout.LayoutParams(ui.dp(52), ui.dp(40)));
         LinearLayout words = vertical();
-        String label = s.label.isEmpty() ? "Ride" : s.label;
+        String label = s.label.isEmpty() ? T.ridesDefaultName() : s.label;
         TextView name = ui.text(label, 15, false); name.setMaxLines(1); name.setEllipsize(TextUtils.TruncateAt.END); words.addView(name);
         TextView when = ui.caption(shortDate(s.startWallMs)); when.setPadding(0, ui.dp(4), 0, 0); when.setMaxLines(1); words.addView(when);
         LinearLayout.LayoutParams wordsParams = new LinearLayout.LayoutParams(0, -2, 1); wordsParams.leftMargin = ui.dp(12);
@@ -597,7 +597,7 @@ public final class RidesScreen implements AppScreen {
         compareRow.setEnabled(possible); compareRow.view.setEnabled(true);
         compareRow.update("", !possible ? savedCount + "/2" : selected.size() == 2 ? "2 ✓" : "");
         if (!possible) compareRow.view.setContentDescription("Compare two rides, " + savedCount + " of 2 saved rides");
-        else if (selected.size() == 2) compareRow.view.setContentDescription("Compare two rides, 2 rides selected");
+        else if (selected.size() == 2) compareRow.view.setContentDescription(T.ridesCompareTwoSelected());
     }
     private void saveSelection() { preferences.edit().putStringSet("ride_comparison", new LinkedHashSet<String>(selected)).apply(); }
     /** Pick exactly two saved rides; the choice persists like before. */
@@ -606,12 +606,12 @@ public final class RidesScreen implements AppScreen {
         try {
             List<RideStore.Summary> stopped = new ArrayList<RideStore.Summary>();
             for (RideStore.Summary s : service.rides.list()) if (!s.active) stopped.add(s);
-            if (stopped.size() < 2) { host.toast("Save two rides to compare them."); return; }
+            if (stopped.size() < 2) { host.toast(T.ridesToastCompareNeedsTwo()); return; }
             LinkedHashSet<String> picked = new LinkedHashSet<String>();
             for (String id : selected) for (RideStore.Summary s : stopped) if (s.id.equals(id)) picked.add(id);
             // Title with a live n/2 count; once two are ticked the rest grey out instead of refusing with a toast.
             LinearLayout title = horizontal(); title.setGravity(Gravity.CENTER_VERTICAL); title.setPadding(ui.dp(20), ui.dp(18), ui.dp(20), ui.dp(8));
-            TextView heading = ui.text("Compare rides", 20, true); heading(heading); title.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
+            TextView heading = ui.text(T.ridesCompareTitle(), 20, true); heading(heading); title.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
             TextView count = pill("", ui.accent); title.addView(count);
             LinearLayout list = vertical(); list.setPadding(ui.dp(12), 0, ui.dp(12), ui.dp(8));
             List<CheckBox> boxes = new ArrayList<CheckBox>();
@@ -623,7 +623,7 @@ public final class RidesScreen implements AppScreen {
             };
             for (RideStore.Summary s : stopped) {
                 CheckBox box = new CheckBox(host.activity());
-                box.setText((s.label.isEmpty() ? "Ride" : s.label) + " · " + shortDate(s.startWallMs) + " · " + distance(s.distanceKm));
+                box.setText((s.label.isEmpty() ? T.ridesDefaultName() : s.label) + " · " + shortDate(s.startWallMs) + " · " + distance(s.distanceKm));
                 box.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14 * ui.textScale); box.setTypeface(ui.regular());
                 box.setTextColor(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled}, new int[]{}}, new int[]{ui.dim, ui.text}));
                 box.setButtonTintList(new ColorStateList(new int[][]{new int[]{-android.R.attr.state_enabled}, new int[]{android.R.attr.state_checked}, new int[]{}}, new int[]{ui.dim, ui.accent, ui.muted}));
@@ -634,22 +634,22 @@ public final class RidesScreen implements AppScreen {
             }
             ScrollView listScroll = new ScrollView(host.activity()); listScroll.addView(list);
             AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(title).setView(listScroll)
-                    .setNegativeButton("Cancel", null).setPositiveButton("Compare", (d, which) -> {
+                    .setNegativeButton(T.commonCancel(), null).setPositiveButton(T.ridesCompareAction(), (d, which) -> {
                         selected.clear(); selected.addAll(picked); saveSelection(); updateComparisonActions(); showComparison();
                     }).create();
             holder[0] = dialog; show(dialog, DIALOG, null); sync.run();
-        } catch (IOException e) { host.toast("Could not read saved rides."); }
+        } catch (IOException e) { host.toast(T.ridesToastSavedUnreadable()); }
     }
     private void showDetails(String id) {
         try {
-            RideStore.Summary ride = service.rides.get(id); if (ride == null) { host.toast("This recording is unavailable."); return; }
+            RideStore.Summary ride = service.rides.get(id); if (ride == null) { host.toast(T.ridesToastRecordingUnavailable()); return; }
             ScrollView scroller = new MapTouchScroll(); LinearLayout body = vertical();
             body.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(20)); scroller.addView(body);
             AlertDialog[] holder = new AlertDialog[1];
             buildOverview(body, ride, () -> { if (holder[0] != null) holder[0].dismiss(); });
-            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).setPositiveButton("Done", null).create();
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroller).setPositiveButton(T.commonDone(), null).create();
             holder[0] = dialog; show(dialog, PAGE, null);
-        } catch (IOException e) { host.toast("Could not read this recording."); }
+        } catch (IOException e) { host.toast(T.ridesToastRecordingUnreadable()); }
     }
     private void rideHeading(LinearLayout body, RideStore.Summary ride) {
         body.addView(ui.caption(longDate(ride.startWallMs)));
@@ -658,22 +658,22 @@ public final class RidesScreen implements AppScreen {
         row.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
         TextView rename = ui.secondaryButton("", () -> renameRide(ride.id, title));
         iconize(rename, "edit");
-        rename.setContentDescription("Rename ride"); row.addView(rename, new LinearLayout.LayoutParams(ui.dp(52), ui.dp(52)));
+        rename.setContentDescription(T.ridesRename()); row.addView(rename, new LinearLayout.LayoutParams(ui.dp(52), ui.dp(52)));
         row.setPadding(0, ui.dp(4), 0, ui.dp(12)); body.addView(row);
     }
     private void renameRide(String id, TextView title) {
-        EditText name = input("Ride name"); name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(200)}); name.setText(title.getText()); name.setSelectAllOnFocus(true);
-        LinearLayout box = dialogBody("Rename ride", null); box.addView(name);
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton("Cancel", null).setPositiveButton("Save", null).create();
+        EditText name = input(T.ridesRenameHint()); name.setFilters(new android.text.InputFilter[]{new android.text.InputFilter.LengthFilter(200)}); name.setText(title.getText()); name.setSelectAllOnFocus(true);
+        LinearLayout box = dialogBody(T.ridesRename(), null); box.addView(name);
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null).setPositiveButton(T.ridesRenameSave(), null).create();
         show(dialog, DIALOG, null); dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String clean = name.getText().toString().trim(); if (clean.isEmpty()) { name.setError("Enter a name"); return; }
+            String clean = name.getText().toString().trim(); if (clean.isEmpty()) { name.setError(T.ridesRenameEmpty()); return; }
             dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
             phoneLoader.execute(() -> {
                 try {
                     service.rides.rename(id, clean);
                     host.activity().runOnUiThread(() -> { if (closed || host.activity().isDestroyed()) return; title.setText(clean); historySignature = ""; dialog.dismiss(); refreshHistory(); });
                 } catch (IOException | IllegalArgumentException e) {
-                    host.activity().runOnUiThread(() -> { if (!closed && dialog.isShowing()) { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); host.toast("Could not rename this ride."); } });
+                    host.activity().runOnUiThread(() -> { if (!closed && dialog.isShowing()) { dialog.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(true); host.toast(T.ridesToastRenameFailed()); } });
                 }
             });
         });
@@ -684,14 +684,14 @@ public final class RidesScreen implements AppScreen {
         List<RideStore.Point> measured = service.rides.trend(ride.id, 600);
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false); body.addView(graph);
-        body.addView(ui.sectionLabel("Journey"));
-        List<View> journey = tiles(body, new String[]{"Distance", ride.odometerReset ? "—" : distance(ride.distanceKm), "Duration", duration(ride.elapsedMs),
-                "Avg speed", speed(ride.averageSpeedKmh), "Max speed", speed(ride.maximumSpeedKmh)});
-        if (ride.odometerReset) reasonOnTap(journey.get(0), "Odometer reset");
-        body.addView(ui.sectionLabel("Battery & energy"));
+        body.addView(ui.sectionLabel(T.ridesJourney()));
+        List<View> journey = tiles(body, new String[]{T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), T.ridesTileDuration(), duration(ride.elapsedMs),
+                T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
+        if (ride.odometerReset) reasonOnTap(journey.get(0), T.ridesReasonOdometerReset());
+        body.addView(ui.sectionLabel(T.ridesBatteryEnergy()));
         boolean batteryGain = ride.batteryDropPercent != null && ride.batteryDropPercent < 0;
-        List<View> energy = tiles(body, new String[]{batteryGain ? "Battery gain" : "Battery drop", battery(ride), "Per distance", efficiency(ride),
-                "Throughput", quantity(ride.measuredThroughputWh, "Wh", 2), "Power coverage", percent(ride.electricalCoverage)});
+        List<View> energy = tiles(body, new String[]{batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), T.ridesTilePerDistance(), efficiency(ride),
+                T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, "Wh", 2), T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
         if (ride.batteryDropPercent != null && Double.isFinite(ride.batteryDropPercent))
             energy.get(0).setContentDescription((batteryGain ? "Battery gain, " : "Battery drop, ")
                     + Math.round(Math.abs(ride.batteryDropPercent)) + " percentage points");
@@ -716,15 +716,15 @@ public final class RidesScreen implements AppScreen {
                 @Override public void onViewAttachedToWindow(View v) { run(); }
                 @Override public void onViewDetachedFromWindow(View v) { finished=true;phoneRefreshers.remove(PhoneOverview.this); }
             });
-            placeholder.setContentDescription(service.phoneSaving()?"Finishing the sensor files":"Loading route");
+            placeholder.setContentDescription(service.phoneSaving()?T.ridesRouteFinishing():T.ridesRouteLoading());
             route.post(this);
         }
         @Override public void run() {
             if(closed||finished||loading||!route.isAttachedToWindow())return;
-            if(service.phoneSaving()){placeholder.setContentDescription("Finishing the sensor files");return;}
+            if(service.phoneSaving()){placeholder.setContentDescription(T.ridesRouteFinishing());return;}
             PhoneRideStore store=service.phoneRides;
             if(store==null||(!store.rawCsv(id).isFile()&&!store.motionCsv(id).isFile())){finish();return;}
-            loading=true;placeholder.setContentDescription("Loading route");
+            loading=true;placeholder.setContentDescription(T.ridesRouteLoading());
             phoneLoader.execute(() -> {
             try {
                 PhoneRideStore.Track track = store.load(id);
@@ -742,7 +742,7 @@ public final class RidesScreen implements AppScreen {
                     });
                 });
             } catch (IOException failure) {
-                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();routeNotice(route, "Route unavailable", () -> rawPhoneFallback(id));} });
+                host.activity().runOnUiThread(() -> { if (!closed && !finished && route.isAttachedToWindow()) {finish();routeNotice(route, T.ridesRouteUnavailable(), () -> rawPhoneFallback(id));} });
             }
             });
         }
@@ -786,10 +786,10 @@ public final class RidesScreen implements AppScreen {
         ChartPanel(String rideId, List<RideStore.Point> measured, PhoneRideStore.Track phone, boolean full) {
             super(host.activity()); this.rideId = rideId; this.measured = measured; this.phone = phone; this.full = full;
             setOrientation(VERTICAL); setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12)); setBackground(ui.shape(ui.surface, 20, 0));
-            LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text("Ride readings", 18, true), new LinearLayout.LayoutParams(0, -2, 1));
-            loadStatus = ui.text("Loading…", 12, false); loadStatus.setMinHeight(ui.dp(48)); loadStatus.setGravity(Gravity.CENTER); loadStatus.setPadding(ui.dp(6), 0, ui.dp(6), 0);
+            LinearLayout head = horizontal(); head.setGravity(Gravity.CENTER_VERTICAL); head.addView(ui.text(T.ridesReadingsTitle(), 18, true), new LinearLayout.LayoutParams(0, -2, 1));
+            loadStatus = ui.text(T.ridesLoading(), 12, false); loadStatus.setMinHeight(ui.dp(48)); loadStatus.setGravity(Gravity.CENTER); loadStatus.setPadding(ui.dp(6), 0, ui.dp(6), 0);
             if (full) head.addView(loadStatus);
-            if (!full) { TextView expand = ui.secondaryButton("Expand", this::expand); iconize(expand, "fit"); head.addView(expand, new LinearLayout.LayoutParams(-2, -2)); }
+            if (!full) { TextView expand = ui.secondaryButton(T.ridesExpand(), this::expand); iconize(expand, "fit"); head.addView(expand, new LinearLayout.LayoutParams(-2, -2)); }
             addView(head); choices = new Flow(); choices.setPadding(0, ui.dp(8), 0, ui.dp(10));
             if (full) {
                 // The series choices share this bounded region so enlarged text never
@@ -813,8 +813,8 @@ public final class RidesScreen implements AppScreen {
             readings.addView(inspection, new android.widget.HorizontalScrollView.LayoutParams(-2, -2)); addView(readings);
             chart.setInspectionListener(this::inspect);
             LinearLayout zoom = horizontal(); zoom.setGravity(Gravity.CENTER); zoom.setBaselineAligned(false); zoom.setPadding(0, ui.dp(6), 0, ui.dp(8));
-            TextView[] buttons = {ui.secondaryButton("−", () -> chart.zoomBy(.5)), ui.secondaryButton("Fit", chart::reset), ui.secondaryButton("+", () -> chart.zoomBy(2))};
-            buttons[0].setContentDescription("Zoom out ride chart"); buttons[1].setContentDescription("Fit the whole ride in the chart"); buttons[2].setContentDescription("Zoom in ride chart");
+            TextView[] buttons = {ui.secondaryButton("−", () -> chart.zoomBy(.5)), ui.secondaryButton(T.ridesChartFit(), chart::reset), ui.secondaryButton("+", () -> chart.zoomBy(2))};
+            buttons[0].setContentDescription(T.ridesChartZoomOut()); buttons[1].setContentDescription(T.ridesChartFitDescription()); buttons[2].setContentDescription(T.ridesChartZoomIn());
             for (TextView button : buttons) { LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(0, -2, 1); p.setMargins(ui.dp(3), 0, ui.dp(3), 0); zoom.addView(button, p); } addView(zoom);
             update();
         }
@@ -851,7 +851,7 @@ public final class RidesScreen implements AppScreen {
                 TextView reading = ui.text(RideChartView.sampleValue(s, value), 17, true); reading.setSingleLine(true); cell.addView(reading);
                 boolean available = value != null && value.value != null && Double.isFinite(value.value);
                 TextView stamp = ui.caption(available ? "At " + RideChartView.sampleTime(value.time) : "—"); stamp.setSingleLine(true); cell.addView(stamp);
-                cell.setContentDescription(s.label + ": " + (available ? reading.getText() + ", " + stamp.getText() : "no recorded sample"));
+                cell.setContentDescription(s.label + ": " + (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample()));
                 inspection.addView(cell);
             }
         }
@@ -881,7 +881,7 @@ public final class RidesScreen implements AppScreen {
             if (closed || !isAttachedToWindow() || (expandedDialog != null && expandedDialog.isShowing())) return;
             ChartPanel expanded = new ChartPanel(rideId, measured, phone, true);
             expanded.setMinimumHeight(Math.max(ui.dp(400), host.activity().getWindow().getDecorView().getHeight() - ui.dp(110)));
-            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton("Done", null).create();
+            AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(expanded).setPositiveButton(T.commonDone(), null).create();
             expandedDialog = dialog;
             show(dialog, PAGE, () -> { cancelFullLoad(); expandedDialog = null; if (!closed && isAttachedToWindow()) { chosen.clear(); chosen.addAll(preferences.getStringSet("ride_chart_series", RideChartData.defaults())); update(); } });
             dialog.getWindow().setLayout(-1, -1);
@@ -891,10 +891,10 @@ public final class RidesScreen implements AppScreen {
         void loadFull(ChartPanel expanded, AlertDialog dialog) {
             if (closed || !isAttachedToWindow() || !dialog.isShowing()) return;
             cancelFullLoad(); final int generation = loadGeneration;
-            expanded.loadStatus.setText("Loading…"); expanded.loadStatus.setEnabled(false);
+            expanded.loadStatus.setText(T.ridesLoading()); expanded.loadStatus.setEnabled(false);
             if (service.phoneSaving()) {
                 // The pill reads Saving… while the sensor files finish, then loads by itself.
-                expanded.loadStatus.setText("Saving…"); expanded.loadStatus.setContentDescription("Saving phone sensors");
+                expanded.loadStatus.setText(T.ridesSaving()); expanded.loadStatus.setContentDescription(T.ridesSavingSensors());
                 Runnable retry = new Runnable() { @Override public void run() {
                     if (!dialog.isShowing()) { phoneRefreshers.remove(this); return; }
                     if (!service.phoneSaving()) { phoneRefreshers.remove(this); loadFull(expanded, dialog); }
@@ -914,7 +914,7 @@ public final class RidesScreen implements AppScreen {
                         // The preview sharpens into the full journal rather than swapping in one frame.
                         Motion.page(expanded, 0, () -> {
                             expanded.applyData(prepared);
-                            expanded.loadStatus.setText("All samples"); expanded.loadStatus.setContentDescription("All recorded chart samples loaded");
+                            expanded.loadStatus.setText(T.ridesAllSamples()); expanded.loadStatus.setContentDescription(T.ridesAllSamplesDescription());
                         });
                     });
                 } catch (java.io.InterruptedIOException | java.util.concurrent.CancellationException canceled) {
@@ -925,7 +925,7 @@ public final class RidesScreen implements AppScreen {
                     // other fatal Error types are not blanket-caught.
                     // The pill already says Preview · Retry; only low memory needs a word (Export still has the full journal).
                     String message = failure instanceof RideStore.DetailMemoryException || failure instanceof OutOfMemoryError
-                            ? "Low memory · preview only" : null;
+                            ? T.ridesToastLowMemory() : null;
                     host.activity().runOnUiThread(() -> { if (currentLoad(generation, expanded, dialog)) { fullLoad = null; fullLoadFailed(expanded, message); } });
                 }
             });
@@ -935,8 +935,8 @@ public final class RidesScreen implements AppScreen {
                     && isAttachedToWindow() && expanded.isAttachedToWindow() && !host.activity().isDestroyed();
         }
         void fullLoadFailed(ChartPanel expanded, String message) {
-            expanded.loadStatus.setText("Preview · Retry"); expanded.loadStatus.setEnabled(true);
-            expanded.loadStatus.setContentDescription("Preview only. Retry loading all recorded chart samples"); if (message != null) host.toast(message);
+            expanded.loadStatus.setText(T.ridesPreviewRetry()); expanded.loadStatus.setEnabled(true);
+            expanded.loadStatus.setContentDescription(T.ridesPreviewRetryDescription()); if (message != null) host.toast(message);
         }
         void cancelFullLoad() {
             loadGeneration++; if (fullLoad != null) { fullLoad.cancel(true); fullLoad = null; }
@@ -950,62 +950,62 @@ public final class RidesScreen implements AppScreen {
     private void detailSections(LinearLayout body, String id, RideStore.Summary s, List<RideStore.Point> measured, Runnable afterDelete) {
         // Section label with a Direction ✓ / ? chip that gives its reason on tap.
         LinearLayout energyHead = horizontal(); energyHead.setGravity(Gravity.CENTER_VERTICAL);
-        energyHead.addView(ui.sectionLabel("Electrical energy"));
+        energyHead.addView(ui.sectionLabel(T.ridesElectricalEnergy()));
         TextView direction = pill(s.directionConfirmed ? "Direction ✓" : "Direction ?", s.directionConfirmed ? ui.ok : ui.orange);
         // A 48dp touch target around a compact pill.
         direction.setBackground(new InsetDrawable(direction.getBackground(), 0, ui.dp(9), 0, ui.dp(9))); direction.setMinHeight(ui.dp(48));
-        reasonOnTap(direction, s.directionConfirmed ? "Current direction confirmed" : "Direction not confirmed for the whole ride · values are absolute throughput");
+        reasonOnTap(direction, s.directionConfirmed ? T.ridesDirectionConfirmed() : T.ridesDirectionUnconfirmed());
         LinearLayout.LayoutParams directionParams = new LinearLayout.LayoutParams(-2, -2); directionParams.leftMargin = ui.dp(4); directionParams.topMargin = ui.dp(4);
         energyHead.addView(direction, directionParams); body.addView(energyHead);
         LinearLayout energy = ui.groupCard();
         boolean partialDirection = s.confirmedDirectionCoverageMs > 0 && !s.directionConfirmed;
-        LinearLayout draw = valueRow(energy, partialDirection ? "Draw" : "Battery draw", quantity(s.drawWh, "Wh", 2));
-        LinearLayout input = valueRow(energy, partialDirection ? "Input" : "Battery input / charging", quantity(s.returnedWh, "Wh", 2));
+        LinearLayout draw = valueRow(energy, partialDirection ? T.ridesDrawShort() : T.ridesDraw(), quantity(s.drawWh, "Wh", 2));
+        LinearLayout input = valueRow(energy, partialDirection ? T.ridesInputShort() : T.ridesInput(), quantity(s.returnedWh, "Wh", 2));
         if (partialDirection) {
-            partialGlyph(draw, "Battery draw, confirmed intervals only"); partialGlyph(input, "Battery input or charging, confirmed intervals only");
+            partialGlyph(draw, T.ridesDrawPartial()); partialGlyph(input, T.ridesInputPartial());
         }
-        valueRow(energy, "Net measured energy", quantity(s.netConsumptionWh, "Wh", 2));
-        reasonOnTap(valueRow(energy, s.netWhPerKm == null ? "Throughput per distance" : "Net energy per distance", efficiency(s)), efficiencyReason(s));
+        valueRow(energy, T.ridesNetEnergy(), quantity(s.netConsumptionWh, "Wh", 2));
+        reasonOnTap(valueRow(energy, s.netWhPerKm == null ? T.ridesThroughputPerDistance() : T.ridesNetPerDistance(), efficiency(s)), efficiencyReason(s));
         body.addView(energy);
         if (partialDirection) directionSplit(body, s.confirmedDirectionCoverageMs, s.unconfirmedDirectionCoverageMs);
 
-        body.addView(ui.sectionLabel("Measurement quality"));
+        body.addView(ui.sectionLabel(T.ridesMeasurementQuality()));
         LinearLayout quality = ui.groupCard();
-        valueRow(quality, "Power coverage", percent(s.electricalCoverage));
-        valueRow(quality, "Observed / recorded", duration(s.electricalCoverageMs) + " / " + duration(s.elapsedMs));
-        valueRow(quality, "Unobserved power", duration(s.skippedElectricalMs));
-        valueRow(quality, "Samples / gaps", String.format(Locale.US, "%,d / %,d", s.sampleCount, s.gapCount));
-        valueRow(quality, "Moving / stationary", duration(s.movingMs) + " / " + duration(s.stationaryMs));
-        valueRow(quality, "Moving throughput", quantity(s.movingThroughputWh, "Wh", 2));
-        valueRow(quality, "Stationary throughput", quantity(s.stationaryThroughputWh, "Wh", 2));
-        valueRow(quality, "Unknown motion", quantity(s.unknownMotionThroughputWh, "Wh", 2));
-        valueRow(quality, "Voltage min / max", quantity(s.minimumVoltageV, "V", 2) + " / " + quantity(s.maximumVoltageV, "V", 2));
-        valueRow(quality, "Peak power", quantity(s.peakAbsolutePowerW, "W", 0));
-        valueRow(quality, "Temperature", temperature(s.minimumTemperatureC) + " / " + temperature(s.maximumTemperatureC));
+        valueRow(quality, T.ridesPowerCoverage(), percent(s.electricalCoverage));
+        valueRow(quality, T.ridesObservedRecorded(), duration(s.electricalCoverageMs) + " / " + duration(s.elapsedMs));
+        valueRow(quality, T.ridesUnobservedPower(), duration(s.skippedElectricalMs));
+        valueRow(quality, T.ridesSamplesGaps(), String.format(Locale.US, "%,d / %,d", s.sampleCount, s.gapCount));
+        valueRow(quality, T.ridesMovingStationary(), duration(s.movingMs) + " / " + duration(s.stationaryMs));
+        valueRow(quality, T.ridesMovingThroughput(), quantity(s.movingThroughputWh, "Wh", 2));
+        valueRow(quality, T.ridesStationaryThroughput(), quantity(s.stationaryThroughputWh, "Wh", 2));
+        valueRow(quality, T.ridesUnknownMotion(), quantity(s.unknownMotionThroughputWh, "Wh", 2));
+        valueRow(quality, T.ridesVoltageMinMax(), quantity(s.minimumVoltageV, "V", 2) + " / " + quantity(s.maximumVoltageV, "V", 2));
+        valueRow(quality, T.ridesPeakPower(), quantity(s.peakAbsolutePowerW, "W", 0));
+        valueRow(quality, T.ridesTemperature(), temperature(s.minimumTemperatureC) + " / " + temperature(s.maximumTemperatureC));
         body.addView(quality);
         if (s.recovered) {
-            TextView recovered = pill("Recovered · gap excluded", ui.orange); recovered.setMinHeight(ui.dp(28));
+            TextView recovered = pill(T.ridesRecoveredGap(), ui.orange); recovered.setMinHeight(ui.dp(28));
             LinearLayout.LayoutParams recoveredParams = new LinearLayout.LayoutParams(-2, -2); recoveredParams.leftMargin = ui.dp(4); recoveredParams.bottomMargin = ui.dp(10);
             body.addView(recovered, recoveredParams);
         }
         if (s.automaticStop) {
-            TextView automatic = pill("Saved automatically", ui.blue); automatic.setMinHeight(ui.dp(28));
-            automatic.setContentDescription("Saved automatically after Bluetooth was lost while parked");
+            TextView automatic = pill(T.ridesSavedAutomatically(), ui.blue); automatic.setMinHeight(ui.dp(28));
+            automatic.setContentDescription(T.ridesSavedAutomaticallyDescription());
             LinearLayout.LayoutParams automaticParams = new LinearLayout.LayoutParams(-2, -2); automaticParams.leftMargin = ui.dp(4); automaticParams.bottomMargin = ui.dp(10);
             body.addView(automatic, automaticParams);
         }
 
-        if (!s.notes.isEmpty()) { body.addView(ui.sectionLabel("Notes")); LinearLayout notes = ui.card(); notes.addView(ui.text(s.notes, 14, false)); body.addView(notes); }
+        if (!s.notes.isEmpty()) { body.addView(ui.sectionLabel(T.ridesNotesSection())); LinearLayout notes = ui.card(); notes.addView(ui.text(s.notes, 14, false)); body.addView(notes); }
 
-        TextView csv = ui.secondaryButton("Export CSV", () -> exportCsv(id)); iconize(csv, "download");
-        csv.setContentDescription("Export the complete ride sensor CSV");
-        TextView json = ui.secondaryButton("Export JSON", () -> host.saveText("ride-" + id.substring(0, 8) + "-analysis.json", "application/json", s.toJson())); iconize(json, "download");
-        json.setContentDescription("Export ride analysis JSON");
+        TextView csv = ui.secondaryButton(T.ridesExportCsv(), () -> exportCsv(id)); iconize(csv, "download");
+        csv.setContentDescription(T.ridesExportCsvDescription());
+        TextView json = ui.secondaryButton(T.ridesExportJson(), () -> host.saveText("ride-" + id.substring(0, 8) + "-analysis.json", "application/json", s.toJson())); iconize(json, "download");
+        json.setContentDescription(T.ridesExportJsonDescription());
         body.addView(pair(csv, json));
-        TextView delete = ui.dangerButton("Delete ride", () -> confirmDelete(id, s.label, afterDelete));
+        TextView delete = ui.dangerButton(T.ridesDeleteRide(), () -> confirmDelete(id, s.label, afterDelete));
         iconize(delete, "trash"); body.addView(delete);
         // While the sensor files finish, Delete is disabled and says so.
-        Runnable deleteState = () -> { boolean saving = service.phoneSaving(); label(delete, saving ? "Saving…" : "Delete ride"); delete.setEnabled(!saving); };
+        Runnable deleteState = () -> { boolean saving = service.phoneSaving(); label(delete, saving ? T.ridesSaving() : T.ridesDeleteRide()); delete.setEnabled(!saving); };
         deleteState.run(); phoneRefreshers.add(deleteState);
         delete.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(View v) { if (!phoneRefreshers.contains(deleteState)) phoneRefreshers.add(deleteState); deleteState.run(); }
@@ -1015,11 +1015,11 @@ public final class RidesScreen implements AppScreen {
     /** Why per-distance energy shows "—", or null when it has a value. */
     private static String efficiencyReason(RideStore.Summary s) {
         if ((s.netWhPerKm == null ? s.throughputWhPerKm : s.netWhPerKm) != null) return null;
-        if (s.odometerReset) return "Odometer reset";
-        if (s.distanceKm == null) return "No odometer distance";
-        if (s.distanceKm + 1e-9 < RideStore.MIN_EFFICIENCY_DISTANCE_KM) return "Too short";
-        if (s.electricalCoverage < RideStore.MIN_EFFICIENCY_COVERAGE) return "Coverage <80%";
-        return "Not measured";
+        if (s.odometerReset) return T.ridesReasonOdometerReset();
+        if (s.distanceKm == null) return T.ridesReasonNoOdometer();
+        if (s.distanceKm + 1e-9 < RideStore.MIN_EFFICIENCY_DISTANCE_KM) return T.ridesReasonTooShort();
+        if (s.electricalCoverage < RideStore.MIN_EFFICIENCY_COVERAGE) return T.ridesReasonLowCoverage();
+        return T.ridesNotMeasured();
     }
     /** Marks a Draw / Input row as covering only the confirmed-direction part of the ride. */
     private void partialGlyph(LinearLayout row, String spoken) {
@@ -1078,20 +1078,20 @@ public final class RidesScreen implements AppScreen {
         LinearLayout empty = ui.card(); empty.setGravity(Gravity.CENTER_HORIZONTAL); empty.setPadding(ui.dp(20), ui.dp(28), ui.dp(20), ui.dp(28));
         empty.addView(ui.icon("route", 30, ui.muted), new LinearLayout.LayoutParams(ui.dp(30), ui.dp(30)));
         boolean none = reason.equals("none") || reason.equals("missing");
-        TextView title = ui.text(none ? "No ride to show yet" : reason.equals("unavailable") ? "Ride storage unavailable" : "Saved rides could not be read", 18, true);
+        TextView title = ui.text(none ? T.ridesEmptyNone() : reason.equals("unavailable") ? T.ridesStorageUnavailable() : T.ridesEmptyUnreadable(), 18, true);
         title.setGravity(Gravity.CENTER); title.setPadding(0, ui.dp(10), 0, 0); heading(title); empty.addView(title);
         detailPane.addView(empty);
     }
     /** Wide layout: the selected ride inline: route map first, then stat tiles and the rest of the details page. */
     private void buildDetail(RideStore.Summary ride) {
         try { buildOverview(detailPane, ride, null); }
-        catch (IOException e) { note(detailPane, "Could not read this recording."); }
+        catch (IOException e) { note(detailPane, T.ridesToastRecordingUnreadable()); }
     }
     private void routeNotice(LinearLayout parent, String text, Runnable files) {
         LinearLayout card = ui.card(); card.addView(ui.caption(text));
         if (files != null) {
-            TextView button = ui.secondaryButton("Phone data files", files); iconize(button, "download");
-            button.setContentDescription("Export the original phone data files"); card.addView(button);
+            TextView button = ui.secondaryButton(T.ridesPhoneFiles(), files); iconize(button, "download");
+            button.setContentDescription(T.ridesPhoneFilesDescription()); card.addView(button);
         }
         parent.addView(card);
     }
@@ -1107,19 +1107,19 @@ public final class RidesScreen implements AppScreen {
     private void phoneOptions(Runnable dismissed) {
         LinearLayout content = vertical(); content.setPadding(ui.dp(16), 0, ui.dp(16), ui.dp(20));
         // While recording, a Next ride tag says the changes apply to the next recording.
-        View close = sheetHeader(content, "Phone sensors", service.isRecording() ? "Next ride" : null);
+        View close = sheetHeader(content, T.ridesPhoneSensors(), service.isRecording() ? T.ridesNextRide() : null);
         LinearLayout sensors = ui.groupCard();
-        switchRow(sensors, "pin", "GPS route", "Only while recording", "phone_gps", true);
+        switchRow(sensors, "pin", T.ridesGpsRoute(), T.ridesGpsRouteSub(), "phone_gps", true);
         ui.divider(sensors);
         android.hardware.SensorManager sensorManager = host.activity().getSystemService(android.hardware.SensorManager.class);
         boolean barometer = sensorManager != null && sensorManager.getDefaultSensor(android.hardware.Sensor.TYPE_PRESSURE) != null;
-        infoRow(sensors, "wave", "Barometer elevation", null, barometer ? "Auto" : "GPS altitude");
+        infoRow(sensors, "wave", T.ridesBarometer(), null, barometer ? T.ridesBarometerAuto() : T.ridesBarometerGps());
         ui.divider(sensors);
-        switchRow(sensors, "motion", "Motion sensors", null, "phone_motion", true);
+        switchRow(sensors, "motion", T.ridesMotionSensors(), null, "phone_motion", true);
         labBadge((LinearLayout) ((ViewGroup) sensors.getChildAt(sensors.getChildCount() - 1)).getChildAt(1));
         content.addView(sensors);
-        TextView placementLabel = ui.caption("Phone placement"); placementLabel.setPadding(ui.dp(4), ui.dp(4), 0, ui.dp(6)); content.addView(placementLabel);
-        SegmentedSelector placement = new SegmentedSelector(ui, "Phone placement", new String[]{"Mounted", "Pocket"},
+        TextView placementLabel = ui.caption(T.ridesPlacement()); placementLabel.setPadding(ui.dp(4), ui.dp(4), 0, ui.dp(6)); content.addView(placementLabel);
+        SegmentedSelector placement = new SegmentedSelector(ui, T.ridesPlacement(), new String[]{T.ridesPlacementMounted(), T.ridesPlacementPocket()},
                 choice -> preferences.edit().putString("phone_placement", choice == 0 ? "mounted" : "pocket").apply());
         placement.select("mounted".equals(preferences.getString("phone_placement", "pocket")) ? 0 : 1, false);
         content.addView(placement);
@@ -1130,9 +1130,9 @@ public final class RidesScreen implements AppScreen {
     }
     /** The orange LAB badge More uses, placed after a row or section title. */
     private TextView labBadge() {
-        TextView badge = ui.text("LAB", 10.5f, true); badge.setTypeface(ui.bold()); badge.setLetterSpacing(0.08f); badge.setTextColor(ui.orange);
+        TextView badge = ui.text(T.ridesLabBadge(), 10.5f, true); badge.setTypeface(ui.bold()); badge.setLetterSpacing(0.08f); badge.setTextColor(ui.orange);
         badge.setPadding(ui.dp(7), ui.dp(2), ui.dp(7), ui.dp(2)); badge.setMaxLines(1);
-        badge.setBackground(ui.shape(Color.TRANSPARENT, 6, Ui.withAlpha(ui.orange, 120))); badge.setContentDescription("Lab, experimental");
+        badge.setBackground(ui.shape(Color.TRANSPARENT, 6, Ui.withAlpha(ui.orange, 120))); badge.setContentDescription(T.ridesLabDescription());
         return badge;
     }
     /** Replaces a row's title with the same title followed by the LAB badge. */
@@ -1163,14 +1163,14 @@ public final class RidesScreen implements AppScreen {
         else {
             row.addView(heading);
             TextView chip = pill(tag, ui.blue); LinearLayout.LayoutParams chipParams = new LinearLayout.LayoutParams(-2, -2); chipParams.leftMargin = ui.dp(10);
-            chip.setContentDescription("Changes apply to the next ride");
+            chip.setContentDescription(T.ridesChangesNextRide());
             row.addView(chip, chipParams); row.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, 1, 1));
         }
         FrameLayout close = new FrameLayout(host.activity());
         GradientDrawable disc = new GradientDrawable(); disc.setShape(GradientDrawable.OVAL); disc.setColor(ui.raised);
         close.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), new InsetDrawable(disc, ui.dp(4)), null));
         close.addView(ui.icon("close", 16, ui.text), new FrameLayout.LayoutParams(ui.dp(16), ui.dp(16), Gravity.CENTER));
-        close.setContentDescription("Close"); close.setFocusable(true); close.setClickable(true);
+        close.setContentDescription(T.commonClose()); close.setFocusable(true); close.setClickable(true);
         row.addView(close, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         content.addView(row);
         return close;
@@ -1211,18 +1211,18 @@ public final class RidesScreen implements AppScreen {
     }
     private void openWeb(String url) {
         try { host.activity().startActivity(new android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))); }
-        catch (android.content.ActivityNotFoundException e) { host.toast("No browser available."); }
+        catch (android.content.ActivityNotFoundException e) { host.toast(T.ridesToastNoBrowser()); }
     }
     private void rawPhoneFallback(String id) {
-        show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, "Export raw files"))
-                .setItems(new String[]{"Phone journal CSV", "Motion CSV"}, (d, which) -> {
+        show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, T.ridesExportRaw()))
+                .setItems(new String[]{T.ridesExportPhoneJournal(), T.ridesExportMotionCsv()}, (d, which) -> {
                     File file = which == 0 ? service.phoneRides.rawCsv(id) : service.phoneRides.motionCsv(id);
-                    if (!file.isFile()) { host.toast("No phone data recorded for this ride."); return; }
+                    if (!file.isFile()) { host.toast(T.ridesToastNoPhoneData()); return; }
                     host.saveFile("ride-" + id.substring(0, Math.min(8, id.length())) + (which == 0 ? "-phone.csv" : "-motion.csv"), "text/csv", file);
-                }).setNegativeButton("Close", null).create(), DIALOG, null);
+                }).setNegativeButton(T.commonClose(), null).create(), DIALOG, null);
     }
     private void presentPhoneRide(PhoneRideStore.Track track) {
-        String rideName = "Phone sensors";
+        String rideName = T.ridesPhoneSensors();
         try { RideStore.Summary summary = service.rides == null ? null : service.rides.get(track.id); if (summary != null && !summary.label.isEmpty()) rideName = summary.label; }
         catch (IOException | RuntimeException ignored) { }
         ScrollView scroller = new MapTouchScroll(); LinearLayout outer = vertical(); scroller.addView(outer);
@@ -1230,7 +1230,7 @@ public final class RidesScreen implements AppScreen {
         PhoneRide ride = phoneRide(track, content, content, false);
         outer.addView(ride.frame, 0, new LinearLayout.LayoutParams(-1, ui.dp(340)));
         RouteMapView map = ride.map;
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(rideName, "Route")).setView(scroller).setPositiveButton("Done", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(rideName, T.ridesRoute())).setView(scroller).setPositiveButton(T.commonDone(), null).create();
         show(dialog, PAGE, () -> { maps.remove(map); map.close(); });
     }
     /** The inline and expanded maps own separate tile work, but share the same recorded route. */
@@ -1244,24 +1244,24 @@ public final class RidesScreen implements AppScreen {
     }
     private PhoneRide phoneRide(PhoneRideStore.Track track, LinearLayout top, LinearLayout bottom, boolean inline) {
         PhoneRide ride = mapPanel(track, top, inline, false);
-        bottom.addView(ui.sectionLabel("Phone & route"));
+        bottom.addView(ui.sectionLabel(T.ridesPhoneRoute()));
         int dropped = track.rejectedLocationCount + track.rejectedElevationCount;
         TextView fixes = ui.caption(track.locationCount == 0 ? "No GPS fixes" : String.format(Locale.US, "%,d fixes", track.locationCount) + (dropped > 0 ? String.format(Locale.US, " · %,d dropped", dropped) : ""));
         fixes.setContentDescription(track.status); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
         // Grade and ascent are smoothed estimates: ≈ marks them.
-        tiles(bottom, new String[]{"GPS distance", distance(track.distanceMeters == null ? null : track.distanceMeters / 1000),
-                "Ascent / descent", (track.ascentMeters == null ? "" : "≈") + height(track.ascentMeters) + " / " + height(track.descentMeters)});
+        tiles(bottom, new String[]{T.ridesTileGpsDistance(), distance(track.distanceMeters == null ? null : track.distanceMeters / 1000),
+                T.ridesTileAscentDescent(), (track.ascentMeters == null ? "" : "≈") + height(track.ascentMeters) + " / " + height(track.descentMeters)});
         LinearLayout accelerationHead = horizontal(); accelerationHead.setGravity(Gravity.CENTER_VERTICAL);
-        accelerationHead.addView(ui.sectionLabel("Acceleration"));
+        accelerationHead.addView(ui.sectionLabel(T.ridesAcceleration()));
         LinearLayout.LayoutParams labParams = new LinearLayout.LayoutParams(-2, -2); labParams.leftMargin = ui.dp(4); labParams.topMargin = ui.dp(8);
         accelerationHead.addView(labBadge(), labParams); bottom.addView(accelerationHead);
         LinearLayout movement = ui.groupCard();
-        valueRow(movement, "GPS speed change · min / max", acceleration(track.minGpsAccelerationMps2) + " / " + acceleration(track.maxGpsAccelerationMps2));
-        valueRow(movement, "Scooter speed change · min / max", acceleration(track.minScooterAccelerationMps2) + " / " + acceleration(track.maxScooterAccelerationMps2));
-        valueRow(movement, "Phone linear acceleration · peak", acceleration(track.maxLinearAccelerationMps2));
+        valueRow(movement, T.ridesGpsSpeedChange(), acceleration(track.minGpsAccelerationMps2) + " / " + acceleration(track.maxGpsAccelerationMps2));
+        valueRow(movement, T.ridesScooterSpeedChange(), acceleration(track.minScooterAccelerationMps2) + " / " + acceleration(track.maxScooterAccelerationMps2));
+        valueRow(movement, T.ridesLinearPeak(), acceleration(track.maxLinearAccelerationMps2));
         bottom.addView(movement);
         note(bottom, ("mounted".equals(track.placement) ? "Mounted" : "Pocket") + " · " + String.format(Locale.US, "%,d", track.motionSampleCount) + " samples");
-        TextView export = ui.secondaryButton("Export phone data", () -> exportPhone(track)); iconize(export, "download");
+        TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, "download");
         bottom.addView(export);
         return ride;
     }
@@ -1270,7 +1270,7 @@ public final class RidesScreen implements AppScreen {
     private PhoneRide mapPanel(PhoneRideStore.Track track, LinearLayout top, boolean inline, boolean full) {
         // Readings appear only after a route hit, and leave no empty row when inspection is dismissed.
         Flow selection = new Flow(); selection.setPadding(0, ui.dp(2), 0, ui.dp(10)); selection.setVisibility(View.GONE);
-        selection.setContentDescription("Selected route measurements");
+        selection.setContentDescription(T.ridesRouteSelectionDescription());
         MapSource source = MapSource.load(preferences);
         RouteMapView map = new RouteMapView(ui, track, source.url, p -> pointReadout(selection, p));
         if (full) map.setMinimumHeight(0);
@@ -1293,7 +1293,7 @@ public final class RidesScreen implements AppScreen {
         mapStatus.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), 0); top.addView(mapStatus);
         map.setStatusListener(message -> { mapStatus.setText(message); mapStatus.setVisibility(message.isEmpty() ? View.GONE : View.VISIBLE); });
         LegendView legend = new LegendView(); legend.show(track, "power");
-        SegmentedSelector colors = new SegmentedSelector(ui, "Route color", new String[]{"Power", "Speed", "Grade", "Accel", "Elev."}, choice -> {
+        SegmentedSelector colors = new SegmentedSelector(ui, T.ridesRouteColor(), new String[]{T.ridesRouteColorPower(), T.ridesRouteColorSpeed(), T.ridesRouteColorGrade(), T.ridesRouteColorAccel(), T.ridesRouteColorElevation()}, choice -> {
             String key = ROUTE_METRICS[choice]; map.setMetric(key);
             legend.show(track, key);
         }); colors.select(0, false);
@@ -1305,16 +1305,16 @@ public final class RidesScreen implements AppScreen {
         }
         PhoneRide ride = new PhoneRide(mapFrame, map, colors, legend, track);
         LinearLayout controls = vertical();
-        controls.addView(mapButton("plus", "Zoom in", () -> map.zoomBy(1)));
-        controls.addView(mapButton("minus", "Zoom out", () -> map.zoomBy(-1)));
-        controls.addView(full ? mapButton("center", "Fit route", map::fitRoute)
-                : mapButton("fit", "Expand route map", () -> expandMap(ride)));
+        controls.addView(mapButton("plus", T.ridesMapZoomIn(), () -> map.zoomBy(1)));
+        controls.addView(mapButton("minus", T.ridesMapZoomOut(), () -> map.zoomBy(-1)));
+        controls.addView(full ? mapButton("center", T.ridesMapFit(), map::fitRoute)
+                : mapButton("fit", T.ridesMapExpand(), () -> expandMap(ride)));
         FrameLayout.LayoutParams controlParams = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.END);
         controlParams.setMargins(0, 0, ui.dp(6), ui.dp(6)); mapFrame.addView(controls, controlParams);
         if (!full) {
             FrameLayout.LayoutParams fitParams = new FrameLayout.LayoutParams(ui.dp(48), ui.dp(48), Gravity.TOP | Gravity.END);
             fitParams.setMargins(0, ui.dp(6), ui.dp(6), 0);
-            mapFrame.addView(mapButton("center", "Fit route", map::fitRoute), fitParams);
+            mapFrame.addView(mapButton("center", T.ridesMapFit(), map::fitRoute), fitParams);
         }
         mapFrame.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(View view) { }
@@ -1325,8 +1325,8 @@ public final class RidesScreen implements AppScreen {
         return ride;
     }
     private String mapLegend(PhoneRideStore.Track track, String metric) {
-        return "grade".equals(metric) ? "Grade · blue −12% → gray 0% → orange +12% · gray dashed: missing"
-                : "accel".equals(metric) ? "GPS acceleration · blue −2 → gray 0 → orange +2 m/s² · gray dashed: missing"
+        return "grade".equals(metric) ? T.ridesLegendGrade()
+                : "accel".equals(metric) ? T.ridesLegendAccel()
                 : "elevation".equals(metric) ? elevationLegend(track)
                 : "speed".equals(metric) ? speedLegend(RouteSpeedScale.of(track.points))
                 : "Power magnitude · blue 0 → yellow " + RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points)) + " · gray: missing";
@@ -1341,7 +1341,7 @@ public final class RidesScreen implements AppScreen {
         if (closed || !source.frame.isAttachedToWindow() || (source.expandedDialog != null && source.expandedDialog.isShowing())) return;
         LinearLayout controls = vertical(); controls.setPadding(ui.dp(12), 0, ui.dp(12), ui.dp(8));
         ScrollView controlScroll = new ScrollView(host.activity()); controlScroll.addView(controls);
-        controlScroll.setContentDescription("Route map readings and colors");
+        controlScroll.setContentDescription(T.ridesMapControlsDescription());
         LinearLayout body = new MapTouchColumn() {
             @Override protected void onMeasure(int widthSpec, int heightSpec) {
                 // The map keeps most of the display even with large text or a landscape window.
@@ -1353,7 +1353,7 @@ public final class RidesScreen implements AppScreen {
         };
         body.setOrientation(LinearLayout.VERTICAL); body.setBackgroundColor(ui.bg);
         LinearLayout heading = horizontal(); heading.setGravity(Gravity.CENTER_VERTICAL); heading.setPadding(ui.dp(16), ui.dp(4), ui.dp(6), ui.dp(4));
-        heading.addView(ui.text("Route", 20, true), new LinearLayout.LayoutParams(0, -2, 1));
+        heading.addView(ui.text(T.ridesRoute(), 20, true), new LinearLayout.LayoutParams(0, -2, 1));
         PhoneRide expanded = mapPanel(source.track, controls, false, true);
         expanded.map.copyViewStateFrom(source.map); syncMapControls(expanded);
         body.addView(heading); body.addView(expanded.frame, new LinearLayout.LayoutParams(-1, 0, 1));
@@ -1361,7 +1361,7 @@ public final class RidesScreen implements AppScreen {
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).create();
         dialog.setView(body, 0, 0, 0, 0);
         source.expandedDialog = dialog;
-        heading.addView(mapButton("close", "Close expanded route map", dialog::dismiss));
+        heading.addView(mapButton("close", T.ridesMapCloseExpanded(), dialog::dismiss));
         show(dialog, PAGE, () -> {
             source.expandedDialog = null;
             if (!closed && source.frame.isAttachedToWindow()) { source.map.copyViewStateFrom(expanded.map); syncMapControls(source); }
@@ -1376,7 +1376,7 @@ public final class RidesScreen implements AppScreen {
         return "Relative elevation · blue " + height(low) + " → yellow " + height(high) + " · gray: missing";
     }
     private String speedLegend(RouteSpeedScale scale) {
-        if (scale.source == null) return "Speed not recorded · gray dashed: missing";
+        if (scale.source == null) return T.ridesLegendSpeedNone();
         return (RouteSpeedScale.SCOOTER.equals(scale.source) ? "Scooter speed" : "GPS speed") + " · blue 0 → yellow "
                 + RouteSpeedScale.label(scale.topKmh, preferences.getString("units", "mi")) + " or faster · gray dashed: missing";
     }
@@ -1396,16 +1396,16 @@ public final class RidesScreen implements AppScreen {
         readout.removeAllViews(); readout.setVisibility(p == null ? View.GONE : View.VISIBLE);
         if (p == null) return;
         String gps = p.speedMps == null ? "—" : speed(p.speedMps * 3.6);
-        String[] cells = {"Time", duration(p.elapsedMs), "GPS", gps, "Scooter", p.scooterSpeedKmh == null ? "—" : speed(p.scooterSpeedKmh), "Power", dash(quantity(p.powerW, "W", 0)), "Battery", dash(quantity(p.batteryPercent, "%", 0)),
-                "Grade", p.gradePercent == null ? "—" : String.format(Locale.US, "≈%+.1f%%", p.gradePercent),
-                "GPS accel", accel(p.gpsAccelerationMps2), "Scooter accel", accel(p.scooterAccelerationMps2)};
+        String[] cells = {T.ridesPointTime(), duration(p.elapsedMs), T.ridesPointGps(), gps, T.ridesPointScooter(), p.scooterSpeedKmh == null ? "—" : speed(p.scooterSpeedKmh), T.ridesPointPower(), dash(quantity(p.powerW, "W", 0)), T.ridesPointBattery(), dash(quantity(p.batteryPercent, "%", 0)),
+                T.ridesPointGrade(), p.gradePercent == null ? "—" : String.format(Locale.US, "≈%+.1f%%", p.gradePercent),
+                T.ridesPointGpsAccel(), accel(p.gpsAccelerationMps2), T.ridesPointScooterAccel(), accel(p.scooterAccelerationMps2)};
         for (int i = 0; i < cells.length; i += 2) {
             LinearLayout cell = vertical(); cell.setMinimumWidth(ui.dp(96)); cell.setPadding(ui.dp(4), ui.dp(4), ui.dp(8), ui.dp(4));
             TextView label = ui.caption(cells[i]); label.setSingleLine(true); cell.addView(label);
             TextView value = ui.text(cells[i + 1], 15, true); value.setSingleLine(true); value.setPadding(0, ui.dp(3), 0, 0);
             if ("—".equals(cells[i + 1])) { value.setTextColor(ui.muted); value.setTypeface(ui.regular()); }
             cell.addView(value);
-            String spoken = cells[i] + ", " + ("—".equals(cells[i + 1]) ? "not measured" : cells[i + 1]);
+            String spoken = cells[i] + ", " + ("—".equals(cells[i + 1]) ? T.ridesPointNotMeasured() : cells[i + 1]);
             if (i == 2 && p.speedMps != null) spoken += ", accuracy ±" + height(p.accuracyM);
             cell.setContentDescription(spoken); cell.setFocusable(true);
             readout.addView(cell);
@@ -1419,39 +1419,39 @@ public final class RidesScreen implements AppScreen {
         return units.equals("km") ? quantity(value, "m", 0) : units.equals("dual") ? quantity(value * 3.280839895, "ft", 0) + " / " + quantity(value, "m", 0) : quantity(value * 3.280839895, "ft", 0);
     }
     private void exportPhone(PhoneRideStore.Track track) {
-        String[] labels = {"Route CSV", "GPX", "Phone raw CSV", "Motion raw CSV", "All (JSON)"};
-        show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, "Export phone data")).setItems(labels, (dialog, which) -> {
+        String[] labels = {T.ridesExportRouteCsv(), T.ridesExportGpx(), T.ridesExportPhoneRaw(), T.ridesExportMotionRaw(), T.ridesExportAllJson()};
+        show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, T.ridesExportPhone())).setItems(labels, (dialog, which) -> {
             String prefix = "ride-" + track.id.substring(0, Math.min(8, track.id.length()));
             try {
                 if (which == 0) host.saveText(prefix + "-route.csv", "text/csv", track.toCsv());
                 else if (which == 1) host.saveText(prefix + ".gpx", "application/gpx+xml", track.toGpx());
                 else if (which == 2 || which == 3) {
                     File file = which == 2 ? service.phoneRides.rawCsv(track.id) : service.phoneRides.motionCsv(track.id);
-                    if (!file.isFile()) { host.toast("No phone data recorded for this ride."); return; }
+                    if (!file.isFile()) { host.toast(T.ridesToastNoPhoneData()); return; }
                     host.saveFile(prefix + (which == 2 ? "-phone.csv" : "-motion.csv"), "text/csv", file);
                 } else {
                     RideStore.Summary summary = service.rides.get(track.id);
                     host.saveText(prefix + "-combined.json", "application/json", "{\"scooter\":" + (summary == null ? "null" : summary.toJson()) + ",\"phone\":" + track.toJson() + "}");
                 }
-            } catch (IOException e) { host.toast("Could not export this ride."); }
-        }).setNegativeButton("Cancel", null).create(), DIALOG, null);
+            } catch (IOException e) { host.toast(T.ridesToastExportFailed()); }
+        }).setNegativeButton(T.commonCancel(), null).create(), DIALOG, null);
     }
 
     private void exportCsv(String id) {
         try {
             File output = new File(host.activity().getCacheDir(), "ride-" + id + ".csv"); service.rides.exportCsv(id, output);
             host.saveFile("ride-" + id.substring(0, 8) + "-sensors.csv", "text/csv", output);
-        } catch (IOException e) { host.toast("Could not export the ride CSV."); }
+        } catch (IOException e) { host.toast(T.ridesToastExportCsvFailed()); }
     }
     private void confirmDelete(String id, String label, Runnable deleted) {
         // Delete is disabled while sensor files are saving; these guards only cover a race.
         if (service.phoneSaving()) return;
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, "Delete " + (label.isEmpty() ? "this ride" : label) + "?"))
-                .setMessage("Route and sensor data. Can't undo.")
-                .setNegativeButton("Keep ride", null).setPositiveButton("Delete", (d, which) -> {
-                    if (service.phoneSaving()) { host.toast("Saving… try again"); return; }
-                    try { if (service.phoneRides != null) service.phoneRides.delete(id); service.rides.delete(id); service.invalidateCapacityEstimate(); selected.remove(id); saveSelection(); historySignature = ""; refresh(); host.toast("Recording deleted."); if (deleted != null) deleted.run(); }
-                    catch (IOException | IllegalStateException e) { host.toast("Could not delete this recording."); }
+                .setMessage(T.ridesDeleteMessage())
+                .setNegativeButton(T.ridesDeleteKeep(), null).setPositiveButton(T.ridesDeleteAction(), (d, which) -> {
+                    if (service.phoneSaving()) { host.toast(T.ridesToastSavingTryAgain()); return; }
+                    try { if (service.phoneRides != null) service.phoneRides.delete(id); service.rides.delete(id); service.invalidateCapacityEstimate(); selected.remove(id); saveSelection(); historySignature = ""; refresh(); host.toast(T.ridesToastDeleted()); if (deleted != null) deleted.run(); }
+                    catch (IOException | IllegalStateException e) { host.toast(T.ridesToastDeleteFailed()); }
                 }).create();
         show(dialog, DIALOG, null);
         TextView delete = dialog.getButton(AlertDialog.BUTTON_POSITIVE); if (delete != null) delete.setTextColor(ui.danger);
@@ -1461,7 +1461,7 @@ public final class RidesScreen implements AppScreen {
         try {
             List<RideStore.Summary> chosen = new ArrayList<RideStore.Summary>();
             for (String id : selected) { RideStore.Summary summary = service.rides.get(id); if (summary != null) chosen.add(summary); }
-            if (chosen.size() != 2) { host.toast("Select two available recordings."); return; }
+            if (chosen.size() != 2) { host.toast(T.ridesToastSelectTwo()); return; }
             RideStore.Summary a = chosen.get(0), b = chosen.get(1);
             ScrollView scroller = new ScrollView(host.activity()); LinearLayout content = vertical(); content.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(20)); scroller.addView(content);
             LinearLayout names = horizontal(); names.setPadding(ui.dp(12), 0, ui.dp(12), ui.dp(8));
@@ -1469,19 +1469,19 @@ public final class RidesScreen implements AppScreen {
             names.addView(compareName(a), new LinearLayout.LayoutParams(0, -2, 1)); names.addView(compareName(b), new LinearLayout.LayoutParams(0, -2, 1));
             content.addView(names);
             LinearLayout group = ui.groupCard(); content.addView(group);
-            compareLine(group, "Distance", distance(a.distanceKm), distance(b.distanceKm));
-            compareLine(group, "Duration", duration(a.elapsedMs), duration(b.elapsedMs));
-            compareLine(group, "Avg speed", speed(a.averageSpeedKmh), speed(b.averageSpeedKmh));
-            compareLine(group, "Battery change", change(a.batteryDropPercent), change(b.batteryDropPercent));
-            compareLine(group, "Measured throughput", quantity(a.measuredThroughputWh, "Wh", 2), quantity(b.measuredThroughputWh, "Wh", 2));
-            compareLine(group, "Net measured energy", quantity(a.netConsumptionWh, "Wh", 2), quantity(b.netConsumptionWh, "Wh", 2));
-            compareLine(group, "Energy per distance", efficiency(a), efficiency(b), efficiencyReason(a), efficiencyReason(b));
-            compareLine(group, "Power coverage", percent(a.electricalCoverage), percent(b.electricalCoverage));
-            compareLine(group, "Gaps", Long.toString(a.gapCount), Long.toString(b.gapCount));
-            compareLine(group, "Minimum voltage", quantity(a.minimumVoltageV, "V", 2), quantity(b.minimumVoltageV, "V", 2));
-            compareLine(group, "Stationary throughput", quantity(a.stationaryThroughputWh, "Wh", 2), quantity(b.stationaryThroughputWh, "Wh", 2));
+            compareLine(group, T.ridesTileDistance(), distance(a.distanceKm), distance(b.distanceKm));
+            compareLine(group, T.ridesTileDuration(), duration(a.elapsedMs), duration(b.elapsedMs));
+            compareLine(group, T.ridesTileAvgSpeed(), speed(a.averageSpeedKmh), speed(b.averageSpeedKmh));
+            compareLine(group, T.ridesCompareBatteryChange(), change(a.batteryDropPercent), change(b.batteryDropPercent));
+            compareLine(group, T.ridesCompareMeasuredThroughput(), quantity(a.measuredThroughputWh, "Wh", 2), quantity(b.measuredThroughputWh, "Wh", 2));
+            compareLine(group, T.ridesNetEnergy(), quantity(a.netConsumptionWh, "Wh", 2), quantity(b.netConsumptionWh, "Wh", 2));
+            compareLine(group, T.ridesCompareEnergyPerDistance(), efficiency(a), efficiency(b), efficiencyReason(a), efficiencyReason(b));
+            compareLine(group, T.ridesPowerCoverage(), percent(a.electricalCoverage), percent(b.electricalCoverage));
+            compareLine(group, T.ridesCompareGaps(), Long.toString(a.gapCount), Long.toString(b.gapCount));
+            compareLine(group, T.ridesCompareMinVoltage(), quantity(a.minimumVoltageV, "V", 2), quantity(b.minimumVoltageV, "V", 2));
+            compareLine(group, T.ridesStationaryThroughput(), quantity(a.stationaryThroughputWh, "Wh", 2), quantity(b.stationaryThroughputWh, "Wh", 2));
             if (service.phoneRides != null) {
-                TextView first = ui.secondaryButton("View first", () -> showDetails(a.id)), second = ui.secondaryButton("View second", () -> showDetails(b.id));
+                TextView first = ui.secondaryButton(T.ridesViewFirst(), () -> showDetails(a.id)), second = ui.secondaryButton(T.ridesViewSecond(), () -> showDetails(b.id));
                 first.setContentDescription("View route of " + nameOf(a)); second.setContentDescription("View route of " + nameOf(b));
                 content.addView(pair(first, second));
             }
@@ -1490,16 +1490,16 @@ public final class RidesScreen implements AppScreen {
                     PhoneRideStore.Track pa = service.phoneRides.load(a.id), pb = service.phoneRides.load(b.id);
                     host.activity().runOnUiThread(() -> { if (closed) return;
                         if (group.getParent() instanceof ViewGroup) Motion.animateChanges((ViewGroup) group.getParent());
-                        compareLine(group, "GPS distance", distance(pa.distanceMeters == null ? null : pa.distanceMeters / 1000), distance(pb.distanceMeters == null ? null : pb.distanceMeters / 1000));
-                        compareLine(group, "Estimated ascent", approx(pa.ascentMeters), approx(pb.ascentMeters));
-                        compareLine(group, "Estimated descent", approx(pa.descentMeters), approx(pb.descentMeters));
+                        compareLine(group, T.ridesTileGpsDistance(), distance(pa.distanceMeters == null ? null : pa.distanceMeters / 1000), distance(pb.distanceMeters == null ? null : pb.distanceMeters / 1000));
+                        compareLine(group, T.ridesCompareAscent(), approx(pa.ascentMeters), approx(pb.ascentMeters));
+                        compareLine(group, T.ridesCompareDescent(), approx(pa.descentMeters), approx(pb.descentMeters));
                     });
                 } catch (IOException ignored) { }
             });
-            show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView("2 rides", "Compare")).setView(scroller).setPositiveButton("Done", null).create(), PAGE, null);
-        } catch (IOException e) { host.toast("Could not compare the recordings."); }
+            show(new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(T.ridesCompareSheetRides(), T.ridesCompareSheetTitle())).setView(scroller).setPositiveButton(T.commonDone(), null).create(), PAGE, null);
+        } catch (IOException e) { host.toast(T.ridesToastCompareFailed()); }
     }
-    private static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? "Ride" : s.label; }
+    private static String nameOf(RideStore.Summary s) { return s.label.isEmpty() ? T.ridesDefaultName() : s.label; }
     private View compareName(RideStore.Summary s) {
         LinearLayout column = vertical(); column.setGravity(Gravity.END);
         TextView name = ui.text(nameOf(s), 14, true); name.setGravity(Gravity.END); name.setMaxLines(2); name.setEllipsize(TextUtils.TruncateAt.END);
@@ -1647,7 +1647,7 @@ public final class RidesScreen implements AppScreen {
         }
     }
     /** Navigation row: icon square, title with muted sub-text, an optional short value and a chevron. */
-    private Row navRow(String glyphKey, String title, String sub, String value, Runnable action) {
+    private Row navRow(String glyphKey, CharSequence title, String sub, String value, Runnable action) {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(56)); row.setPadding(0, ui.dp(10), 0, ui.dp(10));
         FrameLayout square = glyphSquare(glyphKey, ui.accent); row.addView(square, squareParams());
         LinearLayout words = vertical();
