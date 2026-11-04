@@ -4,3 +4,5 @@
 tests/l10n/characterization/ControlsEnglishTest.java
 # B4's own suite: the display accessors in English and in a marked language, refusals, search.
 tests/l10n/ControlsTextTest.java
+# B4's consumer guard: every direct English read outside B4's files, held to l10n/pending/b4-controls-consumers.tsv.
+tests/l10n/ControlsConsumersTest.java
