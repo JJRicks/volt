@@ -7,7 +7,9 @@ import java.util.Locale;
 /**
  * F2: the controller and compatibility consumers show the wave-2 display text, and keep the English where it is
  * data. Under a key-echo source (a stand-in for another language):
- *   - DisplayUnits.featureValue follows the source for a value that is not a speed (it shows valueText(v));
+ *   - DisplayUnits.featureValueText follows the source for a value that is not a speed (it shows valueText(v)),
+ *     and featureValue keeps the English label, which its callers compare and trim (CompatibilityPanel.question,
+ *     a UI class android-tests/GuidedTestValidation checks, compares those ids);
  *   - a guided test's review and the "still running" review show the source, and Review.text keeps the English
  *     for the event log and notices' log line;
  *   - a note built with variant.text(v) keeps the note built with variant.label(v) as its English (the journal and
@@ -44,6 +46,14 @@ public final class ControllerConsumersTest {
         GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatF2TestStillRunning(), null, false);
         equal("The test is still running.", running.text, "the running review's English");
         equal("The test is still running.", running.message.render(), "the running review shown in English");
+        int values = 0;
+        for (ScooterCommands.Feature f : features())
+            for (int v = f.min - 2; v <= Math.min(f.max + 2, f.min + 300); v++)
+                for (String units : new String[]{"km", "mi", "dual", null}) {
+                    equal(DisplayUnits.featureValue(f, v, units), DisplayUnits.featureValueText(f, v, units), f.key + " " + v + " " + units + ": featureValueText is featureValue in English");
+                    values++;
+                }
+        check(values > 1000, "featureValueText is checked over every feature's domain (" + values + ")");
     }
 
     private static void echoed() throws Exception {
@@ -51,12 +61,19 @@ public final class ControllerConsumersTest {
         for (ScooterCommands.Feature f : features()) {
             if (UnitCode.KMH.matches(f.unit)) continue;
             for (int v : f.optionValues) {
-                String shown = DisplayUnits.featureValue(f, v, "km");
-                equal(f.valueText(v).render(), shown, "featureValue(" + f.key + ", " + v + ") is valueText under another source");
+                String shown = DisplayUnits.featureValueText(f, v, "km");
+                equal(f.valueText(v).render(), shown, "featureValueText(" + f.key + ", " + v + ") is valueText under another source");
+                equal(f.valueLabel(v), DisplayUnits.featureValue(f, v, "km"), "featureValue(" + f.key + ", " + v + ") keeps the English label");
                 if (!shown.equals(f.valueLabel(v))) followed++;
             }
         }
-        check(followed > 0, "featureValue follows the source for catalogued value labels (" + followed + ")");
+        check(followed > 0, "featureValueText follows the source for catalogued value labels (" + followed + ")");
+        for (String key : new String[]{"headlight", "turn_sound", "auto_sensor"}) {
+            ScooterCommands.Feature f = ScooterCommands.find(key);
+            equal("On", DisplayUnits.featureValue(f, 1, "mi"), key + ": featureValue(1) is the On id question() matches");
+            equal("Off", DisplayUnits.featureValue(f, 0, "mi"), key + ": featureValue(0) is the Off id question() matches");
+        }
+        check(DisplayUnits.featureValue(ScooterCommands.find("display_units"), 0, "mi").contains("mph"), "display_units 0 still names mph for question()");
 
         GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatF2TestStillRunning(), null, false);
         equal("The test is still running.", running.text, "the running review keeps its English for the log");

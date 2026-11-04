@@ -10,11 +10,21 @@ public final class DisplayUnits {
     private static final Pattern METRIC_TEXT = Pattern.compile("([0-9]+(?:\\.[0-9]+)?) (km/h|km)\\b");
     private DisplayUnits() {}
 
+    /**
+     * The value with speeds in the rider's units, other values as their English label (feature.valueLabel): callers
+     * compare and trim this text as English (MoreScreen's labValue into CompatibilityPanel.question, MainActivity's
+     * " hours" shortening and shared-unit trim), so it stays English. Show {@link #featureValueText} instead.
+     */
     public static String featureValue(ScooterCommands.Feature feature, int value, String units) {
-        if (!UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff())) return feature.valueText(value).toString();
+        if (!UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff())) return feature.valueLabel(value);
         String metric = T.fmtQuantity(Fmt.integer(value), T.unitsKmh());
         String imperial = T.fmtQuantity(Fmt.decimal(Locale.US, value / KM_PER_MILE, 1), T.unitsMph());
         return choose(metric, imperial, units);
+    }
+
+    /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
+    public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
+        return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);
     }
 
     public static String speed(double kmh, String units) {
