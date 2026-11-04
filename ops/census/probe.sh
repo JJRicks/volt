@@ -2,11 +2,13 @@
 # usage: probe.sh OUT_DIR   (configuration from the environment, set by census-probe.yml)
 #   PROBE_ID      c1..c99
 #   PROBE_EMU     latest | pin35   (pin35: the newest 35.x emulator build, downloaded by exact name)
-#   PROBE_IMAGE   system-images;android-NN[.N];google_apis[_playstore];x86_64
+#   PROBE_IMAGE   system-images;android-NN[.N|-extNN];google_apis[_playstore];x86_64
 #   PROBE_GPU     the -gpu mode, optionally followed by "-feature -Name" pairs
 #   PROBE_HOSTGL  1 to install Mesa software GL and run the emulator on an Xvfb display
 # Boots one census-shaped AVD headless, watches the display stack for 180 s after boot, then checks
-# that Settings opens, uiautomator dumps and the screen is not black. Writes OUT_DIR/result.json
+# that Settings opens, uiautomator dumps and the screen is not black, and that the image's
+# BluetoothGatt has every field the synthetic-link validations set by reflection (gatt_missing; guided,
+# guided-queue and charge-schedule-wire need mClientRegistered). Writes OUT_DIR/result.json
 # (one line) and always exits 0, so a matrix of probes completes; the verdict is in the JSON.
 set -uo pipefail
 OUT=${1:?}; mkdir -p "$OUT"
@@ -21,7 +23,7 @@ PIN_ZIP=emulator-linux_x64-13610412.zip; PIN_SIZE=319086252; PIN_SHA1=3b656b511e
 # Validate every input before it is used.
 [[ "${PROBE_ID:-}" =~ ^c[0-9]{1,2}$ ]] || { echo "bad PROBE_ID" >&2; exit 2; }
 [[ "${PROBE_EMU:-}" =~ ^(latest|pin35)$ ]] || { echo "bad PROBE_EMU" >&2; exit 2; }
-[[ "${PROBE_IMAGE:-}" =~ ^system-images\;android-[0-9]{2}(\.[0-9])?\;google_apis(_playstore)?\;x86_64$ ]] || { echo "bad PROBE_IMAGE" >&2; exit 2; }
+[[ "${PROBE_IMAGE:-}" =~ ^system-images\;android-[0-9]{2}(\.[0-9]|-ext[0-9]{2})?\;google_apis(_playstore)?\;x86_64$ ]] || { echo "bad PROBE_IMAGE" >&2; exit 2; }
 [[ "${PROBE_GPU:-}" =~ ^[a-z_]+(\ -feature\ -[A-Za-z]+)*$ ]] || { echo "bad PROBE_GPU" >&2; exit 2; }
 [[ "${PROBE_HOSTGL:-0}" =~ ^[01]$ ]] || { echo "bad PROBE_HOSTGL" >&2; exit 2; }
 
@@ -46,7 +48,7 @@ r = {}
 for line in open(sys.argv[1], encoding='utf-8', errors='replace'):
     k, _, v = line.rstrip('\n').partition('\t')
     r[k] = int(v) if k in ints and v.lstrip('-').isdigit() else v
-for k in ('booted', 'uiautomator_ok', 'screenshot_ok', 'settings_focused', 'stable'):
+for k in ('booted', 'uiautomator_ok', 'screenshot_ok', 'settings_focused', 'stable', 'gatt_ok'):
     if k in r: r[k] = r[k] == '1'
 for k in ('shot_mean', 'shot_var'):
     if k in r:
@@ -160,6 +162,23 @@ R[assert_total]=$(grep -c 'Assertion failed' <<< "$crash")
 R[first_assert]="$(grep -m1 -o 'Assertion failed.*' <<< "$crash" | cut -c1-200)"
 R[sf_tombstones]=$(sh_ dumpsys dropbox --print SYSTEM_TOMBSTONE | grep -c '>>> /system/bin/surfaceflinger <<<')
 R[renderer]="$(sh_ dumpsys SurfaceFlinger | grep -i -m2 'GLES' | tr '\n' ' ' | cut -c1-240)"
+
+# --- BluetoothGatt fields (android-tests' synthetic GATT link sets these by reflection) ---------
+# A dex string_data item is its uleb128 length (one byte below 128), the MUTF-8 bytes, then NUL.
+R[gatt_ok]=0; R[gatt_missing]="framework-bluetooth.jar not found"
+jar="$(sh_ 'ls /apex/*/javalib/framework-bluetooth.jar' | grep -m1 '^/apex/[a-z.]*/javalib/')"
+R[bt_jar]=$jar
+if [[ -n $jar ]] && timeout 60 "$ADB" -s $SER pull "$jar" "$RUNNER_TEMP/framework-bluetooth.jar" > /dev/null 2>&1; then
+  R[gatt_missing]="$(python3 -I - "$RUNNER_TEMP/framework-bluetooth.jar" <<'PY'
+import sys, zipfile
+z = zipfile.ZipFile(sys.argv[1]); dex = b''.join(z.read(n) for n in z.namelist() if n.startswith('classes') and n.endswith('.dex'))
+names = ['mClientRegistered', 'mDeviceBusy', 'mDeviceBusyLock', 'mStateLock', 'mService', 'mServices', 'mDevice']
+print(' '.join(n for n in names if bytes([len(n)]) + n.encode() + b'\0' not in dex) or 'none')
+PY
+)"
+  rm -f "$RUNNER_TEMP/framework-bluetooth.jar"
+  [[ ${R[gatt_missing]} == none ]] && R[gatt_ok]=1
+fi
 
 # --- Settings, uiautomator, screenshot ----------------------------------------------------
 sh_ input keyevent KEYCODE_WAKEUP > /dev/null; sh_ wm dismiss-keyguard > /dev/null

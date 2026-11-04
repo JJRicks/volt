@@ -10,9 +10,12 @@ on:
 permissions:
   contents: read
 
+# One census or probe run at a time across every branch (census.yml shares this group), so the
+# run jobs never take more than 18 of the free plan's 20 concurrent jobs. A run pushed while one is
+# going waits; GitHub keeps only the newest waiting run per group and cancels an older waiting one.
 concurrency:
-  group: census-probe-${{ github.ref }}
-  cancel-in-progress: true
+  group: census-cloud
+  cancel-in-progress: false
 
 jobs:
   probe:
@@ -24,18 +27,14 @@ jobs:
       max-parallel: 12
       matrix:
         include:
-          - {id: c1, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
-          - {id: c2, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c3, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
-          - {id: c4, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c5, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
-          - {id: c6, emu: latest, image: 'system-images;android-34;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c7, emu: latest, image: 'system-images;android-34;google_apis;x86_64', gpu: 'swiftshader_indirect -feature -Vulkan', hostgl: '0'}
-          - {id: c8, emu: latest, image: 'system-images;android-33;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c9, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'host', hostgl: '1'}
-          - {id: c10, emu: latest, image: 'system-images;android-35;google_apis;x86_64', gpu: 'host', hostgl: '1'}
-          - {id: c11, emu: pin35, image: 'system-images;android-35;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c12, emu: pin35, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          # Probe-3: which API 36+ images have the BluetoothGatt fields the synthetic link needs
+          # (gatt_missing) and boot stably. c1 is the image census runs used until then.
+          - {id: c1, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c2, emu: latest, image: 'system-images;android-36-ext19;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c3, emu: latest, image: 'system-images;android-36-ext18;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c4, emu: latest, image: 'system-images;android-36.1;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c5, emu: latest, image: 'system-images;android-37.0;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          - {id: c6, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -80,7 +79,7 @@ jobs:
           rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
           rows.sort(key=lambda r: int(r.get('id', 'c0')[1:]))
           cols = ['id', 'verdict', 'sf_pid_changes', 'sf_fatal_in_window', 'boot_s', 'uiautomator_ok',
-                  'screenshot_ok', 'renderer', 'emulator_version', 'fingerprint', 'notes']
+                  'screenshot_ok', 'gatt_missing', 'renderer', 'emulator_version', 'fingerprint', 'notes']
           print('| ' + ' | '.join(cols) + ' |'); print('|' + '---|' * len(cols))
           for r in rows:
               print('| ' + ' | '.join(str(r.get(c, '')).replace('|', '/') for c in cols) + ' |')
