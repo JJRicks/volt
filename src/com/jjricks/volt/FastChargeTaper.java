@@ -42,11 +42,14 @@ public final class FastChargeTaper {
     static final double RECENT_FIT = 3, SLOWER = .25;
     /**
      * A fall between consecutive decay points faster than a decay of this tau (minutes) is a
-     * charger's step down, not a taper. Owner charges, while their own taper applied: no fall
-     * faster than 5.6 minutes within RECENT_FIT; 0.03 A of reading noise on a constructed decay
-     * gave 4.7, a constructed 4.3 to 2.5 A step down in 30 s 0.8 to 1.1.
+     * charger's step down, not a taper. It is faster than any fall a taper showed: in the owner's
+     * charges, while their own taper applied, no fall within RECENT_FIT was faster than a
+     * 5.62-minute tau, and 0.03 A of reading noise on a constructed decay gave 4.67. A 4.3 to
+     * 2.5 A step down is that fast between 10-s readings if it takes about 1.5 minutes or less
+     * (in a straight line; up to about 2.75 minutes it is caught partway). A slower fall, or a
+     * step down inside a gap in readings of more than about 2 minutes, is not caught.
      */
-    static final double STEP_TAU = 2;
+    static final double STEP_TAU = 4;
     public static final long HOLD_MS = 3 * 60_000L, SPACING_MS = 10_000L, MAX_SILENCE_MS = 30 * 60_000L;
     // Reference charge, constant current: volts below the CV entry voltage -> Ah delivered before it.
     static final double[] HEADROOM_VOLTS = {0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
@@ -108,7 +111,8 @@ public final class FastChargeTaper {
      * the recent points are only that creep, too slow for the check. A real taper slower than
      * TAU_HIGH, which tau() clamps, fails the same check. A charger's step down steepens both
      * fits, down to tau()'s TAU_LOW clamp, while the slower decay after it is too new to fail the
-     * pace check; the step check hands back until the step leaves the RECENT_FIT window. A decay
+     * pace check; the step check hands back while a fall faster than STEP_TAU is in the RECENT_FIT
+     * window (a slower fall passes until the pace check sees the decay after it). A decay
      * reported in 2.5-minute steps never has three points in that window. ChargingEstimate then
      * lets this taper, not the battery percentage, place the finish; otherwise v7's choice stands.
      */
