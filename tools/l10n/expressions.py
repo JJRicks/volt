@@ -300,6 +300,11 @@ def shape(sequence):
             out.append(("string", piece))
         elif "char" in piece:
             out.append(("char", piece["char"]))
+        elif "helper" in piece:
+            # A modelled helper call (ledger_check.HELPER_MODELS) is one hole of the + chain.
+            out.append(("hole", source_key("%s(%s)" % (piece["helper"], ", ".join(
+                '"%s"' % a.replace("\\", "\\\\").replace('"', '\\"') if isinstance(a, str) else a["hole"]
+                for a in piece["args"])))))
         else:
             out.append(("hole", source_key(piece["hole"])))
     return tuple(out)
