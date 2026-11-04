@@ -1,0 +1,469 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The backup engine (batch B10): the restore review lines BackupArchive.plan writes, the backup
+  category labels, and the reasons a backup, a backup file or a restore is refused or fails
+  (BackupException). The English must stay exactly what the source said before the batch (G1, G2).
+
+  A BackupException keeps this English in getMessage(), so logs and the existing tests are unchanged;
+  the Backup screen shows the reason in the current language where it shows one. The names Volt
+  stores for a scooter it knows nothing about ("Saved scooter", "Scooter", "Layout file") are data and
+  stay English.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Backup categories (BackupRegistry.LABELS), in the Back up and Restore lists and the review ===== -->
+
+    <!-- The category with the scooter profiles and their owner keys (the keys that let Volt connect). -->
+    <string name="backup_engine_category_scooters" volt:screen="Back up and restore" volt:purpose="label"
+        volt:safety="owner-key">Scooters &amp; setup keys</string>
+    <!-- The category with each scooter's Home dashboard layout. -->
+    <string name="backup_engine_category_dashboards" volt:screen="Back up and restore" volt:purpose="label">Dashboards</string>
+    <!-- The category with the app's own settings (theme, units and so on). -->
+    <string name="backup_engine_category_preferences" volt:screen="Back up and restore" volt:purpose="label">App preferences</string>
+    <!-- The category with the recorded rides. -->
+    <string name="backup_engine_category_rides" volt:screen="Back up and restore" volt:purpose="label">Rides</string>
+    <!-- The category with the recorded charges. -->
+    <string name="backup_engine_category_charges" volt:screen="Back up and restore" volt:purpose="label">Charges</string>
+    <!-- The category with the stored history of scooter readings. -->
+    <string name="backup_engine_category_history" volt:screen="Back up and restore" volt:purpose="label">Readings history</string>
+    <!-- The category with each scooter's app-side choices (range source, charger type). -->
+    <string name="backup_engine_category_scooter_preferences" volt:screen="Back up and restore" volt:purpose="label">Scooter preferences</string>
+
+    <!-- ===== The restore review: one line each, listed before the person confirms a restore ===== -->
+
+    <!-- First line of a Replace everything review. -->
+    <string name="backup_engine_plan_replace_everything" volt:screen="Restore review" volt:purpose="summary">Replaces everything on this phone</string>
+    <!-- Where a backup scooter's data goes: %1$s is the scooter's name in the backup (in quotation
+         marks), %2$s the scooter on this phone that receives it. The arrow means "goes to"; in a
+         right-to-left language write the arrow pointing the way the text reads (←), or use words, so
+         the direction never reads backwards. -->
+    <string name="backup_engine_plan_destination" volt:screen="Restore review" volt:purpose="summary">“%1$s” → %2$s</string>
+    <!-- The Scooters category: %1$d scooters the restore adds, %2$d scooters of the backup this
+         phone already has. If the words must agree with a number, use a wording that works for any
+         count ("already here: %2$d"). -->
+    <string name="backup_engine_plan_scooters" volt:screen="Restore review" volt:purpose="summary">Scooters: adds %1$d · %2$d already here</string>
+    <!-- %1$d backup scooters the person chose not to restore. -->
+    <plurals name="backup_engine_plan_scooters_skipped" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">%1$d scooter skipped · not restored</item>
+        <item quantity="other">%1$d scooters skipped · not restored</item>
+    </plurals>
+    <!-- %1$s is a category (Dashboards or Scooter preferences), %2$s the scooter on this phone that keeps
+         its own: two backup scooters were sent to it, so neither replaces its settings. -->
+    <string name="backup_engine_plan_kept" volt:screen="Restore review" volt:purpose="summary">%1$s kept for %2$s · two scooters chose it</string>
+    <!-- %1$s is a category (Dashboards or Scooter preferences); %2$d backup scooters whose entries in it
+         are not restored because the person skipped those scooters. -->
+    <plurals name="backup_engine_plan_category_skipped" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">%1$s for %2$d scooter skipped · not restored</item>
+        <item quantity="other">%1$s for %2$d scooters skipped · not restored</item>
+    </plurals>
+    <!-- The App preferences category: the restore replaces %1$d of this phone's app settings. -->
+    <plurals name="backup_engine_plan_preferences" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">App preferences: replaces %1$d setting</item>
+        <item quantity="other">App preferences: replaces %1$d settings</item>
+    </plurals>
+    <!-- The Rides category: %1$d rides the restore adds, %2$d already on this phone, %3$d kept as they are
+         here because this phone's copy differs. -->
+    <string name="backup_engine_plan_rides" volt:screen="Restore review" volt:purpose="summary">Rides: %1$d new · %2$d already here · %3$d kept here</string>
+    <!-- The Charges category: %1$d charges the restore adds, %2$d already on this phone, %3$d kept as they
+         are here because this phone's copy differs. -->
+    <string name="backup_engine_plan_charges" volt:screen="Restore review" volt:purpose="summary">Charges: %1$d new · %2$d already here · %3$d kept here</string>
+    <!-- %1$d phone sensor files in the backup whose ride is missing, so they are not restored. -->
+    <plurals name="backup_engine_plan_phone_files_skipped" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">%1$d phone file skipped · no ride</item>
+        <item quantity="other">%1$d phone files skipped · no ride</item>
+    </plurals>
+    <!-- The Readings history category when no chosen scooter receives any history. -->
+    <string name="backup_engine_plan_history_nothing" volt:screen="Restore review" volt:purpose="summary">Readings history: nothing to add</string>
+    <!-- The Readings history category: the history is added to %1$d scooters on this phone. -->
+    <plurals name="backup_engine_plan_history_adds" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">Readings history: adds to %1$d scooter</item>
+        <item quantity="other">Readings history: adds to %1$d scooters</item>
+    </plurals>
+    <!-- %1$d backup scooters whose readings history is not restored because the person skipped them. -->
+    <plurals name="backup_engine_plan_history_skipped" volt:screen="Restore review" volt:purpose="summary">
+        <item quantity="one">Readings for %1$d scooter skipped · not restored</item>
+        <item quantity="other">Readings for %1$d scooters skipped · not restored</item>
+    </plurals>
+    <!-- After the restore the app downloads online map tiles (the restored setting is on): the map
+         provider sees where the person looks at the map. -->
+    <string name="backup_engine_plan_online_map" volt:screen="Restore review" volt:purpose="summary"
+        volt:safety="privacy">Online map: on</string>
+
+    <!-- ===== Why a backup, a backup file or a restore was refused or failed (BackupException) ===== -->
+
+    <!-- Why a restore stopped before it changed this phone's data. -->
+    <string name="backup_engine_restore_could_not_be_prepared" volt:screen="Back up and restore" volt:purpose="error">The restore could not be prepared.</string>
+    <!-- Why a restore stopped after it started: Volt put this phone's previous data back. -->
+    <string name="backup_engine_restore_failed_data_kept" volt:screen="Back up and restore" volt:purpose="error">The restore failed; your data was kept.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:screen="Back up and restore" volt:purpose="error">App data changed during backup. Try again with recordings stopped.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_could_not_remove_temporary_encrypted" volt:screen="Back up and restore" volt:purpose="error">Could not remove temporary encrypted-backup payload.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_could_not_opened" volt:screen="Back up and restore" volt:purpose="error">The backup could not be opened.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_not_supported_volt_app" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">This is not a supported Volt app backup.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unsupported_backup_format" volt:screen="Back up and restore" volt:purpose="error">Unsupported backup format.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_needs_compatible_newer" volt:screen="Back up and restore" volt:purpose="error">The backup needs a compatible or newer app version, or has invalid metadata.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_contains_unsupported_duplicate" volt:screen="Back up and restore" volt:purpose="error">The backup contains an unsupported or duplicate entry.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_contains_too_many" volt:screen="Back up and restore" volt:purpose="error">The backup contains too many files.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_incomplete_inconsistent_contents" volt:screen="Back up and restore" volt:purpose="error">The backup is incomplete or has inconsistent contents.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_choose_backup_again_before" volt:screen="Back up and restore" volt:purpose="error">Choose the backup again before restoring.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_could_not_prepare_restore_transaction" volt:screen="Back up and restore" volt:purpose="error">Could not prepare the restore transaction.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_restore_was_interrupted_reopen" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Restore was interrupted. Reopen Volt to recover the previous data; do not clear app storage.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_restore_failed_previous_data" volt:screen="Back up and restore" volt:purpose="error">The restore failed; the previous data was retained.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_folder_unavailable" volt:screen="Back up and restore" volt:purpose="error">The restore recovery folder is unavailable. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_record_unavailable" volt:screen="Back up and restore" volt:purpose="error">The restore recovery record is unavailable. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_record_needs_app" volt:screen="Back up and restore" volt:purpose="error">The restore recovery record needs this app version\'s recovery. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:screen="Back up and restore" volt:purpose="error">The restore recovery record is unreadable. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_folder_cannot_read" volt:screen="Back up and restore" volt:purpose="error">The restore recovery folder cannot be read. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_unexpected_restore_recovery_file" volt:screen="Back up and restore" volt:purpose="error">An unexpected restore recovery file needs attention. Keep app storage intact.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_history_still_open_close" volt:screen="Back up and restore" volt:purpose="error">History is still open. Close recordings and try the backup again.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_reopen_volt_finish_recovering" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Reopen Volt to finish recovering the previous restore first.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_could_not_save_restore" volt:screen="Back up and restore" volt:purpose="error">Could not save restore recovery state.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_restore_storage_cannot_synchronized" volt:screen="Back up and restore" volt:purpose="error">Restore storage cannot be synchronized.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_unexpected_restore_storage_link" volt:screen="Back up and restore" volt:purpose="error">Unexpected restore storage link.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_restore_storage_cannot_read" volt:screen="Back up and restore" volt:purpose="error">Restore storage cannot be read.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_recording_folder_could_not_read" volt:screen="Back up and restore" volt:purpose="error">A recording folder could not be read.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_unsupported_recording_file_needs_attention" volt:screen="Back up and restore" volt:purpose="error">An unsupported recording file needs attention before backup.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unexpected_recording_file" volt:screen="Back up and restore" volt:purpose="error">Unexpected recording file.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_one_recording_too_large_backup_format" volt:screen="Back up and restore" volt:purpose="error">One recording is too large for this backup format.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_history_storage_not_supported" volt:screen="Back up and restore" volt:purpose="error">History storage is not a supported database.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_there_too_many_recording" volt:screen="Back up and restore" volt:purpose="error">There are too many recording files for this backup format.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_invalid_archive_path" volt:screen="Back up and restore" volt:purpose="error">Invalid archive path.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_restore_file_unavailable" volt:screen="Back up and restore" volt:purpose="error">A restore file is unavailable.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_could_not_remove_temporary_data" volt:screen="Back up and restore" volt:purpose="error">Could not remove temporary data.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_could_not_read_temporary" volt:screen="Back up and restore" volt:purpose="error">Could not read temporary data.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_there_not_enough_available" volt:screen="Back up and restore" volt:purpose="error">There is not enough available app storage.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unexpected_storage_link" volt:screen="Back up and restore" volt:purpose="error">Unexpected storage link.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_backup_exceeds_supported_storage" volt:screen="Back up and restore" volt:purpose="error">The backup exceeds the supported storage limit.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unsupported_app_preference_group" volt:screen="Back up and restore" volt:purpose="error">Unsupported app preference group.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_missing_app_preferences" volt:screen="Back up and restore" volt:purpose="error">Missing app preferences.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_too_many_app_preferences" volt:screen="Back up and restore" volt:purpose="error">Too many app preferences.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_app_preference_key_too_long" volt:screen="Back up and restore" volt:purpose="error">An app preference key is too long.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_app_preference_set_too_large" volt:screen="Back up and restore" volt:purpose="error">An app preference set is too large.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unsupported_app_preference" volt:screen="Back up and restore" volt:purpose="error">Unsupported app preference.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unsupported_app_preference_type" volt:screen="Back up and restore" volt:purpose="error">Unsupported app preference type.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_app_preferences_exceed_backup" volt:screen="Back up and restore" volt:purpose="error">App preferences exceed the backup limit.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unsupported_app_preference_inventory" volt:screen="Back up and restore" volt:purpose="error">Unsupported app preference inventory.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_preference_count" volt:screen="Back up and restore" volt:purpose="error">Invalid preference count.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_duplicate_preference_key" volt:screen="Back up and restore" volt:purpose="error">Invalid or duplicate preference key.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_preference_boolean" volt:screen="Back up and restore" volt:purpose="error">Invalid preference boolean.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_preference_set_size" volt:screen="Back up and restore" volt:purpose="error">Invalid preference set size.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_duplicate_preference_set_item" volt:screen="Back up and restore" volt:purpose="error">Duplicate preference set item.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unsupported_preference_type" volt:screen="Back up and restore" volt:purpose="error">Unsupported preference type.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unexpected_preference_payload" volt:screen="Back up and restore" volt:purpose="error">Unexpected preference payload.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_app_preference_too_large" volt:screen="Back up and restore" volt:purpose="error">App preference is too large.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_preference_string" volt:screen="Back up and restore" volt:purpose="error">Invalid preference string.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_preference_text" volt:screen="Back up and restore" volt:purpose="error">Invalid preference text.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_use_backup_password_characters" volt:screen="Back up and restore" volt:purpose="error">Use a backup password of 8 to 1,024 characters.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_backup_encryption_unavailable_device" volt:screen="Back up and restore" volt:purpose="error">Backup encryption is unavailable on this device.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_choose_volt_encrypted_app" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Choose a Volt encrypted app backup.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_encrypted_backup_record" volt:screen="Back up and restore" volt:purpose="error">Invalid encrypted backup record.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_unexpected_trailing_data" volt:screen="Back up and restore" volt:purpose="error">The backup has unexpected trailing data.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_backup_already_completed" volt:screen="Back up and restore" volt:purpose="error">Backup already completed.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_choose_what_back_up" volt:screen="Back up and restore" volt:purpose="error">Choose what to back up.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_there_too_many_files" volt:screen="Back up and restore" volt:purpose="error">There are too many files for one backup.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_backup_metadata_too_large" volt:screen="Back up and restore" volt:purpose="error">Backup metadata is too large.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_app_data_changed_during_backup_try_again" volt:screen="Back up and restore" volt:purpose="error">App data changed during backup. Try again.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_one_recording_too_large_backup" volt:screen="Back up and restore" volt:purpose="error">One recording is too large for a backup.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_choose_volt_backup_file" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Choose a Volt backup file.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_could_not_remove_temporary_backup" volt:screen="Back up and restore" volt:purpose="error">Could not remove the temporary backup payload.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_needs_newer_app" volt:screen="Back up and restore" volt:purpose="error">The backup needs a newer app version, or has invalid metadata.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_metadata" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid metadata.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_categories" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid categories.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooters" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid scooters.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_contains_unsupported_entry" volt:screen="Back up and restore" volt:purpose="error">The backup contains an unsupported entry.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_repeats_app_preference" volt:screen="Back up and restore" volt:purpose="error">The backup repeats an app preference.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_contains_unsupported_out" volt:screen="Back up and restore" volt:purpose="error">The backup contains an unsupported or out-of-category file.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_not_dashboard_layout_file" volt:screen="Back up and restore" volt:purpose="error">Not a dashboard layout file.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_pairing_file_too_large" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file is too large.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_pairing_file_contains_unsupported" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file contains unsupported fields.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid owner identity.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_pairing_file_invalid_owner_role" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid owner role.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The pairing file has an invalid Bluetooth address.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_backup_unsupported_preference_group" volt:screen="Back up and restore" volt:purpose="error">The backup has an unsupported preference group.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_backup_repeats_charge_recording" volt:screen="Back up and restore" volt:purpose="error">The backup repeats a charge recording.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_what_restore" volt:screen="Back up and restore" volt:purpose="error">Choose what to restore.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_replace_everything_needs_complete" volt:screen="Back up and restore" volt:purpose="error">Replace everything needs a complete backup with every category.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_where_each_scooters" volt:screen="Back up and restore" volt:purpose="error">Choose where each scooter\'s data goes.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_scooter_using_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">Choose a scooter using this setup identity, or add another scooter.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_saved_recordings_cannot_read" volt:screen="Back up and restore" volt:purpose="error">Saved recordings cannot be read.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_backup_contains_unreadable_ride" volt:screen="Back up and restore" volt:purpose="error">The backup contains an unreadable ride.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_backup_again" volt:screen="Back up and restore" volt:purpose="error">Choose the backup again.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_saved_scooters_phone_cant_read" volt:screen="Back up and restore" volt:purpose="error">Saved scooters on this phone can\'t be read.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_expected_json_list" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Expected a JSON list.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_expected_json_object" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Expected a JSON object.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_missing_json" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Missing JSON.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unexpected_json_content" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Unexpected JSON content.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_incomplete_json" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Incomplete JSON.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_json_nested_too_deeply" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">JSON is nested too deeply.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_key" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON key.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_object" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON object.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_duplicate_json_key" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Duplicate JSON key.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_list" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON list.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unterminated_json_text" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Unterminated JSON text.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_text" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON text.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_escape" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON escape.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_value" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON value.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_json_number" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="JSON">Invalid JSON number.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_profiles" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid scooter profiles.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_unreadable_scooter_profiles" volt:screen="Back up and restore" volt:purpose="error">The backup has unreadable scooter profiles.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_too_many_scooter" volt:screen="Back up and restore" volt:purpose="error">The backup has too many scooter profiles.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_profile_identifiers" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid scooter profile identifiers.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_profile_fields" volt:screen="Back up and restore" volt:purpose="error">The backup has invalid scooter profile fields.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_owner" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has an invalid scooter owner role.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_connection" volt:screen="Back up and restore" volt:purpose="error">The backup has an invalid scooter connection date.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_scooter_setup" volt:screen="Back up and restore" volt:purpose="error" volt:safety="owner-key">The backup has an invalid scooter setup identity.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_incompatible_app_preference" volt:screen="Back up and restore" volt:purpose="error">The backup has an incompatible app preference type.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_invalid_display_text" volt:screen="Back up and restore" volt:purpose="error">The backup has an invalid display text scale.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_review_backup_first" volt:screen="Back up and restore" volt:purpose="error">Review the backup first.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_saved_data_changed_review" volt:screen="Back up and restore" volt:purpose="error">Saved data changed. Review again.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_not_enough_free_storage" volt:screen="Back up and restore" volt:purpose="error">Not enough free storage</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_could_not_prepare_restore" volt:screen="Back up and restore" volt:purpose="error">Could not prepare the restore.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_recording_storage_changed_during" volt:screen="Back up and restore" volt:purpose="error">Recording storage changed during restore.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_recovery_record_unreadable" volt:screen="Back up and restore" volt:purpose="error">The restore recovery record is unreadable.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_invalid_restore_recovery_list" volt:screen="Back up and restore" volt:purpose="error">Invalid restore recovery list.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_invalid_restore_recovery_path" volt:screen="Back up and restore" volt:purpose="error">Invalid restore recovery path.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:screen="Back up and restore" volt:purpose="error">Could not roll back an interrupted restore.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:screen="Back up and restore" volt:purpose="error">The restore snapshot is incomplete. Keep app storage intact.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_ride_storage_cannot_read" volt:screen="Back up and restore" volt:purpose="error">Ride storage cannot be read.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_unsupported_ride_file" volt:screen="Back up and restore" volt:purpose="error">Unsupported ride file.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_too_many_rides_one" volt:screen="Back up and restore" volt:purpose="error">Too many rides for one backup.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_invalid_scooter_association" volt:screen="Back up and restore" volt:purpose="error">Invalid scooter association.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_ride_file_too_large" volt:screen="Back up and restore" volt:purpose="error">A ride file is too large.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_there_no_saved_rides" volt:screen="Back up and restore" volt:purpose="error">There are no saved rides to back up.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_ride_manifest_too_large" volt:screen="Back up and restore" volt:purpose="error">Ride manifest is too large.</string>
+    <!-- Why Volt could not make a backup file. -->
+    <string name="backup_engine_ride_changed_during_backup" volt:screen="Back up and restore" volt:purpose="error">A ride changed during backup. Try again.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_choose_volt_ride_backup" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Choose a Volt ride backup.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unsupported_ride_backup_version" volt:screen="Back up and restore" volt:purpose="error">Unsupported ride backup version.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_backup_date" volt:screen="Back up and restore" volt:purpose="error">Invalid backup date.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_scooter_count" volt:screen="Back up and restore" volt:purpose="error">Invalid scooter count.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_scooter_list" volt:screen="Back up and restore" volt:purpose="error">Invalid scooter list.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_ride_backup_too_large" volt:screen="Back up and restore" volt:purpose="error">Ride backup is too large or empty.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_invalid_duplicate_recording_path" volt:screen="Back up and restore" volt:purpose="error">Invalid or duplicate recording path.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unexpected_backup_metadata" volt:screen="Back up and restore" volt:purpose="error">Unexpected backup metadata.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unexpected_duplicate_recording_file" volt:screen="Back up and restore" volt:purpose="error">Unexpected or duplicate recording file.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_incomplete_damaged" volt:screen="Back up and restore" volt:purpose="error">The backup is incomplete or damaged.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_missing_recording_files" volt:screen="Back up and restore" volt:purpose="error">The backup is missing recording files.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_missing_scooter_association" volt:screen="Back up and restore" volt:purpose="error">Missing scooter association.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_ride_list_inconsistent" volt:screen="Back up and restore" volt:purpose="error">The ride list is inconsistent.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_phone_samples_missing_their" volt:screen="Back up and restore" volt:purpose="error">Phone samples are missing their ride.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_destination_every_scooter" volt:screen="Back up and restore" volt:purpose="error">Choose a destination for every scooter.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_saved_rides_changed_review" volt:screen="Back up and restore" volt:purpose="error">Saved rides changed. Review the backup again.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_could_not_prepare_ride" volt:screen="Back up and restore" volt:purpose="error">Could not prepare the ride restore.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_restore_interrupted_reopen_volt" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Restore interrupted. Reopen Volt; do not clear storage.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:screen="Back up and restore" volt:purpose="error">Ride restore recovery needs attention. Keep app storage intact.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_ride_restore_storage_unavailable" volt:screen="Back up and restore" volt:purpose="error">Ride restore storage is unavailable.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_unexpected_ride_restore_recovery" volt:screen="Back up and restore" volt:purpose="error">Unexpected ride restore recovery data.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_invalid_ride_recovery_list" volt:screen="Back up and restore" volt:purpose="error">Invalid ride recovery list.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_invalid_ride_recovery_path" volt:screen="Back up and restore" volt:purpose="error">Invalid ride recovery path.</string>
+    <!-- Found while Volt recovers an interrupted restore as it starts. -->
+    <string name="backup_engine_could_not_roll_back_interrupted_ride" volt:screen="Back up and restore" volt:purpose="error">Could not roll back an interrupted ride restore.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_could_not_save_ride" volt:screen="Back up and restore" volt:purpose="error">Could not save ride restore recovery.</string>
+    <!-- Why the restore cannot be reviewed with these choices. -->
+    <string name="backup_engine_choose_ride_backup_again" volt:screen="Back up and restore" volt:purpose="error">Choose the ride backup again.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_reopen_volt_finish_ride" volt:screen="Back up and restore" volt:purpose="error" volt:dnt="Volt">Reopen Volt to finish ride recovery first.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_invalid_ride_path" volt:screen="Back up and restore" volt:purpose="error">Invalid ride path.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_unexpected_ride_storage_link" volt:screen="Back up and restore" volt:purpose="error">Unexpected ride storage link.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_ride_record_too_large" volt:screen="Back up and restore" volt:purpose="error">A ride record is too large.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_unsupported_ride_journal_format" volt:screen="Back up and restore" volt:purpose="error">Unsupported ride journal format.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_incomplete_ride_record_was" volt:screen="Back up and restore" volt:purpose="error">An incomplete ride record was found.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_phone_sensor_record_invalid" volt:screen="Back up and restore" volt:purpose="error">A phone sensor record is invalid.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_ride_backup_exceeds_size" volt:screen="Back up and restore" volt:purpose="error">Ride backup exceeds its size limit.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_recording_storage_does_not_support" volt:screen="Back up and restore" volt:purpose="error">Recording storage does not support safe restore recovery.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_ride_backup_storage_unavailable" volt:screen="Back up and restore" volt:purpose="error">Ride backup storage is unavailable.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_not_enough_available_storage" volt:screen="Back up and restore" volt:purpose="error">Not enough available storage.</string>
+    <!-- Why a backup or a restore could not go on (a storage or file check). -->
+    <string name="backup_engine_ride_backup_could_not_processed" volt:screen="Back up and restore" volt:purpose="error">The ride backup could not be processed.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_backup_unsupported_preference_type" volt:screen="Back up and restore" volt:purpose="error">The backup has an unsupported preference type.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_app_preferences_could_not_written" volt:screen="Back up and restore" volt:purpose="error">App preferences could not be written. Previous data will be recovered.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_could_not_read" volt:screen="Back up and restore" volt:purpose="error">The backup history database could not be read.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_too_many" volt:screen="Back up and restore" volt:purpose="error">The backup history has too many scooters.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_readings_history_could_not_merged" volt:screen="Back up and restore" volt:purpose="error">Readings history could not be merged.</string>
+    <!-- Why a restore was refused or stopped. -->
+    <string name="backup_engine_readings_history_too_large" volt:screen="Back up and restore" volt:purpose="error">Readings history is too large to merge.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_invalid" volt:screen="Back up and restore" volt:purpose="error">The backup history database is invalid.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_damaged" volt:screen="Back up and restore" volt:purpose="error">The backup history database is damaged or uses a newer format.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_unsupported" volt:screen="Back up and restore" volt:purpose="error">The backup history database has an unsupported schema.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_missing" volt:screen="Back up and restore" volt:purpose="error">The backup history database is missing required readings tables.</string>
+    <!-- Why Volt cannot open the chosen backup file. -->
+    <string name="backup_engine_backup_history_database_could_not_verified" volt:screen="Back up and restore" volt:purpose="error">The backup history database could not be verified.</string>
+</resources>
