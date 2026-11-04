@@ -89,8 +89,8 @@ runs are still tried. `diff.sh` itself stays the local script, so its `NOT CLEAN
 looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the complete list.
 
 Also not clean, for every run of the step: a step listed in **`cloud-gaps.tsv`** (a step the cloud
-emulator cannot run, marked "NOT COVERED in the cloud": run it on the laptop census). The file is
-empty now; see "Known cloud gaps" below. And every run a shard never got to: a shard **stops after 2
+emulator cannot run, marked "NOT COVERED in the cloud": run it on the laptop census). The file
+lists `report-invite-dark` and `report-invite-light`; see "Known cloud gaps" below. And every run a shard never got to: a shard **stops after 2
 boot failures in a row** and records each remaining run as `not run: ... (shard stopped ...)`, so a
 broken image cannot hold 18 runners for hours (the run job's timeout is 240 minutes).
 
@@ -116,9 +116,8 @@ summary page. A head that really breaks the keyboard or hides the field fails bo
   build as the local AVD (BE4B.251210.005, a user build), but x86_64 under KVM instead of arm64-v8a.
   If it can't be installed, `android-36.1;google_apis;x86_64` (the same build, userdebug, no Play) is
   used with a warning; `results.txt` and the summary page name the image of each shard. Same
-  1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 4 CPU cores (the local AVD has 1;
-  the runner has 4 vCPUs and swiftshader renders on host threads, so fewer cores make timed checks
-  such as `report-invite-*` miss their window).
+  1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 4 CPU cores (the runner has 4 vCPUs;
+  the local AVD has 1).
   **The AVD must be made with a new avdmanager**: `emulator.sh` installs `cmdline-tools;23.0` and
   uses its avdmanager. The runner's own (command-line tools 12.0) writes `target=android-0` for a
   Major.Minor image such as 36.1; the emulator then skips that API's GPU features and surfaceflinger
@@ -144,9 +143,15 @@ summary page. A head that really breaks the keyboard or hides the field fails bo
 
 ## Known cloud gaps
 
-None at the moment: every step of `steps.txt` runs in the cloud on the 36.1 image. When a step cannot
-(an image without a field or service a validation needs, say), add it to `cloud-gaps.tsv` with the
-reason: `report.py` then marks every run of it NOT COVERED and the diff job fails, so the step's
+`report-invite-dark` and `report-invite-light` (listed in `cloud-gaps.tsv`). `ReportInviteValidation`
+stops the simulated model check by hand and expects "Try again", but on the cloud emulator it gets
+there about 24 s after the app starts (the laptop: 11 s), after the 10 s simulated check has already
+finished ("Check finished ✓" on the landscape screen), so it fails "A stopped check did not offer Try
+again" for the base and every head alike (smoke-8, run 41914239618, with 4 cores; 2 cores the same).
+The four census screens it takes before that still compare, but the step's later screens and
+assertions never run, so the laptop census must run both. Every other step of `steps.txt` runs in
+the cloud on the 36.1 image. When a step cannot (an image without a field or service a validation
+needs, say), add it to `cloud-gaps.tsv` with the reason: `report.py` then marks every run of it NOT COVERED and the diff job fails, so the step's
 cloud PASS is never taken for coverage, and the laptop census has to run it.
 
 ## Boot-stability probe

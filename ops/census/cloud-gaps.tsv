@@ -1,5 +1,7 @@
 # Steps the cloud emulator cannot run, one per line: step<TAB>reason. report.py marks every run of a
 # listed step NOT CLEAN ("NOT COVERED in the cloud"), whatever its result, so the laptop census must
-# run it. Empty since 2026-11-04: on the android-36 image guided, guided-queue and
-# charge-schedule-wire could not run (its BluetoothGatt has no mClientRegistered field for the
-# synthetic GATT link); the 36.1 image used now has it.
+# run it. Until 2026-11-04 the android-36 image could not run guided, guided-queue and
+# charge-schedule-wire (its BluetoothGatt has no mClientRegistered field for the synthetic GATT
+# link); the 36.1 image used now has it, and they pass.
+report-invite-dark	the cloud emulator reaches the 'stopped check' assertion after the simulated 10 s check has already finished (about 24 s from app start to the turn, laptop 11 s), so 'A stopped check did not offer Try again' fails for base and heads alike; 2 or 4 cores make no difference
+report-invite-light	the cloud emulator reaches the 'stopped check' assertion after the simulated 10 s check has already finished (about 24 s from app start to the turn, laptop 11 s), so 'A stopped check did not offer Try again' fails for base and heads alike; 2 or 4 cores make no difference
