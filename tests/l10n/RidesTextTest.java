@@ -59,16 +59,29 @@ public final class RidesTextTest {
 
     /** RidesScreen.distance(). */
     static String distance(Double km, String units) {
-        if (km == null) return "Not measured";
+        if (km == null) return T.ridesNotMeasured();
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, km, 2), T.unitsKm()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, km / RideStore.KM_PER_MILE, 2), T.unitsMi());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
 
     /** RidesScreen.speed(). */
     static String speed(Double kmh, String units) {
-        if (kmh == null) return "Not measured";
+        if (kmh == null) return T.ridesNotMeasured();
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 1), T.unitsKmh()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 1), T.unitsMph());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
+    }
+
+    /** RidesScreen.ChartPanel.inspect(), a cell's description; label is Series.displayLabel(). */
+    static String cellDescription(String label, boolean available, CharSequence reading, CharSequence stamp) {
+        return T.ridesChartCellDescription(label, (available ? reading + ", " + stamp : T.ridesChartNoSample()));
+    }
+
+    /** RidesScreen.ChartPanel.applyData(), the energy-per-distance chip's limit. */
+    static String chipLimit(String key, boolean miles) { return "wh_per_distance".equals(key) ? (miles ? T.ridesChartChipFromMph() : T.ridesChartChipFromKmh()) : ""; }
+
+    /** RidesScreen.ChartPanel.applyData(), a series chip's description. */
+    static String chipDescription(String label, String key, boolean miles, boolean available) {
+        return "wh_per_distance".equals(key) ? (miles ? (available ? T.ridesChartSeriesOnlyAtMph(label) : T.ridesChartSeriesOnlyAtMphNoSamples(label)) : (available ? T.ridesChartSeriesOnlyAtKmh(label) : T.ridesChartSeriesOnlyAtKmhNoSamples(label))) : (available ? T.ridesChartSeries(label) : T.ridesChartSeriesNoSamples(label));
     }
 
     /** RidesScreen.accel(). */
@@ -325,6 +338,19 @@ public final class RidesTextTest {
         eq("GPS speed · blue 0 → yellow 20 mph or faster · gray dashed: missing", legends("", "", "", false, "20 mph")[2], "GPS legend");
         eq("At 12:04:05", T.mapsChartCursorAt("12:04:05"), "chart cursor");
         eq(", accuracy ±12 ft", T.ridesPointAccuracy("12 ft"), "accuracy");
+        for (String name : NAMES) for (String key : new String[] {"wh_per_distance", "power_w"})
+            for (boolean miles : new boolean[] {true, false}) {
+                eq(RidesEnglishTest.chipLimit(key, miles), chipLimit(key, miles), "chip limit " + key);
+                for (boolean available : new boolean[] {true, false}) {
+                    eq(RidesEnglishTest.chipDescription(name, key, miles, available), chipDescription(name, key, miles, available), "chip description " + key);
+                    eq(RidesEnglishTest.cellDescription(name, available, "120 W", "At 12:04:05"), cellDescription(name, available, "120 W", "At 12:04:05"), "cell description");
+                }
+            }
+        // Review round 3: the drawn route legend, the direction chip and the chip suffix, spelled out.
+        eq("Power|Speed|Grade|Accel|Elev.", T.ridesMapLegendPower() + "|" + T.ridesMapLegendSpeed() + "|" + T.ridesMapLegendGrade() + "|" + T.ridesMapLegendAccel() + "|" + T.ridesMapLegendElevation(), "legend titles");
+        eq("Direction ✓|Direction ?", T.ridesDirectionPillConfirmed() + "|" + T.ridesDirectionPillUnconfirmed(), "direction chip");
+        eq(" · no data", T.ridesChartChipNoData(), "chip no data");
+        eq("Not measured", T.ridesNotMeasured(), "not measured");
         phoneStatus();
         dates();
     }
@@ -342,6 +368,10 @@ public final class RidesTextTest {
             eq("‹fmt_quantity›", distance(2.0, "km"), "distance key");
             eq("‹fmt_percent›", percent(.5), "percent key");
             eq("‹rides_acceleration_with_g›", acceleration(1.0), "acceleration key");
+            eq("‹rides_not_measured›", distance(null, "km"), "not measured key");
+            eq("‹rides_chart_series_only_at_kmh_no_samples›", chipDescription("Wh/km", "wh_per_distance", false, false), "chip description key");
+            eq("‹rides_chart_chip_from_mph›", chipLimit("wh_per_distance", true), "chip limit key");
+            eq("‹rides_chart_cell_description›", cellDescription("Power", true, "1 W", "At 1"), "cell key");
         } finally {
             T.install(saved);
         }

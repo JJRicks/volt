@@ -404,4 +404,30 @@
     <!-- %1$s is the status so far; motion recording is on but the phone has no motion sensor. -->
     <string name="rides_sensor_status_motion_unavailable" volt:screen="Rides, live recording" volt:purpose="status">%1$s · motion sensor unavailable</string>
 
+    <!-- Wave 3 review: the ride chart's series chips. Each suffix follows the series name (the
+         chart's legend name, Series.displayLabel()); the speeds are where energy per distance starts. -->
+    <string name="rides_chart_chip_from_mph" volt:screen="Rides, ride details" volt:purpose="option">" · ≥2 mph"</string>
+    <string name="rides_chart_chip_from_kmh" volt:screen="Rides, ride details" volt:purpose="option">" · ≥3 km/h"</string>
+    <string name="rides_chart_chip_no_data" volt:screen="Rides, ride details" volt:purpose="option">" · no data"</string>
+    <!-- The series chip's description: %1$s is the series name. Energy per distance exists only
+         from that speed up; "no samples recorded" means the ride has no reading of that series. -->
+    <string name="rides_chart_series_only_at_mph" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, only at 2 mph or faster</string>
+    <string name="rides_chart_series_only_at_mph_no_samples" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, only at 2 mph or faster, no samples recorded</string>
+    <string name="rides_chart_series_only_at_kmh" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, only at 3 km/h or faster</string>
+    <string name="rides_chart_series_only_at_kmh_no_samples" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, only at 3 km/h or faster, no samples recorded</string>
+    <string name="rides_chart_series" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s</string>
+    <string name="rides_chart_series_no_samples" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, no samples recorded</string>
+    <!-- %1$s is the series name; %2$s is its reading and time, or "no recorded sample". -->
+    <string name="rides_chart_cell_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s: %2$s</string>
+    <!-- The Electrical energy section's compact chip; tapping it explains the direction. -->
+    <string name="rides_direction_pill_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ✓</string>
+    <string name="rides_direction_pill_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ?</string>
+    <!-- The route colour legend drawn under the map: a narrow title beside the gradient bar
+         (rides_map_legend_power also sets the title column's width). -->
+    <string name="rides_map_legend_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power</string>
+    <string name="rides_map_legend_speed" volt:screen="Rides, phone and route" volt:purpose="legend">Speed</string>
+    <string name="rides_map_legend_grade" volt:screen="Rides, phone and route" volt:purpose="legend">Grade</string>
+    <string name="rides_map_legend_accel" volt:screen="Rides, phone and route" volt:purpose="legend">Accel</string>
+    <string name="rides_map_legend_elevation" volt:screen="Rides, phone and route" volt:purpose="legend">Elev.</string>
+
 </resources>
