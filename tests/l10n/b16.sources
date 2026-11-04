@@ -3,3 +3,6 @@
 src/com/jjricks/volt/ScooterReadingLabels.java
 # G5: Live Stats row names, groups, numbers and charge history formatting, pinned before the batch.
 tests/l10n/characterization/StatsTextTest.java
+# B16's pure helper and its catalog test.
+src/com/jjricks/volt/StatsLabels.java
+tests/l10n/StatsCatalogTest.java
