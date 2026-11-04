@@ -52,10 +52,13 @@ final class DashboardExampleIds {
      *
      * Not the example's exact widget count: the example has one widget of every type, so a version that
      * adds a type (and adds it to the example) would otherwise stop recognising every example slot an
-     * earlier version saved, and an earlier version would not recognise the later one's. So a slot 3
-     * named so that holds only example widgets, fewer of them (the owner removed some) or more (a later
-     * example), still counts. An owner's own widget (a random id) in it, or an example saved by an older
-     * version (random ids), makes the name the owner's, shown as saved.
+     * earlier version saved. So a slot 3 named so that holds only example widgets, all of them or fewer
+     * (the owner removed some, or a later version with a type more reads this version's example), still
+     * counts. A later version's example never reaches this one's check: its added type is not in
+     * DashboardConfig.TYPES here, so validateSlot refuses the slot and it does not read at all. This check
+     * does not compare types with TYPES itself; validateSlot does that first. An owner's own widget (a
+     * random id) in it, or an example saved by an older version (random ids), makes the name the owner's,
+     * shown as saved.
      */
     static boolean exampleSlot(int index, boolean exampleName, String[] ids, String[] types) {
         if (index != 2 || !exampleName || ids.length == 0 || ids.length != types.length) return false;
