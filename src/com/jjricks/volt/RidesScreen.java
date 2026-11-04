@@ -1524,7 +1524,7 @@ public final class RidesScreen implements AppScreen {
     private View compareName(RideStore.Summary s) {
         LinearLayout column = vertical(); column.setGravity(Gravity.END);
         TextView name = ui.text(nameOf(s), 14, true); name.setGravity(Gravity.END); name.setMaxLines(2); name.setEllipsize(TextUtils.TruncateAt.END);
-        TextView date = ui.caption(new SimpleDateFormat("MMM d", Locale.getDefault()).format(new Date(s.startWallMs))); date.setGravity(Gravity.END);
+        TextView date = ui.caption(new SimpleDateFormat(datePattern(RIDE_DATE), Fmt.locale(Locale.getDefault())).format(new Date(s.startWallMs))); date.setGravity(Gravity.END);
         column.addView(name); column.addView(date); column.setPadding(ui.dp(6), 0, 0, 0);
         return column;
     }
@@ -1863,26 +1863,33 @@ public final class RidesScreen implements AppScreen {
         }
         @Override protected void onDraw(Canvas canvas) {
             LegendLayout layout = layoutFor(getWidth());
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
             paint.setShader(null); paint.setPathEffect(null);
-            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.muted); paint.setTextAlign(Paint.Align.LEFT);
+            paint.setStyle(Paint.Style.FILL); paint.setColor(ui.muted); paint.setTextAlign(align(rtl, Paint.Align.LEFT));
             String missing = "missing"; float missingWidth = paint.measureText(missing), dash = ui.dp(18);
-            canvas.drawText(layout.shownTitle, layout.left, layout.baseline, paint);
-            canvas.drawText(missing, layout.right - missingWidth, layout.baseline, paint);
+            canvas.drawText(layout.shownTitle, mirror(rtl, layout.left), layout.baseline, paint);
+            canvas.drawText(missing, mirror(rtl, layout.right - missingWidth), layout.baseline, paint);
             paint.setStyle(Paint.Style.STROKE); paint.setStrokeWidth(ui.dp(2)); paint.setColor(Color.rgb(128, 128, 128));
             paint.setPathEffect(new android.graphics.DashPathEffect(new float[]{ui.dp(4), ui.dp(3)}, 0));
-            canvas.drawLine(layout.right - missingWidth - ui.dp(6) - dash, layout.headerCenter,
-                    layout.right - missingWidth - ui.dp(6), layout.headerCenter, paint);
+            canvas.drawLine(mirror(rtl, layout.right - missingWidth - ui.dp(6) - dash), layout.headerCenter,
+                    mirror(rtl, layout.right - missingWidth - ui.dp(6)), layout.headerCenter, paint);
             paint.setPathEffect(null); paint.setStyle(Paint.Style.FILL);
             if (layout.barRight <= layout.barLeft) return;
-            paint.setShader(new android.graphics.LinearGradient(layout.barLeft, 0, layout.barRight, 0, colors, null, android.graphics.Shader.TileMode.CLAMP));
-            canvas.drawRoundRect(new RectF(layout.barLeft, layout.barCenter - ui.dp(4), layout.barRight, layout.barCenter + ui.dp(4)), ui.dp(4), ui.dp(4), paint);
+            paint.setShader(new android.graphics.LinearGradient(mirror(rtl, layout.barLeft), 0, mirror(rtl, layout.barRight), 0, colors, null, android.graphics.Shader.TileMode.CLAMP));
+            canvas.drawRoundRect(new RectF(rtl ? mirror(rtl, layout.barRight) : layout.barLeft, layout.barCenter - ui.dp(4), rtl ? mirror(rtl, layout.barLeft) : layout.barRight, layout.barCenter + ui.dp(4)), ui.dp(4), ui.dp(4), paint);
             paint.setShader(null); paint.setColor(ui.muted);
             for (int i = 0; i < labels.length; i++) {
                 float x = i == 0 ? layout.barLeft : i == labels.length - 1 ? layout.barRight : (layout.barLeft + layout.barRight) / 2;
-                paint.setTextAlign(i == 0 ? Paint.Align.LEFT : i == labels.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER);
+                paint.setTextAlign(align(rtl, i == 0 ? Paint.Align.LEFT : i == labels.length - 1 ? Paint.Align.RIGHT : Paint.Align.CENTER));
                 float baseline = layout.labelBaseline + (layout.separateLabels ? i * (layout.line + ui.dp(3)) : 0);
-                canvas.drawText(labels[i], x, baseline, paint);
+                canvas.drawText(labels[i], mirror(rtl, x), baseline, paint);
             }
+        }
+        /** x for this layout direction: the left-to-right position, mirrored across the view when right to left. */
+        private float mirror(boolean rtl, float x) { return rtl ? getWidth() - x : x; }
+        /** The text alignment for this layout direction: left and right swap when right to left. */
+        private Paint.Align align(boolean rtl, Paint.Align ltr) {
+            return !rtl || ltr == Paint.Align.CENTER ? ltr : ltr == Paint.Align.LEFT ? Paint.Align.RIGHT : Paint.Align.LEFT;
         }
     }
     /** Small dark rounded route outline; a neutral glyph when the ride has no GPS route. */
@@ -2112,12 +2119,24 @@ public final class RidesScreen implements AppScreen {
                 : units.equals("km") ? quantity(km, "Wh/km", 1) : quantity(mi, "Wh/mi", 1);
         return (s.netWhPerKm == null ? T.ridesEfficiencyThroughput(value) : T.ridesEfficiencyNet(value));
     }
-    private String shortDate(long wall) { return new SimpleDateFormat("MMM d", Locale.getDefault()).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
-    private String longDate(long wall) { return new SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
+    private String shortDate(long wall) { return new SimpleDateFormat(datePattern(RIDE_DATE), Fmt.locale(Locale.getDefault())).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
+    private String longDate(long wall) { return new SimpleDateFormat(datePattern(RIDE_DAY_DATE), Fmt.locale(Locale.getDefault())).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
     private static int blend(int a, int b, double fraction) {
         return Color.rgb((int) (Color.red(a) + (Color.red(b) - Color.red(a)) * fraction),
                 (int) (Color.green(a) + (Color.green(b) - Color.green(a)) * fraction),
                 (int) (Color.blue(a) + (Color.blue(b) - Color.blue(a)) * fraction));
+    }
+    /** The ride dates' patterns, which English and every unshipped language keep (Fmt.datePattern). */
+    private static final String RIDE_DATE = "MMM d", RIDE_DAY_DATE = "EEE, MMM d";
+    /** A ride date pattern: the legacy pattern while Volt is English, else the display language's best pattern for its fields. */
+    private static String datePattern(String legacy) {
+        return Fmt.datePattern(legacy, skeleton(legacy), android.text.format.DateFormat::getBestDateTimePattern);
+    }
+    /** A date pattern's fields as a skeleton: its pattern letters, without the spaces and punctuation between them. */
+    private static String skeleton(String pattern) {
+        StringBuilder letters = new StringBuilder(pattern.length());
+        for (int i = 0; i < pattern.length(); i++) if (Character.isLetter(pattern.charAt(i))) letters.append(pattern.charAt(i));
+        return letters.toString();
     }
     private static String quantity(Double value, String unit, int decimals) { return value == null ? "Not measured" : String.format(Locale.US, "%." + decimals + "f %s", value, unit); }
     private String temperature(Double celsius) {
