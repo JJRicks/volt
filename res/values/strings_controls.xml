@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The controls catalogue and capability (batch B4): each scooter control's name, group, caption and
+  option labels, why a control is unavailable now, the refusals a person can reach, the cautions shown
+  before a change, the model line, NAVEE's series descriptions and the drive-mode naming step. The
+  English must stay exactly what the source said before the batch (G1, G2; the characterization test
+  tests/l10n/characterization/ControlsEnglishTest.java pins every producer).
+
+  Safety: lock, PIN, owner-key, charge and ride texts are whole sentences; translate them as plainly as
+  the official app would and never soften a refusal. Drive-mode names (Walk, Eco, Drive, Sport, Turbo,
+  Boost) stay as the scooter shows them. SI unit symbols (km/h, %) stay as they are.
+
+  Option labels: the control tables keep their English labels as data (G1 cannot turn an array of
+  text into ids), so a screen shows a label through the controls_option_* entry whose English is
+  exactly that label (ScooterCommands.shown). Number labels use the number templates here.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <!-- Control names (ScooterCommands.Feature.label()). label stays the English id. -->
+    <!-- The scooter's electronic lock: locked, it will not ride. -->
+    <string name="controls_feature_lock" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock">Electronic lock</string>
+    <!-- Holds the current speed without the throttle. -->
+    <string name="controls_feature_cruise_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Cruise control</string>
+    <!-- Regenerative braking when you let go of the throttle. -->
+    <string name="controls_feature_energy_recovery" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Energy recovery</string>
+    <!-- How hard the motor pulls away; the choices are the scooter's Eco and Turbo. -->
+    <string name="controls_feature_acceleration" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Acceleration profile</string>
+    <!-- Turns the rear light on or off. -->
+    <string name="controls_feature_headlight" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Tail light</string>
+    <!-- Lights that switch on by themselves in the dark. -->
+    <string name="controls_feature_auto_sensor" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Automatic lights</string>
+    <!-- Limits wheel spin on slippery ground. -->
+    <string name="controls_feature_traction_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Traction control</string>
+    <!-- The beep while a turn signal is on. -->
+    <string name="controls_feature_turn_sound" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Turn signal sound</string>
+    <!-- Whether the scooter's own dashboard shows miles or kilometres. -->
+    <string name="controls_feature_display_units" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Dashboard units</string>
+    <!-- How the scooter estimates its remaining range. -->
+    <string name="controls_feature_range_algorithm" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Range estimate</string>
+    <!-- The speed you must push to before the motor starts helping. -->
+    <string name="controls_feature_start_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Kick-start speed</string>
+    <!-- A top speed the owner sets below the scooter's maximum. -->
+    <string name="controls_feature_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Custom speed cap</string>
+    <!-- The scooter's top speed setting. -->
+    <string name="controls_feature_maximum_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Maximum speed</string>
+    <!-- Whether one or both motors drive. -->
+    <string name="controls_feature_dual_drive" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Dual motor drive</string>
+    <!-- A speed cap for the scooter's Drive mode (a mode name: keep it as the scooter shows it). -->
+    <string name="controls_feature_drive_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride" volt:dnt="Drive">Drive mode speed cap</string>
+    <!-- The battery level charging stops at. -->
+    <string name="controls_feature_charge_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charge ceiling</string>
+    <!-- Charging that waits for a start time. -->
+    <string name="controls_feature_timed_charging" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Scheduled charging</string>
+    <!-- When scheduled charging begins. -->
+    <string name="controls_feature_charge_start" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charging start time</string>
+    <!-- How long the electronic lock stays on. -->
+    <string name="controls_feature_lock_expiry" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock">Lock duration</string>
+    <!-- The scooter's mode that saves power when the battery is low. -->
+    <string name="controls_feature_low_power" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Low Battery Mode</string>
+    <!-- A mode that trades speed for range. -->
+    <string name="controls_feature_long_range_mode" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Long range mode</string>
+    <!-- The scooter's feature that moves it slowly while you push it. -->
+    <string name="controls_feature_hill_start_assist" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Walk Assist</string>
+    <!-- Extra help from the motor on hills. -->
+    <string name="controls_feature_parking_assist" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Power Assist</string>
+    <!-- Holds the speed down steep slopes. -->
+    <string name="controls_feature_hill_descent_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Hill descent control</string>
+    <!-- The scooter slows itself above its speed limit. -->
+    <string name="controls_feature_overspeed_control" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Overspeed active control</string>
+    <!-- Which sound the scooter plays for prompts. -->
+    <string name="controls_feature_prompt_tone" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Prompt sound</string>
+    <!-- The scooter's light strips along the deck (a light zone). -->
+    <string name="controls_feature_line_lights" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Line lights</string>
+    <!-- The scooter's small decorative lights (a light zone). -->
+    <string name="controls_feature_star_lights" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Star lights</string>
+    <!-- Unlocks the scooter when the paired phone comes near. -->
+    <string name="controls_feature_proximity_key" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="lock,owner-key">Proximity unlock</string>
+    <!-- The four-digit code typed on the scooter's handlebar to unlock it. -->
+    <string name="controls_feature_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="pin" volt:dnt="PIN">Handlebar PIN</string>
+    <!-- A light zone on some NAVEE models. -->
+    <string name="controls_feature_ambient_light_mode" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Ambient light</string>
+    <!-- The lit logo on some NAVEE models. -->
+    <string name="controls_feature_logo_light" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Logo light</string>
+    <!-- The light that stays on in daylight on some NAVEE models. -->
+    <string name="controls_feature_daytime_light" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Daytime running light</string>
+    <!-- The light pattern setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: pattern". -->
+    <string name="controls_feature_light_pattern" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s pattern</string>
+    <!-- The colour setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: color". -->
+    <string name="controls_feature_light_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s color</string>
+    <!-- The colour a light zone shows in Boost (a mode name, kept as the scooter shows it): %1$s is the zone. If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: Boost color". -->
+    <string name="controls_feature_light_boost_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:dnt="Boost">%1$s Boost color</string>
+
+    <!-- Control captions (ScooterCommands.Feature.description()): short notes under a control. -->
+    <!-- Explains that this control is what other NAVEE models call Eco/Turbo (the scooter's own mode names). -->
+    <string name="controls_feature_acceleration_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride" volt:dnt="Eco|Turbo">Other models’ Eco/Turbo.</string>
+    <!-- Pressing the scooter's power button turns automatic lights off until the scooter restarts. -->
+    <string name="controls_feature_auto_sensor_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption">Power button pauses until restart.</string>
+    <!-- Choosing a range estimate changes only how range is estimated, not the riding. -->
+    <string name="controls_feature_range_algorithm_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption">Changes the estimate only.</string>
+    <!-- The maximum speed applies only in the scooter's Sport mode (a mode name). -->
+    <string name="controls_feature_maximum_speed_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride" volt:dnt="Sport">Sport mode only.</string>
+    <!-- The scooter stays locked after it is switched off, so the owner must know the handlebar PIN to unlock it. -->
+    <string name="controls_feature_lock_expiry_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="lock,pin" volt:dnt="PIN">Stays locked when off; know PIN.</string>
+    <!-- Walk Assist moves the scooter as you push it; pulling the brake stops it. -->
+    <string name="controls_feature_hill_start_assist_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride">Follows your push; brake stops.</string>
+    <!-- Power Assist works in Sport mode: Boost plus full throttle helps uphill (Sport and Boost are mode names). -->
+    <string name="controls_feature_parking_assist_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride" volt:dnt="Sport|Boost">Sport: Boost + full throttle uphill.</string>
+    <!-- Hill descent control limits the speed going downhill. -->
+    <string name="controls_feature_hill_descent_control_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride">Limits downhill speed.</string>
+
+    <!-- Control groups (ScooterCommands.Feature.groupLabel()); the group stays the English id. -->
+    <!-- A group of scooter settings. -->
+    <string name="controls_group_security" volt:screen="More › scooter settings" volt:purpose="section title">Security</string>
+    <!-- A group of scooter settings. -->
+    <string name="controls_group_ride" volt:screen="More › scooter settings" volt:purpose="section title">Ride</string>
+    <!-- A group of scooter settings. -->
+    <string name="controls_group_lights" volt:screen="More › scooter settings" volt:purpose="section title">Lights &amp; sound</string>
+    <!-- A group of scooter settings. -->
+    <string name="controls_group_preferences" volt:screen="More › scooter settings" volt:purpose="section title">Preferences</string>
+    <!-- A group of scooter settings. -->
+    <string name="controls_group_battery" volt:screen="More › scooter settings" volt:purpose="section title">Battery</string>
+
+    <!-- Option labels (ScooterCommands.shown): a table label shows through the entry whose English equals it. -->
+    <!-- Energy recovery level. -->
+    <string name="controls_option_low" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Low</string>
+    <!-- Energy recovery level. -->
+    <string name="controls_option_medium" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Medium</string>
+    <!-- Energy recovery level. -->
+    <string name="controls_option_high" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">High</string>
+    <!-- The scooter dashboard shows miles and mph. -->
+    <string name="controls_option_miles" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:dnt="mph">Miles / mph</string>
+    <!-- The scooter dashboard shows kilometres and km/h. -->
+    <string name="controls_option_kilometers" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:dnt="km/h">Kilometers / km/h</string>
+    <!-- A range estimate method: the scooter's theoretical range. -->
+    <string name="controls_option_theoretical" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Theoretical</string>
+    <!-- A range estimate method: based on how you actually ride. -->
+    <string name="controls_option_actual_riding" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Actual riding</string>
+    <!-- A range estimate method: the estimate for the scooter's D (Drive) mode. -->
+    <string name="controls_option_d_mode_estimate" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:dnt="D-mode">D-mode estimate</string>
+    <!-- A range estimate method: the estimate for Sport mode. -->
+    <string name="controls_option_sport_estimate" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:dnt="Sport">Sport estimate</string>
+    <!-- A range estimate method: the estimate for Eco mode. -->
+    <string name="controls_option_eco_estimate" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:dnt="Eco">Eco estimate</string>
+    <!-- Dual motor drive off: one motor drives. -->
+    <string name="controls_option_single_motor" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Single motor</string>
+    <!-- Dual motor drive on: both motors drive. -->
+    <string name="controls_option_dual_motor" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Dual motor</string>
+    <!-- Light pattern: always on. -->
+    <string name="controls_option_always_on" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Always on</string>
+    <!-- Light pattern: on when the headlights are on. -->
+    <string name="controls_option_follow_headlights" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Follow headlights</string>
+    <!-- Light pattern: slowly pulsing. -->
+    <string name="controls_option_breathing" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Breathing</string>
+    <!-- Light mode: on when the headlight is on. -->
+    <string name="controls_option_follow_headlight" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Follow headlight</string>
+    <!-- Light colour. -->
+    <string name="controls_option_ice_blue" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Ice blue</string>
+    <!-- Light colour. -->
+    <string name="controls_option_red" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Red</string>
+    <!-- Light colour. -->
+    <string name="controls_option_blue" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Blue</string>
+    <!-- Light colour. -->
+    <string name="controls_option_green" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Green</string>
+    <!-- Light colour. -->
+    <string name="controls_option_purple" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Purple</string>
+    <!-- Light colour: cycling through colours. -->
+    <string name="controls_option_rainbow" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Rainbow</string>
+    <!-- How long the electronic lock lasts: %1$s is a number of hours (6, 12 or 24). -->
+    <plurals name="controls_option_hours" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:safety="lock">
+        <item quantity="one">%1$s hour</item>
+        <item quantity="other">%1$s hours</item>
+    </plurals>
+    <!-- One of the scooter's prompt sounds: %1$s is its number. -->
+    <string name="controls_option_sound" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option">Sound %1$s</string>
+    <!-- The scooter has no charge ceiling set and uses its default: %1$s is that level as a percentage (fmt_percent, "80%"). -->
+    <string name="controls_option_default" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:safety="charge">Default (%1$s)</string>
+    <!-- A battery level outside the offered choices, written today with a space before the percent sign: %1$s is the number. Write it as your language writes a percentage. -->
+    <string name="controls_option_percent_spaced" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="option" volt:safety="charge">%1$s %%</string>
+
+    <!-- Why a control is unavailable now (CapabilityResolver.text). Short: shown under a control or as a toast. -->
+    <!-- Connect to the scooter before changing this. -->
+    <string name="controls_reason_not_connected" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Connect first</string>
+    <!-- Volt is waiting for a current reading from the scooter. -->
+    <string name="controls_reason_status_stale" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Waiting for fresh status</string>
+    <!-- The scooter reported a value Volt does not know, so changing it is not safe. -->
+    <string name="controls_reason_value_unknown" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Unknown value · can\'t change safely</string>
+    <!-- The scooter reported no choices for this setting. -->
+    <string name="controls_reason_no_choices" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">No choices reported</string>
+    <!-- Another change is still being written and checked. -->
+    <string name="controls_reason_busy" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Wait for the current change</string>
+    <!-- The scooter is moving; this needs it parked. -->
+    <string name="controls_reason_moving" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Stop the scooter first</string>
+    <!-- The scooter has not yet said whether it is moving. -->
+    <string name="controls_reason_no_motion_report" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">No motion report yet</string>
+    <!-- The scooter shows a warning; clear it before this change. -->
+    <string name="controls_reason_warning_active" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Resolve scooter warning first</string>
+    <!-- The scooter is locked; unlock it first. -->
+    <string name="controls_reason_locked" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="lock">Unlock first</string>
+    <!-- Only the scooter's owner can change this. -->
+    <string name="controls_reason_owner_only" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="owner-key">Owner only</string>
+    <!-- Proximity unlock needs this phone paired over Bluetooth. -->
+    <string name="controls_reason_needs_bond" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="lock,owner-key">Pair this phone first</string>
+    <!-- Proximity unlock needs the handlebar PIN turned on. -->
+    <string name="controls_reason_needs_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="lock,pin">Enable the handlebar PIN first</string>
+    <!-- Volt has not read the scooter's firmware version yet. -->
+    <string name="controls_reason_firmware_unknown" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Firmware not read yet</string>
+    <!-- The scooter's firmware is too old for this. -->
+    <string name="controls_reason_firmware_old" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Needs newer scooter firmware</string>
+    <!-- Volt needs to know the scooter model first. -->
+    <string name="controls_reason_identify_model" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Identify model first</string>
+    <!-- The scooter's reported Model IDs disagree. -->
+    <string name="controls_reason_identity_conflict" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:dnt="ID">Model ID mismatch</string>
+    <!-- Volt does not know how this model handles this control. -->
+    <string name="controls_reason_model_not_mapped" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Not mapped for this model</string>
+    <!-- This model does not have this control or value. -->
+    <string name="controls_reason_model_excluded" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Not on this model</string>
+    <!-- The official app does not offer this in the scooter's region. -->
+    <string name="controls_reason_region_rule" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Not offered for this region</string>
+    <!-- Volt does not support this scooter or connection. -->
+    <string name="controls_reason_unsupported" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Not supported</string>
+    <!-- Volt is checking which controls this scooter supports. -->
+    <string name="controls_reason_discovery_active" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Checking compatibility…</string>
+    <!-- A guided test is running. -->
+    <string name="controls_reason_test_active" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Test in progress</string>
+    <!-- This control has no guided test. -->
+    <string name="controls_reason_not_testable" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Not offered as a test</string>
+    <!-- A ride is being recorded; stop it first. -->
+    <string name="controls_reason_recording" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Stop recording first</string>
+    <!-- Not available with the simulated scooter. -->
+    <string name="controls_reason_needs_real_scooter" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Needs a real scooter</string>
+    <!-- The owner must confirm the scooter is parked first. -->
+    <string name="controls_reason_parked_unconfirmed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Confirm the scooter is parked</string>
+    <!-- No guided test is running. -->
+    <string name="controls_reason_no_test" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">No test running</string>
+
+    <!-- Refusals from the control builders (ScooterCommands.Refused): getMessage() keeps the English for logs; screens show these. -->
+    <!-- The chosen value is not one the scooter's official app offers for this control. -->
+    <string name="controls_refusal_outside_domain" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:dnt="OEM">Value is outside the OEM feature domain</string>
+    <!-- The custom speed cap is either off or between 8 and 32 km/h. -->
+    <string name="controls_refusal_speed_limit_range" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="ride" volt:dnt="km/h">Off or 8–32 km/h</string>
+    <!-- The Drive mode speed cap is either off or between 5 and 20 km/h. -->
+    <string name="controls_refusal_drive_speed_limit_range" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="ride" volt:dnt="km/h">Off or 5–20 km/h</string>
+    <!-- The scooter does not offer this setting right now. -->
+    <string name="controls_refusal_not_available" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error">Not available now</string>
+    <!-- Only the scooter's owner, signed in with the owner key, may read or change the handlebar PIN. -->
+    <string name="controls_refusal_pin_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin,owner-key" volt:dnt="PIN">PIN access requires the authenticated owner</string>
+    <!-- The handlebar PIN is exactly four digits, 0 to 9. -->
+    <string name="controls_refusal_pin_digits" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin" volt:dnt="PIN">PIN must contain four decimal digits</string>
+    <!-- Set a handlebar PIN before turning it on. -->
+    <string name="controls_refusal_pin_not_configured" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin" volt:dnt="PIN">A PIN must be configured before enabling it</string>
+    <!-- Only the signed-in owner can change proximity unlock. -->
+    <string name="controls_refusal_proximity_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Proximity changes require the authenticated owner</string>
+    <!-- Pair this phone with the scooter over Bluetooth before turning on proximity unlock. -->
+    <string name="controls_refusal_proximity_bond" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Bond this phone before enabling proximity unlock</string>
+    <!-- Proximity unlock needs a handlebar PIN that is set and turned on. -->
+    <string name="controls_refusal_proximity_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,pin" volt:dnt="PIN">Enable a configured handlebar PIN before proximity unlock</string>
+
+    <!-- Cautions before a change on another NAVEE model (ModelRegistry.caution). Each %1$s is a following whole sentence (controls_caution_asks, _shows or _untested). -->
+    <!-- Second part of a caution: the official NAVEE app asks before this change too. -->
+    <string name="controls_caution_asks" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app asks before this change. Volt has not tested it on this model.</string>
+    <!-- Second part of a caution. -->
+    <string name="controls_caution_untested" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">Volt has not tested it on this model.</string>
+    <!-- Second part of a caution: the official NAVEE app warns about this change too. -->
+    <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app shows a caution for this change. Volt has not tested it on this model.</string>
+    <!-- Asked before turning traction control off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_traction_control" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off traction control? %1$s</string>
+    <!-- Asked before turning Low Battery Mode off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_low_power" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">Turn off Low Battery Mode? %1$s</string>
+    <!-- Asked before switching from two motors to one. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_dual_drive" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Switch to single motor? %1$s</string>
+    <!-- Asked before turning regenerative braking off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_energy_recovery" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off energy recovery? %1$s</string>
+    <!-- Shown before setting a kick-start speed under 3 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_start_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Kick-start speed below 3 km/h. %1$s</string>
+    <!-- Shown before setting a top speed over 32 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
+    <string name="controls_caution_maximum_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Above 32 km/h: check the rules where you ride. %1$s</string>
+
+    <!-- Experimental controls cautions (ModelRegistry.experimentalCaution): what the change does. -->
+    <!-- Shown before trying traction control off. -->
+    <string name="controls_experimental_traction_control" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns traction control off. Ride gently on wet or loose ground until you know how it behaves.</string>
+    <!-- Shown before trying a kick-start speed under 3 km/h. -->
+    <string name="controls_experimental_start_speed" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Below 3 km/h, the motor can pull from a standstill as soon as you use the throttle.</string>
+    <!-- Shown before trying energy recovery off. -->
+    <string name="controls_experimental_energy_recovery" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns motor braking off, so your brakes do more of the stopping.</string>
+    <!-- Shown before trying a custom speed cap. "Top speed" and "Set back" name a setting and a button on the same screen. -->
+    <string name="controls_experimental_speed_limit" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+
+    <!-- The model line under a scooter's name (ModelRegistry.modelLineText); the report keeps the English. -->
+    <!-- A scooter Volt cannot name: %1$s is its numeric NAVEE Model ID. -->
+    <string name="controls_model_line" volt:screen="My scooters, Compatibility" volt:purpose="model line">Model %1$s</string>
+    <!-- A scooter whose Model ID comes only from its serial number: %1$s is that number. -->
+    <string name="controls_model_line_unconfirmed" volt:screen="My scooters, Compatibility" volt:purpose="model line">Model %1$s (unconfirmed)</string>
+
+    <!-- NAVEE's scooter series, as the owner picks a model (NaveeModels.Series.aboutLabel). -->
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_ut" volt:screen="Model picker" volt:purpose="series description">High performance</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_nt" volt:screen="Model picker" volt:purpose="series description">All-terrain</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_xt" volt:screen="Model picker" volt:purpose="series description">Off-road</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_n" volt:screen="Model picker" volt:purpose="series description">SUV-style and older</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_st" volt:screen="Model picker" volt:purpose="series description">Premium commuting</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_gt" volt:screen="Model picker" volt:purpose="series description">Commuting</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_g" volt:screen="Model picker" volt:purpose="series description">Lightweight commuting</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_s" volt:screen="Model picker" volt:purpose="series description">Suspension-focused</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_v" volt:screen="Model picker" volt:purpose="series description">City and budget</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_easy_ride" volt:screen="Model picker" volt:purpose="series description">Entry-level</string>
+    <!-- What a NAVEE scooter series is for; shown after the series name. -->
+    <string name="controls_series_k" volt:screen="Model picker" volt:purpose="series description">Kids</string>
+
+    <!-- Name your drive modes, before a compatibility report (DriveModeStep). Mode names (Walk, Eco, Drive, Sport) stay as the scooter shows them. -->
+    <!-- The step's heading. -->
+    <string name="controls_drive_mode_title" volt:screen="Report › Name your drive modes" volt:purpose="title">Name your drive modes</string>
+    <!-- Why and how; Volt sends nothing to the scooter. -->
+    <string name="controls_drive_mode_intro" volt:screen="Report › Name your drive modes" volt:purpose="caption" volt:dnt="Volt">Optional, about a minute. Stay parked: you\'ll press your scooter\'s own mode button, and Volt only watches which mode it reports.</string>
+    <!-- Shown until a mode reading arrives. -->
+    <string name="controls_drive_mode_watching" volt:screen="Report › Name your drive modes" volt:purpose="status">Watching your scooter…</string>
+    <!-- The scooter is not connected. -->
+    <string name="controls_drive_mode_disconnected" volt:screen="Report › Name your drive modes" volt:purpose="status">Scooter disconnected</string>
+    <!-- Connected, but no fresh mode reading yet. -->
+    <string name="controls_drive_mode_waiting" volt:screen="Report › Name your drive modes" volt:purpose="status">Waiting for your scooter\'s mode…</string>
+    <!-- Shown while disconnected. -->
+    <string name="controls_drive_mode_reconnect" volt:screen="Report › Name your drive modes" volt:purpose="prompt">Reconnect your scooter to keep going.</string>
+    <!-- Waiting for a live reading of the mode being asked about. -->
+    <string name="controls_drive_mode_reading" volt:screen="Report › Name your drive modes" volt:purpose="prompt">Reading your scooter\'s mode…</string>
+    <!-- Asks the owner to name the first mode. -->
+    <string name="controls_drive_mode_ask_first" volt:screen="Report › Name your drive modes" volt:purpose="prompt">Which mode is your scooter in now?</string>
+    <!-- Asks the owner to name each next mode. -->
+    <string name="controls_drive_mode_ask_next" volt:screen="Report › Name your drive modes" volt:purpose="prompt">And this mode?</string>
+    <!-- Before the first mode reading. -->
+    <string name="controls_drive_mode_connecting" volt:screen="Report › Name your drive modes" volt:purpose="prompt">Connecting to your scooter\'s mode…</string>
+    <!-- After naming a mode. -->
+    <string name="controls_drive_mode_press_next" volt:screen="Report › Name your drive modes" volt:purpose="prompt">Press your scooter\'s mode button to switch to the next mode.</string>
+    <!-- Skips naming the drive modes. -->
+    <string name="controls_drive_mode_skip" volt:screen="Report › Name your drive modes" volt:purpose="button">Skip</string>
+    <!-- Heading of the confirmation screen. -->
+    <string name="controls_drive_mode_confirm_title" volt:screen="Report › Name your drive modes" volt:purpose="title">Look right?</string>
+    <!-- The scooter showed every mode and came back to the first. -->
+    <string name="controls_drive_mode_confirm_closed" volt:screen="Report › Name your drive modes" volt:purpose="caption">Your scooter went through these modes in this order.</string>
+    <!-- The owner stopped before the scooter came back to the first mode. -->
+    <string name="controls_drive_mode_confirm_named" volt:screen="Report › Name your drive modes" volt:purpose="caption">These are the modes you named, in the order your scooter showed them.</string>
+    <!-- Discards the names and starts again. -->
+    <string name="controls_drive_mode_start_over" volt:screen="Report › Name your drive modes" volt:purpose="button">Start over</string>
+    <!-- Accepts the names for the report. -->
+    <string name="controls_drive_mode_looks_right" volt:screen="Report › Name your drive modes" volt:purpose="button">Looks right</string>
+    <!-- %1$s is the mode number the scooter reports. -->
+    <string name="controls_drive_mode_reported" volt:screen="Report › Name your drive modes" volt:purpose="status">Your scooter reports mode %1$s</string>
+    <!-- %1$s lists the modes named so far (controls_drive_mode_sequence). -->
+    <string name="controls_drive_mode_named" volt:screen="Report › Name your drive modes" volt:purpose="status">Named: %1$s</string>
+    <!-- The owner does not know this mode's name. -->
+    <string name="controls_drive_mode_unsure" volt:screen="Report › Name your drive modes" volt:purpose="button">Not sure</string>
+    <!-- Joins named modes in the order the scooter showed them: %1$s the modes so far, %2$s the next one. Use an arrow that points in your reading direction. -->
+    <string name="controls_drive_mode_sequence" volt:screen="Report › Name your drive modes" volt:purpose="list">%1$s → %2$s</string>
+</resources>

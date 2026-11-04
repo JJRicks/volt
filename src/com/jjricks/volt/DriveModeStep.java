@@ -68,8 +68,8 @@ final class DriveModeStep {
     /** The asking screen: live card, the four mode chips, Not sure, and Skip / Done. */
     private void build() {
         body.removeAllViews();
-        body.addView(heading("Name your drive modes"));
-        TextView why = ui.caption("Optional, about a minute. Stay parked: you'll press your scooter's own mode button, and Volt only watches which mode it reports.");
+        body.addView(heading(T.controlsDriveModeTitle()));
+        TextView why = ui.caption(T.controlsDriveModeIntro());
         why.setPadding(0, ui.dp(6), 0, ui.dp(12)); body.addView(why);
 
         LinearLayout live = new LinearLayout(activity); live.setOrientation(LinearLayout.VERTICAL); live.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
@@ -77,7 +77,7 @@ final class DriveModeStep {
         LinearLayout watching = new LinearLayout(activity); watching.setGravity(Gravity.CENTER_VERTICAL);
         pulseDot = new View(activity); pulseDot.setBackground(ui.shape(ui.accent, 100, 0));
         watching.addView(pulseDot, new LinearLayout.LayoutParams(ui.dp(9), ui.dp(9)));
-        reported = ui.caption("Watching your scooter…"); reported.setPadding(ui.dp(8), 0, 0, 0); watching.addView(reported);
+        reported = ui.caption(T.controlsDriveModeWatching()); reported.setPadding(ui.dp(8), 0, 0, 0); watching.addView(reported);
         live.addView(watching);
         prompt = ui.text("", 18, true); prompt.setPadding(0, ui.dp(8), 0, 0); prompt.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE); prompt.setTag("drive-mode-prompt");
         live.addView(prompt);
@@ -96,7 +96,7 @@ final class DriveModeStep {
             }
             choices.addView(line);
         }
-        unsure = ui.text(DriveModeSurvey.Label.UNSURE.text, 14, false); unsure.setTextColor(ui.accent); unsure.setTypeface(ui.medium());
+        unsure = ui.text(DriveModeSurvey.Label.UNSURE.label(), 14, false); unsure.setTextColor(ui.accent); unsure.setTypeface(ui.medium());
         unsure.setGravity(Gravity.CENTER); unsure.setMinHeight(ui.dp(44)); unsure.setFocusable(true); unsure.setClickable(true);
         unsure.setOnClickListener(v -> choose(DriveModeSurvey.Label.UNSURE)); unsure.setTag("drive-mode-unsure");
         choices.addView(unsure);
@@ -104,8 +104,8 @@ final class DriveModeStep {
         named = ui.caption(""); named.setPadding(0, ui.dp(4), 0, 0); named.setTag("drive-mode-named"); body.addView(named);
 
         LinearLayout buttons = new LinearLayout(activity); buttons.setPadding(0, ui.dp(12), 0, ui.dp(12));
-        skip = ui.secondaryButton("Skip", () -> close(null)); skip.setTag("drive-mode-skip");
-        finish = ui.button("Done", this::confirm); finish.setTag("drive-mode-done");
+        skip = ui.secondaryButton(T.controlsDriveModeSkip(), () -> close(null)); skip.setTag("drive-mode-skip");
+        finish = ui.button(T.commonDone(), this::confirm); finish.setTag("drive-mode-done");
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.rightMargin = ui.dp(6);
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1); rp.leftMargin = ui.dp(6);
         buttons.addView(skip, lp); buttons.addView(finish, rp); body.addView(buttons);
@@ -142,12 +142,12 @@ final class DriveModeStep {
         Integer code = reading(), asking = survey.asking();
         // Naming waits for a live reading of the mode being asked about: never while disconnected or stale.
         boolean live = code != null && code.equals(asking);
-        reported.setText(!ble.ready() ? "Scooter disconnected" : code == null ? "Waiting for your scooter's mode…" : "Your scooter reports mode " + code);
-        if (!ble.ready()) prompt.setText("Reconnect your scooter to keep going.");
-        else if (asking != null && !live) prompt.setText("Reading your scooter's mode…");
-        else if (asking != null) prompt.setText(survey.count() == 0 ? "Which mode is your scooter in now?" : "And this mode?");
-        else if (survey.count() == 0) prompt.setText("Connecting to your scooter's mode…");
-        else prompt.setText("Press your scooter's mode button to switch to the next mode.");
+        reported.setText(!ble.ready() ? T.controlsDriveModeDisconnected() : code == null ? T.controlsDriveModeWaiting() : T.controlsDriveModeReported(Fmt.integer(code)));
+        if (!ble.ready()) prompt.setText(T.controlsDriveModeReconnect());
+        else if (asking != null && !live) prompt.setText(T.controlsDriveModeReading());
+        else if (asking != null) prompt.setText(survey.count() == 0 ? T.controlsDriveModeAskFirst() : T.controlsDriveModeAskNext());
+        else if (survey.count() == 0) prompt.setText(T.controlsDriveModeConnecting());
+        else prompt.setText(T.controlsDriveModePressNext());
         for (int i = 0; i < CHOICES.length; i++) {
             boolean used = survey.used(CHOICES[i]);
             chips[i].setText(used ? CHOICES[i].text + " ✓" : CHOICES[i].text);
@@ -155,7 +155,7 @@ final class DriveModeStep {
             ui.styleChip(chips[i], used);
         }
         unsure.setEnabled(live); unsure.setAlpha(live ? 1f : 0.5f);
-        named.setText(survey.count() == 0 ? "" : "Named: " + survey.summary());
+        named.setText(survey.count() == 0 ? "" : T.controlsDriveModeNamed(survey.uiSummary()));
         finish.setEnabled(survey.count() > 0); finish.setAlpha(survey.count() > 0 ? 1f : 0.5f);
     }
 
@@ -164,13 +164,13 @@ final class DriveModeStep {
         if (finished || survey.count() == 0) return;
         handler.removeCallbacksAndMessages(null); if (pulse != null) pulse.cancel();
         body.removeAllViews();
-        body.addView(heading("Look right?"));
+        body.addView(heading(T.controlsDriveModeConfirmTitle()));
         TextView order = ui.text(survey.summary(), 20, true); order.setTextColor(ui.accent); order.setPadding(0, ui.dp(12), 0, ui.dp(4)); order.setTag("drive-mode-summary"); body.addView(order);
-        TextView note = ui.caption(survey.closed() ? "Your scooter went through these modes in this order." : "These are the modes you named, in the order your scooter showed them.");
+        TextView note = ui.caption(survey.closed() ? T.controlsDriveModeConfirmClosed() : T.controlsDriveModeConfirmNamed());
         body.addView(note);
         LinearLayout buttons = new LinearLayout(activity); buttons.setPadding(0, ui.dp(16), 0, ui.dp(12));
-        TextView again = ui.secondaryButton("Start over", () -> { survey = new DriveModeSurvey(); build(); begin(); });
-        TextView right = ui.button("Looks right", () -> close(survey)); right.setTag("drive-mode-confirm");
+        TextView again = ui.secondaryButton(T.controlsDriveModeStartOver(), () -> { survey = new DriveModeSurvey(); build(); begin(); });
+        TextView right = ui.button(T.controlsDriveModeLooksRight(), () -> close(survey)); right.setTag("drive-mode-confirm");
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.rightMargin = ui.dp(6);
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(0, -2, 1); rp.leftMargin = ui.dp(6);
         buttons.addView(again, lp); buttons.addView(right, rp); body.addView(buttons);

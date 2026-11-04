@@ -10,9 +10,14 @@ import java.util.Map;
  */
 final class DriveModeSurvey {
     enum Label {
-        WALK("Walk"), ECO("Eco"), DRIVE("Drive"), SPORT("Sport"), UNSURE("Not sure");
+        WALK("Walk"), ECO("Eco"), DRIVE("Drive"), SPORT("Sport"), UNSURE(M.controlsDriveModeUnsure());
         final String text;
         Label(String text) { this.text = text; }
+        /** text stays the English id OwnerNotes and summary() keep; msg is set only where the catalogue has the name. */
+        private Msg msg;
+        Label(Msg msg) { this(msg.english()); this.msg = msg; }
+        /** What a screen shows: the mode's own name, or Not sure in the current language. */
+        CharSequence label() { return msg != null ? msg : text; }
     }
     private final LinkedHashMap<Integer, Label> named = new LinkedHashMap<>();
     private Integer asking;
@@ -49,6 +54,13 @@ final class DriveModeSurvey {
         StringBuilder out = new StringBuilder();
         for (Label label : named.values()) out.append(out.length() == 0 ? "" : " → ").append(label.text);
         return out.toString();
+    }
+
+    /** summary() as a screen shows it, in the current language (Not sure is translated; mode names stay). */
+    synchronized CharSequence uiSummary() {
+        CharSequence out = null;
+        for (Label label : named.values()) out = out == null ? label.label() : M.controlsDriveModeSequence(out, label.label());
+        return out == null ? "" : out;
     }
 
     /** Each reported mode number with its name, in the order the scooter showed them (OwnerNotes writes them out). */

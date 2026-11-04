@@ -1,0 +1,8 @@
+# B4, the controls catalogue and capability (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English of every control text producer, pinned before the batch.
+tests/l10n/characterization/ControlsEnglishTest.java
+# B4's own suite: the display accessors in English and in a marked language, refusals, search.
+tests/l10n/ControlsTextTest.java
+# B4's consumer guard: every direct English read outside B4's files, held to l10n/pending/b4-controls-consumers.tsv.
+tests/l10n/ControlsConsumersTest.java

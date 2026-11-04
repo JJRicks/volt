@@ -6,6 +6,7 @@ import pathlib
 import signal
 import shutil
 import subprocess
+import sys
 import tempfile
 import time
 import unittest
@@ -55,10 +56,22 @@ public class OwnerCaptureProcessFixture {
         catch (Exception expected) { System.exit(2); }
     }
 }''')
-        source_dir = SOURCE.parents[1] / 'src/com/jjricks/volt'
-        sources = [str(source_dir / (name + '.java')) for name in
-                   ('OwnerCaptureProcess', 'OwnerCaptureEngine', 'OwnerIdentityParser', 'Protocol', 'ScooterCommands', 'WireCommands')]
-        subprocess.run([javac, '--release', '8', '-d', str(classes), *sources, str(fixture)], check=True,
+        repo = SOURCE.parents[1]
+        source_dir = repo / 'src/com/jjricks/volt'
+        names = ['OwnerCaptureProcess', 'OwnerCaptureEngine', 'OwnerIdentityParser', 'Protocol', 'ScooterCommands', 'WireCommands']
+        sources = []
+        # ScooterCommands reads its labels from the localization catalog (l10n/README.md). Like tests/run.sh,
+        # generate T, M, EnglishText and AppLanguages from res/ into this test's own output and compile
+        # them with the Msg and Fmt sources they and ScooterCommands need.
+        if any((repo / 'res/values').glob('strings_*.xml')):
+            generated = classes / 'generated'
+            subprocess.run([sys.executable, str(repo / 'tools/l10n/gen_catalog.py'), '--res', str(repo / 'res'),
+                            '--lang', str(repo / 'l10n/lang'), '--out', str(generated)], check=True, stdout=subprocess.PIPE)
+            sources += [str(generated / 'com/jjricks/volt' / (name + '.java'))
+                        for name in ('T', 'M', 'EnglishText', 'AppLanguages')]
+            names += ['Msg', 'Fmt', 'Formatted', 'UnitCode']
+        sources += [str(source_dir / (name + '.java')) for name in names]
+        subprocess.run([javac, '--release', '8', '-encoding', 'UTF-8', '-d', str(classes), *sources, str(fixture)], check=True,
                        stdout=subprocess.PIPE)
         cls.classes = classes
     @classmethod
