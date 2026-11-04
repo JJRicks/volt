@@ -34,14 +34,17 @@ public final class ControlsConsumersTest {
             "ModelTiles.java", "NaveeModels.java", "WireCommands.java", "Protocol.java", "DeviceDescriptor.java",
             "AdvertisedIdentity.java", "ReadPolicy.java", "DiscoveryCoordinator.java", "DriveModeSurvey.java", "DriveModeStep.java"));
 
-    /** Pattern id to regex; feature-field is counted separately (it needs the file's Feature variable names). */
+    /**
+     * Pattern id to regex; feature-field is counted separately (it needs the file's Feature variable names).
+     * find-field allows one level of parentheses in find()'s argument, as in find(list.get(0).feature).label.
+     */
     static final Map<String, Pattern> PATTERNS = new LinkedHashMap<>();
     static {
         PATTERNS.put("reason-text", Pattern.compile("\\.reasonText\\(\\)"));
         PATTERNS.put("resolver-text", Pattern.compile("\\bCapabilityResolver\\.text\\("));
         PATTERNS.put("variant-label", Pattern.compile("\\b(?:variant|v|d|decision)\\.labels?\\("));
         PATTERNS.put("oem-label", Pattern.compile("\\.oemLabel\\("));
-        PATTERNS.put("find-field", Pattern.compile("\\bfind\\([^()]*\\)\\.(?:label|group|description|options)\\b(?!\\s*\\()"));
+        PATTERNS.put("find-field", Pattern.compile("\\bfind\\((?:[^()]|\\([^()]*\\))*\\)\\.(?:label|group|description|options)\\b(?!\\s*\\()"));
         PATTERNS.put("value-label", Pattern.compile("\\.valueLabel\\("));
         PATTERNS.put("search-text", Pattern.compile("\\.searchText\\(\\)"));
         PATTERNS.put("model-line", Pattern.compile("\\bModelRegistry\\.modelLine\\("));
