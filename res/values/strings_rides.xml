@@ -270,8 +270,12 @@
     <string name="rides_notes_title_unnamed" volt:screen="Rides, live recording" volt:purpose="title">Notes for this ride</string>
     <!-- Title of the notes dialog: %1$s is the ride's name as the owner typed it. -->
     <string name="rides_notes_title" volt:screen="Rides, live recording" volt:purpose="title">Notes for %1$s</string>
-    <!-- Value of the phone sensors row: %1$d phone sensors are on (1 to 3). -->
-    <string name="rides_sensors_on_count" volt:screen="Rides, recording" volt:purpose="value">%1$d on</string>
+    <!-- Value of the phone sensors row: %1$d phone sensors are on (1 to 3). A plural, so a language can
+         agree the word with the number. -->
+    <plurals name="rides_sensors_on_count" volt:screen="Rides, recording" volt:purpose="value">
+        <item quantity="one">%1$d on</item>
+        <item quantity="other">%1$d on</item>
+    </plurals>
     <!-- Title of the live card: %1$s is the ride's name, or rides_default_name. -->
     <string name="rides_live_title" volt:screen="Rides, live recording" volt:purpose="title">Recording · %1$s</string>
     <!-- Title of the live card when saving failed and needs a retry: %1$s is the ride's name. -->

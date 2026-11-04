@@ -322,7 +322,7 @@ public final class RidesScreen implements AppScreen {
     private void updateSensorsRow() {
         boolean gps = preferences.getBoolean("phone_gps", true), motion = preferences.getBoolean("phone_motion", true);
         int on = (gps ? 2 : 0) + (motion ? 1 : 0);
-        sensorsRow.update(sensorSummary(), on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on));
+        sensorsRow.update(sensorSummary(), on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on, on));
     }
     /** "GPS · elevation · motion": elevation is attached to GPS fixes (barometer when present, else GPS altitude), so it needs GPS. */
     private String sensorSummary() {
@@ -348,8 +348,8 @@ public final class RidesScreen implements AppScreen {
         try { trend = service.rides.trend(s.id, 600); } catch (IOException e) { host.toast(T.ridesToastChartFailed()); }
         RideStore.Point latest = trend.isEmpty() ? null : trend.get(trend.size() - 1);
         boolean fresh = latest != null && latest.powerW != null && Math.abs(System.currentTimeMillis() - latest.wallMs) <= 5000;
-        activePower.setText(fresh ? String.format(Locale.US, "%.0f", latest.powerW) : "—");
-        activeEnergy.setText(s.measuredThroughputWh == null ? "—" : String.format(Locale.US, "%.1f", s.measuredThroughputWh));
+        activePower.setText(fresh ? String.format(Fmt.locale(Locale.US), "%.0f", latest.powerW) : "—");
+        activeEnergy.setText(s.measuredThroughputWh == null ? "—" : String.format(Fmt.locale(Locale.US), "%.1f", s.measuredThroughputWh));
         // Energy below the 80% coverage needed for per-distance figures reads orange.
         activeEnergy.setTextColor(s.measuredThroughputWh != null && s.electricalCoverage < RideStore.MIN_EFFICIENCY_COVERAGE ? ui.orange : ui.text);
         activeBattery.setText(s.batteryDropPercent == null ? "—" : change(s.batteryDropPercent));
@@ -995,7 +995,7 @@ public final class RidesScreen implements AppScreen {
         valueRow(quality, T.ridesPowerCoverage(), percent(s.electricalCoverage));
         valueRow(quality, T.ridesObservedRecorded(), duration(s.electricalCoverageMs) + " / " + duration(s.elapsedMs));
         valueRow(quality, T.ridesUnobservedPower(), duration(s.skippedElectricalMs));
-        valueRow(quality, T.ridesSamplesGaps(), String.format(Locale.US, "%,d / %,d", s.sampleCount, s.gapCount));
+        valueRow(quality, T.ridesSamplesGaps(), String.format(Fmt.locale(Locale.US), "%,d / %,d", s.sampleCount, s.gapCount));
         valueRow(quality, T.ridesMovingStationary(), duration(s.movingMs) + " / " + duration(s.stationaryMs));
         valueRow(quality, T.ridesMovingThroughput(), quantity(s.movingThroughputWh, "Wh", 2));
         valueRow(quality, T.ridesStationaryThroughput(), quantity(s.stationaryThroughputWh, "Wh", 2));
@@ -1418,7 +1418,7 @@ public final class RidesScreen implements AppScreen {
         if (p == null) return;
         String gps = p.speedMps == null ? "—" : speed(p.speedMps * 3.6);
         String[] cells = {T.ridesPointTime(), duration(p.elapsedMs), T.ridesPointGps(), gps, T.ridesPointScooter(), p.scooterSpeedKmh == null ? "—" : speed(p.scooterSpeedKmh), T.ridesPointPower(), dash(quantity(p.powerW, "W", 0)), T.ridesPointBattery(), dash(quantity(p.batteryPercent, "%", 0)),
-                T.ridesPointGrade(), p.gradePercent == null ? "—" : String.format(Locale.US, "≈%+.1f%%", p.gradePercent),
+                T.ridesPointGrade(), p.gradePercent == null ? "—" : String.format(Fmt.locale(Locale.US), "≈%+.1f%%", p.gradePercent),
                 T.ridesPointGpsAccel(), accel(p.gpsAccelerationMps2), T.ridesPointScooterAccel(), accel(p.scooterAccelerationMps2)};
         for (int i = 0; i < cells.length; i += 2) {
             LinearLayout cell = vertical(); cell.setMinimumWidth(ui.dp(96)); cell.setPadding(ui.dp(4), ui.dp(4), ui.dp(8), ui.dp(4));
@@ -2138,7 +2138,7 @@ public final class RidesScreen implements AppScreen {
         for (int i = 0; i < pattern.length(); i++) if (Character.isLetter(pattern.charAt(i))) letters.append(pattern.charAt(i));
         return letters.toString();
     }
-    private static String quantity(Double value, String unit, int decimals) { return value == null ? "Not measured" : String.format(Locale.US, "%." + decimals + "f %s", value, unit); }
+    private static String quantity(Double value, String unit, int decimals) { return value == null ? "Not measured" : String.format(Fmt.locale(Locale.US), "%." + decimals + "f %s", value, unit); }
     private String temperature(Double celsius) {
         return celsius == null ? "Not measured" : DisplayTemperature.format(celsius, preferences.getString("temperature_unit", "c"), 0);
     }

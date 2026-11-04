@@ -78,7 +78,7 @@ public final class RidesTextTest {
     static String acceleration(Double value) { return value == null ? "—" : T.ridesAccelerationWithG(Fmt.decimal(Locale.US, value, 2), T.ridesUnitAcceleration(), Fmt.decimal(Locale.US, value / 9.80665, 2), T.ridesUnitGravity()); }
 
     /** RidesScreen.updateSensorsRow()'s value. */
-    static String sensorsOn(int on) { return on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on); }
+    static String sensorsOn(int on) { return on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on, on); }
 
     /** RidesScreen.recordingNotes()'s title. */
     static String notesTitle(String label) { return (label.isEmpty() ? T.ridesNotesTitleUnnamed() : T.ridesNotesTitle(label)); }
