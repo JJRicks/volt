@@ -20,6 +20,8 @@ import java.util.function.Consumer;
 /** Searchable, lazy chart views over the same numerical observations that the phone retains. */
 final class StatsCharts {
     static final long[] WINDOWS = {120000, 600000, 3600000, 21600000, 86400000, 604800000, 2592000000L, 0};
+    // Unused: the picker shows StatsLabels.windows(). Kept until G1 can check deleting an array-initializer field
+    // (B16 report); delete it then.
     static final String[] WINDOW_LABELS = {"2 min", "10 min", "1 hour", "6 hours", "24 hours", "7 days", "30 days", "All"};
     final LinearLayout view;
     final EditText search;
@@ -52,7 +54,7 @@ final class StatsCharts {
         Group(String name) {
             card = ui.groupCard(); body = column();
             card.setPadding(ui.dp(14), ui.dp(2), ui.dp(14), ui.dp(2));
-            title = ui.text(name, 17, true); title.setGravity(Gravity.CENTER_VERTICAL);
+            title = ui.text(ScooterReadingLabels.group(name), 17, true); title.setGravity(Gravity.CENTER_VERTICAL);
             title.setMinHeight(ui.dp(60)); title.setPadding(0, ui.dp(10), 0, ui.dp(10));
             title.setFocusable(true);
             if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
@@ -72,8 +74,8 @@ final class StatsCharts {
         windowSelector = selector(); windowSelector.setTag("stats-chart-window");
         LinearLayout.LayoutParams pickerSpace = new LinearLayout.LayoutParams(-1, -2); pickerSpace.bottomMargin = ui.dp(12);
         view.addView(windowSelector, pickerSpace);
-        search = new EditText(host.activity()); search.setSingleLine(true); search.setHint("Search");
-        ui.styleSearch(search); search.setContentDescription("Search recorded charts");
+        search = new EditText(host.activity()); search.setSingleLine(true); search.setHint(T.statsSearchHint());
+        ui.styleSearch(search); search.setContentDescription(T.statsChartsSearchDescription());
         query = prefs.getString("stats_chart_query", ""); search.setText(query);
         view.addView(search, ui.searchLayout()); SearchFocus.bind(search, host.activity().getWindow());
         count = ui.caption(""); count.setGravity(Gravity.END); count.setMinHeight(ui.dp(48));
@@ -92,7 +94,7 @@ final class StatsCharts {
     }
     private LinearLayout column() { LinearLayout v = new LinearLayout(host.activity()); v.setOrientation(LinearLayout.VERTICAL); return v; }
     private StatsWindowPicker selector() {
-        return new StatsWindowPicker(ui, WINDOW_LABELS, windowIndex, this::selectWindow);
+        return new StatsWindowPicker(ui, StatsLabels.windows(), windowIndex, this::selectWindow);
     }
     private void selectWindow(int index) {
         if (index < 0 || index >= WINDOWS.length || index == windowIndex) return;
@@ -132,7 +134,7 @@ final class StatsCharts {
     private void rebuild() {
         StringBuilder signature = new StringBuilder();
         for (String key : catalog.keySet()) if (recorded.contains(key)) signature.append(key).append('\n');
-        if (signature.toString().equals(catalogSignature)) { if (cards.isEmpty()) count.setText("No chart data yet"); return; }
+        if (signature.toString().equals(catalogSignature)) { if (cards.isEmpty()) count.setText(T.statsChartsEmpty()); return; }
         catalogSignature = signature.toString();
         for (Card card : cards.values()) release(card);
         cards.clear(); groups.clear(); groupHolder.removeAllViews();
@@ -151,20 +153,21 @@ final class StatsCharts {
                 TelemetryHistory.Reading r = catalog.get(card.key);
                 if (!r.group.equals(entry.getKey())) continue;
                 boolean match = (label(card.key) + " " + r.label + " " + r.key + " " + r.group).toLowerCase(Locale.ROOT).contains(needle);
+                if (!match) match = StatsLabels.matchesShown(query, label(card.key), ScooterReadingLabels.full(r.key, r.label), ScooterReadingLabels.group(r.group));
                 card.view.setVisibility(match ? View.VISIBLE : View.GONE); if (match) groupMatches++;
             }
             Group group = entry.getValue(); boolean open = group.expanded || !needle.isEmpty();
             group.card.setVisibility(groupMatches > 0 ? View.VISIBLE : View.GONE);
             group.body.setVisibility(open ? View.VISIBLE : View.GONE);
-            group.title.setText(entry.getKey());
+            group.title.setText(ScooterReadingLabels.group(entry.getKey()));
             android.graphics.drawable.Drawable arrow = new StatsScreen.StatsGlyph(false, open, ui.text);
             arrow.setBounds(0, 0, ui.dp(26), ui.dp(26));
             group.title.setCompoundDrawablesRelative(null, null, arrow, null);
-            group.title.setContentDescription(entry.getKey() + " charts, " + (open ? "expanded" : "collapsed"));
-            if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? "Expanded" : "Collapsed");
+            group.title.setContentDescription(T.statsChartGroupState(ScooterReadingLabels.group(entry.getKey()), open ? T.statsChartGroupExpandedSaid() : T.statsChartGroupCollapsedSaid()));
+            if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? T.statsStateExpanded() : T.statsStateCollapsed());
             matches += groupMatches;
         }
-        count.setText(cards.isEmpty() ? "No chart data yet" : matches == 0 ? "No matching charts" : matches + (matches == 1 ? " chart" : " charts"));
+        count.setText(cards.isEmpty() ? T.statsChartsEmpty() : matches == 0 ? T.statsChartsNoMatches() : T.statsChartsCount(matches, matches));
         view.post(this::refreshVisible);
     }
     Card favourite(String key) { return new Card(key, true); }
@@ -193,7 +196,7 @@ final class StatsCharts {
             star.setOnClickListener(v -> { Haptics.toggle(v, !favourites.contains(key)); toggleFavourite.accept(key); });
             heading.addView(star, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
             TextView expand = ui.text("⤢", 24, false); expand.setGravity(Gravity.CENTER); expand.setFocusable(true);
-            expand.setContentDescription("Expand " + label(key) + " chart"); expand.setOnClickListener(v -> expand(key));
+            expand.setContentDescription(T.statsChartExpand(label(key))); expand.setOnClickListener(v -> expand(key));
             heading.addView(expand, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
             view.addView(heading);
             latest = ui.caption(""); latest.setPadding(0, ui.dp(2), 0, ui.dp(4)); view.addView(latest);
@@ -203,8 +206,8 @@ final class StatsCharts {
         void styleStar() {
             boolean on = favourites.contains(key); star.setText(on ? "★" : "☆"); star.setSelected(on);
             star.setTextColor(on ? ui.orange : ui.dim);
-            star.setContentDescription((on ? "Remove " : "Add ") + label(key) + " chart " + (on ? "from" : "to") + " favourites");
-            if (Build.VERSION.SDK_INT >= 30) star.setStateDescription(on ? "Favourite" : "Not a favourite");
+            star.setContentDescription(on ? T.statsChartFavouriteRemove(label(key)) : T.statsChartFavouriteAdd(label(key)));
+            if (Build.VERSION.SDK_INT >= 30) star.setStateDescription(on ? T.statsFavouriteOn() : T.statsFavouriteOff());
         }
         private void ensureGraph() {
             if (graph != null) return;
@@ -222,8 +225,9 @@ final class StatsCharts {
             TelemetryHistory.Reading reading = service.displayReadings().get(key);
             long wall = System.currentTimeMillis(), now = SystemClock.elapsedRealtime(), window = WINDOWS[windowIndex];
             boolean live = reading != null && reading.live && reading.number != null;
-            latest.setText(reading == null || reading.number == null ? "Not reported" : value(key, reading.number)
-                    + (service.simulating() ? " · Sample" : live ? "" : " · Last seen " + DisplayTime.recent(host.activity(), prefs, reading.capturedWallMs, wall)));
+            latest.setText(reading == null || reading.number == null ? T.commonNotReported()
+                    : service.simulating() ? T.statsChartSample(value(key, reading.number)) : live ? T.statsChartLive(value(key, reading.number))
+                    : T.statsChartLastSeen(value(key, reading.number), DisplayTime.recent(host.activity(), prefs, reading.capturedWallMs, wall)));
             latest.setTextColor(live ? ui.text : ui.muted);
             if (service.simulating()) {
                 // The sample source is never persisted or mixed into real observations.
@@ -258,15 +262,15 @@ final class StatsCharts {
                 points.add(new Ui.Point(p.wallMs, number(key, p.value), p.gapBefore));
             // Until the first stored-history answer arrives, an empty chart spins instead of claiming no data.
             boolean loading = !loaded && points.isEmpty();
-            graph.set(points, unit(key), live ? ui.accent : ui.muted, loading ? "" : "No data in this window");
+            graph.set(points, unit(key), live ? ui.accent : ui.muted, loading ? "" : T.statsChartNoData());
             if (loading && spinner == null) spinner = new Spinner(ui, false);
             graph.setForegroundGravity(Gravity.CENTER); graph.setForeground(loading ? spinner : null);
-            if (loading) graph.setContentDescription("Loading chart");
+            if (loading) graph.setContentDescription(T.statsChartLoading());
         }
     }
     /** The short shared name (as on Home and Readings); charts keep "(raw)" since they have no chip. */
     private String label(String key) {
-        if (key.equals("remaining_range_km")) return "Scooter range";
+        if (key.equals("remaining_range_km")) return T.statsScooterRange();
         TelemetryHistory.Reading r = catalog.get(key);
         return r == null ? key : ScooterReadingLabels.label(key, r.label);
     }
@@ -309,7 +313,8 @@ final class StatsCharts {
         return TelemetryHistory.unitFor(key);
     }
     private String value(String key, double raw) {
-        double n = number(key, raw); return String.format(Locale.US, Math.abs(n) >= 1000 ? "%.0f" : "%.1f", n) + (unit(key).isEmpty() ? "" : " " + unit(key));
+        double n = number(key, raw); return unit(key).isEmpty() ? String.format(Fmt.locale(Locale.US), Math.abs(n) >= 1000 ? "%.0f" : "%.1f", n)
+                : T.fmtQuantity(String.format(Fmt.locale(Locale.US), Math.abs(n) >= 1000 ? "%.0f" : "%.1f", n), StatsLabels.unitSymbol(unit(key)));
     }
     private void expand(String key) {
         if (fullscreen != null) fullscreen.dismiss();
@@ -318,7 +323,7 @@ final class StatsCharts {
         LinearLayout content = column(); content.setPadding(ui.dp(18), ui.dp(18), ui.dp(18), ui.dp(18)); content.setBackgroundColor(ui.bg);
         LinearLayout top = new LinearLayout(host.activity()); top.setGravity(Gravity.CENTER_VERTICAL);
         TextView title = ui.text(label(key), 20, true); top.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView close = ui.text("×", 26, false); close.setGravity(Gravity.CENTER); close.setContentDescription("Close expanded chart");
+        TextView close = ui.text("×", 26, false); close.setGravity(Gravity.CENTER); close.setContentDescription(T.statsChartClose());
         close.setOnClickListener(v -> fullscreen.dismiss()); top.addView(close, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48))); content.addView(top);
         fullscreenWindow = selector(); content.addView(fullscreenWindow, new LinearLayout.LayoutParams(-1, -2));
         fullscreenCard = new Card(key, false); fullscreenCard.ensureGraph();
