@@ -5,7 +5,8 @@
   (BackupException). The English must stay exactly what the source said before the batch (G1, G2).
 
   A BackupException keeps this English in getMessage(), so logs and the existing tests are unchanged;
-  the Backup screen shows the reason in the current language where it shows one. The names Volt
+  a screen shows msg() in the current language (the Backup screen moves to it in its own batch, B11).
+  Not every reason reaches a screen today; each note says where the reason comes from. The names Volt
   stores for a scooter it knows nothing about ("Saved scooter", "Scooter", "Layout file") are data and
   stay English.
 -->
