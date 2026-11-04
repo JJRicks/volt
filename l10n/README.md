@@ -335,7 +335,12 @@ How `ledger_check.py` (G1) reads it:
   `)`, `,`, `;`, `:`). Swapped calls, swapped holes, a negated condition, a shared piece kept outside
   or a branch missing a piece fail. Each key must be a string whose English renders its branch
   (G1 for plain `%n$s`, G2 for every branch), and every choice row is listed with the base code, the
-  head code and its branches. A numeric sum before the chain's first string is not modelled.
+  head code and its branches. A numeric sum before the chain's first string is not modelled. Java
+  types matter: a ternary whose branches hold no string or char literal picks a value, not words,
+  so `(snapshot == null ? 0 : snapshot.sessions)` is one hole, passed to each call as it is (B8's
+  charge learning summary takes 5 keys, not 10). A ternary with text needs a String branch: one
+  between chars or numbers (`n + (c ? '*' : '-')`, which Java adds as 5 + 42, or `"Rate " + (fast ?
+  2 : 1.5)`, which prints 2.0) fails.
 - A `plural` row's pieces may hold a **modelled helper call**, for a count phrase a helper builds:
   `"Readings for " + plural(skipped, "scooter") + " skipped · not restored"`, where
   `BackupArchive.plural(n, noun)` prints `n + " " + noun + (n == 1 ? "" : "s")`, becomes
@@ -346,9 +351,13 @@ How `ledger_check.py` (G1) reads it:
   and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
   "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
   exactly so, and the helper call in the base expression to pass the row's arguments; the call's
-  literal arguments (`"scooter"`) belong to the row. G2 (`LedgerTest.helper`) evaluates the same
-  model with the sentinel quantities, so each form is checked against what the helper really printed
-  at 0, 1, 2 and 21. Each modelled call is listed. A helper with any other body (`count()` in
+  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row
+  with `one` and `other` forms, each the same base expression, whose count argument is the row's
+  one quantity hole (`"quantity": true`), so the call's quantity argument is checked too; anything
+  else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
+  the model with the sentinels, so `one` is checked at 1 and `other` at 0, 2 and 21 against what the
+  helper really printed. Each modelled call is listed with the key, its quantity and what the base
+  prints for each form. A helper with any other body (`count()` in
   BackupArchive, which picks the noun by category) needs a model added in a tooling pull request,
   with a test, or stays English.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
