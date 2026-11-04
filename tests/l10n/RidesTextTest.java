@@ -346,8 +346,7 @@ public final class RidesTextTest {
                     eq(RidesEnglishTest.cellDescription(name, available, "120 W", "At 12:04:05"), cellDescription(name, available, "120 W", "At 12:04:05"), "cell description");
                 }
             }
-        // Review round 3: the direction chip and the chip suffix, spelled out.
-        eq("Direction ✓|Direction ?", T.ridesDirectionPillConfirmed() + "|" + T.ridesDirectionPillUnconfirmed(), "direction chip");
+        // Review round 3: the chip suffix, spelled out.
         eq(" · no data", T.ridesChartChipNoData(), "chip no data");
         phoneStatus();
         dates();

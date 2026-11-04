@@ -419,8 +419,5 @@
     <string name="rides_chart_series_no_samples" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, no samples recorded</string>
     <!-- %1$s is the series name; %2$s is its reading and time, or "no recorded sample". -->
     <string name="rides_chart_cell_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s: %2$s</string>
-    <!-- The Electrical energy section's compact chip; tapping it explains the direction. -->
-    <string name="rides_direction_pill_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ✓</string>
-    <string name="rides_direction_pill_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ?</string>
 
 </resources>

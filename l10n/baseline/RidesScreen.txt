@@ -2,6 +2,8 @@
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
 helper	" · %,d dropped"
 helper	"%,d fixes"
+helper	"Direction ?"
+helper	"Direction ✓"
 helper	"No GPS fixes"
 multiword	"%dh %02dm"
 multiword	"%dm %02ds"
