@@ -24,6 +24,13 @@ public final class TelemetryHistory {
     static final long DB_BYTES = 24L * 1024 * 1024;
     private static final long DAY = 86400000L;
     private static final String NAME = "telemetry-history.db";
+    // Storage states: English ids (Storage.status); Storage.statusMsg() shows them.
+    private static final String STORED = "Stored on this phone";
+    private static final String UNAVAILABLE = "History storage unavailable";
+    private static final String UNAVAILABLE_LIVE = "History storage unavailable; live readings still work";
+    private static final String READ_FAILED = "Could not read history";
+    private static final String CLEARED = "History cleared";
+    private static final String CLEAR_FAILED = "Could not clear history";
     private static final Map<String, Telemetry.Metric> CATALOG = new LinkedHashMap<>();
 
     static {
@@ -94,6 +101,11 @@ public final class TelemetryHistory {
         public final long bytes, limitBytes, detailedRows, minuteRows, dailyRows;
         public final String status;
 
+        /** The storage state for display; status stays the English id. */
+        public Msg statusMsg() {
+            return TelemetryHistory.statusMsg(status);
+        }
+
         Storage(long bytes, long detailed, long minutes, long daily, String status) {
             this.bytes = bytes;
             limitBytes = LIMIT_BYTES;
@@ -111,7 +123,7 @@ public final class TelemetryHistory {
     private final File file;
     private final Map<String, Snapshot> previous = new HashMap<>();
     private final Map<String, Long> sessions = new HashMap<>();
-    private volatile String status = "Stored on this phone";
+    private volatile String status = STORED;
     private volatile boolean closed;
     private volatile boolean closeComplete;
     private long lastMaintenance;
@@ -120,6 +132,17 @@ public final class TelemetryHistory {
         Context app = context.getApplicationContext();
         file = app.getDatabasePath(NAME);
         helper = new Database(app);
+    }
+
+    /** A storage state for display (Storage.statusMsg). */
+    static Msg statusMsg(String status) {
+        if (STORED.equals(status)) return M.readingsHistoryStored();
+        if (UNAVAILABLE.equals(status)) return M.readingsHistoryUnavailable();
+        if (UNAVAILABLE_LIVE.equals(status)) return M.readingsHistoryUnavailableLive();
+        if (READ_FAILED.equals(status)) return M.readingsHistoryReadFailed();
+        if (CLEARED.equals(status)) return M.readingsHistoryCleared();
+        if (CLEAR_FAILED.equals(status)) return M.readingsHistoryClearFailed();
+        return Msg.verbatim(status == null ? "" : status);
     }
 
     private static boolean safe(String key) {
@@ -167,8 +190,8 @@ public final class TelemetryHistory {
     public static long freshnessMs(String key) {
         Telemetry.Metric m = CATALOG.get(key);
         if (m == null) return 15000;
-        if (m.group.equals("Settings")) return 60000;
-        if (m.group.equals("Device")
+        if (m.group.equals(Telemetry.GROUP_SETTINGS)) return 60000;
+        if (m.group.equals(Telemetry.GROUP_DEVICE)
                 || m.group.equals("Firmware")
                 || key.contains("manufactured")
                 || key.contains("rated_capacity")
@@ -205,7 +228,7 @@ public final class TelemetryHistory {
                     try {
                         result = loadNow(helper.getWritableDatabase(), profile);
                     } catch (Exception e) {
-                        status = "History storage unavailable";
+                        status = UNAVAILABLE;
                     }
                     Snapshot delivered = result;
                     reply(() -> callback.accept(delivered));
@@ -231,14 +254,14 @@ public final class TelemetryHistory {
                         SQLiteDatabase db = helper.getWritableDatabase();
                         maintain(db, System.currentTimeMillis(), false);
                         write(db, profile, snapshot, session, enabled);
-                        status = "Stored on this phone";
+                        status = STORED;
                     } catch (Exception e) {
-                        status = "History storage unavailable; live readings still work";
+                        status = UNAVAILABLE_LIVE;
                         try {
                             SQLiteDatabase db = helper.getWritableDatabase();
                             prunePressure(db);
                             write(db, profile, snapshot, session, enabled);
-                            status = "Stored on this phone";
+                            status = STORED;
                         } catch (Exception ignored) {
                         }
                     }
@@ -374,7 +397,7 @@ public final class TelemetryHistory {
                                             Math.max(0, fromWall),
                                             toWall);
                     } catch (Exception e) {
-                        status = "Could not read history";
+                        status = READ_FAILED;
                     }
                     List<Point> delivered = result;
                     reply(() -> callback.accept(delivered));
@@ -396,7 +419,7 @@ public final class TelemetryHistory {
                         while (c.moveToNext()) if (known(c.getString(0))) keys.add(c.getString(0));
                     }
                 }
-            } catch (Exception e) { status = "Could not read history"; }
+            } catch (Exception e) { status = READ_FAILED; }
             Set<String> result = Collections.unmodifiableSet(keys);
             reply(() -> callback.accept(result));
         });
@@ -415,7 +438,7 @@ public final class TelemetryHistory {
                         from = Math.min(from, firstWall(db, table, profile, key, 0, toWall));
                     if (from <= toWall) result = queryNow(db, profile, key, Math.max(0, from - 1), toWall);
                 }
-            } catch (Exception e) { status = "Could not read history"; }
+            } catch (Exception e) { status = READ_FAILED; }
             List<Point> delivered = result;
             reply(() -> callback.accept(delivered));
         });
@@ -536,7 +559,7 @@ public final class TelemetryHistory {
                         minute = count(db, "minute");
                         daily = count(db, "daily");
                     } catch (Exception e) {
-                        status = "History storage unavailable";
+                        status = UNAVAILABLE;
                     }
                     Storage result = new Storage(bytes(), detail, minute, daily, status);
                     reply(() -> callback.accept(result));
@@ -578,9 +601,9 @@ public final class TelemetryHistory {
                             sessions.remove(profile);
                             db.execSQL("PRAGMA incremental_vacuum");
                         }
-                        status = "History cleared";
+                        status = CLEARED;
                     } catch (Exception e) {
-                        status = "Could not clear history";
+                        status = CLEAR_FAILED;
                     }
                     reply(completion);
                 });
