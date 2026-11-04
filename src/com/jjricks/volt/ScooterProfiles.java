@@ -9,6 +9,8 @@ import org.json.*;
 public final class ScooterProfiles {
     /** The name Volt itself once gave every migrated or Shizuku-captured profile, whatever its model. */
     static final String LEGACY_NAME="My UT5 MAX";
+    /** The name a profile gets when none was typed. Stored in English; {@link Profile#displayName()} shows it translated. */
+    static final String DEFAULT_NAME="Scooter";
     public static final class Profile {
         public String id,name,identity,mac,serial; public int role; public long lastConnected;
         /** Advertised model ID, written only after an authenticated serial match on that MAC. "" = not captured. */
@@ -25,6 +27,8 @@ public final class ScooterProfiles {
         public DeviceDescriptor descriptor(DeviceDescriptor.Firmware session,boolean fresh,DeviceDescriptor.Transport t){return DeviceDescriptor.of(serial,advertisedPid,advertisedPidWall,session,fresh,t,role).withOwnerModel(ownerModel);}
         /** Saved evidence only (no session firmware, standard transport), for model assumptions in dashboards and stats. */
         public DeviceDescriptor savedDescriptor(){return descriptor(DeviceDescriptor.Firmware.NONE,false,DeviceDescriptor.Transport.STANDARD);}
+        /** The name to show: Volt's own default name in the current language while it is still that default, else the name as saved. */
+        public String displayName(){return nameDefault&&DEFAULT_NAME.equals(name)?T.ownerProfileDefaultName():name;}
         public boolean configured(){try{return (role==0||role==1)&&Protocol.fromHex(identity).length==6;}catch(Exception e){return false;}}
     }
     private final SharedPreferences prefs,legacy;
@@ -54,7 +58,7 @@ public final class ScooterProfiles {
     public synchronized Profile create(String name,String identity,int role){return createWithId(UUID.randomUUID().toString(),name,identity,role);}
     /** A private staged request owns one ID even if the process stops before its receipt is saved. */
     static String ownerImportProfileId(String importId){
-        if(importId==null||!importId.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))throw new IllegalArgumentException("Import failed. Pick file again.");
+        if(importId==null||!importId.matches("(?i)[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"))throw new SetupException(M.ownerSetupImportFailed());
         return UUID.nameUUIDFromBytes(("volt-owner-import:"+importId.toLowerCase(Locale.ROOT)).getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
     }
     synchronized Profile createForOwnerImport(String importId,String name,String identity,int role){
@@ -62,7 +66,7 @@ public final class ScooterProfiles {
         for(Profile profile:profiles)if(profile.id.equals(id))throw new IllegalStateException("Owner import profile already exists");
         return createWithId(id,name,identity,role);
     }
-    private Profile createWithId(String id,String name,String identity,int role){if(!identity.matches("(?i)[0-9a-f]{12}")||role<0||role>1)throw new IllegalArgumentException("Enter a 12-character owner identity.");boolean generic=name==null||name.trim().isEmpty();Profile p=new Profile(id,generic?"Scooter":name.trim(),identity.toUpperCase(Locale.ROOT),role,"","",0);p.nameDefault=generic;profiles.add(p);select(p.id);save();return p;}
+    private Profile createWithId(String id,String name,String identity,int role){if(!identity.matches("(?i)[0-9a-f]{12}")||role<0||role>1)throw new SetupException(M.ownerSetupEnterIdentity());boolean generic=name==null||name.trim().isEmpty();Profile p=new Profile(id,generic?DEFAULT_NAME:name.trim(),identity.toUpperCase(Locale.ROOT),role,"","",0);p.nameDefault=generic;profiles.add(p);select(p.id);save();return p;}
     public synchronized void update(Profile p){save();}
     public synchronized void remove(String id){String identity="";for(Profile p:profiles)if(p.id.equals(id))identity=p.identity;profiles.removeIf(p->p.id.equals(id));boolean retained=false;for(Profile p:profiles)retained|=p.identity.equalsIgnoreCase(identity);if(!retained&&!identity.isEmpty()&&identity.equalsIgnoreCase(legacy.getString("identity","")))legacy.edit().remove("identity").remove("role").apply();prefs.edit().putBoolean("legacy_migrated",true).apply();if(active()!=null)select(active().id);save();}
     public synchronized void save(){try{JSONArray a=new JSONArray();for(Profile p:profiles){JSONObject o=new JSONObject();o.put("id",p.id);o.put("name",p.name);o.put("identity",p.identity);o.put("role",p.role);o.put("mac",p.mac);o.put("serial",p.serial);o.put("lastConnected",p.lastConnected);o.put("pid_advertised",p.advertisedPid);o.put("pid_advertised_wall",p.advertisedPidWall);o.put("name_default",p.nameDefault);o.put("fw_meter",p.fwMeter);o.put("fw_controller",p.fwController);o.put("fw_bms",p.fwBms);o.put("fw_screen",p.fwScreen);o.put("fw_uwb",p.fwUwb);o.put("fw_wall",p.fwWall);if(!p.ownerModel.isEmpty())o.put("owner_model",p.ownerModel);a.put(o);}prefs.edit().putString("items",a.toString()).apply();}catch(JSONException e){throw new IllegalStateException(e);}}
