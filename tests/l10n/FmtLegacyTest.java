@@ -110,7 +110,25 @@ public final class FmtLegacyTest {
     private static void units(String where) {
         String[][] expected = {{"KMH", "km/h"}, {"MPH", "mph"}, {"KM", "km"}, {"MI", "mi"}, {"VOLT", "V"}, {"AMP", "A"}, {"WATT", "W"},
                 {"WATT_HOUR", "Wh"}, {"AMP_HOUR", "Ah"}, {"CELSIUS", "°C"}, {"FAHRENHEIT", "°F"}, {"MINUTE", "min"}};
-        check(expected.length == UnitCode.values().length, where + ": every unit code has its English symbol here");
+        // Each code above keeps its data code (the unit as stored data spells it) and its English symbol, so
+        // a changed or renamed code fails. A batch may add codes: each new one needs a data code no other
+        // code has and a symbol of its own from the catalog (a plain string key), so a new code can never
+        // match another unit's data or share its text.
+        java.util.Set<String> listed = new java.util.HashSet<>(), dataCodes = new java.util.HashSet<>();
+        java.util.Set<Integer> symbolIds = new java.util.HashSet<>();
+        for (String[] unit : expected) {
+            listed.add(unit[0]);
+            check(UnitCode.valueOf(unit[0]).code.equals(unit[1]), where + ": " + unit[0] + " keeps the data code " + unit[1]
+                    + ", not " + UnitCode.valueOf(unit[0]).code);
+        }
+        for (UnitCode code : UnitCode.values()) {
+            check(code.code != null && !code.code.isEmpty() && dataCodes.add(code.code), where + ": " + code + "'s data code "
+                    + (code.code == null ? "null" : "\"" + code.code + "\"") + " is not empty and no other unit code has it");
+            check(code.symbolId >= 0 && code.symbolId < T.size() && !T.isPlural(code.symbolId) && !T.isFormatted(code.symbolId)
+                    && symbolIds.add(code.symbolId), where + ": " + code + "'s symbol is a plain catalog string no other unit code uses");
+            if (!listed.contains(code.name()))
+                check(!EnglishText.INSTANCE.string(code.symbolId).isEmpty(), where + ": the new unit code " + code + " has English symbol text");
+        }
         for (String[] unit : expected) {
             UnitCode code = UnitCode.valueOf(unit[0]);
             check(code.symbol().equals(unit[1]), where + ": " + code + " is " + unit[1] + ", not " + code.symbol());
