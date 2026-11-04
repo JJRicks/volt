@@ -53,6 +53,11 @@ public final class ControlsConsumersTest {
     }
     static final Pattern FEATURE_VARIABLE = Pattern.compile("\\bScooterCommands\\.Feature\\s+([a-zA-Z_]\\w*)");
     static final String TSV = "l10n/pending/b4-controls-consumers.tsv";
+    /** One read per pattern, as src/ writes them, and the accessor forms beside them, which count nothing. */
+    static final String PROBE = "ScooterCommands.Feature f=null;notice(f.label);f.label();"
+            + "x(d.reasonText());d.reasonMessage();CapabilityResolver.text(r);variant.label(1);variant.text(1);d.labelText(1);"
+            + "o.oemLabel(1);find(list.get(0).feature).label;find(k).label();f.valueLabel(1);f.valueText(1);s.searchText();"
+            + "ModelRegistry.modelLine(d);ModelRegistry.modelLineText(d);series.about;series.about();notice(e.getMessage());notice(refusal(e));";
 
     private static int checks;
 
@@ -77,7 +82,13 @@ public final class ControlsConsumersTest {
                     + " read(s) but " + TSV + " lists " + listed.get(e.getKey()) + ": wire them to B4's display accessors, or update the row");
         for (Map.Entry<String, Integer> e : listed.entrySet())
             check(found.containsKey(e.getKey()), TSV + " lists " + e.getValue() + " " + e.getKey().replace('\t', ' ') + " read(s) that src no longer has: update the row");
-        check(found.size() > 20, "the scan sees the consumers (" + found.size() + " file/pattern pairs)");
+        // The scan itself works whatever is left to switch (the follow-ups shrink the table toward empty): it reads
+        // src/, and each pattern counts one read in a probe written the way consumers write it.
+        check(L10nFiles.appSources().size() > 100, "the scan reads src/ (" + L10nFiles.appSources().size() + " files)");
+        check(L10nFiles.appSources().keySet().containsAll(OWN), "the scan sees B4's own files, which it skips");
+        Map<String, Integer> probe = scan(java.util.Collections.singletonMap("Probe.java", PROBE));
+        for (String id : PATTERNS.keySet()) check(Integer.valueOf(1).equals(probe.get("Probe.java\t" + id)), "pattern " + id + " counts the probe's one read (" + probe.get("Probe.java\t" + id) + ")");
+        check(Integer.valueOf(1).equals(probe.get("Probe.java\tfeature-field")), "feature-field counts the probe's one read");
         System.out.println("ControlsConsumersTest: " + checks + " checks passed (" + found.size() + " consumer rows).");
     }
 

@@ -212,6 +212,10 @@ public final class BleController {
 
     /** The connection state or last notice to show, in the current language (message() is its English id). */
     public CharSequence displayMessage(){return message;}
+    /** displayMessage() as a String, for a toast; message() keeps the English for logs and comparisons. */
+    public String displayText(){return message==null?null:message.toString();}
+    /** A builder refusal as shown text: a ScooterCommands.Refused carries its Msg (english() is getMessage()); other developer errors stay as they are. */
+    private static CharSequence refusal(Exception e){return e instanceof ScooterCommands.Refused?((ScooterCommands.Refused)e).msg():e.getMessage();}
     /** A control's latest result to show, or null; commandResults() keeps the English tokens. */
     public CharSequence displayResult(String key){
         String token=commandResults.get(key);if(token==null)return null;
@@ -632,7 +636,7 @@ public final class BleController {
             case BUSY: notice(M.bleWaitCurrentChange());return;
             case WARNING_ACTIVE: notice(M.bleResolveWarning(warning));return;
             case MOVING: notice(M.bleStopScooterFirst());return;
-            case NO_MOTION_REPORT: notice(ut5?M.bleStopScooterFirst():d.reasonText());return;
+            case NO_MOTION_REPORT: notice(ut5?M.bleStopScooterFirst():d.reasonMessage());return;
             case OWNER_ONLY: if(ut5&&d.feature.equals("pin")){notice(M.blePinOwnerOnly());return;}break;
             case NEEDS_BOND: if(ut5){notice(M.bleNeedsBond());return;}break;
             case NEEDS_PIN: if(ut5){notice(M.bleNeedsPin());return;}break;
@@ -640,7 +644,7 @@ public final class BleController {
             case MODEL_EXCLUDED: if(ut5){notice(M.bleOutsideDomain());return;}break;
             default: break;
         }
-        notice(d.reasonText());
+        notice(d.reasonMessage());
     }
     public boolean set(String key,int value){return set(key,value,MutationGate.Origin.USER);}
     /** origin AUTOMATIC_RANGE_FOLLOW is admitted only on the UT5 MAX layer. */
@@ -655,43 +659,43 @@ public final class BleController {
         MutationGate.Request request=new MutationGate.Request(key.equals("proximity_key")?MutationGate.Kind.PROXIMITY:MutationGate.Kind.SET,key,value,origin);
         if(simulating()){
             if(simulation==null||!ready()){notice(M.bleConnectSimulatedFirst());return completed(completion,false);}
-            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return completed(completion,false);}
+            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());return completed(completion,false);}
             try{Integer before=featureValue(key);simulation.set(key,value,d.variant);if(origin==MutationGate.Origin.EXPERIMENTAL&&before!=null)experimentBaselines.putIfAbsent(key,before);updateSimulation();
                 logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,featureValue(key),0);quiet();return completed(completion,true);}
-            catch(IllegalArgumentException invalid){notice(invalid.getMessage());return completed(completion,false);}
+            catch(IllegalArgumentException invalid){notice(refusal(invalid));return completed(completion,false);}
         }
         CapabilityResolver.Decision d=check(request);boolean proximity=request.kind==MutationGate.Kind.PROXIMITY;
         // Proximity: a stale PIN state is refreshed first (below), as before; every other refusal stops here.
         boolean pinWait=proximity&&value==1&&(d.reason==CapabilityResolver.Reason.NEEDS_PIN||d.reason==CapabilityResolver.Reason.NEEDS_BOND);
         if(!d.available()&&!pinWait){refused(request,d);return completed(completion,false);}
-        Integer current=featureValue(key);if(!force&&current!=null&&current==value){notice(M.bleAlreadySet(f.label));return completed(completion,true);}
+        Integer current=featureValue(key);if(!force&&current!=null&&current==value){notice(M.bleAlreadySet(f.label()));return completed(completion,true);}
         try{
             byte[] bytes;
             if(proximity){if(ProximityFollowUp.pinReadFirst(value,pinFresh())){readPin();notice(M.bleProximityReadPin());return completed(completion,false);}if(!d.available()){refused(request,d);return completed(completion,false);}boolean bonded=gatt.getDevice().getBondState()==BluetoothDevice.BOND_BONDED;bytes=ScooterCommands.setProximity(value==1,profile.role==0,bonded,pinState);}
             else if(d.variant.decode==FeatureVariant.Decode.UT5_FEATURE)bytes=ScooterCommands.set(key,value,statusFrame);
             else bytes=d.variant.encode(value);
             return begin(request,d.variant,value,bytes,null,completion);
-        }catch(IllegalArgumentException e){notice(e.getMessage());return completed(completion,false);}}
+        }catch(IllegalArgumentException e){notice(refusal(e));return completed(completion,false);}}
     public void setChargeStart(long seconds,int offset){setChargeStart(seconds,offset,null);}
     public void setChargeStart(long seconds,int offset,Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CHARGE_START,"charge_start",0,MutationGate.Origin.USER);
         if(simulating()){
             if(simulation==null||!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}
-            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());completed(completion,false);return;}
+            CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}
             if(!ModelRegistry.chargeStartAllowed(d.layer,seconds,offset,System.currentTimeMillis()/1000)){notice(WHOLE_HOUR);completed(completion,false);return;}
-            try{simulation.setChargeStart(seconds,offset);updateSimulation();logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,null,0);quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(invalid.getMessage());completed(completion,false);}return;
+            try{simulation.setChargeStart(seconds,offset);updateSimulation();logCommand(request,CommandLog.Outcome.READBACK_SAME,-1,null,null,0);quiet();completed(completion,true);}catch(IllegalArgumentException invalid){notice(refusal(invalid));completed(completion,false);}return;
         }
         CapabilityResolver.Decision d=check(request);if(!d.available()){refused(request,d);completed(completion,false);return;}
         // Off the UT5 MAX, a whole local hour within 48 hours (the official app's picker); the UT5 MAX keeps any minute.
         if(!ModelRegistry.chargeStartAllowed(d.layer,seconds,offset,System.currentTimeMillis()/1000)){notice(WHOLE_HOUR);completed(completion,false);return;}
-        try{begin(request,null,0,ScooterCommands.setChargeStart(seconds,offset),seconds+offset,completion);}catch(IllegalArgumentException e){notice(e.getMessage());completed(completion,false);}}
+        try{begin(request,null,0,ScooterCommands.setChargeStart(seconds,offset),seconds+offset,completion);}catch(IllegalArgumentException e){notice(refusal(e));completed(completion,false);}}
     static final String WHOLE_HOUR="Choose a whole hour within 48 hours";
     public void syncClock(){syncClock(null);}
     public void syncClock(Consumer<Boolean> completion){MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.CLOCK,"clock_sync",0,MutationGate.Origin.USER);
-        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());completed(completion,false);return;}logCommand(request,CommandLog.Outcome.ACK,-1,null,null,0);quiet();completed(completion,true);return;}
+        if(simulating()){if(!ready()){notice(M.bleConnectSimulatedFirst());completed(completion,false);return;}CapabilityResolver.Decision d=check(request);if(!d.available()){logCommand(request,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());completed(completion,false);return;}logCommand(request,CommandLog.Outcome.ACK,-1,null,null,0);quiet();completed(completion,true);return;}
         if(!gate(request)){completed(completion,false);return;}long wall=System.currentTimeMillis();begin(request,null,0,ScooterCommands.setClock(wall/1000,TimeZone.getDefault().getOffset(wall)/1000),null,completion);}
     public void readPin(){if(simulating()){simulationUnavailable("Handlebar PIN access");return;}
         CapabilityResolver.Decision d=check(new MutationGate.Request(MutationGate.Kind.PIN_READ,"pin",0,MutationGate.Origin.USER));
-        if(!d.available()){if(d.reason==CapabilityResolver.Reason.NOT_CONNECTED||d.reason==CapabilityResolver.Reason.OWNER_ONLY)notice(M.blePinConnectOwner());else if(d.reason!=CapabilityResolver.Reason.BUSY)notice(d.reasonText());return;}
+        if(!d.available()){if(d.reason==CapabilityResolver.Reason.NOT_CONNECTED||d.reason==CapabilityResolver.Reason.OWNER_ONLY)notice(M.blePinConnectOwner());else if(d.reason!=CapabilityResolver.Reason.BUSY)notice(d.reasonMessage());return;}
         if(pinReadPending||mutation!=null)return;send(ScooterCommands.readPin(true));}
     public void setPin(String digits){if(simulating()){simulationUnavailable("Handlebar PIN changes");return;}MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.PIN_SET,"pin",1,MutationGate.Origin.USER);if(!gate(request)||pinReadPending)return;try{if(begin(request,null,1,ScooterCommands.setPin(digits,true),null))mutation.desiredPin=digits.toCharArray();}catch(Exception e){notice(e.getMessage());}}
     public void enablePin(boolean enabled){if(simulating()){simulationUnavailable("Handlebar PIN changes");return;}MutationGate.Request request=new MutationGate.Request(MutationGate.Kind.PIN_ENABLE,"pin",enabled?1:0,MutationGate.Origin.USER);if(!gate(request)||pinReadPending)return;if(!enabled&&Integer.valueOf(1).equals(featureValue("proximity_key"))){notice(M.blePinProximityFirst());return;}if(!pinFresh()){readPin();notice(M.blePinReadFirst());return;}try{begin(request,null,enabled?1:0,ScooterCommands.enablePin(enabled,true,pinState!=null&&pinState.status==0&&pinState.configured),null);}catch(Exception e){notice(e.getMessage());}}
@@ -803,13 +807,13 @@ public final class BleController {
         if(!testJournal.healthy()){notice(M.bleTestRecordsUnavailable());return false;}
         if(!unresolvedTests().isEmpty()||!testJournal.canStart()){notice(M.bleReviewTry());return false;}
         CapabilityResolver.Decision d=CapabilityResolver.admitTry(key,target,descriptor(),status(),runtime(key));
-        if(!d.available()){logCommand(CommandLog.Kind.TRY,MutationGate.Origin.GUIDED_TEST,key,target,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return false;}
+        if(!d.available()){logCommand(CommandLog.Kind.TRY,MutationGate.Origin.GUIDED_TEST,key,target,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());return false;}
         Integer current=d.current();
         if(current==null){notice(M.bleNotAvailableNow());return false;}
-        if(current==target){notice(M.bleAlreadySet(ScooterCommands.find(key).label));return false;}
+        if(current==target){notice(M.bleAlreadySet(ScooterCommands.find(key).label()));return false;}
         String kind=d.experimental()?TestJournal.EXPERIMENTAL:TestJournal.VERIFY;
         try{test=GuidedTest.trial(testJournal,p.id,descriptor(),d.variant,kind,target,current,now(),System.currentTimeMillis(),new java.security.SecureRandom());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
-        catch(IllegalArgumentException e){notice(e.getMessage());return false;}
+        catch(IllegalArgumentException e){notice(refusal(e));return false;}
         event("Try prepared");message=M.bleReading(ScooterCommands.find(key).label.toLowerCase(Locale.ROOT));stepTest();return true;
     }
     /** Set back a kept try in one tap: reopened in the journal, then the earlier value is written and read back. */
@@ -820,7 +824,7 @@ public final class BleController {
         TestJournal.Entry e=testJournal.latestTry(p.id,key);
         if(e==null||!e.resolved||!"kept".equals(e.resolution)){notice(M.bleNothingToSetBack());return false;}
         CapabilityResolver.Decision d=CapabilityResolver.admitTry(key,e.baseline,descriptor(),status(),runtime(key));
-        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,key,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return false;}
+        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,key,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());return false;}
         try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
         catch(IOException|IllegalArgumentException failed){notice(M.bleSetBackFailed());return false;}
         event("Set back approved");stepTest();return true;
@@ -850,7 +854,7 @@ public final class BleController {
     /** What an unfinished test needs now; null when it no longer exists. Never writes. */
     public GuidedTest.Review reviewTest(String testId){
         TestJournal.Entry e=testJournal.find(testId);if(e==null)return null;ScooterProfiles.Profile p=profile();
-        if(liveTest(testId))return new GuidedTest.Review(GuidedTest.ReviewState.WAITING,"The test is still running.",null,false);
+        if(liveTest(testId))return new GuidedTest.Review(GuidedTest.ReviewState.WAITING,M.compatF2TestStillRunning(),null,false);
         FeatureVariant v=(e.isTry()?CapabilityResolver.decideTry(e.feature,descriptor(),status(),runtime(e.feature)):CapabilityResolver.decideTest(e.feature,descriptor(),status(),runtime(e.feature))).variant;
         return GuidedTest.review(e,p==null?"":p.id,ready()&&!simulating(),descriptor(),status(),now(),v,testFirmwareConfirmed.contains(testId));
     }
@@ -860,10 +864,10 @@ public final class BleController {
     public void restoreTest(String testId){
         if(testing()){notice(M.bleFinishTest());return;}
         TestJournal.Entry e=testJournal.find(testId);GuidedTest.Review r=reviewTest(testId);
-        if(e==null||r==null||(r.state!=GuidedTest.ReviewState.RESTORE_NEEDED&&r.state!=GuidedTest.ReviewState.CHANGED_OUTSIDE)||!r.restorable){notice(r==null?M.bleTestNotFound():r.text);return;}
+        if(e==null||r==null||(r.state!=GuidedTest.ReviewState.RESTORE_NEEDED&&r.state!=GuidedTest.ReviewState.CHANGED_OUTSIDE)||!r.restorable){notice(r==null?M.bleTestNotFound():r.message);return;}
         CapabilityResolver.Decision d=e.isTry()?CapabilityResolver.admitTry(e.feature,e.baseline,descriptor(),status(),runtime(e.feature))
             :CapabilityResolver.admitTest(e.feature,e.baseline,descriptor(),status(),runtime(e.feature));
-        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,e.feature,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonText());return;}
+        if(!d.available()){logCommand(CommandLog.Kind.RESTORE,MutationGate.Origin.GUIDED_RESTORE,e.feature,e.baseline,CommandLog.Outcome.REFUSED,-1,d.reason,null,-1);notice(d.reasonMessage());return;}
         try{test=GuidedTest.restoreFrom(testJournal,e,d.variant,descriptor(),status(),now(),System.currentTimeMillis());test.inheritOutstandingReads(outstandingStatusReads);test.observe(this::testOutcome);}
         catch(IOException|IllegalArgumentException failed){notice(M.bleRestoreFailed());return;}
         event("Guided restore approved");stepTest();
@@ -872,7 +876,7 @@ public final class BleController {
     public void markTestRestored(String testId){
         if(liveTest(testId)){notice(M.bleFinishTest());return;}
         TestJournal.Entry e=testJournal.find(testId);GuidedTest.Review r=reviewTest(testId);
-        if(e==null||r==null||r.state!=GuidedTest.ReviewState.ALREADY_RESTORED){notice(r==null?M.bleTestNotFound():r.text);return;}
+        if(e==null||r==null||r.state!=GuidedTest.ReviewState.ALREADY_RESTORED){notice(r==null?M.bleTestNotFound():r.message);return;}
         try{GuidedTest.confirmAlreadyRestored(testJournal,e,System.currentTimeMillis());}catch(IOException|IllegalArgumentException failed){notice(M.bleTestRecordsUnavailable());return;}
         forgetTest(testId);
     }
@@ -896,8 +900,8 @@ public final class BleController {
         // A try's Try tap was the owner's consent: once its fresh baseline matches what the sheet showed, approve it under the try rule.
         if(test.keeps()&&test.phase()==GuidedTest.Phase.BASELINE){
             CapabilityResolver.Decision d=CapabilityResolver.admitTry(test.feature,test.target,descriptor(),status(),runtime(test.feature));
-            if(!d.available()){test.cancel();notice(d.reasonText());}
-            else if(!test.approve(now()))notice(test.note());
+            if(!d.available()){test.cancel();notice(d.reasonMessage());}
+            else if(!test.approve(now()))notice(test.noteMsg());
             else event("Try approved");
         }
         if(mutation!=null&&guided(mutation)&&!test.awaitingWrite()){String key=mutation.key;List<String> o=test.outcomeTexts();result(key,o.isEmpty()?RESULT_GUIDED_TEST:o.get(o.size()-1));clearMutation();message=M.bleStatusConnected();}
@@ -912,7 +916,7 @@ public final class BleController {
         if(!d.available()){test.onWriteRefused(now());refused(request,d);stepTest();return;}
         byte[] bytes;
         try{bytes=d.variant.decode==FeatureVariant.Decode.UT5_FEATURE?ScooterCommands.set(test.feature,value,statusFrame):d.variant.encode(value);}
-        catch(IllegalArgumentException invalid){test.onWriteRefused(now());notice(invalid.getMessage());stepTest();return;}
+        catch(IllegalArgumentException invalid){test.onWriteRefused(now());notice(refusal(invalid));stepTest();return;}
         if(!begin(request,d.variant,value,bytes,null)){test.onWriteRefused(now());stepTest();}
     }
 
