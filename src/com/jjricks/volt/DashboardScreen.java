@@ -4994,20 +4994,22 @@ public final class DashboardScreen implements AppScreen {
             row.setClickable(true);
             row.setFocusable(true);
             row.setTag("add-widget:" + type);
-            row.setContentDescription("Add " + DashboardConfig.NAMES[i]
-                    + (type.equals("capacity") ? ", experimental" : ""));
+            row.setContentDescription(type.equals("capacity") ? T.dashboardAddTypeExperimental(DashboardConfig.NAMES[i])
+                    : T.dashboardAddType(DashboardConfig.NAMES[i]));
             row.addView(square(widgetIcon(type), present ? ui.dim : ui.accent, 38),
                     new LinearLayout.LayoutParams(ui.dp(38), ui.dp(38)));
+            row.setContentDescription(type.equals("capacity") ? T.dashboardAddTypeExperimental(DashboardConfig.typeName(i))
+                    : T.dashboardAddType(DashboardConfig.typeName(i)));
             // Names only: the icon and name identify each widget without a description line.
             LinearLayout words = row();
             words.setGravity(Gravity.CENTER_VERTICAL);
-            TextView name = ui.text(DashboardConfig.NAMES[i], 15, false);
+            TextView name = ui.text(DashboardConfig.typeName(i), 15, false);
             name.setTypeface(ui.medium());
             if (present) name.setTextColor(ui.muted);
             words.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
             if (type.equals("capacity")) {
                 TextView experimental = tagChip();
-                styleTag(experimental, "Experimental", false);
+                styleTag(experimental, T.dashboardExperimental(), false);
                 LinearLayout.LayoutParams chipSpace = new LinearLayout.LayoutParams(-2, -2);
                 chipSpace.setMarginStart(ui.dp(8));
                 words.addView(experimental, chipSpace);
@@ -5017,7 +5019,7 @@ public final class DashboardScreen implements AppScreen {
             wordsSpace.setMarginEnd(ui.dp(10));
             row.addView(words, wordsSpace);
             if (present) {
-                TextView on = ui.text("On Home", 13.5f, false);
+                TextView on = ui.text(T.dashboardOnHome(), 13.5f, false);
                 on.setTextColor(ui.muted);
                 row.addView(on);
             } else {
@@ -5032,7 +5034,7 @@ public final class DashboardScreen implements AppScreen {
                 row.addView(plus, new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)));
             }
             if (android.os.Build.VERSION.SDK_INT >= 30)
-                if (present) row.setStateDescription("Already on Home");
+                if (present) row.setStateDescription(T.dashboardAlreadyOnHome());
             // One lock control per dashboard: its row is shown "On Home" and cannot be added again.
             row.setEnabled(!present);
             row.setOnClickListener(
@@ -5061,14 +5063,14 @@ public final class DashboardScreen implements AppScreen {
                     });
             list.addView(row, new LinearLayout.LayoutParams(-1, -2));
         }
-        showSheet("Add widget", list, null, "Close add widget", null);
+        showSheet(T.dashboardAddWidget(), list, null, T.dashboardCloseAddWidget(), null);
     }
 
     private void options(DashboardConfig.Widget widget) {
         if (!editing) return;
         LinearLayout list = column();
         // Title is edited in place and saved when the sheet closes.
-        list.addView(sheetLabel("Title"));
+        list.addView(sheetLabel(T.dashboardTitle()));
         EditText titleInput = new EditText(dialogContext);
         String shownTitle = DashboardConfig.displayTitle(widget);
         titleInput.setText(shownTitle);
@@ -5082,7 +5084,7 @@ public final class DashboardScreen implements AppScreen {
         titleInput.setPadding(ui.dp(16), ui.dp(12), ui.dp(16), ui.dp(12));
         titleInput.setMinHeight(ui.dp(52));
         titleInput.setBackground(ui.shape(ui.dark ? ui.bg : ui.surface, 14, ui.outline));
-        titleInput.setContentDescription("Widget title");
+        titleInput.setContentDescription(T.dashboardWidgetTitle());
         list.addView(titleInput, new LinearLayout.LayoutParams(-1, -2));
         Runnable applyTitle =
                 () -> {
@@ -5096,18 +5098,18 @@ public final class DashboardScreen implements AppScreen {
                 };
         LinearLayout settings = sheetCard();
         if (widget.type.equals("quick") || widget.type.equals("shortcuts"))
-            addSettingRow(settings, ui.settingRow("Quick settings", widget.quickActions.size() + " selected",
+            addSettingRow(settings, ui.settingRow(T.dashboardQuickSettings(), T.dashboardSelectedCount(widget.quickActions.size(), widget.quickActions.size()),
                     () -> quickOptions(widget)), "grid");
         if (lockType(widget.type)) {
             Switch disconnect = new Haptics.FeedbackSwitch(dialogContext);
             ui.styleSwitch(disconnect);
-            disconnect.setText("Show Disconnect button");
+            disconnect.setText(T.dashboardShowDisconnect());
             disconnect.setTextColor(ui.text);
             disconnect.setTextSize(14 * ui.textScale);
             disconnect.setMinHeight(ui.dp(56));
             disconnect.setPadding(ui.dp(14), ui.dp(8), ui.dp(14), ui.dp(8));
             disconnect.setChecked(widget.showDisconnect);
-            disconnect.setContentDescription("Show Disconnect button when connected");
+            disconnect.setContentDescription(T.dashboardShowDisconnectConnected());
             disconnect.setOnCheckedChangeListener((button, checked) -> {
                 widget.showDisconnect = checked;
                 config.save();
@@ -5118,7 +5120,7 @@ public final class DashboardScreen implements AppScreen {
         if (widget.type.equals("scooter"))
             addSettingRow(settings,
                     ui.settingRow(
-                            "Scooter name",
+                            T.dashboardScooterName(),
                             service == null || service.profiles.active() == null
                                     ? ""
                                     : service.profiles.active().name,
@@ -5128,7 +5130,7 @@ public final class DashboardScreen implements AppScreen {
                             }), "scooter");
         if (Arrays.asList("metric", "gauge", "live", "history").contains(widget.type))
             addSettingRow(settings,
-                    ui.settingRow("Parameter", label(widget.metric), () -> chooseMetric(widget)),
+                    ui.settingRow(T.dashboardParameter(), label(widget.metric), () -> chooseMetric(widget)),
                     readingIcon(widget.metric));
         if (widget.type.equals("readings")
                 || widget.type.equals("battery")
@@ -5137,13 +5139,13 @@ public final class DashboardScreen implements AppScreen {
                 || widget.type.equals("tiles"))
             addSettingRow(settings,
                     ui.settingRow(
-                            "Readings",
-                            widget.keys.size() + " selected",
+                            T.dashboardReadings(),
+                            T.dashboardSelectedCount(widget.keys.size(), widget.keys.size()),
                             () -> chooseReadings(widget)), "stats");
         if (widget.type.equals("note"))
             addSettingRow(settings,
                     ui.settingRow(
-                            "Note",
+                            T.dashboardNote(),
                             widget.note,
                             () ->
                                     editText(
@@ -5154,18 +5156,18 @@ public final class DashboardScreen implements AppScreen {
         if (widget.type.equals("capacity"))
             addSettingRow(settings,
                     ui.settingRow(
-                            "Advertised capacity",
+                            T.dashboardAdvertisedCapacity(),
                             ratingLabel(widget),
                             () -> advertisedCapacity(widget)), "battery");
         if (widget.type.equals("gauge")) {
             addSettingRow(settings,
                     ui.settingRow(
-                            "Scale minimum",
+                            T.dashboardScaleMinimum(),
                             scaleSummary(widget, widget.minimum),
                             () -> scale(widget, false)), "speed");
             addSettingRow(settings,
                     ui.settingRow(
-                            "Scale maximum",
+                            T.dashboardScaleMaximum(),
                             scaleSummary(widget, widget.maximum),
                             () -> scale(widget, true)), "speed");
         }
@@ -5175,31 +5177,31 @@ public final class DashboardScreen implements AppScreen {
             list.addView(settings, space);
         }
         if (Arrays.asList("live", "history", "health", "capacity").contains(widget.type)) {
-            list.addView(sheetLabel(widget.type.equals("capacity") ? "Ride data window" : "Time window"));
+            list.addView(sheetLabel(widget.type.equals("capacity") ? T.dashboardRideDataWindow() : T.dashboardTimeWindow()));
             long[] options = windowOptions(widget);
             String[] windowLabels = new String[options.length]; int selectedWindow = 0;
             for (int i = 0; i < options.length; i++) {
                 windowLabels[i] = shortWindow(options[i]);
                 if (options[i] == widget.windowMs) selectedWindow = i;
             }
-            SegmentedSelector windows = new SegmentedSelector(ui, "Time window", windowLabels, choice -> {
+            SegmentedSelector windows = new SegmentedSelector(ui, T.dashboardTimeWindow(), windowLabels, choice -> {
                 widget.windowMs = options[choice]; config.save(); render();
             });
             windows.select(selectedWindow, false);
             list.addView(windows, new LinearLayout.LayoutParams(-1, -2));
         }
         if (Arrays.asList("live", "history", "health").contains(widget.type)) {
-            list.addView(sheetLabel("Y axis"));
-            SegmentedSelector axis = new SegmentedSelector(ui, "Y axis",
-                    new String[]{"Relative", "Absolute"}, choice -> {
+            list.addView(sheetLabel(T.dashboardYAxis()));
+            SegmentedSelector axis = new SegmentedSelector(ui, T.dashboardYAxis(),
+                    new String[]{T.dashboardRelative(), T.dashboardAbsolute()}, choice -> {
                         widget.absoluteAxis = choice == 1; config.save(); render();
                     });
             axis.select(widget.absoluteAxis ? 1 : 0, false);
             list.addView(axis, new LinearLayout.LayoutParams(-1, -2));
         }
-        list.addView(sheetLabel("Color"));
+        list.addView(sheetLabel(T.dashboardColor()));
         Flow swatches = new Flow();
-        String[] names = {"Red", "Blue", "Amber", "Rose"};
+        String[] names = {T.dashboardColorRed(), T.dashboardColorBlue(), T.dashboardColorAmber(), T.dashboardColorRose()};
         int[] colors = {ui.accent, ui.blue, ui.orange, ui.danger};
         ArrayList<Swatch> all = new ArrayList<>();
         for (int i = 0; i < colors.length; i++) {
@@ -5217,7 +5219,7 @@ public final class DashboardScreen implements AppScreen {
             swatches.addView(swatch, new ViewGroup.LayoutParams(ui.dp(48), ui.dp(48)));
         }
         list.addView(swatches, new LinearLayout.LayoutParams(-1, -2));
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveButton(), () -> {
             applyTitle.run();
             if (!config.widgets.contains(widget)) {
                 DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
@@ -5230,12 +5232,12 @@ public final class DashboardScreen implements AppScreen {
             render();
             revealIfAdded(widget);
         });
-        save.setContentDescription("Save widget options");
+        save.setContentDescription(T.dashboardSaveWidgetOptions());
         LinearLayout buttons = row();
         buttons.setGravity(Gravity.CENTER);
         buttons.setPadding(0, ui.dp(12), 0, 0);
         buttons.addView(save, new LinearLayout.LayoutParams(-1, -2));
-        String index = DashboardConfig.NAMES[Math.max(0, Arrays.asList(DashboardConfig.TYPES).indexOf(widget.type))];
+        String index = DashboardConfig.typeName(Math.max(0, Arrays.asList(DashboardConfig.TYPES).indexOf(widget.type)));
         showSheet(index, list, buttons, "Close widget options", applyTitle);
     }
 
@@ -5254,8 +5256,8 @@ public final class DashboardScreen implements AppScreen {
         fill[0] = () -> {
             Map<String, Float> old = childPositions(rows);
             rows.removeAllViews();
-            count.setText(widget.quickActions.size() + " of " + most);
-            count.setContentDescription(widget.quickActions.size() + " of " + most + " shortcuts");
+            count.setText(T.dashboardCountOf(Fmt.integer(widget.quickActions.size()), Fmt.integer(most)));
+            count.setContentDescription(T.dashboardCountOfShortcuts(Fmt.integer(widget.quickActions.size()), Fmt.integer(most)));
             for (String id : new ArrayList<>(widget.quickActions)) {
                 QuickAccessActions.Entry entry = QuickAccessActions.find(id);
                 LinearLayout line = row(); line.setGravity(Gravity.CENTER_VERTICAL);
@@ -5265,15 +5267,15 @@ public final class DashboardScreen implements AppScreen {
                 LinearLayout select = row(); select.setGravity(Gravity.CENTER_VERTICAL);
                 select.setMinimumHeight(ui.dp(48)); select.setClickable(true); select.setFocusable(true);
                 int index = widget.quickActions.indexOf(id);
-                select.setContentDescription("Change shortcut " + (index + 1) + ", " + entry.label);
+                select.setContentDescription(T.dashboardChangeShortcut(Fmt.integer(index + 1), entry.label()));
                 select.setTag("quick-select:" + index);
                 select.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-                TextView name = ui.text(entry.label, 14, false);
+                TextView name = ui.text(entry.label(), 14, false);
                 name.setPadding(ui.dp(10), 0, ui.dp(4), 0);
                 select.addView(name, new LinearLayout.LayoutParams(0, -2, 1));
                 select.setOnClickListener(v -> chooseQuickAction(widget, widget.quickActions.indexOf(id)));
                 line.addView(select, new LinearLayout.LayoutParams(0, -2, 1));
-                FrameLayout up = roundAction("back", "Move " + entry.label + " earlier", 30, 15, () -> {
+                FrameLayout up = roundAction("back", T.dashboardMoveEarlier(entry.label()), 30, 15, () -> {
                     int at = widget.quickActions.indexOf(id);
                     if (at <= 0) return;
                     Collections.swap(widget.quickActions, at, at - 1);
@@ -5282,7 +5284,7 @@ public final class DashboardScreen implements AppScreen {
                 up.getChildAt(0).setRotation(90);
                 up.setEnabled(index > 0); up.setAlpha(index > 0 ? 1 : .3f);
                 line.addView(up, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
-                FrameLayout remove = roundAction("trash", "Remove shortcut " + entry.label, 30, 15, () -> {
+                FrameLayout remove = roundAction("trash", T.dashboardRemoveShortcut(entry.label()), 30, 15, () -> {
                     if (widget.quickActions.size() <= least) return;
                     stopRemovalEffect();
                     removalEffect = WidgetRemovalEffect.play(list, line, ui);
@@ -5296,16 +5298,16 @@ public final class DashboardScreen implements AppScreen {
                 rows.addView(line, space);
             }
             if (widget.quickActions.size() < most) {
-                View addShortcut = toolButton("Add shortcut", "plus", () -> chooseQuickAction(widget, -1));
+                View addShortcut = toolButton(T.dashboardAddShortcut(), "plus", () -> chooseQuickAction(widget, -1));
                 addShortcut.setTag("add-quick-shortcut");
-                addShortcut.setContentDescription("Add quick shortcut");
+                addShortcut.setContentDescription(T.dashboardAddQuickShortcut());
                 rows.addView(addShortcut, new LinearLayout.LayoutParams(-1, ui.dp(52)));
             }
             animateRows(rows, old);
         };
         fill[0].run();
-        TextView save = ui.button("✓ Save", () -> options(widget));
-        showSheet("Quick settings", list, save, "Close quick settings", null);
+        TextView save = ui.button(T.dashboardSaveButton(), () -> options(widget));
+        showSheet(T.dashboardQuickSettings(), list, save, T.dashboardCloseQuickSettings(), null);
     }
 
     private Map<String, Float> childPositions(ViewGroup parent) {
@@ -5346,8 +5348,8 @@ public final class DashboardScreen implements AppScreen {
     private void chooseQuickAction(DashboardConfig.Widget widget, int index) {
         LinearLayout content = column();
         EditText search = new EditText(dialogContext);
-        search.setSingleLine(true); search.setHint("Search settings");
-        search.setContentDescription("Search quick settings"); ui.styleSearch(search);
+        search.setSingleLine(true); search.setHint(T.dashboardSearchSettings());
+        search.setContentDescription(T.dashboardSearchQuickSettings()); ui.styleSearch(search);
         content.addView(search, ui.searchLayout());
         LinearLayout choices = column(); content.addView(choices);
         Runnable filter = () -> {
@@ -5361,8 +5363,8 @@ public final class DashboardScreen implements AppScreen {
                 item.setMinimumHeight(ui.dp(60)); item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
                 item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
                 LinearLayout words = column();
-                words.addView(ui.text(entry.label, 14, false));
-                words.addView(ui.caption(entry.group));
+                words.addView(ui.text(entry.label(), 14, false));
+                words.addView(ui.caption(entry.groupLabel().toString()));
                 LinearLayout.LayoutParams space = new LinearLayout.LayoutParams(0, -2, 1); space.setMarginStart(ui.dp(12));
                 item.addView(words, space);
                 // A check marks a chosen shortcut; a switch marks one that toggles directly.
@@ -5373,9 +5375,11 @@ public final class DashboardScreen implements AppScreen {
                     item.addView(kind, kindSize);
                 }
                 item.setTag("quick-choice:" + entry.id);
-                item.setContentDescription(entry.label + ", " + entry.group
-                        + (selected ? ", selected" : entry.directToggle() ? ", toggle" : ""));
+                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label, entry.group)
+                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label, entry.group) : T.dashboardShortcut(entry.label, entry.group));
                 item.setClickable(true); item.setFocusable(true); item.setEnabled(!selected || current);
+                item.setContentDescription(selected ? T.dashboardShortcutSelected(entry.label(), entry.groupLabel())
+                        : entry.directToggle() ? T.dashboardShortcutToggle(entry.label(), entry.groupLabel()) : T.dashboardShortcut(entry.label(), entry.groupLabel()));
                 item.setAlpha(item.isEnabled() ? 1 : .4f);
                 item.setBackground(ripple(Ui.withAlpha(ui.accent, 30), null, ui.shape(Color.WHITE, 12, 0)));
                 item.setOnClickListener(v -> {
@@ -5388,7 +5392,7 @@ public final class DashboardScreen implements AppScreen {
                 });
                 choices.addView(item, new LinearLayout.LayoutParams(-1, -2));
             }
-            if (choices.getChildCount() == 0) choices.addView(ui.caption("No matching settings"));
+            if (choices.getChildCount() == 0) choices.addView(ui.caption(T.dashboardNoMatchingSettings()));
         };
         search.addTextChangedListener(new android.text.TextWatcher() {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -5396,7 +5400,7 @@ public final class DashboardScreen implements AppScreen {
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        showSheet("Choose shortcut", content, null, "Close shortcut picker", null);
+        showSheet(T.dashboardChooseShortcut(), content, null, T.dashboardCloseShortcutPicker(), null);
         if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
     }
 

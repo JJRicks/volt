@@ -164,6 +164,56 @@ src/com/jjricks/volt/DashboardScreen.java:3872	["No saved readings yet"]	dashboa
 src/com/jjricks/volt/DashboardScreen.java:3875	["Scooter's estimated remaining range"]	dashboard_range_reported	exact	
 src/com/jjricks/volt/DashboardScreen.java:4053	["Charging"]	dashboard_charging	exact	
 src/com/jjricks/volt/DashboardScreen.java:4140	{"if": "reading != null && !reading.live", "then": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(reading.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:4978	{"if": "type.equals(\"capacity\")", "then": ["Add ", {"hole": "DashboardConfig.NAMES[i]", "arg": 1, "type": "s"}, ", experimental"], "else": ["Add ", {"hole": "DashboardConfig.NAMES[i]", "arg": 1, "type": "s"}, ""]}	dashboard_add_type_experimental,dashboard_add_type	choice	the optional experimental mark becomes two whole templates; a line of its own after the icon then sets the same description from DashboardConfig.typeName(i), B12's shown name of the type, whose English is NAMES[i]
+src/com/jjricks/volt/DashboardScreen.java:4991	["Experimental"]	dashboard_experimental	exact	
+src/com/jjricks/volt/DashboardScreen.java:5001	["On Home"]	dashboard_on_home	exact	
+src/com/jjricks/volt/DashboardScreen.java:5016	["Already on Home"]	dashboard_already_on_home	exact	
+src/com/jjricks/volt/DashboardScreen.java:5045	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:5045	["Close add widget"]	dashboard_close_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:5052	["Title"]	dashboard_title	exact	
+src/com/jjricks/volt/DashboardScreen.java:5065	["Widget title"]	dashboard_widget_title	exact	
+src/com/jjricks/volt/DashboardScreen.java:5078	["Quick settings"]	dashboard_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5078	{"one": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d", "quantity": true}, " selected"], "other": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d", "quantity": true}, " selected"]}	dashboard_selected_count	plural	manual: a plural, so a language can inflect "selected" by the count; the call passes the count as the quantity and the number (English says "selected" for every count)
+src/com/jjricks/volt/DashboardScreen.java:5083	["Show Disconnect button"]	dashboard_show_disconnect	exact	
+src/com/jjricks/volt/DashboardScreen.java:5089	["Show Disconnect button when connected"]	dashboard_show_disconnect_connected	exact	
+src/com/jjricks/volt/DashboardScreen.java:5100	["Scooter name"]	dashboard_scooter_name	exact	
+src/com/jjricks/volt/DashboardScreen.java:5110	["Parameter"]	dashboard_parameter	exact	
+src/com/jjricks/volt/DashboardScreen.java:5119	["Readings"]	dashboard_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5120	{"one": [{"hole": "widget.keys.size()", "arg": 1, "type": "d", "quantity": true}, " selected"], "other": [{"hole": "widget.keys.size()", "arg": 1, "type": "d", "quantity": true}, " selected"]}	dashboard_selected_count	plural	manual: a plural, so a language can inflect "selected" by the count; the call passes the count as the quantity and the number (English says "selected" for every count)
+src/com/jjricks/volt/DashboardScreen.java:5125	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5130	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:5136	["Advertised capacity"]	dashboard_advertised_capacity	exact	
+src/com/jjricks/volt/DashboardScreen.java:5142	["Scale minimum"]	dashboard_scale_minimum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5147	["Scale maximum"]	dashboard_scale_maximum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5157	["Ride data window"]	dashboard_ride_data_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5157	["Time window"]	dashboard_time_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5164	["Time window"]	dashboard_time_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5171	["Y axis"]	dashboard_y_axis	exact	
+src/com/jjricks/volt/DashboardScreen.java:5172	["Y axis"]	dashboard_y_axis	exact	
+src/com/jjricks/volt/DashboardScreen.java:5173	["Relative"]	dashboard_relative	exact	
+src/com/jjricks/volt/DashboardScreen.java:5173	["Absolute"]	dashboard_absolute	exact	
+src/com/jjricks/volt/DashboardScreen.java:5179	["Color"]	dashboard_color	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Red"]	dashboard_color_red	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Blue"]	dashboard_color_blue	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Amber"]	dashboard_color_amber	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Rose"]	dashboard_color_rose	exact	
+src/com/jjricks/volt/DashboardScreen.java:5199	["✓ Save"]	dashboard_save_button	exact	
+src/com/jjricks/volt/DashboardScreen.java:5212	["Save widget options"]	dashboard_save_widget_options	exact	
+src/com/jjricks/volt/DashboardScreen.java:5236	[{"hole": "widget.quickActions.size()", "arg": 1, "type": "s", "as": "Fmt.integer(widget.quickActions.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}]	dashboard_count_of	template	
+src/com/jjricks/volt/DashboardScreen.java:5237	[{"hole": "widget.quickActions.size()", "arg": 1, "type": "s", "as": "Fmt.integer(widget.quickActions.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}, " shortcuts"]	dashboard_count_of_shortcuts	template	
+src/com/jjricks/volt/DashboardScreen.java:5247	["Change shortcut ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, ", ", {"hole": "entry.label", "arg": 2, "type": "s", "as": "entry.label()"}]	dashboard_change_shortcut	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label; the place (index + 1) goes through Fmt.integer
+src/com/jjricks/volt/DashboardScreen.java:5255	["Move ", {"hole": "entry.label", "arg": 1, "type": "s", "as": "entry.label()"}, " earlier"]	dashboard_move_earlier	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label
+src/com/jjricks/volt/DashboardScreen.java:5264	["Remove shortcut ", {"hole": "entry.label", "arg": 1, "type": "s", "as": "entry.label()"}]	dashboard_remove_shortcut	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label
+src/com/jjricks/volt/DashboardScreen.java:5278	["Add shortcut"]	dashboard_add_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5280	["Add quick shortcut"]	dashboard_add_quick_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5286	["✓ Save"]	dashboard_save_button	exact	
+src/com/jjricks/volt/DashboardScreen.java:5287	["Quick settings"]	dashboard_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5287	["Close quick settings"]	dashboard_close_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5328	["Search settings"]	dashboard_search_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5329	["Search quick settings"]	dashboard_search_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5355	{"if": "selected", "then": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ", selected"], "else": {"if": "entry.directToggle()", "then": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ", toggle"], "else": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ""]}}	dashboard_shortcut_selected,dashboard_shortcut_toggle,dashboard_shortcut	choice	the optional state becomes three whole templates; a line of its own after setClickable then sets the same description from entry.label() and entry.groupLabel(), B12's display Msgs, whose English is entry.label and entry.group
+src/com/jjricks/volt/DashboardScreen.java:5370	["No matching settings"]	dashboard_no_matching_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5378	["Choose shortcut"]	dashboard_choose_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5378	["Close shortcut picker"]	dashboard_close_shortcut_picker	exact	
 src/com/jjricks/volt/DashboardScreen.java:5692	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5695	["Note"]	dashboard_note	exact	

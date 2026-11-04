@@ -274,4 +274,72 @@
     <string name="dashboard_no_readings" volt:screen="Home chart widget" volt:purpose="placeholder">No saved readings yet</string>
     <!-- The range chart's caption name: the range the scooter itself estimates. -->
     <string name="dashboard_range_reported" volt:screen="Home chart widget" volt:purpose="caption" volt:safety="ride">Scooter\'s estimated remaining range</string>
+    <!-- The Add widget sheet -->
+    <!-- Spoken for a widget type in the Add widget sheet: %1$s is the type's name ("Gauge"); the _experimental form is for an experimental type. -->
+    <string name="dashboard_add_type" volt:screen="Add widget sheet" volt:purpose="accessibility description">Add %1$s</string>
+    <string name="dashboard_add_type_experimental" volt:screen="Add widget sheet" volt:purpose="accessibility description">Add %1$s, experimental</string>
+    <!-- Chip on an experimental widget type. -->
+    <string name="dashboard_experimental" volt:screen="Add widget sheet" volt:purpose="label" volt:safety="experimental">Experimental</string>
+    <!-- Marks a one-per-dashboard widget type that is already on Home; the second is its spoken state. -->
+    <string name="dashboard_on_home" volt:screen="Add widget sheet" volt:purpose="label">On Home</string>
+    <string name="dashboard_already_on_home" volt:screen="Add widget sheet" volt:purpose="accessibility state">Already on Home</string>
+    <string name="dashboard_close_add_widget" volt:screen="Add widget sheet" volt:purpose="accessibility description">Close add widget</string>
+
+    <!-- Widget options -->
+    <string name="dashboard_title" volt:screen="Widget options" volt:purpose="section label">Title</string>
+    <string name="dashboard_widget_title" volt:screen="Widget options" volt:purpose="accessibility description">Widget title</string>
+    <string name="dashboard_quick_settings" volt:screen="Widget options" volt:purpose="setting">Quick settings</string>
+    <!-- The lock widget's switch, and its spoken form. -->
+    <string name="dashboard_show_disconnect" volt:screen="Widget options" volt:purpose="switch">Show Disconnect button</string>
+    <string name="dashboard_show_disconnect_connected" volt:screen="Widget options" volt:purpose="accessibility description">Show Disconnect button when connected</string>
+    <string name="dashboard_scooter_name" volt:screen="Widget options" volt:purpose="setting">Scooter name</string>
+    <!-- The reading a chart or gauge widget shows. -->
+    <string name="dashboard_parameter" volt:screen="Widget options" volt:purpose="setting">Parameter</string>
+    <string name="dashboard_readings" volt:screen="Widget options" volt:purpose="setting">Readings</string>
+    <string name="dashboard_advertised_capacity" volt:screen="Widget options" volt:purpose="setting" volt:safety="experimental">Advertised capacity</string>
+    <string name="dashboard_scale_minimum" volt:screen="Widget options" volt:purpose="setting">Scale minimum</string>
+    <string name="dashboard_scale_maximum" volt:screen="Widget options" volt:purpose="setting">Scale maximum</string>
+    <string name="dashboard_ride_data_window" volt:screen="Widget options" volt:purpose="section label" volt:safety="experimental">Ride data window</string>
+    <string name="dashboard_time_window" volt:screen="Widget options" volt:purpose="section label">Time window</string>
+    <!-- A chart's vertical axis, and its two choices. -->
+    <string name="dashboard_y_axis" volt:screen="Widget options" volt:purpose="section label">Y axis</string>
+    <string name="dashboard_relative" volt:screen="Widget options" volt:purpose="choice">Relative</string>
+    <string name="dashboard_absolute" volt:screen="Widget options" volt:purpose="choice">Absolute</string>
+    <!-- The widget colour and the names of its four swatches (spoken). -->
+    <string name="dashboard_color" volt:screen="Widget options" volt:purpose="section label">Color</string>
+    <string name="dashboard_color_red" volt:screen="Widget options" volt:purpose="accessibility description">Red</string>
+    <string name="dashboard_color_blue" volt:screen="Widget options" volt:purpose="accessibility description">Blue</string>
+    <string name="dashboard_color_amber" volt:screen="Widget options" volt:purpose="accessibility description">Amber</string>
+    <string name="dashboard_color_rose" volt:screen="Widget options" volt:purpose="accessibility description">Rose</string>
+    <!-- The Save button; the check mark is a symbol. -->
+    <string name="dashboard_save_button" volt:screen="Widget options" volt:purpose="button" volt:dnt="✓">✓ Save</string>
+    <string name="dashboard_save_widget_options" volt:screen="Widget options" volt:purpose="accessibility description">Save widget options</string>
+    <!-- A setting row's value: how many items are chosen. -->
+    <plurals name="dashboard_selected_count" volt:screen="Widget options" volt:purpose="value">
+        <item quantity="one">%1$d selected</item>
+        <item quantity="other">%1$d selected</item>
+    </plurals>
+
+    <!-- Quick settings widget options and the shortcut picker -->
+    <!-- How many shortcuts are chosen: %1$s of at most %2$s (whole numbers); spoken with "shortcuts". -->
+    <string name="dashboard_count_of" volt:screen="Quick settings widget options" volt:purpose="value">%1$s of %2$s</string>
+    <string name="dashboard_count_of_shortcuts" volt:screen="Quick settings widget options" volt:purpose="accessibility description">%1$s of %2$s shortcuts</string>
+    <!-- %1$s is the shortcut's place (1, 2, ...), %2$s its name. -->
+    <string name="dashboard_change_shortcut" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Change shortcut %1$s, %2$s</string>
+    <!-- %1$s is a shortcut's name. -->
+    <string name="dashboard_move_earlier" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Move %1$s earlier</string>
+    <!-- %1$s is a shortcut's name. -->
+    <string name="dashboard_remove_shortcut" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Remove shortcut %1$s</string>
+    <string name="dashboard_add_shortcut" volt:screen="Quick settings widget options" volt:purpose="button">Add shortcut</string>
+    <string name="dashboard_add_quick_shortcut" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Add quick shortcut</string>
+    <string name="dashboard_close_quick_settings" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Close quick settings</string>
+    <string name="dashboard_search_settings" volt:screen="Shortcut picker" volt:purpose="hint">Search settings</string>
+    <string name="dashboard_search_quick_settings" volt:screen="Shortcut picker" volt:purpose="accessibility description">Search quick settings</string>
+    <!-- Spoken for a setting in the shortcut picker: %1$s is its name, %2$s its group; the _selected form is for one already chosen, the _toggle form for one that switches directly. -->
+    <string name="dashboard_shortcut" volt:screen="Shortcut picker" volt:purpose="accessibility description">%1$s, %2$s</string>
+    <string name="dashboard_shortcut_selected" volt:screen="Shortcut picker" volt:purpose="accessibility description">%1$s, %2$s, selected</string>
+    <string name="dashboard_shortcut_toggle" volt:screen="Shortcut picker" volt:purpose="accessibility description">%1$s, %2$s, toggle</string>
+    <string name="dashboard_no_matching_settings" volt:screen="Shortcut picker" volt:purpose="placeholder">No matching settings</string>
+    <string name="dashboard_choose_shortcut" volt:screen="Shortcut picker" volt:purpose="title">Choose shortcut</string>
+    <string name="dashboard_close_shortcut_picker" volt:screen="Shortcut picker" volt:purpose="accessibility description">Close shortcut picker</string>
 </resources>
