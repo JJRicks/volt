@@ -3,3 +3,6 @@
 # G5: the English the Backup screen takes from the backup engine (the refusals it shows, the CHANGED
 # and NO_SPACE refusals) and the counts it still builds in English, pinned before the batch.
 tests/l10n/characterization/BackupScreenTextTest.java
+# The screen's language handling: manifest configChanges, AppLanguage.wrap, the in-place relabel and the
+# Save hint's button name.
+tests/l10n/BackupScreenTest.java
