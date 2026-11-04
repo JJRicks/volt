@@ -264,4 +264,140 @@
     <string name="rides_compare_sheet_title" volt:screen="Rides, compare" volt:purpose="label">Compare</string>
     <string name="rides_toast_compare_failed" volt:screen="Rides, compare" volt:purpose="error">Could not compare the recordings.</string>
 
+    <!-- ===== Templates, plurals and numbers ===== -->
+
+    <!-- Title of the notes dialog for a ride the owner has not named. -->
+    <string name="rides_notes_title_unnamed" volt:screen="Rides, live recording" volt:purpose="title">Notes for this ride</string>
+    <!-- Title of the notes dialog: %1$s is the ride's name as the owner typed it. -->
+    <string name="rides_notes_title" volt:screen="Rides, live recording" volt:purpose="title">Notes for %1$s</string>
+    <!-- Value of the phone sensors row: %1$d phone sensors are on (1 to 3). -->
+    <string name="rides_sensors_on_count" volt:screen="Rides, recording" volt:purpose="value">%1$d on</string>
+    <!-- Title of the live card: %1$s is the ride's name, or rides_default_name. -->
+    <string name="rides_live_title" volt:screen="Rides, live recording" volt:purpose="title">Recording · %1$s</string>
+    <!-- Title of the live card when saving failed and needs a retry: %1$s is the ride's name. -->
+    <string name="rides_live_title_attention" volt:screen="Rides, live recording" volt:purpose="title">Recording needs attention · %1$s</string>
+    <!-- Spoken for the live stopwatch: %1$s is the elapsed time ("12m 05s"). -->
+    <string name="rides_elapsed_description" volt:screen="Rides, live recording" volt:purpose="accessibility description">Elapsed %1$s</string>
+    <!-- Chip: the recording has exactly one gap in its readings. -->
+    <string name="rides_gap_one" volt:screen="Rides, live recording" volt:purpose="status">1 gap</string>
+    <!-- Chip: the recording has %1$d gaps in its readings. English shows rides_gap_one for 1, so its
+         one form is never shown in English; languages whose one form covers other numbers inflect it. -->
+    <plurals name="rides_gaps" volt:screen="Rides, live recording" volt:purpose="status" volt:english-fix="pending">
+        <item quantity="one">%1$d gaps</item>
+        <item quantity="other">%1$d gaps</item>
+    </plurals>
+    <!-- Caption: %1$s is the share of the ride with power readings (fmt_percent, "80%"). -->
+    <string name="rides_coverage" volt:screen="Rides, live recording" volt:purpose="caption">%1$s coverage</string>
+    <!-- Spoken coverage: %1$s the share (fmt_percent), %2$s the time with power readings, %3$s the
+         whole elapsed time (both like "4m 00s"). -->
+    <string name="rides_coverage_description" volt:screen="Rides, live recording" volt:purpose="accessibility description">Power coverage %1$s, %2$s observed of %3$s</string>
+    <!-- History count when no ride is saved. -->
+    <string name="rides_history_none" volt:screen="Rides, history" volt:purpose="status">No saved rides</string>
+    <!-- History count: %1$d saved rides. The storage size may follow after " · ". -->
+    <plurals name="rides_history_count" volt:screen="Rides, history" volt:purpose="status">
+        <item quantity="one">%1$d ride</item>
+        <item quantity="other">%1$d rides</item>
+    </plurals>
+    <!-- Spoken for a history row on a wide screen: %1$s is the ride's name, date, distance and duration. -->
+    <string name="rides_history_row_wide" volt:screen="Rides, history" volt:purpose="accessibility description">%1$s. Shows its details beside the list.</string>
+    <!-- Spoken for a history row: %1$s is the ride's name, date, distance and duration. -->
+    <string name="rides_history_row" volt:screen="Rides, history" volt:purpose="accessibility description">%1$s. Opens ride details.</string>
+    <!-- Announced when the detail pane shows a ride: %1$s is its title. -->
+    <string name="rides_showing" volt:screen="Rides, history" volt:purpose="accessibility description">Showing %1$s</string>
+    <!-- Unit symbol for kilobytes of saved ride data (1 KB = 1000 bytes). -->
+    <string name="rides_unit_kilobyte" volt:screen="Rides, history" volt:purpose="unit symbol">KB</string>
+    <!-- Unit symbol for megabytes of saved ride data (1 MB = 1,000,000 bytes). -->
+    <string name="rides_unit_megabyte" volt:screen="Rides, history" volt:purpose="unit symbol">MB</string>
+    <!-- Spoken for the compare row before two rides exist: %1$d rides are saved (0 or 1). -->
+    <string name="rides_compare_two_saved" volt:screen="Rides, history" volt:purpose="accessibility description">Compare two rides, %1$d of 2 saved rides</string>
+    <!-- Spoken count in the compare picker: %1$d of the two rides are chosen (0 to 2). -->
+    <string name="rides_compare_chosen" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$d of 2 rides chosen</string>
+    <!-- Spoken for the battery tile: the battery gained %1$d percentage points. English says "points" for 1. -->
+    <string name="rides_battery_gain_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery gain, %1$d percentage points</string>
+    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points. English says "points" for 1. -->
+    <string name="rides_battery_drop_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery drop, %1$d percentage points</string>
+    <!-- Under the direction bar: the current direction was confirmed for %1$s ("12m 05s"). -->
+    <string name="rides_direction_confirmed_for" volt:screen="Rides, ride details" volt:purpose="caption">Confirmed %1$s</string>
+    <!-- Under the direction bar: the current direction was not confirmed for %1$s. -->
+    <string name="rides_direction_unconfirmed_for" volt:screen="Rides, ride details" volt:purpose="caption">Unconfirmed %1$s</string>
+    <!-- Spoken for the direction bar: %1$s confirmed time, %2$s unconfirmed time. -->
+    <string name="rides_direction_split_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Current direction confirmed for %1$s, unconfirmed for %2$s</string>
+    <!-- Spoken for an experimental switch: %1$s is the switch's title (rides_motion_sensors). -->
+    <string name="rides_switch_experimental" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">%1$s, experimental</string>
+    <!-- Motion note: the phone was mounted; %1$s motion samples (formatted, "1,200"). English says
+         "samples" for 1. -->
+    <string name="rides_motion_note_mounted" volt:screen="Rides, phone and route" volt:purpose="caption">Mounted · %1$s samples</string>
+    <!-- Motion note: the phone was in a pocket; %1$s motion samples (formatted). English says
+         "samples" for 1. -->
+    <string name="rides_motion_note_pocket" volt:screen="Rides, phone and route" volt:purpose="caption">Pocket · %1$s samples</string>
+    <!-- Spoken route color legend for power: %1$s is the top of the scale ("1.2 kW"). -->
+    <string name="rides_legend_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power magnitude · blue 0 → yellow %1$s · gray: missing</string>
+    <!-- Spoken route color legend for elevation: %1$s the lowest and %2$s the highest height ("120 ft"). -->
+    <string name="rides_legend_elevation" volt:screen="Rides, phone and route" volt:purpose="legend">Relative elevation · blue %1$s → yellow %2$s · gray: missing</string>
+    <!-- Spoken route color legend for scooter speed: %1$s is the top speed of the scale ("20 mph"). -->
+    <string name="rides_legend_speed_scooter" volt:screen="Rides, phone and route" volt:purpose="legend">Scooter speed · blue 0 → yellow %1$s or faster · gray dashed: missing</string>
+    <!-- Spoken route color legend for GPS speed: %1$s is the top speed of the scale ("20 mph"). -->
+    <string name="rides_legend_speed_gps" volt:screen="Rides, phone and route" volt:purpose="legend" volt:dnt="GPS">GPS speed · blue 0 → yellow %1$s or faster · gray dashed: missing</string>
+    <!-- Spoken after the GPS speed reading: %1$s is the fix's accuracy as a height ("12 ft"). Starts with a comma. -->
+    <string name="rides_point_accuracy" volt:screen="Rides, phone and route" volt:purpose="accessibility description">, accuracy ±%1$s</string>
+    <!-- Unit symbol for acceleration, metres per second squared. -->
+    <string name="rides_unit_acceleration" volt:screen="Rides, phone and route" volt:purpose="unit symbol">m/s²</string>
+    <!-- Unit symbol for acceleration in multiples of standard gravity. -->
+    <string name="rides_unit_gravity" volt:screen="Rides, phone and route" volt:purpose="unit symbol">g</string>
+    <!-- An acceleration in two units: %1$s %2$s is it in m/s², %3$s %4$s the same in g ("1.20 m/s² (0.12 g)"). -->
+    <string name="rides_acceleration_with_g" volt:screen="Rides, phone and route" volt:purpose="value">%1$s %2$s (%3$s %4$s)</string>
+    <!-- Title of the delete question for a ride the owner has not named. -->
+    <string name="rides_delete_title_unnamed" volt:screen="Rides, export and delete" volt:purpose="question">Delete this ride?</string>
+    <!-- Title of the delete question: %1$s is the ride's name as the owner typed it. -->
+    <string name="rides_delete_title" volt:screen="Rides, export and delete" volt:purpose="question">Delete %1$s?</string>
+    <!-- Spoken for the compare view buttons: %1$s is the ride's name, or rides_default_name. -->
+    <string name="rides_view_route_of" volt:screen="Rides, compare" volt:purpose="accessibility description">View route of %1$s</string>
+    <!-- Spoken for a compare row: %1$s the measurement, %2$s the first ride's value, %3$s the second's. -->
+    <string name="rides_compare_line_description" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$s: first ride %2$s, second ride %3$s</string>
+    <!-- Why a compare value is missing, for the second ride only: %1$s is the reason. -->
+    <string name="rides_compare_reason_second" volt:screen="Rides, compare" volt:purpose="reason">Second: %1$s</string>
+    <!-- Why a compare value is missing, for the first ride only: %1$s is the reason. -->
+    <string name="rides_compare_reason_first" volt:screen="Rides, compare" volt:purpose="reason">First: %1$s</string>
+    <!-- Why compare values are missing: %1$s the first ride's reason, %2$s the second's. -->
+    <string name="rides_compare_reason_both" volt:screen="Rides, compare" volt:purpose="reason">First: %1$s · Second: %2$s</string>
+    <!-- Energy per distance from throughput (direction not confirmed): %1$s is the value ("25.0 Wh/mi"). -->
+    <string name="rides_efficiency_throughput" volt:screen="Rides, ride details" volt:purpose="value">%1$s · throughput</string>
+    <!-- Net energy per distance: %1$s is the value ("25.0 Wh/mi"). -->
+    <string name="rides_efficiency_net" volt:screen="Rides, ride details" volt:purpose="value">%1$s · net</string>
+
+    <!-- ===== Phone sensor status, spoken for the live card's sensor icons ===== -->
+
+    <!-- The phone sensor files cannot be written. -->
+    <string name="rides_sensor_status_storage" volt:screen="Rides, live recording" volt:purpose="status">Phone sensor storage unavailable</string>
+    <!-- No phone sensor recording is running. -->
+    <string name="rides_sensor_status_idle" volt:screen="Rides, live recording" volt:purpose="status">Phone sensors idle</string>
+    <!-- GPS is switched off in the phone sensor settings. -->
+    <string name="rides_sensor_status_gps_off" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS off</string>
+    <!-- The phone sensors are starting. -->
+    <string name="rides_sensor_status_gps_starting" volt:screen="Rides, live recording" volt:purpose="status">Starting phone sensors</string>
+    <!-- GPS is on but has no fix yet. -->
+    <string name="rides_sensor_status_gps_waiting" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">Waiting for GPS</string>
+    <!-- The phone's location setting is off. -->
+    <string name="rides_sensor_status_location_off" volt:screen="Rides, live recording" volt:purpose="status">Location is off</string>
+    <!-- The phone has no GPS provider. -->
+    <string name="rides_sensor_status_gps_unavailable" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS unavailable</string>
+    <!-- Android refused GPS access in a way the app cannot ask again. -->
+    <string name="rides_sensor_status_permission_unavailable" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS permission unavailable</string>
+    <!-- The owner has not granted the location permission. -->
+    <string name="rides_sensor_status_no_permission" volt:screen="Rides, live recording" volt:purpose="status">Location permission not granted</string>
+    <!-- GPS fixes are arriving. -->
+    <string name="rides_sensor_status_gps_recording" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS recording</string>
+    <!-- No GPS fix for more than 10 seconds. -->
+    <string name="rides_sensor_status_signal_lost" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS signal lost</string>
+    <!-- GPS stopped giving fixes. -->
+    <string name="rides_sensor_status_signal_unavailable" volt:screen="Rides, live recording" volt:purpose="status" volt:dnt="GPS">GPS signal unavailable</string>
+    <!-- %1$s is the GPS status above; the barometer records elevation too. -->
+    <string name="rides_sensor_status_barometer" volt:screen="Rides, live recording" volt:purpose="status">%1$s · barometer</string>
+    <!-- %1$s is the status so far; the experimental linear motion sensor records too. -->
+    <string name="rides_sensor_status_motion_experimental" volt:screen="Rides, live recording" volt:purpose="status">%1$s · experimental motion</string>
+    <!-- %1$s is the status so far; the raw accelerometer records (no linear motion sensor). -->
+    <string name="rides_sensor_status_motion_raw" volt:screen="Rides, live recording" volt:purpose="status">%1$s · raw motion</string>
+    <!-- %1$s is the status so far; motion recording is on but the phone has no motion sensor. -->
+    <string name="rides_sensor_status_motion_unavailable" volt:screen="Rides, live recording" volt:purpose="status">%1$s · motion sensor unavailable</string>
+
 </resources>

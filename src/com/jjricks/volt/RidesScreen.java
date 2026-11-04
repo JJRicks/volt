@@ -304,7 +304,7 @@ public final class RidesScreen implements AppScreen {
         RideStore.Summary recording = service.rides.activeSummary(); if (recording == null) return;
         EditText notes = input(T.ridesNotesHint()); notes.setSingleLine(false); notes.setMinLines(3); notes.setMaxLines(8);
         notes.setGravity(Gravity.TOP | Gravity.START); notes.setText(recording.notes);
-        LinearLayout box = dialogBody("Notes for " + (recording.label.isEmpty() ? "this ride" : recording.label), null);
+        LinearLayout box = dialogBody((recording.label.isEmpty() ? T.ridesNotesTitleUnnamed() : T.ridesNotesTitle(recording.label)), null);
         box.addView(notes);
         TextView cancel = ui.secondaryButton(T.commonCancel(), null), save = ui.button(T.ridesNotesSave(), null);
         LinearLayout buttons = pair(cancel, save); ((LinearLayout.LayoutParams) buttons.getLayoutParams()).topMargin = ui.dp(12);
@@ -322,7 +322,7 @@ public final class RidesScreen implements AppScreen {
     private void updateSensorsRow() {
         boolean gps = preferences.getBoolean("phone_gps", true), motion = preferences.getBoolean("phone_motion", true);
         int on = (gps ? 2 : 0) + (motion ? 1 : 0);
-        sensorsRow.update(sensorSummary(), on == 0 ? "Off" : on + " on");
+        sensorsRow.update(sensorSummary(), on == 0 ? T.commonOff() : T.ridesSensorsOnCount(on));
     }
     /** "GPS · elevation · motion": elevation is attached to GPS fixes (barometer when present, else GPS altitude), so it needs GPS. */
     private String sensorSummary() {
@@ -336,11 +336,11 @@ public final class RidesScreen implements AppScreen {
         RideStore.Summary s = service.rides.activeSummary(); if (s == null) return;
         String error = service.recordingError();
         String name = s.label.isEmpty() ? T.ridesDefaultName() : s.label;
-        activeTitle.setText((error == null ? "Recording · " : "Recording needs attention · ") + name);
+        activeTitle.setText((error == null ? T.ridesLiveTitle(name) : T.ridesLiveTitleAttention(name)));
         activeTitle.setTextColor(ui.danger);
         styleActiveCard(error != null);
         long elapsed = Math.max(s.elapsedMs, System.currentTimeMillis() - s.startWallMs);
-        activeElapsed.setText(clock(elapsed)); activeElapsed.setContentDescription("Elapsed " + duration(elapsed));
+        activeElapsed.setText(clock(elapsed)); activeElapsed.setContentDescription(T.ridesElapsedDescription(duration(elapsed)));
         String[] distance = splitNumber(distance(s.distanceKm));
         activeDistance.setText(distance == null ? "—" : distance[0]);
         activeDistanceUnit.setText(distance == null ? ("km".equals(preferences.getString("units", "mi")) ? "km" : "mi") : distance[1]);
@@ -356,11 +356,11 @@ public final class RidesScreen implements AppScreen {
         describeStat(activeDistance, activeDistanceUnit); describeStat(activePower, null); describeStat(activeEnergy, null);
         describeStat(activeBattery, activeBatteryUnit);
         refreshSensorIcons();
-        gapChip.setText(s.gapCount == 1 ? "1 gap" : s.gapCount + " gaps"); gapChip.setContentDescription(gapChip.getText());
+        gapChip.setText(s.gapCount == 1 ? T.ridesGapOne() : T.ridesGaps(s.gapCount, s.gapCount)); gapChip.setContentDescription(gapChip.getText());
         gapChip.setVisibility(s.gapCount > 0 ? View.VISIBLE : View.GONE);
         recoveredChip.setVisibility(s.recovered ? View.VISIBLE : View.GONE);
-        coverageText.setText(percent(s.electricalCoverage) + " coverage");
-        coverageText.setContentDescription("Power coverage " + percent(s.electricalCoverage) + ", " + duration(s.electricalCoverageMs) + " observed of " + duration(s.elapsedMs));
+        coverageText.setText(T.ridesCoverage(percent(s.electricalCoverage)));
+        coverageText.setContentDescription(T.ridesCoverageDescription(percent(s.electricalCoverage), duration(s.electricalCoverageMs), duration(s.elapsedMs)));
         boolean disconnected = !service.ble.connected();
         disconnectedPill.setVisibility(disconnected ? View.VISIBLE : View.GONE);
         reconnectButton.setVisibility(disconnected ? View.VISIBLE : View.GONE);
@@ -380,7 +380,28 @@ public final class RidesScreen implements AppScreen {
         int motion = !capturing ? ui.dim : status.contains("motion sensor unavailable") ? ui.orange
                 : motionOn ? (samplesArriving ? ui.ok : ui.orange) : ui.dim;
         gpsIcon.setColor(gps); barometerIcon.setColor(barometer); motionIcon.setColor(motion);
-        sensorIcons.setContentDescription(status);
+        sensorIcons.setContentDescription(phoneStatusText(service.phoneStatusFlags()));
+    }
+    /** ScooterService.phoneStatus() in the display language, from its flags (status() stays the English id the icons read). */
+    static String phoneStatusText(java.util.EnumSet<PhoneRideRecorder.StatusFlag> flags) {
+        if (flags.contains(PhoneRideRecorder.StatusFlag.SAVING)) return T.ridesSavingSensors();
+        if (flags.contains(PhoneRideRecorder.StatusFlag.STORAGE_ERROR)) return T.ridesSensorStatusStorage();
+        if (flags.contains(PhoneRideRecorder.StatusFlag.IDLE)) return T.ridesSensorStatusIdle();
+        String text = flags.contains(PhoneRideRecorder.StatusFlag.GPS_STARTING) ? T.ridesSensorStatusGpsStarting()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_WAITING) ? T.ridesSensorStatusGpsWaiting()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_LOCATION_OFF) ? T.ridesSensorStatusLocationOff()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_UNAVAILABLE) ? T.ridesSensorStatusGpsUnavailable()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_PERMISSION_UNAVAILABLE) ? T.ridesSensorStatusPermissionUnavailable()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_NO_PERMISSION) ? T.ridesSensorStatusNoPermission()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_RECORDING) ? T.ridesSensorStatusGpsRecording()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_SIGNAL_LOST) ? T.ridesSensorStatusSignalLost()
+                : flags.contains(PhoneRideRecorder.StatusFlag.GPS_SIGNAL_UNAVAILABLE) ? T.ridesSensorStatusSignalUnavailable()
+                : T.ridesSensorStatusGpsOff();
+        if (flags.contains(PhoneRideRecorder.StatusFlag.BAROMETER)) text = T.ridesSensorStatusBarometer(text);
+        if (flags.contains(PhoneRideRecorder.StatusFlag.MOTION_EXPERIMENTAL)) text = T.ridesSensorStatusMotionExperimental(text);
+        else if (flags.contains(PhoneRideRecorder.StatusFlag.MOTION_RAW)) text = T.ridesSensorStatusMotionRaw(text);
+        else if (flags.contains(PhoneRideRecorder.StatusFlag.MOTION_UNAVAILABLE)) text = T.ridesSensorStatusMotionUnavailable(text);
+        return text;
     }
     private void describeStat(TextView value, TextView unit) {
         View column = (View) value.getParent();
@@ -455,7 +476,7 @@ public final class RidesScreen implements AppScreen {
         } catch (IOException e) { historyCount.setText(T.ridesHistoryUnreadable()); if (wide) emptyDetail("unreadable"); }
     }
     private void updateHistoryCount() {
-        String count = savedCount == 0 ? "No saved rides" : savedCount + (savedCount == 1 ? " ride" : " rides");
+        String count = savedCount == 0 ? T.ridesHistoryNone() : T.ridesHistoryCount(savedCount, savedCount);
         historyCount.setText(storageText.isEmpty() ? count : count + " · " + storageText);
     }
     /** History row: route thumbnail, name and start time, then distance and duration. */
@@ -486,11 +507,11 @@ public final class RidesScreen implements AppScreen {
         String spoken = label + ", " + longDate(s.startWallMs) + ", " + distance(s.distanceKm) + ", " + duration(s.elapsedMs);
         if (wide) {
             row.setClickable(true); row.setFocusable(true); row.setOnClickListener(v -> selectRide(s.id));
-            row.setContentDescription(spoken + ". Shows its details beside the list.");
+            row.setContentDescription(T.ridesHistoryRowWide(spoken));
             historyRows.put(s.id, row); styleHistoryRow(row, chosen);
         } else {
             rowTouch(row, () -> showDetails(s.id));
-            row.setContentDescription(spoken + ". Opens ride details.");
+            row.setContentDescription(T.ridesHistoryRow(spoken));
         }
         return row;
     }
@@ -517,7 +538,7 @@ public final class RidesScreen implements AppScreen {
         if (changed && detailScroll != null) {
             Motion.scrollBeforeDraw(detailScroll, 0);
             View title = detailPane.findViewWithTag("ride-title");
-            if (title instanceof TextView) detailPane.announceForAccessibility("Showing " + ((TextView) title).getText());
+            if (title instanceof TextView) detailPane.announceForAccessibility(T.ridesShowing(((TextView) title).getText()));
         }
     }
     private void rowTouch(View row, Runnable action) {
@@ -580,7 +601,7 @@ public final class RidesScreen implements AppScreen {
         try {
             thumbLoader.execute(() -> {
                 long bytes = bytes(new File(root, "rides"), 0) + bytes(new File(root, "phone-rides"), 0);
-                String text = bytes < 1000 * 1000 ? String.format(Locale.US, "%.0f KB", Math.max(1, bytes / 1000.0)) : String.format(Locale.US, "%.1f MB", bytes / 1e6);
+                String text = bytes < 1000 * 1000 ? T.fmtQuantity(Fmt.decimal(Locale.US, Math.max(1, bytes / 1000.0), 0), T.ridesUnitKilobyte()) : T.fmtQuantity(Fmt.decimal(Locale.US, bytes / 1e6, 1), T.ridesUnitMegabyte());
                 host.activity().runOnUiThread(() -> { if (closed) return; storageText = bytes <= 0 ? "" : text; updateHistoryCount(); });
             });
         } catch (java.util.concurrent.RejectedExecutionException ignored) { }
@@ -596,7 +617,7 @@ public final class RidesScreen implements AppScreen {
         // Looks disabled until two rides exist, yet stays tappable so it can say why.
         compareRow.setEnabled(possible); compareRow.view.setEnabled(true);
         compareRow.update("", !possible ? savedCount + "/2" : selected.size() == 2 ? "2 ✓" : "");
-        if (!possible) compareRow.view.setContentDescription("Compare two rides, " + savedCount + " of 2 saved rides");
+        if (!possible) compareRow.view.setContentDescription(T.ridesCompareTwoSaved(savedCount));
         else if (selected.size() == 2) compareRow.view.setContentDescription(T.ridesCompareTwoSelected());
     }
     private void saveSelection() { preferences.edit().putStringSet("ride_comparison", new LinkedHashSet<String>(selected)).apply(); }
@@ -617,7 +638,7 @@ public final class RidesScreen implements AppScreen {
             List<CheckBox> boxes = new ArrayList<CheckBox>();
             AlertDialog[] holder = new AlertDialog[1];
             Runnable sync = () -> {
-                count.setText(picked.size() + "/2"); count.setContentDescription(picked.size() + " of 2 rides chosen");
+                count.setText(picked.size() + "/2"); count.setContentDescription(T.ridesCompareChosen(picked.size()));
                 for (int i = 0; i < boxes.size(); i++) boxes.get(i).setEnabled(picked.size() < 2 || boxes.get(i).isChecked());
                 if (holder[0] != null && holder[0].getButton(AlertDialog.BUTTON_POSITIVE) != null) holder[0].getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(picked.size() == 2);
             };
@@ -693,8 +714,8 @@ public final class RidesScreen implements AppScreen {
         List<View> energy = tiles(body, new String[]{batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), T.ridesTilePerDistance(), efficiency(ride),
                 T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, "Wh", 2), T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
         if (ride.batteryDropPercent != null && Double.isFinite(ride.batteryDropPercent))
-            energy.get(0).setContentDescription((batteryGain ? "Battery gain, " : "Battery drop, ")
-                    + Math.round(Math.abs(ride.batteryDropPercent)) + " percentage points");
+            energy.get(0).setContentDescription((batteryGain ? T.ridesBatteryGainDescription(Math.round(Math.abs(ride.batteryDropPercent)))
+                    : T.ridesBatteryDropDescription(Math.round(Math.abs(ride.batteryDropPercent)))));
         reasonOnTap(energy.get(1), efficiencyReason(ride));
         LinearLayout phone = vertical(); body.addView(phone);
         detailSections(body, ride.id, ride, measured, afterDelete);
@@ -850,7 +871,7 @@ public final class RidesScreen implements AppScreen {
                 label.setSingleLine(true); cell.addView(label);
                 TextView reading = ui.text(RideChartView.sampleValue(s, value), 17, true); reading.setSingleLine(true); cell.addView(reading);
                 boolean available = value != null && value.value != null && Double.isFinite(value.value);
-                TextView stamp = ui.caption(available ? "At " + RideChartView.sampleTime(value.time) : "—"); stamp.setSingleLine(true); cell.addView(stamp);
+                TextView stamp = ui.caption(available ? T.mapsChartCursorAt(RideChartView.sampleTime(value.time)) : "—"); stamp.setSingleLine(true); cell.addView(stamp);
                 cell.setContentDescription(s.label + ": " + (available ? reading.getText() + ", " + stamp.getText() : T.ridesChartNoSample()));
                 inspection.addView(cell);
             }
@@ -1048,10 +1069,10 @@ public final class RidesScreen implements AppScreen {
         bar.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, -1, Math.max(1, unconfirmedMs)));
         box.addView(bar, new LinearLayout.LayoutParams(-1, ui.dp(8)));
         LinearLayout labels = horizontal(); labels.setPadding(0, ui.dp(5), 0, 0);
-        labels.addView(ui.caption("Confirmed " + duration(confirmedMs)), new LinearLayout.LayoutParams(0, -2, 1));
-        TextView rest = ui.caption("Unconfirmed " + duration(unconfirmedMs)); rest.setGravity(Gravity.END); labels.addView(rest);
+        labels.addView(ui.caption(T.ridesDirectionConfirmedFor(duration(confirmedMs))), new LinearLayout.LayoutParams(0, -2, 1));
+        TextView rest = ui.caption(T.ridesDirectionUnconfirmedFor(duration(unconfirmedMs))); rest.setGravity(Gravity.END); labels.addView(rest);
         box.addView(labels);
-        box.setContentDescription("Current direction confirmed for " + duration(confirmedMs) + ", unconfirmed for " + duration(unconfirmedMs));
+        box.setContentDescription(T.ridesDirectionSplitDescription(duration(confirmedMs), duration(unconfirmedMs)));
         box.setFocusable(true);
         parent.addView(box);
     }
@@ -1182,7 +1203,7 @@ public final class RidesScreen implements AppScreen {
         Switch toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setShowText(false); toggle.setTextOn(""); toggle.setTextOff("");
         toggle.setChecked(preferences.getBoolean(key, fallback)); toggle.setMinimumWidth(ui.dp(56)); toggle.setMinimumHeight(ui.dp(48));
         ui.styleSwitch(toggle); toggle.setContentDescription(sub == null ? title : title + ", " + sub);
-        if (sub == null && "phone_motion".equals(key)) toggle.setContentDescription(title + ", experimental");
+        if (sub == null && "phone_motion".equals(key)) toggle.setContentDescription(T.ridesSwitchExperimental(title));
         toggle.setOnCheckedChangeListener((button, on) -> preferences.edit().putBoolean(key, on).apply());
         LinearLayout.LayoutParams toggleParams = new LinearLayout.LayoutParams(-2, -2); toggleParams.leftMargin = ui.dp(12);
         row.addView(toggle, toggleParams);
@@ -1247,7 +1268,7 @@ public final class RidesScreen implements AppScreen {
         bottom.addView(ui.sectionLabel(T.ridesPhoneRoute()));
         int dropped = track.rejectedLocationCount + track.rejectedElevationCount;
         TextView fixes = ui.caption(track.locationCount == 0 ? "No GPS fixes" : String.format(Locale.US, "%,d fixes", track.locationCount) + (dropped > 0 ? String.format(Locale.US, " · %,d dropped", dropped) : ""));
-        fixes.setContentDescription(track.status); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
+        fixes.setContentDescription(track.statusText()); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
         // Grade and ascent are smoothed estimates: ≈ marks them.
         tiles(bottom, new String[]{T.ridesTileGpsDistance(), distance(track.distanceMeters == null ? null : track.distanceMeters / 1000),
                 T.ridesTileAscentDescent(), (track.ascentMeters == null ? "" : "≈") + height(track.ascentMeters) + " / " + height(track.descentMeters)});
@@ -1260,7 +1281,7 @@ public final class RidesScreen implements AppScreen {
         valueRow(movement, T.ridesScooterSpeedChange(), acceleration(track.minScooterAccelerationMps2) + " / " + acceleration(track.maxScooterAccelerationMps2));
         valueRow(movement, T.ridesLinearPeak(), acceleration(track.maxLinearAccelerationMps2));
         bottom.addView(movement);
-        note(bottom, ("mounted".equals(track.placement) ? "Mounted" : "Pocket") + " · " + String.format(Locale.US, "%,d", track.motionSampleCount) + " samples");
+        note(bottom, ("mounted".equals(track.placement) ? T.ridesMotionNoteMounted(String.format(Locale.US, "%,d", track.motionSampleCount)) : T.ridesMotionNotePocket(String.format(Locale.US, "%,d", track.motionSampleCount))));
         TextView export = ui.secondaryButton(T.ridesExportPhone(), () -> exportPhone(track)); iconize(export, "download");
         bottom.addView(export);
         return ride;
@@ -1279,7 +1300,7 @@ public final class RidesScreen implements AppScreen {
         if (inline) { mapFrame.setBackground(ui.shape(ui.surface, 20, 0)); mapFrame.setClipToOutline(true); }
         mapFrame.addView(map, new FrameLayout.LayoutParams(-1, -1));
         int plate = ui.dark ? ui.bg : ui.text, ink = ui.dark ? ui.text : ui.surface;
-        TextView attribution = ui.text(source.attribution, 10.5f, false); attribution.setTextColor(ink); attribution.setMaxLines(3);
+        TextView attribution = ui.text(source.displayAttribution(), 10.5f, false); attribution.setTextColor(ink); attribution.setMaxLines(3);
         attribution.setBackground(ui.shape(Ui.withAlpha(plate, 215), 7, 0)); attribution.setPadding(ui.dp(7), ui.dp(4), ui.dp(7), ui.dp(4));
         attribution.setOnClickListener(v -> openWeb(source.attributionUrl));
         FrameLayout.LayoutParams creditParams = new FrameLayout.LayoutParams(-2, -2, Gravity.BOTTOM | Gravity.START);
@@ -1329,7 +1350,7 @@ public final class RidesScreen implements AppScreen {
                 : "accel".equals(metric) ? T.ridesLegendAccel()
                 : "elevation".equals(metric) ? elevationLegend(track)
                 : "speed".equals(metric) ? speedLegend(RouteSpeedScale.of(track.points))
-                : "Power magnitude · blue 0 → yellow " + RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points)) + " · gray: missing";
+                : T.ridesLegendPower(RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points)));
     }
     private void syncMapControls(PhoneRide ride) {
         String metric = ride.map.metric(); int selected = 0;
@@ -1373,12 +1394,12 @@ public final class RidesScreen implements AppScreen {
             low = low == null ? point.relativeAltitudeM : Math.min(low, point.relativeAltitudeM);
             high = high == null ? point.relativeAltitudeM : Math.max(high, point.relativeAltitudeM);
         }
-        return "Relative elevation · blue " + height(low) + " → yellow " + height(high) + " · gray: missing";
+        return T.ridesLegendElevation(height(low), height(high));
     }
     private String speedLegend(RouteSpeedScale scale) {
         if (scale.source == null) return T.ridesLegendSpeedNone();
-        return (RouteSpeedScale.SCOOTER.equals(scale.source) ? "Scooter speed" : "GPS speed") + " · blue 0 → yellow "
-                + RouteSpeedScale.label(scale.topKmh, preferences.getString("units", "mi")) + " or faster · gray dashed: missing";
+        return (RouteSpeedScale.SCOOTER.equals(scale.source) ? T.ridesLegendSpeedScooter(RouteSpeedScale.label(scale.topKmh, preferences.getString("units", "mi")))
+                : T.ridesLegendSpeedGps(RouteSpeedScale.label(scale.topKmh, preferences.getString("units", "mi"))));
     }
     private View mapButton(String glyph, String description, Runnable action) {
         FrameLayout button = new FrameLayout(host.activity());
@@ -1406,14 +1427,14 @@ public final class RidesScreen implements AppScreen {
             if ("—".equals(cells[i + 1])) { value.setTextColor(ui.muted); value.setTypeface(ui.regular()); }
             cell.addView(value);
             String spoken = cells[i] + ", " + ("—".equals(cells[i + 1]) ? T.ridesPointNotMeasured() : cells[i + 1]);
-            if (i == 2 && p.speedMps != null) spoken += ", accuracy ±" + height(p.accuracyM);
+            if (i == 2 && p.speedMps != null) spoken += T.ridesPointAccuracy(height(p.accuracyM));
             cell.setContentDescription(spoken); cell.setFocusable(true);
             readout.addView(cell);
         }
     }
     private static String dash(String value) { return "Not measured".equals(value) ? "—" : value; }
-    private static String accel(Double value) { return value == null ? "—" : String.format(Locale.US, "%.2f m/s²", value); }
-    private String acceleration(Double value) { return value == null ? "—" : String.format(Locale.US, "%.2f m/s² (%.2f g)", value, value / 9.80665); }
+    private static String accel(Double value) { return value == null ? "—" : T.fmtQuantity(Fmt.decimal(Locale.US, value, 2), T.ridesUnitAcceleration()); }
+    private String acceleration(Double value) { return value == null ? "—" : T.ridesAccelerationWithG(Fmt.decimal(Locale.US, value, 2), T.ridesUnitAcceleration(), Fmt.decimal(Locale.US, value / 9.80665, 2), T.ridesUnitGravity()); }
     private String height(Double value) {
         if (value == null) return "—"; String units = preferences.getString("units", "mi");
         return units.equals("km") ? quantity(value, "m", 0) : units.equals("dual") ? quantity(value * 3.280839895, "ft", 0) + " / " + quantity(value, "m", 0) : quantity(value * 3.280839895, "ft", 0);
@@ -1446,7 +1467,7 @@ public final class RidesScreen implements AppScreen {
     private void confirmDelete(String id, String label, Runnable deleted) {
         // Delete is disabled while sensor files are saving; these guards only cover a race.
         if (service.phoneSaving()) return;
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, "Delete " + (label.isEmpty() ? "this ride" : label) + "?"))
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setCustomTitle(titleView(null, (label.isEmpty() ? T.ridesDeleteTitleUnnamed() : T.ridesDeleteTitle(label))))
                 .setMessage(T.ridesDeleteMessage())
                 .setNegativeButton(T.ridesDeleteKeep(), null).setPositiveButton(T.ridesDeleteAction(), (d, which) -> {
                     if (service.phoneSaving()) { host.toast(T.ridesToastSavingTryAgain()); return; }
@@ -1482,7 +1503,7 @@ public final class RidesScreen implements AppScreen {
             compareLine(group, T.ridesStationaryThroughput(), quantity(a.stationaryThroughputWh, "Wh", 2), quantity(b.stationaryThroughputWh, "Wh", 2));
             if (service.phoneRides != null) {
                 TextView first = ui.secondaryButton(T.ridesViewFirst(), () -> showDetails(a.id)), second = ui.secondaryButton(T.ridesViewSecond(), () -> showDetails(b.id));
-                first.setContentDescription("View route of " + nameOf(a)); second.setContentDescription("View route of " + nameOf(b));
+                first.setContentDescription(T.ridesViewRouteOf(nameOf(a))); second.setContentDescription(T.ridesViewRouteOf(nameOf(b)));
                 content.addView(pair(first, second));
             }
             if (service.phoneRides != null && !service.phoneSaving()) phoneLoader.execute(() -> {
@@ -1520,12 +1541,12 @@ public final class RidesScreen implements AppScreen {
         if ("—".equals(first)) a.setTextColor(ui.muted);
         if ("—".equals(second)) b.setTextColor(ui.muted);
         String spokenFirst = firstReason == null ? first : first + " (" + firstReason + ")", spokenSecond = secondReason == null ? second : second + " (" + secondReason + ")";
-        row.setContentDescription(title + ": first ride " + spokenFirst + ", second ride " + spokenSecond);
+        row.setContentDescription(T.ridesCompareLineDescription(title, spokenFirst, spokenSecond));
         if (Build.VERSION.SDK_INT >= 28) row.setScreenReaderFocusable(true);
         if (firstReason != null || secondReason != null) {
             String reason = firstReason != null && firstReason.equals(secondReason) ? firstReason
-                    : firstReason == null ? "Second: " + secondReason : secondReason == null ? "First: " + firstReason
-                    : "First: " + firstReason + " · Second: " + secondReason;
+                    : firstReason == null ? T.ridesCompareReasonSecond(secondReason) : secondReason == null ? T.ridesCompareReasonFirst(firstReason)
+                    : T.ridesCompareReasonBoth(firstReason, secondReason);
             row.setOnClickListener(v -> host.toast(reason)); row.setClickable(true);
         }
         group.addView(row);
@@ -2074,12 +2095,12 @@ public final class RidesScreen implements AppScreen {
     private boolean miles() { return !"km".equals(preferences.getString("units", "mi")); }
     private String distance(Double km) {
         if (km == null) return "Not measured"; String units = preferences.getString("units", "mi");
-        String metric = String.format(Locale.US, "%.2f km", km), miles = String.format(Locale.US, "%.2f mi", km / RideStore.KM_PER_MILE);
+        String metric = T.fmtQuantity(Fmt.decimal(Locale.US, km, 2), T.unitsKm()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, km / RideStore.KM_PER_MILE, 2), T.unitsMi());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
     private String speed(Double kmh) {
         if (kmh == null) return "Not measured"; String units = preferences.getString("units", "mi");
-        String metric = String.format(Locale.US, "%.1f km/h", kmh), miles = String.format(Locale.US, "%.1f mph", kmh / RideStore.KM_PER_MILE);
+        String metric = T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 1), T.unitsKmh()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 1), T.unitsMph());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
     private String efficiency(RideStore.Summary s) {
@@ -2089,7 +2110,7 @@ public final class RidesScreen implements AppScreen {
         String units = preferences.getString("units", "mi");
         String value = units.equals("dual") ? quantity(mi, "Wh/mi", 1) + " / " + quantity(km, "Wh/km", 1)
                 : units.equals("km") ? quantity(km, "Wh/km", 1) : quantity(mi, "Wh/mi", 1);
-        return value + (s.netWhPerKm == null ? " · throughput" : " · net");
+        return (s.netWhPerKm == null ? T.ridesEfficiencyThroughput(value) : T.ridesEfficiencyNet(value));
     }
     private String shortDate(long wall) { return new SimpleDateFormat("MMM d", Locale.getDefault()).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
     private String longDate(long wall) { return new SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(new Date(wall)) + " · " + DisplayTime.clock(host.activity(), preferences, wall); }
@@ -2108,7 +2129,7 @@ public final class RidesScreen implements AppScreen {
         long points = Math.round(Math.abs(drop));
         return points == 0 ? "0%" : (drop >= 0 ? "−" : "+") + points + "%";
     }
-    private static String percent(double coverage) { return String.format(Locale.US, "%.0f%%", coverage * 100); }
+    private static String percent(double coverage) { return T.fmtPercent(Fmt.decimal(Locale.US, coverage * 100, 0)); }
     private static String duration(long millis) {
         long seconds = Math.max(0, millis) / 1000;
         return seconds >= 3600 ? String.format(Locale.US, "%dh %02dm", seconds / 3600, seconds % 3600 / 60)
