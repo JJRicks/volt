@@ -30,6 +30,8 @@ public final class DisplayUnits {
 
     /** For decoded stored-trip summaries and distance hints; never used for raw payloads. */
     public static String metricText(String text, String units) {
+        // While Volt is English the km text is the stored text, so it is returned at once, as before.
+        if (text != null && "km".equals(units) && !Fmt.legacy()) return metricOnly(text);
         if (text == null || "km".equals(units)) return text;
         Matcher matches = METRIC_TEXT.matcher(text);
         StringBuffer result = new StringBuffer();
@@ -37,10 +39,36 @@ public final class DisplayUnits {
             double amount = Double.parseDouble(matches.group(1)) / KM_PER_MILE;
             String converted = T.fmtQuantity(Fmt.decimal(Locale.US, amount, 2),
                     matches.group(2).equals("km/h") ? T.unitsMph() : T.unitsMi());
-            matches.appendReplacement(result, Matcher.quoteReplacement(choose(matches.group(), converted, units)));
+            matches.appendReplacement(result, Matcher.quoteReplacement(choose(metric(matches), converted, units)));
         }
         matches.appendTail(result);
         return result.toString();
+    }
+
+    /** metricText in km for a shipped language: each metric quantity written again by {@link #metric}, the rest unchanged. */
+    private static String metricOnly(String text) {
+        Matcher matches = METRIC_TEXT.matcher(text);
+        StringBuffer result = new StringBuffer();
+        while (matches.find()) matches.appendReplacement(result, Matcher.quoteReplacement(metric(matches)));
+        matches.appendTail(result);
+        return result.toString();
+    }
+
+    /**
+     * A matched metric quantity ("12.5 km", "15.0 km/h" in Telemetry's stored-trip text) from its number and
+     * UnitCode through Fmt, so a shipped language writes it with its own separator, as it does the converted
+     * miles beside it. Only a number Telemetry wrote (Telemetry.format with that many decimals) is written again;
+     * anything else ("012.5") stays as matched. While Volt is English, Fmt keeps Locale.US, so the result is the
+     * matched text byte for byte.
+     */
+    private static String metric(Matcher matches) {
+        String digits = matches.group(1);
+        UnitCode unit = UnitCode.KMH.matches(matches.group(2)) ? UnitCode.KMH : UnitCode.KM;
+        double amount = Double.parseDouble(digits);
+        for (int decimals = 0; decimals <= 6; decimals++)
+            if (Telemetry.format(amount, decimals).equals(digits))
+                return Fmt.quantity(Fmt.decimalNumber(Locale.US, amount, decimals), Fmt.unit(unit)).toString();
+        return matches.group();
     }
 
     /** {@link #speed} as structured text: the same text, with the number and unit ranges. */
