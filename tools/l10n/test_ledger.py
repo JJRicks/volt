@@ -1229,12 +1229,13 @@ class DeclarationTypeTest(RepoCase):
         # A package-private field of a private nested class, or a field of a class declared in a method,
         # can be named only in its own file, like a private field.
         for old, new in (("    static final class Ring {", "    private static final class Ring {"),
-                         ("    static final class Ring {", "    private static final class Outer {\n    static final class Ring {"),
-                         ("    static final class Ring {", "    static void local() {\n    final class Ring {")):
+                         ("    static final class Ring {", "    static void local() {\n    final class Ring {"),
+                         ("    static final class Ring {", "    static void local() {\n    class Outer {\n    class Ring {")):
             with self.subTest(new=new):
                 text = self.FILES[UI].replace(old, new).replace('private String subtitle', 'String subtitle')
-                if new.count("{") == 2:
-                    text = text.replace("    static String label()", "    }\n    static String label()")
+                if new.count("{") > 1:
+                    text = text.replace("    static String label()", "    }\n" * (new.count("{") - 1) +
+                                        "    static String label()")
                 self.repo.write(UI, text)
                 self.repo.write("l10n/ledger/b2.tsv", HEADER)
                 self.base = self.repo.commit("a nested field")
@@ -1256,10 +1257,9 @@ class DeclarationTypeTest(RepoCase):
                  '    static final class Ring implements Base { }', "Ui.Ring.subtitle", 'String subtitle = "Not reported";'),
                 ('    private static class Base {\n        String subtitle = "Not reported";\n    }\n'
                  '    private static class Mid extends Base { }\n    static final class Ring extends Mid { }',
-                 "r.subtitle", 'String subtitle = "Not reported";'),
-                ('    private static class Base {\n        static class In {\n            String subtitle = "Not reported";\n'
-                 '        }\n    }\n    static final class Ring extends Base.In { }', "r.subtitle",
-                 'String subtitle = "Not reported";')):
+                 "r.subtitle", 'String subtitle = "Not reported";')):
+            # (A field of Base.In, nested in a private Base, fails whether or not Ring extends Base.In:
+            # test_a_field_of_a_class_nested_in_a_private_one_fails.)
             with self.subTest(body=body):
                 self.repo.write(UI, java_class("Ui", body))
                 self.repo.write(screen, java_class("Screen", '    static boolean missing(Ui.Ring r) { return '
@@ -1275,6 +1275,30 @@ class DeclarationTypeTest(RepoCase):
                                     for p in problems), problems)
                 self.assertFalse(any("only this file can name it" in w for w in warnings), warnings)
 
+    def test_a_field_of_a_class_nested_in_a_private_one_fails(self):
+        # Gates round 2 re-review 3: javac checks only the access of the field's own class, so a
+        # package-private field of a non-private class nested in a private one is reached from another
+        # file through any field or method of that type: Ui.IN.subtitle or Ui.in().subtitle (javac
+        # --release 8 compiles both), with no extends or implements clause anywhere.
+        screen = "src/com/jjricks/volt/Screen.java"
+        for expose, use in (("    static final Base.In IN = new Base.In();", "Ui.IN.subtitle"),
+                            ("    static Base.In in() { return new Base.In(); }", "Ui.in().subtitle"),
+                            ("", None)):  # refused even when nothing in the file exposes it yet
+            with self.subTest(use=use):
+                self.repo.write(UI, java_class("Ui", '    private static class Base {\n        static final class In {\n'
+                                               '        String subtitle = "Not reported";\n        }\n    }' +
+                                               ("\n" + expose if expose else "")))
+                self.repo.write(screen, java_class("Screen", '    static boolean missing() { return %s; }' % (
+                    '%s.equals("Not reported")' % use if use else "false")))
+                self.repo.write("l10n/ledger/b2.tsv", HEADER)
+                self.base = self.repo.commit("a class nested in a private one")
+                self.edit('String subtitle = "Not reported";', "CharSequence subtitle = M.commonNotReported();")
+                problems, warnings, _ = self.check([UI + ':6\t["Not reported"]\tcommon_not_reported\texact\t'])
+                self.assertTrue(any("%s:6: `CharSequence subtitle = M . commonNotReported ( )` changes from String to "
+                                    "CharSequence on a field that is in a non-private type nested in the private Base "
+                                    "(line 4)" % UI in p for p in problems), problems)
+                self.assertFalse(any("only this file can name it" in w for w in warnings), warnings)
+
     def test_file_reach(self):
         def reach(source):
             tokens = expressions.l10nlib.lex_java(source)
@@ -1286,6 +1310,16 @@ class DeclarationTypeTest(RepoCase):
         self.assertIsNone(reach('class C { private String a = "x"; } class D extends C { }'))
         self.assertIsNone(reach('class C { void f() { class L { String a = "x"; } class M extends L { } } }'))
         self.assertEqual(reach('class C { String a = "x"; }'), "not private")
+        self.assertIsNone(reach('class C { void f() { class L { class N { String a = "x"; } } } }'))
+        self.assertIsNone(reach('class C { void f() { class L { private class P { class N { String a = "x"; } } } } }'))
+        for source in ('class C { private static class B { static class In { String a = "x"; } } }',
+                       'class C { private static class B { private static class P { static class In { String a = "x"; '
+                       '} } } }',
+                       'class C { private interface B { interface In { String a = "x"; } } }'):
+            with self.subTest(source=source):
+                self.assertIn("in a non-private type nested in the private", reach(source))
+        self.assertIn("private P (line 1)", reach('class C { static class O { private static class P { '
+                                                  'static class In { String a = "x"; } } } }'))
         self.assertIn("line 1 hands on (`static class D extends B`: a subclass",
                       reach('class C { private static class B { String a = "x"; } static class D extends B { } }'))
         self.assertIn("implements", reach('class C { private interface B { String a = "x"; } enum E implements B { ONE } }'))

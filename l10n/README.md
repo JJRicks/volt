@@ -324,13 +324,17 @@ How `ledger_check.py` (G1) reads it:
     stays exactly as it was (`private String unit = "", axis = "";` and
     `private CharSequence empty = M.uiChartEmpty();`). Only a declaration no other file can name
     may change type: a local (in a method, lambda, initializer or anonymous class), a `private`
-    field, or any field of a type that is itself `private` or declared in a method (a
-    package-private field of a `private static class`). A private type counts only when no
-    `extends` or `implements` clause in the file names it or a type between it and the field
+    field, a field declared directly in a `private` type (a package-private field of a
+    `private static class`), or any field of a type declared in a method, however deeply nested.
+    javac checks only the access of the field's own class, not of the classes around it, so a
+    field of a non-private class nested in a private one fails: `static final Base.In IN` or
+    `static Base.In in()` hands it to other files as `Ui.IN.subtitle`. A private type counts only
+    when no `extends` or `implements` clause in the file names it
     (`static final class Ring extends Base`, `class Shown implements Labels`, `<T extends Base>`):
     a subclass or implementing class that other files can name inherits the field, so
-    `Ui.Ring r; r.subtitle` or `Ui.Shown.UNIT` reaches it (javac allows it; a private type reached
-    only through a return value or a generic is refused by javac). G1 reads one file, and a field
+    `Ui.Ring r; r.subtitle` or `Ui.Shown.UNIT` reaches it (javac allows it; a field declared in the
+    private type itself, reached only through a return value or a field of that type, is refused
+    by javac: `Ui.get().s` is "defined in an inaccessible class"). G1 reads one file, and a field
     other files can name (package-private, `protected` or `public` in a type they can reach, an
     interface field of such a type, a field a reachable type inherits) fails, since
     `r.subtitle.equals("Not reported")` elsewhere would compile on and turn false. Make such a field private first, in a commit of its own, or keep the String. The
@@ -463,8 +467,10 @@ Known limits:
   other file, a data-tier value is found by name only (`Telemetry`, `TelemetryHistory`,
   `putSimulationSample` in the statement) and gets a note, not a failure. A value stored through a
   variable or another helper gets the ordinary display warning, and the reviewer judges it.
-- A private type's field may be retyped only when no `extends` or `implements` clause in its file
-  names the type, matched by simple name: a same-named type elsewhere in the file is refused too.
+- A private type's field may be retyped only when the private type is the field's own class and no
+  `extends` or `implements` clause in its file names it, matched by simple name: a same-named type
+  elsewhere in the file is refused too, and so is a field of a non-private class nested in a private
+  one even when nothing in the file exposes that class.
 - G7 needs an English-pinned emulator and does not run in CI; its result is pasted into the PR.
 - G7 does not compare volatile records (values whose text, not only their numbers, changed between
   the two base runs), and it checks the form of numbers, not their values: a number whose value

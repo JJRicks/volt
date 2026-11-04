@@ -62,11 +62,11 @@ row's deleted statement: wrapping a kept literal or a new T call in .toUpperCase
 next to it, fails. Whole new members (a method or field added next to converted text), regions a
 stays-english or id-kept move touched, and every other src change are listed for the reviewer. Two
 more changes are allowed and listed: a String declaration (a private field, a local, or a field
-of a private or local type) whose initializer becomes the row's call turning CharSequence (for a
-deferred M call), with the code around every use of the variable in its file; and a legacy locale
-wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside CatalogUsageTest.ENGLISH_ONLY
-files and the plan's data-tier files (DATA_TIER), which needs a compiled tests/l10n/ test calling
-Fmt.locale (G10).
+declared in a private type itself or in a local type) whose initializer becomes the row's call
+turning CharSequence (for a deferred M call), with the code around every use of the variable in
+its file; and a legacy locale wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside
+CatalogUsageTest.ENGLISH_ONLY files and the plan's data-tier files (DATA_TIER), which needs a
+compiled tests/l10n/ test calling Fmt.locale (G10).
 
 Ledger format: a TSV with the header
 
@@ -1447,37 +1447,47 @@ def _supertype_use(tokens, names):
 def file_reach(tokens, start, end):
     """None when the declaration whose modifiers and type are tokens start..end-1 can be named only in
     its own file: a local (a method, lambda, initializer or anonymous class body), a private field of
-    a class, enum or record, or any field of a type that is itself private or local (a package-private
-    field of a private nested class, a field of a class declared in a method). A private type counts
-    only when no extends or implements clause in the file names it or a type between it and the field:
-    a subclass or an implementing class that other files can name inherits the field. Else a short
-    reason: "not private", or the clause that hands the field on."""
+    a class, enum or record, a field declared directly in a private type (a package-private field of a
+    private nested class), or a field of a type declared in a method or other block, at any depth.
+    The private type counts only when it is the field's own enclosing type and no extends or
+    implements clause in the file names it: a subclass or an implementing class that other files can
+    name inherits the field. javac checks only the access flags of the field's own class, so a
+    package-private field of a non-private class nested in a private one is reachable through any
+    field or method of that type (Ui.IN.subtitle with static final Base.In IN). Else a short
+    reason: "not private", or what hands the field on."""
     kind = body_kind(tokens, start)
     if kind is None:
         return None
     if kind != "interface" and any(t.kind == "ident" and t.value == "private" for t in tokens[start:end]):
         return None  # a private member is never inherited
-    names = set()
     opener = _opener(tokens, start - 1)
+    direct, hidden_in = True, None
     while opener is not None:  # the type body holding the declaration, then each type around it
         header = opener
         while header > 0 and not (tokens[header - 1].kind == "op" and tokens[header - 1].value in ";{}"):
             header -= 1
         keyword = max(i for i in range(header, opener) if tokens[i].kind == "ident" and tokens[i].value in _TYPE_KEYWORDS)
-        if keyword + 1 < opener and tokens[keyword + 1].kind == "ident":
-            names.add(tokens[keyword + 1].value)
+        name = tokens[keyword + 1].value if keyword + 1 < opener and tokens[keyword + 1].kind == "ident" else None
         if any(t.kind == "ident" and t.value == "private" for t in tokens[header:keyword]):
-            inherited = _supertype_use(tokens, names)
-            if inherited is None:
-                return None
-            return ("in a private type that line %d hands on (`%s`: a subclass or implementing class "
-                    "inherits it)" % inherited)
+            if direct:
+                inherited = _supertype_use(tokens, {name} if name else set())
+                if inherited is None:
+                    return None
+                return ("in a private type that line %d hands on (`%s`: a subclass or implementing class "
+                        "inherits it)" % inherited)
+            if hidden_in is None:
+                hidden_in = (tokens[keyword].line, name)
         outer = _opener(tokens, header - 1)
         if outer is None:
-            return "not private"  # a top-level type
+            break  # a top-level type
         if body_kind(tokens, header) is None:
             return None  # a class declared in a method or other block
+        direct = False
         opener = outer
+    if hidden_in is not None:
+        return ("in a non-private type nested in the private %s (line %d): javac checks only the field's own "
+                "class, so any field or method whose type is that nested class (static final %s.In IN) hands "
+                "it to other files (Ui.IN.subtitle)" % (hidden_in[1], hidden_in[0], hidden_in[1]))
     return "not private"
 
 
@@ -1485,8 +1495,8 @@ def retype_reach_problem(where, path, diff, h_type):
     """A problem when the declaration whose type token is head token h_type is a field other files can
     name (not private, or any interface field): G1 lists the uses of a retyped variable from its own
     file only, and r.subtitle.equals("Not reported") in another file compiles on and turns false. A
-    private field, a local, or a field of a private or local type that no extends or implements
-    clause hands on is named only in its own file (file_reach), which retype_warning lists. Else None."""
+    private field, a local, a field of a type declared in a block, or a field declared directly in a
+    private type that no extends or implements clause hands on is named only in its own file (file_reach), which retype_warning lists. Else None."""
     tokens = diff.head.tokens
     start, _ = statement_bounds(tokens, h_type)
     reach = file_reach(tokens, start, h_type)
@@ -1495,8 +1505,9 @@ def retype_reach_problem(where, path, diff, h_type):
     first, last, _ = expressions.statement_span(tokens, h_type)
     return ("%s: %s:%d: `%s` changes from String to CharSequence on a field that is %s, so code in "
             "other files can name it and G1 cannot list those uses (an equals, an overload chosen by type); an "
-            "extraction batch retypes only a field other files cannot name (a private field, or any field of a "
-            "private or local class that nothing in the file extends or implements) or a local: make the field "
+            "extraction batch retypes only a field other files cannot name (a private field, a field declared "
+            "directly in a private class that nothing in the file extends or implements, or any field of a class "
+            "declared in a method) or a local: make the field "
             "private in an earlier commit of its own, or keep the String and convert where it is shown" % (
                 where, path, tokens[h_type].line, _excerpt(tokens[first:last + 1], None), reach))
 
