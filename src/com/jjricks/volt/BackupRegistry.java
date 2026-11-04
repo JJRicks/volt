@@ -111,6 +111,10 @@ final class BackupRegistry {
     static String category(String namespace, String key){Rule rule=rule(namespace,key);return rule==null?null:rule.category;}
     static boolean known(String category){return category!=null&&Arrays.asList(CATEGORIES).contains(category);}
     static String label(String category){int i=Arrays.asList(CATEGORIES).indexOf(category);return i<0?category:LABELS[i];}
+    /** LABELS as the screen shows them, in the current language (the English is LABELS'). An unknown id is shown as it is. */
+    static Msg labelMsg(String category){int i=Arrays.asList(CATEGORIES).indexOf(category);return i<0?Msg.verbatim(category):Msg.of(LABEL_IDS[i]);}
+    private static final int[] LABEL_IDS = {T.BACKUP_ENGINE_CATEGORY_SCOOTERS, T.BACKUP_ENGINE_CATEGORY_DASHBOARDS, T.BACKUP_ENGINE_CATEGORY_PREFERENCES, T.BACKUP_ENGINE_CATEGORY_RIDES,
+            T.BACKUP_ENGINE_CATEGORY_CHARGES, T.BACKUP_ENGINE_CATEGORY_HISTORY, T.BACKUP_ENGINE_CATEGORY_SCOOTER_PREFERENCES};
     static boolean namespace(String name){return Arrays.asList(NAMESPACES).contains(name);}
 
     /** Storage roots below the app data directory, as `files/rides`, `databases/x` and so on. */
@@ -133,13 +137,13 @@ final class BackupRegistry {
      * stay portable for exact restores; only registered keys must have their reader's type. */
     static void validateTypes(Map<String,Map<String,Object>> all) throws IOException {
         for(Map.Entry<String,Map<String,Object>> namespace:all.entrySet()) {
-            if(!namespace(namespace.getKey()))throw new IOException("The backup has an unsupported preference group.");
+            if(!namespace(namespace.getKey()))throw new BackupException(M.backupEngineBackupUnsupportedPreferenceGroup());
             for(Map.Entry<String,Object> entry:namespace.getValue().entrySet()) {
                 Rule rule=rule(namespace.getKey(),entry.getKey());
-                if(rule!=null&&!rule.type.isInstance(entry.getValue()))throw new IOException("The backup has an incompatible app preference type.");
+                if(rule!=null&&!rule.type.isInstance(entry.getValue()))throw new BackupException(M.backupEngineBackupIncompatibleAppPreference());
             }
         }
         Map<String,Object> app=all.get("app_settings");
-        if(app!=null&&app.containsKey("text_scale")){float scale=(Float)app.get("text_scale");if(!Float.isFinite(scale)||scale<.5f||scale>3f)throw new IOException("The backup has an invalid display text scale.");}
+        if(app!=null&&app.containsKey("text_scale")){float scale=(Float)app.get("text_scale");if(!Float.isFinite(scale)||scale<.5f||scale>3f)throw new BackupException(M.backupEngineBackupInvalidDisplayText());}
     }
 }

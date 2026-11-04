@@ -1,0 +1,11 @@
+# B10, the backup engine (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the restore review lines and refusal messages, pinned before the batch. The fixtures come from
+# tests/BackupTestStore.java and tests/BackupArchiveTest.java, which tests/run.sh already compiles.
+tests/l10n/characterization/BackupPlanLinesTest.java
+# The engine's refusals carry a Msg (getMessage() stays English); RideArchive, AppDataArchive and the
+# backup classes that tests/run.sh compiles throw it.
+src/com/jjricks/volt/BackupException.java
+# B10's own suite: review messages against their English lines, approvals across languages,
+# BackupException's codes and English getMessage(), and the category labels.
+tests/l10n/BackupEngineTextTest.java
