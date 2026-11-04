@@ -24,13 +24,21 @@ A council of AI models from different companies translates and reviews the text:
 
 New languages ship as **beta**. On Android 13 and later, you can switch Volt alone back to English in the phone's settings. Native speakers are welcome to spot-check a language, especially its safety text: open an issue. Diagnostics and report emails stay in English, so reports remain readable.
 
+## Features
+
+- **Riding mode.** While a ride is recording, a full-screen view with a few large stats you can read at a glance. You choose the stats and their order.
+- **A smaller Record ride widget:** one row tall even when it's narrow, like the Lock bar and the Setting tiles.
+- **Reorder every menu, not just the dashboard.** For example, put the scooter settings you use most at the top.
+- **Maintenance reminders** after a distance or a length of time you choose, for checks such as tire pressure and brakes.
+
 ## Investigating
 
 - **Battery alerts** haven't been through a real charge on a scooter without a charge limit yet.
+- **Cruise control changes that come back "Not confirmed"** on some scooters. Volt should say more than that, but only once something the scooter reports shows the actual cause.
 
 ## Smaller items
 
-- Builds from `main` include their commit in the version name (for example `1.11.1-dev+abc1234`), so they can't be mistaken for a release.
+- **Phone placement** (Mounted or Pocket) only labels phone-sensor recordings today. Either make it improve how those recordings are read, or remove it.
 - The hardware check's read-only navigation step needs updating for the current screens.
 - More models: reported scooters and photos are added as owners send them.
 
