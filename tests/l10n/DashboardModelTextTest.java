@@ -31,6 +31,10 @@ import java.util.regex.Pattern;
  *    tagged and version 8, which no random (version 4) UUID is: not another widget's, not an older
  *    version's example. Only AllWidgetsDashboard makes them, and the accessors check them (read from src/;
  *    DashboardSlotsValidation.exampleProvenance runs them on Android with the real example).
+ *  - The example slot (DashboardExampleIds.exampleSlot): slot 3 under the example's name, holding only
+ *    example widgets with no type twice, against create()'s widgets (read from src/): it still counts
+ *    with a type fewer or more, so a type added later keeps every saved example slot, and does not with
+ *    any widget not the example's.
  */
 public final class DashboardModelTextTest {
     private static int checks;
@@ -49,12 +53,13 @@ public final class DashboardModelTextTest {
             templates();
             widgetNames();
             exampleIds();
+            exampleSlotRule();
             T.install(new Marked());
             marked();
         } finally {
             T.install(saved);
         }
-        System.out.println("DashboardModelTextTest: " + checks + " checks passed (shortcut names in English and marked, tile templates, widget and slot names, example ids)");
+        System.out.println("DashboardModelTextTest: " + checks + " checks passed (shortcut names in English and marked, tile templates, widget and slot names, example ids, example slot)");
     }
 
     private static void check(boolean ok, String what) {
@@ -205,11 +210,81 @@ public final class DashboardModelTextTest {
         check(example.contains("return isExample(widget) && \"note\".equals(widget.type) && NOTE_TEXT.equals(widget.note)"),
                 "exampleNote does not check the widget is the example's");
         check(example.contains("return widget != null && DashboardExampleIds.is(widget.id);"), "isExample does not read the id");
-        check(config.contains("if (!DashboardExampleIds.is(widget.optString(\"id\")) || !types.add(widget.optString(\"type\"))) return false;"),
-                "exampleSlot does not check every widget's id");
+        check(config.contains("ids[i] = widget.optString(\"id\");") && config.contains("types[i] = widget.optString(\"type\");")
+                        && config.contains("return DashboardExampleIds.exampleSlot(index, EXAMPLE_SLOT_NAME.equals(name), ids, types);"),
+                "exampleSlot does not pass every widget's id and type to DashboardExampleIds.exampleSlot");
         check(config.contains("if (slot.example) return M.dashboardModelSlotExample();")
                 && !config.contains("EXAMPLE_SLOT_NAME.equals(name) ? T.dashboardModelSlotExample()"),
                 "a slot shows the example's name for its name alone");
+    }
+
+    /**
+     * DashboardExampleIds.exampleSlot against the example create() makes (its types read from src/, its
+     * ids made as add() makes them): the whole example in slot 3 under its name counts, and so does it
+     * with any one type fewer (an example this version saves, read by a version with a type more) or one
+     * more (a later version's example); any widget not the example's, a type twice, another slot, another
+     * name or no widgets does not. And where the example is saved: slot index 2, EXAMPLE_SLOT_NAME.
+     */
+    private static void exampleSlotRule() throws Exception {
+        String example = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/AllWidgetsDashboard.java")), StandardCharsets.UTF_8);
+        String config = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/DashboardConfig.java")), StandardCharsets.UTF_8);
+        int start = example.indexOf("static ArrayList<DashboardConfig.Widget> create() {");
+        check(start >= 0, "AllWidgetsDashboard.create() not found");
+        String body = example.substring(start, example.indexOf("return result;", start));
+        List<String> made = new ArrayList<>();
+        Matcher m = Pattern.compile("\\badd\\(result, \"([a-z]+)\"\\)").matcher(body);
+        while (m.find()) made.add(m.group(1));
+        List<String> types = strings(block(config, "public static final String[] TYPES = {"));
+        check(made.size() == types.size() && new HashSet<>(made).equals(new HashSet<>(types)),
+                "create() makes one widget of every type: " + made);
+        String[] ids = new String[made.size()];
+        for (int i = 0; i < ids.length; i++) ids[i] = DashboardExampleIds.create();
+        String[] kinds = made.toArray(new String[0]);
+
+        check(DashboardExampleIds.exampleSlot(2, true, ids, kinds), "the whole example is not the example's slot");
+        for (int i = 0; i < ids.length; i++) {
+            check(DashboardExampleIds.exampleSlot(2, true, without(ids, i), without(kinds, i)),
+                    "the example without its " + kinds[i] + " widget is not the example's slot");
+            String[] other = ids.clone();
+            other[i] = UUID.randomUUID().toString();
+            check(!DashboardExampleIds.exampleSlot(2, true, other, kinds), "an owner's " + kinds[i] + " widget in the example's slot");
+            other[i] = "566f6c74" + other[i].substring(8);
+            check(!DashboardExampleIds.exampleSlot(2, true, other, kinds), "a tagged version 4 " + kinds[i] + " widget in the example's slot");
+            other[i] = "";
+            check(!DashboardExampleIds.exampleSlot(2, true, other, kinds), "a " + kinds[i] + " widget without an id in the example's slot");
+            check(!DashboardExampleIds.exampleSlot(2, true, with(ids, DashboardExampleIds.create()), with(kinds, kinds[i])),
+                    "the example with a second " + kinds[i] + " widget is the example's slot");
+        }
+        check(!DashboardExampleIds.exampleSlot(2, true, with(ids, UUID.randomUUID().toString()), with(kinds, "future")),
+                "the example with an owner's widget of a new type is the example's slot");
+        check(DashboardExampleIds.exampleSlot(2, true, with(ids, DashboardExampleIds.create()), with(kinds, "future")),
+                "a later example, with a type more, is not the example's slot");
+        check(DashboardExampleIds.exampleSlot(2, true, new String[] {ids[0]}, new String[] {kinds[0]}), "one example widget");
+        for (int index : new int[] {-1, 0, 1, 3})
+            check(!DashboardExampleIds.exampleSlot(index, true, ids, kinds), "the example in slot index " + index + " is the example's slot");
+        check(!DashboardExampleIds.exampleSlot(2, false, ids, kinds), "the example under another name is the example's slot");
+        check(!DashboardExampleIds.exampleSlot(2, true, new String[0], new String[0]), "an empty slot is the example's slot");
+        check(!DashboardExampleIds.exampleSlot(2, true, ids, without(kinds, 0)), "ids and types of different lengths");
+
+        // Where the example is saved: index 2 under EXAMPLE_SLOT_NAME, both when seeded and when forced.
+        check(config.contains("saveSlot(2, EXAMPLE_SLOT_NAME, AllWidgetsDashboard.COLUMNS, exampleFactory.get());")
+                        && config.contains("saveSlot(2, EXAMPLE_SLOT_NAME, AllWidgetsDashboard.COLUMNS, AllWidgetsDashboard.create());")
+                        && config.contains("AllWidgetsDashboard::create"),
+                "the example is not saved to slot index 2 under EXAMPLE_SLOT_NAME");
+        check(!config.contains("definitions.length() != TYPES.length") && !config.contains("TYPES.length) return false"),
+                "exampleSlot counts the example's widgets against TYPES again");
+    }
+
+    private static String[] without(String[] values, int index) {
+        String[] out = new String[values.length - 1];
+        for (int i = 0, j = 0; i < values.length; i++) if (i != index) out[j++] = values[i];
+        return out;
+    }
+
+    private static String[] with(String[] values, String more) {
+        String[] out = java.util.Arrays.copyOf(values, values.length + 1);
+        out[values.length] = more;
+        return out;
     }
 
     private static String block(String source, String start) {

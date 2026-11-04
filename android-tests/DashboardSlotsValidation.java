@@ -1533,6 +1533,13 @@ public final class DashboardSlotsValidation extends Instrumentation {
             require(config.saveSlot(2, "All widgets", 6) && DashboardConfig.voltSlotName(config.slot(2), 2) == null
                             && DashboardConfig.displaySlotName(config.slot(2), 2).equals("All widgets"),
                     "Slot 3 with the owner's widgets shows Volt's name");
+            // Slot 3 holding only some of the example's own widgets, under the example's name, is still the
+            // example's: the rule does not count types (DashboardExampleIds.exampleSlot).
+            require(config.widgets.remove(typedNote) && config.widgets.remove(typedGauge) && config.widgets.remove(exampleNote)
+                            && config.saveSlot(2, "All widgets", 6) && config.slot(2).widgetCount == DashboardConfig.TYPES.length - 1
+                            && DashboardConfig.voltSlotName(config.slot(2), 2) != null
+                            && T.key(DashboardConfig.voltSlotName(config.slot(2), 2).id()).equals("dashboard_model_slot_example"),
+                    "Slot 3 with some of the example's own widgets lost the example's name");
             // Editing the example's own note or title makes it the owner's.
             exampleNote.note = "Check tyre pressure today";
             exampleGauge.title = "My speed";
