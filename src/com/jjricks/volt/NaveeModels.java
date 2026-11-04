@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -43,24 +44,37 @@ final class NaveeModels {
         return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[\\s\\-_()]+", "");
     }
 
+    /**
+     * fold for text in the shown language: lower case by the display locale's rules (Turkish İ is i), then
+     * accents stripped (NFD without combining marks), so "ninos" finds "Niños". Display matching only.
+     */
+    static String displayFold(String text) {
+        if (text == null) return "";
+        String lower = text.toLowerCase(Fmt.displayLocale());
+        return Normalizer.normalize(lower, Normalizer.Form.NFD).replaceAll("\\p{M}+", "").replaceAll("[\\s\\-_()]+", "");
+    }
+
     /** Models whose name, or whose series' name or description, contains the query; all models for an empty one. */
     static List<String> search(String query) {
         String q = fold(query);
         List<String> out = new ArrayList<>();
         for (Series s : SERIES) for (String m : s.models)
             if (q.isEmpty() || fold(m).contains(q) || fold(s.about).contains(q) || fold(s.name + "series").startsWith(q)) out.add(m);
-        return withShown(q, out);
+        return withShown(query, q, out);
     }
 
     /**
      * search's English matches plus the models of every series whose description, as the current language shows
-     * it, contains the query, in list order. In English the shown description is the English one, so nothing is added.
+     * it, contains the query, in list order. A shown description that differs from the English one is compared
+     * with {@link #displayFold}; in English the shown description is the English one, so nothing is added.
      */
-    private static List<String> withShown(String q, List<String> english) {
+    private static List<String> withShown(String query, String q, List<String> english) {
         if (q.isEmpty()) return english;
+        String shownQuery = displayFold(query);
         List<String> out = new ArrayList<>();
         for (Series s : SERIES) {
-            boolean shown = fold(s.aboutLabel.toString()).contains(q);
+            String label = s.aboutLabel.toString();
+            boolean shown = !label.equals(s.about) && !shownQuery.isEmpty() && displayFold(label).contains(shownQuery);
             for (String m : s.models) if (shown || english.contains(m)) out.add(m);
         }
         return out;

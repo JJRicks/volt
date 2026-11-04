@@ -83,11 +83,11 @@
     <string name="controls_feature_logo_light" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Logo light</string>
     <!-- The light that stays on in daylight on some NAVEE models. -->
     <string name="controls_feature_daytime_light" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Daytime running light</string>
-    <!-- The light pattern setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). -->
+    <!-- The light pattern setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: pattern". -->
     <string name="controls_feature_light_pattern" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s pattern</string>
-    <!-- The colour setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). -->
+    <!-- The colour setting of a light zone: %1$s is the zone (controls_feature_line_lights or controls_feature_star_lights). If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: color". -->
     <string name="controls_feature_light_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">%1$s color</string>
-    <!-- The colour a light zone shows in Boost (a mode name, kept as the scooter shows it): %1$s is the zone. -->
+    <!-- The colour a light zone shows in Boost (a mode name, kept as the scooter shows it): %1$s is the zone. If your language would have to inflect the zone name, write it as a label instead, such as "%1$s: Boost color". -->
     <string name="controls_feature_light_boost_color" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:dnt="Boost">%1$s Boost color</string>
 
     <!-- Control captions (ScooterCommands.Feature.description()): short notes under a control. -->
@@ -262,17 +262,17 @@
     <string name="controls_caution_untested" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">Volt has not tested it on this model.</string>
     <!-- Second part of a caution: the official NAVEE app warns about this change too. -->
     <string name="controls_caution_shows" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental" volt:dnt="Volt">The official app shows a caution for this change. Volt has not tested it on this model.</string>
-    <!-- Asked before turning traction control off. %1$s is a following sentence. -->
+    <!-- Asked before turning traction control off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_traction_control" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off traction control? %1$s</string>
-    <!-- Asked before turning Low Battery Mode off. %1$s is a following sentence. -->
+    <!-- Asked before turning Low Battery Mode off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_low_power" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="experimental">Turn off Low Battery Mode? %1$s</string>
-    <!-- Asked before switching from two motors to one. %1$s is a following sentence. -->
+    <!-- Asked before switching from two motors to one. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_dual_drive" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Switch to single motor? %1$s</string>
-    <!-- Asked before turning regenerative braking off. %1$s is a following sentence. -->
+    <!-- Asked before turning regenerative braking off. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_energy_recovery" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental">Turn off energy recovery? %1$s</string>
-    <!-- Shown before setting a kick-start speed under 3 km/h. %1$s is a following sentence. -->
+    <!-- Shown before setting a kick-start speed under 3 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_start_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Kick-start speed below 3 km/h. %1$s</string>
-    <!-- Shown before setting a top speed over 32 km/h. %1$s is a following sentence. -->
+    <!-- Shown before setting a top speed over 32 km/h. %1$s is the following one or two sentences (controls_caution_asks, controls_caution_shows or controls_caution_untested). -->
     <string name="controls_caution_maximum_speed" volt:screen="Change confirmation" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Above 32 km/h: check the rules where you ride. %1$s</string>
 
     <!-- Experimental controls cautions (ModelRegistry.experimentalCaution): what the change does. -->

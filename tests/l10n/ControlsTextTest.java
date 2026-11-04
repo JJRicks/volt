@@ -23,8 +23,9 @@ import java.util.Set;
  *    caution, the refusals a person can reach (ScooterCommands.Refused, still IllegalArgumentExceptions)
  *    and the drive-mode names come from it, while getMessage(), the labels, modelLine and summary() stay
  *    English. Every controls_option_* entry is the shown form of some table label.
- *  - Search: NaveeModels.search finds a series by its description in the shown language, and still by
- *    its English one.
+ *  - Search: NaveeModels.search finds a series by its description in the shown language (display-locale
+ *    lower case, accents stripped), and still by its English one.
+ *  - DriveModeStep's screen templates (reported mode, Named:) equal the base's inline concatenations.
  */
 public final class ControlsTextTest {
     private static int checks;
@@ -114,6 +115,13 @@ public final class ControlsTextTest {
         for (NaveeModels.Series s : NaveeModels.SERIES) same(s.aboutLabel.toString(), s.about, "series " + s.name);
         for (DriveModeSurvey.Label label : DriveModeSurvey.Label.values()) same(label.label().toString(), label.text, "drive mode " + label);
         for (DriveModeSurvey s : sessions()) same(s.uiSummary().toString(), s.summary(), "uiSummary " + s.summary());
+        // DriveModeStep's two screen templates, against the concatenations the base built inline in refresh().
+        for (int code : new int[]{0, 1, 2, 3, 7, 11, 255, -1, -128, 1000, 12345, Integer.MAX_VALUE, Integer.MIN_VALUE}) {
+            Integer boxed = code;
+            same(T.controlsDriveModeReported(Fmt.integer(boxed)).toString(), "Your scooter reports mode " + boxed, "drive reported " + code);
+        }
+        for (DriveModeSurvey s : sessions()) same(T.controlsDriveModeNamed(s.uiSummary()).toString(), "Named: " + s.summary(), "drive named " + s.summary());
+        for (String odd : new String[]{"%1$s", "%s %n", "100%", "a\\b", "$1", ""}) same(T.controlsDriveModeNamed(odd).toString(), "Named: " + odd, "drive named " + odd);
     }
 
     /** Naming sessions over every order of the four mode names and Not sure, one to five modes. */
@@ -279,6 +287,31 @@ public final class ControlsTextTest {
         check(NaveeModels.search("").size() == NaveeModels.all().size(), "an empty query lists every model");
         T.install(null);
         check(NaveeModels.search("enfant").isEmpty(), "in English the French word finds nothing");
+        // Shown descriptions fold with the display locale's lower case and without accents (plan 4.6).
+        installK("Niños");
+        check(NaveeModels.search("ninos").equals(kids), "an unaccented query finds an accented description: " + NaveeModels.search("ninos"));
+        check(NaveeModels.search("NIÑOS").equals(kids), "an accented capital query finds it too");
+        java.util.Locale phone = java.util.Locale.getDefault();
+        try {
+            java.util.Locale.setDefault(new java.util.Locale("tr", "TR"));
+            installK("Çocuklar İçin");
+            check(NaveeModels.search("için").equals(kids), "a Turkish lower-case query finds İçin: " + NaveeModels.search("için"));
+            check(NaveeModels.search("İÇİN").equals(kids), "a Turkish capital query finds it: " + NaveeModels.search("İÇİN"));
+            check(NaveeModels.search("cocuk").equals(kids), "an unaccented Turkish query finds it");
+        } finally {
+            java.util.Locale.setDefault(phone);
+        }
+        T.install(null);
+        check(NaveeModels.displayFold("Kids").equals(NaveeModels.fold("Kids")), "displayFold agrees with fold on plain English");
+        check(NaveeModels.search("kïds").isEmpty(), "in English an accented query still matches only as fold does");
+    }
+
+    private static void installK(String text) {
+        T.install(new T.Source() {
+            public String string(int id) { return T.key(id).equals("controls_series_k") ? text : EnglishText.INSTANCE.string(id); }
+            public String plural(int id, long quantity) { return EnglishText.INSTANCE.plural(id, quantity); }
+            public String language() { return "en"; }
+        });
     }
 
     private static void same(String actual, String expected, String what) {
