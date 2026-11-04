@@ -264,9 +264,25 @@ public final class FastChargeTaperTest {
     }
 
     /** A tau-11 decay from 8 A, read every 10 s at 0.01 A, whose decay points span 6.5 minutes. */
-    private static Case decaying() {
+    private static Case decaying() { return decaying(11, 39); }
+
+    /** A decay of that tau from 8 A, read every 10 s at 0.01 A for samples 0 to last. */
+    private static Case decaying(double tau, int last) {
         Case c = new Case();
-        for (int i = 0; i <= 39; i++) c.at(Math.round(800 * Math.exp(-(i / 6d) / 11)) / 100d, T0 + MIN + i * 10 * SEC);
+        for (int i = 0; i <= last; i++) c.at(Math.round(800 * Math.exp(-(i / 6d) / tau)) / 100d, T0 + MIN + i * 10 * SEC);
+        return c;
+    }
+
+    /**
+     * decaying(), then the decay stops and the current creeps: a reading 0.01 A lower every
+     * stepMin minutes (each one a new low), read every 10 s up to readMin minutes after the stop.
+     */
+    private static Case creeping(double stepMin, double readMin) {
+        Case c = decaying();
+        double stop = c.amps;
+        long from = c.now;
+        for (long t = from + 10 * SEC; t <= from + (long) (readMin * MIN); t += 10 * SEC)
+            c.at(Math.round((stop - .01 * Math.floor((t - from) / (stepMin * MIN) + 1e-9)) * 100) / 100d, t);
         return c;
     }
 
@@ -275,7 +291,9 @@ public final class FastChargeTaperTest {
      * taper. Each case is pinned at 75% with two matching synthetic past charges, at a 100% and a
      * 95% limit, to the time, sources, label and Charge done by minutes that v7 (f529f43) gives for
      * the same readings; 4da6840 showed 34.7, 34.6 and 20.6 minutes from FAST_REFERENCE instead of
-     * 122.5 from past charges in the first three.
+     * 122.5 from past charges in the first three. Rechecks of a30493a added a slow real taper the
+     * fit clamps (raw tau 28 and 40) and a stopped decay followed by a 0.01 A creep, every 0.5 to 5
+     * minutes, whose new lows kept the old fit recent; both now give v7's answer too.
      */
     private static void plateau() throws Exception {
         Path tmp = Files.createTempDirectory("fast-taper-plateau-");
@@ -296,7 +314,23 @@ public final class FastChargeTaperTest {
             // The same decay read 10 s after its newest low: this charge's own taper takes over.
             Case own = decaying();
             own.now += 10 * SEC;
-
+            // A plateau (a new 0.01 A low every minute for 8 minutes), then 90 s of a tau-11 decay:
+            // its recent points fall fast enough, but over FIT_FULL minutes the fit is still flat.
+            Case flatThenFalling = new Case();
+            for (int k = 0; k <= 8; k++) for (int j = 0; j < 6; j++) flatThenFalling.at(8.00 - .01 * k, T0 + (1 + k) * MIN + j * 10 * SEC);
+            for (int i = 1; i <= 9; i++) flatThenFalling.at(Math.round(792 * Math.exp(-(i / 6d) / 11)) / 100d, T0 + 9 * MIN + (50 + i * 10) * SEC);
+            // Rechecks of a30493a: a slow real taper (raw tau 40, and 28) read 10 s after 7.5 minutes
+            // of it; tau() clamps both at 20, so a30493a showed 45.5 and 43.9 minutes from
+            // FAST_REFERENCE (a tau-40 decay from 6.63 A needs about 91).
+            Case slow = decaying(40, 45), over = decaying(28, 45);
+            slow.now += 10 * SEC; over.now += 10 * SEC;
+            // A stopped tau-11 decay, then a 0.01 A creep: each step is a new low, so the newest
+            // decay point stays recent and a30493a showed 21.9 to 29.1 minutes from FAST_REFERENCE.
+            // Creep every 0.5 to 5 minutes (the reviewer's case is every 2), read at a creep low 2
+            // to 5 minutes after the stop.
+            double[][] creeps = {{2, 2}, {2, 4}, {1, 3}, {1.5, 3}, {3, 3}, {5, 5}, {.5, 3}};
+            Case[] crept = new Case[creeps.length];
+            for (int i = 0; i < creeps.length; i++) crept[i] = creeping(creeps[i][0], creeps[i][1]);
             check(Math.abs(flatStale.taper.tau() - FastChargeTaper.TAU_MINUTES) < 1e-12 && Math.abs(flat.taper.tau() - FastChargeTaper.TAU_MINUTES) < 1e-12,
                     "A flat fit falls back to the reference tau");
             check(Math.abs(stale.taper.tau() - 11) < .05 && Math.abs(own.taper.tau() - 11) < .05, "A stopped decay keeps its old fit");
@@ -306,13 +340,36 @@ public final class FastChargeTaperTest {
             check(!flat.taper.ownTaper(54.0, 7.93, flat.now), "A flat fit is not, however recent");
             check(!stale.taper.ownTaper(54.0, stale.amps, stale.now), "A stopped decay is not, however good its fit");
             check(own.taper.ownTaper(54.0, own.amps, own.now), "A recent, usable decay is");
-
+            check(Double.isNaN(flatThenFalling.taper.fittedTau()) && !flatThenFalling.taper.ownTaper(54.0, flatThenFalling.amps, flatThenFalling.now),
+                    "A decay of 90 s after a plateau is not yet this charge's own taper");
+            check(slow.taper.fittedTau() > 39 && slow.taper.fittedTau() < 41 && over.taper.fittedTau() > 27.5 && over.taper.fittedTau() < 28.5
+                    && slow.taper.tau() == FastChargeTaper.TAU_HIGH && over.taper.tau() == FastChargeTaper.TAU_HIGH,
+                    "Slow real tapers: raw fits of 40 and 28, both clamped at TAU_HIGH");
+            check(slow.taper.tapering(54.0, slow.amps) && !slow.taper.ownTaper(54.0, slow.amps, slow.now)
+                    && !over.taper.ownTaper(54.0, over.amps, over.now), "A taper slower than tau() x (1 + SLOWER) is not this charge's own");
+            for (int i = 0; i < crept.length; i++) {
+                Case c = crept[i];
+                String where = "Creep every " + creeps[i][0] + " min, " + creeps[i][1] + " min after the stop";
+                // The reading now is a creep low, so the newest decay point is recent, and the whole fit still looks like a decay.
+                check(c.taper.tapering(54.0, c.amps) && c.taper.fittedTau() > 11 && c.taper.fittedTau() < 16, where + ": an old fit, kept recent");
+                check(!c.taper.ownTaper(54.0, c.amps, c.now), where + ": its recent points are too slow");
+            }
+            // The hand-back takes up to about two minutes: a minute after the stop, the creep's first low still counts.
+            Case early = creeping(1, 1);
+            check(early.taper.ownTaper(54.0, early.amps, early.now), "A minute after the stop it has not handed back yet");
             Object[][] cases = {
                 // name, case, v7 time to 100%, source, v7 time to 95%
                 {"Codex's plateau", flatStale, 122.5, "PERSONAL", 100.0},
                 {"A flat fit", flat, 122.5, "PERSONAL", 100.0},
                 {"A stopped decay", stale, 122.5, "PERSONAL", 100.0},
+                {"A plateau, then 90 s of decay", flatThenFalling, 122.5, "PERSONAL", 100.0},
+                {"A slow taper, raw tau 40", slow, 122.5, "PERSONAL", 100.0},
+                {"A slow taper, raw tau 28", over, 122.5, "PERSONAL", 100.0},
             };
+            List<Object[]> all = new ArrayList<>(Arrays.asList(cases));
+            for (int i = 0; i < crept.length; i++)
+                all.add(new Object[]{"Creep every " + creeps[i][0] + " min, " + creeps[i][1] + " min after the stop", crept[i], 122.5, "PERSONAL", 100.0});
+            cases = all.toArray(new Object[0][]);
             for (Object[] o : cases) {
                 Case c = (Case) o[1];
                 ChargeSessionStore.Curve curve = history(Files.createTempDirectory(tmp, "history-"), c.amps);
@@ -346,6 +403,17 @@ public final class FastChargeTaperTest {
                     && Objects.equals(lower.planningMinutesToLimit, full.remainingMinutesToFull) && FastChargeTaperReplay.limitSource(lower).equals("PERSONAL")
                     && lower.learnedSessions == 2 && lower.label.equals("From 2 past charges"),
                     "At 95%, past charges' 100 minutes are capped at its own time to 100%");
+
+            // A slow taper within SLOWER of TAU_HIGH (raw tau 24) still takes over, clamped at TAU_HIGH:
+            // 43.0 minutes against a pure exponential's 51.6, inside Charge done by's buffer.
+            Case under = decaying(24, 45);
+            under.now += 10 * SEC;
+            check(under.taper.fittedTau() > 23.5 && under.taper.fittedTau() < 24.5 && under.taper.ownTaper(54.0, under.amps, under.now),
+                    "A raw tau of 24 is this charge's own taper");
+            ChargingEstimate.Result slowOwn = scheduled(75, under.amps, 100, history(Files.createTempDirectory(tmp, "history-"), under.amps), under.taper, under.now);
+            near(43.042, slowOwn.remainingMinutesToFull, .001, "Clamped at TAU_HIGH");
+            check(slowOwn.planningMinutesToLimit.equals(slowOwn.remainingMinutesToFull) && FastChargeTaperReplay.source(slowOwn).equals("FAST_REFERENCE"),
+                    "and shown as the high-speed estimate");
         } finally {
             try (java.util.stream.Stream<Path> walk = Files.walk(tmp)) { walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete()); }
         }
@@ -362,7 +430,7 @@ public final class FastChargeTaperTest {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
         List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
         check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
-        int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, changed = 0;
+        int stock = 0, reference = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0, own = 0, ownFast = 0, changed = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
             String[] base = v7.get(i);
@@ -371,6 +439,7 @@ public final class FastChargeTaperTest {
             same = same && base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned;
             // v8 changes only samples where this charge's own taper is established.
             if (row.ownTaper) own++;
+            if (row.ownTaper && row.sample.charger.equals("HIGH_SPEED")) ownFast++;
             if (!same) {
                 changed++;
                 check(row.ownTaper && row.sample.charger.equals("HIGH_SPEED") && row.source.equals("FAST_REFERENCE") && row.learned == 0,
@@ -396,9 +465,10 @@ public final class FastChargeTaperTest {
             }
         }
         check(stock == 5457 && reference == 343 && recorded == 1028, "Parity covers all standard-charger samples and the reference charge before its own taper");
-        // The recency check (RECENT_MS) clears the flag on 59 samples of standard-charger session 2,
-        // where the branch never applies; every high-speed own-taper sample keeps it.
-        check(own == 1677 && changed == 1110, "Own-taper samples " + own + ", changed from v7 " + changed);
+        // Every high-speed sample that reaches its own taper keeps it (1,197). On standard-charger
+        // samples, where the branch never applies, the recency check (RECENT_MS) clears the flag on
+        // 59 samples of session 2 and the recent-pace check (SLOWER) on 145 of sessions 3 and 8-10.
+        check(ownFast == 1197 && own == 1532 && changed == 1110, "Own-taper samples " + ownFast + " high-speed, " + own + " in all, changed from v7 " + changed);
         // expected-v7.csv replays what the app showed live (journal samples are 10 s apart, the app
         // re-evaluates every frame, so held countdowns and taper fits can start a sample apart).
         check(recordedV7 == 1167 && liveV7 >= 1100 && liveSource >= 1166, "The v7 baseline replay reproduces the app's recorded predictions");
