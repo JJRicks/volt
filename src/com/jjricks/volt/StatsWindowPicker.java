@@ -33,14 +33,14 @@ final class StatsWindowPicker extends LinearLayout {
         selected = Math.max(0, Math.min(labels.length - 1, index));
         // The clock icon names the control; the spoken description still says "time window".
         button.setText(labels[selected] + " ▾");
-        button.setContentDescription("Chart time window: " + labels[selected] + ". Choose time window");
+        button.setContentDescription(T.uiStatsWindowDescription(labels[selected]));
         if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(labels[selected]);
         for (int i = 0; i < choices.size(); i++) style(choices.get(i), i == selected);
     }
     private void style(TextView choice, boolean active) {
         choice.setSelected(active); choice.setTextColor(active ? ui.onAccent : ui.text);
         choice.setBackground(ui.shape(active ? ui.accent : ui.raised, 14, active ? 0 : ui.outline));
-        if (Build.VERSION.SDK_INT >= 30) choice.setStateDescription(active ? "Selected" : "");
+        if (Build.VERSION.SDK_INT >= 30) choice.setStateDescription(active ? T.commonSelected() : "");
     }
     private void open() {
         close(); choices.clear();
@@ -49,11 +49,11 @@ final class StatsWindowPicker extends LinearLayout {
         LinearLayout content = new LinearLayout(ui.context); content.setOrientation(VERTICAL);
         content.setPadding(ui.dp(18), ui.dp(12), ui.dp(18), ui.dp(18));
         LinearLayout heading = new LinearLayout(ui.context); heading.setGravity(Gravity.CENTER_VERTICAL);
-        TextView title = ui.text("Chart window", 20, true);
+        TextView title = ui.text(T.uiStatsWindowTitle(), 20, true);
         if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
         heading.addView(title, new LayoutParams(0, -2, 1));
         TextView dismiss = ui.text("×", 26, false); dismiss.setGravity(Gravity.CENTER); dismiss.setFocusable(true);
-        dismiss.setContentDescription("Close chart window choices"); dismiss.setOnClickListener(v -> opened.dismiss());
+        dismiss.setContentDescription(T.uiStatsWindowClose()); dismiss.setOnClickListener(v -> opened.dismiss());
         heading.addView(dismiss, new LayoutParams(ui.dp(48), ui.dp(48))); content.addView(heading);
         for (int row = 0; row < (labels.length + 1) / 2; row++) {
             LinearLayout line = new LinearLayout(ui.context); line.setBaselineAligned(false);
@@ -65,7 +65,7 @@ final class StatsWindowPicker extends LinearLayout {
                 TextView choice = ui.text(labels[index], 14, true); choice.setGravity(Gravity.CENTER);
                 choice.setMinHeight(ui.dp(48)); choice.setPadding(ui.dp(8), ui.dp(10), ui.dp(8), ui.dp(10));
                 choice.setFocusable(true); choice.setClickable(true); choice.setTag("stats-window-choice:" + index);
-                choice.setContentDescription("Chart time window: " + labels[index]);
+                choice.setContentDescription(T.uiStatsWindowChoice(labels[index]));
                 choice.setAccessibilityDelegate(new View.AccessibilityDelegate() {
                     @Override public void onInitializeAccessibilityNodeInfo(View view, AccessibilityNodeInfo info) {
                         super.onInitializeAccessibilityNodeInfo(view, info);

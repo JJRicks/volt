@@ -42,9 +42,9 @@ final class ModelPicker {
     /** Fills a sheet (its title row already added) whose height is fixed; spinner may be null. */
     void build(LinearLayout sheet, View spinner, String primaryLabel, Runnable action) {
         search = new EditText(activity); ui.styleSearch(search);
-        search.setHint("Search models"); search.setSingleLine(true);
+        search.setHint(T.uiModelSearchHint()); search.setSingleLine(true);
         search.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS); search.setImeOptions(EditorInfo.IME_ACTION_DONE);
-        search.setContentDescription("Search scooter models"); search.setTag("model-search");
+        search.setContentDescription(T.uiModelSearchDescription()); search.setTag("model-search");
         search.addTextChangedListener(new TextWatcher() {
             @Override public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
             @Override public void onTextChanged(CharSequence s, int a, int b, int c) {}
@@ -81,15 +81,15 @@ final class ModelPicker {
         list.removeAllViews(); choiceShown = false;
         String query = search.getText().toString(), typed = NaveeModels.typed(query);
         if (typed.isEmpty()) {
-            LinearLayout card = ui.groupCard(); card.addView(row("Not sure", NaveeModels.Choice.unsure(), "model-unsure"));
+            LinearLayout card = ui.groupCard(); card.addView(row(T.uiModelNotSure(), NaveeModels.Choice.unsure(), "model-unsure"));
             ((LinearLayout.LayoutParams) card.getLayoutParams()).topMargin = ui.dp(12); list.addView(card);
         } else if (NaveeModels.exact(typed) == null && writeIn) {
-            list.addView(ui.sectionLabel("Not listed"));
-            LinearLayout card = ui.groupCard(); card.addView(row("Use “" + typed + "”", NaveeModels.Choice.typedName(typed), "model-typed")); list.addView(card);
+            list.addView(ui.sectionLabel(T.uiModelNotListed()));
+            LinearLayout card = ui.groupCard(); card.addView(row(T.uiModelUseTyped(typed), NaveeModels.Choice.typedName(typed), "model-typed")); list.addView(card);
         }
         List<String> matches = NaveeModels.search(query);
         if (!writeIn && !typed.isEmpty() && matches.isEmpty()) {
-            TextView none = ui.caption("No listed model matches “" + typed + "”. Clear the search to choose one, or Not sure.");
+            TextView none = ui.caption(T.uiModelNoMatch(typed));
             none.setTag("model-none"); none.setPadding(ui.dp(4), ui.dp(16), ui.dp(4), 0); list.addView(none);
         }
         LinearLayout card = null; NaveeModels.Series shown = null;
@@ -97,7 +97,8 @@ final class ModelPicker {
             NaveeModels.Series series = NaveeModels.seriesOf(model);
             if (series != shown) {
                 shown = series;
-                list.addView(ui.sectionLabel(series.name + " · " + series.about));
+                // series.name and series.about are still NaveeModels' English data; B4 gives them label ids.
+                list.addView(ui.sectionLabel(T.uiModelSeries(series.name, series.about)));
                 card = ui.groupCard(); list.addView(card);
             } else ui.divider(card);
             card.addView(row(model, NaveeModels.Choice.listed(model), "model-" + NaveeModels.fold(model)));

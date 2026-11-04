@@ -8,6 +8,7 @@ import android.text.TextDirectionHeuristics;
 import android.util.TypedValue;
 import android.view.View;
 import android.widget.TextView;
+import java.text.BreakIterator;
 
 /** Keeps narrow-card captions readable: whole words, a short label, then a named icon. */
 final class DashboardCaption extends TextView {
@@ -87,10 +88,15 @@ final class DashboardCaption extends TextView {
                 .setTextDirection(TextDirectionHeuristics.FIRSTSTRONG_LTR)
                 .build();
         if (layout.getLineCount() > (oneLine ? 1 : 2)) return false;
+        // A shipped language's own line-break rules decide where a caption may wrap (between words,
+        // or between characters in a language written without spaces). English keeps the check below.
+        BreakIterator lineBreaks = Fmt.legacy() ? null : BreakIterator.getLineInstance(Fmt.displayLocale());
+        if (lineBreaks != null) lineBreaks.setText(text);
         for (int line = 0; line < layout.getLineCount(); line++) {
             if (layout.getLineMax(line) > width) return false;
             int end = layout.getLineEnd(line);
             if (end >= text.length()) continue;
+            if (lineBreaks != null) { if (!lineBreaks.isBoundary(end)) return false; continue; }
             char before = text.charAt(end - 1), after = text.charAt(end);
             if (!Character.isWhitespace(before) && !Character.isWhitespace(after)
                     && before != '-' && before != '/' && before != '\u2010' && before != '\u2013')

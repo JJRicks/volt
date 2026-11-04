@@ -1,0 +1,9 @@
+# B2, the shared UI toolkit (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the toolkit's pure formatting and the lock switch's geometry, pinned before the batch.
+src/com/jjricks/volt/Fmt.java
+src/com/jjricks/volt/Formatted.java
+src/com/jjricks/volt/LockSliderGeometry.java
+tests/l10n/characterization/UiToolkitTextTest.java
+# B2's own suite: right-to-left lock geometry and the English-label fallbacks left for later batches.
+tests/l10n/UiToolkitTest.java
