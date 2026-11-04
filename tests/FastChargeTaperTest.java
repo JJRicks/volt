@@ -158,26 +158,38 @@ public final class FastChargeTaperTest {
     /** Owner charges: high-speed fixes and parity for everything the new step must not touch. */
     private static void replay(Path data) throws Exception {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
-        List<String> expected = new ArrayList<>();
-        for (String line : Files.readAllLines(data.resolve("expected-v6.csv"), StandardCharsets.UTF_8)) if (!line.startsWith("session")) expected.add(line);
-        check(rows.size() == expected.size() && rows.size() == 6646, "Fixture and baseline cover every sample");
-        int stock = 0, recorded = 0;
+        List<String[]> v6 = baseline(data.resolve("expected-v6.csv")), v7 = baseline(data.resolve("expected-v7.csv"));
+        check(rows.size() == 7813 && v7.size() == rows.size() && v6.size() == 6646, "Fixture and baselines cover every sample");
+        int stock = 0, recorded = 0, recordedV7 = 0, liveV7 = 0, liveSource = 0;
         for (int i = 0; i < rows.size(); i++) {
             FastChargeTaperReplay.Row row = rows.get(i);
-            String[] base = expected.get(i).split(",", -1);
+            String[] base = v7.get(i);
             Double before = base[2].isEmpty() ? null : Double.valueOf(base[2]);
+            check(before == null ? row.full == null : row.full != null && Math.abs(before - row.full) <= 1e-6, "v7 estimate, session " + row.sample.session);
+            check(base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned, "v7 source, session " + row.sample.session);
+            if (row.sample.recordedVersion.equals("ut5-fast-taper-v7") && row.sample.recordedFull != null) {
+                recordedV7++;
+                if (before != null && Math.abs(before - row.sample.recordedFull) <= .1) liveV7++;
+                if (base[3].equals(row.sample.recordedSource)) liveSource++;
+            }
+            if (i >= v6.size()) continue;
+            String[] old = v6.get(i);
+            Double older = old[2].isEmpty() ? null : Double.valueOf(old[2]);
             if (row.sample.recordedVersion.equals("ut5-stock-pack-v6") && row.sample.recordedFull != null) {
                 recorded++;
-                check(before != null && Math.abs(before - row.sample.recordedFull) <= .05 && base[3].equals(row.sample.recordedSource),
+                check(older != null && Math.abs(older - row.sample.recordedFull) <= .05 && old[3].equals(row.sample.recordedSource),
                         "The v6 baseline replay reproduces the app's recorded prediction");
             }
             if (row.sample.charger.equals("STOCK") || row.sample.session == 4) {
                 stock++;
-                check(before == null ? row.full == null : row.full != null && Math.abs(before - row.full) <= 1e-6, "Unchanged estimate, session " + row.sample.session);
-                check(base[3].equals(row.source) && Integer.parseInt(base[4]) == row.learned, "Unchanged source, session " + row.sample.session);
+                check(older == null ? row.full == null : row.full != null && Math.abs(older - row.full) <= 1e-6, "Unchanged estimate, session " + row.sample.session);
+                check(old[3].equals(row.source) && Integer.parseInt(old[4]) == row.learned, "Unchanged source, session " + row.sample.session);
             }
         }
         check(stock == 5990 && recorded == 1028, "Parity covers all standard-charger and calibration samples");
+        // expected-v7.csv replays what the app showed live (journal samples are 10 s apart, the app
+        // re-evaluates every frame, so held countdowns and taper fits can start a sample apart).
+        check(recordedV7 == 1167 && liveV7 >= 1100 && liveSource >= 1166, "The v7 baseline replay reproduces the app's recorded predictions");
         double[][] bounds = {{12, 0, 5, 12}, {12, 5, 0, 5}, {12, 10, -1.5, 1.5}, {11, 0, -3, 3}, {11, 5, -3, 3}, {11, 10, -3, 3}, {6, 5, -1, 3}};
         for (double[] b : bounds) {
             FastChargeTaperReplay.Row row = FastChargeTaperReplay.at(rows, (int) b[0], b[1]);
@@ -194,5 +206,11 @@ public final class FastChargeTaperTest {
             }
             check(sum / n <= (session == 11 ? 1.0 : 2.5), "Session " + session + " mean absolute error " + sum / n);
         }
+    }
+
+    private static List<String[]> baseline(Path csv) throws Exception {
+        List<String[]> rows = new ArrayList<>();
+        for (String line : Files.readAllLines(csv, StandardCharsets.UTF_8)) if (!line.startsWith("session")) rows.add(line.split(",", -1));
+        return rows;
     }
 }

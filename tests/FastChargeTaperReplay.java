@@ -9,8 +9,9 @@ import java.util.*;
 /**
  * Replays docs/validation/data/fast-charge-taper-v7/sessions.csv through the production store and
  * estimator. Each charge learns only from the charges before it. Reflection keeps this compiling
- * against the ut5-stock-pack-v6 baseline (b21d3f6) too, which regenerates expected-v6.csv:
- * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv > expected-v6.csv
+ * against earlier releases too, which regenerate their baselines: ut5-stock-pack-v6 (b21d3f6)
+ * expected-v6.csv and ut5-fast-taper-v7 (f529f43) expected-v7.csv, as
+ * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv > expected-vN.csv
  */
 final class FastChargeTaperReplay {
     static final double RATED_AH = 15.3;
