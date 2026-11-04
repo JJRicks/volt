@@ -23,7 +23,7 @@ final class FastChargeTaperReplay {
     }
     static final class Row {
         Sample sample; double minutes; Double actual; Double full; String source; int learned;
-        /** The charge's own taper was established (FastChargeTaper.ownTaper) at this sample's live reading. */
+        /** The charge's own taper was established and recent (FastChargeTaper.ownTaper) at this sample's live reading. */
         boolean ownTaper;
         /** The time to the replayed charge limit, its source and Charge done by's minutes before the buffer. */
         Double limit, planningLimit; String limitSource, label;
@@ -90,7 +90,7 @@ final class FastChargeTaperReplay {
                     ChargeReferenceGate.class, String.class, long.class, long.class, ChargeProgressTracker.Progress.class, taperClass);
             observe = taperClass.getMethod("observe", String.class, Boolean.class, Double.class, Double.class, long.class);
             tracking = taperClass.getMethod("tracking", String.class);
-            try { ownTaper = taperClass.getDeclaredMethod("ownTaper", double.class, double.class); } catch (NoSuchMethodException v7) {}
+            try { ownTaper = taperClass.getDeclaredMethod("ownTaper", double.class, double.class, long.class); } catch (NoSuchMethodException v7) {}
         }
         Path tmp = Files.createTempDirectory("fast-taper-replay-");
         List<Row> rows = new ArrayList<>();
@@ -128,7 +128,7 @@ final class FastChargeTaperReplay {
                         row.sample = s; row.minutes = (t - start) / 60000d; row.actual = complete == null ? null : (complete - t) / 60000d;
                         row.full = r.remainingMinutesToFull; row.source = source(r); row.learned = r.learnedSessions;
                         row.ownTaper = ownTaper != null && base.inputWatts != null && base.inputAmps != null && base.inputAmps > 0
-                                && (Boolean) ownTaper.invoke(taper, base.inputWatts / base.inputAmps, base.inputAmps);
+                                && (Boolean) ownTaper.invoke(taper, base.inputWatts / base.inputAmps, base.inputAmps, t);
                         row.limit = r.remainingMinutesToLimit; row.planningLimit = r.planningMinutesToLimit;
                         row.limitSource = limitSource(r); row.label = r.label;
                         ChargingEstimate.Result learned = curve == null ? null : ChargingEstimate.withObservedCurve(base, live(s.soc, t), curve);

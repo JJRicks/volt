@@ -106,7 +106,13 @@ until its own taper is established, after 57.5 of its 89.1 minutes).
 **What changed.** Once the charge is in the taper (`FastChargeTaper.tapering`) and at least six
 minutes (`FIT_FULL`) of its own decay are watched, which is when its own τ has fully replaced the
 reference 14.1, the time to 100% comes from the voltage/current model with that τ
-(`FastChargeTaper.ownTaper`, the first high-speed step in `ChargingEstimate.forScooter`). It now
+(`FastChargeTaper.ownTaper`, checked in `ChargingEstimate.forScooter` after v7's choice is made). Two
+more conditions keep it to a charge that is still decaying: the fit must be usable (falling, and no
+slower than `FLAT_TAU`, 60 minutes, beyond which `tau()` already falls back to the reference), and the
+newest decay point (a new low by at least 0.005 A) must be no older than `RECENT_MS`, 2 minutes. Decay
+points are only added, and old ones pruned, at a new low, so a plateau or a decay that stops would
+otherwise keep the flag on with an old or flat fit. When either fails, the estimate is v7's for that
+sample, including v7's held personal finish. It now
 replaces the SOC-indexed reference and personal curves too, not only the current rate. Those place the
 charge by the battery percentage, which steps unevenly in the taper; the measured decay does not. The
 result and its label are the existing high-speed estimate (High-speed reference, recorded as
@@ -118,7 +124,23 @@ there the time to the cutoff, and Charge done by, can now be a little shorter th
 about 2 minutes in the replay below); elsewhere they are v7's. It applies only to the high-speed
 charger on the UT5 MAX (product 2538) with a usable live estimate (at least 0.05 A, voltage and power
 present), a valid rated capacity and battery below 100%. Nothing was fitted: the switch-over point is
-the existing `FIT_FULL`, and the model, τ limits and 0.68 A end current are v7's.
+the existing `FIT_FULL`, the usable-fit limit is the existing `FLAT_TAU`, and the model, τ limits and
+0.68 A end current are v7's. `RECENT_MS` comes from the slowest decay still accepted: at `FLAT_TAU`
+near 0.68 A, current falls one 0.01 A reading step about every 0.9 minutes, and 2 minutes is about
+twice that. In the owner's high-speed charges the newest decay point was never older than 0.8 minutes
+while the own taper applied, and every fit was usable (raw τ 10.6-25 minutes).
+
+**Plateau and stopped decay (review of 4da6840).** Without those two conditions, a 10 A ceiling
+followed by 8.00, 7.99, 7.98 and 7.97 A over six minutes and then 20 minutes at 7.97 A kept the own
+taper on with the reference τ: at 75% with two matching synthetic past charges, v7 shows 122.5 minutes
+from past charges and 4da6840 showed 34.7 from the high-speed reference, a Charge done by about 88
+minutes early. A recent but flat fit (a new 0.01 A low every minute) and a real τ-11 decay that
+stopped for 10 minutes did the same (34.6 and 20.6 minutes). `FastChargeTaperTest.plateau` pins all
+three to v7's time, source, label and Charge done by minutes at 100% and 95% limits, and checks that a
+recent, usable decay still takes over. These are constructed cases, not recorded charges. The checks
+change none of the owner's replayed estimates: all 7,813 samples, at 100%, 99%, 95% and 80% limits,
+are identical to 4da6840, so the 1,110 changed samples and every figure below stand. Only the
+own-taper flag itself clears on 59 samples of standard-charger session 2, where it is never used.
 
 **Replay.** `expected-v7.csv` is `FastChargeTaperReplay` compiled against v7 (f529f43) on all 16
 recordings; for sessions 13-15 it reproduces the app's live v7 predictions within 0.1 minutes on 1,107

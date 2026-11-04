@@ -234,20 +234,29 @@ public final class ChargingEstimate {
         Result pack=selectedCharger==ChargeSessionStore.Charger.STOCK?withStockPackModel(prior,baseline,soc,ratedAh,productId,progress):null;
         if (pack!=null) return pack;
         // ut5-fast-taper-v8: in the high-speed taper, once FastChargeTaper.ownTaper (FIT_FULL
-        // minutes of this charge's own decay), voltage and current place the finish instead of the
-        // percentage-indexed reference or past charges. Where the gauge sits in the taper varies
-        // between charges, the decay does not, so the estimate stops switching between those
-        // sources as the gauge steps. Only the time to 100% changes: a lower cutoff keeps v7's
-        // evidence, including a personal time to that cutoff (withPersonalLimit), never longer
-        // than the time to 100%. If the taper model declines (null or no full time), the v7 path
-        // below runs.
+        // minutes of this charge's own decay, a usable fit and a recent new low), voltage and
+        // current place the finish instead of the percentage-indexed reference or past charges.
+        // Where the gauge sits in the taper varies between charges, the decay does not, so the
+        // estimate stops switching between those sources as the gauge steps. Only the time to
+        // 100% changes: a lower cutoff keeps v7's evidence, including a personal time to that
+        // cutoff (withPersonalLimit), never longer than the time to 100%. v7's choice is made
+        // first, so a plateau, a stale decay or a declining taper model returns it unchanged,
+        // with v7's held personal finish kept up to date throughout.
+        Result v7=withHistory(prior,baseline,soc,ratedAh,productId,selectedCharger,personal,gate,taper,nowMs);
         if (fast&&taper!=null&&baseline!=null&&baseline.charging&&baseline.inputAmps!=null&&baseline.inputWatts!=null
                 &&baseline.inputAmps>=MINIMUM_ETA_CURRENT_A&&productId==Ut5MaxFastChargeReference.PRODUCT_ID
                 &&valid(soc)&&valid(ratedAh)&&soc.number<100
-                &&taper.ownTaper(baseline.inputWatts/baseline.inputAmps,baseline.inputAmps)) {
+                &&taper.ownTaper(baseline.inputWatts/baseline.inputAmps,baseline.inputAmps,nowMs)) {
             Result own=withFastTaper(withoutFullReference(prior,baseline),baseline,soc,ratedAh,productId,taper);
             if(own!=null&&own.referenceToFull)return withPersonalLimit(own,baseline,soc,selectedCharger,personal);
         }
+        return v7;
+    }
+
+    /** The v7 evidence choice after the bundled references: past charges, a held personal finish or prior. */
+    private static Result withHistory(Result prior,Result baseline,Value soc,Value ratedAh,int productId,ChargeSessionStore.Charger selectedCharger,
+            ChargeSessionStore.Curve personal,ChargeReferenceGate gate,FastChargeTaper taper,long nowMs) {
+        boolean fast=selectedCharger==ChargeSessionStore.Charger.HIGH_SPEED;
         if (personal==null || personal.charger!=selectedCharger) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
         Result learned=withObservedCurve(baseline,soc,personal);
         if (learned==null || !learned.learnedToFull&&!learned.learnedToLimit) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;

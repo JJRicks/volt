@@ -26,6 +26,7 @@ public final class FastChargeTaperTest {
         tracker();
         composition();
         ownTaper();
+        plateau();
         replay(Paths.get(args[0]));
         System.out.println("FastChargeTaper: " + checks + " checks passed");
     }
@@ -177,12 +178,16 @@ public final class FastChargeTaperTest {
     private static void ownTaper() {
         // Decay points start at sample 3 (0.5 min); FIT_FULL (6 min) of them span samples 3-39.
         FastChargeTaper five = decayed(39), six = decayed(40);
-        check(five.tapering(54.0, 3.3) && !five.ownTaper(54.0, 3.3), "Under FIT_FULL minutes of decay the taper is not yet this charge's own");
-        check(six.ownTaper(54.0, 3.3), "FIT_FULL minutes of decay establish this charge's own taper");
-        check(!six.ownTaper(53.2, 3.3) && !six.ownTaper(54.0, 7.9), "Only while tapering: below CV voltage or near the CV current it is not");
-        check(!decayed(3).ownTaper(54.0, 7.0) && !new FastChargeTaper().ownTaper(54.0, 3.3), "No decay, no own taper");
+        long now = T0 + 6 * MIN + 40 * SEC;
+        check(five.tapering(54.0, 3.3) && !five.ownTaper(54.0, 3.3, now), "Under FIT_FULL minutes of decay the taper is not yet this charge's own");
+        check(six.ownTaper(54.0, 3.3, now), "FIT_FULL minutes of decay establish this charge's own taper");
+        check(!six.ownTaper(53.2, 3.3, now) && !six.ownTaper(54.0, 7.9, now), "Only while tapering: below CV voltage or near the CV current it is not");
+        check(!decayed(3).ownTaper(54.0, 7.0, now) && !new FastChargeTaper().ownTaper(54.0, 3.3, now), "No decay, no own taper");
+        // The newest decay point (sample 39) is at 6.5 minutes: RECENT_MS later still counts, a moment more does not.
+        check(six.ownTaper(54.0, 3.3, T0 + 390 * SEC + FastChargeTaper.RECENT_MS) && !six.ownTaper(54.0, 3.3, T0 + 390 * SEC + FastChargeTaper.RECENT_MS + 1)
+                && !six.ownTaper(54.0, 3.3, T0 + 390 * SEC - 1), "Only while its newest decay point is recent");
         six.observe("a", false, null, null, T0 + 10 * MIN);
-        check(!six.ownTaper(54.0, 3.3), "Charging off forgets it");
+        check(!six.ownTaper(54.0, 3.3, now), "Charging off forgets it");
 
         // 95% at 3 A: the SOC-indexed reference places this sample (about 21 minutes), v7's choice.
         FastChargeTaper own = decayed(61), early = decayed(39);
@@ -231,6 +236,127 @@ public final class FastChargeTaperTest {
                 "Unknown charger keeps the live rate");
     }
 
+    /**
+     * Two identical synthetic completed high-speed charges, 50% to 100% at 54 V and the given amps,
+     * 5 minutes per percent: past charges that match a live reading at that current (not a measured charge).
+     */
+    private static ChargeSessionStore.Curve history(Path dir, double amps) throws Exception {
+        for (int h = 0; h < 2; h++) {
+            List<FastChargeTaperReplay.Sample> samples = new ArrayList<>();
+            for (int i = 0; i <= 250 * 6; i++) {
+                FastChargeTaperReplay.Sample s = new FastChargeTaperReplay.Sample();
+                s.session = h; s.charger = "HIGH_SPEED"; s.stop = "COMPLETE"; s.elapsed = i * 10 * SEC;
+                s.soc = Math.min(100, 50 + Math.floor(i / 30d)); s.volts = 54.0; s.amps = -amps;
+                samples.add(s);
+            }
+            FastChargeTaperReplay.journal(samples, dir.resolve(String.format("00000000-0000-0000-0000-%012d.csv", h)).toFile());
+        }
+        ChargeSessionStore.Curve curve = new ChargeSessionStore(dir.toFile()).snapshot().curves.get(ChargeSessionStore.key("fixture", FAST));
+        check(curve != null && curve.qualifiedSessions == 2, "Two synthetic past charges qualify");
+        return curve;
+    }
+
+    /** One synthetic case: the taper state after its readings, the live current and the time now. */
+    private static final class Case {
+        final FastChargeTaper taper = new FastChargeTaper(); double amps; long now;
+        Case() { taper.observe("a", true, 54.0, -10.0, T0); } // A 10 A ceiling at the charger's voltage limit.
+        void at(double a, long t) { amps = a; now = t; taper.observe("a", true, 54.0, -a, t); }
+    }
+
+    /** A tau-11 decay from 8 A, read every 10 s at 0.01 A, whose decay points span 6.5 minutes. */
+    private static Case decaying() {
+        Case c = new Case();
+        for (int i = 0; i <= 39; i++) c.at(Math.round(800 * Math.exp(-(i / 6d) / 11)) / 100d, T0 + MIN + i * 10 * SEC);
+        return c;
+    }
+
+    /**
+     * Review of 4da6840 (Codex): a flat or stale decay must not take over as this charge's own
+     * taper. Each case is pinned at 75% with two matching synthetic past charges, at a 100% and a
+     * 95% limit, to the time, sources, label and Charge done by minutes that v7 (f529f43) gives for
+     * the same readings; 4da6840 showed 34.7, 34.6 and 20.6 minutes from FAST_REFERENCE instead of
+     * 122.5 from past charges in the first three.
+     */
+    private static void plateau() throws Exception {
+        Path tmp = Files.createTempDirectory("fast-taper-plateau-");
+        try {
+            // Codex's case: four lows over six minutes (8.00 to 7.97 A), then 20 minutes at 7.97 A.
+            // The fit is flat (tau() keeps the reference) and the last new low is 20 minutes old.
+            Case flatStale = new Case();
+            double[] lows = {8.00, 7.99, 7.98, 7.97};
+            for (int i = 0; i < 4; i++) flatStale.at(lows[i], T0 + (1 + 2 * i) * MIN);
+            for (long t = T0 + 7 * MIN + 10 * SEC; t <= T0 + 27 * MIN; t += 10 * SEC) flatStale.at(7.97, t);
+            // A flat fit that is still recent: a new 0.01 A low every minute (tau about 800 minutes).
+            Case flat = new Case();
+            for (int i = 0; i <= 7; i++) flat.at(8.00 - .01 * i, T0 + (1 + i) * MIN);
+            flat.at(7.93, T0 + 8 * MIN + 30 * SEC);
+            // A real tau-11 decay that stopped: no new low for the next 10 minutes, so nothing is pruned.
+            Case stale = decaying();
+            for (long end = stale.now + 10 * MIN, t = stale.now + 10 * SEC; t <= end; t += 10 * SEC) stale.at(stale.amps, t);
+            // The same decay read 10 s after its newest low: this charge's own taper takes over.
+            Case own = decaying();
+            own.now += 10 * SEC;
+
+            check(Math.abs(flatStale.taper.tau() - FastChargeTaper.TAU_MINUTES) < 1e-12 && Math.abs(flat.taper.tau() - FastChargeTaper.TAU_MINUTES) < 1e-12,
+                    "A flat fit falls back to the reference tau");
+            check(Math.abs(stale.taper.tau() - 11) < .05 && Math.abs(own.taper.tau() - 11) < .05, "A stopped decay keeps its old fit");
+            check(flatStale.taper.tapering(54.0, 7.97) && flat.taper.tapering(54.0, 7.93) && stale.taper.tapering(54.0, stale.amps),
+                    "All three are still tapering by the old rule");
+            check(!flatStale.taper.ownTaper(54.0, 7.97, flatStale.now), "Codex's plateau is not this charge's own taper");
+            check(!flat.taper.ownTaper(54.0, 7.93, flat.now), "A flat fit is not, however recent");
+            check(!stale.taper.ownTaper(54.0, stale.amps, stale.now), "A stopped decay is not, however good its fit");
+            check(own.taper.ownTaper(54.0, own.amps, own.now), "A recent, usable decay is");
+
+            Object[][] cases = {
+                // name, case, v7 time to 100%, source, v7 time to 95%
+                {"Codex's plateau", flatStale, 122.5, "PERSONAL", 100.0},
+                {"A flat fit", flat, 122.5, "PERSONAL", 100.0},
+                {"A stopped decay", stale, 122.5, "PERSONAL", 100.0},
+            };
+            for (Object[] o : cases) {
+                Case c = (Case) o[1];
+                ChargeSessionStore.Curve curve = history(Files.createTempDirectory(tmp, "history-"), c.amps);
+                for (double target : new double[]{100, 95}) {
+                    String where = o[0] + " at a " + (int) target + "% limit";
+                    ChargingEstimate.Result r = scheduled(75, c.amps, target, curve, c.taper, c.now);
+                    double limit = target == 100 ? (Double) o[2] : (Double) o[4];
+                    near((Double) o[2], r.remainingMinutesToFull, 1e-9, where + ": v7's time to 100%");
+                    near(limit, r.remainingMinutesToLimit, 1e-9, where + ": v7's time to the limit");
+                    near(limit, r.planningMinutesToLimit, 1e-9, where + ": v7's Charge done by minutes");
+                    check(FastChargeTaperReplay.source(r).equals(o[3]) && FastChargeTaperReplay.limitSource(r).equals(o[3]) && r.learnedSessions == 2
+                            && r.label.equals("From 2 past charges"), where + ": v7's source and label, " + FastChargeTaperReplay.source(r) + " " + r.label);
+                    ChargeSessionStore.Estimate saved = ChargingEstimate.recordingSnapshot(r);
+                    check(saved.fullSource == ChargeSessionStore.Source.PERSONAL && saved.limitSource == ChargeSessionStore.Source.PERSONAL,
+                            where + ": recorded as personal evidence");
+                }
+            }
+
+            // The positive case keeps v8: its own taper replaces the past charges' 122.5 minutes.
+            ChargeSessionStore.Curve curve = history(Files.createTempDirectory(tmp, "history-"), own.amps);
+            double mine = own.taper.tau() * Math.log(own.amps / FastChargeTaper.END_AMPS);
+            ChargingEstimate.Result full = scheduled(75, own.amps, 100, curve, own.taper, own.now);
+            near(20.631, full.remainingMinutesToFull, .001, "Its own taper places 100%");
+            near(mine, full.remainingMinutesToFull, 1e-9, "from this charge's tau");
+            check(full.remainingMinutesToLimit.equals(full.remainingMinutesToFull) && full.planningMinutesToLimit.equals(full.remainingMinutesToFull),
+                    "Charge done by plans with the displayed time");
+            check(FastChargeTaperReplay.source(full).equals("FAST_REFERENCE") && FastChargeTaperReplay.limitSource(full).equals("FAST_REFERENCE")
+                    && full.learnedSessions == 0 && full.label.equals("High-speed reference"), "Shown as the high-speed estimate");
+            ChargingEstimate.Result lower = scheduled(75, own.amps, 95, curve, own.taper, own.now);
+            check(Objects.equals(lower.remainingMinutesToFull, full.remainingMinutesToFull) && Objects.equals(lower.remainingMinutesToLimit, full.remainingMinutesToFull)
+                    && Objects.equals(lower.planningMinutesToLimit, full.remainingMinutesToFull) && FastChargeTaperReplay.limitSource(lower).equals("PERSONAL")
+                    && lower.learnedSessions == 2 && lower.label.equals("From 2 past charges"),
+                    "At 95%, past charges' 100 minutes are capped at its own time to 100%");
+        } finally {
+            try (java.util.stream.Stream<Path> walk = Files.walk(tmp)) { walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete()); }
+        }
+    }
+
+    /** As ScooterService schedules it: high-speed charger, product 2538, the given past charges and taper state. */
+    private static ChargingEstimate.Result scheduled(double soc, double amps, double target, ChargeSessionStore.Curve curve, FastChargeTaper taper, long t) {
+        ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(54.0, t), live(-amps, t), live(soc, t), live(15.3, t), live(target, t));
+        return ChargingEstimate.forScooter(base, live(soc, t), live(15.3, t), 2538, FAST, curve, null, null, t, t, null, taper);
+    }
+
     /** Owner charges: high-speed fixes and parity for everything each step must not touch. */
     private static void replay(Path data) throws Exception {
         List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"));
@@ -270,7 +396,9 @@ public final class FastChargeTaperTest {
             }
         }
         check(stock == 5457 && reference == 343 && recorded == 1028, "Parity covers all standard-charger samples and the reference charge before its own taper");
-        check(own == 1736 && changed == 1110, "Own-taper samples " + own + ", changed from v7 " + changed);
+        // The recency check (RECENT_MS) clears the flag on 59 samples of standard-charger session 2,
+        // where the branch never applies; every high-speed own-taper sample keeps it.
+        check(own == 1677 && changed == 1110, "Own-taper samples " + own + ", changed from v7 " + changed);
         // expected-v7.csv replays what the app showed live (journal samples are 10 s apart, the app
         // re-evaluates every frame, so held countdowns and taper fits can start a sample apart).
         check(recordedV7 == 1167 && liveV7 >= 1100 && liveSource >= 1166, "The v7 baseline replay reproduces the app's recorded predictions");
