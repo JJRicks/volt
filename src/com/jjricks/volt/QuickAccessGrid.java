@@ -149,7 +149,7 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
             }
             cell.setEnabled(!editing);
-            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
+            String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
                     + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
@@ -430,10 +430,16 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles use short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
+    /** Setting tiles show short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.shortLabel().render();
+    }
+    /** A Setting tile is announced by the full name (the label's room does not limit speech), or the two Scooter-page names. */
+    private static String tileSpokenName(QuickAccessActions.Entry entry) {
+        if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
+        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        return entry.label().render();
     }
 }
