@@ -1,0 +1,305 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The connection controller (batch B7): BleController's connection states, notices and control
+  results, and LockTapQueue's reasons for putting the lock switch back. The English must stay exactly
+  what the source said before the batch (G1, G2).
+
+  The English stays the id where it is data: BleController.message(), its shared constants, the
+  control-result tokens and every connection-log line keep English, so reports, the connection log
+  and the screens that compare them never change with the language. These strings are what the
+  screens show instead. They appear as a short notice (a toast or a line under the connection
+  state), so keep them short; most are one plain sentence.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Connection states, shown in the connection dialog, onboarding and the notification ===== -->
+
+    <!-- The connection state before anything happened. -->
+    <string name="ble_status_not_connected" volt:screen="Connection state" volt:purpose="status">Not connected</string>
+    <!-- Volt is scanning for scooters. -->
+    <string name="ble_status_searching" volt:screen="Connection state" volt:purpose="status">Searching…</string>
+    <!-- Volt is opening the Bluetooth connection to the scooter. -->
+    <string name="ble_status_connecting" volt:screen="Connection state" volt:purpose="status">Connecting…</string>
+    <!-- Volt is checking the owner identity with the scooter (its handshake). -->
+    <string name="ble_status_checking_owner" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="owner-key">Checking owner…</string>
+    <!-- The scooter is connected and authenticated. -->
+    <string name="ble_status_connected" volt:screen="Connection state" volt:purpose="status">Connected</string>
+    <!-- The rider disconnected on purpose. -->
+    <string name="ble_status_disconnected" volt:screen="Connection state" volt:purpose="status">Disconnected</string>
+    <!-- Volt stopped the connection because the app went to the background. -->
+    <string name="ble_status_paused" volt:screen="Connection state" volt:purpose="status">Paused in background</string>
+    <!-- The read-only compatibility check is running. -->
+    <string name="ble_status_checking_compatibility" volt:screen="Connection state" volt:purpose="status">Checking compatibility…</string>
+    <!-- Volt is setting the scooter's clock to this phone's time. -->
+    <string name="ble_status_setting_clock" volt:screen="Connection state" volt:purpose="status">Setting the scooter’s clock from this phone…</string>
+    <!-- An Experimental controls try reads the control's current value first. %1$s is the control's
+         name in lower case, in English until the controls batch gives control names their translation
+         (for example "headlight"); a language that cannot use it mid-sentence may write
+         "%1$s: reading…". -->
+    <string name="ble_reading" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="experimental">Reading %1$s…</string>
+    <!-- A setting change is being sent to the scooter. %1$s is the control's name in lower case, in
+         English until the controls batch gives control names their translation (for example
+         "cruise control"); a language that cannot use it mid-sentence may write "%1$s: applying…". -->
+    <string name="ble_applying" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="lock,pin">Applying %1$s…</string>
+
+    <!-- ===== Shared connection ids (kept as English ids in BleController; shown through these) ===== -->
+
+    <!-- Android's Nearby devices permission is missing, so Volt cannot use Bluetooth. -->
+    <string name="ble_nearby_needed" volt:screen="Connection state" volt:purpose="status">Nearby devices permission needed</string>
+    <!-- The phone's Bluetooth is turned off. -->
+    <string name="ble_bluetooth_off" volt:screen="Connection state" volt:purpose="status">Bluetooth off</string>
+    <!-- A scan ended without finding any scooter. -->
+    <string name="ble_nothing_found" volt:screen="Connection state" volt:purpose="error">No scooter found</string>
+    <!-- The scooter refused the owner identity Volt holds for it. -->
+    <string name="ble_owner_rejected" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">Owner identity rejected</string>
+    <!-- Banner on Home: the connected scooter is a model where Volt shows only some controls. -->
+    <string name="ble_limited_model" volt:screen="Home banner" volt:purpose="status">Limited controls on this model</string>
+    <!-- The charging start time chosen is not allowed on this model: it must be a whole hour (such as
+         22:00) at most 48 hours ahead. -->
+    <string name="ble_whole_hour" volt:screen="Charge schedule" volt:purpose="error"
+        volt:safety="charge">Choose a whole hour within 48 hours</string>
+
+    <!-- ===== Why a connection failed or dropped ===== -->
+
+    <!-- The Bluetooth connection could not be opened. -->
+    <string name="ble_failed_connection" volt:screen="Connection state" volt:purpose="error">Connection failed</string>
+    <!-- The scooter did not finish connecting in time. -->
+    <string name="ble_failed_timed_out" volt:screen="Connection state" volt:purpose="error">Timed out</string>
+    <!-- An open connection dropped. -->
+    <string name="ble_failed_connection_lost" volt:screen="Connection state" volt:purpose="error">Connection lost</string>
+    <!-- The device does not offer the Bluetooth service a NAVEE scooter has. -->
+    <string name="ble_failed_unsupported_scooter" volt:screen="Connection state" volt:purpose="error">Unsupported scooter</string>
+    <!-- A command could not be sent to the scooter over Bluetooth. -->
+    <string name="ble_failed_send" volt:screen="Connection state" volt:purpose="error">Send failed</string>
+    <!-- The owner handshake with the scooter failed. -->
+    <string name="ble_failed_owner_check" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">Owner check failed</string>
+    <!-- The scooter's firmware answered in a way Volt does not support. -->
+    <string name="ble_failed_unsupported_firmware" volt:screen="Connection state" volt:purpose="error">Unsupported firmware</string>
+    <!-- The scooter reported a serial number Volt does not recognise as a scooter's. -->
+    <string name="ble_failed_unrecognised" volt:screen="Connection state" volt:purpose="error">Unrecognised scooter</string>
+    <!-- The scooter that answered is not the one saved in this profile. -->
+    <string name="ble_failed_not_saved" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="owner-key">Not the saved scooter</string>
+    <!-- The scooter that answered is another scooter already saved in Volt. %1$s is that saved
+         scooter's name (the owner's own name for it). "My scooters" is the section of the More screen
+         that lists saved scooters: use that section title's translation. -->
+    <string name="ble_failed_other_saved" volt:screen="Connection state" volt:purpose="error">This is %1$s. Select it in My scooters, or scan for your new scooter.</string>
+    <!-- The scooter stopped answering. -->
+    <string name="ble_failed_signal_lost" volt:screen="Connection state" volt:purpose="error">Signal lost</string>
+    <!-- A setting change got no confirmation from the scooter in time; the connection is then
+         restarted. The change may or may not have been applied. -->
+    <string name="ble_failed_not_confirmed" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="lock">Change not confirmed</string>
+
+    <!-- The forms of a dropped-connection notice (ProximityFollowUp.dropNotice). %1$s is always one of
+         the reasons above (ble_failed_*, ble_bluetooth_off, ble_owner_rejected); the part after "·"
+         says what happens next. -->
+    <!-- Volt reconnects by itself. -->
+    <string name="ble_drop_retrying" volt:screen="Connection state" volt:purpose="error">%1$s · retrying</string>
+    <!-- A change was in progress when the connection dropped, and Volt gives up on it. It may already
+         have been sent, and the scooter may have applied it (this includes a lock or unlock): never say
+         it was not sent, undone or reversed. -->
+    <string name="ble_drop_change_cancelled" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="lock">%1$s · change cancelled</string>
+    <!-- A proximity unlock change was sent before the drop and could not be checked: the scooter may
+         have applied it. -->
+    <string name="ble_drop_not_confirmed" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="lock">%1$s · change not confirmed</string>
+    <!-- A proximity unlock change was sent before the drop; Volt reconnects and then reads whether the
+         scooter took it. -->
+    <string name="ble_drop_reconnecting" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="lock">%1$s · reconnecting to confirm</string>
+    <!-- Some scooters restart their Bluetooth after a proximity unlock change; Volt reconnects and then
+         reads whether the scooter took it. -->
+    <string name="ble_drop_native" volt:screen="Connection state" volt:purpose="error"
+        volt:safety="lock">Scooter may have restarted Bluetooth · reconnecting to confirm</string>
+
+    <!-- ===== Notices: why a tap did nothing, or what happened ===== -->
+
+    <!-- Developer simulator switched on or off. -->
+    <string name="ble_simulation_on" volt:screen="Developer settings" volt:purpose="notice">Simulation on</string>
+    <string name="ble_simulation_off" volt:screen="Developer settings" volt:purpose="notice">Simulation off</string>
+    <!-- The developer simulator's scooter is connected. -->
+    <string name="ble_simulated_connection" volt:screen="Connection state" volt:purpose="status">Simulated connection</string>
+    <!-- The developer simulator's scooter was disconnected. -->
+    <string name="ble_simulation_disconnected" volt:screen="Connection state" volt:purpose="status">Simulation disconnected</string>
+    <!-- The developer simulator is on but its scooter is not connected. -->
+    <string name="ble_connect_simulated_first" volt:screen="Developer simulator" volt:purpose="reason">Connect the simulated scooter first.</string>
+
+    <!-- A Bluetooth scan could not run. -->
+    <string name="ble_scan_failed" volt:screen="Connection state" volt:purpose="error">Scan failed</string>
+    <!-- A scan found scooters; the rider picks one from the list. -->
+    <string name="ble_choose_scooter" volt:screen="Add scooter" volt:purpose="instruction">Choose your scooter.</string>
+    <!-- The phone's Bluetooth is turning on and is not usable yet. -->
+    <string name="ble_bluetooth_starting" volt:screen="Connection state" volt:purpose="error">Bluetooth is still starting. Try again.</string>
+    <!-- A scan was asked for while a setting change is still in progress. -->
+    <string name="ble_busy" volt:screen="Connection state" volt:purpose="reason">Busy. Try shortly.</string>
+    <!-- Identify (capturing the scooter's advertised model ID) succeeded or failed. -->
+    <string name="ble_model_id_captured" volt:screen="Home banner and compatibility" volt:purpose="notice">Model ID captured</string>
+    <string name="ble_model_id_not_captured" volt:screen="Home banner and compatibility" volt:purpose="notice">Model ID not captured</string>
+
+    <!-- A ride (or charge) recording is running, which this action would disturb. -->
+    <string name="ble_stop_recording_first" volt:screen="Compatibility" volt:purpose="reason"
+        volt:safety="ride">Stop recording first</string>
+    <!-- Another setting change is still in progress. Same meaning as common_wait_current_change, which
+         has no full stop; this one keeps its full stop. -->
+    <string name="ble_wait_current_change" volt:screen="Scooter controls" volt:purpose="reason">Wait for the current change to finish.</string>
+    <!-- The read-only compatibility check is running; stop it before this action. -->
+    <string name="ble_stop_check_first" volt:screen="Compatibility" volt:purpose="reason">Stop the compatibility check first</string>
+    <!-- The action needs a connected scooter. -->
+    <string name="ble_connect_first" volt:screen="Scooter controls" volt:purpose="reason">Connect first</string>
+    <!-- Unlocking needs a fresh connection: the lock change was refused and not sent. -->
+    <string name="ble_wait_fresh_connection" volt:screen="Home lock" volt:purpose="reason"
+        volt:safety="lock">Wait for a fresh scooter connection.</string>
+    <!-- The scooter is reporting a warning, so the lock change was refused and not sent. %1$d is the
+         scooter's warning code number. -->
+    <string name="ble_resolve_warning" volt:screen="Home lock" volt:purpose="reason"
+        volt:safety="lock">Resolve scooter warning %1$d before locking.</string>
+    <!-- The scooter is moving (or has not reported that it is still), so the change was refused and not
+         sent. Nothing waits or retries: the rider stops the scooter and tries again. -->
+    <string name="ble_stop_scooter_first" volt:screen="Scooter controls" volt:purpose="reason"
+        volt:safety="ride,lock">Stop the scooter first</string>
+    <!-- The control is not available at the moment (for example, the scooter has not reported it). -->
+    <string name="ble_not_available_now" volt:screen="Scooter controls" volt:purpose="reason">Not available now</string>
+    <!-- The value is not one the official app allows for this control. -->
+    <string name="ble_outside_domain" volt:screen="Scooter controls" volt:purpose="reason">Value is outside the OEM feature domain</string>
+    <!-- The control already has the value asked for, so nothing was sent. %1$s is the control's name,
+         in English until the controls batch gives control names their translation. A language whose
+         participle would have to agree with the name may write "%1$s: already set." -->
+    <string name="ble_already_set" volt:screen="Scooter controls" volt:purpose="notice"
+        volt:safety="lock">%1$s is already set.</string>
+    <!-- The scooter refused a setting change. -->
+    <string name="ble_change_rejected" volt:screen="Scooter controls" volt:purpose="error"
+        volt:safety="lock">Change rejected</string>
+    <!-- A setting changed while the change waited to be sent, so it was not sent. -->
+    <string name="ble_setting_changed_waiting" volt:screen="Scooter controls" volt:purpose="error">Setting changed while waiting. Try again.</string>
+
+    <!-- Confirmations, read back from the scooter after a change. -->
+    <!-- The PIN settings now read back as asked. -->
+    <string name="ble_pin_confirmed" volt:screen="Handlebar PIN" volt:purpose="confirmation"
+        volt:safety="pin">PIN settings confirmed.</string>
+    <!-- The charging start time now reads back as asked. -->
+    <string name="ble_charge_start_confirmed" volt:screen="Charge schedule" volt:purpose="confirmation"
+        volt:safety="charge">Charging start time confirmed.</string>
+    <!-- A light setting reads back as asked (Volt cannot see the light itself). %1$s is the control's
+         name, in English until the controls batch gives control names their translation. -->
+    <string name="ble_setting_confirmed" volt:screen="Scooter controls" volt:purpose="confirmation">%1$s setting confirmed.</string>
+    <!-- A control reads back as asked. %1$s is the control's name, in English until the controls batch
+         gives control names their translation. A language whose participle would have to agree with the
+         name may write "%1$s: confirmed." -->
+    <string name="ble_label_confirmed" volt:screen="Scooter controls" volt:purpose="confirmation"
+        volt:safety="lock">%1$s confirmed.</string>
+    <!-- The clock was sent; this scooter cannot read it back, so it is not verified. -->
+    <string name="ble_clock_sent" volt:screen="Scooter controls" volt:purpose="confirmation">Clock sent (unverified)</string>
+
+    <!-- ===== Handlebar PIN and proximity unlock ===== -->
+
+    <!-- Pairing for proximity unlock needs a fresh PIN status first; Volt just asked the scooter. -->
+    <string name="ble_pair_read_pin" volt:screen="Proximity unlock" volt:purpose="instruction"
+        volt:safety="pin">Read PIN status, then pair this phone.</string>
+    <!-- Proximity unlock needs the handlebar (dashboard) PIN set up and enabled before pairing. -->
+    <string name="ble_pair_needs_pin" volt:screen="Proximity unlock" volt:purpose="reason"
+        volt:safety="pin">Configure and enable the dashboard PIN before pairing for proximity unlock.</string>
+    <string name="ble_pair_already" volt:screen="Proximity unlock" volt:purpose="notice">This phone is already paired with your scooter.</string>
+    <!-- Android shows a pairing request; the rider accepts it. -->
+    <string name="ble_pair_approve" volt:screen="Proximity unlock" volt:purpose="instruction">Approve the Bluetooth pairing request on your phone.</string>
+    <string name="ble_pair_not_started" volt:screen="Proximity unlock" volt:purpose="error">Bluetooth pairing could not start. Try again.</string>
+    <string name="ble_pair_unavailable" volt:screen="Proximity unlock" volt:purpose="error">Bluetooth pairing is unavailable.</string>
+    <!-- The PIN status was asked for and did not come back; "Read PIN status" is the button's name. -->
+    <string name="ble_pin_status_missing" volt:screen="Handlebar PIN" volt:purpose="error"
+        volt:safety="pin">PIN status did not arrive. Tap Read PIN status to try again.</string>
+    <string name="ble_pin_state_unavailable" volt:screen="Handlebar PIN" volt:purpose="error"
+        volt:safety="pin">PIN state is unavailable on this firmware.</string>
+    <!-- Only the scooter's owner profile may change PIN settings. -->
+    <string name="ble_pin_owner_only" volt:screen="Handlebar PIN" volt:purpose="reason"
+        volt:safety="pin,owner-key">PIN settings require the owner profile.</string>
+    <!-- Proximity unlock needs this phone bonded (paired) with the scooter; the change was not sent. -->
+    <string name="ble_needs_bond" volt:screen="Proximity unlock" volt:purpose="reason"
+        volt:safety="lock">Bond this phone before enabling proximity unlock</string>
+    <!-- Proximity unlock needs the handlebar PIN set up and enabled first; the change was not sent. -->
+    <string name="ble_needs_pin" volt:screen="Proximity unlock" volt:purpose="reason"
+        volt:safety="lock,pin">Enable a configured handlebar PIN before proximity unlock</string>
+    <!-- Turning proximity unlock on needs a fresh PIN state; Volt just asked the scooter. -->
+    <string name="ble_proximity_read_pin" volt:screen="Proximity unlock" volt:purpose="instruction"
+        volt:safety="lock,pin">Read the PIN state, then apply proximity unlock.</string>
+    <string name="ble_pin_connect_owner" volt:screen="Handlebar PIN" volt:purpose="reason"
+        volt:safety="pin,owner-key">Connect as the scooter owner to read PIN settings.</string>
+    <!-- The PIN is proximity unlock's fallback, so it cannot be disabled while proximity unlock is on. -->
+    <string name="ble_pin_proximity_first" volt:screen="Handlebar PIN" volt:purpose="reason"
+        volt:safety="lock,pin">Turn off proximity unlock before disabling its fallback PIN.</string>
+    <string name="ble_pin_read_first" volt:screen="Handlebar PIN" volt:purpose="instruction"
+        volt:safety="pin">Read the current PIN state first.</string>
+
+    <!-- ===== Compatibility check, guided tests and Experimental controls tries ===== -->
+
+    <string name="ble_finish_guided_test" volt:screen="Compatibility" volt:purpose="reason">Finish the guided test first</string>
+    <string name="ble_check_stopped" volt:screen="Compatibility" volt:purpose="notice">Compatibility check stopped</string>
+    <string name="ble_check_finished" volt:screen="Compatibility" volt:purpose="notice">Compatibility check finished</string>
+    <!-- An Experimental controls try is still running. -->
+    <string name="ble_finish_try" volt:screen="Experimental controls" volt:purpose="reason"
+        volt:safety="experimental">Finish the current try first</string>
+    <!-- The phone's record of guided tests and tries cannot be read or written. -->
+    <string name="ble_test_records_unavailable" volt:screen="Experimental controls" volt:purpose="error"
+        volt:safety="experimental">Test records are unavailable</string>
+    <!-- An earlier try was left unfinished; the owner reviews it before a new one. -->
+    <string name="ble_review_try" volt:screen="Experimental controls" volt:purpose="reason"
+        volt:safety="experimental">Review the unfinished try first</string>
+    <!-- "Set back" (return a kept try to its earlier value) has nothing to return to. -->
+    <string name="ble_nothing_to_set_back" volt:screen="Experimental controls" volt:purpose="notice"
+        volt:safety="experimental">Nothing to set back</string>
+    <string name="ble_set_back_failed" volt:screen="Experimental controls" volt:purpose="error"
+        volt:safety="experimental">Couldn\'t set it back. Nothing was changed.</string>
+    <string name="ble_finish_test" volt:screen="Compatibility" volt:purpose="reason"
+        volt:safety="experimental">Finish the current test first</string>
+    <string name="ble_test_not_found" volt:screen="Compatibility" volt:purpose="error">Test not found</string>
+    <!-- Writing a guided test's earlier value back could not start. -->
+    <string name="ble_restore_failed" volt:screen="Compatibility" volt:purpose="error"
+        volt:safety="experimental">Couldn\'t start the restore. Nothing was changed.</string>
+
+    <!-- ===== A control's latest result (Command evidence, and the chips on control rows) ===== -->
+
+    <!-- The scooter read back the value asked for. -->
+    <string name="ble_result_confirmed" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Confirmed</string>
+    <!-- A light setting read back as asked; Volt cannot measure the light itself. -->
+    <string name="ble_result_setting_confirmed" volt:screen="Command evidence" volt:purpose="result">Setting confirmed by readback; light output not measured</string>
+    <!-- The scooter accepted the clock; it cannot report its clock back. -->
+    <string name="ble_result_clock_accepted" volt:screen="Command evidence" volt:purpose="result">Accepted; no clock readback available</string>
+    <!-- The scooter accepted the change, but its firmware does not report this setting, so Volt cannot
+         check it. -->
+    <string name="ble_result_accepted_unreadable" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Accepted; state not exposed by firmware</string>
+    <!-- No confirmation came in time; the change may or may not have been applied. -->
+    <string name="ble_result_not_confirmed" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Change not confirmed</string>
+    <!-- The scooter refused the change. %1$s is the scooter's error code number, as it sent it. -->
+    <string name="ble_result_rejected" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Rejected (%1$s)</string>
+    <!-- The change was dropped before it was sent to the scooter. -->
+    <string name="ble_result_cancelled" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Cancelled before sending</string>
+    <!-- The change was a guided test's write. -->
+    <string name="ble_result_guided_test" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="experimental">Guided test</string>
+
+    <!-- ===== Lock switch on Home: why a lock tap was put back (LockTapQueue) ===== -->
+
+    <!-- The connection dropped before the lock state changed; the switch goes back to the scooter's
+         last confirmed state. -->
+    <string name="ble_lock_connection_lost" volt:screen="Home lock" volt:purpose="error"
+        volt:safety="lock">Connection lost before the lock changed</string>
+    <!-- The lock change was sent but the scooter did not confirm it; the switch goes back. The scooter
+         may or may not have changed: never say it did not change. -->
+    <string name="ble_lock_not_confirmed" volt:screen="Home lock" volt:purpose="error"
+        volt:safety="lock">The scooter didn\'t confirm the lock change</string>
+    <!-- The tap waited a few seconds for the scooter to accept writes and expired without sending
+         anything; the switch goes back. -->
+    <string name="ble_lock_not_ready" volt:screen="Home lock" volt:purpose="error"
+        volt:safety="lock">The scooter wasn\'t ready to change the lock; try again</string>
+</resources>
