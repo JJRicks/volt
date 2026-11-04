@@ -83,7 +83,7 @@ public final class RouteMapView extends View {
         setMinimumHeight(ui.dp(290));
         setFocusable(true);
         setClickable(true);
-        setContentDescription("Ride route map");
+        setContentDescription(T.mapsRouteDescription());
     }
 
     /** Selection exists only while the user is inspecting the route. */
@@ -279,8 +279,8 @@ public final class RouteMapView extends View {
         }
         paint.setPathEffect(null);
         if (!points.isEmpty()) {
-            marker(canvas, points.get(0), "S", true);
-            marker(canvas, points.get(points.size() - 1), "E", false);
+            marker(canvas, points.get(0), T.mapsRouteMarkerStart(), true);
+            marker(canvas, points.get(points.size() - 1), T.mapsRouteMarkerEnd(), false);
             if (selected >= 0) {
                 PhoneRideStore.Point chosen = points.get(selected);
                 paint.setStyle(Paint.Style.FILL);
@@ -298,7 +298,7 @@ public final class RouteMapView extends View {
             paint.setTextAlign(Paint.Align.CENTER);
             paint.setTypeface(ui.regular());
             paint.setTextSize(ui.sp(14));
-            canvas.drawText("No GPS route recorded", getWidth() / 2f, getHeight() / 2f, paint);
+            canvas.drawText(T.mapsRouteNoGps(), getWidth() / 2f, getHeight() / 2f, paint);
         }
         // Scale chip, top-left: the bottom-left corner belongs to the attribution chip.
         double meters =
@@ -369,24 +369,24 @@ public final class RouteMapView extends View {
             // Name the source the route colour uses; the other sensor stays as labelled context.
             boolean scooter = RouteSpeedScale.SCOOTER.equals(speedScale.source);
             Double chosen = speedScale.kmh(index);
-            String name = scooter ? "scooter" : "GPS";
-            primary = speedScale.source == null ? "Speed not measured" : chosen == null ? (scooter ? "No scooter speed" : "No GPS speed")
-                    : RouteSpeedScale.label(chosen, units()) + " · " + name;
+            String name = scooter ? T.unitsRouteSourceScooter() : T.unitsRouteSourceGps();
+            primary = speedScale.source == null ? T.mapsRouteSpeedNotMeasured() : chosen == null ? (scooter ? T.mapsRouteNoScooterSpeed() : T.mapsRouteNoGpsSpeed())
+                    : T.mapsRouteSpeedSource(RouteSpeedScale.label(chosen, units()), name);
             if (power != null) rest.add(power);
-            if (scooter && speed != null) rest.add("GPS " + speed);
-            else if (!scooter && p.scooterSpeedKmh != null) rest.add("Scooter " + RouteSpeedScale.label(p.scooterSpeedKmh, units()));
+            if (scooter && speed != null) rest.add(T.mapsRouteGpsSpeed(speed));
+            else if (!scooter && p.scooterSpeedKmh != null) rest.add(T.mapsRouteScooterSpeed(RouteSpeedScale.label(p.scooterSpeedKmh, units())));
             speed = null;
         } else if ("grade".equals(metric)) {
-            primary = grade == null ? "Grade not measured" : grade;
+            primary = grade == null ? T.mapsRouteGradeNotMeasured() : grade;
             if (power != null) rest.add(power);
         } else if ("elevation".equals(metric)) {
-            primary = p.relativeAltitudeM == null ? "Elevation not measured" : String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1));
+            primary = p.relativeAltitudeM == null ? T.mapsRouteElevationNotMeasured() : String.format(Locale.US, imperial() ? "Elevation %+.0f ft" : "Elevation %+.0f m", p.relativeAltitudeM * (imperial() ? 3.280839895 : 1));
             if (power != null) rest.add(power);
         } else if ("accel".equals(metric)) {
-            primary = accel == null ? "GPS accel not measured" : accel;
+            primary = accel == null ? T.mapsRouteAccelNotMeasured() : accel;
             if (power != null) rest.add(power);
         } else {
-            primary = power == null ? "Power not measured" : power;
+            primary = power == null ? T.mapsRoutePowerNotMeasured() : power;
             if (grade != null) rest.add(grade);
         }
         if (speed != null) rest.add(speed);
@@ -450,8 +450,8 @@ public final class RouteMapView extends View {
     private static String power(Double watts) {
         if (watts == null) return null;
         return Math.abs(watts) >= 1000
-                ? String.format(Locale.US, "%.2f kW", watts / 1000)
-                : String.format(Locale.US, "%.0f W", watts);
+                ? T.fmtQuantity(Fmt.decimal(Locale.US, watts / 1000, 2), T.mapsUnitKilowatt())
+                : T.fmtQuantity(Fmt.decimal(Locale.US, watts, 0), T.unitsWatt());
     }
 
     private static String grade(Double percent) {

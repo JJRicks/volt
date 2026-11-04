@@ -27,3 +27,21 @@ src/com/jjricks/volt/MapTiles.java:116	["Map tiles unavailable (HTTP ", {"hole":
 src/com/jjricks/volt/MapTiles.java:120	["Map provider returned an invalid response"]	maps_tiles_invalid_response	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
 src/com/jjricks/volt/MapTiles.java:204	["Map tiles unavailable · check connection"]	maps_tiles_offline	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
 src/com/jjricks/volt/MapTiles.java:207	["Map tiles unavailable"]	maps_tiles_unavailable	exact	pause() now takes the reason as a Msg: status keeps its English (saved in network.meta as before, with a new reason id beside it) and status() shows the text in the current language
+src/com/jjricks/volt/RouteMapView.java:86	["Ride route map"]	maps_route_description	exact	
+src/com/jjricks/volt/RouteMapView.java:282	["S"]	maps_route_marker_start	exact	one glyph in the start marker; translators may keep S
+src/com/jjricks/volt/RouteMapView.java:283	["E"]	maps_route_marker_end	exact	one glyph in the end marker; translators may keep E
+src/com/jjricks/volt/RouteMapView.java:301	["No GPS route recorded"]	maps_route_no_gps	exact	
+src/com/jjricks/volt/RouteMapView.java:372	["scooter"]	units_route_source_scooter	exact	the speed source's display label; RouteSpeedScale.SCOOTER stays the id compared above
+src/com/jjricks/volt/RouteMapView.java:372	["GPS"]	units_route_source_gps	exact	the speed source's display label; RouteSpeedScale.GPS stays the id
+src/com/jjricks/volt/RouteMapView.java:373	["Speed not measured"]	maps_route_speed_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:373	["No scooter speed"]	maps_route_no_scooter_speed	exact	
+src/com/jjricks/volt/RouteMapView.java:373	["No GPS speed"]	maps_route_no_gps_speed	exact	
+src/com/jjricks/volt/RouteMapView.java:374	[{"hole": "RouteSpeedScale.label(chosen, units())", "arg": 1, "type": "s"}, " · ", {"hole": "name", "arg": 2, "type": "s"}]	maps_route_speed_source	template	name is the source label from units_route_source_scooter or units_route_source_gps (rows at line 372)
+src/com/jjricks/volt/RouteMapView.java:376	["GPS ", {"hole": "speed", "arg": 1, "type": "s"}]	maps_route_gps_speed	template	
+src/com/jjricks/volt/RouteMapView.java:377	["Scooter ", {"hole": "RouteSpeedScale.label(p.scooterSpeedKmh, units())", "arg": 1, "type": "s"}]	maps_route_scooter_speed	template	
+src/com/jjricks/volt/RouteMapView.java:380	["Grade not measured"]	maps_route_grade_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:383	["Elevation not measured"]	maps_route_elevation_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:386	["GPS accel not measured"]	maps_route_accel_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:389	["Power not measured"]	maps_route_power_not_measured	exact	
+src/com/jjricks/volt/RouteMapView.java:453	[{"spec": "%.2f", "arg": 1, "value": "watts / 1000", "as": "Fmt.decimal(Locale.US, watts / 1000, 2)"}, " ", {"text": "kW", "key": "maps_unit_kilowatt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteMapView.java:454	[{"spec": "%.0f", "arg": 1, "value": "watts", "as": "Fmt.decimal(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
