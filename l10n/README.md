@@ -500,6 +500,20 @@ runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and
 `ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
 changes in a batch) and review are what keep a batch from weakening them.
 
+**G2.** `LedgerTest` renders every `exact`, `template` and `plural` row through `EnglishText` with
+sentinel arguments and compares the result with the base expression evaluated with the same
+sentinels. A plural is rendered at every quantity of `LedgerTest.QUANTITIES` (0, 1, 2, 3, 4, 5, 11,
+12, 21, 22, 25, 100, 101, 111 and 1000000), in the form `EnglishText` serves for it ("one" for exactly
+1 when the entry has a "one" item, "other" otherwise), and must print what the base printed for that
+quantity. The base expression is the row's "other" pieces, the ones G1 matched with the base line;
+only a `manual:` row (a base ternary with its own branch for exactly 1, such as
+`n == 1 ? "1 ride" : n + " rides"`) has its "one" pieces stand for that branch at 1. So a "one" item
+holding English the base never printed fails, whether or not the row lists a "one" form: a batch
+that turns `n + " minutes"` into a plural keeps "1 minutes" in its "one" item, and tags it
+`volt:english-fix="pending"`. For a pending plural every item must print the base output at every
+quantity. Each form a row lists is also checked against its own item, and a listed form the entry
+lacks fails.
+
 **G3.** The round-trip reads the default-configuration strings and plurals straight from the
 `resources.arsc` aapt wrote and compares them with `en.expected.tsv`. It also fails on compiled
 strings the catalog does not know, on styled strings, and on text in any English or non-locale
