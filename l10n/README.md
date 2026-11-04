@@ -101,9 +101,10 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   `static Msg plural(int id, long quantity, Object... args)`; `Msg.render()` calls `T.render` or
   `T.renderPlural`. If `Msg` implements `CharSequence`, a `Msg` can be an argument of another `Msg`.
 - `EnglishText.java`: the English values; `T`'s default source and the fallback for a missing id.
-- `AndroidText.java` (`--android`, app build only): ids mapped to `R.string` and `R.plurals`.
-- `AppLanguages.java`: the language table, with each language's plural categories; `resolve(tag)` is
-  the defensive `l10n_tag` parse.
+- `AndroidText.java` (`--android`, app build only): ids mapped to `R.string` and `R.plurals`, and
+  the plural folder table: for each plural, the `res/values-*` language folders that hold it, with
+  their items (below).
+- `AppLanguages.java`: the language table; `resolve(tag)` is the defensive `l10n_tag` parse.
 - `en.expected.tsv`: the English the round-trip compares with aapt.
 
 `build.sh` runs the generator before aapt and the round-trip after it, but only once a
@@ -150,28 +151,59 @@ its own `.sources` file (its characterization tests, its new suites) and never e
   catalog). It is a `CharSequence`, renders when read, and `english()` gives the English whatever is
   installed. `UserFacingException(Msg)` keeps English in `getMessage()`; screens show `msg()`.
 - `ScreenHost.toast(Msg)` and `sheetContent(Msg, Msg, close)` render at display time.
-- **Plural items follow the language being shown.** `Resources.getQuantityString` picks a plural's
+- **Plural items follow the folder Android serves.** `Resources.getQuantityString` picks a plural's
   item by the plural rules of the configuration's *first* locale, even when it serves another
-  language's text (`ResourcesImpl.getPluralRule`): on a phone whose only language is Thai, Japanese,
+  folder's text (`ResourcesImpl.getPluralRule`): on a phone whose only language is Thai, Japanese,
   Chinese, Korean, Vietnamese or Indonesian, Volt in English would say "1 minutes left", and on a
   Russian or Latvian one "21 minute left". `AndroidText.plural` therefore chooses the item with the
-  rules of the language of the text Android actually serves for that key, not of `language()`:
-  text equal to one of `EnglishText`'s items is the English default (also when a shipped language
-  leaves the key out under the beta bar, or a folder that never shipped serves it) and takes
-  `T.Plurals.ENGLISH`, `EnglishText`'s rule; other text takes the `android.icu.text.PluralRules` and
-  `l10n/lang/` categories of its folder's raw `l10n_tag` when the language table has that tag,
-  shipped or not, and otherwise keeps Android's choice. It asks Android for a stand-in quantity
-  whose item under the first locale's rules is that one (`T.Plurals.standIn`: the quantity itself
-  when it already is, so an English phone passes exactly what it passed before; then 0 to 199 and
-  powers of ten). The text is then formatted with the real quantity. When no stand-in exists (the
-  first locale has no such category, as Thai has no "one"), the English default comes from
-  `EnglishText` (G3 proves it equal to `res/values/`); other text keeps Android's choice. A
-  translation identical to an English item is treated as English, which can serve English's "one"
-  in its place only where the first locale has no "one" category.
-  Known limit: a shipped language served from a later locale of the phone's list, behind a first
-  language with fewer categories (Spanish behind Japanese), still shows Android's "other" item where
-  its own rules want "one" or "many". On an English phone the only change is a negative quantity of
-  -1, which ICU reads as "one" and `EnglishText` as "other" (no caller passes one).
+  rules of the folder Android serves that key from.
+  - **Which folder.** `gen_catalog.py` records, for every plural, the language folders that hold it
+    and their items. At run time `AndroidText.folder` takes the configuration's first locale and
+    picks among those folders as `ResTable_config::match` and `isLocaleBetterThan` do. The language
+    must be the locale's (`in`/`id`, `iw`/`he`, `ji`/`yi`, `tl`/`fil` count as one). The scripts
+    (given, or ICU's likely one) must agree; when either is unknown, a folder's region must be the
+    locale's. Then the folder of the locale's region wins, then the folder without a region, then
+    any other region. So a pt-PT phone is served `values-pt-rBR`'s text when `values-pt` lacks the
+    key, and takes Brazilian rules for it. No matching folder means `res/values`.
+  - **Several languages.** When the phone lists several languages, `ResourcesImpl.updateConfiguration`
+    moves the first one Volt has resources for (or English) to the front
+    (`LocaleList.getFirstMatchWithEnglishSupported`). Every resource then resolves with that one
+    locale, which is also the one whose rules Android selects by. A key its folders lack comes from
+    `res/values`, never from a later language of the list: on an "es, fr" phone a key that
+    `values-es` lacks shows English with English rules, even when `values-fr` has it.
+  - **Which rules.** `res/values` takes `T.Plurals.ENGLISH` (`EnglishText`'s rule, "one" only for 1).
+    A language folder takes the `android.icu.text.PluralRules` of its `l10n/lang` tag, shipped or not,
+    and the items that folder really has. Provenance never comes from comparing text, so a French
+    "%1$d watt" / "%1$d watts" that equals English's still takes French rules ("0 watt"). The same
+    goes for a shipped language that leaves a key out under the beta bar: its English fallback takes
+    English rules.
+  - **How.** `AndroidText` asks Android for a stand-in quantity whose item under the first locale's
+    rules is the wanted one (`T.Plurals.standIn`). That is the quantity itself when it already is, so
+    an English phone passes exactly what it passed before; otherwise 0 to 199 and powers of ten. The
+    text is then formatted with the real quantity. When no stand-in exists (the first locale has no
+    such category, as Thai has no "one"), the English default comes from `EnglishText` (G3 proves it
+    equal to `res/values/`), and a folder's text keeps Android's choice.
+  - **Check.** The served text must be one of the chosen source's items (`EnglishText`'s, or the
+    folder's text as `gen_catalog.py` decoded it). If it is not, the table does not describe these
+    resources, and Android's choice stands. That covers a pseudo-locale build, a folder text aapt
+    stores differently from how it is written, or an Android that resolves differently.
+  - **Gates.** The table can't rank every folder layout, so `gen_catalog.py` refuses two kinds.
+    One is a language folder for a region that other regions inherit from in CLDR's parentLocales:
+    a numeric region such as `values-b+es+419`, `values-pt-rPT` or `values-zh-rHK`. The other is a
+    plural held by two or more region folders of one language and script, but not by that
+    language's folder without a region.
+  - **Known limits.**
+    - The resolution model is Android 7 to 14's, and Android 15's while `locales_config.xml` names no
+      `android:defaultLocale` (it names none). With `android:defaultLocale`, Android 15 resolves each
+      key across every listed language, and `folder` would need to walk the list.
+    - Variants and numbering systems are not modelled (Volt has none).
+    - ICU's likely scripts stand in for the native `LocaleDataTables`.
+    - If the model is wrong for some phone *and* a translation's text equals an item of the source
+      the model chose, the check passes with the wrong rules. Otherwise a wrong model falls back to
+      Android's own choice.
+    - On an English phone the only change is a negative quantity of -1, which ICU reads as "one" and
+      `EnglishText` as "other" (no caller passes one). Every quantity from 0 to 1,000,000 asks
+      Android for the same quantity, once, as before (`test_gen_catalog.py`).
 - The Shizuku shell process (`OwnerCaptureUserService` and everything it reaches) never uses any of
   these; `tests/l10n/CatalogUsageTest` checks that, and rules R2 to R6.
 - R2 (no rendered text kept in a field) looks at the field's declared type: a field of an Android view
