@@ -1,0 +1,144 @@
+name: Census (G7) on emulators
+
+# A run is requested by pushing a census-run/<name> branch whose ops/census/request.json names the
+# base and head commits (ops/census/README.md). Standard GitHub-hosted runners only: free on this
+# public repository. Nothing here uses secrets; the APKs are signed with a throwaway key made per run.
+on:
+  push:
+    branches: ['census-run/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: census-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.event.deleted != true
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    outputs:
+      base_sha: ${{ steps.plan.outputs.base_sha }}
+      shards: ${{ steps.plan.outputs.shards }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: ctl
+      - name: Validate the request and plan shards
+        id: plan
+        run: python3 -I ctl/ops/census/plan.py ctl/ops/census/request.json "$RUNNER_TEMP/plan" --github-output "$GITHUB_OUTPUT"
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Install Android platform 36 and build-tools 36.1.0
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "platforms;android-36" "build-tools;36.1.0" > /dev/null
+      - name: Build every tree (VOLT_RELEASE=1) and the base tree's test APK
+        run: bash ctl/ops/census/build-trees.sh "$RUNNER_TEMP/plan" "$RUNNER_TEMP/work"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: census-apks
+          path: ${{ runner.temp }}/work/apks
+          retention-days: 3
+          if-no-files-found: error
+
+  run:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      max-parallel: 12
+      matrix:
+        include: ${{ fromJSON(needs.build.outputs.shards) }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: ctl
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Install the emulator and the x86_64 system image
+        run: bash ctl/ops/census/emulator.sh install
+      - name: Create the census AVD
+        run: bash ctl/ops/census/emulator.sh create
+      - name: Fetch the base tree (its run-release-sweep.py runs every step)
+        env:
+          BASE_SHA: ${{ needs.build.outputs.base_sha }}
+        run: bash ctl/ops/census/fetch-tree.sh "$BASE_SHA" "$RUNNER_TEMP/base"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: census-apks
+          path: ${{ runner.temp }}/apks
+      - name: Run this shard's steps (every tag on one emulator)
+        env:
+          CENSUS_SHARD: ${{ matrix.index }}
+          CENSUS_STEPS: ${{ matrix.steps }}
+        run: |
+          export CENSUS_BASE_TAG="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["tag"])' "$RUNNER_TEMP/apks/plan.json")"
+          export CENSUS_HEADS="$(python3 -I -c 'import json,sys; print(" ".join(h["tag"] for h in json.load(open(sys.argv[1]))["heads"]))' "$RUNNER_TEMP/apks/plan.json")"
+          bash ctl/ops/census/shard.sh "$RUNNER_TEMP/base" "$RUNNER_TEMP/apks" "$RUNNER_TEMP/shard"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: census-shard-${{ matrix.index }}
+          path: ${{ runner.temp }}/shard
+          retention-days: 3
+          if-no-files-found: warn
+
+  diff:
+    needs: [build, run]
+    if: always() && needs.build.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          path: ctl
+      - name: Fetch the base tree (its census_diff.py compares)
+        env:
+          BASE_SHA: ${{ needs.build.outputs.base_sha }}
+        run: bash ctl/ops/census/fetch-tree.sh "$BASE_SHA" "$RUNNER_TEMP/base"
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: census-apks
+          path: ${{ runner.temp }}/apks
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: census-shard-*
+          merge-multiple: true
+          path: ${{ runner.temp }}/all
+      - name: Compare every head with both base runs
+        run: |
+          P="$RUNNER_TEMP/apks"; D="$RUNNER_TEMP/diff"; mkdir -p "$D"
+          base="$(python3 -I -c 'import json,sys; print(json.load(open(sys.argv[1]))["base"]["tag"])' "$P/plan.json")"
+          for h in $(python3 -I -c 'import json,sys; print(" ".join(h["tag"] for h in json.load(open(sys.argv[1]))["heads"]))' "$P/plan.json"); do
+            echo "== $h"
+            bash ctl/ops/census/diff.sh "$RUNNER_TEMP/base" "$RUNNER_TEMP/all" "$D" "$base-r1" "$base-r2" "$h" "$P/steps.txt"
+          done
+          cp "$P/plan.json" "$P/builds.txt" "$D/"
+          set +e
+          python3 -I ctl/ops/census/report.py "$P" "$RUNNER_TEMP/all" "$D" > "$D/summary.md"
+          echo $? > "$D/report-rc.txt"
+          cat "$D/summary.md" >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: census-diff
+          path: ${{ runner.temp }}/diff
+          retention-days: 3
+          if-no-files-found: error
+      - name: Fail when any run is missing
+        run: |
+          if [ -s "$RUNNER_TEMP/diff/missing.txt" ] || [ "$(cat "$RUNNER_TEMP/diff/report-rc.txt")" != 0 ]; then
+            echo "::error::$(wc -l < "$RUNNER_TEMP/diff/missing.txt") run(s) have no summary.json; see missing.txt in the census-diff artifact"
+            exit 1
+          fi
