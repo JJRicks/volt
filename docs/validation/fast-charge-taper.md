@@ -106,7 +106,7 @@ until its own taper is established, after 57.5 of its 89.1 minutes).
 **What changed.** Once the charge is in the taper (`FastChargeTaper.tapering`) and at least six
 minutes (`FIT_FULL`) of its own decay are watched, which is when its own τ has fully replaced the
 reference 14.1, the time to 100% comes from the voltage/current model with that τ
-(`FastChargeTaper.ownTaper`, checked in `ChargingEstimate.forScooter` after v7's choice is made). Three
+(`FastChargeTaper.ownTaper`, checked in `ChargingEstimate.forScooter` after v7's choice is made). Four
 more conditions keep it to a charge that is still decaying at the pace its fit uses:
 
 - **Usable.** The fit is falling and no slower than `FLAT_TAU`, 60 minutes, beyond which `tau()`
@@ -116,13 +116,18 @@ more conditions keep it to a charge that is still decaying at the pace its fit u
 - **At the estimate's pace.** The decay points of the last `RECENT_FIT`, 3 minutes, fitted alone (at
   least three of them), fall with a τ no more than `SLOWER`, 25%, longer than the `tau()` the estimate
   uses.
+- **No step.** None of those recent points fell from the one before faster than a decay with τ
+  `STEP_TAU`, 2 minutes, would.
 
 Decay points are only added, and old ones pruned, at a new low. So a plateau keeps an old fit in place
 (the recency check retires it), and a decay that stops and then creeps down 0.01 A at a time keeps an
 old, steeper fit with fresh points: each creep step is a new low and passes the recency check. Within
 3 minutes of the stop, though, the recent points are only that creep, far slower than the fit, and the
 pace check declines. The same check declines a real taper slower than `tau()` can show: `tau()`
-clamps at `TAU_HIGH`, 20, so a taper whose recent τ is above 25 is left to v7. When any check fails,
+clamps at `TAU_HIGH`, 20, so a taper whose recent τ is above 25 is left to v7. A charger's sudden step
+down steepens both fits, the recent one most, so it would pass the pace check while `tau()` reads far
+too short; the step check declines from the first reading of the fall until it leaves the 3-minute
+window, after which the pace check compares the slower decay that follows. When any check fails,
 the estimate is v7's for that
 sample, including v7's held personal finish. It now
 replaces the SOC-indexed reference and personal curves too, not only the current rate. Those place the
@@ -139,14 +144,26 @@ present), a valid rated capacity and battery below 100%. Nothing was fitted: the
 the existing `FIT_FULL`, and the model, τ limits and 0.68 A end current are v7's. `RECENT_MS` comes
 from the slowest decay `tau()` still uses: at `FLAT_TAU` near 0.68 A, current falls one 0.01 A
 reading step about every 0.9 minutes, and 2 minutes is about twice that. `SLOWER` bounds what the pace
-check lets through: if the decay goes on at its recent pace, the time shown is short by at most 25%
-of itself (tail = τ × ln(I / 0.68), with the true τ at most 1.25 times the τ used). The longest tail
-the model can show in the taper, τ 20 from 11.6 A × 0.97 (the highest current that counts as taper),
-is 56 minutes, so that shortfall is at most 14 minutes, inside Charge done by's 20-minute buffer. `RECENT_FIT` is half of `FIT_FULL`: long enough to hold at least six decay points
-in the owner's charges, short enough that a creep replaces the old points within 3 minutes. In the
-owner's high-speed charges the recent τ was at most 12% longer than `tau()` while the own taper
-applied (3-minute fits; 2- to 5-minute fits gave 6-14%), the newest decay point was never older than
-0.8 minutes, and the full fit's raw τ was 10.6-25.0 minutes.
+check lets through only while the decay keeps its recent pace: then the time shown is short by at
+most 25% of itself (tail = τ × ln(I / 0.68), with the true τ at most 1.25 times the τ used). The
+longest tail the model can show in the taper, τ 20 from 11.6 A × 0.97 (the highest current that counts
+as taper), is 56 minutes, so that shortfall is at most 14 minutes, inside Charge done by's 20-minute
+buffer. A taper that keeps slowing passes the 3-minute check at every reading and can read shorter
+than that. In a constructed taper whose local τ grows from 16 by 0.4 minutes per minute, the own
+taper showed 35.8 minutes after 7 minutes of decay where 60.0 remained, 40% short (v7: 60.0 from past
+charges); Charge done by fell up to 4.3 minutes past its buffer on 39 samples where v7 stayed inside
+it, and 4.7 past a minute earlier, where v7 showed the same time. Growth of 0.1, 0.2 or 0.3 per minute
+from τ 13 stayed inside the buffer (smallest margins +16.4, +12.1 and +6.9 minutes); growth of 0.8
+per minute read about two-thirds short, past the buffer in v7 as well (worst 56.5 minutes past where
+the two differ, v7 35.5). The owner's tapers stayed near exponential: in their high-speed charges the
+recent τ was at most 1.12 × `tau()` while the own taper applied (3-minute fits; 2- to 5-minute fits
+gave 6-14% longer), the newest decay point was never older than 0.8 minutes, and the full fit's raw τ
+was 10.6-25.0 minutes. `RECENT_FIT` is half of `FIT_FULL`: long enough to hold at least six decay
+points in the owner's charges, short enough that a creep replaces the old points within 3 minutes.
+`STEP_TAU` sits well clear of reading noise: in the owner's charges no recent decay point fell faster
+than a 5.6-minute τ from the one before while the own taper applied, and 0.03 A of noise on a
+constructed decay gave 4.7, against 0.8-1.1 for a charger stepping from 4.3 to 2.5 A in 30 s (2, 3 and
+4 minutes gave identical results on every probe below).
 
 **Plateau and stopped decay (review of 4da6840).** Without the usable and recent checks, a 10 A ceiling
 followed by 8.00, 7.99, 7.98 and 7.97 A over six minutes and then 20 minutes at 7.97 A kept the own
@@ -171,25 +188,62 @@ minute after a stop the creep's first low still counts.
 Constructed timelines read every 10 s (scratch probes, not committed; histories are synthetic) show
 the same:
 
-- **Creep.** After a stopped τ-11, τ-20 or τ-25 decay, with creep every 0.5, 1, 2, 3 or 5 minutes, the
-  own taper hands back at most 2 minutes after the stop. A creep of 0.01 A every 10 or 20 s also
-  hands back within 2 minutes, and takes over again only once, at a lower current, that steady fall is
-  itself as fast as the estimate's pace; the time shown then is never short of that fall's own finish.
-  A pure plateau, or current that rises again, hands back after `RECENT_MS`, 2 minutes.
+- **Creep.** After a stopped τ-11, τ-20 or τ-25 decay, with creep every 10 s to 5 minutes, the own
+  taper hands back within about 3 minutes of the stop, bounded by `RECENT_FIT`: once the newest low is
+  3 minutes past the stop, the recent fit holds only creep. Its last reading came at most 2.0 minutes
+  after the stop, and 2.8 minutes when the first creep low came a minute after the stop and the next
+  ones every 2 minutes; a creep of 0.01 A every 15 to 30 s from 0.7 A (after a τ-11 decay from 1.6 A)
+  last read 2.5-3.0 minutes after the stop. A creep every 10 or 20 s takes over again only once, at a
+  lower current, that steady fall is itself as fast as the estimate's pace; the time shown then is
+  never short of that fall's own finish. A pure plateau, or current that rises again, hands back
+  after `RECENT_MS`, 2 minutes.
 - **Slow tapers.** A raw τ of 26 or more never takes over (v7's answer throughout); 20-24 takes over
   and reads at most 2 minutes shorter than v7 does against a pure exponential. At about 25, right at
-  the limit, the source can switch back and forth (12 switches in 40 minutes, against v7's 2).
-- **Gaps and pauses.** A decay that continues through a 3- or 8-minute gap in readings takes its own
-  taper back 20 s after the gap (after the 8-minute gap, as in a30493a, it later steps back for about
-  4 minutes while the points before the gap leave the 10-minute fit window). A decay that pauses for 2
-  minutes or more hands back on each pause and takes over again about a minute after it resumes (6-8
-  switches against v7's 2; a30493a had 2-8). A decay reported in 2.5-minute steps now never takes
-  over (2 switches, as v7; a30493a had 10).
+  the limit, the source can switch back and forth (12 to 16 switches, against v7's 2 to 4; table
+  below).
+- **Gaps and pauses.** A decay that continues through a 3- to 8-minute gap in readings takes its own
+  taper back 20 s after the gap; after a 12-minute gap, which leaves no point from before it in the
+  10-minute fit window, it takes over once `FIT_FULL`, 6 minutes, of new decay is watched. After a 6-
+  or 8-minute gap, as in a30493a, it can later step back for 2-4 minutes while the points before the
+  gap leave the fit window. A decay that pauses for 2 minutes or more hands back `RECENT_MS` into each
+  pause and takes over again 0.5-1.2 minutes after it resumes (6.2 after a single 10-minute pause);
+  after a 5- or 6-minute pause it can step back once more for 1-2 minutes in the same way.
+  A decay reported in 2.5-minute steps never takes over: `RECENT_FIT` never holds three of its points
+  (`FastChargeTaperTest.plateau` checks it).
+- **Step down.** A τ-13 decay that falls from 4.3 to 2.5 A within 30 s and then decays with τ 30 or 40
+  hands back from the first reading of the fall. 5648b59, without the step check, kept its own taper
+  through the next 3 minutes with `tau()` falling to its `TAU_LOW` clamp of 8, showing 21.5 down to
+  9.9 minutes where about 50 remained: Charge done by up to 19.8 minutes past its buffer (τ 40; 7.2
+  for τ 30), where v7's past charges had +32 (+44.8). It now shows v7's answer there. A fall to a
+  plateau at 2.5 A did the same for 2 minutes (12.2 past, v7 +37). Before the fall, the own taper
+  reads the τ-13 decay it sees; with τ 40 after the fall that is 8.3 minutes past the buffer, a later
+  change no estimate can see (v7 happened to have +31 from slow past charges). Once the fall has left
+  the 3-minute window, the pace check hands the slower decay to v7, whose own fallback for this
+  timeline (the high-speed reference with the same short τ, up to 19 minutes past the buffer) is
+  unchanged. `FastChargeTaperTest.plateau` pins the τ-40 case to v7's answer while `tau()` is clamped.
+
+Source switches in these constructed timelines (10-s readings, two synthetic past charges unless
+noted; switches are changes of recorded source):
+
+| Timeline | Minutes | v7 | a30493a | v8 |
+|---|---:|---:|---:|---:|
+| Raw τ 25 from 8 A | 40 | 2 | 2 | 12 |
+| Raw τ 25 from 8 / 3 / 1.5 A | 70 | 2 / 2 / 4 | 2 / 2 / 6 | 16 / 16 / 16 |
+| Raw τ 26 from 8 / 3 / 1.5 A | 70 | 2 / 2 / 4 | 2 / 2 / 6 | 2 / 4 / 6 |
+| Gap of 3 / 8 minutes | 25 | 2 / 2 | 2 / 2 | 4 / 2 |
+| Gap of 4 / 6 / 12 minutes | 35 | 2 / 2 / 2 | 2 / 4 / 2 | 4 / 6 / 2 |
+| Pause of 2 / 3 minutes after each 7 minutes | 40 | 2 / 2 | 2 / 6 | 6 / 6 |
+| Pause of 5 minutes after each 7 minutes | 40 | 2 | 8 | 8 |
+| One pause of 4 / 6 / 10 minutes | 45 | 2 / 2 / 2 | 4 / 6 / 4 | 4 / 6 / 4 |
+| Decay in 2.5-minute steps | 30 | 2 | 10 | 2 |
+| Creep every 3 minutes after a stop, 6 A / 1.8 A start | 40 | 1 / 3 | 7 / 9 | 3 / 5 |
+| Step down, then τ 30 or 40 / a plateau | 70 | 2 / 2 | 2 / 4 | 4 / 4 |
 
 Every remaining switch is towards v7's longer answer, and none of these occur in the owner's charges.
 
 None of these checks changes the owner's replayed estimates: all 7,813 samples, at 100%, 99%, 95% and
-80% limits, are identical to 4da6840, so the 1,110 changed samples and every figure below stand. Only
+80% limits, are identical to 4da6840, so the 1,110 changed samples and every figure below stand (the
+step check, added after 5648b59, changes none of them either). Only
 the own-taper flag itself, which the branch never uses on a standard charger, clears on 204
 standard-charger samples (59 of session 2 by the recency check, 145 of sessions 3 and 8-10 by the pace
 check); all 1,197 high-speed own-taper samples keep it.
@@ -244,7 +298,11 @@ above. Its extra switch is the hand-over from personal history to its own taper.
 charge; the worst sample is −1.0 minutes, against v7's −3.9. In the taper the estimate rests on the
 fixed 0.68 A end current and the charger's voltage limit; every complete high-speed charge ended at
 0.68 A, but they are one charger and one pack. The label reads High-speed reference instead of "From
-N past charges" while the own taper applies, unless a lower cutoff's time comes from past charges. This is stability polish, not an accuracy fix.
+N past charges" while the own taper applies, unless a lower cutoff's time comes from past charges.
+In constructed timelines the own taper can also take Charge done by past its buffer where v7 stayed
+inside it: a taper that keeps slowing (up to 4.3 minutes past, reading about 40% short) and the
+decay before a charger's later step down (8.3 past; both above). Neither shows in the owner's
+charges. This is stability polish, not an accuracy fix.
 
 ## Limits
 

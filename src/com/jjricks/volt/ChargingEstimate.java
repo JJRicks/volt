@@ -233,16 +233,18 @@ public final class ChargingEstimate {
         // personal history: the gauge's late catch-up varies between charges, pack voltage does not.
         Result pack=selectedCharger==ChargeSessionStore.Charger.STOCK?withStockPackModel(prior,baseline,soc,ratedAh,productId,progress):null;
         if (pack!=null) return pack;
-        // ut5-fast-taper-v8: in the high-speed taper, once FastChargeTaper.ownTaper (FIT_FULL
-        // minutes of this charge's own decay, a recent new low, and a fit no slower than
-        // OWN_TAU_MAX that still predicts the live current), voltage and current place the finish
+        // ut5-fast-taper-v8: in the high-speed taper, once FastChargeTaper.ownTaper holds (still
+        // tapering; at least three decay points spanning FIT_FULL minutes with a usable fit; the
+        // newest no older than RECENT_MS; the points of the last RECENT_FIT minutes, at least three
+        // and fitted alone, giving a tau at most tau() x (1 + SLOWER); and none of those falling
+        // from the one before faster than STEP_TAU), voltage and current place the finish
         // instead of the percentage-indexed reference or past charges. Where the gauge sits in the
         // taper varies between charges, the decay does not, so the estimate stops switching between
         // those sources as the gauge steps. Only the time to 100% changes: a lower cutoff keeps
         // v7's evidence, including a personal time to that cutoff (withPersonalLimit), never longer
         // than the time to 100%. v7's choice is made first, so a plateau, a stopped, creeping or
-        // slow decay, or a declining taper model returns it unchanged, with v7's held personal
-        // finish kept up to date throughout.
+        // slow decay, a charger's step down, or a declining taper model returns it unchanged, with
+        // v7's held personal finish kept up to date throughout.
         Result v7=withHistory(prior,baseline,soc,ratedAh,productId,selectedCharger,personal,gate,taper,nowMs);
         if (fast&&taper!=null&&baseline!=null&&baseline.charging&&baseline.inputAmps!=null&&baseline.inputWatts!=null
                 &&baseline.inputAmps>=MINIMUM_ETA_CURRENT_A&&productId==Ut5MaxFastChargeReference.PRODUCT_ID

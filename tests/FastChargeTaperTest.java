@@ -293,7 +293,8 @@ public final class FastChargeTaperTest {
      * the same readings; 4da6840 showed 34.7, 34.6 and 20.6 minutes from FAST_REFERENCE instead of
      * 122.5 from past charges in the first three. Rechecks of a30493a added a slow real taper the
      * fit clamps (raw tau 28 and 40) and a stopped decay followed by a 0.01 A creep, every 0.5 to 5
-     * minutes, whose new lows kept the old fit recent; both now give v7's answer too.
+     * minutes, whose new lows kept the old fit recent; both now give v7's answer too. Rechecks of
+     * 5648b59 added a decay reported in 2.5-minute steps and a charger's step down in the taper.
      */
     private static void plateau() throws Exception {
         Path tmp = Files.createTempDirectory("fast-taper-plateau-");
@@ -354,9 +355,39 @@ public final class FastChargeTaperTest {
                 check(c.taper.tapering(54.0, c.amps) && c.taper.fittedTau() > 11 && c.taper.fittedTau() < 16, where + ": an old fit, kept recent");
                 check(!c.taper.ownTaper(54.0, c.amps, c.now), where + ": its recent points are too slow");
             }
-            // The hand-back takes up to about two minutes: a minute after the stop, the creep's first low still counts.
+            // The hand-back can take up to RECENT_FIT, about three minutes: a minute after the stop, the creep's first low still counts.
             Case early = creeping(1, 1);
             check(early.taper.ownTaper(54.0, early.amps, early.now), "A minute after the stop it has not handed back yet");
+            // Rechecks of 5648b59. A real tau-11 decay reported in 2.5-minute steps (the stairs25
+            // probe): each step is a new low, so the newest point stays recent and the whole fit is a
+            // good decay, but RECENT_FIT minutes never hold three of its points. It never takes over
+            // (without that count it does; a30493a switched source 10 times in 30 minutes here).
+            Case stairs = new Case();
+            boolean stairsOwn = false;
+            for (long t = T0 + MIN; t <= T0 + 26 * MIN; t += 10 * SEC) {
+                stairs.at(Math.round(800 * Math.exp(-Math.floor((t - T0 - MIN) / (2.5 * MIN)) * 2.5 / 11)) / 100d, t);
+                stairsOwn |= stairs.taper.ownTaper(54.0, stairs.amps, stairs.now);
+            }
+            check(stairs.taper.tapering(54.0, stairs.amps) && Math.abs(stairs.taper.fittedTau() - 11) < .3, "Stairs: a real tau-11 decay, " + stairs.taper.fittedTau());
+            check(!stairsOwn, "A decay reported in 2.5-minute steps never has three points in RECENT_FIT minutes, so never takes over");
+            // A charger's step down in the taper (the stepslow40 probe): a tau-13 decay from 8 A, a
+            // fall to 2.5 A within 30 s, then a slow tau-40 decay. The fall steepens both fits, down to
+            // tau()'s TAU_LOW clamp, before the slow decay after it can fail the pace check: 5648b59
+            // showed 9.9 to 21.5 minutes from FAST_REFERENCE for about 3 minutes where about 50 remained.
+            // While the fall is in the RECENT_FIT window, the step check (STEP_TAU) hands back.
+            Case stepDown = new Case();
+            boolean beforeStep = false, afterStep = false;
+            double top = Math.round(800 * Math.exp(-8 / 13d)) / 100d;
+            for (long t = T0 + MIN; t <= T0 + 12 * MIN; t += 10 * SEC) {
+                double m = (t - T0 - MIN) / 60000d;
+                double a = m <= 8 ? 8 * Math.exp(-m / 13) : m <= 8.5 ? top - (top - 2.5) * (m - 8) / .5 : 2.5 * Math.exp(-(m - 8.5) / 40);
+                stepDown.at(Math.round(a * 100) / 100d, t);
+                boolean taking = stepDown.taper.ownTaper(54.0, stepDown.amps, stepDown.now);
+                if (m <= 8) beforeStep = taking; else afterStep |= taking;
+            }
+            check(beforeStep && !afterStep, "A step down hands back from its first reading for as long as it is in the RECENT_FIT window");
+            check(stepDown.taper.tau() == FastChargeTaper.TAU_LOW && stepDown.taper.fittedTau() < FastChargeTaper.TAU_LOW,
+                    "The step drives tau() to its TAU_LOW clamp, " + stepDown.taper.fittedTau());
             Object[][] cases = {
                 // name, case, v7 time to 100%, source, v7 time to 95%
                 {"Codex's plateau", flatStale, 122.5, "PERSONAL", 100.0},
@@ -365,6 +396,7 @@ public final class FastChargeTaperTest {
                 {"A plateau, then 90 s of decay", flatThenFalling, 122.5, "PERSONAL", 100.0},
                 {"A slow taper, raw tau 40", slow, 122.5, "PERSONAL", 100.0},
                 {"A slow taper, raw tau 28", over, 122.5, "PERSONAL", 100.0},
+                {"A step down, 2.5 minutes later", stepDown, 122.5, "PERSONAL", 100.0},
             };
             List<Object[]> all = new ArrayList<>(Arrays.asList(cases));
             for (int i = 0; i < crept.length; i++)
