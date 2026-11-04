@@ -147,11 +147,42 @@ final class FastChargeTaperReplay {
         return null;
     }
 
+    /** The lower charge limits pinned by expected-v7-limits.csv. */
+    static final double[] LIMITS = {95, 80};
+
+    /**
+     * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv [--limits]. With --limits,
+     * each sample's time to each of LIMITS, its source, Charge done by's minutes before the buffer and
+     * the past charges counted (regen-expected-v7-limits.sh writes expected-v7-limits.csv this way).
+     */
     public static void main(String[] args) throws Exception {
         PrintStream out = System.out;
+        if (args.length > 1 && args[1].equals("--limits")) {
+            List<List<Row>> byLimit = new ArrayList<>();
+            StringBuilder header = new StringBuilder("session,minutes");
+            for (double limit : LIMITS) {
+                byLimit.add(replay(Paths.get(args[0]), limit));
+                int l = (int) limit;
+                header.append(",limit").append(l).append(",source").append(l).append(",planning").append(l).append(",learned").append(l);
+            }
+            out.println(header);
+            for (int i = 0; i < byLimit.get(0).size(); i++) {
+                Row first = byLimit.get(0).get(i);
+                StringBuilder line = new StringBuilder(first.sample.session + "," + String.format(Locale.ROOT, "%.4f", first.minutes));
+                for (List<Row> rows : byLimit) {
+                    Row row = rows.get(i);
+                    line.append(',').append(minutes(row.limit)).append(',').append(row.limitSource).append(',')
+                            .append(minutes(row.planningLimit)).append(',').append(row.learned);
+                }
+                out.println(line);
+            }
+            return;
+        }
         out.println("session,minutes,full,source,learned");
         for (Row row : replay(Paths.get(args[0])))
             out.println(row.sample.session + "," + String.format(Locale.ROOT, "%.4f", row.minutes) + ","
-                    + (row.full == null ? "" : String.format(Locale.ROOT, "%.6f", row.full)) + "," + row.source + "," + row.learned);
+                    + minutes(row.full) + "," + row.source + "," + row.learned);
     }
+
+    private static String minutes(Double value) { return value == null ? "" : String.format(Locale.ROOT, "%.6f", value); }
 }

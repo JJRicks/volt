@@ -111,9 +111,11 @@ replaces the SOC-indexed reference and personal curves too, not only the current
 charge by the battery percentage, which steps unevenly in the taper; the measured decay does not. The
 result and its label are the existing high-speed estimate (High-speed reference, recorded as
 `FAST_REFERENCE`, 0 learned sessions) instead of "From N past charges". A lower cutoff keeps v7's
-time, source and Charge done by minutes, never longer than the time to 100%: past charges' time to
-the cutoff where they have one (labelled "From N past charges", as in v7), otherwise the reference or
-current rate. It applies only to the high-speed
+source: past charges' time to the cutoff where they have one (labelled "From N past charges", as in
+v7), otherwise the reference or current rate. Its time is never longer than the time to 100%. v7
+could show past charges' time to a cutoff very close to 100% as longer than its own time to 100%, so
+there the time to the cutoff, and Charge done by, can now be a little shorter than v7's (by up to
+about 2 minutes in the replay below); elsewhere they are v7's. It applies only to the high-speed
 charger on the UT5 MAX (product 2538) with a usable live estimate (at least 0.05 A, voltage and power
 present), a valid rated capacity and battery below 100%. Nothing was fitted: the switch-over point is
 the existing `FIT_FULL`, and the model, τ limits and 0.68 A end current are v7's.
@@ -123,12 +125,17 @@ recordings; for sessions 13-15 it reproduces the app's live v7 predictions withi
 of 1,167 samples, with the same source on 1,166 (live, the app re-evaluates every frame, the journal
 keeps one sample per 10 s). Against it, v8 changes 1,110 samples, every one a high-speed sample where
 the charge's own taper is established, now `FAST_REFERENCE`. All 5,457 standard-charger samples and
-every high-speed sample before the own taper are identical to v7. Replayed with a 95% or 80% charge
-limit instead, every sample's time to the limit, its source and Charge done by minutes match v7
-(compiled from f529f43) exactly; only the label changes, on 494 (95%) and 453 (80%) samples where v7
-showed "From N past charges" for a personal time to 100% while the cutoff came from the reference or
-current rate. `FastChargeTaperTest` replays the 95% limit and requires the 453 own-taper samples with
-a personal time to 95% to keep it. Complete high-speed charges, v7 → v8
+every high-speed sample before the own taper are identical to v7. Replayed with a lower charge limit
+instead (50%, 80%, 90%, 95%, 96%, 97% and 98% checked), every sample's time to the limit, its source
+and Charge done by minutes match v7 (compiled from f529f43) exactly; only the label changes, on 453
+to 524 samples where v7 showed "From N past charges" for a personal time to 100% while the cutoff came
+from the reference or current rate. At a 99% limit the source still matches everywhere, but on 18
+samples of session 15 (at 80-82%) past charges' time to 99% was longer than the charge's own time to
+100%. v7 showed it anyway; v8 shows the time to 100% instead, so the time to 99% and Charge done by
+are 0.3-2.0 minutes shorter there, never longer than the time to 100%. `expected-v7-limits.csv` pins v7's time,
+source, Charge done by minutes and past-charge count at 95% and 80% for every sample;
+`FastChargeTaperTest` requires v8 to match it, allowing only that label change, and checks the 99%
+cap. Complete high-speed charges, v7 → v8
 (minutes; error is displayed minus actual time to the first displayed 100%; t0-t10 are the errors at
 the start and after 5 and 10 minutes, identical in both; jump is the largest change between samples
 beyond the elapsed time; switches are changes of source; the Charge done by margin is the smallest

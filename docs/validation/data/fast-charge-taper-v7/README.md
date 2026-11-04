@@ -19,5 +19,11 @@ and `ut5-fast-taper-v8`, which uses the same data).
   one sample per 10 s, so a held countdown or taper fit can start a sample apart. `FastChargeTaperTest`
   requires every v8 sample to match it except high-speed samples where the charge's own taper is
   established (`FastChargeTaper.ownTaper`), which must be `FAST_REFERENCE`.
+- `expected-v7-limits.csv`: the same replay against f529f43 at 95% and 80% charge limits, written by
+  `regen-expected-v7-limits.sh`: per sample, the time to each limit, its source, Charge done by's
+  minutes before the 20-minute buffer and the past charges counted. `FastChargeTaperTest` requires
+  every v8 sample to match the time, source and Charge done by minutes; the past-charge count (and so
+  the label) may drop to 0 only where the charge's own taper placed the time to 100% and the limit's
+  time came from the reference or current rate.
 
 `tests/run.sh` runs the replay. Each recording learns only from the recordings before it.
