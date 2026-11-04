@@ -15,6 +15,29 @@ import rikka.shizuku.Shizuku;
 /** Process-local coordinator: survives the NAVEE foreground switch, never persists a captured identity. */
 final class ShizukuCaptureClient {
     static final int REQUEST_PERMISSION = 7041;
+    /*
+     * The status lines message can hold. They stay English here: ShizukuCaptureClientTest and the census
+     * validations compare message with them. ShizukuStatus pairs each with its catalog text for screens.
+     */
+    static final String ACCESS_DENIED = "Access denied";
+    static final String NOT_RUNNING = "Shizuku isn't running";
+    static final String UPDATE_SHIZUKU = "Update Shizuku";
+    static final String ROOT_UNSUPPORTED = "Root Shizuku isn't supported. Start it with wireless debugging.";
+    static final String ALLOW_IN_SHIZUKU = "Allow Volt in Shizuku";
+    static final String SHIZUKU_STOPPED = "Shizuku stopped";
+    static final String CLEANUP_UNKNOWN = "Cleanup unknown. Use computer recovery.";
+    static final String START_FAILED = "Couldn't start. Nothing changed.";
+    static final String HELPER_NOT_STARTED = "Helper didn't start";
+    static final String CLEANUP_UNCONFIRMED = "Logging cleanup unconfirmed";
+    static final String NOTHING_FOUND = "Nothing found in 90 s";
+    static final String SEVERAL_SCOOTERS = "Several scooters. Connect one.";
+    static final String CAPTURE_BUSY = "Another capture is running";
+    static final String LOG_UNREADABLE = "Volt couldn't read NAVEE's log";
+    static final String STOPPED = "Stopped";
+    static final String CAPTURE_FAILED = "Capture failed";
+    static final String RESTORE_AGAIN = "Restore logging again";
+    static final String RESTORING = "Restoring NAVEE…";
+    static final String LOST = "Shizuku lost. Restore logging.";
     // Bump with every UserService/guard behavior change, including same-version previews.
     private static final int USER_SERVICE_VERSION = 2;
     private static ShizukuCaptureClient singleton;
@@ -33,6 +56,7 @@ final class ShizukuCaptureClient {
     private volatile boolean remoteDispatched;
     volatile boolean busy;
     int phase;
+    /** The status line: "" or one of the English constants above; screens show {@link ShizukuStatus#display(String)}. */
     String message = "";
     /** Set when Android won't show Shizuku's prompt again: Volt has to be allowed inside Shizuku. */
     boolean allowInShizuku;
@@ -49,7 +73,7 @@ final class ShizukuCaptureClient {
         Shizuku.addRequestPermissionResultListener((request, grant) -> {
             if (request == REQUEST_PERMISSION) {
                 // Granted moves the screen to the capture step by itself; only a refusal needs words.
-                message = grant == PackageManager.PERMISSION_GRANTED ? "" : "Access denied";
+                message = grant == PackageManager.PERMISSION_GRANTED ? "" : ACCESS_DENIED;
                 allowInShizuku = false;
                 changed();
             }
@@ -70,11 +94,11 @@ final class ShizukuCaptureClient {
     /** Why {@link #available()} is false, as a short status; empty when it is available. */
     String unavailableReason() {
         try {
-            if (!Shizuku.pingBinder()) return "Shizuku isn't running";
-            if (Shizuku.getVersion() < 13) return "Update Shizuku";
-            if (Shizuku.getUid() != 2000) return "Root Shizuku isn't supported. Start it with wireless debugging.";
+            if (!Shizuku.pingBinder()) return NOT_RUNNING;
+            if (Shizuku.getVersion() < 13) return UPDATE_SHIZUKU;
+            if (Shizuku.getUid() != 2000) return ROOT_UNSUPPORTED;
             return "";
-        } catch (RuntimeException ignored) { return "Shizuku isn't running"; }
+        } catch (RuntimeException ignored) { return NOT_RUNNING; }
     }
     boolean permitted() {
         try { return available() && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED; }
@@ -84,9 +108,9 @@ final class ShizukuCaptureClient {
         if (!available()) { message = unavailableReason(); changed(); return; }
         try {
             if (Shizuku.shouldShowRequestPermissionRationale()) {
-                message = "Allow Volt in Shizuku"; allowInShizuku = true;
+                message = ALLOW_IN_SHIZUKU; allowInShizuku = true;
             } else Shizuku.requestPermission(REQUEST_PERMISSION);
-        } catch (RuntimeException ignored) { message = "Shizuku stopped"; }
+        } catch (RuntimeException ignored) { message = SHIZUKU_STOPPED; }
         changed();
     }
     void start(boolean recovery) {
@@ -97,13 +121,13 @@ final class ShizukuCaptureClient {
         String session = recovery ? journal.getString("token", "") : Protocol.hex(random).toLowerCase(java.util.Locale.ROOT);
         String original = recovery ? journal.getString("original", null) : null;
         if (!OwnerCaptureEngine.validToken(session) || (recovery && original != null && !OwnerCaptureEngine.validProperty(original))) {
-            busy = false; message = "Cleanup unknown. Use computer recovery."; changed(); return;
+            busy = false; message = CLEANUP_UNKNOWN; changed(); return;
         }
         token = session; recoveryAttempt = recovery; remoteDispatched = false;
         // Reserve a non-secret recovery token before the shell process can acquire its lock.
         // Even a process kill between mkdir and the original-property callback stays recoverable.
         if (!recovery && !journal.edit().putBoolean("pending", true).putString("token", session).remove("original").commit()) {
-            busy = false; message = "Couldn't start. Nothing changed."; changed(); return;
+            busy = false; message = START_FAILED; changed(); return;
         }
         ServiceConnection connection = new ServiceConnection() {
             @Override public void onServiceConnected(ComponentName name, IBinder binder) {
@@ -126,7 +150,7 @@ final class ShizukuCaptureClient {
             if (binding == connection && busy && remote == null) {
                 discardUnsentJournal();
                 busy = false; phase = 0;
-                message = "Helper didn't start";
+                message = HELPER_NOT_STARTED;
                 unbind(); changed();
             }
         }, 15000);
@@ -158,32 +182,32 @@ final class ShizukuCaptureClient {
                 boolean wasCancelled = sessionCancelled || !busy;
                 busy = false; phase = 0; owner = null;
                 if (clean && !journal.edit().clear().commit()) cleanResultFailure();
-                else if (!clean) message = "Logging cleanup unconfirmed";
+                else if (!clean) message = CLEANUP_UNCONFIRMED;
                 else if (!wasCancelled && outcome == OwnerCaptureEngine.OK && identity != null
                         && identity.matches("[0-9A-Fa-f]{12}") && (role == 0 || role == 1)) {
                     owner = new OwnerIdentityParser.Result(identity.toUpperCase(java.util.Locale.ROOT), role);
                     // The Ready screen shows this result itself.
                     message = "";
-                } else if (outcome == OwnerCaptureEngine.TIMED_OUT) message = "Nothing found in 90 s";
-                else if (outcome == OwnerCaptureEngine.CONFLICT) message = "Several scooters. Connect one.";
-                else if (outcome == OwnerCaptureEngine.BUSY) message = "Another capture is running";
-                else if (outcome == OwnerCaptureEngine.UNREADABLE) message = "Volt couldn't read NAVEE's log";
-                else if (outcome == OwnerCaptureEngine.CANCELLED || wasCancelled) message = "Stopped";
-                else message = "Capture failed";
+                } else if (outcome == OwnerCaptureEngine.TIMED_OUT) message = NOTHING_FOUND;
+                else if (outcome == OwnerCaptureEngine.CONFLICT) message = SEVERAL_SCOOTERS;
+                else if (outcome == OwnerCaptureEngine.BUSY) message = CAPTURE_BUSY;
+                else if (outcome == OwnerCaptureEngine.UNREADABLE) message = LOG_UNREADABLE;
+                else if (outcome == OwnerCaptureEngine.CANCELLED || wasCancelled) message = STOPPED;
+                else message = CAPTURE_FAILED;
                 unbind(); changed();
             });
         }
     };
-    private void cleanResultFailure() { message = "Restore logging again"; }
+    private void cleanResultFailure() { message = RESTORE_AGAIN; }
     void cancel() {
         owner = null; sessionCancelled = true;
         if (busy) {
-            phase = OwnerCaptureEngine.CLEANING; message = "Restoring NAVEE…";
+            phase = OwnerCaptureEngine.CLEANING; message = RESTORING;
             if (remote != null) {
                 try { remote.cancel(token); } catch (Exception ignored) { lost(); }
             } else {
                 discardUnsentJournal(); busy = false; phase = 0;
-                message = "Stopped";
+                message = STOPPED;
                 unbind();
             }
         }
@@ -198,7 +222,7 @@ final class ShizukuCaptureClient {
     private void lost() {
         discardUnsentJournal();
         remote = null; busy = false; owner = null;
-        message = pendingCleanup() ? "Shizuku lost. Restore logging." : "Shizuku stopped";
+        message = pendingCleanup() ? LOST : SHIZUKU_STOPPED;
         unbind(); changed();
     }
     private void unbind() {

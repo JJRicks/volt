@@ -3,3 +3,7 @@
 # G5: the parser's refusals, the engine's conflict hand-off and the capture client's status lines,
 # pinned before the batch.
 tests/l10n/characterization/OwnerSetupTextTest.java
+# B6's own suite: the status lines' and refusals' English ids against what the screens show.
+src/com/jjricks/volt/ShizukuStatus.java
+src/com/jjricks/volt/SetupException.java
+tests/l10n/OwnerSetupTest.java
