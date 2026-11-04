@@ -6,3 +6,6 @@ tests/l10n/characterization/BackupPlanLinesTest.java
 # The engine's refusals carry a Msg (getMessage() stays English); RideArchive, AppDataArchive and the
 # backup classes that tests/run.sh compiles throw it.
 src/com/jjricks/volt/BackupException.java
+# B10's own suite: review messages against their English lines, approvals across languages,
+# BackupException's codes and English getMessage(), and the category labels.
+tests/l10n/BackupEngineTextTest.java
