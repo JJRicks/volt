@@ -1,2 +1,5 @@
 location	pieces	key	kind	note
 src/com/jjricks/volt/DisplayUnits.java:14	["km/h"]	units_kmh	id-kept	the speed-unit compare moves onto B1's UnitCode.KMH (same value, matches is code.equals); the line now shows feature.valueText
+src/com/jjricks/volt/BleController.java:853	["The test is still running."]	compat_f2_test_still_running	exact	the review a running try or test gives (shown on the unfinished card and as the Restore notice); Review.text keeps the English for the event log
+src/com/jjricks/volt/CompatibilityPanel.java:283	["Absent"]	compat_f2_field_absent	exact	manual: one branch of the Fields group value ternary (absent, the number, or present); the compatibility report keeps its own English
+src/com/jjricks/volt/CompatibilityPanel.java:283	["Present"]	compat_f2_field_present	exact	manual: the other text branch of the same ternary; the numeric branch is Integer.toString, unchanged
