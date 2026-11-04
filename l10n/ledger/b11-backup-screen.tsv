@@ -55,7 +55,7 @@ src/com/jjricks/volt/BackupActivity.java:280	["Save failed. Try another place."]
 src/com/jjricks/volt/BackupActivity.java:281	["Backup saved."]	backup_saved	exact	
 src/com/jjricks/volt/BackupActivity.java:286	["Backup password"]	backup_password_hint	exact	
 src/com/jjricks/volt/BackupActivity.java:287	["Open backup"]	backup_open	exact	
-src/com/jjricks/volt/BackupActivity.java:289	["Choose another file"]	backup_choose_another	exact	Ui.secondaryButton takes a String; relabel labels the button again by its tag
+src/com/jjricks/volt/BackupActivity.java:289	["Choose another file"]	backup_choose_another	exact	Ui.secondaryButton takes a String; relabel finds the button again by its content description (M.backupChooseAnother())
 src/com/jjricks/volt/BackupActivity.java:289	["Choose another file"]	backup_choose_another	exact	
 src/com/jjricks/volt/BackupActivity.java:295	["Use at least 8 characters."]	backup_password_short	exact	
 src/com/jjricks/volt/BackupActivity.java:296	["Checking backup…"]	backup_checking_backup	exact	

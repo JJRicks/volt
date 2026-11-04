@@ -180,7 +180,9 @@
     <string name="backup_destination_for" volt:screen="Restore scooters" volt:purpose="spoken label">Destination for %1$s</string>
     <!-- Read by a screen reader for the list: %1$s is the backup scooter's name, %2$s the chosen item. -->
     <string name="backup_destination_for_choice" volt:screen="Restore scooters" volt:purpose="spoken label">Destination for %1$s: %2$s</string>
-    <!-- Every backup scooter can only be skipped: there is no scooter on this phone to receive it. -->
+    <!-- Every backup scooter can only be skipped: there is no scooter on this phone to receive it. "Scooters" names the
+         category shown as backup_engine_category_scooters ("Scooters & setup keys"): use the words that category's
+         translation starts with, so the owner can find it in the list above. -->
     <string name="backup_scooter_first" volt:screen="Restore scooters" volt:purpose="note">Include Scooters or set up a scooter first.</string>
     <!-- The button that opens the review of the restore. -->
     <string name="backup_review_button" volt:screen="Restore scooters" volt:purpose="button">Review</string>
