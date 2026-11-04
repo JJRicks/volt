@@ -6,10 +6,12 @@ import json
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import expressions  # noqa: E402
 import extract  # noqa: E402
+import gen_catalog  # noqa: E402
 import ledger_check  # noqa: E402
 from repo_fixture import TempRepo, java_class  # noqa: E402
 
@@ -97,6 +99,11 @@ class RepoCase(unittest.TestCase):
     FILES = {UI: BASE_UI}
 
     def setUp(self):
+        # The fixture's rides_count ("%1$d ride" / "%1$d rides") is safe only once AndroidText picks default English
+        # items by English rules; LedgerRepoTest.test_differing_plural_items_wait_for_the_runtime_fix covers today.
+        patcher = mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, True, create=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
         self.repo = TempRepo()
         for path, text in self.FILES.items():
             self.repo.write(path, text)
@@ -129,6 +136,13 @@ class LedgerRepoTest(RepoCase):
         for literal in ('"Move "', '" to the top"', '"Cancel"', '" ride"', '" rides"'):
             self.assertIn(literal, text)
         self.assertIn("5 literal(s) left 1 src file(s)", summary)
+
+    def test_differing_plural_items_wait_for_the_runtime_fix(self):
+        # Review round 2 of gates 3b: on a ru phone at 21 Android serves "one" ("21 ride"), base printed "21 rides".
+        with mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, False, create=True):
+            problems, _, _ = self.check(ROWS)
+        self.assertEqual(len(problems), 1, problems)
+        self.assertIn("plural rides_count's English one and other items differ", problems[0])
 
     def test_complete_ledger_passes(self):
         problems, warnings, summary = self.check(ROWS)

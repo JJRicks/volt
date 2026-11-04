@@ -6,9 +6,11 @@ Each form is allowed only in its exact shape and listed for the reviewer; the ca
 import os
 import sys
 import unittest
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import ledger_check  # noqa: E402
+import gen_catalog  # noqa: E402
 from repo_fixture import TempRepo, java_class  # noqa: E402
 
 HEADER = "\t".join(ledger_check.HEADER) + "\n"
@@ -585,6 +587,14 @@ class HelperPluralTest(GrammarCase):
 </plurals></resources>
 """
 
+    def setUp(self):
+        super().setUp()
+        # These tests model the helper as if AndroidText already picked default English items by English rules
+        # (the runtime track); DeviceRulesTest below covers this branch, where it does not.
+        patcher = mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, True, create=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
     def convert(self):
         self.edit(ARCHIVE, '"Readings for " + plural(skipped, "scooter") + " skipped · not restored"',
                   "T.backupReadingsSkipped(skipped, skipped)")
@@ -645,6 +655,95 @@ class HelperPluralTest(GrammarCase):
             with self.assertRaises(ledger_check.LedgerError) as caught:
                 ledger_check.parse_ledger(HEADER + row + "\n")
             self.assertIn(needle, str(caught.exception))
+
+
+class NounLocalTest(GrammarCase):
+    """Review round 2: a noun picked by a ternary on an earlier line (BackupArchive 710-714) has no row yet; the
+    whole-sentence conversion fails, both as a choice row and as a helper with a hole for the noun."""
+    FILES = {ARCHIVE: java_class("BackupArchive", """    static void plan(java.util.List<String> lines, boolean charges, int notRestored) {
+        String noun = charges ? "charge" : "ride";
+        if (notRestored > 0) lines.add(plural(notRestored, noun) + " skipped · scooter not restored");
+    }
+    """ + HELPER_BODY)}
+    STRINGS = """<resources>
+<plurals name="charges_not_restored"><item quantity="one">%1$d charge skipped · scooter not restored</item>
+<item quantity="other">%1$d charges skipped · scooter not restored</item></plurals>
+<plurals name="rides_not_restored"><item quantity="one">%1$d ride skipped · scooter not restored</item>
+<item quantity="other">%1$d rides skipped · scooter not restored</item></plurals>
+</resources>
+"""
+
+    def setUp(self):
+        super().setUp()
+        patcher = mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, True, create=True)
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def test_the_whole_sentence_conversion_has_no_row(self):
+        import json
+        self.edit(ARCHIVE, 'lines.add(plural(notRestored, noun) + " skipped · scooter not restored")',
+                  "lines.add(charges ? T.chargesNotRestored(notRestored, notRestored) : "
+                  "T.ridesNotRestored(notRestored, notRestored))")
+        count = {"hole": "notRestored", "arg": 1, "type": "d", "quantity": True}
+        form = [{"helper": "plural", "model": "count_noun", "args": [count, {"hole": "noun", "arg": 2, "type": "s"}]},
+                " skipped · scooter not restored"]
+        row = ARCHIVE + ":6\t%s\tcharges_not_restored\tplural\t" % json.dumps({"one": form, "other": form},
+                                                                                ensure_ascii=False)
+        problems = self.check([row])[0]
+        self.assertTrue(any("charges_not_restored[one] at quantity 1 renders '1 charge skipped" in p and
+                            "but the base expression prints '1 \\x01B skipped" in p for p in problems), problems)
+        branch = {"one": [count, " charge skipped"], "other": [count, " charges skipped"]}
+        choice = ARCHIVE + ":6\t%s\tcharges_not_restored,rides_not_restored\tchoice\t" % json.dumps(
+            {"if": "charges", "then": branch, "else": branch})
+        with self.assertRaises(ledger_check.LedgerError):
+            ledger_check.parse_ledger(HEADER + choice + "\n")
+
+
+class DeviceRulesTest(GrammarCase):
+    """Review round 2: AndroidText.plural is resources.getQuantityString, which picks the item by the phone's first
+    locale. A ru phone at 21 picks "one" ("Readings for 21 scooter"), a fr or pt phone at 0 picks "one" ("0
+    setting"), so a plural key whose English items differ changes English there until the runtime fix lands."""
+    FILES = HelperPluralTest.FILES
+    STRINGS = HelperPluralTest.STRINGS
+    convert = HelperPluralTest.convert
+
+    def test_the_honest_helper_row_waits_for_the_runtime_fix(self):
+        self.assertFalse(hasattr(gen_catalog, ledger_check.PLURAL_RULES_FLAG),
+                         "gen_catalog declares the flag: update this test and the README")
+        self.convert()
+        problems, _ = self.assertFails([readings()], "English one and other items differ")
+        self.assertTrue(any("Russian phone at 21" in p and ledger_check.PLURAL_RULES_FLAG in p for p in problems), problems)
+
+    def test_only_true_lifts_it(self):
+        self.convert()
+        for value in (False, None, 1, "yes"):
+            with self.subTest(value=value), mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, value,
+                                                              create=True):
+                self.assertFails([readings()], "English one and other items differ")
+        with mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, True, create=True):
+            self.assertEqual(self.check([readings()])[0], [])
+
+    def test_a_plain_plural_whose_items_differ_fails_in_g1(self):
+        # Without a helper the forms equal the one base expression; a %d template G1 cannot render was G2's alone.
+        self.repo.write(ARCHIVE, java_class("BackupArchive", """    static String plan(int skipped) {
+        return skipped + " skipped";
+    }
+"""))
+        self.repo.write("res/values/strings_test.xml", "")
+        self.base = self.repo.commit("plain")
+        self.repo.write("res/values/strings_test.xml", """<resources><plurals name="backup_skipped">
+    <item quantity="one">%1$d skipped</item>
+    <item quantity="other">%1$d skipped</item>
+</plurals></resources>
+""")
+        self.edit(ARCHIVE, 'skipped + " skipped"', "T.backupSkipped(skipped, skipped)")
+        form = [{"hole": "skipped", "arg": 1, "type": "d", "quantity": True}, " skipped"]
+        import json
+        row = ARCHIVE + ":5\t%s\tbackup_skipped\tplural\t" % json.dumps({"one": form, "other": form})
+        self.assertEqual(self.check([row])[0], [])
+        self.repo.write("res/values/strings_test.xml", self.text("res/values/strings_test.xml").replace(
+            "%1$d skipped</item>\n    <item quantity=\"other\">", "%1$d skip</item>\n    <item quantity=\"other\">"))
+        self.assertFails([row], "English one and other items differ")
 
 
 if __name__ == "__main__":
