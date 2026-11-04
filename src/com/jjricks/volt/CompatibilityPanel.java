@@ -140,7 +140,7 @@ final class CompatibilityPanel {
         List<TestJournal.Entry> open=ble.unresolvedTests();
         for(TestJournal.Entry e:open)unfinished(ble,e);
         int elsewhere=ble.unresolvedTestsElsewhere();
-        if(elsewhere>0)root.addView(note(T.compatTestsElsewhere(elsewhere,elsewhere)));
+        if(elsewhere>0)root.addView(note(elsewhere==1?T.compatTestElsewhereOne():T.compatTestsElsewhere(elsewhere)));
         for(TestJournal.Entry e:ble.orphanedTests())orphaned(ble,e);
         // An unreadable journal may hide an unfinished test, so say so whether or not a scooter is connected.
         if(!ble.testRecordsHealthy())root.addView(note(T.compatTestRecordsUnavailable()));
@@ -292,7 +292,7 @@ final class CompatibilityPanel {
     private String age(StatusFields s){
         long ms=android.os.SystemClock.elapsedRealtime()-s.observedMs();
         if(ms<0)return T.compatAgeJustNow();long minutes=ms/60000;
-        return minutes<1?T.compatAgeUnderMinute():T.compatAgeMinutes(minutes,minutes);
+        return minutes<1?T.compatAgeUnderMinute():minutes==1?T.compatAgeOneMinute():T.compatAgeMinutes(minutes);
     }
     static String readName(int cmd){
         switch(cmd){
