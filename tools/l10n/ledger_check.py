@@ -2515,10 +2515,11 @@ def exception_retype(types, path, diff, base_span, head_span):
     if ids:
         lo, hi = min(min(ids), h_at), max(max(ids), h_at)
         id_tokens.update(range(h_spans[lo][0], h_spans[hi][1] + 1))
-    warning = ("%s: %s extends %s (%s), so a catch of %s still catches it, and getMessage() stays the English text "
+    via = "" if len(chain) == 1 else " (%s)" % " extends ".join([d.name for d in chain] + [old])
+    warning = ("%s: %s extends %s%s, so a catch of %s still catches it, and getMessage() stays the English text "
                "through %s%s; check by hand that nothing shows or logs the exception itself (toString(), "
                "String.valueOf(e), \"\" + e or a stack trace print the new class name %s) or compares its class" % (
-                   what, new, old, " extends ".join([d.name for d in chain] + [old]), old, "; ".join(constructors),
+                   what, new, old, via, old, "; ".join(constructors),
                    "; constant argument(s) " + ", ".join("`%s`" % _excerpt(head_tokens[h_spans[n][0]:h_spans[n][1] + 1], None)
                                                         for n in ids) if ids else "", new))
     return None, (range(b_first, b_last + 1), range(h_first, h_last + 1), id_tokens, warning)
