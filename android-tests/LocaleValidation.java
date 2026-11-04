@@ -35,8 +35,8 @@ import com.jjricks.volt.ScooterService;
 
 /**
  * Pseudo-locale layout checks (plan section 6.2), skeleton: B0b walks the five main pages and the More
- * sections; later batches add the sheets, onboarding, BackupActivity and ShizukuSetupActivity. Report
- * only during the migration: the result is PASS whenever the walk completes, and the findings are counted
+ * sections, B17 the setup pages; later batches add the sheets, BackupActivity and ShizukuSetupActivity.
+ * Report only during the migration: the result is PASS whenever the walk completes, and the findings are counted
  * in the result bundle and listed in locale-validation/<variant>-report.txt. Needs the pseudo APK
  * (VOLT_PSEUDO_LOCALES=1 build.sh) and API 33 or later; with the release APK it says the pseudo resources
  * did not resolve.
@@ -52,6 +52,9 @@ import com.jjricks.volt.ScooterService;
  */
 public final class LocaleValidation extends Instrumentation {
     private static final String[] PAGES = {"home", "stats", "controls", "rides", "more"};
+    /** OnboardingScreen's steps WELCOME (0) to DONE (10), in order, as screenshot labels. */
+    private static final String[] SETUP_STEPS = {"welcome", "path", "prepare", "usb", "computer", "helper",
+            "import", "identity", "nearby", "connect", "done"};
     private static final String[] MORE_SECTIONS = {"App", "Scooters", "Security", "Lab", "Data", "About", "Developer"};
     private static final Pattern PSEUDO_GROUP = Pattern.compile("\\[[^\\[\\]]*\\]");
     private static final Pattern PLAIN_WORD = Pattern.compile("[A-Za-z]{2,}");
@@ -98,6 +101,7 @@ public final class LocaleValidation extends Instrumentation {
                 check("more-" + section.toLowerCase(Locale.ROOT));
             }
             main(() -> invoke(field(activity, "screen"), "selectSection", new Class<?>[]{String.class}, "")); settle();
+            walkSetup();
             writeReport();
             result.putString("result", "PASS");
         } catch (Throwable error) {
@@ -110,6 +114,28 @@ public final class LocaleValidation extends Instrumentation {
             if (activity != null) try { main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); } catch (Throwable ignored) { }
             if (localeSet) try { setLocale(""); } catch (Throwable ignored) { }
             finish("PASS".equals(result.getString("result")) ? 0 : 1, result);
+        }
+    }
+
+    /**
+     * B17: every setup page on the computer-capture route, opened as "Run setup again" resumes them
+     * (the saved step, then a rebuild), so no button is tapped and nothing connects or imports. Setup is
+     * marked done again afterwards.
+     */
+    private void walkSetup() throws Exception {
+        try {
+            for (int step = 0; step < SETUP_STEPS.length; step++) {
+                final int saved = step;
+                require(getTargetContext().getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE).edit().clear()
+                        .putBoolean("rerun", true).putInt("step", saved).putString("path", "capture").commit(), "Setup fixture failed");
+                main(() -> activity.rebuild()); settle();
+                require(field(activity, "onboarding") != null, "setup did not open at step " + saved);
+                check("setup-" + SETUP_STEPS[step]);
+            }
+        } catch (Exception error) {
+            throw new IllegalStateException("Setup walk: " + error.getMessage(), error);
+        } finally {
+            main(() -> { OnboardingScreen.markDone(getTargetContext()); activity.rebuild(); }); settle();
         }
     }
 
