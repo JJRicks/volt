@@ -9,6 +9,8 @@ import java.util.List;
 /** Stable, named dashboard shortcuts. IDs never contain commands or arbitrary navigation targets. */
 public final class QuickAccessActions {
     public static final int MIN_ITEMS = 2, MAX_ITEMS = 8;
+    /** A scooter control's shortcut id is this prefix plus its ScooterCommands.Feature key (data, never shown). */
+    public static final String FEATURE_PREFIX = "feature:";
     public static final class Entry {
         /** label and group stay the English (search, older screens); label(), shortLabel() and groupLabel() are shown. */
         public final String id, label, icon, group, featureKey;
@@ -93,7 +95,7 @@ public final class QuickAccessActions {
         add("charge_done_by", M.dashboardModelQaChargeDoneBy(), "clock", M.controlsGroupBattery(), null);
         add("charge_done_time", M.dashboardModelQaChargeDoneTime(), "clock", M.controlsGroupBattery(), null);
         for (ScooterCommands.Feature feature : ScooterCommands.catalog())
-            add("feature:" + feature.key, feature.label(), icon(feature.key),
+            add(FEATURE_PREFIX + feature.key, feature.label(), icon(feature.key),
                     feature.experimental ? M.dashboardModelQaGroupExperimental() : feature.groupLabel(), feature.key);
     }
     private QuickAccessActions() {}

@@ -19,6 +19,12 @@ final class QuickAccessGrid extends ViewGroup {
     private final ArrayList<Cell> cells = new ArrayList<>();
     private int budget, columns = 1, rowHeight, fittedWidth = -1, fittedBudget = -1;
     private boolean iconsOnly, tileLabels = true, tileCompact;
+    /** A value Volt cannot show (not on this model, not read yet): a dash in every language. */
+    private static final String NO_VALUE = "—";
+    /** No state to announce after the name. */
+    private static final String NO_STATE = "";
+    /** Shortcut ids (data) whose tiles take the Scooter page's shorter names. */
+    private static final String TOP_SPEED_ID = "feature:maximum_speed", CHARGE_SCHEDULE_ID = "feature:timed_charging";
 
     QuickAccessGrid(ScreenHost host, List<String> ids, boolean editing, Consumer<String> action) {
         this(host, ids, editing, action, false);
@@ -75,7 +81,7 @@ final class QuickAccessGrid extends ViewGroup {
             boolean unreadable = !unmapped && value != null && decision != null && feature.type == ScooterCommands.Type.CHOICE && !offers(decision, value);
             if (unreadable) value = null;
             String state = feature == null || feature.sensitive && !unmapped ? ""
-                    : unmapped ? "—" : pending ? T.dashboardModelTileUpdating() : value == null ? "—"
+                    : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
                     : DisplayUnits.featureValue(feature, value, units);
             if (feature != null && feature.key.equals("range_algorithm")) {
@@ -143,7 +149,7 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
             }
             cell.setEnabled(!editing);
-            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label()) + (state.isEmpty() ? "" : T.dashboardModelTileDescPart(state))
+            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
                     + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
@@ -426,8 +432,8 @@ final class QuickAccessGrid extends ViewGroup {
     }
     /** Setting tiles use short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
-        if ("feature:maximum_speed".equals(entry.id)) return T.dashboardModelTileTopSpeed();
-        if ("feature:timed_charging".equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
+        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.shortLabel().render();
     }
 }

@@ -64,3 +64,9 @@ src/com/jjricks/volt/QuickAccessGrid.java:151	[", toggle"]	dashboard_model_tile_
 src/com/jjricks/volt/QuickAccessGrid.java:151	[", open"]	dashboard_model_tile_desc_open	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:429	["Top speed"]	dashboard_model_tile_top_speed	exact	
 src/com/jjricks/volt/QuickAccessGrid.java:430	["Charge schedule"]	dashboard_model_tile_charge_schedule	exact	
+src/com/jjricks/volt/QuickAccessActions.java:62	["feature:", {"hole": "feature.key", "arg": 1, "type": "s"}]	-	stays-english	the shortcut id prefix (data in saved dashboards, never shown) moves into QuickAccessActions.FEATURE_PREFIX, same value; the move lets feature.label() and groupLabel() replace B4's English feature.label and feature.group beside it (listed for a hand check)
+src/com/jjricks/volt/QuickAccessGrid.java:78	["—"]	-	stays-english	the no-value dash (unmapped control) moves into NO_VALUE, same value in every language; beside it decision.oemLabel(value) becomes B4's decision.oemText(value).render() (listed for a hand check)
+src/com/jjricks/volt/QuickAccessGrid.java:78	["—"]	-	stays-english	the no-value dash (value not read) moves into NO_VALUE, same value in every language
+src/com/jjricks/volt/QuickAccessGrid.java:146	[""]	-	stays-english	the empty announcement part moves into NO_STATE (no text); beside it the quick grid's spoken name becomes cell.entry.label(), the name the cell shows (listed for a hand check)
+src/com/jjricks/volt/QuickAccessGrid.java:429	["feature:maximum_speed"]	-	stays-english	shortcut id (data) moves into TOP_SPEED_ID, same value; beside it the tile's fallback name becomes entry.shortLabel().render(), the short rung (listed for a hand check)
+src/com/jjricks/volt/QuickAccessGrid.java:430	["feature:timed_charging"]	-	stays-english	shortcut id (data) moves into CHARGE_SCHEDULE_ID, same value
