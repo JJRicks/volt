@@ -91,9 +91,9 @@
          LOW_CURRENT), shown as an orange chip. -->
     <string name="dashboard_low_current" volt:screen="Home charging cards" volt:purpose="status" volt:safety="charge">Low current</string>
     <!-- Name of the charging power cell. -->
-    <string name="dashboard_charging_power" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Charging power</string>
+    <string name="dashboard_charging_power" volt:screen="Home charging cards" volt:purpose="label" volt:ladder="full" volt:safety="charge">Charging power</string>
     <!-- The charging power cell's name when the cell is narrow. -->
-    <string name="dashboard_charging_power_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:safety="charge">Power</string>
+    <string name="dashboard_charging_power_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:ladder="compact" volt:safety="charge">Power</string>
     <!-- Name of the charging time cell. -->
     <string name="dashboard_time_to_full" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Time to full</string>
     <!-- The chip above the charging hero's battery level. -->
@@ -316,9 +316,14 @@
     </plurals>
 
     <!-- Quick settings widget options and the shortcut picker -->
-    <!-- How many shortcuts are chosen: %1$s of at most %2$s (whole numbers); spoken with "shortcuts". -->
+    <!-- How many shortcuts are chosen: %1$s of at most %2$s (whole numbers). -->
     <string name="dashboard_count_of" volt:screen="Quick settings widget options" volt:purpose="value">%1$s of %2$s</string>
-    <string name="dashboard_count_of_shortcuts" volt:screen="Quick settings widget options" volt:purpose="accessibility description">%1$s of %2$s shortcuts</string>
+    <!-- The same, spoken: %1$d shortcuts chosen of at most %2$d (4 or 12); a plural on the most (%2$d), so a
+         language can inflect "shortcuts" by it (English says "shortcuts" in both items). -->
+    <plurals name="dashboard_count_of_shortcuts" volt:screen="Quick settings widget options" volt:purpose="accessibility description">
+        <item quantity="one">%1$d of %2$d shortcuts</item>
+        <item quantity="other">%1$d of %2$d shortcuts</item>
+    </plurals>
     <!-- %1$s is the shortcut's place (1, 2, ...), %2$s its name. -->
     <string name="dashboard_change_shortcut" volt:screen="Quick settings widget options" volt:purpose="accessibility description">Change shortcut %1$s, %2$s</string>
     <!-- %1$s is a shortcut's name. -->
@@ -340,11 +345,16 @@
     <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
     <!-- A dialog's or slot's Save button. -->
     <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>
-    <!-- A time window chip: %1$s is a whole number of minutes, hours or days; one year and two years have their own. -->
+    <!-- A time window chip: %1$s is a whole number of minutes or hours; one day, one year and two years have their own. -->
     <string name="dashboard_window_minutes" volt:screen="Widget options" volt:purpose="choice">%1$s min</string>
     <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>
     <string name="dashboard_window_one_day" volt:screen="Widget options" volt:purpose="choice">1 day</string>
-    <string name="dashboard_window_days" volt:screen="Widget options" volt:purpose="choice">%1$s days</string>
+    <!-- A time window chip of more than one day: %1$d is the number of days (7, 30, 90 or 180); a plural so a
+         language can inflect "days" by the number. One day has its own key, so English says "days" in both items. -->
+    <plurals name="dashboard_window_days" volt:screen="Widget options" volt:purpose="choice">
+        <item quantity="one">%1$d days</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
     <string name="dashboard_window_one_year" volt:screen="Widget options" volt:purpose="choice">1 year</string>
     <string name="dashboard_window_two_years" volt:screen="Widget options" volt:purpose="choice">2 years</string>
     <!-- The advertised capacity row before a value is set. -->

@@ -11,8 +11,11 @@ import java.util.Locale;
  *    drive mode, charging hero, battery overview, shortcut, Add widget, slot and duration choices
  *    renders what the base's chain printed, over live and stale readings, missing parts and empty
  *    status text.
- *  - Plurals (manual rows): dashboard_battery_percent and dashboard_selected_count print the base's
- *    "Battery N percent" and "N selected" for counts 0, 1, 2, 5, 21 and 100.
+ *  - Plurals (manual rows): dashboard_battery_percent, dashboard_selected_count, dashboard_window_days
+ *    and dashboard_count_of_shortcuts print the base's "Battery N percent", "N selected", "N days" and
+ *    "N of M shortcuts" for counts 0, 1, 2, 5, 21 and 100.
+ *  - The reading pickers' names: ScooterReadingLabels.full() and group() are, in English, Telemetry's
+ *    label and group.
  *  - Format templates: the capacity widget's energy, rides, comparison and charge-per-gauge templates,
  *    fed Fmt.decimal and Fmt.integer, print the base's String.format(Locale.US, ...) byte for byte under
  *    five phone locales.
@@ -151,6 +154,17 @@ public final class DashboardScreenTextTest {
         for (long n : new long[]{0, 1, 2, 5, 21, 100}) {
             same("Battery " + n + " percent", T.dashboardBatteryPercent(n, n), "battery percent " + n);
             same(n + " selected", T.dashboardSelectedCount(n, n), "selected " + n);
+            // shortWindow: days == 1 keeps "1 day"; every other count says "days".
+            same(n + " days", T.dashboardWindowDays(n, n), "window days " + n);
+            for (long most : new long[]{0, 1, 4, 12})
+                same(n + " of " + most + " shortcuts", T.dashboardCountOfShortcuts(most, n, most),
+                        "count of shortcuts " + n + "/" + most);
+        }
+        // The Choose parameter and Choose readings sheets show these display names; in English they
+        // are Telemetry's label and group, which the base showed and searched.
+        for (Telemetry.Metric m : new Telemetry().metrics()) {
+            same(m.label, ScooterReadingLabels.full(m.key, m.label), "picker name of " + m.key);
+            same(m.group, ScooterReadingLabels.group(m.group), "picker group of " + m.key);
         }
     }
 

@@ -1710,6 +1710,8 @@ public final class DashboardScreen implements AppScreen {
             String[] timeLabel = chargeTimeLabels(estimate, false);
             ((DashboardCaption) etaLabel).setLabels(timeLabel[0], timeLabel[1], timeLabel[2]);
             showChargeTime(eta, etaTag, estimate);
+            // Deferred (B5 follow-up): ChargingEstimate.Result.status has no Msg yet, so the spoken
+            // charge status stays English inside these templates (here and in describeCharging below).
             String time = etaTag.getVisibility() == View.VISIBLE
                     ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
                     : (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTime(timeLabel[0], eta.getText()) : T.dashboardHeroTimeStatus(timeLabel[0], eta.getText(), estimate.status));
@@ -3659,6 +3661,8 @@ public final class DashboardScreen implements AppScreen {
                             return;
                         }
                         if (!profileId.equals(result.profileId)) return;
+                        // Deferred (F1): ScooterService's unavailableReason is an English String with no
+                        // Msg yet, so it shows in English; only the local "no scooter" case is a Msg here.
                         if (result.unavailableReason != null) {
                             capacityUnavailable = result.unavailableReason;
                             if (hasCapacityValue()) {
@@ -3688,6 +3692,8 @@ public final class DashboardScreen implements AppScreen {
                         capacityValue.setTextColor(
                                 value == null ? ui.muted : proxy ? ui.orange : ui.text);
                         // The title and lab glyph say "experiment"; only the proxy keeps an honesty chip.
+                        // Deferred (B5 follow-up): BatteryCapacityEstimate.Result.label has no Msg yet, so
+                        // the chip, summary, bar description and details caveat show it in English.
                         styleTag(capacityMethod, proxy ? result.label : null, true);
                         if (value == null) {
                             // The bar becomes progress toward the points and rides one evidence group needs.
@@ -5257,7 +5263,7 @@ public final class DashboardScreen implements AppScreen {
             Map<String, Float> old = childPositions(rows);
             rows.removeAllViews();
             count.setText(T.dashboardCountOf(Fmt.integer(widget.quickActions.size()), Fmt.integer(most)));
-            count.setContentDescription(T.dashboardCountOfShortcuts(Fmt.integer(widget.quickActions.size()), Fmt.integer(most)));
+            count.setContentDescription(T.dashboardCountOfShortcuts(most, widget.quickActions.size(), most));
             for (String id : new ArrayList<>(widget.quickActions)) {
                 QuickAccessActions.Entry entry = QuickAccessActions.find(id);
                 LinearLayout line = row(); line.setGravity(Gravity.CENTER_VERTICAL);
@@ -5539,7 +5545,7 @@ public final class DashboardScreen implements AppScreen {
         long days = ms / 86400000;
         if (days == 365) return T.dashboardWindowOneYear();
         if (days == 730) return T.dashboardWindowTwoYears();
-        return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(Fmt.integer(days));
+        return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(days, days);
     }
 
     /**
@@ -5750,13 +5756,14 @@ public final class DashboardScreen implements AppScreen {
                     rows.removeAllViews();
                     String q = search.getText().toString().toLowerCase(Locale.ROOT);
                     for (Telemetry.Metric metric : metrics)
-                        if ((metric.label + metric.group + metric.key)
+                        if ((ScooterReadingLabels.full(metric.key, metric.label)
+                                        + ScooterReadingLabels.group(metric.group) + metric.key)
                                 .toLowerCase(Locale.ROOT)
                                 .contains(q)) {
                             LinearLayout row =
                                     ui.settingRow(
-                                            metric.label,
-                                            metric.group,
+                                            ScooterReadingLabels.full(metric.key, metric.label),
+                                            ScooterReadingLabels.group(metric.group),
                                             () -> {
                                                 widget.metric = metric.key;
                                                 changedWidget(widget);
@@ -5827,8 +5834,8 @@ public final class DashboardScreen implements AppScreen {
             item.addView(icon, new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
             LinearLayout words = column();
             words.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-            words.addView(ui.text(metric.label, 14, false));
-            TextView group = ui.caption(metric.group);
+            words.addView(ui.text(ScooterReadingLabels.full(metric.key, metric.label), 14, false));
+            TextView group = ui.caption(ScooterReadingLabels.group(metric.group));
             group.setPadding(0, ui.dp(3), 0, 0);
             words.addView(group);
             LinearLayout.LayoutParams wordsSize = new LinearLayout.LayoutParams(0, -2, 1);
@@ -6465,8 +6472,6 @@ public final class DashboardScreen implements AppScreen {
         DashboardConfig.SavedSlot saved = config.slot(index);
         boolean occupied = config.slotExists(index);
         String slotName = "Slot " + (index + 1);
-        String title = saved == null || saved.name.equals(slotName)
-                ? slotName : slotName + " · " + saved.name;
         LinearLayout card = sheetCard();
         card.setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
         TextView heading = ui.text(saved == null || saved.name.equals(slotName) ? DashboardConfig.defaultSlotName(index)
