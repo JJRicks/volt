@@ -22,6 +22,11 @@ public final class ChargeChartData {
     private static final String[] LABELS = {"Power", "Battery %", "Est. finish time", "Est. countdown time",
             "Voltage", "Current", "Temperature", "Est. finish at limit", "Est. countdown to limit",
             "Charge limit", "Observed finish", "Actual countdown"};
+    /** The legend names of LABELS from the catalog, by index: LABELS stays English (Series.label). */
+    private static final int[] LABEL_IDS = {T.READINGS_CHART_POWER, T.READINGS_CHART_BATTERY, T.READINGS_CHART_EST_FINISH,
+            T.READINGS_CHART_EST_COUNTDOWN, T.READINGS_CHART_VOLTAGE, T.READINGS_CHART_CURRENT, T.READINGS_CHART_TEMPERATURE,
+            T.READINGS_CHART_EST_FINISH_LIMIT, T.READINGS_CHART_EST_COUNTDOWN_LIMIT, T.READINGS_CHART_CHARGE_LIMIT,
+            T.READINGS_CHART_OBSERVED_FINISH, T.READINGS_CHART_ACTUAL_COUNTDOWN};
     private static final int[] COLORS = {0xffe69f00, 0xfff0e442, 0xff009e73, 0xff56b4e9,
             0xffcc79a7, 0xffd55e00, 0xff999999, 0xff87c89e, 0xff9582d0, 0xffb99c39,
             0xff0072b2, 0xffe5a6be};
@@ -75,18 +80,18 @@ public final class ChargeChartData {
         }
 
         // Estimated and observed versions of one quantity must share a scale to be comparable.
-        ChartScale.Range finishScale = range(FINISH, "Time", values.get(2), values.get(10));
-        ChartScale.Range countdownScale = range(COUNTDOWN, "min", values.get(3), values.get(11));
+        ChartScale.Range finishScale = range(FINISH, UnitCode.TIME.code, values.get(2), values.get(10));
+        ChartScale.Range countdownScale = range(COUNTDOWN, UnitCode.MINUTE.code, values.get(3), values.get(11));
         List<RideChartData.Series> result = new ArrayList<>();
         for (int i = 0; i < KEYS.length; i++) {
             checkCanceled();
             if (i >= 7 && i <= 9 && !lowerTarget) continue;
             if (i >= 10 && session.observedCompleteMono == null) continue;
-            String unit = i == 0 ? "W" : i == 1 || i == 9 ? "%" : i == 2 || i == 7 || i == 10 ? "Time"
-                    : i == 3 || i == 8 || i == 11 ? "min" : i == 4 ? "V" : i == 5 ? "A" : fahrenheit ? "°F" : "°C";
+            String unit = i == 0 ? UnitCode.WATT.code : i == 1 || i == 9 ? "%" : i == 2 || i == 7 || i == 10 ? UnitCode.TIME.code
+                    : i == 3 || i == 8 || i == 11 ? UnitCode.MINUTE.code : i == 4 ? UnitCode.VOLT.code : i == 5 ? UnitCode.AMP.code : fahrenheit ? UnitCode.FAHRENHEIT.code : UnitCode.CELSIUS.code;
             ChartScale.Range scale = i == 2 || i == 10 ? finishScale : i == 3 || i == 11 ? countdownScale
                     : range(KEYS[i], unit, values.get(i), Collections.emptyList());
-            result.add(new RideChartData.Series(KEYS[i], LABELS[i], unit, COLORS[i], i, values.get(i), scale));
+            result.add(new RideChartData.Series(KEYS[i], LABELS[i], LABEL_IDS[i], unit, COLORS[i], i, values.get(i), scale));
         }
         return Collections.unmodifiableList(result);
     }
@@ -101,14 +106,14 @@ public final class ChargeChartData {
             checkCanceled();
             if (value.value != null && Double.isFinite(value.value)) { low = Math.min(low, value.value); high = Math.max(high, value.value); }
         }
-        if (!Double.isFinite(low)) { low = 0; high = "Time".equals(unit) ? 60000 : 1; }
-        if ("Time".equals(unit)) {
+        if (!Double.isFinite(low)) { low = 0; high = UnitCode.TIME.matches(unit) ? 60000 : 1; }
+        if (UnitCode.TIME.matches(unit)) {
             // Constant finish times still need useful clock labels rather than millisecond ticks.
             double center = low / 2 + high / 2;
             double half = Math.max(30000, high / 2 - low / 2);
             return ChartScale.range(key, unit, false, center - half, center + half);
         }
-        if ("min".equals(unit)) return ChartScale.range(key, unit, true, 0, Math.max(1, high));
+        if (UnitCode.MINUTE.matches(unit)) return ChartScale.range(key, unit, true, 0, Math.max(1, high));
         return ChartScale.range(key, unit, "%".equals(unit), low, high);
     }
     private static void checkCanceled() {

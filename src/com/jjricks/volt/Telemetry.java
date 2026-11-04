@@ -40,6 +40,49 @@ public final class Telemetry {
     }
 
     private static final String RAW_SUFFIX = " (raw)";
+
+    // Groups: English ids that reports, history and Live Stats' section state keep. ScooterReadingLabels.group()
+    // shows them.
+    static final String GROUP_BATTERY = "Battery";
+    static final String GROUP_RIDE = "Ride";
+    static final String GROUP_SETTINGS = "Settings";
+    static final String GROUP_DEVICE = "Device";
+    static final String GROUP_DIAGNOSTICS = "Diagnostics";
+
+    // Stored values: canonical English that reports and history keep. displayValue() (ScooterReadingLabels.shown)
+    // shows each through the catalog when a reading holds exactly this text.
+    static final String IMPERIAL = "Imperial (0)";
+    static final String METRIC = "Metric (1)";
+    static final String NO_WARNING = "None (0)";
+    static final String WARNING_PREFIX = "Code ";
+    static final String BATTERY_NORMAL = "Normal (0)";
+    static final String BATTERY_ABNORMAL_PREFIX = "Abnormal; code ";
+    static final String UNLOCKED = "Unlocked (0)";
+    static final String LOCKED = "Locked (1)";
+    static final String NO_TRIPS = "No stored trips reported";
+    static final String EMPTY_RESPONSE = "Empty response";
+    static final String MISSING_STATUS = "Missing response status";
+    static final String EMPTY_SERIAL = "Empty serial value";
+    // stored_trips' note for a history format Volt cannot decode: UNKNOWN_FORMAT, the format byte,
+    // UNKNOWN_FORMAT_SEPARATOR, the record count and UNKNOWN_FORMAT_RECORDS.
+    static final String UNKNOWN_FORMAT = "Unknown history format ";
+    static final String UNKNOWN_FORMAT_SEPARATOR = "; ";
+    static final String UNKNOWN_FORMAT_RECORDS = " records (raw bytes available in export)";
+
+    // The unit text a stored quantity ends with: one space, then the unit's data code (UnitCode.code).
+    static final String SUFFIX_VOLT = " V";
+    static final String SUFFIX_AMP = " A";
+    static final String SUFFIX_WATT = " W";
+    static final String SUFFIX_CELSIUS = " °C";
+    static final String SUFFIX_WATT_HOUR = " Wh";
+    static final String SUFFIX_AMP_HOUR = " Ah";
+    static final String SUFFIX_KMH = " km/h";
+    static final String SUFFIX_KM = " km";
+    static final String SUFFIX_MINUTE = " min";
+    /** The reported range: a distance the scooter estimates, which Live Stats shows as a plain distance. */
+    static final String SUFFIX_RANGE = " km (estimate)";
+    static final String SUFFIX_CHARGES = " charges";
+    static final String SUFFIX_PERCENT = " %";
     private static final int[] READ_COMMANDS = {
         0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x79, 0x7b, 0x90, 0x91, 0x92
     };
@@ -91,67 +134,67 @@ public final class Telemetry {
     private Integer temperatureSignState;
 
     public Telemetry() {
-        define("Battery", "battery_percent", "Battery charge (%)");
-        define("Battery", "voltage_v", "Battery voltage");
-        define("Battery", "current_a", "Battery current (signed)");
-        define("Battery", "power_w", "Battery power (signed)");
-        define("Battery", "temperature_c", "Battery temperature");
-        define("Battery", "battery_health_percent", "Reported battery health");
-        define("Battery", "battery_status", "Battery status");
-        define("Battery", "charging_state", "Charging state (raw)");
-        define("Battery", "charge_cycles", "Reported charge count");
-        define("Battery", "energy_throughput_wh", "Energy counter (unverified)");
-        define("Battery", "capacity_throughput_ah", "Lifetime capacity throughput");
-        define("Battery", "deep_discharge", "Deep discharge counter");
-        define("Battery", "self_discharge_raw", "Self discharge rate (raw; unit unknown)");
-        define("Battery", "rated_capacity_ah", "Rated battery capacity");
-        define("Battery", "health_adjusted_capacity_ah", "Capacity estimate from reported health");
-        define("Battery", "battery_manufactured", "Battery manufacturing date");
-        define("Battery", "high_temperature_duration", "High temperature exposure");
-        define("Battery", "extreme_temperature_charge_raw", "Extreme-temperature charging duration (raw; unit unknown)");
-        define("Battery", "temperature_sign_state", "Temperature sign state (raw)");
-        define("Battery", "current_sign_state", "Current sign state (raw)");
+        define(GROUP_BATTERY, "battery_percent", "Battery charge (%)");
+        define(GROUP_BATTERY, "voltage_v", "Battery voltage");
+        define(GROUP_BATTERY, "current_a", "Battery current (signed)");
+        define(GROUP_BATTERY, "power_w", "Battery power (signed)");
+        define(GROUP_BATTERY, "temperature_c", "Battery temperature");
+        define(GROUP_BATTERY, "battery_health_percent", "Reported battery health");
+        define(GROUP_BATTERY, "battery_status", "Battery status");
+        define(GROUP_BATTERY, "charging_state", "Charging state (raw)");
+        define(GROUP_BATTERY, "charge_cycles", "Reported charge count");
+        define(GROUP_BATTERY, "energy_throughput_wh", "Energy counter (unverified)");
+        define(GROUP_BATTERY, "capacity_throughput_ah", "Lifetime capacity throughput");
+        define(GROUP_BATTERY, "deep_discharge", "Deep discharge counter");
+        define(GROUP_BATTERY, "self_discharge_raw", "Self discharge rate (raw; unit unknown)");
+        define(GROUP_BATTERY, "rated_capacity_ah", "Rated battery capacity");
+        define(GROUP_BATTERY, "health_adjusted_capacity_ah", "Capacity estimate from reported health");
+        define(GROUP_BATTERY, "battery_manufactured", "Battery manufacturing date");
+        define(GROUP_BATTERY, "high_temperature_duration", "High temperature exposure");
+        define(GROUP_BATTERY, "extreme_temperature_charge_raw", "Extreme-temperature charging duration (raw; unit unknown)");
+        define(GROUP_BATTERY, "temperature_sign_state", "Temperature sign state (raw)");
+        define(GROUP_BATTERY, "current_sign_state", "Current sign state (raw)");
 
-        define("Ride", "speed_kmh", "Live speed");
-        define("Ride", "remaining_range_km", "Scooter's estimated remaining range");
-        define("Ride", "trip_km", "Scooter's current trip distance");
-        define("Ride", "trip_minutes", "Scooter's current trip time");
-        define("Ride", "maximum_speed_kmh", "Current trip maximum speed");
-        define("Ride", "average_speed_kmh", "Current trip average speed");
-        define("Ride", "odometer_km", "Total odometer");
-        define("Ride", "driving_status", "Driving status (raw)");
-        define("Ride", "stored_trips", "Stored trips");
+        define(GROUP_RIDE, "speed_kmh", "Live speed");
+        define(GROUP_RIDE, "remaining_range_km", "Scooter's estimated remaining range");
+        define(GROUP_RIDE, "trip_km", "Scooter's current trip distance");
+        define(GROUP_RIDE, "trip_minutes", "Scooter's current trip time");
+        define(GROUP_RIDE, "maximum_speed_kmh", "Current trip maximum speed");
+        define(GROUP_RIDE, "average_speed_kmh", "Current trip average speed");
+        define(GROUP_RIDE, "odometer_km", "Total odometer");
+        define(GROUP_RIDE, "driving_status", "Driving status (raw)");
+        define(GROUP_RIDE, "stored_trips", "Stored trips");
 
-        for (String[] setting : SETTINGS) define("Settings", setting[0], setting[1]);
-        define("Settings", "settings_mode_raw", "Settings read mode byte (raw)");
-        define("Settings", "scheduled_charge_time_raw", "Scheduled charge time (raw timestamp)");
-        define("Settings", "charge_limit_percent", "Charge limit");
-        define("Settings", "low_power", "Low Battery Mode (raw)");
-        define("Settings", "timed_charging", "Timed charging setting (raw)");
-        define("Settings", "auto_lock_time", "Lock duration setting (raw)");
-        define("Settings", "speed_limit_eligibility", "Speed-limit eligibility flag (raw)");
-        define("Settings", "weather", "Weather setting (raw)");
-        define("Settings", "slope_assist", "Slope assistance setting (raw)");
-        define("Settings", "long_range_mode", "Long range setting (raw)");
-        define("Settings", "overspeed_control", "Overspeed control setting (raw)");
-        define("Settings", "overspeed_alert", "Overspeed alert setting (raw)");
-        define("Settings", "drive_speed_limit", "Drive speed limit setting (raw)");
+        for (String[] setting : SETTINGS) define(GROUP_SETTINGS, setting[0], setting[1]);
+        define(GROUP_SETTINGS, "settings_mode_raw", "Settings read mode byte (raw)");
+        define(GROUP_SETTINGS, "scheduled_charge_time_raw", "Scheduled charge time (raw timestamp)");
+        define(GROUP_SETTINGS, "charge_limit_percent", "Charge limit");
+        define(GROUP_SETTINGS, "low_power", "Low Battery Mode (raw)");
+        define(GROUP_SETTINGS, "timed_charging", "Timed charging setting (raw)");
+        define(GROUP_SETTINGS, "auto_lock_time", "Lock duration setting (raw)");
+        define(GROUP_SETTINGS, "speed_limit_eligibility", "Speed-limit eligibility flag (raw)");
+        define(GROUP_SETTINGS, "weather", "Weather setting (raw)");
+        define(GROUP_SETTINGS, "slope_assist", "Slope assistance setting (raw)");
+        define(GROUP_SETTINGS, "long_range_mode", "Long range setting (raw)");
+        define(GROUP_SETTINGS, "overspeed_control", "Overspeed control setting (raw)");
+        define(GROUP_SETTINGS, "overspeed_alert", "Overspeed alert setting (raw)");
+        define(GROUP_SETTINGS, "drive_speed_limit", "Drive speed limit setting (raw)");
 
-        define("Device", "meter_version", "Meter firmware");
-        define("Device", "controller_version", "Motor controller firmware");
-        define("Device", "battery_version", "Battery management firmware");
-        define("Device", "screen_version", "Screen firmware");
-        define("Device", "uwb_version", "Proximity firmware");
-        define("Device", "scooter_serial", "Scooter serial number");
-        define("Device", "battery_serial_raw", "Battery serial response (raw)");
+        define(GROUP_DEVICE, "meter_version", "Meter firmware");
+        define(GROUP_DEVICE, "controller_version", "Motor controller firmware");
+        define(GROUP_DEVICE, "battery_version", "Battery management firmware");
+        define(GROUP_DEVICE, "screen_version", "Screen firmware");
+        define(GROUP_DEVICE, "uwb_version", "Proximity firmware");
+        define(GROUP_DEVICE, "scooter_serial", "Scooter serial number");
+        define(GROUP_DEVICE, "battery_serial_raw", "Battery serial response (raw)");
 
-        define("Diagnostics", "warning_code", "Active warning code");
-        define("Diagnostics", "lock_push_warning", "Locked movement warning (raw)");
-        define("Diagnostics", "hide_e9", "E9 display flag (raw)");
-        define("Diagnostics", "ride_report_format", "Ride report format");
-        define("Diagnostics", "ride_read_raw", "Ride read acknowledgment (raw)");
-        define("Diagnostics", "fault_history_raw", "Fault history response (raw)");
-        for (int cmd : READ_COMMANDS) define("Diagnostics", statusKey(cmd), commandName(cmd));
+        define(GROUP_DIAGNOSTICS, "warning_code", "Active warning code");
+        define(GROUP_DIAGNOSTICS, "lock_push_warning", "Locked movement warning (raw)");
+        define(GROUP_DIAGNOSTICS, "hide_e9", "E9 display flag (raw)");
+        define(GROUP_DIAGNOSTICS, "ride_report_format", "Ride report format");
+        define(GROUP_DIAGNOSTICS, "ride_read_raw", "Ride read acknowledgment (raw)");
+        define(GROUP_DIAGNOSTICS, "fault_history_raw", "Fault history response (raw)");
+        for (int cmd : READ_COMMANDS) define(GROUP_DIAGNOSTICS, statusKey(cmd), commandName(cmd));
     }
 
     private void define(String group, String key, String label) {
@@ -171,7 +214,7 @@ public final class Telemetry {
         if (!isTelemetryCommand(cmd)) return; // Never retain credentials or PIN responses.
         if (dataWithStatus == null || dataWithStatus.length == 0) {
             responseStatuses.put(cmd, -1);
-            put(statusKey(cmd), "Missing response status", null, cmd, elapsedMs);
+            put(statusKey(cmd), MISSING_STATUS, null, cmd, elapsedMs);
             return;
         }
         rawFrames.put(cmd, dataWithStatus.clone());
@@ -201,7 +244,7 @@ public final class Telemetry {
             case 0x76: history(data, cmd, elapsedMs); break;
             case 0x79: signStates(data, cmd, elapsedMs); break;
             case 0x7b:
-                put("fault_history_raw", data.length == 0 ? "Empty response" : hex(data),
+                put("fault_history_raw", data.length == 0 ? EMPTY_RESPONSE : hex(data),
                         null, cmd, elapsedMs);
                 break;
             case 0x90: home(data, cmd, elapsedMs); break;
@@ -255,13 +298,19 @@ public final class Telemetry {
     /**
      * Short Live Stats wording for a stored value. Stored values, history and exports keep
      * their full text (codes, "(raw)", "(estimate)"), so Diagnostics still has them.
+     *
+     * Display text only, never stored, sent or compared. Telemetry is data tier (plan section 4.1), so
+     * the number formatting for a shipped language lives in {@link ScooterReadingLabels#shown}; the
+     * words below stay here only because their catalog calls must sit where the English was.
      */
     public static String displayValue(String key, String value, Double number) {
         if (value == null || key == null) return value;
+        String shown = ScooterReadingLabels.shown(key, value, number, Locale.US);
+        if (shown != null) return shown;
         switch (key) {
             case "remaining_range_km": value = value.replace(" km (estimate)", " km"); break;
             case "ride_read_raw":
-                if (value.startsWith("Acknowledged;")) return "Acknowledged";
+                if (value.startsWith("Acknowledged;")) return T.readingsValueAcknowledged();
                 break;
             case "ride_report_format":
                 if (value.startsWith("v1:")) return "v1";
@@ -271,12 +320,12 @@ public final class Telemetry {
                 if (value.startsWith("Unknown history format ")) {
                     String rest = value.substring("Unknown history format ".length());
                     int records = rest.indexOf(" records");
-                    return records < 0 ? value : "Unknown format " + rest.substring(0, records)
-                            .replace("; ", " · ") + " records";
+                    return records < 0 ? value : T.readingsValueUnknownFormat(rest.substring(0, records)
+                            .replace("; ", " · "));
                 }
                 if (number != null && number >= 1 && value.startsWith("Trip ")) {
                     long trips = Math.round(number);
-                    return trips + (trips == 1 ? " trip" : " trips");
+                    return T.readingsValueTrips(trips, trips);
                 }
                 break;
             case "display_units": case "warning_code": case "battery_status": case "lock_status":
@@ -287,6 +336,7 @@ public final class Telemetry {
         }
         return value.endsWith(RAW_SUFFIX) ? value.substring(0, value.length() - RAW_SUFFIX.length()) : value;
     }
+
 
     /** Defensive copies of the latest accepted read/report payloads, INCLUDING response status. */
     public synchronized Map<Integer, byte[]> frames() {
@@ -324,8 +374,8 @@ public final class Telemetry {
             int value = data[i] & 255;
             if (i == 1) { raw("settings_mode_raw", value, cmd, time); if (!homeMode) raw("driving_mode", value, cmd, time); }
             else if (i == 2) lock(value, cmd, time);
-            else if (i == 7) put("display_units", value == 0 ? "Imperial (0)"
-                    : value == 1 ? "Metric (1)" : value + " (raw)", (double) value, cmd, time);
+            else if (i == 7) put("display_units", value == 0 ? IMPERIAL
+                    : value == 1 ? METRIC : value + " (raw)", (double) value, cmd, time);
             else raw(SETTINGS[i][0], value, cmd, time);
         }
         if (has(data, 27, 4)) raw("scheduled_charge_time_raw", unsigned(data, 27, 4, true), cmd, time);
@@ -349,15 +399,15 @@ public final class Telemetry {
             refreshSignedReadings();
         }
         if (has(data, 12, 1)) raw("charging_state", data[12] & 255, cmd, time);
-        measured(data, 13, 2, false, "charge_cycles", 1, " charges", 0, cmd, time);
-        measured(data, 15, 3, true, "energy_throughput_wh", 1, " Wh", 0, cmd, time);
-        measured(data, 18, 2, true, "capacity_throughput_ah", 1, " Ah", 0, cmd, time);
+        measured(data, 13, 2, false, "charge_cycles", 1, SUFFIX_CHARGES, 0, cmd, time);
+        measured(data, 15, 3, true, "energy_throughput_wh", 1, SUFFIX_WATT_HOUR, 0, cmd, time);
+        measured(data, 18, 2, true, "capacity_throughput_ah", 1, SUFFIX_AMP_HOUR, 0, cmd, time);
         measured(data, 20, 2, true, "deep_discharge", 1, "", 0, cmd, time);
         if (has(data, 22, 1)) raw("self_discharge_raw", data[22] & 255, cmd, time);
-        measured(data, 23, 2, true, "rated_capacity_ah", 100, " Ah", 2, cmd, time);
+        measured(data, 23, 2, true, "rated_capacity_ah", 100, SUFFIX_AMP_HOUR, 2, cmd, time);
         if (has(data, 23, 2) && has(data, 10, 1) && (data[10] & 255) <= 100) {
             double capacity = unsigned(data, 23, 2, true) * (data[10] & 255) / 10000.0;
-            quantity("health_adjusted_capacity_ah", capacity, " Ah", 2, cmd, time);
+            quantity("health_adjusted_capacity_ah", capacity, SUFFIX_AMP_HOUR, 2, cmd, time);
         }
         if (has(data, 25, 3)) {
             int year = data[25] & 255, month = data[26] & 255, day = data[27] & 255;
@@ -386,7 +436,7 @@ public final class Telemetry {
             voltageCmd = cmd;
             voltageMs = time;
             voltageBatch = batch;
-            quantity("voltage_v", rawVoltage / 1000.0, " V", 3, cmd, time);
+            quantity("voltage_v", rawVoltage / 1000.0, SUFFIX_VOLT, 3, cmd, time);
         }
         if (has(data, currentOffset, 4) && time >= currentMs
                 && (!zeroMeansUnavailable || suppliedVoltage
@@ -402,15 +452,15 @@ public final class Telemetry {
     private void refreshSignedReadings() {
         if (rawCurrent != null) {
             double amps = signedMagnitude(rawCurrent, 0x80000000L, currentSignState) / 1000.0;
-            quantity("current_a", amps, " A", 3, currentCmd, currentMs);
+            quantity("current_a", amps, SUFFIX_AMP, 3, currentCmd, currentMs);
             // Do not combine measurements from different reports into a new power reading.
             if (rawVoltage != null && voltageBatch == currentBatch) {
-                quantity("power_w", rawVoltage / 1000.0 * amps, " W", 1, currentCmd, currentMs);
+                quantity("power_w", rawVoltage / 1000.0 * amps, SUFFIX_WATT, 1, currentCmd, currentMs);
             }
         }
         if (rawTemperature != null) {
             quantity("temperature_c", signedMagnitude(rawTemperature, 0x80L, temperatureSignState),
-                    " °C", 0, temperatureCmd, temperatureMs);
+                    SUFFIX_CELSIUS, 0, temperatureCmd, temperatureMs);
         }
     }
 
@@ -434,7 +484,7 @@ public final class Telemetry {
     private void home(byte[] data, int cmd, long time) {
         if (has(data, 0, 1)) {
             int warning = data[0] & 255;
-            put("warning_code", warning == 0 ? "None (0)" : "Code " + warning,
+            put("warning_code", warning == 0 ? NO_WARNING : WARNING_PREFIX + warning,
                     (double) warning, cmd, time);
         }
         if (has(data, 1, 1)) { homeMode = true; raw("driving_mode", data[1] & 255, cmd, time); }
@@ -442,7 +492,7 @@ public final class Telemetry {
         if (has(data, 3, 1)) batteryStatus(data[3] & 255, cmd, time);
         if (has(data, 4, 1)) raw("charging_state", data[4] & 255, cmd, time);
         if (has(data, 5, 1)) raw("lock_push_warning", data[5] & 255, cmd, time);
-        measured(data, 6, 1, false, "remaining_range_km", 1, " km (estimate)", 0, cmd, time);
+        measured(data, 6, 1, false, "remaining_range_km", 1, SUFFIX_RANGE, 0, cmd, time);
         // Report0 means 'not supplied'. 1/2 correspond to unlocked/locked.
         if (has(data, 7, 1) && (data[7] & 255) > 0) lock((data[7] & 255) - 1, cmd, time);
         // All-zero electrical fields in the optional home report mean absent. A valid
@@ -457,24 +507,24 @@ public final class Telemetry {
         if (has(data, 0, 1)) percent("battery_percent", data[0] & 255, cmd, time);
         if (has(data, 1, 1)) raw("driving_status", data[1] & 255, cmd, time);
         if (expanded) {
-            measured(data, 2, 2, false, "speed_kmh", 10, " km/h", 1, cmd, time);
-            measured(data, 4, 1, false, "remaining_range_km", 1, " km (estimate)", 0, cmd, time);
-            measured(data, 5, 2, false, "trip_km", 10, " km", 1, cmd, time);
-            measured(data, 7, 1, false, "trip_minutes", 1, " min", 0, cmd, time);
-            measured(data, 8, 2, false, "maximum_speed_kmh", 10, " km/h", 1, cmd, time);
-            measured(data, 10, 2, false, "average_speed_kmh", 10, " km/h", 1, cmd, time);
+            measured(data, 2, 2, false, "speed_kmh", 10, SUFFIX_KMH, 1, cmd, time);
+            measured(data, 4, 1, false, "remaining_range_km", 1, SUFFIX_RANGE, 0, cmd, time);
+            measured(data, 5, 2, false, "trip_km", 10, SUFFIX_KM, 1, cmd, time);
+            measured(data, 7, 1, false, "trip_minutes", 1, SUFFIX_MINUTE, 0, cmd, time);
+            measured(data, 8, 2, false, "maximum_speed_kmh", 10, SUFFIX_KMH, 1, cmd, time);
+            measured(data, 10, 2, false, "average_speed_kmh", 10, SUFFIX_KMH, 1, cmd, time);
             // OEM selects the optional unsigned32 value when present AND nonzero.
             if (has(data, 14, 4) && unsigned(data, 14, 4, false) > 0) {
-                measured(data, 14, 4, false, "odometer_km", 10, " km", 1, cmd, time);
-            } else measured(data, 12, 2, false, "odometer_km", 10, " km", 1, cmd, time);
+                measured(data, 14, 4, false, "odometer_km", 10, SUFFIX_KM, 1, cmd, time);
+            } else measured(data, 12, 2, false, "odometer_km", 10, SUFFIX_KM, 1, cmd, time);
         } else {
-            measured(data, 2, 1, false, "speed_kmh", 1, " km/h", 0, cmd, time);
-            measured(data, 3, 1, false, "remaining_range_km", 1, " km (estimate)", 0, cmd, time);
-            measured(data, 4, 1, false, "trip_km", 1, " km", 0, cmd, time);
-            measured(data, 5, 1, false, "trip_minutes", 1, " min", 0, cmd, time);
-            measured(data, 6, 1, false, "maximum_speed_kmh", 1, " km/h", 0, cmd, time);
-            measured(data, 7, 1, false, "average_speed_kmh", 1, " km/h", 0, cmd, time);
-            measured(data, 8, 1, false, "odometer_km", 1, " km", 0, cmd, time);
+            measured(data, 2, 1, false, "speed_kmh", 1, SUFFIX_KMH, 0, cmd, time);
+            measured(data, 3, 1, false, "remaining_range_km", 1, SUFFIX_RANGE, 0, cmd, time);
+            measured(data, 4, 1, false, "trip_km", 1, SUFFIX_KM, 0, cmd, time);
+            measured(data, 5, 1, false, "trip_minutes", 1, SUFFIX_MINUTE, 0, cmd, time);
+            measured(data, 6, 1, false, "maximum_speed_kmh", 1, SUFFIX_KMH, 0, cmd, time);
+            measured(data, 7, 1, false, "average_speed_kmh", 1, SUFFIX_KMH, 0, cmd, time);
+            measured(data, 8, 1, false, "odometer_km", 1, SUFFIX_KM, 0, cmd, time);
         }
     }
 
@@ -505,8 +555,8 @@ public final class Telemetry {
         }
         int version = data.length % 8 == 0 ? 0 : data[data.length - 1] & 255;
         if (version != 0 && version != 1) {
-            put("stored_trips", "Unknown history format " + version + "; " + records
-                    + " records (raw bytes available in export)", null, cmd, time);
+            put("stored_trips", UNKNOWN_FORMAT + version + UNKNOWN_FORMAT_SEPARATOR + records
+                    + UNKNOWN_FORMAT_RECORDS, null, cmd, time);
             return;
         }
         StringBuilder result = new StringBuilder();
@@ -526,17 +576,17 @@ public final class Telemetry {
                     .append(format(unsigned(data, offset + 6, 2, false) / scale, version == 1 ? 1 : 0))
                     .append(" km/h");
         }
-        put("stored_trips", count == 0 ? "No stored trips reported" : result.toString(),
+        put("stored_trips", count == 0 ? NO_TRIPS : result.toString(),
                 (double) count, cmd, time);
     }
 
     private void batteryStatus(int value, int cmd, long time) {
-        put("battery_status", value == 0 ? "Normal (0)" : "Abnormal; code " + value,
+        put("battery_status", value == 0 ? BATTERY_NORMAL : BATTERY_ABNORMAL_PREFIX + value,
                 (double) value, cmd, time);
     }
 
     private void lock(int value, int cmd, long time) {
-        put("lock_status", value == 0 ? "Unlocked (0)" : value == 1 ? "Locked (1)"
+        put("lock_status", value == 0 ? UNLOCKED : value == 1 ? LOCKED
                 : value + " (raw)", (double) value, cmd, time);
     }
 
@@ -547,7 +597,7 @@ public final class Telemetry {
                     null, cmd, time);
             return;
         }
-        put(key, value + " %", (double) value, cmd, time);
+        put(key, value + SUFFIX_PERCENT, (double) value, cmd, time);
     }
 
     private void measured(byte[] data, int offset, int length, boolean bigEndian, String key,
@@ -589,7 +639,7 @@ public final class Telemetry {
                 ? -magnitude : magnitude;
     }
 
-    private static String format(double value, int decimals) {
+    static String format(double value, int decimals) {
         // Sign-magnitude can encode negative zero; keep the displayed zero plain.
         return String.format(Locale.US, "%." + decimals + "f", value == 0.0 ? 0.0 : value);
     }
@@ -602,7 +652,7 @@ public final class Telemetry {
             char character = decoded.charAt(i);
             if (character < 32 || character == 127 || character == '\ufffd') return hexRange(data, offset, length) + " (raw)";
         }
-        return decoded.length() == 0 ? "Empty serial value" : decoded;
+        return decoded.length() == 0 ? EMPTY_SERIAL : decoded;
     }
 
     private static String hex(byte[] data) { return hexRange(data, 0, data.length); }
@@ -623,7 +673,7 @@ public final class Telemetry {
         return false;
     }
 
-    private static String statusKey(int cmd) { return String.format(Locale.US, "response_%02x", cmd); }
+    private static String statusKey(int cmd) { return String.format(Locale.ROOT, "response_%02x", cmd); }
 
     private static String commandName(int cmd) {
         String name;

@@ -6,3 +6,6 @@ src/com/jjricks/volt/ScooterReadingLabels.java
 tests/l10n/characterization/ReadingsTextTest.java
 # G5: Live Stats value edges (the unknown history format note, signed codes and counts).
 tests/l10n/characterization/ReadingsValueEdgeTest.java
+# B3's own suite: full names and groups equal Telemetry's English, the stored unit suffixes, chart legends,
+# Live Stats quantities in a comma locale, and every display text from the catalog under a key-echo source.
+tests/l10n/ReadingsCatalogTest.java

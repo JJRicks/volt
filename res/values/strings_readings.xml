@@ -1,0 +1,342 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Telemetry and reading labels (batch B3): the names of the scooter's readings, their groups, the words
+  Live Stats shows for some stored values, the ride and charge chart legends, and the telemetry history
+  status. The English must stay exactly what the source said before the batch (G1, G2).
+
+  Every reading has a narrow-label ladder: readings_<key> is the full name (the reading's name in
+  Telemetry, which reports and diagnostics keep in English), readings_<key>_short the name on Home cards
+  and Live Stats rows, and readings_<key>_compact, where there is one, the name on physically narrow
+  cards. Translate every rung of a ladder. "(raw)" marks a value the scooter reports undecoded.
+  Unit symbols (V, A, W, km/h) stay as they are; words are translated.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- Battery readings. -->
+    <string name="readings_battery_percent" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" formatted="false">Battery charge (%)</string>
+    <string name="readings_battery_percent_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" formatted="false">Battery charge (%)</string>
+    <string name="readings_battery_percent_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Charge</string>
+    <string name="readings_voltage_v" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery voltage</string>
+    <string name="readings_voltage_v_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery voltage</string>
+    <string name="readings_voltage_v_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Voltage</string>
+    <string name="readings_current_a" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery current (signed)</string>
+    <string name="readings_current_a_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery current</string>
+    <string name="readings_current_a_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Current</string>
+    <string name="readings_power_w" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery power (signed)</string>
+    <string name="readings_power_w_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery power</string>
+    <string name="readings_power_w_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Power</string>
+    <string name="readings_temperature_c" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery temperature</string>
+    <string name="readings_temperature_c_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery temp.</string>
+    <string name="readings_temperature_c_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Temp.</string>
+    <string name="readings_battery_health_percent" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Reported battery health</string>
+    <string name="readings_battery_health_percent_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Reported health</string>
+    <string name="readings_battery_health_percent_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Health</string>
+    <string name="readings_battery_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery status</string>
+    <string name="readings_battery_status_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery status</string>
+    <string name="readings_battery_status_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Status</string>
+    <string name="readings_charging_state" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Charging state (raw)</string>
+    <string name="readings_charging_state_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Charging (raw)</string>
+    <string name="readings_charging_state_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Charge (raw)</string>
+    <string name="readings_charge_cycles" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Reported charge count</string>
+    <string name="readings_charge_cycles_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Reported charges</string>
+    <string name="readings_charge_cycles_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Charges</string>
+    <string name="readings_energy_throughput_wh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Energy counter (unverified)</string>
+    <string name="readings_energy_throughput_wh_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Energy (unverified)</string>
+    <string name="readings_energy_throughput_wh_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Energy (unverified)</string>
+    <string name="readings_capacity_throughput_ah" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Lifetime capacity throughput</string>
+    <string name="readings_capacity_throughput_ah_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Lifetime throughput</string>
+    <string name="readings_capacity_throughput_ah_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Throughput</string>
+    <string name="readings_deep_discharge" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Deep discharge counter</string>
+    <string name="readings_deep_discharge_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Deep discharges</string>
+    <string name="readings_self_discharge_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Self discharge rate (raw; unit unknown)</string>
+    <string name="readings_self_discharge_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Self-discharge (raw)</string>
+    <string name="readings_rated_capacity_ah" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Rated battery capacity</string>
+    <string name="readings_rated_capacity_ah_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Rated capacity</string>
+    <string name="readings_rated_capacity_ah_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Capacity</string>
+    <string name="readings_health_adjusted_capacity_ah" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Capacity estimate from reported health</string>
+    <string name="readings_health_adjusted_capacity_ah_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Est. capacity (health)</string>
+    <string name="readings_health_adjusted_capacity_ah_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Est. capacity</string>
+    <string name="readings_battery_manufactured" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery manufacturing date</string>
+    <string name="readings_battery_manufactured_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery made</string>
+    <string name="readings_high_temperature_duration" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">High temperature exposure</string>
+    <string name="readings_high_temperature_duration_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">High-temp exposure</string>
+    <string name="readings_extreme_temperature_charge_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Extreme-temperature charging duration (raw; unit unknown)</string>
+    <string name="readings_extreme_temperature_charge_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Hot/cold charge time (raw)</string>
+    <string name="readings_temperature_sign_state" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Temperature sign state (raw)</string>
+    <string name="readings_temperature_sign_state_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Temp. sign (raw)</string>
+    <string name="readings_current_sign_state" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current sign state (raw)</string>
+    <string name="readings_current_sign_state_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Current sign (raw)</string>
+
+    <!-- Ride readings. -->
+    <string name="readings_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Live speed</string>
+    <string name="readings_speed_kmh_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Speed</string>
+    <string name="readings_speed_kmh_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Speed</string>
+    <string name="readings_remaining_range_km" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter\'s estimated remaining range</string>
+    <string name="readings_remaining_range_km_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Est. range</string>
+    <string name="readings_remaining_range_km_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Range</string>
+    <string name="readings_trip_km" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter\'s current trip distance</string>
+    <string name="readings_trip_km_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip distance</string>
+    <string name="readings_trip_km_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Distance</string>
+    <string name="readings_trip_minutes" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter\'s current trip time</string>
+    <string name="readings_trip_minutes_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip time</string>
+    <string name="readings_trip_minutes_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Time</string>
+    <string name="readings_maximum_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current trip maximum speed</string>
+    <string name="readings_maximum_speed_kmh_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip top speed</string>
+    <string name="readings_maximum_speed_kmh_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Top speed</string>
+    <string name="readings_average_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current trip average speed</string>
+    <string name="readings_average_speed_kmh_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip avg. speed</string>
+    <string name="readings_average_speed_kmh_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Avg. speed</string>
+    <string name="readings_odometer_km" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Total odometer</string>
+    <string name="readings_odometer_km_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Odometer</string>
+    <string name="readings_odometer_km_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Odo.</string>
+    <string name="readings_driving_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Driving status (raw)</string>
+    <string name="readings_driving_status_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Ride status (raw)</string>
+    <string name="readings_stored_trips" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Stored trips</string>
+    <string name="readings_stored_trips_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Stored trips</string>
+
+    <!-- Settings readings. -->
+    <string name="readings_binding_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Account binding status (raw)</string>
+    <string name="readings_binding_status_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Account binding (raw)</string>
+    <string name="readings_driving_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Driving mode (raw)</string>
+    <string name="readings_driving_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Drive mode</string>
+    <string name="readings_driving_mode_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Mode</string>
+    <string name="readings_lock_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:safety="lock">Electronic lock</string>
+    <string name="readings_lock_status_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:safety="lock">Electronic lock</string>
+    <string name="readings_lock_status_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact" volt:safety="lock">Lock</string>
+    <string name="readings_cruise_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Cruise control (raw)</string>
+    <string name="readings_cruise_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Cruise (raw)</string>
+    <string name="readings_tail_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Tail light setting (raw)</string>
+    <string name="readings_tail_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Tail light (raw)</string>
+    <string name="readings_energy_recovery" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Energy recovery setting (raw)</string>
+    <string name="readings_energy_recovery_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Recovery (raw)</string>
+    <string name="readings_range_algorithm" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Range algorithm (raw)</string>
+    <string name="readings_range_algorithm_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Range algorithm (raw)</string>
+    <string name="readings_display_units" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Dashboard units</string>
+    <string name="readings_display_units_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Display units</string>
+    <string name="readings_auto_sensor" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Automatic light sensor (raw)</string>
+    <string name="readings_auto_sensor_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Auto light (raw)</string>
+    <string name="readings_tyre_reminder" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Tyre reminder (raw)</string>
+    <string name="readings_tyre_reminder_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Tyre reminder (raw)</string>
+    <string name="readings_ambient_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Line lighting state / pattern (raw)</string>
+    <string name="readings_ambient_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Line pattern (raw)</string>
+    <string name="readings_traction_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Traction control (raw)</string>
+    <string name="readings_traction_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Traction (raw)</string>
+    <string name="readings_turn_sound" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Turn signal sound (raw)</string>
+    <string name="readings_turn_sound_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Turn sound (raw)</string>
+    <string name="readings_proximity_key" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Proximity key setting (raw)</string>
+    <string name="readings_proximity_key_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Proximity key (raw)</string>
+    <string name="readings_night_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Night mode (raw)</string>
+    <string name="readings_night_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Night mode (raw)</string>
+    <string name="readings_range_algorithm_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Range algorithm mode (raw)</string>
+    <string name="readings_range_algorithm_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Range mode (raw)</string>
+    <string name="readings_eco_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Line normal / Boost colors (packed raw)</string>
+    <string name="readings_eco_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Line colors (packed)</string>
+    <string name="readings_drive_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Star lighting state / pattern (raw)</string>
+    <string name="readings_drive_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Star pattern (raw)</string>
+    <string name="readings_sport_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Star normal / Boost colors (packed raw)</string>
+    <string name="readings_sport_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Star colors (packed)</string>
+    <string name="readings_start_speed" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Start speed setting (raw)</string>
+    <string name="readings_start_speed_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Start speed (raw)</string>
+    <string name="readings_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Speed limit setting (raw)</string>
+    <string name="readings_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Speed limit (raw)</string>
+    <string name="readings_volume" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Audio setting (model-dependent raw)</string>
+    <string name="readings_volume_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Audio (raw)</string>
+    <string name="readings_voice_language" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Voice language setting (raw)</string>
+    <string name="readings_voice_language_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Voice language (raw)</string>
+    <string name="readings_logo_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Logo light setting (raw)</string>
+    <string name="readings_logo_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Logo light (raw)</string>
+    <string name="readings_daytime_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Daytime running light (raw)</string>
+    <string name="readings_daytime_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Daytime light (raw)</string>
+    <string name="readings_maximum_speed_setting" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Maximum speed setting (raw)</string>
+    <string name="readings_maximum_speed_setting_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Max. speed setting (raw)</string>
+    <string name="readings_drive_mode_setting" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive mode setting (raw)</string>
+    <string name="readings_drive_mode_setting_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Mode setting (raw)</string>
+    <string name="readings_settings_mode_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Settings read mode byte (raw)</string>
+    <string name="readings_settings_mode_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Settings mode byte (raw)</string>
+    <string name="readings_scheduled_charge_time_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scheduled charge time (raw timestamp)</string>
+    <string name="readings_scheduled_charge_time_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Charge schedule (raw)</string>
+    <string name="readings_charge_limit_percent" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Charge limit</string>
+    <string name="readings_charge_limit_percent_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Charge limit</string>
+    <string name="readings_charge_limit_percent_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Limit</string>
+    <string name="readings_low_power" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Low Battery Mode (raw)</string>
+    <string name="readings_low_power_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Low-battery mode (raw)</string>
+    <string name="readings_timed_charging" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Timed charging setting (raw)</string>
+    <string name="readings_timed_charging_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Timed charging (raw)</string>
+    <string name="readings_auto_lock_time" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Lock duration setting (raw)</string>
+    <string name="readings_auto_lock_time_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Lock duration (raw)</string>
+    <string name="readings_speed_limit_eligibility" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Speed-limit eligibility flag (raw)</string>
+    <string name="readings_speed_limit_eligibility_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Speed eligibility (raw)</string>
+    <string name="readings_weather" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Weather setting (raw)</string>
+    <string name="readings_weather_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Weather (raw)</string>
+    <string name="readings_slope_assist" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Slope assistance setting (raw)</string>
+    <string name="readings_slope_assist_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Hill assist (raw)</string>
+    <string name="readings_long_range_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Long range setting (raw)</string>
+    <string name="readings_long_range_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Long range (raw)</string>
+    <string name="readings_overspeed_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed control setting (raw)</string>
+    <string name="readings_overspeed_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed control (raw)</string>
+    <string name="readings_overspeed_alert" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed alert setting (raw)</string>
+    <string name="readings_overspeed_alert_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed alert (raw)</string>
+    <string name="readings_drive_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive speed limit setting (raw)</string>
+    <string name="readings_drive_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Drive speed limit (raw)</string>
+
+    <!-- Device readings. -->
+    <string name="readings_meter_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Meter firmware</string>
+    <string name="readings_meter_version_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Meter firmware</string>
+    <string name="readings_meter_version_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Meter FW</string>
+    <string name="readings_controller_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Motor controller firmware</string>
+    <string name="readings_controller_version_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Controller firmware</string>
+    <string name="readings_controller_version_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Control FW</string>
+    <string name="readings_battery_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery management firmware</string>
+    <string name="readings_battery_version_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery firmware</string>
+    <string name="readings_battery_version_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Battery FW</string>
+    <string name="readings_screen_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Screen firmware</string>
+    <string name="readings_screen_version_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Screen firmware</string>
+    <string name="readings_screen_version_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Screen FW</string>
+    <string name="readings_uwb_version" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Proximity firmware</string>
+    <string name="readings_uwb_version_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Proximity firmware</string>
+    <string name="readings_uwb_version_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Proximity FW</string>
+    <string name="readings_scooter_serial" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter serial number</string>
+    <string name="readings_scooter_serial_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Scooter serial</string>
+    <string name="readings_battery_serial_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Battery serial response (raw)</string>
+    <string name="readings_battery_serial_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery serial (raw)</string>
+
+    <!-- Diagnostics readings. -->
+    <string name="readings_warning_code" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Active warning code</string>
+    <string name="readings_warning_code_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Warning code</string>
+    <string name="readings_warning_code_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Warning</string>
+    <string name="readings_lock_push_warning" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:safety="lock">Locked movement warning (raw)</string>
+    <string name="readings_lock_push_warning_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:safety="lock">Lock movement (raw)</string>
+    <string name="readings_hide_e9" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="E9">E9 display flag (raw)</string>
+    <string name="readings_hide_e9_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:dnt="E9">E9 flag (raw)</string>
+    <string name="readings_ride_report_format" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Ride report format</string>
+    <string name="readings_ride_report_format_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Ride format</string>
+    <string name="readings_ride_read_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Ride read acknowledgment (raw)</string>
+    <string name="readings_ride_read_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Ride read (raw)</string>
+    <string name="readings_fault_history_raw" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Fault history response (raw)</string>
+    <string name="readings_fault_history_raw_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Fault history (raw)</string>
+    <string name="readings_response_70" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x70">Scooter settings read (0x70)</string>
+    <string name="readings_response_70_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Settings read · 70</string>
+    <string name="readings_response_71" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x71">Ride read (0x71)</string>
+    <string name="readings_response_71_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Ride read · 71</string>
+    <string name="readings_response_72" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x72">Battery diagnostics read (0x72)</string>
+    <string name="readings_response_72_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery read · 72</string>
+    <string name="readings_response_73" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x73">Firmware versions read (0x73)</string>
+    <string name="readings_response_73_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Firmware read · 73</string>
+    <string name="readings_response_74" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x74">Scooter serial read (0x74)</string>
+    <string name="readings_response_74_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Scooter serial · 74</string>
+    <string name="readings_response_75" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x75">Battery serial read (0x75)</string>
+    <string name="readings_response_75_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery serial · 75</string>
+    <string name="readings_response_76" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x76">Ride history read (0x76)</string>
+    <string name="readings_response_76_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Ride history · 76</string>
+    <string name="readings_response_79" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x79">Battery sign states read (0x79)</string>
+    <string name="readings_response_79_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Battery signs · 79</string>
+    <string name="readings_response_7b" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x7B">Fault history read (0x7B)</string>
+    <string name="readings_response_7b_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Fault history · 7B</string>
+    <string name="readings_response_90" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="0x90">Home telemetry report (0x90)</string>
+    <string name="readings_response_90_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Home report · 90</string>
+    <string name="readings_response_91" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="v0|0x91">Ride telemetry report v0 (0x91)</string>
+    <string name="readings_response_91_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:dnt="v0">Ride report v0 · 91</string>
+    <string name="readings_response_92" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:dnt="v1|0x92">Ride telemetry report v1 (0x92)</string>
+    <string name="readings_response_92_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short" volt:dnt="v1">Ride report v1 · 92</string>
+
+    <!-- Live Stats section titles: the groups readings are listed under. -->
+    <string name="readings_group_battery" volt:screen="Live Stats" volt:purpose="section title">Battery</string>
+    <string name="readings_group_ride" volt:screen="Live Stats" volt:purpose="section title">Ride</string>
+    <string name="readings_group_settings" volt:screen="Live Stats" volt:purpose="section title">Settings</string>
+    <string name="readings_group_device" volt:screen="Live Stats" volt:purpose="section title">Device</string>
+    <string name="readings_group_diagnostics" volt:screen="Live Stats" volt:purpose="section title">Diagnostics</string>
+    <!-- Live Stats value words. Telemetry stores a word with its code ("Imperial (0)", "Locked (1)"); reports
+         keep that, and Live Stats shows only the word. -->
+    <!-- The scooter's dashboard shows imperial units (miles). -->
+    <string name="readings_value_imperial" volt:screen="Live Stats › Display units" volt:purpose="value">Imperial</string>
+    <!-- The scooter's dashboard shows metric units (kilometres). -->
+    <string name="readings_value_metric" volt:screen="Live Stats › Display units" volt:purpose="value">Metric</string>
+    <!-- The scooter reports no active warning. -->
+    <string name="readings_value_no_warning" volt:screen="Live Stats › Warning code" volt:purpose="value">None</string>
+    <!-- An active warning: %1$s is the scooter's warning number, as the scooter's own display shows it. -->
+    <string name="readings_value_warning_code" volt:screen="Live Stats › Warning code" volt:purpose="value">Code %1$s</string>
+    <!-- The battery management system reports no fault. -->
+    <string name="readings_value_battery_normal" volt:screen="Live Stats › Battery status" volt:purpose="value">Normal</string>
+    <!-- The battery management system reports a fault (its code stays in diagnostics). -->
+    <string name="readings_value_battery_abnormal" volt:screen="Live Stats › Battery status" volt:purpose="value">Abnormal</string>
+    <!-- The scooter's electronic lock reports unlocked. -->
+    <string name="readings_value_unlocked" volt:screen="Live Stats › Electronic lock" volt:purpose="value"
+        volt:safety="lock">Unlocked</string>
+    <!-- The scooter's electronic lock reports locked. -->
+    <string name="readings_value_locked" volt:screen="Live Stats › Electronic lock" volt:purpose="value"
+        volt:safety="lock">Locked</string>
+    <!-- The scooter acknowledged a ride read; the ride data arrives in separate reports. -->
+    <string name="readings_value_acknowledged" volt:screen="Live Stats › Ride read" volt:purpose="value">Acknowledged</string>
+    <!-- The scooter's ride history holds no trips. -->
+    <string name="readings_value_no_trips" volt:screen="Live Stats › Stored trips" volt:purpose="value">No stored trips reported</string>
+    <!-- How many trips the scooter's ride history holds: %1$d is the count. -->
+    <plurals name="readings_value_trips" volt:screen="Live Stats › Stored trips" volt:purpose="value">
+        <item quantity="one">%1$d trip</item>
+        <item quantity="other">%1$d trips</item>
+    </plurals>
+    <!-- A ride history in a format Volt cannot read: %1$s is the format number, %2$d how many records the
+         scooter holds. English keeps "records" for 1 until an owner-approved fix. -->
+    <plurals name="readings_value_unknown_format_records" volt:screen="Live Stats › Stored trips" volt:purpose="value"
+        volt:english-fix="pending">
+        <item quantity="one">Unknown format %1$s · %2$d records</item>
+        <item quantity="other">Unknown format %1$s · %2$d records</item>
+    </plurals>
+    <!-- The same note when the stored text is not in the form Volt writes (an old or edited history
+         backup): %1$s is whatever the note held between "format" and "records", with "; " shown as
+         " · ". Rarely seen; readings_value_unknown_format_records is the usual form. -->
+    <string name="readings_value_unknown_format" volt:screen="Live Stats › Stored trips" volt:purpose="value">Unknown format %1$s records</string>
+    <!-- How many charges the battery reports: %1$d is the count. English keeps "charges" for 1 until an
+         owner-approved fix. -->
+    <plurals name="readings_value_charges" volt:screen="Live Stats › Reported charges" volt:purpose="value"
+        volt:english-fix="pending">
+        <item quantity="one">%1$d charges</item>
+        <item quantity="other">%1$d charges</item>
+    </plurals>
+    <!-- A percentage reading (battery charge, reported health, charge limit): %1$s is the number. English
+         puts a space before the sign here. -->
+    <string name="readings_value_percent" volt:screen="Live Stats" volt:purpose="value">%1$s %%</string>
+    <!-- The fault history read returned no data. -->
+    <string name="readings_value_empty_response" volt:screen="Live Stats › Fault history" volt:purpose="value">Empty response</string>
+    <!-- A read command's reply had no status byte. -->
+    <string name="readings_value_missing_status" volt:screen="Live Stats › Diagnostics" volt:purpose="value">Missing response status</string>
+    <!-- The scooter reported an empty serial number. -->
+    <string name="readings_value_empty_serial" volt:screen="Live Stats › Scooter serial" volt:purpose="value">Empty serial value</string>
+
+    <!-- Chart legends: the series of the ride chart (Rides) and the charge chart (charge history). -->
+    <string name="readings_chart_power" volt:screen="Ride and charge charts" volt:purpose="legend">Power</string>
+    <string name="readings_chart_wheel_speed" volt:screen="Ride chart" volt:purpose="legend">Wheel speed</string>
+    <string name="readings_chart_gps_speed" volt:screen="Ride chart" volt:purpose="legend" volt:dnt="GPS">GPS speed</string>
+    <string name="readings_chart_voltage" volt:screen="Ride and charge charts" volt:purpose="legend">Voltage</string>
+    <!-- The battery charge level, in percent. -->
+    <string name="readings_chart_battery" volt:screen="Ride and charge charts" volt:purpose="legend" formatted="false">Battery %</string>
+    <string name="readings_chart_elevation" volt:screen="Ride chart" volt:purpose="legend">Elevation</string>
+    <string name="readings_chart_gps_acceleration" volt:screen="Ride chart" volt:purpose="legend" volt:dnt="GPS">GPS acceleration</string>
+    <!-- Energy used per distance travelled (Wh/km or Wh/mi). -->
+    <string name="readings_chart_energy_distance" volt:screen="Ride chart" volt:purpose="legend">Energy / distance</string>
+    <!-- Volt's estimate of the clock time the charge finishes. -->
+    <string name="readings_chart_est_finish" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Est. finish time</string>
+    <!-- Volt's estimate of the time left until the charge finishes. -->
+    <string name="readings_chart_est_countdown" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Est. countdown time</string>
+    <string name="readings_chart_current" volt:screen="Charge chart" volt:purpose="legend">Current</string>
+    <string name="readings_chart_temperature" volt:screen="Charge chart" volt:purpose="legend">Temperature</string>
+    <!-- Volt's estimate of the clock time the charge reaches the scooter's charge limit. -->
+    <string name="readings_chart_est_finish_limit" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Est. finish at limit</string>
+    <!-- Volt's estimate of the time left until the charge reaches the charge limit. -->
+    <string name="readings_chart_est_countdown_limit" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Est. countdown to limit</string>
+    <string name="readings_chart_charge_limit" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Charge limit</string>
+    <!-- When the charge actually finished (100%), drawn against the estimates. -->
+    <string name="readings_chart_observed_finish" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Observed finish</string>
+    <!-- The time that was actually left until the charge finished, drawn against the estimates. -->
+    <string name="readings_chart_actual_countdown" volt:screen="Charge chart" volt:purpose="legend" volt:safety="charge">Actual countdown</string>
+    <!-- The unit of the charge chart's clock-time axis (finish times). -->
+    <string name="readings_unit_time" volt:screen="Charge chart" volt:purpose="unit name">Time</string>
+
+    <!-- The telemetry history database's state, under More › Storage. -->
+    <string name="readings_history_stored" volt:screen="More › Storage" volt:purpose="status">Stored on this phone</string>
+    <string name="readings_history_unavailable" volt:screen="More › Storage" volt:purpose="status">History storage unavailable</string>
+    <string name="readings_history_unavailable_live" volt:screen="More › Storage" volt:purpose="status">History storage unavailable; live readings still work</string>
+    <string name="readings_history_read_failed" volt:screen="More › Storage" volt:purpose="status">Could not read history</string>
+    <string name="readings_history_cleared" volt:screen="More › Storage" volt:purpose="status">History cleared</string>
+    <string name="readings_history_clear_failed" volt:screen="More › Storage" volt:purpose="status">Could not clear history</string>
+</resources>
