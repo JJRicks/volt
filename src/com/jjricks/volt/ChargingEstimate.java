@@ -384,7 +384,7 @@ public final class ChargingEstimate {
                 +", up to the time to 100%. Time to 100% uses pack voltage, charging current and this charge's own taper. "
                 +"Time to displayed 100%; balancing may continue."+cutoffNote(own.targetPercent);
         return new Result(own.charging,own.inputWatts,own.inputAmps,Math.min(learned.remainingMinutesToLimit,own.remainingMinutesToFull),
-                own.remainingMinutesToFull,own.targetPercent,M.chargingEstimatePastCharges(sessions,sessions),status,
+                own.remainingMinutesToFull,own.targetPercent,learned.labelMsg,status,
                 true,false,sessions,false,true,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
