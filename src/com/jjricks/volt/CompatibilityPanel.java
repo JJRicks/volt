@@ -158,6 +158,7 @@ final class CompatibilityPanel {
             case RESTORE_PENDING: case RESTORE_AWAIT: status=muted(t.verifying()?T.compatCheckingUnchanged():T.compatSettingBack(from));
                 status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);card.addView(status);return;
             case OBSERVE:
+                // Deferred (B9): question() compares the shown label with "On"/"Off"; pass the target id once labels translate.
                 card.addView(ui.text(question(t.feature,to),15,false));
                 card.addView(ui.button(T.compatYes(),()->{ble.testEffect(true);refresh();}));
                 card.addView(ui.secondaryButton(T.compatNo(),()->{ble.testEffect(false);refresh();}));
@@ -181,6 +182,8 @@ final class CompatibilityPanel {
         String label=ScooterCommands.find(e.feature).label;CapabilityResolver.Decision d=decision(ble,e.isTry(),e.feature);
         card.addView(ui.text(e.isTry()?T.compatUnfinishedTryTitle(label):T.compatUnfinishedTestTitle(label),16,true));
         line(card,e.isTry()?T.compatBeforeTry():T.compatBeforeTest(),d.label(e.baseline));line(card,e.isTry()?T.compatValueTried():T.compatTestValue(),d.label(e.target));
+        // Deferred (B9): still English outcome words; switch to GuidedTest.Outcome.label(o), as the live card does, in an
+        // ordinary follow-up PR: G1 refuses the swap here because the lines beside it are converted text.
         if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.describe(o));card.addView(muted(join(texts)));}
         GuidedTest.Review r=ble.reviewTest(e.testId);
         if(r==null)return;
@@ -210,6 +213,8 @@ final class CompatibilityPanel {
         LinearLayout card=ui.card();root.addView(card);
         String label=ScooterCommands.find(e.feature).label;
         card.addView(ui.text(T.compatUnfinishedTestTitle(label),16,true));
+        // Deferred (B9): still English outcome words; switch to GuidedTest.Outcome.label(o), as the live card does, in an
+        // ordinary follow-up PR: G1 refuses the swap here because the lines beside it are converted text.
         if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.describe(o));card.addView(muted(join(texts)));}
         card.addView(ui.text(T.compatOrphanBody(),14,false));
         TextView dismiss=ui.secondaryButton(T.compatDismiss(),()->{ble.dismissTest(e.testId);refresh();});
@@ -274,6 +279,7 @@ final class CompatibilityPanel {
             else for(int o=0;o<=CompatibilityReport.LAST_OFFSET;o++){
                 if(!CompatibilityReport.valueOffset(o)&&!CompatibilityReport.presenceOffset(o))continue;
                 StatusFields.Field f=s.field(o);
+                // Deferred (B9): "Absent" and "Present" stay English; converting them next to the field-label line fails G1.
                 String value=!f.present?"Absent":CompatibilityReport.valueOffset(o)?Integer.toString(f.value):"Present";
                 row(fields,CompatibilityLabels.field(o,layer),value,f.present?ui.text:ui.muted);
             }
@@ -302,6 +308,7 @@ final class CompatibilityPanel {
         }
     }
     static String readValue(DiscoveryCoordinator.Read r){
+        // Deferred (B9): the supported read stays English; the font (Saira) has no U+2713 for the catalog.
         String late=r.late?" (late)":"";
         switch(r.outcome){
             case READ_SUPPORTED: return "✓ "+r.length+" bytes"+late;
