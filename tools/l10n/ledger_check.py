@@ -25,6 +25,12 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            A compiled test under tests/l10n/ must call each Fmt method it passes
                            (G10's parity); every format row is listed, with the tests calling the
                            method that held it, or a note that none does
+  choice                   a + chain holding a parenthesized ternary (or chosen on by an id test,
+                           "On".equals(value)) becomes a ternary between whole templates: the pieces
+                           are {"if", "then", "else"} with one key per branch (the key column, then
+                           before else, joined by commas); each branch must be the base expression
+                           with its conditions forced, and head must hold the same conditions with
+                           each branch one call of its key; every choice row is listed
   removed                  the code was deleted: the changed lines holding it only lose tokens, and
                            the whole statement holding it is gone (not just the literal and its +);
                            when its enclosing block (an if, a method) went too, every other
@@ -66,7 +72,11 @@ declared in a private type itself or in a local type) whose initializer becomes 
 turning CharSequence (for a deferred M call), with the code around every use of the variable in
 its file; and a legacy locale wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside
 CatalogUsageTest.ENGLISH_ONLY files and the plan's data-tier files (DATA_TIER), which needs a
-compiled tests/l10n/ test calling Fmt.locale (G10).
+compiled tests/l10n/ test calling Fmt.locale (G10). Three more are allowed and listed (gates round 3b):
+a throw switching to a src subclass that keeps getMessage() English (exception_retype), a private
+method's String parameter becoming Msg or CharSequence when every caller passes a catalog call
+(parameter_retypes), and Locale.US becoming Locale.ROOT in a String.format whose pattern prints the
+same in both (locale_swaps). A plural row's pieces may model a helper call (HELPER_MODELS).
 
 Ledger format: a TSV with the header
 
@@ -110,9 +120,10 @@ import gen_catalog  # noqa: E402
 import expressions  # noqa: E402
 
 HEADER = ("location", "pieces", "key", "kind", "note")
-KINDS = ("exact", "template", "plural", "format", "id-kept", "stays-english", "removed")
+KINDS = ("exact", "template", "plural", "format", "choice", "id-kept", "stays-english", "removed")
 CATALOG_KINDS = ("exact", "template", "plural", "format")
-MOVING = CATALOG_KINDS + ("removed",)
+CHOICE = "choice"
+MOVING = CATALOG_KINDS + ("removed", CHOICE)
 STAYING = ("id-kept", "stays-english")
 NEEDS_KEY = ("exact", "template", "plural", "format", "id-kept")
 LOCATION = re.compile(r"^((?:src|tests|android-tests)/[^\t:]+\.java):([1-9][0-9]*)$")
@@ -144,6 +155,9 @@ def _check_sequence(sequence, where):
             if set(piece) != {"char"} or not isinstance(piece["char"], str) or len(piece["char"]) != 1:
                 raise LedgerError("%s: a char piece is {\"char\": \"x\"}" % where)
             continue
+        if "helper" in piece:
+            _check_helper(piece, where)
+            continue
         if not isinstance(piece.get("hole"), str) or not piece["hole"].strip():
             raise LedgerError("%s: a hole needs \"hole\": the Java source of the value" % where)
         if not isinstance(piece.get("arg"), int) or piece["arg"] < 1:
@@ -155,6 +169,166 @@ def _check_sequence(sequence, where):
         extra = set(piece) - {"hole", "arg", "type", "quantity", "as"}
         if extra:
             raise LedgerError("%s: unknown hole field(s) %s" % (where, ", ".join(sorted(extra))))
+
+
+# Helpers whose output a plural row may model (B10's BackupArchive.plural): the parameter types, the exact
+# body tokens with {0}, {1} for the parameter names, and what each argument of the row's call must be
+# ("count": a whole-number hole, "text": a string literal or a text hole). G1 requires the helper's
+# declaration in the row's file at the merge base to be exactly this; tests/l10n/LedgerTest evaluates the
+# same model (LedgerTest.helper) with the sentinel quantities.
+HELPER_MODELS = {
+    "count_noun": ((("int", "long"), ("String",)),
+                   'return {0} + " " + {1} + ( {0} == 1 ? "" : "s" ) ;',
+                   ("count", "text")),
+}
+
+
+def _check_helper(piece, where):
+    if set(piece) != {"helper", "model", "args"} or not isinstance(piece["helper"], str) or \
+            not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", piece["helper"]) or not isinstance(piece["args"], list):
+        raise LedgerError("%s: a helper piece is {\"helper\": <method name>, \"model\": <one of %s>, \"args\": [...]}" % (
+            where, ", ".join(sorted(HELPER_MODELS))))
+    model = HELPER_MODELS.get(piece["model"])
+    if model is None:
+        raise LedgerError("%s: unknown helper model %r (known: %s)" % (where, piece["model"], ", ".join(sorted(HELPER_MODELS))))
+    if len(piece["args"]) != len(model[2]):
+        raise LedgerError("%s: helper model %s takes %d argument(s)" % (where, piece["model"], len(model[2])))
+    for arg, want in zip(piece["args"], model[2]):
+        if isinstance(arg, str):
+            if want != "text":
+                raise LedgerError("%s: helper model %s takes a whole-number hole there, not the text %r" % (
+                    where, piece["model"], arg))
+            continue
+        _check_sequence([arg], where)
+        if "hole" not in arg or (want == "count") != (arg["type"] == "d"):
+            raise LedgerError("%s: helper model %s's %s argument is a %s hole" % (
+                where, piece["model"], want, "whole-number (type d)" if want == "count" else "text (type s)"))
+        if (want == "count") != bool(arg.get("quantity")):
+            raise LedgerError("%s: helper model %s's %s argument %s the plural's quantity (\"quantity\": true), so "
+                              "G2 checks each form at the quantities that pick it" % (
+                                  where, piece["model"], want, "must be" if want == "count" else "cannot be"))
+
+
+def _check_helper_row(pieces, kind, where):
+    """A helper piece only in a plural row whose forms are all the one base expression, with one and other,
+    and a single quantity source: the helper pluralizes, the catalog's forms must print what it prints."""
+    if not helper_pieces(pieces):
+        return
+    if kind != "plural":
+        raise LedgerError("%s: a helper piece belongs only in a plural row (its count is the plural's quantity)" % where)
+    forms = list(pieces.values())
+    if "one" not in pieces or any(f != forms[0] for f in forms):
+        raise LedgerError("%s: a plural row with a helper piece has one and other forms, each the same base expression "
+                          "(the helper chooses the words)" % where)
+    sources = set(expressions.source_key(h.get("as", h["hole"])) for h in holes(pieces) if h.get("quantity"))
+    if len(sources) != 1:
+        raise LedgerError("%s: a plural row with a helper piece has exactly one quantity source" % where)
+
+
+# What each model prints, for G1's own check of a helper plural row (LedgerTest.helper is the Java twin).
+HELPER_OUTPUT = {
+    "count_noun": lambda count, noun: "%d %s%s" % (count, noun, "" if count == 1 else "s"),
+}
+# The quantities G1 and G2 check each English plural form at (LedgerTest.compare).
+FORM_QUANTITIES = {"one": (1,), "other": (0, 2, 21)}
+# gen_catalog sets this True only once AndroidText picks the item of default English text by English rules,
+# whatever the phone's language (the runtime track, "plural rules follow the text served"). Until then Android
+# picks by the first locale's rules, so a phone in a language Volt does not ship serves "one" at 21 (ru) or
+# at 0 (fr, pt): a plural key whose English one and other items differ would change English there.
+PLURAL_RULES_FLAG = "PLURAL_ITEMS_FOLLOW_SERVED_TEXT"
+
+
+def english_plurals_follow_english_rules():
+    return getattr(gen_catalog, PLURAL_RULES_FLAG, False) is True
+
+
+def differing_english_items(entry):
+    """The English items of a plural entry that differ from its other item (empty when all are the same)."""
+    other = entry.items.get("other")
+    return [q for q, item in entry.items.items()
+            if q != "other" and other is not None and item.text != other.text]
+HELPER_PLACEHOLDER = re.compile(r"%(\d+)\$([sd])|%%")
+
+
+def _sentinel(hole, quantity):
+    if hole.get("quantity"):
+        return quantity
+    return 1234567 if hole["type"] == "d" else chr(1) + chr(64 + hole["arg"])
+
+
+def evaluate_helper_form(sequence, quantity):
+    """What the base expression of a helper plural row prints at quantity, with sentinel holes."""
+    out = []
+    for p in sequence:
+        if isinstance(p, str):
+            out.append(p)
+        elif "char" in p:
+            out.append(p["char"])
+        elif "helper" in p:
+            out.append(HELPER_OUTPUT[p["model"]](*[a if isinstance(a, str) else _sentinel(a, quantity)
+                                                   for a in p["args"]]))
+        else:
+            out.append(str(_sentinel(p, quantity)))
+    return "".join(out)
+
+
+def render_helper_form(template, sequence, quantity):
+    """The catalog form filled with the same sentinels, or None when it uses other conversions (G2 checks it)."""
+    if re.search(r"%(?!(\d+\$[sd]|%))", template):
+        return None
+    by_arg = {h["arg"]: h for h in holes(sequence) if "arg" in h}
+
+    def substitute(m):
+        if m.group(0) == "%%":
+            return "%"
+        hole = by_arg.get(int(m.group(1)))
+        if hole is None or (hole["type"] == "d") != (m.group(2) == "d"):
+            return m.group(0)
+        return str(_sentinel(hole, quantity))
+    return HELPER_PLACEHOLDER.sub(substitute, template)
+
+
+def helper_source(piece):
+    """The Java call a helper piece stands for: plural(skipped, "scooter")."""
+    return "%s(%s)" % (piece["helper"], ", ".join(
+        l10nlib.json_string(a) if isinstance(a, str) else a["hole"] for a in piece["args"]))
+
+
+def helper_pieces(pieces):
+    """The helper pieces of a row, once each (plural forms repeat them)."""
+    found = []
+    for p in (p for s in sequences(pieces) for p in s if isinstance(p, dict) and "helper" in p):
+        if p not in found:
+            found.append(p)
+    return found
+
+
+def helper_problem(piece, index):
+    """None when the file at the merge base declares the helper exactly as its model says, else why."""
+    model = HELPER_MODELS[piece["model"]]
+    tokens = index.tokens
+    found = []
+    for k, opener, close, first in method_declarations(tokens):
+        params = _parameter_type_tokens(tokens, opener, close)
+        if tokens[k].value == piece["helper"] and len(params) == len(model[0]):
+            found.append((k, opener, close, params))
+    if len(found) != 1:
+        return "helper %s(...) with %d parameter(s) is declared %d time(s) in the file at the merge base, not once" % (
+            piece["helper"], len(model[0]), len(found))
+    k, opener, close, params = found[0]
+    for (type_token, _), allowed in zip(params, model[0]):
+        if type_token is None or tokens[type_token].value not in allowed:
+            return "helper %s's parameters are not (%s)" % (piece["helper"], ", ".join("|".join(a) for a in model[0]))
+    body = close + 1
+    while body < len(tokens) and tokens[body].value != "{":
+        body += 1
+    end = expressions.match_brace(tokens, body)
+    want = [t.raw for t in l10nlib.lex_java(model[1].format(*[name for _, name in params]))]
+    got = [t.raw for t in tokens[body + 1:end]]
+    if got != want:
+        return "helper %s's body is `%s`, not model %s's `%s`" % (piece["helper"], " ".join(got), piece["model"],
+                                                                  " ".join(want))
+    return None
 
 
 # A java.util.Formatter specifier: %[index$][flags][width][.precision]conversion. %% and %n take no argument.
@@ -264,24 +438,68 @@ def _check_split(split, where):
     return derived
 
 
+def choice_leaves(node):
+    """The pieces sequences of a choice row's branches, then before else, depth first."""
+    if isinstance(node, dict) and "if" in node:
+        return choice_leaves(node["then"]) + choice_leaves(node["else"])
+    return [node]
+
+
+def choice_conditions(node):
+    """[condition source] of a choice row, in the order its branches nest."""
+    if isinstance(node, dict) and "if" in node:
+        return [node["if"]] + choice_conditions(node["then"]) + choice_conditions(node["else"])
+    return []
+
+
+def _check_choice(node, where, depth=0):
+    if isinstance(node, list):
+        _check_sequence(node, where)
+        return
+    if not isinstance(node, dict) or set(node) != {"if", "then", "else"} or not isinstance(node["if"], str) or \
+            not node["if"].strip():
+        raise LedgerError("%s: a choice row's pieces are {\"if\": <condition Java>, \"then\": <branch>, \"else\": "
+                          "<branch>}, each branch a pieces array or another such object" % where)
+    if depth > 8:
+        raise LedgerError("%s: a choice row nests at most 8 conditions" % where)
+    try:
+        l10nlib.lex_java(node["if"])
+    except l10nlib.LexError as error:
+        raise LedgerError("%s: the condition %r is not Java: %s" % (where, node["if"], error))
+    _check_choice(node["then"], where, depth + 1)
+    _check_choice(node["else"], where, depth + 1)
+
+
 def sequences(pieces):
+    if isinstance(pieces, dict) and "if" in pieces:
+        return choice_leaves(pieces)
     return list(pieces.values()) if isinstance(pieces, dict) else [pieces]
 
 
 def literal_counts(pieces):
-    """The string literals an expression consumed, as a Counter.
+    """The string literals an expression consumed, as a Counter (a helper call's literal arguments too).
 
     For plural forms a literal shared by several forms counts once (the per-value maximum).
     """
     total = collections.Counter()
     for sequence in sequences(pieces):
-        for value, count in collections.Counter(p for p in sequence if isinstance(p, str)).items():
+        flat = [p for p in sequence if isinstance(p, str)] + [
+            a for p in sequence if isinstance(p, dict) and "helper" in p for a in p["args"] if isinstance(a, str)]
+        for value, count in collections.Counter(flat).items():
             total[value] = max(total[value], count)
     return total
 
 
 def holes(pieces):
-    return [p for s in sequences(pieces) for p in s if isinstance(p, dict) and "hole" in p]
+    """Every hole of the pieces, with those inside a helper call's arguments."""
+    found = []
+    for s in sequences(pieces):
+        for p in s:
+            if isinstance(p, dict) and "hole" in p:
+                found.append(p)
+            elif isinstance(p, dict) and "helper" in p:
+                found.extend(a for a in p["args"] if isinstance(a, dict) and "hole" in a)
+    return found
 
 
 def parse_ledger(text, source="ledger"):
@@ -304,7 +522,10 @@ def parse_ledger(text, source="ledger"):
                 raise LedgerError("%s: kind must be one of %s" % (where, ", ".join(KINDS)))
             if kind in NEEDS_KEY and not gen_catalog.KEY_PATTERN.match(key):
                 raise LedgerError("%s: kind %s needs a resource key" % (where, kind))
-            if kind not in NEEDS_KEY and key not in ("-", ""):
+            if kind == CHOICE and not all(gen_catalog.KEY_PATTERN.match(k) for k in key.split(",")):
+                raise LedgerError("%s: a choice row's key is its branches' resource keys, then before else, joined "
+                                  "by commas" % where)
+            if kind not in NEEDS_KEY and kind != CHOICE and key not in ("-", ""):
                 raise LedgerError("%s: kind %s takes no key; write -" % (where, kind))
             if m.group(1).startswith(TEST_DIRS) and kind != "removed":
                 raise LedgerError("%s: a row for a test file must be kind removed (a test of deleted code)" % where)
@@ -319,22 +540,36 @@ def parse_ledger(text, source="ledger"):
                     raise LedgerError("%s: plural pieces are {\"one\": [...], \"other\": [...]}" % where)
                 for quantity, sequence in pieces.items():
                     _check_sequence(sequence, "%s[%s]" % (where, quantity))
+                _check_helper_row(pieces, kind, where)
+            elif kind == CHOICE:
+                if note.startswith("manual:"):
+                    raise LedgerError("%s: a choice row is checked whole; it takes no \"manual:\" note" % where)
+                _check_choice(pieces, where)
+                _check_helper_row(pieces, kind, where)
+                if len(choice_leaves(pieces)) != len(key.split(",")):
+                    raise LedgerError("%s: a choice row has %d branch(es) and %d key(s)" % (
+                        where, len(choice_leaves(pieces)), len(key.split(","))))
             elif kind == "format":
                 if note.startswith("manual:"):
                     raise LedgerError("%s: a format row is checked whole; it takes no \"manual:\" note" % where)
                 split, pieces = pieces, _check_split(pieces, where)
+                _check_helper_row(pieces, kind, where)
             else:
                 _check_sequence(pieces, where)
+                _check_helper_row(pieces, kind, where)
             if kind == "exact" and (len(pieces) != 1 or not isinstance(pieces[0], str)):
                 raise LedgerError("%s: an exact row has exactly one string piece" % where)
-            args = {}
-            for hole in holes(pieces):
-                if hole.get("quantity") and "arg" not in hole:
-                    continue
-                previous = args.setdefault(hole["arg"], hole)
-                if expressions.source_key(previous.get("as", previous["hole"])) != \
-                        expressions.source_key(hole.get("as", hole["hole"])) or previous["type"] != hole["type"]:
-                    raise LedgerError("%s: two holes claim arg %d with different sources or types" % (where, hole["arg"]))
+            # A choice row's branches are templates of their own; plural forms share their args.
+            for group in (choice_leaves(pieces) if kind == CHOICE else [pieces]):
+                args = {}
+                for hole in holes(group):
+                    if hole.get("quantity") and "arg" not in hole:
+                        continue
+                    previous = args.setdefault(hole["arg"], hole)
+                    if expressions.source_key(previous.get("as", previous["hole"])) != \
+                            expressions.source_key(hole.get("as", hole["hole"])) or previous["type"] != hole["type"]:
+                        raise LedgerError("%s: two holes claim arg %d with different sources or types" % (
+                            where, hole["arg"]))
             for hole in holes(pieces):
                 if "as" in hole and not fmt_wrapper(hole) and not note.startswith("manual:"):
                     raise LedgerError("%s: hole %s is passed as %s; only Fmt.<method>(..., %s, ...) is checked, so "
@@ -459,7 +694,8 @@ def render_simple(template, pieces):
     None when the template uses other conversions (tests/l10n/LedgerTest covers those with Java's formatter).
     """
     found = [p for p in pieces if isinstance(p, dict) and "hole" in p]
-    if any(h["type"] != "s" for h in found) or re.search(r"%(?!(\d+\$s|%))", template):
+    if any(h["type"] != "s" for h in found) or re.search(r"%(?!(\d+\$s|%))", template) or \
+            any(isinstance(p, dict) and "helper" in p for p in pieces):
         return None
     sentinel = {h["arg"]: chr(1) + chr(64 + h["arg"]) for h in found}
 
@@ -528,6 +764,22 @@ def check_against_catalog(rows, catalog, changes=None):
     problems = []
     changes = changes or {}
     for row in rows:
+        if row.kind == CHOICE:
+            where = "%s:%d" % (row.source, row.line)
+            for key, sequence in zip(row.key.split(","), choice_leaves(row.pieces)):
+                entry = catalog.get(key)
+                if entry is None:
+                    problems.append("%s: key %s is not in res/values/strings*.xml" % (where, key))
+                    continue
+                if entry.kind != "string":
+                    problems.append("%s: choice key %s is a %s, but each branch is one string" % (where, key, entry.kind))
+                    continue
+                text = extraction_text(entry, "other", changes, problems, where)
+                rendered = render_simple(text, sequence) if text is not None else None
+                if rendered is not None and rendered[0] != rendered[1]:
+                    problems.append("%s: choice branch %s renders %r with sentinels, the original %r" % (
+                        where, key, rendered[0], rendered[1]))
+            continue
         if row.kind not in CATALOG_KINDS + ("id-kept",):
             continue
         where = "%s:%d" % (row.source, row.line)
@@ -541,6 +793,17 @@ def check_against_catalog(rows, catalog, changes=None):
         if entry.kind != want:
             problems.append("%s: key %s is a %s, but the row's kind is %s" % (where, row.key, entry.kind, row.kind))
             continue
+        if row.kind == "plural" and differing_english_items(entry) and not english_plurals_follow_english_rules():
+            problems.append(
+                "%s: plural %s's English %s and other items differ (%s), but AndroidText still lets Android pick "
+                "the item by the plural rules of the phone's first locale, so where Volt ships no translation a "
+                "Russian phone at 21 or a French or Portuguese phone at 0 would print the %s item, not what the "
+                "base printed; a plural row whose English items differ waits for the runtime fix "
+                "(tools/l10n/gen_catalog.py %s = True)" % (
+                    where, row.key, "/".join(differing_english_items(entry)),
+                    "; ".join("%s %r" % (q, entry.items[q].text) for q in entry.items),
+                    "/".join(differing_english_items(entry)), PLURAL_RULES_FLAG))
+            continue
         if row.kind == "format":
             problems.extend(check_format_catalog(row, entry, catalog, changes, where))
         elif row.kind == "exact":
@@ -553,6 +816,19 @@ def check_against_catalog(rows, catalog, changes=None):
             if rendered is not None and rendered[0] != rendered[1]:
                 problems.append("%s: template %s renders %r with sentinels, the original %r" % (
                     where, row.key, rendered[0], rendered[1]))
+        elif helper_pieces(row.pieces):
+            for quantity in sorted(entry.items):
+                if quantity not in row.pieces:
+                    problems.append("%s: plural %s has a %s item, but the helper row models no %s form" % (
+                        where, row.key, quantity, quantity))
+                    continue
+                text = extraction_text(entry, quantity, changes, problems, where)
+                for q in FORM_QUANTITIES.get(quantity, ()) if text is not None else ():
+                    rendered = render_helper_form(text, row.pieces[quantity], q)
+                    expected = evaluate_helper_form(row.pieces[quantity], q)
+                    if rendered is not None and rendered != expected:
+                        problems.append("%s: plural %s[%s] at quantity %d renders %r, but the base expression prints "
+                                        "%r" % (where, row.key, quantity, q, rendered, expected))
         else:
             for quantity, sequence in row.pieces.items():
                 if quantity not in entry.items:
@@ -582,6 +858,7 @@ def catalog_consistency(head, cwd=None):
             return problems + ["catalog: " + p for p in error.problems], len(rows)
         problems.extend(check_against_catalog(rows, catalog, changes))
         checked = set(r.key for r in rows if r.kind in CATALOG_KINDS)
+        checked.update(k for r in rows if r.kind == CHOICE for k in r.key.split(","))
         checked.update(item["key"] for r in rows if r.kind == "format" for item in r.split
                        if isinstance(item, dict) and "key" in item)
         problems.extend(check_changes(changes, catalog, checked))
@@ -630,7 +907,27 @@ def locate(row, diff, claimed):
                 gone = all(k in diff.gone for k in e.tokens)
                 return (free, gone == (row.kind in MOVING))
             best = max(candidates, key=score)
-            return list(best.tokens), False, None
+            found = list(best.tokens)
+            names = set(p["helper"] for p in helper_pieces(row.pieces))
+            if names:
+                # A helper call's literal arguments (plural(n, "scooter")) leave with the expression.
+                tokens = index.tokens
+                for j in range(best.span[0], best.span[1] + 1):
+                    if tokens[j].kind == "string" and j not in found and _op(tokens, j - 1, "(", ",") and \
+                            _op(tokens, j + 1, ")", ","):
+                        depth, o = 0, j - 1
+                        while o >= 0:
+                            if _op(tokens, o, ")"):
+                                depth += 1
+                            elif _op(tokens, o, "("):
+                                if depth == 0:
+                                    break
+                                depth -= 1
+                            o -= 1
+                        if o > 0 and tokens[o - 1].kind == "ident" and tokens[o - 1].value in names and \
+                                not _op(tokens, o - 2, "."):
+                            found.append(j)
+            return sorted(found), False, None
     if row.kind == "format":
         on_line = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
                    if e.first_line <= row.base_line <= e.last_line]
@@ -1994,6 +2291,979 @@ def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
     return problems, warning
 
 
+# ---------------------------------------------------------------------------
+# Types declared in src at head: an exception that a converted throw switches to
+# ---------------------------------------------------------------------------
+
+THROWABLE_SUFFIXES = ("Exception", "Error", "Throwable")
+# Methods that change what a Throwable prints; a class between the new and the old type may not declare them.
+MESSAGE_METHODS = frozenset(("getMessage", "getLocalizedMessage", "toString"))
+
+TypeDecl = collections.namedtuple("TypeDecl", "path tokens name keyword open close extends")
+"""A class declared in a src file at head: its tokens, the class keyword's index, the { and } of its body,
+and the simple name its extends clause names (None without one)."""
+
+
+def _simple_type(tokens, j, end):
+    """The simple name of the type that starts at token j (a.b.C<X> gives C) before index end."""
+    name = None
+    while j < end:
+        t = tokens[j]
+        if t.kind == "ident":
+            name = t.value
+            if j + 1 < end and tokens[j + 1].kind == "op" and tokens[j + 1].value == ".":
+                j += 2
+                continue
+        break
+    return name
+
+
+class SourceTypes(object):
+    """The classes declared in src at head, by simple name, read lazily from {path: text}."""
+
+    def __init__(self, texts):
+        self._texts, self._by_name = texts, None
+
+    def named(self, name):
+        if self._by_name is None:
+            self._by_name = collections.defaultdict(list)
+            for path, text in sorted(self._texts.items()):
+                if text is None:
+                    continue
+                try:
+                    tokens = l10nlib.lex_java(text)
+                except l10nlib.LexError:
+                    continue
+                for k in range(len(tokens) - 1):
+                    if tokens[k].kind != "ident" or tokens[k].value != "class" or tokens[k + 1].kind != "ident" or \
+                            (k > 0 and tokens[k - 1].kind == "op" and tokens[k - 1].value == "."):
+                        continue
+                    open_ = k + 2
+                    while open_ < len(tokens) and not (tokens[open_].kind == "op" and tokens[open_].value in "{;"):
+                        open_ += 1
+                    if open_ >= len(tokens) or tokens[open_].value != "{":
+                        continue
+                    extends = None
+                    for j in range(k + 2, open_):
+                        if tokens[j].kind == "ident" and tokens[j].value == "extends":
+                            extends = _simple_type(tokens, j + 1, open_)
+                            break
+                    self._by_name[tokens[k + 1].value].append(TypeDecl(
+                        path, tokens, tokens[k + 1].value, k, open_, expressions.match_brace(tokens, open_), extends))
+        return self._by_name.get(name, [])
+
+
+def _members(decl):
+    """[(name token index, ( index, ) index, body { index or None)] of the methods and constructors
+    declared directly in a class body (nested types, initializers and bodies are skipped)."""
+    tokens, found, j = decl.tokens, [], decl.open + 1
+    while j < decl.close:
+        t = tokens[j]
+        if t.kind == "op" and t.value == "{":
+            j = expressions.match_brace(tokens, j) + 1
+            continue
+        if t.kind == "ident" and j + 1 < decl.close and tokens[j + 1].kind == "op" and tokens[j + 1].value == "(" and \
+                not (tokens[j - 1].kind == "ident" and tokens[j - 1].value == "new") and \
+                not (tokens[j - 1].kind == "op" and tokens[j - 1].value == "."):
+            close = expressions.match_forward(tokens, j + 1)
+            if close is None:
+                break
+            k = close + 1
+            while k < decl.close and not (tokens[k].kind == "op" and tokens[k].value in ("{", ";", "=", ",")):
+                k += 1
+            if k < decl.close and tokens[k].value in ("{", ";"):
+                found.append((j, j + 1, close, k if tokens[k].value == "{" else None))
+                j = (expressions.match_brace(tokens, k) + 1) if tokens[k].value == "{" else k + 1
+                continue
+            j = close + 1
+            continue
+        j += 1
+    return found
+
+
+def _parameters(tokens, opener, close):
+    """[(simple type name, parameter name)] of a parameter list ( ... )."""
+    params, start, depth = [], opener + 1, 0
+    if close == opener + 1:
+        return params
+    for k in range(opener + 1, close + 1):
+        t = tokens[k]
+        if k == close or (depth == 0 and t.kind == "op" and t.value == ","):
+            part = [x for x in tokens[start:k] if not (x.kind == "ident" and x.value == "final")]
+            while part and part[0].kind == "op" and part[0].value == "@":
+                part = part[2:]
+            params.append((_simple_type(part, 0, len(part) - 1) if len(part) > 1 else None,
+                           part[-1].value if part else None))
+            start = k + 1
+        elif t.kind == "op" and t.value in ("(", "<", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", ">", "]"):
+            depth -= 1
+    return params
+
+
+def _raw(tokens, first, last):
+    return [t.raw for t in tokens[first:last + 1]]
+
+
+def _english_helper(decl, name):
+    """True when the class declares a method NAME(Msg p) whose body is `return p.english();`, optionally
+    after `if (p == null) throw new NullPointerException(...);` (UserFacingException's english)."""
+    tokens = decl.tokens
+    for at, opener, close, body in _members(decl):
+        if tokens[at].value != name or body is None:
+            continue
+        params = _parameters(tokens, opener, close)
+        if len(params) != 1 or params[0][0] != "Msg":
+            continue
+        p = params[0][1]
+        inner = _raw(tokens, body + 1, expressions.match_brace(tokens, body) - 1)
+        guard = ["if", "(", p, "==", "null", ")", "throw", "new", "NullPointerException", "("]
+        if inner[:len(guard)] == guard:
+            end = inner.index(";") if ";" in inner else len(inner)
+            if end != len(inner) and inner[end - 1] == ")" and all(x.startswith('"') or x == ")" for x in inner[len(guard):end]):
+                inner = inner[end + 1:]
+        if inner == ["return", p, ".", "english", "(", ")", ";"]:
+            return True
+    return False
+
+
+def english_constructors(types, decl, arity, msg_at, seen=()):
+    """(problem or None, [constructor excerpts]) for a new <decl>(...) call with arity arguments whose
+    argument msg_at is a Msg: every constructor that call can pick must keep getMessage() the English
+    text, by passing the Msg's english() (or a method english(msg) that returns it) as the message of a
+    JDK superclass, or the Msg itself to such a constructor of a src superclass or of this class."""
+    tokens = decl.tokens
+    chosen = []
+    for at, opener, close, body in _members(decl):
+        if tokens[at].value != decl.name or body is None:
+            continue
+        params = _parameters(tokens, opener, close)
+        if len(params) == arity and params[msg_at][0] == "Msg":
+            chosen.append((at, opener, close, body, params))
+    where = "%s:%d" % (decl.path, tokens[decl.keyword].line)
+    if not chosen:
+        return ("%s (%s) has no constructor with %d parameter(s) whose parameter %d is a Msg, so the catalog call "
+                "cannot keep getMessage() the English text" % (decl.name, where, arity, msg_at + 1)), []
+    shown = []
+    for at, opener, close, body, params in chosen:
+        end = expressions.match_brace(tokens, body)
+        excerpt = _excerpt(tokens[at:end + 1], None)
+        shown.append("`%s` (%s:%d)" % (excerpt, decl.path, tokens[at].line))
+        msg = params[msg_at][1]
+        first = body + 1
+        semicolon = first
+        while semicolon < end and not (tokens[semicolon].kind == "op" and tokens[semicolon].value == ";"):
+            semicolon += 1
+        call = _raw(tokens, first, semicolon - 1)
+        if len(call) < 3 or call[0] not in ("super", "this") or call[1] != "(" or \
+                expressions.match_forward(tokens, first + 1) != semicolon - 1:
+            return ("the constructor `%s` (%s:%d) does not start with super(...) or this(...) passing its Msg %s, so "
+                    "getMessage() is not the English text" % (excerpt, decl.path, tokens[at].line, msg)), shown
+        _, spans = _argument_spans(tokens, first + 1)
+        args = [_raw(tokens, a, b) for a, b in spans]
+        key = (decl.path, at)
+        if key in seen:
+            return "the constructor `%s` calls itself" % excerpt, shown
+        if call[0] == "this" or (decl.extends and len(types.named(decl.extends)) == 1):
+            target = decl if call[0] == "this" else types.named(decl.extends)[0]
+            if [msg] not in args:
+                return ("the constructor `%s` (%s:%d) passes its Msg %s on to %s(...) other than as a whole argument, "
+                        "so G1 cannot follow it to getMessage()" % (excerpt, decl.path, tokens[at].line, msg,
+                                                                   call[0])), shown
+            problem, more = english_constructors(types, target, len(args), args.index([msg]), seen + (key,))
+            shown.extend(more)
+            if problem:
+                return problem, shown
+            continue
+        if decl.extends and len(types.named(decl.extends)) > 1:
+            return "%s extends %s, which src declares more than once" % (decl.name, decl.extends), shown
+        message = args[0] if args else []
+        if message != [msg, ".", "english", "(", ")"] and not (
+                len(message) == 4 and message[1:] == ["(", msg, ")"] and _english_helper(decl, message[0])):
+            return ("the constructor `%s` (%s:%d) passes `%s` as the message of %s; getMessage() stays the English "
+                    "text only when it passes %s.english() (or a method english(Msg) that returns it)" % (
+                        excerpt, decl.path, tokens[at].line, " ".join(message) or "nothing",
+                        decl.extends or "Object", msg)), shown
+    return None, shown
+
+
+def _new_site(tokens, first, last):
+    """(new index, type first, type last, opener, [(first, last)] argument spans, argument index) when
+    tokens first..last are one whole argument of a new Type(...) expression, else None."""
+    depth, j = 0, first - 1
+    while j >= 0:
+        t = tokens[j]
+        if t.kind == "op" and t.value in (")", "]", "}"):
+            depth += 1
+        elif t.kind == "op" and t.value in ("(", "[", "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        j -= 1
+    if j < 2 or tokens[j].value != "(":
+        return None
+    close, spans = _argument_spans(tokens, j)
+    if close is None or (first, last) not in spans:
+        return None
+    name_last, name_first = j - 1, j - 1
+    if tokens[name_last].kind != "ident":
+        return None
+    while name_first >= 2 and tokens[name_first - 1].value == "." and tokens[name_first - 2].kind == "ident":
+        name_first -= 2
+    if name_first < 1 or tokens[name_first - 1].kind != "ident" or tokens[name_first - 1].value != "new":
+        return None
+    return name_first - 1, name_first, name_last, j, spans, spans.index((first, last))
+
+
+def _id_argument(types, decl, tokens, first, last):
+    """True when tokens first..last name an enum constant of an enum nested in decl (Code.NO_SPACE or
+    BackupException.Code.NO_SPACE) or a static final field of decl (BackupException.NO_SPACE)."""
+    parts = [t.value for t in tokens[first:last + 1]]
+    if any(t.kind not in ("ident", "op") for t in tokens[first:last + 1]) or \
+            any(p != "." for p in parts[1::2]) or len(parts) % 2 == 0:
+        return False
+    names = parts[0::2]
+    if names[0] == decl.name:
+        names = names[1:]
+    body = decl.tokens
+    if len(names) == 2:
+        enum, constant = names
+        for k in range(decl.open, decl.close):
+            if body[k].kind == "ident" and body[k].value == "enum" and k + 2 < decl.close and body[k + 1].value == enum \
+                    and body[k + 2].value == "{":
+                close = expressions.match_brace(body, k + 2)
+                j, depth = k + 3, 0
+                while j < close:
+                    t = body[j]
+                    if t.kind == "op" and t.value in ("(", "{"):
+                        j = (expressions.match_forward(body, j) if t.value == "(" else expressions.match_brace(body, j)) + 1
+                        continue
+                    if t.kind == "op" and t.value == ";":
+                        break
+                    if t.kind == "ident" and t.value == constant and body[j - 1].value in ("{", ","):
+                        return True
+                    j += 1
+        return False
+    if len(names) == 1:
+        name = names[0]
+        for k in range(decl.open + 1, decl.close - 1):
+            if body[k].kind == "ident" and body[k].value == name and body[k + 1].value == "=" and \
+                    body_kind(body, k) == "class" and _final_field(body, k) and \
+                    any(t.value == "static" for t in body[statement_bounds(body, k)[0]:k]):
+                return True
+    return False
+
+
+def exception_retype(types, path, diff, base_span, head_span):
+    """(None, None) when the row's base expression is not the whole argument of a new X(...) that head
+    turned into a new Y(...), else (problem, (base tokens, head tokens, warning)): head may switch to a
+    src class Y that extends X (directly or through other src classes), pass the catalog call (a Msg)
+    where the text was and, beside it, constant arguments of Y (an enum constant of an enum Y declares,
+    or a static final field of Y), with every other argument kept in order; Y's constructor must keep
+    getMessage() the English text (english_constructors), and no class from Y up to X may declare
+    getMessage, getLocalizedMessage or toString."""
+    base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
+    base = _new_site(base_tokens, base_span[0], base_span[-1])
+    head = _new_site(head_tokens, head_span[0], head_span[-1])
+    if base is None or head is None:
+        return None, None
+    old = base_tokens[base[2]].value
+    new = head_tokens[head[2]].value
+    if old == new and _raw(base_tokens, base[1], base[2]) == _raw(head_tokens, head[1], head[2]):
+        return None, None
+    _, b_first, b_last, _, b_spans, b_at = base
+    _, h_first, h_last, h_open, h_spans, h_at = head
+    line = head_tokens[h_first].line
+    b_code = _excerpt(base_tokens[base[0]:expressions.match_forward(base_tokens, base[3]) + 1], None)
+    h_code = _excerpt(head_tokens[head[0]:expressions.match_forward(head_tokens, h_open) + 1], None)
+    what = "%s:%d: `%s` becomes `%s`" % (path, line, b_code, h_code)
+    if not old.endswith(THROWABLE_SUFFIXES):
+        return "%s; only an exception (a type named ...Exception, ...Error or Throwable) may change type around text" % (
+            what), None
+    decls = types.named(new)
+    if len(decls) != 1:
+        return ("%s; %s must be one class declared in src (found %d), so G1 can read what it extends and how it "
+                "keeps getMessage()" % (what, new, len(decls))), None
+    decl = decls[0]
+    chain, step = [decl], decl
+    while step.extends != old:
+        if step.extends is None or len(types.named(step.extends)) != 1:
+            return ("%s; %s does not extend %s (its chain: %s), so a catch of %s would no longer catch it" % (
+                what, new, old, " extends ".join([d.name for d in chain] + [step.extends or "Object"]), old)), None
+        step = types.named(step.extends)[0]
+        if step in chain:
+            return "%s; %s's extends clauses loop" % (what, new), None
+        chain.append(step)
+    for d in chain:
+        for at, _, _, body in _members(d):
+            if d.tokens[at].value in MESSAGE_METHODS and body is not None:
+                return ("%s; %s declares %s (%s:%d), which may print other text than the English message" % (
+                    what, d.name, d.tokens[at].value, d.path, d.tokens[at].line)), None
+    # Head's arguments: base's before and after the text, and in between the call plus constants of Y.
+    base_args = [_raw(base_tokens, a, b) for a, b in b_spans]
+    head_args = [_raw(head_tokens, a, b) for a, b in h_spans]
+    before, after = base_args[:b_at], base_args[b_at + 1:]
+    middle = list(range(len(before), len(head_args) - len(after)))
+    if head_args[:len(before)] != before or (after and head_args[-len(after):] != after) or h_at not in middle:
+        return ("%s; the other arguments must stay as they were, in order, with only constants of %s added beside "
+                "the catalog call" % (what, new)), None
+    ids = [n for n in middle if n != h_at]
+    for n in ids:
+        a, b = h_spans[n]
+        if not _id_argument(types, decl, head_tokens, a, b):
+            return ("%s; `%s` is not a constant of %s (an enum constant of an enum it declares, or a static final "
+                    "field of it), and only those may join the catalog call" % (
+                        what, _excerpt(head_tokens[a:b + 1], None), new)), None
+    call = head_tokens[h_spans[h_at][0]]
+    if not (call.kind == "ident" and call.value in ("M", "Msg")):
+        return ("%s; the call that replaces the text must be a deferred M.<key>(...) (a Msg), so %s can keep the "
+                "English for getMessage() and render the language at display time" % (what, new)), None
+    problem, constructors = english_constructors(types, decl, len(head_args), h_at)
+    if problem:
+        return "%s; %s" % (what, problem), None
+    id_tokens = set()
+    if ids:
+        lo, hi = min(min(ids), h_at), max(max(ids), h_at)
+        id_tokens.update(range(h_spans[lo][0], h_spans[hi][1] + 1))
+    via = "" if len(chain) == 1 else " (%s)" % " extends ".join([d.name for d in chain] + [old])
+    warning = ("%s: %s extends %s%s, so a catch of %s still catches it, and getMessage() stays the English text "
+               "through %s%s; check by hand that nothing shows or logs the exception itself (toString(), "
+               "String.valueOf(e), \"\" + e or a stack trace print the new class name %s) or compares its class" % (
+                   what, new, old, via, old, "; ".join(constructors),
+                   "; constant argument(s) " + ", ".join("`%s`" % _excerpt(head_tokens[h_spans[n][0]:h_spans[n][1] + 1], None)
+                                                        for n in ids) if ids else "", new))
+    return None, (range(b_first, b_last + 1), range(h_first, h_last + 1), id_tokens, warning)
+
+
+# ---------------------------------------------------------------------------
+# Locale.US becoming Locale.ROOT at a data site (plan section 4.1, Telemetry:626)
+# ---------------------------------------------------------------------------
+
+# Conversions that print the same under Locale.US and Locale.ROOT: hex, octal and plain decimal digits
+# (no grouping), and %s, which prints String.valueOf of its argument. %f, %e, %g, a grouping flag, %S,
+# %c and the %t dates are refused: G1 does not prove what they print in either locale.
+ROOT_SAFE_CONVERSIONS = frozenset("xXods%n")
+ROOT_SAFE_FLAGS = frozenset("-0#")
+
+
+def root_unsafe_specifiers(pattern):
+    """The specifiers of a String.format pattern that could print differently under Locale.ROOT than
+    under Locale.US ([] when every one is %x, %X, %o, %d or %s with only -, 0 or # flags and a width)."""
+    unsafe = []
+    for m in FORMAT_SPEC.finditer(pattern):
+        index, flags, width, precision, conversion = m.groups()
+        if conversion not in ROOT_SAFE_CONVERSIONS or set(flags) - ROOT_SAFE_FLAGS or precision:
+            unsafe.append(m.group(0))
+    rest = FORMAT_SPEC.sub("", pattern)
+    if "%" in rest:
+        unsafe.append("%")
+    return unsafe
+
+
+def _format_calls(index, first_line, last_line, locale):
+    """[(locale token, first, close, literal token)] of String.format(Locale.<locale>, "<literal>", ...)
+    calls whose locale sits on lines first_line..last_line."""
+    tokens, found = index.tokens, []
+    for k in range(len(tokens) - 4):
+        if [t.raw for t in tokens[k:k + 4]] != ["String", ".", "format", "("] or (k > 0 and tokens[k - 1].value == "."):
+            continue
+        close, spans = _argument_spans(tokens, k + 3)
+        if close is None or len(spans) < 2:
+            continue
+        a, b = spans[0]
+        raw = [t.raw for t in tokens[a:b + 1]]
+        if raw not in (["Locale", ".", locale], ["java", ".", "util", ".", "Locale", ".", locale]):
+            continue
+        if not first_line <= tokens[b].line <= last_line or spans[1][0] != spans[1][1] or \
+                tokens[spans[1][0]].kind != "string":
+            continue
+        found.append((b, k, close, spans[1][0]))
+    return found
+
+
+def locale_swaps(path, diff):
+    """[(base US token, head ROOT token, problem or None, warning)] for each String.format(Locale.US,
+    "<pattern>", ...) of a changed region that head kept token for token except Locale.ROOT for
+    Locale.US (plan section 4.1 moves such data sites to ROOT with identical output). The swap is
+    allowed around text only when the pattern's every specifier prints the same in both locales
+    (root_unsafe_specifiers); each one is listed."""
+    found = []
+    if diff.base is None or diff.head is None:
+        return found
+    for b1, b2, h1, h2 in diff.hunks:
+        heads = _format_calls(diff.head, h1, h2, "ROOT")
+        taken = set()
+        for b_loc, b_first, b_close, b_lit in _format_calls(diff.base, b1, b2, "US"):
+            shape = [t.raw if j != b_loc else "ROOT" for j, t in
+                     enumerate(diff.base.tokens[b_first:b_close + 1], b_first)]
+            for n, (h_loc, h_first, h_close, h_lit) in enumerate(heads):
+                if n in taken or [t.raw for t in diff.head.tokens[h_first:h_close + 1]] != shape:
+                    continue
+                taken.add(n)
+                pattern = diff.base.tokens[b_lit].value
+                unsafe = root_unsafe_specifiers(pattern)
+                code = _excerpt(diff.head.tokens[h_first:h_close + 1], None)
+                problem = None
+                if unsafe:
+                    problem = ("%s:%d: `%s` moves from Locale.US to Locale.ROOT, but its pattern %s has %s, which G1 "
+                               "does not prove prints the same in both (only %%x, %%X, %%o, %%d and %%s with the -, 0 "
+                               "or # flags and a width); keep Locale.US, or move the number into a format row" % (
+                                   path, diff.head.tokens[h_loc].line, code, l10nlib.json_string(pattern),
+                                   ", ".join(unsafe)))
+                warning = ("%s:%d: `%s` moves from Locale.US to Locale.ROOT (plan section 4.1, the data tier); its "
+                           "pattern %s has only conversions that print the same in both locales; check by hand that "
+                           "each %%s argument is an id or a string, not a number or a Formattable" % (
+                               path, diff.head.tokens[h_loc].line, code, l10nlib.json_string(pattern)))
+                found.append((b_loc, h_loc, problem, warning))
+                break
+    return found
+
+
+# ---------------------------------------------------------------------------
+# A private method's String parameter retyped for the catalog calls its callers now pass (B7)
+# ---------------------------------------------------------------------------
+
+NOT_METHOD_NAMES = NOT_METHOD_HEADERS | {"new", "return", "throw", "case", "assert", "super", "this"}
+PARAMETER_TYPES = ("Msg", "CharSequence")
+
+
+def method_declarations(tokens):
+    """[(name token, ( token, ) token, header first token)] of every method or constructor that has a
+    body: NAME(...) [throws ...] { with a type, a modifier or nothing in front of NAME."""
+    found = []
+    for k in range(1, len(tokens) - 1):
+        t = tokens[k]
+        if t.kind != "ident" or t.value in NOT_METHOD_NAMES or tokens[k + 1].kind != "op" or tokens[k + 1].value != "(":
+            continue
+        before = tokens[k - 1]
+        if before.kind == "op" and before.value not in (">", "]", ";", "{", "}"):
+            continue
+        if before.kind == "ident" and before.value in NOT_METHOD_NAMES:
+            continue
+        close = expressions.match_forward(tokens, k + 1)
+        if close is None:
+            continue
+        j = close + 1
+        if j < len(tokens) and tokens[j].kind == "ident" and tokens[j].value == "throws":
+            while j < len(tokens) and not (tokens[j].kind == "op" and tokens[j].value in ("{", ";")):
+                j += 1
+        if j >= len(tokens) or tokens[j].kind != "op" or tokens[j].value != "{":
+            continue
+        first = k
+        while first > 0 and not (tokens[first - 1].kind == "op" and tokens[first - 1].value in (";", "{", "}")):
+            first -= 1
+        found.append((k, k + 1, close, first))
+    return found
+
+
+def _parameter_type_tokens(tokens, opener, close):
+    """[(type token index or None, name)] of a parameter list, the type token being a simple name."""
+    out, start, depth = [], opener + 1, 0
+    if close == opener + 1:
+        return out
+    for k in range(opener + 1, close + 1):
+        t = tokens[k]
+        if k == close or (depth == 0 and t.kind == "op" and t.value == ","):
+            part = [j for j in range(start, k) if not (tokens[j].kind == "ident" and tokens[j].value == "final")]
+            simple = len(part) == 2 and all(tokens[j].kind == "ident" for j in part)
+            out.append((part[0] if simple else None, tokens[part[-1]].value if part else None))
+            start = k + 1
+        elif t.kind == "op" and t.value in ("(", "<", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", ">", "]"):
+            depth -= 1
+    return out
+
+
+def _call_sites(tokens, name, arity, skip):
+    """[(name token, [(first, last)] argument spans)] of the calls name(...) (or this.name(...)) with arity
+    arguments in one file, other than the declaration at token skip."""
+    sites = []
+    for k in range(len(tokens) - 1):
+        if k == skip or tokens[k].kind != "ident" or tokens[k].value != name or tokens[k + 1].value != "(":
+            continue
+        if k > 0 and tokens[k - 1].value == "." and not (k > 1 and tokens[k - 2].value == "this"):
+            continue
+        if k > 0 and (tokens[k - 1].kind == "ident" and tokens[k - 1].value not in ("return", "throw", "case", "else")
+                      or tokens[k - 1].value in (">", "]")):
+            continue  # another declaration of the name
+        _, spans = _argument_spans(tokens, k + 1)
+        if len(spans) == arity:
+            sites.append((k, spans))
+    return sites
+
+
+def parameter_retypes(path, diff, catalog_calls, other_texts):
+    """[(base type token, head type token, problem or None, warning or None)] for each method parameter
+    that changed from String to Msg or CharSequence. That is allowed around text only for a private
+    method (or a package-private one no other src file calls) declared once with that name and arity,
+    when the argument at every call of it in the file is a catalog call that serves a ledger row (an M
+    call for a Msg; T or M for a CharSequence). The method, every call site and every use of the
+    parameter in its body are listed. catalog_calls is {(first, last) head span: T or M token} of the
+    calls that serve rows in this file."""
+    found = []
+    if diff.base is None or diff.head is None:
+        return found
+    b_tokens, h_tokens = diff.base.tokens, diff.head.tokens
+    base_decls = collections.Counter((b_tokens[k].value, len(_parameter_type_tokens(b_tokens, o, c)))
+                                     for k, o, c, _ in method_declarations(b_tokens))
+    head_decls = method_declarations(h_tokens)
+    head_counts = collections.Counter((h_tokens[k].value, len(_parameter_type_tokens(h_tokens, o, c)))
+                                      for k, o, c, _ in head_decls)
+    base_by_key = {}
+    for k, o, c, first in method_declarations(b_tokens):
+        base_by_key.setdefault((b_tokens[k].value, len(_parameter_type_tokens(b_tokens, o, c))), (k, o, c, first))
+    for k, opener, close, first in head_decls:
+        name = h_tokens[k].value
+        params = _parameter_type_tokens(h_tokens, opener, close)
+        key = (name, len(params))
+        if key not in base_by_key:
+            continue
+        bk, b_open, b_close, b_first = base_by_key[key]
+        b_params = _parameter_type_tokens(b_tokens, b_open, b_close)
+        for position, ((h_type, h_name), (b_type, b_name)) in enumerate(zip(params, b_params)):
+            if h_type is None or b_type is None or h_name != b_name or b_tokens[b_type].value != "String" or \
+                    h_tokens[h_type].value not in PARAMETER_TYPES:
+                continue
+            hunk = next((n for n, (b1, b2, h1, h2) in enumerate(diff.hunks) if h1 <= h_tokens[h_type].line <= h2), None)
+            if hunk is None or not (
+                    any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, *diff.hunks[hunk][:2])) or
+                    any(t.kind in expressions.LITERALS for t in _region_tokens(diff.head, *diff.hunks[hunk][2:]))):
+                continue  # away from text, other_changes lists it as before
+            new_type = h_tokens[h_type].value
+            header = _excerpt(h_tokens[first:close + 1], None)
+            what = "%s:%d: the parameter `%s %s` of `%s` changes from String to %s" % (
+                path, h_tokens[h_type].line, new_type, h_name, header, new_type)
+            modifiers = [t.value for t in h_tokens[first:k]]
+            problem = None
+            if base_decls[key] != 1 or head_counts[key] != 1:
+                problem = "%s; %s(...) with %d parameter(s) is declared more than once in the file" % (
+                    what, name, len(params))
+            elif "public" in modifiers or "protected" in modifiers:
+                problem = "%s; the method is %s, so other files may call it" % (
+                    what, "public" if "public" in modifiers else "protected")
+            elif "private" not in modifiers:
+                callers = sorted(p for p, text in other_texts.items()
+                                 if p != path and text and re.search(r"\b%s\s*\(" % re.escape(name), text))
+                if callers:
+                    problem = "%s; the method is package-private and %s name %s(...)" % (what, ", ".join(callers), name)
+            sites = _call_sites(h_tokens, name, len(params), k)
+            listed = []
+            for at, spans in sites:
+                a, b = spans[position]
+                served = catalog_calls.get((a, b))
+                ok = served is not None and (new_type == "CharSequence" or h_tokens[served].value == "M" or
+                                             h_tokens[a].value == "Msg")
+                statement = expressions.statement_span(h_tokens, at)
+                excerpt = _excerpt(h_tokens[max(statement[0], at - 8):min(statement[1], spans[-1][1] + 2) + 1], None)
+                listed.append("line %d `%s`" % (h_tokens[at].line, excerpt))
+                if not ok and problem is None:
+                    problem = ("%s; at line %d `%s` its argument is not %s catalog call that serves a ledger row, and "
+                               "every caller must pass one" % (
+                                   what, h_tokens[at].line, excerpt, "an M" if new_type == "Msg" else "a T or M"))
+            if not sites and problem is None:
+                problem = "%s; nothing in the file calls it" % what
+            body_open = close + 1
+            while h_tokens[body_open].value != "{":
+                body_open += 1
+            body_close = expressions.match_brace(h_tokens, body_open)
+            uses = ["line %d `%s`" % (h_tokens[j].line, _excerpt(
+                h_tokens[max(expressions.statement_span(h_tokens, j)[0], j - 8):
+                         min(expressions.statement_span(h_tokens, j)[1], j + 8) + 1], None))
+                    for j in range(body_open, body_close) if h_tokens[j].kind == "ident" and h_tokens[j].value == h_name
+                    and not (j > 0 and h_tokens[j - 1].value == ".")]
+            warning = None if problem else (
+                "%s, and every call passes a catalog call: %s; check by hand that each use of %s in the body behaves "
+                "the same with a %s (an overload chosen by type, equals, + with a String renders it): %s" % (
+                    what, "; ".join(listed), h_name, new_type, "; ".join(uses) or "none"))
+            found.append((b_type, h_type, problem, warning))
+    return found
+
+
+# ---------------------------------------------------------------------------
+# Choice rows: a + chain holding a ternary becomes a ternary between whole templates (B8, B9, B10)
+# ---------------------------------------------------------------------------
+
+# Operators that bind looser than +: a branch holding one at its top level is one value (a hole).
+LOOSER_THAN_PLUS = frozenset(("<<", ">>", ">>>", "<", ">", "<=", ">=", "==", "!=", "&", "^", "|", "&&", "||", "=",
+                              "+=", "-=", "instanceof", "->"))
+# A head choice may start right after one of these and end right before one of the closers.
+CHOICE_OPENERS = frozenset(("(", "[", "=", ",", "?", ":", "->", "{", ";", "+=", "return", "yield"))
+CHOICE_CLOSERS = frozenset((")", "]", ",", ";", ":", "}"))
+CASE_LOCALES = (("Locale", ".", "ROOT"), ("java", ".", "util", ".", "Locale", ".", "ROOT"), ("Locale", ".", "US"),
+                ("java", ".", "util", ".", "Locale", ".", "US"), ("Locale", ".", "ENGLISH"),
+                ("java", ".", "util", ".", "Locale", ".", "ENGLISH"))
+
+
+def _op(tokens, j, *values):
+    return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+
+
+def _top_level(tokens, first, last):
+    """[index] of the tokens first..last outside any ( ), [ ] or { }."""
+    out, depth = [], 0
+    for j in range(first, last + 1):
+        if _op(tokens, j, "(", "[", "{"):
+            depth += 1
+        elif _op(tokens, j, ")", "]", "}"):
+            depth -= 1
+        elif depth == 0:
+            out.append(j)
+    return out
+
+
+def _ternary(tokens, first, last):
+    """(condition, then, else) spans when first..last is c ? x : y at its top level, else None."""
+    top = _top_level(tokens, first, last)
+    marks = [j for j in top if _op(tokens, j, "?")]
+    if not marks:
+        return None
+    q, nested = marks[0], 0
+    for j in top:
+        if j <= q:
+            continue
+        if _op(tokens, j, "?"):
+            nested += 1
+        elif _op(tokens, j, ":"):
+            if nested == 0:
+                return (first, q - 1), (q + 1, j - 1), (j + 1, last)
+            nested -= 1
+    return None
+
+
+def _group(tokens, first, last):
+    """True when tokens first..last are ( ... ) with the ( closed by the last token."""
+    return _op(tokens, first, "(") and expressions.match_forward(tokens, first) == last
+
+
+def _chain_around(tokens, first, last):
+    """(first, last) of the + chain an operand first..last sits in (itself when it is in none)."""
+    spans = expressions.concatenation(tokens, first) if first == last else None
+    if spans:
+        return spans[0][0], spans[-1][1]
+    lo, hi = first, last
+    while lo >= 2 and expressions._is(tokens[lo - 1], "+"):
+        start = expressions._term_start(tokens, lo - 2)
+        if start is None:
+            break
+        lo = start
+    while hi + 2 < len(tokens) and expressions._is(tokens[hi + 1], "+"):
+        end = expressions._term_end(tokens, hi + 2)
+        if end is None:
+            break
+        hi = end
+    return lo, hi
+
+
+def _has_text_literal(tokens, first, last):
+    """True when a branch of the ternary first..last (or ( ... ) around it) holds a string or char literal;
+    literals in its condition (an id test) do not count."""
+    while _group(tokens, first, last):
+        first, last = first + 1, last - 1
+    parts = _ternary(tokens, first, last)
+    if parts is None:
+        return any(tokens[j].kind in ("string", "char") for j in range(first, last + 1))
+    return any(tokens[j].kind in ("string", "char") for j in range(parts[1][0], parts[2][1] + 1))
+
+
+def _string_typed(tokens, first, last):
+    """True when first..last is surely a String in Java: a string literal, a + chain with a String among its
+    first two operands, or a ternary one of whose branches is (then its result is a reference and no
+    numeric promotion happens). Unknown values (names, calls) are not."""
+    while _group(tokens, first, last):
+        first, last = first + 1, last - 1
+    if first == last:
+        return tokens[first].kind == "string"
+    parts = _ternary(tokens, first, last)
+    if parts is not None:
+        return _string_typed(tokens, *parts[1]) or _string_typed(tokens, *parts[2])
+    top = _top_level(tokens, first, last)
+    if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS for j in top):
+        return False
+    cuts = [j for j in top if _op(tokens, j, "+")]
+    if not cuts:
+        return False
+    operands, start = [], first
+    for j in cuts + [last + 1]:
+        operands.append((start, j - 1))
+        start = j + 1
+    return any(_string_typed(tokens, a, b) for a, b in operands[:2])
+
+
+def parse_choice(index, first, last, literals, conditions):
+    """The base expression first..last as items: ("s", text), ("c", char), ("h", source) or
+    ("t", condition source key, condition source, then items, else items). literals collects the
+    string and char tokens that are text (not inside a condition), conditions those in conditions.
+    Raises LedgerError for a numeric sum before the first string."""
+    tokens = index.tokens
+    while _group(tokens, first, last) and not _ternary(tokens, first + 1, last - 1):
+        inner = _top_level(tokens, first + 1, last - 1)
+        if not any(_op(tokens, j, "+") for j in inner):
+            break
+        first, last = first + 1, last - 1
+    parts = _ternary(tokens, first + 1, last - 1) if _group(tokens, first, last) else _ternary(tokens, first, last)
+    if parts is not None and not _has_text_literal(tokens, first, last):
+        # A ternary with no text in it picks a value, not words: it is one hole, passed as it is.
+        return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
+    if parts is not None:
+        (c1, c2), (t1, t2), (e1, e2) = parts
+        if not (_string_typed(tokens, t1, t2) or _string_typed(tokens, e1, e2)):
+            raise LedgerError("`%s` chooses between char or number values (Java promotes them to one type), which a "
+                              "choice row does not model" % expressions.source_of(index.text, tokens, first, last))
+        conditions.update(j for j in range(c1, c2 + 1) if tokens[j].kind in expressions.LITERALS)
+        source = expressions.source_of(index.text, tokens, c1, c2)
+        return [("t", expressions.source_key(source), " ".join(source.split()),
+                 parse_choice(index, t1, t2, literals, conditions), parse_choice(index, e1, e2, literals, conditions))]
+    top = _top_level(tokens, first, last)
+    if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS or
+           (tokens[j].kind == "ident" and tokens[j].value == "instanceof") for j in top):
+        return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
+    cuts = [j for j in top if _op(tokens, j, "+")]
+    operands, start = [], first
+    for j in cuts + [last + 1]:
+        operands.append((start, j - 1))
+        start = j + 1
+    items = []
+    texty = [n for n, (a, b) in enumerate(operands) if (a == b and tokens[a].kind == "string") or
+             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _string_typed(tokens, a, b))]
+    if len(operands) > 1 and (not texty or texty[0] > 1 or (texty[0] == 1 and tokens[operands[0][0]].kind == "char"
+                                                            and operands[0][0] == operands[0][1])):
+        if not texty:
+            return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
+        raise LedgerError("`%s` adds numbers before its first string, which a choice row does not model" % (
+            expressions.source_of(index.text, tokens, first, last)))
+    for a, b in operands:
+        if a == b and tokens[a].kind == "string":
+            items.append(("s", tokens[a].value))
+            literals.add(a)
+        elif a == b and tokens[a].kind == "char":
+            items.append(("c", tokens[a].value))
+            literals.add(a)
+        elif _group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _has_text_literal(tokens, a, b):
+            items.extend(parse_choice(index, a, b, literals, conditions))
+        else:
+            items.append(("h", " ".join(expressions.source_of(index.text, tokens, a, b).split())))
+    return items
+
+
+def id_test(condition):
+    """(literal, variable) when a condition is "LIT".equals(v) with v a plain name, else None."""
+    try:
+        t = l10nlib.lex_java(condition)
+    except l10nlib.LexError:
+        return None
+    if len(t) == 6 and t[0].kind == "string" and [x.raw for x in t[1:4]] == [".", "equals", "("] and \
+            t[4].kind == "ident" and t[5].raw == ")":
+        return t[0].value, t[4].value
+    return None
+
+
+def _case_mapped(source, variable, literal):
+    """What hole source prints when variable holds literal: the literal itself for the bare name, its
+    ASCII lower or upper case for v.toLowerCase(Locale.ROOT) (or US, ENGLISH) and v.toUpperCase(...).
+    None when G1 cannot tell."""
+    key = expressions.source_key(source)
+    if key == (variable,):
+        return literal
+    if not literal.isascii() or len(key) < 6 or key[:2] != (variable, ".") or key[3] != "(" or key[-1] != ")":
+        return None
+    if key[2] not in ("toLowerCase", "toUpperCase") or tuple(key[4:-1]) not in CASE_LOCALES:
+        return None
+    return literal.lower() if key[2] == "toLowerCase" else literal.upper()
+
+
+def force_choice(items, condition, truth):
+    """items with condition taken as truth: a base ternary on that condition becomes its branch; an id
+    test "LIT".equals(v) that holds puts LIT into the holes that print v. (items, resolved anything)."""
+    key = expressions.source_key(condition)
+    test = id_test(condition)
+    out, hit = [], False
+    for item in items:
+        if item[0] == "t":
+            if item[1] == key:
+                branch, _ = force_choice(item[3] if truth else item[4], condition, truth)
+                out.extend(branch)
+                hit = True
+                continue
+            then, a = force_choice(item[3], condition, truth)
+            other, b = force_choice(item[4], condition, truth)
+            out.append(("t", item[1], item[2], then, other))
+            hit = hit or a or b
+        elif item[0] == "h" and test and truth:
+            value = _case_mapped(item[1], test[1], test[0])
+            if value is None:
+                out.append(item)
+            else:
+                out.append(("s", value))
+                hit = True
+        else:
+            out.append(item)
+    return out, hit
+
+
+def _merged_shape(items):
+    """A comparable shape: adjacent strings joined (a template prints them together), holes by tokens."""
+    out = []
+    for kind, value in items:
+        if kind == "s" and out and out[-1][0] == "string":
+            out[-1] = ("string", out[-1][1] + value)
+        elif kind == "s":
+            out.append(("string", value))
+        elif kind == "c":
+            out.append(("char", value))
+        else:
+            out.append(("hole", expressions.source_key(value)))
+    return tuple(o for o in out if o != ("string", ""))
+
+
+def _leaf_items(sequence):
+    out = []
+    for piece in sequence:
+        if isinstance(piece, str):
+            out.append(("s", piece))
+        elif "char" in piece:
+            out.append(("c", piece["char"]))
+        else:
+            out.append(("h", piece["hole"]))
+    return out
+
+
+def _render_items(items):
+    shown = []
+    for item in items:
+        if item[0] == "s":
+            shown.append(l10nlib.json_string(item[1]))
+        elif item[0] == "c":
+            shown.append("'%s'" % item[1])
+        elif item[0] == "h":
+            shown.append(item[1])
+        else:
+            shown.append("(%s ? %s : %s)" % (item[2], _render_items(item[3]), _render_items(item[4])))
+    return " + ".join(shown)
+
+
+def check_choice_branches(row, items, ids):
+    """Problems when the row's branches are not the base expression with each condition forced. ids
+    collects the (literal, variable) of every id test."""
+    problems = []
+
+    def walk(node, current, path):
+        if isinstance(node, list):
+            if any(i[0] == "t" for i in current):
+                problems.append("the branch %s still holds the choice %s of the base expression; give each of its "
+                                "branches a condition of its own" % (
+                                    " and ".join(path) or "(top)", _render_items([i for i in current if i[0] == "t"])))
+                return
+            if _merged_shape(current) != _merged_shape(_leaf_items(node)):
+                problems.append("the branch %s is %s, but the base expression with %s is %s" % (
+                    " and ".join(path), json.dumps(node, ensure_ascii=False),
+                    " and ".join(path), _render_items(current)))
+            return
+        condition = node["if"]
+        test = id_test(condition)
+        then, hit = force_choice(current, condition, True)
+        other, _ = force_choice(current, condition, False)
+        if not hit and test is None:
+            problems.append("the condition %s is neither a choice of the base expression on this branch nor a test of "
+                            "a data id (\"On\".equals(value))" % condition)
+            return
+        if test is not None:
+            ids.add(test)
+        walk(node["then"], then, path + [condition])
+        walk(node["else"], other, path + ["!(%s)" % condition])
+    walk(row.pieces, items, [])
+    return problems
+
+
+def locate_choice(row, diff):
+    """([(literal tokens, (first, last) base span, items)], problem) for a choice row: each + chain (or
+    parenthesized ternary) on the row's line holding a ternary operand, or the plain chain an id test
+    chooses on. Its text literals are every string and char outside the conditions."""
+    index = diff.base
+    tokens = index.tokens
+    tried, last_problem, found = set(), None, []
+    for k, tok in enumerate(tokens):
+        if tok.kind not in expressions.LITERALS or tok.line != row.base_line:
+            continue
+        first, last = _chain_around(tokens, k, k)
+        while True:
+            before, after = first - 1, last + 1
+            if not (_op(tokens, before, "?", ":") and _op(tokens, after, ":", ")")):
+                break
+            opener = before
+            depth = 0
+            while opener >= 0:
+                if _op(tokens, opener, ")", "]", "}"):
+                    depth += 1
+                elif _op(tokens, opener, "(", "[", "{"):
+                    if depth == 0:
+                        break
+                    depth -= 1
+                opener -= 1
+            if opener < 0 or not _op(tokens, opener, "(") or (opener > 0 and expressions._callee(tokens[opener - 1])):
+                break
+            close = expressions.match_forward(tokens, opener)
+            if close is None or _ternary(tokens, opener + 1, close - 1) is None or \
+                    any(_op(tokens, j, ",", ";") for j in _top_level(tokens, opener + 1, close - 1)):
+                break
+            first, last = _chain_around(tokens, opener, close)
+        if (first, last) in tried:
+            continue
+        tried.add((first, last))
+        literals, conditions = set(), set()
+        try:
+            items = parse_choice(index, first, last, literals, conditions)
+        except LedgerError as error:
+            last_problem = str(error)
+            continue
+        if not literals or min(tokens[j].line for j in literals) != row.base_line:
+            continue
+        found.append((sorted(literals), (first, last), items))
+    if found:
+        return found, None
+    return [], last_problem or "no + chain or ternary with text starts on line %d of %s" % (row.base_line, row.path)
+
+
+def _leaf_call(index, pos, key, sequence):
+    """The last token of T.<key>(...) or M.<key>(...) at pos passing the branch's holes in placeholder
+    order (plus a .render() on an M call), else None."""
+    tokens = index.tokens
+    if not (tokens[pos].kind == "ident" and tokens[pos].value in ("T", "M") and _op(tokens, pos + 1, ".") and
+            pos + 3 < len(tokens) and tokens[pos + 2].value == gen_catalog.camel(key) and _op(tokens, pos + 3, "(")):
+        return None
+    if pos > 0 and _op(tokens, pos - 1, "."):
+        return None
+    _, end = call_span(tokens, pos)
+    want = Row(None, 0, "", "", 0, sequence, key, "template", "", None)
+    return end if _passes_holes(want, _arguments(index, pos + 3)) else None
+
+
+def match_choice_head(diff_head, pos, node, keys, calls):
+    """The last token of a head choice at pos that mirrors node: [(] condition ? branch : branch [)],
+    each leaf a call of its key passing its holes; calls collects the T/M tokens. Else None."""
+    tokens = diff_head.tokens
+    if isinstance(node, list):
+        key = keys.pop(0)
+        end = _leaf_call(diff_head, pos, key, node)
+        if end is not None:
+            calls.append(pos)
+        return end
+    if _op(tokens, pos, "("):
+        close = expressions.match_forward(tokens, pos)
+        if close is None:
+            return None
+        end = match_choice_head(diff_head, pos + 1, node, keys, calls)
+        return close if end == close - 1 else None
+    want = [t.raw for t in l10nlib.lex_java(node["if"])]
+    if [t.raw for t in tokens[pos:pos + len(want)]] != want or not _op(tokens, pos + len(want), "?"):
+        return None
+    end = match_choice_head(diff_head, pos + len(want) + 1, node["then"], keys, calls)
+    if end is None or not _op(tokens, end + 1, ":"):
+        return None
+    return match_choice_head(diff_head, end + 2, node["else"], keys, calls)
+
+
 def run(base, head, explicit_ledgers=None, cwd=None):
     """(problems, warnings, summary)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -2011,7 +3281,10 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     problems.extend(row_problems)
 
     head_sources = [p for p in l10nlib.list_files(head, ["src"], cwd) if p.endswith(".java")]
-    calls = call_index(l10nlib.read_files(head, head_sources, cwd)) if any(r.kind in CATALOG_KINDS for r in rows) else None
+    catalog_rows = any(r.kind in CATALOG_KINDS + (CHOICE,) for r in rows)
+    head_texts = l10nlib.read_files(head, head_sources, cwd) if catalog_rows else {}
+    calls = call_index(head_texts) if catalog_rows else None
+    types = SourceTypes(head_texts)
 
     claimed = {}  # (path, token) -> row
     staying = []  # (row, path, token) gone literals a stays-english or id-kept row says moved
@@ -2024,6 +3297,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     removed_frames = collections.defaultdict(set)  # path -> headers and braces of blocks they deleted
     widened = []  # (row, where, path, own statement span, widened span) for removed rows past their statement
     format_rows = {}  # id(row) -> the base span a format row's call replaces
+    choices = []  # (row, where, path, base span, items, id tests, head line ranges) of choice rows
     for row in rows:
         if not row.path.startswith("src/"):
             continue
@@ -2032,6 +3306,38 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         if diff is None or diff.base is None:
             if row.kind in MOVING:
                 problems.append("%s: %s did not change since the merge base, or did not exist there" % (where, row.path))
+            continue
+        if row.kind == CHOICE:
+            candidates, problem = locate_choice(row, diff)
+            chosen, first_problems = None, None
+            for literals, span, items in candidates:
+                ids = set()
+                branch_problems = check_choice_branches(row, items, ids)
+                if not branch_problems:
+                    chosen = (literals, span, items, ids)
+                    break
+                if first_problems is None or len(literals) > len(candidates[0][0]):
+                    first_problems = branch_problems
+            if chosen is None:
+                problems.extend("%s: choice row at %s:%d: %s" % (where, row.path, row.base_line, p)
+                                for p in (first_problems or [problem]))
+                continue
+            literals, span, items, ids = chosen
+            for j in range(span[0], span[1] + 1):
+                allowed_base[row.path].setdefault(j, id(row))
+            for k in literals:
+                tok = diff.base_token(k)
+                if (row.path, k) in claimed:
+                    other = claimed[(row.path, k)]
+                    problems.append("%s: %s on line %d is already covered by %s:%d" % (
+                        where, l10nlib.json_string(tok.value), tok.line, other.source, other.line))
+                    continue
+                claimed[(row.path, k)] = row
+                if k not in diff.gone:
+                    problems.append("%s: the row says %s (line %d) left, but it is still there at head" % (
+                        where, l10nlib.json_string(tok.value), tok.line))
+            hunks = sorted(set(diff.gone[k] for k in literals if k in diff.gone))
+            choices.append((row, where, row.path, span, items, ids, [diff.hunks[h][2:] for h in hunks]))
             continue
         tokens, is_manual, problem = locate(row, diff, claimed)
         if problem:
@@ -2085,6 +3391,19 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 shown.add((first, last))
                 warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this "
                                 "text" % (where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1], None)))
+        for piece in helper_pieces(row.pieces):
+            problem = helper_problem(piece, diff.base)
+            if problem:
+                problems.append("%s: %s" % (where, problem))
+            else:
+                shown = "; ".join("%s at %d: %s" % (form, q, json.dumps(evaluate_helper_form(row.pieces[form], q),
+                                                                         ensure_ascii=False))
+                                  for form in ("one", "other") for q in FORM_QUANTITIES[form][:2])
+                warnings.append("%s: at %s:%d `%s` is modelled as %s (its declaration matches the model token for token); "
+                                "key %s's forms must print what the base prints with the quantity %s (G1 and G2 check "
+                                "one at 1 and other at 0, 2 and 21): %s" % (
+                                    where, row.path, row.base_line, helper_source(piece), piece["model"], row.key,
+                                    " ".join(expected_arguments(row)[0]), shown))
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))
@@ -2171,6 +3490,20 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 if id(row) not in manual_rows:
                     base_span = format_rows[id(row)] if row.kind == "format" else \
                         diffs[path].base.expression_of(first_token).span
+                    if row.kind != "format":
+                        problem, retyped = exception_retype(types, path, diffs[path], base_span, (first, end))
+                        if problem:
+                            problems.append("%s: %s" % (where, problem))
+                        elif retyped is not None:
+                            # A throw switched to a subclass that keeps getMessage() English (B10, B6, B4).
+                            b_name, h_name, id_tokens, warning = retyped
+                            for j in b_name:
+                                allowed_base[path].setdefault(j, ("exception", id(row)))
+                            for j in h_name:
+                                allowed_head[path].setdefault(j, ("exception", id(row)))
+                            for j in id_tokens:
+                                allowed_head[path].setdefault(j, id(row))
+                            warnings.append("%s: %s" % (where, warning))
                     split = split_declaration(diffs[path], base_span, (first, end))
                     retyped = None if split is not None else retyped_declaration(diffs[path], base_span, (first, end))
                     if retyped is not None:
@@ -2223,10 +3556,71 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                         if arg <= len(spans):
                             used.add((path, spans[arg - 1][0]))
 
+    tested_ids = set()  # (path, head token) of the data ids a choice row's conditions compare
+    base_literals = None
+    for row, where, path, span, items, ids, ranges in choices:
+        index = diffs[path].head
+        tokens = index.tokens
+        found = None
+        for pos in range(1, len(tokens) - 1):
+            if not any(h1 <= tokens[pos].line <= h2 for h1, h2 in ranges) or tokens[pos - 1].value not in CHOICE_OPENERS:
+                continue
+            if _op(tokens, pos, "(") and expressions._callee(tokens[pos - 1]):
+                continue
+            leaf_calls = []
+            try:
+                end = match_choice_head(index, pos, row.pieces, row.key.split(","), leaf_calls)
+            except l10nlib.LexError:
+                end = None
+            if end is None or not _op(tokens, end + 1, *CHOICE_CLOSERS) or any((path, c) in used for c in leaf_calls):
+                continue
+            found = (pos, end, leaf_calls)
+            break
+        base_code = _excerpt(diffs[path].base.tokens[span[0]:span[1] + 1], None)
+        if found is None:
+            problems.append("%s: choice row at %s:%d: `%s` must become a ternary on the same condition(s), %s, with "
+                            "each branch one call of its key (%s) passing that branch's holes in placeholder order, "
+                            "in the head lines that replaced it (%s)" % (
+                                where, path, row.base_line, base_code, ", ".join(choice_conditions(row.pieces)),
+                                row.key.replace(",", ", "), ", ".join("%d-%d" % r for r in ranges) or "none"))
+            continue
+        pos, end, leaf_calls = found
+        for j in range(pos, end + 1):
+            allowed_head[path].setdefault(j, id(row))
+        used.update((path, c) for c in leaf_calls)
+        tested = []
+        for literal, variable in sorted(ids):
+            arrived = [j for j in range(pos, end + 1) if tokens[j].kind == "string" and tokens[j].value == literal]
+            tested_ids.update((path, j) for j in arrived if j in diffs[path].added)
+            if base_literals is None:
+                base_literals = {}
+                names = [p for p in l10nlib.list_files(merge, ["src"], cwd) if p.endswith(".java")]
+                for p, text in sorted(l10nlib.read_files(merge, names, cwd).items()):
+                    try:
+                        for t in l10nlib.lex_java(text or ""):
+                            if t.kind == "string":
+                                base_literals.setdefault(t.value, "%s:%d" % (p, t.line))
+                    except l10nlib.LexError:
+                        pass
+            if literal not in base_literals:
+                problems.append("%s: choice row at %s:%d tests %s.equals(%s), but %s is no literal in src at the merge "
+                                "base; a choice tests only a data id the code already has" % (
+                                    where, path, row.base_line, l10nlib.json_string(literal), variable,
+                                    l10nlib.json_string(literal)))
+            else:
+                tested.append("%s (%s at the merge base)" % (l10nlib.json_string(literal), base_literals[literal]))
+        branches = ["%s: %s" % (key, json.dumps(leaf, ensure_ascii=False))
+                    for key, leaf in zip(row.key.split(","), choice_leaves(row.pieces))]
+        warnings.append("%s: choice row at %s:%d: `%s` becomes `%s`; branches %s%s; the conditions now run before the "
+                        "holes, so check by hand that no hole has a side effect the condition reads" % (
+                            where, path, row.base_line, base_code, _excerpt(tokens[pos:end + 1], None),
+                            "; ".join(branches),
+                            "; data id(s) tested: " + ", ".join(tested) if tested else ""))
+
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
         for k in sorted(diffs[path].added):
-            arrivals.append([path, diffs[path].added[k], k, False])
+            arrivals.append([path, diffs[path].added[k], k, "choice" if (path, k) in tested_ids else False])
     named = collections.defaultdict(list)  # (path, head token) of a constant -> [(row, path, base token)] naming it
     existing = set()  # constants named above that were already in src (not arrivals)
     head_lexed = {}
@@ -2317,6 +3711,25 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
     wrapped, english_only = 0, None
     for path in sorted(diffs):
+        served = {}
+        if diffs[path].head is not None:
+            for p, k in used:
+                if p == path and diffs[path].head.tokens[k].value in ("T", "M"):
+                    served[call_span(diffs[path].head.tokens, k)] = k
+        for n, (b_type, h_type, problem, warning) in enumerate(parameter_retypes(path, diffs[path], served, head_texts)):
+            allowed_base[path].setdefault(b_type, ("parameter", n))
+            allowed_head[path].setdefault(h_type, ("parameter", n))
+            if problem:
+                problems.append(problem)
+            else:
+                warnings.append(warning)
+        for n, (b_loc, h_loc, problem, warning) in enumerate(locale_swaps(path, diffs[path])):
+            allowed_base[path].setdefault(b_loc, ("root", n))
+            allowed_head[path].setdefault(h_loc, ("root", n))
+            if problem:
+                problems.append(problem)
+            else:
+                warnings.append(warning)
         wraps = set()
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
                                                    moved_hunks, new_ids[path] | new_formats[path], wraps,
