@@ -159,6 +159,11 @@ src/com/jjricks/volt/DashboardScreen.java:3775	["Proxy: may overstate; not healt
 src/com/jjricks/volt/DashboardScreen.java:3776	["Energy your rides drew per full gauge. Not a battery health or capacity test."]	dashboard_energy_caveat	exact	
 src/com/jjricks/volt/DashboardScreen.java:3779	["Usable ride energy"]	dashboard_usable_energy	exact	
 src/com/jjricks/volt/DashboardScreen.java:3794	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value", "arg": 2, "type": "s"}]	dashboard_reading	template	
+src/com/jjricks/volt/DashboardScreen.java:3813	["Sample · ", {"hole": "windowName(widget.windowMs)", "arg": 1, "type": "s"}]	dashboard_sample_window	template	
+src/com/jjricks/volt/DashboardScreen.java:3872	["No saved readings yet"]	dashboard_no_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:3875	["Scooter's estimated remaining range"]	dashboard_range_reported	exact	
+src/com/jjricks/volt/DashboardScreen.java:4053	["Charging"]	dashboard_charging	exact	
+src/com/jjricks/volt/DashboardScreen.java:4140	{"if": "reading != null && !reading.live", "then": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(reading.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
 src/com/jjricks/volt/DashboardScreen.java:5130	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5692	["Note"]	dashboard_note	exact	
 src/com/jjricks/volt/DashboardScreen.java:5695	["Note"]	dashboard_note	exact	

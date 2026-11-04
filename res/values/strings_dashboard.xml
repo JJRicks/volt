@@ -267,4 +267,11 @@
     <string name="dashboard_energy_caveat" volt:screen="Home capacity widget" volt:purpose="caveat" volt:safety="experimental">Energy your rides drew per full gauge. Not a battery health or capacity test.</string>
     <!-- The estimate details sheet's title. -->
     <string name="dashboard_usable_energy" volt:screen="Home capacity widget" volt:purpose="title" volt:safety="experimental">Usable ride energy</string>
+    <!-- Chart widgets -->
+    <!-- A chart's caption in the sample-data preview: %1$s is the time window ("24 hours"). -->
+    <string name="dashboard_sample_window" volt:screen="Home chart widget" volt:purpose="caption">Sample · %1$s</string>
+    <!-- An empty chart. -->
+    <string name="dashboard_no_readings" volt:screen="Home chart widget" volt:purpose="placeholder">No saved readings yet</string>
+    <!-- The range chart's caption name: the range the scooter itself estimates. -->
+    <string name="dashboard_range_reported" volt:screen="Home chart widget" volt:purpose="caption" volt:safety="ride">Scooter\'s estimated remaining range</string>
 </resources>

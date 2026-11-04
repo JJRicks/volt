@@ -3830,7 +3830,7 @@ public final class DashboardScreen implements AppScreen {
                 livePoints.clear(); wasLive = service.ble.connected();
                 drawChart(values, key);
                 if (!widget.type.equals("health")) {
-                    String sample = "Sample · " + windowName(widget.windowMs);
+                    String sample = T.dashboardSampleWindow(windowName(widget.windowMs));
                     ((DashboardCaption) subtitle).setLabels(label(key) + " · " + sample, sample, sample);
                 }
                 return;
@@ -3889,12 +3889,12 @@ public final class DashboardScreen implements AppScreen {
             chart.setAxis(key, widget.absoluteAxis);
             // After a disconnect the live trace turns grey instead of adding a "Last seen" footer.
             boolean frozen = widget.type.equals("live") && !wasLive && !points.isEmpty();
-            chart.set(points, chartUnit(key, values), frozen ? ui.dim : color(widget), "No saved readings yet");
+            chart.set(points, chartUnit(key, values), frozen ? ui.dim : color(widget), T.dashboardNoReadings());
             if (!widget.type.equals("health")) {
                 boolean reportedRange = key.equals("remaining_range_km");
-                String metricLabel = reportedRange ? "Scooter's estimated remaining range" : label(key);
+                String metricLabel = reportedRange ? T.dashboardRangeReported() : label(key);
                 String window = windowName(widget.windowMs);
-                boolean named = !reportedRange && widget.title.equalsIgnoreCase(metricLabel);
+                boolean named = !reportedRange && widget.title.equalsIgnoreCase(englishLabel(key));
                 String normal = (named ? "" : (reportedRange ? "Scooter range" : ScooterReadingLabels.label(key, metricLabel)) + " · ") + window;
                 String compact = (named ? "" : (reportedRange ? "Scooter range" : ScooterReadingLabels.compact(key, metricLabel)) + " · ") + window;
                 ((DashboardCaption) subtitle).setLabels(metricLabel + " · " + window, normal, compact);
@@ -4070,7 +4070,7 @@ public final class DashboardScreen implements AppScreen {
             paint.setStyle(Paint.Style.FILL);
             String amount = Double.isNaN(percent) ? "—" : Long.toString(Math.round(percent));
             String unit = Double.isNaN(percent) ? "" : "%";
-            String line = charging ? "Charging" : detail;
+            String line = charging ? T.dashboardCharging() : detail;
             float pad = ui.dp(12), available = Math.max(1, w - 2 * pad);
             float amountSize = ui.sp(34), unitSize = ui.sp(17), lineSize = ui.sp(12);
             paint.setTypeface(ui.bold());
@@ -4157,9 +4157,8 @@ public final class DashboardScreen implements AppScreen {
                     unit = unit.substring(0, dual);
                 }
             }
-            setContentDescription(label(widget.metric) + ", " + formatted
-                    + (reading != null && !reading.live
-                            ? ", last seen " + when(reading.capturedWallMs) : ""));
+            setContentDescription(reading != null && !reading.live
+                            ? T.dashboardReadingSeen(label(widget.metric), formatted, when(reading.capturedWallMs)) : T.dashboardReading(label(widget.metric), formatted));
             invalidate();
         }
 
