@@ -342,4 +342,82 @@
     <string name="dashboard_no_matching_settings" volt:screen="Shortcut picker" volt:purpose="placeholder">No matching settings</string>
     <string name="dashboard_choose_shortcut" volt:screen="Shortcut picker" volt:purpose="title">Choose shortcut</string>
     <string name="dashboard_close_shortcut_picker" volt:screen="Shortcut picker" volt:purpose="accessibility description">Close shortcut picker</string>
+    <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
+    <!-- A dialog's or slot's Save button. -->
+    <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>
+    <!-- A time window chip: %1$s is a whole number of minutes, hours or days; one year and two years have their own. -->
+    <string name="dashboard_window_minutes" volt:screen="Widget options" volt:purpose="choice">%1$s min</string>
+    <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>
+    <string name="dashboard_window_one_day" volt:screen="Widget options" volt:purpose="choice">1 day</string>
+    <string name="dashboard_window_days" volt:screen="Widget options" volt:purpose="choice">%1$s days</string>
+    <string name="dashboard_window_one_year" volt:screen="Widget options" volt:purpose="choice">1 year</string>
+    <string name="dashboard_window_two_years" volt:screen="Widget options" volt:purpose="choice">2 years</string>
+    <!-- The advertised capacity row before a value is set. -->
+    <string name="dashboard_set_comparison" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">Set comparison value</string>
+    <!-- An example of an advertised capacity and model. -->
+    <string name="dashboard_capacity_hint" volt:screen="Advertised capacity dialog" volt:purpose="hint" volt:dnt="UT5 MAX" volt:safety="experimental">716 Wh · UT5 MAX</string>
+    <string name="dashboard_capacity_input" volt:screen="Advertised capacity dialog" volt:purpose="accessibility description" volt:safety="experimental">Advertised capacity in watt-hours</string>
+    <string name="dashboard_use_model_rating" volt:screen="Advertised capacity dialog" volt:purpose="button" volt:safety="experimental">Use model rating</string>
+    <!-- The allowed range of an advertised capacity. -->
+    <string name="dashboard_capacity_limit" volt:screen="Advertised capacity dialog" volt:purpose="error" volt:safety="experimental">0–10,000 Wh</string>
+    <string name="dashboard_search_parameters" volt:screen="Choose parameter sheet" volt:purpose="hint">Search parameters</string>
+    <string name="dashboard_choose_parameter" volt:screen="Choose parameter sheet" volt:purpose="title">Choose parameter</string>
+    <string name="dashboard_search_readings" volt:screen="Choose readings sheet" volt:purpose="hint">Search readings</string>
+    <!-- How many readings are chosen: %1$s of at most %2$s (whole numbers). -->
+    <string name="dashboard_count_of_selected" volt:screen="Choose readings sheet" volt:purpose="value">%1$s of %2$s selected</string>
+    <string name="dashboard_all_readings" volt:screen="Choose readings sheet" volt:purpose="section label">All readings</string>
+    <!-- %1$s is a reading's name. -->
+    <string name="dashboard_reading_uncheck" volt:screen="Choose readings sheet" volt:purpose="accessibility description">%1$s, selected, uncheck</string>
+    <string name="dashboard_no_matching_readings" volt:screen="Choose readings sheet" volt:purpose="placeholder">No matching readings</string>
+    <string name="dashboard_choose_one_reading" volt:screen="Choose readings sheet" volt:purpose="toast">Choose at least one reading.</string>
+    <string name="dashboard_save_readings" volt:screen="Choose readings sheet" volt:purpose="accessibility description">Save selected readings</string>
+    <string name="dashboard_choose_readings" volt:screen="Choose readings sheet" volt:purpose="title">Choose readings</string>
+    <string name="dashboard_cancel_readings" volt:screen="Choose readings sheet" volt:purpose="accessibility description">Cancel reading selection</string>
+    <!-- %1$s is the other end of the scale with its unit. -->
+    <string name="dashboard_must_be_above" volt:screen="Scale dialog" volt:purpose="error">Must be above %1$s</string>
+    <string name="dashboard_must_be_below" volt:screen="Scale dialog" volt:purpose="error">Must be below %1$s</string>
+    <string name="dashboard_columns" volt:screen="Widget size dialog" volt:purpose="label">Columns</string>
+    <string name="dashboard_rows" volt:screen="Widget size dialog" volt:purpose="label">Rows</string>
+    <string name="dashboard_widget_size" volt:screen="Widget size dialog" volt:purpose="title">Widget size</string>
+    <string name="dashboard_apply" volt:screen="Widget size dialog" volt:purpose="button">Apply</string>
+    <string name="dashboard_column" volt:screen="Move widget dialog" volt:purpose="label">Column</string>
+    <string name="dashboard_row" volt:screen="Move widget dialog" volt:purpose="label">Row</string>
+    <string name="dashboard_move" volt:screen="Move widget dialog" volt:purpose="button">Move</string>
+
+    <!-- The dashboard layout sheet and saved layout slots -->
+    <!-- The column count that follows the screen width; spoken as Adaptive columns. -->
+    <string name="dashboard_adaptive" volt:screen="Dashboard layout sheet" volt:purpose="choice">Adaptive</string>
+    <string name="dashboard_adaptive_columns" volt:screen="Dashboard layout sheet" volt:purpose="accessibility description">Adaptive columns</string>
+    <string name="dashboard_needs_wider_screen" volt:screen="Dashboard layout sheet" volt:purpose="notice">Needs a wider screen</string>
+    <string name="dashboard_saved_layouts" volt:screen="Dashboard layout sheet" volt:purpose="section label">Saved layouts</string>
+    <string name="dashboard_export" volt:screen="Dashboard layout sheet" volt:purpose="button">Export</string>
+    <string name="dashboard_import" volt:screen="Dashboard layout sheet" volt:purpose="button">Import</string>
+    <string name="dashboard_default_layout" volt:screen="Dashboard layout sheet" volt:purpose="section label">Default layout</string>
+    <string name="dashboard_restore_defaults" volt:screen="Dashboard layout sheet" volt:purpose="button">Restore default widgets</string>
+    <string name="dashboard_layout_title" volt:screen="Dashboard layout sheet" volt:purpose="title">Dashboard layout</string>
+    <string name="dashboard_close_layout" volt:screen="Dashboard layout sheet" volt:purpose="accessibility description">Close dashboard layout</string>
+    <string name="dashboard_defaults_restored" volt:screen="Dashboard layout sheet" volt:purpose="notice">Defaults restored</string>
+    <!-- A saved slot's heading: %1$s is the slot ("Slot 2"), %2$s its saved name. -->
+    <string name="dashboard_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">%1$s · %2$s</string>
+    <!-- %1$s is the slot number. -->
+    <string name="dashboard_save_to_slot_description" volt:screen="Dashboard layout slots" volt:purpose="accessibility description">Save current dashboard to slot %1$s</string>
+    <string name="dashboard_restore" volt:screen="Dashboard layout slots" volt:purpose="button">Restore</string>
+    <!-- %1$s is the slot number; the _named form adds its saved name (%2$s). -->
+    <string name="dashboard_restore_slot" volt:screen="Dashboard layout slots" volt:purpose="accessibility description">Restore slot %1$s</string>
+    <string name="dashboard_restore_slot_named" volt:screen="Dashboard layout slots" volt:purpose="accessibility description">Restore slot %1$s, %2$s</string>
+    <string name="dashboard_layout_name" volt:screen="Dashboard layout slots" volt:purpose="hint">Layout name</string>
+    <string name="dashboard_saved_layout_name" volt:screen="Dashboard layout slots" volt:purpose="accessibility description">Saved layout name</string>
+    <!-- %1$s is the slot number. -->
+    <string name="dashboard_replace_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Replace slot %1$s?</string>
+    <string name="dashboard_save_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Save to slot %1$s?</string>
+    <string name="dashboard_replace" volt:screen="Dashboard layout slots" volt:purpose="button">Replace</string>
+    <string name="dashboard_save_layout_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t save the layout. Please try again.</string>
+    <!-- %1$s is the slot number. -->
+    <string name="dashboard_saved_to_slot" volt:screen="Dashboard layout slots" volt:purpose="toast">Saved to slot %1$s</string>
+    <!-- %1$s is the slot's name. -->
+    <string name="dashboard_restore_title" volt:screen="Dashboard layout slots" volt:purpose="title">Restore “%1$s”?</string>
+    <string name="dashboard_restore_message" volt:screen="Dashboard layout slots" volt:purpose="message">Replaces your layout and the column setting on all scooters.</string>
+    <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t restore. Nothing changed.</string>
+    <!-- %1$s is the slot's name. -->
+    <string name="dashboard_restored" volt:screen="Dashboard layout slots" volt:purpose="toast">Restored “%1$s”</string>
 </resources>

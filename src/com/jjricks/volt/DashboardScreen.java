@@ -5493,7 +5493,7 @@ public final class DashboardScreen implements AppScreen {
         void select(boolean value) {
             selected = value;
             setSelected(value);
-            if (android.os.Build.VERSION.SDK_INT >= 30) setStateDescription(value ? "Selected" : "");
+            if (android.os.Build.VERSION.SDK_INT >= 30) setStateDescription(value ? T.commonSelected() : "");
             invalidate();
         }
 
@@ -5534,12 +5534,12 @@ public final class DashboardScreen implements AppScreen {
 
     /** Chip labels: 2 min, 1 h, 7 days, 1 year. */
     private String shortWindow(long ms) {
-        if (ms < 3600000) return ms / 60000 + " min";
-        if (ms < 86400000) return ms / 3600000 + " h";
+        if (ms < 3600000) return T.dashboardWindowMinutes(Fmt.integer(ms / 60000));
+        if (ms < 86400000) return T.dashboardWindowHours(Fmt.integer(ms / 3600000));
         long days = ms / 86400000;
-        if (days == 365) return "1 year";
-        if (days == 730) return "2 years";
-        return days == 1 ? "1 day" : days + " days";
+        if (days == 365) return T.dashboardWindowOneYear();
+        if (days == 730) return T.dashboardWindowTwoYears();
+        return days == 1 ? T.dashboardWindowOneDay() : T.dashboardWindowDays(Fmt.integer(days));
     }
 
     /**
@@ -5646,7 +5646,7 @@ public final class DashboardScreen implements AppScreen {
     private String ratingLabel(DashboardConfig.Widget widget) {
         Double value = rating(widget);
         return value == null
-                ? "Set comparison value"
+                ? T.dashboardSetComparison()
                 : String.format(
                         Locale.US, "%.2f Wh%s", value, widget.advertisedWh == 0 ? " · model" : "");
     }
@@ -5666,10 +5666,10 @@ public final class DashboardScreen implements AppScreen {
         input.setText(stored <= 0 ? "" : stored == Math.rint(stored)
                 ? String.format(Locale.US, "%.0f", stored) : Double.toString(stored));
         // Empty uses the model rating when it is known.
-        input.setHint(modelKnown ? "716 Wh · UT5 MAX" : "Wh");
-        input.setContentDescription("Advertised capacity in watt-hours");
+        input.setHint(modelKnown ? T.dashboardCapacityHint() : T.unitsWattHour());
+        input.setContentDescription(T.dashboardCapacityInput());
         field.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView unit = ui.text("Wh", 15, false);
+        TextView unit = ui.text(T.unitsWattHour(), 15, false);
         unit.setTextColor(ui.muted);
         unit.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         LinearLayout.LayoutParams unitSpace = new LinearLayout.LayoutParams(-2, -2);
@@ -5677,16 +5677,16 @@ public final class DashboardScreen implements AppScreen {
         field.addView(unit, unitSpace);
         content.addView(field, new LinearLayout.LayoutParams(-1, -2));
         if (modelKnown)
-            content.addView(ui.secondaryButton("Use model rating", () -> {
+            content.addView(ui.secondaryButton(T.dashboardUseModelRating(), () -> {
                 widget.advertisedWh = 0;
                 changedWidget(widget);
             }));
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle("Advertised capacity")
+                        .setTitle(T.dashboardAdvertisedCapacity())
                         .setView(content)
-                        .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Save", null)
+                        .setNegativeButton(T.commonCancel(), null)
+                        .setPositiveButton(T.dashboardSave(), null)
                         .create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -5700,7 +5700,7 @@ public final class DashboardScreen implements AppScreen {
                                 widget.advertisedWh = n;
                                 changedWidget(widget);
                             } catch (Exception e) {
-                                input.setError("0–10,000 Wh");
+                                input.setError(T.dashboardCapacityLimit());
                             }
                         });
     }
@@ -5725,9 +5725,9 @@ public final class DashboardScreen implements AppScreen {
                 new AlertDialog.Builder(dialogContext)
                         .setTitle(label)
                         .setView(input)
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(T.commonCancel(), null)
                         .setPositiveButton(
-                                "Save",
+                                T.dashboardSave(),
                                 (d, w) -> {
                                     apply.accept(input.getText().toString().equals(shown) ? value : input.getText().toString());
                                     changedWidget(widget);
@@ -5739,7 +5739,7 @@ public final class DashboardScreen implements AppScreen {
         List<Telemetry.Metric> metrics = new Telemetry().metrics();
         LinearLayout content = column();
         EditText search = new EditText(dialogContext);
-        search.setHint("Search parameters");
+        search.setHint(T.dashboardSearchParameters());
         search.setSingleLine(true);
         ui.styleSearch(search);
         content.addView(search, ui.searchLayout());
@@ -5776,7 +5776,7 @@ public final class DashboardScreen implements AppScreen {
                     public void afterTextChanged(android.text.Editable e) {}
                 });
         fill.run();
-        show("Choose parameter", content);
+        show(T.dashboardChooseParameter(), content);
         SearchFocus.bind(search, dialog.getWindow());
     }
 
@@ -5791,23 +5791,23 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout header = column();
         EditText search = new EditText(dialogContext);
         search.setSingleLine(true);
-        search.setHint("Search readings");
-        search.setContentDescription("Search readings");
+        search.setHint(T.dashboardSearchReadings());
+        search.setContentDescription(T.dashboardSearchReadings());
         ui.styleSearch(search);
         search.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 14, ui.outline));
         header.addView(search, ui.searchLayout());
-        TextView count = ui.caption(chosen.size() + " of " + most + " selected");
+        TextView count = ui.caption(T.dashboardCountOfSelected(Fmt.integer(chosen.size()), Fmt.integer(most)));
         count.setPadding(ui.dp(2), 0, ui.dp(2), ui.dp(10));
         count.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         header.addView(count);
         LinearLayout choices = column();
-        TextView selectedHeading = sheetLabel("Selected");
+        TextView selectedHeading = sheetLabel(T.commonSelected());
         selectedHeading.setTag("selected-readings-heading");
         choices.addView(selectedHeading);
         LinearLayout selectedRows = column();
         selectedRows.setTag("selected-readings");
         choices.addView(selectedRows);
-        TextView allHeading = sheetLabel("All readings");
+        TextView allHeading = sheetLabel(T.dashboardAllReadings());
         allHeading.setTag("all-readings-heading");
         choices.addView(allHeading);
         ArrayList<View> items = new ArrayList<>();
@@ -5864,7 +5864,7 @@ public final class DashboardScreen implements AppScreen {
                 else if (chosen.size() < most) chosen.add(metric.key);
                 else return;
                 style.run();
-                count.setText(chosen.size() + " of " + most + " selected");
+                count.setText(T.dashboardCountOfSelected(Fmt.integer(chosen.size()), Fmt.integer(most)));
                 refreshSelected[0].run();
             });
             style.run();
@@ -5893,7 +5893,7 @@ public final class DashboardScreen implements AppScreen {
                 selected.setPadding(ui.dp(12), ui.dp(8), ui.dp(8), ui.dp(8));
                 selected.setMinimumHeight(ui.dp(56));
                 selected.setTag("selected-reading:" + key);
-                selected.setContentDescription(label(key) + ", selected, uncheck");
+                selected.setContentDescription(T.dashboardReadingUncheck(label(key)));
                 selected.setClickable(true); selected.setFocusable(true);
                 selected.setBackground(ripple(Ui.withAlpha(ui.accent, 30),
                         ui.shape(blend(ui.raised, ui.accent, ui.dark ? .14f : .08f), 14,
@@ -5923,7 +5923,7 @@ public final class DashboardScreen implements AppScreen {
             animateRows(selectedRows, pinned);
         };
         refreshSelected[0].run();
-        TextView empty = ui.caption("No matching readings");
+        TextView empty = ui.caption(T.dashboardNoMatchingReadings());
         empty.setGravity(Gravity.CENTER);
         empty.setPadding(ui.dp(12), ui.dp(24), ui.dp(12), ui.dp(24));
         choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
@@ -5948,10 +5948,10 @@ public final class DashboardScreen implements AppScreen {
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveButton(), () -> {
             if (chosen.size() > most) return;
             if (chosen.size() < least) {
-                host.toast("Choose at least one reading.");
+                host.toast(T.dashboardChooseOneReading());
                 return;
             }
             widget.keys.clear();
@@ -5960,11 +5960,11 @@ public final class DashboardScreen implements AppScreen {
             render();
             options(widget);
         });
-        save.setContentDescription("Save selected readings");
+        save.setContentDescription(T.dashboardSaveReadings());
         LinearLayout footer = column();
         footer.setPadding(0, ui.dp(12), 0, 0);
         footer.addView(save, new LinearLayout.LayoutParams(-1, -2));
-        showSheet("Choose readings", header, choices, footer, "Cancel reading selection", null);
+        showSheet(T.dashboardChooseReadings(), header, choices, footer, T.dashboardCancelReadings(), null);
         if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
     }
 
@@ -6010,10 +6010,10 @@ public final class DashboardScreen implements AppScreen {
         }
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle(maximum ? "Scale maximum" : "Scale minimum")
+                        .setTitle(maximum ? T.dashboardScaleMaximum() : T.dashboardScaleMinimum())
                         .setView(content)
-                        .setNegativeButton("Cancel", null)
-                        .setPositiveButton("Save", null)
+                        .setNegativeButton(T.commonCancel(), null)
+                        .setPositiveButton(T.dashboardSave(), null)
                         .create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -6035,8 +6035,8 @@ public final class DashboardScreen implements AppScreen {
                                 changedWidget(widget);
                             } catch (Exception e) {
                                 input.setError(maximum
-                                        ? "Must be above " + scaleSummary(widget, widget.minimum)
-                                        : "Must be below " + scaleSummary(widget, widget.maximum));
+                                        ? T.dashboardMustBeAbove(scaleSummary(widget, widget.minimum))
+                                        : T.dashboardMustBeBelow(scaleSummary(widget, widget.maximum)));
                             }
                         });
     }
@@ -6055,17 +6055,17 @@ public final class DashboardScreen implements AppScreen {
         height.setMinValue(minimumHeight);
         height.setMaxValue(16);
         height.setValue(Math.max(minimumHeight, cell.h));
-        controls.addView(ui.caption("Columns"));
+        controls.addView(ui.caption(T.dashboardColumns()));
         controls.addView(width);
-        controls.addView(ui.caption("Rows"));
+        controls.addView(ui.caption(T.dashboardRows()));
         controls.addView(height);
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle("Widget size")
+                        .setTitle(T.dashboardWidgetSize())
                         .setView(controls)
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(T.commonCancel(), null)
                         .setPositiveButton(
-                                "Apply",
+                                T.dashboardApply(),
                                 (d, n) -> {
                                     DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
                                     grid.prepareEdit();
@@ -6088,23 +6088,23 @@ public final class DashboardScreen implements AppScreen {
         x.setMinValue(1);
         x.setMaxValue(Math.max(1, grid.columns));
         x.setValue(Math.max(1, Math.min(grid.columns, cell.x + 1)));
-        x.setContentDescription("Column");
+        x.setContentDescription(T.dashboardColumn());
         NumberPicker y = new NumberPicker(dialogContext);
         y.setMinValue(1);
         y.setMaxValue(301);
         y.setValue(Math.max(1, Math.min(301, cell.y + 1)));
-        y.setContentDescription("Row");
-        controls.addView(ui.caption("Column"));
+        y.setContentDescription(T.dashboardRow());
+        controls.addView(ui.caption(T.dashboardColumn()));
         controls.addView(x);
-        controls.addView(ui.caption("Row"));
+        controls.addView(ui.caption(T.dashboardRow()));
         controls.addView(y);
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle("Move widget")
+                        .setTitle(T.dashboardMoveWidget())
                         .setView(controls)
-                        .setNegativeButton("Cancel", null)
+                        .setNegativeButton(T.commonCancel(), null)
                         .setPositiveButton(
-                                "Move",
+                                T.dashboardMove(),
                                 (d, n) -> {
                                     DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
                                     grid.prepareEdit();
@@ -6148,7 +6148,7 @@ public final class DashboardScreen implements AppScreen {
                 setWillNotDraw(false);
                 for (int i = 0; i <= DashboardConfig.MAX_COLUMNS; i++) {
                     final int choice = i;
-                    TextView button = ui.text(i == 0 ? "Adaptive" : Integer.toString(i), 13, true);
+                    TextView button = ui.text(i == 0 ? T.dashboardAdaptive() : Integer.toString(i), 13, true);
                     button.setGravity(Gravity.CENTER);
                     button.setMinWidth(ui.dp(i == 0 ? 90 : 48));
                     button.setPadding(ui.dp(12), 0, ui.dp(12), 0);
@@ -6157,12 +6157,12 @@ public final class DashboardScreen implements AppScreen {
                     // Too many columns for this screen: shown greyed; a tap explains at the bottom of the screen.
                     final boolean available = i == 0 || i <= usable;
                     button.setAlpha(available ? 1f : .4f);
-                    button.setContentDescription(i == 0 ? "Adaptive columns"
+                    button.setContentDescription(i == 0 ? T.dashboardAdaptiveColumns()
                             : i + (i == 1 ? " column" : " columns")
                                     + (available ? "" : ", needs a wider screen"));
                     button.setOnClickListener(v -> {
                         if (!available) {
-                            showNotice(button, "Needs a wider screen", null, null);
+                            showNotice(button, T.dashboardNeedsWiderScreen(), null, null);
                             return;
                         }
                         this.selected = choice;
@@ -6186,7 +6186,7 @@ public final class DashboardScreen implements AppScreen {
                     button.setSelected(i == selected);
                     button.setTextColor(i == selected ? ui.onAccent : ui.text);
                     if (android.os.Build.VERSION.SDK_INT >= 30)
-                        button.setStateDescription(i == selected ? "Selected" : "");
+                        button.setStateDescription(i == selected ? T.commonSelected() : "");
                 }
                 TextView button = choices.get(selected);
                 if (button.getWidth() == 0) return;
@@ -6238,23 +6238,23 @@ public final class DashboardScreen implements AppScreen {
     private void layoutOptions() {
         grid.finishGesture(false);
         LinearLayout content = column();
-        content.addView(sheetLabel("Columns"));
+        content.addView(sheetLabel(T.dashboardColumns()));
         int usable = grid.maximumColumns();
         int selected = preferences.getInt("dashboard_columns", 0);
         LinearLayout.LayoutParams selectorSpace = new LinearLayout.LayoutParams(-1, -2);
         selectorSpace.bottomMargin = ui.dp(6);
         content.addView(new ColumnSelector(usable, selected), selectorSpace);
-        content.addView(sheetLabel("Saved layouts"));
+        content.addView(sheetLabel(T.dashboardSavedLayouts()));
         for (int i = 0; i < DashboardConfig.SLOT_COUNT; i++) addLayoutSlot(content, i);
         LinearLayout transfers = row();
-        View export = toolButton("Export", "download", () -> { dismiss(); host.exportDashboardLayouts(); });
-        View importButton = toolButton("Import", "restore", () -> { dismiss(); host.importDashboardLayouts(); });
+        View export = toolButton(T.dashboardExport(), "download", () -> { dismiss(); host.exportDashboardLayouts(); });
+        View importButton = toolButton(T.dashboardImport(), "restore", () -> { dismiss(); host.importDashboardLayouts(); });
         LinearLayout.LayoutParams exportSpace = new LinearLayout.LayoutParams(0, -2, 1);
         exportSpace.setMarginEnd(ui.dp(10));
         transfers.addView(export, exportSpace);
         transfers.addView(importButton, new LinearLayout.LayoutParams(0, -2, 1));
         content.addView(transfers);
-        content.addView(sheetLabel("Default layout"));
+        content.addView(sheetLabel(T.dashboardDefaultLayout()));
         LinearLayout restore = row();
         restore.setGravity(Gravity.CENTER_VERTICAL);
         restore.setMinimumHeight(ui.dp(64));
@@ -6265,7 +6265,7 @@ public final class DashboardScreen implements AppScreen {
         restore.setFocusable(true);
         restore.addView(square("restore", ui.accent, 38), new LinearLayout.LayoutParams(ui.dp(38), ui.dp(38)));
         LinearLayout words = column();
-        TextView name = ui.text("Restore default widgets", 15, false);
+        TextView name = ui.text(T.dashboardRestoreDefaults(), 15, false);
         name.setTypeface(ui.medium());
         words.addView(name);
         LinearLayout.LayoutParams wordsSpace = new LinearLayout.LayoutParams(0, -2, 1);
@@ -6273,7 +6273,7 @@ public final class DashboardScreen implements AppScreen {
         restore.addView(words, wordsSpace);
         restore.setOnClickListener(v -> restoreDefaults());
         content.addView(restore, new LinearLayout.LayoutParams(-1, -2));
-        showSheet("Dashboard layout", content, null, "Close dashboard layout", null);
+        showSheet(T.dashboardLayoutTitle(), content, null, T.dashboardCloseLayout(), null);
     }
 
     /** Restores the defaults at once; Undo in the notice (or the header) brings the old layout back. */
@@ -6300,11 +6300,11 @@ public final class DashboardScreen implements AppScreen {
         dismiss();
         render();
         if (recorded) offerRestoreUndo();
-        else showNotice(view, "Defaults restored", null, null);
+        else showNotice(view, T.dashboardDefaultsRestored(), null, null);
     }
 
     private void offerRestoreUndo() {
-        showNotice(view, "Defaults restored", "Undo", () -> {
+        showNotice(view, T.dashboardDefaultsRestored(), T.dashboardUndo(), () -> {
             if (closed || !editing || !editHistory.canUndo()) return;
             restoreEdit(false);
         });
@@ -6469,7 +6469,8 @@ public final class DashboardScreen implements AppScreen {
                 ? slotName : slotName + " · " + saved.name;
         LinearLayout card = sheetCard();
         card.setPadding(ui.dp(12), ui.dp(12), ui.dp(12), ui.dp(12));
-        TextView heading = ui.text(title, 15, true);
+        TextView heading = ui.text(saved == null || saved.name.equals(slotName) ? DashboardConfig.defaultSlotName(index)
+                : T.dashboardSlotTitle(DashboardConfig.defaultSlotName(index), DashboardConfig.displaySlotName(saved.name, index)), 15, true);
         if (android.os.Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         card.addView(heading);
         String detail = saved == null
@@ -6481,13 +6482,14 @@ public final class DashboardScreen implements AppScreen {
         summary.setPadding(0, ui.dp(3), 0, ui.dp(8));
         card.addView(summary);
         LinearLayout buttons = row();
-        TextView save = ui.secondaryButton("Save", () -> saveLayoutSlot(index));
-        save.setContentDescription("Save current dashboard to slot " + (index + 1));
+        TextView save = ui.secondaryButton(T.dashboardSave(), () -> saveLayoutSlot(index));
+        save.setContentDescription(T.dashboardSaveToSlotDescription(Fmt.integer(index + 1)));
         save.setTag("dashboard-slot-save-" + index);
-        TextView load = ui.button("Restore", () -> restoreLayoutSlot(index));
-        load.setContentDescription("Restore slot " + (index + 1)
-                + (saved == null ? "" : ", " + saved.name));
+        TextView load = ui.button(T.dashboardRestore(), () -> restoreLayoutSlot(index));
+        load.setContentDescription(saved == null ? T.dashboardRestoreSlot(Fmt.integer(index + 1))
+                : T.dashboardRestoreSlotNamed(Fmt.integer(index + 1), saved.name));
         load.setTag("dashboard-slot-restore-" + index);
+        if (saved != null) load.setContentDescription(T.dashboardRestoreSlotNamed(Fmt.integer(index + 1), DashboardConfig.displaySlotName(saved.name, index)));
         load.setEnabled(saved != null);
         LinearLayout.LayoutParams saveSize = new LinearLayout.LayoutParams(0, -2, 1);
         saveSize.setMarginEnd(ui.dp(8));
@@ -6508,8 +6510,8 @@ public final class DashboardScreen implements AppScreen {
         content.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         EditText name = new EditText(dialogContext);
         name.setSingleLine(true);
-        name.setHint("Layout name");
-        name.setContentDescription("Saved layout name");
+        name.setHint(T.dashboardLayoutName());
+        name.setContentDescription(T.dashboardSavedLayoutName());
         name.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         name.setFilters(new android.text.InputFilter[] {
             new android.text.InputFilter.LengthFilter(DashboardConfig.SLOT_NAME_LIMIT)
@@ -6518,11 +6520,11 @@ public final class DashboardScreen implements AppScreen {
         name.setSelectAllOnFocus(true);
         content.addView(name, new LinearLayout.LayoutParams(-1, -2));
         AlertDialog created = new AlertDialog.Builder(dialogContext)
-                .setTitle((replacing ? "Replace slot " : "Save to slot ") + (index + 1) + "?")
+                .setTitle(replacing ? T.dashboardReplaceSlotTitle(Fmt.integer(index + 1)) : T.dashboardSaveSlotTitle(Fmt.integer(index + 1)))
                 .setView(content)
-                .setNegativeButton("Cancel", (d, which) -> returnToLayoutOptions(d))
+                .setNegativeButton(T.commonCancel(), (d, which) -> returnToLayoutOptions(d))
                 .setOnCancelListener(this::returnToLayoutOptions)
-                .setPositiveButton(replacing ? "Replace" : "Save", null)
+                .setPositiveButton(replacing ? T.dashboardReplace() : T.dashboardSave(), null)
                 .create();
         dialog = created;
         created.show();
@@ -6532,10 +6534,10 @@ public final class DashboardScreen implements AppScreen {
             boolean stored = config.saveSlot(index, name.getText().toString(),
                     preferences.getInt("dashboard_columns", 0));
             if (!stored) {
-                host.toast("Couldn’t save the layout. Please try again.");
+                host.toast(T.dashboardSaveLayoutFailed());
                 return;
             }
-            host.toast("Saved to slot " + (index + 1));
+            host.toast(T.dashboardSavedToSlot(Fmt.integer(index + 1)));
             layoutOptions();
         });
     }
@@ -6549,11 +6551,11 @@ public final class DashboardScreen implements AppScreen {
         }
         dismiss();
         AlertDialog created = new AlertDialog.Builder(dialogContext)
-                .setTitle("Restore “" + saved.name + "”?")
-                .setMessage("Replaces your layout and the column setting on all scooters.")
-                .setNegativeButton("Cancel", (d, which) -> returnToLayoutOptions(d))
+                .setTitle(T.dashboardRestoreTitle(DashboardConfig.displaySlotName(saved.name, index)))
+                .setMessage(T.dashboardRestoreMessage())
+                .setNegativeButton(T.commonCancel(), (d, which) -> returnToLayoutOptions(d))
                 .setOnCancelListener(this::returnToLayoutOptions)
-                .setPositiveButton("Restore", null)
+                .setPositiveButton(T.dashboardRestore(), null)
                 .create();
         dialog = created;
         created.show();
@@ -6561,7 +6563,7 @@ public final class DashboardScreen implements AppScreen {
             if (closed || !editing) return;
             grid.finishGesture(false);
             if (!config.restoreSlot(index)) {
-                host.toast("Couldn’t restore. Nothing changed.");
+                host.toast(T.dashboardRestoreFailed());
                 return;
             }
             stopRemovalEffect();
@@ -6569,7 +6571,7 @@ public final class DashboardScreen implements AppScreen {
             clearRestoreUndo();
             dismiss();
             render();
-            host.toast("Restored “" + saved.name + "”");
+            host.toast(T.dashboardRestored(DashboardConfig.displaySlotName(saved.name, index)));
         });
     }
 
@@ -6588,7 +6590,7 @@ public final class DashboardScreen implements AppScreen {
                 new AlertDialog.Builder(dialogContext)
                         .setTitle(title)
                         .setView(scroll)
-                        .setNegativeButton("Close", null)
+                        .setNegativeButton(T.commonClose(), null)
                         .create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 24, 0));
