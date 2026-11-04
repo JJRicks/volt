@@ -86,7 +86,10 @@
     <!-- Exactly one unfinished test on another saved scooter, which is reviewed there. -->
     <string name="compat_test_elsewhere_one" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental">1 unfinished test on another scooter. Select it to review.</string>
     <!-- Two or more unfinished tests on other saved scooters (one is compat_test_elsewhere_one). %1$d is how many. -->
-    <string name="compat_tests_elsewhere" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental">%1$d unfinished tests on other scooters. Select one to review.</string>
+    <plurals name="compat_tests_elsewhere" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental" volt:english-fix="pending">
+        <item quantity="one">%1$d unfinished tests on other scooters. Select one to review.</item>
+        <item quantity="other">%1$d unfinished tests on other scooters. Select one to review.</item>
+    </plurals>
     <!-- Shown when Volt cannot read its record of tries and tests (the same text as the test journal's own
          note): an earlier change may still be on the scooter. -->
     <string name="compat_test_records_unavailable" volt:screen="Compatibility" volt:purpose="warning" volt:safety="experimental">Test records unavailable. A previous test may not have been set back; check the scooter\'s settings.</string>
@@ -233,7 +236,10 @@
     <!-- How long ago the status was read: exactly one minute. -->
     <string name="compat_age_one_minute" volt:screen="Compatibility results" volt:purpose="value">1 minute ago</string>
     <!-- How long ago the status was read, two minutes or more (one is compat_age_one_minute). %1$d is the number of minutes. -->
-    <string name="compat_age_minutes" volt:screen="Compatibility results" volt:purpose="value">%1$d minutes ago</string>
+    <plurals name="compat_age_minutes" volt:screen="Compatibility results" volt:purpose="value" volt:english-fix="pending">
+        <item quantity="one">%1$d minutes ago</item>
+        <item quantity="other">%1$d minutes ago</item>
+    </plurals>
     <!-- Name of a read: the serial number check (command 0x74). -->
     <string name="compat_read_serial" volt:screen="Compatibility results" volt:purpose="label">Serial check</string>
     <!-- Name of a read: the firmware versions (command 0x73). -->
