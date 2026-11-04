@@ -66,7 +66,10 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   `%` always goes through `String.format(Locale.ROOT, ...)`; locale-aware numbers come from `Fmt`
   as `%n$s` arguments. `formatted="false"` turns this off for a string.
 - **Plurals** take the quantity first: `T.backupScootersSkipped(long quantity, long n)`. English
-  uses `one` for exactly 1 and `other` otherwise. `<string-array>` is banned for UI text.
+  uses `one` for exactly 1 and `other` otherwise, so an English plural holds only `one` and `other`
+  items: `gen_catalog.py` refuses `zero`, `two`, `few` and `many` in `res/values/`, which
+  `EnglishText` would never show but Android would on a phone whose first language has that category.
+  `<string-array>` is banned for UI text.
 - **Spelling rules.** `gen_catalog.py` refuses anything aapt would silently store differently:
   - leading or trailing whitespace, repeated spaces, raw tabs or line breaks: wrap the whole string
     in `"..."` (the quotes are not part of the text) or use `\n` and `\t`;
@@ -91,14 +94,16 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 
 - `T.java`: ids, one typed accessor per key, `T.Source` (`string(id)`, `plural(id, q)`,
   `language()`), `T.install(source)`, `T.render(id, args...)` and `T.renderPlural(id, q, args...)`.
-  A wrong argument count or type is a compile error.
+  A wrong argument count or type is a compile error. `T.Plurals` is the pure plural-item selection
+  that `AndroidText` uses (below).
 - `M.java`: the same accessors returning a deferred `Msg`. Its contract with the hand-written
   `Msg` (B0b): `static Msg of(int id, Object... args)` and
   `static Msg plural(int id, long quantity, Object... args)`; `Msg.render()` calls `T.render` or
   `T.renderPlural`. If `Msg` implements `CharSequence`, a `Msg` can be an argument of another `Msg`.
 - `EnglishText.java`: the English values; `T`'s default source and the fallback for a missing id.
 - `AndroidText.java` (`--android`, app build only): ids mapped to `R.string` and `R.plurals`.
-- `AppLanguages.java`: the language table; `resolve(tag)` is the defensive `l10n_tag` parse.
+- `AppLanguages.java`: the language table, with each language's plural categories; `resolve(tag)` is
+  the defensive `l10n_tag` parse.
 - `en.expected.tsv`: the English the round-trip compares with aapt.
 
 `build.sh` runs the generator before aapt and the round-trip after it, but only once a
@@ -145,6 +150,28 @@ its own `.sources` file (its characterization tests, its new suites) and never e
   catalog). It is a `CharSequence`, renders when read, and `english()` gives the English whatever is
   installed. `UserFacingException(Msg)` keeps English in `getMessage()`; screens show `msg()`.
 - `ScreenHost.toast(Msg)` and `sheetContent(Msg, Msg, close)` render at display time.
+- **Plural items follow the language being shown.** `Resources.getQuantityString` picks a plural's
+  item by the plural rules of the configuration's *first* locale, even when it serves another
+  language's text (`ResourcesImpl.getPluralRule`): on a phone whose only language is Thai, Japanese,
+  Chinese, Korean, Vietnamese or Indonesian, Volt in English would say "1 minutes left", and on a
+  Russian or Latvian one "21 minute left". `AndroidText.plural` therefore chooses the item with the
+  rules of the language of the text Android actually serves for that key, not of `language()`:
+  text equal to one of `EnglishText`'s items is the English default (also when a shipped language
+  leaves the key out under the beta bar, or a folder that never shipped serves it) and takes
+  `T.Plurals.ENGLISH`, `EnglishText`'s rule; other text takes the `android.icu.text.PluralRules` and
+  `l10n/lang/` categories of its folder's raw `l10n_tag` when the language table has that tag,
+  shipped or not, and otherwise keeps Android's choice. It asks Android for a stand-in quantity
+  whose item under the first locale's rules is that one (`T.Plurals.standIn`: the quantity itself
+  when it already is, so an English phone passes exactly what it passed before; then 0 to 199 and
+  powers of ten). The text is then formatted with the real quantity. When no stand-in exists (the
+  first locale has no such category, as Thai has no "one"), the English default comes from
+  `EnglishText` (G3 proves it equal to `res/values/`); other text keeps Android's choice. A
+  translation identical to an English item is treated as English, which can serve English's "one"
+  in its place only where the first locale has no "one" category.
+  Known limit: a shipped language served from a later locale of the phone's list, behind a first
+  language with fewer categories (Spanish behind Japanese), still shows Android's "other" item where
+  its own rules want "one" or "many". On an English phone the only change is a negative quantity of
+  -1, which ICU reads as "one" and `EnglishText` as "other" (no caller passes one).
 - The Shizuku shell process (`OwnerCaptureUserService` and everything it reaches) never uses any of
   these; `tests/l10n/CatalogUsageTest` checks that, and rules R2 to R6.
 - R2 (no rendered text kept in a field) looks at the field's declared type: a field of an Android view
@@ -500,6 +527,20 @@ runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and
 `ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
 changes in a batch) and review are what keep a batch from weakening them.
 
+**G2.** `LedgerTest` renders every `exact`, `template` and `plural` row through `EnglishText` with
+sentinel arguments and compares the result with the base expression evaluated with the same
+sentinels. A plural is rendered at every quantity of `LedgerTest.QUANTITIES` (0, 1, 2, 3, 4, 5, 11,
+12, 21, 22, 25, 100, 101, 111 and 1000000), in the form `EnglishText` serves for it ("one" for exactly
+1 when the entry has a "one" item, "other" otherwise), and must print what the base printed for that
+quantity. The base expression is the row's "other" pieces, the ones G1 matched with the base line;
+only a `manual:` row (a base ternary with its own branch for exactly 1, such as
+`n == 1 ? "1 ride" : n + " rides"`) has its "one" pieces stand for that branch at 1. So a "one" item
+holding English the base never printed fails, whether or not the row lists a "one" form: a batch
+that turns `n + " minutes"` into a plural keeps "1 minutes" in its "one" item, and tags it
+`volt:english-fix="pending"`. For a pending plural every item must print the base output at every
+quantity. Each form a row lists is also checked against its own item, and a listed form the entry
+lacks fails.
+
 **G3.** The round-trip reads the default-configuration strings and plurals straight from the
 `resources.arsc` aapt wrote and compares them with `en.expected.tsv`. It also fails on compiled
 strings the catalog does not know, on styled strings, and on text in any English or non-locale
@@ -555,11 +596,25 @@ the first merge base that has the tool, so deleting every baseline does not swit
 allowlist for converted files that must keep English (reports, tags, keys) arrives with the first
 batch that needs one.
 
-**G9.** `tests/l10n/golden.sh` compiles `GoldenReports.java` against the pure classes, runs it under
-en-US, de-DE, tr-TR and ar-EG with different time zones, and compares the diagnostics JSON, the ride
-journal CSV, the phone ride CSV and the GPX with `tests/l10n/golden/`. `--update` rewrites them;
-use it only for an intended, reviewed format change, never in a batch: CI fails a batch whose
-goldens differ from the merge base.
+**G9.** `tests/l10n/golden.sh` generates the catalog as `tests/run.sh` does (`gen_catalog.py`
+without `--android`) and compiles `GoldenReports.java` against the pure classes in `src/` and that
+catalog, so a class the reports reach (Telemetry, ModelRegistry, CapabilityResolver,
+ChargeScheduleController, GuidedTest, ...) may use `T`, `M` and `Msg` for its display text. It runs the
+reports under en-US, de-DE, tr-TR and ar-EG with different time zones and the built-in English, then
+twice more under en-US: with a non-English source that answers every id with its marked key, and with
+one that throws on any use. All of them must write the same files, which must equal
+`tests/l10n/golden/` (the diagnostics JSON, the ride journal CSV, the phone ride CSV and the GPX). So a
+report field that moves to the catalog fails even when its English is the same (`"group": "Battery"`
+becoming `T.readingsGroupBattery()`), and so does a report path that only reads catalog text, as
+`ReportsStayEnglishTest` already requires of the report builders. The display text of those classes
+stays off the report paths: keep an English id beside a display accessor (plan section 1.5). `--update`
+rewrites the goldens; use it only for an intended, reviewed format change, never in a batch: CI fails
+a batch whose goldens differ from the merge base.
+
+**G10.** `FmtLegacyTest` pins each `UnitCode` that exists by name, data code and English symbol, so
+changing or removing one fails. A batch that owns unit data may add a code (B3's chart "Time"): a
+new code needs a non-empty data code no other code has and its own plain catalog string as its
+symbol, never another code's.
 
 **B0a extra check.** `prove-english.sh <base> --same-apk` builds the merge base and head in clean
 worktrees and requires byte-identical `classes.dex` and `resources.arsc`.

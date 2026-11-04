@@ -120,6 +120,7 @@ class DecodeTest(unittest.TestCase):
 
 
 class CatalogTest(unittest.TestCase):
+    maxDiff = None
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="l10n-catalog-")
         os.makedirs(os.path.join(self.dir, "res", "values"))
@@ -189,6 +190,10 @@ class CatalogTest(unittest.TestCase):
             ('<string-array name="a"><item>x</item></string-array>', "string-arrays are banned"),
             ('<plurals name="a"><item quantity="one">x</item></plurals>', 'needs an "other"'),
             ('<plurals name="a"><item quantity="several">x</item><item quantity="other">y</item></plurals>', "quantity"),
+            ('<plurals name="a"><item quantity="few">x</item><item quantity="other">y</item></plurals>',
+             'English plural holds only "one" and "other"'),
+            ('<plurals name="a"><item quantity="zero">x</item><item quantity="other">y</item></plurals>',
+             'English plural holds only "one" and "other"'),
             ('<plurals name="a"><item quantity="one">%1$s</item><item quantity="other">%1$d</item></plurals>',
              "different conversions"),
             ('<string name="a">%2$s</string>', "no gaps"),
@@ -280,7 +285,7 @@ class CatalogTest(unittest.TestCase):
         pkg = os.path.join(out, "com", "jjricks", "volt")
         l10nlib.write_text(os.path.join(pkg, "Msg.java"), MSG_STUB)
         l10nlib.write_text(os.path.join(pkg, "R.java"), R_STUB)
-        l10nlib.write_text(os.path.join(out, "android", "content", "res", "Resources.java"), RESOURCES_STUB)
+        write_android_stubs(out)
         l10nlib.write_text(os.path.join(pkg, "Probe.java"), PROBE)
         bin_dir = find_javac()
         classes = os.path.join(self.dir, "classes")
@@ -305,6 +310,219 @@ class CatalogTest(unittest.TestCase):
         self.assertIn("dashMoveWidget", wrong.stdout.decode("utf-8", "replace"))
 
 
+    def compile_and_run(self, catalog, probes, languages=()):
+        """Generates the catalog with --android, compiles it with the stubs and probes, runs each probe."""
+        self.write("strings_test.xml", catalog)
+        for name, text in languages:
+            l10nlib.write_text(os.path.join(self.dir, "lang", name), text)
+        out = os.path.join(self.dir, "gen")
+        gen_catalog.generate(os.path.join(self.dir, "res"), os.path.join(self.dir, "lang"), out, None, True)
+        pkg = os.path.join(out, "com", "jjricks", "volt")
+        l10nlib.write_text(os.path.join(pkg, "Msg.java"), MSG_STUB)
+        l10nlib.write_text(os.path.join(pkg, "R.java"), R_STUB.replace("rides_count = 12;", "rides_count = 12, minutes_left = 13;"))
+        write_android_stubs(out)
+        for name, text in probes.items():
+            l10nlib.write_text(os.path.join(pkg, name + ".java"), text)
+        bin_dir = find_javac()
+        classes = os.path.join(self.dir, "classes")
+        sources = [os.path.join(d, n) for d, _, names in os.walk(out) for n in names if n.endswith(".java")]
+        compiled = subprocess.run([os.path.join(bin_dir, "javac"), "--release", "8", "-Xlint:-options", "-encoding", "UTF-8",
+                                   "-d", classes] + sources, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        self.assertEqual(compiled.returncode, 0, compiled.stdout.decode("utf-8", "replace"))
+        results = {}
+        for name in probes:
+            run = subprocess.run([os.path.join(bin_dir, "java"), "-cp", classes, "com.jjricks.volt." + name],
+                                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            self.assertEqual(run.returncode, 0, run.stdout.decode("utf-8", "replace"))
+            results[name] = run.stdout.decode("utf-8").splitlines()
+        return results
+
+    @unittest.skipUnless(find_javac(), "javac not found")
+    def test_plural_selection_follows_the_served_language(self):
+        """T.Plurals.standIn, pure: under every phone language's rules Android is made to serve the item the
+        served language's rules choose, and an English phone passes every quantity it passed before."""
+        out = self.compile_and_run(CATALOG, {"PluralProbe": PLURAL_PROBE})["PluralProbe"]
+        self.assertEqual(out, [
+            "english under en: every quantity from 0 passes as it is",
+            "english under de: every quantity from 0 passes as it is",
+            "english under th: no stand-in for 1",
+            "english under ja: no stand-in for 1",
+            "english under zh: no stand-in for 1",
+            "english under ko: no stand-in for 1",
+            "english under vi: no stand-in for 1",
+            "english under id: no stand-in for 1",
+            "english under ru: served",
+            "english under uk: served",
+            "english under pl: served",
+            "english under cs: served",
+            "english under lv: served",
+            "english under ar: served",
+            "english under es: served",
+            "english under en at -1: other (Android alone: one)",
+            "spanish under es: unchanged",
+            "spanish under ru: served",
+            "spanish under ja: no stand-in for many, one",
+            "ok"])
+
+    @unittest.skipUnless(find_javac(), "javac not found")
+    def test_android_plurals_use_english_rules_while_volt_shows_english(self):
+        """The B8 and B3 repro: Android picks a plural's item by the phone's first language even while it
+        serves the English default, so a Thai phone said "1 minutes left" and a Russian one "21 minute left"."""
+        catalog = CATALOG.replace("    <plurals name=\"rides_count\">", "    <plurals name=\"minutes_left\">\n"
+                                  "        <item quantity=\"one\">%1$d minute left</item>\n"
+                                  "        <item quantity=\"other\">%1$d minutes left</item>\n"
+                                  "    </plurals>\n    <plurals name=\"rides_count\">")
+        spanish = (LANG.replace("\ten\n", "\tes\n", 1).replace("values\n", "values-es\n").replace("English", "Español")
+                   .replace("stable", "beta").replace("one,other", "one,many,other"))
+        japanese = (LANG.replace("\ten\n", "\tja\n", 1).replace("values\n", "values-ja\n").replace("English", "Japanese")
+                    .replace("stable", "beta").replace("one,other", "other"))
+        russian = (LANG.replace("\ten\n", "\tru\n", 1).replace("values\n", "values-ru\n").replace("English", "Russian")
+                   .replace("stable", "draft").replace("one,other", "one,few,many,other"))
+        out = self.compile_and_run(catalog, {"AndroidProbe": ANDROID_PROBE},
+                                   [("es.tsv", spanish), ("ja.tsv", japanese), ("ru.tsv", russian)])["AndroidProbe"]
+        self.assertEqual(out, [
+            "en en-US: 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left | 22 minutes left | 101 minutes left",
+            "en th: 0 minutes left | 1 minute left (Android alone: 1 minutes left) | 2 minutes left | 5 minutes left | 21 minutes left"
+            " | 22 minutes left | 101 minutes left",
+            "en ja: 0 minutes left | 1 minute left (Android alone: 1 minutes left) | 2 minutes left | 5 minutes left | 21 minutes left"
+            " | 22 minutes left | 101 minutes left",
+            "en ru: 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left (Android alone: 21 minute left)"
+            " | 22 minutes left | 101 minutes left (Android alone: 101 minute left)",
+            "en lv: 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left (Android alone: 21 minute left)"
+            " | 22 minutes left | 101 minutes left (Android alone: 101 minute left)",
+            "en ar: 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left | 22 minutes left | 101 minutes left",
+            "es es: 1 minuto | 2 minutos | 21 minutos | 1000000 de minutos",
+            "es ru: 1 minuto | 2 minutos | 21 minutos (Android alone: 21 minuto) | 1000000 de minutos",
+            "es ja: 1 minutos | 2 minutos | 21 minutos | 1000000 minutos",
+            "mangled tag under th: 1 minute left",
+            # A language that leaves the key out (shipped Japanese, unshipped Russian) serves the English default:
+            # English rules, not its own.
+            "en ja (Volt in ja): 0 minutes left | 1 minute left (Android alone: 1 minutes left) | 2 minutes left | 5 minutes left"
+            " | 21 minutes left | 22 minutes left | 101 minutes left",
+            "en ru (Volt in en): 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left"
+            " (Android alone: 21 minute left) | 22 minutes left | 101 minutes left (Android alone: 101 minute left)",
+            # A folder whose language never shipped (language() is English) keeps its own language's rules.
+            "ru ru (Volt in en): 1 ONE | 2 FEW | 5 MANY | 21 ONE | 22 FEW",
+            # An English phone reaches only one and other: Russian's one is served, few and many are not reachable.
+            "ru en-US (Volt in en): 1 ONE | 2 OTHER | 5 OTHER | 21 ONE (Android alone: 21 OTHER) | 22 OTHER",
+            "ru ja (Volt in en): 1 OTHER | 2 OTHER | 5 OTHER | 21 OTHER | 22 OTHER"])
+
+
+PLURAL_PROBE = """package com.jjricks.volt;
+import android.icu.text.PluralRules;
+import java.util.Locale;
+public final class PluralProbe {
+    static T.Plurals.Rule rules(String tag) {
+        final PluralRules r = PluralRules.forLocale(Locale.forLanguageTag(tag));
+        return new T.Plurals.Rule() { public String select(long q) { return r.select(q); } };
+    }
+    static String item(String category, String[] items) { for (String i : items) if (i.equals(category)) return i; return "other"; }
+    static void require(boolean ok, String what) { if (!ok) throw new AssertionError(what); }
+    public static void main(String[] args) {
+        long[] extra = {1000000, 21000000, Integer.MAX_VALUE, Integer.MAX_VALUE + 2L, Integer.MIN_VALUE - 2L, Long.MAX_VALUE, Long.MIN_VALUE + 1};
+        long[] quantities = new long[2100 + extra.length];
+        for (int i = 0; i < 2100; i++) quantities[i] = i - 3;
+        System.arraycopy(extra, 0, quantities, 2100, extra.length);
+        for (String phone : new String[]{"en", "de", "th", "ja", "zh", "ko", "vi", "id", "ru", "uk", "pl", "cs", "lv", "ar", "es"}) {
+            T.Plurals.Rule android = rules(phone);
+            int same = 0, positive = 0;
+            StringBuilder none = new StringBuilder();
+            for (long q : quantities) {
+                String want = q == 1 ? "one" : "other";  // EnglishText's choice
+                require(T.Plurals.wanted(q, T.Plurals.ENGLISH, T.Plurals.ENGLISH_ITEMS).equals(want), "English wants " + want + " for " + q);
+                long n = T.Plurals.standIn(q, T.Plurals.ENGLISH, T.Plurals.ENGLISH_ITEMS, android);
+                if (n == T.Plurals.NONE) { none.append(none.length() == 0 ? "" : ", ").append(q); continue; }
+                require(n >= Integer.MIN_VALUE && n <= Integer.MAX_VALUE, "an int stand-in");
+                require(item(android.select(n), T.Plurals.ENGLISH_ITEMS).equals(want), phone + ": " + q + " is served " + want + " through " + n);
+                if (q >= 0) { positive++; if (n == Math.min(q, Integer.MAX_VALUE)) same++; }
+            }
+            if (phone.equals("en") || phone.equals("de")) {
+                require(none.length() == 0, phone + " always has a stand-in");
+                System.out.println("english under " + phone + ": " + (same == positive ? "every quantity from 0 passes as it is" : "changed"));
+            } else {
+                System.out.println("english under " + phone + ": " + (none.length() == 0 ? "served" : "no stand-in for " + none));
+            }
+        }
+        T.Plurals.Rule en = rules("en");
+        System.out.println("english under en at -1: " + item(en.select(T.Plurals.standIn(-1, T.Plurals.ENGLISH, T.Plurals.ENGLISH_ITEMS, en)),
+                T.Plurals.ENGLISH_ITEMS) + " (Android alone: " + en.select(-1) + ")");
+        String[] spanish = {"one", "many", "other"};
+        T.Plurals.Rule es = rules("es");
+        for (String phone : new String[]{"es", "ru", "ja"}) {
+            T.Plurals.Rule android = rules(phone);
+            java.util.Set<String> none = new java.util.TreeSet<>();
+            boolean same = true;
+            for (long q : quantities) {
+                String want = item(es.select(q), spanish);
+                long n = T.Plurals.standIn(q, es, spanish, android);
+                if (n == T.Plurals.NONE) { none.add(want); continue; }
+                require(item(android.select(n), spanish).equals(want), phone + ": " + q + " is served Spanish " + want);
+                if (q >= 0 && n != Math.min(q, Integer.MAX_VALUE)) same = false;
+            }
+            System.out.println("spanish under " + phone + ": " + (!none.isEmpty() ? "no stand-in for " + String.join(", ", none) : same ? "unchanged" : "served"));
+        }
+        System.out.println("ok");
+    }
+}
+"""
+
+ANDROID_PROBE = """package com.jjricks.volt;
+import android.content.res.Resources;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+public final class AndroidProbe {
+    static String line(String language, String phone, long[] quantities) {
+        Resources.first = Locale.forLanguageTag(phone);
+        Resources resources = new Resources();
+        T.install(new AndroidText(resources));
+        StringBuilder out = new StringBuilder(language + " " + phone + ":");
+        for (long q : quantities) {
+            String shown = T.minutesLeft(q, q);
+            String alone = String.format(Locale.ROOT, resources.getQuantityString(R.plurals.minutes_left, (int) q), q);
+            out.append(q == quantities[0] ? " " : " | ").append(shown).append(shown.equals(alone) ? "" : " (Android alone: " + alone + ")");
+        }
+        return out.toString();
+    }
+    public static void main(String[] args) {
+        Map<String, String> english = new HashMap<>();
+        english.put("one", "%1$d minute left");
+        english.put("other", "%1$d minutes left");
+        Resources.items = english;
+        long[] quantities = {0, 1, 2, 5, 21, 22, 101};
+        for (String phone : new String[]{"en-US", "th", "ja", "ru", "lv", "ar"}) System.out.println(line("en", phone, quantities));
+        // A shipped Spanish served under other first languages (Android resolves values-es from a later locale).
+        Map<String, String> spanish = new HashMap<>();
+        spanish.put("one", "%1$d minuto");
+        spanish.put("many", "%1$d de minutos");
+        spanish.put("other", "%1$d minutos");
+        Resources.items = spanish;
+        Resources.tag = "es";
+        for (String phone : new String[]{"es", "ru", "ja"}) System.out.println(line("es", phone, new long[]{1, 2, 21, 1000000}));
+        // A pseudo-locale or broken l10n_tag counts as English.
+        Resources.items = english;
+        Resources.tag = "[\u00e9\u00f1]";
+        Resources.first = Locale.forLanguageTag("th");
+        T.install(new AndroidText(new Resources()));
+        System.out.println("mangled tag under th: " + T.minutesLeft(1, 1));
+        Resources.tag = "ja";
+        System.out.println(line("en", "ja", quantities).replaceFirst(":", " (Volt in " + T.language() + "):"));
+        Resources.tag = "ru";
+        System.out.println(line("en", "ru", quantities).replaceFirst(":", " (Volt in " + T.language() + "):"));
+        Map<String, String> russian = new HashMap<>();
+        russian.put("one", "%1$d ONE");
+        russian.put("few", "%1$d FEW");
+        russian.put("many", "%1$d MANY");
+        russian.put("other", "%1$d OTHER");
+        Resources.items = russian;
+        for (String phone : new String[]{"ru", "en-US", "ja"})
+            System.out.println(line("ru", phone, new long[]{1, 2, 5, 21, 22}).replaceFirst(":", " (Volt in " + T.language() + "):"));
+        T.install(null);
+    }
+}
+"""
+
+
 MSG_STUB = """package com.jjricks.volt;
 final class Msg {
     final int id; final boolean plural; final long quantity; final Object[] args;
@@ -324,11 +542,66 @@ final class R {
 """
 
 RESOURCES_STUB = """package android.content.res;
+/** Resources as ResourcesImpl.getQuantityText behaves: the item the first locale's rules pick, else "other". */
 public class Resources {
-    public String getString(int id) { return id == 4 ? "Move %1$s to slot %2$d" : id == 10 ? "en" : "res:" + id; }
-    public String getQuantityString(int id, int quantity) { return id == 11 ? "%1$d skipped (q=" + quantity + ")" : "res:" + id; }
+    public static java.util.Locale first = java.util.Locale.forLanguageTag("en-US");
+    public static String tag = "en";
+    /** When set, every plural has these items (quantity -> raw text), as the resolved folder holds them. */
+    public static java.util.Map<String, String> items;
+    public Configuration getConfiguration() { return new Configuration(first); }
+    public String getString(int id) { return id == 4 ? "Move %1$s to slot %2$d" : id == 10 ? tag : "res:" + id; }
+    public String getQuantityString(int id, int quantity) {
+        if (items == null) return id == 11 ? "%1$d skipped (q=" + quantity + ")" : "res:" + id;
+        String item = items.get(android.icu.text.PluralRules.forLocale(first).select(quantity));
+        return item != null ? item : items.get("other");
+    }
 }
 """
+
+ANDROID_STUBS = {
+    ("android", "content", "res", "Configuration.java"): """package android.content.res;
+public class Configuration {
+    private final android.os.LocaleList locales;
+    public Configuration(java.util.Locale first) { locales = new android.os.LocaleList(first); }
+    public android.os.LocaleList getLocales() { return locales; }
+}
+""",
+    ("android", "os", "LocaleList.java"): """package android.os;
+public class LocaleList {
+    private final java.util.Locale first;
+    public LocaleList(java.util.Locale first) { this.first = first; }
+    public java.util.Locale get(int index) { return index == 0 ? first : null; }
+}
+""",
+    # CLDR's integer rules (operands of the absolute value, as ICU reads them) for the languages the tests use.
+    ("android", "icu", "text", "PluralRules.java"): """package android.icu.text;
+public final class PluralRules {
+    private final String language;
+    private PluralRules(String language) { this.language = language; }
+    public static PluralRules forLocale(java.util.Locale locale) { return new PluralRules(locale.getLanguage()); }
+    public String select(double number) {
+        long n = (long) Math.abs(number), d = n % 10, h = n % 100;
+        switch (language) {
+            case "en": case "de": case "sv": case "nl": case "it": return n == 1 ? "one" : "other";
+            case "th": case "ja": case "zh": case "ko": case "vi": case "id": case "in": return "other";
+            case "ru": case "uk": return d == 1 && h != 11 ? "one" : d >= 2 && d <= 4 && (h < 12 || h > 14) ? "few" : "many";
+            case "pl": return n == 1 ? "one" : d >= 2 && d <= 4 && (h < 12 || h > 14) ? "few" : "many";
+            case "cs": return n == 1 ? "one" : n >= 2 && n <= 4 ? "few" : "other";
+            case "lv": return d == 0 || (h >= 11 && h <= 19) ? "zero" : d == 1 && h != 11 ? "one" : "other";
+            case "ar": return n == 0 ? "zero" : n == 1 ? "one" : n == 2 ? "two" : h >= 3 && h <= 10 ? "few" : h >= 11 ? "many" : "other";
+            case "es": case "fr": case "pt": return n == 1 ? "one" : n != 0 && n % 1000000 == 0 ? "many" : "other";
+            default: throw new IllegalArgumentException("no test rules for " + language);
+        }
+    }
+}
+""",
+}
+
+
+def write_android_stubs(out):
+    l10nlib.write_text(os.path.join(out, "android", "content", "res", "Resources.java"), RESOURCES_STUB)
+    for parts, text in ANDROID_STUBS.items():
+        l10nlib.write_text(os.path.join(out, *parts), text)
 
 PROBE = """package com.jjricks.volt;
 public final class Probe {
