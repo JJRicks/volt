@@ -1,0 +1,5 @@
+# B11, the Backup screen (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English the Backup screen takes from the backup engine (the refusals it shows, the CHANGED
+# and NO_SPACE refusals) and the counts it still builds in English, pinned before the batch.
+tests/l10n/characterization/BackupScreenTextTest.java
