@@ -14,13 +14,16 @@ for t in ${CENSUS_HEADS:?} ${CENSUS_STEPS:?}; do [[ "$t" =~ ^[a-z0-9][a-z0-9-]*$
 L="$OUT/logs/shard-$N"; R="$L/results.txt"; RUNNER="$APKS/runner.apk"; mkdir -p "$L" "$OUT/out"
 booted() { [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; }
 echo "$(date +%T) shard $N: base $B heads $CENSUS_HEADS steps $CENSUS_STEPS" >> "$R"
-bash "$HERE/emulator.sh" boot "$L/emu.log" && echo "$(date +%T) booted $SER" >> "$R"
+# The job goes red (after every run has been tried) when an emulator never came up.
+bootfail=0
+if bash "$HERE/emulator.sh" boot "$L/emu.log"; then echo "$(date +%T) booted $SER" >> "$R"
+else echo "$(date +%T) first boot failed" >> "$R"; echo "::error::shard $N: the emulator did not boot"; bootfail=1; fi
 for STEP in $CENSUS_STEPS; do
   for TAG in "$B-r1" $CENSUS_HEADS "$B-r2"; do
     case "$TAG" in "$B-r1"|"$B-r2") APP="$APKS/$B/app.apk" ;; *) APP="$APKS/$TAG/app.apk" ;; esac
     if ! booted; then
       echo "$(date +%T) emulator not booted; restarting it" >> "$R"
-      bash "$HERE/emulator.sh" kill; bash "$HERE/emulator.sh" boot "$L/emu.log" || echo "$(date +%T) restart failed" >> "$R"
+      bash "$HERE/emulator.sh" kill; bash "$HERE/emulator.sh" boot "$L/emu.log" || { echo "$(date +%T) restart failed" >> "$R"; echo "::error::shard $N: emulator restart failed"; bootfail=1; }
     fi
     echo "::group::$TAG $STEP"
     T0=$(date +%s); "$ADB" -s $SER logcat -c 2>/dev/null
@@ -35,4 +38,4 @@ for STEP in $CENSUS_STEPS; do
 done
 echo "$(date +%T) done $SER" >> "$R"
 bash "$HERE/emulator.sh" kill
-exit 0
+exit $bootfail

@@ -40,12 +40,21 @@ PY
   echo "AVD $AVD from $image:"; grep -E '^(hw\.lcd|hw\.ramSize|hw\.cpu|hw\.gpu|hw\.keyboard|PlayStore|image\.sysdir)' "$config" ;;
 boot)
   LOG=${2:?}
+  # The Play image only answers an adb key it was booted with: the emulator hands the guest
+  # ~/.android/adbkey.pub at launch, and a fresh runner has none ("device unauthorized"). Make one
+  # (a throwaway adb key, not a signing key) and restart the adb server so it uses it.
+  if [[ ! -s "$HOME/.android/adbkey.pub" ]]; then
+    mkdir -p "$HOME/.android"; rm -f "$HOME/.android/adbkey"
+    "$ADB" keygen "$HOME/.android/adbkey" > /dev/null 2>&1
+    [[ -s "$HOME/.android/adbkey.pub" ]] || { echo "could not make an adb key" >&2; exit 1; }
+    "$ADB" kill-server > /dev/null 2>&1 || true; "$ADB" start-server > /dev/null 2>&1
+  fi
   "$SDK/emulator/emulator" -avd "$AVD" -no-window -no-audio -no-boot-anim -read-only -no-snapshot \
       -gpu swiftshader_indirect -port 5554 >> "$LOG" 2>&1 &
   timeout 600 "$ADB" -s $SER wait-for-device
   end=$((SECONDS + 900))
   until [[ "$("$ADB" -s $SER shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]]; do
-    (( SECONDS < end )) || { echo "emulator did not finish booting" >&2; exit 1; }
+    (( SECONDS < end )) || { echo "emulator did not finish booting: $("$ADB" devices | tr '\n' ' ')" >&2; exit 1; }
     sleep 5
   done
   echo "booted $SER: $("$ADB" -s $SER shell getprop ro.build.fingerprint | tr -d '\r') locale=$("$ADB" -s $SER shell getprop persist.sys.locale | tr -d '\r')/$("$ADB" -s $SER shell getprop ro.product.locale | tr -d '\r') size=$("$ADB" -s $SER shell wm size | tr -d '\r' | tail -1) density=$("$ADB" -s $SER shell wm density | tr -d '\r' | head -1)" ;;
