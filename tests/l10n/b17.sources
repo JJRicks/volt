@@ -7,3 +7,7 @@ tests/l10n/characterization/OnboardingEnglishTest.java
 # B17's own suite: markup kept in every setup string and translation, the welcome tiles' ladders, the
 # spoken templates, and the screen's nothing-found, status-line and refusal paths.
 tests/l10n/OnboardingTextTest.java
+# The welcome tiles' ladder without a TextView subclass (the census keys views by class name): the label
+# stays ui.text's plain TextView, and TileRung picks the full word or its short rung.
+src/com/jjricks/volt/TileRung.java
+tests/l10n/OnboardingTileLabelTest.java

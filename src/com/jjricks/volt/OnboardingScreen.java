@@ -106,7 +106,7 @@ public final class OnboardingScreen implements AppScreen {
     private static final Msg[] STEP_LABELS = {M.onboardingStepPrepare(), M.onboardingStepUsbDebugging(),
             M.onboardingStepConnectComputer(), M.onboardingStepRunHelper(), M.onboardingStepImport(),
             M.onboardingStepNearby(), M.onboardingStepConnectScooter()};
-    /** The welcome tiles' short rungs, by tile (TileLabel shows one when the full word does not fit). */
+    /** The welcome tiles' short rungs, by tile (fitTileLabel shows one when the full word does not fit). */
     private static final Msg[] TILE_SHORT = {M.onboardingWelcomeTileLockShort(), M.onboardingWelcomeTileSettingsShort(),
             M.onboardingWelcomeTileBatteryShort(), M.onboardingWelcomeTileRidesShort()};
     private static Bitmap photo;
@@ -706,10 +706,11 @@ public final class OnboardingScreen implements AppScreen {
             tile.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), ui.dp(10));
             tile.setBackground(ui.shape(ui.surface, 16, 0));
             tile.addView(ui.icon(items[i][0], 22, ui.accent), new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
-            TextView label = new TileLabel(ui.text(items[i][1], 12.5f, false), TILE_SHORT[i]);
+            TextView label = ui.text(items[i][1], 12.5f, false);
             label.setTextColor(ui.muted); label.setGravity(Gravity.CENTER); label.setMaxLines(1);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.topMargin = ui.dp(6);
             tile.addView(label, lp);
+            fitTileLabel(tile, label, items[i][1], TILE_SHORT[i]);
             LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
             if (i > 0) tp.leftMargin = ui.dp(8);
             strip.addView(tile, tp);
@@ -721,6 +722,22 @@ public final class OnboardingScreen implements AppScreen {
         strip.setFocusable(true);
         strip.setContentDescription(T.onboardingWelcomeTilesDescription());
         return strip;
+    }
+
+    /**
+     * The narrow label ladder for a welcome tile, kept off the label's class (a plain TextView, as the census
+     * keys views by class name): each time the tile's bounds change (first layout, rotation, a new width),
+     * the full word is measured with the label's own paint against the room the tile gives it, and the short
+     * rung is shown only when the full word does not fit. The text is set only when the chosen rung differs
+     * from what is shown; in English both rungs are the same word, so English never sets it. Setting it
+     * re-lays out the label, not the tile (its width comes from its weight), so this does not repeat.
+     */
+    private static void fitTileLabel(View tile, TextView label, CharSequence full, Msg brief) {
+        tile.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int room = right - left - v.getPaddingLeft() - v.getPaddingRight() - label.getPaddingLeft() - label.getPaddingRight();
+            CharSequence pick = TileRung.pick(full, label.getPaint().measureText(full, 0, full.length()), brief, room);
+            if (TileRung.needsSet(pick, label.getText())) label.setText(pick.toString());
+        });
     }
 
     private LinearLayout.LayoutParams featureParams() {
@@ -1714,33 +1731,6 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     // ---------------------------------------------------------------- custom views
-
-    /**
-     * A welcome tile's word, styled like the ui.text view it copies: the full word, or its short rung
-     * when the full word is wider than the tile (the narrow label ladder). In English both rungs are the
-     * same word, so the tile shows exactly what it did.
-     */
-    private static final class TileLabel extends TextView {
-        private final CharSequence full; private final Msg brief;
-        TileLabel(TextView style, Msg brief) {
-            super(style.getContext());
-            setTextSize(TypedValue.COMPLEX_UNIT_PX, style.getTextSize());
-            setTextColor(style.getTextColors()); setTypeface(style.getTypeface());
-            setIncludeFontPadding(style.getIncludeFontPadding());
-            setLineSpacing(style.getLineSpacingExtra(), style.getLineSpacingMultiplier());
-            setTextDirection(style.getTextDirection());
-            full = style.getText(); this.brief = brief;
-            setText(full);
-        }
-        @Override protected void onMeasure(int widthSpec, int heightSpec) {
-            if (MeasureSpec.getMode(widthSpec) != MeasureSpec.UNSPECIFIED) {
-                int room = MeasureSpec.getSize(widthSpec) - getPaddingLeft() - getPaddingRight();
-                CharSequence pick = getPaint().measureText(full, 0, full.length()) <= room ? full : brief.toString();
-                if (!android.text.TextUtils.equals(pick, getText())) setText(pick);
-            }
-            super.onMeasure(widthSpec, heightSpec);
-        }
-    }
 
     /** Seven segments; the current one is half filled. */
     private final class Progress extends View {
