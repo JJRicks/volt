@@ -6,8 +6,13 @@ usage: python3 -I ops/census/report.py PLANDIR OUT DIFFDIR
 Writes DIFFDIR/results.tsv (tag, step, rc, seconds, the sweep's PASS/FAIL line, census screens and
 problems from summary.json), DIFFDIR/missing.txt (tag and step of every run without summary.json),
 DIFFDIR/not-clean.txt (tag, step and reason of every run that makes its step's comparison
-untrustworthy, see below), DIFFDIR/results.txt (every shard's results.txt), and prints Markdown for
-$GITHUB_STEP_SUMMARY. Exits 1 when any run is missing or not clean.
+untrustworthy, see below), DIFFDIR/census-failed.txt (head, step, census_diff rc and its PASS/FAILED
+line for every step whose census_diff did not PASS, read from diff.sh's diff-<head>-summary.txt: the
+local census verdict), DIFFDIR/gaps.txt (the cloud-gaps.tsv steps of this run and why, kept out of
+both of those), DIFFDIR/verdict.txt (one line per head: PASS or FAILED with its step count),
+DIFFDIR/results.txt (every shard's results.txt), and prints Markdown for $GITHUB_STEP_SUMMARY.
+Exits 1 when any run of a covered step is missing or not clean (census.yml fails the diff job
+separately when census-failed.txt is not empty).
 
 census_diff.py only compares a screen that every base run has; a screen one base run lacks is counted
 as volatile and never compared, and a step where every run has no screens passes with nothing
@@ -20,8 +25,10 @@ compared. So a run is NOT CLEAN when
     volatile, so a head change on it would never be seen);
   - (base runs of the commit screens.tsv was measured on) its screen count differs from the local
     census's count for that step.
-A step listed in cloud-gaps.tsv (a step the cloud emulator cannot run; the laptop census must) is NOT
-CLEAN for every run whatever its result: its PASS would prove nothing. Runs that shard.sh retried after
+A step listed in cloud-gaps.tsv (a step the cloud emulator cannot run; the laptop census must) is
+NOT COVERED: its runs and its census_diff result go to gaps.txt only, never to missing.txt,
+not-clean.txt or census-failed.txt, so they never decide the job's colour, and its PASS proves
+nothing. Runs that shard.sh retried after
 a known cloud flake are listed (the retry's result is the one used). A head with fewer census screens
 than the base is listed too, as a note: census_diff.py reports each screen it lacks ("only in base"),
 so that already fails its step's diff.
@@ -85,7 +92,7 @@ def census_files(tag, step):
     return found
 
 
-rows, missing, not_clean, notes = [], [], [], []
+rows, missing, not_clean, notes, gap_runs = [], [], [], [], []
 for step in steps:
     screens_of = {}
     for tag in tags:
@@ -106,20 +113,20 @@ for step in steps:
             except (ValueError, AttributeError, TypeError, KeyError):
                 problems = 'unreadable summary.json'; reasons.append('unreadable summary.json')
         else:
-            missing.append(f'{tag}\t{step}'); reasons.append('no summary.json')
+            reasons.append('no summary.json')
+            if step not in gaps:
+                missing.append(f'{tag}\t{step}')
         if rc != '0':
             reasons.append(f'sweep rc={rc}' if rc else line)
-        if step in gaps:
-            reasons.append(f'NOT COVERED in the cloud ({gaps[step]}); run this step on the laptop census')
         if tag in screens_of and screens_of[tag] == 0 and reference.get(step, 0) > 0:
             reasons.append(f'no census screens (local census: {reference[step]})')
         if tag in base_runs and exact_reference and tag in screens_of and step in reference \
                 and screens_of[tag] != reference[step] and screens_of[tag] != 0:
             reasons.append(f'{screens_of[tag]} census screens, local census of this commit has {reference[step]}')
-        not_clean.extend(f'{tag}\t{step}\t{r}' for r in reasons)
+        (gap_runs if step in gaps else not_clean).extend(f'{tag}\t{step}\t{r}' for r in reasons)
         rows.append('\t'.join([tag, step, rc, seconds, line.replace('\t', ' ')[:170], screens, problems]))
     r1, r2 = census_files(base_runs[0], step), census_files(base_runs[1], step)
-    if r1 != r2:
+    if r1 != r2 and step not in gaps:
         only1, only2 = sorted(r1 - r2), sorted(r2 - r1)
         detail = '; '.join(x for x in [f'{len(only1)} only in r1 (e.g. {only1[0]})' if only1 else '',
                                        f'{len(only2)} only in r2 (e.g. {only2[0]})' if only2 else ''] if x)
@@ -133,14 +140,54 @@ for step in steps:
 (diff_dir / 'results.tsv').write_text('tag\tstep\trc\tseconds\tsweep\tcensus_screens\tcensus_problems\n' + ''.join(r + '\n' for r in rows))
 (diff_dir / 'missing.txt').write_text(''.join(m + '\n' for m in missing))
 (diff_dir / 'not-clean.txt').write_text(''.join(m + '\n' for m in not_clean))
+
+# The census verdict itself, as the local census reads it from diff.sh: a step passes for a head
+# only when its summary line has rc=0 and "census_diff: PASS". A step without a line (diff.sh did
+# not get to it) counts as failed.
+SUMMARY = re.compile(r'^(\S+) rc=(-?\d+) missing=\[[^\]]*\] ?(.*)$')
+TEXTDIFF = re.compile(r'(\d+) text difference\(s\)')
+census_failed, verdicts, verdict_lines = [], {}, []
+for h in heads:
+    lines = {}
+    summary_file = diff_dir / f'diff-{h}-summary.txt'
+    if summary_file.is_file():
+        for text in summary_file.read_text(errors='replace').splitlines():
+            m = SUMMARY.match(text)
+            if m: lines[m.group(1)] = (m.group(2), m.group(3))
+    bad, textdiff = [], 0
+    for step in steps:
+        if step in gaps:
+            continue
+        rc, verdict = lines.get(step, ('', 'no diff.sh summary line'))
+        if rc != '0' or not verdict.startswith('census_diff: PASS'):
+            bad.append(step); census_failed.append(f'{h}\t{step}\trc={rc or "none"}\t{verdict[:200]}')
+            m = TEXTDIFF.search(verdict)
+            if m: textdiff += int(m.group(1))
+    covered = sum(1 for st in steps if st not in gaps)
+    verdicts[h] = (bad, textdiff, covered)
+    verdict_lines.append(f'{h}\tFAILED\t{len(bad)} of {covered} step(s)\t{textdiff} text difference(s)' if bad
+                         else f'{h}\tPASS\t{covered} of {covered} step(s)\t0 text difference(s)')
+(diff_dir / 'census-failed.txt').write_text(''.join(m + '\n' for m in census_failed))
+(diff_dir / 'verdict.txt').write_text(''.join(m + '\n' for m in verdict_lines))
+gap_steps = [st for st in steps if st in gaps]
+(diff_dir / 'gaps.txt').write_text(''.join(f'{st}\t{gaps[st]}\n' for st in gap_steps)
+                                   + ''.join(f'run\t{g}\n' for g in gap_runs))
 failed = sum(1 for r in rows if r.split('\t')[2] != '0')
 bad_steps = sorted({n.split('\t')[1] for n in not_clean}, key=steps.index)
 print(f'## Volt census (G7): base `{base}` {plan["base"]["sha"]}\n')
 for h in plan['heads']:
     print(f'- head `{h["tag"]}` {h["sha"]}')
+print('\n**Census verdict** (census_diff per step, as the local diff.sh; '
+      + (f'{len(gap_steps)} cloud-gap step(s) left out' if gap_steps else 'no cloud-gap steps') + '):\n')
+for h in heads:
+    bad, textdiff, covered = verdicts[h]
+    print(f'- `{h}`: **census FAILED: {len(bad)} of {covered} step(s)**, {textdiff} text difference(s) '
+          f'({", ".join(bad[:12])}{", ..." if len(bad) > 12 else ""})' if bad
+          else f'- `{h}`: **census PASS: {covered} of {covered} step(s)**')
 print(f'\n{len(steps)} step(s) x {len(tags)} run(s) = {len(rows)} runs on {len(plan["shards"])} shard(s); '
       f'{failed} run(s) with a non-zero sweep rc; **{len(missing)} missing summary.json**; '
-      f'**{len(bad_steps)} step(s) not clean** (their PASS proves nothing until rerun).\n')
+      f'**{len(bad_steps)} step(s) not clean** (their PASS proves nothing until rerun); '
+      f'**{len(gap_steps)} step(s) not covered** (cloud-gaps.tsv: the laptop census must run them).\n')
 print('System image: ' + ('; '.join(f'`{i}` on {len(s)} shard(s)' + (f' ({", ".join(s)})' if len(images) > 1 else '')
                                    for i, s in sorted(images.items())) or 'none booted')
       + ('. **Shards used different images**: compare a step only within its shard.' if len(images) > 1 else '') + '\n')
@@ -152,9 +199,14 @@ for h in heads:
 if not_clean:
     print('### Not clean (rerun these steps before trusting their result)\n\n```\n'
           + '\n'.join(n.replace('\t', ' ') for n in not_clean) + '\n```\n')
-if gaps and any(st in gaps for st in steps):
-    print('### Steps the cloud cannot cover (cloud-gaps.tsv): run them on the laptop census\n\n```\n'
-          + '\n'.join(f'{st}: {gaps[st]}' for st in steps if st in gaps) + '\n```\n')
+if census_failed:
+    print('### Census FAILED (census_diff did not PASS; read diff-<head>.txt)\n\n```\n'
+          + '\n'.join(n.replace('\t', ' ') for n in census_failed) + '\n```\n')
+if gap_steps:
+    print('### Steps the cloud cannot cover (cloud-gaps.tsv; not in the verdict or the job colour): '
+          'run them on the laptop census\n\n```\n'
+          + '\n'.join(f'{st}: {gaps[st]}' for st in gap_steps)
+          + ''.join('\n  ' + g.replace('\t', ' ') for g in gap_runs) + '\n```\n')
 if retries:
     print('### Runs retried after a known cloud flake (the retry\'s result is used)\n\n```\n'
           + '\n'.join(r.replace('\t', ' ') for r in retries) + '\n```\n')

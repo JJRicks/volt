@@ -54,8 +54,11 @@ gh run download <run-id> --repo JJRicks/volt --pattern 'census-shard-*' --dir sh
 git push origin --delete census-run/b16-vs-main      # once the artifacts are downloaded
 ```
 
-The run's **summary page** shows each head's total (the same three blocks the local `diff.sh` prints:
-`TOTAL {...}`, `VOLATILE BY STEP`, `NOT CLEAN`) and any missing runs. The `census-diff` artifact holds:
+The run's **summary page** starts with the **census verdict** of each head (`census PASS: N of N
+step(s)` or `census FAILED: K of N step(s)`, with its text differences and steps), then the counts of
+missing runs, not-clean steps and not-covered (cloud-gap) steps, then each head's total (the same
+three blocks the local `diff.sh` prints: `TOTAL {...}`, `VOLATILE BY STEP`, `NOT CLEAN`). The
+`census-diff` artifact holds:
 
 | File | What |
 |---|---|
@@ -66,6 +69,9 @@ The run's **summary page** shows each head's total (the same three blocks the lo
 | `results.txt` | every shard's `results.txt` (the local worker's log format) |
 | `missing.txt` | `tag<TAB>step` for each run with no `summary.json` (empty when all ran) |
 | `not-clean.txt` | `tag<TAB>step<TAB>reason` for each run that makes its step's result untrustworthy (empty when every step is clean; see below) |
+| `census-failed.txt` | `head<TAB>step<TAB>rc=<census_diff rc><TAB>its PASS/FAILED line` for each covered step whose census_diff did not PASS (the local verdict, from `diff-<head>-summary.txt`; empty when every head passes) |
+| `verdict.txt` | one line per head: `PASS` or `FAILED`, steps failed of steps covered, text differences |
+| `gaps.txt` | the requested `cloud-gaps.tsv` steps and why, then `run<TAB>tag<TAB>step<TAB>reason` for their runs' problems (kept out of every other file and of the job colour) |
 | `summary.md`, `plan.json`, `builds.txt` | the job summary, the validated plan with its shards, the APK hashes |
 
 The `census-shard-<n>` artifacts hold `out/<tag>/<step>/` (exactly the local `OUT/TAG/STEP`, with
@@ -73,8 +79,13 @@ The `census-shard-<n>` artifacts hold `out/<tag>/<step>/` (exactly the local `OU
 `results.txt`, the emulator log). `census-apks` has the APKs that ran (throwaway-signed; never install
 them on a phone). Artifacts are kept for 3 days.
 
-The **diff job fails** when any (tag, step) run left no `summary.json` or any step is **not clean**
-(`not-clean.txt`, also on the summary page). `census_diff.py` only compares a screen that both base
+The **diff job** has two checks, each with its own annotation, so a red run says why:
+**"Fail when any run is missing or not clean"** (`UNTRUSTED`: a run of a covered step left no
+`summary.json`, or a step is not clean, `not-clean.txt`) and **"Fail when any head's census differs
+from the base"** (`CENSUS FAILED`: `census-failed.txt` is not empty, i.e. census_diff did not PASS
+on some step for some head, exactly what the local `diff.sh` `NOT CLEAN` block shows). A green run
+means every covered step of every head was clean and passed; steps in `cloud-gaps.tsv` are never part
+of that (they are listed as not covered). Read `gh run view` for which check failed. `census_diff.py` only compares a screen that both base
 runs have: a screen one base run missed is counted as volatile and never compared, and a step where
 no run has screens passes with nothing compared. So `report.py` calls a run not clean when its sweep's
 rc is not 0 (it stopped partway); its `summary.json` is unreadable or has no entry or no
@@ -83,14 +94,17 @@ the two base runs, when they do not hold the same census files; and, when the ba
 `screens.tsv` was measured on (main-f529, the local `sweeps/wave3-b16` census), when a base run's
 screen count differs from the local one. A not-clean step's PASS proves nothing: rerun it. A head
 with fewer screens than the base is listed as a note (its diff already fails with "only in base"). A
-failed step otherwise never stops its shard, and text differences never fail the workflow (read them
-as you would locally). The run job is red when its emulator did not boot (or a restart failed); its
+failed step otherwise never stops its shard. The run job is red when its emulator did not boot (or a restart failed); its
 runs are still tried. `diff.sh` itself stays the local script, so its `NOT CLEAN` block still only
-looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the complete list.
+looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the complete list of
+untrustworthy runs, and `census-failed.txt` of failed comparisons.
 
-Also not clean, for every run of the step: a step listed in **`cloud-gaps.tsv`** (a step the cloud
-emulator cannot run, marked "NOT COVERED in the cloud": run it on the laptop census). The file
-lists `report-invite-dark` and `report-invite-light`; see "Known cloud gaps" below. And every run a shard never got to: a shard **stops after 2
+**Not covered**: a step listed in **`cloud-gaps.tsv`** (a step the cloud emulator cannot run: run it
+on the laptop census). Its runs and its comparison go to `gaps.txt` and the summary page's "Steps
+the cloud cannot cover" block only, never into the verdict, `missing.txt`, `not-clean.txt` or
+`census-failed.txt`, so they never turn the run red (or green) and its PASS proves nothing. The
+file lists `report-invite-dark` and `report-invite-light`; see "Known cloud gaps" below. Also not
+clean: every run a shard never got to: a shard **stops after 2
 boot failures in a row** and records each remaining run as `not run: ... (shard stopped ...)`, so a
 broken image cannot hold 18 runners for hours (the run job's timeout is 240 minutes).
 
@@ -151,7 +165,7 @@ again" for the base and every head alike (smoke-8, run 41914239618, with 4 cores
 The four census screens it takes before that still compare, but the step's later screens and
 assertions never run, so the laptop census must run both. Every other step of `steps.txt` runs in
 the cloud on the 36.1 image. When a step cannot (an image without a field or service a validation
-needs, say), add it to `cloud-gaps.tsv` with the reason: `report.py` then marks every run of it NOT COVERED and the diff job fails, so the step's
+needs, say), add it to `cloud-gaps.tsv` with the reason: `report.py` then lists it as not covered and leaves it out of the job's colour, so the step's
 cloud PASS is never taken for coverage, and the laptop census has to run it.
 
 ## Boot-stability probe
