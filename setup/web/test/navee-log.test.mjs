@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { readFile, readdir } from 'node:fs/promises';
 import { HEALTH, LIMITS, LogRecorder, MODELS, ROW_BUDGET, annotate, answerText, askable, captureHealth, classify, clock, decodeFrame, logcatCommand, noteText, parseProbe, probeCommand, recognize, safeSummary, safeText, submission, summaryText, tally } from '../src/navee-log.js';
 import { COMMANDS, GROUPS, SENSITIVE, describe } from '../src/navee-commands.js';
 import { frame as authFrame } from './fixtures.mjs';
@@ -224,9 +224,43 @@ test('unknown commands are new, unknown values of known commands are new values'
   assert.equal(askable(info(0xa4, [1])), true); assert.equal(askable(info(0x53, [45])), true); assert.equal(askable(info(0x52, [1])), false);
   assert.equal(recognize('sendCmd cmd=0XA4, value=0X01').status, 'new');
 });
+// The English catalog (l10n/README.md): every <string> in res/values/strings*.xml, keyed by the accessor
+// name gen_catalog.py gives the generated M class (controls_feature_lock → controlsFeatureLock). Values are
+// decoded as aapt reads them; anything this decoder does not understand throws instead of guessing.
+async function englishCatalog() {
+  const dir = new URL('../../../res/values/', import.meta.url), out = {};
+  const files = (await readdir(dir)).filter(name => /^strings.*\.xml$/.test(name)).sort(); // gen_catalog.py's set
+  assert(files.some(name => name.startsWith('strings_')), 'no res/values/strings_*.xml');
+  const camel = name => name.replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+  const entity = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+  const decode = (raw, where) => {
+    if (/<|\]\]>/.test(raw)) throw new Error(`${where}: markup in a string is not decoded here`);
+    let text = raw.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, e) => {
+      if (e[0] === '#') return String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1)));
+      if (!(e in entity)) throw new Error(`${where}: unknown entity ${m}`); return entity[e];
+    });
+    const quoted = /^"[\s\S]*"$/.test(text) && text.length > 1;
+    if (quoted) text = text.slice(1, -1); else text = text.replace(/\s+/g, ' ').trim();
+    return text.replace(/\\(.)/g, (m, c) => {
+      const plain = { "'": "'", '"': '"', '\\': '\\', n: '\n', t: '\t', '@': '@', '?': '?' }[c];
+      if (plain === undefined) throw new Error(`${where}: unknown escape ${m}`); return plain;
+    });
+  };
+  for (const file of files) {
+    const xml = (await readFile(new URL(file, dir), 'utf8')).replace(/<!--[\s\S]*?-->/g, '');
+    for (const [, name, raw] of xml.matchAll(/<string\s+name="([a-z0-9_]+)"[^>]*>([\s\S]*?)<\/string>/g)) {
+      const key = camel(name);
+      assert(!(key in out), `${file}: ${name} is declared twice`);
+      out[key] = () => decode(raw, `${file}: ${name}`);
+    }
+  }
+  return out;
+}
 // Parses ScooterCommands' static catalogue by expanding its helper methods (toggle, choice,
-// lightCatalog, oemOnlyLight) into the add()/Feature argument list they all share.
-function javaFeatures(source) {
+// lightCatalog, oemOnlyLight) into the add()/Feature argument list they all share. Labels are
+// M.<accessor>(...) calls, resolved against the real English catalog (with their %1$s arguments filled
+// in), and groups are GROUP_ constants, resolved to the values ScooterCommands declares.
+function javaFeatures(source, catalog) {
   // Comments out, strings kept.
   const java = source.replace(/"(?:[^"\\\n]|\\.)*"|\/\/[^\n]*|\/\*[\s\S]*?\*\//g, m => m[0] === '"' ? m : ' ');
   const close = { '(': ')', '{': '}', '[': ']' };
@@ -258,10 +292,26 @@ function javaFeatures(source) {
     if ((m = /^new (?:int|String)\[\]\s*\{([\s\S]*)\}$/.exec(expr))) return m[1].trim() ? split(m[1], ',').map(x => value(x, env)) : [];
     if (expr === 'NO_OPTIONS' || expr === 'NO_VALUES') return [];
     if ((m = /^Type\.(\w+)$/.exec(expr))) return m[1].toLowerCase();
+    if ((m = /^M\.(\w+)\s*\(([\s\S]*)\)$/.exec(expr))) {
+      if (!(m[1] in catalog)) throw new Error(`M.${m[1]} has no res/values/strings*.xml entry`);
+      const args = m[2].trim() ? split(m[2], ',').map(x => value(x, env)) : [];
+      const used = new Set(), template = catalog[m[1]]();
+      if (/%/.test(template.replace(/%(?:\d+\$s|%)/g, ''))) throw new Error(`M.${m[1]}: unsupported placeholder in ${JSON.stringify(template)}`);
+      const text = template.replace(/%(?:(\d+)\$s|%)/g, (whole, n) => {
+        if (!n) return '%';
+        const arg = args[n - 1]; used.add(Number(n));
+        if (typeof arg !== 'string') throw new Error(`M.${m[1]}: argument ${n} is not resolved text`); return arg;
+      });
+      assert.equal(used.size, args.length, `M.${m[1]} takes ${used.size} arguments, Java passes ${args.length}`);
+      return text;
+    }
     const sum = split(expr, '+');
     if (sum.length > 1) { const parts = sum.map(x => value(x, env)); return parts.every(x => typeof x === 'string') ? parts.join('') : undefined; }
-    return /^\w+$/.test(expr) ? env[expr] : undefined;
+    if (/^\w+$/.test(expr)) return expr in env ? env[expr] : constants[expr];
+    return undefined;
   };
+  // ScooterCommands' own string constants (GROUP_SECURITY = "Security", ...).
+  const constants = Object.fromEntries([...java.matchAll(/static final String (GROUP_\w+)\s*=\s*"((?:[^"\\]|\\.)*)"\s*;/g)].map(m => [m[1], m[2]]));
   // A helper's parameter names and the add()/new Feature() calls in its body.
   const helper = name => {
     const at = java.search(new RegExp(`private static void ${name}\\s*\\(`));
@@ -288,7 +338,7 @@ test('the command database matches ScooterCommands.java and Protocol.java exactl
   const java = await readFile(new URL('../../../src/com/jjricks/volt/ScooterCommands.java', import.meta.url), 'utf8');
   const protocol = await readFile(new URL('../../../src/com/jjricks/volt/Protocol.java', import.meta.url), 'utf8');
   assert.match(java, /sensitiveCommand\(int cmd\) \{ return cmd==0x30 \|\| cmd==0x31 \|\| cmd==0x63 \|\| cmd==0x7a; \}/);
-  const features = javaFeatures(java), keyOf = f => [f.cmd, ...f.prefix].map(n => n.toString(16).padStart(2, '0')).join(':');
+  const features = javaFeatures(java, await englishCatalog()), keyOf = f => [f.cmd, ...f.prefix].map(n => n.toString(16).padStart(2, '0')).join(':');
   assert.equal(features.length, new Set(features.map(f => f.key)).size); assert(features.length >= 39, `parsed ${features.length} Java features`);
   const covered = new Set();
   for (const f of features) {
