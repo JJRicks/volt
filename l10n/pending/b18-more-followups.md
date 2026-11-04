@@ -35,7 +35,17 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
    branch is one string" (l10n/README.md, "Still blocked"). Follow-up: a tooling PR that lets a
    choice branch be a plural, or an ordinary PR that rewrites the line. Until then do not ship a
    language with dual or few forms without that fix.
-5. **Units summary** row value (`unitsSummary()`: "mi + km · °C · 24h"). Its separators and
+5. **"Cleared N tries"** (`more_lab_cleared_one`, `more_lab_cleared_many`) should be one `<plurals>`
+   (Polish, Russian and Ukrainian few/many). The base has its own literal for 1
+   (`n == 1 ? "Cleared 1 try" : "Cleared " + n + " tries"`). G1 accepts a manual plural row whose
+   `one` form is `["Cleared 1 try"]`, but the proof tests then refuse it either way.
+   With `<item quantity="one">Cleared %1$d try</item>`, LedgerTest gives the hole-less `one` form
+   a String sentinel and crashes: `IllegalFormatConversionException: d != java.lang.String` at
+   `LedgerTest.render` (from `comparePlural`). With `<item quantity="one">Cleared 1 try</item>`,
+   CatalogCheckTest fails: "more_lab_cleared is formatted only when its text has %". A `one` form
+   with the hole fails G1: "literal \"Cleared 1 try\" left with no ledger row". Follow-up: a tooling PR
+   (a quantity sentinel for a `one` form that wrote the 1 out), then the plural.
+6. **Units summary** row value (`unitsSummary()`: "mi + km · °C · 24h"). Its separators and
    "mi + km" sit beside the unit ids it tests, which stay data. Follow-up: whole template with unit
    keys.
 
@@ -52,4 +62,3 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
 
 - Storage status (`Storage.statusMsg()`, handoff item B3) is shown in the current language. The
   English id stays in `storage.status`.
-- "Cleared N tries" is the plural `more_lab_cleared`. 0 keeps `more_lab_cleared_none`.

@@ -70,7 +70,7 @@ public final class MoreTextTest {
             equal(MoreScreenTextTest.Base.clearHistory(all, "Blue"), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody("Blue"), "clear " + all);
         }
         for (int n = 0; n <= 25; n++) {
-            equal(MoreScreenTextTest.Base.clearTries(n), n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n), "tries " + n);
+            equal(MoreScreenTextTest.Base.clearTries(n), n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n), "tries " + n);
             equal(MoreScreenTextTest.Base.labWhy(n), n > 0 ? (n == 1 ? T.moreLabWhyOne(n) : T.moreLabWhyMany(n)) : T.moreLabWhyNone(), "why " + n);
             equal(MoreScreenTextTest.Base.taps(n), T.moreDevTaps(n, n), "taps " + n);
             for (boolean stock : new boolean[]{true, false}) {
@@ -152,7 +152,7 @@ public final class MoreTextTest {
         String[][] shown = {
                 {T.moreLabRow("a", "b"), "more_lab_row"}, {T.moreLabRowValue("a", "b", "c"), "more_lab_row_value"},
                 {T.moreLabKept(), "more_lab_kept"}, {T.moreScootersSharedSuffix(), "more_scooters_shared_suffix"},
-                {T.moreDevTaps(2, 2), "more_dev_taps"}, {T.moreLabCleared(3, 3), "more_lab_cleared"},
+                {T.moreDevTaps(2, 2), "more_dev_taps"}, {T.moreLabClearedMany(3), "more_lab_cleared_many"},
                 {T.fmtQuantity(Fmt.decimal(Locale.US, 1.5, 1), T.moreUnitMib()), "fmt_quantity"},
                 {T.moreUnitMib(), "more_unit_mib"}, {T.moreUnitSecond(), "more_unit_second"},
                 {T.moreHistoryUsed("1", "2", T.moreUnitMib()), "more_history_used"},

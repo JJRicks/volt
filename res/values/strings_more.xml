@@ -352,11 +352,10 @@
     <string name="more_lab_clear_body" volt:screen="Experimental controls" volt:purpose="dialog" volt:safety="experimental">Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them.</string>
     <!-- Shown after Clear when there was nothing to clear. -->
     <string name="more_lab_cleared_none" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">No finished tries to clear</string>
-    <!-- Shown after Clear removed tries' results. %1$d is how many (1 or more; none has its own text, more_lab_cleared_none). The English one item writes the 1 out; where your language's one form also covers other counts (Russian 21), write %1$d in it. -->
-    <plurals name="more_lab_cleared" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">
-        <item quantity="one">Cleared 1 try</item>
-        <item quantity="other">Cleared %1$d tries</item>
-    </plurals>
+    <!-- Shown after Clear removed one try's result. -->
+    <string name="more_lab_cleared_one" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
+    <!-- Shown after Clear removed two or more tries' results. %1$d is how many (2 or more). Not yet a plural (l10n/pending/b18-more-followups.md): where your language changes the noun with the count (Polish 2 próby, 5 prób), choose the form for most counts. -->
+    <string name="more_lab_cleared_many" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
     <!-- Added after the footnote (more_lab_foot, _oem, _elsewhere) when there are rows to try; it starts with a space because it follows that sentence. Drop the space if your language joins sentences without one. -->
     <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."</string>
     <!-- Footnote for a model whose controls the official app lists. -->

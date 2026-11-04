@@ -1555,7 +1555,7 @@ public final class MoreScreen implements AppScreen {
     /** The owner clears this scooter's finished tries: their results, report entries and Set back. Unfinished ones stay. */
     private void clearTries() {
         confirm(T.moreLabClearTitle(), T.moreLabClearBody(),
-                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n)); refresh(); });
+                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n)); refresh(); });
     }
     private void refreshLab(ScooterService s) {
         BleController ble = s.ble; boolean ready = ble.ready();
