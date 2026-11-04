@@ -129,7 +129,7 @@ public final class RideMapsTextTest {
         if (value == null || !Double.isFinite(value)) return "—";
         int places = UnitCode.MPH.matches(unit) || UnitCode.KMH.matches(unit) ? 1 : 2;
         double raw = Math.abs(value) < Math.pow(10, -places) / 2 ? 0 : value;
-        return String.format(Fmt.locale(Locale.US), "%." + places + "f", raw) + " " + unit;
+        return T.fmtQuantity(String.format(Fmt.locale(Locale.US), "%." + places + "f", raw), unitSymbol(unit));
     }
 
     /** RideChartView.unitSymbol(), the unit drawn above each axis. */

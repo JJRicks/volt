@@ -164,8 +164,10 @@ public final class PhoneRideStore {
         /** Every accepted source fix; the map/inline preview list remains bounded separately. */
         public List<Point> fullPoints() { return allPoints; }
         /**
-         * The fix counts as display text, in the current language. status stays the same sentence in
-         * English (the ride screen, exports and reports read it as data); in English the two are equal.
+         * The fix counts as display text, in the current language; in English it equals status.
+         * status stays the base English sentence only because RidesScreen still shows it (the fix
+         * counts' content description) until B15 switches that to statusText(); nothing else reads
+         * it, so it can then be removed with its literals.
          */
         public Msg statusText() {
             if (locationCount == 0) return M.mapsTrackNoFixes();

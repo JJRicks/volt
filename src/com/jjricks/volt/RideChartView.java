@@ -386,13 +386,13 @@ public final class RideChartView extends View {
         if (value == null || value.value == null || !Double.isFinite(value.value)) return "—";
         int places = UnitCode.MPH.matches(s.unit) || UnitCode.KMH.matches(s.unit) ? 1 : 2;
         double raw = Math.abs(value.value) < Math.pow(10, -places) / 2 ? 0 : value.value;
-        return String.format(Fmt.locale(Locale.US), "%." + places + "f", raw) + " " + s.unit;
+        return T.fmtQuantity(String.format(Fmt.locale(Locale.US), "%." + places + "f", raw), unitSymbol(s.unit));
     }
     /**
      * The unit drawn above an axis: a data unit UnitCode knows ("mph", "W", "V", "Time") as its catalog
      * symbol, which is the same text in English; any other unit ("Wh/mi", "ft", "%") as it is. Display
-     * only: the series keeps its data unit, which code compares. sampleValue() still appends the data
-     * unit, because G1 has no format row for its number (B14 report).
+     * only: the series keeps its data unit, which code compares. sampleValue() shows the same symbol
+     * after its number through fmt_quantity.
      */
     static String unitSymbol(String unit) {
         for (UnitCode code : UnitCode.values()) if (code.matches(unit)) return code.symbol();
