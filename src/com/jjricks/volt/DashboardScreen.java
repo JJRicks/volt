@@ -3991,9 +3991,38 @@ public final class DashboardScreen implements AppScreen {
         }
 
         private void describe() {
-            setContentDescription("Battery " + (Double.isNaN(percent) ? "not reported" : Math.round(percent) + " percent")
-                    + (detail.isEmpty() ? "" : ", " + detail) + (charging ? ", charging" : "")
-                    + (live ? "" : ", last seen reading"));
+            setContentDescription(
+                    Double.isNaN(percent)
+                    ? (detail.isEmpty()
+                        ? (charging
+                            ? (live
+                                ? T.dashboardCellNotReportedCharging()
+                                : T.dashboardCellNotReportedChargingStale())
+                            : (live
+                                ? T.dashboardCellNotReported()
+                                : T.dashboardCellNotReportedStale()))
+                        : (charging
+                            ? (live
+                                ? T.dashboardCellNotReportedLineCharging(detail)
+                                : T.dashboardCellNotReportedLineChargingStale(detail))
+                            : (live
+                                ? T.dashboardCellNotReportedLine(detail)
+                                : T.dashboardCellNotReportedLineStale(detail))))
+                    : (detail.isEmpty()
+                        ? (charging
+                            ? (live
+                                ? T.dashboardCellPercentCharging(Fmt.integer(Math.round(percent)))
+                                : T.dashboardCellPercentChargingStale(Fmt.integer(Math.round(percent))))
+                            : (live
+                                ? T.dashboardCellPercent(Fmt.integer(Math.round(percent)))
+                                : T.dashboardCellPercentStale(Fmt.integer(Math.round(percent)))))
+                        : (charging
+                            ? (live
+                                ? T.dashboardCellPercentLineCharging(Fmt.integer(Math.round(percent)), detail)
+                                : T.dashboardCellPercentLineChargingStale(Fmt.integer(Math.round(percent)), detail))
+                            : (live
+                                ? T.dashboardCellPercentLine(Fmt.integer(Math.round(percent)), detail)
+                                : T.dashboardCellPercentLineStale(Fmt.integer(Math.round(percent)), detail)))));
         }
 
         @Override

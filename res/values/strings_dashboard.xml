@@ -203,6 +203,26 @@
     <string name="dashboard_overview_percent_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen %2$s</string>
     <string name="dashboard_overview_percent_line" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
     <string name="dashboard_overview_percent_line_seen" volt:screen="Home battery overview widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen %3$s</string>
+    <!-- Spoken for the battery widget's level cell, one whole sentence per state (safety: charge).
+         %1$s in the _percent forms is the level, a whole number of percent; the _line forms add the
+         range or status line under it (%2$s, or %1$s when the level is not reported); _charging says
+         the scooter is charging; _stale says the level is the last reading seen, not a live one. -->
+    <string name="dashboard_cell_not_reported_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, charging</string>
+    <string name="dashboard_cell_not_reported_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, charging, last seen reading</string>
+    <string name="dashboard_cell_not_reported" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported</string>
+    <string name="dashboard_cell_not_reported_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, last seen reading</string>
+    <string name="dashboard_cell_not_reported_line_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, charging</string>
+    <string name="dashboard_cell_not_reported_line_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, charging, last seen reading</string>
+    <string name="dashboard_cell_not_reported_line" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s</string>
+    <string name="dashboard_cell_not_reported_line_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery not reported, %1$s, last seen reading</string>
+    <string name="dashboard_cell_percent_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, charging</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, charging, last seen reading</string>
+    <string name="dashboard_cell_percent" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent</string>
+    <string name="dashboard_cell_percent_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, last seen reading</string>
+    <string name="dashboard_cell_percent_line_charging" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, charging</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, charging, last seen reading</string>
+    <string name="dashboard_cell_percent_line" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s</string>
+    <string name="dashboard_cell_percent_line_stale" volt:screen="Home battery widget" volt:purpose="accessibility description" volt:safety="charge">Battery %1$s percent, %2$s, last seen reading</string>
     <!-- Widget bodies -->
     <!-- Spoken for a reading on a card: %1$s is the reading's name, %2$s its value with unit; the
          _seen form adds when it was read (%3$s: a date and time) when it is not live. -->
