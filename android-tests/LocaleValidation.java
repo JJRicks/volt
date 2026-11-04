@@ -123,20 +123,15 @@ public final class LocaleValidation extends Instrumentation {
      * marked done again afterwards.
      */
     private void walkSetup() throws Exception {
-        try {
-            for (int step = 0; step < SETUP_STEPS.length; step++) {
-                final int saved = step;
-                require(getTargetContext().getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE).edit().clear()
-                        .putBoolean("rerun", true).putInt("step", saved).putString("path", "capture").commit(), "Setup fixture failed");
-                main(() -> activity.rebuild()); settle();
-                require(field(activity, "onboarding") != null, "setup did not open at step " + saved);
-                check("setup-" + SETUP_STEPS[step]);
-            }
-        } catch (Exception error) {
-            throw new IllegalStateException("Setup walk: " + error.getMessage(), error);
-        } finally {
-            main(() -> { OnboardingScreen.markDone(getTargetContext()); activity.rebuild(); }); settle();
+        for (int setupStep = 0; setupStep < SETUP_STEPS.length; setupStep++) {
+            final int savedStep = setupStep;
+            require(getTargetContext().getSharedPreferences(OnboardingScreen.PREFS, Context.MODE_PRIVATE).edit().clear()
+                    .putBoolean("rerun", true).putInt("step", savedStep).putString("path", "capture").commit(), "Setup fixture failed");
+            main(() -> activity.rebuild()); settle();
+            require(field(activity, "onboarding") != null, "Setup walk: setup did not open at step " + savedStep);
+            check("setup-" + SETUP_STEPS[savedStep]);
         }
+        main(() -> { OnboardingScreen.markDone(getTargetContext()); activity.rebuild(); }); settle();
     }
 
     private void setLocale(String tag) {
