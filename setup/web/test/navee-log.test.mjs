@@ -237,7 +237,7 @@ async function englishCatalog() {
     if (/<|\]\]>/.test(raw)) throw new Error(`${where}: markup in a string is not decoded here`);
     let text = raw.replace(/&(#x[0-9a-f]+|#\d+|\w+);/gi, (m, e) => {
       if (e[0] === '#') return String.fromCodePoint(e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1)));
-      if (!(e in entity)) throw new Error(`${where}: unknown entity ${m}`); return entity[e];
+      if (!Object.hasOwn(entity, e)) throw new Error(`${where}: unknown entity ${m}`); return entity[e];
     });
     const quoted = /^"[\s\S]*"$/.test(text) && text.length > 1;
     if (quoted) text = text.slice(1, -1); else text = text.replace(/\s+/g, ' ').trim();
@@ -250,7 +250,7 @@ async function englishCatalog() {
     const xml = (await readFile(new URL(file, dir), 'utf8')).replace(/<!--[\s\S]*?-->/g, '');
     for (const [, name, raw] of xml.matchAll(/<string\s+name="([a-z0-9_]+)"[^>]*>([\s\S]*?)<\/string>/g)) {
       const key = camel(name);
-      assert(!(key in out), `${file}: ${name} is declared twice`);
+      assert(!Object.hasOwn(out, key), `${file}: ${name} is declared twice`);
       out[key] = () => decode(raw, `${file}: ${name}`);
     }
   }
@@ -293,7 +293,7 @@ function javaFeatures(source, catalog) {
     if (expr === 'NO_OPTIONS' || expr === 'NO_VALUES') return [];
     if ((m = /^Type\.(\w+)$/.exec(expr))) return m[1].toLowerCase();
     if ((m = /^M\.(\w+)\s*\(([\s\S]*)\)$/.exec(expr))) {
-      if (!(m[1] in catalog)) throw new Error(`M.${m[1]} has no res/values/strings*.xml entry`);
+      if (!Object.hasOwn(catalog, m[1])) throw new Error(`M.${m[1]} has no res/values/strings*.xml entry`);
       const args = m[2].trim() ? split(m[2], ',').map(x => value(x, env)) : [];
       const used = new Set(), template = catalog[m[1]]();
       if (/%/.test(template.replace(/%(?:\d+\$s|%)/g, ''))) throw new Error(`M.${m[1]}: unsupported placeholder in ${JSON.stringify(template)}`);
@@ -307,7 +307,7 @@ function javaFeatures(source, catalog) {
     }
     const sum = split(expr, '+');
     if (sum.length > 1) { const parts = sum.map(x => value(x, env)); return parts.every(x => typeof x === 'string') ? parts.join('') : undefined; }
-    if (/^\w+$/.test(expr)) return expr in env ? env[expr] : constants[expr];
+    if (/^\w+$/.test(expr)) return Object.hasOwn(env, expr) ? env[expr] : Object.hasOwn(constants, expr) ? constants[expr] : undefined;
     return undefined;
   };
   // ScooterCommands' own string constants (GROUP_SECURITY = "Security", ...).
@@ -328,6 +328,7 @@ function javaFeatures(source, catalog) {
     if (!m) continue;
     const args = split(group(statement, statement.indexOf('(')), ',').map(x => value(x, {}));
     if (m[1] === 'add') { out.push(feature(args)); continue; }
+    if (!Object.hasOwn(helpers, m[1])) throw new Error(`unknown static-block call ${m[1]}(...)`);
     const { params, inner } = helpers[m[1]];
     const env = Object.fromEntries(params.map((p, i) => [p, args[i]]));
     for (const call of inner) out.push(feature(call.map(x => value(x, env))));
