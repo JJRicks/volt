@@ -120,6 +120,7 @@ class DecodeTest(unittest.TestCase):
 
 
 class CatalogTest(unittest.TestCase):
+    maxDiff = None
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="l10n-catalog-")
         os.makedirs(os.path.join(self.dir, "res", "values"))
@@ -373,7 +374,12 @@ class CatalogTest(unittest.TestCase):
                                   "    </plurals>\n    <plurals name=\"rides_count\">")
         spanish = (LANG.replace("\ten\n", "\tes\n", 1).replace("values\n", "values-es\n").replace("English", "Español")
                    .replace("stable", "beta").replace("one,other", "one,many,other"))
-        out = self.compile_and_run(catalog, {"AndroidProbe": ANDROID_PROBE}, [("es.tsv", spanish)])["AndroidProbe"]
+        japanese = (LANG.replace("\ten\n", "\tja\n", 1).replace("values\n", "values-ja\n").replace("English", "Japanese")
+                    .replace("stable", "beta").replace("one,other", "other"))
+        russian = (LANG.replace("\ten\n", "\tru\n", 1).replace("values\n", "values-ru\n").replace("English", "Russian")
+                   .replace("stable", "draft").replace("one,other", "one,few,many,other"))
+        out = self.compile_and_run(catalog, {"AndroidProbe": ANDROID_PROBE},
+                                   [("es.tsv", spanish), ("ja.tsv", japanese), ("ru.tsv", russian)])["AndroidProbe"]
         self.assertEqual(out, [
             "en en-US: 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left | 22 minutes left | 101 minutes left",
             "en th: 0 minutes left | 1 minute left (Android alone: 1 minutes left) | 2 minutes left | 5 minutes left | 21 minutes left"
@@ -388,7 +394,18 @@ class CatalogTest(unittest.TestCase):
             "es es: 1 minuto | 2 minutos | 21 minutos | 1000000 de minutos",
             "es ru: 1 minuto | 2 minutos | 21 minutos (Android alone: 21 minuto) | 1000000 de minutos",
             "es ja: 1 minutos | 2 minutos | 21 minutos | 1000000 minutos",
-            "mangled tag under th: 1 minute left"])
+            "mangled tag under th: 1 minute left",
+            # A language that leaves the key out (shipped Japanese, unshipped Russian) serves the English default:
+            # English rules, not its own.
+            "en ja (Volt in ja): 0 minutes left | 1 minute left (Android alone: 1 minutes left) | 2 minutes left | 5 minutes left"
+            " | 21 minutes left | 22 minutes left | 101 minutes left",
+            "en ru (Volt in en): 0 minutes left | 1 minute left | 2 minutes left | 5 minutes left | 21 minutes left"
+            " (Android alone: 21 minute left) | 22 minutes left | 101 minutes left (Android alone: 101 minute left)",
+            # A folder whose language never shipped (language() is English) keeps its own language's rules.
+            "ru ru (Volt in en): 1 ONE | 2 FEW | 5 MANY | 21 ONE | 22 FEW",
+            # An English phone reaches only one and other: Russian's one is served, few and many are not reachable.
+            "ru en-US (Volt in en): 1 ONE | 2 OTHER | 5 OTHER | 21 ONE (Android alone: 21 OTHER) | 22 OTHER",
+            "ru ja (Volt in en): 1 OTHER | 2 OTHER | 5 OTHER | 21 OTHER | 22 OTHER"])
 
 
 PLURAL_PROBE = """package com.jjricks.volt;
@@ -488,6 +505,18 @@ public final class AndroidProbe {
         Resources.first = Locale.forLanguageTag("th");
         T.install(new AndroidText(new Resources()));
         System.out.println("mangled tag under th: " + T.minutesLeft(1, 1));
+        Resources.tag = "ja";
+        System.out.println(line("en", "ja", quantities).replaceFirst(":", " (Volt in " + T.language() + "):"));
+        Resources.tag = "ru";
+        System.out.println(line("en", "ru", quantities).replaceFirst(":", " (Volt in " + T.language() + "):"));
+        Map<String, String> russian = new HashMap<>();
+        russian.put("one", "%1$d ONE");
+        russian.put("few", "%1$d FEW");
+        russian.put("many", "%1$d MANY");
+        russian.put("other", "%1$d OTHER");
+        Resources.items = russian;
+        for (String phone : new String[]{"ru", "en-US", "ja"})
+            System.out.println(line("ru", phone, new long[]{1, 2, 5, 21, 22}).replaceFirst(":", " (Volt in " + T.language() + "):"));
         T.install(null);
     }
 }

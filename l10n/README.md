@@ -155,14 +155,19 @@ its own `.sources` file (its characterization tests, its new suites) and never e
   language's text (`ResourcesImpl.getPluralRule`): on a phone whose only language is Thai, Japanese,
   Chinese, Korean, Vietnamese or Indonesian, Volt in English would say "1 minutes left", and on a
   Russian or Latvian one "21 minute left". `AndroidText.plural` therefore chooses the item with the
-  rules of the language it serves (`T.Plurals.ENGLISH`, which is `EnglishText`'s rule, while
-  `language()` is English; the resolved language's `android.icu.text.PluralRules` and its categories
-  from `l10n/lang/` otherwise) and asks Android for a stand-in quantity whose item under the first
-  locale's rules is that one (`T.Plurals.standIn`: the quantity itself when it already is, so an
-  English phone passes exactly what it passed before; then 0 to 199 and powers of ten). The text
-  is then formatted with the real quantity. When no stand-in exists (the first locale has no such
-  category, as Thai has no "one"), English text whose "other" item is `EnglishText`'s (the default
-  `res/values/`, which G3 proves equal) comes from `EnglishText`; other text keeps Android's choice.
+  rules of the language of the text Android actually serves for that key, not of `language()`:
+  text equal to one of `EnglishText`'s items is the English default (also when a shipped language
+  leaves the key out under the beta bar, or a folder that never shipped serves it) and takes
+  `T.Plurals.ENGLISH`, `EnglishText`'s rule; other text takes the `android.icu.text.PluralRules` and
+  `l10n/lang/` categories of its folder's raw `l10n_tag` when the language table has that tag,
+  shipped or not, and otherwise keeps Android's choice. It asks Android for a stand-in quantity
+  whose item under the first locale's rules is that one (`T.Plurals.standIn`: the quantity itself
+  when it already is, so an English phone passes exactly what it passed before; then 0 to 199 and
+  powers of ten). The text is then formatted with the real quantity. When no stand-in exists (the
+  first locale has no such category, as Thai has no "one"), the English default comes from
+  `EnglishText` (G3 proves it equal to `res/values/`); other text keeps Android's choice. A
+  translation identical to an English item is treated as English, which can serve English's "one"
+  in its place only where the first locale has no "one" category.
   Known limit: a shipped language served from a later locale of the phone's list, behind a first
   language with fewer categories (Spanish behind Japanese), still shows Android's "other" item where
   its own rules want "one" or "many". On an English phone the only change is a negative quantity of
