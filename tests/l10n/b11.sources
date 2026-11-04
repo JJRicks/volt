@@ -6,3 +6,5 @@ tests/l10n/characterization/BackupScreenTextTest.java
 # The screen's language handling: manifest configChanges, AppLanguage.wrap, the in-place relabel and the
 # Save hint's button name.
 tests/l10n/BackupScreenTest.java
+# The Backup views stay base's classes (the census keys views by class) and still relabel through maps.
+tests/l10n/BackupViewsTest.java

@@ -34,7 +34,7 @@ public final class BackupActivity extends Activity {
     private float textScale=1f;
     private ScrollView scroll;
     private LinearLayout content;
-    private Line status;private TextView action, closeAction;
+    private TextView status, action, closeAction;
     private EditText password, repeat;
     private ProgressBar progress;
     private boolean busy, terminal, restore, waitingForPicker, hasData, exportedComplete;
@@ -47,9 +47,15 @@ public final class BackupActivity extends Activity {
     private File exported;
     private AlertDialog confirmation;
     private android.window.OnBackInvokedCallback backCallback;
-    /** What each heading, button and checkbox was given: a Msg renders in the language current when shown, so a
-     * language change shows it again (relabel). Lines and password fields keep their own (Line, Secret). */
+    /** What each heading, button, checkbox and paragraph (status included) was given: a Msg renders in the language
+     * current when shown, so a language change shows it again (relabel). The views stay plain Ui ones (TextView,
+     * EditText): the emulator census keys each view by its class, so a subclass would change every Backup page. */
     private final WeakHashMap<TextView,CharSequence> words=new WeakHashMap<>();
+    /** Each password field's hint, kept the same way. */
+    private final WeakHashMap<EditText,CharSequence> hints=new WeakHashMap<>();
+    /** The password errors as the shown language renders them, each with its Msg: a field keeps only the rendered
+     * error (EditText.getError), so relabel finds the Msg by that text and shows it again in the new language. */
+    private Map<String,CharSequence> shownErrors=Collections.emptyMap();
     private android.os.LocaleList shownLocales;
     /** The Back up list's scope and size line, and the Scooters page, which relabel builds again; null on other pages. */
     private Runnable refreshScope, destinations;
@@ -68,7 +74,7 @@ public final class BackupActivity extends Activity {
             float scale=settings.getFloat("text_scale",1f);if(Float.isFinite(scale)&&scale>=.5f&&scale<=3f)textScale=scale;}catch(RuntimeException unreadable){/* Defaults during recovery. */}
         setTheme(dark?R.style.VoltDark:R.style.VoltLight);super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        shownLocales=locales();
+        shownLocales=locales();noteErrors();
         ui=new Ui(this,dark,textScale);
         if(Build.VERSION.SDK_INT>=30)getWindow().setDecorFitsSystemWindows(false);
         else getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_STABLE|View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN|View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
@@ -120,10 +126,10 @@ public final class BackupActivity extends Activity {
 
     // ---- Building blocks ---------------------------------------------------------------------
 
-    private void reset(CharSequence title){content.removeAllViews();boxes.clear();words.clear();refreshScope=destinations=null;counts=null;replaceAll=null;password=repeat=null;action=closeAction=null;heading(title);}
+    private void reset(CharSequence title){content.removeAllViews();boxes.clear();words.clear();hints.clear();refreshScope=destinations=null;counts=null;replaceAll=null;password=repeat=null;action=closeAction=null;heading(title);}
     private void heading(CharSequence title){TextView text=ui.text(title,28,true);words.put(text,title);if(Build.VERSION.SDK_INT>=28)text.setAccessibilityHeading(true);content.addView(text);}
-    private Line paragraph(CharSequence message){return paragraph(content,message);}
-    private Line paragraph(LinearLayout parent,CharSequence message){Line text=new Line(this,ui.caption((String)null));text.setText(message);text.setTextSize(TypedValue.COMPLEX_UNIT_SP,15*textScale);text.setPadding(0,ui.dp(12),0,ui.dp(12));parent.addView(text);return text;}
+    private TextView paragraph(CharSequence message){return paragraph(content,message);}
+    private TextView paragraph(LinearLayout parent,CharSequence message){TextView text=ui.caption(message==null?null:message.toString());words.put(text,message);text.setFilters(new InputFilter[]{keep(text)});text.setTextSize(TypedValue.COMPLEX_UNIT_SP,15*textScale);text.setPadding(0,ui.dp(12),0,ui.dp(12));parent.addView(text);return text;}
     private TextView button(CharSequence label,Runnable callback){TextView button=ui.button(String.valueOf(label),callback);button.setContentDescription(label);words.put(button,label);LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=ui.dp(12);content.addView(button,p);return button;}
     private void footer(CharSequence label,String tag,Runnable callback){
         status=paragraph("");status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
@@ -133,7 +139,7 @@ public final class BackupActivity extends Activity {
     }
     private void label(TextView button,CharSequence text){button.setText(text);button.setContentDescription(text);words.put(button,text);}
     private EditText passwordField(CharSequence hint){
-        Secret field=new Secret(this);field.hint=hint;field.setHint(hint);field.setTextColor(ui.text);field.setHintTextColor(ui.muted);
+        EditText field=new EditText(this);hints.put(field,hint);field.setHint(hint);field.setTextColor(ui.text);field.setHintTextColor(ui.muted);
         field.setTextSize(TypedValue.COMPLEX_UNIT_SP,16*textScale);
         field.setSingleLine(true);field.setInputType(InputType.TYPE_CLASS_TEXT|InputType.TYPE_TEXT_VARIATION_PASSWORD);
         field.setSaveEnabled(false);field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO_EXCLUDE_DESCENDANTS);
@@ -498,13 +504,16 @@ public final class BackupActivity extends Activity {
             if(busy){handler.postDelayed(this::relabel,200);return;}
             List<Integer> chosen=new ArrayList<>();
             for(int i=0;i<content.getChildCount();i++)if(content.getChildAt(i) instanceof Spinner)chosen.add(((Spinner)content.getChildAt(i)).getSelectedItemPosition());
-            CharSequence note=status==null?null:status.shown;int y=scroll.getScrollY();
+            CharSequence note=status==null?null:words.get(status);int y=scroll.getScrollY();
             destinations.run();
             for(int i=0,s=0;i<content.getChildCount();i++)if(content.getChildAt(i) instanceof Spinner&&s<chosen.size())((Spinner)content.getChildAt(i)).setSelection(chosen.get(s++));
             if(note!=null&&status!=null)status.setText(note);
             scroll.post(()->scroll.scrollTo(0,y));
         }
         for(Map.Entry<TextView,CharSequence> e:new ArrayList<>(words.entrySet())){TextView view=e.getKey();if(view!=null)view.setText(e.getValue());}
+        for(Map.Entry<EditText,CharSequence> e:new ArrayList<>(hints.entrySet())){EditText field=e.getKey();if(field!=null&&e.getValue()!=null)field.setHint(e.getValue());}
+        for(EditText field:new ArrayList<>(hints.keySet())){if(field==null)continue;CharSequence shown=field.getError();CharSequence error=shown==null?null:shownErrors.get(shown.toString());if(error!=null)field.setError(error);}
+        noteErrors();
         relabel(content);
         if(replaceAll!=null)replaceAll.setText(M.backupReplaceAll());
         relabelCounts();
@@ -512,12 +521,19 @@ public final class BackupActivity extends Activity {
         if(confirmation!=null&&confirmation.isShowing()){confirmation.dismiss();confirmation=null;requestClose();}
     }
     private void relabel(View view){
-        if(view instanceof Line){Line line=(Line)view;line.setText(line.shown);}
         // Choose another file (askPassword) is found by its spoken label, a Msg compared with a Msg.
-        else if(view instanceof TextView&&M.backupChooseAnother().equals(view.getContentDescription()))((TextView)view).setText(M.backupChooseAnother());
-        if(view instanceof Secret){Secret field=(Secret)view;if(field.hint!=null)field.setHint(field.hint);if(field.getError()!=null&&field.error!=null)field.setError(field.error);}
+        if(view instanceof TextView&&M.backupChooseAnother().equals(view.getContentDescription()))((TextView)view).setText(M.backupChooseAnother());
         if(view instanceof android.view.ViewGroup){android.view.ViewGroup group=(android.view.ViewGroup)view;for(int i=0;i<group.getChildCount();i++)relabel(group.getChildAt(i));}
     }
+    /** The errors a password field can show (createBackup, openEncrypted), by their text in the current language. */
+    private void noteErrors(){
+        Map<String,CharSequence> errors=new HashMap<>();
+        for(CharSequence error:new CharSequence[]{M.backupPasswordShort(),M.backupPasswordsDiffer()})errors.put(error.toString(),error);
+        shownErrors=errors;
+    }
+    /** Records each text a paragraph is given (status.setText included) in words, as given (a Msg stays a Msg): TextView
+     * runs its filters on every setText with the text it was passed, before rendering it, and this one changes nothing. */
+    private InputFilter keep(TextView view){return (source,start,end,dest,dstart,dend)->{words.put(view,source);return null;};}
     /** The category counts from the catalog ("None", the private scooter count), as backupCategories and
      * restoreCategories render them; the other counts and sizes stay English in this batch. A row built
      * again by checkRow, off screen, gives the shown row its detail and spoken label. */
@@ -549,22 +565,5 @@ public final class BackupActivity extends Activity {
         AppDataBackup.PreparedRestore current=staged;setBusy(M.backupComparing());
         submit(()->{try{AppDataBackup.Review checked=AppDataBackup.review(this,current,categories,replace,chosen);show(()->showReview(checked,()->review(categories,replace,chosen,CHANGED),note));}
             catch(Exception failure){show(()->{if(note!=null)restoreCategories();retry(refusal(failure));});}});
-    }
-    /** A paragraph that keeps the text it was given (a Msg stays a Msg), styled as its model, a Ui caption. */
-    private static final class Line extends TextView {
-        /** Null until the first setText (TextView's constructor sets its empty text before this class's fields exist). */
-        CharSequence shown;
-        Line(android.content.Context context,TextView model){
-            super(context);
-            setTextColor(model.getTextColors());setTypeface(model.getTypeface());setIncludeFontPadding(model.getIncludeFontPadding());
-            setLineSpacing(model.getLineSpacingExtra(),model.getLineSpacingMultiplier());setTextDirection(model.getTextDirection());
-        }
-        @Override public void setText(CharSequence text,BufferType type){shown=text;super.setText(text,type);}
-    }
-    /** A password field that keeps its hint and error as given. */
-    private static final class Secret extends EditText {
-        CharSequence hint,error;
-        Secret(android.content.Context context){super(context);}
-        @Override public void setError(CharSequence text,android.graphics.drawable.Drawable icon){error=text;super.setError(text,icon);}
     }
 }
