@@ -163,6 +163,8 @@ public final class ReportInviteValidation extends Instrumentation {
             simulateMode(11); await(() -> "And this mode?".equals(textOf("drive-mode-prompt")), "The third mode was not asked about");
             main(() -> find("drive-mode-walk").performClick()); settle();
             simulateMode(3); await(() -> "Sport → Eco → Walk".equals(textOf("drive-mode-summary")), "Returning to the first mode did not offer the summary");
+            // G7: the confirm screen shows the scooter back in its first mode, so Home behind the sheet shows it too.
+            awaitHomeShowsMode(3);
             screenshot("drive-modes-confirm");
             require(field(activity.service().ble, "mutation") == null, "The drive-mode step sent a command");
             main(() -> find("drive-mode-confirm").performClick());
@@ -398,6 +400,32 @@ public final class ReportInviteValidation extends Instrumentation {
         AtomicReference<String> text = new AtomicReference<>("");
         main(() -> { View v = find(tag); if (v instanceof TextView) text.set(String.valueOf(((TextView) v).getText())); });
         return text.get();
+    }
+    /**
+     * G7: Home (behind the sheet) refreshes its body, the header's "Connected · <mode>" and the drive-mode
+     * tile, only on MainActivity's shared 1 Hz pulse (automaticRefresh, BODY_REFRESH_MS), while the
+     * drive-mode step polls the reading itself. A capture right after the step moved on could show the
+     * previous mode on Home. Wait, checking on the main thread, until the simulator reports this mode and
+     * a body refresh has run since it was seen, so Home has drawn it; then let that frame settle.
+     */
+    private void awaitHomeShowsMode(int code) {
+        long[] seen = {-1};
+        AtomicReference<String> state = new AtomicReference<>("not checked");
+        long end = SystemClock.uptimeMillis() + 10000;
+        boolean[] done = {false};
+        while (!done[0] && SystemClock.uptimeMillis() < end) {
+            main(() -> {
+                Double mode = activity.service().ble.telemetry.number("driving_mode");
+                long refreshed = (Long) field(activity, "lastBodyRefreshMs");
+                if (mode == null || mode.intValue() != code) { seen[0] = -1; state.set("the simulator reports drive mode " + mode); return; }
+                if (seen[0] < 0) seen[0] = SystemClock.elapsedRealtime();
+                done[0] = refreshed > seen[0];
+                state.set("Home last refreshed " + (seen[0] - refreshed) + " ms before mode " + code + " was seen");
+            });
+            if (!done[0]) SystemClock.sleep(50);
+        }
+        require(done[0], "Home did not refresh to drive mode " + code + " within 10 s: " + state.get());
+        settle();
     }
     /** Stands in for the owner pressing the scooter's mode button: the simulator now reports this mode. */
     @SuppressWarnings("unchecked") private void simulateMode(int code) {
