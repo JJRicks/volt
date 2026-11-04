@@ -1,0 +1,264 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The More screen (batch B18): the menu and its footer, first-run setup, My scooters, App preferences
+  and Units, Data & history, PIN & proximity unlock and the handlebar PIN guide, Experimental controls
+  and their try sheet, About & permissions and update checks, Developer options, open-source notices,
+  and the Language row and sheet. The English must stay exactly what the source said before the batch
+  (G1, G2), known English slips included.
+
+  Section ids ("App", "Units", "Compatibility"), preference values, stored names and the command and
+  event logs stay English data (plan G9): nothing here is written into them. Where the source joined a
+  word or a name into a sentence ("the " + model, a scooter's "'s history", a setting lower-cased into
+  "Try ..."), each combination is a whole template here, so a language can order and inflect it. PIN,
+  experimental-control and disclaimer text is whole sentences.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Menu, footer and section headers ===== -->
+
+    <!-- The More tab's name, and the back link to it from a submenu. -->
+    <string name="more_title" volt:screen="More" volt:purpose="title">More</string>
+    <!-- Screen-reader label of the back link above a submenu. -->
+    <string name="more_back_to_more" volt:screen="More" volt:purpose="accessibility">Back to More</string>
+    <!-- Screen-reader label of the back link. %1$s is the place it returns to ("App preferences", "Developer options"). -->
+    <string name="more_back_to" volt:screen="More" volt:purpose="accessibility">Back to %1$s</string>
+    <!-- Menu row: back up all of Volt's data to a file, or restore from one. -->
+    <string name="more_backup_restore" volt:screen="More" volt:purpose="menu row">Back up &amp; restore</string>
+    <!-- Menu row and submenu title: the app's own settings. -->
+    <string name="more_section_app" volt:screen="More" volt:purpose="menu row">App preferences</string>
+    <!-- Menu row and submenu title: the saved scooters. -->
+    <string name="more_section_scooters" volt:screen="More" volt:purpose="menu row">My scooters</string>
+    <!-- Menu row: the handlebar PIN and proximity unlock settings. -->
+    <string name="more_section_security" volt:screen="More" volt:purpose="menu row">PIN &amp; proximity unlock</string>
+    <!-- Submenu title for the PIN and proximity unlock settings (shorter than the menu row). -->
+    <string name="more_section_security_title" volt:screen="More" volt:purpose="title">PIN &amp; proximity</string>
+    <!-- Menu row and submenu title: controls the official app does not offer on this model. -->
+    <string name="more_section_lab" volt:screen="More" volt:purpose="menu row" volt:safety="experimental">Experimental controls</string>
+    <!-- Menu row and submenu title: saved history and storage. -->
+    <string name="more_section_data" volt:screen="More" volt:purpose="menu row">Data &amp; history</string>
+    <!-- Menu row and submenu title: version, permissions and notices. -->
+    <string name="more_section_about" volt:screen="More" volt:purpose="menu row">About &amp; permissions</string>
+    <!-- Menu row and submenu title: hidden tools for testing Volt. -->
+    <string name="more_section_developer" volt:screen="More" volt:purpose="menu row">Developer options</string>
+    <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
+    <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
+    <!-- Screen-reader text of the LAB badge. -->
+    <string name="more_lab_badge_description" volt:screen="More" volt:purpose="accessibility">Lab</string>
+    <!-- Footer under the menu. %1$s is the version ("1.11.1"). Volt and NAVEE are names. -->
+    <string name="more_footer" volt:screen="More" volt:purpose="caption" volt:safety="disclaimer" volt:dnt="Volt|NAVEE">Volt %1$s · not affiliated with NAVEE</string>
+    <!-- Link under the menu: draft an email to Volt about a problem. -->
+    <string name="more_report_issue" volt:screen="More" volt:purpose="link">Report an issue</string>
+    <!-- Title of the Units submenu. -->
+    <string name="more_units_title" volt:screen="More" volt:purpose="title">Units</string>
+    <!-- Title of the Compatibility panel in Developer options. -->
+    <string name="more_compatibility_title" volt:screen="More" volt:purpose="title">Compatibility</string>
+    <!-- Title of the Compatibility panel when it is shown only to finish an interrupted test. -->
+    <string name="more_unfinished_test_title" volt:screen="More" volt:purpose="title" volt:safety="experimental">Unfinished test</string>
+    <!-- Screen-reader label of a switch whose state the scooter has not reported. %1$s is the switch's name. -->
+    <string name="more_toggle_not_reported" volt:screen="More" volt:purpose="accessibility">%1$s, state not reported</string>
+    <!-- Screen-reader label of a switch whose state is known: just its name (%1$s). Keep it as it is unless your language adds something. -->
+    <string name="more_toggle_named" volt:screen="More" volt:purpose="accessibility">%1$s</string>
+    <!-- Screen-reader text of a setup checklist step's number. %1$d is the step number. -->
+    <string name="more_step" volt:screen="More" volt:purpose="accessibility">Step %1$d</string>
+
+    <!-- ===== First-run setup ===== -->
+
+    <!-- Heading of the setup card shown before a scooter is set up. -->
+    <string name="more_onboarding_title" volt:screen="More, first run" volt:purpose="title">Your scooter. Your data.</string>
+    <!-- Setup step: import the file that pairs Volt with the scooter as its owner. -->
+    <string name="more_onboarding_import" volt:screen="More, first run" volt:purpose="row" volt:safety="owner-key">Import my owner setup</string>
+    <!-- Setup step: grant Android's Nearby devices (Bluetooth) permission. Use Android's own name for the permission. -->
+    <string name="more_onboarding_nearby" volt:screen="More, first run" volt:purpose="row">Allow Nearby devices</string>
+    <!-- Connect to the scooter. -->
+    <string name="more_connect" volt:screen="More, first run" volt:purpose="button">Connect</string>
+    <!-- Shown when Connect is tapped before an owner setup was imported. -->
+    <string name="more_onboarding_import_first" volt:screen="More, first run" volt:purpose="toast" volt:safety="owner-key">Import your owner setup first</string>
+    <!-- Setup step: open the guide that explains the owner setup. -->
+    <string name="more_onboarding_guide" volt:screen="More, first run" volt:purpose="row">Owner setup guide</string>
+    <!-- Shown when Volt's background service has not started yet. -->
+    <string name="more_service_starting" volt:screen="More, first run" volt:purpose="toast">Your local scooter service is starting.</string>
+    <!-- Shown when a scooter change needs the scooter disconnected. -->
+    <string name="more_disconnect_first" volt:screen="More, first run" volt:purpose="toast">Disconnect first</string>
+
+    <!-- ===== My scooters ===== -->
+
+    <!-- Button: set up another scooter. -->
+    <string name="more_scooters_add" volt:screen="My scooters" volt:purpose="button">Add a scooter</string>
+    <!-- Small label on the card of the scooter Volt is using now. -->
+    <string name="more_scooters_current" volt:screen="My scooters" volt:purpose="label">Current</string>
+    <!-- Button on another saved scooter's card: make it the current scooter (without connecting). -->
+    <string name="more_scooters_use" volt:screen="My scooters" volt:purpose="button">Use this scooter</string>
+    <!-- Title of the dialog that renames a saved scooter; also the pencil button's tooltip. -->
+    <string name="more_scooters_edit" volt:screen="My scooters" volt:purpose="title">Edit scooter</string>
+    <!-- Hint and screen-reader label of the scooter name field. -->
+    <string name="more_scooters_name" volt:screen="My scooters" volt:purpose="hint">Scooter name</string>
+    <!-- In the edit dialog: the model the owner said this scooter is. %1$s is the model the owner chose ("N65i"). -->
+    <string name="more_scooters_owner_answer" volt:screen="My scooters" volt:purpose="note">Your answer: %1$s</string>
+    <!-- Button: tell Volt which model this scooter is (its name and photo only). -->
+    <string name="more_scooters_which_model" volt:screen="My scooters" volt:purpose="button">Which model is it?</string>
+    <!-- Button: change the model the owner said this scooter is. -->
+    <string name="more_scooters_change_model" volt:screen="My scooters" volt:purpose="button">Change model</string>
+    <!-- Button: save the new scooter name. -->
+    <string name="more_scooters_save_name" volt:screen="My scooters" volt:purpose="button">Save name</string>
+    <!-- Button: remove this scooter's setup from the phone (asks first). -->
+    <string name="more_scooters_forget" volt:screen="My scooters" volt:purpose="button">Forget this scooter</string>
+    <!-- Screen-reader label of the Forget button. %1$s is the scooter's name. -->
+    <string name="more_scooters_forget_named" volt:screen="My scooters" volt:purpose="accessibility">Forget %1$s</string>
+    <!-- Shown on the name field when it is left empty. -->
+    <string name="more_scooters_enter_name" volt:screen="My scooters" volt:purpose="error">Enter a scooter name</string>
+    <!-- Title of the confirmation before removing a scooter. %1$s is the scooter's name. -->
+    <string name="more_scooters_forget_title" volt:screen="My scooters" volt:purpose="title">Forget %1$s?</string>
+    <!-- Body of the confirmation before removing a scooter. -->
+    <string name="more_scooters_forget_body" volt:screen="My scooters" volt:purpose="dialog" volt:safety="owner-key">Removes its connection setup from this phone. Saved rides and charge recordings stay.</string>
+    <!-- Button in the Forget dialog: make a backup before removing the scooter. -->
+    <string name="more_scooters_save_backup" volt:screen="My scooters" volt:purpose="button">Save backup first</string>
+    <!-- Red button: remove the scooter's setup from this phone. -->
+    <string name="more_scooters_forget_action" volt:screen="My scooters" volt:purpose="button">Forget</string>
+
+    <!-- ===== App preferences and Units ===== -->
+
+    <!-- Label above the theme choice. -->
+    <string name="more_prefs_appearance" volt:screen="App preferences" volt:purpose="label">Appearance</string>
+    <!-- Theme choice: dark. -->
+    <string name="more_prefs_dark" volt:screen="App preferences" volt:purpose="option">Dark</string>
+    <!-- Choice: follow the phone's setting (theme or clock). -->
+    <string name="more_prefs_follow_system" volt:screen="App preferences" volt:purpose="option">Follow system</string>
+    <!-- Theme choice: light. -->
+    <string name="more_prefs_light" volt:screen="App preferences" volt:purpose="option">Light</string>
+    <!-- Label above the choice of how much Live Stats shows per row. Live Stats is a tab's name. -->
+    <string name="more_prefs_stats_detail" volt:screen="App preferences" volt:purpose="label">Live Stats detail</string>
+    <!-- Live Stats density: roomy rows. -->
+    <string name="more_prefs_comfortable" volt:screen="App preferences" volt:purpose="option">Comfortable</string>
+    <!-- Live Stats density: compact rows. -->
+    <string name="more_prefs_dense" volt:screen="App preferences" volt:purpose="option">Dense</string>
+    <!-- Row: open the Units settings. -->
+    <string name="more_prefs_units" volt:screen="App preferences" volt:purpose="row">Units</string>
+    <!-- Row: change the app's text size. -->
+    <string name="more_prefs_text_size" volt:screen="App preferences" volt:purpose="row">Text size</string>
+    <!-- Switch: vibrate lightly on taps. -->
+    <string name="more_prefs_haptics" volt:screen="App preferences" volt:purpose="row">Haptic feedback</string>
+    <!-- Row: choose the ride map's background. -->
+    <string name="more_prefs_map" volt:screen="App preferences" volt:purpose="row">Map settings</string>
+    <!-- Group label for connection and ride recording settings. -->
+    <string name="more_prefs_connection" volt:screen="App preferences" volt:purpose="label">Connection &amp; recording</string>
+    <!-- Row: how often Volt reads the scooter while connected. -->
+    <string name="more_prefs_refresh" volt:screen="App preferences" volt:purpose="row">Telemetry refresh</string>
+    <!-- Symbol for seconds, after a number ("2 s"). -->
+    <string name="more_unit_second" volt:screen="App preferences" volt:purpose="unit">s</string>
+    <!-- Switch: connect to the scooter when the app opens. -->
+    <string name="more_prefs_auto_connect" volt:screen="App preferences" volt:purpose="row">Connect automatically</string>
+    <!-- Switch: keep the Bluetooth connection when the app is in the background. -->
+    <string name="more_prefs_background" volt:screen="App preferences" volt:purpose="row">Stay connected in background</string>
+    <!-- Under the background switch: a ride recording keeps its connection either way. -->
+    <string name="more_prefs_background_sub" volt:screen="App preferences" volt:purpose="caption">Recordings always stay connected</string>
+    <!-- Switch: keep the phone's screen on. -->
+    <string name="more_prefs_awake" volt:screen="App preferences" volt:purpose="row">Keep screen awake</string>
+    <!-- Under the screen switch: only while a ride is recorded. -->
+    <string name="more_prefs_awake_sub" volt:screen="App preferences" volt:purpose="caption">While recording</string>
+    <!-- Switch: end a ride recording automatically after parking. -->
+    <string name="more_prefs_auto_stop" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">End parked rides</string>
+    <!-- Under the End parked rides switch: when the recording ends. -->
+    <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">10 s after Bluetooth drops at a stop</string>
+    <!-- Row: Android's battery setting for Volt, which decides whether long background recordings survive. -->
+    <string name="more_prefs_battery" volt:screen="App preferences" volt:purpose="row">Background recording</string>
+    <!-- Screen-reader text of the battery value when Android lets Volt run freely. -->
+    <string name="more_prefs_battery_unrestricted" volt:screen="App preferences" volt:purpose="accessibility">Battery use unrestricted</string>
+    <!-- Screen-reader text of the battery value when Android may stop Volt in the background. -->
+    <string name="more_prefs_battery_optimized" volt:screen="App preferences" volt:purpose="accessibility">Battery optimized; long recordings may stop. Opens battery settings</string>
+    <!-- Units row value when both miles and kilometres are shown. -->
+    <string name="more_units_dual" volt:screen="App preferences" volt:purpose="value">mi + km</string>
+    <!-- Units row value: 24-hour clock. -->
+    <string name="more_units_24h" volt:screen="App preferences" volt:purpose="value">24h</string>
+    <!-- Units row value: 12-hour clock. -->
+    <string name="more_units_12h" volt:screen="App preferences" volt:purpose="value">12h</string>
+    <!-- Units row value: %1$s distance units ("mi"), %2$s temperature unit ("°C"), %3$s clock ("12h"). -->
+    <string name="more_units_summary" volt:screen="App preferences" volt:purpose="value">%1$s · %2$s · %3$s</string>
+    <!-- Map settings row value: a custom map source. USGS and OSM stay as they are (map service names). -->
+    <string name="more_prefs_map_custom" volt:screen="App preferences" volt:purpose="value">Custom</string>
+    <!-- Shown when Android's app list opens instead of Volt's own settings page. -->
+    <string name="more_prefs_choose_volt" volt:screen="App preferences" volt:purpose="toast" volt:dnt="Volt">Choose Volt to manage its Android settings</string>
+    <!-- Shown when Volt cannot open Android's settings for it. -->
+    <string name="more_prefs_open_settings" volt:screen="App preferences" volt:purpose="toast" volt:dnt="Volt">Open Volt\'s settings in Android</string>
+    <!-- Label above the distance and speed unit choice. -->
+    <string name="more_units_distance" volt:screen="Units" volt:purpose="label">Distance &amp; speed</string>
+    <!-- Units choice: miles and miles per hour. -->
+    <string name="more_units_miles" volt:screen="Units" volt:purpose="option">Miles / mph</string>
+    <!-- Units choice: kilometres and kilometres per hour. -->
+    <string name="more_units_km" volt:screen="Units" volt:purpose="option">km / km/h</string>
+    <!-- Units choice: show miles and kilometres. -->
+    <string name="more_units_both" volt:screen="Units" volt:purpose="option">Both</string>
+    <!-- Label above the temperature unit choice. -->
+    <string name="more_units_temperature" volt:screen="Units" volt:purpose="label">Temperature</string>
+    <!-- Temperature choice: Celsius. -->
+    <string name="more_units_celsius" volt:screen="Units" volt:purpose="option">Celsius · °C</string>
+    <!-- Temperature choice: Fahrenheit. -->
+    <string name="more_units_fahrenheit" volt:screen="Units" volt:purpose="option">Fahrenheit · °F</string>
+    <!-- Label above the clock format choice. -->
+    <string name="more_units_time" volt:screen="Units" volt:purpose="label">Time format</string>
+    <!-- Clock choice: 12-hour. -->
+    <string name="more_units_12_hour" volt:screen="Units" volt:purpose="option">12 hour</string>
+    <!-- Clock choice: 24-hour. -->
+    <string name="more_units_24_hour" volt:screen="Units" volt:purpose="option">24 hour</string>
+
+    <!-- ===== Data & history ===== -->
+
+    <!-- Group label: readings Volt saves while connected to the scooter. -->
+    <string name="more_history_connected" volt:screen="Data &amp; history" volt:purpose="label">Connected history</string>
+    <!-- Switch: save readings while connected. -->
+    <string name="more_history_save" volt:screen="Data &amp; history" volt:purpose="row">Save connected history</string>
+    <!-- Under the history switch when it is on. -->
+    <string name="more_history_while_connected" volt:screen="Data &amp; history" volt:purpose="caption">While connected</string>
+    <!-- Under the history switch when it is off: the last readings stay. -->
+    <string name="more_history_off_kept" volt:screen="Data &amp; history" volt:purpose="caption">Off · last readings kept</string>
+    <!-- Card title: how much history is stored on the phone. -->
+    <string name="more_history_local_storage" volt:screen="Data &amp; history" volt:purpose="label">Local storage</string>
+    <!-- Shown while Volt measures the stored history. -->
+    <string name="more_history_checking" volt:screen="Data &amp; history" volt:purpose="status">Checking…</string>
+    <!-- History kind: every reading. -->
+    <string name="more_history_detailed" volt:screen="Data &amp; history" volt:purpose="label">Detailed samples</string>
+    <!-- How long detailed samples are kept. -->
+    <string name="more_history_7_days" volt:screen="Data &amp; history" volt:purpose="value">7 days</string>
+    <!-- History kind: one summary per minute. -->
+    <string name="more_history_minutes" volt:screen="Data &amp; history" volt:purpose="label">Minute summaries</string>
+    <!-- How long minute summaries are kept. -->
+    <string name="more_history_30_days" volt:screen="Data &amp; history" volt:purpose="value">30 days</string>
+    <!-- History kind: one summary per day. -->
+    <string name="more_history_daily" volt:screen="Data &amp; history" volt:purpose="label">Daily summaries</string>
+    <!-- How long daily summaries are kept. -->
+    <string name="more_history_2_years" volt:screen="Data &amp; history" volt:purpose="value">2 years</string>
+    <!-- How long a history kind is kept. %1$s is the period ("7 days"). Lower case on purpose. -->
+    <string name="more_history_up_to" volt:screen="Data &amp; history" volt:purpose="value">up to %1$s</string>
+    <!-- Red row: delete the current scooter's saved history (asks first). -->
+    <string name="more_history_clear_scooter" volt:screen="Data &amp; history" volt:purpose="row">Clear this scooter\'s history</string>
+    <!-- Red row: delete every scooter's saved history (asks first). -->
+    <string name="more_history_clear_all" volt:screen="Data &amp; history" volt:purpose="row">Clear all connected history</string>
+    <!-- Symbol for mebibytes (1,048,576 bytes), after a number. -->
+    <string name="more_unit_mib" volt:screen="Data &amp; history" volt:purpose="unit">MiB</string>
+    <!-- Stored history: %1$s used of %2$s allowed, both numbers in %3$s ("MiB"): "1.5 of 256 MiB". -->
+    <string name="more_history_used" volt:screen="Data &amp; history" volt:purpose="value">%1$s of %2$s %3$s</string>
+    <!-- Shown when there is no current scooter whose history could be cleared. -->
+    <string name="more_history_choose_scooter" volt:screen="Data &amp; history" volt:purpose="toast">Choose a scooter first.</string>
+    <!-- Title of the confirmation before deleting saved history. -->
+    <string name="more_history_clear_title" volt:screen="Data &amp; history" volt:purpose="title">Clear history?</string>
+    <!-- Body of the confirmation before deleting every scooter's history. Saved rides are not deleted. -->
+    <string name="more_history_clear_all_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes history for all scooters. Rides stay.</string>
+    <!-- Body of the confirmation before deleting one scooter's history. %1$s is the scooter's name. Saved rides are not deleted. -->
+    <string name="more_history_clear_one_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes %1$s\'s history. Rides stay.</string>
+    <!-- Red button: delete (history or try results). -->
+    <string name="more_clear" volt:screen="Data &amp; history" volt:purpose="button">Clear</string>
+    <!-- Shown after saved history was deleted. -->
+    <string name="more_history_cleared" volt:screen="Data &amp; history" volt:purpose="toast">History cleared</string>
+    <!-- Sample text that grows and shrinks as the text size changes. -->
+    <string name="more_text_size_sample" volt:screen="Text size" volt:purpose="sample">Easy to read, folded or open</string>
+    <!-- Button: use the chosen text size. -->
+    <string name="more_apply" volt:screen="Text size" volt:purpose="button">Apply</string>
+    <!-- Under the refresh title: ride recordings always read every 2 seconds. -->
+    <string name="more_refresh_rides" volt:screen="Telemetry refresh" volt:purpose="dialog" volt:safety="ride">Rides always 2 s</string>
+    <!-- Refresh choice. -->
+    <string name="more_refresh_2" volt:screen="Telemetry refresh" volt:purpose="option">2 seconds</string>
+    <!-- Refresh choice. -->
+    <string name="more_refresh_5" volt:screen="Telemetry refresh" volt:purpose="option">5 seconds</string>
+    <!-- Refresh choice. -->
+    <string name="more_refresh_10" volt:screen="Telemetry refresh" volt:purpose="option">10 seconds</string>
+</resources>

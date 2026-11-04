@@ -69,11 +69,12 @@ public final class MoreScreen implements AppScreen {
     private View sectionBack;
     private TextView sectionTitle, sectionBackLabel;
     private static final String[] SECTIONS = {"App", "Scooters", "Security", "Lab", "Data", "About", "Developer"};
-    private static final String[] SECTION_LABELS = {"App preferences", "My scooters", "PIN & proximity unlock",
-            "Experimental controls", "Data & history", "About & permissions", "Developer options"};
-    private static final String[] SECTION_TITLES = {"App preferences", "My scooters", "PIN & proximity",
-            "Experimental controls", "Data & history", "About & permissions", "Developer options"};
     private static final String[] SECTION_ICONS = {"settings", "scooter", "shield", "lab", "history", "info", "lab"};
+    /** Catalog ids of the menu rows and submenu titles, in SECTIONS order. */
+    private static final int[] SECTION_LABELS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY,
+            T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
+    private static final int[] SECTION_TITLES = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY_TITLE,
+            T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
     /** More › Developer options › Compatibility; legacy unfinished tests retain a recovery-only route. */
     private CompatibilityPanel compatibilityPanel;
     /** TelemetryHistory's database file; only its size on disk is read here, never its contents. */
@@ -162,30 +163,30 @@ public final class MoreScreen implements AppScreen {
         onboarding();
         sectionMenu = group();
         if (wide) sectionMenu.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-        Row backup = row(sectionMenu, "download", "Back up & restore", null, () -> host.dataBackup(null, null));
+        Row backup = row(sectionMenu, "download", T.moreBackupRestore(), null, () -> host.dataBackup(null, null));
         backup.view.setTag("data-backup");
         // The wide menu pads every row alike, so this one lines up with the section rows below it.
         if (wide) backup.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
         for (int i = 0; i < SECTIONS.length; i++) {
             final String section = SECTIONS[i];
             if (!knownSection(section)) continue;
-            Row row = row(sectionMenu, SECTION_ICONS[i], SECTION_LABELS[i], null, () -> selectSection(section));
+            Row row = row(sectionMenu, SECTION_ICONS[i], T.render(SECTION_LABELS[i]), null, () -> selectSection(section));
             // Room for the selected row's red tint to frame its icon in the wide menu.
             if (wide) row.view.setPadding(ui.dp(8), ui.dp(9), ui.dp(8), ui.dp(9));
             menuRows[i] = row;
             if (section.equals("Scooters")) scootersIndexRow = row;
             else if (section.equals("Data")) dataIndexRow = row;
-            else if (section.equals("Lab")) badge(row.value, "LAB");
+            else if (section.equals("Lab")) badge(row.value, T.moreLabBadge());
             else if (section.equals("Developer")) {
                 developerIndexRow = row;
                 row.view.setTag("developer-options-menu");
             }
         }
-        TextView footer = ui.text("Volt " + AppVersion.name(host.activity()) + " · not affiliated with NAVEE", 11.5f, false);
+        TextView footer = ui.text(T.moreFooter(AppVersion.name(host.activity())), 11.5f, false);
         footer.setTextColor(ui.muted); footer.setGravity(Gravity.CENTER);
         footer.setPadding(ui.dp(8), ui.dp(6), ui.dp(8), ui.dp(8));
         indexView.addView(footer, new LinearLayout.LayoutParams(-1, -2));
-        TextView report = ui.text("Report an issue", 13.5f, false);
+        TextView report = ui.text(T.moreReportIssue(), 13.5f, false);
         report.setTypeface(ui.medium()); report.setTextColor(ui.accent); report.setGravity(Gravity.CENTER);
         report.setMinHeight(ui.dp(48)); report.setPadding(ui.dp(16), 0, ui.dp(16), 0);
         report.setFocusable(true); report.setClickable(true); report.setTag("more-report-issue");
@@ -313,12 +314,12 @@ public final class MoreScreen implements AppScreen {
         boolean compatibility = "Compatibility".equals(shown);
         sectionHeader.setVisibility(index || (standalone && !units) ? View.GONE : View.VISIBLE);
         sectionBack.setVisibility(units || compatibility || !wide ? View.VISIBLE : View.GONE);
-        String parent = units ? "App preferences" : compatibility && developerEnabled() ? "Developer options" : "More";
+        String parent = units ? T.moreSectionApp() : compatibility && developerEnabled() ? T.moreSectionDeveloper() : T.moreTitle();
         sectionBackLabel.setText(parent);
-        sectionBack.setContentDescription("Back to " + parent);
-        if (units) sectionTitle.setText("Units");
-        if (compatibility) sectionTitle.setText(developerEnabled() ? "Compatibility" : "Unfinished test");
-        for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(SECTION_TITLES[i]);
+        sectionBack.setContentDescription(T.moreBackTo(parent));
+        if (units) sectionTitle.setText(T.moreUnitsTitle());
+        if (compatibility) sectionTitle.setText(developerEnabled() ? T.moreCompatibilityTitle() : T.moreUnfinishedTestTitle());
+        for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(T.render(SECTION_TITLES[i]));
         for (Map.Entry<String,LinearLayout> section : sections.entrySet())
             section.getValue().setVisibility(section.getKey().equals(shown) ? View.VISIBLE : View.GONE);
         if (index || wide) dataIndexRow.value(historyFileSize());
@@ -445,10 +446,10 @@ public final class MoreScreen implements AppScreen {
         LinearLayout link = row();
         link.setMinimumHeight(ui.dp(48)); link.setPadding(0, 0, ui.dp(14), 0);
         link.addView(ui.icon("back", 16, ui.accent), new LinearLayout.LayoutParams(ui.dp(16), ui.dp(16)));
-        TextView label = sectionBackLabel = ui.text("More", 14, false); label.setTypeface(ui.medium()); label.setTextColor(ui.accent);
+        TextView label = sectionBackLabel = ui.text(T.moreTitle(), 14, false); label.setTypeface(ui.medium()); label.setTextColor(ui.accent);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.leftMargin = ui.dp(4);
         link.addView(label, lp);
-        link.setContentDescription("Back to More"); link.setFocusable(true);
+        link.setContentDescription(T.moreBackToMore()); link.setFocusable(true);
         link.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 30)), null, ui.shape(Color.WHITE, 10, 0)));
         link.setOnClickListener(v -> selectSection("Units".equals(selectedSection) ? "App"
                 : "Compatibility".equals(selectedSection) && developerEnabled() ? "Developer" : ""));
@@ -470,7 +471,7 @@ public final class MoreScreen implements AppScreen {
         value.setTypeface(ui.bold()); value.setLetterSpacing(0.08f); value.setTextColor(ui.orange);
         value.setPadding(ui.dp(7), ui.dp(2), ui.dp(7), ui.dp(2)); value.setMaxLines(1);
         value.setBackground(ui.shape(Color.TRANSPARENT, 6, Ui.withAlpha(ui.orange, 120)));
-        value.setContentDescription("Lab");
+        value.setContentDescription(T.moreLabBadgeDescription());
     }
 
     /**
@@ -603,11 +604,11 @@ public final class MoreScreen implements AppScreen {
         Switch toggle = row.toggle;
         toggle.setChecked(Boolean.TRUE.equals(state));
         toggle.setEnabled(enabled && state != null);
-        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(state == null ? "Not reported" : state ? "On" : "Off");
+        if (Build.VERSION.SDK_INT >= 30) toggle.setStateDescription(state == null ? T.commonNotReported() : state ? T.commonOn() : T.commonOff());
         boolean live = enabled && state != null;
         row.title.setTextColor(live ? ui.text : ui.muted);
         if (row.icon != null) { row.icon.setEnabled(live); row.icon.invalidate(); }
-        toggle.setContentDescription(row.title.getText() + (state == null ? ", state not reported" : ""));
+        toggle.setContentDescription(state == null ? T.moreToggleNotReported(row.title.getText()) : T.moreToggleNamed(row.title.getText()));
     }
     /** Wrapping row of small views (a status pill and its value): 8dp apart, 4dp between lines, centred on each line. */
     private final class Flow extends ViewGroup {
@@ -668,7 +669,7 @@ public final class MoreScreen implements AppScreen {
         } catch (RuntimeException unavailable) { return ""; }
     }
     private static String mib(long bytes) {
-        return bytes <= 0 ? "" : String.format(Locale.US, "%.1f MiB", bytes / 1048576.0);
+        return bytes <= 0 ? "" : T.fmtQuantity(Fmt.decimal(Locale.US, bytes / 1048576.0, 1), T.moreUnitMib());
     }
 
     // ---- Index --------------------------------------------------------------------------
@@ -697,25 +698,25 @@ public final class MoreScreen implements AppScreen {
 
     private void onboarding() {
         LinearLayout c = ui.card();
-        TextView title = ui.text("Your scooter. Your data.", 19, true); title.setPadding(0, 0, 0, ui.dp(4)); c.addView(title);
+        TextView title = ui.text(T.moreOnboardingTitle(), 19, true); title.setPadding(0, 0, 0, ui.dp(4)); c.addView(title);
         if (Build.VERSION.SDK_INT >= 28) title.setAccessibilityHeading(true);
         onboardingCard = c; cardDestination.addView(c);
         // The setup checklist: each step shows its number until it is done, then a check.
         LinearLayout actions = ui.groupCard(); actions.setBackground(null); actions.setPadding(0, 0, 0, 0);
         c.addView(actions);
-        onboardingImport = row(actions, "download", "Import my owner setup", null, () -> { if (canEditProfiles()) host.importOwner(); });
+        onboardingImport = row(actions, "download", T.moreOnboardingImport(), null, () -> { if (canEditProfiles()) host.importOwner(); });
         profileEditActions.add(onboardingImport);
-        onboardingNearby = row(actions, "bluetooth", "Allow Nearby devices", null, host::requestBluetooth);
-        onboardingConnect = row(actions, "scooter", "Connect", null, () -> {
+        onboardingNearby = row(actions, "bluetooth", T.moreOnboardingNearby(), null, host::requestBluetooth);
+        onboardingConnect = row(actions, "scooter", T.moreConnect(), null, () -> {
             ScooterProfiles.Profile p = active();
-            if (p == null || !p.configured()) { host.toast("Import your owner setup first"); return; }
+            if (p == null || !p.configured()) { host.toast(T.moreOnboardingImportFirst()); return; }
             host.connect();
         });
-        row(actions, "info", "Owner setup guide", null, () -> { OnboardingScreen.restart(host.activity()); host.rebuild(); });
+        row(actions, "info", T.moreOnboardingGuide(), null, () -> { OnboardingScreen.restart(host.activity()); host.rebuild(); });
     }
     private void checklistStep(Row row, int number, boolean done) {
         pill(row.value, done ? "✓" : String.valueOf(number), done ? ui.ok : ui.muted, done);
-        row.value.setContentDescription(done ? "Done" : "Step " + number);
+        row.value.setContentDescription(done ? T.commonDone() : T.moreStep(number));
     }
 
     // ---- Shared dialog pieces -----------------------------------------------------------
@@ -741,11 +742,11 @@ public final class MoreScreen implements AppScreen {
 
     private boolean canEditProfiles() {
         ScooterService s = service();
-        if (s == null) { host.toast("Your local scooter service is starting."); return false; }
+        if (s == null) { host.toast(T.moreServiceStarting()); return false; }
         String unavailable = s.scooterChangeUnavailable();
         if (unavailable != null) { host.toast(unavailable); return false; }
         if (s.ble.state() != BleController.State.DISCONNECTED || s.ble.pending() != null) {
-            host.toast("Disconnect first"); return false;
+            host.toast(T.moreDisconnectFirst()); return false;
         }
         return true;
     }
@@ -804,7 +805,7 @@ public final class MoreScreen implements AppScreen {
     // ---- My scooters --------------------------------------------------------------------
 
     private void profiles() {
-        addScooterButton = ui.secondaryButton("Add a scooter", this::addScooter);
+        addScooterButton = ui.secondaryButton(T.moreScootersAdd(), this::addScooter);
         ui.decorate(addScooterButton, "plus");
         addScooterButton.setMinHeight(ui.dp(56));
         addScooterButton.setTag("scooters-add");
@@ -846,7 +847,7 @@ public final class MoreScreen implements AppScreen {
             top.addView(pencil, pp); edit = pencil;
             card.addView(top);
             stateLine = row(); stateLine.setPadding(0, ui.dp(8), 0, 0);
-            current = ui.text("Current", 11, true); current.setTextColor(ui.text);
+            current = ui.text(T.moreScootersCurrent(), 11, true); current.setTextColor(ui.text);
             current.setPadding(ui.dp(8), ui.dp(4), ui.dp(8), ui.dp(4));
             current.setBackground(ui.shape(ui.raised, 100, ui.outline));
             LinearLayout.LayoutParams chip = new LinearLayout.LayoutParams(-2, -2); chip.rightMargin = ui.dp(8);
@@ -855,8 +856,8 @@ public final class MoreScreen implements AppScreen {
             model = ui.caption(""); model.setPadding(0, ui.dp(8), 0, 0); card.addView(model);
             lastSeen = ui.caption(""); lastSeen.setPadding(0, ui.dp(5), 0, 0); card.addView(lastSeen);
             LinearLayout actions = row(); actions.setPadding(0, ui.dp(12), 0, 0);
-            connect = ui.button("Connect", () -> connectScooter(id)); connect.setTag("scooter-connect-" + id);
-            use = ui.secondaryButton("Use this scooter", () -> useScooter(id)); use.setTag("scooter-use-" + id);
+            connect = ui.button(T.moreConnect(), () -> connectScooter(id)); connect.setTag("scooter-connect-" + id);
+            use = ui.secondaryButton(T.moreScootersUse(), () -> useScooter(id)); use.setTag("scooter-use-" + id);
             actions.addView(connect, new LinearLayout.LayoutParams(-1, -2));
             actions.addView(use, new LinearLayout.LayoutParams(-1, -2));
             card.addView(actions);
@@ -870,7 +871,7 @@ public final class MoreScreen implements AppScreen {
     /** One guard for switching, adding and forgetting; none can silently end a recording. */
     private boolean canChangeScooter() {
         ScooterService s = service();
-        String unavailable = s == null ? "Your local scooter service is starting." : s.scooterChangeUnavailable();
+        String unavailable = s == null ? T.moreServiceStarting() : s.scooterChangeUnavailable();
         if (unavailable != null) { host.toast(unavailable); return false; }
         return !closed;
     }
@@ -906,33 +907,33 @@ public final class MoreScreen implements AppScreen {
     }
     private void editScooter(String id) {
         ScooterProfiles.Profile p = findScooter(id); if (closed || p == null) return;
-        LinearLayout box = dialogBox("Edit scooter", null);
-        EditText name = input("Scooter name", InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES, false);
-        name.setContentDescription("Scooter name");
+        LinearLayout box = dialogBox(T.moreScootersEdit(), null);
+        EditText name = input(T.moreScootersName(), InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES, false);
+        name.setContentDescription(T.moreScootersName());
         name.setFilters(new InputFilter[]{new InputFilter.LengthFilter(60)}); name.setText(p.name); name.selectAll(); box.addView(name);
-        String modelDetail = ModelRegistry.modelLine(p.savedDescriptor());
-        if (!modelDetail.isEmpty()) note(box, modelDetail);
+        CharSequence modelDetail = ModelRegistry.modelLineText(p.savedDescriptor());
+        if (modelDetail.length() > 0) note(box, modelDetail.toString());
         // Until Volt can name this scooter itself, the owner can say which model it is (its name and photo, nothing else).
         boolean volt = !ModelRegistry.modelName(p.savedDescriptor().withOwnerModel("")).isEmpty();
         TextView model = null;
         if (!volt) {
-            if (!p.ownerModel.isEmpty()) note(box, "Your answer: " + p.ownerModel);
-            model = ui.secondaryButton(p.ownerModel.isEmpty() ? "Which model is it?" : "Change model", null); model.setTag("scooter-model-" + id);
+            if (!p.ownerModel.isEmpty()) note(box, T.moreScootersOwnerAnswer(p.ownerModel));
+            model = ui.secondaryButton(p.ownerModel.isEmpty() ? T.moreScootersWhichModel() : T.moreScootersChangeModel(), null); model.setTag("scooter-model-" + id);
             box.addView(model);
         }
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton("Cancel", null)
-                .setPositiveButton("Save name", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null)
+                .setPositiveButton(T.moreScootersSaveName(), null).create();
         if (model != null) model.setOnClickListener(v -> { dialog.dismiss(); host.chooseScooterModel(id); });
-        TextView forget = ui.dangerButton("Forget this scooter", () -> {
+        TextView forget = ui.dangerButton(T.moreScootersForget(), () -> {
             if (!canChangeScooter()) return;
             dialog.dismiss(); forgetScooter(id);
         });
-        forget.setTag("scooter-forget-" + id); forget.setContentDescription("Forget " + p.name);
+        forget.setTag("scooter-forget-" + id); forget.setContentDescription(T.moreScootersForgetNamed(p.displayName()));
         ui.decorate(forget, "trash"); box.addView(forget);
         show(dialog);
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             ScooterProfiles.Profile target = findScooter(id); if (closed || target == null) { dialog.dismiss(); return; }
-            String value = name.getText().toString().trim(); if (value.isEmpty()) { name.setError("Enter a scooter name"); return; }
+            String value = name.getText().toString().trim(); if (value.isEmpty()) { name.setError(T.moreScootersEnterName()); return; }
             target.name = value; target.nameDefault = false; service().profiles.update(target); dialog.dismiss(); host.redraw();
         });
         name.requestFocus();
@@ -941,11 +942,11 @@ public final class MoreScreen implements AppScreen {
     private void forgetScooter(String id) {
         if (!canChangeScooter()) return;
         ScooterProfiles.Profile p = findScooter(id); if (p == null) return;
-        LinearLayout box = dialogBox("Forget " + p.name + "?", "Removes its connection setup from this phone. Saved rides and charge recordings stay.");
+        LinearLayout box = dialogBox(T.moreScootersForgetTitle(p.displayName()), T.moreScootersForgetBody());
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).create();
-        TextView backup = ui.secondaryButton("Save backup first", () -> { dialog.dismiss(); host.dataBackup(false, null); });
+        TextView backup = ui.secondaryButton(T.moreScootersSaveBackup(), () -> { dialog.dismiss(); host.dataBackup(false, null); });
         box.addView(backup);
-        dialogButtons(box, "Cancel", dialog::dismiss, "Forget", () -> {
+        dialogButtons(box, T.commonCancel(), dialog::dismiss, T.moreScootersForgetAction(), () -> {
             if (!canChangeScooter()) return;
             ScooterService s = service(); ScooterProfiles.Profile target = findScooter(id), selected = active();
             if (target == null) { dialog.dismiss(); return; }
@@ -962,41 +963,41 @@ public final class MoreScreen implements AppScreen {
     // ---- App preferences ----------------------------------------------------------------
 
     private void preferences() {
-        segmentedField("Appearance", "theme", new String[]{"Dark", "Follow system", "Light"},
+        segmentedField(T.morePrefsAppearance(), "theme", new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()},
                 new String[]{"dark", "system", "light"}, "dark");
-        segmentedField("Live Stats detail", "stats_density", new String[]{"Comfortable", "Dense"},
+        segmentedField(T.morePrefsStatsDetail(), "stats_density", new String[]{T.morePrefsComfortable(), T.morePrefsDense()},
                 new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
         LinearLayout display = group();
         display.setTag("preference-display-options");
-        Row units = row(display, "ruler", "Units", null, () -> selectSection("Units"));
+        Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection("Units"));
         units.view.setTag("preference-units-menu");
         valueRefreshers.add(() -> units.value(unitsSummary()));
-        Row text = row(display, "text", "Text size", null, this::textSize);
-        valueRefreshers.add(() -> text.value(Math.round(settings().getFloat("text_scale", 1f) * 100) + "%"));
-        preferenceToggle(display, "vibrate", "Haptic feedback", null, Haptics.PREFERENCE, true);
-        Row map = row(display, "map", "Map settings", null, this::mapSettings);
+        Row text = row(display, "text", T.morePrefsTextSize(), null, this::textSize);
+        valueRefreshers.add(() -> text.value(T.fmtPercent(Fmt.integer(Math.round(settings().getFloat("text_scale", 1f) * 100)))));
+        preferenceToggle(display, "vibrate", T.morePrefsHaptics(), null, Haptics.PREFERENCE, true);
+        Row map = row(display, "map", T.morePrefsMap(), null, this::mapSettings);
         valueRefreshers.add(() -> map.value(basemapSummary()));
-        label("Connection & recording");
+        label(T.morePrefsConnection());
         LinearLayout connection = group();
-        Row rate = row(connection, "clock", "Telemetry refresh", null, this::telemetryRate);
-        valueRefreshers.add(() -> rate.value(settings().getInt("poll_interval_ms", 2000) / 1000 + " s"));
-        preferenceToggle(connection, "bluetooth", "Connect automatically", null, "auto_connect", true);
-        preferenceToggle(connection, "bluetooth", "Stay connected in background", "Recordings always stay connected", "background_connection", false);
-        preferenceToggle(connection, "screen", "Keep screen awake", "While recording", "keep_screen_awake", true);
+        Row rate = row(connection, "clock", T.morePrefsRefresh(), null, this::telemetryRate);
+        valueRefreshers.add(() -> rate.value(T.fmtQuantity(Fmt.integer(settings().getInt("poll_interval_ms", 2000) / 1000), T.moreUnitSecond())));
+        preferenceToggle(connection, "bluetooth", T.morePrefsAutoConnect(), null, "auto_connect", true);
+        preferenceToggle(connection, "bluetooth", T.morePrefsBackground(), T.morePrefsBackgroundSub(), "background_connection", false);
+        preferenceToggle(connection, "screen", T.morePrefsAwake(), T.morePrefsAwakeSub(), "keep_screen_awake", true);
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
-        preferenceToggle(connection, "walk", "End parked rides", "10 s after Bluetooth drops at a stop", "ride_auto_stop", true);
+        preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Battery use is the one setting that decides whether long background recordings survive:
         // show it as the value and open Android's page for this app directly.
-        Row background = row(connection, "battery", "Background recording", null,
+        Row background = row(connection, "battery", T.morePrefsBattery(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
             background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠");
             background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
-            background.value.setContentDescription(unrestricted ? "Battery use unrestricted"
-                    : "Battery optimized; long recordings may stop. Opens battery settings");
+            background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
+                    : T.morePrefsBatteryOptimized());
         });
     }
     private boolean batteryUnrestricted() {
@@ -1010,15 +1011,15 @@ public final class MoreScreen implements AppScreen {
         String units = settings().getString("units", "mi"), temperature = settings().getString("temperature_unit", "c");
         String time = settings().getString("time_format", "system");
         boolean hours24 = "24h".equals(time) || (!"12h".equals(time) && android.text.format.DateFormat.is24HourFormat(host.activity()));
-        return ("km".equals(units) ? "km" : "dual".equals(units) ? "mi + km" : "mi") + " · "
-                + ("f".equals(temperature) ? "°F" : "°C") + " · " + (hours24 ? "24h" : "12h");
+        return T.moreUnitsSummary(("km".equals(units) ? T.unitsKm() : "dual".equals(units) ? T.moreUnitsDual() : T.unitsMi()),
+                ("f".equals(temperature) ? T.unitsFahrenheit() : T.unitsCelsius()), (hours24 ? T.moreUnits24h() : T.moreUnits12h()));
     }
     /** Current basemap as a row value: Off, USGS, OSM or Custom. */
     private String basemapSummary() {
         SharedPreferences settings = settings();
-        if (!MapPreferences.enabled(settings)) return "Off";
+        if (!MapPreferences.enabled(settings)) return T.commonOff();
         String url = MapSource.load(settings).url;
-        return MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : "Custom";
+        return MapSource.USGS_URL.equals(url) ? "USGS" : MapSource.OSM_URL.equals(url) ? "OSM" : T.morePrefsMapCustom();
     }
     private void mapSettings() {
         AlertDialog dialog = MapPreferences.show(host);
@@ -1035,10 +1036,10 @@ public final class MoreScreen implements AppScreen {
         // Some manufacturers omit a settings activity. Fall back to the public
         // app list instead of relying on private permission-controller routes.
         if (startAndroidSettings(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_SETTINGS))) {
-            host.toast("Choose Volt to manage its Android settings");
+            host.toast(T.morePrefsChooseVolt());
             return;
         }
-        host.toast("Open Volt's settings in Android");
+        host.toast(T.morePrefsOpenSettings());
     }
     private boolean startAndroidSettings(android.content.Intent intent) {
         try {
@@ -1054,11 +1055,11 @@ public final class MoreScreen implements AppScreen {
         openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
     }
     private void units() {
-        segmentedField("Distance & speed", "units", new String[]{"Miles / mph", "km / km/h", "Both"},
+        segmentedField(T.moreUnitsDistance(), "units", new String[]{T.moreUnitsMiles(), T.moreUnitsKm(), T.moreUnitsBoth()},
                 new String[]{"mi", "km", "dual"}, "mi");
-        segmentedField("Temperature", "temperature_unit", new String[]{"Celsius · °C", "Fahrenheit · °F"},
+        segmentedField(T.moreUnitsTemperature(), "temperature_unit", new String[]{T.moreUnitsCelsius(), T.moreUnitsFahrenheit()},
                 new String[]{"c", "f"}, "c");
-        segmentedField("Time format", "time_format", new String[]{"Follow system", "12 hour", "24 hour"},
+        segmentedField(T.moreUnitsTime(), "time_format", new String[]{T.morePrefsFollowSystem(), T.moreUnits12Hour(), T.moreUnits24Hour()},
                 new String[]{"system", "12h", "24h"}, "system");
     }
     private void segmentedField(String title, String key, String[] labels, String[] values, String fallback) {
@@ -1094,16 +1095,16 @@ public final class MoreScreen implements AppScreen {
     // ---- Data & history -----------------------------------------------------------------
 
     private void dataHistory() {
-        label("Connected history");
+        label(T.moreHistoryConnected());
         LinearLayout recording = group();
-        Row history = preferenceToggle(recording, "history", "Save connected history", "While connected", "history_enabled", true);
-        valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? "While connected" : "Off · last readings kept"));
+        Row history = preferenceToggle(recording, "history", T.moreHistorySave(), T.moreHistoryWhileConnected(), "history_enabled", true);
+        valueRefreshers.add(() -> history.sub(settings().getBoolean("history_enabled", true) ? T.moreHistoryWhileConnected() : T.moreHistoryOffKept()));
 
         LinearLayout storage = ui.card(); historyStorageCard = storage; cardDestination.addView(storage);
         LinearLayout head = row();
-        TextView title = ui.text("Local storage", 14, false); title.setTextColor(ui.muted);
+        TextView title = ui.text(T.moreHistoryLocalStorage(), 14, false); title.setTextColor(ui.muted);
         head.addView(title, new LinearLayout.LayoutParams(0, -2, 1));
-        historyUsage = ui.text("Checking…", 17, true); historyUsage.setGravity(Gravity.END); head.addView(historyUsage);
+        historyUsage = ui.text(T.moreHistoryChecking(), 17, true); historyUsage.setGravity(Gravity.END); head.addView(historyUsage);
         storage.addView(head);
         historyBar = row(); historyBar.setBackground(ui.shape(ui.raised, 4, 0)); historyBar.setClipToOutline(true);
         historyBarFill = new View(host.activity()); historyBarFill.setBackground(ui.shape(ui.accent, 4, 0));
@@ -1113,7 +1114,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, ui.dp(8)); bp.topMargin = ui.dp(12); bp.bottomMargin = ui.dp(6);
         storage.addView(historyBar, bp);
         historyBar.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        String[][] retention = {{"Detailed samples", "7 days"}, {"Minute summaries", "30 days"}, {"Daily summaries", "2 years"}};
+        String[][] retention = {{T.moreHistoryDetailed(), T.moreHistory7Days()}, {T.moreHistoryMinutes(), T.moreHistory30Days()}, {T.moreHistoryDaily(), T.moreHistory2Years()}};
         historyCounts = new TextView[retention.length];
         for (int i = 0; i < retention.length; i++) {
             if (i > 0) ui.divider(storage);
@@ -1122,14 +1123,14 @@ public final class MoreScreen implements AppScreen {
             TextView name = ui.text(retention[i][0], 13.5f, false); name.setTextColor(ui.muted); words.addView(name);
             historyCounts[i] = ui.text("", 11.5f, false); historyCounts[i].setTextColor(ui.dim); words.addView(historyCounts[i]);
             line.addView(words, new LinearLayout.LayoutParams(0, -2, 1));
-            TextView limit = ui.text("up to " + retention[i][1], 13.5f, true); line.addView(limit);
+            TextView limit = ui.text(T.moreHistoryUpTo(retention[i][1]), 13.5f, true); line.addView(limit);
             storage.addView(line);
         }
         historyStatus = ui.caption(""); historyStatus.setPadding(0, ui.dp(6), 0, 0); storage.addView(historyStatus);
 
         LinearLayout clear = group();
-        dangerRow(clear, "Clear this scooter's history", () -> clearHistory(false));
-        dangerRow(clear, "Clear all connected history", () -> clearHistory(true));
+        dangerRow(clear, T.moreHistoryClearScooter(), () -> clearHistory(false));
+        dangerRow(clear, T.moreHistoryClearAll(), () -> clearHistory(true));
     }
     private void refreshHistoryStorage() {
         if (historyUsage == null || service() == null || service().history == null || historyStoragePending) return;
@@ -1138,7 +1139,7 @@ public final class MoreScreen implements AppScreen {
         historyStorageChecked = now; historyStoragePending = true;
         service().history.storage(storage -> {
             historyStoragePending = false; if (closed) return;
-            String used = String.format(Locale.US, "%.1f of %.0f MiB", storage.bytes / 1048576.0, storage.limitBytes / 1048576.0);
+            String used = T.moreHistoryUsed(Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1), Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0), T.moreUnitMib());
             historyUsage.setText(used);
             float share = storage.limitBytes <= 0 ? 0f : Math.max(0f, Math.min(1f, storage.bytes / (float) storage.limitBytes));
             // A visible sliver shows that something is stored even when it rounds to nothing.
@@ -1148,7 +1149,7 @@ public final class MoreScreen implements AppScreen {
             historyBar.requestLayout();
             long[] rows = {storage.detailedRows, storage.minuteRows, storage.dailyRows};
             for (int i = 0; i < rows.length; i++) historyCounts[i].setText(String.format(Locale.US, "%,d saved", rows[i]));
-            historyStatus.setText(storage.status == null ? "" : storage.status);
+            historyStatus.setText(storage.status == null ? "" : storage.statusMsg());
             historyStatus.setVisibility(storage.status == null || storage.status.isEmpty() ? View.GONE : View.VISIBLE);
             historyStorageCard.setContentDescription("Local storage, " + used + " used. "
                     + String.format(Locale.US, "%,d detailed, %,d minute and %,d daily samples saved.", rows[0], rows[1], rows[2]));
@@ -1157,37 +1158,37 @@ public final class MoreScreen implements AppScreen {
     }
     private void clearHistory(boolean all) {
         ScooterProfiles.Profile profile = active();
-        if (!all && profile == null) { host.toast("Choose a scooter first."); return; }
+        if (!all && profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
         final String profileId = all ? null : profile.id;
-        confirm("Clear history?", (all ? "Removes history for all scooters" : "Removes " + profile.name + "'s history") + ". Rides stay.",
-                "Clear", () -> {
+        confirm(T.moreHistoryClearTitle(), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody(profile.displayName()),
+                T.moreClear(), () -> {
                     if (service() == null || service().history == null) return;
                     service().clearHistory(profileId, () -> {
                         if (closed) return;
                         historyStorageChecked = 0; refreshHistoryStorage(); host.redraw();
-                        host.toast("History cleared");
+                        host.toast(T.moreHistoryCleared());
                     });
                 });
     }
 
     private void textSize() {
-        LinearLayout box = dialogBox("Text size", null);
-        TextView sample = ui.text("Easy to read, folded or open", 18, true); box.addView(sample);
+        LinearLayout box = dialogBox(T.morePrefsTextSize(), null);
+        TextView sample = ui.text(T.moreTextSizeSample(), 18, true); box.addView(sample);
         SeekBar seek = new SeekBar(host.activity()); seek.setMax(12);
         int initial = Math.round((settings().getFloat("text_scale", 1f) - 0.8f) / 0.05f);
         seek.setProgress(Math.max(0, Math.min(12, initial))); box.addView(seek);
         TextView percent = value(box, "");
         Runnable preview = () -> {
             float scale = 0.8f + seek.getProgress() * 0.05f;
-            percent.setText(Math.round(scale * 100) + "%"); sample.setTextSize(18 * scale);
+            percent.setText(T.fmtPercent(Fmt.integer(Math.round(scale * 100)))); sample.setTextSize(18 * scale);
         };
         seek.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override public void onProgressChanged(SeekBar s, int value, boolean user) { preview.run(); }
             @Override public void onStartTrackingTouch(SeekBar s) { }
             @Override public void onStopTrackingTouch(SeekBar s) { }
         }); preview.run();
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton("Cancel", null)
-                .setPositiveButton("Apply", (d, which) -> {
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box).setNegativeButton(T.commonCancel(), null)
+                .setPositiveButton(T.moreApply(), (d, which) -> {
                     settings().edit().putFloat("text_scale", 0.8f + seek.getProgress() * 0.05f).apply(); host.rebuild();
                 }).create(); show(dialog);
     }
@@ -1195,15 +1196,15 @@ public final class MoreScreen implements AppScreen {
         final int[] intervals = {2000, 5000, 10000};
         int stored = settings().getInt("poll_interval_ms", 2000), selected = 0;
         for (int i = 0; i < intervals.length; i++) if (stored == intervals[i]) selected = i;
-        LinearLayout box = dialogBox("Telemetry refresh", "Rides always 2 s");
-        SegmentedSelector selector = new SegmentedSelector(ui, "Telemetry refresh",
-                new String[]{"2 seconds", "5 seconds", "10 seconds"}, choice -> {
+        LinearLayout box = dialogBox(T.morePrefsRefresh(), T.moreRefreshRides());
+        SegmentedSelector selector = new SegmentedSelector(ui, T.morePrefsRefresh(),
+                new String[]{T.moreRefresh2(), T.moreRefresh5(), T.moreRefresh10()}, choice -> {
                     settings().edit().putInt("poll_interval_ms", intervals[choice]).apply();
                     refresh();
                 });
         selector.select(selected, false); box.addView(selector, new LinearLayout.LayoutParams(-1, -2));
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(box)
-                .setPositiveButton("Done", null).create(); show(dialog);
+                .setPositiveButton(T.commonDone(), null).create(); show(dialog);
     }
 
     // ---- PIN & proximity ----------------------------------------------------------------
@@ -2228,7 +2229,7 @@ public final class MoreScreen implements AppScreen {
         LinearLayout backups = group();
         row(backups, "grid", "Load All widgets into slot 3", null, () -> {
             ScooterProfiles.Profile profile = active();
-            if (profile == null) { host.toast("Choose a scooter first."); return; }
+            if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
             confirm("Replace slot 3?", "Overwrites slot 3 only.", "Replace slot 3", () -> {
                 boolean saved = new DashboardConfig(settings(), profile.id).forceExampleSlot();
                 host.toast(saved ? "All widgets saved in slot 3." : "Slot 3 could not be saved.");
@@ -2302,7 +2303,7 @@ public final class MoreScreen implements AppScreen {
      */
     private void recordChargeDialog(ScooterService s) {
         ScooterProfiles.Profile profile = active();
-        if (profile == null) { host.toast("Choose a scooter first."); return; }
+        if (profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
         final String profileId = profile.id;
         // Capture labels train curves, so only an explicit preference is pre-selected; an
         // Automatic guess must never become a label in one tap. An open panel must never start
