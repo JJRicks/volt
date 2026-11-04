@@ -50,6 +50,8 @@ public final class BatteryCapacityEstimate {
         public final String unavailableReason;
         /** Short (four words or fewer) most common rejection reason, or null when none. */
         public final String reason;
+        /** The same short reason for display, rendered when shown; null when reason is. */
+        public final Msg reasonMsg;
         /** Battery points in the larger evidence group, toward {@link #MIN_TOTAL_DROP}. */
         public final double progressPoints;
         public final Double estimatedUsableWh,
@@ -133,6 +135,7 @@ public final class BatteryCapacityEstimate {
             maximumTemperatureC = presented.maxTemperature;
             progressPoints = Math.max(confirmed.drop, proxy.drop);
             reason = rejected.isEmpty() ? null : shortReason(mostCommon(rejected));
+            reasonMsg = rejected.isEmpty() ? null : shortReasonMsg(mostCommon(rejected));
             if (unavailable != null) label = unavailable;
             else if (estimatedUsableWh != null) label = "Experimental estimate";
             else if (throughputEquivalentWh != null) label = "Proxy · not health";
@@ -411,25 +414,31 @@ public final class BatteryCapacityEstimate {
         return !finite(b) ? a : a == null ? b : Math.max(a, b);
     }
 
-    /** Four words or fewer for each rejection reason, for the card's details. */
+    /** Four words or fewer for each rejection reason, in English: Result.reason, which the card shows until it reads reasonMsg. */
     public static String shortReason(String reason) {
+        Msg shown = shortReasonMsg(reason);
+        return shown == null ? null : shown.english();
+    }
+
+    /** Four words or fewer for each rejection reason, for the card's details. */
+    public static Msg shortReasonMsg(String reason) {
         if (reason == null) return null;
         switch (reason) {
-            case "recording clock changed": return "Clock changed";
-            case "recording has gaps or recovery": return "Recording gaps";
-            case "current direction changed during the ride": return "Current direction changed";
-            case "record at least 1 minute": return "Under 1 minute";
-            case "battery end readings are missing": return "Battery ends missing";
-            case "battery drop is below 5 percentage points": return "Drop under 5%";
-            case "electrical coverage is below 95%": return "Coverage under 95%";
-            case "at least 30 seconds of measured movement is needed": return "Too little movement";
-            case "measured energy is unavailable": return "No energy reading";
-            case "net measured energy is not positive": return "No net energy";
-            case "endpoint power and battery readings are missing": return "End readings missing";
-            case "power and battery readings do not align with both ride ends": return "Ends misaligned";
-            case "battery gauge rebounded or rose while recording": return "Battery gauge rose";
-            case GAUGE_JUMP: return "Gauge jumped";
-            default: return "Insufficient data";
+            case "recording clock changed": return M.chargingCapacityReasonClock();
+            case "recording has gaps or recovery": return M.chargingCapacityReasonGaps();
+            case "current direction changed during the ride": return M.chargingCapacityReasonDirection();
+            case "record at least 1 minute": return M.chargingCapacityReasonShort();
+            case "battery end readings are missing": return M.chargingCapacityReasonBatteryEnds();
+            case "battery drop is below 5 percentage points": return M.chargingCapacityReasonDrop();
+            case "electrical coverage is below 95%": return M.chargingCapacityReasonCoverage();
+            case "at least 30 seconds of measured movement is needed": return M.chargingCapacityReasonMovement();
+            case "measured energy is unavailable": return M.chargingCapacityReasonNoEnergy();
+            case "net measured energy is not positive": return M.chargingCapacityReasonNoNetEnergy();
+            case "endpoint power and battery readings are missing": return M.chargingCapacityReasonEndReadings();
+            case "power and battery readings do not align with both ride ends": return M.chargingCapacityReasonMisaligned();
+            case "battery gauge rebounded or rose while recording": return M.chargingCapacityReasonGaugeRose();
+            case GAUGE_JUMP: return M.chargingCapacityReasonGaugeJumped();
+            default: return M.chargingCapacityReasonInsufficient();
         }
     }
 

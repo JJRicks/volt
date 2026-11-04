@@ -267,7 +267,7 @@ public final class ChargeScheduleController {
     }
     public void setDoneTime(int hour,int minute,Consumer<String> completion){
         Context c=context();View view=view();
-        if(hour<0||hour>23||minute<0||minute>59){completion.accept("Choose a valid time");return;}
+        if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
         if(view.timeBlockedReason!=null){completion.accept(view.timeBlockedReason);return;}
         if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
@@ -279,7 +279,7 @@ public final class ChargeScheduleController {
     }
     private void enableDone(int minute,Consumer<String> completion){
         Context c=context();View view=view();
-        String blocked=view.doneByEnabled?(busy?"Wait for the current change to finish":baseReason(c,true)):view.doneByBlockedReason;
+        String blocked=view.doneByEnabled?(busy?T.commonWaitCurrentChange():baseReason(c,true)):view.doneByBlockedReason;
         if(blocked!=null){completion.accept(blocked);return;}
         State previous=state(c);boolean paused=!Integer.valueOf(1).equals(c.charging);
         if(!paused&&c.estimateUnavailableReason!=null){completion.accept(c.estimateUnavailableReason);return;}
@@ -290,20 +290,20 @@ public final class ChargeScheduleController {
             if(previous.mode!=2||!Integer.valueOf(0).equals(c.charging)||c.now>=previous.start
                     ||previous.capturedSoc<0||!finite(c.soc)||c.soc!=previous.capturedSoc
                     ||!finite(c.target)||c.target!=previous.target||previous.estimate<=0){
-                completion.accept("A fresh charging estimate is needed; disable Charge done by and charge briefly");return;
+                completion.accept(T.chargingScheduleFreshEstimateNeeded());return;
             }
             c.estimateMinutes=previous.estimate;
         }
         if(!finite(c.soc)||c.soc<0||c.soc>100||!finite(c.target)||c.target<=0||c.target>100||!finite(c.estimateMinutes)||c.estimateMinutes<=0){
-            completion.accept(finite(c.soc)&&finite(c.target)&&c.soc>=c.target?"Battery is already at its charge limit":"Wait for a charging time estimate");return;
+            completion.accept(finite(c.soc)&&finite(c.target)&&c.soc>=c.target?T.chargingScheduleAtLimit():T.chargingScheduleWaitEstimate());return;
         }
         final Plan plan;
-        try{plan=plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);}catch(IllegalArgumentException bad){completion.accept("Charging time is outside a usable range");return;}
+        try{plan=plan(c.now,minute,c.estimateMinutes,c.zone,c.wholeHours);}catch(IllegalArgumentException bad){completion.accept(T.chargingScheduleOutsideRange());return;}
         // Keep an unowned native manual time before replacing it with our calculated
         // start. An old owned done-by time is intentionally not treated as manual.
         if(state(c).manualStart==0&&view.manualStartWallMs>0){state(c).manualStart=view.manualStartWallMs;save(c,state(c));}
         if(plan.startNow){
-            disable(result->{if(result==null){State s=state(c);s.minute=minute;save(c,s);completion.accept("Charging now — not enough time to wait before the deadline");}else completion.accept(result);});return;
+            disable(result->{if(result==null){State s=state(c);s.minute=minute;save(c,s);completion.accept(T.chargingScheduleChargingNow());}else completion.accept(result);});return;
         }
         program(c,plan.startWallMs,plan.offsetSeconds,()->{
             State s=state(c);s.mode=2;s.minute=minute;s.start=plan.startWallMs;s.wire=plan.startWallMs/1000+plan.offsetSeconds;
@@ -316,7 +316,7 @@ public final class ChargeScheduleController {
         if(!enabled){disable(completion);return;}
         long start=view.manualStartWallMs;
         if(start<=c.now){
-            if(start<=0){completion.accept("Choose Charge start first");return;}
+            if(start<=0){completion.accept(T.chargingScheduleChooseStartFirst());return;}
             Calendar old=Calendar.getInstance(c.zone);old.setTimeInMillis(start);
             start=nextOccurrence(c.now,old.get(Calendar.HOUR_OF_DAY)*60+old.get(Calendar.MINUTE),c.zone);
         }
@@ -330,8 +330,8 @@ public final class ChargeScheduleController {
         Context c=context();View view=view();
         String reason=view.manualTimeBlockedReason;
         if(reason!=null){completion.accept(reason);return;}
-        if(wallMs<=c.now||wallMs-c.now>48*60*60_000L){completion.accept("Choose a charge start within 48 hours");return;}
-        if(c.wholeHours){Calendar cal=Calendar.getInstance(c.zone);cal.setTimeInMillis(wallMs);if(cal.get(Calendar.MINUTE)!=0||cal.get(Calendar.SECOND)!=0){completion.accept("Choose a whole hour within 48 hours");return;}}
+        if(wallMs<=c.now||wallMs-c.now>48*60*60_000L){completion.accept(T.chargingScheduleStartWithin48h());return;}
+        if(c.wholeHours){Calendar cal=Calendar.getInstance(c.zone);cal.setTimeInMillis(wallMs);if(cal.get(Calendar.MINUTE)!=0||cal.get(Calendar.SECOND)!=0){completion.accept(T.chargingScheduleWholeHour());return;}}
         int offset=c.zone.getOffset(c.now)/1000;
         boolean enabled=view.manualEnabled;
         program(c,wallMs,offset,()->{
@@ -458,7 +458,7 @@ public final class ChargeScheduleController {
      */
     public String startTest(Consumer<TestResult> finished){
         Context c=context();View view=view();
-        if(test!=null)return "Wait for the schedule test to finish";
+        if(test!=null)return T.chargingScheduleWaitTest();
         if(view.testBlockedReason!=null)return view.testBlockedReason;
         State s=state(c);
         // As Charge done by does: an unowned native time becomes the preference restored afterwards.
