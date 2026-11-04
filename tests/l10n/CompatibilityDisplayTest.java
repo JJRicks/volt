@@ -14,7 +14,7 @@ import java.util.Random;
  *    source, while fieldLabel stays English;
  *  - the panel's journal note is TestJournal.UNAVAILABLE_NOTE in English;
  *  - the "in English" lines stay empty while Volt is English (so English screens are unchanged);
- *  - every English plural in strings_compat.xml prints what the source printed at every quantity.
+ *  - the counts and the plural print what the source printed at every quantity.
  * "Follows the source" is checked with a key-echo source that answers every id with its marked key.
  */
 public final class CompatibilityDisplayTest {
@@ -36,6 +36,8 @@ public final class CompatibilityDisplayTest {
             fields();
             check(T.compatTestRecordsUnavailable().equals(TestJournal.UNAVAILABLE_NOTE), "the panel's journal note is the journal's English");
             check(UpdateCheck.notesLanguageNote().isEmpty(), "no release-notes language line in English");
+            check(T.compatTestElsewhereOne().equals("1 unfinished test on another scooter. Select it to review.") && T.compatAgeOneMinute().equals("1 minute ago"),
+                    "the exact-one texts");
             check(T.compatReportInEnglish().equals("The report is in English.") && T.compatUpdateNotesInEnglish().equals("Release notes are in English."),
                     "the in-English lines' English");
             plurals();
@@ -84,9 +86,8 @@ public final class CompatibilityDisplayTest {
     /** The English plurals print what the code before B9 printed, at every quantity English and the tests use. */
     private static void plurals() {
         for (long n : new long[]{0, 1, 2, 3, 4, 5, 11, 12, 21, 22, 25, 100, 101, 111, 1000000}) {
-            equal(n == 1 ? "1 unfinished test on another scooter. Select it to review." : n + " unfinished tests on other scooters. Select one to review.",
-                    T.compatTestsElsewhere(n, n), "tests elsewhere at " + n);
-            equal(n == 1 ? "1 minute ago" : n + " minutes ago", T.compatAgeMinutes(n, n), "minutes ago at " + n);
+            equal(n + " unfinished tests on other scooters. Select one to review.", T.compatTestsElsewhere(n), "tests elsewhere at " + n);
+            equal(n + " minutes ago", T.compatAgeMinutes(n), "minutes ago at " + n);
             equal("Too short (" + n + " bytes)", T.compatReadTooShort(n, n), "too short at " + n);
         }
     }
