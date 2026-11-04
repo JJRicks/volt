@@ -47,4 +47,100 @@
     <string name="dashboard_one_lock_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip" volt:safety="lock">One lock widget per dashboard</string>
     <!-- Tooltip of a widget's duplicate button. -->
     <string name="dashboard_duplicate_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip">Duplicate widget</string>
+    <!-- Card ages, beside a clock glyph on a card's footer (narrow: keep them as short as English). -->
+    <!-- The card's reading is less than a minute old. -->
+    <string name="dashboard_age_now" volt:screen="Home cards" volt:purpose="value">now</string>
+    <!-- The reading's age: %1$s is a whole number of minutes (1 to 59). -->
+    <string name="dashboard_age_minutes" volt:screen="Home cards" volt:purpose="value">%1$s min</string>
+    <!-- The reading's age: %1$s is a whole number of hours (1 to 23). -->
+    <string name="dashboard_age_hours" volt:screen="Home cards" volt:purpose="value">%1$s h</string>
+    <!-- The reading's age: %1$s is a whole number of days. -->
+    <string name="dashboard_age_days" volt:screen="Home cards" volt:purpose="value">%1$s d</string>
+
+    <!-- Readings -->
+    <!-- The scooter's own range estimate, rounded: %1$s is a distance with its unit ("31 mi"). -->
+    <string name="dashboard_about" volt:screen="Home battery cards" volt:purpose="value" volt:safety="ride">about %1$s</string>
+    <!-- Name of the scooter's own range reading on the dashboard. -->
+    <string name="dashboard_estimated_range" volt:screen="Home cards, reading pickers" volt:purpose="reading name" volt:safety="ride">Estimated remaining range</string>
+    <!-- Name of the drive mode reading on the dashboard. -->
+    <string name="dashboard_drive_mode" volt:screen="Home cards, reading pickers" volt:purpose="reading name">Drive mode</string>
+
+    <!-- Charging -->
+    <!-- The charging time when the battery is already at its target. -->
+    <string name="dashboard_at_target" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">At target</string>
+    <!-- The estimated charging time: %1$s is whole hours, %2$s whole minutes (0 to 59), "≈ 1h 20m". -->
+    <string name="dashboard_duration_hours" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">≈ %1$sh %2$sm</string>
+    <!-- The estimated charging time under an hour: %1$s is whole minutes, "≈ 20m". -->
+    <string name="dashboard_duration_minutes" volt:screen="Home charging card" volt:purpose="value" volt:safety="charge">≈ %1$sm</string>
+    <!-- Name of the charging time on the charging widget when a charge limit is set: %1$s is the
+         limit as a percentage (fmt_percent, "80%"). -->
+    <string name="dashboard_charge_to_limit" volt:screen="Home charging widget" volt:purpose="label" volt:safety="charge">To %1$s limit</string>
+    <!-- Name of the charging time on the charging card when a charge limit is set: %1$s is the limit as
+         a percentage (fmt_percent, "80%"). -->
+    <string name="dashboard_charge_time_to" volt:screen="Home charging card" volt:purpose="label" volt:ladder="full" volt:safety="charge">Time to %1$s</string>
+    <!-- The narrowest name of the charging time to a charge limit (both cards): %1$s is the limit as a
+         percentage. -->
+    <string name="dashboard_charge_time_to_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:ladder="compact" volt:safety="charge">To %1$s</string>
+    <!-- Name of the charging time when the scooter does not report its charge limit: the time to 100%
+         assumes no limit. -->
+    <string name="dashboard_charge_time_uncapped" volt:screen="Home charging cards" volt:purpose="label" volt:ladder="full" volt:safety="charge" formatted="false">Time to 100% if uncapped</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:screen="Home charging cards" volt:purpose="label" volt:ladder="short" volt:safety="charge" formatted="false">To 100% if uncapped</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:ladder="compact" volt:safety="charge" formatted="false">100% if uncapped</string>
+    <!-- Name of the estimated charging time to a full battery (no charge limit below 100%). -->
+    <string name="dashboard_charge_time_full" volt:screen="Home charging cards" volt:purpose="label" volt:ladder="full" volt:safety="charge">Time to full (est.)</string>
+    <string name="dashboard_charge_time_full_short" volt:screen="Home charging cards" volt:purpose="label" volt:ladder="short" volt:safety="charge">Time to full (est.)</string>
+    <string name="dashboard_charge_time_full_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:ladder="compact" volt:safety="charge">To full (est.)</string>
+    <!-- The charging state when the charging current is too low for a time estimate (ChargingEstimate's
+         LOW_CURRENT), shown as an orange chip. -->
+    <string name="dashboard_low_current" volt:screen="Home charging cards" volt:purpose="status" volt:safety="charge">Low current</string>
+    <!-- Name of the charging power cell. -->
+    <string name="dashboard_charging_power" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Charging power</string>
+    <!-- The charging power cell's name when the cell is narrow. -->
+    <string name="dashboard_charging_power_compact" volt:screen="Narrow Home charging cards" volt:purpose="label" volt:safety="charge">Power</string>
+    <!-- Name of the charging time cell. -->
+    <string name="dashboard_time_to_full" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Time to full</string>
+    <!-- The chip above the charging hero's battery level. -->
+    <string name="dashboard_charging" volt:screen="Home charging hero" volt:purpose="status" volt:safety="charge">Charging</string>
+    <!-- The chip when a charge limit is set: %1$s is the limit, a whole number, followed by the
+         percent sign. -->
+    <string name="dashboard_charging_limit" volt:screen="Home charging hero" volt:purpose="status" volt:safety="charge">Charging · limit %1$s%%</string>
+    <!-- Spoken for the charging hero's photo. The photo is a NAVEE UT5 MAX whatever the model (a known
+         English wording, kept until the hero names the model). -->
+    <string name="dashboard_hero_photo" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:dnt="NAVEE UT5 MAX">NAVEE UT5 MAX scooter</string>
+    <!-- Spoken for the charging hero's level when the scooter does not report it. -->
+    <string name="dashboard_battery_not_reported" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Battery not reported</string>
+    <!-- Spoken for the charging hero's level: %1$d is the battery level, a whole number from 0 to 100.
+         English says "percent" for every number. -->
+    <plurals name="dashboard_battery_percent" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">
+        <item quantity="one">Battery %1$d percent</item>
+        <item quantity="other">Battery %1$d percent</item>
+    </plurals>
+    <!-- Spoken for the charging time, and its tooltip: %1$s is the time's name (dashboard_charge_time_*),
+         %2$s the time ("≈ 1h 20m") or a short state. -->
+    <string name="dashboard_hero_time" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s</string>
+    <!-- The same with the state chip: %3$s is the chip's state ("Low current"). -->
+    <string name="dashboard_hero_time_tag" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s, %3$s</string>
+    <!-- The same with the estimate's explanation: %3$s is a sentence about the estimate. -->
+    <string name="dashboard_hero_time_status" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s. %3$s</string>
+    <!-- The same with the chip (%3$s) and the explanation (%4$s). -->
+    <string name="dashboard_hero_time_tag_status" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s, %3$s. %4$s</string>
+    <!-- Spoken for the charging hero's photo stage when the level is not reported. -->
+    <string name="dashboard_hero_charge_not_reported" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge not reported</string>
+    <!-- The same with a charge limit: %1$s is the limit, a whole number of percent. -->
+    <string name="dashboard_hero_charge_not_reported_limit" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge not reported, charge limit %1$s percent</string>
+    <!-- Spoken for the photo stage: %1$s is the battery level, a whole number of percent. -->
+    <string name="dashboard_hero_charge" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge %1$s percent</string>
+    <!-- The same with a charge limit: %1$s is the level, %2$s the limit, whole numbers of percent. -->
+    <string name="dashboard_hero_charge_limit" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Charge %1$s percent, charge limit %2$s percent</string>
+    <!-- Name of the battery temperature on the charging cards. -->
+    <string name="dashboard_battery_temperature" volt:screen="Home charging cards" volt:purpose="label" volt:safety="charge">Battery temperature</string>
+    <!-- Spoken after the charging power: the power is measured on the battery side. -->
+    <string name="dashboard_battery_side_power" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">Battery-side power</string>
+    <!-- Spoken name of the charging time with its state chip: %1$s is the time's name
+         (dashboard_charge_time_*), %2$s the chip's state ("Low current"). -->
+    <string name="dashboard_charging_time_tag" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">%1$s (%2$s)</string>
+    <!-- Spoken for a charging cell: %1$s is the cell's name, %2$s its value ("412 W", "≈ 1h 20m"). -->
+    <string name="dashboard_charging_description" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s</string>
+    <!-- The same with an explanation: %3$s is a sentence or a short note ("Battery-side power"). -->
+    <string name="dashboard_charging_description_detail" volt:screen="Home charging cards" volt:purpose="accessibility description" volt:safety="charge">%1$s, %2$s. %3$s</string>
 </resources>

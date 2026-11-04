@@ -63,6 +63,8 @@ public final class DashboardScreen implements AppScreen {
     /** Tag for card content that edits the widget itself, so it stays enabled while editing. */
     private static final String EDIT_ACTION = "dashboard-edit-action";
     private static final CharSequence WIDGET_LIMIT_TEXT = M.dashboardWidgetLimit();
+    /** The marker Telemetry's English name of a signed reading ends with, which the cards leave out (data). */
+    private static final String TELEMETRY_SIGNED = " (signed)";
     private AlertDialog dialog;
     /**
      * Holds the layout from before Restore defaults while that step is still the latest edit, so
@@ -868,10 +870,10 @@ public final class DashboardScreen implements AppScreen {
     /** A card's compact age beside its clock glyph: now, 5 min, 3 h or 2 d. */
     private static String shortAge(long time) {
         long minutes = Math.max(0, System.currentTimeMillis() - time) / 60000;
-        if (minutes < 1) return "now";
-        if (minutes < 60) return minutes + " min";
-        if (minutes < 24 * 60) return minutes / 60 + " h";
-        return minutes / (24 * 60) + " d";
+        if (minutes < 1) return T.dashboardAgeNow();
+        if (minutes < 60) return T.dashboardAgeMinutes(Fmt.integer(minutes));
+        if (minutes < 24 * 60) return T.dashboardAgeHours(Fmt.integer(minutes / 60));
+        return T.dashboardAgeDays(Fmt.integer(minutes / (24 * 60)));
     }
 
     private int color(DashboardConfig.Widget widget) {
@@ -906,11 +908,11 @@ public final class DashboardScreen implements AppScreen {
     /** "about 31 mi": the range reading rounded, in the rider's distance units. */
     private String rangeText(TelemetryHistory.Reading r) {
         if (r == null || r.value == null) return "";
-        if (r.number == null) return "about " + format(r);
-        String km = String.format(Locale.US, "%.0f km", r.number);
-        String miles = String.format(Locale.US, "%.0f mi", r.number / 1.609344);
+        if (r.number == null) return T.dashboardAbout(format(r));
+        String km = T.fmtQuantity(Fmt.decimal(Locale.US, r.number, 0), T.unitsKm());
+        String miles = T.fmtQuantity(Fmt.decimal(Locale.US, r.number / 1.609344, 0), T.unitsMi());
         String units = units();
-        return "about " + (units.equals("km") ? km : units.equals("dual") ? miles + " / " + km : miles);
+        return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
 
     /** Large value with its unit drawn smaller (and muted when live), e.g. 412 W. */
@@ -949,10 +951,22 @@ public final class DashboardScreen implements AppScreen {
     }
 
     private String label(String key) {
-        if (key.equals("remaining_range_km")) return "Estimated remaining range";
-        if (key.equals("driving_mode")) return "Drive mode";
+        if (key.equals("remaining_range_km")) return T.dashboardEstimatedRange();
+        if (key.equals("driving_mode")) return T.dashboardDriveMode();
         for (Telemetry.Metric m : new Telemetry().metrics())
-            if (m.key.equals(key)) return m.label.replace(" (signed)", "");
+            if (m.key.equals(key)) return m.label.endsWith(TELEMETRY_SIGNED) ? ScooterReadingLabels.label(key, m.label.replace(TELEMETRY_SIGNED, "")) : ScooterReadingLabels.full(key, m.label);
+        return key;
+    }
+
+    /**
+     * The English of what label(key) shows, for comparing a saved widget title (stored English) by
+     * id: a title equal to its reading's name hides the repeated subtitle in every language.
+     */
+    private static String englishLabel(String key) {
+        if (key.equals("remaining_range_km")) return M.dashboardEstimatedRange().english();
+        if (key.equals("driving_mode")) return M.dashboardDriveMode().english();
+        for (Telemetry.Metric m : new Telemetry().metrics())
+            if (m.key.equals(key)) return m.label.replace(TELEMETRY_SIGNED, "");
         return key;
     }
 
@@ -1026,8 +1040,8 @@ public final class DashboardScreen implements AppScreen {
         if (minutes == null || !Double.isFinite(minutes)) return "—";
         long value = Math.max(0, Math.round(minutes));
         return value == 0
-                ? "At target"
-                : "≈ " + (value >= 60 ? value / 60 + "h " : "") + value % 60 + "m";
+                ? T.dashboardAtTarget()
+                : (value >= 60 ? T.dashboardDurationHours(Fmt.integer(value / 60), Fmt.integer(value % 60)) : T.dashboardDurationMinutes(Fmt.integer(value % 60)));
     }
 
     private ChargingEstimate.Value chargeValue(
@@ -1335,13 +1349,13 @@ public final class DashboardScreen implements AppScreen {
     /** Full, normal and compact names for the charging time; an unknown cutoff never claims "full". */
     private String[] chargeTimeLabels(ChargingEstimate.Result estimate, boolean widget) {
         if (estimate.targetPercent != null && estimate.targetPercent < 100) {
-            String target = String.format(Locale.US, "%.0f%%", estimate.targetPercent);
-            String name = widget ? "To " + target + " limit" : "Time to " + target;
-            return new String[] {name, name, "To " + target};
+            String target = T.fmtPercent(Fmt.decimal(Locale.US, estimate.targetPercent, 0));
+            String name = widget ? T.dashboardChargeToLimit(target) : T.dashboardChargeTimeTo(target);
+            return new String[] {name, name, T.dashboardChargeTimeToCompact(target)};
         }
         if (estimate.targetPercent == null)
-            return new String[] {"Time to 100% if uncapped", "To 100% if uncapped", "100% if uncapped"};
-        return new String[] {"Time to full (est.)", "Time to full (est.)", "To full (est.)"};
+            return new String[] {T.dashboardChargeTimeUncapped(), T.dashboardChargeTimeUncappedShort(), T.dashboardChargeTimeUncappedCompact()};
+        return new String[] {T.dashboardChargeTimeFull(), T.dashboardChargeTimeFullShort(), T.dashboardChargeTimeFullCompact()};
     }
 
     /**
@@ -1353,6 +1367,8 @@ public final class DashboardScreen implements AppScreen {
         Double minutes = limit ? estimate.remainingMinutesToLimit : estimate.remainingMinutesToFull;
         boolean low = ChargingEstimate.LOW_CURRENT.equals(estimate.label);
         String state = estimate.label == null || estimate.label.isEmpty() ? "—" : estimate.label;
+        // The state as shown: Low current in the current language, any other state its own display message.
+        if (state == estimate.label) state = low ? T.dashboardLowCurrent() : estimate.labelMsg.render();
         value.setText(minutes != null ? duration(minutes) : low && tag != null ? "—" : state);
         value.setTextColor(minutes == null ? ui.muted : ui.text);
         if (tag != null)
@@ -1367,9 +1383,6 @@ public final class DashboardScreen implements AppScreen {
         /** Optional pill beside the value for a short state. */
         TextView tag;
         int heightBudget = Integer.MAX_VALUE;
-        InfoCell(String icon, String title) {
-            this(icon, title, title, title.equals("Charging power") ? "Power" : title);
-        }
         InfoCell(String icon, String full, String normal, String compact) {
             super(host.activity());
             setOrientation(VERTICAL);
@@ -1394,6 +1407,11 @@ public final class DashboardScreen implements AppScreen {
             LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(-1, -2);
             p.topMargin = ui.dp(2);
             addView(value, p);
+        }
+        /** A cell made with one title gets a shorter narrow label (the charging power's "Power"). */
+        InfoCell narrowLabel(String title, String compact) {
+            ((DashboardCaption) label).setLabels(title, title, compact);
+            return this;
         }
         /** Puts a pill at the end of the value line; it wraps below a long value in a narrow cell. */
         TextView addTag() {
@@ -1459,7 +1477,7 @@ public final class DashboardScreen implements AppScreen {
         int columns;
         InfoTiles() { super(host.activity()); setOrientation(VERTICAL); }
         InfoCell add(String icon, String title) {
-            InfoCell cell = new InfoCell(icon, title); cells.add(cell); columns = 0;
+            InfoCell cell = new InfoCell(icon, title, title, title); cells.add(cell); columns = 0;
             requestLayout(); return cell;
         }
         InfoCell addReading(String key) {
@@ -1552,7 +1570,7 @@ public final class DashboardScreen implements AppScreen {
             setGravity(Gravity.CENTER_HORIZONTAL);
             setPadding(0, ui.dp(2), 0, ui.dp(14));
             setVisibility(View.GONE);
-            chip = ui.text("Charging", 12.5f, false);
+            chip = ui.text(T.dashboardCharging(), 12.5f, false);
             chip.setTypeface(ui.semibold());
             chip.setTextColor(ui.accent);
             chip.setGravity(Gravity.CENTER_VERTICAL);
@@ -1570,7 +1588,7 @@ public final class DashboardScreen implements AppScreen {
             stage = new Stage();
             photo = new ImageView(host.activity());
             photo.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            photo.setContentDescription("NAVEE UT5 MAX scooter");
+            photo.setContentDescription(T.dashboardHeroPhoto());
             FrameLayout.LayoutParams photoSize =
                     new FrameLayout.LayoutParams(-1, ui.dp(196), Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
             photoSize.bottomMargin = ui.dp(20);
@@ -1578,9 +1596,10 @@ public final class DashboardScreen implements AppScreen {
             addView(stage, new LinearLayout.LayoutParams(-1, -2));
             LinearLayout rows = column();
             InfoTiles tiles = new InfoTiles();
-            InfoCell powerCell = tiles.add("bolt", "Charging power");
-            InfoCell timeCell = tiles.add("clock", "Time to full");
+            InfoCell powerCell = tiles.add("bolt", T.dashboardChargingPower());
+            InfoCell timeCell = tiles.add("clock", T.dashboardTimeToFull());
             power = powerCell.value;
+            powerCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             this.timeCell = timeCell;
             etaLabel = timeCell.label;
             eta = timeCell.value;
@@ -1671,18 +1690,18 @@ public final class DashboardScreen implements AppScreen {
             boolean hasLimit = estimate.targetPercent != null && estimate.targetPercent < 100;
             limit = hasLimit ? estimate.targetPercent : 100;
             chip.setText(hasLimit
-                    ? String.format(Locale.US, "Charging · limit %.0f%%", estimate.targetPercent)
-                    : "Charging");
+                    ? T.dashboardChargingLimit(Fmt.decimal(Locale.US, estimate.targetPercent, 0))
+                    : T.dashboardCharging());
             if (Double.isNaN(level)) {
                 percent.setText("—");
-                percent.setContentDescription("Battery not reported");
+                percent.setContentDescription(T.dashboardBatteryNotReported());
             } else {
                 String number = Long.toString(Math.round(level));
                 android.text.SpannableString text = new android.text.SpannableString(number + "%");
                 text.setSpan(new android.text.style.RelativeSizeSpan(.4f), number.length(), number.length() + 1,
                         android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 percent.setText(text);
-                percent.setContentDescription("Battery " + number + " percent");
+                percent.setContentDescription(T.dashboardBatteryPercent(Math.round(level), Math.round(level)));
             }
             boolean known = ScooterPhotos.show(photo, activeModel(), 2);
             photo.setVisibility(known ? View.VISIBLE : View.GONE);
@@ -1691,18 +1710,19 @@ public final class DashboardScreen implements AppScreen {
             String[] timeLabel = chargeTimeLabels(estimate, false);
             ((DashboardCaption) etaLabel).setLabels(timeLabel[0], timeLabel[1], timeLabel[2]);
             showChargeTime(eta, etaTag, estimate);
-            String time = timeLabel[0] + ", " + eta.getText()
-                    + (etaTag.getVisibility() == View.VISIBLE ? ", " + etaTag.getText() : "")
-                    + (estimate.status == null || estimate.status.isEmpty() ? "" : ". " + estimate.status);
+            String time = etaTag.getVisibility() == View.VISIBLE
+                    ? (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTimeTag(timeLabel[0], eta.getText(), etaTag.getText()) : T.dashboardHeroTimeTagStatus(timeLabel[0], eta.getText(), etaTag.getText(), estimate.status))
+                    : (estimate.status == null || estimate.status.isEmpty() ? T.dashboardHeroTime(timeLabel[0], eta.getText()) : T.dashboardHeroTimeStatus(timeLabel[0], eta.getText(), estimate.status));
             eta.setContentDescription(time);
             timeCell.setTooltipText(time);
             String watts = estimate.inputWatts == null ? null
-                    : String.format(Locale.US, "%.0f W", estimate.inputWatts);
+                    : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt());
             power.setText(watts == null ? "—" : watts);
             power.setTextColor(watts == null ? ui.muted : ui.ok);
             stage.setContentDescription(
-                    (Double.isNaN(level) ? "Charge not reported" : "Charge " + Math.round(level) + " percent")
-                            + (hasLimit ? ", charge limit " + Math.round(limit) + " percent" : ""));
+                    Double.isNaN(level)
+                            ? (hasLimit ? T.dashboardHeroChargeNotReportedLimit(Fmt.integer(Math.round(limit))) : T.dashboardHeroChargeNotReported())
+                            : (hasLimit ? T.dashboardHeroChargeLimit(Fmt.integer(Math.round(level)), Fmt.integer(Math.round(limit))) : T.dashboardHeroCharge(Fmt.integer(Math.round(level)))));
             stage.invalidate();
             showAnimated(true);
         }
@@ -2205,12 +2225,12 @@ public final class DashboardScreen implements AppScreen {
                     body.addView(batteryData, stripSpace);
                     IconReadingStrip charging = new IconReadingStrip(IconReadingStrip.READINGS);
                     chargingData = charging;
-                    chargingWatts = charging.addReading("bolt", "Charging power");
-                    chargingEta = charging.addReading("clock", "Time to full");
-                    chargingTemperature = charging.addReading("temperature", "Battery temperature");
+                    chargingWatts = charging.addReading("bolt", T.dashboardChargingPower());
+                    chargingEta = charging.addReading("clock", T.dashboardTimeToFull());
+                    chargingTemperature = charging.addReading("temperature", T.dashboardBatteryTemperature());
                     // Compact status is announced and available on long press, without
                     // adding a second block of explanatory text to the glanceable card.
-                    chargingEtaLabel = ui.caption("Time to full");
+                    chargingEtaLabel = ui.caption(T.dashboardTimeToFull());
                     LinearLayout.LayoutParams chargingSpace = new LinearLayout.LayoutParams(-1, -2);
                     chargingSpace.topMargin = ui.dp(8);
                     body.addView(chargingData, chargingSpace);
@@ -3330,9 +3350,10 @@ public final class DashboardScreen implements AppScreen {
         private void buildCharging(LinearLayout container, boolean detailed) {
             InfoTiles tiles = new InfoTiles();
             infoTiles = tiles;
-            chargingWatts = tiles.add("bolt", "Charging power").value;
-            InfoCell time = tiles.add("clock", "Time to full");
+            chargingWatts = tiles.add("bolt", T.dashboardChargingPower()).value;
+            InfoCell time = tiles.add("clock", T.dashboardTimeToFull());
             chargingEta = time.value;
+            tiles.cells.get(0).narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact());
             chargingEtaLabel = time.label;
             chargingEtaTag = time.addTag();
             container.addView(tiles, new LinearLayout.LayoutParams(-1, -2));
@@ -3350,7 +3371,7 @@ public final class DashboardScreen implements AppScreen {
             chargingWatts.setText(
                     estimate.inputWatts == null
                             ? "—"
-                            : String.format(Locale.US, "%.0f W", estimate.inputWatts));
+                            : T.fmtQuantity(Fmt.decimal(Locale.US, estimate.inputWatts, 0), T.unitsWatt()));
             chargingWatts.setTextColor(estimate.inputWatts == null ? ui.muted : ui.ok);
             String[] etaLabels = chargeTimeLabels(estimate, true);
             String etaLabel = etaLabels[1];
@@ -3358,23 +3379,22 @@ public final class DashboardScreen implements AppScreen {
                 ((DashboardCaption) chargingEtaLabel).setLabels(etaLabels[0], etaLabel, etaLabels[2]);
             else chargingEtaLabel.setText(etaLabel);
             showChargeTime(chargingEta, chargingEtaTag, estimate);
-            describeCharging(chargingWatts, "Charging power", "Battery-side power");
-            describeCharging(chargingEta, etaLabels[0]
-                            + (chargingEtaTag != null && chargingEtaTag.getVisibility() == View.VISIBLE
-                                    ? " (" + chargingEtaTag.getText() + ")" : ""),
+            describeCharging(chargingWatts, T.dashboardChargingPower(), T.dashboardBatterySidePower());
+            describeCharging(chargingEta, (chargingEtaTag != null && chargingEtaTag.getVisibility() == View.VISIBLE
+                                    ? T.dashboardChargingTimeTag(etaLabels[0], chargingEtaTag.getText()) : etaLabels[0]),
                     estimate.status);
             if (chargingTemperature != null) {
                 TelemetryHistory.Reading temperature = values.get("temperature_c");
                 chargingTemperature.setText(format(temperature));
                 chargingTemperature.setTextColor(
                         temperature != null && temperature.live ? ui.text : ui.muted);
-                describeCharging(chargingTemperature, "Battery temperature", "");
+                describeCharging(chargingTemperature, T.dashboardBatteryTemperature(), "");
             }
         }
 
         private void describeCharging(TextView value, String label, String detail) {
-            String description = label + ", " + value.getText()
-                    + (detail.isEmpty() ? "" : ". " + detail);
+            String description = detail.isEmpty() ? T.dashboardChargingDescription(label, value.getText())
+                    : T.dashboardChargingDescriptionDetail(label, value.getText(), detail);
             value.setContentDescription(description);
             // The long-press tooltip sits on the whole tile, also when a tag shares the value line.
             View holder = value.getParent() instanceof View ? (View) value.getParent() : null;
