@@ -1,0 +1,13 @@
+# B9, compatibility and guided tests (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English the guided tests, the test journal and the report's field labels give the
+# Compatibility panel and the notices, pinned before the batch.
+src/com/jjricks/volt/GuidedTest.java
+src/com/jjricks/volt/TestJournal.java
+src/com/jjricks/volt/CompatibilityReport.java
+tests/l10n/characterization/CompatibilityTextTest.java
+# B9's own suite: the panel's display accessors against the English the journal, the report and the
+# notices keep, under English and a key-echo text source.
+src/com/jjricks/volt/CompatibilityLabels.java
+src/com/jjricks/volt/UpdateCheck.java
+tests/l10n/CompatibilityDisplayTest.java
