@@ -1,0 +1,7 @@
+# F2, the controller and compatibility consumers of the wave-2 display accessors (l10n/README.md). tests/run.sh
+# compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the display accessors F2 switches to print the English ids they replace, and keep them as english(),
+# pinned before the batch. It reuses ControlsEnglishTest's variant and descriptor lists (tests/l10n/b4.sources).
+tests/l10n/characterization/ControllerConsumersTextTest.java
+# G5: the observation question's English, and the English ids its callers pass it (featureValue, d.label).
+tests/l10n/characterization/CompatQuestionTextTest.java
