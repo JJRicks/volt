@@ -592,10 +592,10 @@
     <string name="onboarding_tick_checked" volt:screen="Setup checklists" volt:purpose="accessibility state">Checked</string>
     <!-- Spoken state of a reminder row with a checkbox. -->
     <string name="onboarding_tick_not_checked" volt:screen="Setup checklists" volt:purpose="accessibility state">Not checked</string>
-    <!-- Spoken description of a numbered instruction: %1$d is its number, %2$s the instruction. -->
-    <string name="onboarding_numbered_spoken" volt:screen="Setup" volt:purpose="accessibility description">Step %1$d. %2$s</string>
-    <!-- Spoken description of a numbered instruction with a detail line: %1$d is its number, %2$s the instruction, %3$s the detail. -->
-    <string name="onboarding_numbered_spoken_detail" volt:screen="Setup" volt:purpose="accessibility description">Step %1$d. %2$s. %3$s</string>
+    <!-- Spoken description of a numbered instruction: %1$d is its number, %2$s the instruction, %3$s its detail line as onboarding_numbered_detail gives it, or nothing when there is none (so no space before %3$s). -->
+    <string name="onboarding_numbered_spoken" volt:screen="Setup" volt:purpose="accessibility description">Step %1$d. %2$s%3$s</string>
+    <!-- The detail line added to the end of onboarding_numbered_spoken: %1$s is the detail. It starts with the full stop (and space) that ends the instruction before it. -->
+    <string name="onboarding_numbered_detail" volt:screen="Setup" volt:purpose="accessibility description">". %1$s"</string>
     <!-- Label above the scooter name field, and its spoken description. -->
     <string name="onboarding_name_label" volt:screen="Import, Enter owner identity" volt:purpose="label">Name your scooter</string>
     <!-- Placeholder in the empty scooter name field. -->
