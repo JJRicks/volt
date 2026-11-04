@@ -129,6 +129,11 @@
     <!-- Unit symbol for kilowatts in the route tooltip. -->
     <string name="maps_unit_kilowatt" volt:screen="Rides, map" volt:purpose="unit symbol">kW</string>
 
+    <!-- The tooltip's GPS speed in both unit systems, such as "22 mph / 36 km/h": %1$s and %3$s are
+         the numbers, %2$s the mph symbol (units_mph) and %4$s the km/h symbol (units_kmh). Spell it
+         as fmt_dual with two fmt_quantity values in your language. -->
+    <string name="maps_route_speed_dual" volt:screen="Rides, map" volt:purpose="number format">%1$s %2$s / %3$s %4$s</string>
+
     <!-- The route tooltip for the tapped point. Its first line is the value the route is coloured by;
          the second lists the other readings of that point, separated by " · ". -->
     <!-- %1$s is the speed with its unit (25 mph); %2$s the sensor it came from (units_route_source_scooter

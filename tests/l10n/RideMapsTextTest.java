@@ -52,13 +52,24 @@ public final class RideMapsTextTest {
                 : T.fmtQuantity(Fmt.decimal(Locale.US, watts, 0), T.unitsWatt());
     }
 
-    /** RouteMapView.drawTooltip()'s two lines; grade, accel, speed and elevation numbers are unchanged base code. */
+    /** RouteMapView.speed(); units is the app_settings "units" preference. */
+    static String speed(Double mps, String units) {
+        if (mps == null) return null;
+        double kmh = mps * 3.6, mph = kmh / RideStore.KM_PER_MILE;
+        return units.equals("km")
+                ? T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 0), T.unitsKmh())
+                : units.equals("dual")
+                        ? T.mapsRouteSpeedDual(Fmt.decimal(Locale.US, mph, 0), T.unitsMph(), Fmt.decimal(Locale.US, kmh, 0), T.unitsKmh())
+                        : T.fmtQuantity(Fmt.decimal(Locale.US, mph, 0), T.unitsMph());
+    }
+
+    /** RouteMapView.drawTooltip()'s two lines; grade, accel and elevation numbers are unchanged base code. */
     static String tooltip(String metric, String units, boolean hasSource, boolean scooter, String chosenLabel,
             Double watts, Double gradePercent, Double speedMps, Double accelMps2, Double relativeAltitudeM,
             String scooterLabel) {
         boolean imperial = !"km".equals(units);
         String primary, power = power(watts), grade = RideMapsEnglishTest.grade(gradePercent),
-                speed = RideMapsEnglishTest.speed(speedMps, units), accel = RideMapsEnglishTest.accel(accelMps2);
+                speed = speed(speedMps, units), accel = RideMapsEnglishTest.accel(accelMps2);
         List<String> rest = new ArrayList<String>();
         if ("speed".equals(metric)) {
             String name = scooter ? T.unitsRouteSourceScooter() : T.unitsRouteSourceGps();
@@ -119,6 +130,12 @@ public final class RideMapsTextTest {
         int places = UnitCode.MPH.matches(unit) || UnitCode.KMH.matches(unit) ? 1 : 2;
         double raw = Math.abs(value) < Math.pow(10, -places) / 2 ? 0 : value;
         return String.format(Fmt.locale(Locale.US), "%." + places + "f", raw) + " " + unit;
+    }
+
+    /** RideChartView.unitSymbol(), the unit drawn above each axis. */
+    static String unitSymbol(String unit) {
+        for (UnitCode code : UnitCode.values()) if (code.matches(unit)) return code.symbol();
+        return unit;
     }
 
     // ----- PhoneRideStore, for real -----
@@ -200,6 +217,12 @@ public final class RideMapsTextTest {
                             "track status " + fixes + "/" + rejected + "/" + outliers);
         Double[] watts = {null, 0.0, 999.0, 999.6, 1000.0, 1500.0, -1200.0, 12345.0};
         for (Double w : watts) eq(RideMapsEnglishTest.power(w), power(w), "power " + w);
+        Double[] speeds = {null, 0.0, .1388, .1389, -.1389, 10.0, 6.9, 12.42, 44.704, -3.0, 1e6, Double.NaN};
+        for (Double mps : speeds)
+            for (String units : new String[] {"km", "mi", "dual", "", "MI"}) {
+                eq(RideMapsEnglishTest.speed(mps, units), speed(mps, units), "speed " + mps + " " + units);
+                if (mps != null) eq(RouteSpeedScale.label(mps * 3.6, units), speed(mps, units), "speed as the primary line " + mps + " " + units);
+            }
         String[] metrics = {"speed", "grade", "elevation", "accel", "power"};
         String[] unitsList = {"km", "mi", "dual"};
         Double[] optional = {null, 2.5};
@@ -229,7 +252,9 @@ public final class RideMapsTextTest {
         for (String unit : new String[] {"mph", "km/h", "W", "V", "%", "ft", "m/s²", "Wh/mi"})
             for (double value : new double[] {0, .004, .04, -.04, 1.234, 12.34, 15.44, 150.4, -1500, 1500})
                 eq(RideMapsEnglishTest.axisNumber(unit, value), axisNumber(unit, value), "axis " + unit + " " + value);
-        for (String unit : new String[] {"mph", "km/h", "W", "%"})
+        for (String unit : new String[] {"mph", "km/h", "W", "%", "V", "A", "Wh", "Ah", "°C", "°F", "km", "mi", "min", "Time", "ft", "m", "m/s²", "Wh/mi", "Wh/km", "MPH", ""})
+            eq(unit, unitSymbol(unit), "axis unit " + unit);
+        for (String unit : new String[] {"mph", "km/h", "W", "%", "V", "ft", "Wh/mi", "°C"})
             for (Double value : new Double[] {null, Double.NaN, 0.0, .004, .04, 12.34, 1500.0, -3.333})
                 eq(RideMapsEnglishTest.sampleValue(unit, value), sampleValue(unit, value), "sample " + unit + " " + value);
         for (int code : new int[] {0, 404, 429, 503, 999})
@@ -266,6 +291,13 @@ public final class RideMapsTextTest {
                     chartDescription("Title", false, "1:05.250", new String[][] {{"Power", null, null}}), "chart description");
             eq("‹maps_chart_ride›", M.mapsChartRide(), "deferred title");
             eq("‹maps_tiles_http:503›", M.mapsTilesHttp(503), "HTTP template");
+            eq("‹fmt_quantity:36 ‹units_kmh››", speed(10.0, "km"), "GPS speed, km");
+            eq("‹fmt_quantity:22 ‹units_mph››", speed(10.0, "mi"), "GPS speed, mi");
+            eq("‹maps_route_speed_dual:22 ‹units_mph› 36 ‹units_kmh››", speed(10.0, "dual"), "GPS speed, both");
+            eq("‹maps_route_no_scooter_speed›\n‹maps_route_gps_speed:‹fmt_quantity:22 ‹units_mph›››",
+                    tooltip("speed", "mi", true, true, null, null, null, 10.0, null, null, null), "GPS speed line");
+            eq("‹units_watt›", unitSymbol("W"), "axis unit symbol");
+            eq("Wh/mi", unitSymbol("Wh/mi"), "a unit with no symbol key stays as it is");
         } finally {
             T.install(null);
         }

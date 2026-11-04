@@ -136,7 +136,8 @@ public final class MapPreferences {
             this.host = host; this.settings = host.service().settings;
             Ui ui = host.ui();
             // The option labels by choice index, rendered for this control in the current language (R5: a
-            // static array cannot hold catalog text). It shadows the unused English field of the same name.
+            // static array cannot hold catalog text). It shadows the unused English field of the same name: G1
+            // refuses a rename on the line that holds "Online map" (B14 report).
             String[] LABELS = {T.commonOff(), T.mapsProviderUsgs(), T.mapsProviderOsm(), T.mapsProviderCustom()};
             setOrientation(VERTICAL);
             selector = new SegmentedSelector(ui, T.mapsOnlineMap(), LABELS, this::chose);

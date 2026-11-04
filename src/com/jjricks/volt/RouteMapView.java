@@ -467,10 +467,10 @@ public final class RouteMapView extends View {
         double kmh = mps * 3.6, mph = kmh / RideStore.KM_PER_MILE;
         String units = units();
         return units.equals("km")
-                ? String.format(Locale.US, "%.0f km/h", kmh)
+                ? T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 0), T.unitsKmh())
                 : units.equals("dual")
-                        ? String.format(Locale.US, "%.0f mph / %.0f km/h", mph, kmh)
-                        : String.format(Locale.US, "%.0f mph", mph);
+                        ? T.mapsRouteSpeedDual(Fmt.decimal(Locale.US, mph, 0), T.unitsMph(), Fmt.decimal(Locale.US, kmh, 0), T.unitsKmh())
+                        : T.fmtQuantity(Fmt.decimal(Locale.US, mph, 0), T.unitsMph());
     }
 
     /** Blue → yellow sequential and blue → neutral → orange diverging scales avoid red/green ambiguity. */

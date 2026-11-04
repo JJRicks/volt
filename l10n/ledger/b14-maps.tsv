@@ -45,14 +45,17 @@ src/com/jjricks/volt/RouteMapView.java:386	["GPS accel not measured"]	maps_route
 src/com/jjricks/volt/RouteMapView.java:389	["Power not measured"]	maps_route_power_not_measured	exact	
 src/com/jjricks/volt/RouteMapView.java:453	[{"spec": "%.2f", "arg": 1, "value": "watts / 1000", "as": "Fmt.decimal(Locale.US, watts / 1000, 2)"}, " ", {"text": "kW", "key": "maps_unit_kilowatt", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/RouteMapView.java:454	[{"spec": "%.0f", "arg": 1, "value": "watts", "as": "Fmt.decimal(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RouteMapView.java:470	[{"spec": "%.0f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 0)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	the tooltip's GPS speed; review finding: units_mph/units_kmh are catalog symbols, as in the primary line (RouteSpeedScale.label)
+src/com/jjricks/volt/RouteMapView.java:472	[{"spec": "%.0f", "arg": 1, "value": "mph", "as": "Fmt.decimal(Locale.US, mph, 0)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}, " / ", {"spec": "%.0f", "arg": 3, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 0)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 4}]	maps_route_speed_dual	format	one String.format of both systems, so one four-placeholder template (a format row replaces the whole call with one template call)
+src/com/jjricks/volt/RouteMapView.java:473	[{"spec": "%.0f", "arg": 1, "value": "mph", "as": "Fmt.decimal(Locale.US, mph, 0)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/RideChartView.java:35	["Ride chart"]	maps_chart_ride	exact	the private field chartTitle becomes a CharSequence holding the deferred Msg (R2), with fitActionLabel in the same declaration
 src/com/jjricks/volt/RideChartView.java:35	["Fit whole ride"]	maps_chart_fit_ride	exact	the private field fitActionLabel becomes a CharSequence holding the deferred Msg (R2)
 src/com/jjricks/volt/RideChartView.java:55	["Zoom in"]	maps_chart_zoom_in	exact	
 src/com/jjricks/volt/RideChartView.java:56	["Zoom out"]	maps_chart_zoom_out	exact	
 src/com/jjricks/volt/RideChartView.java:59	["Previous recorded sample"]	maps_chart_previous_sample	exact	
 src/com/jjricks/volt/RideChartView.java:61	["Next recorded sample"]	maps_chart_next_sample	exact	
-src/com/jjricks/volt/RideChartView.java:131	["Recording chart"]	maps_chart_recording	exact	manual: chartTitle is now a CharSequence (the default is a deferred Msg), so the ternary between the default and the caller's String title assigns it directly
-src/com/jjricks/volt/RideChartView.java:132	["Fit whole recording"]	maps_chart_fit_recording	exact	manual: fitActionLabel is now a CharSequence, as chartTitle (row at line 131)
+src/com/jjricks/volt/RideChartView.java:131	["Recording chart"]	maps_chart_recording	exact	chartTitle is now a CharSequence (the default is a deferred Msg), so the ternary between the default and the caller's String title assigns it directly
+src/com/jjricks/volt/RideChartView.java:132	["Fit whole recording"]	maps_chart_fit_recording	exact	fitActionLabel is now a CharSequence, as chartTitle (row at line 131)
 src/com/jjricks/volt/RideChartView.java:189	[". No readings selected"]	maps_chart_desc_no_readings	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
 src/com/jjricks/volt/RideChartView.java:190	[". No recorded samples"]	maps_chart_desc_no_samples	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
 src/com/jjricks/volt/RideChartView.java:192	[". At "]	maps_chart_desc_at	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator; the cursor time is appended after it
