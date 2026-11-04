@@ -452,6 +452,8 @@ public final class BackupActivity extends Activity {
     private static void submit(Runnable work){OPERATIONS.incrementAndGet();WORKER.execute(()->{try{work.run();}finally{OPERATIONS.decrementAndGet();}});}
     private void show(Runnable update){runOnUiThread(()->{if(!isDestroyed()&&!isFinishing())update.run();});}
     private void discardQuietly(AppDataBackup.PreparedRestore value){try{AppDataBackup.discard(this,value);}catch(IOException ignored){/* Startup recovery removes abandoned staging; never remove a transaction here. */}}
+    // RideBackupValidation reflects setBusy(String); keep this overload.
+    private void setBusy(String message){setBusy((CharSequence)message);}
     private void setBusy(CharSequence message){busy=true;status.setText(message);progress.setVisibility(View.VISIBLE);if(action!=null)action.setEnabled(false);if(closeAction!=null)closeAction.setEnabled(false);getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
     private void retry(String message){busy=false;status.setText(message);progress.setVisibility(View.GONE);if(action!=null)action.setEnabled(true);if(closeAction!=null)closeAction.setEnabled(true);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
     private void done(String message){busy=false;terminal=true;status.setText(message);progress.setVisibility(View.GONE);if(action!=null)action.setVisibility(View.GONE);if(closeAction==null)closeAction=button(M.backupCloseVolt(),this::requestClose);closeAction.setEnabled(true);getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);}
