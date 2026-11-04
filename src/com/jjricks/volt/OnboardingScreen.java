@@ -1225,7 +1225,7 @@ public final class OnboardingScreen implements AppScreen {
                     : state == BleController.State.CONNECTING ? 1 : 0;
             boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);
             boolean waitingToStart = prefs.getBoolean(KEY_CONNECT, false);
-            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.name) : T.onboardingConnectTitle());
+            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.displayName()) : T.onboardingConnectTitle());
             for (int i = 0; i < rows.length; i++) {
                 int mode = i < progress ? StateDot.DONE : i == progress && (busy || waitingToStart) ? StateDot.ACTIVE : StateDot.WAITING;
                 dots[i].setMode(mode);
@@ -1277,7 +1277,7 @@ public final class OnboardingScreen implements AppScreen {
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
         heading(T.onboardingDoneTitle(), true, true);
         ScooterProfiles.Profile p = onboardingProfile();
-        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.name), true);
+        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.displayName()), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
         content.addView(group, gp);
@@ -1528,14 +1528,16 @@ public final class OnboardingScreen implements AppScreen {
         words.setPadding(0, ui.dp(4), 0, 0);
         TextView name = ui.text("", 15.5f, false); name.setText(rich(heading));
         words.addView(name);
-        // Breadcrumbs (Settings › About phone) read in the layout's direction, not their first letter's.
-        int direction = host.activity().getResources().getConfiguration().getLayoutDirection() == View.LAYOUT_DIRECTION_RTL
-                ? View.TEXT_DIRECTION_RTL : View.TEXT_DIRECTION_LTR;
-        name.setTextDirection(direction);
+        // Breadcrumbs (Settings › About phone) in a right-to-left catalog language read right to left even
+        // when they start with a Latin word. Only the text's own language decides: English (and any
+        // left-to-right language) keeps the default first-strong direction on every phone, including a
+        // Hebrew or Arabic system language and Force RTL.
+        boolean rtlText = catalogRtl();
+        if (rtlText) name.setTextDirection(View.TEXT_DIRECTION_RTL);
         if (detail != null) {
             TextView sub = ui.text("", 13, false); sub.setText(rich(detail)); sub.setTextColor(ui.muted);
             sub.setPadding(0, ui.dp(3), 0, 0); words.addView(sub);
-            sub.setTextDirection(direction);
+            if (rtlText) sub.setTextDirection(View.TEXT_DIRECTION_RTL);
         }
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(14);
         item.addView(words, wp);
@@ -1545,6 +1547,12 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(-1, -2); ip.topMargin = ui.dp(16);
         item.setLayoutParams(ip);
         return item;
+    }
+
+    /** True when the resolved catalog language is a right-to-left one (l10n/lang rtl column). */
+    private static boolean catalogRtl() {
+        int i = AppLanguages.indexOf(AppLanguages.resolve(T.language()));
+        return i >= 0 && AppLanguages.rtl(i);
     }
 
     private LinearLayout fileCard(String heading, String detail, boolean ok) {
