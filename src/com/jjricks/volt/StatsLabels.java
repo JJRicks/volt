@@ -2,8 +2,8 @@ package com.jjricks.volt;
 
 /**
  * Live Stats text that StatsScreen and StatsCharts (Android views) choose by id, kept free of Android so
- * the pure tests can check it: row names without the raw marker, the section and chart-window labels,
- * shown unit symbols and the shown-language search.
+ * the pure tests can check it: row names without the raw marker,
+ * the chart-window labels, shown unit symbols and the shown-language search.
  */
 final class StatsLabels {
     private StatsLabels() {}
@@ -64,21 +64,11 @@ final class StatsLabels {
         }
     }
 
-    /** Catalog ids of the section labels, in the order of the ids StatsScreen stores (rule R5). */
-    private static final int[] SECTION_LABELS = {T.STATS_SECTION_OVERVIEW, T.STATS_SECTION_READINGS, T.STATS_SECTION_CHARTS,
-        T.STATS_SECTION_DIAGNOSTICS};
+    /** Catalog ids of the chart-window labels, in StatsCharts.WINDOWS order (rule R5); the saved choice is the index. */
+    private static final int[] WINDOW_LABELS = {T.STATS_WINDOW_2_MIN, T.STATS_WINDOW_10_MIN, T.STATS_WINDOW_1_HOUR,
+        T.STATS_WINDOW_6_HOURS, T.STATS_WINDOW_24_HOURS, T.STATS_WINDOW_7_DAYS, T.STATS_WINDOW_30_DAYS, T.STATS_WINDOW_ALL};
 
-    /** The shown labels of section ids, given the full id list they come from (StatsScreen.SECTIONS). */
-    static String[] sections(String[] ids, String[] all) {
-        String[] labels = new String[ids.length];
-        for (int i = 0; i < ids.length; i++) labels[i] = T.render(SECTION_LABELS[java.util.Arrays.asList(all).indexOf(ids[i])]);
-        return labels;
-    }
-
-    /** Catalog ids of the chart-window labels, in StatsCharts.WINDOWS order (rule R5). */
-    static final int[] WINDOW_LABELS = {T.STATS_WINDOW_2_MIN, T.STATS_WINDOW_10_MIN, T.STATS_WINDOW_1_HOUR, T.STATS_WINDOW_6_HOURS,
-        T.STATS_WINDOW_24_HOURS, T.STATS_WINDOW_7_DAYS, T.STATS_WINDOW_30_DAYS, T.STATS_WINDOW_ALL};
-
+    /** The chart-window labels in the current language. */
     static String[] windows() {
         String[] labels = new String[WINDOW_LABELS.length];
         for (int i = 0; i < labels.length; i++) labels[i] = T.render(WINDOW_LABELS[i]);
@@ -97,7 +87,11 @@ final class StatsLabels {
      * English the caller already searched, so nothing is added.
      */
     static boolean matchesShown(String query, String... shown) {
-        if (Fmt.legacy()) return false;
+        return !Fmt.legacy() && folded(query, shown);
+    }
+
+    /** Whether any of shown holds query, both folded as NaveeModels.displayFold folds; an empty query matches nothing. */
+    static boolean folded(String query, String... shown) {
         String needle = NaveeModels.displayFold(query.trim());
         if (needle.isEmpty()) return false;
         for (String text : shown) if (text != null && NaveeModels.displayFold(text).contains(needle)) return true;

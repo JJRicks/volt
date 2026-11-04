@@ -216,7 +216,7 @@ final class ChargeHistoryDialog {
             String pattern = android.text.format.DateFormat.getBestDateTimePattern(Fmt.locale(Locale.getDefault()), skeleton);
             time = new SimpleDateFormat(pattern, Fmt.locale(Locale.getDefault())).format(new Date(wall));
         } else time = DisplayTime.clock(host.activity(), settings, wall);
-        return date ? new SimpleDateFormat(Fmt.datePattern("MMM d", "MMMd", android.text.format.DateFormat::getBestDateTimePattern), Fmt.locale(Locale.getDefault())).format(new Date(wall)) + " " + time : time;
+        return date ? new SimpleDateFormat("MMM d", Fmt.locale(Locale.getDefault())).format(new Date(wall)) + " " + time : time;
     }
     private static String source(ChargeSessionStore.Source source) {
         return source == ChargeSessionStore.Source.PERSONAL ? T.statsChargeSourcePersonal() : source == ChargeSessionStore.Source.STOCK_REFERENCE ? T.statsChargeSourceStock() : source == ChargeSessionStore.Source.FAST_REFERENCE ? T.statsChargeSourceFast() : source == ChargeSessionStore.Source.CURRENT_RATE ? T.statsChargeSourceCurrentRate() : T.statsChargeSourceUnavailable();

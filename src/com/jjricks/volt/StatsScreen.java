@@ -123,7 +123,7 @@ public final class StatsScreen implements AppScreen {
         if (wide && selectedSection.equals("Readings")) selectedSection = "Overview";
         overviewSection = vertical(); readingsSection = vertical(); chartsSection = vertical(); diagnosticsSection = vertical();
         String[] sections = wide ? WIDE_SECTIONS : SECTIONS;
-        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), StatsLabels.sections(sections, SECTIONS), choice -> selectSection(sections[choice]));
+        sectionTabs = new SegmentedSelector(ui, T.statsSectionsDescription(), sections, choice -> selectSection(sections[choice]));
         sectionTabs.useCompactPadding();
         sectionTabs.setTag("live-stats-sections");
         sectionTabs.select(java.util.Arrays.asList(sections).indexOf(selectedSection), false);
@@ -472,7 +472,7 @@ public final class StatsScreen implements AppScreen {
             group.title.setCompoundDrawablesRelative(null, null, arrow, null);
             group.title.setContentDescription(T.statsGroupReadings(ScooterReadingLabels.group(group.name)));
             if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? T.statsStateExpanded() : T.statsStateCollapsed());
-            else group.title.setContentDescription(open ? T.statsGroupReadingsExpanded(ScooterReadingLabels.group(group.name)) : T.statsGroupReadingsCollapsed(ScooterReadingLabels.group(group.name)));
+            else group.title.setContentDescription(T.statsGroupReadingsState(ScooterReadingLabels.group(group.name), open ? T.statsStateExpandedSaid() : T.statsStateCollapsedSaid()));
         }
         resultCount.setText(count == 0 ? T.statsReadingsNoMatches()
                 : T.statsReadingsCount(count, count));
@@ -525,28 +525,20 @@ public final class StatsScreen implements AppScreen {
             electrical.append(display(reading));
         }
         SpannableStringBuilder pack = new SpannableStringBuilder();
-        StringBuilder packSaid = new StringBuilder();
         TelemetryHistory.Reading temperature = readings.get("temperature_c"), health = readings.get("battery_health_percent");
-        if (temperature != null && temperature.value != null) pack.append(T.statsPackTemperature(display(temperature)));
-        packSaid.append(pack);
+        if (temperature != null && temperature.value != null) pack.append(T.statsPack()).append(display(temperature));
         if (health != null && health.value != null) {
             // The controller's health figure is an estimate: tagged here, explained in its detail dialog.
-            // TalkBack hears the tag as a word ("Health 92 % estimated").
-            packSaid.append(pack.length() == 0 ? T.statsHealthSaid(display(health)) : T.statsHealthSaidAfter(display(health)));
-            pack.append(pack.length() == 0 ? T.statsHealth(display(health)) : T.statsHealthAfter(display(health))).append('\u00A0');
+            pack.append(pack.length() == 0 ? T.statsHealth() : T.statsHealthAfter()).append(display(health)).append('\u00A0');
             appendChip(pack, T.statsHealthChip());
         }
         // A missing electrical line is simply left out.
         SpannableStringBuilder details = new SpannableStringBuilder(electrical);
-        StringBuilder said = new StringBuilder(electrical);
-        if (pack.length() > 0) { if (details.length() > 0) { details.append('\n'); said.append('\n'); } details.append(pack); said.append(packSaid); }
-        if (soc != null && soc.value != null && !soc.live) {
-            String saved = savedTime(soc.capturedWallMs);
-            if (details.length() > 0) { details.append('\n'); said.append('\n'); }
-            details.append(saved); said.append(saved);
-        }
+        if (pack.length() > 0) { if (details.length() > 0) details.append('\n'); details.append(pack); }
+        if (soc != null && soc.value != null && !soc.live) { if (details.length() > 0) details.append('\n'); details.append(savedTime(soc.capturedWallMs)); }
+        // TalkBack hears the estimate tag as a word ("Health 92 % estimated").
+        batteryDetails.setContentDescription(spoken(details, T.statsHealthChipSaid()));
         batteryDetails.setText(details); batteryDetails.setVisibility(details.length() == 0 ? View.GONE : View.VISIBLE);
-        batteryDetails.setContentDescription(said.toString());
         refreshFavourites(readings);
     }
     private String rangeHeadline(TelemetryHistory.Reading range) {
@@ -555,7 +547,7 @@ public final class StatsScreen implements AppScreen {
         String units = preferences.getString("units", "mi");
         long km = Math.round(range.number), miles = Math.round(range.number / RideStore.KM_PER_MILE);
         String amount = "km".equals(units) ? T.fmtQuantity(Fmt.integer(km), T.unitsKm())
-                : "dual".equals(units) ? T.fmtDual(T.fmtQuantity(Fmt.integer(miles), T.unitsMi()), T.fmtQuantity(Fmt.integer(km), T.unitsKm()))
+                : "dual".equals(units) ? T.statsRangeDual(Fmt.integer(miles), T.unitsMi(), Fmt.integer(km), T.unitsKm())
                 : T.fmtQuantity(Fmt.integer(miles), T.unitsMi());
         return T.statsRangeLeft(amount);
     }
@@ -738,13 +730,15 @@ public final class StatsScreen implements AppScreen {
         if (reading == null) return;
         String when = DisplayTime.recent(host.activity(), preferences, reading.capturedWallMs, System.currentTimeMillis());
         // "92 % · Live 14:02"; a raw reading keeps its marker here, where there is no chip.
-        String detail = reading.value == null ? T.commonNotReported() : when.isEmpty()
-                ? T.statsDetail(raw(reading) ? T.statsDetailRaw(display(reading)) : display(reading), reading.live ? T.statsDetailLive() : T.statsDetailLastSeen())
-                : T.statsDetailWhen(raw(reading) ? T.statsDetailRaw(display(reading)) : display(reading), reading.live ? T.statsDetailLive() : T.statsDetailLastSeen(), when);
+        String detail = reading.value == null ? T.commonNotReported() : raw(reading)
+                ? reading.live ? when.isEmpty() ? T.statsDetailRawLive(display(reading)) : T.statsDetailRawLiveWhen(display(reading), when)
+                : when.isEmpty() ? T.statsDetailRawSeen(display(reading)) : T.statsDetailRawSeenWhen(display(reading), when)
+                : reading.live ? when.isEmpty() ? T.statsDetailLive(display(reading)) : T.statsDetailLiveWhen(display(reading), when)
+                : when.isEmpty() ? T.statsDetailSeen(display(reading)) : T.statsDetailSeenWhen(display(reading), when);
         if (key.equals("stored_trips") && reading.number != null && reading.number >= 1 && reading.value != null && reading.value.startsWith("Trip "))
             detail += "\n\n" + DisplayUnits.metricText(reading.value, preferences.getString("units", "mi"));
-        if (key.equals("battery_health_percent")) detail += "\n\n" + T.statsDetailHealthNote();
-        if (key.equals("energy_throughput_wh")) detail += "\n\n" + T.statsDetailEnergyNote();
+        if (key.equals("battery_health_percent")) detail += T.statsDetailHealthNote();
+        if (key.equals("energy_throughput_wh")) detail += T.statsDetailEnergyNote();
         metricDialog = new AlertDialog.Builder(host.activity()).setTitle(rowLabel(reading)).setMessage(detail)
                 .setNeutralButton(favourites.contains(key) ? T.statsDetailRemoveFavourite() : T.statsDetailAddFavourite(), (d, which) -> toggleFavourite(key))
                 .setPositiveButton(T.commonClose(), null).create(); metricDialog.show();
@@ -807,6 +801,17 @@ public final class StatsScreen implements AppScreen {
     private void appendChip(SpannableStringBuilder text, String chip) {
         int start = text.length(); text.append(chip);
         text.setSpan(new ChipSpan(ui.raised, ui.muted, ui.dp(5), ui.dp(2), ui.dp(6)), start, text.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+    /** text as TalkBack reads it: each chip, with the space before it, is said as the words said. */
+    private static String spoken(Spanned text, String said) {
+        ChipSpan[] chips = text.getSpans(0, text.length(), ChipSpan.class);
+        java.util.Arrays.sort(chips, (a, b) -> Integer.compare(text.getSpanStart(a), text.getSpanStart(b)));
+        StringBuilder out = new StringBuilder(); int at = 0;
+        for (ChipSpan chip : chips) {
+            int start = Math.max(at, text.getSpanStart(chip) - 1);
+            out.append(text, at, start).append(said); at = text.getSpanEnd(chip);
+        }
+        return out.append(text, at, text.length()).toString();
     }
     /** A small rounded tag drawn inline (RAW, est.), vertically centred on the surrounding text. */
     static final class ChipSpan extends ReplacementSpan {

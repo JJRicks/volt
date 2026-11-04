@@ -20,6 +20,9 @@ import java.util.function.Consumer;
 /** Searchable, lazy chart views over the same numerical observations that the phone retains. */
 final class StatsCharts {
     static final long[] WINDOWS = {120000, 600000, 3600000, 21600000, 86400000, 604800000, 2592000000L, 0};
+    // Unused: the picker shows StatsLabels.windows(). Kept until G1 can check deleting an array-initializer field
+    // (B16 report); delete it then.
+    static final String[] WINDOW_LABELS = {"2 min", "10 min", "1 hour", "6 hours", "24 hours", "7 days", "30 days", "All"};
     final LinearLayout view;
     final EditText search;
     final LinkedHashMap<String, Group> groups = new LinkedHashMap<>();
@@ -160,7 +163,7 @@ final class StatsCharts {
             android.graphics.drawable.Drawable arrow = new StatsScreen.StatsGlyph(false, open, ui.text);
             arrow.setBounds(0, 0, ui.dp(26), ui.dp(26));
             group.title.setCompoundDrawablesRelative(null, null, arrow, null);
-            group.title.setContentDescription(open ? T.statsChartGroupExpanded(ScooterReadingLabels.group(entry.getKey())) : T.statsChartGroupCollapsed(ScooterReadingLabels.group(entry.getKey())));
+            group.title.setContentDescription(T.statsChartGroupState(ScooterReadingLabels.group(entry.getKey()), open ? T.statsStateExpandedSaid() : T.statsStateCollapsedSaid()));
             if (Build.VERSION.SDK_INT >= 30) group.title.setStateDescription(open ? T.statsStateExpanded() : T.statsStateCollapsed());
             matches += groupMatches;
         }
@@ -223,7 +226,7 @@ final class StatsCharts {
             long wall = System.currentTimeMillis(), now = SystemClock.elapsedRealtime(), window = WINDOWS[windowIndex];
             boolean live = reading != null && reading.live && reading.number != null;
             latest.setText(reading == null || reading.number == null ? T.commonNotReported()
-                    : service.simulating() ? T.statsChartSample(value(key, reading.number)) : live ? value(key, reading.number)
+                    : service.simulating() ? T.statsChartSample(value(key, reading.number)) : live ? T.statsChartLive(value(key, reading.number))
                     : T.statsChartLastSeen(value(key, reading.number), DisplayTime.recent(host.activity(), prefs, reading.capturedWallMs, wall)));
             latest.setTextColor(live ? ui.text : ui.muted);
             if (service.simulating()) {
@@ -310,8 +313,8 @@ final class StatsCharts {
         return TelemetryHistory.unitFor(key);
     }
     private String value(String key, double raw) {
-        double n = number(key, raw); String shown = Fmt.decimal(Locale.US, n, Math.abs(n) >= 1000 ? 0 : 1);
-        return unit(key).isEmpty() ? shown : T.fmtQuantity(shown, StatsLabels.unitSymbol(unit(key)));
+        double n = number(key, raw); return unit(key).isEmpty() ? String.format(Fmt.locale(Locale.US), Math.abs(n) >= 1000 ? "%.0f" : "%.1f", n)
+                : T.fmtQuantity(String.format(Fmt.locale(Locale.US), Math.abs(n) >= 1000 ? "%.0f" : "%.1f", n), StatsLabels.unitSymbol(unit(key)));
     }
     private void expand(String key) {
         if (fullscreen != null) fullscreen.dismiss();
