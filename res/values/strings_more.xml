@@ -57,8 +57,8 @@
     <string name="more_unfinished_test_title" volt:screen="More" volt:purpose="title" volt:safety="experimental">Unfinished test</string>
     <!-- Screen-reader label of a switch whose state the scooter has not reported. %1$s is the switch's name. -->
     <string name="more_toggle_not_reported" volt:screen="More" volt:purpose="accessibility">%1$s, state not reported</string>
-    <!-- Screen-reader label of a switch whose state is known: just its name (%1$s). Keep it as it is unless your language adds something. -->
-    <string name="more_toggle_named" volt:screen="More" volt:purpose="accessibility">%1$s</string>
+    <!-- A name or reason shown by itself where other cases add words (a switch whose state is known, a reason with no reading before it). Keep %1$s as it is unless your language needs something around it. -->
+    <string name="more_plain" volt:screen="More" volt:purpose="accessibility">%1$s</string>
     <!-- Screen-reader text of a setup checklist step's number. %1$d is the step number. -->
     <string name="more_step" volt:screen="More" volt:purpose="accessibility">Step %1$d</string>
 
@@ -261,4 +261,580 @@
     <string name="more_refresh_5" volt:screen="Telemetry refresh" volt:purpose="option">5 seconds</string>
     <!-- Refresh choice. -->
     <string name="more_refresh_10" volt:screen="Telemetry refresh" volt:purpose="option">10 seconds</string>
+
+    <!-- ===== PIN & proximity unlock ===== -->
+
+    <!-- Group label: the PIN typed on the scooter's handlebar. -->
+    <string name="more_pin_handlebar" volt:screen="PIN &amp; proximity" volt:purpose="label" volt:safety="pin">Handlebar PIN</string>
+    <!-- Switch: let the handlebar PIN unlock the scooter without the phone. -->
+    <string name="more_pin_fallback" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">Fallback PIN</string>
+    <!-- Icon button: ask the scooter whether the PIN is on. -->
+    <string name="more_pin_read" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">Read PIN state</string>
+    <!-- Row: set a new handlebar PIN. -->
+    <string name="more_pin_set_row" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">Set or change PIN</string>
+    <!-- Group label and switch: unlock when the paired phone is close. -->
+    <string name="more_proximity_label" volt:screen="PIN &amp; proximity" volt:purpose="label" volt:safety="lock">Proximity unlock</string>
+    <!-- Row: pair the phone over Bluetooth, needed for proximity unlock. -->
+    <string name="more_proximity_pair" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="lock">Pair this phone with scooter</string>
+    <!-- Row: how to unlock with the handlebar PIN. -->
+    <string name="more_pin_guide_row" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">Unlock without phone</string>
+    <!-- Spinner shown while the scooter confirms a change. -->
+    <string name="more_waiting_confirmation" volt:screen="PIN &amp; proximity" volt:purpose="accessibility">Waiting for scooter confirmation</string>
+    <!-- Shown when the PIN dialog cannot open. -->
+    <string name="more_pin_owner_first" volt:screen="Set handlebar PIN" volt:purpose="toast" volt:safety="pin">Connect as the scooter owner before changing its PIN.</string>
+    <!-- Title of the PIN dialog. -->
+    <string name="more_pin_title" volt:screen="Set handlebar PIN" volt:purpose="title" volt:safety="pin">Set handlebar PIN</string>
+    <!-- Under the PIN dialog title. -->
+    <string name="more_pin_body" volt:screen="Set handlebar PIN" volt:purpose="dialog" volt:safety="pin">Your phone-free fallback. Keep it safe. Digits are never shown or exported.</string>
+    <!-- Step label: type the new PIN. -->
+    <string name="more_pin_enter" volt:screen="Set handlebar PIN" volt:purpose="label" volt:safety="pin">Enter a new PIN</string>
+    <!-- Hint of the hidden PIN field (also read by screen readers). -->
+    <string name="more_pin_enter_hint" volt:screen="Set handlebar PIN" volt:purpose="hint" volt:safety="pin">Enter a new PIN, four digits</string>
+    <!-- Button: go to the next step. -->
+    <string name="more_next" volt:screen="Set handlebar PIN" volt:purpose="button">Next</string>
+    <!-- Screen-reader text of the first step's label. -->
+    <string name="more_pin_step_one" volt:screen="Set handlebar PIN" volt:purpose="accessibility" volt:safety="pin">Step 1 of 2. Enter a new PIN</string>
+    <!-- Shown when the PIN is not four digits. -->
+    <string name="more_pin_digits" volt:screen="Set handlebar PIN" volt:purpose="error" volt:safety="pin">Enter exactly four numeric digits.</string>
+    <!-- Step label: type the same PIN again. -->
+    <string name="more_pin_repeat" volt:screen="Set handlebar PIN" volt:purpose="label" volt:safety="pin">Repeat PIN</string>
+    <!-- Screen-reader text of the second step's label. -->
+    <string name="more_pin_step_two" volt:screen="Set handlebar PIN" volt:purpose="accessibility" volt:safety="pin">Step 2 of 2. Repeat PIN</string>
+    <!-- Hint of the hidden PIN field on the second step. -->
+    <string name="more_pin_repeat_hint" volt:screen="Set handlebar PIN" volt:purpose="hint" volt:safety="pin">Repeat PIN, four digits</string>
+    <!-- Button: send the new PIN to the scooter. -->
+    <string name="more_pin_set" volt:screen="Set handlebar PIN" volt:purpose="button" volt:safety="pin">Set PIN</string>
+    <!-- Shown when the two PINs differ; the dialog starts over. -->
+    <string name="more_pin_mismatch" volt:screen="Set handlebar PIN" volt:purpose="error" volt:safety="pin">PINs didn\'t match. Try again.</string>
+    <!-- Shown when the owner connection dropped before the PIN was sent. -->
+    <string name="more_pin_reconnect" volt:screen="Set handlebar PIN" volt:purpose="error" volt:safety="pin">Reconnect as the scooter owner first.</string>
+    <!-- Shown when another change is still being confirmed. -->
+    <string name="more_pin_wait" volt:screen="Set handlebar PIN" volt:purpose="error" volt:safety="pin">Wait for the current scooter change to finish.</string>
+    <!-- Shown when the scooter did not start the PIN change. %1$s is Volt's connection message saying why. -->
+    <string name="more_pin_not_started" volt:screen="Set handlebar PIN" volt:purpose="error" volt:safety="pin">PIN change did not start. %1$s</string>
+    <!-- Under the guide's title: when the steps apply. -->
+    <string name="more_pin_guide_body" volt:screen="Unlock without phone" volt:purpose="dialog" volt:safety="pin">Scooter parked and locked.</string>
+    <!-- Guide step 1, on the handlebar. -->
+    <string name="more_pin_guide_signal" volt:screen="Unlock without phone" volt:purpose="step" volt:safety="pin">Tap turn signal</string>
+    <!-- Guide step 2: choose each digit with the turn signal, confirm it with the brake. -->
+    <string name="more_pin_guide_digit" volt:screen="Unlock without phone" volt:purpose="step" volt:safety="pin">Set digit, squeeze brake</string>
+    <!-- Guide step 3. -->
+    <string name="more_pin_guide_power" volt:screen="Unlock without phone" volt:purpose="step" volt:safety="pin">Press power</string>
+    <!-- Screen-reader text of a guide step. %1$d is its number, %2$s the step ("Tap turn signal"). -->
+    <string name="more_pin_guide_step" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">Step %1$d, %2$s</string>
+    <!-- Last note in the guide. -->
+    <string name="more_pin_guide_note" volt:screen="Unlock without phone" volt:purpose="note" volt:safety="lock">With proximity unlock: paired phone close, squeeze brake. Test both while parked before relying on them.</string>
+    <!-- Button: close the guide. -->
+    <string name="more_got_it" volt:screen="Unlock without phone" volt:purpose="button">Got it</string>
+    <!-- Screen-reader text of the handlebar drawing; the numbers match the drawing's markers. -->
+    <string name="more_pin_diagram" volt:screen="Unlock without phone" volt:purpose="accessibility" volt:safety="pin">Handlebar: 1 turn-signal button, 2 brake lever, 3 power button</string>
+
+    <!-- ===== Experimental controls ===== -->
+
+    <!-- Card title when the official app doesn't offer some controls on this model. -->
+    <string name="more_lab_untested" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Untested controls</string>
+    <!-- Card title and group label: controls the official app offers here but Volt hasn't tested. -->
+    <string name="more_lab_help_verify" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Help verify</string>
+    <!-- Card title when there is nothing to try on this scooter. -->
+    <string name="more_lab_nothing" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Nothing to try</string>
+    <!-- Row: show what the scooter answered to each change (developer detail). -->
+    <string name="more_lab_evidence" volt:screen="Experimental controls" volt:purpose="row">Command evidence</string>
+    <!-- Red row: forget the results of finished tries (asks first). -->
+    <string name="more_lab_clear_tries" volt:screen="Experimental controls" volt:purpose="row" volt:safety="experimental">Clear try results</string>
+    <!-- Title of the confirmation before forgetting try results. -->
+    <string name="more_lab_clear_title" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Clear try results?</string>
+    <!-- Body of that confirmation. "Set back" is the button's name. -->
+    <string name="more_lab_clear_body" volt:screen="Experimental controls" volt:purpose="dialog" volt:safety="experimental">Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them.</string>
+    <!-- Shown after Clear when there was nothing to clear. -->
+    <string name="more_lab_cleared_none" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">No finished tries to clear</string>
+    <!-- Shown after Clear removed one try's result. -->
+    <string name="more_lab_cleared_one" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
+    <!-- Shown after Clear removed two or more tries' results. %1$d is how many (2 or more). -->
+    <string name="more_lab_cleared_many" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
+    <!-- Intro of Experimental controls. %1$s names the model: "the N65i", "Model 24431" or "your model" (more_lab_model_the, more_lab_your_model). -->
+    <string name="more_lab_intro_untested" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer these for %1$s. Try one while parked; Volt reads it back.</string>
+    <!-- Intro when the controls are offered by the official app but untested by Volt. %1$s names the model as in more_lab_intro_untested. -->
+    <string name="more_lab_intro_verify" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">The official app offers these for %1$s, but Volt hasn\'t tested them there. Try one while parked; Volt reads it back.</string>
+    <!-- Added after the footnote when there are rows to try. -->
+    <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
+    <!-- Footnote for a model whose controls the official app lists. -->
+    <string name="more_lab_foot_oem" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware.</string>
+    <!-- more_lab_foot_oem followed by more_lab_kept, as one text. -->
+    <string name="more_lab_foot_oem_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
+    <!-- Footnote for the UT5 MAX. -->
+    <string name="more_lab_foot_elsewhere" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware.</string>
+    <!-- more_lab_foot_elsewhere followed by more_lab_kept, as one text. -->
+    <string name="more_lab_foot_elsewhere_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
+    <!-- Footnote for other models. -->
+    <string name="more_lab_foot" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt never changes firmware.</string>
+    <!-- more_lab_foot followed by more_lab_kept, as one text. -->
+    <string name="more_lab_foot_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
+    <!-- Shown while Volt connects to the scooter. -->
+    <string name="more_connecting" volt:screen="Experimental controls" volt:purpose="status">Connecting…</string>
+    <!-- Group label: controls to try. -->
+    <string name="more_lab_try_here" volt:screen="Experimental controls" volt:purpose="label" volt:safety="experimental">Try on this scooter</string>
+    <!-- Under the Help verify group. -->
+    <string name="more_lab_verify_note" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">The official app offers these for your model, but Volt hasn\'t tested them on it. Your try and answer go in your next compatibility report.</string>
+    <!-- Group label: controls this scooter doesn't report, so Volt can't read them back. -->
+    <string name="more_lab_absent" volt:screen="Experimental controls" volt:purpose="label" volt:safety="experimental">Not reported by this scooter</string>
+    <!-- Under the Not reported group. -->
+    <string name="more_lab_absent_note" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt can\'t read these back, so it doesn\'t offer them.</string>
+    <!-- Intro when the product isn't a supported scooter. -->
+    <string name="more_lab_empty_product" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Volt sends no scooter commands to this product.</string>
+    <!-- Intro when the official app offers everything. %1$s names the model as in more_lab_intro_untested. -->
+    <string name="more_lab_empty_oem" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Nothing to try on %1$s: the official app already offers the controls Volt could try. They\'re in Scooter settings.</string>
+    <!-- Intro on the UT5 MAX. UT5 MAX is a model name. -->
+    <string name="more_lab_empty_ut5" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental" volt:dnt="UT5 MAX">Nothing to try on the UT5 MAX.</string>
+    <!-- Intro when the model ID and serial number disagree. -->
+    <string name="more_lab_empty_conflict" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">This scooter\'s model ID doesn\'t match its serial number, so Volt offers nothing to try.</string>
+    <!-- Intro for a model the official app doesn't list. -->
+    <string name="more_lab_empty_unlisted" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">The official app doesn\'t list this model, so Volt can\'t tell which controls it lacks. Nothing to try yet.</string>
+    <!-- Intro when only the serial number hints at the model. -->
+    <string name="more_lab_empty_identify" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Identify your model on the Scooter page first. Volt then lists what you can try.</string>
+    <!-- Intro before Volt has seen the scooter. -->
+    <string name="more_lab_empty_connect" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">Connect your scooter to see what you can try.</string>
+    <!-- A named model inside the intro sentences: %1$s is its name ("N65i"), giving "the N65i". Lower case on purpose; adapt to how your language names a model mid-sentence. -->
+    <string name="more_lab_model_the" volt:screen="Experimental controls" volt:purpose="fragment" volt:safety="experimental">the %1$s</string>
+    <!-- The model inside the intro sentences when Volt doesn't know it. Lower case on purpose. -->
+    <string name="more_lab_your_model" volt:screen="Experimental controls" volt:purpose="fragment" volt:safety="experimental">your model</string>
+    <!-- Kick-start speed 0 km/h: the motor helps from a standstill. -->
+    <string name="more_lab_standing_start" volt:screen="Experimental controls" volt:purpose="value" volt:safety="experimental">Standing start</string>
+    <!-- Screen-reader label of a control this scooter doesn't report. %1$s is the control's name. -->
+    <string name="more_lab_absent_row" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">%1$s, not reported by this scooter</string>
+    <!-- Button: try a control's new value. -->
+    <string name="more_lab_try" volt:screen="Experimental controls" volt:purpose="button" volt:safety="experimental">Try</string>
+    <!-- A control's current value. %1$s is the value ("20 km/h"). -->
+    <string name="more_lab_now" volt:screen="Experimental controls" volt:purpose="value" volt:safety="experimental">Now %1$s</string>
+    <!-- A control's current value after a try. %1$s is the value now, %2$s the value before the try. -->
+    <string name="more_lab_now_was" volt:screen="Experimental controls" volt:purpose="value" volt:safety="experimental">Now %1$s · was %2$s</string>
+    <!-- A control's value line followed by why it can't be tried now. %1$s is the value line ("Now 20 km/h"), %2$s the reason. -->
+    <string name="more_lab_value_reason" volt:screen="Experimental controls" volt:purpose="value" volt:safety="experimental">%1$s · %2$s</string>
+    <!-- Button: review an unfinished try. -->
+    <string name="more_lab_review" volt:screen="Experimental controls" volt:purpose="button" volt:safety="experimental">Review</string>
+    <!-- Button: return a control to its value before the try. -->
+    <string name="more_lab_set_back" volt:screen="Experimental controls" volt:purpose="button" volt:safety="experimental">Set back</string>
+    <!-- Screen-reader label of Review. %1$s is the control's name, still in English lower case for now ("cruise control"). -->
+    <string name="more_lab_review_row" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">Review the unfinished %1$s try</string>
+    <!-- Screen-reader label of Set back. %1$s is the control's name, still in English lower case for now; %2$s the value before the try. -->
+    <string name="more_lab_set_back_row" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">Set %1$s back to %2$s</string>
+    <!-- Screen-reader label of Try. %1$s is the control's name, still in English lower case for now. -->
+    <string name="more_lab_try_row" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">Try %1$s</string>
+    <!-- Screen-reader label of a control's row. %1$s is the control's name, %2$s its status ("Untested on your model"). -->
+    <string name="more_lab_row" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">%1$s, %2$s</string>
+    <!-- Screen-reader label of a control's row with a value line. %1$s name, %2$s status, %3$s value line ("Now 20 km/h"). -->
+    <string name="more_lab_row_value" volt:screen="Experimental controls" volt:purpose="accessibility" volt:safety="experimental">%1$s, %2$s, %3$s</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_connect" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Connect to try these.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_stale" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Waiting for fresh scooter status.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_moving" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="ride">Stop the scooter to try these.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_parked" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="ride">Waiting for the scooter to report that it\'s parked.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_warning" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Resolve the scooter\'s warning to try these.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_locked" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="lock">Unlock the scooter to try these.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_owner" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="owner-key">Only the owner\'s profile can try these.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_discovery" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Wait for the compatibility check to finish.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_test" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Finish the current try first.</string>
+    <!-- Why no control can be tried now. -->
+    <string name="more_lab_held_recording" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="ride">Stop recording to try these.</string>
+    <!-- Try sheet status: the try waits for the owner to say what they saw. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_waiting" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Waiting for your answer</string>
+    <!-- Shorter more_lab_status_waiting. -->
+    <string name="more_lab_status_waiting_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Your answer</string>
+    <!-- Row status while the try waits for the owner's answer. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_ask" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Did you see it change?</string>
+    <!-- Shorter more_lab_status_ask. -->
+    <string name="more_lab_status_ask_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Answer</string>
+    <!-- Status while Volt returns the control to its earlier value. -->
+    <string name="more_lab_status_setting_back" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Setting back…</string>
+    <!-- Status after a try in the simulator (nothing was sent). Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_simulated" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Simulated change</string>
+    <!-- Shorter more_lab_status_simulated. -->
+    <string name="more_lab_status_simulated_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Simulated</string>
+    <!-- Status of a try that didn't finish. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_unfinished" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Unfinished · review</string>
+    <!-- Shorter more_lab_status_unfinished. -->
+    <string name="more_lab_status_unfinished_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Unfinished</string>
+    <!-- Try sheet status before any try. -->
+    <string name="more_lab_status_not_tried" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Not tried yet</string>
+    <!-- Row status: offered by the official app here, untested by Volt. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_unverified" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Unverified on your model</string>
+    <!-- Shorter more_lab_status_unverified. -->
+    <string name="more_lab_status_unverified_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Unverified here</string>
+    <!-- Shortest more_lab_status_unverified. -->
+    <string name="more_lab_status_unverified_compact" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="compact" volt:safety="experimental">Unverified</string>
+    <!-- Row status: not offered by the official app here. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_untested" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Untested on your model</string>
+    <!-- Shorter more_lab_status_untested. -->
+    <string name="more_lab_status_untested_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Untested here</string>
+    <!-- Shortest more_lab_status_untested. -->
+    <string name="more_lab_status_untested_compact" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="compact" volt:safety="experimental">Untested</string>
+    <!-- Status: the last try changed the setting as asked. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_worked" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Worked here</string>
+    <!-- Shorter more_lab_status_worked. -->
+    <string name="more_lab_status_worked_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Worked</string>
+    <!-- Status: the scooter answered the last try with an error. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_refused" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Refused by scooter</string>
+    <!-- Shorter more_lab_status_refused. -->
+    <string name="more_lab_status_refused_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Refused</string>
+    <!-- Status: the scooter read back another value than tried. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_other_value" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">Other value read</string>
+    <!-- Shorter more_lab_status_other_value. -->
+    <string name="more_lab_status_other_value_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">Other value</string>
+    <!-- Status: the last try was never sent. -->
+    <string name="more_lab_status_not_sent" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Not sent</string>
+    <!-- Status: the owner saw no change. Full wording; shorter rungs follow when the pill has no room. -->
+    <string name="more_lab_status_no_change" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="full" volt:safety="experimental">No change seen</string>
+    <!-- Shorter more_lab_status_no_change. -->
+    <string name="more_lab_status_no_change_short" volt:screen="Experimental controls" volt:purpose="status" volt:ladder="short" volt:safety="experimental">No change</string>
+    <!-- Try sheet status: sent, but no conclusive readback. -->
+    <string name="more_lab_status_unconfirmed_sheet" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Unconfirmed · reconnect to check</string>
+    <!-- Status: sent, but no conclusive readback. -->
+    <string name="more_lab_status_unconfirmed" volt:screen="Experimental controls" volt:purpose="status" volt:safety="experimental">Unconfirmed</string>
+    <!-- Try sheet caution title. %1$s names the model as in more_lab_intro_untested ("the N65i", "your model"). -->
+    <string name="more_lab_unverified_on" volt:screen="Try sheet" volt:purpose="title" volt:safety="experimental">Unverified on %1$s</string>
+    <!-- Try sheet caution title. %1$s names the model as in more_lab_intro_untested. -->
+    <string name="more_lab_untested_on" volt:screen="Try sheet" volt:purpose="title" volt:safety="experimental">Untested on %1$s</string>
+    <!-- Try sheet caution for a control to help verify. -->
+    <string name="more_lab_verify_why" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this for your model, but Volt hasn\'t tested it there. Your try and answer go in your next compatibility report.</string>
+    <!-- Try sheet: the current value's label, and the tag beside the current value's option. -->
+    <string name="more_lab_now_label" volt:screen="Try sheet" volt:purpose="label">Now</string>
+    <!-- Try sheet: the last try's result label. -->
+    <string name="more_lab_last_try" volt:screen="Try sheet" volt:purpose="label">Last try</string>
+    <!-- Shown after the scooter refused the last try. -->
+    <string name="more_lab_refused_note" volt:screen="Try sheet" volt:purpose="caption" volt:safety="experimental">Your scooter refused this last time: it answered with an error, so it most likely doesn\'t support this setting. Trying again usually gets the same answer.</string>
+    <!-- Section label above the question about what the owner saw. -->
+    <string name="more_lab_your_answer" volt:screen="Try sheet" volt:purpose="label">Your answer</string>
+    <!-- Under the question. -->
+    <string name="more_lab_look_hint" volt:screen="Try sheet" volt:purpose="caption" volt:safety="experimental">Look at the scooter while it\'s parked. Your answer goes in your next compatibility report with what the scooter read back.</string>
+    <!-- Answer: yes, I saw it change. -->
+    <string name="more_yes" volt:screen="Try sheet" volt:purpose="button">Yes</string>
+    <!-- Answer: no, I saw no change. -->
+    <string name="more_no" volt:screen="Try sheet" volt:purpose="button">No</string>
+    <!-- Answer: skip the question. -->
+    <string name="more_skip" volt:screen="Try sheet" volt:purpose="button">Skip</string>
+    <!-- Shown in the sheet for an unfinished try. -->
+    <string name="more_lab_unfinished_text" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">This try didn\'t finish, so the scooter may still be on the value tried. Review it to set it back or keep it.</string>
+    <!-- Section label above a slider of limits. -->
+    <string name="more_lab_choose_limit" volt:screen="Try sheet" volt:purpose="label" volt:safety="experimental">Choose a limit</string>
+    <!-- Section label above the list of values. -->
+    <string name="more_lab_choose_value" volt:screen="Try sheet" volt:purpose="label" volt:safety="experimental">Choose a value</string>
+    <!-- Foot of the Try sheet: how a try works. -->
+    <string name="more_lab_sheet_note" volt:screen="Try sheet" volt:purpose="caption" volt:safety="experimental">Volt sends one change while the scooter is parked and unlocked, reads it back, then asks what you saw. The value stays until you set it back. If the connection drops, Volt never writes again by itself: the try waits for your review.</string>
+    <!-- Progress while Volt checks the setting went back. -->
+    <string name="more_lab_checking_unchanged" volt:screen="Try sheet" volt:purpose="status" volt:safety="experimental">Checking it is unchanged…</string>
+    <!-- Progress while Volt sets the control back. %1$s is the earlier value. -->
+    <string name="more_lab_setting_back_to" volt:screen="Try sheet" volt:purpose="status" volt:safety="experimental">Setting it back to %1$s…</string>
+    <!-- Progress before a try. -->
+    <string name="more_lab_reading_current" volt:screen="Try sheet" volt:purpose="status" volt:safety="experimental">Reading the current value…</string>
+    <!-- Progress during a try. %1$s is the value tried. -->
+    <string name="more_lab_sending" volt:screen="Try sheet" volt:purpose="status" volt:safety="experimental">Sending %1$s and reading it back…</string>
+    <!-- The question after a try. -->
+    <string name="more_lab_did_you_see" volt:screen="Try sheet" volt:purpose="question" volt:safety="experimental">Did you see it change?</string>
+    <!-- Try button when the chosen value is the current one. %1$s is the value. -->
+    <string name="more_lab_already" volt:screen="Try sheet" volt:purpose="button" volt:safety="experimental">Already %1$s</string>
+    <!-- Try button after a refusal. %1$s is the chosen value. -->
+    <string name="more_lab_try_again_value" volt:screen="Try sheet" volt:purpose="button" volt:safety="experimental">Try again: %1$s</string>
+    <!-- Try button. %1$s is the chosen value ("20 km/h"). -->
+    <string name="more_lab_try_value" volt:screen="Try sheet" volt:purpose="button" volt:safety="experimental">Try %1$s</string>
+    <!-- Caution before a try from a value the official app shows but doesn't offer. %1$s is the current value. -->
+    <string name="more_lab_cant_set_back" volt:screen="Try sheet" volt:purpose="caution" volt:safety="experimental">Volt can\'t set it back to %1$s afterwards: the official app doesn\'t offer that here.</string>
+    <!-- Set back button. %1$s is the value before the try. -->
+    <string name="more_lab_set_back_to" volt:screen="Try sheet" volt:purpose="button" volt:safety="experimental">Set back to %1$s</string>
+    <!-- Try sheet caution. %1$d is 1. -->
+    <string name="more_lab_why_one" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- Try sheet caution. %1$d is how many other models (2 or more). -->
+    <string name="more_lab_why_many" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- Try sheet caution when no other model has it in the official app. -->
+    <string name="more_lab_why_none" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer this on your model. It may do nothing here, or work differently.</string>
+    <!-- Under the Command evidence title. -->
+    <string name="more_lab_evidence_hidden" volt:screen="Command evidence" volt:purpose="dialog" volt:safety="pin">PIN and auth bytes hidden</string>
+    <!-- Shown when no change was sent yet. -->
+    <string name="more_lab_no_changes" volt:screen="Command evidence" volt:purpose="note">No changes yet</string>
+    <!-- The clock sync's latest result: a title line, then %1$s, the result. -->
+    <string name="more_lab_evidence_clock" volt:screen="Command evidence" volt:purpose="note">Local clock sync\n%1$s</string>
+    <!-- A control's latest result: %1$s the control's name, then %2$s the result on the next line. -->
+    <string name="more_lab_evidence_line" volt:screen="Command evidence" volt:purpose="note">%1$s\n%2$s</string>
+    <!-- Heading above the connection log (the log itself stays in English). -->
+    <string name="more_lab_activity" volt:screen="Command evidence" volt:purpose="title">Connection activity</string>
+    <!-- Shown when the connection log is empty. -->
+    <string name="more_lab_no_activity" volt:screen="Command evidence" volt:purpose="note">No connection activity yet.</string>
+
+    <!-- ===== About & permissions ===== -->
+
+    <!-- App name and version (%1$s, "1.11.1"). Tap it seven times to show Developer options. -->
+    <string name="more_about_version" volt:screen="About &amp; permissions" volt:purpose="title" volt:dnt="Volt">Volt %1$s</string>
+    <!-- Under the version: Volt talks to the scooter only over Bluetooth and needs no account. -->
+    <string name="more_about_tagline" volt:screen="About &amp; permissions" volt:purpose="caption" volt:safety="privacy">Bluetooth only · no account</string>
+    <!-- Row: ask GitHub for Volt's latest release. -->
+    <string name="more_about_check_updates" volt:screen="About &amp; permissions" volt:purpose="row">Check for updates</string>
+    <!-- Group label: Android permissions Volt uses. -->
+    <string name="more_about_permissions" volt:screen="About &amp; permissions" volt:purpose="label">Permissions</string>
+    <!-- Android's Nearby devices (Bluetooth) permission. Use Android's own name. -->
+    <string name="more_about_nearby" volt:screen="About &amp; permissions" volt:purpose="row">Nearby devices</string>
+    <!-- Why Volt needs Nearby devices. -->
+    <string name="more_about_nearby_sub" volt:screen="About &amp; permissions" volt:purpose="caption">Connects to your scooter</string>
+    <!-- Android's Location permission. Use Android's own name. -->
+    <string name="more_about_location" volt:screen="About &amp; permissions" volt:purpose="row" volt:safety="privacy">Location</string>
+    <!-- Why Volt needs Location, on Android 11 and older. -->
+    <string name="more_about_location_old" volt:screen="About &amp; permissions" volt:purpose="caption" volt:safety="privacy">Ride route · also needed for Bluetooth</string>
+    <!-- Why Volt needs Location, on Android 12 and newer. -->
+    <string name="more_about_location_sub" volt:screen="About &amp; permissions" volt:purpose="caption" volt:safety="privacy">Ride route, only while recording</string>
+    <!-- Android's Notifications permission. Use Android's own name. -->
+    <string name="more_about_notifications" volt:screen="About &amp; permissions" volt:purpose="row">Notifications</string>
+    <!-- Why Volt needs Notifications: the recording notification has a Stop button. -->
+    <string name="more_about_notifications_sub" volt:screen="About &amp; permissions" volt:purpose="caption">Recording notification with Stop</string>
+    <!-- Group label: where Volt keeps data. -->
+    <string name="more_about_your_data" volt:screen="About &amp; permissions" volt:purpose="label" volt:safety="privacy">Your data</string>
+    <!-- "Back up & restore" and "More" name places in the app (more_backup_restore, more_title). -->
+    <string name="more_about_data_note" volt:screen="About &amp; permissions" volt:purpose="note" volt:safety="privacy">All data stays on this phone. Back up &amp; restore is in More.</string>
+    <!-- Row: the ride map's online background. -->
+    <string name="more_about_online_map" volt:screen="About &amp; permissions" volt:purpose="row" volt:safety="privacy">Online map</string>
+    <!-- Row: open the connection log. -->
+    <string name="more_about_activity" volt:screen="About &amp; permissions" volt:purpose="row">Connection activity</string>
+    <!-- Row and dialog title: open-source licences and credits. -->
+    <string name="more_about_licenses" volt:screen="About &amp; permissions" volt:purpose="row">Licenses &amp; attribution</string>
+    <!-- Row: connect to the current scooter. -->
+    <string name="more_about_connect" volt:screen="About &amp; permissions" volt:purpose="row">Connect selected scooter</string>
+    <!-- Title of the first-time consent before asking GitHub. GitHub is a name. -->
+    <string name="more_update_ask_title" volt:screen="Update check" volt:purpose="title" volt:safety="privacy" volt:dnt="GitHub">Check GitHub for updates?</string>
+    <!-- What asking GitHub reveals. -->
+    <string name="more_update_ask_body" volt:screen="Update check" volt:purpose="dialog" volt:safety="privacy" volt:dnt="GitHub">Volt asks GitHub for its latest release. GitHub sees your IP address and your Volt version; nothing else is sent. Volt never downloads or installs anything itself.</string>
+    <!-- Button: ask GitHub now. -->
+    <string name="more_update_check" volt:screen="Update check" volt:purpose="button">Check</string>
+    <!-- Shown while the check runs. -->
+    <string name="more_update_checking" volt:screen="Update check" volt:purpose="title">Checking for updates</string>
+    <!-- Shown while the check runs. -->
+    <string name="more_update_asking" volt:screen="Update check" volt:purpose="dialog" volt:dnt="GitHub">Asking GitHub for the latest release…</string>
+    <!-- A newer release exists. %1$s is its version ("1.12.0"). -->
+    <string name="more_update_available" volt:screen="Update check" volt:purpose="title" volt:dnt="Volt">Volt %1$s is available</string>
+    <!-- %1$s is the installed version. -->
+    <string name="more_update_available_body" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Get it from the release page and install it over this version; your data stays.</string>
+    <!-- No newer release. -->
+    <string name="more_update_current" volt:screen="Update check" volt:purpose="title">You\'re up to date</string>
+    <!-- %1$s is the installed development version, %2$s the latest release. -->
+    <string name="more_update_dev" volt:screen="Update check" volt:purpose="dialog" volt:dnt="Volt">Volt %1$s is a development build. The latest release is %2$s.</string>
+    <!-- %1$s is the installed version. -->
+    <string name="more_update_latest" volt:screen="Update check" volt:purpose="dialog" volt:dnt="Volt">Volt %1$s is the latest release.</string>
+    <!-- The check failed. -->
+    <string name="more_update_failed" volt:screen="Update check" volt:purpose="title">Couldn\'t check for updates</string>
+    <!-- Why the check failed. -->
+    <string name="more_update_no_answer" volt:screen="Update check" volt:purpose="dialog" volt:dnt="GitHub">GitHub didn\'t answer. Check your connection and try again.</string>
+    <!-- Why the check failed. -->
+    <string name="more_update_unreadable" volt:screen="Update check" volt:purpose="dialog" volt:dnt="GitHub">GitHub\'s reply wasn\'t one Volt could read. Try again later, or see the releases page in your browser.</string>
+    <!-- Button: open the release page in the browser. -->
+    <string name="more_update_open" volt:screen="Update check" volt:purpose="button">Open release page</string>
+    <!-- Shown when no browser app is installed. -->
+    <string name="more_update_no_browser" volt:screen="Update check" volt:purpose="toast">No browser could open the release page</string>
+    <!-- Shown when the version is tapped again after Developer options are on. -->
+    <string name="more_dev_already" volt:screen="About &amp; permissions" volt:purpose="toast">Developer options are already enabled.</string>
+    <!-- Shown after the seventh tap on the version. -->
+    <string name="more_dev_enabled" volt:screen="About &amp; permissions" volt:purpose="toast">Developer options enabled.</string>
+    <!-- Countdown while tapping the version. %1$d is how many taps are left (1 to 3). -->
+    <plurals name="more_dev_taps" volt:screen="About &amp; permissions" volt:purpose="toast">
+        <item quantity="one">%1$d more tap to enable developer options.</item>
+        <item quantity="other">%1$d more taps to enable developer options.</item>
+    </plurals>
+    <!-- Shown when no email app can draft the issue report. -->
+    <string name="more_report_no_email" volt:screen="More" volt:purpose="toast">No email app could open the report.</string>
+
+    <!-- ===== Developer options ===== -->
+
+    <!-- Row: open the read-only compatibility check. -->
+    <string name="more_dev_compat" volt:screen="Developer options" volt:purpose="row">Compatibility checker</string>
+    <!-- Under the Compatibility checker row. -->
+    <string name="more_dev_compat_sub" volt:screen="Developer options" volt:purpose="caption">Model check &amp; report</string>
+    <!-- Switch: show sample data as if a scooter were connected. -->
+    <string name="more_dev_simulate" volt:screen="Developer options" volt:purpose="row">Simulate scooter as connected</string>
+    <!-- Row and dialog title: which model the simulator acts as (the model names stay in English). -->
+    <string name="more_dev_simulated_model" volt:screen="Developer options" volt:purpose="row">Simulated model</string>
+    <!-- Shown while the simulator runs. -->
+    <string name="more_dev_simulation_active" volt:screen="Developer options" volt:purpose="caption">Simulation active · sample data</string>
+    <!-- Developer options row value while the simulator runs. -->
+    <string name="more_dev_simulating" volt:screen="Developer options" volt:purpose="value">Simulating</string>
+    <!-- Group label: recording charges to tune estimates. -->
+    <string name="more_dev_charge_recording" volt:screen="Developer options" volt:purpose="label" volt:safety="charge">Charge recording</string>
+    <!-- Label above the charger choice. -->
+    <string name="more_dev_charger" volt:screen="Developer options" volt:purpose="label" volt:safety="charge">Charger for estimates</string>
+    <!-- Charger choice: recognize the charger from live power. -->
+    <string name="more_dev_auto" volt:screen="Developer options" volt:purpose="option" volt:safety="charge">Auto</string>
+    <!-- Charger choice: the scooter's standard charger. -->
+    <string name="more_dev_stock" volt:screen="Developer options" volt:purpose="option" volt:safety="charge">Stock</string>
+    <!-- Charger choice: the faster charger. -->
+    <string name="more_dev_high_speed" volt:screen="Developer options" volt:purpose="option" volt:safety="charge">High-speed</string>
+    <!-- Under the charger choice. -->
+    <string name="more_dev_charger_note" volt:screen="Developer options" volt:purpose="caption" volt:safety="charge">Auto recognizes UT5 MAX chargers from live power. If uncertain, Volt uses the current rate; choose a charger to override.</string>
+    <!-- Card title: how many recorded charges refine estimates. -->
+    <string name="more_dev_curves" volt:screen="Developer options" volt:purpose="label" volt:safety="charge">Saved charge curves</string>
+    <!-- Row: record the current charge. -->
+    <string name="more_dev_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Record this charge</string>
+    <!-- Row while a charge is recorded. -->
+    <string name="more_dev_stop_record" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Stop charge recording</string>
+    <!-- Row: saved charge recordings. -->
+    <string name="more_dev_recordings" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Charge recordings</string>
+    <!-- Under the Charge recordings row. -->
+    <string name="more_dev_recordings_sub" volt:screen="Developer options" volt:purpose="caption" volt:safety="charge">Saved estimates &amp; finish times</string>
+    <!-- Row: save this scooter's charge recordings to a file. -->
+    <string name="more_dev_export" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Export charge recordings</string>
+    <!-- Under the export row. JSON is a file format. -->
+    <string name="more_dev_export_sub" volt:screen="Developer options" volt:purpose="caption" volt:dnt="JSON">JSON · this scooter</string>
+    <!-- Shown when the export cannot start. -->
+    <string name="more_dev_export_busy" volt:screen="Developer options" volt:purpose="toast" volt:safety="charge">Stop charge recording before exporting, or wait for the current export</string>
+    <!-- Red row: delete this scooter's charge recordings (asks first). -->
+    <string name="more_dev_clear_charges" volt:screen="Developer options" volt:purpose="row" volt:safety="charge">Clear this scooter\'s charge recordings</string>
+    <!-- Title of that confirmation. -->
+    <string name="more_dev_clear_charges_title" volt:screen="Developer options" volt:purpose="title" volt:safety="charge">Clear charge recordings?</string>
+    <!-- Body of that confirmation. -->
+    <string name="more_dev_clear_charges_body" volt:screen="Developer options" volt:purpose="dialog" volt:safety="charge">Removes charges and learned curves. Rides stay.</string>
+    <!-- Red button: delete the charge recordings. -->
+    <string name="more_dev_clear_recordings" volt:screen="Developer options" volt:purpose="button" volt:safety="charge">Clear recordings</string>
+    <!-- Group label: sample Home layouts for testing. -->
+    <string name="more_dev_test_layouts" volt:screen="Developer options" volt:purpose="label">Test layouts</string>
+    <!-- Row: save a layout with every widget into layout slot 3. -->
+    <string name="more_dev_slot3" volt:screen="Developer options" volt:purpose="row">Load All widgets into slot 3</string>
+    <!-- Title of the confirmation. -->
+    <string name="more_dev_slot3_title" volt:screen="Developer options" volt:purpose="title">Replace slot 3?</string>
+    <!-- Body of the confirmation. -->
+    <string name="more_dev_slot3_body" volt:screen="Developer options" volt:purpose="dialog">Overwrites slot 3 only.</string>
+    <!-- Button: overwrite slot 3. -->
+    <string name="more_dev_slot3_action" volt:screen="Developer options" volt:purpose="button">Replace slot 3</string>
+    <!-- Shown after slot 3 was saved. -->
+    <string name="more_dev_slot3_saved" volt:screen="Developer options" volt:purpose="toast">All widgets saved in slot 3.</string>
+    <!-- Shown when slot 3 could not be saved. -->
+    <string name="more_dev_slot3_failed" volt:screen="Developer options" volt:purpose="toast">Slot 3 could not be saved.</string>
+    <!-- Row: hide Developer options again. -->
+    <string name="more_dev_hide" volt:screen="Developer options" volt:purpose="row">Hide developer options</string>
+    <!-- Shown when Hide is tapped during a charge recording. -->
+    <string name="more_dev_hide_recording" volt:screen="Developer options" volt:purpose="toast" volt:safety="charge">Stop charge recording before hiding developer options</string>
+    <!-- Shown when Hide is tapped during a test. -->
+    <string name="more_dev_hide_test" volt:screen="Developer options" volt:purpose="toast" volt:safety="experimental">Finish or cancel the test first</string>
+    <!-- Why a charge can't be recorded yet. -->
+    <string name="more_dev_connect_first" volt:screen="Developer options" volt:purpose="status" volt:safety="charge">Connect your scooter first</string>
+    <!-- Under the dialog title: the recording stays on the phone, ends at full charge, and the last 20 are kept. -->
+    <string name="more_dev_record_body" volt:screen="Record a charge" volt:purpose="dialog" volt:safety="charge">Saved on phone · stops at 100%% · keeps the last 20</string>
+    <!-- Dialog title before a charger is chosen. -->
+    <string name="more_dev_which_charger" volt:screen="Record a charge" volt:purpose="title" volt:safety="charge">Which charger is attached?</string>
+    <!-- Dialog title with the stock charger chosen. -->
+    <string name="more_dev_record_stock" volt:screen="Record a charge" volt:purpose="title" volt:safety="charge">Record with Stock charger?</string>
+    <!-- Dialog title with the high-speed charger chosen. -->
+    <string name="more_dev_record_fast" volt:screen="Record a charge" volt:purpose="title" volt:safety="charge">Record with High-speed charger?</string>
+    <!-- Screen-reader name of the charger choice. -->
+    <string name="more_dev_attached" volt:screen="Record a charge" volt:purpose="accessibility" volt:safety="charge">Attached charger</string>
+    <!-- Button: start recording this charge. -->
+    <string name="more_dev_start_recording" volt:screen="Record a charge" volt:purpose="button" volt:safety="charge">Start recording</string>
+    <!-- Shown when another scooter was chosen while the dialog was open. -->
+    <string name="more_dev_scooter_changed" volt:screen="Record a charge" volt:purpose="toast" volt:safety="charge">Scooter changed · reopen</string>
+    <!-- Charge curve scope while the charger is unknown. -->
+    <string name="more_dev_not_applied" volt:screen="Developer options" volt:purpose="caption" volt:safety="charge">Not applied until the charger is known</string>
+    <!-- Charge curve scope. -->
+    <string name="more_dev_stock_charges" volt:screen="Developer options" volt:purpose="caption" volt:safety="charge">Stock charges</string>
+    <!-- Charge curve scope. -->
+    <string name="more_dev_fast_charges" volt:screen="Developer options" volt:purpose="caption" volt:safety="charge">High-speed charges</string>
+    <!-- Screen-reader text while the count loads. -->
+    <string name="more_dev_curves_loading" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves loading</string>
+    <!-- Screen-reader text while the charger is unknown. -->
+    <string name="more_dev_curves_not_applied" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge">Saved charge curves not applied until the charger is known</string>
+    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
+    <string name="more_dev_curves_stock" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified stock charge recordings</string>
+    <!-- Screen-reader text. %1$s is how many recordings qualify (the English says "recordings" for 1 too). -->
+    <string name="more_dev_curves_fast" volt:screen="Developer options" volt:purpose="accessibility" volt:safety="charge" volt:english-fix="pending">%1$s qualified high-speed charge recordings</string>
+    <!-- Tooltip of the charge curves card. -->
+    <string name="more_dev_curves_tooltip" volt:screen="Developer options" volt:purpose="tooltip" volt:safety="charge">A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings.</string>
+    <!-- Row: show the full licence texts (they stay in English). -->
+    <string name="more_notices_view" volt:screen="Licenses &amp; attribution" volt:purpose="row">View full notices</string>
+    <!-- Title of the full licence texts (the texts stay in English). -->
+    <string name="more_notices_full" volt:screen="Licenses &amp; attribution" volt:purpose="title">Full notices</string>
+    <!-- Shown when the licence files could not be read. -->
+    <string name="more_notices_unreadable" volt:screen="Licenses &amp; attribution" volt:purpose="note">Notices could not be read.</string>
+
+    <!-- ===== Status lines: scooters, permissions, PIN and proximity ===== -->
+
+    <!-- The phone's role on the current scooter: its owner. -->
+    <string name="more_role_owner" volt:screen="More" volt:purpose="value" volt:safety="owner-key">Owner</string>
+    <!-- The phone's role on the current scooter: shared access. -->
+    <string name="more_role_shared" volt:screen="More" volt:purpose="value">Shared</string>
+    <!-- Connection state after the role ("Owner · connected"). Lower case on purpose. -->
+    <string name="more_link_connected" volt:screen="More" volt:purpose="value">connected</string>
+    <!-- Connection state after the role. Lower case on purpose. -->
+    <string name="more_link_disconnected" volt:screen="More" volt:purpose="value">disconnected</string>
+    <!-- Connection state after the role. Lower case on purpose. -->
+    <string name="more_link_connecting" volt:screen="More" volt:purpose="value">connecting</string>
+    <!-- Top card of More before any scooter is saved. -->
+    <string name="more_index_no_scooter" volt:screen="More" volt:purpose="title">No scooter yet</string>
+    <!-- Under No scooter yet. -->
+    <string name="more_index_add" volt:screen="More" volt:purpose="caption">Add a scooter to begin</string>
+    <!-- Top card status: %1$s the role ("Owner"), %2$s the connection ("connected"). -->
+    <string name="more_index_status" volt:screen="More" volt:purpose="caption">%1$s · %2$s</string>
+    <!-- Screen-reader label of the top card: %1$s the scooter's name, %2$s its status ("Owner · connected"). -->
+    <string name="more_index_description" volt:screen="More" volt:purpose="accessibility">%1$s, %2$s. Open My scooters</string>
+    <!-- My scooters before any scooter is saved. -->
+    <string name="more_scooters_empty" volt:screen="My scooters" volt:purpose="caption">Your saved scooters will appear here.</string>
+    <!-- Card status of the current scooter. -->
+    <string name="more_scooters_connected" volt:screen="My scooters" volt:purpose="status">Connected</string>
+    <!-- Card status of the current scooter when not connected. -->
+    <string name="more_scooters_offline" volt:screen="My scooters" volt:purpose="status">Offline</string>
+    <!-- Card line when Volt doesn't know the scooter's model. -->
+    <string name="more_scooters_model_unknown" volt:screen="My scooters" volt:purpose="caption">Model not identified</string>
+    <!-- Card line for a shared scooter: %1$s is the model ("N65i", or more_scooters_model_unknown). -->
+    <string name="more_scooters_shared_model" volt:screen="My scooters" volt:purpose="caption">%1$s · Shared access</string>
+    <!-- Card line: %1$s is Android's relative time ("5 minutes ago", "Yesterday"). -->
+    <string name="more_scooters_last_connected" volt:screen="My scooters" volt:purpose="caption">Last connected %1$s</string>
+    <!-- Screen-reader label of the pencil button. %1$s is the scooter's name. -->
+    <string name="more_scooters_edit_named" volt:screen="My scooters" volt:purpose="accessibility">Edit %1$s</string>
+    <!-- Card button of the connected scooter. -->
+    <string name="more_scooters_disconnect" volt:screen="My scooters" volt:purpose="button">Disconnect</string>
+    <!-- Screen-reader label of the card's button: %1$s the button's word ("Connect", "Disconnect", "Cancel"), %2$s the scooter's name. -->
+    <string name="more_scooters_action_named" volt:screen="My scooters" volt:purpose="accessibility">%1$s %2$s</string>
+    <!-- Screen-reader label of Use this scooter. %1$s is the scooter's name. -->
+    <string name="more_scooters_use_named" volt:screen="My scooters" volt:purpose="accessibility">Use %1$s. View saved data without connecting</string>
+    <!-- A permission's state. -->
+    <string name="more_permission_allowed" volt:screen="About &amp; permissions" volt:purpose="value">Allowed</string>
+    <!-- A permission's state. -->
+    <string name="more_permission_not_allowed" volt:screen="About &amp; permissions" volt:purpose="value">Not allowed</string>
+    <!-- Location permission state: approximate location only. -->
+    <string name="more_permission_approximate" volt:screen="About &amp; permissions" volt:purpose="value" volt:safety="privacy">Approximate</string>
+    <!-- PIN state before Volt has read it. -->
+    <string name="more_pin_not_read" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Not read</string>
+    <!-- PIN state when the scooter refused the read. -->
+    <string name="more_pin_rejected" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Rejected by scooter</string>
+    <!-- PIN state: no PIN set. -->
+    <string name="more_pin_not_set" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Not set</string>
+    <!-- PIN state: set but off. -->
+    <string name="more_pin_disabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Disabled</string>
+    <!-- PIN state: on (shown in green). -->
+    <string name="more_pin_enabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Enabled</string>
+    <!-- Screen-reader text of the PIN chip (the chip itself shows "PIN ✓"). -->
+    <string name="more_chip_pin_on" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">PIN enabled</string>
+    <!-- Screen-reader text of the PIN chip. -->
+    <string name="more_chip_pin_off" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">PIN not enabled</string>
+    <!-- Screen-reader text of the pairing chip. -->
+    <string name="more_chip_paired" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="lock">Phone paired</string>
+    <!-- Screen-reader text of the pairing chip. -->
+    <string name="more_chip_not_paired" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="lock">Phone not paired</string>
+    <!-- Why proximity unlock can't be changed: only the UT5 MAX's owner can. -->
+    <string name="more_proximity_ut5_owner" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock" volt:dnt="UT5 MAX">UT5 MAX owner only</string>
+    <!-- Why proximity unlock can't be changed: only the owner's profile can. -->
+    <string name="more_proximity_owner_only" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="owner-key">Owner only</string>
+    <!-- Why proximity unlock can't be changed. -->
+    <string name="more_proximity_connect_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Connect first</string>
+    <!-- Why proximity unlock can't be changed: another change is being confirmed. -->
+    <string name="more_proximity_waiting" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Waiting for scooter</string>
+    <!-- Why proximity unlock can't be changed: the scooter doesn't report it. -->
+    <string name="more_proximity_not_reported" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Not reported by firmware</string>
+    <!-- Why proximity unlock can't be turned on. -->
+    <string name="more_proximity_pin_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Enable the fallback PIN first</string>
+    <!-- Why proximity unlock can't be turned on. -->
+    <string name="more_proximity_pair_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Pair this phone first</string>
+    <!-- Screen-reader label of the disabled proximity switch: %1$s its name, %2$s why it is disabled. -->
+    <string name="more_proximity_description" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="lock">%1$s, %2$s</string>
+    <!-- Pairing row value once the phone is paired. -->
+    <string name="more_paired" volt:screen="PIN &amp; proximity" volt:purpose="value" volt:safety="lock">Paired</string>
+    <!-- Footnote of PIN & proximity for the owner. -->
+    <string name="more_security_notice" volt:screen="PIN &amp; proximity" volt:purpose="caption" volt:safety="lock">Test while parked. After proximity unlock is turned on, the scooter may disconnect for a moment; Volt reconnects and confirms the change.</string>
 </resources>
