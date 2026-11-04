@@ -84,9 +84,10 @@
     <!-- ===== Running and unfinished tries and tests ===== -->
 
     <!-- Unfinished tests on other saved scooters, which are reviewed there. %1$d is how many. English uses
-         the "one" item only for exactly 1. -->
+         the "one" item only for exactly 1, so it spells the 1; a language whose "one" also covers other
+         numbers (21 in Russian) writes %1$d there. -->
     <plurals name="compat_tests_elsewhere" volt:screen="Compatibility" volt:purpose="status" volt:safety="experimental">
-        <item quantity="one">%1$d unfinished test on another scooter. Select it to review.</item>
+        <item quantity="one">1 unfinished test on another scooter. Select it to review.</item>
         <item quantity="other">%1$d unfinished tests on other scooters. Select one to review.</item>
     </plurals>
     <!-- Shown when Volt cannot read its record of tries and tests (the same text as the test journal's own
@@ -233,9 +234,10 @@
     <!-- How long ago the status was read: less than a minute. -->
     <string name="compat_age_under_minute" volt:screen="Compatibility results" volt:purpose="value">Under a minute ago</string>
     <!-- How long ago the status was read, in whole minutes. %1$d is the number of minutes. English uses the
-         "one" item only for exactly 1. -->
+         "one" item only for exactly 1, so it spells the 1; a language whose "one" also covers other numbers
+         writes %1$d there. -->
     <plurals name="compat_age_minutes" volt:screen="Compatibility results" volt:purpose="value">
-        <item quantity="one">%1$d minute ago</item>
+        <item quantity="one">1 minute ago</item>
         <item quantity="other">%1$d minutes ago</item>
     </plurals>
     <!-- Name of a read: the serial number check (command 0x74). -->
