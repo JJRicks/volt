@@ -25,6 +25,12 @@ final class UpdateCheck {
     /** Replaced only by tests, which never reach the network. */
     static Fetcher fetcher = UpdateCheck::https;
 
+    /**
+     * The line shown above a new release's notes, which come from GitHub in English: empty while Volt is English
+     * (the dialog then looks as it always did), else "Release notes are in English." in the app's language.
+     */
+    static String notesLanguageNote() { return Fmt.legacy() ? "" : T.compatUpdateNotesInEnglish(); }
+
     enum Outcome { AVAILABLE, CURRENT, UNREADABLE }
     static final class Result {
         final Outcome outcome; final String latest, url, notes;

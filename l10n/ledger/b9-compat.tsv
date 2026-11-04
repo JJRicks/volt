@@ -1,0 +1,192 @@
+# Ledger for b9-compat: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/CompatibilityPanel.java:36	["Reads"]	compat_group_reads	id-kept	the result group's id, kept as the CompatibilityPanel.READS constant (the expanded set and refresh key hold ids); groupLabel shows compat_group_reads
+src/com/jjricks/volt/CompatibilityPanel.java:36	["Controls"]	compat_group_controls	id-kept	the result group's id, kept as the CompatibilityPanel.CONTROLS constant (the expanded set and refresh key hold ids); groupLabel shows compat_group_controls
+src/com/jjricks/volt/CompatibilityPanel.java:61	["Your local scooter service is starting."]	compat_service_starting	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:66	["Connect"]	compat_connect	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:69	["No unfinished tests."]	compat_no_unfinished_tests	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:74	["Run check"]	compat_run_check	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:74	["Run again"]	compat_run_again	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:76	["Email to Volt"]	compat_email	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:81	["Preview report"]	compat_preview_report	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:81	["No finished check yet"]	compat_no_finished_check	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:83	["The check only reads. Tries are in More › Experimental controls, and the report includes their results. Never changes firmware."]	compat_footer	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:92	["Connect to check this scooter."]	compat_connect_to_check	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:93	["Connect"]	compat_connect	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:98	["Model ID not captured"]	compat_model_not_captured	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:99	["Simulated scooter"]	compat_simulated	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:100	["Model ID"]	compat_model_id	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:100	["Advertised"]	compat_model_id_advertised	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:100	["From serial (unconfirmed)"]	compat_model_id_serial	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:100	["Not captured"]	compat_model_id_not_captured	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:101	["Check"]	compat_check	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:101	["Model ID mismatch"]	compat_model_id_mismatch	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:102	["Region"]	compat_region	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:102	["Unknown"]	compat_region_unknown	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:102	[{"hole": "d.region", "arg": 1, "type": "s"}, " (from serial)"]	compat_region_from_serial	template	
+src/com/jjricks/volt/CompatibilityPanel.java:103	["Firmware"]	compat_firmware	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:103	["Not read yet"]	compat_firmware_not_read	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:104	["Rules"]	compat_rules	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:105	["Your answer"]	compat_your_answer	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:107	["Identify reads the model ID from the scooter's broadcast. It sends no command."]	compat_identify_note	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:108	["Identify"]	compat_identify	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:113	["UT5 MAX"]	compat_layer_ut5_max	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:114	["OEM-mapped (untested)"]	compat_layer_oem	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:115	["Lock and readings"]	compat_layer_shared	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:116	["Not supported"]	compat_layer_none	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:139	{"one": ["1 unfinished test on another scooter. Select it to review."], "other": [{"hole": "elsewhere", "arg": 1, "type": "d", "quantity": true}, " unfinished tests on other scooters. Select one to review."]}	compat_tests_elsewhere	plural	manual: the base ternary has its own branch for exactly 1 (elsewhere==1), so the one item stands for that branch; English picks one only at 1
+src/com/jjricks/volt/CompatibilityPanel.java:147	{"if": "t.keeps()", "then": ["Try · ", {"hole": "label", "arg": 1, "type": "s"}], "else": ["Test · ", {"hole": "label", "arg": 1, "type": "s"}]}	compat_try_title,compat_test_title	choice	a try (t.keeps()) or a guided test, each its whole card title
+src/com/jjricks/volt/CompatibilityPanel.java:152	["Reading the current value…"]	compat_reading_current	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:152	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:153	["Changing to ", {"hole": "to", "arg": 1, "type": "s"}, "…"]	compat_changing_to	template	
+src/com/jjricks/volt/CompatibilityPanel.java:154	["Checking it is unchanged…"]	compat_checking_unchanged	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:154	["Setting it back to ", {"hole": "from", "arg": 1, "type": "s"}, "…"]	compat_setting_back	template	
+src/com/jjricks/volt/CompatibilityPanel.java:158	["Yes"]	compat_yes	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:159	["No"]	compat_no	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:160	["Skip"]	compat_skip	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:168	["Kept · Set back is in Experimental controls"]	compat_kept_set_back	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:168	["Kept"]	compat_kept	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:169	["Restoration confirmed"]	compat_restoration_confirmed	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:169	["Restoration outstanding · review below"]	compat_restoration_outstanding	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:172	["Close"]	common_close	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:178	{"if": "e.isTry()", "then": ["Unfinished try · ", {"hole": "label", "arg": 1, "type": "s"}], "else": ["Unfinished test · ", {"hole": "label", "arg": 1, "type": "s"}]}	compat_unfinished_try_title,compat_unfinished_test_title	choice	an unfinished try or guided test, each its whole card title
+src/com/jjricks/volt/CompatibilityPanel.java:179	["Before the try"]	compat_before_try	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:179	["Before the test"]	compat_before_test	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:179	["Value tried"]	compat_value_tried	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:179	["Test value"]	compat_test_value	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:185	["Scooter is parked"]	compat_parked	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:185	["No motion report yet on this connection."]	compat_parked_no_motion	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:188	["Continue anyway"]	compat_continue_anyway	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:189	["Mark restored"]	compat_mark_restored	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:191	["Restore to ", {"hole": "d.label(e.baseline)", "arg": 1, "type": "s"}]	compat_restore_to	template	
+src/com/jjricks/volt/CompatibilityPanel.java:193	["Keep ", {"hole": "d.label(e.target)", "arg": 1, "type": "s"}]	compat_keep_value	template	
+src/com/jjricks/volt/CompatibilityPanel.java:196	["Keep ", {"hole": "d.label(r.current)", "arg": 1, "type": "s"}]	compat_keep_value	template	
+src/com/jjricks/volt/CompatibilityPanel.java:197	["Set ", {"hole": "d.label(e.baseline)", "arg": 1, "type": "s"}]	compat_set_value	template	
+src/com/jjricks/volt/CompatibilityPanel.java:201	["Dismiss · leave as is"]	compat_dismiss_leave	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:202	{"if": "e.isTry()", "then": ["Dismiss the unfinished ", {"hole": "label", "arg": 1, "type": "s"}, " try without restoring it"], "else": ["Dismiss the unfinished ", {"hole": "label", "arg": 1, "type": "s"}, " test without restoring it"]}	compat_dismiss_try_description,compat_dismiss_test_description	choice	the Dismiss button's spoken description, one whole sentence for a try and one for a test
+src/com/jjricks/volt/CompatibilityPanel.java:208	["Unfinished test · ", {"hole": "label", "arg": 1, "type": "s"}]	compat_unfinished_test_title	template	
+src/com/jjricks/volt/CompatibilityPanel.java:210	["Its scooter was forgotten, so Volt can't check this setting or set it back. Check it on the scooter itself."]	compat_orphan_body	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:211	["Dismiss"]	compat_dismiss	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:212	["Dismiss the unfinished ", {"hole": "label", "arg": 1, "type": "s"}, " test of a forgotten scooter"]	compat_dismiss_orphan_description	template	
+src/com/jjricks/volt/CompatibilityPanel.java:220	["display_units"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:220	["the dashboard shows ", {"hole": "(value.contains(\"mph\")?\"mph\":\"km/h\")", "arg": 1, "type": "s"}, "."]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:220	["mph"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:220	["mph"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:220	["km/h"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:221	["headlight"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:221	["the tail light is ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "."]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:222	["turn_sound"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:222	["the turn signal sound is ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "."]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:223	["auto_sensor"]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:223	["automatic lights are ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "."]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:224	["the range estimate on the dashboard changes."]	-	removed	whole block: expectation() had no caller at the merge base (question() asks the owner, and MoreScreen calls question()); its sentence fragments are deleted rather than translated
+src/com/jjricks/volt/CompatibilityPanel.java:229	{"if": "value.contains(\"mph\")", "then": ["Does the dashboard show mph?"], "else": ["Does the dashboard show km/h?"]}	compat_question_units_mph,compat_question_units_kmh	choice	the units question, one whole question per unit; the condition's "mph" stays
+src/com/jjricks/volt/CompatibilityPanel.java:230	{"if": "\"On\".equals(value)", "then": ["Is the tail light on?"], "else": {"if": "\"Off\".equals(value)", "then": ["Is the tail light off?"], "else": ["Is the tail light ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "?"]}}	compat_question_tail_light_on,compat_question_tail_light_off,compat_question_tail_light	choice	plan 4.6: a whole question for each value the toggle labels have (ScooterCommands' "On" and "Off"), so no translated label is lower-cased into a sentence; any other value keeps the lower-cased template. MoreScreen (B18) passes the shown label: once B4 translates those labels it should pass the English id so these questions are reached
+src/com/jjricks/volt/CompatibilityPanel.java:231	{"if": "\"On\".equals(value)", "then": ["With a turn signal on, is the sound on?"], "else": {"if": "\"Off\".equals(value)", "then": ["With a turn signal on, is the sound off?"], "else": ["With a turn signal on, is the sound ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "?"]}}	compat_question_turn_sound_on,compat_question_turn_sound_off,compat_question_turn_sound	choice	plan 4.6: a whole question for each value the toggle labels have (ScooterCommands' "On" and "Off"), so no translated label is lower-cased into a sentence; any other value keeps the lower-cased template. MoreScreen (B18) passes the shown label: once B4 translates those labels it should pass the English id so these questions are reached
+src/com/jjricks/volt/CompatibilityPanel.java:232	{"if": "\"On\".equals(value)", "then": ["Are automatic lights on?"], "else": {"if": "\"Off\".equals(value)", "then": ["Are automatic lights off?"], "else": ["Are automatic lights ", {"hole": "value.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, "?"]}}	compat_question_auto_lights_on,compat_question_auto_lights_off,compat_question_auto_lights	choice	plan 4.6: a whole question for each value the toggle labels have (ScooterCommands' "On" and "Off"), so no translated label is lower-cased into a sentence; any other value keeps the lower-cased template. MoreScreen (B18) passes the shown label: once B4 translates those labels it should pass the English id so these questions are reached
+src/com/jjricks/volt/CompatibilityPanel.java:233	["Did the range estimate on the dashboard change?"]	compat_question_range	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:234	["Did you see it change?"]	compat_question_default	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:252	["Stop"]	compat_stop	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:257	["Listening for scooter reports…"]	compat_listening	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:257	["Reading ", {"hole": "Math.min(total,done+1)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.min(total,done+1))"}, " of ", {"hole": "total", "arg": 2, "type": "s", "as": "Fmt.integer(total)"}, "…"]	compat_reading_progress	template	progress counts as integers through Fmt (the B2 style)
+src/com/jjricks/volt/CompatibilityPanel.java:268	["The check was interrupted. Results so far:"]	compat_check_interrupted	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:269	["Reads"]	compat_group_reads	id-kept	the result group's id, kept as the CompatibilityPanel.READS constant; groupLabel shows compat_group_reads
+src/com/jjricks/volt/CompatibilityPanel.java:271	[{"hole": "CompatibilityReport.hex(r.cmd)", "arg": 1, "type": "s"}, " · ", {"hole": "readName(r.cmd)", "arg": 2, "type": "s"}]	compat_read_title	template	
+src/com/jjricks/volt/CompatibilityPanel.java:274	["Reports from the scooter"]	compat_reports	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:274	["None seen (they may only arrive while riding)"]	compat_reports_none	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:276	["Fields"]	compat_group_fields	id-kept	the result group's id, kept as the CompatibilityPanel.FIELDS constant; groupLabel shows compat_group_fields
+src/com/jjricks/volt/CompatibilityPanel.java:279	["Status"]	compat_read_status	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:279	["Not received"]	compat_status_not_received	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:286	["Read"]	compat_status_read	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:288	["Controls"]	compat_group_controls	id-kept	the result group's id, kept as the CompatibilityPanel.CONTROLS constant; groupLabel shows compat_group_controls
+src/com/jjricks/volt/CompatibilityPanel.java:292	["Clock"]	compat_control_clock	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:293	{"if": "d.available()", "then": ["Available", " · ", {"hole": "evidence(d.evidence)", "arg": 1, "type": "s"}], "else": [{"hole": "d.reasonText()", "arg": 1, "type": "s"}, " · ", {"hole": "evidence(d.evidence)", "arg": 2, "type": "s"}]}	compat_control_available,compat_control_unavailable	choice	a control's value: Available or the reason it is not, each with its evidence
+src/com/jjricks/volt/CompatibilityPanel.java:300	["Just now"]	compat_age_just_now	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:301	["Under a minute ago"]	compat_age_under_minute	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:301	{"one": ["1 minute ago"], "other": [{"hole": "minutes", "arg": 1, "type": "d", "quantity": true}, " minutes ago"]}	compat_age_minutes	plural	manual: the base ternary has its own branch for exactly 1 (minutes==1), so the one item stands for that branch; English picks one only at 1
+src/com/jjricks/volt/CompatibilityPanel.java:305	["Serial check"]	compat_read_serial	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:305	["Status"]	compat_read_status	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:305	["Firmware"]	compat_read_firmware	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:305	["Battery"]	compat_read_battery	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:306	["Ride history"]	compat_read_ride_history	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:306	["Fault history"]	compat_read_fault_history	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:306	["Driving (probe)"]	compat_read_driving	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:307	["Battery ID (probe)"]	compat_read_battery_id	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:307	["Battery signs (probe)"]	compat_read_battery_signs	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:307	["Read"]	compat_read_other	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:314	["Rejected ", {"hole": "r.status", "arg": 1, "type": "d"}]	compat_read_rejected	template	the scooter's status code, printed as Java prints an int
+src/com/jjricks/volt/CompatibilityPanel.java:315	{"one": ["Too short (", {"hole": "r.length", "arg": 1, "type": "d", "quantity": true}, " bytes)"], "other": ["Too short (", {"hole": "r.length", "arg": 1, "type": "d", "quantity": true}, " bytes)"]}	compat_read_too_short	plural	English keeps "1 bytes" (volt:english-fix pending)
+src/com/jjricks/volt/CompatibilityPanel.java:316	["Replied with no data"]	compat_read_empty	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:317	["No response"]	compat_read_no_response	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:318	["Interrupted"]	compat_read_interrupted	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:319	["Waiting"]	compat_read_waiting	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:324	["Volt-verified"]	compat_evidence_volt_verified	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:325	["Lab"]	compat_evidence_lab	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:326	["OEM-mapped"]	compat_evidence_oem	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:327	["Shared"]	compat_evidence_shared	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:328	["Tested here"]	compat_evidence_local	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:329	["No evidence"]	compat_evidence_none	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:337	["Report preview"]	compat_report_preview	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:337	["Report preview"]	compat_report_preview	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:339	["Only what is shown here is shared. No serial, MAC, owner key, PIN, names or routes."]	compat_report_privacy	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:342	["Show summary"]	compat_show_summary	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:342	["Show JSON"]	compat_show_json	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:343	["Show report summary"]	compat_show_summary_description	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:343	["Show report JSON"]	compat_show_json_description	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:346	["Share"]	compat_share	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:348	["Save file"]	compat_save_file	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:349	["Close preview"]	compat_close_preview	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:353	["No finished check yet"]	compat_no_finished_check	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:361	["Share compatibility report"]	compat_share_chooser	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:362	["No app can share this report"]	compat_share_none	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:374	["Hide"]	compat_group_hide	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:374	["Show"]	compat_group_show	exact	
+src/com/jjricks/volt/CompatibilityPanel.java:377	{"if": "open", "then": [{"hole": "name", "arg": 1, "type": "s"}, ", expanded"], "else": [{"hole": "name", "arg": 1, "type": "s"}, ", collapsed"]}	compat_group_expanded,compat_group_collapsed	choice	the group heading's spoken state, one whole description each; name is the group's id, which is also its English heading (a choice row cannot pass groupLabel(name), so a translated description still names the group by its English id until a follow-up passes the label)
+src/com/jjricks/volt/CompatibilityPanel.java:390	[{"hole": "title", "arg": 1, "type": "s"}, ": ", {"hole": "value", "arg": 2, "type": "s"}]	compat_row_description	template	
+src/com/jjricks/volt/CompatibilityPanel.java:395	[{"hole": "title", "arg": 1, "type": "s"}, " · ", {"hole": "value", "arg": 2, "type": "s"}]	compat_identity_line	template	
+src/com/jjricks/volt/GuidedTest.java:69	[""]	-	removed	the String note field becomes a Msg field of the same name, declared a few lines down as a whole new member (Msg.verbatim("") where this was ""); note() still returns its English, noteMsg() the message
+src/com/jjricks/volt/GuidedTest.java:187	["Couldn't save the test record. Nothing was changed."]	compat_note_not_saved	exact	
+src/com/jjricks/volt/GuidedTest.java:190	["Cancelled. Nothing was changed."]	compat_note_cancelled	exact	
+src/com/jjricks/volt/GuidedTest.java:199	["Couldn't save the test record, so Volt did not set it back."]	compat_note_not_saved_not_set_back	exact	
+src/com/jjricks/volt/GuidedTest.java:233	["Changed outside the test (now ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, ")"]	compat_note_changed_outside	template	
+src/com/jjricks/volt/GuidedTest.java:247	["The scooter rejected setting it back (code ", {"hole": "status", "arg": 1, "type": "d"}, ")."]	compat_note_restore_rejected	template	the scooter's rejection code, printed as Java prints an int
+src/com/jjricks/volt/GuidedTest.java:255	["No fresh reading arrived."]	compat_note_no_fresh_reading	exact	
+src/com/jjricks/volt/GuidedTest.java:257	["Accepted, but no conclusive reading arrived."]	compat_note_accepted_unconfirmed	exact	
+src/com/jjricks/volt/GuidedTest.java:257	["No reply from the scooter."]	compat_note_no_reply	exact	
+src/com/jjricks/volt/GuidedTest.java:262	["Volt could not send the restore."]	compat_note_restore_not_sent	exact	
+src/com/jjricks/volt/GuidedTest.java:268	["Couldn't get a fresh baseline. Reconnect and try again. Nothing was changed."]	compat_note_no_baseline	exact	
+src/com/jjricks/volt/GuidedTest.java:269	["Couldn't verify the setting. Reconnect and review the unfinished test."]	compat_note_not_verified	exact	
+src/com/jjricks/volt/GuidedTest.java:272	["The connection ended during the test."]	compat_note_disconnected	exact	
+src/com/jjricks/volt/GuidedTest.java:273	["Another scooter profile was selected during the test."]	compat_note_profile_switched	exact	
+src/com/jjricks/volt/GuidedTest.java:275	["Volt restarted during the test."]	compat_note_restarted	exact	
+src/com/jjricks/volt/GuidedTest.java:293	["A setting changed while the test was waiting. Review it before restoring."]	compat_note_changed_waiting	exact	
+src/com/jjricks/volt/GuidedTest.java:335	["Connect to this scooter to review."]	compat_review_connect	exact	
+src/com/jjricks/volt/GuidedTest.java:337	["Model ID differs from the test. Volt won't change it."]	compat_review_model_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:338	["Volt's rules for this setting changed. Volt won't change it."]	compat_review_rules_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:340	["Firmware changed since the test."]	compat_review_firmware_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:340	["Firmware not read since the test."]	compat_review_firmware_not_read	exact	
+src/com/jjricks/volt/GuidedTest.java:341	["Waiting for a fresh reading."]	compat_review_waiting	exact	
+src/com/jjricks/volt/GuidedTest.java:343	["The scooter isn't reporting this setting now."]	compat_review_not_reported	exact	
+src/com/jjricks/volt/GuidedTest.java:346	["The scooter isn't reporting a related setting now."]	compat_review_related_not_reported	exact	
+src/com/jjricks/volt/GuidedTest.java:348	["A related setting changed since the test. Volt won't set it back."]	compat_review_related_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:351	["Already back to ", {"hole": "v.label(e.baseline)", "arg": 1, "type": "s"}, "."]	compat_review_already_back	template	
+src/com/jjricks/volt/GuidedTest.java:352	["Still on the test value, ", {"hole": "v.label(e.target)", "arg": 1, "type": "s"}, "."]	compat_review_still_test_value	template	
+src/com/jjricks/volt/GuidedTest.java:353	["Changed outside the test (now ", {"hole": "v.label(current)", "arg": 1, "type": "s"}, ")."]	compat_review_changed_outside	template	
+src/com/jjricks/volt/GuidedTest.java:367	["This scooter isn't reporting this setting."]	compat_note_not_reported	exact	
+src/com/jjricks/volt/GuidedTest.java:372	["The current value is unknown, so Volt won't test it."]	compat_note_value_unknown	exact	
+src/com/jjricks/volt/GuidedTest.java:373	["The scooter now shows ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, ". Nothing was changed."]	compat_note_baseline_moved	template	
+src/com/jjricks/volt/GuidedTest.java:374	["It's already set to ", {"hole": "variant.label(target)", "arg": 1, "type": "s"}, "."]	compat_note_already_set	template	
+src/com/jjricks/volt/GuidedTest.java:375	[{"hole": "variant.label(target)", "arg": 1, "type": "s"}, " isn't offered now."]	compat_note_target_not_offered	template	
+src/com/jjricks/volt/GuidedTest.java:376	["The current value can't be set back, so Volt won't test it."]	compat_note_cannot_set_back	exact	
+src/com/jjricks/volt/GuidedTest.java:381	["A related setting changed during the test."]	compat_note_related_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:385	["The scooter accepted it but still shows ", {"hole": "variant.label(baseline)", "arg": 1, "type": "s"}, "."]	compat_note_unchanged	template	
+src/com/jjricks/volt/GuidedTest.java:387	["The scooter now shows ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, "."]	compat_note_now_shows	template	
+src/com/jjricks/volt/GuidedTest.java:391	["A related setting changed during the test."]	compat_note_related_changed	exact	
+src/com/jjricks/volt/GuidedTest.java:393	["It still shows ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, "."]	compat_note_still_shows	template	
+src/com/jjricks/volt/GuidedTest.java:394	["The scooter now shows ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, "."]	compat_note_now_shows	template	
+src/com/jjricks/volt/GuidedTest.java:400	["It shows the test value, ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, "."]	compat_note_shows_test_value	template	
+src/com/jjricks/volt/GuidedTest.java:401	["The scooter now shows ", {"hole": "variant.label(value)", "arg": 1, "type": "s"}, "."]	compat_note_now_shows	template	
+src/com/jjricks/volt/GuidedTest.java:404	["Stopped before any change. Nothing was changed."]	compat_note_stopped	exact	
+src/com/jjricks/volt/GuidedTest.java:412	["Set back and confirmed, but the record couldn't be saved."]	compat_note_restored_not_saved	exact	
+src/com/jjricks/volt/GuidedTest.java:418	["Kept, but the record couldn't be saved. It will show as unfinished."]	compat_note_kept_not_saved	exact	

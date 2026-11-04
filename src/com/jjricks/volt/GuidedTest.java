@@ -47,6 +47,26 @@ final class GuidedTest {
         static int code(String token){Outcome o=parse(token);return o!=null&&o.carries()?Integer.parseInt(token.substring(token.lastIndexOf('_')+1)):-1;}
         /** Display text for a journal token. */
         static String describe(String token){Outcome o=parse(token);return o==null?"":o.text(code(token));}
+        /**
+         * The outcome as the panel shows it, in the current language; text(code) stays the English that command
+         * results, the journal and reports keep (plan 1.5).
+         */
+        String label(int code){
+            switch(this){
+                case READ_SUPPORTED: return T.compatOutcomeReadSupported();
+                case REJECTED: return T.compatOutcomeRejected(code);
+                case ACK_UNCONFIRMED: return T.compatOutcomeAckUnconfirmed();
+                case READBACK_UNCHANGED: return T.compatOutcomeReadbackUnchanged(code);
+                case READBACK_DIFFERENT: return T.compatOutcomeReadbackDifferent(code);
+                case SETTING_CONFIRMED: return T.compatOutcomeSettingConfirmed();
+                case EFFECT_OBSERVED: return T.compatOutcomeEffectObserved();
+                case RESTORATION_CONFIRMED: return T.compatOutcomeRestorationConfirmed();
+                case INTERRUPTED: return T.compatOutcomeInterrupted();
+                default: return T.compatOutcomeNotSent();
+            }
+        }
+        /** describe(token) as the panel shows it, in the current language. */
+        static String label(String token){Outcome o=parse(token);return o==null?"":o.label(code(token));}
         /** Report token (the docs/03 wording in snake case); the code or value travels separately. */
         String reportToken(){return this==ACK_UNCONFIRMED?"acknowledged_unconfirmed":name().toLowerCase(java.util.Locale.ROOT);}
     }
@@ -66,12 +86,13 @@ final class GuidedTest {
     // There are no wire request IDs. Drain older requests first, THEN transmit the post-ACK
     // (or post-start) probe. Counting a mixed batch would let an older reply arriving last win.
     private int outstanding,needed=-1,replies;private boolean armed;
-    private String note="";
     /** TestJournal.TEST for an older guided test, else an Experimental controls try (EXPERIMENTAL or VERIFY), and its layer. */
     private String kind=TestJournal.TEST,layer="";
     /** Sees each journalled outcome as it is added (BleController's command log); never changes the test. */
     interface Observer { void outcome(GuidedTest test,Outcome outcome,int code,boolean writeInFlight,boolean restoring); }
     private Observer observer;
+    /** Why the test ended or what it waits for, as a catalog message; note() is its English. */
+    private Msg note=Msg.verbatim("");
     void observe(Observer o){observer=o;}
     /** A try starts from the value the owner saw in its sheet; any other baseline ends it with nothing written. */
     private Integer expectedBaseline;
@@ -184,10 +205,10 @@ final class GuidedTest {
         e.createdWall=e.updatedWall=Math.max(0,nowMs+wallOffset);
         entry=e;approvedMs=nowMs;phase=Phase.TARGET_PENDING;writeIssued=false;
         try{commit(nowMs);return true;}
-        catch(IOException|IllegalArgumentException failed){entry=null;phase=Phase.DONE;note="Couldn't save the test record. Nothing was changed.";return false;}
+        catch(IOException|IllegalArgumentException failed){entry=null;phase=Phase.DONE;note=M.compatNoteNotSaved();return false;}
     }
     /** Before approval only: ends the test with nothing written. */
-    boolean cancel(){if(phase!=Phase.PRECHECK&&phase!=Phase.BASELINE)return false;phase=Phase.DONE;note="Cancelled. Nothing was changed.";return true;}
+    boolean cancel(){if(phase!=Phase.PRECHECK&&phase!=Phase.BASELINE)return false;phase=Phase.DONE;note=M.compatNoteCancelled();return true;}
     /** Answer to the effect prompt: true observed, false not observed, null skipped. Then the baseline is written back. */
     void ownerEffect(Boolean observed,long nowMs){
         if(phase!=Phase.OBSERVE)return;
@@ -196,7 +217,7 @@ final class GuidedTest {
         if(keeps()){kept(nowMs);return;}
         phase=Phase.RESTORE_PENDING;writeIssued=false;
         try{commit(nowMs);}
-        catch(IOException|IllegalArgumentException failed){phase=Phase.OUTSTANDING;note="Couldn't save the test record, so Volt did not set it back.";}
+        catch(IOException|IllegalArgumentException failed){phase=Phase.OUTSTANDING;note=M.compatNoteNotSavedNotSetBack();}
     }
 
     // ---- Inputs from BleController -------------------------------------------------------------
@@ -230,7 +251,7 @@ final class GuidedTest {
             case TARGET_AWAIT: if(conclusive&&acked){needed=-1;confirmTarget(s,value,nowMs);} return; // before the ACK every reply is stale
             case RESTORE_AWAIT: if(conclusive&&(acked||verifyOnly)){needed=-1;if(verifyOnly)verify(s,value,nowMs);else confirmRestore(s,value,nowMs);} return;
             case OBSERVE: case RESTORE_PENDING:
-                if(value!=null&&(value!=expected||relatedChanged(s)))conflict("Changed outside the test (now "+variant.label(value)+")",nowMs);
+                if(value!=null&&(value!=expected||relatedChanged(s)))conflict(M.compatNoteChangedOutside(variant.label(value)),nowMs);
                 return;
             default: return;
         }
@@ -244,7 +265,7 @@ final class GuidedTest {
             if(phase==Phase.TARGET_AWAIT){
                 // Restoration is not needed, but it is verified: a fresh readback must equal the baseline.
                 verifyOnly=true;phase=Phase.RESTORE_AWAIT;readDeadlineMs=nowMs+READ_WAIT_MS;arm();save(nowMs);
-            }else outstanding("The scooter rejected setting it back (code "+status+").",nowMs);
+            }else outstanding(M.compatNoteRestoreRejected(status),nowMs);
             return;
         }
         acked=true;arm();
@@ -252,27 +273,27 @@ final class GuidedTest {
     /** BleController's 6.5 s mutation timeout for our write: inconclusive, restoration outstanding. */
     void onMutationTimeout(boolean ackSeen,long nowMs){
         if(phase!=Phase.TARGET_AWAIT&&phase!=Phase.RESTORE_AWAIT)return;
-        if(verifyOnly){outstanding("No fresh reading arrived.",nowMs);return;}
+        if(verifyOnly){outstanding(M.compatNoteNoFreshReading(),nowMs);return;}
         add(ackSeen||acked?Outcome.ACK_UNCONFIRMED:Outcome.INTERRUPTED,0,nowMs);
-        outstanding(ackSeen||acked?"Accepted, but no conclusive reading arrived.":"No reply from the scooter.",nowMs);
+        outstanding(ackSeen||acked?M.compatNoteAcceptedUnconfirmed():M.compatNoteNoReply(),nowMs);
     }
     /** BleController refused or could not send the value writeNow() returned. */
     void onWriteRefused(long nowMs){
         if(phase==Phase.TARGET_AWAIT&&!acked&&!verifyOnly){add(keeps()?Outcome.NOT_SENT:Outcome.INTERRUPTED,0,nowMs);verifyOnly=true;phase=Phase.RESTORE_AWAIT;readDeadlineMs=nowMs+READ_WAIT_MS;arm();save(nowMs);}
-        else if(phase==Phase.RESTORE_AWAIT&&!acked&&!verifyOnly){add(Outcome.INTERRUPTED,0,nowMs);outstanding("Volt could not send the restore.",nowMs);}
+        else if(phase==Phase.RESTORE_AWAIT&&!acked&&!verifyOnly){add(Outcome.INTERRUPTED,0,nowMs);outstanding(M.compatNoteRestoreNotSent(),nowMs);}
     }
     /** An unanswered older poll must never leave preparation or verification spinning forever.
      * Do not discard the read counter: a late old reply must never become restoration evidence. */
     void tick(long nowMs){
         if((phase!=Phase.PRECHECK&&!verifying())||nowMs<readDeadlineMs)return;
-        if(phase==Phase.PRECHECK)end("Couldn't get a fresh baseline. Reconnect and try again. Nothing was changed.");
-        else{add(Outcome.INTERRUPTED,0,nowMs);outstanding("Couldn't verify the setting. Reconnect and review the unfinished test.",nowMs);}
+        if(phase==Phase.PRECHECK)end(M.compatNoteNoBaseline());
+        else{add(Outcome.INTERRUPTED,0,nowMs);outstanding(M.compatNoteNotVerified(),nowMs);}
     }
     /** Disconnect, Bluetooth off, background suspension or service end. */
-    void onDisconnect(long nowMs){interrupt("The connection ended during the test.",nowMs);}
-    void onProfileSwitch(long nowMs){interrupt("Another scooter profile was selected during the test.",nowMs);}
+    void onDisconnect(long nowMs){interrupt(M.compatNoteDisconnected(),nowMs);}
+    void onProfileSwitch(long nowMs){interrupt(M.compatNoteProfileSwitched(),nowMs);}
     /** A replayed test is already OUTSTANDING; a live one is interrupted like a disconnect. */
-    void onProcessStart(long nowMs){interrupt("Volt restarted during the test.",nowMs);}
+    void onProcessStart(long nowMs){interrupt(M.compatNoteRestarted(),nowMs);}
 
     // ---- Outputs -------------------------------------------------------------------------------
 
@@ -290,7 +311,7 @@ final class GuidedTest {
         if(!awaitingWrite()||terminal()||variant==null)return false;
         Integer value=variant.read(s),wanted=phase==Phase.TARGET_AWAIT?baseline:expected;
         if(value==null||!value.equals(wanted)||relatedChanged(s)){
-            conflict("A setting changed while the test was waiting. Review it before restoring.",nowMs);return false;
+            conflict(M.compatNoteChangedWaiting(),nowMs);return false;
         }
         return true;
     }
@@ -306,7 +327,9 @@ final class GuidedTest {
     Phase phase(){return phase;}
     Integer baseline(){return baseline;}
     int expected(){return expected;}
-    String note(){return note;}
+    String note(){return note.english();}
+    /** The note to show, in the current language at display time. */
+    Msg noteMsg(){return note;}
     String testId(){return entry==null?"":entry.testId;}
     List<Outcome> outcomes(){
         if(entry==null)return Collections.emptyList();
@@ -314,6 +337,8 @@ final class GuidedTest {
     }
     /** Outcome texts, with the rejection code. */
     List<String> outcomeTexts(){List<String> out=new ArrayList<>();if(entry!=null)for(String t:entry.outcomes)out.add(Outcome.describe(t));return out;}
+    /** outcomeTexts() as the panel shows them, in the current language. */
+    List<String> outcomeLabels(){List<String> out=new ArrayList<>();if(entry!=null)for(String t:entry.outcomes)out.add(Outcome.label(t));return out;}
     /** "confirmed", "outstanding" or "declined"; "none" before anything was written. */
     String restorationStatus(){return entry==null?"none":entry.restoration;}
     TestJournal.Entry entry(){return entry==null?null:entry.copy();}
@@ -323,7 +348,10 @@ final class GuidedTest {
     enum ReviewState { WAITING, MODEL_CHANGED, FIRMWARE_CHANGED, ALREADY_RESTORED, RESTORE_NEEDED, CHANGED_OUTSIDE }
     static final class Review {
         final ReviewState state; final String text; final Integer current; final boolean restorable;
-        Review(ReviewState state,String text,Integer current,boolean restorable){this.state=state;this.text=text;this.current=current;this.restorable=restorable;}
+        Review(ReviewState state,String text,Integer current,boolean restorable){this(state,Msg.verbatim(text),current,restorable);}
+        /** The text to show, in the current language at display time; text keeps its English for notices and the event log. */
+        final Msg message;
+        Review(ReviewState state,Msg text,Integer current,boolean restorable){this.state=state;this.message=text;this.text=text.english();this.current=current;this.restorable=restorable;}
     }
     /**
      * What an unfinished test needs now. It requires the same profile, authenticated and ready
@@ -332,25 +360,25 @@ final class GuidedTest {
      * field present. It never writes; Restore is a separate explicit tap.
      */
     static Review review(TestJournal.Entry e,String profileId,boolean ready,DeviceDescriptor d,StatusFields s,long nowMs,FeatureVariant v,boolean firmwareConfirmed){
-        if(!ready||d==null||!e.profileId.equals(profileId))return new Review(ReviewState.WAITING,"Connect to this scooter to review.",null,false);
+        if(!ready||d==null||!e.profileId.equals(profileId))return new Review(ReviewState.WAITING,M.compatReviewConnect(),null,false);
         if(!e.pidPrefix.equals(d.family())||!e.pidSource.equals(d.pidSource().name().toLowerCase(java.util.Locale.ROOT)))
-            return new Review(ReviewState.MODEL_CHANGED,"Model ID differs from the test. Volt won't change it.",null,false);
-        if(v==null||!v.id.equals(e.variantId))return new Review(ReviewState.MODEL_CHANGED,"Volt's rules for this setting changed. Volt won't change it.",null,false);
+            return new Review(ReviewState.MODEL_CHANGED,M.compatReviewModelChanged(),null,false);
+        if(v==null||!v.id.equals(e.variantId))return new Review(ReviewState.MODEL_CHANGED,M.compatReviewRulesChanged(),null,false);
         if(!e.meterFw.isEmpty()&&!firmwareConfirmed&&!(d.firmwareThisSession&&e.meterFw.equals(d.firmware.meter)))
-            return new Review(ReviewState.FIRMWARE_CHANGED,d.firmwareThisSession?"Firmware changed since the test.":"Firmware not read since the test.",null,false);
-        if(s==null||!s.fresh(nowMs,CapabilityResolver.STATUS_MAX_AGE_MS))return new Review(ReviewState.WAITING,"Waiting for a fresh reading.",null,false);
+            return new Review(ReviewState.FIRMWARE_CHANGED,d.firmwareThisSession?M.compatReviewFirmwareChanged():M.compatReviewFirmwareNotRead(),null,false);
+        if(s==null||!s.fresh(nowMs,CapabilityResolver.STATUS_MAX_AGE_MS))return new Review(ReviewState.WAITING,M.compatReviewWaiting(),null,false);
         Integer current=v.read(s);
-        if(current==null)return new Review(ReviewState.WAITING,"The scooter isn't reporting this setting now.",null,false);
+        if(current==null)return new Review(ReviewState.WAITING,M.compatReviewNotReported(),null,false);
         if(e.related>=0){
             int related=relatedValue(e.feature,v,s);
-            if(related<0)return new Review(ReviewState.WAITING,"The scooter isn't reporting a related setting now.",null,false);
+            if(related<0)return new Review(ReviewState.WAITING,M.compatReviewRelatedNotReported(),null,false);
             // Another actor changed the coupled field: not restorable here; the owner keeps or dismisses it.
-            if(related!=e.related)return new Review(ReviewState.CHANGED_OUTSIDE,"A related setting changed since the test. Volt won't set it back.",current,false);
+            if(related!=e.related)return new Review(ReviewState.CHANGED_OUTSIDE,M.compatReviewRelatedChanged(),current,false);
         }
         boolean restorable=offered(v,s,e.baseline);
-        if(current==e.baseline)return new Review(ReviewState.ALREADY_RESTORED,"Already back to "+v.label(e.baseline)+".",current,false);
-        if(current==e.target)return new Review(ReviewState.RESTORE_NEEDED,"Still on the test value, "+v.label(e.target)+".",current,restorable);
-        return new Review(ReviewState.CHANGED_OUTSIDE,"Changed outside the test (now "+v.label(current)+").",current,restorable);
+        if(current==e.baseline)return new Review(ReviewState.ALREADY_RESTORED,M.compatReviewAlreadyBack(v.label(e.baseline)),current,false);
+        if(current==e.target)return new Review(ReviewState.RESTORE_NEEDED,M.compatReviewStillTestValue(v.label(e.target)),current,restorable);
+        return new Review(ReviewState.CHANGED_OUTSIDE,M.compatReviewChangedOutside(v.label(current)),current,restorable);
     }
     /** Already back to the baseline: restoration confirmed by a fresh readback, no write. */
     static void confirmAlreadyRestored(TestJournal journal,TestJournal.Entry e,long wallMs) throws IOException{
@@ -364,61 +392,61 @@ final class GuidedTest {
     private void arm(){armed=true;needed=-1;replies=0;readWanted=true;}
     private void capture(StatusFields s){
         Integer value=variant.read(s);
-        if(value==null){end("This scooter isn't reporting this setting.");return;}
+        if(value==null){end(M.compatNoteNotReported());return;}
         // A try may start from a setting its variant shows but doesn't offer (a kick-start below 3 km/h where only 3–5 km/h
         // is offered): it moves to an offered value, and Set back is never offered for it (setBackValue, offered). A guided
         // test always writes its baseline back, so it still needs an offered one.
         boolean shown=keeps()&&variant.shows(value);
-        if(!variant.allows(value)&&!shown){end("The current value is unknown, so Volt won't test it.");return;}
-        if(expectedBaseline!=null&&!value.equals(expectedBaseline)){end("The scooter now shows "+variant.label(value)+". Nothing was changed.");return;}
-        if(value==target){end("It's already set to "+variant.label(target)+".");return;}
-        if(!offered(variant,s,target)){end(variant.label(target)+" isn't offered now.");return;}
-        if(!shown&&!offered(variant,s,value)){end("The current value can't be set back, so Volt won't test it.");return;}
+        if(!variant.allows(value)&&!shown){end(M.compatNoteValueUnknown());return;}
+        if(expectedBaseline!=null&&!value.equals(expectedBaseline)){end(M.compatNoteBaselineMoved(variant.label(value)));return;}
+        if(value==target){end(M.compatNoteAlreadySet(variant.label(target)));return;}
+        if(!offered(variant,s,target)){end(M.compatNoteTargetNotOffered(variant.label(target)));return;}
+        if(!shown&&!offered(variant,s,value)){end(M.compatNoteCannotSetBack());return;}
         baseline=value;related=relatedValue(s);phase=Phase.BASELINE;
     }
     private void confirmTarget(StatusFields s,Integer value,long nowMs){
         if(value==null){arm();return;} // absent: inconclusive, wait for the next reading
-        if(relatedChanged(s)){conflict("A related setting changed during the test.",nowMs);return;}
+        if(relatedChanged(s)){conflict(M.compatNoteRelatedChanged(),nowMs);return;}
         if(value==target){add(Outcome.SETTING_CONFIRMED,0,nowMs);phase=Phase.OBSERVE;save(nowMs);return;}
         if(value.equals(baseline)){
             add(Outcome.READBACK_UNCHANGED,value,nowMs);add(Outcome.RESTORATION_CONFIRMED,0,nowMs);
-            note="The scooter accepted it but still shows "+variant.label(baseline)+".";finish(nowMs);return;
+            note=M.compatNoteUnchanged(variant.label(baseline));finish(nowMs);return;
         }
-        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict("The scooter now shows "+variant.label(value)+".",nowMs);
+        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
     }
     private void confirmRestore(StatusFields s,Integer value,long nowMs){
         if(value==null){arm();return;}
-        if(relatedChanged(s)){conflict("A related setting changed during the test.",nowMs);return;}
+        if(relatedChanged(s)){conflict(M.compatNoteRelatedChanged(),nowMs);return;}
         if(value.equals(baseline)){add(Outcome.RESTORATION_CONFIRMED,0,nowMs);finish(nowMs);return;}
-        if(value==expected){add(Outcome.READBACK_UNCHANGED,value,nowMs);outstanding("It still shows "+variant.label(value)+".",nowMs);return;}
-        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict("The scooter now shows "+variant.label(value)+".",nowMs);
+        if(value==expected){add(Outcome.READBACK_UNCHANGED,value,nowMs);outstanding(M.compatNoteStillShows(variant.label(value)),nowMs);return;}
+        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
     }
     /** After a rejection or an unsent write: nothing should have changed; a fresh readback must show the baseline. */
     private void verify(StatusFields s,Integer value,long nowMs){
         if(value==null){arm();return;}
         if(value.equals(baseline)&&!relatedChanged(s)){add(Outcome.RESTORATION_CONFIRMED,0,nowMs);finish(nowMs);return;}
-        if(value==expected){outstanding("It shows the test value, "+variant.label(value)+".",nowMs);return;}
-        conflict("The scooter now shows "+variant.label(value)+".",nowMs);
+        if(value==expected){outstanding(M.compatNoteShowsTestValue(variant.label(value)),nowMs);return;}
+        conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
     }
-    private void interrupt(String why,long nowMs){
-        if(phase==Phase.PRECHECK||phase==Phase.BASELINE){phase=Phase.DONE;note="Stopped before any change. Nothing was changed.";return;}
+    private void interrupt(Msg why,long nowMs){
+        if(phase==Phase.PRECHECK||phase==Phase.BASELINE){phase=Phase.DONE;note=M.compatNoteStopped();return;}
         if(terminal())return;
         add(Outcome.INTERRUPTED,0,nowMs);outstanding(why,nowMs);
     }
-    private void end(String why){phase=Phase.DONE;note=why;}
+    private void end(Msg why){phase=Phase.DONE;note=why;}
     private void finish(long nowMs){
         phase=Phase.DONE;entry.phase=Phase.DONE.name();entry.restoration=TestJournal.CONFIRMED;entry.resolved=true;entry.resolution="restored";
         entry.updatedWall=Math.max(entry.createdWall,nowMs+wallOffset);
-        try{journal.commit(entry);}catch(IOException|IllegalArgumentException failed){note="Set back and confirmed, but the record couldn't be saved.";}
+        try{journal.commit(entry);}catch(IOException|IllegalArgumentException failed){note=M.compatNoteRestoredNotSaved();}
     }
     /** A try's value stays after the owner's answer: resolved as kept (declined restoration); Set back can reopen it. */
     private void kept(long nowMs){
         phase=Phase.DONE;entry.phase=Phase.DONE.name();entry.restoration=TestJournal.DECLINED;entry.resolved=true;entry.resolution="kept";
         entry.updatedWall=Math.max(entry.createdWall,nowMs+wallOffset);
-        try{journal.commit(entry);}catch(IOException|IllegalArgumentException failed){note="Kept, but the record couldn't be saved. It will show as unfinished.";}
+        try{journal.commit(entry);}catch(IOException|IllegalArgumentException failed){note=M.compatNoteKeptNotSaved();}
     }
-    private void outstanding(String why,long nowMs){phase=Phase.OUTSTANDING;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
-    private void conflict(String why,long nowMs){phase=Phase.CONFLICT;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
+    private void outstanding(Msg why,long nowMs){phase=Phase.OUTSTANDING;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
+    private void conflict(Msg why,long nowMs){phase=Phase.CONFLICT;note=why;entry.restoration=TestJournal.OUTSTANDING;save(nowMs);}
     private void add(Outcome o,int code,long nowMs){TestJournal.append(entry,o.token(code),Math.max(0,Math.min(24L*3600*1000,nowMs-approvedMs)));if(observer!=null)observer.outcome(this,o,code,awaitingWrite(),restoring());}
     /** Commit failures after a write leave the earlier phase in the journal, which replays as OUTSTANDING. */
     private void save(long nowMs){try{commit(nowMs);}catch(IOException|IllegalArgumentException kept){}}
