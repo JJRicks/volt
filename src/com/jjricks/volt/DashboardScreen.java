@@ -811,7 +811,7 @@ public final class DashboardScreen implements AppScreen {
 
     /** An inline spinner keeps "Connecting…" on its single status line. */
     private CharSequence connectingLabel() {
-        android.text.SpannableString text = new android.text.SpannableString(T.dashboardConnectingSpinner());
+        android.text.SpannableString text = new android.text.SpannableString("Connecting…  ￼");
         TextView owner = status;
         android.graphics.drawable.Drawable spinner =
                 new android.graphics.drawable.Drawable() {
@@ -1861,7 +1861,7 @@ public final class DashboardScreen implements AppScreen {
         CapacityBar capacityBar;
         /** The latest analysis behind the details sheet; null while checking or in simulation. */
         BatteryCapacityEstimate.Result capacityResult;
-        String capacityUnavailable;
+        CharSequence capacityUnavailable;
         TextView chargingWatts,
                 chargingEta,
                 chargingEtaLabel,
@@ -2731,11 +2731,11 @@ public final class DashboardScreen implements AppScreen {
             final FittedValue percent;
             final ImageView picture;
             final BatteryBar bar;
+            /** Spoken battery text, a Msg rendered when spoken; readings dropped to fit the height are appended to it. */
+            CharSequence spoken = "";
             final ArrayList<LinearLayout> items = new ArrayList<>();
             int budget, readingColumns, fittedWidth = -1, fittedBudget = -1;
             boolean photoAllowed, fittedPhoto, fittedRange, rangeWanted, rangeFits = true;
-            /** Spoken battery text; readings dropped to fit the height are appended to it. */
-            String spoken = "";
 
             OverviewCard(List<String> keys) {
                 super(host.activity());
@@ -2909,11 +2909,11 @@ public final class DashboardScreen implements AppScreen {
                 bar.set(level, live, charging);
                 spoken = level == null
                         ? (line.isEmpty()
-                                ? (charge != null && charge.value != null && !live ? T.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : T.dashboardOverviewNotReported())
-                                : (charge != null && charge.value != null && !live ? T.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : T.dashboardOverviewNotReportedLine(line)))
+                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : M.dashboardOverviewNotReported())
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(line)))
                         : (line.isEmpty()
-                                ? (charge != null && charge.value != null && !live ? T.dashboardOverviewPercentSeen(amount, when(charge.capturedWallMs)) : T.dashboardOverviewPercent(amount))
-                                : (charge != null && charge.value != null && !live ? T.dashboardOverviewPercentLineSeen(amount, line, when(charge.capturedWallMs)) : T.dashboardOverviewPercentLine(amount, line)));
+                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeen(amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercent(amount))
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeen(amount, line, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLine(amount, line)));
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }
@@ -3627,7 +3627,7 @@ public final class DashboardScreen implements AppScreen {
                 capacityPending = false;
                 capacityChecked = 0;
                 capacityResult = null;
-                capacityUnavailable = current == null ? T.dashboardNoScooter() : null;
+                capacityUnavailable = current == null ? M.dashboardNoScooter() : null;
                 capacityMessage(current == null ? capacityUnavailable : T.dashboardProcessing(),
                         current == null ? capacityUnavailable : T.dashboardCheckingRides());
                 return;
@@ -3720,7 +3720,7 @@ public final class DashboardScreen implements AppScreen {
                     || capacityResult.throughputEquivalentWh != null);
         }
 
-        private void capacityMessage(String value, String summary) {
+        private void capacityMessage(CharSequence value, CharSequence summary) {
             capacityValue.setText(value);
             capacityValue.setTextColor(ui.muted);
             capacitySummary.setText(summary);
@@ -3816,8 +3816,8 @@ public final class DashboardScreen implements AppScreen {
             return line;
         }
 
-        private TextView caveat(String text) {
-            TextView line = ui.caption(text);
+        private TextView caveat(CharSequence text) {
+            TextView line = ui.caption(text.toString());
             line.setPadding(0, ui.dp(10), 0, 0);
             return line;
         }
@@ -5219,7 +5219,7 @@ public final class DashboardScreen implements AppScreen {
             swatches.addView(swatch, new ViewGroup.LayoutParams(ui.dp(48), ui.dp(48)));
         }
         list.addView(swatches, new LinearLayout.LayoutParams(-1, -2));
-        TextView save = ui.button(T.dashboardSaveButton(), () -> {
+        TextView save = ui.button("✓ Save", () -> {
             applyTitle.run();
             if (!config.widgets.contains(widget)) {
                 DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
@@ -5267,7 +5267,7 @@ public final class DashboardScreen implements AppScreen {
                 LinearLayout select = row(); select.setGravity(Gravity.CENTER_VERTICAL);
                 select.setMinimumHeight(ui.dp(48)); select.setClickable(true); select.setFocusable(true);
                 int index = widget.quickActions.indexOf(id);
-                select.setContentDescription(T.dashboardChangeShortcut(Fmt.integer(index + 1), entry.label()));
+                select.setContentDescription(M.dashboardChangeShortcut(Fmt.integer(index + 1), entry.label()));
                 select.setTag("quick-select:" + index);
                 select.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
                 TextView name = ui.text(entry.label(), 14, false);
@@ -5306,7 +5306,7 @@ public final class DashboardScreen implements AppScreen {
             animateRows(rows, old);
         };
         fill[0].run();
-        TextView save = ui.button(T.dashboardSaveButton(), () -> options(widget));
+        TextView save = ui.button("✓ Save", () -> options(widget));
         showSheet(T.dashboardQuickSettings(), list, save, T.dashboardCloseQuickSettings(), null);
     }
 
@@ -5683,10 +5683,10 @@ public final class DashboardScreen implements AppScreen {
             }));
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle(T.dashboardAdvertisedCapacity())
+                        .setTitle(M.dashboardAdvertisedCapacity())
                         .setView(content)
-                        .setNegativeButton(T.commonCancel(), null)
-                        .setPositiveButton(T.dashboardSave(), null)
+                        .setNegativeButton(M.commonCancel(), null)
+                        .setPositiveButton(M.dashboardSave(), null)
                         .create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -5725,9 +5725,9 @@ public final class DashboardScreen implements AppScreen {
                 new AlertDialog.Builder(dialogContext)
                         .setTitle(label)
                         .setView(input)
-                        .setNegativeButton(T.commonCancel(), null)
+                        .setNegativeButton(M.commonCancel(), null)
                         .setPositiveButton(
-                                T.dashboardSave(),
+                                M.dashboardSave(),
                                 (d, w) -> {
                                     apply.accept(input.getText().toString().equals(shown) ? value : input.getText().toString());
                                     changedWidget(widget);
@@ -5948,7 +5948,7 @@ public final class DashboardScreen implements AppScreen {
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        TextView save = ui.button(T.dashboardSaveButton(), () -> {
+        TextView save = ui.button("✓ Save", () -> {
             if (chosen.size() > most) return;
             if (chosen.size() < least) {
                 host.toast(T.dashboardChooseOneReading());
@@ -6010,10 +6010,10 @@ public final class DashboardScreen implements AppScreen {
         }
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle(maximum ? T.dashboardScaleMaximum() : T.dashboardScaleMinimum())
+                        .setTitle(maximum ? M.dashboardScaleMaximum() : M.dashboardScaleMinimum())
                         .setView(content)
-                        .setNegativeButton(T.commonCancel(), null)
-                        .setPositiveButton(T.dashboardSave(), null)
+                        .setNegativeButton(M.commonCancel(), null)
+                        .setPositiveButton(M.dashboardSave(), null)
                         .create();
         dialog.show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE)
@@ -6061,11 +6061,11 @@ public final class DashboardScreen implements AppScreen {
         controls.addView(height);
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle(T.dashboardWidgetSize())
+                        .setTitle(M.dashboardWidgetSize())
                         .setView(controls)
-                        .setNegativeButton(T.commonCancel(), null)
+                        .setNegativeButton(M.commonCancel(), null)
                         .setPositiveButton(
-                                T.dashboardApply(),
+                                M.dashboardApply(),
                                 (d, n) -> {
                                     DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
                                     grid.prepareEdit();
@@ -6100,11 +6100,11 @@ public final class DashboardScreen implements AppScreen {
         controls.addView(y);
         dialog =
                 new AlertDialog.Builder(dialogContext)
-                        .setTitle(T.dashboardMoveWidget())
+                        .setTitle(M.dashboardMoveWidget())
                         .setView(controls)
-                        .setNegativeButton(T.commonCancel(), null)
+                        .setNegativeButton(M.commonCancel(), null)
                         .setPositiveButton(
-                                T.dashboardMove(),
+                                M.dashboardMove(),
                                 (d, n) -> {
                                     DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
                                     grid.prepareEdit();
@@ -6522,7 +6522,7 @@ public final class DashboardScreen implements AppScreen {
         AlertDialog created = new AlertDialog.Builder(dialogContext)
                 .setTitle(replacing ? T.dashboardReplaceSlotTitle(Fmt.integer(index + 1)) : T.dashboardSaveSlotTitle(Fmt.integer(index + 1)))
                 .setView(content)
-                .setNegativeButton(T.commonCancel(), (d, which) -> returnToLayoutOptions(d))
+                .setNegativeButton(M.commonCancel(), (d, which) -> returnToLayoutOptions(d))
                 .setOnCancelListener(this::returnToLayoutOptions)
                 .setPositiveButton(replacing ? T.dashboardReplace() : T.dashboardSave(), null)
                 .create();
@@ -6590,7 +6590,7 @@ public final class DashboardScreen implements AppScreen {
                 new AlertDialog.Builder(dialogContext)
                         .setTitle(title)
                         .setView(scroll)
-                        .setNegativeButton(T.commonClose(), null)
+                        .setNegativeButton(M.commonClose(), null)
                         .create();
         if (dialog.getWindow() != null) {
             dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 24, 0));

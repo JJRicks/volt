@@ -40,9 +40,6 @@
     <string name="dashboard_widget_limit" volt:screen="Home, editing" volt:purpose="tooltip">32-widget limit</string>
     <!-- Spoken for Add widget at the limit: %1$s is dashboard_widget_limit. -->
     <string name="dashboard_add_widget_limit" volt:screen="Home, editing" volt:purpose="accessibility description">Add widget, %1$s</string>
-    <!-- The status line while Volt connects; the last character (an object replacement character) is
-         replaced by a small spinner, so keep it last and keep the two spaces before it. -->
-    <string name="dashboard_connecting_spinner" volt:screen="Home header" volt:purpose="status" volt:dnt="￼">"Connecting…  ￼"</string>
     <!-- Tooltip of a widget's duplicate button: a dashboard has a single lock widget. -->
     <string name="dashboard_one_lock_widget" volt:screen="Home, editing a widget" volt:purpose="tooltip" volt:safety="lock">One lock widget per dashboard</string>
     <!-- Tooltip of a widget's duplicate button. -->
@@ -311,8 +308,6 @@
     <string name="dashboard_color_blue" volt:screen="Widget options" volt:purpose="accessibility description">Blue</string>
     <string name="dashboard_color_amber" volt:screen="Widget options" volt:purpose="accessibility description">Amber</string>
     <string name="dashboard_color_rose" volt:screen="Widget options" volt:purpose="accessibility description">Rose</string>
-    <!-- The Save button; the check mark is a symbol. -->
-    <string name="dashboard_save_button" volt:screen="Widget options" volt:purpose="button" volt:dnt="✓">✓ Save</string>
     <string name="dashboard_save_widget_options" volt:screen="Widget options" volt:purpose="accessibility description">Save widget options</string>
     <!-- A setting row's value: how many items are chosen. -->
     <plurals name="dashboard_selected_count" volt:screen="Widget options" volt:purpose="value">

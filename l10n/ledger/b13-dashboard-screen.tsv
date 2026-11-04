@@ -17,7 +17,6 @@ src/com/jjricks/volt/DashboardScreen.java:691	["Edit dashboard"]	dashboard_edit_
 src/com/jjricks/volt/DashboardScreen.java:700	["Add widget, ", {"hole": "WIDGET_LIMIT_TEXT", "arg": 1, "type": "s"}]	dashboard_add_widget_limit	template	
 src/com/jjricks/volt/DashboardScreen.java:700	["Add widget"]	dashboard_add_widget	exact	
 src/com/jjricks/volt/DashboardScreen.java:753	["Your scooter"]	dashboard_your_scooter	exact	
-src/com/jjricks/volt/DashboardScreen.java:812	["Connecting…  ￼"]	dashboard_connecting_spinner	exact	
 src/com/jjricks/volt/DashboardScreen.java:871	["now"]	dashboard_age_now	exact	
 src/com/jjricks/volt/DashboardScreen.java:872	[{"hole": "minutes", "arg": 1, "type": "s", "as": "Fmt.integer(minutes)"}, " min"]	dashboard_age_minutes	template	
 src/com/jjricks/volt/DashboardScreen.java:873	[{"hole": "minutes / 60", "arg": 1, "type": "s", "as": "Fmt.integer(minutes / 60)"}, " h"]	dashboard_age_hours	template	
@@ -197,7 +196,6 @@ src/com/jjricks/volt/DashboardScreen.java:5181	["Red"]	dashboard_color_red	exact
 src/com/jjricks/volt/DashboardScreen.java:5181	["Blue"]	dashboard_color_blue	exact	
 src/com/jjricks/volt/DashboardScreen.java:5181	["Amber"]	dashboard_color_amber	exact	
 src/com/jjricks/volt/DashboardScreen.java:5181	["Rose"]	dashboard_color_rose	exact	
-src/com/jjricks/volt/DashboardScreen.java:5199	["✓ Save"]	dashboard_save_button	exact	
 src/com/jjricks/volt/DashboardScreen.java:5212	["Save widget options"]	dashboard_save_widget_options	exact	
 src/com/jjricks/volt/DashboardScreen.java:5236	[{"hole": "widget.quickActions.size()", "arg": 1, "type": "s", "as": "Fmt.integer(widget.quickActions.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}]	dashboard_count_of	template	
 src/com/jjricks/volt/DashboardScreen.java:5237	[{"hole": "widget.quickActions.size()", "arg": 1, "type": "s", "as": "Fmt.integer(widget.quickActions.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}, " shortcuts"]	dashboard_count_of_shortcuts	template	
@@ -206,7 +204,6 @@ src/com/jjricks/volt/DashboardScreen.java:5255	["Move ", {"hole": "entry.label",
 src/com/jjricks/volt/DashboardScreen.java:5264	["Remove shortcut ", {"hole": "entry.label", "arg": 1, "type": "s", "as": "entry.label()"}]	dashboard_remove_shortcut	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label
 src/com/jjricks/volt/DashboardScreen.java:5278	["Add shortcut"]	dashboard_add_shortcut	exact	
 src/com/jjricks/volt/DashboardScreen.java:5280	["Add quick shortcut"]	dashboard_add_quick_shortcut	exact	
-src/com/jjricks/volt/DashboardScreen.java:5286	["✓ Save"]	dashboard_save_button	exact	
 src/com/jjricks/volt/DashboardScreen.java:5287	["Quick settings"]	dashboard_quick_settings	exact	
 src/com/jjricks/volt/DashboardScreen.java:5287	["Close quick settings"]	dashboard_close_quick_settings	exact	
 src/com/jjricks/volt/DashboardScreen.java:5328	["Search settings"]	dashboard_search_settings	exact	
@@ -246,7 +243,6 @@ src/com/jjricks/volt/DashboardScreen.java:5783	["All readings"]	dashboard_all_re
 src/com/jjricks/volt/DashboardScreen.java:5840	[{"hole": "chosen.size()", "arg": 1, "type": "s", "as": "Fmt.integer(chosen.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}, " selected"]	dashboard_count_of_selected	template	
 src/com/jjricks/volt/DashboardScreen.java:5869	[{"hole": "label(key)", "arg": 1, "type": "s"}, ", selected, uncheck"]	dashboard_reading_uncheck	template	
 src/com/jjricks/volt/DashboardScreen.java:5899	["No matching readings"]	dashboard_no_matching_readings	exact	
-src/com/jjricks/volt/DashboardScreen.java:5924	["✓ Save"]	dashboard_save_button	exact	
 src/com/jjricks/volt/DashboardScreen.java:5927	["Choose at least one reading."]	dashboard_choose_one_reading	exact	
 src/com/jjricks/volt/DashboardScreen.java:5936	["Save selected readings"]	dashboard_save_readings	exact	
 src/com/jjricks/volt/DashboardScreen.java:5940	["Choose readings"]	dashboard_choose_readings	exact	
@@ -303,3 +299,4 @@ src/com/jjricks/volt/DashboardScreen.java:6529	["Restore"]	dashboard_restore	exa
 src/com/jjricks/volt/DashboardScreen.java:6537	["Couldn’t restore. Nothing changed."]	dashboard_restore_failed	exact	
 src/com/jjricks/volt/DashboardScreen.java:6545	["Restored “", {"hole": "saved.name", "arg": 1, "type": "s", "as": "DashboardConfig.displaySlotName(saved.name, index)"}, "”"]	dashboard_restored	template	manual: saved.name (SavedSlot's stored English name) is passed as DashboardConfig.displaySlotName(saved.name, index), B12's shown name of the slot: the owner's name as saved, or Volt's own default or example name in the current language, whose English is saved.name
 src/com/jjricks/volt/DashboardScreen.java:6564	["Close"]	common_close	exact	
+src/com/jjricks/volt/DashboardScreen.java:2715	[""]	-	removed	whole block: the String field spoken and its empty initializer are deleted; the field is declared again three lines up as CharSequence spoken = "" (no text: an empty start value), because the overview now keeps its spoken text as a deferred M Msg (R2: no rendered text in a field) that speak() renders through new StringBuilder(spoken)
