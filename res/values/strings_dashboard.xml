@@ -11,6 +11,69 @@
   import keep the English text. The title, note and slot name editors start at the text as shown;
   saved unchanged, they keep what was saved. Widget type names, default titles and slot names come
   from strings_dashboard_model.xml.
+
+  What this screen still shows or speaks in English, and why (DashboardScreen.java lines):
+  - the header status line and its spoken form ("Connected · Sport", "Disconnected · last seen
+    14:05", "Connected, Sport mode. Connection details", :792-813): the state word is picked on the
+    line above, and G1 has no row for a choice set on an earlier line (l10n/README.md, "Still
+    blocked"); see the comment at :787;
+  - text with a mark the Saira font has no glyph for: GlyphCoverageTest refuses it in the catalog,
+    and keeping the mark in Java beside a key would be a new literal, which G1 refuses. It waits for
+    the font check, not for the G1 tooling round: a reviewed glyph exemption list or an icon (as
+    B16's star and B18's battery row do):
+    - the three "✓ Save" buttons (U+2713): widget options :5295, quick settings :5382, Choose
+      readings :6035. The widget options and Choose readings buttons have translated spoken names
+      (dashboard_save_widget_options, dashboard_save_readings); the quick settings one is read as
+      shown;
+    - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in
+      U+FFFC, the place of the inline spinner;
+  - count phrases whose plural ending shares an expression with a choice: a choice row's branches
+    cannot be plural rows, and a choice of fixed whole templates would keep English's two forms in
+    every language:
+    - the estimate details sheet's Window value ("7 days · live", :3803-3804);
+    - the column choices' spoken text ("2 columns, needs a wider screen", :6245-6246);
+    - a saved slot's summary line ("Empty", "Unreadable", "1 widget · 14:05", "3 widgets · 03 NOV ·
+      14:05", :6558-6562), one expression for all four. hardcoded_lint does not flag it (single
+      words and a count reach ui.caption through a String local), so
+      l10n/baseline/DashboardScreen.txt does not list it either;
+  - text inside String.format, which a format row cannot cover with a plural or a choice:
+    - the Charging check value ("12.4 Ah · 3 charges", :3795): the plural ending is a format
+      argument (a plural cannot replace a String.format line);
+    - the advertised capacity row's value ("716.04 Wh · model", ratingLabel :5726): " · model" is
+      a ternary passed to the format's %s;
+  - a window's long name in the chart and sample captions ("10 minutes", windowName :6055-6058):
+    the unit word is picked on the line above its plural ending ("a choice set on an earlier
+    line");
+  - the recording button's spoken text ("Recording 0:42, 1.2 mi, 15 Wh. Stop & save", :3560-3561):
+    the list separator of TextUtils.join sits inside the optional part, so a choice row would own
+    a literal that one of its holes needs;
+  - two literals beside a line this batch changes that is not a ledger row, so converting them
+    would put text and that change in one hunk, which G1 refuses in an extraction batch ("around
+    text"):
+    - the reported range's chart caption "Scooter range" (:3913-3914), beside the caption's title
+      test (:3912, now englishLabel(key));
+    - "Close widget options", spoken for the widget options sheet's close button (:5314), beside
+      the sheet title (:5313, now DashboardConfig.typeName);
+  - the scale rows' values and the scale dialog's spoken input ("25 mph", scaleSummary :6061;
+    "Scale maximum in mph", :6081-6082) and the chart's unit: chartUnit is a data unit that
+    Ui.ChartView matches against UnitCode data codes (see chartUnit's javadoc, :955), and the
+    number keeps US digits;
+  - the note widget's options row value, widget.note as saved, so the shipped example's note shows
+    its English there (:5216), and the quick settings search, which matches English shortcut names
+    and groups only (:5432): each statement holds text, and around text an extraction batch may
+    only replace a ledger row's expression (G1), so these wait for an ordinary change;
+  - text other files still build in English, shown as it is: ChargingEstimate.Result.status in the
+    charging hero's spoken time (:1729); BatteryCapacityEstimate.Result's label and rejection reason
+    (the capacity widget's chip, summary and bar description, the details caveat and the Rejected
+    value, :3704-3719, :3807-3809); ScooterService's unavailable reason (:3673, and the details
+    caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE, SPORT) on the drive
+    mode card and in the header; DisplayTime.recent's English month ("03 NOV · 14:05") in the
+    header's last seen time and a saved slot's summary; and reading values from format()
+    (DisplayUnits.metricText's canonical English: US digits and Telemetry's unit symbols), which
+    withUnit and Gauge.set split at the last space (:923).
+  Translated with a limit: dashboard_rides_range and dashboard_rides_points are not plurals (a
+  plural cannot replace a String.format line, and rides_points holds two counts); their notes ask
+  for a form whose noun does not change with the number.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
