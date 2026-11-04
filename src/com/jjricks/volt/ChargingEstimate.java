@@ -237,14 +237,16 @@ public final class ChargingEstimate {
         // minutes of this charge's own decay), voltage and current place the finish instead of the
         // percentage-indexed reference or past charges. Where the gauge sits in the taper varies
         // between charges, the decay does not, so the estimate stops switching between those
-        // sources as the gauge steps. Only the time to 100% changes; a lower cutoff keeps prior's
-        // evidence. If the taper model declines (null or no full time), the v7 path below runs.
+        // sources as the gauge steps. Only the time to 100% changes: a lower cutoff keeps v7's
+        // evidence, including a personal time to that cutoff (withPersonalLimit), never longer
+        // than the time to 100%. If the taper model declines (null or no full time), the v7 path
+        // below runs.
         if (fast&&taper!=null&&baseline!=null&&baseline.charging&&baseline.inputAmps!=null&&baseline.inputWatts!=null
                 &&baseline.inputAmps>=MINIMUM_ETA_CURRENT_A&&productId==Ut5MaxFastChargeReference.PRODUCT_ID
                 &&valid(soc)&&valid(ratedAh)&&soc.number<100
                 &&taper.ownTaper(baseline.inputWatts/baseline.inputAmps,baseline.inputAmps)) {
             Result own=withFastTaper(withoutFullReference(prior,baseline),baseline,soc,ratedAh,productId,taper);
-            if(own!=null&&own.referenceToFull)return own;
+            if(own!=null&&own.referenceToFull)return withPersonalLimit(own,baseline,soc,selectedCharger,personal);
         }
         if (personal==null || personal.charger!=selectedCharger) return fast?withHeldPersonal(prior,soc,taper,nowMs):prior;
         Result learned=withObservedCurve(baseline,soc,personal);
@@ -365,6 +367,25 @@ public final class ChargingEstimate {
     private static Result withoutFullReference(Result prior,Result baseline) {
         return new Result(prior.charging,prior.inputWatts,prior.inputAmps,prior.remainingMinutesToLimit,baseline.remainingMinutesToFull,
                 prior.targetPercent,prior.labelMsg,prior.status,false,false,0,prior.referenceToLimit,false,prior.referenceCharger);
+    }
+
+    /**
+     * own (the charge's own taper to 100%) with the personal time to a lower cutoff that v7 shows
+     * there: past charges' time to an 80% or 95% cutoff, bounded by the time to 100%, with its
+     * source, sessions and label. Without one, own keeps its reference or current-rate cutoff.
+     */
+    private static Result withPersonalLimit(Result own,Result baseline,Value soc,ChargeSessionStore.Charger selectedCharger,
+            ChargeSessionStore.Curve personal) {
+        if(own.targetPercent==null||own.targetPercent>=100||personal==null||personal.charger!=selectedCharger)return own;
+        Result learned=withObservedCurve(baseline,soc,personal);
+        if(learned==null||!learned.learnedToLimit||learned.remainingMinutesToLimit==null)return own;
+        int sessions=learned.learnedSessions;
+        String status="Time to the limit uses personal history from "+sessions+" completed high-speed charge"+(sessions==1?"":"s")
+                +", up to the time to 100%. Time to 100% uses pack voltage, charging current and this charge's own taper. "
+                +"Time to displayed 100%; balancing may continue."+cutoffNote(own.targetPercent);
+        return new Result(own.charging,own.inputWatts,own.inputAmps,Math.min(learned.remainingMinutesToLimit,own.remainingMinutesToFull),
+                own.remainingMinutesToFull,own.targetPercent,M.chargingEstimatePastCharges(sessions,sessions),status,
+                true,false,sessions,false,true,ChargeSessionStore.Charger.HIGH_SPEED);
     }
 
     /**

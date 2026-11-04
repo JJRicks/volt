@@ -298,6 +298,42 @@ public final class FastChargeTaperTest {
             check(ownTaper, "Session " + session + " reaches its own taper");
             check(sum / n <= (session == 11 || session == 4 ? 1.0 : session == 13 ? 4.5 : 2.5), "Session " + session + " mean absolute error " + sum / n);
         }
+        lowerLimit(data, rows);
+    }
+
+    /**
+     * A 95% charge limit, where past charges place the cutoff: the charge's own taper changes only the
+     * time to 100%, never a personal time to the cutoff, its source, label or Charge done by minutes.
+     */
+    private static void lowerLimit(Path data, List<FastChargeTaperReplay.Row> full) throws Exception {
+        List<FastChargeTaperReplay.Row> rows = FastChargeTaperReplay.replay(data.resolve("sessions.csv"), 95);
+        check(rows.size() == full.size(), "The 95% replay covers every sample");
+        int personal = 0, other = 0;
+        for (int i = 0; i < rows.size(); i++) {
+            FastChargeTaperReplay.Row row = rows.get(i), hundred = full.get(i);
+            String where = "Session " + row.sample.session + " at " + row.minutes + " min";
+            check(Objects.equals(row.full, hundred.full) && row.source.equals(hundred.source) && row.ownTaper == hundred.ownTaper,
+                    where + ": a lower limit leaves the time to 100% alone");
+            check(Objects.equals(row.planningLimit, row.limit), where + ": Charge done by plans with the displayed cutoff time");
+            // Where the charge's own taper placed the time to 100% (elsewhere it is v7's path, untouched).
+            if (!row.ownTaper || !row.sample.charger.equals("HIGH_SPEED") || !hundred.source.equals("FAST_REFERENCE") || row.limit == null) continue;
+            check(row.limit <= row.full + 1e-9, where + ": the cutoff time never exceeds the time to 100%");
+            if (row.personalLimit != null) {
+                personal++;
+                check(row.limitSource.equals("PERSONAL") && Math.abs(row.limit - Math.min(row.personalLimit, row.full)) <= 1e-9
+                        && row.label.startsWith("From ") && row.learned > 0, where + ": its own taper keeps past charges' time to the cutoff");
+            } else {
+                other++;
+                check(!row.limitSource.equals("PERSONAL") && !row.label.startsWith("From ") && row.learned == 0,
+                        where + ": without one, the cutoff keeps its reference or current rate");
+            }
+        }
+        // Without withPersonalLimit, these 453 cutoff times moved to the reference or current rate.
+        check(personal == 453 && other == 737, "Own-taper samples with a personal 95% time " + personal + ", without " + other);
+        FastChargeTaperReplay.Row s15 = null;
+        for (FastChargeTaperReplay.Row row : rows) if (row.sample.session == 15 && row.ownTaper && row.sample.soc == 82) { s15 = row; break; }
+        check(s15 != null && s15.limitSource.equals("PERSONAL") && Math.abs(s15.limit - 19.39) < .01 && s15.planningLimit.equals(s15.limit),
+                "Session 15 at 82% keeps v7's personal 19.4 minutes to 95%");
     }
 
     private static List<String[]> baseline(Path csv) throws Exception {

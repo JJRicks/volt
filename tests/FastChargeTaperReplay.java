@@ -25,6 +25,10 @@ final class FastChargeTaperReplay {
         Sample sample; double minutes; Double actual; Double full; String source; int learned;
         /** The charge's own taper was established (FastChargeTaper.ownTaper) at this sample's live reading. */
         boolean ownTaper;
+        /** The time to the replayed charge limit, its source and Charge done by's minutes before the buffer. */
+        Double limit, planningLimit; String limitSource, label;
+        /** Past charges' time to that limit (ChargingEstimate.withObservedCurve) at this sample, or null without one. */
+        Double personalLimit;
     }
 
     static List<List<Sample>> read(Path csv) throws IOException {
@@ -67,7 +71,15 @@ final class FastChargeTaperReplay {
                 ? (r.referenceCharger == ChargeSessionStore.Charger.STOCK ? "STOCK_REFERENCE" : "FAST_REFERENCE") : "CURRENT_RATE";
     }
 
-    static List<Row> replay(Path csv) throws Exception {
+    static String limitSource(ChargingEstimate.Result r) {
+        return r.remainingMinutesToLimit == null ? "" : r.learnedToLimit ? "PERSONAL" : r.referenceToLimit
+                ? (r.referenceCharger == ChargeSessionStore.Charger.STOCK ? "STOCK_REFERENCE" : "FAST_REFERENCE") : "CURRENT_RATE";
+    }
+
+    static List<Row> replay(Path csv) throws Exception { return replay(csv, 100); }
+
+    /** Replays with the given charge limit (100 for the committed baselines). */
+    static List<Row> replay(Path csv, double target) throws Exception {
         List<List<Sample>> sessions = read(csv);
         Class<?> taperClass = null;
         try { taperClass = Class.forName("com.jjricks.volt.FastChargeTaper"); } catch (ClassNotFoundException baseline) {}
@@ -107,7 +119,7 @@ final class FastChargeTaperReplay {
                         progress.observe("fixture", true, s.soc, s.amps, t);
                         if (taper != null) observe.invoke(taper, "fixture", true, s.volts, s.amps, t);
                         ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(s.volts, t), live(s.amps, t),
-                                live(s.soc, t), live(RATED_AH, t), live(100, t));
+                                live(s.soc, t), live(RATED_AH, t), live(target, t));
                         ChargingEstimate.Result r = taper == null
                                 ? ChargingEstimate.forScooter(base, live(s.soc, t), live(RATED_AH, t), 2538, charger, curve, gate, "fixture:serial", t, t, progress.progress("fixture", t))
                                 : (ChargingEstimate.Result) withTaper.invoke(null, base, live(s.soc, t), live(RATED_AH, t), 2538, charger, curve, gate, "fixture:serial", t, t,
@@ -117,6 +129,10 @@ final class FastChargeTaperReplay {
                         row.full = r.remainingMinutesToFull; row.source = source(r); row.learned = r.learnedSessions;
                         row.ownTaper = ownTaper != null && base.inputWatts != null && base.inputAmps != null && base.inputAmps > 0
                                 && (Boolean) ownTaper.invoke(taper, base.inputWatts / base.inputAmps, base.inputAmps);
+                        row.limit = r.remainingMinutesToLimit; row.planningLimit = r.planningMinutesToLimit;
+                        row.limitSource = limitSource(r); row.label = r.label;
+                        ChargingEstimate.Result learned = curve == null ? null : ChargingEstimate.withObservedCurve(base, live(s.soc, t), curve);
+                        row.personalLimit = learned != null && learned.learnedToLimit ? learned.remainingMinutesToLimit : null;
                         rows.add(row);
                     }
                 } finally { clear(history); clear(alone); }
