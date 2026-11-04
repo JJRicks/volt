@@ -22,9 +22,13 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
+import com.jjricks.volt.BleController;
 import com.jjricks.volt.ConnectionEventLog;
 import com.jjricks.volt.MainActivity;
 import com.jjricks.volt.ScooterProfiles;
+import com.jjricks.volt.ScooterService;
+import com.jjricks.volt.TelemetryHistory;
 
 /**
  * Fresh disposable emulator only. The "help Volt support this scooter" offer on the developer
@@ -70,7 +74,7 @@ public final class ReportInviteValidation extends Instrumentation {
             SystemClock.sleep(3500); settle();
             require(field(activity, "reportDialog") == null, "The automatic offer appeared for a simulated scooter");
 
-            open(); screenshot("offer");
+            open(); awaitHomeShowsMode(3); screenshot("offer");
             click(AlertDialog.BUTTON_NEGATIVE); settle();
             require(!showing() && settings().getString("report_invite_" + MODEL, "").startsWith("later:"), "Not now did not close and wait");
 
@@ -87,15 +91,15 @@ public final class ReportInviteValidation extends Instrumentation {
                 android.widget.ScrollView list = (android.widget.ScrollView) find("model-list"); View footer = find("model-next");
                 require(list.getChildAt(0).getHeight() > list.getHeight() && list.getHeight() > footer.getHeight() * 4 && footer.isShown(), "The model list does not scroll in the sheet");
             });
-            screenshot("checking");
+            awaitHomeShowsMode(3); screenshot("checking");
             main(() -> ((android.widget.ScrollView) find("model-list")).fullScroll(View.FOCUS_DOWN)); settle();
-            require(onScreen("model-k100plus") && !onScreen("model-ut3max"), "The end of the list is unreachable"); screenshot("list-end");
+            require(onScreen("model-k100plus") && !onScreen("model-ut3max"), "The end of the list is unreachable"); awaitHomeShowsMode(3); screenshot("list-end");
             main(() -> ((android.widget.ScrollView) find("model-list")).fullScroll(View.FOCUS_UP)); settle();
             // Turning the phone resizes the open sheet to the new window, keeping the same sheet, its answer and the check.
             android.app.Dialog sheet = dialog(); require(sheetFits(), "The sheet is not nine-tenths of Volt's window");
             getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_FREEZE_90);
             await(() -> landscape() && sheetFits(), "The sheet did not follow the turn to landscape");
-            main(() -> find("model-unsure").performClick()); settle(); screenshot("landscape");
+            main(() -> find("model-unsure").performClick()); settle(); awaitHomeShowsMode(3); screenshot("landscape");
             getUiAutomation().setRotation(android.app.UiAutomation.ROTATION_FREEZE_0);
             await(() -> !landscape() && sheetFits(), "The sheet kept its landscape height in portrait");
             require(dialog() == sheet && showing() && view("model-unsure").isSelected(), "Turning the phone lost the sheet or its answer");
@@ -136,14 +140,14 @@ public final class ReportInviteValidation extends Instrumentation {
             });
             SystemClock.sleep(1500); settle();
             require(view("model-gt3pro") != null && view("model-gt3") == null && view("model-typed") == null && view("model-unsure") == null, "Search did not narrow to GT3 Pro");
-            screenshot("search-keyboard");
+            awaitHomeShowsMode(3); screenshot("search-keyboard");
             main(() -> find("model-gt3pro").performClick()); settle();
             require(view("model-next").isEnabled() && find("model-gt3pro").isSelected(), "Picking a model did not select it");
-            screenshot("model-picker");
+            awaitHomeShowsMode(3); screenshot("model-picker");
             tap("model-next"); settle();
             // The owner presses the scooter's own mode button; the simulator's reported mode stands in for it.
             await(() -> "Which mode is your scooter in now?".equals(textOf("drive-mode-prompt")), "The drive-mode step did not ask about the current mode");
-            screenshot("drive-modes");
+            awaitHomeShowsMode(3); screenshot("drive-modes");
             main(() -> find("drive-mode-sport").performClick()); settle();
             require(textOf("drive-mode-prompt").startsWith("Press your scooter's mode button"), "Volt did not ask for the next mode");
             simulateMode(2); await(() -> "And this mode?".equals(textOf("drive-mode-prompt")), "A changed mode was not asked about");
@@ -154,7 +158,8 @@ public final class ReportInviteValidation extends Instrumentation {
                     "Naming stayed available while disconnected");
             main(() -> find("drive-mode-eco").performClick()); settle();
             require(!textOf("drive-mode-named").contains("Eco"), "An answer given while disconnected was saved");
-            screenshot("drive-modes-disconnected");
+            // G7: Home behind the step shows the scooter disconnected, last seen at its earlier connection.
+            awaitHomeDisconnected(true); screenshot("drive-modes-disconnected");
             main(() -> require(activity.service().setSimulation(true), "Simulation did not restart")); settle();
             main(() -> activity.service().ble.setSimulationModel(MODEL)); settle();
             await(() -> activity.service().ble.ready(), "Simulated scooter did not reconnect");
@@ -215,7 +220,7 @@ public final class ReportInviteValidation extends Instrumentation {
             long checkEnd = SystemClock.uptimeMillis() + 45000;
             while (!(status().startsWith("Check finished")) && SystemClock.uptimeMillis() < checkEnd) SystemClock.sleep(200);
             require(status().startsWith("Check finished") && !view("model-next").isEnabled(), "The check did not finish, or Next came before an answer");
-            screenshot("finished");
+            awaitHomeShowsMode(3); screenshot("finished");
             main(() -> find("model-unsure").performClick()); settle();
             tap("model-next"); settle();
             await(() -> view("drive-mode-skip") != null, "The drive-mode step did not open");
@@ -267,14 +272,15 @@ public final class ReportInviteValidation extends Instrumentation {
         String profileId = activity.service().profiles.active().id;
         main(() -> invoke(activity, "maybeOfferConnectionReport", new Class<?>[0])); settle();
         require(showing() && "Send details".contentEquals(button(AlertDialog.BUTTON_POSITIVE).getText()), "No connection-details offer after two failed first connections");
-        screenshot("connection-offer");
+        // G7: Home behind the offer shows a scooter that never connected: Disconnected, with no last seen.
+        awaitHomeDisconnected(false); screenshot("connection-offer");
         click(AlertDialog.BUTTON_POSITIVE); settle();
         require(showing() && "Send".equals(textOf("model-next")) && !view("model-next").isEnabled() && emailed.get() == null, "Send details did not ask which scooter it is");
         main(() -> ((android.widget.EditText) find("model-search")).setText("Mystery GT9")); settle();
         require(view("model-typed") != null && view("model-gt3") == null, "An unlisted name did not offer a write-in");
         main(() -> find("model-typed").performClick()); settle();
         require(view("model-next").isEnabled(), "A write-in did not enable Send");
-        screenshot("connection-picker");
+        awaitHomeDisconnected(false); screenshot("connection-picker");
         tap("model-next"); settle();
         Intent mail = emailed.get(); require(mail != null, "No email was opened for the connection details");
         if (Intent.ACTION_CHOOSER.equals(mail.getAction())) mail = mail.getParcelableExtra(Intent.EXTRA_INTENT);
@@ -402,30 +408,57 @@ public final class ReportInviteValidation extends Instrumentation {
         return text.get();
     }
     /**
-     * G7: Home (behind the sheet) refreshes its body, the header's "Connected · <mode>" and the drive-mode
-     * tile, only on MainActivity's shared 1 Hz pulse (automaticRefresh, BODY_REFRESH_MS), while the
-     * drive-mode step polls the reading itself. A capture right after the step moved on could show the
-     * previous mode on Home. Wait, checking on the main thread, until the simulator reports this mode and
-     * a body refresh has run since it was seen, so Home has drawn it; then let that frame settle.
+     * G7: every screenshot's census includes Home behind the offer or sheet, and Home refreshes its body
+     * (the header's "Connected · <mode>" or "Disconnected · last seen …" and the tiles) only on
+     * MainActivity's shared 1 Hz pulse (automaticRefresh, BODY_REFRESH_MS), or rebuilds it after the
+     * simulator is switched (displayedSimulation). A capture right after the state changed could show the
+     * previous state. Wait, checking on the main thread, until the state holds (mismatch returns null), the
+     * rebuild has caught up with the simulator, and a body refresh has run since the state was seen, so Home
+     * has drawn it; then let that frame settle.
      */
-    private void awaitHomeShowsMode(int code) {
+    private void awaitHome(String wanted, Supplier<String> mismatch) {
         long[] seen = {-1};
         AtomicReference<String> state = new AtomicReference<>("not checked");
         long end = SystemClock.uptimeMillis() + 10000;
         boolean[] done = {false};
         while (!done[0] && SystemClock.uptimeMillis() < end) {
             main(() -> {
-                Double mode = activity.service().ble.telemetry.number("driving_mode");
+                boolean simulating = activity.service().simulating();
+                String wrong = (Boolean) field(activity, "displayedSimulation") != simulating
+                        ? "Home has not rebuilt since the simulator was turned " + (simulating ? "on" : "off") : mismatch.get();
+                if (wrong != null) { seen[0] = -1; state.set(wrong); return; }
                 long refreshed = (Long) field(activity, "lastBodyRefreshMs");
-                if (mode == null || mode.intValue() != code) { seen[0] = -1; state.set("the simulator reports drive mode " + mode); return; }
                 if (seen[0] < 0) seen[0] = SystemClock.elapsedRealtime();
                 done[0] = refreshed > seen[0];
-                state.set("Home last refreshed " + (seen[0] - refreshed) + " ms before mode " + code + " was seen");
+                state.set("Home last refreshed " + (seen[0] - refreshed) + " ms before this was seen");
             });
             if (!done[0]) SystemClock.sleep(50);
         }
-        require(done[0], "Home did not refresh to drive mode " + code + " within 10 s: " + state.get());
+        require(done[0], "Home did not refresh to show " + wanted + " within 10 s: " + state.get());
         settle();
+    }
+    /** Home shows the simulated scooter connected in this drive mode. */
+    private void awaitHomeShowsMode(int code) {
+        awaitHome("the scooter connected in drive mode " + code, () -> {
+            if (!activity.service().ble.ready()) return "the simulated scooter is not ready";
+            Double mode = activity.service().ble.telemetry.number("driving_mode");
+            return mode != null && mode.intValue() == code ? null : "the simulator reports drive mode " + mode;
+        });
+    }
+    /**
+     * Home shows the scooter disconnected (not connecting), with or without a "last seen" time: the newer
+     * of the profile's last connection and its newest saved reading, as DashboardScreen.refreshHeader reads it.
+     */
+    private void awaitHomeDisconnected(boolean lastSeen) {
+        awaitHome("the scooter disconnected " + (lastSeen ? "with" : "without") + " a last-seen time", () -> {
+            ScooterService service = activity.service(); BleController ble = service.ble;
+            if (service.simulating()) return "the simulator is still on";
+            if (ble.ready() || ble.connected() || ble.state() != BleController.State.DISCONNECTED) return "the connection is " + ble.state();
+            ScooterProfiles.Profile p = service.profiles.active();
+            long last = p == null ? 0 : p.lastConnected;
+            for (TelemetryHistory.Reading r : service.displayReadings().values()) if (r != null && r.value != null) last = Math.max(last, r.capturedWallMs);
+            return (last > 0) == lastSeen ? null : "the scooter was last seen at " + last;
+        });
     }
     /** Stands in for the owner pressing the scooter's mode button: the simulator now reports this mode. */
     @SuppressWarnings("unchecked") private void simulateMode(int code) {
