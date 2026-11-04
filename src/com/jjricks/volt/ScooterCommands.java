@@ -454,6 +454,8 @@ public final class ScooterCommands {
      * take). It stays an IllegalArgumentException, so every existing catch still takes it, and getMessage() keeps
      * the English for logs and reports; screens show msg() in the current language. Developer errors (a key
      * outside the catalogue, a malformed table) stay plain IllegalArgumentExceptions in English.
+     * Plan 1.6 names UserFacingException here; that is a RuntimeException and would escape every
+     * catch(IllegalArgumentException), so a catch site tests {@code e instanceof Refused}, not UserFacingException.
      */
     public static final class Refused extends IllegalArgumentException {
         private final Msg msg;

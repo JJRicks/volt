@@ -46,18 +46,29 @@ final class NaveeModels {
 
     /**
      * fold for text in the shown language: lower case by the display locale's rules (Turkish İ is i), then
-     * accents stripped (NFD without combining marks), then fold, so "ninos" finds "Niños". Display matching only.
+     * accents stripped, then fold, so "ninos" finds "Niños". Only accents count: a non-spacing mark goes when it
+     * sits on a Latin, Greek or Cyrillic letter (NFD), and every other mark stays (Devanagari vowel signs and
+     * virama, Thai vowels and tones, Japanese dakuten are letters of their words), recomposed (NFC).
+     * Display matching only.
      */
     static String displayFold(String text) {
         if (text == null) return "";
         String split = Normalizer.normalize(text.toLowerCase(Fmt.displayLocale()), Normalizer.Form.NFD);
         StringBuilder out = new StringBuilder(split.length());
-        for (int i = 0; i < split.length(); i++) {
-            char c = split.charAt(i);
-            int type = Character.getType(c);
-            if (type != Character.NON_SPACING_MARK && type != Character.COMBINING_SPACING_MARK && type != Character.ENCLOSING_MARK) out.append(c);
+        boolean accented = false;
+        for (int i = 0; i < split.length(); ) {
+            int c = split.codePointAt(i);
+            i += Character.charCount(c);
+            if (Character.getType(c) == Character.NON_SPACING_MARK) {
+                if (accented) continue;
+            } else {
+                Character.UnicodeScript script = Character.UnicodeScript.of(c);
+                accented = script == Character.UnicodeScript.LATIN || script == Character.UnicodeScript.GREEK
+                        || script == Character.UnicodeScript.CYRILLIC;
+            }
+            out.appendCodePoint(c);
         }
-        return fold(out.toString());
+        return fold(Normalizer.normalize(out, Normalizer.Form.NFC));
     }
 
     /** Models whose name, or whose series' name or description, contains the query; all models for an empty one. */

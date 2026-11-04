@@ -304,6 +304,15 @@ public final class ControlsTextTest {
         T.install(null);
         check(NaveeModels.displayFold("Kids").equals(NaveeModels.fold("Kids")), "displayFold agrees with fold on plain English");
         check(NaveeModels.search("kïds").isEmpty(), "in English an accented query still matches only as fold does");
+        // Only accents on Latin, Greek and Cyrillic letters go; other scripts' marks are letters of the word.
+        same(NaveeModels.displayFold("Ελληνικά Ёжик Tiếng"), NaveeModels.fold("ελληνικα ежик tieng"), "Greek, Cyrillic and Vietnamese accents go");
+        String[] distinct = {"काम", "कम", "किम", "कुम"};
+        for (int i = 0; i < distinct.length; i++) for (int j = i + 1; j < distinct.length; j++)
+            check(!NaveeModels.displayFold(distinct[i]).equals(NaveeModels.displayFold(distinct[j])), "Devanagari vowel signs stay: " + distinct[i] + " " + distinct[j]);
+        same(NaveeModels.displayFold("सस्ता"), "सस्ता", "the virama stays");
+        same(NaveeModels.displayFold("ที่"), "ที่", "Thai vowel and tone marks stay");
+        same(NaveeModels.displayFold("が"), "が", "the dakuten stays, recomposed");
+        check(!NaveeModels.displayFold("が").equals(NaveeModels.displayFold("か")), "が and か stay apart");
     }
 
     private static void installK(String text) {

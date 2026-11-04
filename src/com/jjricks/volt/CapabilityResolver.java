@@ -81,8 +81,13 @@ public final class CapabilityResolver {
             if(!variant.dynamicChoices)return true;
             for(int c:choices)if(c==v)return true;return false;
         }
+        /**
+         * The reason rendered in the current language at call time, for a screen that shows it now. Text that is
+         * logged (BleController.notice's event log and journal) or stored (ChargeScheduleController's status) takes
+         * reasonMessage() instead and keeps its english() (plan R2).
+         */
         public String reasonText(){return text(reason);}
-        /** reasonText() deferred: "" for no reason, else a Msg whose english() is what a log keeps. */
+        /** reasonText() deferred: "" for no reason, else a Msg whose english() is what a log or a stored status keeps. */
         public CharSequence reasonMessage(){return message(reason);}
         /** variant.read(status) or null. */
         public Integer current(){return variant==null?null:variant.read(status);}
