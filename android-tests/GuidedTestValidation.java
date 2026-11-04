@@ -757,17 +757,36 @@ public final class GuidedTestValidation extends Instrumentation {
     /** A fresh motion report invalidates a try's value still waiting behind a GATT write: Not sent, never written. */
     private void queuedAdmissionSafety() throws Exception {
         connect("mapped"); parked("mapped");
-        main(() -> {
-            ((Handler)field(activity.service().ble,"handler")).removeCallbacksAndMessages(null);
-            fake.callbackDelayMs=1500;
-            require(activity.service().ble.setExperimental("display_units",0),"try did not start: "+activity.service().ble.message());
-        });
+        // Start on a quiet link (no write in flight, nothing queued, no status reply owed), so the try's own
+        // baseline read is the GATT write its target waits behind. That write's completion is held, not timed:
+        // under load a fixed 1.5 s callback could land before this thread looked, and the target was then sent.
+        long quietBy=SystemClock.uptimeMillis()+10000; final boolean[] started={false};
+        do {
+            main(() -> {
+                BleController ble=activity.service().ble;
+                if((Boolean)field(ble,"writing")||!((java.util.ArrayDeque<?>)field(ble,"queue")).isEmpty()||(Integer)field(ble,"outstandingStatusReads")!=0)return;
+                ((Handler)field(ble,"handler")).removeCallbacksAndMessages(null);
+                fake.callbackDelayMs=1500;fake.holdWrites=true;
+                require(activity.service().ble.setExperimental("display_units",0),"try did not start: "+activity.service().ble.message());
+                started[0]=true;
+            });
+            if(started[0])break;
+            SystemClock.sleep(60);
+        } while(SystemClock.uptimeMillis()<quietBy);
+        require(started[0],"the synthetic link never went quiet before the queued try");
         await(() -> {boolean[] queued={false};main(() -> queued[0]=activity.service().ble.pending()!=null);return queued[0];},"try target was not queued");
         main(() -> {
             require(fake.writes.isEmpty()&&(Boolean)field(activity.service().ble,"writing"),"the target should wait behind the slow read write");
+            require(fake.heldWrites.size()==1,"the try's baseline read was not the one write held in flight: "+fake.heldWrites.size()+" held");
             fake.notify(0x91,0,new byte[]{0,1,10});
         });
         await(() -> {boolean[] moving={false};main(() -> moving[0]=!activity.service().ble.stationary() && activity.service().ble.speedRaw()>0);return moving[0];},"moving push was not accepted");
+        // Only now does the slow read's write complete: the queued target meets the radio boundary after fresh motion.
+        // BleController's own 3.5 s write watchdog still bounds the hold; say so plainly if the steps above outran it.
+        main(() -> {
+            require(activity.service().ble.state()==BleController.State.READY&&(Boolean)field(activity.service().ble,"writing"),"the held read write outlived the 3.5 s write watchdog: "+activity.service().ble.message());
+            fake.releaseWrites();
+        });
         await(() -> {boolean[] cleared={false};main(() -> cleared[0]=activity.service().ble.pending()==null);return cleared[0];},"Unsafe queued try was not cancelled",6000);
         SystemClock.sleep(1800);
         require(fake.writes.isEmpty(),"Queued try reached the scooter after fresh motion");
@@ -829,6 +848,8 @@ public final class GuidedTestValidation extends Instrumentation {
 
         // Three-second write callbacks are valid (below the 3.5 s write watchdog). Reads answer
         // promptly after transmission, while the ordinary two-second status poll competes for FIFO space.
+        // The fake times each completion from the send on its own thread (see FakeScooter.completeLater), so a busy
+        // main looper can no longer stretch 3 s past the watchdog's 3.5 s: both wait in the same queue, in due order.
         main(() -> { fake.allReads=true;fake.callbackDelayMs=3000;BleController ble=activity.service().ble;
             invoke(ble,"poll",new Class<?>[]{int.class},(Integer)field(ble,"generation"));ble.startDiscovery(); });
         await(() -> { boolean[] running={true};main(() -> running[0]=activity.service().ble.discovering());return !running[0]; },"Slow discovery exceeded its cap",40000);
@@ -1120,6 +1141,19 @@ public final class GuidedTestValidation extends Instrumentation {
         final List<byte[]> writes = new CopyOnWriteArrayList<>(); final List<Integer> reads = new CopyOnWriteArrayList<>();
         volatile boolean motion, ignoreWrites, holdStatus, allReads; volatile int speed, rejectNext, callbackDelayMs;
         final List<byte[]> heldStatus=new CopyOnWriteArrayList<>();private String serial;
+        /** While set, each GATT write's completion is kept here until releaseWrites(): a write as slow as the test needs, never a race. */
+        volatile boolean holdWrites; final List<Runnable> heldWrites = new CopyOnWriteArrayList<>();
+        /**
+         * Delayed write completions arrive from their own thread, the way Android's binder thread delivers them,
+         * timed from the moment the frame left BleController. A busy main looper then delays the completion and
+         * BleController's 3.5 s write watchdog alike, in due-time order, instead of pushing only the completion late.
+         */
+        private static final android.os.HandlerThread gattCallbackThread = new android.os.HandlerThread("SyntheticGattCallbacks");
+        private static Handler gattCallbackHandler;
+        private static synchronized Handler gattCallbacks() {
+            if (gattCallbackHandler == null) { gattCallbackThread.start(); gattCallbackHandler = new Handler(gattCallbackThread.getLooper()); }
+            return gattCallbackHandler;
+        }
         private final Handler handler = new Handler(Looper.getMainLooper());
         private BluetoothGatt gatt; private BluetoothGattCharacteristic writer, notifier; private BluetoothGattCallback callbacks;
         FakeScooter(GuidedTestValidation owner, String label) {
@@ -1170,7 +1204,8 @@ public final class GuidedTestValidation extends Instrumentation {
                     if (method.getName().equals("writeCharacteristic")) {
                         byte[] frame = null; if (args != null) for (Object a : args) if (a instanceof byte[]) frame = ((byte[])a).clone();
                         setHidden(gatt, "mDeviceBusy", false);
-                        final byte[] sent = frame; if (sent != null) handler.postDelayed(() -> received(sent), 15);
+                        final byte[] sent = frame; final boolean completing = sent != null && completeLater(sent, SystemClock.uptimeMillis());
+                        if (sent != null) handler.postDelayed(() -> received(sent, completing), 15);
                         return 0;
                     }
                     Class<?> r = method.getReturnType();
@@ -1194,10 +1229,25 @@ public final class GuidedTestValidation extends Instrumentation {
                 owner.invoke(ble, "poll", new Class<?>[]{int.class}, (Integer)owner.field(ble, "generation"));
             } catch (Exception e) { throw new IllegalStateException("Synthetic link unavailable (is hidden_api_policy relaxed?)", e); }
         }
-        /** One frame written by BleController: complete the GATT write, then answer like the scooter. */
-        private void received(byte[] frame) {
+        private static boolean wellFormed(byte[] frame) { return frame.length >= 7 && (frame[0] & 255) == 0x55 && (frame[1] & 255) == 0xaa; }
+        /**
+         * Called as the frame is handed to the radio: a held or slow completion is scheduled here, from the send time.
+         * False leaves an immediate completion to received(), as before.
+         */
+        private boolean completeLater(byte[] frame, long sentAt) {
+            if (!wellFormed(frame) || !holdWrites && callbackDelayMs <= 0) return false;
+            final BluetoothGatt sentGatt = gatt; final BluetoothGattCharacteristic sentWriter = writer; final BluetoothGattCallback sentCallbacks = callbacks;
+            Runnable done = () -> sentCallbacks.onCharacteristicWrite(sentGatt, sentWriter, 0);
+            if (holdWrites) heldWrites.add(done);
+            else gattCallbacks().postAtTime(done, sentAt + callbackDelayMs);
+            return true;
+        }
+        /** Completes every held GATT write now, in order, and stops holding new ones. */
+        void releaseWrites() { holdWrites = false; for (Runnable done : heldWrites) gattCallbacks().post(done); heldWrites.clear(); }
+        /** One frame written by BleController: complete the GATT write (unless it is already scheduled), then answer like the scooter. */
+        private void received(byte[] frame, boolean completing) {
             if (frame.length < 7 || (frame[0] & 255) != 0x55 || (frame[1] & 255) != 0xaa) return;
-            final BluetoothGatt sentGatt=gatt;handler.postDelayed(() -> callbacks.onCharacteristicWrite(sentGatt, writer, 0),callbackDelayMs);
+            if (!completing) { final BluetoothGatt sentGatt=gatt;handler.postDelayed(() -> callbacks.onCharacteristicWrite(sentGatt, writer, 0),callbackDelayMs); }
             int cmd = frame[3] & 255;
             if (frame.length == 7) {
                 reads.add(cmd);
