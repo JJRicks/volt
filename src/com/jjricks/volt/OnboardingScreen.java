@@ -98,6 +98,17 @@ public final class OnboardingScreen implements AppScreen {
     private static final int MAX_WIDTH_DP = 560;
     /** Unfolded and other wide screens put the step list beside the current step (MainActivity's threshold). */
     private static final int WIDE_DP = 650;
+    /**
+     * The seven step names from the catalog, deferred (rendered where shown: the step list and its
+     * spoken rows), by index. STEP_NAMES above is their English and no longer shown; G1 cannot yet
+     * delete an array table (its removed rows leave the declaration's ; unaccounted for).
+     */
+    private static final Msg[] STEP_LABELS = {M.onboardingStepPrepare(), M.onboardingStepUsbDebugging(),
+            M.onboardingStepConnectComputer(), M.onboardingStepRunHelper(), M.onboardingStepImport(),
+            M.onboardingStepNearby(), M.onboardingStepConnectScooter()};
+    /** The welcome tiles' short rungs, by tile (fitTileLabel shows one when the full word does not fit). */
+    private static final Msg[] TILE_SHORT = {M.onboardingWelcomeTileLockShort(), M.onboardingWelcomeTileSettingsShort(),
+            M.onboardingWelcomeTileBatteryShort(), M.onboardingWelcomeTileRidesShort()};
     private static Bitmap photo;
 
     private final ScreenHost host;
@@ -354,7 +365,7 @@ public final class OnboardingScreen implements AppScreen {
             name = json.optString("name", name).trim(); role = json.optInt("role", 0);
             if (name.isEmpty()) name = MainActivity.IMPORTED_NAME;
         } catch (Exception ignored) { }
-        return new String[] {name, role == 1 ? "shared role" : "owner role"};
+        return new String[] {name, role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()};
     }
 
     private String importMode() {
@@ -454,7 +465,7 @@ public final class OnboardingScreen implements AppScreen {
         if (keepName != null && nameField != null && keepStep == step) nameField.setText(keepName);
         renderedKey = structureKey();
         if (Build.VERSION.SDK_INT >= 28) root.setAccessibilityPaneTitle(number(step) > 0
-                ? "Setup step " + number(step) + " of 7" : "Setup");
+                ? T.onboardingPaneStep(number(step)) : T.onboardingPaneSetup());
         for (Runnable updater : updaters) updater.run();
     }
 
@@ -511,13 +522,13 @@ public final class OnboardingScreen implements AppScreen {
         // The step's own content carries the page; the picture here is decoration.
         hero.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         side.addView(hero, new LinearLayout.LayoutParams(-1, ui.dp(170)));
-        TextView heading = ui.text("Set up your scooter", 24, true);
+        TextView heading = ui.text(T.onboardingSideTitle(), 24, true);
         if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(-1, -2); hp.topMargin = ui.dp(14);
         side.addView(heading, hp);
         boolean capture = isComputerCapture();
         int current = number(step);
-        for (int n = 1; n <= STEP_NAMES.length; n++) {
+        for (int n = 1; n <= STEP_LABELS.length; n++) {
             LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2);
             sp.topMargin = ui.dp(n == 1 ? 18 : 4);
             // Backup files and typed identities start at Import; the computer steps don't apply.
@@ -544,7 +555,7 @@ public final class OnboardingScreen implements AppScreen {
             badge.addView(number, new FrameLayout.LayoutParams(-1, -1));
         }
         item.addView(badge, new LinearLayout.LayoutParams(ui.dp(26), ui.dp(26)));
-        TextView name = ui.text(STEP_NAMES[n - 1], 14.5f, now);
+        TextView name = ui.text(STEP_LABELS[n - 1], 14.5f, now);
         name.setTextColor(now ? ui.text : applies ? ui.muted : ui.dim);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = ui.dp(12);
         item.addView(name, lp);
@@ -552,8 +563,9 @@ public final class OnboardingScreen implements AppScreen {
         badge.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         name.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         item.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
-        item.setContentDescription("Step " + n + ", " + STEP_NAMES[n - 1] + ", "
-                + (now ? "current" : done ? "done" : applies ? "to do" : "not needed"));
+        item.setContentDescription(T.onboardingStepRow(n, STEP_LABELS[n - 1],
+                now ? T.onboardingStepStateCurrent() : done ? T.onboardingStepStateDone()
+                        : applies ? T.onboardingStepStateToDo() : T.onboardingStepStateNotNeeded()));
         if (Build.VERSION.SDK_INT >= 28) item.setScreenReaderFocusable(true);
         return item;
     }
@@ -566,7 +578,7 @@ public final class OnboardingScreen implements AppScreen {
         backButton.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)),
                 oval(ui.surface), null));
         backButton.addView(ui.icon("back", 20, ui.text), new FrameLayout.LayoutParams(ui.dp(20), ui.dp(20), Gravity.CENTER));
-        backButton.setContentDescription("Back"); backButton.setFocusable(true); backButton.setClickable(true);
+        backButton.setContentDescription(T.onboardingBack()); backButton.setFocusable(true); backButton.setClickable(true);
         backButton.setOnClickListener(v -> back());
         row.addView(backButton, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         Progress progress = new Progress(n);
@@ -575,14 +587,14 @@ public final class OnboardingScreen implements AppScreen {
         row.addView(progress, bar);
         TextView end;
         if (step == PATH) {
-            end = link(prefs.getBoolean(KEY_RERUN, false) ? "Cancel" : "Skip", () -> {
+            end = link(prefs.getBoolean(KEY_RERUN, false) ? T.commonCancel() : T.onboardingSkip(), () -> {
                 if (prefs.getBoolean(KEY_RERUN, false)) finish(true); else confirmSkip();
             });
             end.setTextColor(ui.muted);
-            end.setContentDescription(prefs.getBoolean(KEY_RERUN, false) ? "Cancel adding a scooter" : "Skip setup for now");
+            end.setContentDescription(prefs.getBoolean(KEY_RERUN, false) ? T.onboardingCancelAdding() : T.onboardingSkipDescription());
             end.setPadding(ui.dp(8), 0, ui.dp(4), 0);
         } else {
-            end = ui.text(n > 0 ? n + "/7" : "", 12.5f, false);
+            end = ui.text(n > 0 ? T.onboardingStepCounter(n) : "", 12.5f, false);
             end.setTextColor(ui.muted); end.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
             end.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         }
@@ -672,15 +684,15 @@ public final class OnboardingScreen implements AppScreen {
         content.addView(new Hero(false), new LinearLayout.LayoutParams(-1, ui.dp(250)));
         View gap = new View(host.activity());
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
-        heading("Your scooter, no cloud", true, false);
+        heading(T.onboardingWelcomeTitle(), true, false);
         content.addView(features(), featureParams());
-        primary("Get started", () -> go(PATH));
-        TextView restore = ui.secondaryButton("Restore Volt backup", () -> host.dataBackup(true, null));
+        primary(T.onboardingWelcomeGetStarted(), () -> go(PATH));
+        TextView restore = ui.secondaryButton(T.onboardingRestoreBackup(), () -> host.dataBackup(true, null));
         restore.setTag("onboarding-restore-backup");
-        restore.setContentDescription("Restore Volt backup: scooters, rides, history, dashboards and settings");
+        restore.setContentDescription(T.onboardingWelcomeRestoreDescription());
         LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.topMargin = ui.dp(8);
         footer.addView(restore, rp);
-        footerLink("I already have an owner file", () -> {
+        footerLink(T.onboardingWelcomeHaveOwnerFile(), () -> {
             prefs.edit().putString(KEY_PATH, BACKUP).apply(); go(IMPORT);
         });
     }
@@ -688,7 +700,7 @@ public final class OnboardingScreen implements AppScreen {
     /** Welcome: what the app does, as four labelled icons instead of a sentence. */
     private View features() {
         LinearLayout strip = row();
-        String[][] items = {{"lock", "Lock"}, {"tune", "Settings"}, {"battery", "Battery"}, {"rides", "Rides"}};
+        String[][] items = {{"lock", T.onboardingWelcomeTileLock()}, {"tune", T.onboardingWelcomeTileSettings()}, {"battery", T.onboardingWelcomeTileBattery()}, {"rides", T.onboardingWelcomeTileRides()}};
         for (int i = 0; i < items.length; i++) {
             LinearLayout tile = column(); tile.setGravity(Gravity.CENTER);
             tile.setPadding(ui.dp(4), ui.dp(12), ui.dp(4), ui.dp(10));
@@ -698,6 +710,7 @@ public final class OnboardingScreen implements AppScreen {
             label.setTextColor(ui.muted); label.setGravity(Gravity.CENTER); label.setMaxLines(1);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, -2); lp.topMargin = ui.dp(6);
             tile.addView(label, lp);
+            fitTileLabel(tile, label, items[i][1], TILE_SHORT[i]);
             LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(0, -2, 1);
             if (i > 0) tp.leftMargin = ui.dp(8);
             strip.addView(tile, tp);
@@ -707,8 +720,24 @@ public final class OnboardingScreen implements AppScreen {
         for (int i = 0; i < strip.getChildCount(); i++)
             strip.getChildAt(i).setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         strip.setFocusable(true);
-        strip.setContentDescription("Lock, settings, battery and rides, over Bluetooth");
+        strip.setContentDescription(T.onboardingWelcomeTilesDescription());
         return strip;
+    }
+
+    /**
+     * The narrow label ladder for a welcome tile, kept off the label's class (a plain TextView, as the census
+     * keys views by class name): each time the tile's bounds change (first layout, rotation, a new width),
+     * the full word is measured with the label's own paint against the room the tile gives it, and the short
+     * rung is shown only when the full word does not fit. The text is set only when the chosen rung differs
+     * from what is shown; in English both rungs are the same word, so English never sets it. Setting it
+     * re-lays out the label, not the tile (its width comes from its weight), so this does not repeat.
+     */
+    private static void fitTileLabel(View tile, TextView label, CharSequence full, Msg brief) {
+        tile.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            int room = right - left - v.getPaddingLeft() - v.getPaddingRight() - label.getPaddingLeft() - label.getPaddingRight();
+            CharSequence pick = TileRung.pick(full, label.getPaint().measureText(full, 0, full.length()), brief, room);
+            if (TileRung.needsSet(pick, label.getText())) label.setText(pick.toString());
+        });
     }
 
     private LinearLayout.LayoutParams featureParams() {
@@ -719,17 +748,17 @@ public final class OnboardingScreen implements AppScreen {
 
     private void choosePath() {
         scaffold(true);
-        heading("How would you like to set up?", false, false);
+        heading(T.onboardingPathTitle(), false, false);
         String selected = path();
         // Wireless debugging needs Android 11; below that the Shizuku card can't be chosen.
         boolean shizukuSupported = Build.VERSION.SDK_INT >= 30;
         String[][] options = {
-                {WEBADB, "screen", "Use Chrome and a USB cable", "Computer · a few minutes", "Recommended"},
-                {RESTORE, "download", "Restore Volt backup", "Scooters, rides, dashboards & settings", null},
-                {CAPTURE, "screen", "Capture it from the NAVEE app", "Computer · 10 min", null},
-                {SHIZUKU, "screen", "Use Shizuku on this phone", "No computer · Android 11+", null},
-                {BACKUP, "download", "Import an owner setup file", "Scooter access only · no rides or history", null},
-                {TYPED, "lock", "Enter a 12-character identity", null, null}};
+                {WEBADB, "screen", T.onboardingPathWebadb(), T.onboardingPathWebadbDetail(), T.onboardingPathRecommended()},
+                {RESTORE, "download", T.onboardingRestoreBackup(), T.onboardingPathRestoreDetail(), null},
+                {CAPTURE, "screen", T.onboardingPathCapture(), T.onboardingPathCaptureDetail(), null},
+                {SHIZUKU, "screen", T.onboardingPathShizuku(), T.onboardingPathShizukuDetail(), null},
+                {BACKUP, "download", T.onboardingPathOwnerFile(), T.onboardingPathOwnerFileDetail(), null},
+                {TYPED, "lock", T.onboardingPathIdentity(), null, null}};
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
         content.addView(group, gp);
@@ -737,20 +766,20 @@ public final class OnboardingScreen implements AppScreen {
             boolean disabled = SHIZUKU.equals(o[0]) && !shizukuSupported;
             boolean on = o[0].equals(selected) && !disabled;
             View card = option(o[1], o[2], o[3], o[4], on, disabled, disabled
-                    ? () -> host.toast("Needs Android 11 or newer")
+                    ? () -> host.toast(T.onboardingNeedsAndroid11())
                     : () -> { prefs.edit().putString(KEY_PATH, o[0]).apply(); render(); });
             card.setTag("onboarding-path-" + o[0]);
             LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-1, -2); cp.bottomMargin = ui.dp(10);
             group.addView(card, cp);
         }
-        primary("Continue", () -> {
+        primary(T.onboardingContinue(), () -> {
             String chosen = path();
             prefs.edit().putString(KEY_PATH, chosen).apply();
             if (RESTORE.equals(chosen)) {
                 host.dataBackup(true, null);
             } else if (SHIZUKU.equals(chosen)) {
-                if (!shizukuSupported) { host.toast("Needs Android 11 or newer"); return; }
-                if (pendingOwnerFile().exists()) { host.toast("Finish importing your selected owner file first."); go(IMPORT); return; }
+                if (!shizukuSupported) { host.toast(T.onboardingNeedsAndroid11()); return; }
+                if (pendingOwnerFile().exists()) { host.toast(T.onboardingFinishImportFirst()); go(IMPORT); return; }
                 if (!prepareProfileChange()) return;
                 host.activity().startActivityForResult(new Intent(host.activity(), ShizukuSetupActivity.class), ShizukuSetupActivity.REQUEST);
             } else go(CAPTURE.equals(chosen) || WEBADB.equals(chosen) ? PREPARE : BACKUP.equals(chosen) ? IMPORT : IDENTITY);
@@ -758,113 +787,111 @@ public final class OnboardingScreen implements AppScreen {
     }
 
     private void confirmSkip() {
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle("Skip setup for now?")
-                .setMessage("Add it later in More.")
-                .setNegativeButton("Keep going", null)
-                .setPositiveButton("Skip", (d, w) -> finish(true)).create();
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setTitle(T.onboardingSkipTitle())
+                .setMessage(T.onboardingSkipMessage())
+                .setNegativeButton(T.onboardingSkipKeepGoing(), null)
+                .setPositiveButton(T.onboardingSkip(), (d, w) -> finish(true)).create();
         show(dialog);
     }
 
     private void prepare() {
         scaffold(true);
-        heading("Before you start", false, false);
+        heading(T.onboardingPrepareTitle(), false, false);
         boolean browser = WEBADB.equals(path());
         // Keys stay with their items: the ADB command runs from the extracted source bundle, which holds the helper script.
         String[][] items = {
-                {"prep0", "NAVEE app works", "Signed in and connecting"},
-                {"prep1", browser ? "A computer with Chrome or Edge" : "A computer with ADB and Python 3", null},
-                browser ? null : new String[]{"prepsource", "The Volt source, extracted", "Get source below; it holds setup/capture-owner.py"},
-                {"prep2", "A USB data cable", "Not charge-only"},
-                {"prep3", "Scooter parked and powered on", "Close any other scooter apps"}};
+                {"prep0", T.onboardingPrepareNavee(), T.onboardingPrepareNaveeDetail()},
+                {"prep1", browser ? T.onboardingPrepareBrowserComputer() : T.onboardingPrepareAdbComputer(), null},
+                browser ? null : new String[]{"prepsource", T.onboardingPrepareSource(), T.onboardingPrepareSourceDetail()},
+                {"prep2", T.onboardingPrepareCable(), T.onboardingPrepareCableDetail()},
+                {"prep3", T.onboardingPrepareParked(), T.onboardingPrepareParkedDetail()}};
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(16);
         content.addView(group, gp);
         for (String[] item : items) if (item != null) group.addView(tick(item[0], item[1], item[2]));
-        primary("Continue", () -> go(USB));
+        primary(T.onboardingContinue(), () -> go(USB));
         if (browser) return;
         // Both links open the download directly; the helper script ships in the source bundle.
         LinearLayout links = row(); links.setGravity(Gravity.CENTER);
-        TextView adb = link("Where do I get ADB?", () -> openUrl(PLATFORM_TOOLS_URL));
-        adb.setContentDescription("Where do I get ADB? Opens the Platform-Tools download");
+        TextView adb = link(T.onboardingPrepareWhereAdb(), () -> openUrl(PLATFORM_TOOLS_URL));
+        adb.setContentDescription(T.onboardingPrepareWhereAdbDescription());
         links.addView(adb, new LinearLayout.LayoutParams(0, -2, 1));
-        TextView source = link("Get source", () -> openUrl(SOURCE_URL));
-        source.setContentDescription("Get source. Opens the source bundle with the capture helper");
+        TextView source = link(T.onboardingPrepareGetSource(), () -> openUrl(SOURCE_URL));
+        source.setContentDescription(T.onboardingPrepareGetSourceDescription());
         links.addView(source, new LinearLayout.LayoutParams(0, -2, 1));
         footer.addView(links, new LinearLayout.LayoutParams(-1, -2));
     }
 
     private void openUrl(String url) {
         try { host.activity().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url))); }
-        catch (RuntimeException unavailable) { host.toast("No browser found"); }
+        catch (RuntimeException unavailable) { host.toast(T.onboardingNoBrowser()); }
     }
 
     private void usbDebugging() {
         scaffold(true);
-        heading("Turn on USB debugging", false, false);
+        heading(T.onboardingUsbTitle(), false, false);
         Ui system = new Ui(host.activity(), !ui.dark, ui.textScale);
         LinearLayout panel = mockPanel(system);
         LinearLayout top = row(); top.setGravity(Gravity.CENTER_VERTICAL);
         top.setPadding(ui.dp(14), ui.dp(14), ui.dp(16), ui.dp(8));
         top.addView(system.icon("back", 18, system.text), new LinearLayout.LayoutParams(ui.dp(18), ui.dp(18)));
-        TextView about = mockText(system, "About phone", 16, true, system.text);
+        TextView about = mockText(system, T.onboardingMockAboutPhone(), 16, true, system.text);
         LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-2, -2); ap.leftMargin = ui.dp(14);
         top.addView(about, ap);
         panel.addView(top);
-        panel.addView(mockSetting(system, "Android version", Build.VERSION.RELEASE, false));
-        panel.addView(mockSetting(system, "Build number", Build.DISPLAY, true));
-        panel.setContentDescription("Example: Settings, About phone. Tap Build number seven times.");
+        panel.addView(mockSetting(system, T.onboardingMockAndroidVersion(), Build.VERSION.RELEASE, false));
+        panel.addView(mockSetting(system, T.onboardingMockBuildNumber(), Build.DISPLAY, true));
+        panel.setContentDescription(T.onboardingUsbExampleDescription());
         LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(-1, -2); pp.topMargin = ui.dp(18);
         content.addView(panel, pp);
-        content.addView(numbered(1, "Settings › About phone", "Tap **Build number** seven times"));
-        content.addView(numbered(2, "Settings › System › Developer options", "Turn on **USB debugging**"));
-        primary("I've turned it on", () -> go(COMPUTER));
-        footerLink("Open Settings", () -> openSettings(new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
+        content.addView(numbered(1, T.onboardingUsbPathAbout(), T.onboardingUsbTapBuild()));
+        content.addView(numbered(2, T.onboardingUsbPathDeveloper(), T.onboardingUsbTurnOn()));
+        primary(T.onboardingUsbDone(), () -> go(COMPUTER));
+        footerLink(T.onboardingOpenSettings(), () -> openSettings(new Intent(Settings.ACTION_DEVICE_INFO_SETTINGS)));
     }
 
     private void connectComputer() {
         if (WEBADB.equals(path())) { connectBrowser(); return; }
         scaffold(true);
-        heading("Plug into your computer", false, false);
+        heading(T.onboardingComputerTitle(), false, false);
         Ui system = new Ui(host.activity(), !ui.dark, ui.textScale);
         LinearLayout panel = mockPanel(system);
         panel.setPadding(ui.dp(18), ui.dp(18), ui.dp(18), ui.dp(12));
-        panel.addView(mockText(system, "Allow USB debugging?", 16.5f, true, system.text));
-        TextView fingerprint = mockText(system, "The computer's RSA key fingerprint is:\n4F:2A:…:9C", 13, false, system.muted);
+        panel.addView(mockText(system, T.onboardingMockAllowTitle(), 16.5f, true, system.text));
+        TextView fingerprint = mockText(system, T.onboardingMockFingerprint(), 13, false, system.muted);
         fingerprint.setPadding(0, ui.dp(10), 0, ui.dp(10));
         panel.addView(fingerprint);
         LinearLayout always = row(); always.setGravity(Gravity.CENTER_VERTICAL);
         // Drawn unticked: the browser and computer steps both say to leave it unchecked.
         View box = new MockCheck(system.muted);
         always.addView(box, new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
-        TextView label = mockText(system, "Always allow from this computer", 14, false, system.text);
+        TextView label = mockText(system, T.onboardingMockAlwaysAllow(), 14, false, system.text);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(0, -2, 1); lp.leftMargin = ui.dp(10);
         always.addView(label, lp);
         panel.addView(always);
         LinearLayout buttons = row(); buttons.setGravity(Gravity.END);
         buttons.setPadding(0, ui.dp(14), 0, 0);
-        buttons.addView(mockText(system, "Cancel", 15, true, system.blue));
-        TextView allow = mockText(system, "Allow", 15, true, system.blue);
+        buttons.addView(mockText(system, T.onboardingMockCancel(), 15, true, system.blue));
+        TextView allow = mockText(system, T.onboardingMockAllow(), 15, true, system.blue);
         LinearLayout.LayoutParams alp = new LinearLayout.LayoutParams(-2, -2); alp.leftMargin = ui.dp(28);
         buttons.addView(allow, alp);
         panel.addView(buttons);
-        panel.setContentDescription("Example: the Allow USB debugging prompt on your phone, with Always allow from this computer unticked.");
+        panel.setContentDescription(T.onboardingComputerExampleDescription());
         LinearLayout.LayoutParams pp = new LinearLayout.LayoutParams(-1, -2); pp.topMargin = ui.dp(18);
         content.addView(panel, pp);
-        content.addView(numbered(1, "Connect your phone with the data cable", null));
-        content.addView(numbered(2, "Tap **Allow** on the prompt above", null));
-        content.addView(numbered(3, "`adb devices` shows **device**", null));
-        primary("It shows \u201Cdevice\u201D", () -> go(HELPER));
-        footerLink("It says unauthorized", () -> info("Phone says unauthorized",
-                "1  Unlock your phone, unplug the cable and plug it back in.\n"
-                        + "2  Tap Allow on the \u201CAllow USB debugging?\u201D prompt.\n"
-                        + "3  No prompt? In Developer options, tap Revoke USB debugging authorizations, then reconnect."));
+        content.addView(numbered(1, T.onboardingComputerConnectCable(), null));
+        content.addView(numbered(2, T.onboardingComputerTapAllow(), null));
+        content.addView(numbered(3, T.onboardingComputerAdbDevices(), null));
+        primary(T.onboardingComputerShowsDevice(), () -> go(HELPER));
+        footerLink(T.onboardingComputerUnauthorized(), () -> info(T.onboardingComputerUnauthorizedTitle(),
+                T.onboardingComputerUnauthorizedHelp()));
     }
 
     private void runHelper() {
         if (WEBADB.equals(path())) { runBrowserHelper(); return; }
         scaffold(true);
-        heading("Run the capture helper", false, false);
-        paragraph("In the extracted source folder on your computer, run:", false);
+        heading(T.onboardingHelperTitle(), false, false);
+        paragraph(T.onboardingHelperRunInFolder(), false);
         Ui term = ui.dark ? ui : new Ui(host.activity(), true, ui.textScale);
         LinearLayout block = column();
         block.setBackground(ui.shape(term.bg, 16, term.raised));
@@ -874,97 +901,92 @@ public final class OnboardingScreen implements AppScreen {
         TextView command = ui.text("", 14, false);
         command.setText(line); command.setTypeface(Typeface.MONOSPACE); command.setTextColor(term.danger);
         command.setLineSpacing(ui.dp(4), 1); command.setTextIsSelectable(true);
-        command.setContentDescription("Command: " + COMMAND);
+        command.setContentDescription(T.onboardingHelperCommandDescription(COMMAND));
         block.addView(command, new LinearLayout.LayoutParams(-1, -2));
         LinearLayout copy = row(); copy.setGravity(Gravity.CENTER);
         copy.setPadding(ui.dp(14), 0, ui.dp(16), 0);
         copy.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(term.accent, 50)),
                 ui.shape(term.raised, 100, 0), null));
         copy.addView(term.icon("copy", 16, term.text), new LinearLayout.LayoutParams(ui.dp(16), ui.dp(16)));
-        TextView copyLabel = term.text("Copy", 14, false); copyLabel.setTypeface(term.semibold());
+        TextView copyLabel = term.text(T.onboardingHelperCopy(), 14, false); copyLabel.setTypeface(term.semibold());
         LinearLayout.LayoutParams cl = new LinearLayout.LayoutParams(-2, -2); cl.leftMargin = ui.dp(8);
         copy.addView(copyLabel, cl);
-        copy.setContentDescription("Copy command"); copy.setFocusable(true); copy.setClickable(true);
+        copy.setContentDescription(T.onboardingHelperCopyDescription()); copy.setFocusable(true); copy.setClickable(true);
         copy.setOnClickListener(v -> copyCommand());
         LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(-2, ui.dp(44));
         cp.gravity = Gravity.END; cp.topMargin = ui.dp(10);
         block.addView(copy, cp);
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2); bp.topMargin = ui.dp(14);
         content.addView(block, bp);
-        content.addView(numbered(1, "Connect in NAVEE", null));
-        content.addView(numbered(2, "Wait up to 90 s", null));
-        content.addView(numbered(3, "File saves to Downloads", null));
-        primary("The helper finished", () -> go(IMPORT));
-        footerLink("Capture didn't work", this::troubleshooting);
+        content.addView(numbered(1, T.onboardingHelperConnectNavee(), null));
+        content.addView(numbered(2, T.onboardingHelperWait(), null));
+        content.addView(numbered(3, T.onboardingHelperFileSaves(), null));
+        primary(T.onboardingHelperFinished(), () -> go(IMPORT));
+        footerLink(T.onboardingCaptureFailed(), this::troubleshooting);
     }
 
     private void connectBrowser() {
         scaffold(true);
-        heading("Connect through your browser", false, false);
-        paragraph("On your computer, open:", false);
+        heading(T.onboardingBrowserTitle(), false, false);
+        paragraph(T.onboardingBrowserOpen(), false);
         TextView address = ui.text(WEBADB_URL, 18, true);
         address.setTextIsSelectable(true);
         address.setPadding(0, ui.dp(12), 0, ui.dp(18));
         content.addView(address);
-        content.addView(numbered(1, "Connect your phone with a USB data cable", null));
-        content.addView(numbered(2, "Pick your phone in Chrome", null));
-        content.addView(numbered(3, "Approve USB debugging on this phone", "Leave **Always allow from this computer** unchecked"));
-        primary("The website connected", () -> go(HELPER));
-        footerLink("Phone isn't listed", () -> info("Connecting in Chrome",
-                "\u2022  Phone unlocked, USB debugging on\n"
-                        + "\u2022  A data cable, not charge-only\n"
-                        + "\u2022  Android Studio, other ADB tools and setup tabs closed\n"
-                        + "\u2022  Chrome or Edge, not Safari or Firefox"));
+        content.addView(numbered(1, T.onboardingBrowserConnectCable(), null));
+        content.addView(numbered(2, T.onboardingBrowserPickPhone(), null));
+        content.addView(numbered(3, T.onboardingBrowserApprove(), T.onboardingBrowserLeaveUnchecked()));
+        primary(T.onboardingBrowserConnected(), () -> go(HELPER));
+        footerLink(T.onboardingBrowserNotListed(), () -> info(T.onboardingBrowserHelpTitle(),
+                T.onboardingBrowserHelp()));
     }
 
     private void runBrowserHelper() {
         scaffold(true);
-        heading("Approve the capture on the website", false, false);
-        paragraph("Keep the cable in until cleanup finishes.", false);
-        content.addView(numbered(1, "Read the capture explanation and choose **Start**", null));
-        content.addView(numbered(2, "Select your scooter in NAVEE and connect", "Up to **90 s**"));
-        content.addView(numbered(3, "After cleanup, choose **Save to phone Downloads**", null));
-        paragraph("This file is a scooter key. Keep it private.", false);
-        primary("The file is in Downloads", () -> go(IMPORT));
-        footerLink("Capture didn't work", () -> info("Browser capture",
-                "\u2022  NAVEE signed in, scooter nearby\n"
-                        + "\u2022  Other scooter apps closed\n"
-                        + "\u2022  Stopped early? Finish cleanup in the same browser first"));
+        heading(T.onboardingBrowserCaptureTitle(), false, false);
+        paragraph(T.onboardingBrowserKeepCable(), false);
+        content.addView(numbered(1, T.onboardingBrowserStart(), null));
+        content.addView(numbered(2, T.onboardingBrowserSelectScooter(), T.onboardingBrowserUpTo()));
+        content.addView(numbered(3, T.onboardingBrowserSave(), null));
+        paragraph(T.onboardingBrowserKeyPrivate(), false);
+        primary(T.onboardingBrowserInDownloads(), () -> go(IMPORT));
+        footerLink(T.onboardingCaptureFailed(), () -> info(T.onboardingBrowserCaptureHelpTitle(),
+                T.onboardingBrowserCaptureHelp()));
     }
 
     private void copyCommand() {
         try {
             ClipboardManager clipboard = host.activity().getSystemService(ClipboardManager.class);
             if (clipboard == null) throw new IllegalStateException();
-            clipboard.setPrimaryClip(ClipData.newPlainText("Capture command", COMMAND));
+            clipboard.setPrimaryClip(ClipData.newPlainText(T.onboardingHelperClipLabel(), COMMAND));
             // Android 13 and newer confirm clipboard writes themselves.
-            if (Build.VERSION.SDK_INT < 33) host.toast("Command copied.");
-        } catch (RuntimeException e) { host.toast("Copy failed"); }
+            if (Build.VERSION.SDK_INT < 33) host.toast(T.onboardingHelperCopied());
+        } catch (RuntimeException e) { host.toast(T.onboardingHelperCopyFailed()); }
     }
 
     private void importFile() {
         scaffold(true);
-        heading(SHIZUKU.equals(path()) ? "Your owner setup" : "Import your owner file", false, false);
+        heading(SHIZUKU.equals(path()) ? T.onboardingImportShizukuTitle() : T.onboardingImportTitle(), false, false);
         String mode = importMode();
         if (mode.equals("choose") || mode.equals("loading")) {
-            paragraph("Pick navee-owner-setup.json. This restores scooter access only, not rides or other app data.", false);
-            LinearLayout card = fileCard(mode.equals("loading") ? "Loading your owner profile…" : "No file chosen yet", null, false);
+            paragraph(T.onboardingImportPick(), false);
+            LinearLayout card = fileCard(mode.equals("loading") ? T.onboardingImportLoading() : T.onboardingImportNoFile(), null, false);
             LinearLayout.LayoutParams fp = new LinearLayout.LayoutParams(-1, -2); fp.topMargin = ui.dp(18);
             content.addView(card, fp);
             if (prefs.getBoolean(KEY_IMPORT_FAILED, false)) {
-                TextView error = fine("Not an owner file.");
+                TextView error = fine(T.onboardingImportNotOwnerFile());
                 error.setTextColor(ui.danger);
             }
-            fine("This file unlocks your scooter. Keep it private.");
-            TextView choose = primary("Choose owner file", this::pickFile);
+            fine(T.onboardingImportKeepPrivate());
+            TextView choose = primary(T.onboardingImportChoose(), this::pickFile);
             choose.setEnabled(!mode.equals("loading"));
-            footerLink("Enter the identity instead", () -> { prefs.edit().putString(KEY_PATH, TYPED).apply(); go(IDENTITY); });
-            footerLink("Restore Volt backup instead", () -> host.dataBackup(true, null));
+            footerLink(T.onboardingImportEnterIdentity(), () -> { prefs.edit().putString(KEY_PATH, TYPED).apply(); go(IDENTITY); });
+            footerLink(T.onboardingImportRestoreInstead(), () -> host.dataBackup(true, null));
             return;
         }
         boolean applied = mode.equals("applied");
         ScooterProfiles.Profile p = applied ? find(profiles(), prefs.getString(KEY_PROFILE, "")) : null;
-        String[] summary = applied && p != null ? new String[] {p.name, p.role == 1 ? "shared role" : "owner role"} : pendingSummary();
+        String[] summary = applied && p != null ? new String[] {p.name, p.role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()} : pendingSummary();
         // One success card: the lock glyph says it is held privately on this phone.
         LinearLayout found = row(); found.setGravity(Gravity.CENTER_VERTICAL);
         found.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
@@ -975,32 +997,32 @@ public final class OnboardingScreen implements AppScreen {
         lock.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
         found.addView(lock, new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)));
         LinearLayout words = column();
-        words.addView(ui.text("Owner identity found", 15.5f, true));
-        TextView detail = ui.caption(summary[0] + " · " + summary[1]);
+        words.addView(ui.text(T.onboardingImportFound(), 15.5f, true));
+        TextView detail = ui.caption(T.onboardingImportSummary(summary[0], summary[1]));
         detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale); detail.setPadding(0, ui.dp(3), 0, 0);
         words.addView(detail);
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(12);
         found.addView(words, wp);
         found.setFocusable(true);
-        found.setContentDescription("Owner identity found, stored privately on this phone. " + detail.getText());
+        found.setContentDescription(T.onboardingImportFoundDescription(detail.getText()));
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
         content.addView(found, gp);
         // A re-picked file that failed keeps this identity; say so here too (no toast during setup).
-        if (prefs.getBoolean(KEY_IMPORT_FAILED, false)) fine("Not an owner file.").setTextColor(ui.danger);
+        if (prefs.getBoolean(KEY_IMPORT_FAILED, false)) fine(T.onboardingImportNotOwnerFile()).setTextColor(ui.danger);
         nameField = nameInput(prefs.getString(KEY_PENDING_NAME, summary[0]));
-        fine(SHIZUKU.equals(path()) ? "Stored privately. Revoke Shizuku now." : "This file unlocks your scooter. Keep it private.");
+        fine(SHIZUKU.equals(path()) ? T.onboardingImportRevokeShizuku() : T.onboardingImportKeepPrivate());
         // The picked file is still in Downloads after import; offer to remove that copy right here.
         if (!SHIZUKU.equals(path()) && host.activity() instanceof MainActivity
                 && ((MainActivity) host.activity()).hasPickedOwnerFile()) {
-            TextView delete = link("Delete Downloads copy", () -> {
+            TextView delete = link(T.onboardingImportDeleteCopy(), () -> {
                 boolean deleted = ((MainActivity) host.activity()).deletePickedOwnerFile();
-                host.toast(deleted ? "Downloads copy deleted" : "Couldn't delete · remove it in Files");
+                host.toast(deleted ? T.onboardingImportCopyDeleted() : T.onboardingImportCopyNotDeleted());
                 if (deleted) render();
             });
             delete.setGravity(Gravity.START | Gravity.CENTER_VERTICAL);
             content.addView(delete, new LinearLayout.LayoutParams(-2, -2));
         }
-        primary("Save and continue", () -> {
+        primary(T.onboardingSaveContinue(), () -> {
             String name = nameField.getText().toString().trim();
             if (applied) {
                 ScooterProfiles store = profiles();
@@ -1015,8 +1037,8 @@ public final class OnboardingScreen implements AppScreen {
             hideKeyboard();
             afterProfile();
         });
-        if (SHIZUKU.equals(path())) footerLink("Open Shizuku", this::openShizuku);
-        else if (applied) footerLink("Choose a different file", this::pickFile);
+        if (SHIZUKU.equals(path())) footerLink(T.onboardingOpenShizuku(), this::openShizuku);
+        else if (applied) footerLink(T.onboardingImportChooseDifferent(), this::pickFile);
     }
 
     /** Volt's access is revoked inside Shizuku (Authorized applications); open it there. */
@@ -1025,20 +1047,20 @@ public final class OnboardingScreen implements AppScreen {
         try {
             if (launch == null) throw new IllegalStateException();
             host.activity().startActivity(launch);
-        } catch (RuntimeException unavailable) { host.toast("Shizuku isn't installed"); }
+        } catch (RuntimeException unavailable) { host.toast(T.onboardingShizukuMissing()); }
     }
 
     private void pickFile() {
         ScooterService service = host.service();
-        if (service != null && service.isRecording()) { host.toast("Stop recording first"); return; }
+        if (service != null && service.isRecording()) { host.toast(T.onboardingStopRecording()); return; }
         prefs.edit().putBoolean(KEY_IMPORT_FAILED, false).apply();
         host.importOwner();
     }
 
     private void enterIdentity() {
         scaffold(true);
-        heading("Enter owner identity", false, false);
-        paragraph("Not a password.", false);
+        heading(T.onboardingIdentityTitle(), false, false);
+        paragraph(T.onboardingIdentityNotPassword(), false);
         FrameLayout boxes = new FrameLayout(host.activity());
         HexBoxes display = new HexBoxes();
         boxes.addView(display, new FrameLayout.LayoutParams(-1, -1));
@@ -1052,7 +1074,7 @@ public final class OnboardingScreen implements AppScreen {
         field.setSingleLine(true);
         field.setBackground(null); field.setTextColor(Color.TRANSPARENT); field.setHintTextColor(Color.TRANSPARENT);
         field.setHighlightColor(Color.TRANSPARENT); field.setCursorVisible(false);
-        field.setHint("Owner identity, 12 characters, or a private backup");
+        field.setHint(T.onboardingIdentityHint());
         field.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
         field.setOnFocusChangeListener((v, focus) -> display.invalidate());
         boxes.addView(field, new FrameLayout.LayoutParams(-1, -1));
@@ -1063,7 +1085,7 @@ public final class OnboardingScreen implements AppScreen {
         status.setPadding(0, ui.dp(8), 0, 0);
         content.addView(status);
         nameField = nameInput("");
-        TextView save = primary("Save and continue", this::saveIdentity);
+        TextView save = primary(T.onboardingSaveContinue(), this::saveIdentity);
         // While the local service starts, Save waits with a spinner instead of answering a tap with a toast.
         View starting = spinnerOn(save);
         Runnable update = () -> {
@@ -1075,12 +1097,12 @@ public final class OnboardingScreen implements AppScreen {
             boolean storeReady = profiles() != null;
             save.setEnabled(parsed != null && storeReady);
             starting.setVisibility(storeReady ? View.GONE : View.VISIBLE);
-            save.setContentDescription(storeReady ? "Save and continue" : "Save and continue, starting");
+            save.setContentDescription(storeReady ? T.onboardingSaveContinue() : T.onboardingSaveContinueStarting());
             if (parsed != null && !typing) {
-                status.setText("Private backup recognised · " + (parsed.role == 1 ? "shared role" : "owner role"));
+                status.setText(parsed.role == 1 ? T.onboardingIdentityBackupShared() : T.onboardingIdentityBackupOwner());
                 status.setTextColor(ui.ok);
             } else if (!typing && !raw.trim().isEmpty()) {
-                status.setText("Only 0–9 and A–F.");
+                status.setText(T.onboardingIdentityHexOnly());
                 status.setTextColor(ui.danger);
             } else status.setText("");
             status.setVisibility(status.getText().length() == 0 ? View.GONE : View.VISIBLE);
@@ -1116,7 +1138,7 @@ public final class OnboardingScreen implements AppScreen {
         // applied; otherwise granting Nearby devices later would import and select that file.
         File abandoned = pendingOwnerFile();
         if (abandoned.isFile() && !abandoned.delete()) {
-            host.toast("Couldn't clear old file. Retry.");
+            host.toast(T.onboardingIdentityClearFailed());
             return;
         }
         // Its pending display name goes too, so the typed identity keeps the name entered here.
@@ -1134,7 +1156,7 @@ public final class OnboardingScreen implements AppScreen {
                 profile = store.create(name, parsed.identity, parsed.role);
             }
             prefs.edit().putString(KEY_PROFILE, profile.id).putString(KEY_CREATED, profile.id).apply();
-        } catch (IllegalArgumentException invalid) { host.toast(invalid.getMessage()); return; }
+        } catch (IllegalArgumentException invalid) { host.toast(String.valueOf(SetupException.shown(invalid))); return; }
         identityField.setText("");
         hideKeyboard();
         afterProfile();
@@ -1142,7 +1164,7 @@ public final class OnboardingScreen implements AppScreen {
 
     private void nearby() {
         scaffold(true);
-        heading("Allow Nearby devices", false, false);
+        heading(T.onboardingNearbyTitle(), false, false);
         FrameLayout tile = new FrameLayout(host.activity());
         tile.setBackground(ui.shape(Ui.withAlpha(ui.accent, ui.dark ? 38 : 30), 28, 0));
         tile.addView(ui.icon("bluetooth", 40, ui.accent), new FrameLayout.LayoutParams(ui.dp(40), ui.dp(40), Gravity.CENTER));
@@ -1150,15 +1172,15 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout.LayoutParams tp = new LinearLayout.LayoutParams(ui.dp(84), ui.dp(84));
         tp.gravity = Gravity.CENTER_HORIZONTAL; tp.topMargin = ui.dp(26);
         content.addView(tile, tp);
-        TextView body = paragraph("Bluetooth only. No servers.", true);
+        TextView body = paragraph(T.onboardingNearbyBody(), true);
         ((LinearLayout.LayoutParams) body.getLayoutParams()).topMargin = ui.dp(18);
-        primary("Allow", () -> {
+        primary(T.onboardingNearbyAllow(), () -> {
             if (hasPermission()) { toConnect(); return; }
             prefs.edit().putBoolean(KEY_ASKED_NEARBY, true).apply();
             host.requestBluetooth();
             refresh();
         });
-        TextView settings = footerLink("Open app settings", () -> openSettings(new Intent(
+        TextView settings = footerLink(T.onboardingNearbyAppSettings(), () -> openSettings(new Intent(
                 Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.fromParts("package", host.activity().getPackageName(), null))));
         updaters.add(() -> settings.setVisibility(prefs.getBoolean(KEY_ASKED_NEARBY, false) && !hasPermission()
                 ? View.VISIBLE : View.GONE));
@@ -1166,12 +1188,12 @@ public final class OnboardingScreen implements AppScreen {
 
     private void connectScooter() {
         scaffold(true);
-        heading("Find your scooter", false, false);
+        heading(T.onboardingConnectTitle(), false, false);
         LinearLayout list = column();
         list.setBackground(ui.shape(ui.surface, 20, 0));
         list.setPadding(ui.dp(16), ui.dp(4), ui.dp(16), ui.dp(4));
-        String[] labels = {"Found your scooter", "Bluetooth connected", "Checking owner identity",
-                "Saving this scooter"};
+        String[] labels = {T.onboardingConnectFound(), T.onboardingConnectBluetooth(), T.onboardingConnectChecking(),
+                T.onboardingConnectSaving()};
         StateDot[] dots = new StateDot[labels.length];
         TextView[] texts = new TextView[labels.length];
         LinearLayout[] rows = new LinearLayout[labels.length];
@@ -1204,12 +1226,12 @@ public final class OnboardingScreen implements AppScreen {
         statusRow.addView(status, stp);
         LinearLayout.LayoutParams srp = new LinearLayout.LayoutParams(-1, -2); srp.topMargin = ui.dp(14);
         content.addView(statusRow, srp);
-        TextView connect = primary("Connect", () -> {
+        TextView connect = primary(T.onboardingConnectButton(), () -> {
             // Without Nearby devices the service can't start, so the main button asks for it.
             if (host.service() == null && !hasPermission()) { host.requestBluetooth(); return; }
             connectNow();
         });
-        TextView cancel = footerLink("Cancel", this::stopConnecting);
+        TextView cancel = footerLink(T.commonCancel(), this::stopConnecting);
         updaters.add(() -> {
             ScooterService service = host.service();
             ScooterProfiles.Profile active = service == null ? null : service.profiles.active();
@@ -1220,34 +1242,35 @@ public final class OnboardingScreen implements AppScreen {
                     : state == BleController.State.CONNECTING ? 1 : 0;
             boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);
             boolean waitingToStart = prefs.getBoolean(KEY_CONNECT, false);
-            title.setText(progress >= 1 && active != null ? "Connecting to " + active.name : "Find your scooter");
+            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.name) : T.onboardingConnectTitle());
             for (int i = 0; i < rows.length; i++) {
                 int mode = i < progress ? StateDot.DONE : i == progress && (busy || waitingToStart) ? StateDot.ACTIVE : StateDot.WAITING;
                 dots[i].setMode(mode);
-                String label = i == 0 && progress == 0 && (busy || waitingToStart) ? "Looking for your scooter" : labels[i];
+                String label = i == 0 && progress == 0 && (busy || waitingToStart) ? T.onboardingConnectLooking() : labels[i];
                 texts[i].setText(label);
                 texts[i].setTextColor(mode == StateDot.WAITING ? ui.dim : ui.text);
                 texts[i].setTypeface(mode == StateDot.ACTIVE ? ui.semibold() : ui.regular());
-                rows[i].setContentDescription(label + ", " + (mode == StateDot.DONE ? "done" : mode == StateDot.ACTIVE ? "in progress" : "not yet"));
+                rows[i].setContentDescription(mode == StateDot.DONE ? T.onboardingConnectRowDone(label)
+                        : mode == StateDot.ACTIVE ? T.onboardingConnectRowInProgress(label) : T.onboardingConnectRowNotYet(label));
             }
             boolean needsNearby = service == null && !hasPermission();
             boolean startingService = service == null && !needsNearby;
             String message;
-            if (service == null) message = needsNearby ? "" : "Starting…";
-            else if (!configured || pendingOwnerFile().isFile()) message = "Waiting for your owner profile…";
+            if (service == null) message = needsNearby ? "" : T.onboardingConnectStarting();
+            else if (!configured || pendingOwnerFile().isFile()) message = T.onboardingConnectWaitingProfile();
             else if (state == BleController.State.SCANNING)
                 message = ""; // The active checklist row already shows that discovery is in progress.
             else if ((state == BleController.State.DISCONNECTED || state == BleController.State.WAITING)
                     && prefs.getBoolean(KEY_TRIED, false)) {
                 // After an attempt, the controller's message is the problem to show (scan timeout, failure).
                 String problem = service.ble.message();
-                boolean nothingFound = problem != null && problem.startsWith("No scooter found");
-                message = nothingFound ? "Is it on? Is NAVEE closed?" : problem;
+                boolean nothingFound = problem != null && problem.startsWith(BleController.NOTHING_FOUND);
+                message = nothingFound ? T.onboardingConnectIsItOn() : problem == null ? null : String.valueOf(service.ble.displayMessage());
             } else message = "";
             status.setText(message == null ? "" : message);
             starting.setVisibility(startingService ? View.VISIBLE : View.GONE);
             statusRow.setVisibility(status.getText().length() == 0 ? View.GONE : View.VISIBLE);
-            connect.setText(needsNearby ? "Allow Nearby devices" : prefs.getBoolean(KEY_TRIED, false) ? "Try again" : "Connect");
+            connect.setText(needsNearby ? T.onboardingConnectAllowNearby() : prefs.getBoolean(KEY_TRIED, false) ? T.commonTryAgain() : T.onboardingConnectButton());
             connect.setContentDescription(connect.getText());
             connect.setEnabled(needsNearby || (service != null && configured && !pendingOwnerFile().isFile()));
             connect.setVisibility(busy || waitingToStart ? View.GONE : View.VISIBLE);
@@ -1269,30 +1292,30 @@ public final class OnboardingScreen implements AppScreen {
         content.addView(new Hero(true), new LinearLayout.LayoutParams(-1, ui.dp(250)));
         View gap = new View(host.activity());
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
-        heading("You're connected", true, true);
+        heading(T.onboardingDoneTitle(), true, true);
         ScooterProfiles.Profile p = onboardingProfile();
-        paragraph((p == null ? "Your scooter" : p.name) + " is ready.", true);
+        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.name), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
         content.addView(group, gp);
-        TextView backup = ui.secondaryButton("Back up Volt", () -> host.dataBackup(false, null));
+        TextView backup = ui.secondaryButton(T.onboardingDoneBackup(), () -> host.dataBackup(false, null));
         backup.setTag("onboarding-create-backup");
         ui.decorate(backup, "shield");
         backup.setMinHeight(ui.dp(54));
-        backup.setContentDescription("Back up Volt: scooter access and all saved app data");
+        backup.setContentDescription(T.onboardingDoneBackupDescription());
         LinearLayout.LayoutParams bp = new LinearLayout.LayoutParams(-1, -2); bp.bottomMargin = ui.dp(10);
         if (p != null && p.configured()) group.addView(backup, bp);
         // The closing reminder depends on what this setup turned on.
-        if (isComputerCapture()) group.addView(tick("done1", "Turn off USB debugging", "You don't need the computer any more"));
+        if (isComputerCapture()) group.addView(tick("done1", T.onboardingDoneUsbOff(), T.onboardingDoneUsbOffDetail()));
         else if (SHIZUKU.equals(path())) {
-            TextView revoke = ui.secondaryButton("Revoke Shizuku", this::openShizuku);
+            TextView revoke = ui.secondaryButton(T.onboardingDoneRevoke(), this::openShizuku);
             ui.decorate(revoke, "lock");
             revoke.setMinHeight(ui.dp(54));
-            revoke.setContentDescription("Revoke Shizuku. Opens Shizuku to remove Volt's access");
+            revoke.setContentDescription(T.onboardingDoneRevokeDescription());
             LinearLayout.LayoutParams rp = new LinearLayout.LayoutParams(-1, -2); rp.bottomMargin = ui.dp(10);
             group.addView(revoke, rp);
         }
-        primary("Go to Home", () -> finish(false));
+        primary(T.onboardingDoneHome(), () -> finish(false));
     }
 
     // ---------------------------------------------------------------- troubleshooting sheet
@@ -1324,13 +1347,13 @@ public final class OnboardingScreen implements AppScreen {
         LinearLayout.LayoutParams grp = new LinearLayout.LayoutParams(ui.dp(36), ui.dp(4)); grp.gravity = Gravity.CENTER_HORIZONTAL;
         panel.addView(grab, grp);
         LinearLayout top = row(); top.setGravity(Gravity.CENTER_VERTICAL); top.setPadding(0, ui.dp(8), 0, ui.dp(8));
-        TextView heading = ui.text("Capture didn't work", 21, true);
+        TextView heading = ui.text(T.onboardingCaptureFailed(), 21, true);
         if (Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         top.addView(heading, new LinearLayout.LayoutParams(0, -2, 1));
         FrameLayout close = new FrameLayout(host.activity());
         close.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 40)), oval(ui.raised), null));
         close.addView(ui.icon("close", 18, ui.text), new FrameLayout.LayoutParams(ui.dp(18), ui.dp(18), Gravity.CENTER));
-        close.setContentDescription("Close"); close.setFocusable(true); close.setClickable(true);
+        close.setContentDescription(T.commonClose()); close.setFocusable(true); close.setClickable(true);
         close.setOnClickListener(v -> closeSheet());
         top.addView(close, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         panel.addView(top);
@@ -1338,10 +1361,10 @@ public final class OnboardingScreen implements AppScreen {
         group.setBackground(ui.shape(ui.raised, 18, 0));
         group.setPadding(ui.dp(14), ui.dp(2), ui.dp(14), ui.dp(2));
         String[][] fixes = {
-                {"screen", "Phone not listed as device", "Approve prompt \u00B7 use data cable"},
-                {"scooter", "NAVEE didn't connect", "Check NAVEE connects alone"},
-                {"clock", "Helper timed out", "Close other apps, rerun"},
-                {"file", "File already exists", "Add --output newname"}};
+                {"screen", T.onboardingFixNotListed(), T.onboardingFixNotListedDetail()},
+                {"scooter", T.onboardingFixNavee(), T.onboardingFixNaveeDetail()},
+                {"clock", T.onboardingFixTimeout(), T.onboardingFixTimeoutDetail()},
+                {"file", T.onboardingFixExists(), T.onboardingFixExistsDetail()}};
         for (int i = 0; i < fixes.length; i++) {
             if (i > 0) { View line = new View(host.activity()); line.setBackgroundColor(ui.outline); group.addView(line, new LinearLayout.LayoutParams(-1, ui.dp(1))); }
             LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL); item.setPadding(0, ui.dp(12), 0, ui.dp(12));
@@ -1356,14 +1379,14 @@ public final class OnboardingScreen implements AppScreen {
             detail.setPadding(0, ui.dp(3), 0, 0); words.addView(detail);
             LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(14);
             item.addView(words, wp);
-            item.setFocusable(true); item.setContentDescription(fixes[i][1] + ". " + fixes[i][2]);
+            item.setFocusable(true); item.setContentDescription(T.onboardingHeadingDetail(fixes[i][1], fixes[i][2]));
             group.addView(item);
         }
         ScrollView scroll = new ScrollView(host.activity());
         scroll.addView(group, new ScrollView.LayoutParams(-1, -2));
         LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(-1, -2, 1);
         panel.addView(scroll, sp);
-        TextView again = ui.secondaryButton("Try again", this::closeSheet);
+        TextView again = ui.secondaryButton(T.commonTryAgain(), this::closeSheet);
         again.setMinHeight(ui.dp(54));
         LinearLayout.LayoutParams ap = new LinearLayout.LayoutParams(-1, -2); ap.topMargin = ui.dp(12);
         panel.addView(again, ap);
@@ -1371,7 +1394,7 @@ public final class OnboardingScreen implements AppScreen {
         pp.topMargin = ui.dp(64);
         overlay.addView(panel, pp);
         if (body != null) body.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        if (Build.VERSION.SDK_INT >= 28) overlay.setAccessibilityPaneTitle("Capture didn't work");
+        if (Build.VERSION.SDK_INT >= 28) overlay.setAccessibilityPaneTitle(T.onboardingCaptureFailed());
         root.addView(overlay, new FrameLayout.LayoutParams(-1, -1));
         sheet = overlay;
         heading.post(() -> heading.performAccessibilityAction(AccessibilityNodeInfo.ACTION_ACCESSIBILITY_FOCUS, null));
@@ -1453,8 +1476,11 @@ public final class OnboardingScreen implements AppScreen {
             card.getChildAt(card.getChildCount() - 1).setAlpha(.45f);
         }
         card.setFocusable(true); card.setClickable(true);
-        card.setContentDescription(heading + (chip == null ? "" : ", " + chip) + (detail == null ? "" : ". " + detail)
-                + (disabled ? ". Needs Android 11 or newer" : ""));
+        card.setContentDescription(chip == null
+                ? detail == null ? disabled ? T.onboardingOptionSpokenUnavailable(heading) : T.onboardingOptionSpoken(heading)
+                        : disabled ? T.onboardingOptionSpokenDetailUnavailable(heading, detail) : T.onboardingOptionSpokenDetail(heading, detail)
+                : detail == null ? disabled ? T.onboardingOptionSpokenChipUnavailable(heading, chip) : T.onboardingOptionSpokenChip(heading, chip)
+                        : disabled ? T.onboardingOptionSpokenChipDetailUnavailable(heading, chip, detail) : T.onboardingOptionSpokenChipDetail(heading, chip, detail));
         card.setAccessibilityDelegate(new View.AccessibilityDelegate() {
             @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
                 super.onInitializeAccessibilityNodeInfo(host, info);
@@ -1488,10 +1514,10 @@ public final class OnboardingScreen implements AppScreen {
             boolean on = prefs.getBoolean(KEY_TICK + key, false);
             box.on = on; box.invalidate();
             name.setTextColor(on ? ui.muted : ui.text);
-            if (Build.VERSION.SDK_INT >= 30) card.setStateDescription(on ? "Checked" : "Not checked");
+            if (Build.VERSION.SDK_INT >= 30) card.setStateDescription(on ? T.onboardingTickChecked() : T.onboardingTickNotChecked());
         };
         card.setFocusable(true); card.setClickable(true);
-        card.setContentDescription(detail == null ? heading : heading + ". " + detail);
+        card.setContentDescription(detail == null ? heading : T.onboardingHeadingDetail(heading, detail));
         card.setAccessibilityDelegate(new View.AccessibilityDelegate() {
             @Override public void onInitializeAccessibilityNodeInfo(View host, AccessibilityNodeInfo info) {
                 super.onInitializeAccessibilityNodeInfo(host, info);
@@ -1519,18 +1545,31 @@ public final class OnboardingScreen implements AppScreen {
         words.setPadding(0, ui.dp(4), 0, 0);
         TextView name = ui.text("", 15.5f, false); name.setText(rich(heading));
         words.addView(name);
+        // Breadcrumbs (Settings › About phone) in a right-to-left catalog language read right to left even
+        // when they start with a Latin word. Only the text's own language decides: English (and any
+        // left-to-right language) keeps the default first-strong direction on every phone, including a
+        // Hebrew or Arabic system language and Force RTL.
+        boolean rtlText = catalogRtl();
+        if (rtlText) name.setTextDirection(View.TEXT_DIRECTION_RTL);
         if (detail != null) {
             TextView sub = ui.text("", 13, false); sub.setText(rich(detail)); sub.setTextColor(ui.muted);
             sub.setPadding(0, ui.dp(3), 0, 0); words.addView(sub);
+            if (rtlText) sub.setTextDirection(View.TEXT_DIRECTION_RTL);
         }
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(14);
         item.addView(words, wp);
         item.setFocusable(true);
-        item.setContentDescription("Step " + n + ". " + heading.replace("**", "").replace("`", "")
-                + (detail == null ? "" : ". " + detail.replace("**", "")));
+        item.setContentDescription(T.onboardingNumberedSpoken(n, heading.replace("**", "").replace("`", ""),
+                (detail == null ? "" : T.onboardingNumberedDetail(detail.replace("**", "")))));
         LinearLayout.LayoutParams ip = new LinearLayout.LayoutParams(-1, -2); ip.topMargin = ui.dp(16);
         item.setLayoutParams(ip);
         return item;
+    }
+
+    /** True when the resolved catalog language is a right-to-left one (l10n/lang rtl column). */
+    private static boolean catalogRtl() {
+        int i = AppLanguages.indexOf(AppLanguages.resolve(T.language()));
+        return i >= 0 && AppLanguages.rtl(i);
     }
 
     private LinearLayout fileCard(String heading, String detail, boolean ok) {
@@ -1551,12 +1590,12 @@ public final class OnboardingScreen implements AppScreen {
         card.addView(words, wp);
         if (ok) card.addView(ui.icon("check", 22, ui.ok), new LinearLayout.LayoutParams(ui.dp(22), ui.dp(22)));
         card.setFocusable(true);
-        card.setContentDescription(detail == null ? heading : heading + ". " + detail);
+        card.setContentDescription(detail == null ? heading : T.onboardingHeadingDetail(heading, detail));
         return card;
     }
 
     private EditText nameInput(String value) {
-        TextView label = ui.text("Name your scooter", 12.5f, false);
+        TextView label = ui.text(T.onboardingNameLabel(), 12.5f, false);
         label.setTextColor(ui.muted);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-1, -2); lp.topMargin = ui.dp(20);
         content.addView(label, lp);
@@ -1566,12 +1605,12 @@ public final class OnboardingScreen implements AppScreen {
         edit.setFilters(new InputFilter[] {new InputFilter.LengthFilter(60)});
         edit.setSingleLine(true);
         edit.setText(value == null ? "" : value);
-        edit.setTextColor(ui.text); edit.setHintTextColor(ui.muted); edit.setHint("Scooter name");
+        edit.setTextColor(ui.text); edit.setHintTextColor(ui.muted); edit.setHint(T.onboardingNameHint());
         edit.setTextSize(TypedValue.COMPLEX_UNIT_SP, 16 * ui.textScale); edit.setTypeface(ui.regular());
         edit.setPadding(ui.dp(16), ui.dp(14), ui.dp(16), ui.dp(14));
         edit.setMinHeight(ui.dp(54));
         edit.setBackground(ui.shape(ui.dark ? ui.bg : ui.surface, 14, ui.outline));
-        edit.setContentDescription("Name your scooter");
+        edit.setContentDescription(T.onboardingNameLabel());
         LinearLayout.LayoutParams ep = new LinearLayout.LayoutParams(-1, -2); ep.topMargin = ui.dp(8);
         content.addView(edit, ep);
         return edit;
@@ -1650,7 +1689,7 @@ public final class OnboardingScreen implements AppScreen {
 
     private void info(String heading, String message) {
         show(new AlertDialog.Builder(host.activity()).setTitle(heading).setMessage(message)
-                .setPositiveButton("OK", null).create());
+                .setPositiveButton(T.commonOk(), null).create());
     }
 
     private void show(AlertDialog dialog) {
@@ -1668,7 +1707,7 @@ public final class OnboardingScreen implements AppScreen {
         try { host.activity().startActivity(intent); }
         catch (RuntimeException unavailable) {
             try { host.activity().startActivity(new Intent(Settings.ACTION_SETTINGS)); }
-            catch (RuntimeException none) { host.toast("Open your phone's Settings app to continue."); }
+            catch (RuntimeException none) { host.toast(T.onboardingOpenSettingsApp()); }
         }
     }
 
@@ -1698,7 +1737,7 @@ public final class OnboardingScreen implements AppScreen {
         private final int current; private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         Progress(int current) {
             super(host.activity()); this.current = current;
-            setContentDescription(current > 0 ? "Step " + current + " of 7" : "Setup, choose a path");
+            setContentDescription(current > 0 ? T.onboardingProgressStep(current) : T.onboardingProgressChoose());
         }
         @Override protected void onDraw(Canvas canvas) {
             float gap = ui.dp(4), h = ui.dp(5), w = (getWidth() - gap * 6) / 7f, top = (getHeight() - h) / 2f;
@@ -1778,8 +1817,8 @@ public final class OnboardingScreen implements AppScreen {
             DeviceDescriptor model = active == null ? null : active.savedDescriptor();
             Bitmap own = model == null || ModelRegistry.ut5Max(model) ? null : ScooterPhotos.get(host.activity().getResources(), model, 2);
             shown = own != null ? own : photo;
-            setContentDescription(own != null ? "NAVEE " + ModelRegistry.modelName(model) + " scooter, connected"
-                    : badge ? "NAVEE UT5 MAX scooter, connected" : "NAVEE UT5 MAX scooter");
+            setContentDescription(own != null ? T.onboardingHeroModelConnected(ModelRegistry.modelName(model))
+                    : badge ? T.onboardingHeroConnected() : T.onboardingHero());
             setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         }
         @Override protected void onDraw(Canvas canvas) {

@@ -1,0 +1,13 @@
+# B17, first-run setup (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: the refusal toasts, the connection status line and the roles the setup screens show from pure
+# code, pinned before the batch. SetupException (B6) and ConnectionText (B7) come from their batches'
+# lists.
+tests/l10n/characterization/OnboardingEnglishTest.java
+# B17's own suite: markup kept in every setup string and translation, the welcome tiles' ladders, the
+# spoken templates, and the screen's nothing-found, status-line and refusal paths.
+tests/l10n/OnboardingTextTest.java
+# The welcome tiles' ladder without a TextView subclass (the census keys views by class name): the label
+# stays ui.text's plain TextView, and TileRung picks the full word or its short rung.
+src/com/jjricks/volt/TileRung.java
+tests/l10n/OnboardingTileLabelTest.java

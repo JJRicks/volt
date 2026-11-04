@@ -86,7 +86,7 @@ final class CompatibilityPanel {
         }
         TextView foot=ui.caption(T.compatFooter());foot.setPadding(ui.dp(4),ui.dp(8),ui.dp(4),ui.dp(12));root.addView(foot);
     }
-    private void toastIfIdle(BleController ble){if(!ble.discovering())host.toast(ble.message());}
+    private void toastIfIdle(BleController ble){if(!ble.discovering())host.toast(ble.displayText());}
 
     // ---- Identity -------------------------------------------------------------------------
 
@@ -98,7 +98,7 @@ final class CompatibilityPanel {
             return;
         }
         DeviceDescriptor d=ble.descriptor();ModelRegistry.Resolution r=ble.resolution();
-        String model=ModelRegistry.modelLine(d);
+        String model=ModelRegistry.modelLineText(d).toString();
         TextView title=ui.text(model.isEmpty()?T.compatModelNotCaptured():model,17,true);card.addView(title);
         if(d.simulated)card.addView(muted(T.compatSimulated()));
         line(card,T.compatModelId(),d.pidSource()==DeviceDescriptor.PidSource.ADVERTISED?T.compatModelIdAdvertised():d.pidSource()==DeviceDescriptor.PidSource.SERIAL?T.compatModelIdSerial():T.compatModelIdNotCaptured());
@@ -109,7 +109,7 @@ final class CompatibilityPanel {
         String said=ModelRegistry.ownerModel(d);if(!said.isEmpty())line(card,T.compatYourAnswer(),said);
         if(ble.modelUnidentified()){
             card.addView(muted(T.compatIdentifyNote()));
-            card.addView(ui.button(T.compatIdentify(),()->{ble.identifyModel();host.toast(ble.message());host.redraw();}));
+            card.addView(ui.button(T.compatIdentify(),()->{ble.identifyModel();host.toast(ble.displayText());host.redraw();}));
         }
     }
     static String layer(ModelRegistry.Layer layer){
@@ -147,18 +147,18 @@ final class CompatibilityPanel {
     }
     private void liveTest(BleController ble,GuidedTest t){
         LinearLayout card=ui.card();root.addView(card);
-        String label=ScooterCommands.find(t.feature).label;CapabilityResolver.Decision d=decision(ble,t.keeps(),t.feature);
+        String label=ScooterCommands.find(t.feature).label().toString();CapabilityResolver.Decision d=decision(ble,t.keeps(),t.feature);
         card.addView(ui.text(t.keeps()?T.compatTryTitle(label):T.compatTestTitle(label),16,true));
         Integer base=t.baseline();String from=base==null?"":d.label(base),to=d.label(t.target);
         TextView status;
         switch(t.phase()){
             // A try approves itself once its baseline matches; no new guided test starts any more.
             case PRECHECK: case BASELINE: card.addView(muted(T.compatReadingCurrent()));card.addView(ui.secondaryButton(T.commonCancel(),()->{ble.cancelTest();refresh();}));return;
-            case TARGET_PENDING: case TARGET_AWAIT: status=muted(T.compatChangingTo(to));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);card.addView(status);return;
-            case RESTORE_PENDING: case RESTORE_AWAIT: status=muted(t.verifying()?T.compatCheckingUnchanged():T.compatSettingBack(from));
+            case TARGET_PENDING: case TARGET_AWAIT: status=muted(T.compatChangingTo(d.labelText(t.target)));status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);card.addView(status);return;
+            case RESTORE_PENDING: case RESTORE_AWAIT: status=muted(t.verifying()?T.compatCheckingUnchanged():T.compatSettingBack(base==null?from:d.labelText(base)));
                 status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);card.addView(status);return;
             case OBSERVE:
-                // Deferred (B9): question() compares the shown label with "On"/"Off"; pass the target id once labels translate.
+                // question() takes the English label id on purpose (B9, raw values): it compares it with "On"/"Off" and "mph".
                 card.addView(ui.text(question(t.feature,to),15,false));
                 card.addView(ui.button(T.compatYes(),()->{ble.testEffect(true);refresh();}));
                 card.addView(ui.secondaryButton(T.compatNo(),()->{ble.testEffect(false);refresh();}));
@@ -179,12 +179,10 @@ final class CompatibilityPanel {
     }
     private void unfinished(BleController ble,TestJournal.Entry e){
         LinearLayout card=ui.card();root.addView(card);
-        String label=ScooterCommands.find(e.feature).label;CapabilityResolver.Decision d=decision(ble,e.isTry(),e.feature);
+        String label=ScooterCommands.find(e.feature).label().toString();CapabilityResolver.Decision d=decision(ble,e.isTry(),e.feature);
         card.addView(ui.text(e.isTry()?T.compatUnfinishedTryTitle(label):T.compatUnfinishedTestTitle(label),16,true));
-        line(card,e.isTry()?T.compatBeforeTry():T.compatBeforeTest(),d.label(e.baseline));line(card,e.isTry()?T.compatValueTried():T.compatTestValue(),d.label(e.target));
-        // Deferred (B9): still English outcome words; switch to GuidedTest.Outcome.label(o), as the live card does, in an
-        // ordinary follow-up PR: G1 refuses the swap here because the lines beside it are converted text.
-        if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.describe(o));card.addView(muted(join(texts)));}
+        line(card,e.isTry()?T.compatBeforeTry():T.compatBeforeTest(),d.labelText(e.baseline).toString());line(card,e.isTry()?T.compatValueTried():T.compatTestValue(),d.labelText(e.target).toString());
+        if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.label(o));card.addView(muted(join(texts)));}
         GuidedTest.Review r=ble.reviewTest(e.testId);
         if(r==null)return;
         card.addView(ui.text(r.message,14,false));
@@ -195,13 +193,13 @@ final class CompatibilityPanel {
             case FIRMWARE_CHANGED: card.addView(ui.secondaryButton(T.compatContinueAnyway(),()->{ble.confirmTestFirmware(e.testId);refresh();}));break;
             case ALREADY_RESTORED: card.addView(ui.button(T.compatMarkRestored(),()->{ble.markTestRestored(e.testId);refresh();}));break;
             case RESTORE_NEEDED:
-                if(restore)addRestore(card,ble,e,d,T.compatRestoreTo(d.label(e.baseline)));
+                if(restore)addRestore(card,ble,e,d,T.compatRestoreTo(d.labelText(e.baseline)));
                 // A try may have worked: the owner can keep the value tried, as it would have stayed.
-                if(e.isTry())card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.label(e.target))),()->{ble.keepTest(e.testId);refresh();}));
+                if(e.isTry())card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.labelText(e.target))),()->{ble.keepTest(e.testId);refresh();}));
                 break;
             case CHANGED_OUTSIDE:
-                if(r.current!=null)card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.label(r.current))),()->{ble.keepTest(e.testId);refresh();}));
-                if(restore)addRestore(card,ble,e,d,T.compatSetValue(d.label(e.baseline)));
+                if(r.current!=null)card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.labelText(r.current))),()->{ble.keepTest(e.testId);refresh();}));
+                if(restore)addRestore(card,ble,e,d,T.compatSetValue(d.labelText(e.baseline)));
                 break;
             default: break;
         }
@@ -211,17 +209,15 @@ final class CompatibilityPanel {
     /** An unfinished test whose scooter profile was removed: nothing can be checked or set back, only dismissed. */
     private void orphaned(BleController ble,TestJournal.Entry e){
         LinearLayout card=ui.card();root.addView(card);
-        String label=ScooterCommands.find(e.feature).label;
+        String label=ScooterCommands.find(e.feature).label().toString();
         card.addView(ui.text(T.compatUnfinishedTestTitle(label),16,true));
-        // Deferred (B9): still English outcome words; switch to GuidedTest.Outcome.label(o), as the live card does, in an
-        // ordinary follow-up PR: G1 refuses the swap here because the lines beside it are converted text.
-        if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.describe(o));card.addView(muted(join(texts)));}
+        if(!e.outcomes.isEmpty()){List<String> texts=new java.util.ArrayList<>();for(String o:e.outcomes)texts.add(GuidedTest.Outcome.label(o));card.addView(muted(join(texts)));}
         card.addView(ui.text(T.compatOrphanBody(),14,false));
         TextView dismiss=ui.secondaryButton(T.compatDismiss(),()->{ble.dismissTest(e.testId);refresh();});
         dismiss.setContentDescription(T.compatDismissOrphanDescription(label));card.addView(dismiss);
     }
     private void addRestore(LinearLayout card,BleController ble,TestJournal.Entry e,CapabilityResolver.Decision d,String text){
-        TextView b=ui.button(unbroken(text),()->{ble.restoreTest(e.testId);if(!ble.testing())host.toast(ble.message());refresh();});b.setEnabled(d.available());card.addView(b);
+        TextView b=ui.button(unbroken(text),()->{ble.restoreTest(e.testId);if(!ble.testing())host.toast(ble.displayText());refresh();});b.setEnabled(d.available());card.addView(b);
     }
     static String question(String feature,String value){
         switch(feature){
@@ -279,8 +275,7 @@ final class CompatibilityPanel {
             else for(int o=0;o<=CompatibilityReport.LAST_OFFSET;o++){
                 if(!CompatibilityReport.valueOffset(o)&&!CompatibilityReport.presenceOffset(o))continue;
                 StatusFields.Field f=s.field(o);
-                // Deferred (B9): "Absent" and "Present" stay English; converting them next to the field-label line fails G1.
-                String value=!f.present?"Absent":CompatibilityReport.valueOffset(o)?Integer.toString(f.value):"Present";
+                String value=!f.present?T.compatFieldsValueAbsent():CompatibilityReport.valueOffset(o)?Integer.toString(f.value):T.compatFieldsValuePresent();
                 row(fields,CompatibilityLabels.field(o,layer),value,f.present?ui.text:ui.muted);
             }
             if(s.accepted())row(fields,T.compatStatusRead(),age(s),ui.muted);
@@ -377,7 +372,7 @@ final class CompatibilityPanel {
         TextView state=ui.text(open?T.compatGroupHide():T.compatGroupShow(),12.5f,false);state.setTextColor(ui.accent);state.setPadding(ui.dp(8),ui.dp(14),ui.dp(6),ui.dp(6));
         state.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);header.addView(state);
         header.setFocusable(true);header.setClickable(true);
-        header.setContentDescription(open?T.compatGroupExpanded(name):T.compatGroupCollapsed(name));
+        header.setContentDescription(open?T.compatGroupExpanded(groupLabel(name)):T.compatGroupCollapsed(groupLabel(name)));
         header.setOnClickListener(v->{if(!expanded.remove(name))expanded.add(name);refresh();});
         root.addView(header,new LinearLayout.LayoutParams(-1,-2));
         if(!open)return null;

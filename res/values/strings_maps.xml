@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Ride data, maps and the ride chart (batch B14): the phone track's fix counts, the online basemap
+  settings and consent, map tile status, the route map's markers, scale and tooltip, and the ride
+  chart's accessibility text. The English must stay exactly what the source said before the batch
+  (G1, G2), including its known bugs ("1 GPS fixes").
+
+  Unit symbols (ft, m, kW, m/s², km/h, mph, W) stay the international symbols in every language;
+  the words around them are translated. Map provider names and attributions are the provider's own
+  credit and are not translated here.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== The phone GPS track of a ride (Rides, GPS fixes line) ===== -->
+
+    <!-- The ride's phone track has no GPS fix that passed the quality checks. -->
+    <string name="maps_track_no_fixes" volt:screen="Rides, GPS track" volt:purpose="status">No usable GPS fixes recorded</string>
+    <!-- How many GPS fixes the ride's phone track kept. English keeps "fixes" for 1 until an
+         owner-approved fix. -->
+    <plurals name="maps_track_fixes" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
+        <item quantity="one">%1$d GPS fixes</item>
+        <item quantity="other">%1$d GPS fixes</item>
+    </plurals>
+    <!-- %1$s is the kept-fix count (maps_track_fixes); %2$d fixes were dropped for poor accuracy or
+         out-of-order time. English keeps "fixes" for 1 until an owner-approved fix. -->
+    <plurals name="maps_track_fixes_low_quality" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
+        <item quantity="one">%1$s · %2$d low-quality fixes excluded</item>
+        <item quantity="other">%1$s · %2$d low-quality fixes excluded</item>
+    </plurals>
+    <!-- %1$s is the text before it (maps_track_fixes or maps_track_fixes_low_quality); %2$d
+         elevation readings were dropped as implausible jumps. English keeps "outliers" for 1 until an
+         owner-approved fix. -->
+    <plurals name="maps_track_fixes_outliers" volt:screen="Rides, GPS track" volt:purpose="status" volt:english-fix="pending">
+        <item quantity="one">%1$s · %2$d elevation outliers excluded</item>
+        <item quantity="other">%1$s · %2$d elevation outliers excluded</item>
+    </plurals>
+
+    <!-- ===== Map sources ===== -->
+
+    <!-- The U.S. Geological Survey topographic basemap, covering the United States. -->
+    <string name="maps_source_usgs" volt:screen="Rides, map" volt:purpose="name" volt:dnt="USGS">USGS Topo · United States</string>
+    <!-- maps_source_usgs where room is short. -->
+    <string name="maps_source_usgs_short" volt:screen="Rides, map" volt:purpose="name" volt:dnt="USGS">USGS Topo</string>
+    <!-- The OpenStreetMap basemap: a project name. -->
+    <string name="maps_source_osm" volt:screen="Rides, map" volt:purpose="name" volt:dnt="OpenStreetMap">OpenStreetMap</string>
+    <!-- A basemap the owner set up with their own tile address. -->
+    <string name="maps_source_custom" volt:screen="Rides, map" volt:purpose="name">Custom map</string>
+    <!-- Shown as the credit of a custom basemap that has no attribution saved. -->
+    <string name="maps_source_provider_fallback" volt:screen="Rides, map" volt:purpose="caption">Map provider</string>
+
+    <!-- ===== Map settings and the online map consent ===== -->
+
+    <!-- The switch that shows an online basemap under the ride route. -->
+    <string name="maps_basemap" volt:screen="Rides, map settings" volt:purpose="label">Basemap</string>
+    <!-- Title of the one-time question before Volt loads any map tiles. -->
+    <string name="maps_consent_title" volt:screen="Online map consent" volt:purpose="question"
+        volt:safety="privacy">Show online map?</string>
+    <!-- Body of the one-time online map question: the tile provider learns the phone's IP address and
+         the map area; the rides themselves never leave the phone. -->
+    <string name="maps_consent_message" volt:screen="Online map consent" volt:purpose="message"
+        volt:safety="privacy">Provider sees your IP and map area. Rides stay on phone.</string>
+    <!-- The button that accepts the online map question and turns the basemap on. -->
+    <string name="maps_consent_enable" volt:screen="Online map consent" volt:purpose="button"
+        volt:safety="privacy">Enable basemap</string>
+    <!-- Title of the map provider selector (Off, USGS, OSM, Custom). -->
+    <string name="maps_online_map" volt:screen="Map settings" volt:purpose="label">Online map</string>
+    <!-- Selector option: the USGS basemap, which covers only the United States. -->
+    <string name="maps_provider_usgs" volt:screen="Map settings" volt:purpose="option" volt:dnt="USGS">USGS (US)</string>
+    <!-- Selector option: the OpenStreetMap basemap, abbreviated. -->
+    <string name="maps_provider_osm" volt:screen="Map settings" volt:purpose="option" volt:dnt="OSM">OSM</string>
+    <!-- Selector option: a basemap the owner sets up. -->
+    <string name="maps_provider_custom" volt:screen="Map settings" volt:purpose="option">Custom</string>
+    <!-- Opens the custom map provider editor. -->
+    <string name="maps_edit_custom" volt:screen="Map settings" volt:purpose="button">Edit custom provider</string>
+    <!-- Title of the map settings dialog. -->
+    <string name="maps_settings_title" volt:screen="Map settings" volt:purpose="title">Map settings</string>
+    <!-- Title of the custom map provider editor. -->
+    <string name="maps_custom_title" volt:screen="Custom map provider" volt:purpose="title">Custom map provider</string>
+    <!-- Field label: the provider's tile address template. -->
+    <string name="maps_custom_tile_url" volt:screen="Custom map provider" volt:purpose="label">Tile URL</string>
+    <!-- Example in the empty tile address field: {z}, {x} and {y} are the tile placeholders the
+         provider's address must contain, typed exactly so. -->
+    <string name="maps_custom_tile_url_hint" volt:screen="Custom map provider" volt:purpose="hint"
+        volt:dnt="https://|{z}|{x}|{y}|.png">https://…/{z}/{x}/{y}.png</string>
+    <!-- Field label: the credit line the provider requires on the map. -->
+    <string name="maps_custom_attribution" volt:screen="Custom map provider" volt:purpose="label">Attribution</string>
+    <!-- Field label: the provider's license or copyright page, which must be an HTTPS address. -->
+    <string name="maps_custom_attribution_link" volt:screen="Custom map provider" volt:purpose="label" volt:dnt="HTTPS">HTTPS attribution link</string>
+    <!-- Saves the custom map provider. -->
+    <string name="maps_custom_save" volt:screen="Custom map provider" volt:purpose="button">Save</string>
+    <!-- Error under the tile address: it must be HTTPS and contain {z}, {x} and {y}, typed exactly so. -->
+    <string name="maps_custom_error_url" volt:screen="Custom map provider" volt:purpose="error"
+        volt:dnt="HTTPS|{z}|{x}|{y}">Use HTTPS with {z}, {x} and {y}.</string>
+    <!-- Error under the attribution field when it is empty. -->
+    <string name="maps_custom_error_attribution" volt:screen="Custom map provider" volt:purpose="error">Add the provider’s required attribution.</string>
+    <!-- Error under the attribution link when it is not an HTTPS address. -->
+    <string name="maps_custom_error_link" volt:screen="Custom map provider" volt:purpose="error" volt:dnt="HTTPS">Use an HTTPS license or copyright link.</string>
+
+    <!-- ===== Map tile status (shown over the ride map) ===== -->
+
+    <!-- The tile provider refused Volt's requests; Volt waits 15 minutes before asking again. -->
+    <string name="maps_tiles_blocked" volt:screen="Rides, map" volt:purpose="status">Map provider blocked access</string>
+    <!-- The tile provider asked Volt to slow down. -->
+    <string name="maps_tiles_rate_limited" volt:screen="Rides, map" volt:purpose="status">Map provider rate limit · try later</string>
+    <!-- The tile provider answered with an HTTP error; %1$d is the HTTP status code (503). -->
+    <string name="maps_tiles_http" volt:screen="Rides, map" volt:purpose="status" volt:dnt="HTTP">Map tiles unavailable (HTTP %1$d)</string>
+    <!-- The tile provider's answer could not be used. -->
+    <string name="maps_tiles_invalid_response" volt:screen="Rides, map" volt:purpose="status">Map provider returned an invalid response</string>
+    <!-- Tiles could not be downloaded, most likely because the phone is offline. -->
+    <string name="maps_tiles_offline" volt:screen="Rides, map" volt:purpose="status">Map tiles unavailable · check connection</string>
+    <!-- Tiles could not be loaded for another reason. -->
+    <string name="maps_tiles_unavailable" volt:screen="Rides, map" volt:purpose="status">Map tiles unavailable</string>
+    <!-- Restored after a restart while a tile pause is still running, when its reason is unknown. -->
+    <string name="maps_tiles_paused" volt:screen="Rides, map" volt:purpose="status">Map tiles temporarily unavailable</string>
+
+    <!-- ===== Route map ===== -->
+
+    <!-- Accessibility description of the ride's route map. -->
+    <string name="maps_route_description" volt:screen="Rides, map" volt:purpose="description">Ride route map</string>
+    <!-- One glyph drawn inside the small circle at the route's start (S for start). Keep it to one
+         letter or symbol: the circle is 16 dp wide. -->
+    <string name="maps_route_marker_start" volt:screen="Rides, map" volt:purpose="label" volt:max="16dp@10sp">S</string>
+    <!-- One glyph drawn inside the small circle at the route's end (E for end). Keep it to one letter
+         or symbol: the circle is 16 dp wide. -->
+    <string name="maps_route_marker_end" volt:screen="Rides, map" volt:purpose="label" volt:max="16dp@10sp">E</string>
+    <!-- Drawn on the map when the ride has no phone GPS route. -->
+    <string name="maps_route_no_gps" volt:screen="Rides, map" volt:purpose="status">No GPS route recorded</string>
+    <!-- Unit symbol for kilowatts in the route tooltip. -->
+    <string name="maps_unit_kilowatt" volt:screen="Rides, map" volt:purpose="unit symbol">kW</string>
+
+    <!-- The tooltip's GPS speed in both unit systems, such as "22 mph / 36 km/h": %1$s and %3$s are
+         the numbers, %2$s the mph symbol (units_mph) and %4$s the km/h symbol (units_kmh). Spell it
+         as fmt_dual with two fmt_quantity values in your language. -->
+    <string name="maps_route_speed_dual" volt:screen="Rides, map" volt:purpose="number format">%1$s %2$s / %3$s %4$s</string>
+
+    <!-- The route tooltip for the tapped point. Its first line is the value the route is coloured by;
+         the second lists the other readings of that point, separated by " · ". -->
+    <!-- %1$s is the speed with its unit (25 mph); %2$s the sensor it came from (units_route_source_scooter
+         "scooter" or units_route_source_gps "GPS"). -->
+    <string name="maps_route_speed_source" volt:screen="Rides, map tooltip" volt:purpose="tooltip">%1$s · %2$s</string>
+    <!-- No speed was measured on this ride. -->
+    <string name="maps_route_speed_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Speed not measured</string>
+    <!-- The scooter reported no speed at this point. -->
+    <string name="maps_route_no_scooter_speed" volt:screen="Rides, map tooltip" volt:purpose="tooltip">No scooter speed</string>
+    <!-- The phone GPS had no speed at this point. -->
+    <string name="maps_route_no_gps_speed" volt:screen="Rides, map tooltip" volt:purpose="tooltip">No GPS speed</string>
+    <!-- The phone GPS speed at this point; %1$s is the speed with its unit (22 mph). -->
+    <string name="maps_route_gps_speed" volt:screen="Rides, map tooltip" volt:purpose="tooltip">GPS %1$s</string>
+    <!-- The scooter's speed at this point; %1$s is the speed with its unit (22 mph). -->
+    <string name="maps_route_scooter_speed" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Scooter %1$s</string>
+    <!-- No road grade could be worked out at this point. -->
+    <string name="maps_route_grade_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Grade not measured</string>
+    <!-- No elevation could be worked out at this point. -->
+    <string name="maps_route_elevation_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Elevation not measured</string>
+    <!-- No acceleration could be worked out from GPS at this point. -->
+    <string name="maps_route_accel_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">GPS accel not measured</string>
+    <!-- No power was recorded at this point. -->
+    <string name="maps_route_power_not_measured" volt:screen="Rides, map tooltip" volt:purpose="tooltip">Power not measured</string>
+
+    <!-- ===== Ride chart (Rides, and the charge recording chart that reuses it) ===== -->
+
+    <!-- Accessibility name of a ride's chart. -->
+    <string name="maps_chart_ride" volt:screen="Rides, chart" volt:purpose="description">Ride chart</string>
+    <!-- Accessibility action: show the whole ride in the chart. -->
+    <string name="maps_chart_fit_ride" volt:screen="Rides, chart" volt:purpose="button">Fit whole ride</string>
+    <!-- Accessibility name of a chart whose caller gave no title. -->
+    <string name="maps_chart_recording" volt:screen="Recording chart" volt:purpose="description">Recording chart</string>
+    <!-- Accessibility action of a chart whose caller gave no label: show the whole recording. -->
+    <string name="maps_chart_fit_recording" volt:screen="Recording chart" volt:purpose="button">Fit whole recording</string>
+    <!-- Accessibility action: zoom the chart in. -->
+    <string name="maps_chart_zoom_in" volt:screen="Rides, chart" volt:purpose="button">Zoom in</string>
+    <!-- Accessibility action: zoom the chart out. -->
+    <string name="maps_chart_zoom_out" volt:screen="Rides, chart" volt:purpose="button">Zoom out</string>
+    <!-- Accessibility action: move the cursor to the previous recorded sample. -->
+    <string name="maps_chart_previous_sample" volt:screen="Rides, chart" volt:purpose="button">Previous recorded sample</string>
+    <!-- Accessibility action: move the cursor to the next recorded sample. -->
+    <string name="maps_chart_next_sample" volt:screen="Rides, chart" volt:purpose="button">Next recorded sample</string>
+    <!-- The chart's accessibility description is the chart name followed by these sentences, each
+         starting with its own ". " separator. -->
+    <!-- After the chart name: no readings are chosen. -->
+    <string name="maps_chart_desc_no_readings" volt:screen="Rides, chart" volt:purpose="description">". No readings selected"</string>
+    <!-- After the chart name: the chosen readings have no samples. -->
+    <string name="maps_chart_desc_no_samples" volt:screen="Rides, chart" volt:purpose="description">". No recorded samples"</string>
+    <!-- After the chart name, before the cursor's time into the ride (1:05.250), which follows it. -->
+    <string name="maps_chart_desc_at" volt:screen="Rides, chart" volt:purpose="description">". At "</string>
+    <!-- Starts one reading at the cursor; %1$s is the reading's name (Power). Its value follows. -->
+    <string name="maps_chart_desc_reading" volt:screen="Rides, chart" volt:purpose="description">". %1$s: "</string>
+    <!-- The reading has no value at the cursor. -->
+    <string name="maps_chart_desc_no_reading" volt:screen="Rides, chart" volt:purpose="description">No reading</string>
+    <!-- After a reading's value, before the time of its nearest sample (which follows it) when that
+         sample is not at the cursor. -->
+    <string name="maps_chart_desc_value_at" volt:screen="Rides, chart" volt:purpose="description">" at "</string>
+    <!-- Drawn in an empty chart. -->
+    <string name="maps_chart_choose_readings" volt:screen="Rides, chart" volt:purpose="instruction">Choose readings above</string>
+    <!-- Drawn above the chart cursor; %1$s is its time into the ride (1:05.250). -->
+    <string name="maps_chart_cursor_at" volt:screen="Rides, chart" volt:purpose="caption">At %1$s</string>
+</resources>

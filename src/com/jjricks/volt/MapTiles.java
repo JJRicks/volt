@@ -31,6 +31,8 @@ final class MapTiles {
     private volatile String status = "";
     private volatile boolean blocked;
     private volatile long pausedUntil;
+    /** The pause reason as display text; status keeps its English, which network.meta saves. */
+    private volatile Msg shown;
 
     MapTiles(Context context, String url) {
         this(context, url, address -> (HttpURLConnection) address.openConnection(),
@@ -51,10 +53,16 @@ final class MapTiles {
         if (pausedUntil > clock.getAsLong()) {
             blocked = Boolean.parseBoolean(pause.getProperty("blocked"));
             status = pause.getProperty("status", "Map tiles temporarily unavailable");
+            shown = restored(pause.getProperty("reason"), pause.getProperty("http"), status);
         }
     }
 
-    String status() { return status; }
+    /** The pause reason in the current language, or "" while tiles load normally. */
+    String status() {
+        // One read of shown: a tile worker's succeeded() may clear it between two reads.
+        Msg message = shown;
+        return message == null ? status : message.render();
+    }
     boolean blocked() { return blocked; }
     boolean networkPaused() { return blocked || pausedUntil > clock.getAsLong(); }
 
@@ -105,19 +113,19 @@ final class MapTiles {
             int code = connection.getResponseCode();
             String denial = connection.getHeaderField("X-Blocked");
             if ((denial != null && !denial.trim().isEmpty()) || code == 401 || code == 403) {
-                pause("Map provider blocked access", true, DENIED_BACKOFF, connection);
+                pause(M.mapsTilesBlocked(), true, DENIED_BACKOFF, connection);
                 return fallback;
             }
             if (code == 429) {
-                pause("Map provider rate limit · try later", false, 60_000, connection);
+                pause(M.mapsTilesRateLimited(), false, 60_000, connection);
                 return fallback;
             }
             if (code != 200 && code != 304) {
-                pause("Map tiles unavailable (HTTP " + code + ")", false, FAILURE_BACKOFF, connection);
+                pause(M.mapsTilesHttp(code), false, FAILURE_BACKOFF, connection);
                 return fallback;
             }
             if (code == 304 && cached == null) {
-                pause("Map provider returned an invalid response", false, FAILURE_BACKOFF, connection);
+                pause(M.mapsTilesInvalidResponse(), false, FAILURE_BACKOFF, connection);
                 return null;
             }
             Properties refreshed = code == 304 ? info : new Properties();
@@ -201,10 +209,10 @@ final class MapTiles {
             succeeded();
             return result;
         } catch (IOException e) {
-            pause("Map tiles unavailable · check connection", false, FAILURE_BACKOFF, null);
+            pause(M.mapsTilesOffline(), false, FAILURE_BACKOFF, null);
             return fallback;
         } catch (RuntimeException e) {
-            pause("Map tiles unavailable", false, FAILURE_BACKOFF, null);
+            pause(M.mapsTilesUnavailable(), false, FAILURE_BACKOFF, null);
             return fallback;
         } finally {
             if (connection != null) connection.disconnect();
@@ -215,11 +223,12 @@ final class MapTiles {
         // Another viewport request may already have received a provider denial.
         if (networkPaused()) return;
         status = "";
+        shown = null;
         pausedUntil = 0;
         new File(directory, "network.meta").delete();
     }
 
-    private synchronized void pause(String message, boolean denied, long minimum, HttpURLConnection connection) {
+    private synchronized void pause(Msg message, boolean denied, long minimum, HttpURLConnection connection) {
         long now = clock.getAsLong(), until = now + minimum;
         if (connection != null) {
             String retry = connection.getHeaderField("Retry-After");
@@ -232,14 +241,52 @@ final class MapTiles {
             }
         }
         pausedUntil = Math.max(pausedUntil, until);
-        if (!blocked || denied) status = message;
+        if (!blocked || denied) { status = message.english(); shown = message; }
         blocked |= denied;
         Properties info = new Properties();
         info.setProperty("until", Long.toString(pausedUntil));
         info.setProperty("blocked", Boolean.toString(blocked));
         info.setProperty("status", status);
+        String reason = reason(shown);
+        if (reason != null) info.setProperty("reason", reason);
+        if (shown != null && shown.id() == T.MAPS_TILES_HTTP) info.setProperty("http", String.valueOf(shown.args()[0]));
         saveMeta(new File(directory, "network.meta"), info);
     }
+
+    /** The id network.meta saves for a pause's text (its English stays in "status" for older versions). */
+    private static String reason(Msg message) {
+        if (message == null) return null;
+        if (message.id() == T.MAPS_TILES_HTTP) return "http";
+        for (int i = 0; i < REASON_IDS.length; i++) if (REASON_IDS[i] == message.id()) return REASONS[i];
+        return null;
+    }
+
+    /**
+     * A saved pause's text: from its reason id (and HTTP status code), or for a file an older version
+     * wrote (English status only), the reason whose English it is. Anything else is shown as saved.
+     */
+    static Msg restored(String reason, String http, String legacy) {
+        if ("http".equals(reason)) {
+            // Any saved code, -1 included (getResponseCode() for a response that is not valid HTTP).
+            long code = number(http, Long.MIN_VALUE);
+            if (code != Long.MIN_VALUE) return M.mapsTilesHttp(code);
+        }
+        for (int i = 0; i < REASONS.length; i++) if (REASONS[i].equals(reason)) return Msg.of(REASON_IDS[i]);
+        for (int id : REASON_IDS) if (Msg.of(id).english().equals(legacy)) return Msg.of(id);
+        // An older version's HTTP pause: the only number in its English is the status code.
+        StringBuilder digits = new StringBuilder();
+        for (int i = 0; i < legacy.length(); i++) if (Character.isDigit(legacy.charAt(i))) digits.append(legacy.charAt(i));
+        long code = number(digits.toString(), -1);
+        if (code >= 0 && M.mapsTilesHttp(code).english().equals(legacy)) return M.mapsTilesHttp(code);
+        // The scan drops a minus sign: HTTP -1 is the same digits, negated.
+        if (code >= 0 && M.mapsTilesHttp(-code).english().equals(legacy)) return M.mapsTilesHttp(-code);
+        return Msg.verbatim(legacy);
+    }
+
+    /** Pause reasons network.meta saves, with their texts (R5: ids only). */
+    private static final String[] REASONS = {"blocked", "rate_limited", "invalid_response", "offline", "unavailable", "paused"};
+    private static final int[] REASON_IDS = {T.MAPS_TILES_BLOCKED, T.MAPS_TILES_RATE_LIMITED, T.MAPS_TILES_INVALID_RESPONSE,
+            T.MAPS_TILES_OFFLINE, T.MAPS_TILES_UNAVAILABLE, T.MAPS_TILES_PAUSED};
 
     private Bitmap decode(File file) {
         if (!file.isFile() || file.length() > MAX_BYTES) return null;

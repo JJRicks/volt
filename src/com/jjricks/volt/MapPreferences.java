@@ -39,9 +39,9 @@ public final class MapPreferences {
             Ui ui = host.ui();
             setOrientation(HORIZONTAL); setGravity(Gravity.CENTER_VERTICAL);
             setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText("Basemap");
+            toggle = new Haptics.FeedbackSwitch(host.activity()); toggle.setText(T.mapsBasemap());
             toggle.setTextColor(ui.text); toggle.setTextSize(15 * ui.textScale);
-            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription("Basemap");
+            toggle.setMinHeight(ui.dp(48)); toggle.setContentDescription(T.mapsBasemap());
             ui.styleSwitch(toggle); addView(toggle, new LinearLayout.LayoutParams(-1, -2));
             refresh();
             toggle.setOnCheckedChangeListener((button, on) -> {
@@ -92,13 +92,13 @@ public final class MapPreferences {
         Ui ui = host.ui(); SharedPreferences settings = host.service().settings;
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(LinearLayout.VERTICAL);
         body.setPadding(ui.dp(24), ui.dp(20), ui.dp(24), ui.dp(12));
-        body.addView(ui.text("Show online map?", 21, true));
-        TextView message = ui.text("Provider sees your IP and map area. Rides stay on phone.", 15, false);
+        body.addView(ui.text(T.mapsConsentTitle(), 21, true));
+        TextView message = ui.text(T.mapsConsentMessage(), 15, false);
         message.setPadding(0, ui.dp(12), 0, 0); body.addView(message);
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
         AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll)
-                .setNegativeButton("Cancel", null)
-                .setPositiveButton("Enable basemap", (d, which) -> {
+                .setNegativeButton(T.commonCancel(), null)
+                .setPositiveButton(T.mapsConsentEnable(), (d, which) -> {
                     settings.edit().putBoolean("map_basemap_enabled", true)
                             .putBoolean("map_basemap_explained", true).apply();
                     approved.run();
@@ -118,6 +118,8 @@ public final class MapPreferences {
      * basemap on (after the one-time consent); Off turns it off. Custom shows its editor button.
      */
     private static final class ProviderControl extends LinearLayout {
+        // Unused since B14: the constructor's local LABELS shows these options from the catalog. It stays
+        // only because G1 cannot yet delete a field whose array initializer ends in "};" (B14 report).
         private static final String[] LABELS = {"Off", "USGS (US)", "OSM", "Custom"};
         private final ScreenHost host;
         private final SharedPreferences settings;
@@ -133,13 +135,17 @@ public final class MapPreferences {
             super(host.activity());
             this.host = host; this.settings = host.service().settings;
             Ui ui = host.ui();
+            // The option labels by choice index, rendered for this control in the current language (R5: a
+            // static array cannot hold catalog text). It shadows the unused English field of the same name: G1
+            // refuses a rename on the line that holds "Online map" (B14 report).
+            String[] LABELS = {T.commonOff(), T.mapsProviderUsgs(), T.mapsProviderOsm(), T.mapsProviderCustom()};
             setOrientation(VERTICAL);
-            selector = new SegmentedSelector(ui, "Online map", LABELS, this::chose);
+            selector = new SegmentedSelector(ui, T.mapsOnlineMap(), LABELS, this::chose);
             // Single-line labels of one size share the track's height, so every value sits centred;
             // at very large text the track scrolls rather than wrapping one label.
             LinearLayout.LayoutParams selectorParams = new LinearLayout.LayoutParams(-1, -2); selectorParams.topMargin = ui.dp(12);
             addView(selector, selectorParams);
-            edit = ui.secondaryButton("Edit custom provider", () -> custom(host, this::customClosed));
+            edit = ui.secondaryButton(T.mapsEditCustom(), () -> custom(host, this::customClosed));
             addView(edit);
             refresh();
         }
@@ -197,30 +203,30 @@ public final class MapPreferences {
         Ui ui = host.ui();
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(1);
         body.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(20));
-        body.addView(ui.text("Map settings", 22, true));
+        body.addView(ui.text(T.mapsSettingsTitle(), 22, true));
         body.addView(new ProviderControl(host));
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton("Done", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setPositiveButton(T.commonDone(), null).create();
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();
         return dialog;
     }
     private static void custom(ScreenHost host, Runnable saved) {
         Ui ui = host.ui(); SharedPreferences settings = host.service().settings; MapSource source = MapSource.load(settings);
         LinearLayout body = new LinearLayout(host.activity()); body.setOrientation(1); body.setPadding(ui.dp(20), ui.dp(16), ui.dp(20), ui.dp(16));
-        body.addView(ui.text("Custom map provider", 20, true));
-        EditText url = field(host, body, "Tile URL", source.url); url.setHint("https://…/{z}/{x}/{y}.png");
-        EditText credit = field(host, body, "Attribution", source.attribution);
-        EditText link = field(host, body, "HTTPS attribution link", source.attributionUrl);
+        body.addView(ui.text(T.mapsCustomTitle(), 20, true));
+        EditText url = field(host, body, T.mapsCustomTileUrl(), source.url); url.setHint(T.mapsCustomTileUrlHint());
+        EditText credit = field(host, body, T.mapsCustomAttribution(), source.attribution);
+        EditText link = field(host, body, T.mapsCustomAttributionLink(), source.attributionUrl);
         ScrollView scroll = new ScrollView(host.activity()); scroll.addView(body);
-        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setNegativeButton("Cancel", null).setPositiveButton("Save", null).create();
+        AlertDialog dialog = new AlertDialog.Builder(host.activity()).setView(scroll).setNegativeButton(T.commonCancel(), null).setPositiveButton(T.mapsCustomSave(), null).create();
         dialog.setOnDismissListener(d -> saved.run());
         dialog.getWindow().setBackgroundDrawable(ui.shape(ui.surface, 22, ui.outline)); Motion.present(dialog, Motion.DIALOG); dialog.show();
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String value = url.getText().toString().trim(), text = credit.getText().toString().trim(), address = link.getText().toString().trim();
-            if (!MapTiles.validUrl(value)) { url.setError("Use HTTPS with {z}, {x} and {y}."); return; }
-            if (text.isEmpty()) { credit.setError("Add the provider’s required attribution."); return; }
+            if (!MapTiles.validUrl(value)) { url.setError(T.mapsCustomErrorUrl()); return; }
+            if (text.isEmpty()) { credit.setError(T.mapsCustomErrorAttribution()); return; }
             try { java.net.URI uri = new java.net.URI(address); if (!"https".equalsIgnoreCase(uri.getScheme()) || uri.getHost() == null || uri.getUserInfo() != null) throw new IllegalArgumentException(); }
-            catch (Exception e) { link.setError("Use an HTTPS license or copyright link."); return; }
+            catch (Exception e) { link.setError(T.mapsCustomErrorLink()); return; }
             new MapSource("Custom map", value, text, address).save(settings); dialog.dismiss();
         });
     }
