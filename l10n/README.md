@@ -66,7 +66,10 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   `%` always goes through `String.format(Locale.ROOT, ...)`; locale-aware numbers come from `Fmt`
   as `%n$s` arguments. `formatted="false"` turns this off for a string.
 - **Plurals** take the quantity first: `T.backupScootersSkipped(long quantity, long n)`. English
-  uses `one` for exactly 1 and `other` otherwise. `<string-array>` is banned for UI text.
+  uses `one` for exactly 1 and `other` otherwise, so an English plural holds only `one` and `other`
+  items: `gen_catalog.py` refuses `zero`, `two`, `few` and `many` in `res/values/`, which
+  `EnglishText` would never show but Android would on a phone whose first language has that category.
+  `<string-array>` is banned for UI text.
 - **Spelling rules.** `gen_catalog.py` refuses anything aapt would silently store differently:
   - leading or trailing whitespace, repeated spaces, raw tabs or line breaks: wrap the whole string
     in `"..."` (the quotes are not part of the text) or use `\n` and `\t`;
@@ -91,14 +94,16 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
 
 - `T.java`: ids, one typed accessor per key, `T.Source` (`string(id)`, `plural(id, q)`,
   `language()`), `T.install(source)`, `T.render(id, args...)` and `T.renderPlural(id, q, args...)`.
-  A wrong argument count or type is a compile error.
+  A wrong argument count or type is a compile error. `T.Plurals` is the pure plural-item selection
+  that `AndroidText` uses (below).
 - `M.java`: the same accessors returning a deferred `Msg`. Its contract with the hand-written
   `Msg` (B0b): `static Msg of(int id, Object... args)` and
   `static Msg plural(int id, long quantity, Object... args)`; `Msg.render()` calls `T.render` or
   `T.renderPlural`. If `Msg` implements `CharSequence`, a `Msg` can be an argument of another `Msg`.
 - `EnglishText.java`: the English values; `T`'s default source and the fallback for a missing id.
 - `AndroidText.java` (`--android`, app build only): ids mapped to `R.string` and `R.plurals`.
-- `AppLanguages.java`: the language table; `resolve(tag)` is the defensive `l10n_tag` parse.
+- `AppLanguages.java`: the language table, with each language's plural categories; `resolve(tag)` is
+  the defensive `l10n_tag` parse.
 - `en.expected.tsv`: the English the round-trip compares with aapt.
 
 `build.sh` runs the generator before aapt and the round-trip after it, but only once a
@@ -145,6 +150,23 @@ its own `.sources` file (its characterization tests, its new suites) and never e
   catalog). It is a `CharSequence`, renders when read, and `english()` gives the English whatever is
   installed. `UserFacingException(Msg)` keeps English in `getMessage()`; screens show `msg()`.
 - `ScreenHost.toast(Msg)` and `sheetContent(Msg, Msg, close)` render at display time.
+- **Plural items follow the language being shown.** `Resources.getQuantityString` picks a plural's
+  item by the plural rules of the configuration's *first* locale, even when it serves another
+  language's text (`ResourcesImpl.getPluralRule`): on a phone whose only language is Thai, Japanese,
+  Chinese, Korean, Vietnamese or Indonesian, Volt in English would say "1 minutes left", and on a
+  Russian or Latvian one "21 minute left". `AndroidText.plural` therefore chooses the item with the
+  rules of the language it serves (`T.Plurals.ENGLISH`, which is `EnglishText`'s rule, while
+  `language()` is English; the resolved language's `android.icu.text.PluralRules` and its categories
+  from `l10n/lang/` otherwise) and asks Android for a stand-in quantity whose item under the first
+  locale's rules is that one (`T.Plurals.standIn`: the quantity itself when it already is, so an
+  English phone passes exactly what it passed before; then 0 to 199 and powers of ten). The text
+  is then formatted with the real quantity. When no stand-in exists (the first locale has no such
+  category, as Thai has no "one"), English text whose "other" item is `EnglishText`'s (the default
+  `res/values/`, which G3 proves equal) comes from `EnglishText`; other text keeps Android's choice.
+  Known limit: a shipped language served from a later locale of the phone's list, behind a first
+  language with fewer categories (Spanish behind Japanese), still shows Android's "other" item where
+  its own rules want "one" or "many". On an English phone the only change is a negative quantity of
+  -1, which ICU reads as "one" and `EnglishText` as "other" (no caller passes one).
 - The Shizuku shell process (`OwnerCaptureUserService` and everything it reaches) never uses any of
   these; `tests/l10n/CatalogUsageTest` checks that, and rules R2 to R6.
 - R2 (no rendered text kept in a field) looks at the field's declared type: a field of an Android view
