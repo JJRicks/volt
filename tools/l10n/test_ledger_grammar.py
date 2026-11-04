@@ -207,5 +207,45 @@ class ExceptionRetypeTest(GrammarCase):
         self.assertFalse(any("extends" in w for w in warnings), warnings)
 
 
+# ---------------------------------------------------------------------------
+# 4. Locale.US becoming Locale.ROOT in a locale-independent String.format
+# ---------------------------------------------------------------------------
+
+TELEMETRY = PKG + "Telemetry.java"
+
+
+class RootSwapTest(GrammarCase):
+    FILES = {TELEMETRY: java_class("Telemetry", """    private static String statusKey(int cmd) { return String.format(Locale.US, "response_%02x", cmd); }
+    static String id(int pid, String name) { return String.format(java.util.Locale.US, "%d-%s:%-4X", pid, name, pid); }
+    static String temp(double c) { return String.format(Locale.US, "%.1f C", c); }
+    static String count(int n) { return String.format(Locale.US, "%,d items", n); }
+    static String day(java.util.Date d) { return String.format(Locale.US, "%tB", d); }
+    static String upper(String s) { return s.toUpperCase(Locale.US) + "_raw"; }""")}
+
+    def test_identical_output_swaps_pass_and_are_listed(self):
+        self.edit(TELEMETRY, 'String.format(Locale.US, "response_%02x"', 'String.format(Locale.ROOT, "response_%02x"')
+        self.edit(TELEMETRY, 'String.format(java.util.Locale.US, "%d-%s', 'String.format(java.util.Locale.ROOT, "%d-%s')
+        problems, warnings, _ = self.check([])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "moves from Locale.US to Locale.ROOT" in w]
+        self.assertEqual(len(shown), 2, warnings)
+        self.assertIn('%s:4: `String . format ( Locale . ROOT , "response_%%02x" , cmd )`' % TELEMETRY, shown[0])
+
+    def test_locale_dependent_patterns_and_other_swaps_fail(self):
+        for old, new, needle in (
+                ('Locale.US, "%.1f C"', 'Locale.ROOT, "%.1f C"', 'has %.1f'),
+                ('Locale.US, "%,d items"', 'Locale.ROOT, "%,d items"', 'has %,d'),
+                ('Locale.US, "%tB"', 'Locale.ROOT, "%tB"', 'has %tB'),
+                # another locale, another call, or another change in the same call
+                ('Locale.US, "response_%02x"', 'Locale.ENGLISH, "response_%02x"', 'adds `ENGLISH` and drops `US`'),
+                ('toUpperCase(Locale.US)', 'toUpperCase(Locale.ROOT)', 'adds `ROOT` and drops `US`'),
+                ('Locale.US, "response_%02x", cmd)', 'Locale.ROOT, "response_%02x", cmd & 0xff)', 'adds `ROOT & 0xff` and drops `US`')):
+            with self.subTest(new=new):
+                self.edit(TELEMETRY, old, new)
+                self.assertFails([], needle)
+                self.repo.write(TELEMETRY, self.FILES[TELEMETRY])
+                self.base = self.repo.commit("reset to the original")
+
+
 if __name__ == "__main__":
     unittest.main()

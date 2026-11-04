@@ -2338,6 +2338,90 @@ def exception_retype(types, path, diff, base_span, head_span):
     return None, (range(b_first, b_last + 1), range(h_first, h_last + 1), id_tokens, warning)
 
 
+# ---------------------------------------------------------------------------
+# Locale.US becoming Locale.ROOT at a data site (plan section 4.1, Telemetry:626)
+# ---------------------------------------------------------------------------
+
+# Conversions that print the same under Locale.US and Locale.ROOT: hex, octal and plain decimal digits
+# (no grouping), and %s, which prints String.valueOf of its argument. %f, %e, %g, a grouping flag, %S,
+# %c and the %t dates are refused: G1 does not prove what they print in either locale.
+ROOT_SAFE_CONVERSIONS = frozenset("xXods%n")
+ROOT_SAFE_FLAGS = frozenset("-0#")
+
+
+def root_unsafe_specifiers(pattern):
+    """The specifiers of a String.format pattern that could print differently under Locale.ROOT than
+    under Locale.US ([] when every one is %x, %X, %o, %d or %s with only -, 0 or # flags and a width)."""
+    unsafe = []
+    for m in FORMAT_SPEC.finditer(pattern):
+        index, flags, width, precision, conversion = m.groups()
+        if conversion not in ROOT_SAFE_CONVERSIONS or set(flags) - ROOT_SAFE_FLAGS or precision:
+            unsafe.append(m.group(0))
+    rest = FORMAT_SPEC.sub("", pattern)
+    if "%" in rest:
+        unsafe.append("%")
+    return unsafe
+
+
+def _format_calls(index, first_line, last_line, locale):
+    """[(locale token, first, close, literal token)] of String.format(Locale.<locale>, "<literal>", ...)
+    calls whose locale sits on lines first_line..last_line."""
+    tokens, found = index.tokens, []
+    for k in range(len(tokens) - 4):
+        if [t.raw for t in tokens[k:k + 4]] != ["String", ".", "format", "("] or (k > 0 and tokens[k - 1].value == "."):
+            continue
+        close, spans = _argument_spans(tokens, k + 3)
+        if close is None or len(spans) < 2:
+            continue
+        a, b = spans[0]
+        raw = [t.raw for t in tokens[a:b + 1]]
+        if raw not in (["Locale", ".", locale], ["java", ".", "util", ".", "Locale", ".", locale]):
+            continue
+        if not first_line <= tokens[b].line <= last_line or spans[1][0] != spans[1][1] or \
+                tokens[spans[1][0]].kind != "string":
+            continue
+        found.append((b, k, close, spans[1][0]))
+    return found
+
+
+def locale_swaps(path, diff):
+    """[(base US token, head ROOT token, problem or None, warning)] for each String.format(Locale.US,
+    "<pattern>", ...) of a changed region that head kept token for token except Locale.ROOT for
+    Locale.US (plan section 4.1 moves such data sites to ROOT with identical output). The swap is
+    allowed around text only when the pattern's every specifier prints the same in both locales
+    (root_unsafe_specifiers); each one is listed."""
+    found = []
+    if diff.base is None or diff.head is None:
+        return found
+    for b1, b2, h1, h2 in diff.hunks:
+        heads = _format_calls(diff.head, h1, h2, "ROOT")
+        taken = set()
+        for b_loc, b_first, b_close, b_lit in _format_calls(diff.base, b1, b2, "US"):
+            shape = [t.raw if j != b_loc else "ROOT" for j, t in
+                     enumerate(diff.base.tokens[b_first:b_close + 1], b_first)]
+            for n, (h_loc, h_first, h_close, h_lit) in enumerate(heads):
+                if n in taken or [t.raw for t in diff.head.tokens[h_first:h_close + 1]] != shape:
+                    continue
+                taken.add(n)
+                pattern = diff.base.tokens[b_lit].value
+                unsafe = root_unsafe_specifiers(pattern)
+                code = _excerpt(diff.head.tokens[h_first:h_close + 1], None)
+                problem = None
+                if unsafe:
+                    problem = ("%s:%d: `%s` moves from Locale.US to Locale.ROOT, but its pattern %s has %s, which G1 "
+                               "does not prove prints the same in both (only %%x, %%X, %%o, %%d and %%s with the -, 0 "
+                               "or # flags and a width); keep Locale.US, or move the number into a format row" % (
+                                   path, diff.head.tokens[h_loc].line, code, l10nlib.json_string(pattern),
+                                   ", ".join(unsafe)))
+                warning = ("%s:%d: `%s` moves from Locale.US to Locale.ROOT (plan section 4.1, the data tier); its "
+                           "pattern %s has only conversions that print the same in both locales; check by hand that "
+                           "each %%s argument is an id or a string, not a number or a Formattable" % (
+                               path, diff.head.tokens[h_loc].line, code, l10nlib.json_string(pattern)))
+                found.append((b_loc, h_loc, problem, warning))
+                break
+    return found
+
+
 def run(base, head, explicit_ledgers=None, cwd=None):
     """(problems, warnings, summary)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -2677,6 +2761,13 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
     wrapped, english_only = 0, None
     for path in sorted(diffs):
+        for n, (b_loc, h_loc, problem, warning) in enumerate(locale_swaps(path, diffs[path])):
+            allowed_base[path].setdefault(b_loc, ("root", n))
+            allowed_head[path].setdefault(h_loc, ("root", n))
+            if problem:
+                problems.append(problem)
+            else:
+                warnings.append(warning)
         wraps = set()
         problem_list, warning_list = other_changes(path, diffs[path], allowed_base[path], allowed_head[path],
                                                    moved_hunks, new_ids[path] | new_formats[path], wraps,
