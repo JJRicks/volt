@@ -10,7 +10,6 @@ CompatibilityPanel.java	find-field	4	B9	find(feature).label shown in the test ca
 CompatibilityPanel.java	model-line	2	B9	52 is the panel's refresh key (data, stays modelLine); 97 is shown: switch it to ModelRegistry.modelLineText
 CompatibilityPanel.java	reason-text	2	B9	muted(d.reasonText()) and the capability table value (186, 293): rendered at display, current language already; B9 joins them into whole templates
 CompatibilityPanel.java	variant-label	8	B9	d.label(v) inside Restore/Keep/Set buttons and before/after lines: d.labelText(v) inside whole templates
-GuidedTest.java	variant-label	13	B9	variant.label(v) in test notes and reviews, which TestJournal stores and CompatibilityReport emails: stay English as stored data; B9 renders the shown note from a Msg carrying variant.text(v) (plan 1.5 GuidedTest notes)
 MainActivity.java	feature-field	10	B19	f.label/feature.label/feature.options shown in rows, sheets and SegmentedSelector (1740, 2216, 2227): label(), optionLabel(i); f.group compares (1428, 1656, 1658) are ids and stay; 1754 f.description for lock_expiry: description()
 MainActivity.java	find-field	2	B19	find(...feature).label in the test banner, "Unfinished try/test · <label>" and "Trying <label>…" (1527, 1530): whole templates with find(...).label(); the lowercased label goes (plan 4, no mid-sentence lowercasing)
 MainActivity.java	oem-label	1	B19	decision.oemLabel(value) shown in the value line (1252): oemText(value)
@@ -25,4 +24,3 @@ MoreScreen.java	resolver-text	1	B18	CapabilityResolver.text(reason) default bran
 QuickAccessActions.java	feature-field	2	B12	ENTRIES title feature.label and subtitle feature.group (62, 63): int label ids or feature.label()/groupLabel() per plan 1.5 static catalogs
 QuickAccessGrid.java	oem-label	2	B12	decision.oemLabel(value) on the tile (79): decision.oemText(value)
 ScooterService.java	reason-text	2	B8 with B5	toggleReason/timeReason (990) go into ChargeScheduleController.Context and a persisted status (ChargeScheduleController 365/382): carry reasonMessage() or the Reason enum, render at display (R2, BlockReason in plan 1.5)
-DisplayUnits.java	value-label	1	follow-up after wave 2 (B1 merged)	featureValue shows feature.valueLabel(value) for non-speed values (14): feature.valueText(value). Not done in B4: G1 rejects swapping a call outside a ledger row in another batch's file (ledger_check DisplayUnits.java:14, 58e46c8)
