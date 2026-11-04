@@ -3,3 +3,6 @@
 # G5: the English the More screen joins and formats today, pinned before the batch.
 src/com/jjricks/volt/Fmt.java
 tests/l10n/characterization/MoreScreenTextTest.java
+# B18's own suite: the catalog keys against MoreScreenTextTest.Base, every branch and count, and a
+# key-echo source.
+tests/l10n/MoreTextTest.java
