@@ -2,3 +2,5 @@
 # listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
 # G5: ScooterService's English, copied from the merge base and pinned before the batch.
 tests/l10n/characterization/ServiceEnglishTest.java
+# B8's own suite: every catalog sentence the service builds, against the base copies above.
+tests/l10n/ServiceTextTest.java
