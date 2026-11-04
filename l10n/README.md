@@ -506,8 +506,10 @@ How `ledger_check.py` (G1) reads it:
     may declare `getMessage`, `getLocalizedMessage`, `toString`, `getCause`, `initCause`,
     `fillInStackTrace`, `getStackTrace` or `printStackTrace` (annotations such as
     `@TargetApi(24) @Override` in front do not hide one), or call `initCause`, `setStackTrace` or
-    `fillInStackTrace` anywhere in its body: G1 reads only the call that starts each constructor, not
-    the statements after it, initializers or field initializers. A problem found through a `this(...)`
+    `fillInStackTrace` anywhere in its body, or name one in a method reference (`this::initCause`):
+    G1 reads only the call that starts each constructor, not the statements after it, initializers
+    or field initializers. The ban goes by name, so a call on another object in the class fails too;
+    move such a helper out of the class. A problem found through a `this(...)`
     or `src/` superclass call also names the constructor that made the call, with its arguments.
     The warning prints both calls, the chain and the
     constructors; check by hand that nothing shows or logs the exception itself, since `toString()`,
@@ -671,6 +673,9 @@ Known limits:
   `(Msg, Code)` and `(Msg, Throwable)` refuses switches in both directions, because each call is also
   checked against the other constructor. Give such constructors different shapes instead, as
   `BackupException` does by putting `Code` first: `(Code, Msg)` and `(Code, Msg, Throwable)`.
+  The ban on `initCause`, `setStackTrace` and `fillInStackTrace` reads the chain's own classes by
+  name: code elsewhere that the class hands `this` to (`{ Util.strip(this); }`) is the reviewer's to
+  check. An initializer is not printed in the listing, so read the chain's classes in the diff.
 - A `choice` row's branches are proved against the base expression with each condition forced; that
   the condition reads the same value before the holes run (head evaluates it first) is not checked,
   and an id test assumes the variable holds exactly the tested literal where `equals` is true.

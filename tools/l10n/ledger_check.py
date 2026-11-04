@@ -2688,11 +2688,14 @@ def exception_retype(types, path, diff, base_span, head_span):
                         "that logs and reports show" % (what, d.name, d.tokens[at].value, d.path, d.tokens[at].line)), None
         for k in range(d.open + 1, d.close - 1):
             t = d.tokens[k]
-            if t.kind == "ident" and t.value in STACK_CALLS and d.tokens[k + 1].kind == "op" and \
-                    d.tokens[k + 1].value == "(":
+            # A call, or a method reference (`this::initCause`) that a lambda-taking call could run.
+            if t.kind == "ident" and t.value in STACK_CALLS and (
+                    d.tokens[k + 1].kind == "op" and d.tokens[k + 1].value == "(" or
+                    d.tokens[k - 1].kind == "op" and d.tokens[k - 1].value == "::"):
                 return ("%s; %s calls %s (%s:%d), which may replace the cause or stack trace the old call left, and "
-                        "G1 reads only the super(...) or this(...) call that starts each constructor" % (
-                            what, d.name, t.value, d.path, t.line)), None
+                        "G1 reads only the super(...) or this(...) call that starts each constructor. Any call or "
+                        "method reference by that name in the class fails, even on another object: move such a "
+                        "helper out of the class" % (what, d.name, t.value, d.path, t.line)), None
     # Head's arguments: base's before and after the text, and in between the call plus constants of Y.
     base_args = [_raw(base_tokens, a, b) for a, b in b_spans]
     head_args = [_raw(head_tokens, a, b) for a, b in h_spans]

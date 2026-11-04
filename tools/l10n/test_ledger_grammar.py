@@ -345,6 +345,14 @@ final class BackupException extends StoreException {
             (BACKUP_EXCEPTION_TEXT.replace("super(msg.english(), cause); this.code",
                                            "super(msg.english(), cause); setStackTrace(new StackTraceElement[0]); this.code"),
              copy, self.COPY, "BackupException calls setStackTrace"),
+            # Second internal review of f45389e: a method reference a lambda-taking call can run.
+            (BACKUP_EXCEPTION_TEXT.replace("    Code code()",
+                                           "    { java.util.function.Function<Throwable, Throwable> f = this::initCause;"
+                                           " f.apply(new RuntimeException()); }\n    Code code()"),
+             no_space, self.NO_SPACE, "BackupException calls initCause"),
+            (BACKUP_EXCEPTION_TEXT.replace("    Code code()",
+                                           "    private final Runnable r = this::fillInStackTrace;\n    Code code()"),
+             no_space, self.NO_SPACE, "BackupException calls fillInStackTrace"),
         ]
         for exception, call, row, needle in cases:
             with self.subTest(needle=needle, exception=exception):
