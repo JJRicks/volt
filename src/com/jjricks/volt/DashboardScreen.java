@@ -4030,6 +4030,14 @@ public final class DashboardScreen implements AppScreen {
             setMeasuredDimension(resolveSize(ui.dp(120), width), resolveSize(ui.dp(150), height));
         }
 
+        /** The text with spaces (also no-break ones) taken off both ends. */
+        private String withoutSpaces(CharSequence text) {
+            int from = 0, to = text.length();
+            while (from < to && Character.isSpaceChar(text.charAt(from))) from++;
+            while (to > from && Character.isSpaceChar(text.charAt(to - 1))) to--;
+            return text.subSequence(from, to).toString();
+        }
+
         @Override
         protected void onDraw(Canvas canvas) {
             float w = getWidth(), h = getHeight(), corner = ui.dp(14);
@@ -4101,12 +4109,22 @@ public final class DashboardScreen implements AppScreen {
             String line = charging ? T.dashboardCharging() : detail;
             float pad = ui.dp(12), available = Math.max(1, w - 2 * pad);
             float amountSize = ui.sp(34), unitSize = ui.sp(17), lineSize = ui.sp(12);
+            // The language's percent template (fmt_percent) says where the sign sits: "50%" in English,
+            // "%50" in Turkish, "50 %" in French. In English amount and unit stay "50" and "%".
+            String before = null;
+            if (!Double.isNaN(percent)) {
+                Formatted shaped = Fmt.percent(Fmt.integerNumber(Math.round(percent)));
+                amount = shaped.subSequence(shaped.numberStart(0), shaped.numberEnd(0)).toString();
+                before = withoutSpaces(shaped.subSequence(0, shaped.numberStart(0)));
+                unit = withoutSpaces(shaped.subSequence(shaped.numberEnd(0), shaped.length()));
+            }
             paint.setTypeface(ui.bold());
             paint.setTextSize(amountSize);
             float amountWidth = paint.measureText(amount);
             paint.setTextSize(unitSize);
             float unitWidth = unit.isEmpty() ? 0 : paint.measureText(unit) + ui.dp(2);
-            float fit = Math.min(1, available / Math.max(1, amountWidth + unitWidth));
+            float beforeWidth = before == null || before.isEmpty() ? 0 : paint.measureText(before) + ui.dp(2);
+            float fit = Math.min(1, available / Math.max(1, beforeWidth + amountWidth + unitWidth));
             // Keep the block inside short cells, too.
             fit = Math.min(fit, (h - pad) / Math.max(1, (amountSize + lineSize) * 1.1f));
             amountSize *= fit;
@@ -4128,12 +4146,20 @@ public final class DashboardScreen implements AppScreen {
             float baseline = blockTop + capHeight;
             paint.setTextAlign(Paint.Align.LEFT);
             paint.setColor(ink);
+            // Right to left, the block keeps its reading order but sits against the right edge.
+            boolean rtl = getLayoutDirection() == LAYOUT_DIRECTION_RTL;
+            float start = rtl ? w - pad - (beforeWidth + amountWidth + unitWidth) * fit : pad;
+            if (beforeWidth > 0) {
+                paint.setTypeface(ui.bold());
+                paint.setTextSize(unitSize);
+                canvas.drawText(before, start, baseline, paint);
+            }
             paint.setTypeface(ui.bold());
             paint.setTextSize(amountSize);
-            canvas.drawText(amount, pad, baseline, paint);
+            canvas.drawText(amount, start + beforeWidth * fit, baseline, paint);
             if (!unit.isEmpty()) {
                 paint.setTextSize(unitSize);
-                canvas.drawText(unit, pad + (amountWidth + ui.dp(2)) * fit, baseline, paint);
+                canvas.drawText(unit, start + (beforeWidth + amountWidth + ui.dp(2)) * fit, baseline, paint);
             }
             if (!line.isEmpty()) {
                 paint.setTypeface(ui.medium());
@@ -4141,7 +4167,8 @@ public final class DashboardScreen implements AppScreen {
                 linePaint.set(paint);
                 String shown = android.text.TextUtils.ellipsize(line, linePaint,
                         available, android.text.TextUtils.TruncateAt.END).toString();
-                canvas.drawText(shown, pad, baseline + gap + lineHeight * .9f, paint);
+                if (rtl) paint.setTextAlign(Paint.Align.RIGHT);
+                canvas.drawText(shown, rtl ? w - pad : pad, baseline + gap + lineHeight * .9f, paint);
             }
         }
     }
