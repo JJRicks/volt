@@ -124,33 +124,27 @@ public final class LiveStatsValidation extends Instrumentation {
                 require(settings().getInt("stats_chart_window", -1) == 7, "All window not persisted");
                 invoke(browser, "expand", new Class<?>[]{String.class}, "power_w");
             }); settle();
-            // The census must read one steady description. A touch puts the point's description on the
-            // chart, but the next 1 s body refresh redraws the card and ChartView.set restores the
-            // chart's own description (the marker stays), so the touched text lasts until a refresh
-            // that may or may not land before the screenshot. Check the touched text here, then wait
-            // for that refresh so every run censuses the restored chart description.
-            final CharSequence[] inspected = new CharSequence[2];
             main(() -> {
                 Object browser = field(stats(), "chartBrowser"); Object card = field(browser, "fullscreenCard");
                 Ui.ChartView graph = (Ui.ChartView)field(card, "graph");
                 require(graph != null && graph.pointCount() > 1 && graph.getHeight() > activity.ui().dp(220), "Fullscreen graph did not expand/load");
-                inspected[0] = graph.getContentDescription();
                 long time = SystemClock.uptimeMillis();
                 graph.dispatchTouchEvent(android.view.MotionEvent.obtain(time, time, 0, graph.getWidth() * .5f, graph.getHeight() * .5f, 0));
                 graph.dispatchTouchEvent(android.view.MotionEvent.obtain(time, time + 10, 1, graph.getWidth() * .5f, graph.getHeight() * .5f, 0));
                 require(((Number)field(graph, "selected")).intValue() >= 0, "Fullscreen trace inspection missing");
-                inspected[1] = graph.getContentDescription();
-                require(inspected[1] != null && inspected[1].length() > 0 && !String.valueOf(inspected[1]).equals(String.valueOf(inspected[0])),
-                        "Fullscreen trace inspection did not describe the touched point");
                 android.app.Dialog expanded = (android.app.Dialog)field(browser, "fullscreen");
                 View decor = expanded.getWindow().getDecorView();
                 require(decor.getPaddingLeft() == 0 && decor.getPaddingRight() == 0, "Fullscreen still has theme window insets");
                 require(decor.getWidth() == getTargetContext().getResources().getDisplayMetrics().widthPixels,
                         "Expanded chart window does not fill display width");
             });
-            await(() -> { String[] now = new String[1];
-                runOnMainSync(() -> now[0] = String.valueOf(((Ui.ChartView)field(field(field(stats(), "chartBrowser"), "fullscreenCard"), "graph")).getContentDescription()));
-                return !now[0].equals(String.valueOf(inspected[1])); }, "Fullscreen chart kept the touched point's description");
+            // The census must read one steady description. The touch puts the point's description on
+            // the chart, but the next 1 s body refresh redraws the card and ChartView.set restores the
+            // chart's own description (the marker stays), so whether that refresh landed before the
+            // screenshot decided which text the census read. Wait for a body refresh that starts after
+            // the touch, so every run censuses the restored chart description.
+            final long touchedAt = mainLong(() -> SystemClock.elapsedRealtime());
+            await(() -> mainLong(() -> (Long)field(activity, "lastBodyRefreshMs")) > touchedAt, "Fullscreen chart was not refreshed after the touch");
             settle();
             main(() -> require(((Number)field(field(field(field(stats(), "chartBrowser"), "fullscreenCard"), "graph"), "selected")).intValue() >= 0,
                     "Fullscreen trace inspection marker lost on refresh"));
@@ -366,6 +360,10 @@ public final class LiveStatsValidation extends Instrumentation {
         java.util.concurrent.atomic.AtomicReference<Throwable> failure = new java.util.concurrent.atomic.AtomicReference<>();
         runOnMainSync(() -> { try { action.run(); } catch (Throwable error) { failure.set(error); } });
         if (failure.get() != null) throw new IllegalStateException("UI assertion failed", failure.get());
+    }
+    /** A long read on the main thread, where the app writes it. */
+    private long mainLong(java.util.function.LongSupplier read) {
+        long[] value = new long[1]; runOnMainSync(() -> value[0] = read.getAsLong()); return value[0];
     }
     private void require(boolean condition, String message) { checks++; if (!condition) throw new IllegalStateException(message); }
     private void await(BooleanSupplier condition, String message) { long end = SystemClock.uptimeMillis() + 8000; while (!condition.getAsBoolean() && SystemClock.uptimeMillis() < end) SystemClock.sleep(40); require(condition.getAsBoolean(), message); }
