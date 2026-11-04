@@ -145,4 +145,40 @@ final class ScooterReadingLabels {
             default: return fallback;
         }
     }
+
+    /**
+     * Short Live Stats wording for a stored value (Telemetry.displayValue). Stored values, history and
+     * exports keep their full text (codes, "(raw)", "(estimate)"), so Diagnostics still has them.
+     */
+    static String value(String key, String value, Double number) {
+        if (value == null || key == null) return value;
+        switch (key) {
+            case "remaining_range_km": value = value.replace(" km (estimate)", " km"); break;
+            case "ride_read_raw":
+                if (value.startsWith("Acknowledged;")) return "Acknowledged";
+                break;
+            case "ride_report_format":
+                if (value.startsWith("v1:")) return "v1";
+                if (value.startsWith("v0:")) return "v0";
+                break;
+            case "stored_trips":
+                if (value.startsWith("Unknown history format ")) {
+                    String rest = value.substring("Unknown history format ".length());
+                    int records = rest.indexOf(" records");
+                    return records < 0 ? value : "Unknown format " + rest.substring(0, records)
+                            .replace("; ", " · ") + " records";
+                }
+                if (number != null && number >= 1 && value.startsWith("Trip ")) {
+                    long trips = Math.round(number);
+                    return trips + (trips == 1 ? " trip" : " trips");
+                }
+                break;
+            case "display_units": case "warning_code": case "battery_status": case "lock_status":
+                // "Imperial (0)", "None (0)", "Locked (1)", "Abnormal; code 3": the word only.
+                if (!value.endsWith(Telemetry.RAW_SUFFIX)) value = value.replaceAll(" \\([0-9]+\\)$", "").replaceAll("; code [0-9]+$", "");
+                break;
+            default: break;
+        }
+        return value.endsWith(Telemetry.RAW_SUFFIX) ? value.substring(0, value.length() - Telemetry.RAW_SUFFIX.length()) : value;
+    }
 }
