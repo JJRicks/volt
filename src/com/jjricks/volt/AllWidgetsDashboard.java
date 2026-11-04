@@ -7,8 +7,31 @@ import java.util.Arrays;
 final class AllWidgetsDashboard {
     static final int COLUMNS = 6;
     private static final long DAY = 86400000L;
+    /** The example's own titles and note, saved in English like any widget's (data); exampleTitle and
+     * exampleNote say what they show. */
+    static final String SPEED_TITLE = "Speed", BATTERY_CHARGE_TITLE = "Battery charge",
+            ELECTRICAL_TITLE = "Electrical readings", BATTERY_POWER_TITLE = "Battery power",
+            CHARGE_HISTORY_TITLE = "Charge history", NOTE_TEXT = "Check tyre pressure";
 
     private AllWidgetsDashboard() {}
+
+    /** The current language's name for one of the example's own titles on its own widget type, else null. */
+    static Msg exampleTitle(String type, String title) {
+        if (type == null || title == null) return null;
+        switch (type) {
+            case "gauge": return SPEED_TITLE.equals(title) ? M.dashboardModelExampleSpeed() : null;
+            case "metric": return BATTERY_CHARGE_TITLE.equals(title) ? M.dashboardModelExampleBatteryCharge() : null;
+            case "readings": return ELECTRICAL_TITLE.equals(title) ? M.dashboardModelExampleElectrical() : null;
+            case "live": return BATTERY_POWER_TITLE.equals(title) ? M.dashboardModelExampleBatteryPower() : null;
+            case "history": return CHARGE_HISTORY_TITLE.equals(title) ? M.dashboardModelExampleChargeHistory() : null;
+            default: return null;
+        }
+    }
+
+    /** The current language's example note when a note widget still holds it, else null. */
+    static Msg exampleNote(String type, String note) {
+        return "note".equals(type) && NOTE_TEXT.equals(note) ? M.dashboardModelExampleNote() : null;
+    }
 
     static ArrayList<DashboardConfig.Widget> create() {
         ArrayList<DashboardConfig.Widget> result = new ArrayList<>();
@@ -17,19 +40,19 @@ final class AllWidgetsDashboard {
         DashboardConfig.Widget battery = add(result, "battery");
         DashboardConfig.Widget quick = add(result, "quick");
         DashboardConfig.Widget gauge = add(result, "gauge");
-        gauge.title = "Speed"; gauge.metric = "speed_kmh"; gauge.maximum = 50;
+        gauge.title = SPEED_TITLE; gauge.metric = "speed_kmh"; gauge.maximum = 50;
         DashboardConfig.Widget metric = add(result, "metric");
-        metric.title = "Battery charge"; metric.metric = "battery_percent";
+        metric.title = BATTERY_CHARGE_TITLE; metric.metric = "battery_percent";
         DashboardConfig.Widget ride = add(result, "ride");
         DashboardConfig.Widget trip = add(result, "trip");
         DashboardConfig.Widget readings = add(result, "readings");
-        readings.title = "Electrical readings";
+        readings.title = ELECTRICAL_TITLE;
         readings.keys.clear();
         readings.keys.addAll(Arrays.asList("voltage_v", "current_a", "power_w", "temperature_c"));
         DashboardConfig.Widget live = add(result, "live");
-        live.title = "Battery power"; live.metric = "power_w"; live.windowMs = 2 * 60000L;
+        live.title = BATTERY_POWER_TITLE; live.metric = "power_w"; live.windowMs = 2 * 60000L;
         DashboardConfig.Widget history = add(result, "history");
-        history.title = "Charge history"; history.metric = "battery_percent"; history.windowMs = 7 * DAY;
+        history.title = CHARGE_HISTORY_TITLE; history.metric = "battery_percent"; history.windowMs = 7 * DAY;
         DashboardConfig.Widget health = add(result, "health");
         health.windowMs = 30 * DAY;
         DashboardConfig.Widget capacity = add(result, "capacity");
@@ -37,7 +60,7 @@ final class AllWidgetsDashboard {
         DashboardConfig.Widget charging = add(result, "charging");
         DashboardConfig.Widget note = add(result, "note");
         note.title = "Note";
-        note.note = "Check tyre pressure";
+        note.note = NOTE_TEXT;
         // A dashboard shows one lock control; this bar demonstrates the compact style beside it.
         DashboardConfig.Widget lockbar = add(result, "lockbar");
         DashboardConfig.Widget overview = add(result, "overview");
