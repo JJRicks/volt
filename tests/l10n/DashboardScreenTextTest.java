@@ -1,5 +1,8 @@
 package com.jjricks.volt;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Locale;
 
 /**
@@ -22,6 +25,10 @@ import java.util.Locale;
  *  - The charging time ladder: each rung of dashboard_charge_time_* equals the base's three names.
  *  - Shortcut names: QuickAccessActions.Entry.label() and groupLabel(), which the screen now shows, are
  *    in English the entry's label and group, which the base showed.
+ *  - Setting tile values: QuickAccessGrid now shows a feature's value through
+ *    DisplayUnits.featureValueText, which in English is the base's featureValue for every shortcut's
+ *    feature, every value a readback can carry (0 to 255) and its range, far outside it, and each units
+ *    preference, under five phone locales.
  */
 public final class DashboardScreenTextTest {
     private static int checks;
@@ -39,13 +46,14 @@ public final class DashboardScreenTextTest {
                     new Locale("hi", "IN")}) {
                 Locale.setDefault(l);
                 formats();
+                tileValues();
             }
         } finally {
             Locale.setDefault(phone);
             T.install(saved);
         }
         System.out.println("DashboardScreenTextTest: " + checks + " checks passed (choice templates, plurals, "
-                + "format templates under 5 locales, charge time ladder, shortcut names)");
+                + "format templates and Setting tile values under 5 locales, charge time ladder, shortcut names)");
     }
 
     private static void same(String expected, CharSequence actual, String what) {
@@ -186,6 +194,53 @@ public final class DashboardScreenTextTest {
             same(e.label, e.label(), "label() of " + e.id);
             same(e.group, e.groupLabel(), "groupLabel() of " + e.id);
         }
+    }
+
+    /**
+     * Every value a Setting tile or Quick access cell can show through DisplayUnits (QuickAccessGrid's
+     * last branch, after the dash, Updating and the OEM text): the feature of every shortcut, any value
+     * a readback can carry (a byte, 0 to 255), the feature's range and two steps past each end (its first
+     * thousand values for a time), and values far outside, for each units preference. featureValueText
+     * must print the base's featureValue.
+     */
+    private static void tileValues() {
+        int[] far = {Integer.MIN_VALUE, -1000000, -65536, -1000, -256, 999, 1000, 1001, 9999, 10000, 65535, 65536,
+                1000000, 86399, 86400, 1700000000, Integer.MAX_VALUE};
+        int features = 0;
+        for (QuickAccessActions.Entry e : QuickAccessActions.catalog()) {
+            ScooterCommands.Feature f = e.feature();
+            if (f == null) continue;
+            features++;
+            java.util.TreeSet<Integer> values = new java.util.TreeSet<>();
+            for (int v = -2; v <= 300; v++) values.add(v);
+            // The range from both ends (charge_start, a time, runs to Integer.MAX_VALUE).
+            for (long v = (long) f.min - 2; v <= Math.min((long) f.max + 2, (long) f.min + 1000); v++) values.add((int) v);
+            for (long v = Math.max((long) f.max - 2, (long) f.min); v <= Math.min((long) f.max + 2, Integer.MAX_VALUE); v++)
+                values.add((int) v);
+            for (int v : f.optionValues) values.add(v);
+            for (int v : far) values.add(v);
+            for (int v : values)
+                for (String units : new String[]{"mi", "km", "dual", null, ""})
+                    same(DisplayUnits.featureValue(f, v, units), DisplayUnits.featureValueText(f, v, units),
+                            e.id + " tile value " + v + " in " + units);
+        }
+        check(features > 20, "the tile sweep sees the feature shortcuts (" + features + ")");
+        String grid = read("src/com/jjricks/volt/QuickAccessGrid.java");
+        check(grid.contains(": DisplayUnits.featureValueText(feature, value, units);") && !grid.contains("DisplayUnits.featureValue("),
+                "a Setting tile shows DisplayUnits.featureValueText");
+    }
+
+    private static String read(String path) {
+        try {
+            return new String(Files.readAllBytes(Paths.get(path)), StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new AssertionError(path + " not readable: " + e);
+        }
+    }
+
+    private static void check(boolean ok, String what) {
+        checks++;
+        if (!ok) throw new AssertionError(what);
     }
 
     private static void formats() {
