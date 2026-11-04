@@ -7,6 +7,8 @@ set -euo pipefail
 SDK="${ANDROID_HOME:?}"; ADB="$SDK/platform-tools/adb"; SER=emulator-5554; AVD=census
 SDKMANAGER="$SDK/cmdline-tools/latest/bin/sdkmanager"; AVDMANAGER="$SDK/cmdline-tools/latest/bin/avdmanager"
 IMAGE_FILE="${RUNNER_TEMP:?}/census-image.txt"
+# One known AVD home for avdmanager and the emulator (the runner image's default moved once).
+export ANDROID_AVD_HOME="$RUNNER_TEMP/avd"; mkdir -p "$ANDROID_AVD_HOME"
 case "${1:-}" in
 install)
   yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
@@ -18,8 +20,9 @@ install)
   exit 1 ;;
 create)
   image="$(cat "$IMAGE_FILE")"
-  echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$image" --force > /dev/null
-  config="$HOME/.android/avd/$AVD.avd/config.ini"
+  echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$image" -p "$ANDROID_AVD_HOME/$AVD.avd" --force > /dev/null
+  config="$ANDROID_AVD_HOME/$AVD.avd/config.ini"
+  [[ -f "$config" && -f "$ANDROID_AVD_HOME/$AVD.ini" ]] || { echo "AVD not where expected:" >&2; find "$ANDROID_AVD_HOME" "$HOME/.android" "$HOME/.config" -maxdepth 3 -name "$AVD*" 2>/dev/null >&2; exit 1; }
   playstore=false; [[ "$image" == *google_apis_playstore* ]] && playstore=true
   python3 -I - "$config" "$playstore" <<'PY'
 import sys
