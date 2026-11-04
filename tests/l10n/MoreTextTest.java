@@ -10,7 +10,7 @@ import java.util.Locale;
  *  - the other branch of manual rows: more_lab_row (the row without a value line) beside
  *    more_lab_row_value, and more_plain, the branch that passes its text through;
  *  - the lab footer: each foot key with and without more_lab_kept (the leading-space sentence);
- *  - the shared-access suffix appended to a model, and labModel's "the " template and fallback;
+ *  - the shared-access suffix appended to a model;
  *  - every choice, plural and format the screen builds, at each branch and count, through the same
  *    Fmt calls MoreScreen passes (Fmt.decimal for MiB, Fmt.integer for percents, seconds and counts);
  *  - each of those keys follows the installed text source (no English left around them).
@@ -104,9 +104,6 @@ public final class MoreTextTest {
                         review ? T.moreLabReviewRow(lower) : back ? T.moreLabSetBackRow(lower, "Off") : T.moreLabTryRow(lower), "action " + review + back);
             }
         }
-        // labModel's template and its fallback.
-        equal(MoreScreenTextTest.Base.labModel("N65i", ""), T.moreLabModelThe("N65i"), "the model");
-        equal(MoreScreenTextTest.Base.labModel("", ""), T.moreLabYourModel(), "your model");
         // The lab footer: each foot with and without the kept sentence.
         for (String foot : new String[]{T.moreLabFootOem(), T.moreLabFootElsewhere(), T.moreLabFoot()}) {
             for (boolean rows : new boolean[]{true, false}) {
@@ -126,7 +123,6 @@ public final class MoreTextTest {
         String[][] shown = {
                 {T.moreLabRow("a", "b"), "more_lab_row"}, {T.moreLabRowValue("a", "b", "c"), "more_lab_row_value"},
                 {T.moreLabKept(), "more_lab_kept"}, {T.moreScootersSharedSuffix(), "more_scooters_shared_suffix"},
-                {T.moreLabModelThe("N65i"), "more_lab_model_the"}, {T.moreLabYourModel(), "more_lab_your_model"},
                 {T.moreDevTaps(2, 2), "more_dev_taps"}, {T.moreLabClearedMany(3), "more_lab_cleared_many"},
                 {T.fmtQuantity(Fmt.decimal(Locale.US, 1.5, 1), T.moreUnitMib()), "fmt_quantity"},
                 {T.moreUnitMib(), "more_unit_mib"}, {T.moreUnitSecond(), "more_unit_second"},

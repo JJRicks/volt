@@ -45,9 +45,9 @@ src/com/jjricks/volt/MoreScreen.java:920	["Change model"]	more_scooters_change_m
 src/com/jjricks/volt/MoreScreen.java:923	["Cancel"]	common_cancel	exact	
 src/com/jjricks/volt/MoreScreen.java:924	["Save name"]	more_scooters_save_name	exact	
 src/com/jjricks/volt/MoreScreen.java:926	["Forget this scooter"]	more_scooters_forget	exact	
-src/com/jjricks/volt/MoreScreen.java:930	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}]	more_scooters_forget_named	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:930	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}]	more_scooters_forget_named	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "Scooter", ScooterProfiles.DEFAULT_NAME) for an unrenamed default profile, so English is unchanged
 src/com/jjricks/volt/MoreScreen.java:935	["Enter a scooter name"]	more_scooters_enter_name	exact	
-src/com/jjricks/volt/MoreScreen.java:944	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}, "?"]	more_scooters_forget_title	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:944	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}, "?"]	more_scooters_forget_title	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "Scooter", ScooterProfiles.DEFAULT_NAME) for an unrenamed default profile, so English is unchanged
 src/com/jjricks/volt/MoreScreen.java:944	["Removes its connection setup from this phone. Saved rides and charge recordings stay."]	more_scooters_forget_body	exact	
 src/com/jjricks/volt/MoreScreen.java:946	["Save backup first"]	more_scooters_save_backup	exact	
 src/com/jjricks/volt/MoreScreen.java:948	["Cancel"]	common_cancel	exact	
@@ -181,8 +181,6 @@ src/com/jjricks/volt/MoreScreen.java:1524	["Cleared ", {"hole": "n", "arg": 1, "
 src/com/jjricks/volt/MoreScreen.java:1546	["Untested controls"]	more_lab_untested	exact	
 src/com/jjricks/volt/MoreScreen.java:1546	["Help verify"]	more_lab_help_verify	exact	
 src/com/jjricks/volt/MoreScreen.java:1546	["Nothing to try"]	more_lab_nothing	exact	
-src/com/jjricks/volt/MoreScreen.java:1547	["The official app doesn't offer these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ". Try one while parked; Volt reads it back."]	more_lab_intro_untested	template	
-src/com/jjricks/volt/MoreScreen.java:1548	["The official app offers these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ", but Volt hasn't tested them there. Try one while parked; Volt reads it back."]	more_lab_intro_verify	template	
 src/com/jjricks/volt/MoreScreen.java:1550	[" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."]	more_lab_kept	exact	
 src/com/jjricks/volt/MoreScreen.java:1552	["Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware."]	more_lab_foot_oem	exact	
 src/com/jjricks/volt/MoreScreen.java:1553	["Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware."]	more_lab_foot_elsewhere	exact	
@@ -194,14 +192,11 @@ src/com/jjricks/volt/MoreScreen.java:1578	["The official app offers these for yo
 src/com/jjricks/volt/MoreScreen.java:1581	["Not reported by this scooter"]	more_lab_absent	exact	
 src/com/jjricks/volt/MoreScreen.java:1584	["Volt can't read these back, so it doesn't offer them."]	more_lab_absent_note	exact	
 src/com/jjricks/volt/MoreScreen.java:1590	["Volt sends no scooter commands to this product."]	more_lab_empty_product	exact	
-src/com/jjricks/volt/MoreScreen.java:1591	["Nothing to try on ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ": the official app already offers the controls Volt could try. They're in Scooter settings."]	more_lab_empty_oem	template	
 src/com/jjricks/volt/MoreScreen.java:1592	["Nothing to try on the UT5 MAX."]	more_lab_empty_ut5	exact	
 src/com/jjricks/volt/MoreScreen.java:1594	["This scooter's model ID doesn't match its serial number, so Volt offers nothing to try."]	more_lab_empty_conflict	exact	
 src/com/jjricks/volt/MoreScreen.java:1595	["The official app doesn't list this model, so Volt can't tell which controls it lacks. Nothing to try yet."]	more_lab_empty_unlisted	exact	
 src/com/jjricks/volt/MoreScreen.java:1596	["Identify your model on the Scooter page first. Volt then lists what you can try."]	more_lab_empty_identify	exact	
 src/com/jjricks/volt/MoreScreen.java:1597	["Connect your scooter to see what you can try."]	more_lab_empty_connect	exact	
-src/com/jjricks/volt/MoreScreen.java:1602	["the ", {"hole": "name", "arg": 1, "type": "s"}]	more_lab_model_the	template	
-src/com/jjricks/volt/MoreScreen.java:1603	["your model"]	more_lab_your_model	exact	
 src/com/jjricks/volt/MoreScreen.java:1607	["Standing start"]	more_lab_standing_start	exact	
 src/com/jjricks/volt/MoreScreen.java:1635	[{"hole": "f.label", "arg": 1, "type": "s", "as": "f.label()"}, ", not reported by this scooter"]	more_lab_absent_row	template	manual: the label hole is passed as f.label(), the feature's Msg whose English is label (B4)
 src/com/jjricks/volt/MoreScreen.java:1643	["Try"]	more_lab_try	exact	
@@ -229,7 +224,7 @@ src/com/jjricks/volt/MoreScreen.java:1707	["Your answer"]	more_lab_status_waitin
 src/com/jjricks/volt/MoreScreen.java:1707	["Did you see it change?"]	more_lab_status_ask	exact	
 src/com/jjricks/volt/MoreScreen.java:1707	["Answer"]	more_lab_status_ask_short	exact	
 src/com/jjricks/volt/MoreScreen.java:1708	["Setting back…"]	more_lab_status_setting_back	exact	
-src/com/jjricks/volt/MoreScreen.java:1709	["Checking…"]	more_history_checking	exact	
+src/com/jjricks/volt/MoreScreen.java:1709	["Checking…"]	more_lab_status_checking	exact	
 src/com/jjricks/volt/MoreScreen.java:1713	["Simulated change"]	more_lab_status_simulated	exact	
 src/com/jjricks/volt/MoreScreen.java:1713	["Simulated"]	more_lab_status_simulated_short	exact	
 src/com/jjricks/volt/MoreScreen.java:1714	["Unfinished · review"]	more_lab_status_unfinished	exact	
@@ -253,7 +248,6 @@ src/com/jjricks/volt/MoreScreen.java:1726	["No change"]	more_lab_status_no_chang
 src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed · reconnect to check"]	more_lab_status_unconfirmed_sheet	exact	
 src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed"]	more_lab_status_unconfirmed	exact	
 src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed"]	more_lab_status_unconfirmed	exact	
-src/com/jjricks/volt/MoreScreen.java:1830	{"if": "verify", "then": ["Unverified on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}], "else": ["Untested on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}]}	more_lab_unverified_on,more_lab_untested_on	choice	the try sheet's title, whole for each state
 src/com/jjricks/volt/MoreScreen.java:1831	["The official app offers this for your model, but Volt hasn't tested it there. Your try and answer go in your next compatibility report."]	more_lab_verify_why	exact	
 src/com/jjricks/volt/MoreScreen.java:1838	["Now"]	more_lab_now_label	exact	
 src/com/jjricks/volt/MoreScreen.java:1840	["Last try"]	more_lab_last_try	exact	
@@ -411,13 +405,13 @@ src/com/jjricks/volt/MoreScreen.java:2439	["Offline"]	more_scooters_offline	exac
 src/com/jjricks/volt/MoreScreen.java:2447	["Model not identified"]	more_scooters_model_unknown	exact	
 src/com/jjricks/volt/MoreScreen.java:2448	[" · Shared access"]	more_scooters_shared_suffix	exact	
 src/com/jjricks/volt/MoreScreen.java:2451	["Last connected ", {"hole": "DateUtils.getRelativeTimeSpanString( item.lastConnected, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)", "arg": 1, "type": "s"}]	more_scooters_last_connected	template	
-src/com/jjricks/volt/MoreScreen.java:2454	["Edit ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}]	more_scooters_edit_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2454	["Edit ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}]	more_scooters_edit_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "Scooter", ScooterProfiles.DEFAULT_NAME) for an unrenamed default profile, so English is unchanged
 src/com/jjricks/volt/MoreScreen.java:2454	["Edit scooter"]	more_scooters_edit	exact	
 src/com/jjricks/volt/MoreScreen.java:2455	["Disconnect"]	more_scooters_disconnect	exact	
 src/com/jjricks/volt/MoreScreen.java:2455	["Cancel"]	common_cancel	exact	
 src/com/jjricks/volt/MoreScreen.java:2455	["Connect"]	more_connect	exact	
-src/com/jjricks/volt/MoreScreen.java:2456	[{"hole": "action", "arg": 1, "type": "s"}, " ", {"hole": "item.name", "arg": 2, "type": "s", "as": "item.displayName()"}]	more_scooters_action_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
-src/com/jjricks/volt/MoreScreen.java:2459	["Use ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}, ". View saved data without connecting"]	more_scooters_use_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2456	[{"hole": "action", "arg": 1, "type": "s"}, " ", {"hole": "item.name", "arg": 2, "type": "s", "as": "item.displayName()"}]	more_scooters_action_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "Scooter", ScooterProfiles.DEFAULT_NAME) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2459	["Use ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}, ". View saved data without connecting"]	more_scooters_use_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "Scooter", ScooterProfiles.DEFAULT_NAME) for an unrenamed default profile, so English is unchanged
 src/com/jjricks/volt/MoreScreen.java:2465	["Allowed"]	more_permission_allowed	exact	
 src/com/jjricks/volt/MoreScreen.java:2465	["Not allowed"]	more_permission_not_allowed	exact	
 src/com/jjricks/volt/MoreScreen.java:2467	["Allowed"]	more_permission_allowed	exact	
