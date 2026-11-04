@@ -1,0 +1,447 @@
+# Ledger for b18-more: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/MoreScreen.java:165	["Back up & restore"]	more_backup_restore	exact	
+src/com/jjricks/volt/MoreScreen.java:178	["LAB"]	more_lab_badge	exact	
+src/com/jjricks/volt/MoreScreen.java:184	["Volt ", {"hole": "AppVersion.name(host.activity())", "arg": 1, "type": "s"}, " · not affiliated with NAVEE"]	more_footer	template	
+src/com/jjricks/volt/MoreScreen.java:188	["Report an issue"]	more_report_issue	exact	
+src/com/jjricks/volt/MoreScreen.java:316	["App preferences"]	more_section_app	exact	
+src/com/jjricks/volt/MoreScreen.java:316	["Developer options"]	more_section_developer	exact	
+src/com/jjricks/volt/MoreScreen.java:316	["More"]	more_title	exact	
+src/com/jjricks/volt/MoreScreen.java:318	["Back to ", {"hole": "parent", "arg": 1, "type": "s"}]	more_back_to	template	
+src/com/jjricks/volt/MoreScreen.java:319	["Units"]	more_units_title	exact	
+src/com/jjricks/volt/MoreScreen.java:320	["Compatibility"]	more_compatibility_title	exact	
+src/com/jjricks/volt/MoreScreen.java:320	["Unfinished test"]	more_unfinished_test_title	exact	
+src/com/jjricks/volt/MoreScreen.java:448	["More"]	more_title	exact	
+src/com/jjricks/volt/MoreScreen.java:451	["Back to More"]	more_back_to_more	exact	
+src/com/jjricks/volt/MoreScreen.java:473	["Lab"]	more_lab_badge_description	exact	
+src/com/jjricks/volt/MoreScreen.java:606	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/MoreScreen.java:606	["On"]	common_on	exact	
+src/com/jjricks/volt/MoreScreen.java:606	["Off"]	common_off	exact	
+src/com/jjricks/volt/MoreScreen.java:610	{"if": "state == null", "then": [{"hole": "row.title.getText()", "arg": 1, "type": "s"}, ", state not reported"], "else": [{"hole": "row.title.getText()", "arg": 1, "type": "s"}, ""]}	more_toggle_not_reported,more_plain	choice	a toggle row's spoken description, the title alone or with the not-reported clause
+src/com/jjricks/volt/MoreScreen.java:671	[{"spec": "%.1f", "arg": 1, "value": "bytes / 1048576.0", "as": "Fmt.decimal(Locale.US, bytes / 1048576.0, 1)"}, " ", {"text": "MiB", "key": "more_unit_mib", "arg": 2}]	fmt_quantity	format	MoreScreenTextTest and MoreTextTest call Fmt.decimal
+src/com/jjricks/volt/MoreScreen.java:700	["Your scooter. Your data."]	more_onboarding_title	exact	
+src/com/jjricks/volt/MoreScreen.java:706	["Import my owner setup"]	more_onboarding_import	exact	
+src/com/jjricks/volt/MoreScreen.java:708	["Allow Nearby devices"]	more_onboarding_nearby	exact	
+src/com/jjricks/volt/MoreScreen.java:709	["Connect"]	more_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:711	["Import your owner setup first"]	more_onboarding_import_first	exact	
+src/com/jjricks/volt/MoreScreen.java:714	["Owner setup guide"]	more_onboarding_guide	exact	
+src/com/jjricks/volt/MoreScreen.java:718	["Done"]	common_done	exact	
+src/com/jjricks/volt/MoreScreen.java:718	["Step ", {"hole": "number", "arg": 1, "type": "d"}]	more_step	template	
+src/com/jjricks/volt/MoreScreen.java:744	["Your local scooter service is starting."]	more_service_starting	exact	
+src/com/jjricks/volt/MoreScreen.java:748	["Disconnect first"]	more_disconnect_first	exact	
+src/com/jjricks/volt/MoreScreen.java:785	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:807	["Add a scooter"]	more_scooters_add	exact	
+src/com/jjricks/volt/MoreScreen.java:849	["Current"]	more_scooters_current	exact	
+src/com/jjricks/volt/MoreScreen.java:858	["Connect"]	more_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:859	["Use this scooter"]	more_scooters_use	exact	
+src/com/jjricks/volt/MoreScreen.java:873	["Your local scooter service is starting."]	more_service_starting	exact	
+src/com/jjricks/volt/MoreScreen.java:909	["Edit scooter"]	more_scooters_edit	exact	
+src/com/jjricks/volt/MoreScreen.java:910	["Scooter name"]	more_scooters_name	exact	
+src/com/jjricks/volt/MoreScreen.java:911	["Scooter name"]	more_scooters_name	exact	
+src/com/jjricks/volt/MoreScreen.java:919	["Your answer: ", {"hole": "p.ownerModel", "arg": 1, "type": "s"}]	more_scooters_owner_answer	template	
+src/com/jjricks/volt/MoreScreen.java:920	["Which model is it?"]	more_scooters_which_model	exact	
+src/com/jjricks/volt/MoreScreen.java:920	["Change model"]	more_scooters_change_model	exact	
+src/com/jjricks/volt/MoreScreen.java:923	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:924	["Save name"]	more_scooters_save_name	exact	
+src/com/jjricks/volt/MoreScreen.java:926	["Forget this scooter"]	more_scooters_forget	exact	
+src/com/jjricks/volt/MoreScreen.java:930	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}]	more_scooters_forget_named	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:935	["Enter a scooter name"]	more_scooters_enter_name	exact	
+src/com/jjricks/volt/MoreScreen.java:944	["Forget ", {"hole": "p.name", "arg": 1, "type": "s", "as": "p.displayName()"}, "?"]	more_scooters_forget_title	template	manual: the name hole is passed as p.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:944	["Removes its connection setup from this phone. Saved rides and charge recordings stay."]	more_scooters_forget_body	exact	
+src/com/jjricks/volt/MoreScreen.java:946	["Save backup first"]	more_scooters_save_backup	exact	
+src/com/jjricks/volt/MoreScreen.java:948	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:948	["Forget"]	more_scooters_forget_action	exact	
+src/com/jjricks/volt/MoreScreen.java:965	["Appearance"]	more_prefs_appearance	exact	
+src/com/jjricks/volt/MoreScreen.java:965	["Dark"]	more_prefs_dark	exact	
+src/com/jjricks/volt/MoreScreen.java:965	["Follow system"]	more_prefs_follow_system	exact	
+src/com/jjricks/volt/MoreScreen.java:965	["Light"]	more_prefs_light	exact	
+src/com/jjricks/volt/MoreScreen.java:967	["Live Stats detail"]	more_prefs_stats_detail	exact	
+src/com/jjricks/volt/MoreScreen.java:967	["Comfortable"]	more_prefs_comfortable	exact	
+src/com/jjricks/volt/MoreScreen.java:967	["Dense"]	more_prefs_dense	exact	
+src/com/jjricks/volt/MoreScreen.java:973	["Units"]	more_prefs_units	exact	
+src/com/jjricks/volt/MoreScreen.java:973	["Units"]	-	stays-english	the Units subpage's section id (selectSection), moved into UNITS_SECTION so the row title next to it can come from more_prefs_units; the other "Units" ids stay literal
+src/com/jjricks/volt/MoreScreen.java:976	["Text size"]	more_prefs_text_size	exact	
+src/com/jjricks/volt/MoreScreen.java:977	[{"hole": "Math.round(settings().getFloat(\"text_scale\", 1f) * 100)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(settings().getFloat(\"text_scale\", 1f) * 100))"}, "%"]	fmt_percent	template	
+src/com/jjricks/volt/MoreScreen.java:978	["Haptic feedback"]	more_prefs_haptics	exact	
+src/com/jjricks/volt/MoreScreen.java:979	["Map settings"]	more_prefs_map	exact	
+src/com/jjricks/volt/MoreScreen.java:981	["Connection & recording"]	more_prefs_connection	exact	
+src/com/jjricks/volt/MoreScreen.java:983	["Telemetry refresh"]	more_prefs_refresh	exact	
+src/com/jjricks/volt/MoreScreen.java:984	[{"hole": "settings().getInt(\"poll_interval_ms\", 2000) / 1000", "arg": 1, "type": "s", "as": "Fmt.integer(settings().getInt(\"poll_interval_ms\", 2000) / 1000)"}, " ", {"text": "s", "key": "more_unit_second", "arg": 2}]	fmt_quantity	format	MoreScreenTextTest and MoreTextTest call Fmt.integer
+src/com/jjricks/volt/MoreScreen.java:985	["Connect automatically"]	more_prefs_auto_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:986	["Stay connected in background"]	more_prefs_background	exact	
+src/com/jjricks/volt/MoreScreen.java:986	["Recordings always stay connected"]	more_prefs_background_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:987	["Keep screen awake"]	more_prefs_awake	exact	
+src/com/jjricks/volt/MoreScreen.java:987	["While recording"]	more_prefs_awake_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:989	["End parked rides"]	more_prefs_auto_stop	exact	
+src/com/jjricks/volt/MoreScreen.java:989	["10 s after Bluetooth drops at a stop"]	more_prefs_auto_stop_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:992	["Background recording"]	more_prefs_battery	exact	
+src/com/jjricks/volt/MoreScreen.java:998	["Battery use unrestricted"]	more_prefs_battery_unrestricted	exact	
+src/com/jjricks/volt/MoreScreen.java:999	["Battery optimized; long recordings may stop. Opens battery settings"]	more_prefs_battery_optimized	exact	
+src/com/jjricks/volt/MoreScreen.java:1019	["Off"]	common_off	exact	
+src/com/jjricks/volt/MoreScreen.java:1021	["Custom"]	more_prefs_map_custom	exact	
+src/com/jjricks/volt/MoreScreen.java:1038	["Choose Volt to manage its Android settings"]	more_prefs_choose_volt	exact	
+src/com/jjricks/volt/MoreScreen.java:1041	["Open Volt's settings in Android"]	more_prefs_open_settings	exact	
+src/com/jjricks/volt/MoreScreen.java:1057	["Distance & speed"]	more_units_distance	exact	
+src/com/jjricks/volt/MoreScreen.java:1057	["Miles / mph"]	more_units_miles	exact	
+src/com/jjricks/volt/MoreScreen.java:1057	["km / km/h"]	more_units_km	exact	
+src/com/jjricks/volt/MoreScreen.java:1057	["Both"]	more_units_both	exact	
+src/com/jjricks/volt/MoreScreen.java:1059	["Temperature"]	more_units_temperature	exact	
+src/com/jjricks/volt/MoreScreen.java:1059	["Celsius · °C"]	more_units_celsius	exact	
+src/com/jjricks/volt/MoreScreen.java:1059	["Fahrenheit · °F"]	more_units_fahrenheit	exact	
+src/com/jjricks/volt/MoreScreen.java:1061	["Time format"]	more_units_time	exact	
+src/com/jjricks/volt/MoreScreen.java:1061	["Follow system"]	more_prefs_follow_system	exact	
+src/com/jjricks/volt/MoreScreen.java:1061	["12 hour"]	more_units_12_hour	exact	
+src/com/jjricks/volt/MoreScreen.java:1061	["24 hour"]	more_units_24_hour	exact	
+src/com/jjricks/volt/MoreScreen.java:1097	["Connected history"]	more_history_connected	exact	
+src/com/jjricks/volt/MoreScreen.java:1099	["Save connected history"]	more_history_save	exact	
+src/com/jjricks/volt/MoreScreen.java:1099	["While connected"]	more_history_while_connected	exact	
+src/com/jjricks/volt/MoreScreen.java:1100	["While connected"]	more_history_while_connected	exact	
+src/com/jjricks/volt/MoreScreen.java:1100	["Off · last readings kept"]	more_history_off_kept	exact	
+src/com/jjricks/volt/MoreScreen.java:1104	["Local storage"]	more_history_local_storage	exact	
+src/com/jjricks/volt/MoreScreen.java:1106	["Checking…"]	more_history_checking	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["Detailed samples"]	more_history_detailed	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["7 days"]	more_history_7_days	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["Minute summaries"]	more_history_minutes	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["30 days"]	more_history_30_days	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["Daily summaries"]	more_history_daily	exact	
+src/com/jjricks/volt/MoreScreen.java:1116	["2 years"]	more_history_2_years	exact	
+src/com/jjricks/volt/MoreScreen.java:1125	["up to ", {"hole": "retention[i][1]", "arg": 1, "type": "s"}]	more_history_up_to	template	
+src/com/jjricks/volt/MoreScreen.java:1131	["Clear this scooter's history"]	more_history_clear_scooter	exact	
+src/com/jjricks/volt/MoreScreen.java:1132	["Clear all connected history"]	more_history_clear_all	exact	
+src/com/jjricks/volt/MoreScreen.java:1141	[{"spec": "%.1f", "arg": 1, "value": "storage.bytes / 1048576.0", "as": "Fmt.decimal(Locale.US, storage.bytes / 1048576.0, 1)"}, " of ", {"spec": "%.0f", "arg": 2, "value": "storage.limitBytes / 1048576.0", "as": "Fmt.decimal(Locale.US, storage.limitBytes / 1048576.0, 0)"}, " ", {"text": "MiB", "key": "more_unit_mib", "arg": 3}]	more_history_used	format	MoreScreenTextTest and MoreTextTest call Fmt.decimal
+src/com/jjricks/volt/MoreScreen.java:1160	["Choose a scooter first."]	more_history_choose_scooter	exact	
+src/com/jjricks/volt/MoreScreen.java:1162	["Clear history?"]	more_history_clear_title	exact	
+src/com/jjricks/volt/MoreScreen.java:1162	{"if": "all", "then": ["Removes history for all scooters", ". Rides stay."], "else": ["Removes ", {"hole": "profile.name", "arg": 1, "type": "s"}, "'s history", ". Rides stay."]}	more_history_clear_all_body,more_history_clear_one_body	choice	the clear-history dialog body for all scooters or one, each a whole sentence
+src/com/jjricks/volt/MoreScreen.java:1163	["Clear"]	more_clear	exact	
+src/com/jjricks/volt/MoreScreen.java:1168	["History cleared"]	more_history_cleared	exact	
+src/com/jjricks/volt/MoreScreen.java:1174	["Text size"]	more_prefs_text_size	exact	
+src/com/jjricks/volt/MoreScreen.java:1175	["Easy to read, folded or open"]	more_text_size_sample	exact	
+src/com/jjricks/volt/MoreScreen.java:1182	[{"hole": "Math.round(scale * 100)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(scale * 100))"}, "%"]	fmt_percent	template	
+src/com/jjricks/volt/MoreScreen.java:1189	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:1190	["Apply"]	more_apply	exact	
+src/com/jjricks/volt/MoreScreen.java:1198	["Telemetry refresh"]	more_prefs_refresh	exact	
+src/com/jjricks/volt/MoreScreen.java:1198	["Rides always 2 s"]	more_refresh_rides	exact	
+src/com/jjricks/volt/MoreScreen.java:1199	["Telemetry refresh"]	more_prefs_refresh	exact	
+src/com/jjricks/volt/MoreScreen.java:1200	["2 seconds"]	more_refresh_2	exact	
+src/com/jjricks/volt/MoreScreen.java:1200	["5 seconds"]	more_refresh_5	exact	
+src/com/jjricks/volt/MoreScreen.java:1200	["10 seconds"]	more_refresh_10	exact	
+src/com/jjricks/volt/MoreScreen.java:1206	["Done"]	common_done	exact	
+src/com/jjricks/volt/MoreScreen.java:1213	["Handlebar PIN"]	more_pin_handlebar	exact	
+src/com/jjricks/volt/MoreScreen.java:1215	["Fallback PIN"]	more_pin_fallback	exact	
+src/com/jjricks/volt/MoreScreen.java:1218	["Read PIN state"]	more_pin_read	exact	
+src/com/jjricks/volt/MoreScreen.java:1220	["Set or change PIN"]	more_pin_set_row	exact	
+src/com/jjricks/volt/MoreScreen.java:1221	["Proximity unlock"]	more_proximity_label	exact	
+src/com/jjricks/volt/MoreScreen.java:1223	["Pair this phone with scooter"]	more_proximity_pair	exact	
+src/com/jjricks/volt/MoreScreen.java:1226	["Proximity unlock"]	more_proximity_label	exact	
+src/com/jjricks/volt/MoreScreen.java:1242	["Connect"]	more_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:1246	["Unlock without phone"]	more_pin_guide_row	exact	
+src/com/jjricks/volt/MoreScreen.java:1263	["Waiting for scooter confirmation"]	more_waiting_confirmation	exact	
+src/com/jjricks/volt/MoreScreen.java:1318	["Connect as the scooter owner before changing its PIN."]	more_pin_owner_first	exact	
+src/com/jjricks/volt/MoreScreen.java:1319	["Set handlebar PIN"]	more_pin_title	exact	
+src/com/jjricks/volt/MoreScreen.java:1319	["Your phone-free fallback. Keep it safe. Digits are never shown or exported."]	more_pin_body	exact	
+src/com/jjricks/volt/MoreScreen.java:1321	["Enter a new PIN"]	more_pin_enter	exact	
+src/com/jjricks/volt/MoreScreen.java:1348	["Enter a new PIN, four digits"]	more_pin_enter_hint	exact	
+src/com/jjricks/volt/MoreScreen.java:1366	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:1366	["Next"]	more_next	exact	
+src/com/jjricks/volt/MoreScreen.java:1376	["Enter a new PIN"]	more_pin_enter	exact	
+src/com/jjricks/volt/MoreScreen.java:1376	["Step 1 of 2. Enter a new PIN"]	more_pin_step_one	exact	
+src/com/jjricks/volt/MoreScreen.java:1377	["Enter a new PIN, four digits"]	more_pin_enter_hint	exact	
+src/com/jjricks/volt/MoreScreen.java:1378	["Next"]	more_next	exact	
+src/com/jjricks/volt/MoreScreen.java:1378	["Next"]	more_next	exact	
+src/com/jjricks/volt/MoreScreen.java:1384	["Enter exactly four numeric digits."]	more_pin_digits	exact	
+src/com/jjricks/volt/MoreScreen.java:1388	["Repeat PIN"]	more_pin_repeat	exact	
+src/com/jjricks/volt/MoreScreen.java:1388	["Step 2 of 2. Repeat PIN"]	more_pin_step_two	exact	
+src/com/jjricks/volt/MoreScreen.java:1389	["Repeat PIN, four digits"]	more_pin_repeat_hint	exact	
+src/com/jjricks/volt/MoreScreen.java:1390	["Set PIN"]	more_pin_set	exact	
+src/com/jjricks/volt/MoreScreen.java:1390	["Set PIN"]	more_pin_set	exact	
+src/com/jjricks/volt/MoreScreen.java:1397	["PINs didn't match. Try again."]	more_pin_mismatch	exact	
+src/com/jjricks/volt/MoreScreen.java:1399	["Reconnect as the scooter owner first."]	more_pin_reconnect	exact	
+src/com/jjricks/volt/MoreScreen.java:1400	["Wait for the current scooter change to finish."]	more_pin_wait	exact	
+src/com/jjricks/volt/MoreScreen.java:1404	["PIN change did not start. ", {"hole": "service().ble.message()", "arg": 1, "type": "s", "as": "service().ble.displayMessage()"}]	more_pin_not_started	template	manual: the message hole is passed as service().ble.displayMessage(), B7's shown text whose English is message()
+src/com/jjricks/volt/MoreScreen.java:1427	["Unlock without phone"]	more_pin_guide_row	exact	
+src/com/jjricks/volt/MoreScreen.java:1427	["Scooter parked and locked."]	more_pin_guide_body	exact	
+src/com/jjricks/volt/MoreScreen.java:1429	["Tap turn signal"]	more_pin_guide_signal	exact	
+src/com/jjricks/volt/MoreScreen.java:1429	["Set digit, squeeze brake"]	more_pin_guide_digit	exact	
+src/com/jjricks/volt/MoreScreen.java:1429	["Press power"]	more_pin_guide_power	exact	
+src/com/jjricks/volt/MoreScreen.java:1437	["Step ", {"hole": "(i + 1)", "arg": 1, "type": "d"}, ", ", {"hole": "steps[i]", "arg": 2, "type": "s"}]	more_pin_guide_step	template	
+src/com/jjricks/volt/MoreScreen.java:1441	["With proximity unlock: paired phone close, squeeze brake. Test both while parked before relying on them."]	more_pin_guide_note	exact	
+src/com/jjricks/volt/MoreScreen.java:1443	["Got it"]	more_got_it	exact	
+src/com/jjricks/volt/MoreScreen.java:1450	["Handlebar: 1 turn-signal button, 2 brake lever, 3 power button"]	more_pin_diagram	exact	
+src/com/jjricks/volt/MoreScreen.java:1500	["Untested controls"]	more_lab_untested	exact	
+src/com/jjricks/volt/MoreScreen.java:1507	["Connect"]	more_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:1518	["Command evidence"]	more_lab_evidence	exact	
+src/com/jjricks/volt/MoreScreen.java:1519	["Clear try results"]	more_lab_clear_tries	exact	
+src/com/jjricks/volt/MoreScreen.java:1523	["Clear try results?"]	more_lab_clear_title	exact	
+src/com/jjricks/volt/MoreScreen.java:1523	["Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them."]	more_lab_clear_body	exact	
+src/com/jjricks/volt/MoreScreen.java:1524	["Clear"]	more_clear	exact	
+src/com/jjricks/volt/MoreScreen.java:1524	["No finished tries to clear"]	more_lab_cleared_none	exact	
+src/com/jjricks/volt/MoreScreen.java:1524	["Cleared 1 try"]	more_lab_cleared_one	exact	
+src/com/jjricks/volt/MoreScreen.java:1524	["Cleared ", {"hole": "n", "arg": 1, "type": "d"}, " tries"]	more_lab_cleared_many	template	
+src/com/jjricks/volt/MoreScreen.java:1546	["Untested controls"]	more_lab_untested	exact	
+src/com/jjricks/volt/MoreScreen.java:1546	["Help verify"]	more_lab_help_verify	exact	
+src/com/jjricks/volt/MoreScreen.java:1546	["Nothing to try"]	more_lab_nothing	exact	
+src/com/jjricks/volt/MoreScreen.java:1547	["The official app doesn't offer these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ". Try one while parked; Volt reads it back."]	more_lab_intro_untested	template	
+src/com/jjricks/volt/MoreScreen.java:1548	["The official app offers these for ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ", but Volt hasn't tested them there. Try one while parked; Volt reads it back."]	more_lab_intro_verify	template	
+src/com/jjricks/volt/MoreScreen.java:1550	[" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."]	more_lab_kept	exact	
+src/com/jjricks/volt/MoreScreen.java:1552	["Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware."]	more_lab_foot_oem	exact	
+src/com/jjricks/volt/MoreScreen.java:1553	["Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware."]	more_lab_foot_elsewhere	exact	
+src/com/jjricks/volt/MoreScreen.java:1553	["Volt never changes firmware."]	more_lab_foot	exact	
+src/com/jjricks/volt/MoreScreen.java:1560	["Connecting…"]	more_connecting	exact	
+src/com/jjricks/volt/MoreScreen.java:1570	["Try on this scooter"]	more_lab_try_here	exact	
+src/com/jjricks/volt/MoreScreen.java:1575	["Help verify"]	more_lab_help_verify	exact	
+src/com/jjricks/volt/MoreScreen.java:1578	["The official app offers these for your model, but Volt hasn't tested them on it. Your try and answer go in your next compatibility report."]	more_lab_verify_note	exact	
+src/com/jjricks/volt/MoreScreen.java:1581	["Not reported by this scooter"]	more_lab_absent	exact	
+src/com/jjricks/volt/MoreScreen.java:1584	["Volt can't read these back, so it doesn't offer them."]	more_lab_absent_note	exact	
+src/com/jjricks/volt/MoreScreen.java:1590	["Volt sends no scooter commands to this product."]	more_lab_empty_product	exact	
+src/com/jjricks/volt/MoreScreen.java:1591	["Nothing to try on ", {"hole": "labModel(d)", "arg": 1, "type": "s"}, ": the official app already offers the controls Volt could try. They're in Scooter settings."]	more_lab_empty_oem	template	
+src/com/jjricks/volt/MoreScreen.java:1592	["Nothing to try on the UT5 MAX."]	more_lab_empty_ut5	exact	
+src/com/jjricks/volt/MoreScreen.java:1594	["This scooter's model ID doesn't match its serial number, so Volt offers nothing to try."]	more_lab_empty_conflict	exact	
+src/com/jjricks/volt/MoreScreen.java:1595	["The official app doesn't list this model, so Volt can't tell which controls it lacks. Nothing to try yet."]	more_lab_empty_unlisted	exact	
+src/com/jjricks/volt/MoreScreen.java:1596	["Identify your model on the Scooter page first. Volt then lists what you can try."]	more_lab_empty_identify	exact	
+src/com/jjricks/volt/MoreScreen.java:1597	["Connect your scooter to see what you can try."]	more_lab_empty_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:1602	["the ", {"hole": "name", "arg": 1, "type": "s"}]	more_lab_model_the	template	
+src/com/jjricks/volt/MoreScreen.java:1603	["your model"]	more_lab_your_model	exact	
+src/com/jjricks/volt/MoreScreen.java:1607	["Standing start"]	more_lab_standing_start	exact	
+src/com/jjricks/volt/MoreScreen.java:1635	[{"hole": "f.label", "arg": 1, "type": "s", "as": "f.label()"}, ", not reported by this scooter"]	more_lab_absent_row	template	manual: the label hole is passed as f.label(), the feature's Msg whose English is label (B4)
+src/com/jjricks/volt/MoreScreen.java:1643	["Try"]	more_lab_try	exact	
+src/com/jjricks/volt/MoreScreen.java:1661	{"if": "back", "then": ["Now ", {"hole": "labValue(row.feature, d, current)", "arg": 1, "type": "s"}, " · was ", {"hole": "labValue(row.feature, d, before)", "arg": 2, "type": "s"}], "else": ["Now ", {"hole": "labValue(row.feature, d, current)", "arg": 1, "type": "s"}, ""]}	more_lab_now_was,more_lab_now	choice	a control's current value, with the value before a try when it can be set back
+src/com/jjricks/volt/MoreScreen.java:1662	{"if": "text.isEmpty()", "then": ["", {"hole": "d.reasonText()", "arg": 1, "type": "s"}], "else": [{"hole": "text", "arg": 1, "type": "s"}, " · ", {"hole": "d.reasonText()", "arg": 2, "type": "s"}]}	more_plain,more_lab_value_reason	choice	the resolver's reason alone or after the value line; reasonText() is already the current language's text
+src/com/jjricks/volt/MoreScreen.java:1666	["Review"]	more_lab_review	exact	
+src/com/jjricks/volt/MoreScreen.java:1666	["Set back"]	more_lab_set_back	exact	
+src/com/jjricks/volt/MoreScreen.java:1666	["Try"]	more_lab_try	exact	
+src/com/jjricks/volt/MoreScreen.java:1667	["Review the unfinished ", {"hole": "row.feature.label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}, " try"]	more_lab_review_row	template	
+src/com/jjricks/volt/MoreScreen.java:1668	["Set ", {"hole": "row.feature.label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}, " back to ", {"hole": "labValue(row.feature, d, before)", "arg": 2, "type": "s"}]	more_lab_set_back_row	template	
+src/com/jjricks/volt/MoreScreen.java:1669	["Try ", {"hole": "row.feature.label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}]	more_lab_try_row	template	
+src/com/jjricks/volt/MoreScreen.java:1670	[{"hole": "row.feature.label", "arg": 1, "type": "s", "as": "row.feature.label()"}, ", ", {"hole": "row.status.getContentDescription()", "arg": 2, "type": "s"}, "", ", ", {"hole": "text", "arg": 3, "type": "s"}]	more_lab_row_value	template	manual: a ternary picks a whole template. With a value line this row, label + ", " + status + ", " + text; without one (the "" branch) more_lab_row "%1$s, %2$s", label + ", " + status, which G1 cannot prove (the shared ", " is this row's) and MoreTextTest checks. The label hole is passed as row.feature.label(), the Msg whose English is label (B4)
+src/com/jjricks/volt/MoreScreen.java:1679	["Connect to try these."]	more_lab_held_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:1680	["Waiting for fresh scooter status."]	more_lab_held_stale	exact	
+src/com/jjricks/volt/MoreScreen.java:1681	["Stop the scooter to try these."]	more_lab_held_moving	exact	
+src/com/jjricks/volt/MoreScreen.java:1682	["Waiting for the scooter to report that it's parked."]	more_lab_held_parked	exact	
+src/com/jjricks/volt/MoreScreen.java:1683	["Resolve the scooter's warning to try these."]	more_lab_held_warning	exact	
+src/com/jjricks/volt/MoreScreen.java:1684	["Unlock the scooter to try these."]	more_lab_held_locked	exact	
+src/com/jjricks/volt/MoreScreen.java:1685	["Only the owner's profile can try these."]	more_lab_held_owner	exact	
+src/com/jjricks/volt/MoreScreen.java:1686	["Wait for the compatibility check to finish."]	more_lab_held_discovery	exact	
+src/com/jjricks/volt/MoreScreen.java:1687	["Finish the current try first."]	more_lab_held_test	exact	
+src/com/jjricks/volt/MoreScreen.java:1688	["Stop recording to try these."]	more_lab_held_recording	exact	
+src/com/jjricks/volt/MoreScreen.java:1707	["Waiting for your answer"]	more_lab_status_waiting	exact	
+src/com/jjricks/volt/MoreScreen.java:1707	["Your answer"]	more_lab_status_waiting_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1707	["Did you see it change?"]	more_lab_status_ask	exact	
+src/com/jjricks/volt/MoreScreen.java:1707	["Answer"]	more_lab_status_ask_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1708	["Setting back…"]	more_lab_status_setting_back	exact	
+src/com/jjricks/volt/MoreScreen.java:1709	["Checking…"]	more_history_checking	exact	
+src/com/jjricks/volt/MoreScreen.java:1713	["Simulated change"]	more_lab_status_simulated	exact	
+src/com/jjricks/volt/MoreScreen.java:1713	["Simulated"]	more_lab_status_simulated_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1714	["Unfinished · review"]	more_lab_status_unfinished	exact	
+src/com/jjricks/volt/MoreScreen.java:1714	["Unfinished"]	more_lab_status_unfinished_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1716	["Not tried yet"]	more_lab_status_not_tried	exact	
+src/com/jjricks/volt/MoreScreen.java:1717	["Unverified on your model"]	more_lab_status_unverified	exact	
+src/com/jjricks/volt/MoreScreen.java:1717	["Unverified here"]	more_lab_status_unverified_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1717	["Unverified"]	more_lab_status_unverified_compact	exact	
+src/com/jjricks/volt/MoreScreen.java:1718	["Untested on your model"]	more_lab_status_untested	exact	
+src/com/jjricks/volt/MoreScreen.java:1718	["Untested here"]	more_lab_status_untested_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1718	["Untested"]	more_lab_status_untested_compact	exact	
+src/com/jjricks/volt/MoreScreen.java:1722	["Worked here"]	more_lab_status_worked	exact	
+src/com/jjricks/volt/MoreScreen.java:1722	["Worked"]	more_lab_status_worked_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1723	["Refused by scooter"]	more_lab_status_refused	exact	
+src/com/jjricks/volt/MoreScreen.java:1723	["Refused"]	more_lab_status_refused_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1724	["Other value read"]	more_lab_status_other_value	exact	
+src/com/jjricks/volt/MoreScreen.java:1724	["Other value"]	more_lab_status_other_value_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1725	["Not sent"]	more_lab_status_not_sent	exact	
+src/com/jjricks/volt/MoreScreen.java:1726	["No change seen"]	more_lab_status_no_change	exact	
+src/com/jjricks/volt/MoreScreen.java:1726	["No change"]	more_lab_status_no_change_short	exact	
+src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed · reconnect to check"]	more_lab_status_unconfirmed_sheet	exact	
+src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed"]	more_lab_status_unconfirmed	exact	
+src/com/jjricks/volt/MoreScreen.java:1728	["Unconfirmed"]	more_lab_status_unconfirmed	exact	
+src/com/jjricks/volt/MoreScreen.java:1830	{"if": "verify", "then": ["Unverified on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}], "else": ["Untested on ", {"hole": "labModel(ble.descriptor())", "arg": 1, "type": "s"}]}	more_lab_unverified_on,more_lab_untested_on	choice	the try sheet's title, whole for each state
+src/com/jjricks/volt/MoreScreen.java:1831	["The official app offers this for your model, but Volt hasn't tested it there. Your try and answer go in your next compatibility report."]	more_lab_verify_why	exact	
+src/com/jjricks/volt/MoreScreen.java:1838	["Now"]	more_lab_now_label	exact	
+src/com/jjricks/volt/MoreScreen.java:1840	["Last try"]	more_lab_last_try	exact	
+src/com/jjricks/volt/MoreScreen.java:1842	["Your scooter refused this last time: it answered with an error, so it most likely doesn't support this setting. Trying again usually gets the same answer."]	more_lab_refused_note	exact	
+src/com/jjricks/volt/MoreScreen.java:1848	["Your answer"]	more_lab_your_answer	exact	
+src/com/jjricks/volt/MoreScreen.java:1851	["Look at the scooter while it's parked. Your answer goes in your next compatibility report with what the scooter read back."]	more_lab_look_hint	exact	
+src/com/jjricks/volt/MoreScreen.java:1853	["Yes"]	more_yes	exact	
+src/com/jjricks/volt/MoreScreen.java:1855	["No"]	more_no	exact	
+src/com/jjricks/volt/MoreScreen.java:1855	["Skip"]	more_skip	exact	
+src/com/jjricks/volt/MoreScreen.java:1862	["This try didn't finish, so the scooter may still be on the value tried. Review it to set it back or keep it."]	more_lab_unfinished_text	exact	
+src/com/jjricks/volt/MoreScreen.java:1864	["Review"]	more_lab_review	exact	
+src/com/jjricks/volt/MoreScreen.java:1868	["Choose a limit"]	more_lab_choose_limit	exact	
+src/com/jjricks/volt/MoreScreen.java:1868	["Choose a value"]	more_lab_choose_value	exact	
+src/com/jjricks/volt/MoreScreen.java:1891	["Try"]	more_lab_try	exact	
+src/com/jjricks/volt/MoreScreen.java:1892	["Set back"]	more_lab_set_back	exact	
+src/com/jjricks/volt/MoreScreen.java:1893	["Volt sends one change while the scooter is parked and unlocked, reads it back, then asks what you saw. The value stays until you set it back. If the connection drops, Volt never writes again by itself: the try waits for your review."]	more_lab_sheet_note	exact	
+src/com/jjricks/volt/MoreScreen.java:1925	["Now"]	more_lab_now_label	exact	
+src/com/jjricks/volt/MoreScreen.java:1950	["Checking it is unchanged…"]	more_lab_checking_unchanged	exact	
+src/com/jjricks/volt/MoreScreen.java:1950	["Setting it back to ", {"hole": "labValue(feature, d, live.baseline())", "arg": 1, "type": "s"}, "…"]	more_lab_setting_back_to	template	
+src/com/jjricks/volt/MoreScreen.java:1951	["Reading the current value…"]	more_lab_reading_current	exact	
+src/com/jjricks/volt/MoreScreen.java:1952	["Sending ", {"hole": "labValue(feature, d, live.target)", "arg": 1, "type": "s"}, " and reading it back…"]	more_lab_sending	template	
+src/com/jjricks/volt/MoreScreen.java:1957	["Did you see it change?"]	more_lab_did_you_see	exact	
+src/com/jjricks/volt/MoreScreen.java:1978	["Try again"]	common_try_again	exact	
+src/com/jjricks/volt/MoreScreen.java:1978	["Try"]	more_lab_try	exact	
+src/com/jjricks/volt/MoreScreen.java:1978	["Already ", {"hole": "labValue(feature, d, selected)", "arg": 1, "type": "s"}]	more_lab_already	template	
+src/com/jjricks/volt/MoreScreen.java:1979	{"if": "refused", "then": ["Try again: ", {"hole": "labValue(feature, d, selected)", "arg": 1, "type": "s"}], "else": ["Try ", {"hole": "labValue(feature, d, selected)", "arg": 1, "type": "s"}]}	more_lab_try_again_value,more_lab_try_value	choice	the try sheet's Go button with a chosen value, whole for a retry and a first try
+src/com/jjricks/volt/MoreScreen.java:1984	["Volt can't set it back to ", {"hole": "labValue(feature, d, current)", "arg": 1, "type": "s"}, " afterwards: the official app doesn't offer that here."]	more_lab_cant_set_back	template	
+src/com/jjricks/volt/MoreScreen.java:1992	["Set back to ", {"hole": "labValue(feature, d, before)", "arg": 1, "type": "s"}]	more_lab_set_back_to	template	
+src/com/jjricks/volt/MoreScreen.java:2006	{"if": "n[2] > 0", "then": {"if": "n[2] == 1", "then": ["The official app offers this on ", {"hole": "n[2]", "arg": 1, "type": "d"}, " other model", ", but not on yours.", " It may do nothing here, or work differently."], "else": ["The official app offers this on ", {"hole": "n[2]", "arg": 1, "type": "d"}, " other models", ", but not on yours.", " It may do nothing here, or work differently."]}, "else": ["The official app doesn't offer this on your model.", " It may do nothing here, or work differently."]}	more_lab_why_one,more_lab_why_many,more_lab_why_none	choice	why a control is experimental, one whole paragraph per case
+src/com/jjricks/volt/MoreScreen.java:2010	["Command evidence"]	more_lab_evidence	exact	
+src/com/jjricks/volt/MoreScreen.java:2010	["PIN and auth bytes hidden"]	more_lab_evidence_hidden	exact	
+src/com/jjricks/volt/MoreScreen.java:2012	["No changes yet"]	more_lab_no_changes	exact	
+src/com/jjricks/volt/MoreScreen.java:2014	["Local clock sync\n", {"hole": "e.getValue()", "arg": 1, "type": "s", "as": "service().ble.displayResult(e.getKey())"}]	more_lab_evidence_clock	template	manual: the result hole is passed as service().ble.displayResult(e.getKey()), B7's shown text for the token e.getValue() (its English is the token)
+src/com/jjricks/volt/MoreScreen.java:2017	[{"hole": "feature.label", "arg": 1, "type": "s", "as": "feature.label()"}, "\n", {"hole": "e.getValue()", "arg": 2, "type": "s", "as": "service().ble.displayResult(e.getKey())"}]	more_lab_evidence_line	template	manual: the label hole is passed as feature.label(), the feature's Msg whose English is label (B4); the result hole as service().ble.displayResult(e.getKey()), B7's shown text for the token e.getValue() (its English is the token)
+src/com/jjricks/volt/MoreScreen.java:2020	["Connection activity"]	more_lab_activity	exact	
+src/com/jjricks/volt/MoreScreen.java:2023	["No connection activity yet."]	more_lab_no_activity	exact	
+src/com/jjricks/volt/MoreScreen.java:2026	["Close"]	common_close	exact	
+src/com/jjricks/volt/MoreScreen.java:2033	["Volt ", {"hole": "AppVersion.name(host.activity())", "arg": 1, "type": "s"}]	more_about_version	template	
+src/com/jjricks/volt/MoreScreen.java:2038	["Bluetooth only · no account"]	more_about_tagline	exact	
+src/com/jjricks/volt/MoreScreen.java:2042	["Check for updates"]	more_about_check_updates	exact	
+src/com/jjricks/volt/MoreScreen.java:2043	["Permissions"]	more_about_permissions	exact	
+src/com/jjricks/volt/MoreScreen.java:2045	["Nearby devices"]	more_about_nearby	exact	
+src/com/jjricks/volt/MoreScreen.java:2045	["Connects to your scooter"]	more_about_nearby_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2046	["Location"]	more_about_location	exact	
+src/com/jjricks/volt/MoreScreen.java:2047	["Ride route · also needed for Bluetooth"]	more_about_location_old	exact	
+src/com/jjricks/volt/MoreScreen.java:2047	["Ride route, only while recording"]	more_about_location_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2048	["Notifications"]	more_about_notifications	exact	
+src/com/jjricks/volt/MoreScreen.java:2048	["Recording notification with Stop"]	more_about_notifications_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2049	["Your data"]	more_about_your_data	exact	
+src/com/jjricks/volt/MoreScreen.java:2051	["All data stays on this phone. Back up & restore is in More."]	more_about_data_note	exact	
+src/com/jjricks/volt/MoreScreen.java:2053	["Online map"]	more_about_online_map	exact	
+src/com/jjricks/volt/MoreScreen.java:2056	["Connection activity"]	more_about_activity	exact	
+src/com/jjricks/volt/MoreScreen.java:2057	["Licenses & attribution"]	more_about_licenses	exact	
+src/com/jjricks/volt/MoreScreen.java:2058	["Connect selected scooter"]	more_about_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:2066	["Check GitHub for updates?"]	more_update_ask_title	exact	
+src/com/jjricks/volt/MoreScreen.java:2067	["Volt asks GitHub for its latest release. GitHub sees your IP address and your Volt version; nothing else is sent. Volt never downloads or installs anything itself."]	more_update_ask_body	exact	
+src/com/jjricks/volt/MoreScreen.java:2069	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:2069	["Check"]	more_update_check	exact	
+src/com/jjricks/volt/MoreScreen.java:2076	["Checking for updates"]	more_update_checking	exact	
+src/com/jjricks/volt/MoreScreen.java:2076	["Asking GitHub for the latest release…"]	more_update_asking	exact	
+src/com/jjricks/volt/MoreScreen.java:2077	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:2095	["Volt ", {"hole": "r.latest", "arg": 1, "type": "s"}, " is available"]	more_update_available	template	
+src/com/jjricks/volt/MoreScreen.java:2095	["You have ", {"hole": "installed", "arg": 1, "type": "s"}, ". Get it from the release page and install it over this version; your data stays."]	more_update_available_body	template	
+src/com/jjricks/volt/MoreScreen.java:2103	["You're up to date"]	more_update_current	exact	
+src/com/jjricks/volt/MoreScreen.java:2104	["Volt ", {"hole": "installed", "arg": 1, "type": "s"}, " is a development build. The latest release is ", {"hole": "r.latest", "arg": 2, "type": "s"}, "."]	more_update_dev	template	
+src/com/jjricks/volt/MoreScreen.java:2105	["Volt ", {"hole": "installed", "arg": 1, "type": "s"}, " is the latest release."]	more_update_latest	template	
+src/com/jjricks/volt/MoreScreen.java:2107	["Couldn't check for updates"]	more_update_failed	exact	
+src/com/jjricks/volt/MoreScreen.java:2108	["GitHub didn't answer. Check your connection and try again."]	more_update_no_answer	exact	
+src/com/jjricks/volt/MoreScreen.java:2109	["GitHub's reply wasn't one Volt could read. Try again later, or see the releases page in your browser."]	more_update_unreadable	exact	
+src/com/jjricks/volt/MoreScreen.java:2114	["Close"]	common_close	exact	
+src/com/jjricks/volt/MoreScreen.java:2114	["Open release page"]	more_update_open	exact	
+src/com/jjricks/volt/MoreScreen.java:2115	["OK"]	common_ok	exact	
+src/com/jjricks/volt/MoreScreen.java:2121	["No browser could open the release page"]	more_update_no_browser	exact	
+src/com/jjricks/volt/MoreScreen.java:2128	["Developer options are already enabled."]	more_dev_already	exact	
+src/com/jjricks/volt/MoreScreen.java:2136	["Developer options enabled."]	more_dev_enabled	exact	
+src/com/jjricks/volt/MoreScreen.java:2140	{"one": [{"hole": "remaining", "arg": 1, "type": "d", "quantity": true}, " more tap", " to enable developer options."], "other": [{"hole": "remaining", "arg": 1, "type": "d", "quantity": true}, " more taps", " to enable developer options."]}	more_dev_taps	plural	manual: remaining + (remaining == 1 ? " more tap" : " more taps") + " to enable developer options." became T.moreDevTaps(remaining, remaining); the ternary's branch for exactly 1 is the one item, every other count the other item
+src/com/jjricks/volt/MoreScreen.java:2152	["No email app could open the report."]	more_report_no_email	exact	
+src/com/jjricks/volt/MoreScreen.java:2157	["Compatibility checker"]	more_dev_compat	exact	
+src/com/jjricks/volt/MoreScreen.java:2157	["Model check & report"]	more_dev_compat_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2160	["Simulate scooter as connected"]	more_dev_simulate	exact	
+src/com/jjricks/volt/MoreScreen.java:2170	["Simulated model"]	more_dev_simulated_model	exact	
+src/com/jjricks/volt/MoreScreen.java:2172	["Simulation active · sample data"]	more_dev_simulation_active	exact	
+src/com/jjricks/volt/MoreScreen.java:2176	["Charge recording"]	more_dev_charge_recording	exact	
+src/com/jjricks/volt/MoreScreen.java:2177	["Charger for estimates"]	more_dev_charger	exact	
+src/com/jjricks/volt/MoreScreen.java:2181	["Charger for estimates"]	more_dev_charger	exact	
+src/com/jjricks/volt/MoreScreen.java:2181	["Auto"]	more_dev_auto	exact	
+src/com/jjricks/volt/MoreScreen.java:2181	["Stock"]	more_dev_stock	exact	
+src/com/jjricks/volt/MoreScreen.java:2181	["High-speed"]	more_dev_high_speed	exact	
+src/com/jjricks/volt/MoreScreen.java:2190	["Auto recognizes UT5 MAX chargers from live power. If uncertain, Volt uses the current rate; choose a charger to override."]	more_dev_charger_note	exact	
+src/com/jjricks/volt/MoreScreen.java:2194	["Saved charge curves"]	more_dev_curves	exact	
+src/com/jjricks/volt/MoreScreen.java:2201	["Record this charge"]	more_dev_record	exact	
+src/com/jjricks/volt/MoreScreen.java:2209	["Charge recordings"]	more_dev_recordings	exact	
+src/com/jjricks/volt/MoreScreen.java:2209	["Saved estimates & finish times"]	more_dev_recordings_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2213	["Export charge recordings"]	more_dev_export	exact	
+src/com/jjricks/volt/MoreScreen.java:2213	["JSON · this scooter"]	more_dev_export_sub	exact	
+src/com/jjricks/volt/MoreScreen.java:2219	["Stop charge recording before exporting, or wait for the current export"]	more_dev_export_busy	exact	
+src/com/jjricks/volt/MoreScreen.java:2221	["Clear this scooter's charge recordings"]	more_dev_clear_charges	exact	
+src/com/jjricks/volt/MoreScreen.java:2223	["Clear charge recordings?"]	more_dev_clear_charges_title	exact	
+src/com/jjricks/volt/MoreScreen.java:2224	["Removes charges and learned curves. Rides stay."]	more_dev_clear_charges_body	exact	
+src/com/jjricks/volt/MoreScreen.java:2225	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:2225	["Clear recordings"]	more_dev_clear_recordings	exact	
+src/com/jjricks/volt/MoreScreen.java:2227	["Test layouts"]	more_dev_test_layouts	exact	
+src/com/jjricks/volt/MoreScreen.java:2229	["Load All widgets into slot 3"]	more_dev_slot3	exact	
+src/com/jjricks/volt/MoreScreen.java:2231	["Choose a scooter first."]	more_history_choose_scooter	exact	
+src/com/jjricks/volt/MoreScreen.java:2232	["Replace slot 3?"]	more_dev_slot3_title	exact	
+src/com/jjricks/volt/MoreScreen.java:2232	["Overwrites slot 3 only."]	more_dev_slot3_body	exact	
+src/com/jjricks/volt/MoreScreen.java:2232	["Replace slot 3"]	more_dev_slot3_action	exact	
+src/com/jjricks/volt/MoreScreen.java:2234	["All widgets saved in slot 3."]	more_dev_slot3_saved	exact	
+src/com/jjricks/volt/MoreScreen.java:2234	["Slot 3 could not be saved."]	more_dev_slot3_failed	exact	
+src/com/jjricks/volt/MoreScreen.java:2238	["Hide developer options"]	more_dev_hide	exact	
+src/com/jjricks/volt/MoreScreen.java:2241	["Stop charge recording before hiding developer options"]	more_dev_hide_recording	exact	
+src/com/jjricks/volt/MoreScreen.java:2242	["Finish or cancel the test first"]	more_dev_hide_test	exact	
+src/com/jjricks/volt/MoreScreen.java:2255	["Simulated model"]	more_dev_simulated_model	exact	
+src/com/jjricks/volt/MoreScreen.java:2261	["Close"]	common_close	exact	
+src/com/jjricks/volt/MoreScreen.java:2270	["Simulating"]	more_dev_simulating	exact	
+src/com/jjricks/volt/MoreScreen.java:2284	["Connect your scooter first"]	more_dev_connect_first	exact	
+src/com/jjricks/volt/MoreScreen.java:2285	["Stop charge recording"]	more_dev_stop_record	exact	
+src/com/jjricks/volt/MoreScreen.java:2285	["Record this charge"]	more_dev_record	exact	
+src/com/jjricks/volt/MoreScreen.java:2305	["Choose a scooter first."]	more_history_choose_scooter	exact	
+src/com/jjricks/volt/MoreScreen.java:2311	["Saved on phone · stops at 100% · keeps the last 20"]	more_dev_record_body	exact	
+src/com/jjricks/volt/MoreScreen.java:2315	["Which charger is attached?"]	more_dev_which_charger	exact	
+src/com/jjricks/volt/MoreScreen.java:2316	{"if": "selected[0] == ChargeSessionStore.Charger.STOCK", "then": ["Record with ", "Stock", " charger?"], "else": ["Record with ", "High-speed", " charger?"]}	more_dev_record_stock,more_dev_record_fast	choice	the record dialog's title for each charger, whole
+src/com/jjricks/volt/MoreScreen.java:2319	["Attached charger"]	more_dev_attached	exact	
+src/com/jjricks/volt/MoreScreen.java:2319	["Stock"]	more_dev_stock	exact	
+src/com/jjricks/volt/MoreScreen.java:2319	["High-speed"]	more_dev_high_speed	exact	
+src/com/jjricks/volt/MoreScreen.java:2328	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:2328	["Start recording"]	more_dev_start_recording	exact	
+src/com/jjricks/volt/MoreScreen.java:2333	["Scooter changed · reopen"]	more_dev_scooter_changed	exact	
+src/com/jjricks/volt/MoreScreen.java:2348	["Not applied until the charger is known"]	more_dev_not_applied	exact	
+src/com/jjricks/volt/MoreScreen.java:2349	["Stock charges"]	more_dev_stock_charges	exact	
+src/com/jjricks/volt/MoreScreen.java:2349	["High-speed charges"]	more_dev_fast_charges	exact	
+src/com/jjricks/volt/MoreScreen.java:2353	["Saved charge curves loading"]	more_dev_curves_loading	exact	
+src/com/jjricks/volt/MoreScreen.java:2353	["Saved charge curves not applied until the charger is known"]	more_dev_curves_not_applied	exact	
+src/com/jjricks/volt/MoreScreen.java:2354	{"if": "effective == ChargeSessionStore.Charger.STOCK", "then": [{"hole": "qualified", "arg": 1, "type": "s", "as": "Fmt.integer(qualified)"}, " qualified ", "stock", " charge recordings"], "else": [{"hole": "qualified", "arg": 1, "type": "s", "as": "Fmt.integer(qualified)"}, " qualified ", "high-speed", " charge recordings"]}	more_dev_curves_stock,more_dev_curves_fast	choice	the saved-curves summary for each charger, whole
+src/com/jjricks/volt/MoreScreen.java:2355	["A completed charge can refine its finishing range. Other ranges need two matching recordings. Estimates depend on coverage and live power; UT5 MAX stock and high-speed estimates also work without recordings."]	more_dev_curves_tooltip	exact	
+src/com/jjricks/volt/MoreScreen.java:2362	["Licenses & attribution"]	more_about_licenses	exact	
+src/com/jjricks/volt/MoreScreen.java:2370	["View full notices"]	more_notices_view	exact	
+src/com/jjricks/volt/MoreScreen.java:2372	["Close"]	common_close	exact	
+src/com/jjricks/volt/MoreScreen.java:2376	["Full notices"]	more_notices_full	exact	
+src/com/jjricks/volt/MoreScreen.java:2394	["Notices could not be read."]	more_notices_unreadable	exact	
+src/com/jjricks/volt/MoreScreen.java:2396	["Close"]	common_close	exact	
+src/com/jjricks/volt/MoreScreen.java:2413	["Owner"]	more_role_owner	exact	
+src/com/jjricks/volt/MoreScreen.java:2413	["Shared"]	more_role_shared	exact	
+src/com/jjricks/volt/MoreScreen.java:2415	["connected"]	more_link_connected	exact	
+src/com/jjricks/volt/MoreScreen.java:2416	["disconnected"]	more_link_disconnected	exact	
+src/com/jjricks/volt/MoreScreen.java:2416	["connecting"]	more_link_connecting	exact	
+src/com/jjricks/volt/MoreScreen.java:2417	["No scooter yet"]	more_index_no_scooter	exact	
+src/com/jjricks/volt/MoreScreen.java:2418	["Add a scooter to begin"]	more_index_add	exact	
+src/com/jjricks/volt/MoreScreen.java:2418	[{"hole": "role", "arg": 1, "type": "s"}, " · ", {"hole": "link", "arg": 2, "type": "s"}]	more_index_status	template	
+src/com/jjricks/volt/MoreScreen.java:2420	[{"hole": "name", "arg": 1, "type": "s"}, ", ", {"hole": "status", "arg": 2, "type": "s"}, ". Open My scooters"]	more_index_description	template	
+src/com/jjricks/volt/MoreScreen.java:2424	["Your saved scooters will appear here."]	more_scooters_empty	exact	
+src/com/jjricks/volt/MoreScreen.java:2439	["Connected"]	more_scooters_connected	exact	
+src/com/jjricks/volt/MoreScreen.java:2439	["Connecting…"]	more_connecting	exact	
+src/com/jjricks/volt/MoreScreen.java:2439	["Offline"]	more_scooters_offline	exact	
+src/com/jjricks/volt/MoreScreen.java:2447	["Model not identified"]	more_scooters_model_unknown	exact	
+src/com/jjricks/volt/MoreScreen.java:2448	[" · Shared access"]	more_scooters_shared_suffix	exact	
+src/com/jjricks/volt/MoreScreen.java:2451	["Last connected ", {"hole": "DateUtils.getRelativeTimeSpanString( item.lastConnected, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS)", "arg": 1, "type": "s"}]	more_scooters_last_connected	template	
+src/com/jjricks/volt/MoreScreen.java:2454	["Edit ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}]	more_scooters_edit_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2454	["Edit scooter"]	more_scooters_edit	exact	
+src/com/jjricks/volt/MoreScreen.java:2455	["Disconnect"]	more_scooters_disconnect	exact	
+src/com/jjricks/volt/MoreScreen.java:2455	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/MoreScreen.java:2455	["Connect"]	more_connect	exact	
+src/com/jjricks/volt/MoreScreen.java:2456	[{"hole": "action", "arg": 1, "type": "s"}, " ", {"hole": "item.name", "arg": 2, "type": "s", "as": "item.displayName()"}]	more_scooters_action_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2459	["Use ", {"hole": "item.name", "arg": 1, "type": "s", "as": "item.displayName()"}, ". View saved data without connecting"]	more_scooters_use_named	template	manual: the name hole is passed as item.displayName(), B6's display name: name itself, or owner_profile_default_name (English "My scooter", the stored default) for an unrenamed default profile, so English is unchanged
+src/com/jjricks/volt/MoreScreen.java:2465	["Allowed"]	more_permission_allowed	exact	
+src/com/jjricks/volt/MoreScreen.java:2465	["Not allowed"]	more_permission_not_allowed	exact	
+src/com/jjricks/volt/MoreScreen.java:2467	["Allowed"]	more_permission_allowed	exact	
+src/com/jjricks/volt/MoreScreen.java:2467	["Approximate"]	more_permission_approximate	exact	
+src/com/jjricks/volt/MoreScreen.java:2467	["Not allowed"]	more_permission_not_allowed	exact	
+src/com/jjricks/volt/MoreScreen.java:2470	["Allowed"]	more_permission_allowed	exact	
+src/com/jjricks/volt/MoreScreen.java:2470	["Off"]	common_off	exact	
+src/com/jjricks/volt/MoreScreen.java:2473	["Not read"]	more_pin_not_read	exact	
+src/com/jjricks/volt/MoreScreen.java:2474	["Rejected by scooter"]	more_pin_rejected	exact	
+src/com/jjricks/volt/MoreScreen.java:2475	["Not set"]	more_pin_not_set	exact	
+src/com/jjricks/volt/MoreScreen.java:2476	["Disabled"]	more_pin_disabled	exact	
+src/com/jjricks/volt/MoreScreen.java:2477	["Enabled"]	more_pin_enabled	exact	
+src/com/jjricks/volt/MoreScreen.java:2478	["Enabled"]	more_pin_enabled	exact	
+src/com/jjricks/volt/MoreScreen.java:2524	["PIN enabled"]	more_chip_pin_on	exact	
+src/com/jjricks/volt/MoreScreen.java:2524	["PIN not enabled"]	more_chip_pin_off	exact	
+src/com/jjricks/volt/MoreScreen.java:2526	["Phone paired"]	more_chip_paired	exact	
+src/com/jjricks/volt/MoreScreen.java:2526	["Phone not paired"]	more_chip_not_paired	exact	
+src/com/jjricks/volt/MoreScreen.java:2530	["UT5 MAX owner only"]	more_proximity_ut5_owner	exact	
+src/com/jjricks/volt/MoreScreen.java:2530	["Owner only"]	more_proximity_owner_only	exact	
+src/com/jjricks/volt/MoreScreen.java:2533	["Connect first"]	more_proximity_connect_first	exact	
+src/com/jjricks/volt/MoreScreen.java:2534	["Waiting for scooter"]	more_proximity_waiting	exact	
+src/com/jjricks/volt/MoreScreen.java:2535	["Not reported by firmware"]	more_proximity_not_reported	exact	
+src/com/jjricks/volt/MoreScreen.java:2536	["Enable the fallback PIN first"]	more_proximity_pin_first	exact	
+src/com/jjricks/volt/MoreScreen.java:2537	["Pair this phone first"]	more_proximity_pair_first	exact	
+src/com/jjricks/volt/MoreScreen.java:2538	[{"hole": "proximityRow.title.getText()", "arg": 1, "type": "s"}, ", ", {"hole": "proximityReason", "arg": 2, "type": "s"}]	more_proximity_description	template	
+src/com/jjricks/volt/MoreScreen.java:2540	["Paired"]	more_paired	exact	
+src/com/jjricks/volt/MoreScreen.java:2546	["Test while parked. After proximity unlock is turned on, the scooter may disconnect for a moment; Volt reconnects and confirms the change."]	more_security_notice	exact	

@@ -17,10 +17,10 @@ MainActivity.java	oem-label	1	B19	decision.oemLabel(value) shown in the value li
 MainActivity.java	reason-text	4	B19	toast/lock-queue reasons (943, 1592, 1597, 2311): rendered at display, already in the current language; LockTapQueue.reject stores it, so 943 takes reasonMessage() (B7 LockTapQueue R2)
 MainActivity.java	search-text	1	B19	settings search haystack (2199) matches English only: add feature.label() and description() as shown, folded with NaveeModels.displayFold-style rules
 MainActivity.java	variant-label	1	B19	decision.label(v) shown as a choice label (2326): decision.labelText(v)
-MoreScreen.java	feature-field	9	B18	f.label titles, sheets, slider and content descriptions, the experimental notes (1620-2017): feature.label(); the lowercased content descriptions (1667-1669) become whole templates
-MoreScreen.java	model-line	3	B18	model line shown on the saved scooter, the lab row and the about card (913, 1603, 2149): ModelRegistry.modelLineText
-MoreScreen.java	oem-label	1	B18	d.oemLabel(value) in the experimental value line (1608): d.oemText(value)
-MoreScreen.java	reason-text	4	B18	lab and PIN reasons (1662, 1986, 2529): rendered at display, current language already; B18 joins them into whole templates
+MoreScreen.java	feature-field	4	B18	the lowercased content descriptions (1669-1671) are whole templates whose hole is label.toLowerCase(Locale.ROOT), so English keeps its mid-sentence lower case; they need a lower-case name per feature (plan 4) before a language ships. The slider description (1877) shares its statement with the lab-slider tag, so G1 blocks f.label() there; switch it in a follow-up PR
+MoreScreen.java	model-line	2	B18	labModel's fallback line (1605) sits on the line whose "your model" moved, so G1 blocks the switch to ModelRegistry.modelLineText there (follow-up PR); the issue report (2153) is data and stays modelLine
+MoreScreen.java	oem-label	1	B18	d.oemLabel(value) in labValue (1610) is next to the moved "Standing start", so G1 blocks the switch to d.oemText(value) in B18; follow-up PR
+MoreScreen.java	reason-text	5	B18	lab and PIN reasons (1664 twice, 1988, 2533 twice): rendered at display, current language already; the lab value line now joins them as whole templates (more_plain, more_lab_value_reason)
 MoreScreen.java	resolver-text	1	B18	CapabilityResolver.text(reason) default branch (1689): rendered at display, current language already
 QuickAccessActions.java	feature-field	2	B12	ENTRIES title feature.label and subtitle feature.group (62, 63): int label ids or feature.label()/groupLabel() per plan 1.5 static catalogs
 QuickAccessGrid.java	oem-label	2	B12	decision.oemLabel(value) on the tile (79): decision.oemText(value)

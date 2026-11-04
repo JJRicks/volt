@@ -25,22 +25,10 @@
     <string name="more_back_to" volt:screen="More" volt:purpose="accessibility">Back to %1$s</string>
     <!-- Menu row: back up all of Volt's data to a file, or restore from one. -->
     <string name="more_backup_restore" volt:screen="More" volt:purpose="menu row">Back up &amp; restore</string>
-    <!-- Menu row and submenu title: the app's own settings. -->
-    <string name="more_section_app" volt:screen="More" volt:purpose="menu row">App preferences</string>
-    <!-- Menu row and submenu title: the saved scooters. -->
-    <string name="more_section_scooters" volt:screen="More" volt:purpose="menu row">My scooters</string>
-    <!-- Menu row: the handlebar PIN and proximity unlock settings. -->
-    <string name="more_section_security" volt:screen="More" volt:purpose="menu row">PIN &amp; proximity unlock</string>
-    <!-- Submenu title for the PIN and proximity unlock settings (shorter than the menu row). -->
-    <string name="more_section_security_title" volt:screen="More" volt:purpose="title">PIN &amp; proximity</string>
-    <!-- Menu row and submenu title: controls the official app does not offer on this model. -->
-    <string name="more_section_lab" volt:screen="More" volt:purpose="menu row" volt:safety="experimental">Experimental controls</string>
-    <!-- Menu row and submenu title: saved history and storage. -->
-    <string name="more_section_data" volt:screen="More" volt:purpose="menu row">Data &amp; history</string>
-    <!-- Menu row and submenu title: version, permissions and notices. -->
-    <string name="more_section_about" volt:screen="More" volt:purpose="menu row">About &amp; permissions</string>
-    <!-- Menu row and submenu title: hidden tools for testing Volt. -->
-    <string name="more_section_developer" volt:screen="More" volt:purpose="menu row">Developer options</string>
+    <!-- The back link from Units to the app's own settings page (the menu row's name). -->
+    <string name="more_section_app" volt:screen="More" volt:purpose="navigation">App preferences</string>
+    <!-- The back link from Compatibility to the hidden testing tools page (the menu row's name). -->
+    <string name="more_section_developer" volt:screen="More" volt:purpose="navigation">Developer options</string>
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
     <!-- Screen-reader text of the LAB badge. -->
@@ -166,14 +154,6 @@
     <string name="more_prefs_battery_unrestricted" volt:screen="App preferences" volt:purpose="accessibility">Battery use unrestricted</string>
     <!-- Screen-reader text of the battery value when Android may stop Volt in the background. -->
     <string name="more_prefs_battery_optimized" volt:screen="App preferences" volt:purpose="accessibility">Battery optimized; long recordings may stop. Opens battery settings</string>
-    <!-- Units row value when both miles and kilometres are shown. -->
-    <string name="more_units_dual" volt:screen="App preferences" volt:purpose="value">mi + km</string>
-    <!-- Units row value: 24-hour clock. -->
-    <string name="more_units_24h" volt:screen="App preferences" volt:purpose="value">24h</string>
-    <!-- Units row value: 12-hour clock. -->
-    <string name="more_units_12h" volt:screen="App preferences" volt:purpose="value">12h</string>
-    <!-- Units row value: %1$s distance units ("mi"), %2$s temperature unit ("°C"), %3$s clock ("12h"). -->
-    <string name="more_units_summary" volt:screen="App preferences" volt:purpose="value">%1$s · %2$s · %3$s</string>
     <!-- Map settings row value: a custom map source. USGS and OSM stay as they are (map service names). -->
     <string name="more_prefs_map_custom" volt:screen="App preferences" volt:purpose="value">Custom</string>
     <!-- Shown when Android's app list opens instead of Volt's own settings page. -->
@@ -355,20 +335,14 @@
     <string name="more_lab_intro_untested" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer these for %1$s. Try one while parked; Volt reads it back.</string>
     <!-- Intro when the controls are offered by the official app but untested by Volt. %1$s names the model as in more_lab_intro_untested. -->
     <string name="more_lab_intro_verify" volt:screen="Experimental controls" volt:purpose="body" volt:safety="experimental">The official app offers these for %1$s, but Volt hasn\'t tested them there. Try one while parked; Volt reads it back.</string>
-    <!-- Added after the footnote when there are rows to try. -->
-    <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
+    <!-- Added after the footnote (more_lab_foot, _oem, _elsewhere) when there are rows to try; it starts with a space because it follows that sentence. Drop the space if your language joins sentences without one. -->
+    <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."</string>
     <!-- Footnote for a model whose controls the official app lists. -->
     <string name="more_lab_foot_oem" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware.</string>
-    <!-- more_lab_foot_oem followed by more_lab_kept, as one text. -->
-    <string name="more_lab_foot_oem_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Speed limits, charging, the lock, PIN, proximity unlock and the clock are never added here. Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
     <!-- Footnote for the UT5 MAX. -->
     <string name="more_lab_foot_elsewhere" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware.</string>
-    <!-- more_lab_foot_elsewhere followed by more_lab_kept, as one text. -->
-    <string name="more_lab_foot_elsewhere_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Controls the official app offers for your model stay in Scooter settings. Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
     <!-- Footnote for other models. -->
     <string name="more_lab_foot" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt never changes firmware.</string>
-    <!-- more_lab_foot followed by more_lab_kept, as one text. -->
-    <string name="more_lab_foot_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="experimental">Volt never changes firmware. Try results stay on this phone until a compatibility report you send includes them, or until you clear them.</string>
     <!-- Shown while Volt connects to the scooter. -->
     <string name="more_connecting" volt:screen="Experimental controls" volt:purpose="status">Connecting…</string>
     <!-- Group label: controls to try. -->
@@ -717,7 +691,7 @@
     <!-- Why a charge can't be recorded yet. -->
     <string name="more_dev_connect_first" volt:screen="Developer options" volt:purpose="status" volt:safety="charge">Connect your scooter first</string>
     <!-- Under the dialog title: the recording stays on the phone, ends at full charge, and the last 20 are kept. -->
-    <string name="more_dev_record_body" volt:screen="Record a charge" volt:purpose="dialog" volt:safety="charge">Saved on phone · stops at 100%% · keeps the last 20</string>
+    <string name="more_dev_record_body" volt:screen="Record a charge" volt:purpose="dialog" formatted="false" volt:safety="charge">Saved on phone · stops at 100% · keeps the last 20</string>
     <!-- Dialog title before a charger is chosen. -->
     <string name="more_dev_which_charger" volt:screen="Record a charge" volt:purpose="title" volt:safety="charge">Which charger is attached?</string>
     <!-- Dialog title with the stock charger chosen. -->
@@ -781,8 +755,8 @@
     <string name="more_scooters_offline" volt:screen="My scooters" volt:purpose="status">Offline</string>
     <!-- Card line when Volt doesn't know the scooter's model. -->
     <string name="more_scooters_model_unknown" volt:screen="My scooters" volt:purpose="caption">Model not identified</string>
-    <!-- Card line for a shared scooter: %1$s is the model ("N65i", or more_scooters_model_unknown). -->
-    <string name="more_scooters_shared_model" volt:screen="My scooters" volt:purpose="caption">%1$s · Shared access</string>
+    <!-- Added after the model on a shared scooter's card ("N65i · Shared access"). Keep the leading space and the separator. -->
+    <string name="more_scooters_shared_suffix" volt:screen="My scooters" volt:purpose="caption">" · Shared access"</string>
     <!-- Card line: %1$s is Android's relative time ("5 minutes ago", "Yesterday"). -->
     <string name="more_scooters_last_connected" volt:screen="My scooters" volt:purpose="caption">Last connected %1$s</string>
     <!-- Screen-reader label of the pencil button. %1$s is the scooter's name. -->
