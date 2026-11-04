@@ -200,6 +200,30 @@ public final class RidesTextTest {
         return text;
     }
 
+    /** RidesScreen.datePattern() and skeleton(), with Android's best-pattern lookup passed in. */
+    static String datePattern(String legacy, java.util.function.BiFunction<Locale, String, String> best) {
+        return Fmt.datePattern(legacy, skeleton(legacy), best);
+    }
+    static String skeleton(String pattern) {
+        StringBuilder letters = new StringBuilder(pattern.length());
+        for (int i = 0; i < pattern.length(); i++) if (Character.isLetter(pattern.charAt(i))) letters.append(pattern.charAt(i));
+        return letters.toString();
+    }
+
+    /** The ride dates keep their legacy patterns (base RidesScreen.java:1506, 2094, 2095) and default locale in English. */
+    private static void dates() {
+        eq("MMMd", skeleton("MMM d"), "date skeleton");
+        eq("EEEMMMd", skeleton("EEE, MMM d"), "day date skeleton");
+        java.util.function.BiFunction<Locale, String, String> best = (locale, skeleton) -> { throw new AssertionError("English asked for a best pattern"); };
+        eq("MMM d", datePattern("MMM d", best), "date pattern");
+        eq("EEE, MMM d", datePattern("EEE, MMM d", best), "day date pattern");
+        checks++;
+        if (Fmt.locale(Locale.getDefault()) != Locale.getDefault()) throw new AssertionError("dates keep the default locale in English");
+        long wall = 1_700_000_000_000L;
+        eq(new java.text.SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(new java.util.Date(wall)),
+                new java.text.SimpleDateFormat(datePattern("EEE, MMM d", best), Fmt.locale(Locale.getDefault())).format(new java.util.Date(wall)), "long date");
+    }
+
     /** The PhoneRideRecorder.Gps texts and flags (PhoneRideRecorder.java:42-51), in order. */
     private static final String[] GPS_TEXTS = {"GPS off", "Starting phone sensors", "Waiting for GPS", "Location is off",
             "GPS unavailable", "GPS permission unavailable", "Location permission not granted", "GPS recording",
@@ -302,6 +326,7 @@ public final class RidesTextTest {
         eq("At 12:04:05", T.mapsChartCursorAt("12:04:05"), "chart cursor");
         eq(", accuracy ±12 ft", T.ridesPointAccuracy("12 ft"), "accuracy");
         phoneStatus();
+        dates();
     }
 
     /** The texts come from the catalog: with a source that answers keys, each names its key. */
