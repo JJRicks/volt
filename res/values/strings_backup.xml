@@ -17,8 +17,8 @@
   - the file name a backup is saved under (volt-full-..., volt-selected-...): data, never translated.
   Dates and sizes are not English: the backup's date (DateFormat, MEDIUM date, SHORT time) and sizes
   (Android's Formatter) follow Volt's locale, as before. After a language change the Restore page's
-  date and the Readings history size are formatted again; the rides and charges rows ("12 · 3.4 MB")
-  keep the size as built, because G1 refuses moving their " · " beside the row's labelMsg change.
+  date, the Readings history size and the size on the rides and charges rows ("12 · 3.4 MB") are
+  formatted again; those rows keep their count and " · " as shown.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">

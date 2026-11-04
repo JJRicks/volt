@@ -540,9 +540,10 @@ public final class BackupActivity extends Activity {
     private InputFilter keep(TextView view){return (source,start,end,dest,dstart,dend)->{words.put(view,source);return null;};}
     /** The category details backupCategories and restoreCategories render in the language of that moment: the
      * catalog's ("None", the private scooter count) and the Readings history size (Formatter, in this Activity's
-     * locale). The counts from BackupArchive.plural are English in every language, and the rides and charges rows'
-     * "12 · 3.4 MB" keeps the size as built (G1 refuses moving its " · " beside that line's labelMsg change). A row
-     * built again by checkRow, off screen, gives the shown row its detail and spoken label. */
+     * locale). The counts from BackupArchive.plural are English in every language. The rides and charges rows'
+     * "12 · 3.4 MB" keep the count and separator as shown (backupCategories wrote the count's digits, then " · ") and
+     * take the size formatted again. A row built again by checkRow, off screen, gives the shown row its detail and
+     * spoken label. */
     private void relabelCounts(){
         LinearLayout scratch=new LinearLayout(this);
         for(Map.Entry<String,CheckBox> e:boxes.entrySet()){
@@ -552,6 +553,10 @@ public final class BackupActivity extends Activity {
                 if(!hasItems(id))detail=T.backupDetailNone();
                 else if(id.equals(BackupRegistry.SCOOTERS))detail=T.backupDetailPrivate(inventory.get(id)[0]);
                 else if(id.equals(BackupRegistry.HISTORY))detail=size(inventory.get(id)[1]);
+                else if(id.equals(BackupRegistry.RIDES)||id.equals(BackupRegistry.CHARGES)){
+                    View shown=((android.view.ViewGroup)e.getValue().getParent()).getChildAt(1);int cut=Long.toString(inventory.get(id)[0]).length()+3;
+                    if(shown instanceof TextView&&((TextView)shown).length()>cut)detail=((TextView)shown).getText().toString().substring(0,cut)+size(inventory.get(id)[1]);
+                }
             }
             if(detail==null)continue;
             scratch.removeAllViews();CheckBox fresh=checkRow(scratch,null,AppDataBackup.labelMsg(id),detail,true,false);words.remove(fresh);
