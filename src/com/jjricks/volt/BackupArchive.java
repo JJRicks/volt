@@ -660,12 +660,14 @@ final class BackupArchive {
         if (category.equals(BackupRegistry.DASHBOARDS) && !replaced.isEmpty() && prepared.preferences.get("app_settings").containsKey("dashboard_columns"))
             result.get("app_settings").put("dashboard_columns", prepared.preferences.get("app_settings").get("dashboard_columns"));
         List<String> labels = new ArrayList<>(); for (String target : replaced) labels.add(names.getOrDefault(target, "Saved scooter"));
-        CharSequence label = BackupRegistry.labelMsg(category);
+        String label = BackupRegistry.label(category);
+        // The moved lines name the category in the shown language; the line still built here in English keeps LABELS' English.
+        Msg shown = BackupRegistry.labelMsg(category);
         // Name what is replaced, so the line never reads as replacing the scooter itself.
         String what = category.equals(BackupRegistry.DASHBOARDS) ? "layouts" : "settings";
         lines.add(label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + String.join(", ", labels)));
-        for (String target : shared) lines.add(M.backupEnginePlanKept(label, names.getOrDefault(target, "Saved scooter")));
-        if (skipped > 0) lines.add(M.backupEnginePlanCategorySkipped(skipped, label, skipped));
+        for (String target : shared) lines.add(M.backupEnginePlanKept(shown, names.getOrDefault(target, "Saved scooter")));
+        if (skipped > 0) lines.add(M.backupEnginePlanCategorySkipped(skipped, shown, skipped));
     }
     /** Add-only by UUID, then by scooter and START clocks; a differing local copy is kept. */
     private static void recordings(Storage storage, File data, List<Recording> staged, boolean charges, Map<String, String> mapping, List<String> additions, List<CharSequence> lines, List<String> orphans) throws IOException {
