@@ -234,6 +234,9 @@ public final class BleController {
      * MainActivity's chips compare it and ScooterService's diagnostics write it (reports stay English), so it never
      * follows the language. REJECTED's token is only the start: the scooter's error code and ")" follow it. OTHER is any
      * other producer's text (ProximityFollowUp's reconnect results, GuidedTest's outcomes), which displayResult shows as it is.
+     * It matches exact tokens (and REJECTED's "Rejected (" start), so it is NOT a drop-in for MainActivity's chips, which
+     * match by prefix: GuidedTest's "Rejected, code N" is OTHER here but "Rejected" there. A caller that switches a chip
+     * to this enum must keep those prefix rules for OTHER tokens.
      */
     public enum ResultEvidence{
         CONFIRMED(RESULT_CONFIRMED),SETTING_CONFIRMED(RESULT_SETTING_CONFIRMED),CLOCK_ACCEPTED(RESULT_CLOCK_ACCEPTED),ACCEPTED_UNREADABLE(RESULT_ACCEPTED_UNREADABLE),

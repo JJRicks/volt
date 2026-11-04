@@ -43,7 +43,8 @@
     <!-- A setting change is being sent to the scooter. %1$s is the control's name in lower case, in
          English until the controls batch gives control names their translation (for example
          "cruise control"); a language that cannot use it mid-sentence may write "%1$s: applying…". -->
-    <string name="ble_applying" volt:screen="Connection state" volt:purpose="status">Applying %1$s…</string>
+    <string name="ble_applying" volt:screen="Connection state" volt:purpose="status"
+        volt:safety="lock,pin">Applying %1$s…</string>
 
     <!-- ===== Shared connection ids (kept as English ids in BleController; shown through these) ===== -->
 
@@ -171,7 +172,8 @@
     <!-- The control already has the value asked for, so nothing was sent. %1$s is the control's name,
          in English until the controls batch gives control names their translation. A language whose
          participle would have to agree with the name may write "%1$s: already set." -->
-    <string name="ble_already_set" volt:screen="Scooter controls" volt:purpose="notice">%1$s is already set.</string>
+    <string name="ble_already_set" volt:screen="Scooter controls" volt:purpose="notice"
+        volt:safety="lock">%1$s is already set.</string>
     <!-- The scooter refused a setting change. -->
     <string name="ble_change_rejected" volt:screen="Scooter controls" volt:purpose="error"
         volt:safety="lock">Change rejected</string>
@@ -191,7 +193,8 @@
     <!-- A control reads back as asked. %1$s is the control's name, in English until the controls batch
          gives control names their translation. A language whose participle would have to agree with the
          name may write "%1$s: confirmed." -->
-    <string name="ble_label_confirmed" volt:screen="Scooter controls" volt:purpose="confirmation">%1$s confirmed.</string>
+    <string name="ble_label_confirmed" volt:screen="Scooter controls" volt:purpose="confirmation"
+        volt:safety="lock">%1$s confirmed.</string>
     <!-- The clock was sent; this scooter cannot read it back, so it is not verified. -->
     <string name="ble_clock_sent" volt:screen="Scooter controls" volt:purpose="confirmation">Clock sent (unverified)</string>
 
@@ -262,21 +265,25 @@
     <!-- ===== A control's latest result (Command evidence, and the chips on control rows) ===== -->
 
     <!-- The scooter read back the value asked for. -->
-    <string name="ble_result_confirmed" volt:screen="Command evidence" volt:purpose="result">Confirmed</string>
+    <string name="ble_result_confirmed" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Confirmed</string>
     <!-- A light setting read back as asked; Volt cannot measure the light itself. -->
     <string name="ble_result_setting_confirmed" volt:screen="Command evidence" volt:purpose="result">Setting confirmed by readback; light output not measured</string>
     <!-- The scooter accepted the clock; it cannot report its clock back. -->
     <string name="ble_result_clock_accepted" volt:screen="Command evidence" volt:purpose="result">Accepted; no clock readback available</string>
     <!-- The scooter accepted the change, but its firmware does not report this setting, so Volt cannot
          check it. -->
-    <string name="ble_result_accepted_unreadable" volt:screen="Command evidence" volt:purpose="result">Accepted; state not exposed by firmware</string>
+    <string name="ble_result_accepted_unreadable" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Accepted; state not exposed by firmware</string>
     <!-- No confirmation came in time; the change may or may not have been applied. -->
     <string name="ble_result_not_confirmed" volt:screen="Command evidence" volt:purpose="result"
-        volt:safety="lock">Change not confirmed</string>
+        volt:safety="lock,pin">Change not confirmed</string>
     <!-- The scooter refused the change. %1$s is the scooter's error code number, as it sent it. -->
-    <string name="ble_result_rejected" volt:screen="Command evidence" volt:purpose="result">Rejected (%1$s)</string>
+    <string name="ble_result_rejected" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Rejected (%1$s)</string>
     <!-- The change was dropped before it was sent to the scooter. -->
-    <string name="ble_result_cancelled" volt:screen="Command evidence" volt:purpose="result">Cancelled before sending</string>
+    <string name="ble_result_cancelled" volt:screen="Command evidence" volt:purpose="result"
+        volt:safety="lock,pin">Cancelled before sending</string>
     <!-- The change was a guided test's write. -->
     <string name="ble_result_guided_test" volt:screen="Command evidence" volt:purpose="result"
         volt:safety="experimental">Guided test</string>
