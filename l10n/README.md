@@ -360,6 +360,24 @@ How `ledger_check.py` (G1) reads it:
   prints for each form. A helper with any other body (`count()` in
   BackupArchive, which picks the noun by category) needs a model added in a tooling pull request,
   with a test, or stays English.
+- **Not yet usable: a plural key whose English items differ.** `AndroidText.plural` still returns
+  `resources.getQuantityString`, which picks the item by the plural rules of the phone's first
+  locale, so where Volt ships no translation a Russian phone at 21, or a French or Portuguese phone
+  at 0, would print `one` ("Readings for 21 scooter") where the base printed "21 scooters". G1
+  fails every `plural` row whose key's English `one` and `other` items differ (every helper row,
+  and a `manual:` row for `n + (n == 1 ? " ride" : " rides")`), until `tools/l10n/gen_catalog.py` sets `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`. Only the
+  pull request that makes AndroidText pick default English items by English rules sets it (the
+  runtime track, "plural rules follow the text served"), with a test. Until then those phrases stay
+  English.
+- **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
+  summary picks words in a local and uses it later: `String what = ... ? "layouts" : "settings";`
+  then `"replaces " + what + " for " + ...` (merge-base lines 656-657), and
+  `String noun = charges ? "charge" : "ride";` then `plural(full, noun)` (lines 710-714). A choice
+  row's condition must sit in the row's expression, and a helper's text argument is a literal or a
+  hole, so a hole for `noun` renders a fragment, not a sentence: the whole-sentence conversion
+  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. These
+  lines stay English until a tooling pull request models a local whose initializer is a ternary of
+  literals.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming

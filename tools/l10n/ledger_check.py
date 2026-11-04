@@ -231,6 +231,22 @@ HELPER_OUTPUT = {
 }
 # The quantities G1 and G2 check each English plural form at (LedgerTest.compare).
 FORM_QUANTITIES = {"one": (1,), "other": (0, 2, 21)}
+# gen_catalog sets this True only once AndroidText picks the item of default English text by English rules,
+# whatever the phone's language (the runtime track, "plural rules follow the text served"). Until then Android
+# picks by the first locale's rules, so a phone in a language Volt does not ship serves "one" at 21 (ru) or
+# at 0 (fr, pt): a plural key whose English one and other items differ would change English there.
+PLURAL_RULES_FLAG = "PLURAL_ITEMS_FOLLOW_SERVED_TEXT"
+
+
+def english_plurals_follow_english_rules():
+    return getattr(gen_catalog, PLURAL_RULES_FLAG, False) is True
+
+
+def differing_english_items(entry):
+    """The English items of a plural entry that differ from its other item (empty when all are the same)."""
+    other = entry.items.get("other")
+    return [q for q, item in entry.items.items()
+            if q != "other" and other is not None and item.text != other.text]
 HELPER_PLACEHOLDER = re.compile(r"%(\d+)\$([sd])|%%")
 
 
@@ -776,6 +792,17 @@ def check_against_catalog(rows, catalog, changes=None):
         want = "plural" if row.kind == "plural" else "string"
         if entry.kind != want:
             problems.append("%s: key %s is a %s, but the row's kind is %s" % (where, row.key, entry.kind, row.kind))
+            continue
+        if row.kind == "plural" and differing_english_items(entry) and not english_plurals_follow_english_rules():
+            problems.append(
+                "%s: plural %s's English %s and other items differ (%s), but AndroidText still lets Android pick "
+                "the item by the plural rules of the phone's first locale, so where Volt ships no translation a "
+                "Russian phone at 21 or a French or Portuguese phone at 0 would print the %s item, not what the "
+                "base printed; a plural row whose English items differ waits for the runtime fix "
+                "(tools/l10n/gen_catalog.py %s = True)" % (
+                    where, row.key, "/".join(differing_english_items(entry)),
+                    "; ".join("%s %r" % (q, entry.items[q].text) for q in entry.items),
+                    "/".join(differing_english_items(entry)), PLURAL_RULES_FLAG))
             continue
         if row.kind == "format":
             problems.extend(check_format_catalog(row, entry, catalog, changes, where))
