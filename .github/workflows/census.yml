@@ -136,9 +136,11 @@ jobs:
           path: ${{ runner.temp }}/diff
           retention-days: 3
           if-no-files-found: error
-      - name: Fail when any run is missing
+      - name: Fail when any run is missing or not clean
         run: |
-          if [ -s "$RUNNER_TEMP/diff/missing.txt" ] || [ "$(cat "$RUNNER_TEMP/diff/report-rc.txt")" != 0 ]; then
-            echo "::error::$(wc -l < "$RUNNER_TEMP/diff/missing.txt") run(s) have no summary.json; see missing.txt in the census-diff artifact"
+          D="$RUNNER_TEMP/diff"
+          if [ -s "$D/missing.txt" ] || [ -s "$D/not-clean.txt" ] || [ "$(cat "$D/report-rc.txt")" != 0 ]; then
+            echo "::error::$(wc -l < "$D/missing.txt") run(s) have no summary.json and $(cut -f2 "$D/not-clean.txt" | sort -u | wc -l) step(s) are not clean; see not-clean.txt in the census-diff artifact"
+            cat "$D/not-clean.txt"
             exit 1
           fi

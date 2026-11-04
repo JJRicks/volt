@@ -61,6 +61,7 @@ The run's **summary page** shows each head's total (the same three blocks the lo
 | `results.tsv` | every (tag, step) run: sweep rc, seconds, the sweep's PASS/FAIL line, census screens and problems |
 | `results.txt` | every shard's `results.txt` (the local worker's log format) |
 | `missing.txt` | `tag<TAB>step` for each run with no `summary.json` (empty when all ran) |
+| `not-clean.txt` | `tag<TAB>step<TAB>reason` for each run that makes its step's result untrustworthy (empty when every step is clean; see below) |
 | `summary.md`, `plan.json`, `builds.txt` | the job summary, the validated plan with its shards, the APK hashes |
 
 The `census-shard-<n>` artifacts hold `out/<tag>/<step>/` (exactly the local `OUT/TAG/STEP`, with
@@ -68,9 +69,20 @@ The `census-shard-<n>` artifacts hold `out/<tag>/<step>/` (exactly the local `OU
 `results.txt`, the emulator log). `census-apks` has the APKs that ran (throwaway-signed; never install
 them on a phone). Artifacts are kept for 3 days.
 
-The **diff job fails** when any (tag, step) run left no `summary.json`; a failed step otherwise never
-stops its shard, and text differences never fail the workflow (read them as you would locally). The
-run job is red when its emulator did not boot (or a restart failed); its runs are still tried.
+The **diff job fails** when any (tag, step) run left no `summary.json` or any step is **not clean**
+(`not-clean.txt`, also on the summary page). `census_diff.py` only compares a screen that both base
+runs have: a screen one base run missed is counted as volatile and never compared, and a step where
+no run has screens passes with nothing compared. So `report.py` calls a run not clean when its sweep's
+rc is not 0 (it stopped partway); its `summary.json` is unreadable or has no entry or no
+`census_screens` for the step; it has no census screens on a step where the local census has some; for
+the two base runs, when they do not hold the same census files; and, when the base is the commit
+`screens.tsv` was measured on (main-f529, the local `sweeps/wave3-b16` census), when a base run's
+screen count differs from the local one. A not-clean step's PASS proves nothing: rerun it. A head
+with fewer screens than the base is listed as a note (its diff already fails with "only in base"). A
+failed step otherwise never stops its shard, and text differences never fail the workflow (read them
+as you would locally). The run job is red when its emulator did not boot (or a restart failed); its
+runs are still tried. `diff.sh` itself stays the local script, so its `NOT CLEAN` block still only
+looks at census_diff's rc and missing `summary.json`; `not-clean.txt` is the complete list.
 
 ## What is different from the local census
 
