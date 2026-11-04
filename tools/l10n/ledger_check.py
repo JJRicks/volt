@@ -1994,6 +1994,350 @@ def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
     return problems, warning
 
 
+# ---------------------------------------------------------------------------
+# Types declared in src at head: an exception that a converted throw switches to
+# ---------------------------------------------------------------------------
+
+THROWABLE_SUFFIXES = ("Exception", "Error", "Throwable")
+# Methods that change what a Throwable prints; a class between the new and the old type may not declare them.
+MESSAGE_METHODS = frozenset(("getMessage", "getLocalizedMessage", "toString"))
+
+TypeDecl = collections.namedtuple("TypeDecl", "path tokens name keyword open close extends")
+"""A class declared in a src file at head: its tokens, the class keyword's index, the { and } of its body,
+and the simple name its extends clause names (None without one)."""
+
+
+def _simple_type(tokens, j, end):
+    """The simple name of the type that starts at token j (a.b.C<X> gives C) before index end."""
+    name = None
+    while j < end:
+        t = tokens[j]
+        if t.kind == "ident":
+            name = t.value
+            if j + 1 < end and tokens[j + 1].kind == "op" and tokens[j + 1].value == ".":
+                j += 2
+                continue
+        break
+    return name
+
+
+class SourceTypes(object):
+    """The classes declared in src at head, by simple name, read lazily from {path: text}."""
+
+    def __init__(self, texts):
+        self._texts, self._by_name = texts, None
+
+    def named(self, name):
+        if self._by_name is None:
+            self._by_name = collections.defaultdict(list)
+            for path, text in sorted(self._texts.items()):
+                if text is None:
+                    continue
+                try:
+                    tokens = l10nlib.lex_java(text)
+                except l10nlib.LexError:
+                    continue
+                for k in range(len(tokens) - 1):
+                    if tokens[k].kind != "ident" or tokens[k].value != "class" or tokens[k + 1].kind != "ident" or \
+                            (k > 0 and tokens[k - 1].kind == "op" and tokens[k - 1].value == "."):
+                        continue
+                    open_ = k + 2
+                    while open_ < len(tokens) and not (tokens[open_].kind == "op" and tokens[open_].value in "{;"):
+                        open_ += 1
+                    if open_ >= len(tokens) or tokens[open_].value != "{":
+                        continue
+                    extends = None
+                    for j in range(k + 2, open_):
+                        if tokens[j].kind == "ident" and tokens[j].value == "extends":
+                            extends = _simple_type(tokens, j + 1, open_)
+                            break
+                    self._by_name[tokens[k + 1].value].append(TypeDecl(
+                        path, tokens, tokens[k + 1].value, k, open_, expressions.match_brace(tokens, open_), extends))
+        return self._by_name.get(name, [])
+
+
+def _members(decl):
+    """[(name token index, ( index, ) index, body { index or None)] of the methods and constructors
+    declared directly in a class body (nested types, initializers and bodies are skipped)."""
+    tokens, found, j = decl.tokens, [], decl.open + 1
+    while j < decl.close:
+        t = tokens[j]
+        if t.kind == "op" and t.value == "{":
+            j = expressions.match_brace(tokens, j) + 1
+            continue
+        if t.kind == "ident" and j + 1 < decl.close and tokens[j + 1].kind == "op" and tokens[j + 1].value == "(" and \
+                not (tokens[j - 1].kind == "ident" and tokens[j - 1].value == "new") and \
+                not (tokens[j - 1].kind == "op" and tokens[j - 1].value == "."):
+            close = expressions.match_forward(tokens, j + 1)
+            if close is None:
+                break
+            k = close + 1
+            while k < decl.close and not (tokens[k].kind == "op" and tokens[k].value in ("{", ";", "=", ",")):
+                k += 1
+            if k < decl.close and tokens[k].value in ("{", ";"):
+                found.append((j, j + 1, close, k if tokens[k].value == "{" else None))
+                j = (expressions.match_brace(tokens, k) + 1) if tokens[k].value == "{" else k + 1
+                continue
+            j = close + 1
+            continue
+        j += 1
+    return found
+
+
+def _parameters(tokens, opener, close):
+    """[(simple type name, parameter name)] of a parameter list ( ... )."""
+    params, start, depth = [], opener + 1, 0
+    if close == opener + 1:
+        return params
+    for k in range(opener + 1, close + 1):
+        t = tokens[k]
+        if k == close or (depth == 0 and t.kind == "op" and t.value == ","):
+            part = [x for x in tokens[start:k] if not (x.kind == "ident" and x.value == "final")]
+            while part and part[0].kind == "op" and part[0].value == "@":
+                part = part[2:]
+            params.append((_simple_type(part, 0, len(part) - 1) if len(part) > 1 else None,
+                           part[-1].value if part else None))
+            start = k + 1
+        elif t.kind == "op" and t.value in ("(", "<", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", ">", "]"):
+            depth -= 1
+    return params
+
+
+def _raw(tokens, first, last):
+    return [t.raw for t in tokens[first:last + 1]]
+
+
+def _english_helper(decl, name):
+    """True when the class declares a method NAME(Msg p) whose body is `return p.english();`, optionally
+    after `if (p == null) throw new NullPointerException(...);` (UserFacingException's english)."""
+    tokens = decl.tokens
+    for at, opener, close, body in _members(decl):
+        if tokens[at].value != name or body is None:
+            continue
+        params = _parameters(tokens, opener, close)
+        if len(params) != 1 or params[0][0] != "Msg":
+            continue
+        p = params[0][1]
+        inner = _raw(tokens, body + 1, expressions.match_brace(tokens, body) - 1)
+        guard = ["if", "(", p, "==", "null", ")", "throw", "new", "NullPointerException", "("]
+        if inner[:len(guard)] == guard:
+            end = inner.index(";") if ";" in inner else len(inner)
+            if end != len(inner) and inner[end - 1] == ")" and all(x.startswith('"') or x == ")" for x in inner[len(guard):end]):
+                inner = inner[end + 1:]
+        if inner == ["return", p, ".", "english", "(", ")", ";"]:
+            return True
+    return False
+
+
+def english_constructors(types, decl, arity, msg_at, seen=()):
+    """(problem or None, [constructor excerpts]) for a new <decl>(...) call with arity arguments whose
+    argument msg_at is a Msg: every constructor that call can pick must keep getMessage() the English
+    text, by passing the Msg's english() (or a method english(msg) that returns it) as the message of a
+    JDK superclass, or the Msg itself to such a constructor of a src superclass or of this class."""
+    tokens = decl.tokens
+    chosen = []
+    for at, opener, close, body in _members(decl):
+        if tokens[at].value != decl.name or body is None:
+            continue
+        params = _parameters(tokens, opener, close)
+        if len(params) == arity and params[msg_at][0] == "Msg":
+            chosen.append((at, opener, close, body, params))
+    where = "%s:%d" % (decl.path, tokens[decl.keyword].line)
+    if not chosen:
+        return ("%s (%s) has no constructor with %d parameter(s) whose parameter %d is a Msg, so the catalog call "
+                "cannot keep getMessage() the English text" % (decl.name, where, arity, msg_at + 1)), []
+    shown = []
+    for at, opener, close, body, params in chosen:
+        end = expressions.match_brace(tokens, body)
+        excerpt = _excerpt(tokens[at:end + 1], None)
+        shown.append("`%s` (%s:%d)" % (excerpt, decl.path, tokens[at].line))
+        msg = params[msg_at][1]
+        first = body + 1
+        semicolon = first
+        while semicolon < end and not (tokens[semicolon].kind == "op" and tokens[semicolon].value == ";"):
+            semicolon += 1
+        call = _raw(tokens, first, semicolon - 1)
+        if len(call) < 3 or call[0] not in ("super", "this") or call[1] != "(" or \
+                expressions.match_forward(tokens, first + 1) != semicolon - 1:
+            return ("the constructor `%s` (%s:%d) does not start with super(...) or this(...) passing its Msg %s, so "
+                    "getMessage() is not the English text" % (excerpt, decl.path, tokens[at].line, msg)), shown
+        _, spans = _argument_spans(tokens, first + 1)
+        args = [_raw(tokens, a, b) for a, b in spans]
+        key = (decl.path, at)
+        if key in seen:
+            return "the constructor `%s` calls itself" % excerpt, shown
+        if call[0] == "this" or (decl.extends and len(types.named(decl.extends)) == 1):
+            target = decl if call[0] == "this" else types.named(decl.extends)[0]
+            if [msg] not in args:
+                return ("the constructor `%s` (%s:%d) passes its Msg %s on to %s(...) other than as a whole argument, "
+                        "so G1 cannot follow it to getMessage()" % (excerpt, decl.path, tokens[at].line, msg,
+                                                                   call[0])), shown
+            problem, more = english_constructors(types, target, len(args), args.index([msg]), seen + (key,))
+            shown.extend(more)
+            if problem:
+                return problem, shown
+            continue
+        if decl.extends and len(types.named(decl.extends)) > 1:
+            return "%s extends %s, which src declares more than once" % (decl.name, decl.extends), shown
+        message = args[0] if args else []
+        if message != [msg, ".", "english", "(", ")"] and not (
+                len(message) == 4 and message[1:] == ["(", msg, ")"] and _english_helper(decl, message[0])):
+            return ("the constructor `%s` (%s:%d) passes `%s` as the message of %s; getMessage() stays the English "
+                    "text only when it passes %s.english() (or a method english(Msg) that returns it)" % (
+                        excerpt, decl.path, tokens[at].line, " ".join(message) or "nothing",
+                        decl.extends or "Object", msg)), shown
+    return None, shown
+
+
+def _new_site(tokens, first, last):
+    """(new index, type first, type last, opener, [(first, last)] argument spans, argument index) when
+    tokens first..last are one whole argument of a new Type(...) expression, else None."""
+    depth, j = 0, first - 1
+    while j >= 0:
+        t = tokens[j]
+        if t.kind == "op" and t.value in (")", "]", "}"):
+            depth += 1
+        elif t.kind == "op" and t.value in ("(", "[", "{"):
+            if depth == 0:
+                break
+            depth -= 1
+        j -= 1
+    if j < 2 or tokens[j].value != "(":
+        return None
+    close, spans = _argument_spans(tokens, j)
+    if close is None or (first, last) not in spans:
+        return None
+    name_last, name_first = j - 1, j - 1
+    if tokens[name_last].kind != "ident":
+        return None
+    while name_first >= 2 and tokens[name_first - 1].value == "." and tokens[name_first - 2].kind == "ident":
+        name_first -= 2
+    if name_first < 1 or tokens[name_first - 1].kind != "ident" or tokens[name_first - 1].value != "new":
+        return None
+    return name_first - 1, name_first, name_last, j, spans, spans.index((first, last))
+
+
+def _id_argument(types, decl, tokens, first, last):
+    """True when tokens first..last name an enum constant of an enum nested in decl (Code.NO_SPACE or
+    BackupException.Code.NO_SPACE) or a static final field of decl (BackupException.NO_SPACE)."""
+    parts = [t.value for t in tokens[first:last + 1]]
+    if any(t.kind not in ("ident", "op") for t in tokens[first:last + 1]) or \
+            any(p != "." for p in parts[1::2]) or len(parts) % 2 == 0:
+        return False
+    names = parts[0::2]
+    if names[0] == decl.name:
+        names = names[1:]
+    body = decl.tokens
+    if len(names) == 2:
+        enum, constant = names
+        for k in range(decl.open, decl.close):
+            if body[k].kind == "ident" and body[k].value == "enum" and k + 2 < decl.close and body[k + 1].value == enum \
+                    and body[k + 2].value == "{":
+                close = expressions.match_brace(body, k + 2)
+                j, depth = k + 3, 0
+                while j < close:
+                    t = body[j]
+                    if t.kind == "op" and t.value in ("(", "{"):
+                        j = (expressions.match_forward(body, j) if t.value == "(" else expressions.match_brace(body, j)) + 1
+                        continue
+                    if t.kind == "op" and t.value == ";":
+                        break
+                    if t.kind == "ident" and t.value == constant and body[j - 1].value in ("{", ","):
+                        return True
+                    j += 1
+        return False
+    if len(names) == 1:
+        name = names[0]
+        for k in range(decl.open + 1, decl.close - 1):
+            if body[k].kind == "ident" and body[k].value == name and body[k + 1].value == "=" and \
+                    body_kind(body, k) == "class" and _final_field(body, k) and \
+                    any(t.value == "static" for t in body[statement_bounds(body, k)[0]:k]):
+                return True
+    return False
+
+
+def exception_retype(types, path, diff, base_span, head_span):
+    """(None, None) when the row's base expression is not the whole argument of a new X(...) that head
+    turned into a new Y(...), else (problem, (base tokens, head tokens, warning)): head may switch to a
+    src class Y that extends X (directly or through other src classes), pass the catalog call (a Msg)
+    where the text was and, beside it, constant arguments of Y (an enum constant of an enum Y declares,
+    or a static final field of Y), with every other argument kept in order; Y's constructor must keep
+    getMessage() the English text (english_constructors), and no class from Y up to X may declare
+    getMessage, getLocalizedMessage or toString."""
+    base_tokens, head_tokens = diff.base.tokens, diff.head.tokens
+    base = _new_site(base_tokens, base_span[0], base_span[-1])
+    head = _new_site(head_tokens, head_span[0], head_span[-1])
+    if base is None or head is None:
+        return None, None
+    old = base_tokens[base[2]].value
+    new = head_tokens[head[2]].value
+    if old == new and _raw(base_tokens, base[1], base[2]) == _raw(head_tokens, head[1], head[2]):
+        return None, None
+    _, b_first, b_last, _, b_spans, b_at = base
+    _, h_first, h_last, h_open, h_spans, h_at = head
+    line = head_tokens[h_first].line
+    b_code = _excerpt(base_tokens[base[0]:expressions.match_forward(base_tokens, base[3]) + 1], None)
+    h_code = _excerpt(head_tokens[head[0]:expressions.match_forward(head_tokens, h_open) + 1], None)
+    what = "%s:%d: `%s` becomes `%s`" % (path, line, b_code, h_code)
+    if not old.endswith(THROWABLE_SUFFIXES):
+        return "%s; only an exception (a type named ...Exception, ...Error or Throwable) may change type around text" % (
+            what), None
+    decls = types.named(new)
+    if len(decls) != 1:
+        return ("%s; %s must be one class declared in src (found %d), so G1 can read what it extends and how it "
+                "keeps getMessage()" % (what, new, len(decls))), None
+    decl = decls[0]
+    chain, step = [decl], decl
+    while step.extends != old:
+        if step.extends is None or len(types.named(step.extends)) != 1:
+            return ("%s; %s does not extend %s (its chain: %s), so a catch of %s would no longer catch it" % (
+                what, new, old, " extends ".join([d.name for d in chain] + [step.extends or "Object"]), old)), None
+        step = types.named(step.extends)[0]
+        if step in chain:
+            return "%s; %s's extends clauses loop" % (what, new), None
+        chain.append(step)
+    for d in chain:
+        for at, _, _, body in _members(d):
+            if d.tokens[at].value in MESSAGE_METHODS and body is not None:
+                return ("%s; %s declares %s (%s:%d), which may print other text than the English message" % (
+                    what, d.name, d.tokens[at].value, d.path, d.tokens[at].line)), None
+    # Head's arguments: base's before and after the text, and in between the call plus constants of Y.
+    base_args = [_raw(base_tokens, a, b) for a, b in b_spans]
+    head_args = [_raw(head_tokens, a, b) for a, b in h_spans]
+    before, after = base_args[:b_at], base_args[b_at + 1:]
+    middle = list(range(len(before), len(head_args) - len(after)))
+    if head_args[:len(before)] != before or (after and head_args[-len(after):] != after) or h_at not in middle:
+        return ("%s; the other arguments must stay as they were, in order, with only constants of %s added beside "
+                "the catalog call" % (what, new)), None
+    ids = [n for n in middle if n != h_at]
+    for n in ids:
+        a, b = h_spans[n]
+        if not _id_argument(types, decl, head_tokens, a, b):
+            return ("%s; `%s` is not a constant of %s (an enum constant of an enum it declares, or a static final "
+                    "field of it), and only those may join the catalog call" % (
+                        what, _excerpt(head_tokens[a:b + 1], None), new)), None
+    call = head_tokens[h_spans[h_at][0]]
+    if not (call.kind == "ident" and call.value in ("M", "Msg")):
+        return ("%s; the call that replaces the text must be a deferred M.<key>(...) (a Msg), so %s can keep the "
+                "English for getMessage() and render the language at display time" % (what, new)), None
+    problem, constructors = english_constructors(types, decl, len(head_args), h_at)
+    if problem:
+        return "%s; %s" % (what, problem), None
+    id_tokens = set()
+    if ids:
+        lo, hi = min(min(ids), h_at), max(max(ids), h_at)
+        id_tokens.update(range(h_spans[lo][0], h_spans[hi][1] + 1))
+    warning = ("%s: %s extends %s (%s), so a catch of %s still catches it, and getMessage() stays the English text "
+               "through %s%s; check by hand that nothing shows or logs the exception itself (toString(), "
+               "String.valueOf(e), \"\" + e or a stack trace print the new class name %s) or compares its class" % (
+                   what, new, old, " extends ".join([d.name for d in chain] + [old]), old, "; ".join(constructors),
+                   "; constant argument(s) " + ", ".join("`%s`" % _excerpt(head_tokens[h_spans[n][0]:h_spans[n][1] + 1], None)
+                                                        for n in ids) if ids else "", new))
+    return None, (range(b_first, b_last + 1), range(h_first, h_last + 1), id_tokens, warning)
+
+
 def run(base, head, explicit_ledgers=None, cwd=None):
     """(problems, warnings, summary)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -2011,7 +2355,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     problems.extend(row_problems)
 
     head_sources = [p for p in l10nlib.list_files(head, ["src"], cwd) if p.endswith(".java")]
-    calls = call_index(l10nlib.read_files(head, head_sources, cwd)) if any(r.kind in CATALOG_KINDS for r in rows) else None
+    head_texts = l10nlib.read_files(head, head_sources, cwd) if any(r.kind in CATALOG_KINDS for r in rows) else {}
+    calls = call_index(head_texts) if any(r.kind in CATALOG_KINDS for r in rows) else None
+    types = SourceTypes(head_texts)
 
     claimed = {}  # (path, token) -> row
     staying = []  # (row, path, token) gone literals a stays-english or id-kept row says moved
@@ -2171,6 +2517,20 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 if id(row) not in manual_rows:
                     base_span = format_rows[id(row)] if row.kind == "format" else \
                         diffs[path].base.expression_of(first_token).span
+                    if row.kind != "format":
+                        problem, retyped = exception_retype(types, path, diffs[path], base_span, (first, end))
+                        if problem:
+                            problems.append("%s: %s" % (where, problem))
+                        elif retyped is not None:
+                            # A throw switched to a subclass that keeps getMessage() English (B10, B6, B4).
+                            b_name, h_name, id_tokens, warning = retyped
+                            for j in b_name:
+                                allowed_base[path].setdefault(j, ("exception", id(row)))
+                            for j in h_name:
+                                allowed_head[path].setdefault(j, ("exception", id(row)))
+                            for j in id_tokens:
+                                allowed_head[path].setdefault(j, id(row))
+                            warnings.append("%s: %s" % (where, warning))
                     split = split_declaration(diffs[path], base_span, (first, end))
                     retyped = None if split is not None else retyped_declaration(diffs[path], base_span, (first, end))
                     if retyped is not None:
