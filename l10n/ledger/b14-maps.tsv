@@ -45,3 +45,23 @@ src/com/jjricks/volt/RouteMapView.java:386	["GPS accel not measured"]	maps_route
 src/com/jjricks/volt/RouteMapView.java:389	["Power not measured"]	maps_route_power_not_measured	exact	
 src/com/jjricks/volt/RouteMapView.java:453	[{"spec": "%.2f", "arg": 1, "value": "watts / 1000", "as": "Fmt.decimal(Locale.US, watts / 1000, 2)"}, " ", {"text": "kW", "key": "maps_unit_kilowatt", "arg": 2}]	fmt_quantity	format	
 src/com/jjricks/volt/RouteMapView.java:454	[{"spec": "%.0f", "arg": 1, "value": "watts", "as": "Fmt.decimal(Locale.US, watts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RideChartView.java:35	["Ride chart"]	maps_chart_ride	exact	the private field chartTitle becomes a CharSequence holding the deferred Msg (R2), with fitActionLabel in the same declaration
+src/com/jjricks/volt/RideChartView.java:35	["Fit whole ride"]	maps_chart_fit_ride	exact	the private field fitActionLabel becomes a CharSequence holding the deferred Msg (R2)
+src/com/jjricks/volt/RideChartView.java:55	["Zoom in"]	maps_chart_zoom_in	exact	
+src/com/jjricks/volt/RideChartView.java:56	["Zoom out"]	maps_chart_zoom_out	exact	
+src/com/jjricks/volt/RideChartView.java:59	["Previous recorded sample"]	maps_chart_previous_sample	exact	
+src/com/jjricks/volt/RideChartView.java:61	["Next recorded sample"]	maps_chart_next_sample	exact	
+src/com/jjricks/volt/RideChartView.java:131	["Recording chart"]	maps_chart_recording	exact	manual: chartTitle is now a CharSequence (the default is a deferred Msg), so the ternary between the default and the caller's String title assigns it directly
+src/com/jjricks/volt/RideChartView.java:132	["Fit whole recording"]	maps_chart_fit_recording	exact	manual: fitActionLabel is now a CharSequence, as chartTitle (row at line 131)
+src/com/jjricks/volt/RideChartView.java:189	[". No readings selected"]	maps_chart_desc_no_readings	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
+src/com/jjricks/volt/RideChartView.java:190	[". No recorded samples"]	maps_chart_desc_no_samples	exact	the accessibility description is the chart name followed by these sentences, each with its own leading separator
+src/com/jjricks/volt/RideChartView.java:192	[". At ", {"hole": "sampleTime((long) inspectedTime)", "arg": 1, "type": "s"}]	maps_chart_desc_at	template	manual: the append chain description.append(". At ").append(sampleTime(...)) became one append of the template; the accessibility description is the chart name followed by these sentences, each with its own leading separator
+src/com/jjricks/volt/RideChartView.java:195	[". ", {"hole": "selected.label", "arg": 1, "type": "s", "as": "selected.displayLabel()"}, ": "]	maps_chart_desc_reading	template	manual: the append chain .append(". ").append(selected.label).append(": ") became one append of the template; B3 handoff: the reading name is Series.displayLabel() (the catalog legend name, equal to the English label in English) where label stays the English data name
+src/com/jjricks/volt/RideChartView.java:196	["No reading"]	maps_chart_desc_no_reading	exact	
+src/com/jjricks/volt/RideChartView.java:199	[" at ", {"hole": "sampleTime(value.time)", "arg": 1, "type": "s"}]	maps_chart_desc_value_at	template	manual: the append chain .append(" at ").append(sampleTime(value.time)) became one append of the template
+src/com/jjricks/volt/RideChartView.java:272	["Choose readings above"]	maps_chart_choose_readings	exact	
+src/com/jjricks/volt/RideChartView.java:329	["At ", {"hole": "sampleTime((long)inspectedTime)", "arg": 1, "type": "s"}]	maps_chart_cursor_at	template	
+src/com/jjricks/volt/RideChartView.java:376	["mph"]	units_mph	id-kept	chart series unit compared through B1's UnitCode.MPH (data code "mph"); the series unit stays the data spelling
+src/com/jjricks/volt/RideChartView.java:376	["km/h"]	units_kmh	id-kept	chart series unit compared through B1's UnitCode.KMH (data code "km/h"); the series unit stays the data spelling
+src/com/jjricks/volt/RideChartView.java:387	["mph"]	units_mph	id-kept	chart series unit compared through B1's UnitCode.MPH (data code "mph"); the series unit stays the data spelling
+src/com/jjricks/volt/RideChartView.java:387	["km/h"]	units_kmh	id-kept	chart series unit compared through B1's UnitCode.KMH (data code "km/h"); the series unit stays the data spelling
