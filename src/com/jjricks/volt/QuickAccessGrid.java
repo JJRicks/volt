@@ -108,11 +108,12 @@ final class QuickAccessGrid extends ViewGroup {
                     String activeTime = charge.doneByWallMs > 0
                             ? DisplayTime.clock(host.activity(), preferences, charge.doneByWallMs) : time;
                     state = pending ? T.dashboardModelTileUpdating() : doneTime ? time : measuring ? T.dashboardModelTileMeasuring() : charge.doneByEnabled ? T.dashboardModelTileOnAt(activeTime) : T.commonOff();
-                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled ? T.commonOn() : T.commonOff();
+                } else if (manual) state = pending ? T.dashboardModelTileUpdating() : charge.manualEnabled
+                        // With a start time, one template holds "On" and the time, in its own order and spacing.
+                        ? (charge.startWallMs > 0 ? T.dashboardModelTileOnAt(DisplayTime.clock(host.activity(), preferences, charge.startWallMs)) : T.commonOn())
+                        : T.commonOff();
                 else state = charge.manualStartWallMs > 0 ? DisplayTime.clock(host.activity(), preferences, charge.manualStartWallMs) : T.dashboardModelTileNotScheduled();
             } else if (doneBy || doneTime) state = "—";
-            if (manual && !unmapped && charge != null && charge.manualEnabled && charge.startWallMs > 0 && !pending)
-                state += T.dashboardModelTileAtTime(DisplayTime.clock(host.activity(), preferences, charge.startWallMs));
             // Another model's mapping can make a UT5 MAX Lab control an ordinary toggle.
             boolean toggle = cell.entry.directToggle(decision);
             if (tiles && toggle != cell.toggle) { cell.toggle(toggle); fittedWidth = -1; }
@@ -149,7 +150,7 @@ final class QuickAccessGrid extends ViewGroup {
                 cell.setAlpha((feature != null || chargeControl) && !featureLive ? .65f : 1f);
             }
             cell.setEnabled(!editing);
-            String description = (tiles ? tileLabel(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
+            String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
                     + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
                             : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
@@ -430,10 +431,16 @@ final class QuickAccessGrid extends ViewGroup {
         for (int choice : choices) if (choice == value) return true;
         return false;
     }
-    /** Setting tiles use short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
+    /** Setting tiles show short names: the Scooter page's "Top speed", "Charge schedule", else the name's short rung. */
     private static String tileLabel(QuickAccessActions.Entry entry) {
         if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
         if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
         return entry.shortLabel().render();
+    }
+    /** A Setting tile is announced by the full name (the label's room does not limit speech), or the two Scooter-page names. */
+    private static String tileSpokenName(QuickAccessActions.Entry entry) {
+        if (TOP_SPEED_ID.equals(entry.id)) return T.dashboardModelTileTopSpeed();
+        if (CHARGE_SCHEDULE_ID.equals(entry.id)) return T.dashboardModelTileChargeSchedule();
+        return entry.label().render();
     }
 }
