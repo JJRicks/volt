@@ -6,6 +6,10 @@ import java.util.*;
 public final class RideChartData {
     public static final String[] KEYS = {"power_w", "speed_kmh", "gps_speed", "voltage_v", "battery_percent", "elevation", "gps_accel", "wh_per_distance"};
     public static final String[] LABELS = {"Power", "Wheel speed", "GPS speed", "Voltage", "Battery %", "Elevation", "GPS acceleration", "Energy / distance"};
+    /** The legend names of LABELS from the catalog, by index: LABELS stays English (Series.label). */
+    private static final int[] LABEL_IDS = {T.READINGS_CHART_POWER, T.READINGS_CHART_WHEEL_SPEED, T.READINGS_CHART_GPS_SPEED,
+            T.READINGS_CHART_VOLTAGE, T.READINGS_CHART_BATTERY, T.READINGS_CHART_ELEVATION, T.READINGS_CHART_GPS_ACCELERATION,
+            T.READINGS_CHART_ENERGY_DISTANCE};
     // Distinct Okabe–Ito-inspired hues plus line patterns; never color alone in the legend.
     public static final int[] COLORS = {0xffe69f00, 0xff56b4e9, 0xff009e73, 0xffcc79a7, 0xfff0e442, 0xff0072b2, 0xffd55e00, 0xff999999};
     public static final class Value {
@@ -18,19 +22,27 @@ public final class RideChartData {
         public final ChartScale.Range scale;
         public final long endTime;
         public final long typicalIntervalMs; private final boolean hasData, ordered;
+        /** The catalog id of the legend name, or -1 for a series whose label is already display text. */
+        private final int labelId;
         private double drawnFrom = Double.NaN, drawnTo; private int drawnColumns; private int[] drawn;
         Series(int index, String unit, List<Value> values) { this(index, unit, values, false); }
         Series(int index, String unit, List<Value> values, boolean fullDetail) {
-            this(KEYS[index], LABELS[index], unit, COLORS[index], index, values, null, fullDetail, false);
+            this(KEYS[index], LABELS[index], LABEL_IDS[index], unit, COLORS[index], index, values, null, fullDetail, false);
         }
         /** A recorded series with its own label and scale, using the same inspection and
          * gap-preserving pixel buckets as ride data. The caller cannot mutate its source list. */
         public Series(String key, String label, String unit, int color, int index,
                       List<Value> values, ChartScale.Range scale) {
-            this(key, label, unit, color, index, values, scale, false, true);
+            this(key, label, -1, unit, color, index, values, scale, false, true);
         }
-        private Series(String key, String label, String unit, int color, int index,
+        /** A recorded series whose English label has a catalog name, labelId (ChargeChartData's series). */
+        Series(String key, String label, int labelId, String unit, int color, int index,
+               List<Value> values, ChartScale.Range scale) {
+            this(key, label, labelId, unit, color, index, values, scale, false, true);
+        }
+        private Series(String key, String label, int labelId, String unit, int color, int index,
                        List<Value> values, ChartScale.Range requestedScale, boolean fullDetail, boolean custom) {
+            this.labelId = labelId;
             this.index = index; this.key = key; this.label = label; this.unit = unit; this.color = color;
             this.values = Collections.unmodifiableList(custom ? new ArrayList<>(values) : values);
             values = this.values;
@@ -57,6 +69,8 @@ public final class RideChartData {
             }
             min = scale.min; max = scale.max;
         }
+        /** The legend name in the current language; label stays the English name. */
+        public String displayLabel() { return labelId < 0 ? label : T.render(labelId); }
         public boolean available() { return hasData; }
         public boolean connects(Value left, Value right) {
             return left != null && right != null && left.value != null && right.value != null
@@ -147,7 +161,7 @@ public final class RideChartData {
      * of low speed; missing speed, source gaps and backwards clocks break a span. */
     public static double[] lowSpeedSpans(Series speed) {
         if (speed == null || !"speed_kmh".equals(speed.key)) return new double[0];
-        double threshold = "mph".equals(speed.unit) ? 3 / RideStore.KM_PER_MILE : 3;
+        double threshold = UnitCode.MPH.matches(speed.unit) ? 3 / RideStore.KM_PER_MILE : 3;
         ArrayList<Double> spans = new ArrayList<>();
         Value previous = null; boolean extend = false;
         for (Value value : speed.values) {
@@ -216,7 +230,7 @@ public final class RideChartData {
                 if (index == 1 && v != null && miles) v /= RideStore.KM_PER_MILE;
                 values.add(new Value(p.elapsedMs, v, p.segment));
             }
-            String unit = index == 0 ? "W" : index == 1 || index == 2 ? miles ? "mph" : "km/h" : index == 3 ? "V" : index == 4 ? "%" : index == 5 ? miles ? "ft" : "m" : index == 6 ? "m/s²" : miles ? "Wh/mi" : "Wh/km";
+            String unit = index == 0 ? UnitCode.WATT.code : index == 1 || index == 2 ? miles ? UnitCode.MPH.code : UnitCode.KMH.code : index == 3 ? UnitCode.VOLT.code : index == 4 ? "%" : index == 5 ? miles ? "ft" : "m" : index == 6 ? "m/s²" : miles ? "Wh/mi" : "Wh/km";
             result.add(new Series(index, unit, values, fullDetail));
         }
         return Collections.unmodifiableList(result);

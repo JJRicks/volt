@@ -1,0 +1,254 @@
+# Ledger for b3-readings: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/ChargeChartData.java:78	["Time"]	readings_unit_time	id-kept	chart data unit: moved into the new UnitCode.TIME (data code "Time"), compared through it; its symbol is readings_unit_time
+src/com/jjricks/volt/ChargeChartData.java:79	["min"]	-	stays-english	chart data unit, compared through UnitCode.MINUTE's data code
+src/com/jjricks/volt/ChargeChartData.java:85	["W"]	-	stays-english	chart data unit, compared through UnitCode.WATT's data code
+src/com/jjricks/volt/ChargeChartData.java:85	["Time"]	readings_unit_time	id-kept	chart data unit: moved into the new UnitCode.TIME (data code "Time"), compared through it; its symbol is readings_unit_time
+src/com/jjricks/volt/ChargeChartData.java:86	["min"]	-	stays-english	chart data unit, compared through UnitCode.MINUTE's data code
+src/com/jjricks/volt/ChargeChartData.java:86	["V"]	-	stays-english	chart data unit, compared through UnitCode.VOLT's data code
+src/com/jjricks/volt/ChargeChartData.java:86	["A"]	-	stays-english	chart data unit, compared through UnitCode.AMP's data code
+src/com/jjricks/volt/ChargeChartData.java:86	["°F"]	-	stays-english	chart data unit, compared through UnitCode.FAHRENHEIT's data code
+src/com/jjricks/volt/ChargeChartData.java:86	["°C"]	-	stays-english	chart data unit, compared through UnitCode.CELSIUS's data code
+src/com/jjricks/volt/ChargeChartData.java:104	["Time"]	readings_unit_time	id-kept	chart data unit: moved into the new UnitCode.TIME (data code "Time"), compared through it; its symbol is readings_unit_time
+src/com/jjricks/volt/ChargeChartData.java:105	["Time"]	readings_unit_time	id-kept	chart data unit: moved into the new UnitCode.TIME (data code "Time"), compared through it; its symbol is readings_unit_time
+src/com/jjricks/volt/ChargeChartData.java:111	["min"]	-	stays-english	chart data unit, compared through UnitCode.MINUTE's data code
+src/com/jjricks/volt/RideChartData.java:150	["mph"]	-	stays-english	chart data unit, compared through UnitCode.MPH's data code
+src/com/jjricks/volt/RideChartData.java:219	["W"]	-	stays-english	chart data unit, compared through UnitCode.WATT's data code
+src/com/jjricks/volt/RideChartData.java:219	["mph"]	-	stays-english	chart data unit, compared through UnitCode.MPH's data code
+src/com/jjricks/volt/RideChartData.java:219	["km/h"]	-	stays-english	chart data unit, compared through UnitCode.KMH's data code
+src/com/jjricks/volt/RideChartData.java:219	["V"]	-	stays-english	chart data unit, compared through UnitCode.VOLT's data code
+src/com/jjricks/volt/ScooterReadingLabels.java:11	["Charge"]	readings_battery_percent_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:12	["Voltage"]	readings_voltage_v_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:13	["Current"]	readings_current_a_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:14	["Power"]	readings_power_w_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:15	["Temp."]	readings_temperature_c_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:16	["Health"]	readings_battery_health_percent_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:17	["Status"]	readings_battery_status_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:18	["Charge (raw)"]	readings_charging_state_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:19	["Charges"]	readings_charge_cycles_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:20	["Energy (unverified)"]	readings_energy_throughput_wh_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:21	["Throughput"]	readings_capacity_throughput_ah_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:22	["Capacity"]	readings_rated_capacity_ah_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:23	["Est. capacity"]	readings_health_adjusted_capacity_ah_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:24	["Speed"]	readings_speed_kmh_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:25	["Range"]	readings_remaining_range_km_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:26	["Distance"]	readings_trip_km_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:27	["Time"]	readings_trip_minutes_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:28	["Top speed"]	readings_maximum_speed_kmh_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:29	["Avg. speed"]	readings_average_speed_kmh_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:30	["Odo."]	readings_odometer_km_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:31	["Mode"]	readings_driving_mode_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:32	["Lock"]	readings_lock_status_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:33	["Limit"]	readings_charge_limit_percent_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:34	["Meter FW"]	readings_meter_version_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:35	["Control FW"]	readings_controller_version_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:36	["Battery FW"]	readings_battery_version_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:37	["Screen FW"]	readings_screen_version_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:38	["Proximity FW"]	readings_uwb_version_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:39	["Warning"]	readings_warning_code_compact	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:47	["Battery charge (%)"]	readings_battery_percent_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:48	["Battery voltage"]	readings_voltage_v_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:49	["Battery current"]	readings_current_a_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:50	["Battery power"]	readings_power_w_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:51	["Battery temp."]	readings_temperature_c_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:52	["Reported health"]	readings_battery_health_percent_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:53	["Battery status"]	readings_battery_status_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:54	["Charging (raw)"]	readings_charging_state_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:55	["Reported charges"]	readings_charge_cycles_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:56	["Energy (unverified)"]	readings_energy_throughput_wh_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:57	["Lifetime throughput"]	readings_capacity_throughput_ah_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:58	["Deep discharges"]	readings_deep_discharge_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:59	["Self-discharge (raw)"]	readings_self_discharge_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:60	["Rated capacity"]	readings_rated_capacity_ah_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:61	["Est. capacity (health)"]	readings_health_adjusted_capacity_ah_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:62	["Battery made"]	readings_battery_manufactured_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:63	["High-temp exposure"]	readings_high_temperature_duration_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:64	["Hot/cold charge time (raw)"]	readings_extreme_temperature_charge_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:65	["Temp. sign (raw)"]	readings_temperature_sign_state_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:66	["Current sign (raw)"]	readings_current_sign_state_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:68	["Speed"]	readings_speed_kmh_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:69	["Est. range"]	readings_remaining_range_km_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:70	["Trip distance"]	readings_trip_km_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:71	["Trip time"]	readings_trip_minutes_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:72	["Trip top speed"]	readings_maximum_speed_kmh_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:73	["Trip avg. speed"]	readings_average_speed_kmh_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:74	["Odometer"]	readings_odometer_km_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:75	["Ride status (raw)"]	readings_driving_status_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:76	["Stored trips"]	readings_stored_trips_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:78	["Account binding (raw)"]	readings_binding_status_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:79	["Drive mode"]	readings_driving_mode_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:80	["Electronic lock"]	readings_lock_status_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:81	["Cruise (raw)"]	readings_cruise_control_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:82	["Tail light (raw)"]	readings_tail_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:83	["Recovery (raw)"]	readings_energy_recovery_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:84	["Range algorithm (raw)"]	readings_range_algorithm_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:85	["Display units"]	readings_display_units_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:86	["Auto light (raw)"]	readings_auto_sensor_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:87	["Tyre reminder (raw)"]	readings_tyre_reminder_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:88	["Line pattern (raw)"]	readings_ambient_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:89	["Traction (raw)"]	readings_traction_control_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:90	["Turn sound (raw)"]	readings_turn_sound_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:91	["Proximity key (raw)"]	readings_proximity_key_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:92	["Night mode (raw)"]	readings_night_mode_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:93	["Range mode (raw)"]	readings_range_algorithm_mode_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:94	["Line colors (packed)"]	readings_eco_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:95	["Star pattern (raw)"]	readings_drive_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:96	["Star colors (packed)"]	readings_sport_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:97	["Start speed (raw)"]	readings_start_speed_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:98	["Speed limit (raw)"]	readings_speed_limit_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:99	["Audio (raw)"]	readings_volume_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:100	["Voice language (raw)"]	readings_voice_language_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:101	["Logo light (raw)"]	readings_logo_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:102	["Daytime light (raw)"]	readings_daytime_light_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:103	["Max. speed setting (raw)"]	readings_maximum_speed_setting_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:104	["Mode setting (raw)"]	readings_drive_mode_setting_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:105	["Settings mode byte (raw)"]	readings_settings_mode_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:106	["Charge schedule (raw)"]	readings_scheduled_charge_time_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:107	["Charge limit"]	readings_charge_limit_percent_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:108	["Low-battery mode (raw)"]	readings_low_power_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:109	["Timed charging (raw)"]	readings_timed_charging_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:110	["Lock duration (raw)"]	readings_auto_lock_time_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:111	["Speed eligibility (raw)"]	readings_speed_limit_eligibility_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:112	["Weather (raw)"]	readings_weather_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:113	["Hill assist (raw)"]	readings_slope_assist_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:114	["Long range (raw)"]	readings_long_range_mode_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:115	["Overspeed control (raw)"]	readings_overspeed_control_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:116	["Overspeed alert (raw)"]	readings_overspeed_alert_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:117	["Drive speed limit (raw)"]	readings_drive_speed_limit_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:119	["Meter firmware"]	readings_meter_version_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:120	["Controller firmware"]	readings_controller_version_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:121	["Battery firmware"]	readings_battery_version_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:122	["Screen firmware"]	readings_screen_version_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:123	["Proximity firmware"]	readings_uwb_version_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:124	["Scooter serial"]	readings_scooter_serial_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:125	["Battery serial (raw)"]	readings_battery_serial_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:127	["Warning code"]	readings_warning_code_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:128	["Lock movement (raw)"]	readings_lock_push_warning_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:129	["E9 flag (raw)"]	readings_hide_e9_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:130	["Ride format"]	readings_ride_report_format_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:131	["Ride read (raw)"]	readings_ride_read_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:132	["Fault history (raw)"]	readings_fault_history_raw_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:133	["Settings read · 70"]	readings_response_70_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:134	["Ride read · 71"]	readings_response_71_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:135	["Battery read · 72"]	readings_response_72_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:136	["Firmware read · 73"]	readings_response_73_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:137	["Scooter serial · 74"]	readings_response_74_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:138	["Battery serial · 75"]	readings_response_75_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:139	["Ride history · 76"]	readings_response_76_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:140	["Battery signs · 79"]	readings_response_79_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:141	["Fault history · 7B"]	readings_response_7b_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:142	["Home report · 90"]	readings_response_90_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:143	["Ride report v0 · 91"]	readings_response_91_short	exact	
+src/com/jjricks/volt/ScooterReadingLabels.java:144	["Ride report v1 · 92"]	readings_response_92_short	exact	
+src/com/jjricks/volt/Telemetry.java:94	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:95	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:96	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:97	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:98	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:99	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:100	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:101	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:102	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:103	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:104	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:105	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:106	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:107	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:108	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:109	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:110	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:111	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:112	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:113	["Battery"]	readings_group_battery	id-kept	group id: moved into Telemetry.GROUP_BATTERY, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_battery
+src/com/jjricks/volt/Telemetry.java:115	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:116	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:117	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:118	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:119	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:120	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:121	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:122	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:123	["Ride"]	readings_group_ride	id-kept	group id: moved into Telemetry.GROUP_RIDE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_ride
+src/com/jjricks/volt/Telemetry.java:125	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:126	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:127	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:128	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:129	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:130	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:131	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:132	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:133	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:134	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:135	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:136	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:137	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:138	["Settings"]	readings_group_settings	id-kept	group id: moved into Telemetry.GROUP_SETTINGS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_settings
+src/com/jjricks/volt/Telemetry.java:140	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:141	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:142	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:143	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:144	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:145	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:146	["Device"]	readings_group_device	id-kept	group id: moved into Telemetry.GROUP_DEVICE, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_device
+src/com/jjricks/volt/Telemetry.java:148	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:149	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:150	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:151	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:152	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:153	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:154	["Diagnostics"]	readings_group_diagnostics	id-kept	group id: moved into Telemetry.GROUP_DIAGNOSTICS, which reports, history and Live Stats keep; Telemetry.groupLabel() shows readings_group_diagnostics
+src/com/jjricks/volt/Telemetry.java:174	["Missing response status"]	readings_value_missing_status	id-kept	stored value: moved into Telemetry.MISSING_STATUS, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_missing_status for exactly this value
+src/com/jjricks/volt/Telemetry.java:204	["Empty response"]	readings_value_empty_response	id-kept	stored value: moved into Telemetry.EMPTY_RESPONSE, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_empty_response for exactly this value
+src/com/jjricks/volt/Telemetry.java:264	["Acknowledged"]	readings_value_acknowledged	exact	displayValue's short ride-read word
+src/com/jjricks/volt/Telemetry.java:274	["Unknown format ", {"hole": "rest.substring(0, records) .replace(\"; \", \" · \")", "arg": 1, "type": "s"}, " records"]	readings_value_unknown_format	template	displayValue's short wording of an unknown history format; the hole is the stored format number and record count with "; " shown as " · "
+src/com/jjricks/volt/Telemetry.java:279	{"one": [{"hole": "trips", "arg": 1, "type": "d", "quantity": true}, " trip"], "other": [{"hole": "trips", "arg": 1, "type": "d", "quantity": true}, " trips"]}	readings_value_trips	plural	manual: trips + (trips == 1 ? " trip" : " trips") became T.readingsValueTrips(trips, trips); the ternary's branch for exactly 1 is the one item, every other count the other item
+src/com/jjricks/volt/Telemetry.java:327	["Imperial (0)"]	readings_value_imperial	id-kept	stored value: moved into Telemetry.IMPERIAL, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_imperial for exactly this value
+src/com/jjricks/volt/Telemetry.java:328	["Metric (1)"]	readings_value_metric	id-kept	stored value: moved into Telemetry.METRIC, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_metric for exactly this value
+src/com/jjricks/volt/Telemetry.java:352	[" charges"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_CHARGES, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:353	[" Wh"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_WATT_HOUR, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:354	[" Ah"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_AMP_HOUR, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:357	[" Ah"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_AMP_HOUR, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:360	[" Ah"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_AMP_HOUR, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:389	[" V"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_VOLT, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:405	[" A"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_AMP, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:408	[" W"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_WATT, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:413	[" °C"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_CELSIUS, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:437	["None (0)"]	readings_value_no_warning	id-kept	stored value: moved into Telemetry.NO_WARNING, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_no_warning for exactly this value
+src/com/jjricks/volt/Telemetry.java:437	["Code ", {"hole": "warning", "arg": 1, "type": "s"}]	readings_value_warning_code	id-kept	stored value: moved into Telemetry.WARNING_PREFIX; displayValue() (Telemetry.shown) shows readings_value_warning_code for exactly WARNING_PREFIX + the reading's whole number
+src/com/jjricks/volt/Telemetry.java:445	[" km (estimate)"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_RANGE, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:460	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:461	[" km (estimate)"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_RANGE, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:462	[" km"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KM, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:463	[" min"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_MINUTE, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:464	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:465	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:468	[" km"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KM, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:469	[" km"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KM, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:471	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:472	[" km (estimate)"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_RANGE, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:473	[" km"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KM, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:474	[" min"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_MINUTE, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:475	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:476	[" km/h"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KMH, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:477	[" km"]	-	stays-english	stored unit text of a quantity reading: moved into Telemetry.SUFFIX_KM, which displayValue() (Telemetry.shown) also uses to recognise the stored form before writing the number again through Fmt and UnitCode
+src/com/jjricks/volt/Telemetry.java:529	["No stored trips reported"]	readings_value_no_trips	id-kept	stored value: moved into Telemetry.NO_TRIPS, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_no_trips for exactly this value
+src/com/jjricks/volt/Telemetry.java:534	["Normal (0)"]	readings_value_battery_normal	id-kept	stored value: moved into Telemetry.BATTERY_NORMAL, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_battery_normal for exactly this value
+src/com/jjricks/volt/Telemetry.java:534	["Abnormal; code ", {"hole": "value", "arg": 1, "type": "s"}]	readings_value_battery_abnormal	id-kept	stored value: moved into Telemetry.BATTERY_ABNORMAL_PREFIX; displayValue() (Telemetry.shown) shows readings_value_battery_abnormal for exactly BATTERY_ABNORMAL_PREFIX + the reading's whole number
+src/com/jjricks/volt/Telemetry.java:539	["Unlocked (0)"]	readings_value_unlocked	id-kept	stored value: moved into Telemetry.UNLOCKED, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_unlocked for exactly this value
+src/com/jjricks/volt/Telemetry.java:539	["Locked (1)"]	readings_value_locked	id-kept	stored value: moved into Telemetry.LOCKED, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_locked for exactly this value
+src/com/jjricks/volt/Telemetry.java:550	[{"hole": "value", "arg": 1, "type": "s"}, " %"]	readings_value_percent	id-kept	stored unit text: moved into Telemetry.SUFFIX_PERCENT; displayValue() (Telemetry.shown) shows readings_value_percent for exactly a whole number + SUFFIX_PERCENT
+src/com/jjricks/volt/Telemetry.java:605	["Empty serial value"]	readings_value_empty_serial	id-kept	stored value: moved into Telemetry.EMPTY_SERIAL, the canonical English reports and history keep; displayValue() (Telemetry.shown) shows readings_value_empty_serial for exactly this value
+src/com/jjricks/volt/TelemetryHistory.java:114	["Stored on this phone"]	readings_history_stored	id-kept	storage state id: moved into TelemetryHistory.STORED (Storage.status stays English); Storage.statusMsg() shows readings_history_stored
+src/com/jjricks/volt/TelemetryHistory.java:170	["Settings"]	readings_group_settings	id-kept	group id compared through Telemetry.GROUP_SETTINGS
+src/com/jjricks/volt/TelemetryHistory.java:171	["Device"]	readings_group_device	id-kept	group id compared through Telemetry.GROUP_DEVICE
+src/com/jjricks/volt/TelemetryHistory.java:208	["History storage unavailable"]	readings_history_unavailable	id-kept	storage state id: moved into TelemetryHistory.UNAVAILABLE (Storage.status stays English); Storage.statusMsg() shows readings_history_unavailable
+src/com/jjricks/volt/TelemetryHistory.java:234	["Stored on this phone"]	readings_history_stored	id-kept	storage state id: moved into TelemetryHistory.STORED (Storage.status stays English); Storage.statusMsg() shows readings_history_stored
+src/com/jjricks/volt/TelemetryHistory.java:236	["History storage unavailable; live readings still work"]	readings_history_unavailable_live	id-kept	storage state id: moved into TelemetryHistory.UNAVAILABLE_LIVE (Storage.status stays English); Storage.statusMsg() shows readings_history_unavailable_live
+src/com/jjricks/volt/TelemetryHistory.java:241	["Stored on this phone"]	readings_history_stored	id-kept	storage state id: moved into TelemetryHistory.STORED (Storage.status stays English); Storage.statusMsg() shows readings_history_stored
+src/com/jjricks/volt/TelemetryHistory.java:377	["Could not read history"]	readings_history_read_failed	id-kept	storage state id: moved into TelemetryHistory.READ_FAILED (Storage.status stays English); Storage.statusMsg() shows readings_history_read_failed
+src/com/jjricks/volt/TelemetryHistory.java:399	["Could not read history"]	readings_history_read_failed	id-kept	storage state id: moved into TelemetryHistory.READ_FAILED (Storage.status stays English); Storage.statusMsg() shows readings_history_read_failed
+src/com/jjricks/volt/TelemetryHistory.java:418	["Could not read history"]	readings_history_read_failed	id-kept	storage state id: moved into TelemetryHistory.READ_FAILED (Storage.status stays English); Storage.statusMsg() shows readings_history_read_failed
+src/com/jjricks/volt/TelemetryHistory.java:539	["History storage unavailable"]	readings_history_unavailable	id-kept	storage state id: moved into TelemetryHistory.UNAVAILABLE (Storage.status stays English); Storage.statusMsg() shows readings_history_unavailable
+src/com/jjricks/volt/TelemetryHistory.java:581	["History cleared"]	readings_history_cleared	id-kept	storage state id: moved into TelemetryHistory.CLEARED (Storage.status stays English); Storage.statusMsg() shows readings_history_cleared
+src/com/jjricks/volt/TelemetryHistory.java:583	["Could not clear history"]	readings_history_clear_failed	id-kept	storage state id: moved into TelemetryHistory.CLEAR_FAILED (Storage.status stays English); Storage.statusMsg() shows readings_history_clear_failed
