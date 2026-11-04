@@ -66,17 +66,6 @@ R[stable]=0; R[booted]=0; R[verdict]=install_failed
 yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
 "$SDKMANAGER" --install platform-tools emulator "$PROBE_IMAGE" > "$OUT/sdkmanager.log" 2>&1 || { note "sdkmanager failed: $(tail -3 "$OUT/sdkmanager.log" | tr '\n' ' ')"; finish; }
 rm -f "$OUT/sdkmanager.log"
-if [[ $PROBE_EMU == pin35 ]]; then
-  z="$RUNNER_TEMP/$PIN_ZIP"
-  curl -sfL --retry 3 -o "$z" "https://dl.google.com/android/repository/$PIN_ZIP" || { note "pinned emulator download failed"; finish; }
-  size=$(stat -c %s "$z"); sha=$(sha1sum "$z" | cut -d' ' -f1); R[pin_sha1]=$sha
-  [[ $size == "$PIN_SIZE" ]] || { note "pinned emulator size $size != $PIN_SIZE"; finish; }
-  [[ $sha == "$PIN_SHA1" ]] || { note "pinned emulator sha1 $sha != $PIN_SHA1"; finish; }
-  rm -rf "$SDK/emulator" && unzip -q "$z" -d "$SDK" && rm -f "$z" || { note "pinned emulator unzip failed"; finish; }
-  rev=$(sed -n 's/^Pkg.Revision=//p' "$SDK/emulator/source.properties" | head -1)
-  [[ $rev == 35.* ]] || { note "pinned emulator is $rev, not 35.x"; finish; }
-fi
-R[emulator_version]="$("$SDK/emulator/emulator" -version 2>/dev/null | head -1)"
 if [[ $PROBE_HOSTGL == 1 ]]; then
   sudo apt-get update -qq > /dev/null 2>&1
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 \
@@ -89,7 +78,8 @@ fi
 
 # --- create (the census AVD hardware, as emulator.sh create) --------------------------------
 R[verdict]=create_failed
-echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$PROBE_IMAGE" -p "$ANDROID_AVD_HOME/$AVD.avd" --force > /dev/null 2>&1 || { note "avdmanager failed"; finish; }
+echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$PROBE_IMAGE" -p "$ANDROID_AVD_HOME/$AVD.avd" --force > "$OUT/avdmanager.log" 2>&1 || { note "avdmanager failed: $(grep -v '^ *$' "$OUT/avdmanager.log" | tail -3 | tr '\n' ' ' | cut -c1-300)"; finish; }
+rm -f "$OUT/avdmanager.log"
 playstore=false; [[ "$PROBE_IMAGE" == *google_apis_playstore* ]] && playstore=true
 gpumode=${PROBE_GPU%% *}
 python3 -I - "$ANDROID_AVD_HOME/$AVD.avd/config.ini" "$playstore" "$gpumode" <<'PY' || { note "config.ini edit failed"; finish; }
@@ -105,6 +95,20 @@ lines = [l.rstrip('\n') for l in open(path)]
 keep = [l for l in lines if l.split('=', 1)[0].strip() not in want]
 open(path, 'w').write('\n'.join(keep + [f'{k}={v}' for k, v in want.items()]) + '\n')
 PY
+
+# avdmanager checks the SDK-installed emulator package, so the pinned build replaces it only now.
+if [[ $PROBE_EMU == pin35 ]]; then
+  R[verdict]=install_failed
+  z="$RUNNER_TEMP/$PIN_ZIP"
+  curl -sfL --retry 3 -o "$z" "https://dl.google.com/android/repository/$PIN_ZIP" || { note "pinned emulator download failed"; finish; }
+  size=$(stat -c %s "$z"); sha=$(sha1sum "$z" | cut -d' ' -f1); R[pin_sha1]=$sha
+  [[ $size == "$PIN_SIZE" ]] || { note "pinned emulator size $size != $PIN_SIZE"; finish; }
+  [[ $sha == "$PIN_SHA1" ]] || { note "pinned emulator sha1 $sha != $PIN_SHA1"; finish; }
+  rm -rf "$SDK/emulator" && unzip -q "$z" -d "$SDK" && rm -f "$z" || { note "pinned emulator unzip failed"; finish; }
+  rev=$(sed -n 's/^Pkg.Revision=//p' "$SDK/emulator/source.properties" | head -1)
+  [[ $rev == 35.* ]] || { note "pinned emulator is $rev, not 35.x"; finish; }
+fi
+R[emulator_version]="$("$SDK/emulator/emulator" -version 2>&1 | grep -m1 -i 'emulator version' | sed 's/^.*Android emulator version //')"
 
 # A throwaway adb key (not a signing key): the Play image only answers a key it was booted with.
 if [[ ! -s "$HOME/.android/adbkey.pub" ]]; then
@@ -126,6 +130,8 @@ until [[ "$(sh_ getprop sys.boot_completed)" == 1 ]]; do
   sleep 5
 done
 R[booted]=1; R[boot_s]=$((SECONDS - t0))
+logver="$(grep -m1 'Android emulator version' "$ELOG" | sed 's/^.*Android emulator version //')"
+[[ -n $logver ]] && R[emulator_version]=$logver
 R[fingerprint]="$(sh_ getprop ro.build.fingerprint)"
 R[sf_fatal_at_boot]="$(sh_ logcat -d -b crash | grep -c 'Fatal signal.*(surfaceflinger)')"
 
