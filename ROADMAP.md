@@ -34,11 +34,11 @@ New languages ship as **beta**. On Android 13 and later, you can switch Volt alo
 ## Investigating
 
 - **Battery alerts** haven't been through a real charge on a scooter without a charge limit yet.
+- **Cruise control changes that come back "Not confirmed"** on some scooters. Volt should say more than that, but only once something the scooter reports shows the actual cause.
 
 ## Smaller items
 
 - **Phone placement** (Mounted or Pocket) only labels phone-sensor recordings today. Either make it improve how those recordings are read, or remove it.
-- **Cruise control:** when the scooter reports that cruise control isn't allowed in its region, say so instead of only "Not confirmed".
 - The hardware check's read-only navigation step needs updating for the current screens.
 - More models: reported scooters and photos are added as owners send them.
 
