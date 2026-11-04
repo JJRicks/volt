@@ -42,6 +42,7 @@ public final class MapTilesValidation extends Instrumentation {
             deniedAndRateLimited();
             offlineAndInvalidResponses();
             pauseReasonsAndOlderStatus();
+            sourceDisplayNames();
             cacheDirectivesAndIsolation();
             result.putString("result", "PASS");
             result.putInt("check_count", checks.size());
@@ -192,6 +193,19 @@ public final class MapTilesValidation extends Instrumentation {
         MapTiles custom = separate.create("https://maps.example.test/{z}/{x}/{y}.png"); separate.offline = true;
         require(custom.get(3, 1, 2) == null, "One provider displayed another provider's cache");
         checks.add("no-store/no-cache honored and provider caches isolated");
+    }
+
+    /** B14: a source's shown name and credit from the catalog equal the English data names in English. */
+    private void sourceDisplayNames() {
+        require(MapSource.USGS.displayName().equals(MapSource.USGS.name) && "USGS Topo".equals(MapSource.USGS.shortName())
+                && MapSource.OSM.displayName().equals(MapSource.OSM.name) && MapSource.OSM.shortName().equals(MapSource.OSM.name),
+                "Preset display names differ from their English names");
+        MapSource custom = new MapSource("Custom map", "https://tiles.invalid/{z}/{x}/{y}.png", "Map provider", "https://tiles.invalid/");
+        require(custom.displayName().equals(custom.name) && custom.shortName().equals(custom.name)
+                && "Map provider".equals(custom.displayAttribution()), "Custom display name or stand-in credit");
+        require(MapSource.USGS.displayAttribution().equals(MapSource.USGS.attribution)
+                && MapSource.OSM.displayAttribution().equals(MapSource.OSM.attribution), "Provider credit not shown as given");
+        checks.add("map source display names, short names and credits equal the English names and attributions");
     }
 
     /** B14: network.meta keeps its English status and adds a reason id; files older versions wrote still read. */
