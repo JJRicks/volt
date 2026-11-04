@@ -28,22 +28,22 @@ final class BackupProfiles {
      * ({@link #validModelEvidence}); staged backups are read this way, local profiles are not. */
     static List<Profile> parse(Object items, boolean modelEvidence) throws IOException {
         if(items==null)return new ArrayList<>();
-        if(!(items instanceof String))throw new IOException("The backup has invalid scooter profiles.");
+        if(!(items instanceof String))throw new BackupException(M.backupEngineBackupInvalidScooterProfiles());
         String text=(String)items;List<String> raw;List<Profile> result=new ArrayList<>();
-        try{raw=BackupJson.elements(text,MAX_DEPTH);}catch(IOException bad){throw new IOException("The backup has unreadable scooter profiles.",bad);}
-        if(raw.size()>MAX_PROFILES)throw new IOException("The backup has too many scooter profiles.");
+        try{raw=BackupJson.elements(text,MAX_DEPTH);}catch(IOException bad){throw new BackupException(M.backupEngineBackupUnreadableScooterProfiles(),bad);}
+        if(raw.size()>MAX_PROFILES)throw new BackupException(M.backupEngineBackupTooManyScooter());
         Set<String> ids=new HashSet<>();
         for(String element:raw) {
             Map<String,Object> p;
-            try{p=BackupJson.object(BackupJson.parse(element,MAX_DEPTH));}catch(IOException bad){throw new IOException("The backup has unreadable scooter profiles.",bad);}
+            try{p=BackupJson.object(BackupJson.parse(element,MAX_DEPTH));}catch(IOException bad){throw new BackupException(M.backupEngineBackupUnreadableScooterProfiles(),bad);}
             Object id=p.get("id");
-            if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||!ids.add((String)id))throw new IOException("The backup has invalid scooter profile identifiers.");
-            for(String field:new String[]{"name","identity","mac","serial"})if(p.containsKey(field)&&!(p.get(field) instanceof String))throw new IOException("The backup has invalid scooter profile fields.");
+            if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||!ids.add((String)id))throw new BackupException(M.backupEngineBackupInvalidScooterProfileIdentifiers());
+            for(String field:new String[]{"name","identity","mac","serial"})if(p.containsKey(field)&&!(p.get(field) instanceof String))throw new BackupException(M.backupEngineBackupInvalidScooterProfileFields());
             Object role=p.get("role");
-            if(p.containsKey("role")&&(!(role instanceof Number)||(((Number)role).doubleValue()!=0&&((Number)role).doubleValue()!=1)))throw new IOException("The backup has an invalid scooter owner role.");
-            if(p.containsKey("lastConnected")&&!(p.get("lastConnected") instanceof Number))throw new IOException("The backup has an invalid scooter connection date.");
-            if(modelEvidence&&!validModelEvidence(p))throw new IOException("The backup has invalid scooter profile fields.");
-            String identity=text(p,"identity");if(!identity.isEmpty()&&!identity.matches("(?i)[0-9a-f]{12}"))throw new IOException("The backup has an invalid scooter setup identity.");
+            if(p.containsKey("role")&&(!(role instanceof Number)||(((Number)role).doubleValue()!=0&&((Number)role).doubleValue()!=1)))throw new BackupException(M.backupEngineBackupInvalidScooterOwner());
+            if(p.containsKey("lastConnected")&&!(p.get("lastConnected") instanceof Number))throw new BackupException(M.backupEngineBackupInvalidScooterConnection());
+            if(modelEvidence&&!validModelEvidence(p))throw new BackupException(M.backupEngineBackupInvalidScooterProfileFields());
+            String identity=text(p,"identity");if(!identity.isEmpty()&&!identity.matches("(?i)[0-9a-f]{12}"))throw new BackupException(M.backupEngineBackupInvalidScooterSetup());
             result.add(new Profile((String)id,p.containsKey("name")?text(p,"name"):"UT5 MAX",identity,role==null?0:((Number)role).intValue(),text(p,"mac"),text(p,"serial"),element));
         }
         return result;

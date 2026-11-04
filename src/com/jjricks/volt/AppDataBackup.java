@@ -32,6 +32,8 @@ public final class AppDataBackup {
     private AppDataBackup() {}
 
     public static String label(String category){return BackupRegistry.label(category);}
+    /** The category's label in the current language, rendered when shown. */
+    public static Msg labelMsg(String category){return BackupRegistry.labelMsg(category);}
     public static final class PreparedRestore {
         final BackupArchive.Prepared prepared;
         public final long createdAtMs, totalBytes;
@@ -54,7 +56,9 @@ public final class AppDataBackup {
     }
     public static final class Review {
         final BackupArchive.Plan plan; public final List<String> lines; public final boolean replace;
-        private Review(BackupArchive.Plan plan){this.plan=plan;lines=plan.lines;replace=plan.replace;}
+        /** The review lines to show, rendered when shown (a Msg each, or English not moved yet); `lines` is their English. */
+        public final List<CharSequence> messages;
+        private Review(BackupArchive.Plan plan){this.plan=plan;lines=plan.lines;replace=plan.replace;messages=plan.messages;}
     }
 
     /** {items, bytes} per category, for the Back up list. Lists files; parses nothing large. */
@@ -103,25 +107,25 @@ public final class AppDataBackup {
     public static synchronized boolean recover(Context context)throws IOException {
         return BackupTransaction.recover(new AndroidStorage(context));
     }
-    private static BackupArchive.Prepared prepared(PreparedRestore restore)throws IOException {if(restore==null)throw new IOException("Choose the backup again.");return restore.prepared;}
+    private static BackupArchive.Prepared prepared(PreparedRestore restore)throws IOException {if(restore==null)throw new BackupException(M.backupEngineChooseBackupAgain());return restore.prepared;}
 
     /** Android's own JSON reader must accept what ScooterProfiles will read; unknown fields are tolerated. */
     private static void validateProfiles(String text)throws IOException {
         int depth=0;boolean quoted=false,escaped=false;
         // Bound nesting before Android's recursive JSON parser sees user-selected data.
-        for(int i=0;i<text.length();i++) {char c=text.charAt(i);if(quoted){if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c=='"')quoted=false;}else if(c=='"')quoted=true;else if(c=='['||c=='{'){if(++depth>8)throw new IOException("The backup has invalid scooter profiles.");}else if(c==']'||c=='}')depth--;}
+        for(int i=0;i<text.length();i++) {char c=text.charAt(i);if(quoted){if(escaped)escaped=false;else if(c=='\\')escaped=true;else if(c=='"')quoted=false;}else if(c=='"')quoted=true;else if(c=='['||c=='{'){if(++depth>8)throw new BackupException(M.backupEngineBackupInvalidScooterProfiles());}else if(c==']'||c=='}')depth--;}
         try {
-            JSONArray profiles=new JSONArray(text);if(profiles.length()>2000)throw new IOException("The backup has too many scooter profiles.");Set<String> ids=new HashSet<>();
+            JSONArray profiles=new JSONArray(text);if(profiles.length()>2000)throw new BackupException(M.backupEngineBackupTooManyScooter());Set<String> ids=new HashSet<>();
             for(int i=0;i<profiles.length();i++) {
                 JSONObject p=profiles.getJSONObject(i);Object id=p.opt("id");
-                if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||!ids.add((String)id))throw new IOException("The backup has invalid scooter profile identifiers.");
-                for(String field:new String[]{"name","identity","mac","serial"})if(p.has(field)&&!(p.opt(field) instanceof String))throw new IOException("The backup has invalid scooter profile fields.");
-                if(p.has("role")&&(!(p.opt("role") instanceof Number)||(p.optDouble("role",-1)!=0&&p.optDouble("role",-1)!=1)))throw new IOException("The backup has an invalid scooter owner role.");
-                if(p.has("lastConnected")&&!(p.opt("lastConnected") instanceof Number))throw new IOException("The backup has an invalid scooter connection date.");
-                if(!validDescriptorFields(p))throw new IOException("The backup has invalid scooter profile fields.");
-                String identity=p.optString("identity","");if(!identity.isEmpty()&&!identity.matches("(?i)[0-9a-f]{12}"))throw new IOException("The backup has an invalid scooter setup identity.");
+                if(!(id instanceof String)||((String)id).isEmpty()||((String)id).length()>128||!ids.add((String)id))throw new BackupException(M.backupEngineBackupInvalidScooterProfileIdentifiers());
+                for(String field:new String[]{"name","identity","mac","serial"})if(p.has(field)&&!(p.opt(field) instanceof String))throw new BackupException(M.backupEngineBackupInvalidScooterProfileFields());
+                if(p.has("role")&&(!(p.opt("role") instanceof Number)||(p.optDouble("role",-1)!=0&&p.optDouble("role",-1)!=1)))throw new BackupException(M.backupEngineBackupInvalidScooterOwner());
+                if(p.has("lastConnected")&&!(p.opt("lastConnected") instanceof Number))throw new BackupException(M.backupEngineBackupInvalidScooterConnection());
+                if(!validDescriptorFields(p))throw new BackupException(M.backupEngineBackupInvalidScooterProfileFields());
+                String identity=p.optString("identity","");if(!identity.isEmpty()&&!identity.matches("(?i)[0-9a-f]{12}"))throw new BackupException(M.backupEngineBackupInvalidScooterSetup());
             }
-        }catch(IOException e){throw e;}catch(Exception e){throw new IOException("The backup has unreadable scooter profiles.",e);}
+        }catch(IOException e){throw e;}catch(Exception e){throw new BackupException(M.backupEngineBackupUnreadableScooterProfiles(),e);}
     }
 
     /** Model evidence fields (advertised PID, last-seen firmware, default name, the owner's model answer). Types and bounds only, so a newer backup is not rejected. */
@@ -166,10 +170,10 @@ public final class AppDataBackup {
                     else if(value instanceof Long)edit.putLong(key,(Long)value);
                     else if(value instanceof Float)edit.putFloat(key,(Float)value);
                     else if(value instanceof Set)edit.putStringSet(key,new LinkedHashSet<>((Set<String>)value));
-                    else throw new IOException("The backup has an unsupported preference type.");
+                    else throw new BackupException(M.backupEngineBackupUnsupportedPreferenceType());
                 }
                 // API commits keep Android's process-local preferences caches coherent.
-                if(!edit.commit())throw new IOException("App preferences could not be written. Previous data will be recovered.");
+                if(!edit.commit())throw new BackupException(M.backupEngineAppPreferencesCouldNotWritten());
             }
             // SharedPreferences commits sync XML bytes; persist the rename/directory entries too
             // before the archive transaction can discard its rollback snapshot.
@@ -178,14 +182,14 @@ public final class AppDataBackup {
         public void validateProfiles(String items)throws IOException {AppDataBackup.validateProfiles(items);}
         public long usableSpace(File directory){File existing=directory;while(existing!=null&&!existing.exists())existing=existing.getParentFile();return existing==null?0:existing.getUsableSpace();}
         public String[] dashboardLayout(String json)throws IOException {
-            try{return DashboardConfig.transferValues(json);}catch(JSONException|RuntimeException invalid){throw new IOException("Not a dashboard layout file.",invalid);}
+            try{return DashboardConfig.transferValues(json);}catch(JSONException|RuntimeException invalid){throw new BackupException(M.backupEngineNotDashboardLayoutFile(),invalid);}
         }
         public Set<String> historyProfiles(File file)throws IOException {
             Set<String> result=new LinkedHashSet<>();
             try(SQLiteDatabase db=SQLiteDatabase.openDatabase(file.getPath(),null,SQLiteDatabase.OPEN_READONLY|SQLiteDatabase.NO_LOCALIZED_COLLATORS)) {
                 try(Cursor c=db.rawQuery("SELECT name FROM profiles UNION SELECT profile FROM latest",null)){while(c.moveToNext()&&result.size()<=BackupProfiles.MAX_PROFILES)if(!c.isNull(0))result.add(c.getString(0));}
-            }catch(Exception e){throw new IOException("The backup history database could not be read.",e);}
-            if(result.size()>BackupProfiles.MAX_PROFILES)throw new IOException("The backup history has too many scooters.");
+            }catch(Exception e){throw new BackupException(M.backupEngineBackupHistoryDatabaseCouldNotRead(),e);}
+            if(result.size()>BackupProfiles.MAX_PROFILES)throw new BackupException(M.backupEngineBackupHistoryTooMany());
             return result;
         }
         /** A closed merged copy: this phone's rows win on every UNIQUE key, the backup's rows are
@@ -220,19 +224,19 @@ public final class AppDataBackup {
                 db.execSQL("DETACH DATABASE b");
                 TelemetryHistory.applyRetention(db,System.currentTimeMillis());
                 db.execSQL("PRAGMA incremental_vacuum");
-            } catch(IOException e){throw e;} catch(Exception e){throw new IOException("Readings history could not be merged.",e);}
-            File journal=new File(out.getPath()+"-journal");if(journal.exists()&&journal.length()>0)throw new IOException("Readings history could not be merged.");journal.delete();
-            if(out.length()>TelemetryHistory.DB_BYTES)throw new IOException("Readings history is too large to merge.");
+            } catch(IOException e){throw e;} catch(Exception e){throw new BackupException(M.backupEngineReadingsHistoryCouldNotMerged(),e);}
+            File journal=new File(out.getPath()+"-journal");if(journal.exists()&&journal.length()>0)throw new BackupException(M.backupEngineReadingsHistoryCouldNotMerged());journal.delete();
+            if(out.length()>TelemetryHistory.DB_BYTES)throw new BackupException(M.backupEngineReadingsHistoryTooLarge());
             try(FileOutputStream sync=new FileOutputStream(out,true)){sync.getFD().sync();}
         }
-        private static long id(SQLiteDatabase db,String sql,String arg)throws IOException{Long id=optionalId(db,sql,arg);if(id==null)throw new IOException("Readings history could not be merged.");return id;}
+        private static long id(SQLiteDatabase db,String sql,String arg)throws IOException{Long id=optionalId(db,sql,arg);if(id==null)throw new BackupException(M.backupEngineReadingsHistoryCouldNotMerged());return id;}
         private static Long optionalId(SQLiteDatabase db,String sql,String arg){try(Cursor c=db.rawQuery(sql,new String[]{arg})){return c.moveToFirst()?c.getLong(0):null;}}
         public void validateDatabase(File file)throws IOException {
             byte[] header=new byte[16];
             try(DataInputStream in=new DataInputStream(new FileInputStream(file))){in.readFully(header);}
-            if(!Arrays.equals(header,new byte[]{'S','Q','L','i','t','e',' ','f','o','r','m','a','t',' ','3',0}))throw new IOException("The backup history database is invalid.");
+            if(!Arrays.equals(header,new byte[]{'S','Q','L','i','t','e',' ','f','o','r','m','a','t',' ','3',0}))throw new BackupException(M.backupEngineBackupHistoryDatabaseInvalid());
             try(SQLiteDatabase db=SQLiteDatabase.openDatabase(file.getPath(),null,SQLiteDatabase.OPEN_READONLY|SQLiteDatabase.NO_LOCALIZED_COLLATORS)) {
-                if(db.getVersion()!=1||!db.isDatabaseIntegrityOk())throw new IOException("The backup history database is damaged or uses a newer format.");
+                if(db.getVersion()!=1||!db.isDatabaseIntegrityOk())throw new BackupException(M.backupEngineBackupHistoryDatabaseDamaged());
                 Map<String,String> required=new LinkedHashMap<>();
                 required.put("latest","profile,data");required.put("profiles","id,name");required.put("keys","id,name");
                 required.put("detail","pid,kid,wall,value,session");
@@ -241,15 +245,15 @@ public final class AppDataBackup {
                     while(c.moveToNext()) {
                         String type=c.getString(0),name=c.getString(1),sql=c.getString(2);
                         if(!"table".equals(type)||sql==null||!sql.toUpperCase(Locale.ROOT).startsWith("CREATE TABLE")||(!required.containsKey(name)&&!"android_metadata".equals(name)))
-                            throw new IOException("The backup history database has an unsupported schema.");
+                            throw new BackupException(M.backupEngineBackupHistoryDatabaseUnsupported());
                     }
                 }
                 for(Map.Entry<String,String> table:required.entrySet()) {
                     List<String> names=new ArrayList<>();
                     try(Cursor c=db.rawQuery("PRAGMA table_info("+table.getKey()+")",null)){while(c.moveToNext())names.add(c.getString(1));}
-                    if(!String.join(",",names).equals(table.getValue()))throw new IOException("The backup history database is missing required readings tables.");
+                    if(!String.join(",",names).equals(table.getValue()))throw new BackupException(M.backupEngineBackupHistoryDatabaseMissing());
                 }
-            } catch(IOException e){throw e;}catch(Exception e){throw new IOException("The backup history database could not be verified.",e);}
+            } catch(IOException e){throw e;}catch(Exception e){throw new BackupException(M.backupEngineBackupHistoryDatabaseCouldNotVerified(),e);}
         }
     }
 }

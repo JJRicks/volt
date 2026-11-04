@@ -90,13 +90,22 @@ final class BackupArchive {
         final Prepared prepared; final Set<String> categories; final boolean replace;
         final Map<String, String> mapping, historyMapping;
         final List<String> additions, lines;
+        /** The review as the screen shows it, one entry per line: a Msg, or English text not moved to the
+         * catalog yet. `lines` holds the same lines in English, for logs, tests and approval checks. */
+        final List<CharSequence> messages;
         final Map<String, Map<String, Object>> preferences;
         final boolean history;
         Plan(Prepared prepared, Set<String> categories, boolean replace, Map<String, String> mapping, Map<String, String> historyMapping, List<String> additions,
-                List<String> lines, Map<String, Map<String, Object>> preferences, boolean history) {
+                List<CharSequence> messages, Map<String, Map<String, Object>> preferences, boolean history) {
             this.prepared = prepared; this.categories = Collections.unmodifiableSet(categories); this.replace = replace; this.mapping = Collections.unmodifiableMap(mapping);
-            this.historyMapping = Collections.unmodifiableMap(historyMapping); this.additions = Collections.unmodifiableList(additions); this.lines = Collections.unmodifiableList(lines);
+            this.historyMapping = Collections.unmodifiableMap(historyMapping); this.additions = Collections.unmodifiableList(additions);
+            this.messages = Collections.unmodifiableList(new ArrayList<>(messages)); this.lines = Collections.unmodifiableList(english(messages));
             this.preferences = preferences; this.history = history;
+        }
+        private static List<String> english(List<CharSequence> messages) {
+            List<String> result = new ArrayList<>();
+            for (CharSequence message : messages) result.add(message instanceof Msg ? ((Msg) message).english() : message.toString());
+            return result;
         }
         /** Same effect on the same live data, so an approval still describes what apply will do. */
         boolean same(Plan other) {
@@ -144,7 +153,7 @@ final class BackupArchive {
         AppDataArchive.requirePassword(password); AppDataArchive.ensureNoTransaction(storage); AppDataArchive.checkDatabaseClosed(storage);
         Set<String> categories = new LinkedHashSet<>();
         for (String category : CATEGORIES) if (selected.contains(category)) categories.add(category);
-        if (categories.isEmpty() || categories.size() != new HashSet<>(selected).size()) throw new IOException("Choose what to back up.");
+        if (categories.isEmpty() || categories.size() != new HashSet<>(selected).size()) throw new BackupException(M.backupEngineChooseWhatBackUp());
         boolean complete = categories.size() == CATEGORIES.length;
         Map<String, Map<String, Object>> live = storage.preferences();
         LinkedHashMap<String, byte[]> prefs = new LinkedHashMap<>();
@@ -161,7 +170,7 @@ final class BackupArchive {
                 if (category != null) { totals.get(category)[0]++; totals.get(category)[1] += entry.getValue().length; }
             }
             for (Entry entry : files) { total = AppDataArchive.addBounded(total, entry.length, AppDataArchive.MAX_BYTES); totals.get(entry.category)[0]++; totals.get(entry.category)[1] += entry.length; }
-            if (prefs.size() + files.size() > AppDataArchive.MAX_ENTRIES) throw new IOException("There are too many files for one backup.");
+            if (prefs.size() + files.size() > AppDataArchive.MAX_ENTRIES) throw new BackupException(M.backupEngineThereTooManyFiles());
             // Names and serials let a restore map rides and settings to a scooter; credentials stay in the Scooters category.
             List<BackupProfiles.Profile> table = new ArrayList<>();
             if (!categories.equals(Collections.singleton(BackupRegistry.PREFERENCES))) try { table = profiles(live); } catch (IOException unreadable) { /* The items still travel exactly. */ }
@@ -173,7 +182,7 @@ final class BackupArchive {
             manifest.writeInt(table.size());
             for (BackupProfiles.Profile p : table) { manifest.writeUTF(bounded(p.id, 128)); manifest.writeUTF(bounded(p.name, 200)); manifest.writeUTF(bounded(p.serial, 128)); }
             manifest.writeInt(prefs.size() + files.size()); manifest.writeLong(total); manifest.flush();
-            if (manifestBytes.size() > MAX_MANIFEST) throw new IOException("Backup metadata is too large.");
+            if (manifestBytes.size() > MAX_MANIFEST) throw new BackupException(M.backupEngineBackupMetadataTooLarge());
             byte[] header = AppDataArchive.header(); SecretKey key = AppDataArchive.key(password, header);
             output.write(header);
             AppDataArchive.RecordOutput encrypted = new AppDataArchive.RecordOutput(output, header, key);
@@ -183,11 +192,11 @@ final class BackupArchive {
                 for (Map.Entry<String, byte[]> entry : prefs.entrySet()) { zip.putNextEntry(new ZipEntry(entry.getKey())); zip.write(entry.getValue()); zip.closeEntry(); }
                 byte[] buffer = new byte[AppDataArchive.BLOCK];
                 for (Entry entry : files) {
-                    if (entry.file.length() != entry.length) throw new IOException("App data changed during backup. Try again.");
+                    if (entry.file.length() != entry.length) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     zip.putNextEntry(new ZipEntry(entry.name));
                     try (InputStream in = new FileInputStream(entry.file)) {
                         long copied = AppDataArchive.copy(in, zip, buffer, AppDataArchive.fileLimit(entry.name));
-                        if (copied != entry.length || entry.file.length() != entry.length) throw new IOException("App data changed during backup. Try again.");
+                        if (copied != entry.length || entry.file.length() != entry.length) throw new BackupException(M.backupEngineAppDataChangedDuringBackupTryAgain());
                     }
                     zip.closeEntry();
                 }
@@ -202,18 +211,18 @@ final class BackupArchive {
             String category = folderName.equals("charge-recordings") ? BackupRegistry.CHARGES : BackupRegistry.RIDES;
             if (!categories.contains(category)) continue;
             File folder = new File(storage.files(), folderName); File[] children = folder.listFiles();
-            if (folder.exists() && (children == null || Files.isSymbolicLink(folder.toPath()))) throw new IOException("A recording folder could not be read.");
+            if (folder.exists() && (children == null || Files.isSymbolicLink(folder.toPath()))) throw new BackupException(M.backupEngineRecordingFolderCouldNotRead());
             if (children != null) for (File child : children) {
                 String name = "files/" + folderName + "/" + child.getName();
-                if (!AppDataArchive.allowedFile(name)) { if (child.getName().endsWith(".repair") || child.getName().endsWith(".mapping")) continue; throw new IOException("An unsupported recording file needs attention before backup."); }
-                if (Files.isSymbolicLink(child.toPath()) || !child.isFile() || !child.getCanonicalFile().getParentFile().equals(folder.getCanonicalFile())) throw new IOException("Unexpected recording file.");
-                if (child.length() > AppDataArchive.fileLimit(name)) throw new IOException("One recording is too large for a backup.");
+                if (!AppDataArchive.allowedFile(name)) { if (child.getName().endsWith(".repair") || child.getName().endsWith(".mapping")) continue; throw new BackupException(M.backupEngineUnsupportedRecordingFileNeedsAttention()); }
+                if (Files.isSymbolicLink(child.toPath()) || !child.isFile() || !child.getCanonicalFile().getParentFile().equals(folder.getCanonicalFile())) throw new BackupException(M.backupEngineUnexpectedRecordingFile());
+                if (child.length() > AppDataArchive.fileLimit(name)) throw new BackupException(M.backupEngineOneRecordingTooLargeBackup());
                 result.add(new Entry(name, category, child));
             }
         }
         File database = storage.database();
         if (categories.contains(BackupRegistry.HISTORY) && database.exists()) {
-            if (Files.isSymbolicLink(database.toPath()) || !database.isFile() || database.length() > HISTORY_BYTES) throw new IOException("History storage is not a supported database.");
+            if (Files.isSymbolicLink(database.toPath()) || !database.isFile() || database.length() > HISTORY_BYTES) throw new BackupException(M.backupEngineHistoryStorageNotSupported());
             result.add(new Entry(DATABASE, BackupRegistry.HISTORY, database));
         }
         Collections.sort(result, (a, b) -> a.name.compareTo(b.name));
@@ -242,7 +251,7 @@ final class BackupArchive {
             case ENCRYPTED: return encrypted(storage, in, password);
             case RIDE_FILE: return rides(storage, in);
             case LAYOUT_FILE: return jsonFile(storage, in);
-            default: throw new IOException("Choose a Volt backup file.");
+            default: throw new BackupException(M.backupEngineChooseVoltBackupFile());
         }
     }
     static void discard(Storage storage, Prepared prepared) throws IOException {
@@ -254,7 +263,7 @@ final class BackupArchive {
     }
     private static IOException failed(File directory, Exception failure) {
         try { AppDataArchive.deleteTree(directory); } catch (IOException cleanup) { failure.addSuppressed(cleanup); }
-        return failure instanceof IOException ? (IOException) failure : new IOException("The backup could not be opened.", failure);
+        return failure instanceof IOException ? (IOException) failure : new BackupException(M.backupEngineBackupCouldNotOpened(), failure);
     }
     private static Prepared encrypted(Storage storage, InputStream in, char[] password) throws IOException {
         AppDataArchive.requirePassword(password);
@@ -267,7 +276,7 @@ final class BackupArchive {
             String format;
             try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(payload)))) {
                 ZipEntry first = zip.getNextEntry();
-                if (first == null || first.isDirectory() || !MANIFEST.equals(first.getName())) throw new IOException("This is not a supported Volt app backup.");
+                if (first == null || first.isDirectory() || !MANIFEST.equals(first.getName())) throw new BackupException(M.backupEngineNotSupportedVoltApp());
                 format = new DataInputStream(new ByteArrayInputStream(AppDataArchive.readBounded(zip, MAX_MANIFEST))).readUTF();
             }
             Prepared result;
@@ -276,8 +285,8 @@ final class BackupArchive {
                 AppDataArchive.deleteTree(new File(data, "preferences.bin"));
                 result = finish(storage, "v1", directory, data, legacy.createdAtMs, true, Arrays.asList(CATEGORIES), legacy.preferences, null, legacy.fileCount, legacy.totalBytes);
             } else if (FORMAT.equals(format)) result = extract(storage, payload, directory, data);
-            else throw new IOException("Unsupported backup format.");
-            if (!payload.delete()) throw new IOException("Could not remove the temporary backup payload.");
+            else throw new BackupException(M.backupEngineUnsupportedBackupFormat());
+            if (!payload.delete()) throw new BackupException(M.backupEngineCouldNotRemoveTemporaryBackup());
             return result;
         } catch (Exception failure) { throw failed(directory, failure); }
     }
@@ -289,41 +298,41 @@ final class BackupArchive {
         try (ZipInputStream zip = new ZipInputStream(new BufferedInputStream(new FileInputStream(archive)))) {
             zip.getNextEntry();
             DataInputStream in = new DataInputStream(new ByteArrayInputStream(AppDataArchive.readBounded(zip, MAX_MANIFEST)));
-            if (!FORMAT.equals(in.readUTF()) || in.readInt() != VERSION) throw new IOException("Unsupported backup format.");
+            if (!FORMAT.equals(in.readUTF()) || in.readInt() != VERSION) throw new BackupException(M.backupEngineUnsupportedBackupFormat());
             created = in.readLong(); int app = in.readInt(), registry = in.readInt(); complete = in.readBoolean();
-            if (created <= 0 || app <= 0 || app > storage.versionCode() || registry <= 0 || registry > BackupRegistry.VERSION) throw new IOException("The backup needs a newer app version, or has invalid metadata.");
-            int categories = in.readInt(); if (categories < 1 || categories > CATEGORIES.length) throw new IOException("The backup has invalid metadata.");
+            if (created <= 0 || app <= 0 || app > storage.versionCode() || registry <= 0 || registry > BackupRegistry.VERSION) throw new BackupException(M.backupEngineBackupNeedsNewerApp());
+            int categories = in.readInt(); if (categories < 1 || categories > CATEGORIES.length) throw new BackupException(M.backupEngineBackupInvalidMetadata());
             for (int i = 0; i < categories; i++) {
                 String id = in.readUTF(); int items = in.readInt(); long bytes = in.readLong();
-                if (!BackupRegistry.known(id) || items < 0 || items > AppDataArchive.MAX_ENTRIES || bytes < 0 || bytes > AppDataArchive.MAX_BYTES || declared.put(id, new long[]{items, bytes}) != null) throw new IOException("The backup has invalid categories.");
+                if (!BackupRegistry.known(id) || items < 0 || items > AppDataArchive.MAX_ENTRIES || bytes < 0 || bytes > AppDataArchive.MAX_BYTES || declared.put(id, new long[]{items, bytes}) != null) throw new BackupException(M.backupEngineBackupInvalidCategories());
             }
-            if (complete && declared.size() != CATEGORIES.length) throw new IOException("The backup has invalid categories.");
-            int profiles = in.readInt(); if (profiles < 0 || profiles > BackupProfiles.MAX_PROFILES) throw new IOException("The backup has invalid scooters.");
+            if (complete && declared.size() != CATEGORIES.length) throw new BackupException(M.backupEngineBackupInvalidCategories());
+            int profiles = in.readInt(); if (profiles < 0 || profiles > BackupProfiles.MAX_PROFILES) throw new BackupException(M.backupEngineBackupInvalidScooters());
             for (int i = 0; i < profiles; i++) {
                 String id = in.readUTF(), name = in.readUTF(), serial = in.readUTF();
-                if (id.isEmpty() || id.length() > 128 || name.length() > 200 || serial.length() > 128 || table.put(id, new Source(id, name, serial)) != null) throw new IOException("The backup has invalid scooters.");
+                if (id.isEmpty() || id.length() > 128 || name.length() > 200 || serial.length() > 128 || table.put(id, new Source(id, name, serial)) != null) throw new BackupException(M.backupEngineBackupInvalidScooters());
             }
             expectedEntries = in.readInt(); expectedBytes = in.readLong();
-            if (in.read() != -1 || expectedEntries < 0 || expectedEntries > AppDataArchive.MAX_ENTRIES || expectedBytes < 0 || expectedBytes > AppDataArchive.MAX_BYTES) throw new IOException("The backup has invalid metadata.");
+            if (in.read() != -1 || expectedEntries < 0 || expectedEntries > AppDataArchive.MAX_ENTRIES || expectedBytes < 0 || expectedBytes > AppDataArchive.MAX_BYTES) throw new BackupException(M.backupEngineBackupInvalidMetadata());
             zip.closeEntry();
             Set<String> seen = new HashSet<>(Collections.singleton(MANIFEST)); ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 String name = entry.getName();
-                if (!seen.add(name) || entry.isDirectory() || ++entries > expectedEntries) throw new IOException("The backup contains an unsupported or duplicate entry.");
+                if (!seen.add(name) || entry.isDirectory() || ++entries > expectedEntries) throw new BackupException(M.backupEngineBackupContainsUnsupportedDuplicate());
                 String category; long length;
                 if (name.equals(UNASSIGNED) || name.startsWith("prefs/")) {
                     category = name.equals(UNASSIGNED) ? null : name.substring(6, Math.max(6, name.length() - 4));
-                    if (category == null ? !complete : !name.equals("prefs/" + category + ".bin") || !declared.containsKey(category)) throw new IOException("The backup contains an unsupported entry.");
+                    if (category == null ? !complete : !name.equals("prefs/" + category + ".bin") || !declared.containsKey(category)) throw new BackupException(M.backupEngineBackupContainsUnsupportedEntry());
                     byte[] bytes = AppDataArchive.readBounded(zip, AppDataArchive.MAX_PREFERENCES); length = bytes.length;
                     try {
                         for (Map.Entry<String, Map<String, Object>> namespace : AppDataArchive.decodePreferences(bytes, true).entrySet()) {
                             Map<String, Object> values = prefs.computeIfAbsent(namespace.getKey(), k -> new LinkedHashMap<>());
-                            for (Map.Entry<String, Object> value : namespace.getValue().entrySet()) if (values.put(value.getKey(), value.getValue()) != null) throw new IOException("The backup repeats an app preference.");
+                            for (Map.Entry<String, Object> value : namespace.getValue().entrySet()) if (values.put(value.getKey(), value.getValue()) != null) throw new BackupException(M.backupEngineBackupRepeatsAppPreference());
                         }
                     } finally { Arrays.fill(bytes, (byte) 0); }
                 } else {
                     category = fileCategory(name);
-                    if (category == null || !declared.containsKey(category)) throw new IOException("The backup contains an unsupported or out-of-category file.");
+                    if (category == null || !declared.containsKey(category)) throw new BackupException(M.backupEngineBackupContainsUnsupportedOut());
                     File target = AppDataArchive.contained(data, name); AppDataArchive.mkdir(target.getParentFile());
                     try (FileOutputStream out = new FileOutputStream(target)) { length = AppDataArchive.copy(zip, out, new byte[AppDataArchive.BLOCK], Math.min(AppDataArchive.fileLimit(name), AppDataArchive.MAX_BYTES - total)); out.getFD().sync(); }
                     fileCount++;
@@ -333,10 +342,10 @@ final class BackupArchive {
                 zip.closeEntry();
             }
         }
-        if (entries != expectedEntries || total != expectedBytes) throw new IOException("The backup is incomplete or has inconsistent contents.");
+        if (entries != expectedEntries || total != expectedBytes) throw new BackupException(M.backupEngineBackupIncompleteInconsistentContents());
         for (Map.Entry<String, long[]> category : declared.entrySet()) {
             long[] sum = actual.containsKey(category.getKey()) ? actual.get(category.getKey()) : new long[2];
-            if (sum[0] != category.getValue()[0] || sum[1] != category.getValue()[1]) throw new IOException("The backup is incomplete or has inconsistent contents.");
+            if (sum[0] != category.getValue()[0] || sum[1] != category.getValue()[1]) throw new BackupException(M.backupEngineBackupIncompleteInconsistentContents());
         }
         return finish(storage, "v2", directory, data, created, complete, declared.keySet(), prefs, table, fileCount, total);
     }
@@ -368,7 +377,7 @@ final class BackupArchive {
     private static Prepared jsonFile(Storage storage, InputStream in) throws IOException {
         byte[] bytes = AppDataArchive.readBounded(in, MAX_LAYOUT); String json;
         try { json = StandardCharsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT).onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString(); }
-        catch (IOException bad) { throw new IOException("Choose a Volt backup file.", bad); }
+        catch (IOException bad) { throw new BackupException(M.backupEngineChooseVoltBackupFile(), bad); }
         if (json.startsWith("﻿")) json = json.substring(1);
         // Strict parsing rejects duplicate keys and excessive nesting before either Android
         // layout parsing or credentials are considered. File names never select an import mode.
@@ -378,9 +387,9 @@ final class BackupArchive {
     }
     private static Prepared layout(Storage storage, String json, int length) throws IOException {
         String[] layout = storage.dashboardLayout(json);
-        if (layout == null || layout.length != 5 || layout[0] == null || layout[1] == null) throw new IOException("Not a dashboard layout file.");
+        if (layout == null || layout.length != 5 || layout[0] == null || layout[1] == null) throw new BackupException(M.backupEngineNotDashboardLayoutFile());
         Map<String, Object> app = new LinkedHashMap<>();
-        try { app.put("dashboard_columns", Integer.parseInt(layout[1])); } catch (NumberFormatException bad) { throw new IOException("Not a dashboard layout file.", bad); }
+        try { app.put("dashboard_columns", Integer.parseInt(layout[1])); } catch (NumberFormatException bad) { throw new BackupException(M.backupEngineNotDashboardLayoutFile(), bad); }
         app.put("dashboard_v1_" + LAYOUT_SOURCE, layout[0]);
         for (int i = 0; i < 3; i++) if (layout[2 + i] != null) app.put("dashboard_slot_v1_" + LAYOUT_SOURCE + "_" + i, layout[2 + i]);
         // An imported empty third slot is intentional; keep the example from being reseeded.
@@ -394,14 +403,14 @@ final class BackupArchive {
     /** Old owner exports contain one access key, not app data. Convert to a Scooters-only
      * staged profile so the ordinary preview, add-only merge and transaction apply unchanged. */
     private static Prepared owner(Storage storage, Map<String, Object> json, int length) throws IOException {
-        if (length > MAX_OWNER) throw new IOException("The pairing file is too large.");
+        if (length > MAX_OWNER) throw new BackupException(M.backupEnginePairingFileTooLarge());
         Set<String> allowed = new HashSet<>(Arrays.asList("format", "owner_identity", "role", "name", "scooter_address", "scooter_serial", "model_name", "captured_at_utc", "note"));
-        if (!allowed.containsAll(json.keySet())) throw new IOException("The pairing file contains unsupported fields.");
+        if (!allowed.containsAll(json.keySet())) throw new BackupException(M.backupEnginePairingFileContainsUnsupported());
         String identity = ownerText(json, "owner_identity", 12, true).toUpperCase(Locale.ROOT);
-        if (!identity.matches("[0-9A-F]{12}")) throw new IOException("The pairing file has an invalid owner identity.");
+        if (!identity.matches("[0-9A-F]{12}")) throw new BackupException(M.backupEnginePairingFileInvalidOwnerIdentity());
         Object roleValue = json.get("role");
         if (!(roleValue instanceof Number) || (((Number)roleValue).doubleValue() != 0 && ((Number)roleValue).doubleValue() != 1))
-            throw new IOException("The pairing file has an invalid owner role.");
+            throw new BackupException(M.backupEnginePairingFileInvalidOwnerRole());
         int role = ((Number)roleValue).intValue();
         // The command-line and browser setup helpers emit this metadata rather than a
         // user's profile name. It is display text only, never model capability evidence.
@@ -409,7 +418,7 @@ final class BackupArchive {
         ownerText(json, "captured_at_utc", 64, false); ownerText(json, "note", 1024, false);
         String name = ownerText(json, "name", 80, false).trim(); if (name.isEmpty()) name = model.isEmpty() ? "Scooter" : model;
         String mac = ownerText(json, "scooter_address", 17, false).toUpperCase(Locale.ROOT);
-        if (!mac.isEmpty() && !mac.matches("([0-9A-F]{2}:){5}[0-9A-F]{2}")) throw new IOException("The pairing file has an invalid Bluetooth address.");
+        if (!mac.isEmpty() && !mac.matches("([0-9A-F]{2}:){5}[0-9A-F]{2}")) throw new BackupException(M.backupEnginePairingFileInvalidBluetooth());
         String serial = ownerText(json, "scooter_serial", 128, false);
         // An account identity may belong to several scooters. Without hardware identifiers,
         // each import needs a fresh source ID so an old derived UUID cannot silently match
@@ -438,7 +447,7 @@ final class BackupArchive {
             Map<String, Map<String, Object>> preferences, LinkedHashMap<String, Source> table, int fileCount, long totalBytes) throws IOException {
         Map<String, Map<String, Object>> prefs = new LinkedHashMap<>();
         for (String name : BackupRegistry.NAMESPACES) prefs.put(name, preferences.containsKey(name) ? preferences.get(name) : new LinkedHashMap<>());
-        for (String name : preferences.keySet()) if (!BackupRegistry.namespace(name)) throw new IOException("The backup has an unsupported preference group.");
+        for (String name : preferences.keySet()) if (!BackupRegistry.namespace(name)) throw new BackupException(M.backupEngineBackupUnsupportedPreferenceGroup());
         BackupRegistry.validateTypes(prefs);
         Object items = prefs.get("profiles").get("items");
         List<BackupProfiles.Profile> profiles = BackupProfiles.parse(items, true);
@@ -472,7 +481,7 @@ final class BackupArchive {
         File[] saved = new File(files, "charge-recordings").listFiles();
         if (saved != null) for (File charge : sorted(saved)) {
             String id = charge.getName().substring(0, 36);
-            if (!chargeIds.add(id.toLowerCase(Locale.ROOT))) throw new IOException("The backup repeats a charge recording.");
+            if (!chargeIds.add(id.toLowerCase(Locale.ROOT))) throw new BackupException(M.backupEngineBackupRepeatsChargeRecording());
             ChargeSessionStore.Journal journal = null;
             try { journal = ChargeSessionStore.inspectJournal(charge); } catch (IOException unreadable) { journal = null; }
             String path = "charge-recordings/" + charge.getName();
@@ -541,17 +550,17 @@ final class BackupArchive {
         checkStage(storage, prepared); AppDataArchive.ensureNoTransaction(storage);
         Set<String> categories = new LinkedHashSet<>();
         for (String category : CATEGORIES) if (selected.contains(category)) categories.add(category);
-        if (categories.isEmpty() || categories.size() != new HashSet<>(selected).size() || !prepared.categories.keySet().containsAll(categories)) throw new IOException("Choose what to restore.");
-        if (replace && (!prepared.complete || categories.size() != CATEGORIES.length)) throw new IOException("Replace everything needs a complete backup with every category.");
+        if (categories.isEmpty() || categories.size() != new HashSet<>(selected).size() || !prepared.categories.keySet().containsAll(categories)) throw new BackupException(M.backupEngineChooseWhatRestore());
+        if (replace && (!prepared.complete || categories.size() != CATEGORIES.length)) throw new BackupException(M.backupEngineReplaceEverythingNeedsComplete());
         Map<String, Map<String, Object>> live = copy(storage.preferences());
-        List<String> lines = new ArrayList<>(), additions = new ArrayList<>();
+        List<CharSequence> lines = new ArrayList<>(); List<String> additions = new ArrayList<>();
         Map<String, String> mapping = new LinkedHashMap<>(), historyMapping = new LinkedHashMap<>();
         Map<String, Map<String, Object>> result;
         boolean history;
         if (replace) {
             result = replacement(live, prepared.preferences);
             history = true;
-            lines.add("Replaces everything on this phone");
+            lines.add(M.backupEnginePlanReplaceEverything());
             for (Map.Entry<String, Integer> category : prepared.categories.entrySet()) lines.add(BackupRegistry.label(category.getKey()) + ": " + count(category.getKey(), category.getValue()));
         } else {
             // Merges need trustworthy existing identities; complete replacement only snapshots
@@ -561,10 +570,10 @@ final class BackupArchive {
             List<Destination> needed = destinations(storage, prepared, categories);
             for (Destination d : needed) {
                 String target = chosen == null ? null : chosen.get(d.source);
-                if (target == null) throw new IOException("Choose where each scooter's data goes.");
-                if (!target.equals(SKIP) && BackupProfiles.find(local, target) == null && !(d.addable && target.equals(d.source))) throw new IOException("Choose where each scooter's data goes.");
+                if (target == null) throw new BackupException(M.backupEngineChooseWhereEachScooters());
+                if (!target.equals(SKIP) && BackupProfiles.find(local, target) == null && !(d.addable && target.equals(d.source))) throw new BackupException(M.backupEngineChooseWhereEachScooters());
                 if (!d.accountMatches.isEmpty() && !target.equals(SKIP) && !target.equals(d.source) && !d.accountMatches.contains(target))
-                    throw new IOException("Choose a scooter using this setup identity, or add another scooter.");
+                    throw new BackupException(M.backupEngineChooseScooterUsingSetup());
                 mapping.put(d.source, target);
             }
             Map<String, Integer> uses = new HashMap<>();
@@ -574,7 +583,7 @@ final class BackupArchive {
             for (BackupProfiles.Profile p : local) names.put(p.id, p.name);
             for (Source s : prepared.sources.values()) names.putIfAbsent(s.id, s.name);
             // Where each chosen scooter's data lands, as the earlier ride restore confirmed; a layout's Dashboards line names it.
-            for (Destination d : needed) { String target = mapping.get(d.source); if (!target.equals(SKIP) && !target.equals(d.source) && !d.source.equals(LAYOUT_SOURCE)) lines.add("“" + d.name + "” → " + names.get(target)); }
+            for (Destination d : needed) { String target = mapping.get(d.source); if (!target.equals(SKIP) && !target.equals(d.source) && !d.source.equals(LAYOUT_SOURCE)) lines.add(M.backupEnginePlanDestination(d.name, names.get(target))); }
             if (categories.contains(BackupRegistry.SCOOTERS)) scooters(prepared, live, local, mapping, result, lines);
             if (categories.contains(BackupRegistry.DASHBOARDS)) perScooter(BackupRegistry.DASHBOARDS, prepared, mapping, uses, names, result, lines);
             if (categories.contains(BackupRegistry.PREFERENCES)) {
@@ -583,26 +592,26 @@ final class BackupArchive {
                     result.get(name).keySet().removeIf(key -> BackupRegistry.PREFERENCES.equals(BackupRegistry.category(name, key)));
                     result.get(name).putAll(incoming.get(name));
                 }
-                lines.add("App preferences: replaces " + plural(count(incoming), "setting"));
+                lines.add(M.backupEnginePlanPreferences(count(incoming), count(incoming)));
             }
             if (categories.contains(BackupRegistry.RIDES)) recordings(storage, prepared.data, prepared.rides, false, mapping, additions, lines, prepared.orphans);
             if (categories.contains(BackupRegistry.CHARGES)) recordings(storage, prepared.data, prepared.charges, true, mapping, additions, lines, null);
             if (categories.contains(BackupRegistry.HISTORY)) {
                 Set<String> targets = new LinkedHashSet<>(); int skipped = 0;
                 for (String source : prepared.history) { String target = mapping.get(source); if (target == null || target.equals(SKIP)) skipped++; else { historyMapping.put(source, target); targets.add(target); } }
-                lines.add(targets.isEmpty() ? "Readings history: nothing to add" : "Readings history: adds to " + plural(targets.size(), "scooter"));
-                if (skipped > 0) lines.add("Readings for " + plural(skipped, "scooter") + " skipped · not restored");
+                lines.add(targets.isEmpty() ? M.backupEnginePlanHistoryNothing() : M.backupEnginePlanHistoryAdds(targets.size(), targets.size()));
+                if (skipped > 0) lines.add(M.backupEnginePlanHistorySkipped(skipped, skipped));
             }
             if (categories.contains(BackupRegistry.SCOOTER_PREFERENCES)) perScooter(BackupRegistry.SCOOTER_PREFERENCES, prepared, mapping, uses, names, result, lines);
             history = !historyMapping.isEmpty();
         }
-        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))) lines.add("Online map: on");
+        if ((replace || categories.contains(BackupRegistry.PREFERENCES)) && Boolean.TRUE.equals(result.get("app_settings").get("map_basemap_enabled"))) lines.add(M.backupEnginePlanOnlineMap());
         Map<String, Map<String, Object>> touched = new LinkedHashMap<>();
         for (String name : BackupRegistry.NAMESPACES) if (!result.get(name).equals(live.get(name))) touched.put(name, result.get(name));
         return new Plan(prepared, categories, replace, mapping, historyMapping, additions, lines, touched, history);
     }
     private static void scooters(Prepared prepared, Map<String, Map<String, Object>> live, List<BackupProfiles.Profile> local, Map<String, String> mapping,
-            Map<String, Map<String, Object>> result, List<String> lines) {
+            Map<String, Map<String, Object>> result, List<CharSequence> lines) {
         List<BackupProfiles.Profile> added = new ArrayList<>(); int here = 0, skipped = 0;
         for (BackupProfiles.Profile p : prepared.profiles) {
             boolean matched = BackupProfiles.find(local, p.id) != null;
@@ -627,12 +636,12 @@ final class BackupArchive {
         boolean alreadyConfigured = configured;
         for (BackupProfiles.Profile p : added) configured |= p.configured();
         if (configured && (!prepared.kind.equals("owner") || !alreadyConfigured)) { Map<String, Object> onboarding = result.get("onboarding"); onboarding.clear(); onboarding.put(BackupRegistry.OnboardingKeys.DONE, true); }
-        lines.add("Scooters: adds " + added.size() + " · " + here + " already here");
-        if (skipped > 0) lines.add(plural(skipped, "scooter") + " skipped · not restored");
+        lines.add(M.backupEnginePlanScooters(added.size(), here));
+        if (skipped > 0) lines.add(M.backupEnginePlanScootersSkipped(skipped, skipped));
     }
     /** Dashboards or scooter preferences: each mapped scooter's entries are replaced as a set. */
     private static void perScooter(String category, Prepared prepared, Map<String, String> mapping, Map<String, Integer> uses, Map<String, String> names,
-            Map<String, Map<String, Object>> result, List<String> lines) {
+            Map<String, Map<String, Object>> result, List<CharSequence> lines) {
         Set<String> sources = perProfile(prepared.preferences, category), replaced = new LinkedHashSet<>(), shared = new LinkedHashSet<>(); int skipped = 0;
         for (String source : sources) {
             String target = mapping.get(source);
@@ -652,18 +661,20 @@ final class BackupArchive {
             result.get("app_settings").put("dashboard_columns", prepared.preferences.get("app_settings").get("dashboard_columns"));
         List<String> labels = new ArrayList<>(); for (String target : replaced) labels.add(names.getOrDefault(target, "Saved scooter"));
         String label = BackupRegistry.label(category);
+        // The moved lines name the category in the shown language; the line still built here in English keeps LABELS' English.
+        Msg shown = BackupRegistry.labelMsg(category);
         // Name what is replaced, so the line never reads as replacing the scooter itself.
         String what = category.equals(BackupRegistry.DASHBOARDS) ? "layouts" : "settings";
         lines.add(label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + String.join(", ", labels)));
-        for (String target : shared) lines.add(label + " kept for " + names.getOrDefault(target, "Saved scooter") + " · two scooters chose it");
-        if (skipped > 0) lines.add(label + " for " + plural(skipped, "scooter") + " skipped · not restored");
+        for (String target : shared) lines.add(M.backupEnginePlanKept(shown, names.getOrDefault(target, "Saved scooter")));
+        if (skipped > 0) lines.add(M.backupEnginePlanCategorySkipped(skipped, shown, skipped));
     }
     /** Add-only by UUID, then by scooter and START clocks; a differing local copy is kept. */
-    private static void recordings(Storage storage, File data, List<Recording> staged, boolean charges, Map<String, String> mapping, List<String> additions, List<String> lines, List<String> orphans) throws IOException {
+    private static void recordings(Storage storage, File data, List<Recording> staged, boolean charges, Map<String, String> mapping, List<String> additions, List<CharSequence> lines, List<String> orphans) throws IOException {
         File liveFolder = new File(storage.files(), charges ? "charge-recordings" : "rides");
         Map<String, String> clocks = new HashMap<>();
         File[] existing = liveFolder.listFiles();
-        if (liveFolder.exists() && existing == null) throw new IOException("Saved recordings cannot be read.");
+        if (liveFolder.exists() && existing == null) throw new BackupException(M.backupEngineSavedRecordingsCannotRead());
         int kept = 0;
         if (existing != null) for (File file : existing) {
             String key = null;
@@ -689,7 +700,7 @@ final class BackupArchive {
             List<String> group = charges ? Arrays.asList("charge-recordings/" + recording.id + ".csv", "charge-recordings/" + recording.id + ".active") : RideArchive.paths(recording.id);
             for (String path : group) {
                 File mine = new File(storage.files(), path), incoming = new File(data, "files/" + path);
-                if (Files.exists(mine.toPath(), LinkOption.NOFOLLOW_LINKS)) { exists = true; if (Files.isSymbolicLink(mine.toPath()) || !mine.isFile()) throw new IOException("Unexpected recording file."); }
+                if (Files.exists(mine.toPath(), LinkOption.NOFOLLOW_LINKS)) { exists = true; if (Files.isSymbolicLink(mine.toPath()) || !mine.isFile()) throw new BackupException(M.backupEngineUnexpectedRecordingFile()); }
                 if (mine.exists() != incoming.isFile() || (mine.exists() && (mine.length() != incoming.length() || !Arrays.equals(RideArchive.digest(mine), RideArchive.digest(incoming))))) equal = false;
             }
             if (exists) { if (equal) identical++; else conflicts++; continue; }
@@ -708,15 +719,15 @@ final class BackupArchive {
         }
         for (Recording recording : candidates) additions.addAll(recording.group);
         String noun = charges ? "charge" : "ride";
-        lines.add((charges ? "Charges: " : "Rides: ") + candidates.size() + " new · " + identical + " already here · " + conflicts + " kept here");
+        lines.add(charges ? M.backupEnginePlanCharges(candidates.size(), identical, conflicts) : M.backupEnginePlanRides(candidates.size(), identical, conflicts));
         if (full > 0) lines.add(plural(full, noun) + " skipped · " + ChargeSessionStore.MAX_SESSIONS + "-charge limit");
         if (notRestored > 0) lines.add(plural(notRestored, noun) + " skipped · scooter not restored");
         if (unreadable > 0) lines.add(plural(unreadable, noun) + " skipped · unreadable");
-        if (orphans != null && !orphans.isEmpty()) lines.add(plural(orphans.size(), "phone file") + " skipped · no ride");
+        if (orphans != null && !orphans.isEmpty()) lines.add(M.backupEnginePlanPhoneFilesSkipped(orphans.size(), orphans.size()));
     }
     private static String current(File journal, boolean charge) throws IOException {
         if (charge) return ChargeSessionStore.inspectJournal(journal).profile;
-        RideStore.Start start = RideStore.start(journal); if (start == null) throw new IOException("The backup contains an unreadable ride."); return start.scooterId;
+        RideStore.Start start = RideStore.start(journal); if (start == null) throw new BackupException(M.backupEngineBackupContainsUnreadableRide()); return start.scooterId;
     }
     /** Replace everything: backup values for every assigned and unassigned key, this phone's
      * excluded keys kept; a finished setup drops wizard progress and dashboard undo is dropped. */
@@ -751,12 +762,12 @@ final class BackupArchive {
     // ---- Helpers -----------------------------------------------------------------------------
 
     static void checkStage(Storage storage, Prepared prepared) throws IOException {
-        if (prepared == null || prepared.consumed || !AppDataArchive.isStage(storage, prepared.directory) || !prepared.data.isDirectory()) throw new IOException("Choose the backup again.");
+        if (prepared == null || prepared.consumed || !AppDataArchive.isStage(storage, prepared.directory) || !prepared.data.isDirectory()) throw new BackupException(M.backupEngineChooseBackupAgain());
     }
     static List<BackupProfiles.Profile> profiles(Map<String, Map<String, Object>> prefs) throws IOException {
         Map<String, Object> profiles = prefs.get("profiles");
         try { return BackupProfiles.parse(profiles == null ? null : profiles.get("items")); }
-        catch (IOException unreadable) { throw new IOException("Saved scooters on this phone can't be read.", unreadable); }
+        catch (IOException unreadable) { throw new BackupException(M.backupEngineSavedScootersPhoneCantRead(), unreadable); }
     }
     /** Keys of one category, by namespace; every namespace is present. */
     static Map<String, Map<String, Object>> subset(Map<String, Map<String, Object>> prefs, String category) {
