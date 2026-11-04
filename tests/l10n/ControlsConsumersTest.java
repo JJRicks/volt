@@ -28,8 +28,8 @@ import java.util.regex.Pattern;
  * same name; the rows are per file, so that is noise for the follow-up to check, never a missed file.
  *
  * Batches are meant to shrink the table to its header, so the guard that the scan is not blind cannot be a row
- * count: instead every pattern must count a probe read exactly and miss its near-misses (selfTest), and the
- * source walk must read the app's named files.
+ * count: instead every branch of every pattern must count a probe read of its own exactly, and the patterns must
+ * miss their near-misses (selfTest), and the source walk must read the app's named files.
  */
 public final class ControlsConsumersTest {
     /** B4's own files (plan 3.B "B4"): they define the accessors and are not consumers. */
@@ -62,23 +62,33 @@ public final class ControlsConsumersTest {
     static final List<String> ALWAYS = Arrays.asList("MainActivity.java", "BleController.java", "ScooterService.java");
 
     /**
-     * One read per pattern, each of which scan() must count. Every PATTERNS key and feature-field needs a probe, so a
-     * pattern added without one fails here. Each probe goes in its own synthetic file, twice, to pin the count.
+     * Reads scan() must count, by pattern, one for each branch: every receiver and field of a (?:a|b) group, label(
+     * and labels(, find(key) and find() around a call, and a field on each Feature variable PROBE_HEAD declares. Each
+     * goes in its own synthetic file, twice, to pin the count, so a branch taken away fails. selfTest also takes each
+     * group word and optional letter out of the pattern in turn and needs a probe to go unmatched, so a branch added
+     * without a probe of its own fails too, as does a PATTERNS key (or feature-field) with no probes.
      */
-    static final Map<String, String> PROBES = new LinkedHashMap<>();
+    static final Map<String, List<String>> PROBES = new LinkedHashMap<>();
     static {
-        PROBES.put("reason-text", "notice(d.reasonText());");
-        PROBES.put("resolver-text", "muted(CapabilityResolver.text(d));");
-        PROBES.put("variant-label", "button(variant.label(v));");
-        PROBES.put("oem-label", "value(decision.oemLabel(raw));");
-        PROBES.put("find-field", "title(find(list.get(0).feature).label);");
-        PROBES.put("value-label", "value(f.valueLabel(3));");
-        PROBES.put("search-text", "haystack.add(f.searchText());");
-        PROBES.put("model-line", "title(ModelRegistry.modelLine(id));");
-        PROBES.put("series-about", "body(series.about);");
-        PROBES.put("refusal-message", "notice(e.getMessage());");
-        PROBES.put("feature-field", "show(feature.label);");
+        probe("reason-text", "notice(d.reasonText());");
+        probe("resolver-text", "muted(CapabilityResolver.text(d));");
+        probe("variant-label", "button(variant.label(v));", "button(v.label(choice));", "row(d.label(raw));",
+                "value(decision.label(raw));", "chips(d.labels());");
+        probe("oem-label", "value(decision.oemLabel(raw));");
+        probe("find-field", "title(find(key).label);", "header(find(key).group);", "body(find(key).description);",
+                "pick(find(key).options);", "title(find(list.get(0).feature).label);");
+        probe("value-label", "value(f.valueLabel(3));");
+        probe("search-text", "haystack.add(f.searchText());");
+        probe("model-line", "title(ModelRegistry.modelLine(id));");
+        probe("series-about", "body(series.about);");
+        probe("refusal-message", "notice(e.getMessage());");
+        probe("feature-field", "show(feature.label);", "header(feature.group);", "body(feature.description);",
+                "pick(feature.options);", "show(f.label);");
     }
+    static final String PROBE_HEAD = "class P {\n  void a(ScooterCommands.Feature feature, ScooterCommands.Feature f) {\n";
+    /** feature-field reads in a file that declares no ScooterCommands.Feature: some other type's fields. */
+    static final String NO_FEATURE = "class Q {\n  void a(Row feature, Row f) {\n"
+            + "    show(feature.label); header(feature.group); body(f.description); pick(f.options);\n  }\n}\n";
     /** Reads that must not be counted: call forms, display accessors, names that only contain a field, no Feature. */
     static final String NEAR_MISSES = "ScooterCommands.Feature feature = f;\n"
             + "show(feature.label()); show(feature.description()); show(feature.optionLabel(0)); show(feature.labels);\n"
@@ -118,29 +128,50 @@ public final class ControlsConsumersTest {
         System.out.println("ControlsConsumersTest: " + checks + " checks passed (" + found.size() + " consumer rows).");
     }
 
+    private static void probe(String id, String... reads) {
+        PROBES.put(id, Arrays.asList(reads));
+    }
+
     /**
-     * The scanner is not blind, whatever the table holds (batches shrink it to its header): every pattern counts its
-     * probe exactly, in its own file and nowhere else, and the near-misses and B4's own files count nothing.
+     * The scanner is not blind, whatever the table holds (batches shrink it to its header): every branch of every
+     * pattern has a probe that needs it, every probe is counted exactly, in its own file and nowhere else, and the
+     * near-misses, a file without a Feature declaration and B4's own files count nothing.
      */
     static void selfTest() {
+        check(withoutEachBranch("x(?:a|b)s?").equals(Arrays.asList("x(?:b)s?", "x(?:a)s?", "x(?:a|b)s", "x(?:a|b)")),
+                "self-test: withoutEachBranch finds each branch");
         Set<String> ids = new LinkedHashSet<>(PATTERNS.keySet());
         ids.add("feature-field");
-        check(PROBES.keySet().equals(ids), "every pattern has a probe (patterns " + ids + ", probes " + PROBES.keySet() + ")");
+        check(PROBES.keySet().equals(ids), "every pattern has probes (patterns " + ids + ", probes " + PROBES.keySet() + ")");
         Map<String, String> sources = new TreeMap<>();
         Map<String, Integer> expected = new TreeMap<>();
-        StringBuilder all = new StringBuilder("ScooterCommands.Feature feature = f;\n");
-        for (Map.Entry<String, String> probe : PROBES.entrySet()) {
-            String file = "Probe_" + probe.getKey() + ".java";
-            sources.put(file, "class P {\n  void a(ScooterCommands.Feature feature) {\n    " + probe.getValue() + "\n    "
-                    + probe.getValue() + "\n  }\n}\n");
-            expected.put(file + "\t" + probe.getKey(), 2);
-            all.append(probe.getValue()).append('\n');
+        StringBuilder all = new StringBuilder(PROBE_HEAD);
+        for (Map.Entry<String, List<String>> probes : PROBES.entrySet()) {
+            String id = probes.getKey();
+            List<String> reads = probes.getValue();
+            check(!reads.isEmpty(), "every pattern has probes (" + id + " has none)");
+            Pattern pattern = id.equals("feature-field") ? featureField(featureNames(PROBE_HEAD)) : PATTERNS.get(id);
+            for (String branchless : withoutEachBranch(pattern.pattern())) {
+                Pattern narrowed = Pattern.compile(branchless);
+                boolean needed = false;
+                for (String read : reads) needed |= !narrowed.matcher(read).find();
+                check(needed, "self-test: every branch of " + id + " needs a probe of its own, but all its probes still match "
+                        + branchless);
+            }
+            for (int i = 0; i < reads.size(); i++) {
+                String file = "Probe_" + id + "_" + i + ".java";
+                sources.put(file, PROBE_HEAD + "    " + reads.get(i) + "\n    " + reads.get(i) + "\n  }\n}\n");
+                expected.put(file + "\t" + id, 2);
+                all.append("    ").append(reads.get(i)).append('\n');
+            }
         }
+        all.append("  }\n}\n");
         sources.put("NearMisses.java", NEAR_MISSES);
+        sources.put("NoFeature.java", NO_FEATURE);
         for (String own : OWN) sources.put(own, all.toString());
         Map<String, Integer> found = scan(sources);
         for (Map.Entry<String, Integer> e : expected.entrySet())
-            check(e.getValue().equals(found.get(e.getKey())), "self-test: the scan counts " + found.get(e.getKey())
+            check(e.getValue().equals(found.get(e.getKey())), "self-test: the scan counts " + found.getOrDefault(e.getKey(), 0)
                     + " " + e.getKey().replace('\t', ' ') + " read(s), expected " + e.getValue());
         for (Map.Entry<String, Integer> e : found.entrySet())
             check(expected.containsKey(e.getKey()), "self-test: the scan counts " + e.getValue() + " "
@@ -154,15 +185,47 @@ public final class ControlsConsumersTest {
             String file = source.getKey(), text = source.getValue();
             if (OWN.contains(file)) continue;
             for (Map.Entry<String, Pattern> p : PATTERNS.entrySet()) count(out, file, p.getKey(), p.getValue(), text);
-            Set<String> names = new LinkedHashSet<>();
-            Matcher m = FEATURE_VARIABLE.matcher(text);
-            while (m.find()) names.add(m.group(1));
-            if (!names.isEmpty()) {
-                List<String> quoted = new ArrayList<>();
-                for (String name : names) quoted.add(Pattern.quote(name));
-                count(out, file, "feature-field", Pattern.compile("\\b(?:" + String.join("|", quoted)
-                        + ")\\.(?:label|group|description|options)\\b(?!\\s*\\()"), text);
+            Set<String> names = featureNames(text);
+            if (!names.isEmpty()) count(out, file, "feature-field", featureField(names), text);
+        }
+        return out;
+    }
+
+    /** The names a file gives its ScooterCommands.Feature variables and parameters. */
+    static Set<String> featureNames(String text) {
+        Set<String> names = new LinkedHashSet<>();
+        Matcher m = FEATURE_VARIABLE.matcher(text);
+        while (m.find()) names.add(m.group(1));
+        return names;
+    }
+
+    /** feature-field: a field read, not a call, on one of the named Feature variables. */
+    static Pattern featureField(Set<String> names) {
+        List<String> quoted = new ArrayList<>();
+        for (String name : names) quoted.add(Pattern.quote(name));
+        return Pattern.compile("\\b(?:" + String.join("|", quoted) + ")\\.(?:label|group|description|options)\\b(?!\\s*\\()");
+    }
+
+    /**
+     * The regex once for each branch it offers, with that branch taken away: each word of a (?:a|b) group, and each
+     * optional letter (s?) made required and made absent. selfTest needs every one to miss a probe of the pattern.
+     */
+    static List<String> withoutEachBranch(String regex) {
+        List<String> out = new ArrayList<>();
+        Matcher group = Pattern.compile("\\(\\?:(\\w+(?:\\|\\w+)+)\\)").matcher(regex);
+        while (group.find()) {
+            List<String> words = Arrays.asList(group.group(1).split("\\|"));
+            for (String word : words) {
+                List<String> rest = new ArrayList<>(words);
+                rest.remove(word);
+                out.add(regex.substring(0, group.start(1)) + String.join("|", rest) + regex.substring(group.end(1)));
             }
+        }
+        Matcher optional = Pattern.compile("(?<!\\\\)(\\w)\\?").matcher(regex);
+        while (optional.find()) {
+            String before = regex.substring(0, optional.start()), after = regex.substring(optional.end());
+            out.add(before + optional.group(1) + after);
+            out.add(before + after);
         }
         return out;
     }
