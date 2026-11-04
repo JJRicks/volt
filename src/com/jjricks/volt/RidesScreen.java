@@ -706,13 +706,13 @@ public final class RidesScreen implements AppScreen {
         LinearLayout route = vertical(); body.addView(route);
         ChartPanel graph = new ChartPanel(ride.id, measured, null, false); body.addView(graph);
         body.addView(ui.sectionLabel(T.ridesJourney()));
-        List<View> journey = tiles(body, new String[]{T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), T.ridesTileDuration(), duration(ride.elapsedMs),
-                T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
+        List<View> journey = tiles(body, new String[]{"route", T.ridesTileDistance(), ride.odometerReset ? "—" : distance(ride.distanceKm), "clock", T.ridesTileDuration(), duration(ride.elapsedMs),
+                "speed", T.ridesTileAvgSpeed(), speed(ride.averageSpeedKmh), "speed", T.ridesTileMaxSpeed(), speed(ride.maximumSpeedKmh)});
         if (ride.odometerReset) reasonOnTap(journey.get(0), T.ridesReasonOdometerReset());
         body.addView(ui.sectionLabel(T.ridesBatteryEnergy()));
         boolean batteryGain = ride.batteryDropPercent != null && ride.batteryDropPercent < 0;
-        List<View> energy = tiles(body, new String[]{batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), T.ridesTilePerDistance(), efficiency(ride),
-                T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, "Wh", 2), T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
+        List<View> energy = tiles(body, new String[]{"battery", batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), "route", T.ridesTilePerDistance(), efficiency(ride),
+                "bolt", T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, "Wh", 2), "bolt", T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
         if (ride.batteryDropPercent != null && Double.isFinite(ride.batteryDropPercent))
             energy.get(0).setContentDescription((batteryGain ? T.ridesBatteryGainDescription(Math.round(Math.abs(ride.batteryDropPercent)))
                     : T.ridesBatteryDropDescription(Math.round(Math.abs(ride.batteryDropPercent)))));
@@ -1270,8 +1270,8 @@ public final class RidesScreen implements AppScreen {
         TextView fixes = ui.caption(track.locationCount == 0 ? "No GPS fixes" : String.format(Locale.US, "%,d fixes", track.locationCount) + (dropped > 0 ? String.format(Locale.US, " · %,d dropped", dropped) : ""));
         fixes.setContentDescription(track.statusText()); fixes.setPadding(ui.dp(4), 0, ui.dp(4), ui.dp(10)); bottom.addView(fixes);
         // Grade and ascent are smoothed estimates: ≈ marks them.
-        tiles(bottom, new String[]{T.ridesTileGpsDistance(), distance(track.distanceMeters == null ? null : track.distanceMeters / 1000),
-                T.ridesTileAscentDescent(), (track.ascentMeters == null ? "" : "≈") + height(track.ascentMeters) + " / " + height(track.descentMeters)});
+        tiles(bottom, new String[]{"route", T.ridesTileGpsDistance(), distance(track.distanceMeters == null ? null : track.distanceMeters / 1000),
+                "hill", T.ridesTileAscentDescent(), (track.ascentMeters == null ? "" : "≈") + height(track.ascentMeters) + " / " + height(track.descentMeters)});
         LinearLayout accelerationHead = horizontal(); accelerationHead.setGravity(Gravity.CENTER_VERTICAL);
         accelerationHead.addView(ui.sectionLabel(T.ridesAcceleration()));
         LinearLayout.LayoutParams labParams = new LinearLayout.LayoutParams(-2, -2); labParams.leftMargin = ui.dp(4); labParams.topMargin = ui.dp(8);
@@ -1566,16 +1566,19 @@ public final class RidesScreen implements AppScreen {
         group.addView(row);
         return row;
     }
-    /** Two-column grid of small stat tiles from label / value pairs. */
-    private List<View> tiles(LinearLayout parent, String[] pairs) {
+    /**
+     * Two-column grid of small stat tiles from icon / label / value triples. Each call site names its
+     * tiles' icons: a label is display text in the shown language, so it never picks one.
+     */
+    private List<View> tiles(LinearLayout parent, String[] cells) {
         List<View> made = new ArrayList<View>();
         LinearLayout grid = vertical(); grid.setPadding(0, 0, 0, ui.dp(4));
-        for (int i = 0; i < pairs.length; i += 4) {
+        for (int i = 0; i < cells.length; i += 6) {
             LinearLayout row = horizontal(); row.setBaselineAligned(false);
-            for (int j = 0; j < 4 && i + j < pairs.length; j += 2) {
+            for (int j = 0; j < 6 && i + j < cells.length; j += 3) {
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, -1, 1);
                 if (j == 0) params.rightMargin = ui.dp(4); else params.leftMargin = ui.dp(4);
-                View tile = tile(pairs[i + j], pairs[i + j + 1]); made.add(tile); row.addView(tile, params);
+                View tile = tile(cells[i + j], cells[i + j + 1], cells[i + j + 2]); made.add(tile); row.addView(tile, params);
             }
             if (row.getChildCount() == 1) row.addView(new View(host.activity()), new LinearLayout.LayoutParams(0, 1, 1));
             LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(-1, -2); rowParams.bottomMargin = ui.dp(8);
@@ -1584,16 +1587,16 @@ public final class RidesScreen implements AppScreen {
         parent.addView(grid);
         return made;
     }
-    private View tile(String label, String value) {
+    private View tile(String glyph, String label, String value) {
         LinearLayout tile = vertical(); tile.setBackground(ui.shape(ui.surface, 14, 0)); tile.setPadding(ui.dp(12), ui.dp(9), ui.dp(12), ui.dp(10));
         LinearLayout heading = horizontal(); heading.setGravity(Gravity.CENTER_VERTICAL);
-        String glyph = label.contains("speed") ? "speed" : label.contains("Distance") || label.contains("distance") ? "route" : label.contains("Duration") ? "clock" : label.contains("Battery") ? "battery" : label.contains("Ascent") ? "hill" : "bolt";
         heading.addView(ui.icon(glyph, 16, ui.muted), new LinearLayout.LayoutParams(ui.dp(16), ui.dp(16)));
         TextView name = ui.caption(label); name.setPadding(ui.dp(6), 0, 0, 0); name.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12 * ui.textScale); heading.addView(name, new LinearLayout.LayoutParams(0, -2, 1)); tile.addView(heading);
         TextView amount = ui.text("", 20, true); amount.setPadding(0, ui.dp(5), 0, 0);
         String[] parts = splitNumber(value);
-        // Durations such as "24m 05s" stay bold; words such as "Not measured" read as quiet text.
-        if (parts == null && (value.isEmpty() || !Character.isDigit(value.charAt(0)) && "+-−≈".indexOf(value.charAt(0)) < 0)) {
+        // Durations such as "24m 05s" stay bold; words such as "Not measured" (no digit) read as quiet text, wherever a
+        // language's template puts its words, unit or % sign ("%42" in Turkish).
+        if (parts == null && (value.isEmpty() || !hasDigit(value) && NUMBER_LEADS.indexOf(value.charAt(0)) < 0)) {
             amount.setText(value); amount.setTextSize(TypedValue.COMPLEX_UNIT_SP, 14 * ui.textScale); amount.setTypeface(ui.regular()); amount.setTextColor(ui.muted);
         } else if (parts == null) amount.setText(value);
         else {
@@ -1610,6 +1613,13 @@ public final class RidesScreen implements AppScreen {
         tile.setContentDescription(label + ", " + value);
         if (Build.VERSION.SDK_INT >= 28) tile.setScreenReaderFocusable(true);
         return tile;
+    }
+    /** What a tile value's number may start with besides a digit: a sign, or the ≈ of a smoothed estimate. */
+    private static final String NUMBER_LEADS = "+-−≈";
+    /** True when value holds a digit anywhere: a measured value, whatever text a language's template puts before the number. */
+    private static boolean hasDigit(String value) {
+        for (int i = 0; i < value.length(); i++) if (Character.isDigit(value.charAt(i))) return true;
+        return false;
     }
     /** Splits "6.80 mi" into number and unit; returns null for text such as "Not measured". */
     private static String[] splitNumber(String value) {

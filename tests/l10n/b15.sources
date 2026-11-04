@@ -6,3 +6,6 @@ tests/l10n/characterization/RidesEnglishTest.java
 # B15's own suite: the head text of RidesScreen (templates, plurals, choices, numbers and the phone
 # sensor status from PhoneRideRecorder's flags) against the base copies, and from the catalog.
 tests/l10n/RidesTextTest.java
+# B15 review: tile icons come from the call site, never from the label's (translated) text; the tile
+# value's quiet style reads no first character a language's template can move.
+tests/l10n/RidesTileIconTest.java
