@@ -126,10 +126,6 @@
     <string name="maps_route_marker_end" volt:screen="Rides, map" volt:purpose="label" volt:max="16dp@10sp">E</string>
     <!-- Drawn on the map when the ride has no phone GPS route. -->
     <string name="maps_route_no_gps" volt:screen="Rides, map" volt:purpose="status">No GPS route recorded</string>
-    <!-- Unit symbol for feet on the map scale and elevation. -->
-    <string name="maps_unit_foot" volt:screen="Rides, map" volt:purpose="unit symbol">ft</string>
-    <!-- Unit symbol for metres on the map scale. -->
-    <string name="maps_unit_meter" volt:screen="Rides, map" volt:purpose="unit symbol">m</string>
     <!-- Unit symbol for kilowatts in the route tooltip. -->
     <string name="maps_unit_kilowatt" volt:screen="Rides, map" volt:purpose="unit symbol">kW</string>
 
