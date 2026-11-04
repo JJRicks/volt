@@ -371,11 +371,17 @@ How `ledger_check.py` (G1) reads it:
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
 - **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
-  summary picks words in a local and uses it later: `String what = ... ? "layouts" : "settings";`
-  then `"replaces " + what + " for " + ...` (merge-base lines 656-657), and
-  `String noun = charges ? "charge" : "ride";` then `plural(full, noun)` (lines 710-714). A choice
-  row's condition must sit in the row's expression, and a helper's text argument is a literal or a
-  hole, so a hole for `noun` renders a fragment, not a sentence: the whole-sentence conversion
+  summary picks words in a local and uses it later. For a merge, `perScooter` sets
+  `String what = ... ? "layouts" : "settings";` then adds the Dashboards and Scooter preferences
+  lines, `label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + ...)`
+  (BackupArchive.java lines 667-668 since B10, 656-657 before), and `recordings` sets
+  `String noun = charges ? "charge" : "ride";` then adds the rides and charges lines for what is
+  skipped: `plural(full, noun) + " skipped · " + ...`,
+  `plural(notRestored, noun) + " skipped · scooter not restored"` and
+  `plural(unreadable, noun) + " skipped · unreadable"` (lines 721-725 since B10, 710-714 before).
+  The Review page (B11) shows these lines in English. A choice row's condition must sit in the
+  row's expression, and a helper's text argument is a literal or a hole, so a hole for `noun`
+  renders a fragment, not a sentence: the whole-sentence conversion
   `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
   the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
   piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence

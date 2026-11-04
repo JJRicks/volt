@@ -8,19 +8,33 @@
   the screen shows it as it is. What these pages still show in English, and why:
   - counts built with BackupArchive.plural ("2 rides", "3 scooters"): G1 models that helper only in
     the file that declares it, and BackupActivity does not;
-  - the Review page's lines that BackupArchive.plan (B10's file) still builds as Strings, deferred to
-    a tooling round (an argument change in an extraction batch, a model for count and plural) in
-    gate-blocks.md, "B11 relabel fix":
-    - for Replace everything, each category's line ("Rides: 2 rides"): the engine joins
-      BackupRegistry.label's English with BackupArchive.count, and G1 refuses both a Msg label there
-      and count, which picks its noun by category;
-    - for a merge, the Dashboards and Scooter preferences lines ("Dashboards: nothing to replace",
-      "Dashboards: replaces layouts for <scooters>", "Scooter preferences: replaces settings for
-      <scooters>") and the rides and charges lines for what is skipped ("2 rides skipped · scooter
-      not restored", "1 charge skipped · unreadable", "3 charges skipped · 20-charge limit");
+  - the Review page's lines that BackupArchive.plan (B10's file) still builds as Strings, which wait
+    for a tooling pull request (l10n/README.md, "Ledger format"):
+    - for Replace everything, each category's line ("Rides: 2 rides", BackupArchive.java:564): the
+      engine joins BackupRegistry.label's English with BackupArchive.count. G1 wants a template's
+      holes passed as the base wrote them, so it refuses BackupRegistry.labelMsg there, and count,
+      which picks its noun by category, has no helper model ("A helper with any other body");
+    - for a merge, the Dashboards and Scooter preferences lines (:667-668, "Dashboards: nothing to
+      replace", "Dashboards: replaces layouts for <scooters>", "Scooter preferences: replaces
+      settings for <scooters>") and the rides and charges lines for what is skipped (:721-725,
+      "2 rides skipped · scooter not restored", "1 charge skipped · unreadable", "3 charges
+      skipped · 20-charge limit"): each picks its words in a local set on an earlier line ("Still
+      blocked: a helper argument or a choice set on an earlier line");
   - the owner-key note on the Review page: G1 refuses it beside the switch to Review.messages;
-  - the Paused page's reason, which MainActivity passes rendered (preparation_error), and a system
-    message of 80 characters or fewer that a failed read carries;
+  - the Paused page's reason, which MainActivity passes rendered (preparation_error);
+  - when a file is refused or a check fails, a plain IOException's own message of 80 characters or
+    fewer (BackupActivity.message; a BackupException shows its msg() instead): the system's, or
+    Volt's own English from the engine and the stores it calls:
+    - opening a file without a password: BackupArchive.ownerText (:441, "The pairing file has an
+      invalid <field>.") for a pairing file, and for a ride backup RideStore through
+      RideArchive.stage (:121): "The backup contains an unfinished or unreadable ride." (:725) and
+      "Ride journal record too large" (:851);
+    - Review for a merge with rides or charges (BackupArchive.recordings :697, current :729):
+      ChargeSessionStore.inspectJournal and reassignJournal ("Unexpected charge file." :664, "The
+      backup contains an unreadable charge." :665, :673, :675, "Choose a destination scooter."
+      :670, "Could not associate the restored charge." :678) and RideStore.reassignJournal
+      ("Choose a destination scooter." :754, "Could not associate the restored ride." :771, :851
+      as it reads the journal or its rewritten copy, and :725 for that copy);
   - the file name a backup is saved under (volt-full-..., volt-selected-...): data, never translated.
   Dates and sizes are not English: the backup's date (DateFormat, MEDIUM date, SHORT time) and sizes
   (Android's Formatter) follow Volt's locale, as before. After a language change the Restore page's

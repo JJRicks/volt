@@ -72,6 +72,16 @@ public final class BackupRelabelTest {
         check(backUp.contains("else detail=items+\" · \"+size(bytes);"), "Back up shows a rides or charges row as its count, \" · \" and its size");
         check(BackupRegistry.RIDES.equals("rides") && BackupRegistry.CHARGES.equals("charges") && !backUp.contains("\"rides\"") && !backUp.contains("\"charges\""),
                 "BackupRegistry.RIDES and CHARGES are ids no earlier branch of backupCategories takes");
+        // By name or by constant: "rides", "charges", BackupRegistry.RIDES or CHARGES (also in a || of another id).
+        Pattern ridesOrCharges = Pattern.compile("\"(rides|charges)\"|\\b(RIDES|CHARGES)\\b");
+        int chain = backUp.indexOf("String detail;"), last = backUp.indexOf("else detail=items+\" · \"+size(bytes);");
+        check(chain >= 0 && last > chain, "backupCategories declares detail before its last else");
+        String earlier = first(ridesOrCharges, backUp.substring(chain, last));
+        check(earlier == null, "no branch of backupCategories before its last else takes rides or charges: " + earlier);
+        int branch = recount.indexOf("else if(id.equals(BackupRegistry.RIDES)||id.equals(BackupRegistry.CHARGES)){");
+        check(branch >= 0, "relabelCounts has its rides and charges branch");
+        String before = first(ridesOrCharges, recount.substring(0, branch));
+        check(before == null, "no branch of relabelCounts before its rides and charges branch takes them: " + before);
         String rows = body(recount, "else if(id.equals(BackupRegistry.RIDES)||id.equals(BackupRegistry.CHARGES)){").replaceAll("\\s+", " ");
         check(rows.equals("View shown=((android.view.ViewGroup)e.getValue().getParent()).getChildAt(1);int cut=Long.toString(inventory.get(id)[0]).length()+3; "
                         + "if(shown instanceof TextView&&((TextView)shown).length()>cut)detail=((TextView)shown).getText().toString().substring(0,cut)+size(inventory.get(id)[1]);"),
@@ -113,6 +123,12 @@ public final class BackupRelabelTest {
         Matcher m = Pattern.compile(pattern).matcher(code);
         while (m.find()) found.add(m.group(1));
         return found;
+    }
+
+    /** The first text the pattern finds in code, or null. */
+    private static String first(Pattern pattern, String code) {
+        Matcher m = pattern.matcher(code);
+        return m.find() ? m.group() : null;
     }
 
     /** The text between a member's opening line and its matching closing brace. */
