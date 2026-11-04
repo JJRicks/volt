@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The foreground service (batch B8): the connection notice and Volt's other notifications, their
+  channels, the charge recording status (More › Developer), Charge done by and the Scheduled
+  charging test, and the reasons the service gives when it refuses a change. The English must stay
+  exactly what ScooterService said before the batch (G1, G2), including its known bugs.
+
+  Where the source chose words with a condition ("Measured this charge. " or "Planned for a fresh
+  charge. ", "second" or "seconds"), each choice is its own whole sentence here, so a language can
+  order and inflect the whole of it. Only values (a time, a name, a number) are filled in.
+-->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
+    xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+
+    <!-- ===== Why the service refuses a change (shown in a toast or a message) ===== -->
+
+    <!-- Choosing another scooter or app data maintenance waits for a backup or restore. -->
+    <string name="service_wait_backup" volt:screen="My scooters, backup" volt:purpose="reason">Wait for backup or restore to finish</string>
+    <!-- A ride or charge recording is running. -->
+    <string name="service_stop_recording_first" volt:screen="My scooters, backup" volt:purpose="reason">Stop the current recording first</string>
+    <!-- The last ride's phone sensors are still being saved. -->
+    <string name="service_wait_ride_saving" volt:screen="My scooters" volt:purpose="reason">Wait for the ride to finish saving</string>
+    <!-- A setting is still being written to the scooter. -->
+    <string name="service_wait_scooter_change" volt:screen="My scooters, backup" volt:purpose="reason">Wait for the current scooter change to finish</string>
+    <!-- The Scheduled charging test is running. -->
+    <string name="service_wait_schedule_test" volt:screen="My scooters, backup, simulation" volt:purpose="reason"
+        volt:safety="charge">Wait for the schedule test to finish</string>
+    <!-- A backup or restore was started twice. -->
+    <string name="service_maintenance_in_progress" volt:screen="Backup" volt:purpose="reason">App data maintenance is already in progress</string>
+    <!-- The phone sensors of a ride are still being saved. -->
+    <string name="service_wait_phone_saving" volt:screen="Backup" volt:purpose="reason">Wait for the phone recording to finish saving</string>
+    <!-- A charge recording export is being prepared. -->
+    <string name="service_finish_charge_export" volt:screen="Backup" volt:purpose="reason">Finish the current charge export first</string>
+    <!-- Volt is still writing a charging schedule to the scooter. -->
+    <string name="service_wait_charging_schedule" volt:screen="Backup" volt:purpose="reason"
+        volt:safety="charge">Wait for the charging schedule to finish</string>
+    <!-- Charge done by is measuring the charge for up to ten minutes. "Charge done by" is the feature's name. -->
+    <string name="service_wait_measuring" volt:screen="Backup, simulation, schedule test" volt:purpose="reason"
+        volt:safety="charge">Wait for Charge done by to finish measuring</string>
+    <!-- Saved readings are being deleted. -->
+    <string name="service_wait_history_cleanup" volt:screen="Backup" volt:purpose="reason">Wait for history cleanup to finish</string>
+    <!-- Owner setup through Shizuku changed NAVEE's logging and has not put it back yet. -->
+    <string name="service_finish_owner_setup" volt:screen="Backup" volt:purpose="reason" volt:safety="owner-key"
+        volt:dnt="NAVEE">Finish owner setup and restore NAVEE logging first</string>
+    <!-- A file is still being exported. -->
+    <string name="service_finish_export" volt:screen="Backup" volt:purpose="reason">Finish the current export first</string>
+    <!-- An owner setup file is still being imported. -->
+    <string name="service_finish_owner_import" volt:screen="Backup" volt:purpose="reason" volt:safety="owner-key">Finish importing owner setup first</string>
+    <!-- Backup or restore could not stop the service's work in time; Volt restarts afterwards. -->
+    <string name="service_maintenance_failed" volt:screen="Backup" volt:purpose="error" volt:dnt="Volt">Couldn\'t prepare app data. Reopen Volt.</string>
+    <!-- Sample data cannot start while a ride or charge is recorded. -->
+    <string name="service_simulation_finish_recording" volt:screen="More › Developer" volt:purpose="toast">Finish the current recording before simulating</string>
+
+    <!-- ===== Charge recording (More › Developer › Charge recording) ===== -->
+
+    <!-- Status line before any charge was recorded since Volt started. -->
+    <string name="service_charge_none" volt:screen="More › Developer › Charge recording" volt:purpose="status">No charge recording yet</string>
+    <string name="service_charge_storage_unavailable" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording storage is unavailable</string>
+    <string name="service_charge_enable_developer" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Enable developer options first</string>
+    <string name="service_charge_simulation" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Turn off simulation to record a real charge</string>
+    <string name="service_charge_finish_ride" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Finish the ride recording first</string>
+    <string name="service_charge_preparing_export" volt:screen="More › Developer › Charge recording" volt:purpose="status">Preparing charge export</string>
+    <string name="service_charge_loading" volt:screen="More › Developer › Charge recording" volt:purpose="status">Loading saved charge recordings</string>
+    <string name="service_charge_connect_scooter" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Connect your scooter first</string>
+    <string name="service_charge_wait_readings" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Wait for fresh charging readings</string>
+    <string name="service_charge_battery_full" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Battery is already at 100%%</string>
+    <!-- The recording's notification carries its Stop button, so notifications must be allowed. -->
+    <string name="service_charge_allow_notifications" volt:screen="More › Developer › Charge recording" volt:purpose="reason">Allow app notifications so the Stop action stays available</string>
+    <string name="service_charge_choose_charger" volt:screen="More › Developer › Charge recording" volt:purpose="status">Choose the attached charger</string>
+    <string name="service_charge_started" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording started</string>
+    <string name="service_charge_start_failed" volt:screen="More › Developer › Charge recording" volt:purpose="status">Could not start charge recording</string>
+    <!-- The scooter's link dropped during a charge recording; %1$s is the number of seconds Volt keeps trying. "s" is the seconds symbol. -->
+    <string name="service_charge_reconnecting" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Reconnecting · %1$ss</string>
+    <!-- The running recording, by charger: the stock charger cut out (it often does when hot) and Volt waits for it. -->
+    <string name="service_charge_stock_charger_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · charger stopped · waiting for it to resume</string>
+    <!-- Volt's own charging schedule holds the current off until its start. -->
+    <string name="service_charge_stock_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · paused until the scheduled start</string>
+    <!-- %1$s is the number of readings saved so far. English says "1 local samples" too; a later
+         English fix will change that, so any plural form is fine here. -->
+    <string name="service_charge_stock_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">Stock charger · %1$s local samples</string>
+    <string name="service_charge_fast_charger_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · charger stopped · waiting for it to resume</string>
+    <string name="service_charge_fast_schedule_paused" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · paused until the scheduled start</string>
+    <!-- %1$s is the number of readings saved so far (English says "1 local samples" too). -->
+    <string name="service_charge_fast_samples" volt:screen="More › Developer › Charge recording; connection notice" volt:purpose="status">High-speed charger · %1$s local samples</string>
+    <!-- Which charges the estimates learn from. %1$s is the number of recordings stored for every scooter and charger. -->
+    <string name="service_charge_learning_unknown" volt:screen="More › Developer › Charge recording" volt:purpose="summary">Not applied until the charger is known · %1$s recordings stored</string>
+    <!-- %1$s is always 1 here: one recorded charge with the high-speed charger qualifies. %2$s is the number of recordings stored. -->
+    <string name="service_charge_learning_fast_one" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified high-speed charge · %2$s recordings stored</string>
+    <!-- %1$s is any number but 1 (0, 2, 21, ...) of qualified charges with the high-speed charger; %2$s the recordings stored. -->
+    <string name="service_charge_learning_fast_other" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified high-speed charges · %2$s recordings stored</string>
+    <!-- %1$s is always 1 here: one recorded charge with the stock charger qualifies. -->
+    <string name="service_charge_learning_stock_one" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified stock charge · %2$s recordings stored</string>
+    <!-- %1$s is any number but 1 (0, 2, 21, ...) of qualified charges with the stock charger. -->
+    <string name="service_charge_learning_stock_other" volt:screen="More › Developer › Charge recording" volt:purpose="summary">%1$s qualified stock charges · %2$s recordings stored</string>
+    <string name="service_charge_cleared" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recordings cleared</string>
+    <string name="service_charge_clear_failed" volt:screen="More › Developer › Charge recording" volt:purpose="error">Charge recordings could not be cleared</string>
+    <string name="service_charge_export_empty" volt:screen="More › Developer › Charge recording" volt:purpose="error">No saved charge recordings for this scooter</string>
+    <string name="service_charge_export_failed" volt:screen="More › Developer › Charge recording" volt:purpose="error">Charge recordings could not be exported</string>
+    <string name="service_charge_limit_reached" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording reached its storage or time limit</string>
+    <string name="service_charge_saved_full" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording saved · battery reached 100%%</string>
+    <string name="service_charge_saved" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording saved</string>
+    <string name="service_charge_storage_error" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped after a storage error</string>
+    <!-- %1$s says why, one of the service_charge_stop_* labels below (lower case, as English shows them). -->
+    <string name="service_charge_stopped_reason" volt:screen="More › Developer › Charge recording" volt:purpose="status">Charge recording stopped · %1$s</string>
+    <!-- Why a charge recording stopped, after "Charge recording stopped · ". Lower case in English. -->
+    <string name="service_charge_stop_charging_ended" volt:screen="More › Developer › Charge recording" volt:purpose="status part">charging ended</string>
+    <string name="service_charge_stop_disconnected" volt:screen="More › Developer › Charge recording" volt:purpose="status part">disconnected</string>
+    <!-- Another scooter was chosen, or the connected scooter is a different one. -->
+    <string name="service_charge_stop_profile_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">profile changed</string>
+    <string name="service_charge_stop_readings_stopped" volt:screen="More › Developer › Charge recording" volt:purpose="status part">readings stopped</string>
+    <!-- The recording reached its size or time limit. -->
+    <string name="service_charge_stop_limit" volt:screen="More › Developer › Charge recording" volt:purpose="status part">limit</string>
+    <!-- Android ended Volt while it recorded. -->
+    <string name="service_charge_stop_process_ended" volt:screen="More › Developer › Charge recording" volt:purpose="status part">process ended</string>
+    <string name="service_charge_stop_interrupted" volt:screen="More › Developer › Charge recording" volt:purpose="status part">interrupted</string>
+    <!-- Volt could not reconnect to the scooter in time. -->
+    <string name="service_charge_stop_recovery_timeout" volt:screen="More › Developer › Charge recording" volt:purpose="status part">recovery timeout</string>
+    <string name="service_charge_stop_connection_failed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">connection failed</string>
+    <!-- The phone's Bluetooth was turned off. English shows it in lower case. -->
+    <string name="service_charge_stop_bluetooth_off" volt:screen="More › Developer › Charge recording" volt:purpose="status part">bluetooth off</string>
+    <!-- Volt lost its Bluetooth permission. -->
+    <string name="service_charge_stop_permission_lost" volt:screen="More › Developer › Charge recording" volt:purpose="status part">permission lost</string>
+    <!-- The scooter answered with another identity than the one recorded. -->
+    <string name="service_charge_stop_identity_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">identity changed</string>
+    <string name="service_charge_not_finalized" volt:screen="More › Developer › Charge recording" volt:purpose="error">Recording stopped; charge file could not be finalized</string>
+    <!-- Charge done by waits until Volt knows which charger is attached. -->
+    <string name="service_charger_detection" volt:screen="Scooter › Battery › Charge done by" volt:purpose="reason"
+        volt:safety="charge">Wait for charger detection or select a charger</string>
+
+    <!-- ===== A scheduled start that didn't start charging (dialog in Volt, notification outside) ===== -->
+
+    <string name="service_missed_title_done_by" volt:screen="Missed start dialog and notification" volt:purpose="title"
+        volt:safety="charge">Charge done by didn\'t start charging</string>
+    <string name="service_missed_title_schedule" volt:screen="Missed start dialog and notification" volt:purpose="title"
+        volt:safety="charge">Scheduled charging didn\'t start</string>
+    <!-- Charge done by set the start. %1$s is the planned start time, %2$s the battery percent now,
+         %3$s the percent when it was armed. Shown in Volt's dialog, which offers to turn the schedule off. -->
+    <string name="service_missed_done_by_dialog" volt:screen="Missed start dialog" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">Charging was set to start at %1$s, and the battery is still at %2$s%% (%3$s%% when you set it). Check that the charger is plugged in and its light turns red at the start time. Volt can turn the schedule off so charging starts now.</string>
+    <!-- The same in a notification, outside Volt. -->
+    <string name="service_missed_done_by_notice" volt:screen="Missed start notification" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">Charging was set to start at %1$s, and the battery is still at %2$s%% (%3$s%% when you set it). Check that the charger is plugged in and its light turns red at the start time. Open Volt to turn the schedule off so charging starts now.</string>
+    <!-- Charge done by set the start, during an interrupted Scheduled charging test (%3$s: the percent at the test). -->
+    <string name="service_missed_done_by_test_dialog" volt:screen="Missed start dialog" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">Charging was set to start at %1$s, and the battery is still at %2$s%% (%3$s%% at the test). Check that the charger is plugged in and its light turns red at the start time. Volt can turn the schedule off so charging starts now.</string>
+    <string name="service_missed_done_by_test_notice" volt:screen="Missed start notification" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">Charging was set to start at %1$s, and the battery is still at %2$s%% (%3$s%% at the test). Check that the charger is plugged in and its light turns red at the start time. Open Volt to turn the schedule off so charging starts now.</string>
+    <!-- An interrupted Scheduled charging test left the charge paused until %1$s. -->
+    <string name="service_missed_test_dialog" volt:screen="Missed start dialog" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">The schedule test set it to resume at %1$s, and the battery is still at %2$s%% (%3$s%% at the test). Check that the charger is plugged in and its light turns red at the start time. Volt can turn the schedule off so charging starts now.</string>
+    <string name="service_missed_test_notice" volt:screen="Missed start notification" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">The schedule test set it to resume at %1$s, and the battery is still at %2$s%% (%3$s%% at the test). Check that the charger is plugged in and its light turns red at the start time. Open Volt to turn the schedule off so charging starts now.</string>
+    <!-- The owner set Scheduled charging to start at %1$s. -->
+    <string name="service_missed_set_dialog" volt:screen="Missed start dialog" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">It was set for %1$s, and the battery is still at %2$s%% (%3$s%% when you set it). Check that the charger is plugged in and its light turns red at the start time. Volt can turn the schedule off so charging starts now.</string>
+    <string name="service_missed_set_notice" volt:screen="Missed start notification" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">It was set for %1$s, and the battery is still at %2$s%% (%3$s%% when you set it). Check that the charger is plugged in and its light turns red at the start time. Open Volt to turn the schedule off so charging starts now.</string>
+
+    <!-- ===== Charge done by's measuring window ===== -->
+
+    <!-- After measuring, Charge done by armed with the measured charge. %1$s is when charging resumes, %2$s the finish time. -->
+    <string name="service_measure_measured" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:safety="charge">Measured this charge. Charging resumes at %1$s to finish by %2$s.</string>
+    <!-- Volt could not tell how far the charge got, so it planned for a fresh one. -->
+    <string name="service_measure_planned" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:safety="charge">Planned for a fresh charge. Charging resumes at %1$s to finish by %2$s.</string>
+    <string name="service_measure_off" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:safety="charge">Charge done by is off.</string>
+    <!-- %1$s is why the schedule was not set, a sentence without its final full stop. -->
+    <string name="service_measure_result" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:safety="charge">%1$s.</string>
+    <!-- %1$s is why measuring ended without a schedule, a sentence without its final full stop. -->
+    <string name="service_measure_not_set" volt:screen="Charge done by toast and notification" volt:purpose="message"
+        volt:safety="charge">%1$s. Charge done by is off.</string>
+    <string name="service_measure_bluetooth_removed" volt:screen="Charge done by toast and notification" volt:purpose="reason"
+        volt:safety="charge">Bluetooth permission was removed while measuring</string>
+    <string name="service_measure_closed" volt:screen="Charge done by notification" volt:purpose="message" volt:safety="charge"
+        volt:dnt="Volt">Volt closed while measuring. Charge done by is off.</string>
+    <!-- Toast in Volt: %1$s is the message above (measured, planned or why not). -->
+    <string name="service_done_toast_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by is set. %1$s</string>
+    <string name="service_done_toast_not_set" volt:screen="Charge done by toast" volt:purpose="toast" volt:safety="charge">Charge done by wasn\'t set. %1$s</string>
+    <string name="service_done_title_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by is set</string>
+    <string name="service_done_title_not_set" volt:screen="Charge done by notification" volt:purpose="title" volt:safety="charge">Charge done by wasn\'t set</string>
+
+    <!-- ===== Scheduled charging test (Scooter › Battery) ===== -->
+
+    <string name="service_test_reopen" volt:screen="Scheduled charging test" volt:purpose="reason" volt:dnt="Volt">Reopen Volt</string>
+    <string name="service_test_cancelled_toast" volt:screen="Scheduled charging test" volt:purpose="toast" volt:safety="charge">Test cancelled. Scheduled charging is off.</string>
+    <!-- The test, or Charge done by, is writing the schedule to the scooter. -->
+    <string name="service_test_arming" volt:screen="Scheduled charging test; connection notice" volt:purpose="status" volt:safety="charge">Setting the schedule…</string>
+    <string name="service_test_pausing" volt:screen="Scheduled charging test; connection notice" volt:purpose="status" volt:safety="charge">Pausing charging…</string>
+    <string name="service_test_ending" volt:screen="Scheduled charging test; connection notice" volt:purpose="status" volt:safety="charge">Turning the schedule off…</string>
+    <!-- Countdown to the test's start: %1$s minutes, %2$s seconds as two digits (1:05). -->
+    <string name="service_test_resumes_in" volt:screen="Scheduled charging test; connection notice" volt:purpose="status" volt:safety="charge">Resumes in %1$s:%2$s</string>
+    <string name="service_test_waiting" volt:screen="Scheduled charging test; connection notice" volt:purpose="status" volt:safety="charge">Waiting for charging to resume</string>
+    <string name="service_test_title_passed" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Scheduled charging works</string>
+    <string name="service_test_title_early" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Charging resumed early</string>
+    <string name="service_test_title_late" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Charging resumed late</string>
+    <string name="service_test_title_no_pause" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">The scooter didn\'t pause</string>
+    <string name="service_test_title_no_resume" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Charging didn\'t resume</string>
+    <string name="service_test_title_interrupted" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Scheduled charging test interrupted</string>
+    <string name="service_test_title_cancelled" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Test cancelled</string>
+    <string name="service_test_title_failed" volt:screen="Scheduled charging test result" volt:purpose="title" volt:safety="charge">Test didn\'t finish</string>
+    <string name="service_test_passed_on_time" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed at the start.</string>
+    <!-- %1$s is always 1 here. -->
+    <string name="service_test_passed_second_before" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s second before the start.</string>
+    <!-- %1$s is always 1 here. -->
+    <string name="service_test_passed_second_after" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s second after the start.</string>
+    <!-- %1$s is a number of seconds other than 0 and 1. -->
+    <string name="service_test_passed_seconds_before" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s seconds before the start.</string>
+    <!-- %1$s is a number of seconds other than 0 and 1. -->
+    <string name="service_test_passed_seconds_after" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter\'s clock and schedule work. Charging resumed %1$s seconds after the start.</string>
+    <!-- How far off the scooter's clock seems, used twice in each of the next two sentences: after
+         "resumed" and after "ahead by" or "behind by". Choose a form that reads right in both places. -->
+    <plurals name="service_test_about" volt:screen="Scheduled charging test result" volt:purpose="message part" volt:safety="charge">
+        <item quantity="one">about %1$d minute</item>
+        <item quantity="other">about %1$d minutes</item>
+    </plurals>
+    <!-- %1$s and %2$s are the same "about N minutes". %3$s is the set-clock sentence below, which brings its own leading space. -->
+    <string name="service_test_early" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">Charging resumed %1$s before the start, so the scooter\'s clock may be ahead by %2$s.%3$s</string>
+    <string name="service_test_late" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">Charging resumed %1$s after the start, so the scooter\'s clock may be behind by %2$s.%3$s</string>
+    <!-- %1$s is the set-clock sentence below, which brings its own leading space. -->
+    <string name="service_test_no_pause" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The scooter didn\'t pause. Its clock may be ahead, or it ignored the schedule.%1$s</string>
+    <!-- %1$s is the set-clock sentence below, which brings its own leading space. -->
+    <string name="service_test_no_resume" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">Charging was still paused 5 minutes after the start. The scooter\'s clock may be behind by more than 5 minutes, or its schedule didn\'t release. If the charger was unplugged, test again.%1$s</string>
+    <!-- Appended to the four results above, right after their last full stop: keep the leading space
+         (or the separator your language puts between sentences). -->
+    <string name="service_test_set_clock" volt:screen="Scheduled charging test result" volt:purpose="message part" volt:safety="charge"
+        volt:dnt="Volt">" Volt set the scooter\'s clock right before this test, so the scooter may not be keeping the time it\'s given. Until that\'s solved, a smart plug is a safer timer. Report an issue with diagnostics so we can look into it."</string>
+    <string name="service_test_limit" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The battery reached its charge limit during the test, so it couldn\'t tell. Test again further below the limit.</string>
+    <string name="service_test_interrupted" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The test was interrupted. Check that charging resumed. If it didn\'t, turn Scheduled charging off.</string>
+    <string name="service_test_not_started" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The test couldn\'t start.</string>
+    <!-- %1$s is why, a sentence without its final full stop. -->
+    <string name="service_test_not_started_reason" volt:screen="Scheduled charging test result" volt:purpose="message" volt:safety="charge">The test couldn\'t start: %1$s.</string>
+    <!-- Appended after a result: keep the leading space (or your language's sentence separator). -->
+    <string name="service_test_off_unconfirmed" volt:screen="Scheduled charging test result" volt:purpose="message part" volt:safety="charge"
+        volt:dnt="Volt">" Volt couldn\'t confirm turning the schedule off. Turn Scheduled charging off so charging continues."</string>
+    <!-- Appended after a result: %1$s says what the cleanup could not confirm, without its full stop. Keep the leading space. -->
+    <string name="service_test_cleanup" volt:screen="Scheduled charging test result" volt:purpose="message part" volt:safety="charge">" %1$s."</string>
+
+    <!-- ===== Battery alerts ===== -->
+
+    <!-- Name of the notification channel in Android's settings for Volt. -->
+    <string name="service_channel_alerts" volt:screen="Android notification settings" volt:purpose="channel name" volt:safety="alarm">Battery alerts</string>
+    <!-- Description of the Battery alerts channel in Android's settings. "Scooter › Battery" is where the alerts are turned on. -->
+    <string name="service_channel_alerts_description" volt:screen="Android notification settings" volt:purpose="channel description"
+        volt:safety="alarm">Charge level, full and low battery alerts you turn on in Scooter › Battery</string>
+    <!-- Notification button that stops the sounding alarm, or the connection notice's main action.
+         Android cuts notification buttons and offers no shorter form: keep it as short as the English. -->
+    <string name="service_action_stop" volt:screen="Notifications" volt:purpose="notification action" volt:safety="alarm">Stop</string>
+
+    <!-- ===== Rides ===== -->
+
+    <string name="service_ride_charge_recording" volt:screen="Home" volt:purpose="toast">Stop charge recording before starting a ride</string>
+    <string name="service_ride_exit_simulation" volt:screen="Home" volt:purpose="toast">Exit simulation first</string>
+    <string name="service_ride_finishing" volt:screen="Home" volt:purpose="toast">Finishing the previous ride</string>
+    <!-- Volt ended a ride on its own after the scooter stayed out of reach while parked. -->
+    <string name="service_ride_saved_auto" volt:screen="Toast and notification" volt:purpose="title" volt:safety="ride">Ride saved automatically</string>
+    <string name="service_ride_bluetooth_lost" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">Bluetooth lost while parked</string>
+    <!-- %1$s is the ride's name. -->
+    <string name="service_ride_bluetooth_lost_label" volt:screen="Ride saved notification" volt:purpose="message" volt:safety="ride">%1$s · Bluetooth lost while parked</string>
+
+    <!-- ===== The connection notice (always shown while the service runs) ===== -->
+
+    <!-- Name of the notification channel in Android's settings for Volt. -->
+    <string name="service_channel_scooter" volt:screen="Android notification settings" volt:purpose="channel name">Scooter connection &amp; recording</string>
+    <string name="service_notice_measuring" volt:screen="Connection notice" volt:purpose="title" volt:safety="charge">Measuring charge for Charge done by</string>
+    <string name="service_notice_testing" volt:screen="Connection notice" volt:purpose="title" volt:safety="charge">Testing scheduled charging</string>
+    <string name="service_notice_charge_reconnecting" volt:screen="Connection notice" volt:purpose="title">Charge recording · reconnecting</string>
+    <string name="service_notice_charge_active" volt:screen="Connection notice" volt:purpose="title">Charge recording is active</string>
+    <string name="service_notice_saving_ride" volt:screen="Connection notice" volt:purpose="title" volt:safety="ride">Saving ride</string>
+    <string name="service_notice_ride_active" volt:screen="Connection notice" volt:purpose="title" volt:safety="ride">Ride recording is active</string>
+    <string name="service_notice_ride_attention" volt:screen="Connection notice" volt:purpose="title" volt:safety="ride">Recording needs attention</string>
+    <string name="service_notice_connected" volt:screen="Connection notice" volt:purpose="title">Scooter connected</string>
+    <!-- %1$s is the whole minutes left (min is the minutes symbol). -->
+    <string name="service_notice_measuring_text" volt:screen="Connection notice" volt:purpose="message" volt:safety="charge">Sets the schedule within %1$s min · keep the charger connected</string>
+    <!-- %1$s is the test's status, such as "Resumes in 1:05". -->
+    <string name="service_notice_testing_text" volt:screen="Connection notice" volt:purpose="message" volt:safety="charge">%1$s · keep the phone near the scooter</string>
+    <!-- The phone's own sensor recording failed during a ride. -->
+    <string name="service_notice_sensors_attention" volt:screen="Connection notice" volt:purpose="title" volt:safety="ride">Ride recording needs attention</string>
+    <string name="service_notice_sensors_not_saving" volt:screen="Connection notice" volt:purpose="message" volt:safety="ride">Phone sensors not saving</string>
+    <!-- The connection notice's button. Android cuts notification buttons and offers no shorter form:
+         keep each as short as the English. -->
+    <string name="service_action_stop_watching" volt:screen="Connection notice" volt:purpose="notification action" volt:safety="alarm">Stop watching</string>
+    <string name="service_action_schedule_now" volt:screen="Connection notice" volt:purpose="notification action" volt:safety="charge">Schedule now</string>
+    <string name="service_action_cancel_test" volt:screen="Connection notice" volt:purpose="notification action" volt:safety="charge">Cancel test</string>
+    <string name="service_action_stop_charge" volt:screen="Connection notice" volt:purpose="notification action">Stop charge recording</string>
+    <string name="service_action_stop_recording" volt:screen="Connection notice" volt:purpose="notification action" volt:safety="ride">Stop recording</string>
+    <string name="service_action_disconnect" volt:screen="Connection notice" volt:purpose="notification action">Disconnect</string>
+    <!-- Stands in for the scooter's name when none is set up. -->
+    <string name="service_notice_scooter" volt:screen="Connection notice" volt:purpose="message">Scooter</string>
+    <!-- %1$s is the scooter's name, %2$s its battery level in whole percent. -->
+    <string name="service_notice_scooter_battery" volt:screen="Connection notice" volt:purpose="message">%1$s · %2$s%%</string>
+</resources>
