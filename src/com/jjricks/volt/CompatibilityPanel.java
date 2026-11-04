@@ -188,7 +188,7 @@ final class CompatibilityPanel {
         card.addView(ui.text(r.message,14,false));
         boolean restore=(r.state==GuidedTest.ReviewState.RESTORE_NEEDED||r.state==GuidedTest.ReviewState.CHANGED_OUTSIDE)&&r.restorable;
         if(restore&&d.reason==CapabilityResolver.Reason.PARKED_UNCONFIRMED)card.addView(ui.toggleRow(T.compatParked(),T.compatParkedNoMotion(),ble.testParked(),true,ble::setTestParked));
-        else if(restore&&!d.available())card.addView(muted(d.reasonMessage()));
+        else if(restore&&!d.available())card.addView(muted(d.reasonText()));
         switch(r.state){
             case FIRMWARE_CHANGED: card.addView(ui.secondaryButton(T.compatContinueAnyway(),()->{ble.confirmTestFirmware(e.testId);refresh();}));break;
             case ALREADY_RESTORED: card.addView(ui.button(T.compatMarkRestored(),()->{ble.markTestRestored(e.testId);refresh();}));break;
@@ -285,7 +285,7 @@ final class CompatibilityPanel {
             List<CapabilityResolver.Decision> ds=ble.discoveryDecisions();
             for(CapabilityResolver.Decision d:ds){
                 String label=d.feature.equals("clock_sync")?T.compatControlClock():ScooterCommands.find(d.feature).label;
-                String value=d.available()?T.compatControlAvailable(evidence(d.evidence)):T.compatControlUnavailable(d.reasonMessage(),evidence(d.evidence));
+                String value=d.available()?T.compatControlAvailable(evidence(d.evidence)):T.compatControlUnavailable(d.reasonText(),evidence(d.evidence));
                 row(controls,label,value,d.available()?ui.ok:ui.muted);
             }
         }
