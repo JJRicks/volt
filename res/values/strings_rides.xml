@@ -422,12 +422,5 @@
     <!-- The Electrical energy section's compact chip; tapping it explains the direction. -->
     <string name="rides_direction_pill_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ✓</string>
     <string name="rides_direction_pill_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction ?</string>
-    <!-- The route colour legend drawn under the map: a narrow title beside the gradient bar
-         (rides_map_legend_power also sets the title column's width). -->
-    <string name="rides_map_legend_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power</string>
-    <string name="rides_map_legend_speed" volt:screen="Rides, phone and route" volt:purpose="legend">Speed</string>
-    <string name="rides_map_legend_grade" volt:screen="Rides, phone and route" volt:purpose="legend">Grade</string>
-    <string name="rides_map_legend_accel" volt:screen="Rides, phone and route" volt:purpose="legend">Accel</string>
-    <string name="rides_map_legend_elevation" volt:screen="Rides, phone and route" volt:purpose="legend">Elev.</string>
 
 </resources>

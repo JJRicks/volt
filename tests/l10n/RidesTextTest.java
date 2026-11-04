@@ -59,14 +59,14 @@ public final class RidesTextTest {
 
     /** RidesScreen.distance(). */
     static String distance(Double km, String units) {
-        if (km == null) return T.ridesNotMeasured();
+        if (km == null) return "Not measured";
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, km, 2), T.unitsKm()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, km / RideStore.KM_PER_MILE, 2), T.unitsMi());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
 
     /** RidesScreen.speed(). */
     static String speed(Double kmh, String units) {
-        if (kmh == null) return T.ridesNotMeasured();
+        if (kmh == null) return "Not measured";
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 1), T.unitsKmh()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 1), T.unitsMph());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
@@ -346,11 +346,9 @@ public final class RidesTextTest {
                     eq(RidesEnglishTest.cellDescription(name, available, "120 W", "At 12:04:05"), cellDescription(name, available, "120 W", "At 12:04:05"), "cell description");
                 }
             }
-        // Review round 3: the drawn route legend, the direction chip and the chip suffix, spelled out.
-        eq("Power|Speed|Grade|Accel|Elev.", T.ridesMapLegendPower() + "|" + T.ridesMapLegendSpeed() + "|" + T.ridesMapLegendGrade() + "|" + T.ridesMapLegendAccel() + "|" + T.ridesMapLegendElevation(), "legend titles");
+        // Review round 3: the direction chip and the chip suffix, spelled out.
         eq("Direction ✓|Direction ?", T.ridesDirectionPillConfirmed() + "|" + T.ridesDirectionPillUnconfirmed(), "direction chip");
         eq(" · no data", T.ridesChartChipNoData(), "chip no data");
-        eq("Not measured", T.ridesNotMeasured(), "not measured");
         phoneStatus();
         dates();
     }
@@ -368,7 +366,6 @@ public final class RidesTextTest {
             eq("‹fmt_quantity›", distance(2.0, "km"), "distance key");
             eq("‹fmt_percent›", percent(.5), "percent key");
             eq("‹rides_acceleration_with_g›", acceleration(1.0), "acceleration key");
-            eq("‹rides_not_measured›", distance(null, "km"), "not measured key");
             eq("‹rides_chart_series_only_at_kmh_no_samples›", chipDescription("Wh/km", "wh_per_distance", false, false), "chip description key");
             eq("‹rides_chart_chip_from_mph›", chipLimit("wh_per_distance", true), "chip limit key");
             eq("‹rides_chart_cell_description›", cellDescription("Power", true, "1 W", "At 1"), "cell key");

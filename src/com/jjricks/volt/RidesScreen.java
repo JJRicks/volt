@@ -1117,7 +1117,7 @@ public final class RidesScreen implements AppScreen {
         parent.addView(card);
     }
     private String battery(RideStore.Summary s) {
-        return s.batteryDropPercent == null || !Double.isFinite(s.batteryDropPercent) ? T.ridesNotMeasured()
+        return s.batteryDropPercent == null || !Double.isFinite(s.batteryDropPercent) ? "Not measured"
                 : Math.round(Math.abs(s.batteryDropPercent)) + "%";
     }
     private void note(LinearLayout parent, String text) {
@@ -1432,7 +1432,7 @@ public final class RidesScreen implements AppScreen {
             readout.addView(cell);
         }
     }
-    private static String dash(String value) { return T.ridesNotMeasured().equals(value) ? "—" : value; }
+    private static String dash(String value) { return "Not measured".equals(value) ? "—" : value; }
     private static String accel(Double value) { return value == null ? "—" : T.fmtQuantity(Fmt.decimal(Locale.US, value, 2), T.ridesUnitAcceleration()); }
     private String acceleration(Double value) { return value == null ? "—" : T.ridesAccelerationWithG(Fmt.decimal(Locale.US, value, 2), T.ridesUnitAcceleration(), Fmt.decimal(Locale.US, value / 9.80665, 2), T.ridesUnitGravity()); }
     private String height(Double value) {
@@ -1557,7 +1557,7 @@ public final class RidesScreen implements AppScreen {
         LinearLayout row = horizontal(); row.setGravity(Gravity.CENTER_VERTICAL); row.setMinimumHeight(ui.dp(48)); row.setPadding(0, ui.dp(11), 0, ui.dp(11));
         TextView label = ui.text(title, 14, false);
         TextView amount = ui.text(value, 14, true); amount.setGravity(Gravity.END);
-        if (value == null || value.startsWith(T.ridesNotMeasured()) || value.equals("—") || value.equals("Insufficient data")) { amount.setTextColor(ui.muted); amount.setTypeface(ui.regular()); }
+        if (value == null || value.startsWith("Not measured") || value.equals("—") || value.equals("Insufficient data")) { amount.setTextColor(ui.muted); amount.setTypeface(ui.regular()); }
         row.addView(label, new LinearLayout.LayoutParams(0, -2, 1));
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(0, -2, 1); valueParams.leftMargin = ui.dp(10);
         row.addView(amount, valueParams);
@@ -1799,18 +1799,18 @@ public final class RidesScreen implements AppScreen {
             int low = RouteSpeedScale.LOW, high = RouteSpeedScale.HIGH; shortTitle = null;
             if ("speed".equals(metric)) {
                 RouteSpeedScale scale = RouteSpeedScale.of(track.points);
-                title = scale.title(); shortTitle = T.ridesMapLegendSpeed();
+                title = scale.title(); shortTitle = "Speed";
                 colors = scale.source == null ? new int[]{RouteSpeedScale.NO_DATA, RouteSpeedScale.NO_DATA} : new int[]{low, high};
                 labels = scale.source == null ? new String[]{"", ""} : new String[]{"0", RouteSpeedScale.label(scale.topKmh, preferences.getString("units", "mi"))};
-            } else if ("grade".equals(metric)) { title = T.ridesMapLegendGrade(); colors = new int[]{blue, gray, orange}; labels = new String[]{"−12%", "0", "+12%"}; }
-            else if ("accel".equals(metric)) { title = T.ridesMapLegendAccel(); colors = new int[]{blue, gray, orange}; labels = new String[]{"−2", "0", "+2 m/s²"}; }
+            } else if ("grade".equals(metric)) { title = "Grade"; colors = new int[]{blue, gray, orange}; labels = new String[]{"−12%", "0", "+12%"}; }
+            else if ("accel".equals(metric)) { title = "Accel"; colors = new int[]{blue, gray, orange}; labels = new String[]{"−2", "0", "+2 m/s²"}; }
             else if ("elevation".equals(metric)) {
                 Double bottom = null, top = null; for (PhoneRideStore.Point point : track.points) if (point.relativeAltitudeM != null) {
                     bottom = bottom == null ? point.relativeAltitudeM : Math.min(bottom, point.relativeAltitudeM);
                     top = top == null ? point.relativeAltitudeM : Math.max(top, point.relativeAltitudeM);
                 }
-                title = T.ridesMapLegendElevation(); colors = new int[]{low, high}; labels = new String[]{height(bottom), height(top)};
-            } else { title = T.ridesMapLegendPower(); colors = new int[]{low, high}; labels = new String[]{"0", RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points))}; }
+                title = "Elev."; colors = new int[]{low, high}; labels = new String[]{height(bottom), height(top)};
+            } else { title = "Power"; colors = new int[]{low, high}; labels = new String[]{"0", RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points))}; }
             setContentDescription(mapLegend(track, metric)); requestLayout(); invalidate();
         }
         private float textSize() { return ui.sp(11.5f); }
@@ -1837,7 +1837,7 @@ public final class RidesScreen implements AppScreen {
             layout.shownTitle = title;
             if (shortTitle != null && layout.barRight - layout.left - paint.measureText(title) - gap < minimumBar)
                 layout.shownTitle = shortTitle;
-            layout.barLeft = layout.left + Math.max(paint.measureText(T.ridesMapLegendPower()), paint.measureText(layout.shownTitle)) + gap;
+            layout.barLeft = layout.left + Math.max(paint.measureText("Power"), paint.measureText(layout.shownTitle)) + gap;
             layout.stacked = layout.barRight - layout.barLeft < minimumBar;
             layout.headerCenter = getPaddingTop() + row / 2;
             layout.barCenter = layout.headerCenter;
@@ -2101,12 +2101,12 @@ public final class RidesScreen implements AppScreen {
     private int chartColor(String key) { return key.equals("voltage_v") ? ui.blue : key.equals("speed_kmh") ? ui.orange : ui.accent; }
     private boolean miles() { return !"km".equals(preferences.getString("units", "mi")); }
     private String distance(Double km) {
-        if (km == null) return T.ridesNotMeasured(); String units = preferences.getString("units", "mi");
+        if (km == null) return "Not measured"; String units = preferences.getString("units", "mi");
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, km, 2), T.unitsKm()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, km / RideStore.KM_PER_MILE, 2), T.unitsMi());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
     private String speed(Double kmh) {
-        if (kmh == null) return T.ridesNotMeasured(); String units = preferences.getString("units", "mi");
+        if (kmh == null) return "Not measured"; String units = preferences.getString("units", "mi");
         String metric = T.fmtQuantity(Fmt.decimal(Locale.US, kmh, 1), T.unitsKmh()), miles = T.fmtQuantity(Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 1), T.unitsMph());
         return units.equals("dual") ? miles + " / " + metric : units.equals("km") ? metric : miles;
     }
@@ -2138,13 +2138,13 @@ public final class RidesScreen implements AppScreen {
         for (int i = 0; i < pattern.length(); i++) if (Character.isLetter(pattern.charAt(i))) letters.append(pattern.charAt(i));
         return letters.toString();
     }
-    private static String quantity(Double value, String unit, int decimals) { return value == null ? T.ridesNotMeasured() : String.format(Fmt.locale(Locale.US), "%." + decimals + "f %s", value, unit); }
+    private static String quantity(Double value, String unit, int decimals) { return value == null ? "Not measured" : String.format(Fmt.locale(Locale.US), "%." + decimals + "f %s", value, unit); }
     private String temperature(Double celsius) {
-        return celsius == null ? T.ridesNotMeasured() : DisplayTemperature.format(celsius, preferences.getString("temperature_unit", "c"), 0);
+        return celsius == null ? "Not measured" : DisplayTemperature.format(celsius, preferences.getString("temperature_unit", "c"), 0);
     }
     /** Battery change in percentage points: "−3%" used, "+2%" gained. */
     private static String change(Double drop) {
-        if (drop == null) return T.ridesNotMeasured();
+        if (drop == null) return "Not measured";
         long points = Math.round(Math.abs(drop));
         return points == 0 ? "0%" : (drop >= 0 ? "−" : "+") + points + "%";
     }
