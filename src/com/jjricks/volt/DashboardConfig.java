@@ -143,15 +143,10 @@ public final class DashboardConfig {
     }
 
     /**
-     * A slot name as shown, from the name alone: this slot's own "Slot N" in the current language, else
-     * the name as saved. A name alone cannot say it is the shipped example's; {@link
-     * #displaySlotName(SavedSlot, int)} can. SavedSlot.name stays English.
+     * A saved slot's name as shown: {@link #voltSlotName} in the current language, else the owner's name
+     * as saved. SavedSlot.name stays English. There is no name-only form: a name alone cannot say it is
+     * the shipped example's (exampleSlot); an empty slot shows {@link #defaultSlotName}.
      */
-    public static String displaySlotName(String name, int index) {
-        return name == null || name.equals(slotName("", index)) ? defaultSlotName(index) : name;
-    }
-
-    /** A saved slot's name as shown: {@link #voltSlotName} in the current language, else the owner's name as saved. */
     public static String displaySlotName(SavedSlot slot, int index) {
         Msg volt = voltSlotName(slot, index);
         return volt != null ? volt.render() : slot.name;
@@ -170,20 +165,22 @@ public final class DashboardConfig {
     }
 
     /**
-     * True for the shipped example's own slot, as seedExampleSlot and forceExampleSlot save it: slot 3,
-     * named EXAMPLE_SLOT_NAME, holding the whole example (one widget of every type, each with an example
-     * id: AllWidgetsDashboard.isExample). A slot the owner names so fails at least one of these unless it
-     * holds the example's own widgets, all of them, in slot 3. An example saved by an older version has
-     * random ids, so its name shows as saved.
+     * True for the shipped example's own slot, as seedExampleSlot and forceExampleSlot save it
+     * (DashboardExampleIds.exampleSlot): slot 3 (index 2), named EXAMPLE_SLOT_NAME, holding at least one
+     * widget, every one with an example id (AllWidgetsDashboard.isExample) and no type twice. Not one
+     * widget of every type: a type added later must not make every example slot this version saved show
+     * as the owner's. A slot the owner names so fails unless it holds only the example's own widgets
+     * (all of them or some), in slot 3. An example saved by an older version has random ids, so its
+     * name shows as saved.
      */
     private static boolean exampleSlot(int index, String name, JSONArray definitions) throws JSONException {
-        if (index != 2 || !EXAMPLE_SLOT_NAME.equals(name) || definitions.length() != TYPES.length) return false;
-        HashSet<String> types = new HashSet<>();
-        for (int i = 0; i < definitions.length(); i++) {
+        String[] ids = new String[definitions.length()], types = new String[ids.length];
+        for (int i = 0; i < ids.length; i++) {
             JSONObject widget = definitions.getJSONObject(i);
-            if (!DashboardExampleIds.is(widget.optString("id")) || !types.add(widget.optString("type"))) return false;
+            ids[i] = widget.optString("id");
+            types[i] = widget.optString("type");
         }
-        return true;
+        return DashboardExampleIds.exampleSlot(index, EXAMPLE_SLOT_NAME.equals(name), ids, types);
     }
 
     public static final class Widget {

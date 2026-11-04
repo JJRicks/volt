@@ -41,6 +41,8 @@ public final class MapTilesValidation extends Instrumentation {
             blockedImagesAndPersistence();
             deniedAndRateLimited();
             offlineAndInvalidResponses();
+            pauseReasonsAndOlderStatus();
+            sourceDisplayNames();
             cacheDirectivesAndIsolation();
             result.putString("result", "PASS");
             result.putInt("check_count", checks.size());
@@ -191,6 +193,61 @@ public final class MapTilesValidation extends Instrumentation {
         MapTiles custom = separate.create("https://maps.example.test/{z}/{x}/{y}.png"); separate.offline = true;
         require(custom.get(3, 1, 2) == null, "One provider displayed another provider's cache");
         checks.add("no-store/no-cache honored and provider caches isolated");
+    }
+
+    /** B14: a source's shown name and credit from the catalog equal the English data names in English. */
+    private void sourceDisplayNames() {
+        require(MapSource.USGS.displayName().equals(MapSource.USGS.name) && "USGS Topo".equals(MapSource.USGS.shortName())
+                && MapSource.OSM.displayName().equals(MapSource.OSM.name) && MapSource.OSM.shortName().equals(MapSource.OSM.name),
+                "Preset display names differ from their English names");
+        MapSource custom = new MapSource("Custom map", "https://tiles.invalid/{z}/{x}/{y}.png", "Map provider", "https://tiles.invalid/");
+        require(custom.displayName().equals(custom.name) && custom.shortName().equals(custom.name)
+                && "Map provider".equals(custom.displayAttribution()), "Custom display name or stand-in credit");
+        require(MapSource.USGS.displayAttribution().equals(MapSource.USGS.attribution)
+                && MapSource.OSM.displayAttribution().equals(MapSource.OSM.attribution), "Provider credit not shown as given");
+        checks.add("map source display names, short names and credits equal the English names and attributions");
+    }
+
+    /** B14: network.meta keeps its English status and adds a reason id; files older versions wrote still read. */
+    private void pauseReasonsAndOlderStatus() throws Exception {
+        Fixture http = new Fixture("reason-http"); http.enqueue(503);
+        require(http.tiles.get(3, 1, 2) == null && "Map tiles unavailable (HTTP 503)".equals(http.tiles.status()), "HTTP pause text");
+        Properties saved = read(new File(http.provider(), "network.meta"));
+        require("Map tiles unavailable (HTTP 503)".equals(saved.getProperty("status")) && "http".equals(saved.getProperty("reason"))
+                && "503".equals(saved.getProperty("http")), "network.meta lost its English status or reason: " + saved);
+        require("Map tiles unavailable (HTTP 503)".equals(http.create(MapSource.USGS_URL).status()), "Saved HTTP reason not restored");
+        Fixture blocked = new Fixture("reason-blocked");
+        blocked.enqueue(200).header("X-Blocked", "accessdenied");
+        blocked.tiles.get(3, 1, 2);
+        require("blocked".equals(read(new File(blocked.provider(), "network.meta")).getProperty("reason")), "Blocked reason not saved");
+        String[][] older = {
+            {"Map provider blocked access", "Map provider blocked access"},
+            {"Map provider rate limit · try later", "Map provider rate limit · try later"},
+            {"Map tiles unavailable (HTTP 429)", "Map tiles unavailable (HTTP 429)"},
+            {"Map tiles unavailable · check connection", "Map tiles unavailable · check connection"},
+            {"A status no version wrote", "A status no version wrote"},
+            {null, "Map tiles temporarily unavailable"},
+        };
+        for (int i = 0; i < older.length; i++) {
+            Fixture fixture = new Fixture("older-status-" + i);
+            Properties file = new Properties();
+            file.put("until", Long.toString(fixture.now + 60_000));
+            file.put("blocked", "false");
+            if (older[i][0] != null) file.put("status", older[i][0]);
+            save(new File(fixture.provider(), "network.meta"), file);
+            String shown = fixture.create(MapSource.USGS_URL).status();
+            require(older[i][1].equals(shown), "Older network.meta status " + older[i][0] + " shown as " + shown);
+        }
+        require(MapTiles.restored("rate_limited", null, "").english().equals("Map provider rate limit · try later")
+                && MapTiles.restored("http", "404", "").english().equals("Map tiles unavailable (HTTP 404)")
+                && MapTiles.restored(null, null, "Map tiles unavailable").id() == T.MAPS_TILES_UNAVAILABLE, "Reason ids");
+        // getResponseCode() is -1 for a response that is not valid HTTP: it restores as that pause too.
+        require(MapTiles.restored("http", "-1", "Map tiles unavailable (HTTP -1)").id() == T.MAPS_TILES_HTTP
+                && MapTiles.restored("http", "-1", "").english().equals("Map tiles unavailable (HTTP -1)")
+                && MapTiles.restored(null, null, "Map tiles unavailable (HTTP -1)").id() == T.MAPS_TILES_HTTP
+                && MapTiles.restored(null, null, "Map tiles unavailable (HTTP -1)").english().equals("Map tiles unavailable (HTTP -1)")
+                && MapTiles.restored("http", "x", "Map tiles unavailable (HTTP 1-2)").id() == Msg.VERBATIM, "HTTP -1 restored");
+        checks.add("pause reasons saved beside the English status; older English-only network.meta files restore their text");
     }
 
     private final class Fixture implements MapTiles.ConnectionFactory {

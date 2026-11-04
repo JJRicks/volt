@@ -1,5 +1,6 @@
 package com.jjricks.volt;
 
+import java.util.HashSet;
 import java.util.UUID;
 
 /**
@@ -41,5 +42,26 @@ final class DashboardExampleIds {
         } catch (IllegalArgumentException notUuid) {
             return false;
         }
+    }
+
+    /**
+     * True for the shipped example's own saved slot (DashboardConfig.exampleSlot), from what the slot
+     * saves: slot index 2 (slot 3, where seedExampleSlot and forceExampleSlot save it), the example's
+     * name (exampleName: the saved name is DashboardConfig.EXAMPLE_SLOT_NAME), at least one widget, every
+     * widget's id one {@link #create} made, and no widget type twice. ids[i] and types[i] are widget i's.
+     *
+     * Not the example's exact widget count: the example has one widget of every type, so a version that
+     * adds a type (and adds it to the example) would otherwise stop recognising every example slot an
+     * earlier version saved, and an earlier version would not recognise the later one's. So a slot 3
+     * named so that holds only example widgets, fewer of them (the owner removed some) or more (a later
+     * example), still counts. An owner's own widget (a random id) in it, or an example saved by an older
+     * version (random ids), makes the name the owner's, shown as saved.
+     */
+    static boolean exampleSlot(int index, boolean exampleName, String[] ids, String[] types) {
+        if (index != 2 || !exampleName || ids.length == 0 || ids.length != types.length) return false;
+        HashSet<String> seen = new HashSet<>();
+        for (int i = 0; i < ids.length; i++)
+            if (!is(ids[i]) || !seen.add(types[i])) return false;
+        return true;
     }
 }

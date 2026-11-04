@@ -10,8 +10,8 @@ Volt is English-only today. Its text is written directly into the code, so trans
 2. **Latin-script languages.** Volt's font already covers them.
    - First: Spanish, German, French, Italian, Portuguese, Dutch, Polish, Swedish and Indonesian.
    - Then more European languages as reviewers come forward: Danish, Norwegian, Finnish, Czech, Slovak, Romanian, Hungarian, Croatian and Turkish.
-3. **Other scripts, left to right:** Russian, Ukrainian, Greek, Chinese (Simplified), Hindi and Bengali. These use the phone's own fonts.
-4. **Right to left:** Arabic and Urdu. The screens have to be mirrored, so these wait if they break the layout.
+3. **Other scripts, left to right,** only if they fit without disrupting the app: Russian, Ukrainian and Greek first, then Chinese (Simplified), Hindi and Bengali. These use the phone's own fonts.
+4. **Right to left: on hold.** Arabic and Urdu need every screen mirrored, so they wait for now.
 
 ### How translations are made and checked
 
@@ -28,12 +28,16 @@ New languages ship as **beta**. On Android 13 and later, you can switch Volt alo
 
 - **Riding mode.** While a ride is recording, a full-screen view with a few large stats you can read at a glance. You choose the stats and their order.
 - **A smaller Record ride widget:** one row tall even when it's narrow, like the Lock bar and the Setting tiles.
+- **Tap anywhere on the Record ride widget to start recording,** not just on the button and its label, the way the whole Lock bar is its control.
+- **Reading tiles on unfolded screens.** When three readings wrap onto two rows, the last one stretches across the row instead of leaving an empty space.
 - **Reorder every menu, not just the dashboard.** For example, put the scooter settings you use most at the top.
 - **Maintenance reminders** after a distance or a length of time you choose, for checks such as tire pressure and brakes.
 
 ## Investigating
 
 - **Battery alerts** haven't been through a real charge on a scooter without a charge limit yet.
+- **Rides that keep recording after the scooter is turned off.** Volt should end and save the ride by itself when the scooter stays off or out of reach for a few minutes, without ending rides over a short Bluetooth drop.
+- **Opening Rides can still take a few seconds** with many long recordings, because Volt rereads them before it shows the list. The list should appear right away.
 - **Cruise control changes that come back "Not confirmed"** on some scooters. Volt should say more than that, but only once something the scooter reports shows the actual cause.
 
 ## Smaller items

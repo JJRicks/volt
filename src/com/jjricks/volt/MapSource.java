@@ -34,5 +34,26 @@ final class MapSource {
                 .putString("map_tile_attribution_url", attributionUrl).apply();
     }
 
+    /**
+     * The name a screen shows, in the current language. name stays the English the presets and load()
+     * give it; a source is a preset exactly when its address is the preset's, as in load().
+     */
+    String displayName() {
+        return USGS_URL.equals(url) ? T.mapsSourceUsgs() : OSM_URL.equals(url) ? T.mapsSourceOsm() : T.mapsSourceCustom();
+    }
+
+    /** displayName() where room is short: the preset's name without its coverage ("USGS Topo"). */
+    String shortName() {
+        return USGS_URL.equals(url) ? T.mapsSourceUsgsShort() : OSM_URL.equals(url) ? T.mapsSourceOsm() : T.mapsSourceCustom();
+    }
+
+    /**
+     * The credit a screen shows: the provider's own attribution, as saved, except load()'s English
+     * stand-in for a custom provider with none saved, which is shown in the current language.
+     */
+    String displayAttribution() {
+        return Msg.of(T.MAPS_SOURCE_PROVIDER_FALLBACK).english().equals(attribution) ? T.mapsSourceProviderFallback() : attribution;
+    }
+
     static int maximumTileZoom(String url) { return USGS_URL.equals(url) ? 16 : 19; }
 }

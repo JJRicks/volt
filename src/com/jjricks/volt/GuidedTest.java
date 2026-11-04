@@ -251,7 +251,7 @@ final class GuidedTest {
             case TARGET_AWAIT: if(conclusive&&acked){needed=-1;confirmTarget(s,value,nowMs);} return; // before the ACK every reply is stale
             case RESTORE_AWAIT: if(conclusive&&(acked||verifyOnly)){needed=-1;if(verifyOnly)verify(s,value,nowMs);else confirmRestore(s,value,nowMs);} return;
             case OBSERVE: case RESTORE_PENDING:
-                if(value!=null&&(value!=expected||relatedChanged(s)))conflict(M.compatNoteChangedOutside(variant.label(value)),nowMs);
+                if(value!=null&&(value!=expected||relatedChanged(s)))conflict(M.compatNoteChangedOutside(variant.text(value)),nowMs);
                 return;
             default: return;
         }
@@ -376,9 +376,9 @@ final class GuidedTest {
             if(related!=e.related)return new Review(ReviewState.CHANGED_OUTSIDE,M.compatReviewRelatedChanged(),current,false);
         }
         boolean restorable=offered(v,s,e.baseline);
-        if(current==e.baseline)return new Review(ReviewState.ALREADY_RESTORED,M.compatReviewAlreadyBack(v.label(e.baseline)),current,false);
-        if(current==e.target)return new Review(ReviewState.RESTORE_NEEDED,M.compatReviewStillTestValue(v.label(e.target)),current,restorable);
-        return new Review(ReviewState.CHANGED_OUTSIDE,M.compatReviewChangedOutside(v.label(current)),current,restorable);
+        if(current==e.baseline)return new Review(ReviewState.ALREADY_RESTORED,M.compatReviewAlreadyBack(v.text(e.baseline)),current,false);
+        if(current==e.target)return new Review(ReviewState.RESTORE_NEEDED,M.compatReviewStillTestValue(v.text(e.target)),current,restorable);
+        return new Review(ReviewState.CHANGED_OUTSIDE,M.compatReviewChangedOutside(v.text(current)),current,restorable);
     }
     /** Already back to the baseline: restoration confirmed by a fresh readback, no write. */
     static void confirmAlreadyRestored(TestJournal journal,TestJournal.Entry e,long wallMs) throws IOException{
@@ -398,9 +398,9 @@ final class GuidedTest {
         // test always writes its baseline back, so it still needs an offered one.
         boolean shown=keeps()&&variant.shows(value);
         if(!variant.allows(value)&&!shown){end(M.compatNoteValueUnknown());return;}
-        if(expectedBaseline!=null&&!value.equals(expectedBaseline)){end(M.compatNoteBaselineMoved(variant.label(value)));return;}
-        if(value==target){end(M.compatNoteAlreadySet(variant.label(target)));return;}
-        if(!offered(variant,s,target)){end(M.compatNoteTargetNotOffered(variant.label(target)));return;}
+        if(expectedBaseline!=null&&!value.equals(expectedBaseline)){end(M.compatNoteBaselineMoved(variant.text(value)));return;}
+        if(value==target){end(M.compatNoteAlreadySet(variant.text(target)));return;}
+        if(!offered(variant,s,target)){end(M.compatNoteTargetNotOffered(variant.text(target)));return;}
         if(!shown&&!offered(variant,s,value)){end(M.compatNoteCannotSetBack());return;}
         baseline=value;related=relatedValue(s);phase=Phase.BASELINE;
     }
@@ -410,23 +410,23 @@ final class GuidedTest {
         if(value==target){add(Outcome.SETTING_CONFIRMED,0,nowMs);phase=Phase.OBSERVE;save(nowMs);return;}
         if(value.equals(baseline)){
             add(Outcome.READBACK_UNCHANGED,value,nowMs);add(Outcome.RESTORATION_CONFIRMED,0,nowMs);
-            note=M.compatNoteUnchanged(variant.label(baseline));finish(nowMs);return;
+            note=M.compatNoteUnchanged(variant.text(baseline));finish(nowMs);return;
         }
-        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
+        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.text(value)),nowMs);
     }
     private void confirmRestore(StatusFields s,Integer value,long nowMs){
         if(value==null){arm();return;}
         if(relatedChanged(s)){conflict(M.compatNoteRelatedChanged(),nowMs);return;}
         if(value.equals(baseline)){add(Outcome.RESTORATION_CONFIRMED,0,nowMs);finish(nowMs);return;}
-        if(value==expected){add(Outcome.READBACK_UNCHANGED,value,nowMs);outstanding(M.compatNoteStillShows(variant.label(value)),nowMs);return;}
-        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
+        if(value==expected){add(Outcome.READBACK_UNCHANGED,value,nowMs);outstanding(M.compatNoteStillShows(variant.text(value)),nowMs);return;}
+        add(Outcome.READBACK_DIFFERENT,value,nowMs);conflict(M.compatNoteNowShows(variant.text(value)),nowMs);
     }
     /** After a rejection or an unsent write: nothing should have changed; a fresh readback must show the baseline. */
     private void verify(StatusFields s,Integer value,long nowMs){
         if(value==null){arm();return;}
         if(value.equals(baseline)&&!relatedChanged(s)){add(Outcome.RESTORATION_CONFIRMED,0,nowMs);finish(nowMs);return;}
-        if(value==expected){outstanding(M.compatNoteShowsTestValue(variant.label(value)),nowMs);return;}
-        conflict(M.compatNoteNowShows(variant.label(value)),nowMs);
+        if(value==expected){outstanding(M.compatNoteShowsTestValue(variant.text(value)),nowMs);return;}
+        conflict(M.compatNoteNowShows(variant.text(value)),nowMs);
     }
     private void interrupt(Msg why,long nowMs){
         if(phase==Phase.PRECHECK||phase==Phase.BASELINE){phase=Phase.DONE;note=M.compatNoteStopped();return;}

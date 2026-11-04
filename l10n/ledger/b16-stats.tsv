@@ -1,0 +1,157 @@
+# Ledger for b16-stats: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/ChargeHistoryDialog.java:66	["Charge recordings"]	stats_charge_history_title	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:79	["Charge recordings"]	stats_charge_history_title	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:85	["Charge recordings"]	stats_charge_history_title	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:67	["Loading recordings…"]	stats_charge_history_loading	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:80	["Could not load recordings."]	stats_charge_history_failed	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:81	["Retry"]	stats_charge_history_retry	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:87	["No saved charge recordings yet."]	stats_charge_history_empty	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:95	["Finish not observed"]	stats_charge_finish_not_observed	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:95	["100% observed"]	stats_charge_full_observed	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:98	[{"hole": "dateTime(session.startedWall)", "arg": 1, "type": "s"}, ", ", {"hole": "details.getText()", "arg": 2, "type": "s"}, ", ", {"hole": "state.getText()", "arg": 3, "type": "s"}]	stats_charge_row_description	template	
+src/com/jjricks/volt/ChargeHistoryDialog.java:103	["The current recording appears here after it stops."]	stats_charge_history_current	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:109	["Charge recording"]	stats_charge_recording_title	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:121	[" · paused ", {"hole": "duration(session.pausedMs)", "arg": 1, "type": "s"}, " for the schedule"]	stats_charge_paused_schedule	template	
+src/com/jjricks/volt/ChargeHistoryDialog.java:123	{"one": [" · charger stopped ", "once", " (", {"hole": "duration(session.chargerPausedMs)", "arg": 2, "type": "s"}, ")"], "other": [" · charger stopped ", {"hole": "session.chargerPauses", "arg": 1, "type": "d", "quantity": true}, " times", " (", {"hole": "duration(session.chargerPausedMs)", "arg": 2, "type": "s"}, ")"]}	stats_charge_charger_stopped	plural	manual: the base ternary session.chargerPauses == 1 ? "once" : session.chargerPauses + " times" is the plural's quantity choice; the one item is the exactly-1 branch ("once"), other the count branch
+src/com/jjricks/volt/ChargeHistoryDialog.java:128	[{"hole": "minutes / 60", "arg": 1, "type": "s", "as": "Fmt.integer(minutes / 60)"}, " h ", {"hole": "minutes % 60", "arg": 2, "type": "s", "as": "Fmt.integer(minutes % 60)"}, " min"]	stats_charge_duration_hours	template	the then-branch of minutes >= 60 ? ... : ...; whole numbers through Fmt.integer, as concatenation wrote them
+src/com/jjricks/volt/ChargeHistoryDialog.java:128	[{"hole": "minutes", "arg": 1, "type": "s", "as": "Fmt.integer(minutes)"}, " min"]	stats_charge_duration_minutes	template	the else-branch of minutes >= 60 ? ... : ...
+src/com/jjricks/volt/ChargeHistoryDialog.java:135	["No battery samples"]	stats_charge_no_battery_samples	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:135	[{"spec": "%.0f", "arg": 1, "value": "first", "as": "Fmt.decimal(Locale.getDefault(), first, 0)"}, "%% → ", {"spec": "%.0f", "arg": 2, "value": "last", "as": "Fmt.decimal(Locale.getDefault(), last, 0)"}, "%%"]	stats_charge_battery_span	format	the phone's locale stays the legacy locale through Fmt.decimal (plan 4.3)
+src/com/jjricks/volt/ChargeHistoryDialog.java:138	["High-speed charger"]	stats_charge_high_speed_charger	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:138	["Stock charger"]	stats_charge_stock_charger	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:143	["Back to charge recordings"]	stats_charge_history_back	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:146	["Close charge recordings"]	stats_charge_history_close	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:222	["Personal curve"]	stats_charge_source_personal	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:222	["Stock reference"]	stats_charge_source_stock	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:222	["High-speed reference"]	stats_charge_source_fast	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:222	["Current rate"]	stats_charge_source_current_rate	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:222	["Unavailable"]	stats_charge_source_unavailable	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:250	["Charge readings"]	stats_charge_readings	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:251	["Expand charge graph"]	stats_charge_expand	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:259	["Charge chart"]	stats_charge_chart	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:259	["Fit whole charge"]	stats_charge_fit_whole	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:262	["Time"]	readings_unit_time	id-kept	series unit code: compared through UnitCode.TIME ("Time"), the charge chart's clock-time axis code B3 added
+src/com/jjricks/volt/ChargeHistoryDialog.java:271	["Time"]	readings_unit_time	id-kept	series unit code: compared through UnitCode.TIME ("Time"), the charge chart's clock-time axis code B3 added
+src/com/jjricks/volt/ChargeHistoryDialog.java:272	[{"hole": "Double.toString(value.value)", "arg": 1, "type": "s"}, " ", {"hole": "series.unit", "arg": 2, "type": "s", "as": "StatsLabels.unitSymbol(series.unit)"}]	fmt_quantity	template	manual: series.unit stays the stored unit code; the sample shows its UnitCode symbol (StatsLabels.unitSymbol), the same text in English; a code UnitCode does not list shows as it is
+src/com/jjricks/volt/ChargeHistoryDialog.java:288	["Fit"]	stats_charge_fit	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:289	["Zoom out charge chart"]	stats_charge_zoom_out	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:289	["Fit whole charge"]	stats_charge_fit_whole	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:289	["Zoom in charge chart"]	stats_charge_zoom_in	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:300	["Finish not observed; no actual comparison."]	stats_charge_no_comparison	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:301	["Observed 100% · ", {"hole": "dateTime(session.observedCompleteWall)", "arg": 1, "type": "s"}]	stats_charge_observed_full	template	
+src/com/jjricks/volt/ChargeHistoryDialog.java:302	["", "Estimates weren't saved in this recording.\n", {"hole": "comparison", "arg": 1, "type": "s"}]	stats_charge_estimates_not_saved	template	manual: (saved ? "" : "Estimates weren't saved in this recording.\n") + comparison became saved ? comparison : T.statsChargeEstimatesNotSaved(comparison); with saved the "" branch is the comparison alone, with no text of its own
+src/com/jjricks/volt/ChargeHistoryDialog.java:322	[{"hole": "series.label", "arg": 1, "type": "s", "as": "series.displayLabel()"}, "", " · no data"]	stats_charge_series_no_data	template	manual: series.label + (series.available() ? "" : " · no data") became series.available() ? series.displayLabel() : T.statsChargeSeriesNoData(series.displayLabel()), after the unchanged pattern(series) +; the "" branch is the name alone. displayLabel() is the series' catalog name, its label in English
+src/com/jjricks/volt/ChargeHistoryDialog.java:325	[{"hole": "series.label", "arg": 1, "type": "s", "as": "series.displayLabel()"}, "", ", no samples recorded"]	stats_charge_series_no_samples	template	manual: series.label + (series.available() ? "" : ", no samples recorded") became series.available() ? series.displayLabel() : T.statsChargeSeriesNoSamples(series.displayLabel()); the "" branch is the name alone
+src/com/jjricks/volt/ChargeHistoryDialog.java:336	["Time"]	readings_unit_time	id-kept	series unit code: compared through UnitCode.TIME ("Time"), the charge chart's clock-time axis code B3 added
+src/com/jjricks/volt/ChargeHistoryDialog.java:357	["At ", {"hole": "RideChartView.sampleTime(value.time)", "arg": 1, "type": "s"}]	stats_charge_sample_at	template	
+src/com/jjricks/volt/ChargeHistoryDialog.java:362	[{"hole": "source(limit ? estimate.limitSource : estimate.fullSource)", "arg": 1, "type": "s"}, " · Estimator ", {"hole": "estimate.version", "arg": 2, "type": "s"}]	stats_charge_estimator	template	
+src/com/jjricks/volt/ChargeHistoryDialog.java:363	{"one": [" · ", {"hole": "estimate.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " learned charges"], "other": [" · ", {"hole": "estimate.learnedSessions", "arg": 1, "type": "d", "quantity": true}, " learned charges"]}	stats_charge_learned	plural	a plural, so a language can inflect "charges" by the count; English keeps "1 learned charges" (english-fix pending)
+src/com/jjricks/volt/ChargeHistoryDialog.java:364	[" · ", {"spec": "%.0f", "arg": 1, "value": "estimate.targetPercent", "as": "Fmt.decimal(Locale.getDefault(), estimate.targetPercent, 0)"}, "%% target"]	stats_charge_target	format	the phone's locale stays the legacy locale through Fmt.decimal (plan 4.3)
+src/com/jjricks/volt/ChargeHistoryDialog.java:368	[{"hole": "series.label", "arg": 1, "type": "s", "as": "series.displayLabel()"}, ": ", {"hole": "reading.getText()", "arg": 2, "type": "s"}, ", ", {"hole": "stamp.getText()", "arg": 3, "type": "s"}]	stats_charge_cell_description	template	manual: the series is named by displayLabel(), its catalog name, the same text as series.label in English
+src/com/jjricks/volt/ChargeHistoryDialog.java:384	["Charge readings"]	stats_charge_readings	exact	
+src/com/jjricks/volt/ChargeHistoryDialog.java:386	["Close expanded charge graph"]	stats_charge_close_expanded	exact	
+src/com/jjricks/volt/StatsCharts.java:75	["Search"]	stats_search_hint	exact	
+src/com/jjricks/volt/StatsCharts.java:76	["Search recorded charts"]	stats_charts_search_description	exact	
+src/com/jjricks/volt/StatsCharts.java:135	["No chart data yet"]	stats_charts_empty	exact	
+src/com/jjricks/volt/StatsCharts.java:163	[{"hole": "entry.getKey()", "arg": 1, "type": "s", "as": "ScooterReadingLabels.group(entry.getKey())"}, " charts, ", {"hole": "(open ? \"expanded\" : \"collapsed\")", "arg": 2, "type": "s", "as": "open ? T.statsChartGroupExpandedSaid() : T.statsChartGroupCollapsedSaid()"}]	stats_chart_group_state	template	manual: the group id stays the data (preference keys, counts); the description shows its catalog name, ScooterReadingLabels.group(), the same text in English; the state word is this heading's own key, not shared with the other group heading
+src/com/jjricks/volt/StatsCharts.java:163	["expanded"]	stats_chart_group_expanded_said	exact	manual: one branch of a ternary; its own key, not shared with the other group heading, so a translation can agree it with its noun
+src/com/jjricks/volt/StatsCharts.java:163	["collapsed"]	stats_chart_group_collapsed_said	exact	manual: one branch of a ternary; its own key, not shared with the other group heading, so a translation can agree it with its noun
+src/com/jjricks/volt/StatsCharts.java:164	["Expanded"]	stats_state_expanded	exact	
+src/com/jjricks/volt/StatsCharts.java:164	["Collapsed"]	stats_state_collapsed	exact	
+src/com/jjricks/volt/StatsCharts.java:167	["No chart data yet"]	stats_charts_empty	exact	
+src/com/jjricks/volt/StatsCharts.java:167	["No matching charts"]	stats_charts_no_matches	exact	
+src/com/jjricks/volt/StatsCharts.java:167	{"one": [{"hole": "matches", "arg": 1, "type": "d", "quantity": true}, " chart"], "other": [{"hole": "matches", "arg": 1, "type": "d", "quantity": true}, " charts"]}	stats_charts_count	plural	manual: matches + (matches == 1 ? " chart" : " charts") is the plural's quantity choice
+src/com/jjricks/volt/StatsCharts.java:196	["Expand ", {"hole": "label(key)", "arg": 1, "type": "s"}, " chart"]	stats_chart_expand	template	
+src/com/jjricks/volt/StatsCharts.java:206	{"if": "on", "then": ["Remove ", {"hole": "label(key)", "arg": 1, "type": "s"}, " chart ", "from", " favourites"], "else": ["Add ", {"hole": "label(key)", "arg": 1, "type": "s"}, " chart ", "to", " favourites"]}	stats_chart_favourite_remove,stats_chart_favourite_add	choice	
+src/com/jjricks/volt/StatsCharts.java:207	["Favourite"]	stats_favourite_on	exact	
+src/com/jjricks/volt/StatsCharts.java:207	["Not a favourite"]	stats_favourite_off	exact	
+src/com/jjricks/volt/StatsCharts.java:225	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/StatsCharts.java:226	{"if": "service.simulating()", "then": [{"hole": "value(key, reading.number)", "arg": 1, "type": "s"}, " · Sample"], "else": {"if": "live", "then": [{"hole": "value(key, reading.number)", "arg": 1, "type": "s"}, ""], "else": [{"hole": "value(key, reading.number)", "arg": 1, "type": "s"}, " · Last seen ", {"hole": "DisplayTime.recent(host.activity(), prefs, reading.capturedWallMs, wall)", "arg": 2, "type": "s"}]}}	stats_chart_sample,stats_chart_live,stats_chart_last_seen	choice	the source and age tag after the latest value becomes three whole captions; stats_chart_live is the value alone, as the "" branch printed it
+src/com/jjricks/volt/StatsCharts.java:261	["No data in this window"]	stats_chart_no_data	exact	
+src/com/jjricks/volt/StatsCharts.java:264	["Loading chart"]	stats_chart_loading	exact	
+src/com/jjricks/volt/StatsCharts.java:269	["Scooter range"]	stats_scooter_range	exact	
+src/com/jjricks/volt/StatsCharts.java:312	[{"hole": "String.format(Locale.US, Math.abs(n) >= 1000 ? \"%.0f\" : \"%.1f\", n)", "arg": 1, "type": "s", "as": "String.format(Fmt.locale(Locale.US), Math.abs(n) >= 1000 ? \"%.0f\" : \"%.1f\", n)"}, "", " ", {"hole": "unit(key)", "arg": 2, "type": "s", "as": "StatsLabels.unitSymbol(unit(key))"}]	fmt_quantity	template	manual: number + (unit(key).isEmpty() ? "" : " " + unit(key)) became unit(key).isEmpty() ? number : T.fmtQuantity(number, StatsLabels.unitSymbol(unit(key))), the number formatted as before (its Locale.US wrapped for Fmt) in each branch; the "" branch is the number alone; unit(key) stays the stored unit code the chart compares (ChartScale), and the text shows its UnitCode symbol, the same text in English
+src/com/jjricks/volt/StatsCharts.java:321	["Close expanded chart"]	stats_chart_close	exact	
+src/com/jjricks/volt/StatsScreen.java:124	["Live Stats section"]	stats_sections_description	exact	
+src/com/jjricks/volt/StatsScreen.java:173	["Waiting for readings"]	stats_overview_waiting	exact	
+src/com/jjricks/volt/StatsScreen.java:176	["Favourites"]	stats_favourites_title	exact	
+src/com/jjricks/volt/StatsScreen.java:184	["Reorder favourite readings and charts"]	stats_favourites_reorder_description	exact	
+src/com/jjricks/volt/StatsScreen.java:185	["Reorder favourites"]	stats_favourites_reorder	exact	
+src/com/jjricks/volt/StatsScreen.java:209	["Search"]	stats_search_hint	exact	
+src/com/jjricks/volt/StatsScreen.java:210	["Search scooter measurements"]	stats_readings_search_description	exact	
+src/com/jjricks/volt/StatsScreen.java:232	["Diagnostics"]	stats_diagnostics_title	exact	
+src/com/jjricks/volt/StatsScreen.java:236	["Refresh"]	stats_diagnostics_refresh	exact	
+src/com/jjricks/volt/StatsScreen.java:237	["Refresh diagnostic reads"]	stats_diagnostics_refresh_description	exact	
+src/com/jjricks/volt/StatsScreen.java:238	["Export"]	stats_diagnostics_export	exact	
+src/com/jjricks/volt/StatsScreen.java:239	["Export diagnostics JSON. Excludes owner keys and PIN"]	stats_diagnostics_export_description	exact	
+src/com/jjricks/volt/StatsScreen.java:247	["Excludes owner keys & PIN"]	stats_diagnostics_privacy	exact	
+src/com/jjricks/volt/StatsScreen.java:251	["Device"]	stats_diagnostics_device	exact	
+src/com/jjricks/volt/StatsScreen.java:253	["Recent connection events"]	stats_diagnostics_events	exact	
+src/com/jjricks/volt/StatsScreen.java:255	["Raw read payloads"]	stats_diagnostics_payloads	exact	
+src/com/jjricks/volt/StatsScreen.java:258	["None yet"]	stats_none_yet	exact	
+src/com/jjricks/volt/StatsScreen.java:416	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/StatsScreen.java:432	["Remove ", {"hole": "row.label", "arg": 1, "type": "s"}, " from favourites"]	stats_favourite_remove	template	
+src/com/jjricks/volt/StatsScreen.java:432	["Add ", {"hole": "row.label", "arg": 1, "type": "s"}, " to favourites"]	stats_favourite_add	template	
+src/com/jjricks/volt/StatsScreen.java:433	["Favourite"]	stats_favourite_on	exact	
+src/com/jjricks/volt/StatsScreen.java:433	["Not a favourite"]	stats_favourite_off	exact	
+src/com/jjricks/volt/StatsScreen.java:469	[{"hole": "group.name", "arg": 1, "type": "s", "as": "ScooterReadingLabels.group(group.name)"}, " readings"]	stats_group_readings	template	manual: the group id stays the data (preference keys, counts); the description shows its catalog name, ScooterReadingLabels.group(), the same text in English
+src/com/jjricks/volt/StatsScreen.java:470	["Expanded"]	stats_state_expanded	exact	
+src/com/jjricks/volt/StatsScreen.java:470	["Collapsed"]	stats_state_collapsed	exact	
+src/com/jjricks/volt/StatsScreen.java:471	[{"hole": "group.name", "arg": 1, "type": "s", "as": "ScooterReadingLabels.group(group.name)"}, " readings, ", {"hole": "(open ? \"expanded\" : \"collapsed\")", "arg": 2, "type": "s", "as": "open ? T.statsGroupReadingsExpandedSaid() : T.statsGroupReadingsCollapsedSaid()"}]	stats_group_readings_state	template	manual: the group id stays the data (preference keys, counts); the description shows its catalog name, ScooterReadingLabels.group(), the same text in English; the state word is this heading's own key, not shared with the other group heading
+src/com/jjricks/volt/StatsScreen.java:471	["expanded"]	stats_group_readings_expanded_said	exact	manual: one branch of a ternary; its own key, not shared with the other group heading, so a translation can agree it with its noun
+src/com/jjricks/volt/StatsScreen.java:471	["collapsed"]	stats_group_readings_collapsed_said	exact	manual: one branch of a ternary; its own key, not shared with the other group heading, so a translation can agree it with its noun
+src/com/jjricks/volt/StatsScreen.java:473	["No matching readings"]	stats_readings_no_matches	exact	
+src/com/jjricks/volt/StatsScreen.java:474	{"one": [{"hole": "count", "arg": 1, "type": "d", "quantity": true}, " reading"], "other": [{"hole": "count", "arg": 1, "type": "d", "quantity": true}, " readings"]}	stats_readings_count	plural	manual: count + (count == 1 ? " reading" : " readings") is the plural's quantity choice
+src/com/jjricks/volt/StatsScreen.java:485	["Not supplied"]	stats_age_not_supplied	exact	
+src/com/jjricks/volt/StatsScreen.java:485	["Live"]	stats_age_live	exact	
+src/com/jjricks/volt/StatsScreen.java:489	[{"hole": "row.label", "arg": 1, "type": "s"}, ", ", {"hole": "spokenValue(reading)", "arg": 2, "type": "s"}, ", ", {"hole": "age", "arg": 3, "type": "s"}, ". Tap for details."]	stats_row_description	template	
+src/com/jjricks/volt/StatsScreen.java:491	["Drive mode, ", {"hole": "display(reading)", "arg": 1, "type": "s"}, ", ", {"hole": "age", "arg": 2, "type": "s"}]	stats_drive_mode_description	template	
+src/com/jjricks/volt/StatsScreen.java:505	["None yet"]	stats_none_yet	exact	
+src/com/jjricks/volt/StatsScreen.java:511	["No reading"]	stats_battery_no_reading	exact	
+src/com/jjricks/volt/StatsScreen.java:512	["Last seen"]	stats_battery_last_seen	exact	
+src/com/jjricks/volt/StatsScreen.java:525	["Pack "]	stats_pack	exact	
+src/com/jjricks/volt/StatsScreen.java:528	["Health "]	stats_health	exact	manual: one branch of a ternary
+src/com/jjricks/volt/StatsScreen.java:528	[" · Health "]	stats_health_after	exact	manual: one branch of a ternary
+src/com/jjricks/volt/StatsScreen.java:529	["est."]	stats_health_chip	exact	
+src/com/jjricks/volt/StatsScreen.java:536	[" est."]	-	removed	the content description's replace("\u00A0est.", " estimated") on the shown text (rule R3) is gone: the description is now spoken(details, T.statsHealthChipSaid()), which says each chip, with the no-break space before it, as stats_health_chip_said (" estimated"); the same English, since the battery details' only chip is the health estimate (the electrical line is plain text)
+src/com/jjricks/volt/StatsScreen.java:536	[" estimated"]	-	removed	see the row above: the spoken word is now stats_health_chip_said, which spoken() says in place of the chip
+src/com/jjricks/volt/StatsScreen.java:540	["Range not reported"]	stats_range_not_reported	exact	
+src/com/jjricks/volt/StatsScreen.java:541	["Range ", {"hole": "range.value", "arg": 1, "type": "s"}]	stats_range_value	template	
+src/com/jjricks/volt/StatsScreen.java:544	[{"hole": "km", "arg": 1, "type": "s", "as": "Fmt.integer(km)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/StatsScreen.java:544	[{"hole": "miles", "arg": 1, "type": "s", "as": "Fmt.integer(miles)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}, " / ", {"hole": "km", "arg": 3, "type": "s", "as": "Fmt.integer(km)"}, " ", {"text": "km", "key": "units_km", "arg": 4}]	stats_range_dual	format	
+src/com/jjricks/volt/StatsScreen.java:544	[{"hole": "miles", "arg": 1, "type": "s", "as": "Fmt.integer(miles)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/StatsScreen.java:545	["≈ ", {"hole": "amount", "arg": 1, "type": "s"}, " left"]	stats_range_left	template	
+src/com/jjricks/volt/StatsScreen.java:594	["Reorder favourites"]	stats_favourites_reorder	exact	
+src/com/jjricks/volt/StatsScreen.java:597	["Done"]	common_done	exact	
+src/com/jjricks/volt/StatsScreen.java:608	[{"hole": "name", "arg": 1, "type": "s"}, " · Chart", ""]	stats_order_chart	template	manual: name + (chart ? " · Chart" : "") became chart ? T.statsOrderChart(name) : name; the "" branch is the name alone
+src/com/jjricks/volt/StatsScreen.java:608	{"if": "chart", "then": [{"hole": "name", "arg": 1, "type": "s"}, " chart"], "else": [{"hole": "name", "arg": 1, "type": "s"}, " reading"]}	stats_order_chart_said,stats_order_reading_said	choice	
+src/com/jjricks/volt/StatsScreen.java:629	["Device"]	readings_group_device	id-kept	group id: compared through Telemetry.GROUP_DEVICE, the id reports, history and Live Stats keep
+src/com/jjricks/volt/StatsScreen.java:651	["None yet"]	stats_none_yet	exact	
+src/com/jjricks/volt/StatsScreen.java:666	[{"hole": "text", "arg": 1, "type": "s"}, ", ", {"hole": "time", "arg": 2, "type": "s"}]	stats_event_description	template	
+src/com/jjricks/volt/StatsScreen.java:691	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/StatsScreen.java:694	["Not supplied"]	stats_age_not_supplied	exact	
+src/com/jjricks/volt/StatsScreen.java:694	["Live"]	stats_age_live	exact	
+src/com/jjricks/volt/StatsScreen.java:696	[{"hole": "row.name.getText()", "arg": 1, "type": "s"}, ", ", {"hole": "(reading == null ? shown : spokenValue(reading))", "arg": 2, "type": "s", "as": "reading == null ? shown : spokenValue(reading)"}, ", ", {"hole": "age", "arg": 3, "type": "s"}, ". Tap for details."]	stats_row_description	template	manual: the value hole's parentheses are dropped as a call argument
+src/com/jjricks/volt/StatsScreen.java:698	["Drive mode, ", {"hole": "shown", "arg": 1, "type": "s"}, ", ", {"hole": "age", "arg": 2, "type": "s"}]	stats_drive_mode_description	template	
+src/com/jjricks/volt/StatsScreen.java:726	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/StatsScreen.java:726	{"if": "raw(reading)", "then": {"if": "reading.live", "then": {"if": "when.isEmpty()", "then": [{"hole": "display(reading)", "arg": 1, "type": "s"}, " (raw)", " · ", "Live", ""], "else": [{"hole": "display(reading)", "arg": 1, "type": "s"}, " (raw)", " · ", "Live", " ", {"hole": "when", "arg": 2, "type": "s"}]}, "else": {"if": "when.isEmpty()", "then": [{"hole": "display(reading)", "arg": 1, "type": "s"}, " (raw)", " · ", "Last seen", ""], "else": [{"hole": "display(reading)", "arg": 1, "type": "s"}, " (raw)", " · ", "Last seen", " ", {"hole": "when", "arg": 2, "type": "s"}]}}, "else": {"if": "reading.live", "then": {"if": "when.isEmpty()", "then": [{"hole": "display(reading)", "arg": 1, "type": "s"}, "", " · ", "Live", ""], "else": [{"hole": "display(reading)", "arg": 1, "type": "s"}, "", " · ", "Live", " ", {"hole": "when", "arg": 2, "type": "s"}]}, "else": {"if": "when.isEmpty()", "then": [{"hole": "display(reading)", "arg": 1, "type": "s"}, "", " · ", "Last seen", ""], "else": [{"hole": "display(reading)", "arg": 1, "type": "s"}, "", " · ", "Last seen", " ", {"hole": "when", "arg": 2, "type": "s"}]}}}	stats_detail_raw_live,stats_detail_raw_live_when,stats_detail_raw_seen,stats_detail_raw_seen_when,stats_detail_live,stats_detail_live_when,stats_detail_seen,stats_detail_seen_when	choice	the details status line (value, raw marker, live or saved, time) becomes eight whole lines, one per combination, so a translation can order the value, status and time
+src/com/jjricks/volt/StatsScreen.java:730	["\n\nReported health is a controller estimate, not a measured capacity test."]	stats_detail_health_note	exact	
+src/com/jjricks/volt/StatsScreen.java:731	["\n\nNot used for ride energy."]	stats_detail_energy_note	exact	
+src/com/jjricks/volt/StatsScreen.java:733	["Remove favourite"]	stats_detail_remove_favourite	exact	
+src/com/jjricks/volt/StatsScreen.java:733	["Add favourite"]	stats_detail_add_favourite	exact	
+src/com/jjricks/volt/StatsScreen.java:734	["Close"]	common_close	exact	
+src/com/jjricks/volt/StatsScreen.java:761	["Scooter range"]	stats_scooter_range	exact	
+src/com/jjricks/volt/StatsScreen.java:762	["Drive mode"]	stats_drive_mode	exact	
+src/com/jjricks/volt/StatsScreen.java:782	["RAW"]	stats_raw_chip	exact	
+src/com/jjricks/volt/StatsScreen.java:787	["raw ", "", {"hole": "display(metric)", "arg": 1, "type": "s"}]	stats_raw_said	template	manual: (raw(metric) ? "raw " : "") + display(metric) became raw(metric) ? T.statsRawSaid(display(metric)) : display(metric); the "" branch is the value alone
+src/com/jjricks/volt/StatsScreen.java:818	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/StatsScreen.java:829	[{"spec": "%.2f", "arg": 1, "value": "metric.number / RideStore.KM_PER_MILE", "as": "Fmt.decimal(Locale.US, metric.number / RideStore.KM_PER_MILE, 2)"}, " ", {"spec": "%s", "arg": 2, "value": "speed ? \"mph\" : \"mi\"", "as": "speed ? T.unitsMph() : T.unitsMi()"}]	fmt_quantity	format	
+src/com/jjricks/volt/StatsScreen.java:829	["mph"]	units_mph	exact	manual: ternary unit argument of String.format
+src/com/jjricks/volt/StatsScreen.java:829	["mi"]	units_mi	exact	manual: ternary unit argument of String.format
+src/com/jjricks/volt/StatsScreen.java:830	[{"hole": "value", "arg": 1, "type": "s"}, "  /  ", {"hole": "converted", "arg": 2, "type": "s"}]	stats_value_dual	template	
+src/com/jjricks/volt/StatsScreen.java:850	["Refreshing diagnostic reads"]	stats_diagnostics_refreshing	exact	
+src/com/jjricks/volt/StatsScreen.java:850	["Refresh diagnostic reads"]	stats_diagnostics_refresh_description	exact	
+src/com/jjricks/volt/StatsScreen.java:864	["Last seen"]	stats_last_seen	exact	
+src/com/jjricks/volt/StatsScreen.java:864	["Last seen ", {"hole": "DisplayTime.recent(host.activity(), preferences, capturedWallMs, System.currentTimeMillis())", "arg": 1, "type": "s"}]	stats_last_seen_when	template	
