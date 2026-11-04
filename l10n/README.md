@@ -485,8 +485,9 @@ How `ledger_check.py` (G1) reads it:
     Only around an `exact` or `template` row whose expression was a whole argument of `new X(...)`:
     the new type `Y` must be one class declared in `src/` at head (a new file is fine) that extends
     `X`, directly or through other `src/` classes (`extends` clauses by simple name), so every
-    `catch (X e)` still catches it, and `X` must be named like an exception (`...Exception`,
-    `...Error`, `Throwable`). The catalog call must be a deferred `M.<key>(...)` (a `Msg`); the other
+    `catch (X e)` still catches it, and `X` must be a JDK type named like an exception (`...Exception`,
+    `...Error`, `Throwable`), not one declared in `src/`, whose own constructor could change the text.
+    The catalog call must be a deferred `M.<key>(...)` (a `Msg`); the other
     arguments stay as they were, in order (a cause `e` too), and the only arguments that may join the
     call are constants of `Y`: an enum constant of an enum `Y` declares (`Code.NO_SPACE`,
     `BackupException.Code.NO_SPACE`) or a static final field of `Y`. `getMessage()` must stay the
@@ -494,12 +495,22 @@ How `ledger_check.py` (G1) reads it:
     call is) must start with `super(msg.english(), ...)` (or `super(english(msg))`, where `english` is
     a method of the class whose body is `return msg.english();`, optionally after a null check) when
     `Y`'s superclass is outside `src/`, or pass the `Msg` on whole through `this(...)` or to a
-    `src/` superclass constructor that does the same, as `UserFacingException` does. No class from `Y`
-    up to `X` may declare `getMessage`, `getLocalizedMessage` or `toString`. The warning prints both
-    calls, the chain and the constructors; check by hand that nothing shows or logs the exception
-    itself, since `toString()`, `"" + e` and stack traces now print the new class name. A
-    `T.<key>()` (rendered) argument, a type that is not a subclass, a constructor passing
-    `msg.render()` or nothing, a dropped cause or a non-constant extra argument fail.
+    `src/` superclass constructor that does the same, as `UserFacingException` does. The old call's
+    other arguments must reach `X` unchanged, so a cause `e` stays the new exception's `getCause()`
+    and its stack trace stays in logs and reports. Each `this(...)` or `src/` superclass call passes
+    every parameter that holds one on as a whole argument. The JDK constructor at the end receives
+    exactly the old call's arguments, in order, with the text replaced by `msg.english()` and each
+    other argument as the parameter that holds it. No class from `Y` up to `X` may declare
+    `getMessage`, `getLocalizedMessage`, `toString`, `getCause`, `initCause`, `fillInStackTrace`,
+    `getStackTrace` or `printStackTrace`. The warning prints both calls, the chain and the
+    constructors; check by hand that nothing shows or logs the exception itself, since `toString()`,
+    `"" + e` and stack traces now print the new class name. These fail:
+    - a `T.<key>()` (rendered) argument;
+    - a type that is not a subclass;
+    - a constructor passing `msg.render()` or nothing;
+    - a cause dropped at the call, or by a constructor that takes it and calls
+      `super(msg.english())`, `super(msg.english(), null)` or `this(code, msg)`;
+    - a non-constant extra argument.
   - **A private method's String parameter becoming `Msg` or `CharSequence`** when its callers now pass
     catalog calls (B7): `private void simulationUnavailable(String action)` becoming
     `simulationUnavailable(Msg action)` while each `simulationUnavailable("Bluetooth pairing")` becomes
@@ -640,7 +651,10 @@ Known limits:
   variable or another helper gets the ordinary display warning, and the reviewer judges it.
 - An exception switched to a subclass is checked for its `extends` chain and constructors by simple
   name, in `src/` at head; that nothing prints the exception itself (whose `toString()` now names the
-  new class) is the reviewer's to check, from the listing.
+  new class) is the reviewer's to check, from the listing. The old call's other arguments are
+  followed to the JDK constructor by parameter name, not by declared type. The `(String)` and
+  `(String, Throwable)` constructors exceptions have leave no other overload to pick, but a JDK type
+  with same-arity constructors of other types is the reviewer's to check.
 - A `choice` row's branches are proved against the base expression with each condition forced; that
   the condition reads the same value before the holes run (head evaluates it first) is not checked,
   and an id test assumes the variable holds exactly the tested literal where `equals` is true.

@@ -2299,8 +2299,10 @@ def locale_wrap_review(path, diff, k, callers, english_only=frozenset()):
 # ---------------------------------------------------------------------------
 
 THROWABLE_SUFFIXES = ("Exception", "Error", "Throwable")
-# Methods that change what a Throwable prints; a class between the new and the old type may not declare them.
-MESSAGE_METHODS = frozenset(("getMessage", "getLocalizedMessage", "toString"))
+# Methods that change what a Throwable prints, or the cause and stack trace that logs and reports show; a class
+# between the new and the old type may not declare them.
+MESSAGE_METHODS = frozenset(("getMessage", "getLocalizedMessage", "toString", "getCause", "initCause",
+                             "fillInStackTrace", "getStackTrace", "printStackTrace"))
 
 TypeDecl = collections.namedtuple("TypeDecl", "path tokens name keyword open close extends")
 """A class declared in a src file at head: its tokens, the class keyword's index, the { and } of its body,
@@ -2431,12 +2433,19 @@ def _english_helper(decl, name):
     return False
 
 
-def english_constructors(types, decl, arity, msg_at, seen=()):
+def english_constructors(types, decl, arity, msg_at, carried, old_call, seen=()):
     """(problem or None, [constructor excerpts]) for a new <decl>(...) call with arity arguments whose
     argument msg_at is a Msg: every constructor that call can pick must keep getMessage() the English
     text, by passing the Msg's english() (or a method english(msg) that returns it) as the message of a
-    JDK superclass, or the Msg itself to such a constructor of a src superclass or of this class."""
+    JDK superclass, or the Msg itself to such a constructor of a src superclass or of this class.
+
+    It must also hand the old call's other arguments on: carried maps an argument position of this call to
+    the index of the old call's argument it holds (a cause `e`), and old_call is (the old call's arguments
+    as raw token lists, the index of its text). Each delegation passes every carried argument on as a whole
+    parameter, and the JDK constructor at the end receives exactly the old call's arguments, in order, with
+    the text replaced by msg.english(), so getCause() and the JDK constructor the old call picked stay."""
     tokens = decl.tokens
+    old_args, text_at = old_call
     chosen = []
     for at, opener, close, body in _members(decl):
         if tokens[at].value != decl.name or body is None:
@@ -2468,25 +2477,43 @@ def english_constructors(types, decl, arity, msg_at, seen=()):
         key = (decl.path, at)
         if key in seen:
             return "the constructor `%s` calls itself" % excerpt, shown
+        # The parameter that holds each of the old call's other arguments, by that argument's index.
+        holds = {params[pos][1]: k for pos, k in carried.items()}
         if call[0] == "this" or (decl.extends and len(types.named(decl.extends)) == 1):
             target = decl if call[0] == "this" else types.named(decl.extends)[0]
             if [msg] not in args:
                 return ("the constructor `%s` (%s:%d) passes its Msg %s on to %s(...) other than as a whole argument, "
                         "so G1 cannot follow it to getMessage()" % (excerpt, decl.path, tokens[at].line, msg,
                                                                    call[0])), shown
-            problem, more = english_constructors(types, target, len(args), args.index([msg]), seen + (key,))
+            onward = {i: holds[a[0]] for i, a in enumerate(args) if len(a) == 1 and a[0] in holds}
+            for name, k in sorted(holds.items(), key=lambda item: item[1]):
+                if k not in onward.values():
+                    return ("the constructor `%s` (%s:%d) does not pass its parameter %s, which holds the old call's "
+                            "`%s`, on to %s(...) as a whole argument, so G1 cannot prove it still reaches the exception "
+                            "(getCause() and the stack trace would lose it)" % (
+                                excerpt, decl.path, tokens[at].line, name, " ".join(old_args[k]), call[0])), shown
+            problem, more = english_constructors(types, target, len(args), args.index([msg]), onward, old_call,
+                                                 seen + (key,))
             shown.extend(more)
             if problem:
                 return problem, shown
             continue
         if decl.extends and len(types.named(decl.extends)) > 1:
             return "%s extends %s, which src declares more than once" % (decl.name, decl.extends), shown
-        message = args[0] if args else []
+        message = args[text_at] if len(args) > text_at else []
         if message != [msg, ".", "english", "(", ")"] and not (
                 len(message) == 4 and message[1:] == ["(", msg, ")"] and _english_helper(decl, message[0])):
             return ("the constructor `%s` (%s:%d) passes `%s` as the message of %s; getMessage() stays the English "
                     "text only when it passes %s.english() (or a method english(Msg) that returns it)" % (
                         excerpt, decl.path, tokens[at].line, " ".join(message) or "nothing",
+                        decl.extends or "Object", msg)), shown
+        if len(args) != len(old_args) or any(
+                k != text_at and not (len(args[k]) == 1 and holds.get(args[k][0]) == k) for k in range(len(args))):
+            return ("the constructor `%s` (%s:%d) calls %s(%s), but the old call passed (%s): the %s constructor must "
+                    "receive the old call's arguments, in order, with the text replaced by %s.english() and each other "
+                    "argument as the parameter that holds it, so a cause still reaches getCause()" % (
+                        excerpt, decl.path, tokens[at].line, decl.extends or "Object",
+                        ", ".join(" ".join(a) for a in args), ", ".join(" ".join(a) for a in old_args),
                         decl.extends or "Object", msg)), shown
     return None, shown
 
@@ -2584,6 +2611,9 @@ def exception_retype(types, path, diff, base_span, head_span):
     if not old.endswith(THROWABLE_SUFFIXES):
         return "%s; only an exception (a type named ...Exception, ...Error or Throwable) may change type around text" % (
             what), None
+    if types.named(old):
+        return ("%s; %s is declared in src, and G1 proves getMessage() and getCause() only against the constructor of "
+                "a JDK exception the old call picked" % (what, old)), None
     decls = types.named(new)
     if len(decls) != 1:
         return ("%s; %s must be one class declared in src (found %d), so G1 can read what it extends and how it "
@@ -2601,8 +2631,8 @@ def exception_retype(types, path, diff, base_span, head_span):
     for d in chain:
         for at, _, _, body in _members(d):
             if d.tokens[at].value in MESSAGE_METHODS and body is not None:
-                return ("%s; %s declares %s (%s:%d), which may print other text than the English message" % (
-                    what, d.name, d.tokens[at].value, d.path, d.tokens[at].line)), None
+                return ("%s; %s declares %s (%s:%d), which may change the English message or the cause and stack trace "
+                        "that logs and reports show" % (what, d.name, d.tokens[at].value, d.path, d.tokens[at].line)), None
     # Head's arguments: base's before and after the text, and in between the call plus constants of Y.
     base_args = [_raw(base_tokens, a, b) for a, b in b_spans]
     head_args = [_raw(head_tokens, a, b) for a, b in h_spans]
@@ -2622,7 +2652,10 @@ def exception_retype(types, path, diff, base_span, head_span):
     if not (call.kind == "ident" and call.value in ("M", "Msg")):
         return ("%s; the call that replaces the text must be a deferred M.<key>(...) (a Msg), so %s can keep the "
                 "English for getMessage() and render the language at display time" % (what, new)), None
-    problem, constructors = english_constructors(types, decl, len(head_args), h_at)
+    # The kept arguments (a cause `e`) by head position, as indexes of the old call's arguments.
+    carried = dict(enumerate(range(len(before))))
+    carried.update((len(head_args) - len(after) + j, b_at + 1 + j) for j in range(len(after)))
+    problem, constructors = english_constructors(types, decl, len(head_args), h_at, carried, (base_args, b_at))
     if problem:
         return "%s; %s" % (what, problem), None
     id_tokens = set()

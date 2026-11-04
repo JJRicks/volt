@@ -201,6 +201,112 @@ class ExceptionRetypeTest(GrammarCase):
         self.edit(TX, 'new IOException("Copy failed", e)', 'new BackupException(BackupException.Code.OTHER, M.backupCopyFailed())')
         self.assertFails([self.COPY], "the other arguments must stay as they were")
 
+    def reset_copy(self, *extra):
+        self.repo.write("l10n/ledger/b9.tsv", HEADER)
+        self.repo.write(TX, self.FILES[TX])
+        for path in (BACKUP_EXCEPTION,) + extra:
+            self.repo.remove(path)
+        self.base = self.repo.commit("reset to the original")
+
+    def test_a_constructor_must_hand_the_cause_on(self):
+        # Codex, PR #165: the call keeps `e`, but a constructor that takes the cause and drops or replaces it
+        # would change getCause() from e to null; G1 must follow the cause to the JDK constructor.
+        three = "BackupException(Code code, Msg msg, Throwable cause) { super(msg.english(), cause);"
+        call3 = 'new BackupException(BackupException.Code.OTHER, M.backupCopyFailed(), e)'
+        call2 = 'new BackupException(M.backupCopyFailed(), e)'
+        two = "\n    BackupException(Msg msg, Throwable cause) { %s }\n    Code code()"
+        cases = [
+            (three.replace("super(msg.english(), cause);", "super(msg.english());"), call3, "so a cause still reaches getCause()"),
+            (three.replace("super(msg.english(), cause);", "super(msg.english(), null);"), call3,
+             "so a cause still reaches getCause()"),
+            (three.replace("super(msg.english(), cause);", "super(msg.english(), new RuntimeException());"), call3,
+             "so a cause still reaches getCause()"),
+            (three.replace("super(msg.english(), cause);", "super(cause.getMessage(), cause);"), call3,
+             "passes `cause . getMessage ( )` as the message"),
+        ]
+        for old, call, needle in cases:
+            with self.subTest(constructor=old):
+                try:
+                    self.repo.write(BACKUP_EXCEPTION, BACKUP_EXCEPTION_TEXT.replace(three, old))
+                    self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)', call))
+                    self.assertFails([self.COPY], needle)
+                finally:
+                    self.reset_copy()
+        # Through this(...): the delegation must pass the cause on as a whole argument.
+        for body, ok in (("this(Code.OTHER, msg);", False), ("this(Code.OTHER, msg, cause.getCause());", False),
+                         ("this(Code.OTHER, msg, cause);", True)):
+            with self.subTest(body=body):
+                try:
+                    self.repo.write(BACKUP_EXCEPTION, BACKUP_EXCEPTION_TEXT.replace("\n    Code code()", two % body, 1))
+                    self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)', call2))
+                    if ok:
+                        problems, warnings, _ = self.check([self.COPY])
+                        self.assertEqual(problems, [])
+                        self.assertTrue(any("super ( msg . english ( ) , cause )" in w for w in warnings), warnings)
+                    else:
+                        self.assertFails([self.COPY], "does not pass its parameter cause, which holds the old call's `e`")
+                finally:
+                    self.reset_copy()
+
+    def test_a_src_superclass_chain_keeps_the_cause(self):
+        base_class = PKG + "StoreException.java"
+        store = """package com.jjricks.volt;
+
+class StoreException extends java.io.IOException {
+    StoreException(Msg msg, Throwable cause) { %s }
+}
+"""
+        backup = """package com.jjricks.volt;
+
+final class BackupException extends StoreException {
+    enum Code { OTHER }
+    BackupException(Code code, Msg msg, Throwable cause) { %s }
+}
+"""
+        call = 'new BackupException(BackupException.Code.OTHER, M.backupCopyFailed(), e)'
+        for store_body, backup_body, needle in (
+                ("super(msg.english(), cause);", "super(msg, cause);", None),
+                ("super(msg.english(), cause);", "super(msg, null);", "does not pass its parameter cause"),
+                ("super(msg.english());", "super(msg, cause);", "so a cause still reaches getCause()")):
+            with self.subTest(store=store_body, backup=backup_body):
+                try:
+                    self.repo.write(base_class, store % store_body)
+                    self.repo.write(BACKUP_EXCEPTION, backup % backup_body)
+                    self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)', call))
+                    if needle is None:
+                        problems, warnings, _ = self.check([self.COPY])
+                        self.assertEqual(problems, [])
+                        self.assertTrue(any("(BackupException extends StoreException extends IOException)" in w
+                                            for w in warnings), warnings)
+                    else:
+                        self.assertFails([self.COPY], needle)
+                finally:
+                    self.reset_copy(base_class)
+
+    def test_an_old_type_declared_in_src_fails(self):
+        # Base's own constructor might change the text (super("Error: " + m)); G1 proves only against the JDK.
+        app = PKG + "AppException.java"
+        self.repo.write(app, "package com.jjricks.volt;\n\nclass AppException extends RuntimeException {\n"
+                             "    AppException(String m) { super(\"Error: \" + m); }\n"
+                             "    AppException(Msg msg) { super(msg.english()); }\n}\n")
+        self.repo.write(TX, self.FILES[TX].replace('new RuntimeException("Unlock first")', 'new AppException("Unlock first")'))
+        self.base = self.repo.commit("base with a src exception")
+        self.repo.write(PKG + "LockException.java", "package com.jjricks.volt;\n\nfinal class LockException extends "
+                        "AppException {\n    LockException(Msg msg) { super(msg); }\n}\n")
+        self.edit(TX, 'new AppException("Unlock first")', 'new LockException(M.controlsUnlockFirst())')
+        self.assertFails([self.UNLOCK], "AppException is declared in src")
+
+    def test_an_override_of_the_cause_or_stack_fails(self):
+        for method in ("public synchronized Throwable getCause() { return null; }",
+                       "public synchronized Throwable fillInStackTrace() { return this; }"):
+            with self.subTest(method=method):
+                try:
+                    self.convert('new BackupException(BackupException.Code.NO_SPACE, M.backupNoSpace())',
+                                 BACKUP_EXCEPTION_TEXT.replace("    Msg msg() {", "    @Override %s\n    Msg msg() {" % method))
+                    self.assertFails([self.NO_SPACE], "declares %s" % method.split()[3].split("(")[0])
+                finally:
+                    self.reset_copy()
+
     def test_same_type_needs_no_listing(self):
         # A conversion inside an unchanged new X(...) is an ordinary exact row: nothing extra listed.
         self.edit(TX, 'new RuntimeException("Unlock first")', 'new RuntimeException(T.controlsUnlockFirst())')
