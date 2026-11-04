@@ -547,6 +547,10 @@ public final class MoreScreen implements AppScreen {
         value.setPadding(ui.dp(8), ui.dp(2), ui.dp(8), ui.dp(2));
         value.setBackground(ui.shape(filled ? Ui.withAlpha(color, ui.dark ? 46 : 34) : ui.raised, 100, 0));
     }
+    /** row() with catalog messages, rendered now: a field may keep the Row (its views), never the text (R2). */
+    private Row row(LinearLayout group, String iconKey, Msg title, Msg sub, Runnable action) {
+        return row(group, iconKey, title.render(), sub == null ? null : sub.render(), action);
+    }
     private Row row(LinearLayout group, String iconKey, String title, String sub, Runnable action) {
         if (group.getChildCount() > 0) ui.divider(group);
         Row r = new Row();
@@ -707,7 +711,7 @@ public final class MoreScreen implements AppScreen {
         c.addView(actions);
         onboardingImport = row(actions, "download", T.moreOnboardingImport(), null, () -> { if (canEditProfiles()) host.importOwner(); });
         profileEditActions.add(onboardingImport);
-        onboardingNearby = row(actions, "bluetooth", T.moreOnboardingNearby(), null, host::requestBluetooth);
+        onboardingNearby = row(actions, "bluetooth", M.moreOnboardingNearby(), null, host::requestBluetooth);
         onboardingConnect = row(actions, "scooter", T.moreConnect(), null, () -> {
             ScooterProfiles.Profile p = active();
             if (p == null || !p.configured()) { host.toast(T.moreOnboardingImportFirst()); return; }
@@ -963,6 +967,27 @@ public final class MoreScreen implements AppScreen {
 
     // ---- App preferences ----------------------------------------------------------------
 
+    /**
+     * The Language row (plan 5.1), directly below Appearance. Hidden, and so absent from English layouts,
+     * until a language other than English ships, or with the pseudo APK while Developer options are on.
+     */
+    private void languageRow() {
+        LinearLayout language = ui.groupCard();
+        language.setTag("preference_language");
+        language.setVisibility(View.GONE);
+        int below = cardDestination.getChildCount();
+        for (int i = 0; i < cardDestination.getChildCount(); i++)
+            if (cardDestination.getChildAt(i) instanceof SegmentedSelector) { below = i + 1; break; }
+        cardDestination.addView(language, below);
+        Row row = row(language, "text", T.moreLanguageTitle(), null,
+                () -> LanguageSheet.show(host, developerEnabled(), this::refresh));
+        valueRefreshers.add(() -> {
+            boolean offered = LanguageSheet.offered(host.activity(), developerEnabled());
+            language.setVisibility(offered ? View.VISIBLE : View.GONE);
+            if (offered) row.value(LanguageSheet.value(host.activity()));
+        });
+    }
+
     private void preferences() {
         segmentedField(T.morePrefsAppearance(), "theme", new String[]{T.morePrefsDark(), T.morePrefsFollowSystem(), T.morePrefsLight()},
                 new String[]{"dark", "system", "light"}, "dark");
@@ -970,6 +995,7 @@ public final class MoreScreen implements AppScreen {
                 new String[]{"comfortable", "dense"}, "comfortable");
         View spacer = new View(host.activity());
         cardDestination.addView(spacer, new LinearLayout.LayoutParams(-1, ui.dp(16)));
+        languageRow();
         LinearLayout display = group();
         display.setTag("preference-display-options");
         Row units = row(display, "ruler", T.morePrefsUnits(), null, () -> selectSection(UNITS_SECTION));
@@ -1037,7 +1063,7 @@ public final class MoreScreen implements AppScreen {
         // Some manufacturers omit a settings activity. Fall back to the public
         // app list instead of relying on private permission-controller routes.
         if (startAndroidSettings(new android.content.Intent(android.provider.Settings.ACTION_APPLICATION_SETTINGS))) {
-            host.toast(T.morePrefsChooseVolt());
+            host.toast(M.morePrefsChooseVolt());
             return;
         }
         host.toast(T.morePrefsOpenSettings());
@@ -1219,7 +1245,7 @@ public final class MoreScreen implements AppScreen {
         pinRow.icon.step = "1";
         pinRefresh = rowButton(pinRow, "history", T.morePinRead(), () -> { service().ble.readPin(); refresh(); });
         pinSpinner = rowSpinner(pinRow);
-        setPinRow = row(pin, "pencil", T.morePinSetRow(), null, this::setPin);
+        setPinRow = row(pin, "pencil", M.morePinSetRow(), null, this::setPin);
         label(T.moreProximityLabel());
         LinearLayout near = group();
         bondRow = row(near, "bluetooth", T.moreProximityPair(), null,
@@ -2044,10 +2070,10 @@ public final class MoreScreen implements AppScreen {
         row(updates, "download", T.moreAboutCheckUpdates(), null, this::checkForUpdates).view.setTag("check-updates");
         label(T.moreAboutPermissions());
         LinearLayout permissions = group();
-        nearbyRow = row(permissions, "bluetooth", T.moreAboutNearby(), T.moreAboutNearbySub(), host::requestBluetooth);
-        locationRow = row(permissions, "route", T.moreAboutLocation(),
-                Build.VERSION.SDK_INT < 31 ? T.moreAboutLocationOld() : T.moreAboutLocationSub(), this::openLocationSettings);
-        notificationRow = row(permissions, "sound", T.moreAboutNotifications(), T.moreAboutNotificationsSub(), ()->openAndroidSettings(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS));
+        nearbyRow = row(permissions, "bluetooth", M.moreAboutNearby(), M.moreAboutNearbySub(), host::requestBluetooth);
+        locationRow = row(permissions, "route", M.moreAboutLocation(),
+                Build.VERSION.SDK_INT < 31 ? M.moreAboutLocationOld() : M.moreAboutLocationSub(), this::openLocationSettings);
+        notificationRow = row(permissions, "sound", M.moreAboutNotifications(), M.moreAboutNotificationsSub(), ()->openAndroidSettings(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS));
         label(T.moreAboutYourData());
         LinearLayout data = ui.card(); cardDestination.addView(data);
         note(data, T.moreAboutDataNote());
@@ -2139,7 +2165,7 @@ public final class MoreScreen implements AppScreen {
             host.rebuild();
         } else if (remaining <= 3) {
             developerCountdown = android.widget.Toast.makeText(host.activity(),
-                    T.moreDevTaps(remaining, remaining),
+                    M.moreDevTaps(remaining, remaining),
                     android.widget.Toast.LENGTH_SHORT);
             developerCountdown.show();
         }
@@ -2169,7 +2195,7 @@ public final class MoreScreen implements AppScreen {
         });
         simulationRow.view.setTag("developer-simulation-row");
         simulationRow.toggle.setTag("developer-simulation-toggle");
-        simulationModelRow = row(controls, "scooter", T.moreDevSimulatedModel(), null, this::chooseSimulationModel);
+        simulationModelRow = row(controls, "scooter", M.moreDevSimulatedModel(), null, this::chooseSimulationModel);
         simulationModelRow.view.setTag("developer-simulation-model");
         simulationStatus = footnote(T.moreDevSimulationActive());
         simulationStatus.setTag("developer-simulation-status");
