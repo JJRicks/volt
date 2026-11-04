@@ -41,16 +41,12 @@ final class NaveeModels {
 
     /** Lower case without spaces, hyphens or brackets, so "ut5max", "UT5 MAX" and "ut-5 max" all match. */
     static String fold(String text) {
-        return text == null ? "" : squeeze(text.toLowerCase(Locale.ROOT));
-    }
-
-    private static String squeeze(String lower) {
-        return lower.replaceAll("[\\s\\-_()]+", "");
+        return text == null ? "" : text.toLowerCase(Locale.ROOT).replaceAll("[\\s\\-_()]+", "");
     }
 
     /**
      * fold for text in the shown language: lower case by the display locale's rules (Turkish İ is i), then
-     * accents stripped (NFD without combining marks), so "ninos" finds "Niños". Display matching only.
+     * accents stripped (NFD without combining marks), then fold, so "ninos" finds "Niños". Display matching only.
      */
     static String displayFold(String text) {
         if (text == null) return "";
@@ -61,7 +57,7 @@ final class NaveeModels {
             int type = Character.getType(c);
             if (type != Character.NON_SPACING_MARK && type != Character.COMBINING_SPACING_MARK && type != Character.ENCLOSING_MARK) out.append(c);
         }
-        return squeeze(out.toString());
+        return fold(out.toString());
     }
 
     /** Models whose name, or whose series' name or description, contains the query; all models for an empty one. */
