@@ -73,6 +73,8 @@ public final class ScooterService extends Service {
     private EnumSet<PhoneRideRecorder.StatusFlag> phoneFinalFlags;
     /** The locales the notices were last labelled in; null until onCreate records them (plan section 5.4). */
     private android.os.LocaleList noticeLocales;
+    /** The language the notices' text resolved to then (shownLanguage()); null until onCreate records it. */
+    private java.util.List<?> noticeLanguage;
     private static final long RECORDING_WAKE_TIMEOUT_MS=10*60*1000L, RECORDING_WAKE_RENEW_MS=5*60*1000L;
     private long wakeLockRenewedMs;
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
@@ -82,7 +84,14 @@ public final class ScooterService extends Service {
     static final String RIDE_AUTO_STOP = "ride_auto_stop";private static final int AUTO_STOP_NOTICE = 72, CHARGE_DONE_NOTICE = 73, MISSED_START_NOTICE = 74, SCHEDULE_TEST_NOTICE = 75, CHARGE_ALERT_NOTICE = 76, ALERT_PAUSED_NOTICE = 77;
     /** Battery alerts for the selected scooter (ChargeAlertPolicy); its settings and session state are per scooter. */
     private ChargeAlertPolicy alertPolicy;private String alertProfile="",alertNoticeKey="",alertTitle="",alertText="";
-    private boolean alertUpdating,alertHeld,alertNoticeKept;private String[] pendingChargeAlert;
+    private boolean alertUpdating,alertHeld,alertNoticeKept;
+    /**
+     * The last alert that fired (its notices show it), and one that fired in sight and waits for MainActivity's dialog.
+     * Both render when shown (plan R2); alertTitle and alertText stay the empty text shown before any alert fired.
+     */
+    private AlertShown alertShown,pendingChargeAlert;
+    /** What battery alert notice 76 shows (AlertPost), recorded as it is built to post; null once it is cancelled. */
+    private AlertPost alertPosted;
     static final String ALERT_CHANNEL="charge_alerts";private static final long ALARM_MS=60_000L;
     private android.media.MediaPlayer alarm;private android.media.AudioFocusRequest alarmFocus;private long alarmEndMono;
     private final Runnable alarmTimeout=this::stopChargeAlarm;
@@ -141,9 +150,12 @@ public final class ScooterService extends Service {
     }
     /**
      * Re-labels the notification channels and the connection notice when the language Volt's text comes from
-     * changes. A rotation, fold, night mode or font change keeps the locale list, so nothing happens then. The
-     * first call (onCreate) only records the list. The in-app language choice on API 26-32 calls this too (plan
-     * section 5.3). The service keeps running; other notices already posted keep their language.
+     * changes. A rotation, fold, night mode or font change keeps the locale list, so nothing happens then. The first
+     * call (onCreate) records the list and the shown language, and re-labels an existing alerts channel. The in-app
+     * language choice on API 26-32 calls this too (plan section 5.3). The service keeps running; other notices already
+     * posted keep their language (plan section 5.4), though they render again whenever they post. A battery alert
+     * notice still showing posts again only when the shown language itself changed (shownLanguage()), not for a
+     * locale list change that keeps it, such as [en-US] to [en-US, es] with Volt still in English.
      */
     void applyLocale(){
         if(destroyed||ble==null)return;
@@ -151,7 +163,16 @@ public final class ScooterService extends Service {
         try{locales=AppLanguage.resources(this).getConfiguration().getLocales();}catch(RuntimeException unavailable){return;}
         if(locales.equals(noticeLocales))return;
         boolean first=noticeLocales==null;noticeLocales=locales;
-        if(first)return;
+        java.util.List<?> language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;
+        if(first){
+            // A service started in a new language: the scooter channel is re-labelled by every post, but an existing alerts
+            // channel only here, so Android's notification settings name it in the shown language from the start.
+            try{
+                NotificationManager manager=getSystemService(NotificationManager.class);
+                if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);
+            }catch(RuntimeException unavailable){}
+            return;
+        }
         try{
             // Only channels that exist: the alerts channel appears once Battery alerts are first used.
             NotificationManager manager=getSystemService(NotificationManager.class);
@@ -159,8 +180,14 @@ public final class ScooterService extends Service {
             if(scooter!=null){scooter.setName(T.serviceChannelScooter());manager.createNotificationChannel(scooter);}
             if(manager.getNotificationChannel(ALERT_CHANNEL)!=null)alertChannel(manager);
         }catch(RuntimeException unavailable){}
+        if(relabel)relabelAlertNotice();
         updateNotification();changed();
     }
+    /**
+     * The language Volt's text renders in now: the catalog's resolved language (T.language(), "en" for English or
+     * anything unrecognised), and outside English the locale its numbers format in (Fmt.displayLocale(), else null).
+     */
+    private static java.util.List<?> shownLanguage(){return java.util.Arrays.asList(T.language(),Fmt.legacy()?null:Fmt.displayLocale());}
     @Override public int onStartCommand(Intent intent,int flags,int startId){
         if (destroyed || DataMaintenance.active()) { stopSelf(); return START_NOT_STICKY; }
         if(!ble.permissions()){finishChargeCapture(ChargeSessionStore.Stop.PERMISSION_LOST);endChargeMeasure(T.serviceMeasureBluetoothRemoved());stopIdleWork();return START_NOT_STICKY;}
@@ -342,26 +369,32 @@ public final class ScooterService extends Service {
         if(charger==null)edit.remove(chargerKey());else edit.putString(chargerKey(),charger.name());
         edit.apply();changed();return true;
     }
-    public String chargeCaptureUnavailable(){
-        if(destroyed||chargeStore==null)return T.serviceChargeStorageUnavailable();
+    /** Why a charge recording can't start now, in the current language, or null when it can. */
+    public String chargeCaptureUnavailable(){CharSequence why=chargeCaptureBlocked();return why==null?null:why.toString();}
+    /**
+     * chargeCaptureUnavailable() deferred, for the status line that keeps it (plan R2). The developer-options refusal is
+     * still rendered here: G1 holds that line as B8 left it, since it also holds the preference key's literal.
+     */
+    private CharSequence chargeCaptureBlocked(){
+        if(destroyed||chargeStore==null)return M.serviceChargeStorageUnavailable();
         if(!settings.getBoolean("developer_options",false))return T.serviceChargeEnableDeveloper();
-        if(simulating())return T.serviceChargeSimulation();
-        if(isRecording()||phoneSaving())return T.serviceChargeFinishRide();
-        if(chargeExporting)return T.serviceChargePreparingExport();
-        if(chargeModelLoading)return T.serviceChargeLoading();
-        if(!ble.ready()||profiles.active()==null||ble.profile()==null||!profiles.active().id.equals(ble.profile().id))return T.serviceChargeConnectScooter();
+        if(simulating())return M.serviceChargeSimulation();
+        if(isRecording()||phoneSaving())return M.serviceChargeFinishRide();
+        if(chargeExporting)return M.serviceChargePreparingExport();
+        if(chargeModelLoading)return M.serviceChargeLoading();
+        if(!ble.ready()||profiles.active()==null||ble.profile()==null||!profiles.active().id.equals(ble.profile().id))return M.serviceChargeConnectScooter();
         ChargeSessionStore.Frame frame=chargeFrame(SystemClock.elapsedRealtime(),System.currentTimeMillis());
-        if(!frame.usable())return T.serviceChargeWaitReadings();
-        if(frame.soc.value>=100)return T.serviceChargeBatteryFull();
+        if(!frame.usable())return M.serviceChargeWaitReadings();
+        if(frame.soc.value>=100)return M.serviceChargeBatteryFull();
         NotificationManager manager=getSystemService(NotificationManager.class);
         NotificationChannel channel=manager.getNotificationChannel("scooter");
         if(!manager.areNotificationsEnabled()||channel!=null&&channel.getImportance()==NotificationManager.IMPORTANCE_NONE)
-            return T.serviceChargeAllowNotifications();
+            return M.serviceChargeAllowNotifications();
         return null;
     }
     public boolean startChargeRecording(ChargeSessionStore.Charger charger){
         if(isChargeRecording())return false;
-        String unavailable=chargeCaptureUnavailable();
+        CharSequence unavailable=chargeCaptureBlocked();
         if(unavailable!=null||charger==null){chargeStatus=unavailable==null?M.serviceChargeChooseCharger():unavailable;changed();return false;}
         long mono=SystemClock.elapsedRealtime(),wall=System.currentTimeMillis();
         try{
@@ -402,9 +435,9 @@ public final class ScooterService extends Service {
     public boolean clearChargeRecordings(Runnable completion){
         if(destroyed||chargeStore==null||isChargeRecording()||chargeModelLoading)return false;
         final String profile=activeProfileId();if(profile.isEmpty())return false;chargeModelLoading=true;
-        chargeWorker.execute(()->{String error=null;ChargeSessionStore.Snapshot snapshot=null;
-            try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=T.serviceChargeClearFailed();}
-            final String message=error;final ChargeSessionStore.Snapshot result=snapshot;
+        chargeWorker.execute(()->{CharSequence error=null;ChargeSessionStore.Snapshot snapshot=null;
+            try{chargeStore.clear(profile);snapshot=chargeStore.snapshot();}catch(IOException failure){error=M.serviceChargeClearFailed();}
+            final CharSequence message=error;final ChargeSessionStore.Snapshot result=snapshot;
             handler.post(()->{if(destroyed)return;chargeModelLoading=false;if(result!=null)chargeSnapshot=result;
                 chargeStatus=message==null?M.serviceChargeCleared():message;changed();if(completion!=null)completion.run();});});return true;
     }
@@ -428,7 +461,7 @@ public final class ScooterService extends Service {
         if(destroyed||chargeStore==null||isChargeRecording()||chargeExporting||activeProfileId().isEmpty())return false;
         final String profile=activeProfileId();chargeExporting=true;
         chargeWorker.execute(()->{
-            File output=null;String error=null;
+            File output=null;CharSequence error=null;
             try{
                 File directory=new File(getCacheDir(),"charge-exports");
                 if(!directory.isDirectory()&&!directory.mkdirs())throw new IOException();
@@ -439,9 +472,9 @@ public final class ScooterService extends Service {
                 try(Writer writer=new BufferedWriter(new OutputStreamWriter(new FileOutputStream(output),java.nio.charset.StandardCharsets.UTF_8))){
                     count=chargeStore.exportJson(profile,writer);
                 }
-                if(count==0){output.delete();output=null;error=T.serviceChargeExportEmpty();}
-            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=T.serviceChargeExportFailed();}
-            final File result=output;final String message=error;
+                if(count==0){output.delete();output=null;error=M.serviceChargeExportEmpty();}
+            }catch(IOException|IllegalStateException failure){if(output!=null)output.delete();output=null;error=M.serviceChargeExportFailed();}
+            final File result=output;final CharSequence message=error;
             handler.post(()->{chargeExporting=false;if(destroyed){if(result!=null)result.delete();return;}
                 if(message!=null)chargeStatus=message;changed();completion.accept(result);});
         });changed();return true;
@@ -875,7 +908,7 @@ public final class ScooterService extends Service {
     public boolean chargeAlarmPlaying(){return alarmPlaying();}
     private boolean alarmPlaying(){return alarm!=null;}
     /** An alert that fired in sight, for MainActivity's dialog (out of sight it is a notification). */
-    public String[] pendingChargeAlert(){return pendingChargeAlert;}
+    public String[] pendingChargeAlert(){AlertShown alert=pendingChargeAlert;return alert==null?null:new String[]{alert.title(),alert.text()};}
     public void chargeAlertShown(){pendingChargeAlert=null;}
     /** Stop watching: no charge alert for the rest of this charge; the alert stays on for the next one. */
     public void skipChargeAlert(){
@@ -931,14 +964,42 @@ public final class ScooterService extends Service {
     }
     /** In sight: a dialog (and the alarm, if chosen). Out of sight: the alert notification and/or the alarm. */
     private void deliverChargeAlert(ChargeAlertPolicy.Event event,ScooterProfiles.Profile profile){
-        if(event==ChargeAlertPolicy.Event.PAUSED||event==ChargeAlertPolicy.Event.TIME_LIMIT){if(!visible)alertPausedNotice(event,profile.name);return;}
+        if(event==ChargeAlertPolicy.Event.PAUSED||event==ChargeAlertPolicy.Event.TIME_LIMIT){if(!visible)alertPausedNotice(event,profile.displayName());return;}
         ChargeAlertPolicy.Settings choice=alertPolicy.settings();Integer pct=alertPolicy.percent();
         int level=event==ChargeAlertPolicy.Event.LOW?choice.lowBelow:event==ChargeAlertPolicy.Event.FULL?100:choice.chargeAt;
-        alertTitle=ChargeAlertPolicy.alertTitle(event,level);alertText=ChargeAlertPolicy.alertText(event,profile.name,pct==null?level:pct);
+        alertShown=new AlertShown(event,level,pct==null?level:pct,profile);
         if(choice.alarm)startChargeAlarm();
-        if(visible){pendingChargeAlert=new String[]{alertTitle,alertText};return;}
+        if(visible){pendingChargeAlert=alertShown;return;}
         if(choice.notify||alarmPlaying())alertNotice(choice.notify);
     }
+    /**
+     * A battery alert as it fired: what ChargeAlertPolicy builds its title and text from, so they render whenever they are
+     * shown, in the language shown then (plan R2), where the service once kept the text rendered when the alert fired. The
+     * scooter keeps the name it had then, as that text did; a default name renders as Profile.displayName() renders it.
+     */
+    private static final class AlertShown{
+        final ChargeAlertPolicy.Event event;final int level,percent;final String scooter;final boolean defaultName;
+        AlertShown(ChargeAlertPolicy.Event event,int level,int percent,ScooterProfiles.Profile profile){
+            this.event=event;this.level=level;this.percent=percent;scooter=profile.name;
+            defaultName=profile.nameDefault&&ScooterProfiles.DEFAULT_NAME.equals(profile.name);
+        }
+        String title(){return ChargeAlertPolicy.alertTitle(event,level);}
+        String text(){return ChargeAlertPolicy.alertText(event,defaultName?T.ownerProfileDefaultName():scooter,percent);}
+    }
+    /**
+     * What one post of the battery alert notice showed: its alert (null before any fired), whether it carried the
+     * sounding alarm's Stop and the swipe's DISMISS_CHARGE_ALERT, and its time. A language change renders this again.
+     */
+    private static final class AlertPost{
+        final AlertShown shown;final boolean sounding;final long when;
+        AlertPost(AlertShown shown,boolean sounding,long when){this.shown=shown;this.sounding=sounding;this.when=when;}
+    }
+    /** The last alert's title and text in the current language; before any alert fired, the empty alertTitle and alertText. */
+    private String alertTitle(){return alertTitle(alertShown);}
+    private String alertText(){return alertText(alertShown);}
+    /** An alert's title and text in the current language; before any alert fired, the empty alertTitle and alertText. */
+    private String alertTitle(AlertShown shown){return shown==null?alertTitle:shown.title();}
+    private String alertText(AlertShown shown){return shown==null?alertText:shown.text();}
     private void alertChannel(NotificationManager manager){
         NotificationChannel channel=new NotificationChannel(ALERT_CHANNEL,T.serviceChannelAlerts(),NotificationManager.IMPORTANCE_HIGH);
         channel.setDescription(T.serviceChannelAlertsDescription());
@@ -953,12 +1014,16 @@ public final class ScooterService extends Service {
         // Built when it posts: with Notify me off it's only the alarm's Stop, so once the alarm ends there's nothing to post.
         post(CHARGE_ALERT_NOTICE,()->keep||alarmPlaying()?alertNoticeContent():null);
     }
-    private Notification alertNoticeContent(){
+    private Notification alertNoticeContent(){return alertNoticeContent(alertShown,alarmPlaying(),0);}
+    /**
+     * The notice for an alert, with Stop and the swipe's DISMISS_CHARGE_ALERT while sounding; when is the time it
+     * shows, 0 for the builder's own (now). Recorded in alertPosted as what notice 76 shows.
+     */
+    private Notification alertNoticeContent(AlertShown shown,boolean sounding,long when){
         NotificationManager manager=getSystemService(NotificationManager.class);alertChannel(manager);
-        boolean sounding=alarmPlaying();
         PendingIntent open=PendingIntent.getActivity(this,7,new Intent(this,MainActivity.class),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
         Notification.Builder builder=new Notification.Builder(this,ALERT_CHANNEL).setSmallIcon(R.drawable.ic_volt_notification)
-                .setContentTitle(alertTitle).setContentText(alertText).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
+                .setContentTitle(alertTitle(shown)).setContentText(alertText(shown)).setContentIntent(open).setAutoCancel(true).setOnlyAlertOnce(true)
                 .setCategory(sounding?Notification.CATEGORY_ALARM:Notification.CATEGORY_STATUS).setVisibility(Notification.VISIBILITY_PRIVATE);
         if(sounding){
             PendingIntent stop=PendingIntent.getService(this,6,new Intent(this,ScooterService.class).setAction("STOP_CHARGE_ALARM"),PendingIntent.FLAG_UPDATE_CURRENT|PendingIntent.FLAG_IMMUTABLE);
@@ -968,7 +1033,9 @@ public final class ScooterService extends Service {
             // NotificationCompat.setSilent's method: a group child that alerts only for its (absent) summary stays quiet.
             builder.setGroup("volt-charge-alarm").setGroupAlertBehavior(Notification.GROUP_ALERT_SUMMARY);
         }
-        return builder.build();
+        if(when!=0)builder.setWhen(when);
+        Notification notice=builder.build();alertPosted=new AlertPost(shown,sounding,notice.when);
+        return notice;
     }
     /**
      * The owner swiped the sounding notice away: end the alarm and post nothing more for it. A kept notice queued when
@@ -978,11 +1045,36 @@ public final class ScooterService extends Service {
     /** After the alarm: Notify me keeps the notice (without Stop) if the owner hasn't cleared it; alarm only removes it. */
     private void finishAlertNotice(){
         try{
-            NotificationManager manager=getSystemService(NotificationManager.class);boolean shown=false;
-            for(android.service.notification.StatusBarNotification n:manager.getActiveNotifications())shown|=n.getId()==CHARGE_ALERT_NOTICE;
-            if(!shown)return;
+            if(!alertNoticeShown())return;
             if(alertNoticeKept)alertNotice(true);else cancelNotice(CHARGE_ALERT_NOTICE);
         }catch(RuntimeException unavailable){}
+    }
+    /** Whether Android shows the battery alert notice now; false when the owner cleared it or it never posted. */
+    private boolean alertNoticeShown(){
+        NotificationManager manager=getSystemService(NotificationManager.class);boolean shown=false;
+        for(android.service.notification.StatusBarNotification n:manager.getActiveNotifications())shown|=n.getId()==CHARGE_ALERT_NOTICE;
+        return shown;
+    }
+    /**
+     * The shown language changed: a battery alert notice still showing posts again in place under its id, with what it
+     * showed (alertPosted: the same alert, Stop and the swipe's DISMISS_CHARGE_ALERT or neither, and its time) in the
+     * new language. A newer alert that fired in sight never takes its place, and Stop is never added or removed.
+     * setOnlyAlertOnce keeps that update silent (no sound, vibration or heads-up); the alarm, its timeout and
+     * alertNoticeKept are left as they are. It is skipped when that post no longer matches the state behind it (a
+     * kept notice no longer kept, Stop with the alarm ended), when another post of it waits in the pacer (that one
+     * renders when taken, in the new language), and for a notice the owner cleared or one that never posted, all
+     * checked again when the post is taken.
+     */
+    private void relabelAlertNotice(){
+        try{
+            AlertPost posted=alertPosted;
+            if(!relabelDue(posted))return;
+            post(CHARGE_ALERT_NOTICE,()->posted==alertPosted&&relabelDue(posted)?alertNoticeContent(posted.shown,posted.sounding,posted.when):null);
+        }catch(RuntimeException unavailable){}
+    }
+    /** Whether that post of the alert notice still shows, unchanged, and the state behind it holds. */
+    private boolean relabelDue(AlertPost posted){
+        return posted!=null&&(posted.sounding?alarmPlaying():alertNoticeKept)&&!notices.waiting(CHARGE_ALERT_NOTICE)&&alertNoticeShown();
     }
     /** One per lost watch, on the connection channel like Volt's other status notices. */
     private void alertPausedNotice(ChargeAlertPolicy.Event event,String scooter){
@@ -1044,7 +1136,8 @@ public final class ScooterService extends Service {
                 &&(simulation||active.serial.equals(ble.currentTransportSerial()));
         c.generation=ble.connectionGeneration();
         CapabilityResolver.Decision toggle=ble.decision("timed_charging"),time=ble.decision("charge_start");
-        c.toggleReason=toggle.available()?null:toggle.reasonText();c.timeReason=time.available()?null:time.reasonText();
+        // English ids, whatever the shown language: the controller keeps them in its saved status and its other text is English too (plan R2).
+        c.toggleReason=toggle.available()?null:ConnectionText.english(toggle.reasonMessage());c.timeReason=time.available()?null:ConnectionText.english(time.reasonMessage());
         c.wholeHours=time.layer!=ModelRegistry.Layer.UT5_MAX;
         if(!c.ready)return c;
         c.enabled=ble.featureValue("timed_charging");
@@ -1957,7 +2050,7 @@ public final class ScooterService extends Service {
         boolean watching = !measuring && !testing && alertWatchShown();
         int target = alertPolicy == null ? 100 : alertPolicy.settings().chargeAt;
         String title =
-                alarming ? alertTitle : watching ? ChargeAlertPolicy.watchTitle(target) :
+                alarming ? alertTitle() : watching ? ChargeAlertPolicy.watchTitle(target) :
                 measuring ? T.serviceNoticeMeasuring() : testing ? T.serviceNoticeTesting() :
                 isChargeRecording() ? (chargeRecovery!=null&&chargeRecovery.recovering()?T.serviceNoticeChargeReconnecting():T.serviceNoticeChargeActive()) : phoneSaving()
                         ? T.serviceNoticeSavingRide()
@@ -1969,15 +2062,15 @@ public final class ScooterService extends Service {
         // Bodies carry live facts, not a repeat of the title: name and battery when connected,
         // distance beside a running clock while recording, a progress bar while a ride is saved.
         RideStore.Summary ride = isRecording() && recordingError == null && !isChargeRecording() && !phoneSaving() ? rides.activeSummary() : null;
-        String text =
-                alarming ? alertText : watching ? ChargeAlertPolicy.watchText(alertPolicy.percent(), alertPolicy.percentFresh(), target) :
+        CharSequence text =
+                alarming ? alertText() : watching ? ChargeAlertPolicy.watchText(alertPolicy.percent(), alertPolicy.percentFresh(), target) :
                 measuring ? (chargeMeasure.arming() ? T.serviceTestArming() : T.serviceNoticeMeasuringText(Fmt.integer(chargeMeasureMinutesLeft()))) :
                 testing ? T.serviceNoticeTestingText(testStatus) :
                 isChargeRecording() ? chargeCaptureStatus() : phoneSaving()
                         ? null
                         : isRecording()
                                 ? (recordingError == null ? rideDistanceText(ride) : recordingError)
-                                : ble.ready() ? connectedText() : ble.message();
+                                : ble.ready() ? connectedText() : ble.displayMessage();
         if (isRecording() && phoneStatus().startsWith("Phone sensor storage")) {
             title = T.serviceNoticeSensorsAttention();
             text = T.serviceNoticeSensorsNotSaving();
@@ -2014,7 +2107,7 @@ public final class ScooterService extends Service {
     private String connectedText() {
         ScooterProfiles.Profile profile = profiles.active();
         Double battery = ble.telemetry.number("battery_percent");
-        String name = profile == null ? T.serviceNoticeScooter() : profile.name;
+        String name = profile == null ? T.serviceNoticeScooter() : profile.displayName();
         return battery == null ? name : T.serviceNoticeScooterBattery(name, Fmt.integer(Math.round(battery)));
     }
     /** Recorded distance in the rider's units, or null before the odometer has moved. */
@@ -2028,7 +2121,7 @@ public final class ScooterService extends Service {
     /** Every notification Volt posts goes through here, spaced so Android never sheds one (NotificationPacer). */
     private void post(int id,Notification notice){post(id,()->notice);}
     private void post(int id,java.util.function.Supplier<Notification> build){notices.offer(id,build);drainNotices();}
-    private void cancelNotice(int id){notices.cancel(id);try{getSystemService(NotificationManager.class).cancel(id);}catch(RuntimeException ignored){}}
+    private void cancelNotice(int id){if(id==CHARGE_ALERT_NOTICE)alertPosted=null;notices.cancel(id);try{getSystemService(NotificationManager.class).cancel(id);}catch(RuntimeException ignored){}}
     private void drainNotices(){
         handler.removeCallbacks(noticeDrain);
         long now=SystemClock.elapsedRealtime();

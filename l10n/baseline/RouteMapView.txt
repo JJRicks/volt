@@ -1,15 +1,5 @@
 # Hard-coded English in src/com/jjricks/volt/RouteMapView.java when this baseline was generated. It may only shrink.
 # Regenerate with: python3 tools/l10n/hardcoded_lint.py --write-baselines
 multiword	"%+.2f m/s² GPS accel"
-multiword	"%.0f mph / %.0f km/h"
 multiword	"Elevation %+.0f ft"
 multiword	"Elevation %+.0f m"
-multiword	"Elevation not measured"
-multiword	"GPS accel not measured"
-multiword	"Grade not measured"
-multiword	"No GPS speed"
-multiword	"No scooter speed"
-multiword	"Power not measured"
-multiword	"Speed not measured"
-sink	"No GPS route recorded"
-sink	"Ride route map"
