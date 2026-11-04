@@ -118,6 +118,12 @@ public final class BackupUiValidation extends Instrumentation {
             onMain(()->root(backup).findViewWithTag("backup-select-all").performClick());
             require(((java.util.Set<?>)invoke(backup,"selected",new Class<?>[]{})).containsAll(com.jjricks.volt.AppDataBackup.CATEGORIES),"Select all did not restore full scope");
             require(textContaining(root(backup),"Permissions and Bluetooth pairing aren't included.")!=null,"Exclusions are stated");
+            // G7: MainActivity starts BackupActivity and finishes itself, but its window, holding "Preparing your
+            // app data...", stays attached (and shown until it stops) until the system destroys it after the backup
+            // screen goes idle. The census lists every window of the process, so a fast device captured that
+            // window first and moved the backup screen to dialog[1]/. Wait until it is gone and the backup screen
+            // is the only activity window, as on a slower device, before the review image and its census.
+            awaitOnMain(()->main.isDestroyed()&&onlyActivityWindow(root(backup)),"The finishing Volt window stayed behind the backup screen",20000);
             render(root(backup),"backup-categories.png");
             EditText secret=(EditText)field(backup,"password");
             PasswordKeyboardChecks.verify(this,backup,secret,true);
@@ -267,6 +273,18 @@ public final class BackupUiValidation extends Instrumentation {
     private Object invoke(Object object,String name,Class<?>[] types,Object...args){try{Method m=object.getClass().getDeclaredMethod(name,types);m.setAccessible(true);return m.invoke(object,args);}catch(Exception e){throw new RuntimeException(e);}}
     private void onMain(Runnable action){AtomicReference<Throwable> error=new AtomicReference<>();runOnMainSync(()->{try{action.run();}catch(Throwable e){error.set(e);}});if(error.get()!=null)throw new RuntimeException(error.get());waitForIdleSync();}
     private String top(){try{android.app.ActivityManager am=(android.app.ActivityManager)getTargetContext().getSystemService(Context.ACTIVITY_SERVICE);return String.valueOf(am.getAppTasks().get(0).getTaskInfo().topActivity);}catch(Exception e){return e.toString();}}
+    /** Like await, with the condition read on the main thread, where window and lifecycle changes land whole. */
+    private void awaitOnMain(BooleanSupplier ready,String message,long timeoutMs){long limit=SystemClock.elapsedRealtime()+timeoutMs;
+        while(SystemClock.elapsedRealtime()<limit){boolean[] done={false};runOnMainSync(()->done[0]=ready.getAsBoolean());if(done[0])return;SystemClock.sleep(30);}throw new AssertionError(message);}
+    /** True when no shown activity window of this process other than root's remains (WindowInspector, API 29+). */
+    private static boolean onlyActivityWindow(View root){
+        if(Build.VERSION.SDK_INT<29)return true;
+        for(View window:android.view.inspector.WindowInspector.getGlobalWindowViews()){
+            if(window==root||!window.isShown()||!(window.getLayoutParams()instanceof android.view.WindowManager.LayoutParams))continue;
+            if(((android.view.WindowManager.LayoutParams)window.getLayoutParams()).type==android.view.WindowManager.LayoutParams.TYPE_BASE_APPLICATION)return false;
+        }
+        return true;
+    }
     private void await(BooleanSupplier ready,String message){long limit=SystemClock.elapsedRealtime()+10000;while(SystemClock.elapsedRealtime()<limit){if(ready.getAsBoolean())return;SystemClock.sleep(30);}throw new AssertionError(message);}
     private void require(boolean value,String message){assertions++;if(!value)throw new AssertionError(message);}
 }
