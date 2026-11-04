@@ -500,9 +500,16 @@ How `ledger_check.py` (G1) reads it:
     and its stack trace stays in logs and reports. Each `this(...)` or `src/` superclass call passes
     every parameter that holds one on as a whole argument. The JDK constructor at the end receives
     exactly the old call's arguments, in order, with the text replaced by `msg.english()` and each
-    other argument as the parameter that holds it. No class from `Y` up to `X` may declare
-    `getMessage`, `getLocalizedMessage`, `toString`, `getCause`, `initCause`, `fillInStackTrace`,
-    `getStackTrace` or `printStackTrace`. The warning prints both calls, the chain and the
+    other argument as the parameter that holds it. No argument of those calls may assign a
+    constructor parameter (`=`, a compound assignment, `++` or `--`), since Java runs the arguments
+    left to right: `this(pick(cause = null), msg, cause)` hands on null. No class from `Y` up to `X`
+    may declare `getMessage`, `getLocalizedMessage`, `toString`, `getCause`, `initCause`,
+    `fillInStackTrace`, `getStackTrace` or `printStackTrace` (annotations such as
+    `@TargetApi(24) @Override` in front do not hide one), or call `initCause`, `setStackTrace` or
+    `fillInStackTrace` anywhere in its body: G1 reads only the call that starts each constructor, not
+    the statements after it, initializers or field initializers. A problem found through a `this(...)`
+    or `src/` superclass call also names the constructor that made the call, with its arguments.
+    The warning prints both calls, the chain and the
     constructors; check by hand that nothing shows or logs the exception itself, since `toString()`,
     `"" + e` and stack traces now print the new class name. These fail:
     - a `T.<key>()` (rendered) argument;
@@ -510,6 +517,10 @@ How `ledger_check.py` (G1) reads it:
     - a constructor passing `msg.render()` or nothing;
     - a cause dropped at the call, or by a constructor that takes it and calls
       `super(msg.english())`, `super(msg.english(), null)` or `this(code, msg)`;
+    - a parameter assigned inside a delegation's arguments;
+    - an override of `getCause()` or another of the methods above, annotated or not, or a call of
+      `setStackTrace(...)` or `initCause(...)` in a constructor, an initializer `{ ... }` or a field's
+      initializer;
     - a non-constant extra argument.
   - **A private method's String parameter becoming `Msg` or `CharSequence`** when its callers now pass
     catalog calls (B7): `private void simulationUnavailable(String action)` becoming
@@ -653,8 +664,13 @@ Known limits:
   name, in `src/` at head; that nothing prints the exception itself (whose `toString()` now names the
   new class) is the reviewer's to check, from the listing. The old call's other arguments are
   followed to the JDK constructor by parameter name, not by declared type. The `(String)` and
-  `(String, Throwable)` constructors exceptions have leave no other overload to pick, but a JDK type
-  with same-arity constructors of other types is the reviewer's to check.
+  `(String, Throwable)` constructors that exceptions have leave no other overload to pick, but a JDK
+  type with same-arity constructors of other types is the reviewer's to check. G1 does not model
+  Java's overload resolution either: it checks every constructor of `Y` with the call's arity and a
+  `Msg` at the call's position, even one Java would never pick by type. So a class with both
+  `(Msg, Code)` and `(Msg, Throwable)` refuses switches in both directions, because each call is also
+  checked against the other constructor. Give such constructors different shapes instead, as
+  `BackupException` does by putting `Code` first: `(Code, Msg)` and `(Code, Msg, Throwable)`.
 - A `choice` row's branches are proved against the base expression with each condition forced; that
   the condition reads the same value before the holes run (head evaluates it first) is not checked,
   and an id test assumes the variable holds exactly the tested literal where `equals` is true.

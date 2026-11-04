@@ -297,15 +297,128 @@ final class BackupException extends StoreException {
         self.assertFails([self.UNLOCK], "AppException is declared in src")
 
     def test_an_override_of_the_cause_or_stack_fails(self):
-        for method in ("public synchronized Throwable getCause() { return null; }",
-                       "public synchronized Throwable fillInStackTrace() { return this; }"):
+        for name, method in (("getCause", "public synchronized Throwable getCause() { return null; }"),
+                             ("fillInStackTrace", "public synchronized Throwable fillInStackTrace() { return this; }"),
+                             ("initCause", "public synchronized Throwable initCause(Throwable c) { return this; }"),
+                             ("getStackTrace", "public StackTraceElement[] getStackTrace() { return new StackTraceElement[0]; }"),
+                             ("printStackTrace", "public void printStackTrace(java.io.PrintStream s) { }")):
             with self.subTest(method=method):
                 try:
                     self.convert('new BackupException(BackupException.Code.NO_SPACE, M.backupNoSpace())',
                                  BACKUP_EXCEPTION_TEXT.replace("    Msg msg() {", "    @Override %s\n    Msg msg() {" % method))
-                    self.assertFails([self.NO_SPACE], "declares %s" % method.split()[3].split("(")[0])
+                    self.assertFails([self.NO_SPACE], "declares %s" % name)
                 finally:
                     self.reset_copy()
+
+    def test_an_annotated_override_fails(self):
+        # Internal review of 03831ab: an annotation with arguments before a method of no or one parameter hid
+        # the method from _members, so these overrides passed (and were missing from the listing).
+        for annotation, name, method in (
+                ("@TargetApi(24) @Override", "getCause", "public Throwable getCause() { return null; }"),
+                ('@SuppressWarnings("unused")', "fillInStackTrace", "public synchronized Throwable fillInStackTrace() { return this; }"),
+                ('@SuppressWarnings({"unused", "deprecation"}) @Override', "getMessage",
+                 "public String getMessage() { return msg.render(); }"),
+                ('@SuppressWarnings("unused")', "initCause", "public synchronized Throwable initCause(Throwable c) { return this; }")):
+            with self.subTest(method=method):
+                try:
+                    self.convert('new BackupException(BackupException.Code.NO_SPACE, M.backupNoSpace())',
+                                 BACKUP_EXCEPTION_TEXT.replace("    Msg msg() {", "    %s %s\n    Msg msg() {" % (
+                                     annotation, method)))
+                    self.assertFails([self.NO_SPACE], "declares %s" % name)
+                finally:
+                    self.reset_copy()
+
+    def test_a_cause_or_stack_call_in_the_chain_fails(self):
+        # Internal review of 03831ab: G1 reads only the call that starts a constructor, so a later statement,
+        # an initializer or a field's initializer could replace the stack trace or set a cause the old call left
+        # null; any call of initCause, setStackTrace or fillInStackTrace in a class of the chain fails.
+        no_space = 'new BackupException(BackupException.Code.NO_SPACE, M.backupNoSpace())'
+        copy = 'new BackupException(BackupException.Code.OTHER, M.backupCopyFailed(), e)'
+        cases = [
+            (BACKUP_EXCEPTION_TEXT.replace("    Code code()", "    { setStackTrace(new StackTraceElement[0]); }\n    Code code()"),
+             no_space, self.NO_SPACE, "BackupException calls setStackTrace"),
+            (BACKUP_EXCEPTION_TEXT.replace("    Code code()", "    private final Throwable t = initCause(new IllegalStateException());"
+                                                              "\n    Code code()"),
+             no_space, self.NO_SPACE, "BackupException calls initCause"),
+            (BACKUP_EXCEPTION_TEXT.replace("super(msg.english()); this.code", "super(msg.english()); fillInStackTrace(); this.code"),
+             no_space, self.NO_SPACE, "BackupException calls fillInStackTrace"),
+            (BACKUP_EXCEPTION_TEXT.replace("super(msg.english(), cause); this.code",
+                                           "super(msg.english(), cause); setStackTrace(new StackTraceElement[0]); this.code"),
+             copy, self.COPY, "BackupException calls setStackTrace"),
+        ]
+        for exception, call, row, needle in cases:
+            with self.subTest(needle=needle, exception=exception):
+                try:
+                    self.repo.write(BACKUP_EXCEPTION, exception)
+                    self.repo.write(TX, self.FILES[TX].replace('new IOException("Not enough free storage")', no_space)
+                                    .replace('new IOException("Copy failed", e)', copy))
+                    problems, _ = self.assertFails([row], needle)
+                    self.assertTrue(any("G1 reads only the super(...) or this(...) call" in p for p in problems), problems)
+                finally:
+                    self.reset_copy()
+        # In a src superclass between the two types too.
+        base_class = PKG + "StoreException.java"
+        try:
+            self.repo.write(base_class, "package com.jjricks.volt;\n\nclass StoreException extends java.io.IOException {\n"
+                                        "    { setStackTrace(new StackTraceElement[0]); }\n"
+                                        "    StoreException(Msg msg, Throwable cause) { super(msg.english(), cause); }\n}\n")
+            self.repo.write(BACKUP_EXCEPTION, "package com.jjricks.volt;\n\nfinal class BackupException extends StoreException {\n"
+                                              "    enum Code { OTHER }\n"
+                                              "    BackupException(Code code, Msg msg, Throwable cause) { super(msg, cause); }\n}\n")
+            self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)', copy))
+            self.assertFails([self.COPY], "StoreException calls setStackTrace")
+        finally:
+            self.reset_copy(base_class)
+
+    def test_an_assignment_in_delegation_arguments_fails(self):
+        # Internal review of 03831ab: Java evaluates arguments left to right, so another argument could assign a
+        # carried parameter or the Msg before it is read: this(pick(cause = null), msg, cause) hands on null.
+        call2 = 'new BackupException(M.backupCopyFailed(), e)'
+        two = "\n    BackupException(Msg msg, Throwable cause) { %s }\n    static Code pick(Object o) { return Code.OTHER; }\n    Code code()"
+        for body, name in (("this(pick(cause = null), msg, cause);", "cause"),
+                           ("this(pick(msg = M.backupNoSpace()), msg, cause);", "msg"),
+                           ("this(pick((cause) = null), msg, cause);", "cause"),
+                           ("this(pick(cause += null), msg, cause);", "cause")):
+            with self.subTest(body=body):
+                try:
+                    self.repo.write(BACKUP_EXCEPTION, BACKUP_EXCEPTION_TEXT.replace("\n    Code code()", two % body, 1))
+                    self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)', call2))
+                    self.assertFails([self.COPY], "assigns its parameter %s inside the arguments of this(...)" % name)
+                finally:
+                    self.reset_copy()
+        # In a src superclass call too.
+        base_class = PKG + "StoreException.java"
+        try:
+            self.repo.write(base_class, "package com.jjricks.volt;\n\nclass StoreException extends java.io.IOException {\n"
+                                        "    StoreException(Object o, Msg msg, Throwable cause) { super(msg.english(), cause); }\n}\n")
+            self.repo.write(BACKUP_EXCEPTION, "package com.jjricks.volt;\n\nfinal class BackupException extends StoreException {\n"
+                                              "    enum Code { OTHER }\n    static Object pick(Object o) { return o; }\n"
+                                              "    BackupException(Code code, Msg msg, Throwable cause) { super(pick(cause = null), msg, cause); }\n}\n")
+            self.repo.write(TX, self.FILES[TX].replace('new IOException("Copy failed", e)',
+                                                       'new BackupException(BackupException.Code.OTHER, M.backupCopyFailed(), e)'))
+            self.assertFails([self.COPY], "assigns its parameter cause inside the arguments of super(...)")
+        finally:
+            self.reset_copy(base_class)
+
+    def test_assigned_parameter_reads_every_assignment(self):
+        names = {"cause", "msg"}
+        for code, found in (("pick(cause = null), msg, cause", "cause"), ("a(cause++), msg", "cause"),
+                            ("a(--msg), cause", "msg"), ("a(cause >>>= 1)", "cause"), ("a(((cause)) -= 1)", "cause"),
+                            ("a(cause == null), msg, cause", None), ("a(cause <= 1, cause != null)", None),
+                            ("a(other.cause = null), msg", None), ("a(x = cause), msg, cause", None)):
+            with self.subTest(code=code):
+                tokens = ledger_check._Lexed(code).tokens
+                self.assertEqual(ledger_check._assigned_parameter(tokens, 0, len(tokens) - 1, names), found)
+
+    def test_a_delegation_mismatch_names_the_delegation(self):
+        # Internal review of 03831ab: the problem named only the constructor at the end of a this(...) chain, whose
+        # own body is fine; it now names the constructor that handed it the arguments.
+        self.convert(exception=BACKUP_EXCEPTION_TEXT.replace(
+            "BackupException(Code code, Msg msg) { super(msg.english()); this.code = code; this.msg = msg; }",
+            "BackupException(Code code, Msg msg) { this(code, msg, null); }"))
+        problems, _ = self.assertFails([self.NO_SPACE], "so a cause still reaches getCause()")
+        self.assertTrue(any("; reached from the constructor `BackupException ( Code code , Msg msg ) { this ( code , msg , "
+                            "null ) ; }`" in p and "which calls this(code, msg, null)" in p for p in problems), problems)
 
     def test_same_type_needs_no_listing(self):
         # A conversion inside an unchanged new X(...) is an ordinary exact row: nothing extra listed.
