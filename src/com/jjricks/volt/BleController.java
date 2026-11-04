@@ -854,7 +854,7 @@ public final class BleController {
     /** What an unfinished test needs now; null when it no longer exists. Never writes. */
     public GuidedTest.Review reviewTest(String testId){
         TestJournal.Entry e=testJournal.find(testId);if(e==null)return null;ScooterProfiles.Profile p=profile();
-        if(liveTest(testId))return new GuidedTest.Review(GuidedTest.ReviewState.WAITING,M.compatF2TestStillRunning(),null,false);
+        if(liveTest(testId))return new GuidedTest.Review(GuidedTest.ReviewState.WAITING,M.compatReviewTestRunning(),null,false);
         FeatureVariant v=(e.isTry()?CapabilityResolver.decideTry(e.feature,descriptor(),status(),runtime(e.feature)):CapabilityResolver.decideTest(e.feature,descriptor(),status(),runtime(e.feature))).variant;
         return GuidedTest.review(e,p==null?"":p.id,ready()&&!simulating(),descriptor(),status(),now(),v,testFirmwareConfirmed.contains(testId));
     }

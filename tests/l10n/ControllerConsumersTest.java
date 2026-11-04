@@ -41,9 +41,9 @@ public final class ControllerConsumersTest {
     }
 
     private static void english() {
-        equal("Absent", T.compatF2FieldAbsent(), "the Fields absent word");
-        equal("Present", T.compatF2FieldPresent(), "the Fields present word");
-        GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatF2TestStillRunning(), null, false);
+        equal("Absent", T.compatFieldsValueAbsent(), "the Fields absent word");
+        equal("Present", T.compatFieldsValuePresent(), "the Fields present word");
+        GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatReviewTestRunning(), null, false);
         equal("The test is still running.", running.text, "the running review's English");
         equal("The test is still running.", running.message.render(), "the running review shown in English");
         int values = 0;
@@ -75,10 +75,10 @@ public final class ControllerConsumersTest {
         }
         check(DisplayUnits.featureValue(ScooterCommands.find("display_units"), 0, "mi").contains("mph"), "display_units 0 still names mph for question()");
 
-        GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatF2TestStillRunning(), null, false);
+        GuidedTest.Review running = new GuidedTest.Review(GuidedTest.ReviewState.WAITING, M.compatReviewTestRunning(), null, false);
         equal("The test is still running.", running.text, "the running review keeps its English for the log");
-        equal("⟦compat_f2_test_still_running⟧", running.message.render(), "the running review is shown from the source");
-        equal("⟦compat_f2_field_absent⟧", T.compatF2FieldAbsent(), "the Fields absent word follows the source");
+        equal("⟦compat_review_test_running⟧", running.message.render(), "the running review is shown from the source");
+        equal("⟦compat_fields_value_absent⟧", T.compatFieldsValueAbsent(), "the Fields absent word follows the source");
 
         // A note built the way GuidedTest builds it now: the value label inside is the display text. The note's own
         // text keeps its placeholder here, so the label filled in is visible.

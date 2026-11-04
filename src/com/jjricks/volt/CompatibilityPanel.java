@@ -275,7 +275,7 @@ final class CompatibilityPanel {
             else for(int o=0;o<=CompatibilityReport.LAST_OFFSET;o++){
                 if(!CompatibilityReport.valueOffset(o)&&!CompatibilityReport.presenceOffset(o))continue;
                 StatusFields.Field f=s.field(o);
-                String value=!f.present?T.compatF2FieldAbsent():CompatibilityReport.valueOffset(o)?Integer.toString(f.value):T.compatF2FieldPresent();
+                String value=!f.present?T.compatFieldsValueAbsent():CompatibilityReport.valueOffset(o)?Integer.toString(f.value):T.compatFieldsValuePresent();
                 row(fields,CompatibilityLabels.field(o,layer),value,f.present?ui.text:ui.muted);
             }
             if(s.accepted())row(fields,T.compatStatusRead(),age(s),ui.muted);

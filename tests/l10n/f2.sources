@@ -7,3 +7,5 @@ tests/l10n/characterization/ControllerConsumersTextTest.java
 tests/l10n/characterization/CompatQuestionTextTest.java
 # F2 behaviour: the consumers show the display text under another source and keep the English ids (data, logs).
 tests/l10n/ControllerConsumersTest.java
+# F2 key names: the three keys follow the key rule and live in strings_compat.xml (no batch name).
+tests/l10n/CompatKeyNamesTest.java
