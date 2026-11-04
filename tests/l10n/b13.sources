@@ -1,0 +1,4 @@
+# B13, the Home dashboard screen (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the numbers, units, percents and reading names DashboardScreen shows, pinned before the batch.
+tests/l10n/characterization/DashboardScreenEnglishTest.java
