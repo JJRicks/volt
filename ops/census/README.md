@@ -95,13 +95,15 @@ boot failures in a row** and records each remaining run as `not run: ... (shard 
 broken image cannot hold 18 runners for hours (the run job's timeout is 240 minutes).
 
 **Retries.** One known emulator flake is retried once, on the same emulator: a run whose sweep failed
-with "Enable the emulator software keyboard for password validation" (`PasswordKeyboardChecks`, in the
-backup steps). On the swiftshader emulator Gboard sometimes needs longer than the test's 8 s to show
-its password keyboard, mostly in the first minutes after a boot (logcat: `ImeTracker ... onFailed at
-PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT`, keyboard ready about 8.7 s after the request). The retry's result
-is the one used; the first attempt's log is kept as `log-<tag>-<step>-attempt1.txt` and every retry is
-listed in `results.txt` (`retry: ...`) and on the summary page. A head that really breaks the keyboard
-fails both attempts.
+on one of the 8 s password-keyboard waits of `PasswordKeyboardChecks` (in the backup steps): "Enable the
+emulator software keyboard for password validation", "Focused password is obscured by the keyboard",
+"Password moved behind the keyboard while typing", "Password keyboard did not dismiss" or "Password
+bounds did not settle after the keyboard/window transition". On the swiftshader emulator Gboard
+sometimes needs longer than 8 s to show its keyboard, or the window longer to settle above it
+(logcat: `ImeTracker ... onFailed at PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT`, keyboard ready about 8.7 s
+after the request). The retry's result is the one used; the first attempt's log is kept as
+`log-<tag>-<step>-attempt1.txt` and every retry is listed in `results.txt` (`retry: ...`) and on the
+summary page. A head that really breaks the keyboard or hides the field fails both attempts.
 
 ## What is different from the local census
 
@@ -114,7 +116,9 @@ fails both attempts.
   build as the local AVD (BE4B.251210.005, a user build), but x86_64 under KVM instead of arm64-v8a.
   If it can't be installed, `android-36.1;google_apis;x86_64` (the same build, userdebug, no Play) is
   used with a warning; `results.txt` and the summary page name the image of each shard. Same
-  1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 2 CPU cores (the local AVD has 1).
+  1080x2400 at 420 dpi, 2 GB RAM, hardware keyboard, 6 GB data; 4 CPU cores (the local AVD has 1;
+  the runner has 4 vCPUs and swiftshader renders on host threads, so fewer cores make timed checks
+  such as `report-invite-*` miss their window).
   **The AVD must be made with a new avdmanager**: `emulator.sh` installs `cmdline-tools;23.0` and
   uses its avdmanager. The runner's own (command-line tools 12.0) writes `target=android-0` for a
   Major.Minor image such as 36.1; the emulator then skips that API's GPU features and surfaceflinger

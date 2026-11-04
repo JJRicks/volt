@@ -36,7 +36,7 @@ import sys
 path, playstore = sys.argv[1], sys.argv[2]
 want = {'hw.lcd.width': '1080', 'hw.lcd.height': '2400', 'hw.lcd.density': '420', 'hw.ramSize': '2048',
         'vm.heapSize': '336', 'disk.dataPartition.size': '6G', 'hw.keyboard': 'yes', 'hw.mainKeys': 'no',
-        'hw.dPad': 'no', 'hw.trackBall': 'no', 'hw.initialOrientation': 'portrait', 'hw.cpu.ncore': '2',
+        'hw.dPad': 'no', 'hw.trackBall': 'no', 'hw.initialOrientation': 'portrait', 'hw.cpu.ncore': '4',
         'hw.gpu.enabled': 'yes', 'hw.gpu.mode': 'swiftshader_indirect', 'hw.audioInput': 'no',
         'hw.camera.back': 'none', 'hw.camera.front': 'none', 'hw.sdCard': 'yes', 'sdcard.size': '512M',
         'showDeviceFrame': 'no', 'PlayStore.enabled': playstore}

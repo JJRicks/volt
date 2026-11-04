@@ -25,11 +25,16 @@ boot() {
 if boot; then echo "$(date +%T) booted $SER ($(cat "$RUNNER_TEMP/census-image.txt"), -gpu swiftshader_indirect)" >> "$R"
 else echo "$(date +%T) first boot failed" >> "$R"; echo "::error::shard $N: the emulator did not boot"; fi
 # Known cloud-emulator flakes, matched in a failed run's sweep log: that run is retried once on the
-# same emulator (both attempts are logged; report.py lists every retry). Only the IME is retried:
-# Gboard on the swiftshader emulator sometimes takes over the tests' 8 s wait to show its password
-# keyboard (ImeTracker: onFailed at PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT), mostly in the first minutes
-# after boot. A head whose own change breaks the keyboard fails both attempts.
-FLAKE='Enable the emulator software keyboard for password validation'
+# same emulator (both attempts are logged; report.py lists every retry). Only the password-keyboard
+# waits of android-tests/PasswordKeyboardChecks.java (8 s each) are retried: on the swiftshader
+# emulator Gboard sometimes needs longer to show its password keyboard (ImeTracker: onFailed at
+# PHASE_WM_ABORT_SHOW_IME_POST_LAYOUT), or the window longer to settle above it. A head whose own
+# change breaks the keyboard or hides the field fails both attempts.
+FLAKES=(-e 'Enable the emulator software keyboard for password validation'
+        -e 'Focused password is obscured by the keyboard'
+        -e 'Password moved behind the keyboard while typing'
+        -e 'Password keyboard did not dismiss'
+        -e 'Password bounds did not settle after the keyboard/window transition')
 stopped=""
 for STEP in $CENSUS_STEPS; do
   for TAG in "$B-r1" $CENSUS_HEADS "$B-r2"; do
@@ -57,9 +62,9 @@ for STEP in $CENSUS_STEPS; do
       mkdir -p "$OUT/out/$TAG/$STEP"; timeout 120 "$ADB" -s $SER logcat -d -b main,system,crash > "$OUT/out/$TAG/$STEP/logcat.txt" 2>/dev/null
       SUM=$(grep -E "PASS|FAIL" "$L/log-$TAG-$STEP.txt" | grep -v -E "blake2|hashlib" | tail -1 | cut -c1-170)
       tail -n 4 "$L/log-$TAG-$STEP.txt"; echo "::endgroup::"
-      if (( RC != 0 && attempt == 1 )) && grep -qF "$FLAKE" "$L/log-$TAG-$STEP.txt"; then
+      if (( RC != 0 && attempt == 1 )) && grep -qF "${FLAKES[@]}" "$L/log-$TAG-$STEP.txt"; then
         cp "$L/log-$TAG-$STEP.txt" "$L/log-$TAG-$STEP-attempt1.txt"
-        echo "$(date +%T) retry: $TAG $STEP after $(( $(date +%s)-T0 ))s: rc=$RC keyboard flake ($FLAKE)" | tee -a "$R"
+        echo "$(date +%T) retry: $TAG $STEP after $(( $(date +%s)-T0 ))s: rc=$RC keyboard flake ($(grep -oF "${FLAKES[@]}" "$L/log-$TAG-$STEP.txt" | head -1))" | tee -a "$R"
         continue
       fi
       break
