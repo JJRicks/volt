@@ -327,5 +327,153 @@ class ParameterRetypeTest(GrammarCase):
         self.assertFails(self.ROWS, "is declared more than once in the file")
 
 
+# ---------------------------------------------------------------------------
+# 2. A choice between whole templates
+# ---------------------------------------------------------------------------
+
+SERVICE = PKG + "Service.java"
+
+
+def hole(source, arg, kind="s"):
+    return {"hole": source, "arg": arg, "type": kind}
+
+
+def choice_row(line, pieces, keys, path=SERVICE):
+    import json
+    return "%s:%d\t%s\t%s\tchoice\t" % (path, line, json.dumps(pieces, ensure_ascii=False), ",".join(keys))
+
+
+MEASURED = ["Measured this charge. ", "Charging resumes at ", hole("t1", 1), " to finish by ", hole("t2", 2), "."]
+PLANNED = ["Planned for a fresh charge. ", "Charging resumes at ", hole("t1", 1), " to finish by ", hole("t2", 2), "."]
+
+
+class ChoiceRowTest(GrammarCase):
+    FILES = {SERVICE: java_class("Service", """    static String done(boolean armed, boolean measured, String t1, String t2, String result) {
+        return armed ? (measured ? "Measured this charge. " : "Planned for a fresh charge. ") + "Charging resumes at " + t1 + " to finish by " + t2 + "."
+            : result == null ? "Charge done by is off." : result + ".";
+    }
+    static String card(boolean keeps, String label) { return ui((keeps ? "Try · " : "Test · ") + label, 16); }
+    static String state(String name, boolean open) { return name + (open ? ", expanded" : ", collapsed"); }
+    static String question(String value) { return "Is the tail light " + value.toLowerCase(java.util.Locale.ROOT) + "?"; }
+    static String units(String value) { return "Does the dashboard show " + (value.contains("mph") ? "mph" : "km/h") + "?"; }
+    static String ui(CharSequence s, int size) { return s.toString(); }
+    static final String ON = "On", OFF = "Off";""")}
+    STRINGS = """<resources>
+    <string name="svc_measured">Measured this charge. Charging resumes at %1$s to finish by %2$s.</string>
+    <string name="svc_planned">Planned for a fresh charge. Charging resumes at %1$s to finish by %2$s.</string>
+    <string name="compat_try">Try · %1$s</string>
+    <string name="compat_test">Test · %1$s</string>
+    <string name="state_expanded">%1$s, expanded</string>
+    <string name="state_collapsed">%1$s, collapsed</string>
+    <string name="q_on">Is the tail light on?</string>
+    <string name="q_off">Is the tail light off?</string>
+    <string name="q_any">Is the tail light %1$s?</string>
+    <string name="units_mph_q">Does the dashboard show mph?</string>
+    <string name="units_kmh_q">Does the dashboard show km/h?</string>
+</resources>
+"""
+    DONE = choice_row(5, {"if": "measured", "then": MEASURED, "else": PLANNED}, ["svc_measured", "svc_planned"])
+    CARD = choice_row(8, {"if": "keeps", "then": ["Try · ", hole("label", 1)], "else": ["Test · ", hole("label", 1)]},
+                      ["compat_try", "compat_test"])
+    STATE = choice_row(9, {"if": "open", "then": [hole("name", 1), ", expanded"],
+                           "else": [hole("name", 1), ", collapsed"]}, ["state_expanded", "state_collapsed"])
+    QUESTION = choice_row(10, {"if": '"On".equals(value)', "then": ["Is the tail light on?"],
+                               "else": {"if": '"Off".equals(value)', "then": ["Is the tail light ", "off", "?"],
+                                        "else": ["Is the tail light ", hole("value.toLowerCase(java.util.Locale.ROOT)", 1),
+                                                 "?"]}}, ["q_on", "q_off", "q_any"])
+    UNITS = choice_row(11, {"if": 'value.contains("mph")', "then": ["Does the dashboard show mph?"],
+                            "else": ["Does the dashboard show ", "km/h", "?"]}, ["units_mph_q", "units_kmh_q"])
+
+    def convert_all(self):
+        self.edit(SERVICE, '(measured ? "Measured this charge. " : "Planned for a fresh charge. ") + "Charging resumes at " + '
+                           't1 + " to finish by " + t2 + "."', "(measured ? T.svcMeasured(t1, t2) : T.svcPlanned(t1, t2))")
+        self.edit(SERVICE, 'ui((keeps ? "Try · " : "Test · ") + label, 16)',
+                  "ui(keeps ? T.compatTry(label) : T.compatTest(label), 16)")
+        self.edit(SERVICE, 'name + (open ? ", expanded" : ", collapsed")', "open ? M.stateExpanded(name) : M.stateCollapsed(name)")
+        self.edit(SERVICE, '"Is the tail light " + value.toLowerCase(java.util.Locale.ROOT) + "?"',
+                  '"On".equals(value) ? T.qOn() : "Off".equals(value) ? T.qOff() : '
+                  'T.qAny(value.toLowerCase(java.util.Locale.ROOT))')
+        self.edit(SERVICE, '"Does the dashboard show " + (value.contains("mph") ? "mph" : "km/h") + "?"',
+                  'value.contains("mph") ? T.unitsMphQ() : T.unitsKmhQ()')
+
+    def test_whole_template_choices_pass_and_are_listed(self):
+        self.convert_all()
+        problems, warnings, _ = self.check([self.DONE, self.CARD, self.STATE, self.QUESTION, self.UNITS])
+        self.assertEqual(problems, [])
+        shown = [w for w in warnings if "choice row at" in w]
+        self.assertEqual(len(shown), 5, warnings)
+        self.assertIn("becomes `( measured ? T . svcMeasured ( t1 , t2 ) : T . svcPlanned ( t1 , t2 ) )`", shown[0])
+        self.assertIn('data id(s) tested: "Off" (%s:13 at the merge base), "On" (%s:13 at the merge base)' % (
+            SERVICE, SERVICE), shown[3])
+        # The other branch of the outer ternary is untouched English, still in the source.
+        self.assertIn('"Charge done by is off."', self.text(SERVICE))
+
+    def test_careless_variants_fail(self):
+        swapped_keys = choice_row(5, {"if": "measured", "then": MEASURED, "else": PLANNED}, ["svc_planned", "svc_measured"])
+        dropped = choice_row(5, {"if": "measured", "then": MEASURED, "else": PLANNED[:1] + PLANNED[2:]},
+                             ["svc_measured", "svc_planned"])
+        negated = choice_row(5, {"if": "!measured", "then": PLANNED, "else": MEASURED}, ["svc_planned", "svc_measured"])
+        cases = [
+            # keys swapped in the row: each key's English is the other branch
+            (None, swapped_keys, "choice branch svc_planned renders"),
+            # calls swapped in head
+            ("(measured ? T.svcPlanned(t1, t2) : T.svcMeasured(t1, t2))", self.DONE, "must become a ternary"),
+            # holes swapped in a call
+            ("(measured ? T.svcMeasured(t2, t1) : T.svcPlanned(t1, t2))", self.DONE, "must become a ternary"),
+            # a shared piece dropped from one branch
+            (None, dropped, "but the base expression with !(measured) is"),
+            # a condition the base does not have
+            ("(!measured ? T.svcPlanned(t1, t2) : T.svcMeasured(t1, t2))", negated,
+             "is neither a choice of the base expression"),
+            # a shared piece kept outside the choice
+            ('(measured ? T.svcMeasured(t1, t2) : T.svcPlanned(t1, t2)) + "."', self.DONE, "still there at head"),
+        ]
+        for head, row, needle in cases:
+            with self.subTest(needle=needle, head=head):
+                self.edit(SERVICE, '(measured ? "Measured this charge. " : "Planned for a fresh charge. ") + "Charging '
+                                   'resumes at " + t1 + " to finish by " + t2 + "."',
+                          head or "(measured ? T.svcMeasured(t1, t2) : T.svcPlanned(t1, t2))")
+                self.assertFails([row], needle)
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.repo.write(SERVICE, self.FILES[SERVICE])
+                self.base = self.repo.commit("reset")
+
+    def test_careless_id_tests_fail(self):
+        unknown = choice_row(10, {"if": '"Dim".equals(value)', "then": ["Is the tail light dim?"],
+                                  "else": ["Is the tail light ", hole("value.toLowerCase(java.util.Locale.ROOT)", 1), "?"]},
+                             ["q_on", "q_any"])
+        wrong_case = choice_row(10, {"if": '"On".equals(value)', "then": ["Is the tail light On?"],
+                                     "else": ["Is the tail light ", hole("value.toLowerCase(java.util.Locale.ROOT)", 1),
+                                              "?"]}, ["q_on", "q_any"])
+        unresolved = choice_row(11, {"if": '"On".equals(value)', "then": ["Does the dashboard show mph?"],
+                                     "else": ["Does the dashboard show km/h?"]}, ["units_mph_q", "units_kmh_q"])
+        for head, row, needle in (
+                ('"Dim".equals(value) ? T.qOn() : T.qAny(value.toLowerCase(java.util.Locale.ROOT))', unknown,
+                 'but "Dim" is no literal in src at the merge base'),
+                ('"On".equals(value) ? T.qOn() : T.qAny(value.toLowerCase(java.util.Locale.ROOT))', wrong_case,
+                 "but the base expression with"),
+                ):
+            with self.subTest(needle=needle):
+                self.edit(SERVICE, '"Is the tail light " + value.toLowerCase(java.util.Locale.ROOT) + "?"', head)
+                self.assertFails([row], needle)
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.repo.write(SERVICE, self.FILES[SERVICE])
+                self.base = self.repo.commit("reset")
+        self.edit(SERVICE, '"Does the dashboard show " + (value.contains("mph") ? "mph" : "km/h") + "?"',
+                  '"On".equals(value) ? T.unitsMphQ() : T.unitsKmhQ()')
+        self.assertFails([unresolved], "still holds the choice")
+
+    def test_choice_rows_parse(self):
+        rows = ledger_check.parse_ledger(HEADER + self.QUESTION + "\n")
+        self.assertEqual(rows[0].kind, "choice")
+        self.assertEqual(len(ledger_check.choice_leaves(rows[0].pieces)), 3)
+        for bad, needle in ((self.QUESTION.replace("q_on,q_off,q_any", "q_on,q_any"), "3 branch(es) and 2 key(s)"),
+                            (self.QUESTION.replace('"then"', '"than"', 1), "a choice row's pieces are"),
+                            (self.QUESTION + "manual: hand", "takes no \"manual:\" note")):
+            with self.assertRaises(ledger_check.LedgerError) as caught:
+                ledger_check.parse_ledger(HEADER + bad + "\n")
+            self.assertIn(needle, str(caught.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -110,9 +110,10 @@ import gen_catalog  # noqa: E402
 import expressions  # noqa: E402
 
 HEADER = ("location", "pieces", "key", "kind", "note")
-KINDS = ("exact", "template", "plural", "format", "id-kept", "stays-english", "removed")
+KINDS = ("exact", "template", "plural", "format", "choice", "id-kept", "stays-english", "removed")
 CATALOG_KINDS = ("exact", "template", "plural", "format")
-MOVING = CATALOG_KINDS + ("removed",)
+CHOICE = "choice"
+MOVING = CATALOG_KINDS + ("removed", CHOICE)
 STAYING = ("id-kept", "stays-english")
 NEEDS_KEY = ("exact", "template", "plural", "format", "id-kept")
 LOCATION = re.compile(r"^((?:src|tests|android-tests)/[^\t:]+\.java):([1-9][0-9]*)$")
@@ -264,7 +265,41 @@ def _check_split(split, where):
     return derived
 
 
+def choice_leaves(node):
+    """The pieces sequences of a choice row's branches, then before else, depth first."""
+    if isinstance(node, dict) and "if" in node:
+        return choice_leaves(node["then"]) + choice_leaves(node["else"])
+    return [node]
+
+
+def choice_conditions(node):
+    """[condition source] of a choice row, in the order its branches nest."""
+    if isinstance(node, dict) and "if" in node:
+        return [node["if"]] + choice_conditions(node["then"]) + choice_conditions(node["else"])
+    return []
+
+
+def _check_choice(node, where, depth=0):
+    if isinstance(node, list):
+        _check_sequence(node, where)
+        return
+    if not isinstance(node, dict) or set(node) != {"if", "then", "else"} or not isinstance(node["if"], str) or \
+            not node["if"].strip():
+        raise LedgerError("%s: a choice row's pieces are {\"if\": <condition Java>, \"then\": <branch>, \"else\": "
+                          "<branch>}, each branch a pieces array or another such object" % where)
+    if depth > 8:
+        raise LedgerError("%s: a choice row nests at most 8 conditions" % where)
+    try:
+        l10nlib.lex_java(node["if"])
+    except l10nlib.LexError as error:
+        raise LedgerError("%s: the condition %r is not Java: %s" % (where, node["if"], error))
+    _check_choice(node["then"], where, depth + 1)
+    _check_choice(node["else"], where, depth + 1)
+
+
 def sequences(pieces):
+    if isinstance(pieces, dict) and "if" in pieces:
+        return choice_leaves(pieces)
     return list(pieces.values()) if isinstance(pieces, dict) else [pieces]
 
 
@@ -304,7 +339,10 @@ def parse_ledger(text, source="ledger"):
                 raise LedgerError("%s: kind must be one of %s" % (where, ", ".join(KINDS)))
             if kind in NEEDS_KEY and not gen_catalog.KEY_PATTERN.match(key):
                 raise LedgerError("%s: kind %s needs a resource key" % (where, kind))
-            if kind not in NEEDS_KEY and key not in ("-", ""):
+            if kind == CHOICE and not all(gen_catalog.KEY_PATTERN.match(k) for k in key.split(",")):
+                raise LedgerError("%s: a choice row's key is its branches' resource keys, then before else, joined "
+                                  "by commas" % where)
+            if kind not in NEEDS_KEY and kind != CHOICE and key not in ("-", ""):
                 raise LedgerError("%s: kind %s takes no key; write -" % (where, kind))
             if m.group(1).startswith(TEST_DIRS) and kind != "removed":
                 raise LedgerError("%s: a row for a test file must be kind removed (a test of deleted code)" % where)
@@ -319,6 +357,13 @@ def parse_ledger(text, source="ledger"):
                     raise LedgerError("%s: plural pieces are {\"one\": [...], \"other\": [...]}" % where)
                 for quantity, sequence in pieces.items():
                     _check_sequence(sequence, "%s[%s]" % (where, quantity))
+            elif kind == CHOICE:
+                if note.startswith("manual:"):
+                    raise LedgerError("%s: a choice row is checked whole; it takes no \"manual:\" note" % where)
+                _check_choice(pieces, where)
+                if len(choice_leaves(pieces)) != len(key.split(",")):
+                    raise LedgerError("%s: a choice row has %d branch(es) and %d key(s)" % (
+                        where, len(choice_leaves(pieces)), len(key.split(","))))
             elif kind == "format":
                 if note.startswith("manual:"):
                     raise LedgerError("%s: a format row is checked whole; it takes no \"manual:\" note" % where)
@@ -327,14 +372,17 @@ def parse_ledger(text, source="ledger"):
                 _check_sequence(pieces, where)
             if kind == "exact" and (len(pieces) != 1 or not isinstance(pieces[0], str)):
                 raise LedgerError("%s: an exact row has exactly one string piece" % where)
-            args = {}
-            for hole in holes(pieces):
-                if hole.get("quantity") and "arg" not in hole:
-                    continue
-                previous = args.setdefault(hole["arg"], hole)
-                if expressions.source_key(previous.get("as", previous["hole"])) != \
-                        expressions.source_key(hole.get("as", hole["hole"])) or previous["type"] != hole["type"]:
-                    raise LedgerError("%s: two holes claim arg %d with different sources or types" % (where, hole["arg"]))
+            # A choice row's branches are templates of their own; plural forms share their args.
+            for group in (choice_leaves(pieces) if kind == CHOICE else [pieces]):
+                args = {}
+                for hole in holes(group):
+                    if hole.get("quantity") and "arg" not in hole:
+                        continue
+                    previous = args.setdefault(hole["arg"], hole)
+                    if expressions.source_key(previous.get("as", previous["hole"])) != \
+                            expressions.source_key(hole.get("as", hole["hole"])) or previous["type"] != hole["type"]:
+                        raise LedgerError("%s: two holes claim arg %d with different sources or types" % (
+                            where, hole["arg"]))
             for hole in holes(pieces):
                 if "as" in hole and not fmt_wrapper(hole) and not note.startswith("manual:"):
                     raise LedgerError("%s: hole %s is passed as %s; only Fmt.<method>(..., %s, ...) is checked, so "
@@ -528,6 +576,22 @@ def check_against_catalog(rows, catalog, changes=None):
     problems = []
     changes = changes or {}
     for row in rows:
+        if row.kind == CHOICE:
+            where = "%s:%d" % (row.source, row.line)
+            for key, sequence in zip(row.key.split(","), choice_leaves(row.pieces)):
+                entry = catalog.get(key)
+                if entry is None:
+                    problems.append("%s: key %s is not in res/values/strings*.xml" % (where, key))
+                    continue
+                if entry.kind != "string":
+                    problems.append("%s: choice key %s is a %s, but each branch is one string" % (where, key, entry.kind))
+                    continue
+                text = extraction_text(entry, "other", changes, problems, where)
+                rendered = render_simple(text, sequence) if text is not None else None
+                if rendered is not None and rendered[0] != rendered[1]:
+                    problems.append("%s: choice branch %s renders %r with sentinels, the original %r" % (
+                        where, key, rendered[0], rendered[1]))
+            continue
         if row.kind not in CATALOG_KINDS + ("id-kept",):
             continue
         where = "%s:%d" % (row.source, row.line)
@@ -582,6 +646,7 @@ def catalog_consistency(head, cwd=None):
             return problems + ["catalog: " + p for p in error.problems], len(rows)
         problems.extend(check_against_catalog(rows, catalog, changes))
         checked = set(r.key for r in rows if r.kind in CATALOG_KINDS)
+        checked.update(k for r in rows if r.kind == CHOICE for k in r.key.split(","))
         checked.update(item["key"] for r in rows if r.kind == "format" for item in r.split
                        if isinstance(item, dict) and "key" in item)
         problems.extend(check_changes(changes, catalog, checked))
@@ -2583,6 +2648,348 @@ def parameter_retypes(path, diff, catalog_calls, other_texts):
     return found
 
 
+# ---------------------------------------------------------------------------
+# Choice rows: a + chain holding a ternary becomes a ternary between whole templates (B8, B9, B10)
+# ---------------------------------------------------------------------------
+
+# Operators that bind looser than +: a branch holding one at its top level is one value (a hole).
+LOOSER_THAN_PLUS = frozenset(("<<", ">>", ">>>", "<", ">", "<=", ">=", "==", "!=", "&", "^", "|", "&&", "||", "=",
+                              "+=", "-=", "instanceof", "->"))
+# A head choice may start right after one of these and end right before one of the closers.
+CHOICE_OPENERS = frozenset(("(", "[", "=", ",", "?", ":", "->", "{", ";", "+=", "return", "yield"))
+CHOICE_CLOSERS = frozenset((")", "]", ",", ";", ":", "}"))
+CASE_LOCALES = (("Locale", ".", "ROOT"), ("java", ".", "util", ".", "Locale", ".", "ROOT"), ("Locale", ".", "US"),
+                ("java", ".", "util", ".", "Locale", ".", "US"), ("Locale", ".", "ENGLISH"),
+                ("java", ".", "util", ".", "Locale", ".", "ENGLISH"))
+
+
+def _op(tokens, j, *values):
+    return 0 <= j < len(tokens) and tokens[j].kind == "op" and tokens[j].value in values
+
+
+def _top_level(tokens, first, last):
+    """[index] of the tokens first..last outside any ( ), [ ] or { }."""
+    out, depth = [], 0
+    for j in range(first, last + 1):
+        if _op(tokens, j, "(", "[", "{"):
+            depth += 1
+        elif _op(tokens, j, ")", "]", "}"):
+            depth -= 1
+        elif depth == 0:
+            out.append(j)
+    return out
+
+
+def _ternary(tokens, first, last):
+    """(condition, then, else) spans when first..last is c ? x : y at its top level, else None."""
+    top = _top_level(tokens, first, last)
+    marks = [j for j in top if _op(tokens, j, "?")]
+    if not marks:
+        return None
+    q, nested = marks[0], 0
+    for j in top:
+        if j <= q:
+            continue
+        if _op(tokens, j, "?"):
+            nested += 1
+        elif _op(tokens, j, ":"):
+            if nested == 0:
+                return (first, q - 1), (q + 1, j - 1), (j + 1, last)
+            nested -= 1
+    return None
+
+
+def _group(tokens, first, last):
+    """True when tokens first..last are ( ... ) with the ( closed by the last token."""
+    return _op(tokens, first, "(") and expressions.match_forward(tokens, first) == last
+
+
+def _chain_around(tokens, first, last):
+    """(first, last) of the + chain an operand first..last sits in (itself when it is in none)."""
+    spans = expressions.concatenation(tokens, first) if first == last else None
+    if spans:
+        return spans[0][0], spans[-1][1]
+    lo, hi = first, last
+    while lo >= 2 and expressions._is(tokens[lo - 1], "+"):
+        start = expressions._term_start(tokens, lo - 2)
+        if start is None:
+            break
+        lo = start
+    while hi + 2 < len(tokens) and expressions._is(tokens[hi + 1], "+"):
+        end = expressions._term_end(tokens, hi + 2)
+        if end is None:
+            break
+        hi = end
+    return lo, hi
+
+
+def parse_choice(index, first, last, literals, conditions):
+    """The base expression first..last as items: ("s", text), ("c", char), ("h", source) or
+    ("t", condition source key, condition source, then items, else items). literals collects the
+    string and char tokens that are text (not inside a condition), conditions those in conditions.
+    Raises LedgerError for a numeric sum before the first string."""
+    tokens = index.tokens
+    while _group(tokens, first, last) and not _ternary(tokens, first + 1, last - 1):
+        inner = _top_level(tokens, first + 1, last - 1)
+        if not any(_op(tokens, j, "+") for j in inner):
+            break
+        first, last = first + 1, last - 1
+    parts = _ternary(tokens, first + 1, last - 1) if _group(tokens, first, last) else _ternary(tokens, first, last)
+    if parts is not None:
+        (c1, c2), (t1, t2), (e1, e2) = parts
+        conditions.update(j for j in range(c1, c2 + 1) if tokens[j].kind in expressions.LITERALS)
+        source = expressions.source_of(index.text, tokens, c1, c2)
+        return [("t", expressions.source_key(source), " ".join(source.split()),
+                 parse_choice(index, t1, t2, literals, conditions), parse_choice(index, e1, e2, literals, conditions))]
+    top = _top_level(tokens, first, last)
+    if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS or
+           (tokens[j].kind == "ident" and tokens[j].value == "instanceof") for j in top):
+        return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
+    cuts = [j for j in top if _op(tokens, j, "+")]
+    operands, start = [], first
+    for j in cuts + [last + 1]:
+        operands.append((start, j - 1))
+        start = j + 1
+    items = []
+    texty = [n for n, (a, b) in enumerate(operands) if (a == b and tokens[a].kind == "string") or
+             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1))]
+    if len(operands) > 1 and (not texty or texty[0] > 1 or (texty[0] == 1 and tokens[operands[0][0]].kind == "char"
+                                                            and operands[0][0] == operands[0][1])):
+        if not texty:
+            return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
+        raise LedgerError("`%s` adds numbers before its first string, which a choice row does not model" % (
+            expressions.source_of(index.text, tokens, first, last)))
+    for a, b in operands:
+        if a == b and tokens[a].kind == "string":
+            items.append(("s", tokens[a].value))
+            literals.add(a)
+        elif a == b and tokens[a].kind == "char":
+            items.append(("c", tokens[a].value))
+            literals.add(a)
+        elif _group(tokens, a, b) and _ternary(tokens, a + 1, b - 1):
+            items.extend(parse_choice(index, a, b, literals, conditions))
+        else:
+            items.append(("h", " ".join(expressions.source_of(index.text, tokens, a, b).split())))
+    return items
+
+
+def id_test(condition):
+    """(literal, variable) when a condition is "LIT".equals(v) with v a plain name, else None."""
+    try:
+        t = l10nlib.lex_java(condition)
+    except l10nlib.LexError:
+        return None
+    if len(t) == 6 and t[0].kind == "string" and [x.raw for x in t[1:4]] == [".", "equals", "("] and \
+            t[4].kind == "ident" and t[5].raw == ")":
+        return t[0].value, t[4].value
+    return None
+
+
+def _case_mapped(source, variable, literal):
+    """What hole source prints when variable holds literal: the literal itself for the bare name, its
+    ASCII lower or upper case for v.toLowerCase(Locale.ROOT) (or US, ENGLISH) and v.toUpperCase(...).
+    None when G1 cannot tell."""
+    key = expressions.source_key(source)
+    if key == (variable,):
+        return literal
+    if not literal.isascii() or len(key) < 6 or key[:2] != (variable, ".") or key[3] != "(" or key[-1] != ")":
+        return None
+    if key[2] not in ("toLowerCase", "toUpperCase") or tuple(key[4:-1]) not in CASE_LOCALES:
+        return None
+    return literal.lower() if key[2] == "toLowerCase" else literal.upper()
+
+
+def force_choice(items, condition, truth):
+    """items with condition taken as truth: a base ternary on that condition becomes its branch; an id
+    test "LIT".equals(v) that holds puts LIT into the holes that print v. (items, resolved anything)."""
+    key = expressions.source_key(condition)
+    test = id_test(condition)
+    out, hit = [], False
+    for item in items:
+        if item[0] == "t":
+            if item[1] == key:
+                branch, _ = force_choice(item[3] if truth else item[4], condition, truth)
+                out.extend(branch)
+                hit = True
+                continue
+            then, a = force_choice(item[3], condition, truth)
+            other, b = force_choice(item[4], condition, truth)
+            out.append(("t", item[1], item[2], then, other))
+            hit = hit or a or b
+        elif item[0] == "h" and test and truth:
+            value = _case_mapped(item[1], test[1], test[0])
+            if value is None:
+                out.append(item)
+            else:
+                out.append(("s", value))
+                hit = True
+        else:
+            out.append(item)
+    return out, hit
+
+
+def _merged_shape(items):
+    """A comparable shape: adjacent strings joined (a template prints them together), holes by tokens."""
+    out = []
+    for kind, value in items:
+        if kind == "s" and out and out[-1][0] == "string":
+            out[-1] = ("string", out[-1][1] + value)
+        elif kind == "s":
+            out.append(("string", value))
+        elif kind == "c":
+            out.append(("char", value))
+        else:
+            out.append(("hole", expressions.source_key(value)))
+    return tuple(o for o in out if o != ("string", ""))
+
+
+def _leaf_items(sequence):
+    out = []
+    for piece in sequence:
+        if isinstance(piece, str):
+            out.append(("s", piece))
+        elif "char" in piece:
+            out.append(("c", piece["char"]))
+        else:
+            out.append(("h", piece["hole"]))
+    return out
+
+
+def _render_items(items):
+    shown = []
+    for item in items:
+        if item[0] == "s":
+            shown.append(l10nlib.json_string(item[1]))
+        elif item[0] == "c":
+            shown.append("'%s'" % item[1])
+        elif item[0] == "h":
+            shown.append(item[1])
+        else:
+            shown.append("(%s ? %s : %s)" % (item[2], _render_items(item[3]), _render_items(item[4])))
+    return " + ".join(shown)
+
+
+def check_choice_branches(row, items, ids):
+    """Problems when the row's branches are not the base expression with each condition forced. ids
+    collects the (literal, variable) of every id test."""
+    problems = []
+
+    def walk(node, current, path):
+        if isinstance(node, list):
+            if any(i[0] == "t" for i in current):
+                problems.append("the branch %s still holds the choice %s of the base expression; give each of its "
+                                "branches a condition of its own" % (
+                                    " and ".join(path) or "(top)", _render_items([i for i in current if i[0] == "t"])))
+                return
+            if _merged_shape(current) != _merged_shape(_leaf_items(node)):
+                problems.append("the branch %s is %s, but the base expression with %s is %s" % (
+                    " and ".join(path), json.dumps(node, ensure_ascii=False),
+                    " and ".join(path), _render_items(current)))
+            return
+        condition = node["if"]
+        test = id_test(condition)
+        then, hit = force_choice(current, condition, True)
+        other, _ = force_choice(current, condition, False)
+        if not hit and test is None:
+            problems.append("the condition %s is neither a choice of the base expression on this branch nor a test of "
+                            "a data id (\"On\".equals(value))" % condition)
+            return
+        if test is not None:
+            ids.add(test)
+        walk(node["then"], then, path + [condition])
+        walk(node["else"], other, path + ["!(%s)" % condition])
+    walk(row.pieces, items, [])
+    return problems
+
+
+def locate_choice(row, diff):
+    """([(literal tokens, (first, last) base span, items)], problem) for a choice row: each + chain (or
+    parenthesized ternary) on the row's line holding a ternary operand, or the plain chain an id test
+    chooses on. Its text literals are every string and char outside the conditions."""
+    index = diff.base
+    tokens = index.tokens
+    tried, last_problem, found = set(), None, []
+    for k, tok in enumerate(tokens):
+        if tok.kind not in expressions.LITERALS or tok.line != row.base_line:
+            continue
+        first, last = _chain_around(tokens, k, k)
+        while True:
+            before, after = first - 1, last + 1
+            if not (_op(tokens, before, "?", ":") and _op(tokens, after, ":", ")")):
+                break
+            opener = before
+            depth = 0
+            while opener >= 0:
+                if _op(tokens, opener, ")", "]", "}"):
+                    depth += 1
+                elif _op(tokens, opener, "(", "[", "{"):
+                    if depth == 0:
+                        break
+                    depth -= 1
+                opener -= 1
+            if opener < 0 or not _op(tokens, opener, "(") or (opener > 0 and expressions._callee(tokens[opener - 1])):
+                break
+            close = expressions.match_forward(tokens, opener)
+            if close is None or _ternary(tokens, opener + 1, close - 1) is None or \
+                    any(_op(tokens, j, ",", ";") for j in _top_level(tokens, opener + 1, close - 1)):
+                break
+            first, last = _chain_around(tokens, opener, close)
+        if (first, last) in tried:
+            continue
+        tried.add((first, last))
+        literals, conditions = set(), set()
+        try:
+            items = parse_choice(index, first, last, literals, conditions)
+        except LedgerError as error:
+            last_problem = str(error)
+            continue
+        if not literals or min(tokens[j].line for j in literals) != row.base_line:
+            continue
+        found.append((sorted(literals), (first, last), items))
+    if found:
+        return found, None
+    return [], last_problem or "no + chain or ternary with text starts on line %d of %s" % (row.base_line, row.path)
+
+
+def _leaf_call(index, pos, key, sequence):
+    """The last token of T.<key>(...) or M.<key>(...) at pos passing the branch's holes in placeholder
+    order (plus a .render() on an M call), else None."""
+    tokens = index.tokens
+    if not (tokens[pos].kind == "ident" and tokens[pos].value in ("T", "M") and _op(tokens, pos + 1, ".") and
+            pos + 3 < len(tokens) and tokens[pos + 2].value == gen_catalog.camel(key) and _op(tokens, pos + 3, "(")):
+        return None
+    if pos > 0 and _op(tokens, pos - 1, "."):
+        return None
+    _, end = call_span(tokens, pos)
+    want = Row(None, 0, "", "", 0, sequence, key, "template", "", None)
+    return end if _passes_holes(want, _arguments(index, pos + 3)) else None
+
+
+def match_choice_head(diff_head, pos, node, keys, calls):
+    """The last token of a head choice at pos that mirrors node: [(] condition ? branch : branch [)],
+    each leaf a call of its key passing its holes; calls collects the T/M tokens. Else None."""
+    tokens = diff_head.tokens
+    if isinstance(node, list):
+        key = keys.pop(0)
+        end = _leaf_call(diff_head, pos, key, node)
+        if end is not None:
+            calls.append(pos)
+        return end
+    if _op(tokens, pos, "("):
+        close = expressions.match_forward(tokens, pos)
+        if close is None:
+            return None
+        end = match_choice_head(diff_head, pos + 1, node, keys, calls)
+        return close if end == close - 1 else None
+    want = [t.raw for t in l10nlib.lex_java(node["if"])]
+    if [t.raw for t in tokens[pos:pos + len(want)]] != want or not _op(tokens, pos + len(want), "?"):
+        return None
+    end = match_choice_head(diff_head, pos + len(want) + 1, node["then"], keys, calls)
+    if end is None or not _op(tokens, end + 1, ":"):
+        return None
+    return match_choice_head(diff_head, end + 2, node["else"], keys, calls)
+
+
 def run(base, head, explicit_ledgers=None, cwd=None):
     """(problems, warnings, summary)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -2600,8 +3007,9 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     problems.extend(row_problems)
 
     head_sources = [p for p in l10nlib.list_files(head, ["src"], cwd) if p.endswith(".java")]
-    head_texts = l10nlib.read_files(head, head_sources, cwd) if any(r.kind in CATALOG_KINDS for r in rows) else {}
-    calls = call_index(head_texts) if any(r.kind in CATALOG_KINDS for r in rows) else None
+    catalog_rows = any(r.kind in CATALOG_KINDS + (CHOICE,) for r in rows)
+    head_texts = l10nlib.read_files(head, head_sources, cwd) if catalog_rows else {}
+    calls = call_index(head_texts) if catalog_rows else None
     types = SourceTypes(head_texts)
 
     claimed = {}  # (path, token) -> row
@@ -2615,6 +3023,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     removed_frames = collections.defaultdict(set)  # path -> headers and braces of blocks they deleted
     widened = []  # (row, where, path, own statement span, widened span) for removed rows past their statement
     format_rows = {}  # id(row) -> the base span a format row's call replaces
+    choices = []  # (row, where, path, base span, items, id tests, head line ranges) of choice rows
     for row in rows:
         if not row.path.startswith("src/"):
             continue
@@ -2623,6 +3032,38 @@ def run(base, head, explicit_ledgers=None, cwd=None):
         if diff is None or diff.base is None:
             if row.kind in MOVING:
                 problems.append("%s: %s did not change since the merge base, or did not exist there" % (where, row.path))
+            continue
+        if row.kind == CHOICE:
+            candidates, problem = locate_choice(row, diff)
+            chosen, first_problems = None, None
+            for literals, span, items in candidates:
+                ids = set()
+                branch_problems = check_choice_branches(row, items, ids)
+                if not branch_problems:
+                    chosen = (literals, span, items, ids)
+                    break
+                if first_problems is None or len(literals) > len(candidates[0][0]):
+                    first_problems = branch_problems
+            if chosen is None:
+                problems.extend("%s: choice row at %s:%d: %s" % (where, row.path, row.base_line, p)
+                                for p in (first_problems or [problem]))
+                continue
+            literals, span, items, ids = chosen
+            for j in range(span[0], span[1] + 1):
+                allowed_base[row.path].setdefault(j, id(row))
+            for k in literals:
+                tok = diff.base_token(k)
+                if (row.path, k) in claimed:
+                    other = claimed[(row.path, k)]
+                    problems.append("%s: %s on line %d is already covered by %s:%d" % (
+                        where, l10nlib.json_string(tok.value), tok.line, other.source, other.line))
+                    continue
+                claimed[(row.path, k)] = row
+                if k not in diff.gone:
+                    problems.append("%s: the row says %s (line %d) left, but it is still there at head" % (
+                        where, l10nlib.json_string(tok.value), tok.line))
+            hunks = sorted(set(diff.gone[k] for k in literals if k in diff.gone))
+            choices.append((row, where, row.path, span, items, ids, [diff.hunks[h][2:] for h in hunks]))
             continue
         tokens, is_manual, problem = locate(row, diff, claimed)
         if problem:
@@ -2828,10 +3269,71 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                         if arg <= len(spans):
                             used.add((path, spans[arg - 1][0]))
 
+    tested_ids = set()  # (path, head token) of the data ids a choice row's conditions compare
+    base_literals = None
+    for row, where, path, span, items, ids, ranges in choices:
+        index = diffs[path].head
+        tokens = index.tokens
+        found = None
+        for pos in range(1, len(tokens) - 1):
+            if not any(h1 <= tokens[pos].line <= h2 for h1, h2 in ranges) or tokens[pos - 1].value not in CHOICE_OPENERS:
+                continue
+            if _op(tokens, pos, "(") and expressions._callee(tokens[pos - 1]):
+                continue
+            leaf_calls = []
+            try:
+                end = match_choice_head(index, pos, row.pieces, row.key.split(","), leaf_calls)
+            except l10nlib.LexError:
+                end = None
+            if end is None or not _op(tokens, end + 1, *CHOICE_CLOSERS) or any((path, c) in used for c in leaf_calls):
+                continue
+            found = (pos, end, leaf_calls)
+            break
+        base_code = _excerpt(diffs[path].base.tokens[span[0]:span[1] + 1], None)
+        if found is None:
+            problems.append("%s: choice row at %s:%d: `%s` must become a ternary on the same condition(s), %s, with "
+                            "each branch one call of its key (%s) passing that branch's holes in placeholder order, "
+                            "in the head lines that replaced it (%s)" % (
+                                where, path, row.base_line, base_code, ", ".join(choice_conditions(row.pieces)),
+                                row.key.replace(",", ", "), ", ".join("%d-%d" % r for r in ranges) or "none"))
+            continue
+        pos, end, leaf_calls = found
+        for j in range(pos, end + 1):
+            allowed_head[path].setdefault(j, id(row))
+        used.update((path, c) for c in leaf_calls)
+        tested = []
+        for literal, variable in sorted(ids):
+            arrived = [j for j in range(pos, end + 1) if tokens[j].kind == "string" and tokens[j].value == literal]
+            tested_ids.update((path, j) for j in arrived if j in diffs[path].added)
+            if base_literals is None:
+                base_literals = {}
+                names = [p for p in l10nlib.list_files(merge, ["src"], cwd) if p.endswith(".java")]
+                for p, text in sorted(l10nlib.read_files(merge, names, cwd).items()):
+                    try:
+                        for t in l10nlib.lex_java(text or ""):
+                            if t.kind == "string":
+                                base_literals.setdefault(t.value, "%s:%d" % (p, t.line))
+                    except l10nlib.LexError:
+                        pass
+            if literal not in base_literals:
+                problems.append("%s: choice row at %s:%d tests %s.equals(%s), but %s is no literal in src at the merge "
+                                "base; a choice tests only a data id the code already has" % (
+                                    where, path, row.base_line, l10nlib.json_string(literal), variable,
+                                    l10nlib.json_string(literal)))
+            else:
+                tested.append("%s (%s at the merge base)" % (l10nlib.json_string(literal), base_literals[literal]))
+        branches = ["%s: %s" % (key, json.dumps(leaf, ensure_ascii=False))
+                    for key, leaf in zip(row.key.split(","), choice_leaves(row.pieces))]
+        warnings.append("%s: choice row at %s:%d: `%s` becomes `%s`; branches %s%s; the conditions now run before the "
+                        "holes, so check by hand that no hole has a side effect the condition reads" % (
+                            where, path, row.base_line, base_code, _excerpt(tokens[pos:end + 1], None),
+                            "; ".join(branches),
+                            "; data id(s) tested: " + ", ".join(tested) if tested else ""))
+
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
         for k in sorted(diffs[path].added):
-            arrivals.append([path, diffs[path].added[k], k, False])
+            arrivals.append([path, diffs[path].added[k], k, "choice" if (path, k) in tested_ids else False])
     named = collections.defaultdict(list)  # (path, head token) of a constant -> [(row, path, base token)] naming it
     existing = set()  # constants named above that were already in src (not arrivals)
     head_lexed = {}

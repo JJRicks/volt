@@ -58,7 +58,11 @@ def _covered(rows, diffs):
         diff = diffs.get(row.path)
         if diff is None or diff.base is None or not row.path.startswith("src/"):
             continue
-        tokens, _, problem = ledger_check.locate(row, diff, claimed)
+        if row.kind == ledger_check.CHOICE:
+            candidates, _ = ledger_check.locate_choice(row, diff)
+            tokens = candidates[0][0] if candidates else []
+        else:
+            tokens, _, problem = ledger_check.locate(row, diff, claimed)
         for k in tokens or []:
             claimed[(row.path, k)] = row
     return claimed
