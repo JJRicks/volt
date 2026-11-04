@@ -27,6 +27,7 @@ public final class FastChargeTaperTest {
         composition();
         ownTaper();
         plateau();
+        noise();
         replay(Paths.get(args[0]));
         System.out.println("FastChargeTaper: " + checks + " checks passed");
     }
@@ -407,7 +408,7 @@ public final class FastChargeTaperTest {
             check(stepDown.taper.tau() == FastChargeTaper.TAU_LOW && stepDown.taper.fittedTau() < FastChargeTaper.TAU_LOW,
                     "The step drives tau() to its TAU_LOW clamp, " + stepDown.taper.fittedTau());
             // Rechecks of c01a57d: the same fall spread over 90 s (the ramp90t40 probe). No two
-            // readings fall faster than a tau-2 decay (about 2.2 at the fall's end), so a STEP_TAU of 2
+            // readings fall faster than a tau-2 decay (tau 2.17 at the fall's end), so a STEP_TAU of 2
             // kept the own taper for about 3.5 minutes, down to 10.4 minutes from FAST_REFERENCE where
             // 50 remained (Charge done by 19.6 minutes past its buffer; v7 +32). STEP_TAU 4 catches it.
             StepDown slowerStep = new StepDown(90);
@@ -476,6 +477,51 @@ public final class FastChargeTaperTest {
         } finally {
             try (java.util.stream.Stream<Path> walk = Files.walk(tmp)) { walk.sorted(Comparator.reverseOrder()).forEach(p -> p.toFile().delete()); }
         }
+    }
+
+    /**
+     * Reading noise is not a charger's step down (STEP_AMPS). The noise-t13-n3 and noise-t11-n3
+     * probes: after a minute at 10 A, a tau-13 or tau-11 decay from 8 A with up to 0.03 A of noise
+     * on each 10-s reading, read at 0.01 A for 40 minutes. Below about 1.85 A that noise made new
+     * lows fall faster than STEP_TAU by 0.04 to 0.08 A, and before STEP_AMPS (9be375d) all six
+     * realizations handed back to v7 at 1.2 to 1.8 A, for 3 to 7.3 minutes at a time (without
+     * STEP_AMPS, or with it at .045 or .065, the first one here hands back at 1290 s). With it,
+     * these five take over once and keep their own taper until the decay reaches END_AMPS. The
+     * sixth (tau 11, seed 3) still lines up a 0.08 A fall at about 1.8 A and hands back once, for
+     * 3 minutes. A charger's step down still hands back: the 30-s and 90-s ones in plateau() fall
+     * 0.6 and 0.2 A between readings. jitter() with StrictMath gives the probes' readings exactly.
+     */
+    private static void noise() {
+        for (int[] ts : new int[][]{{13, 1}, {13, 2}, {13, 3}, {11, 1}, {11, 2}}) {
+            Case c = new Case();
+            long tookAt = 0, handedBack = 0;
+            for (long dt = 10 * SEC; dt <= 40 * MIN; dt += 10 * SEC) {
+                double m = dt / 60000d - 1, clean = m < 0 ? 10 : 8 * Math.exp(-m / ts[0]);
+                c.at(m < 0 ? 10 : Math.round((clean + .03 * jitter(dt, ts[1])) * 100) / 100d, T0 + dt);
+                if (c.taper.ownTaper(54.0, c.amps, c.now)) { if (tookAt == 0) tookAt = dt; }
+                else if (tookAt > 0 && handedBack == 0 && clean > FastChargeTaper.END_AMPS) handedBack = dt;
+            }
+            String where = "A tau-" + ts[0] + " decay with 0.03 A of noise (seed " + ts[1] + ")";
+            check(tookAt > 0 && tookAt <= 7 * MIN, where + " takes over by minute 7, " + tookAt / SEC + " s");
+            check(handedBack == 0, where + " keeps its own taper to END_AMPS; handed back at " + handedBack / SEC + " s");
+        }
+        // The same noise on a 30-s step down from 4.32 to 2.5 A still hands back.
+        Case c = new Case();
+        boolean before = false, after = false;
+        for (long dt = 10 * SEC; dt <= 12 * MIN; dt += 10 * SEC) {
+            double m = dt / 60000d - 1;
+            double clean = m < 0 ? 10 : m <= 8 ? 8 * Math.exp(-m / 13) : m <= 8.5 ? 4.32 - 1.82 * (m - 8) / .5 : 2.5 * Math.exp(-(m - 8.5) / 40);
+            c.at(m < 0 ? 10 : Math.round((clean + .03 * jitter(dt, 1)) * 100) / 100d, T0 + dt);
+            boolean taking = c.taper.ownTaper(54.0, c.amps, c.now);
+            if (m <= 8) before = taking; else after |= taking;
+        }
+        check(before && !after, "A noisy 30-s step down hands back from its first reading for as long as it is in the RECENT_FIT window");
+    }
+
+    /** The probes' noise, -1 to 1, for a reading dt after the start and a seed. */
+    private static double jitter(long dt, int seed) {
+        double x = StrictMath.sin((dt / 1000d + seed * 1013.37) * 12.9898) * 43758.5453;
+        return 2 * (x - Math.floor(x)) - 1;
     }
 
     /** As ScooterService schedules it: high-speed charger, product 2538, the given past charges and taper state. */

@@ -41,15 +41,24 @@ public final class FastChargeTaper {
      */
     static final double RECENT_FIT = 3, SLOWER = .25;
     /**
-     * A fall between consecutive decay points faster than a decay of this tau (minutes) is a
-     * charger's step down, not a taper. It is faster than any fall a taper showed: in the owner's
-     * charges, while their own taper applied, no fall within RECENT_FIT was faster than a
-     * 5.62-minute tau, and 0.03 A of reading noise on a constructed decay gave 4.67. A 4.3 to
-     * 2.5 A step down is that fast between 10-s readings if it takes about 1.5 minutes or less
-     * (in a straight line; up to about 2.75 minutes it is caught partway). A slower fall, or a
-     * step down inside a gap in readings of more than about 2 minutes, is not caught.
+     * A fall between consecutive decay points faster than a decay of STEP_TAU (minutes), and by
+     * at least STEP_AMPS, is a charger's step down, not a taper. STEP_TAU is faster than any fall
+     * the owner's tapers showed: while their own taper applied, no fall within RECENT_FIT was
+     * faster than a 5.62-minute tau. A 4.3 to 2.5 A step down is that fast between 10-s readings
+     * if it takes about 1.5 minutes or less (in a straight line; up to about 2.75 minutes it is
+     * caught partway), and falls about 0.1 A or more between them. A slower fall, or a step down
+     * inside a gap in readings of more than about 2 minutes, is not caught.
+     * STEP_AMPS keeps reading noise from passing as a step down. Below about 1.85 A, up to 0.03 A
+     * of noise either way on constructed tau-11 and tau-13 decays made new lows fall faster than
+     * STEP_TAU (down to tau 2.75), by 0.04-0.08 A: such noise puts two readings up to 0.06 A apart,
+     * and rounding to 0.01 A adds up to 0.01 A, so a step must fall at least 0.08 A (.075, half a
+     * reading step lower, like NEW_LOW_AMPS, so that rounding never loses a 0.08 A fall). With the
+     * taper's own fall added, that noise still reached 0.08 A in one of six realizations. Below
+     * about 2 A, where a STEP_TAU fall between 10-s readings is under 0.08 A, only a faster one
+     * counts (about tau 2 at 1 A). A larger minimum let slow falls near 2 A through (0.09 and
+     * 0.10 A: 2 and 65 more own samples past Charge done by's buffer in constructed falls).
      */
-    static final double STEP_TAU = 4;
+    static final double STEP_TAU = 4, STEP_AMPS = .075;
     public static final long HOLD_MS = 3 * 60_000L, SPACING_MS = 10_000L, MAX_SILENCE_MS = 30 * 60_000L;
     // Reference charge, constant current: volts below the CV entry voltage -> Ah delivered before it.
     static final double[] HEADROOM_VOLTS = {0, .1, .2, .3, .4, .5, .6, .7, .8, .9, 1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9,
@@ -105,16 +114,17 @@ public final class FastChargeTaper {
      * reference), that fit is usable (a real decay, not a plateau that tau() replaces with the
      * reference), the newest point is no older than RECENT_MS at nowMs, the last RECENT_FIT
      * minutes of points (at least three) fall at least as fast as tau() x (1 + SLOWER), and none
-     * of those points fell from the one before faster than STEP_TAU. Decay points are only added and pruned at a new low, so a
-     * plateau leaves old points in place (the age check retires them) and a decay that stops but
-     * creeps on in 0.01 A lows keeps the whole fit recent; within RECENT_FIT minutes of the stop
-     * the recent points are only that creep, too slow for the check. A real taper slower than
-     * TAU_HIGH, which tau() clamps, fails the same check. A charger's step down steepens both
-     * fits, down to tau()'s TAU_LOW clamp, while the slower decay after it is too new to fail the
-     * pace check; the step check hands back while a fall faster than STEP_TAU is in the RECENT_FIT
-     * window (a slower fall passes until the pace check sees the decay after it). A decay
-     * reported in 2.5-minute steps never has three points in that window. ChargingEstimate then
-     * lets this taper, not the battery percentage, place the finish; otherwise v7's choice stands.
+     * of those points fell from the one before faster than STEP_TAU and by at least STEP_AMPS.
+     * Decay points are only added and pruned at a new low, so a plateau leaves old points in place
+     * (the age check retires them) and a decay that stops but creeps on in 0.01 A lows keeps the
+     * whole fit recent; within RECENT_FIT minutes of the stop the recent points are only that
+     * creep, too slow for the check. A real taper slower than TAU_HIGH, which tau() clamps, fails
+     * the same check. A charger's step down steepens both fits, down to tau()'s TAU_LOW clamp,
+     * while the slower decay after it is too new to fail the pace check; the step check hands back
+     * while a fall faster than STEP_TAU (and of at least STEP_AMPS) is in the RECENT_FIT window (a
+     * slower fall passes until the pace check sees the decay after it). A decay reported in
+     * 2.5-minute steps never has three points in that window. ChargingEstimate then lets this
+     * taper, not the battery percentage, place the finish; otherwise v7's choice stands.
      */
     boolean ownTaper(double volts, double amps, long nowMs) {
         if (!tapering(volts, amps) || decay.size() < 3 || decay.peekLast()[0] - decay.peekFirst()[0] < FIT_FULL
@@ -126,11 +136,13 @@ public final class FastChargeTaper {
         return recent[1] >= 3 && recent[0] < 0 && -1 / recent[0] <= tau() * (1 + SLOWER) && !stepped(from);
     }
 
-    /** A fall between consecutive decay points from that minute on faster than a STEP_TAU decay. */
+    /** A fall between consecutive decay points from that minute on faster than a STEP_TAU decay, and by at least STEP_AMPS. */
     private boolean stepped(double from) {
         double[] previous = null;
         for (double[] p : decay) if (p[0] >= from) {
-            if (previous != null && previous[1] - p[1] > (p[0] - previous[0]) / STEP_TAU) return true;
+            // Points hold {minutes, ln(amps)}: the pace check is on ln(amps), the size check on amps.
+            if (previous != null && previous[1] - p[1] > (p[0] - previous[0]) / STEP_TAU
+                    && Math.exp(previous[1]) - Math.exp(p[1]) > STEP_AMPS) return true;
             previous = p;
         }
         return false;
