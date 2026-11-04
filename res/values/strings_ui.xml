@@ -63,6 +63,8 @@
     <string name="ui_battery_ring_charging_caption" volt:screen="Home battery ring" volt:purpose="label"
         volt:max="144dp@11sp" volt:safety="charge">Charging · %1$s</string>
 
+    <!-- Drawn in and spoken for a chart with no points yet, unless its screen gives its own text. -->
+    <string name="ui_chart_empty" volt:screen="Live Stats and dashboard charts" volt:purpose="empty state">No measured data yet</string>
     <!-- A chart's spoken description: %1$s is the unit symbol, %2$d how many points it shows, %3$s
          and %4$s the lowest and highest axis values. English says "samples" for 1 too, kept as it was
          until an English fix; a language gives each of its plural forms. -->

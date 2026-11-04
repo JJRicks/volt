@@ -58,3 +58,6 @@ src/com/jjricks/volt/Ui.java:896	[{"hole": "number(p.value)", "arg": 1, "type": 
 src/com/jjricks/volt/Ui.java:910	["k"]	ui_chart_thousands_suffix	exact	manual: ternary argument of the axis label's String.format
 src/com/jjricks/volt/Ui.java:914	[{"spec": "%.0f", "arg": 1, "value": "value / 1000", "as": "Fmt.decimal(Locale.US, value / 1000, 0)"}, {"text": "k", "key": "ui_chart_thousands_suffix", "arg": 2}]	ui_chart_thousands	format	
 src/com/jjricks/volt/Ui.java:915	[{"spec": "%.1f", "arg": 1, "value": "value / 1000", "as": "Fmt.decimal(Locale.US, value / 1000, 1)"}, {"text": "k", "key": "ui_chart_thousands_suffix", "arg": 2}]	ui_chart_thousands	format	
+src/com/jjricks/volt/Ui.java:683	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/Ui.java:800	["No measured data yet"]	ui_chart_empty	exact	
+src/com/jjricks/volt/Ui.java:841	["No measured data yet"]	ui_chart_empty	exact	
