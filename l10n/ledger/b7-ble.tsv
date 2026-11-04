@@ -1,0 +1,125 @@
+# Ledger for b7-ble: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/BleController.java:60	["Not connected"]	ble_status_not_connected	exact	
+src/com/jjricks/volt/BleController.java:86	["Simulation on"]	ble_simulation_on	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:86	["Simulation off"]	ble_simulation_off	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:113	["Simulated connection"]	ble_simulated_connection	exact	
+src/com/jjricks/volt/BleController.java:297	["Read PIN status, then pair this phone."]	ble_pair_read_pin	exact	
+src/com/jjricks/volt/BleController.java:297	["Configure and enable the dashboard PIN before pairing for proximity unlock."]	ble_pair_needs_pin	exact	
+src/com/jjricks/volt/BleController.java:297	["This phone is already paired with your scooter."]	ble_pair_already	exact	
+src/com/jjricks/volt/BleController.java:297	["Approve the Bluetooth pairing request on your phone."]	ble_pair_approve	exact	
+src/com/jjricks/volt/BleController.java:297	["Bluetooth pairing could not start. Try again."]	ble_pair_not_started	exact	
+src/com/jjricks/volt/BleController.java:297	["Bluetooth pairing is unavailable."]	ble_pair_unavailable	exact	
+src/com/jjricks/volt/BleController.java:325	["Stop recording first"]	ble_stop_recording_first	exact	
+src/com/jjricks/volt/BleController.java:326	["Wait for the current change to finish."]	ble_wait_current_change	exact	
+src/com/jjricks/volt/BleController.java:327	["Stop the compatibility check first"]	ble_stop_check_first	exact	
+src/com/jjricks/volt/BleController.java:328	["Connect first"]	ble_connect_first	exact	
+src/com/jjricks/volt/BleController.java:333	["Simulation disconnected"]	ble_simulation_disconnected	exact	
+src/com/jjricks/volt/BleController.java:333	["Disconnected"]	ble_status_disconnected	exact	
+src/com/jjricks/volt/BleController.java:339	["Paused in background"]	ble_status_paused	exact	
+src/com/jjricks/volt/BleController.java:348	["Busy. Try shortly."]	ble_busy	exact	
+src/com/jjricks/volt/BleController.java:350	["Bluetooth is still starting. Try again."]	ble_bluetooth_starting	exact	
+src/com/jjricks/volt/BleController.java:360	["Scan failed"]	ble_scan_failed	exact	
+src/com/jjricks/volt/BleController.java:361	["Searching…"]	ble_status_searching	exact	
+src/com/jjricks/volt/BleController.java:362	["Scan failed"]	ble_scan_failed	exact	
+src/com/jjricks/volt/BleController.java:364	["Model ID not captured"]	ble_model_id_not_captured	exact	
+src/com/jjricks/volt/BleController.java:365	["Choose your scooter."]	ble_choose_scooter	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:374	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/BleController.java:376	["Connection failed"]	ble_failed_connection	exact	
+src/com/jjricks/volt/BleController.java:377	["Timed out"]	ble_failed_timed_out	exact	
+src/com/jjricks/volt/BleController.java:423	["Connection lost"]	ble_failed_connection_lost	exact	
+src/com/jjricks/volt/BleController.java:424	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/BleController.java:428	["Unsupported scooter"]	ble_failed_unsupported_scooter	exact	
+src/com/jjricks/volt/BleController.java:429	["Unsupported scooter"]	ble_failed_unsupported_scooter	exact	
+src/com/jjricks/volt/BleController.java:430	["Connection failed"]	ble_failed_connection	exact	
+src/com/jjricks/volt/BleController.java:431	["Connection failed"]	ble_failed_connection	exact	
+src/com/jjricks/volt/BleController.java:433	["Connection failed"]	ble_failed_connection	exact	
+src/com/jjricks/volt/BleController.java:436	["Send failed"]	ble_failed_send	exact	
+src/com/jjricks/volt/BleController.java:438	["Connection failed"]	ble_failed_connection	exact	
+src/com/jjricks/volt/BleController.java:439	["Owner check failed"]	ble_failed_owner_check	exact	
+src/com/jjricks/volt/BleController.java:439	["Checking owner…"]	ble_status_checking_owner	exact	
+src/com/jjricks/volt/BleController.java:456	["PIN status did not arrive. Tap Read PIN status to try again."]	ble_pin_status_missing	exact	
+src/com/jjricks/volt/BleController.java:459	["Send failed"]	ble_failed_send	exact	
+src/com/jjricks/volt/BleController.java:481	["Cancelled before sending"]	ble_result_cancelled	id-kept	English result token, moved into the BleController constant RESULT_CANCELLED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:482	["Setting changed while waiting. Try again."]	ble_setting_changed_waiting	exact	
+src/com/jjricks/volt/BleController.java:494	["Unsupported firmware"]	ble_failed_unsupported_firmware	exact	
+src/com/jjricks/volt/BleController.java:498	["Owner check failed"]	ble_failed_owner_check	exact	
+src/com/jjricks/volt/BleController.java:499	["Connecting…"]	ble_status_connecting	exact	
+src/com/jjricks/volt/BleController.java:500	["Owner check failed"]	ble_failed_owner_check	exact	
+src/com/jjricks/volt/BleController.java:505	["Unrecognised scooter"]	ble_failed_unrecognised	exact	
+src/com/jjricks/volt/BleController.java:505	["Not the saved scooter"]	ble_failed_not_saved	exact	
+src/com/jjricks/volt/BleController.java:516	["PIN state is unavailable on this firmware."]	ble_pin_state_unavailable	exact	
+src/com/jjricks/volt/BleController.java:518	["PIN settings confirmed."]	ble_pin_confirmed	exact	
+src/com/jjricks/volt/BleController.java:523	["Rejected (", {"hole": "f.error()", "arg": 1, "type": "s"}, ")"]	ble_result_rejected	id-kept	the start of the English result token "Rejected (<code>)" moved into the BleController constant RESULT_REJECTED (ResultEvidence.REJECTED); commandResults() and the diagnostics keep it; displayResult shows ble_result_rejected
+src/com/jjricks/volt/BleController.java:523	["Change rejected"]	ble_change_rejected	exact	
+src/com/jjricks/volt/BleController.java:523	["Clock sent (unverified)"]	ble_clock_sent	exact	
+src/com/jjricks/volt/BleController.java:523	["Accepted; no clock readback available"]	ble_result_clock_accepted	id-kept	English result token, moved into the BleController constant RESULT_CLOCK_ACCEPTED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:534	["This is ", {"hole": "saved.name", "arg": 1, "type": "s"}, ". Select it in My scooters, or scan for your new scooter."]	ble_failed_other_saved	template	
+src/com/jjricks/volt/BleController.java:558	["Connected"]	ble_status_connected	exact	
+src/com/jjricks/volt/BleController.java:558	["Model ID captured"]	ble_model_id_captured	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:558	["Model ID not captured"]	ble_model_id_not_captured	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:570	["Signal lost"]	ble_failed_signal_lost	exact	
+src/com/jjricks/volt/BleController.java:578	["Wait for a fresh scooter connection."]	ble_wait_fresh_connection	exact	
+src/com/jjricks/volt/BleController.java:580	["Not connected"]	ble_status_not_connected	exact	
+src/com/jjricks/volt/BleController.java:581	["Wait for the current change to finish."]	ble_wait_current_change	exact	
+src/com/jjricks/volt/BleController.java:582	["Resolve scooter warning ", {"hole": "warning", "arg": 1, "type": "d"}, " before locking."]	ble_resolve_warning	template	
+src/com/jjricks/volt/BleController.java:583	["Stop the scooter first"]	ble_stop_scooter_first	exact	
+src/com/jjricks/volt/BleController.java:584	["Stop the scooter first"]	ble_stop_scooter_first	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:585	["PIN settings require the owner profile."]	ble_pin_owner_only	exact	
+src/com/jjricks/volt/BleController.java:586	["Bond this phone before enabling proximity unlock"]	ble_needs_bond	exact	
+src/com/jjricks/volt/BleController.java:587	["Enable a configured handlebar PIN before proximity unlock"]	ble_needs_pin	exact	
+src/com/jjricks/volt/BleController.java:588	["Not available now"]	ble_not_available_now	exact	
+src/com/jjricks/volt/BleController.java:589	["Value is outside the OEM feature domain"]	ble_outside_domain	exact	
+src/com/jjricks/volt/BleController.java:606	["Connect the simulated scooter first."]	ble_connect_simulated_first	exact	
+src/com/jjricks/volt/BleController.java:616	[{"hole": "f.label", "arg": 1, "type": "s"}, " is already set."]	ble_already_set	template	the hole stays the English Feature.label until the controls batch (B4) gives labels display text; switch it then, keeping this English
+src/com/jjricks/volt/BleController.java:619	["Read the PIN state, then apply proximity unlock."]	ble_proximity_read_pin	exact	
+src/com/jjricks/volt/BleController.java:627	["Connect the simulated scooter first."]	ble_connect_simulated_first	exact	
+src/com/jjricks/volt/BleController.java:639	["Connect the simulated scooter first."]	ble_connect_simulated_first	exact	
+src/com/jjricks/volt/BleController.java:643	["Connect as the scooter owner to read PIN settings."]	ble_pin_connect_owner	exact	
+src/com/jjricks/volt/BleController.java:646	["Turn off proximity unlock before disabling its fallback PIN."]	ble_pin_proximity_first	exact	
+src/com/jjricks/volt/BleController.java:646	["Read the current PIN state first."]	ble_pin_read_first	exact	
+src/com/jjricks/volt/BleController.java:656	["Finish the guided test first"]	ble_finish_guided_test	exact	
+src/com/jjricks/volt/BleController.java:657	["Connect the simulated scooter first."]	ble_connect_simulated_first	exact	
+src/com/jjricks/volt/BleController.java:659	["Connect first"]	ble_connect_first	exact	
+src/com/jjricks/volt/BleController.java:660	["Stop recording first"]	ble_stop_recording_first	exact	
+src/com/jjricks/volt/BleController.java:661	["Wait for the current change to finish."]	ble_wait_current_change	exact	
+src/com/jjricks/volt/BleController.java:665	["Checking compatibility…"]	ble_status_checking_compatibility	exact	
+src/com/jjricks/volt/BleController.java:670	["Compatibility check stopped"]	ble_check_stopped	exact	
+src/com/jjricks/volt/BleController.java:695	["Compatibility check stopped"]	ble_check_stopped	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:695	["Compatibility check finished"]	ble_check_finished	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:750	["Finish the current try first"]	ble_finish_try	exact	
+src/com/jjricks/volt/BleController.java:751	["Connect first"]	ble_connect_first	exact	
+src/com/jjricks/volt/BleController.java:752	["Test records are unavailable"]	ble_test_records_unavailable	exact	
+src/com/jjricks/volt/BleController.java:753	["Review the unfinished try first"]	ble_review_try	exact	
+src/com/jjricks/volt/BleController.java:757	["Not available now"]	ble_not_available_now	exact	
+src/com/jjricks/volt/BleController.java:758	[{"hole": "ScooterCommands.find(key).label", "arg": 1, "type": "s"}, " is already set."]	ble_already_set	template	the hole stays the English Feature.label until the controls batch (B4) gives labels display text; switch it then, keeping this English
+src/com/jjricks/volt/BleController.java:762	["Reading ", {"hole": "ScooterCommands.find(key).label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}, "…"]	ble_reading	template	the hole stays the English Feature.label lowercased with Locale.ROOT, so English is byte-identical. When the controls batch (B4) gives labels display text, this call needs a mid-sentence label form that is exactly this lowercased English in English (no case mapping on translated text, plan 4.6); a plain ControlsText.label(feature) would print "Reading Headlight…"
+src/com/jjricks/volt/BleController.java:767	["Finish the current try first"]	ble_finish_try	exact	
+src/com/jjricks/volt/BleController.java:768	["Connect first"]	ble_connect_first	exact	
+src/com/jjricks/volt/BleController.java:770	["Nothing to set back"]	ble_nothing_to_set_back	exact	
+src/com/jjricks/volt/BleController.java:774	["Couldn't set it back. Nothing was changed."]	ble_set_back_failed	exact	
+src/com/jjricks/volt/BleController.java:780	["Test records are unavailable"]	ble_test_records_unavailable	exact	
+src/com/jjricks/volt/BleController.java:810	["Finish the current test first"]	ble_finish_test	exact	
+src/com/jjricks/volt/BleController.java:812	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:817	["Couldn't start the restore. Nothing was changed."]	ble_restore_failed	exact	
+src/com/jjricks/volt/BleController.java:822	["Finish the current test first"]	ble_finish_test	exact	
+src/com/jjricks/volt/BleController.java:824	["Test not found"]	ble_test_not_found	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:825	["Test records are unavailable"]	ble_test_records_unavailable	exact	
+src/com/jjricks/volt/BleController.java:832	["Finish the current test first"]	ble_finish_test	exact	
+src/com/jjricks/volt/BleController.java:833	["Test records are unavailable"]	ble_test_records_unavailable	exact	
+src/com/jjricks/volt/BleController.java:852	["Guided test"]	ble_result_guided_test	id-kept	manual: one branch of a ternary with GuidedTest's outcome text; English result token, moved into the BleController constant RESULT_GUIDED_TEST; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:852	["Connected"]	ble_status_connected	exact	
+src/com/jjricks/volt/BleController.java:879	["Setting the scooter’s clock from this phone…"]	ble_status_setting_clock	exact	manual: one branch of a ternary between literals; each branch's literal became its own catalog call, in place
+src/com/jjricks/volt/BleController.java:879	["Applying ", {"hole": "ScooterCommands.find(key).label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s"}, "…"]	ble_applying	template	manual: the else branch of a ternary with the clock text; the hole stays the English Feature.label lowercased with Locale.ROOT, so English is byte-identical. When the controls batch (B4) gives labels display text, this call needs a mid-sentence label form that is exactly this lowercased English in English (no case mapping on translated text, plan 4.6); a plain ControlsText.label(feature) would print "Reading Headlight…"
+src/com/jjricks/volt/BleController.java:882	["Accepted; state not exposed by firmware"]	ble_result_accepted_unreadable	id-kept	English result token, moved into the BleController constant RESULT_ACCEPTED_UNREADABLE; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:882	["Change not confirmed"]	ble_result_not_confirmed	id-kept	manual: one branch of a ternary between result tokens; English result token, moved into the BleController constant RESULT_NOT_CONFIRMED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows ble_result_not_confirmed
+src/com/jjricks/volt/BleController.java:886	["Change not confirmed"]	ble_failed_not_confirmed	exact	
+src/com/jjricks/volt/BleController.java:942	["Charging start time confirmed."]	ble_charge_start_confirmed	exact	
+src/com/jjricks/volt/BleController.java:942	[{"hole": "feature.label", "arg": 1, "type": "s"}, " setting confirmed."]	ble_setting_confirmed	template	the hole stays the English Feature.label until the controls batch (B4) gives labels display text; switch it then, keeping this English
+src/com/jjricks/volt/BleController.java:942	["Setting confirmed by readback; light output not measured"]	ble_result_setting_confirmed	id-kept	English result token, moved into the BleController constant RESULT_SETTING_CONFIRMED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/BleController.java:942	[{"hole": "feature.label", "arg": 1, "type": "s"}, " confirmed."]	ble_label_confirmed	template	the hole stays the English Feature.label until the controls batch (B4) gives labels display text; switch it then, keeping this English
+src/com/jjricks/volt/BleController.java:943	["Confirmed"]	ble_result_confirmed	id-kept	English result token, moved into the BleController constant RESULT_CONFIRMED; commandResults(), MainActivity's chips and the diagnostics keep it; displayResult shows its ble_result_* text
+src/com/jjricks/volt/LockTapQueue.java:51	["Connection lost before the lock changed"]	ble_lock_connection_lost	exact	
+src/com/jjricks/volt/LockTapQueue.java:53	["The scooter didn't confirm the lock change"]	ble_lock_not_confirmed	exact	
+src/com/jjricks/volt/LockTapQueue.java:55	["The scooter wasn't ready to change the lock; try again"]	ble_lock_not_ready	exact	

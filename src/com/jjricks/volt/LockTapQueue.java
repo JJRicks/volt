@@ -14,7 +14,7 @@ final class LockTapQueue {
     private Boolean target;
     private long requestedAt;
     private boolean sent;
-    private String failure;
+    private CharSequence failure;
 
     /** A tap toward target; a tap back to the confirmed side cancels a waiting one. False when nothing changes. */
     boolean request(Boolean confirmed, boolean target, long now) {
@@ -29,7 +29,7 @@ final class LockTapQueue {
     boolean waiting() { return target != null; }
     Boolean target() { return target; }
     /** Why the last request was put back, once; null when nothing to say. */
-    String takeFailure() { String text = failure; failure = null; return text; }
+    String takeFailure() { CharSequence text = failure; failure = null; return ConnectionText.english(text); }
     void sent() { sent = true; }
     /** The send was refused before going out (the gate gives the reason itself). */
     void refused() { clear(); }
@@ -48,13 +48,36 @@ final class LockTapQueue {
     /** One look at the connection: what to do with a waiting or sent tap. lockPending is this lock change in flight. */
     Action step(long now, boolean ready, Boolean confirmed, boolean lockPending, Gate gate) {
         if (target == null) return Action.NONE;
-        if (!ready) return revert("Connection lost before the lock changed");
+        if (!ready) return revert(M.bleLockConnectionLost());
         if (target.equals(confirmed)) { clear(); return Action.NONE; }
-        if (sent) return lockPending ? Action.NONE : revert("The scooter didn't confirm the lock change");
+        if (sent) return lockPending ? Action.NONE : revert(M.bleLockNotConfirmed());
         // Expiry comes before any gate: a tap is never sent late, even when the gate opens on the first look past the hold.
-        if (now - requestedAt > HOLD_MS) return revert("The scooter wasn't ready to change the lock; try again");
+        if (now - requestedAt > HOLD_MS) return revert(M.bleLockNotReady());
         return gate == Gate.WAIT ? Action.NONE : Action.SEND;
     }
-    private Action revert(String why) { clear(); failure = why; return Action.REVERT; }
+    private Action revert(CharSequence why) { clear(); failure = why; return Action.REVERT; }
     private void clear() { target = null; sent = false; requestedAt = 0; }
+
+    // ---- Display text (l10n batch B7): takeFailure() stays the English that MainActivity and the tests read. ----
+
+    /** Why the last request was put back. */
+    enum Failure {
+        /** The connection dropped before the lock changed. */
+        CONNECTION_LOST,
+        /** The command went out and the scooter did not confirm it. */
+        NOT_CONFIRMED,
+        /** The scooter did not accept writes within the hold; nothing was sent. */
+        NOT_READY,
+        /** A hard refusal (reject): the gate's own reason. */
+        REFUSED
+    }
+    /** What takeFailure() would return, to show in the current language; the same once-only take. Null when nothing to say. */
+    CharSequence takeFailureMessage() { CharSequence text = failure; failure = null; return text; }
+    /** The kind of the waiting reason, without taking it; null when nothing to say. */
+    Failure failureKind() {
+        if (failure == null) return null;
+        int id = failure instanceof Msg ? ((Msg) failure).id() : Msg.VERBATIM;
+        return id == T.BLE_LOCK_CONNECTION_LOST ? Failure.CONNECTION_LOST : id == T.BLE_LOCK_NOT_CONFIRMED ? Failure.NOT_CONFIRMED
+                : id == T.BLE_LOCK_NOT_READY ? Failure.NOT_READY : Failure.REFUSED;
+    }
 }
