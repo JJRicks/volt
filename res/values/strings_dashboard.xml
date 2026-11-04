@@ -101,8 +101,9 @@
     <!-- The chip when a charge limit is set: %1$s is the limit, a whole number, followed by the
          percent sign. -->
     <string name="dashboard_charging_limit" volt:screen="Home charging hero" volt:purpose="status" volt:safety="charge">Charging · limit %1$s%%</string>
-    <!-- Spoken for the charging hero's photo. The photo is a NAVEE UT5 MAX whatever the model (a known
-         English wording, kept until the hero names the model). -->
+    <!-- Spoken for the charging hero's photo. It says NAVEE UT5 MAX whatever model the photo shows (a
+         known English wording, kept byte for byte: naming the active model changes English, so it is an
+         ordinary change, best with the queued NAVEE trademark rename). -->
     <string name="dashboard_hero_photo" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:dnt="NAVEE UT5 MAX">NAVEE UT5 MAX scooter</string>
     <!-- Spoken for the charging hero's level when the scooter does not report it. -->
     <string name="dashboard_battery_not_reported" volt:screen="Home charging hero" volt:purpose="accessibility description" volt:safety="charge">Battery not reported</string>
@@ -264,9 +265,13 @@
     <string name="dashboard_refresh_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Last estimate · refresh unavailable</string>
     <string name="dashboard_estimate_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Estimate unavailable</string>
     <string name="dashboard_not_enough_data" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">Not enough ride data</string>
-    <!-- The summary: %1$s is how many rides were used (English keeps "rides" for every number), %2$s and %3$s the low and high energy, %4$s the unit ("Wh"). -->
+    <!-- The summary: %1$s is how many rides were used (English keeps "rides" for every number), %2$s and %3$s the low and high energy, %4$s the unit ("Wh").
+         Not a plural yet (a tooling round must let a plural replace a String.format line): where the
+         noun must agree with the number, use a form that does not, such as "rides: %1$s". -->
     <string name="dashboard_rides_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s–%3$s %4$s</string>
-    <!-- The summary without a range: %1$s rides, %2$s battery percentage points. -->
+    <!-- The summary without a range: %1$s rides, %2$s battery percentage points (two counts, so not a
+         plural): where a noun must agree with its number, use a form that does not, such as
+         "rides: %1$s · points used: %2$s". -->
     <string name="dashboard_rides_points" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s points used</string>
     <!-- How the estimate compares with the reference: %1$s is a whole percent, %2$s the reference energy, %3$s the unit ("Wh"). -->
     <string name="dashboard_percent_of" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s%% of %2$s %3$s</string>

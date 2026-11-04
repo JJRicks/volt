@@ -784,6 +784,11 @@ public final class DashboardScreen implements AppScreen {
             if (value.matches("[A-Z]+"))
                 mode = value.charAt(0) + value.substring(1).toLowerCase(Locale.ROOT);
         }
+        // Still English: the header status and its spoken form. Whole-sentence templates need a choice
+        // row whose conditions sit in the sentence, but the state word is picked on the line above, so
+        // G1 wants all three words times mode and last seen (12 sentences, 8 never shown). It waits for
+        // the tooling round that models a local set from a ternary of literals (l10n/README "Still
+        // blocked: a helper argument or a choice set on an earlier line").
         String word = ready ? "Connected" : connecting ? "Connecting" : "Disconnected";
         if (connecting) status.setText(connectingLabel());
         else
@@ -915,7 +920,12 @@ public final class DashboardScreen implements AppScreen {
         return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
 
-    /** Large value with its unit drawn smaller (and muted when live), e.g. 412 W. */
+    /**
+     * Large value with its unit drawn smaller (and muted when live), e.g. 412 W. Its text comes from
+     * format(), which is DisplayUnits.metricText's canonical English (US digits, Telemetry's units), so
+     * the split at the last space still holds. It moves to Formatted ranges when format() returns one,
+     * with the metricText follow-up (F2's B1 deferral: numericValue plus UnitCode); so does Gauge.set.
+     */
     private CharSequence withUnit(String value, boolean live) {
         int space = value.lastIndexOf(' ');
         if (space <= 0 || space >= value.length() - 1 || value.contains("/")) return value;
@@ -942,6 +952,12 @@ public final class DashboardScreen implements AppScreen {
                 : value;
     }
 
+    /**
+     * The chart's unit as data ("°C", "km/h"): Ui.ChartView passes it to ChartScale.range, which matches
+     * UnitCode data codes, and also draws it. So it stays data (not DisplayTemperature.symbol()) until
+     * Ui.ChartView takes a data unit and a shown symbol apart; the scale summary and scale input
+     * description that read it are still English too.
+     */
     private String chartUnit(String key, Map<String, TelemetryHistory.Reading> values) {
         if (DisplayTemperature.isTemperature(key)) return DisplayTemperature.unit(temperatureUnit());
         if (key.endsWith("_kmh")) return units().equals("km") ? "km/h" : "mph";
@@ -5197,6 +5213,8 @@ public final class DashboardScreen implements AppScreen {
                             T.dashboardReadings(),
                             T.dashboardSelectedCount(widget.keys.size(), widget.keys.size()),
                             () -> chooseReadings(widget)), "stats");
+        // The value shows widget.note as saved, not DashboardConfig.displayNote: G1 refuses changing
+        // an argument of a statement that holds converted text, so it waits for an ordinary change.
         if (widget.type.equals("note"))
             addSettingRow(settings,
                     ui.settingRow(
@@ -5411,6 +5429,8 @@ public final class DashboardScreen implements AppScreen {
             choices.removeAllViews();
             String query = search.getText().toString().toLowerCase(Locale.ROOT).trim();
             for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
+                // Matches the English label and group only: adding the shown ones to this line holding
+                // text fails G1 in an extraction batch (the Choose sheets match both).
                 if (!query.isEmpty() && !(entry.label + " " + entry.group).toLowerCase(Locale.ROOT).contains(query)) continue;
                 boolean selected = widget.quickActions.contains(entry.id);
                 boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
