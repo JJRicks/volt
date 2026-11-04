@@ -41,6 +41,7 @@ public final class MapTilesValidation extends Instrumentation {
             blockedImagesAndPersistence();
             deniedAndRateLimited();
             offlineAndInvalidResponses();
+            pauseReasonsAndOlderStatus();
             cacheDirectivesAndIsolation();
             result.putString("result", "PASS");
             result.putInt("check_count", checks.size());
@@ -191,6 +192,42 @@ public final class MapTilesValidation extends Instrumentation {
         MapTiles custom = separate.create("https://maps.example.test/{z}/{x}/{y}.png"); separate.offline = true;
         require(custom.get(3, 1, 2) == null, "One provider displayed another provider's cache");
         checks.add("no-store/no-cache honored and provider caches isolated");
+    }
+
+    /** B14: network.meta keeps its English status and adds a reason id; files older versions wrote still read. */
+    private void pauseReasonsAndOlderStatus() throws Exception {
+        Fixture http = new Fixture("reason-http"); http.enqueue(503);
+        require(http.tiles.get(3, 1, 2) == null && "Map tiles unavailable (HTTP 503)".equals(http.tiles.status()), "HTTP pause text");
+        Properties saved = read(new File(http.provider(), "network.meta"));
+        require("Map tiles unavailable (HTTP 503)".equals(saved.getProperty("status")) && "http".equals(saved.getProperty("reason"))
+                && "503".equals(saved.getProperty("http")), "network.meta lost its English status or reason: " + saved);
+        require("Map tiles unavailable (HTTP 503)".equals(http.create(MapSource.USGS_URL).status()), "Saved HTTP reason not restored");
+        Fixture blocked = new Fixture("reason-blocked");
+        blocked.enqueue(200).header("X-Blocked", "accessdenied");
+        blocked.tiles.get(3, 1, 2);
+        require("blocked".equals(read(new File(blocked.provider(), "network.meta")).getProperty("reason")), "Blocked reason not saved");
+        String[][] older = {
+            {"Map provider blocked access", "Map provider blocked access"},
+            {"Map provider rate limit · try later", "Map provider rate limit · try later"},
+            {"Map tiles unavailable (HTTP 429)", "Map tiles unavailable (HTTP 429)"},
+            {"Map tiles unavailable · check connection", "Map tiles unavailable · check connection"},
+            {"A status no version wrote", "A status no version wrote"},
+            {null, "Map tiles temporarily unavailable"},
+        };
+        for (int i = 0; i < older.length; i++) {
+            Fixture fixture = new Fixture("older-status-" + i);
+            Properties file = new Properties();
+            file.setProperty("until", Long.toString(fixture.now + 60_000));
+            file.setProperty("blocked", "false");
+            if (older[i][0] != null) file.setProperty("status", older[i][0]);
+            save(new File(fixture.provider(), "network.meta"), file);
+            String shown = fixture.create(MapSource.USGS_URL).status();
+            require(older[i][1].equals(shown), "Older network.meta status " + older[i][0] + " shown as " + shown);
+        }
+        require(MapTiles.restored("rate_limited", null, "").english().equals("Map provider rate limit · try later")
+                && MapTiles.restored("http", "404", "").english().equals("Map tiles unavailable (HTTP 404)")
+                && MapTiles.restored(null, null, "Map tiles unavailable").id() == T.MAPS_TILES_UNAVAILABLE, "Reason ids");
+        checks.add("pause reasons saved beside the English status; older English-only network.meta files restore their text");
     }
 
     private final class Fixture implements MapTiles.ConnectionFactory {
