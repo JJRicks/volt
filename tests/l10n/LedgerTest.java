@@ -9,7 +9,8 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * G2, template equivalence: every exact, template and plural row of l10n/ledger/*.tsv, rendered through
+ * G2, template equivalence: every exact, template and plural row of l10n/ledger/*.tsv (and each branch of a
+ * choice row, a whole template of its own key), rendered through
  * EnglishText with sentinel arguments, equals the original Java concatenation evaluated with the same
  * sentinels, byte for byte. Text holes get "\u0001A" (A, B, ... by placeholder), whole numbers 1234567,
  * decimals 12.5 (Java's own string conversion, as the original "+" did), and plurals the quantities 0, 1,
@@ -32,6 +33,22 @@ public final class LedgerTest {
                 for (Map<String, String> row : L10nFiles.tsv(L10nFiles.read(ledger), "location", "pieces", "key", "kind", "note")) {
                     String where = "l10n/ledger/" + ledger.getName() + ":" + row.get("#line") + " " + row.get("location");
                     String kind = row.get("kind");
+                    if (kind.equals("choice")) {
+                        // Each branch is a whole template of its own key (G1 proved it is the base expression with
+                        // its conditions forced); render each one with sentinels.
+                        String[] keys = row.get("key").split(",", -1);
+                        List<Object> leaves = new ArrayList<>();
+                        branches(L10nFiles.json(row.get("pieces")), leaves);
+                        check(keys.length == leaves.size(), where + ": " + keys.length + " keys for " + leaves.size() + " branches");
+                        for (int i = 0; i < keys.length; i++) {
+                            Integer branch = ids.get(keys[i]);
+                            check(branch != null, where + ": key " + keys[i] + " is in the catalog");
+                            List<String> problems = compare(branch, "template", leaves.get(i), changes);
+                            check(problems.isEmpty(), where + ": branch " + keys[i] + ": " + problems);
+                        }
+                        rows++;
+                        continue;
+                    }
                     if (!kind.equals("exact") && !kind.equals("template") && !kind.equals("plural")) continue;
                     Integer id = ids.get(row.get("key"));
                     check(id != null, where + ": key " + row.get("key") + " is in the catalog");
@@ -62,8 +79,22 @@ public final class LedgerTest {
         check(compare(ids.get("common_cancel"), "exact", L10nFiles.json("[\"Cancel it\"]"), changed).isEmpty(), "a recorded English change is undone first");
         check(evaluate(L10nFiles.json("[\"x\", {\"hole\": \"n\", \"arg\": 1, \"type\": \"d\"}, {\"char\": \"!\"}]"), 0).equals("x1234567!"),
                 "whole numbers and char pieces evaluate as Java's + does");
+        List<Object> leaves = new ArrayList<>();
+        branches(L10nFiles.json("{\"if\": \"a\", \"then\": [\"x\"], \"else\": {\"if\": \"b\", \"then\": [\"y\"], \"else\": [\"z\"]}}"), leaves);
+        check(leaves.size() == 3 && evaluate(leaves.get(0), 0).equals("x") && evaluate(leaves.get(2), 0).equals("z"),
+                "a choice row's branches are read then before else, depth first");
         check(render("%1$.1f km", new Object[]{12.5}).equals(evaluate(L10nFiles.json("[{\"hole\": \"d\", \"arg\": 1, \"type\": \"f\"}, \" km\"]"), 0)),
                 "a one-decimal hole matches Double.toString of 12.5");
+    }
+
+    /** A choice row's branches, then before else, depth first: {"if": ..., "then": ..., "else": ...} or pieces. */
+    static void branches(Object node, List<Object> out) {
+        if (node instanceof Map && ((Map<?, ?>) node).containsKey("if")) {
+            branches(((Map<?, ?>) node).get("then"), out);
+            branches(((Map<?, ?>) node).get("else"), out);
+        } else {
+            out.add(node);
+        }
     }
 
     /** Problems comparing one row's original expression with the catalog English rendered with sentinels. */
