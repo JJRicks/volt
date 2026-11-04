@@ -74,7 +74,7 @@ public final class ScooterService extends Service {
     /** The locales the notices were last labelled in; null until onCreate records them (plan section 5.4). */
     private android.os.LocaleList noticeLocales;
     /** The language the notices' text resolved to then (shownLanguage()); null until onCreate records it. */
-    private String noticeLanguage;
+    private java.util.List<?> noticeLanguage;
     private static final long RECORDING_WAKE_TIMEOUT_MS=10*60*1000L, RECORDING_WAKE_RENEW_MS=5*60*1000L;
     private long wakeLockRenewedMs;
     private PowerManager.WakeLock wakeLock;private boolean visible,foregroundStarted,gapMarked,workActive,destroyed;private int foregroundType;private int samples;private long lastNotification,backgroundDeadlineMs;
@@ -163,7 +163,7 @@ public final class ScooterService extends Service {
         try{locales=AppLanguage.resources(this).getConfiguration().getLocales();}catch(RuntimeException unavailable){return;}
         if(locales.equals(noticeLocales))return;
         boolean first=noticeLocales==null;noticeLocales=locales;
-        String language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;
+        java.util.List<?> language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;
         if(first){
             // A service started in a new language: the scooter channel is re-labelled by every post, but an existing alerts
             // channel only here, so Android's notification settings name it in the shown language from the start.
@@ -185,9 +185,9 @@ public final class ScooterService extends Service {
     }
     /**
      * The language Volt's text renders in now: the catalog's resolved language (T.language(), "en" for English or
-     * anything unrecognised), and outside English the locale its numbers format in (Fmt.displayLocale()).
+     * anything unrecognised), and outside English the locale its numbers format in (Fmt.displayLocale(), else null).
      */
-    private static String shownLanguage(){return T.language()+(Fmt.legacy()?"":"|"+Fmt.displayLocale().toLanguageTag());}
+    private static java.util.List<?> shownLanguage(){return java.util.Arrays.asList(T.language(),Fmt.legacy()?null:Fmt.displayLocale());}
     @Override public int onStartCommand(Intent intent,int flags,int startId){
         if (destroyed || DataMaintenance.active()) { stopSelf(); return START_NOT_STICKY; }
         if(!ble.permissions()){finishChargeCapture(ChargeSessionStore.Stop.PERMISSION_LOST);endChargeMeasure(T.serviceMeasureBluetoothRemoved());stopIdleWork();return START_NOT_STICKY;}

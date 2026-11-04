@@ -62,8 +62,8 @@ public final class ServiceConsumersTest {
     }
 
     /** ScooterService.shownLanguage()'s expression, as the source must hold it, and that expression run here. */
-    private static final String SHOWN_LANGUAGE = "T.language()+(Fmt.legacy()?\"\":\"|\"+Fmt.displayLocale().toLanguageTag())";
-    private static String shownLanguage() { return T.language()+(Fmt.legacy()?"":"|"+Fmt.displayLocale().toLanguageTag()); }
+    private static final String SHOWN_LANGUAGE = "java.util.Arrays.asList(T.language(),Fmt.legacy()?null:Fmt.displayLocale())";
+    private static java.util.List<?> shownLanguage() { return java.util.Arrays.asList(T.language(),Fmt.legacy()?null:Fmt.displayLocale()); }
 
     /** chargeScheduleContext's reason, as the service now reads it from Decision.reasonMessage(). */
     private static String contextReason(CapabilityResolver.Reason reason) {
@@ -99,7 +99,7 @@ public final class ServiceConsumersTest {
                         }
         same("Scooter", T.ownerProfileDefaultName(), "the default name's English is ScooterProfiles.DEFAULT_NAME");
         // Whatever the phone's locales, English is one shown language, so a locale list change never re-posts the alert.
-        same("en", shownLanguage(), "the shown language under " + Locale.getDefault().toLanguageTag());
+        check(java.util.Arrays.asList("en", null).equals(shownLanguage()), "the shown language under " + Locale.getDefault().toLanguageTag() + " is English alone");
     }
 
     private static void marked() {
@@ -108,7 +108,7 @@ public final class ServiceConsumersTest {
             same(english, contextReason(reason), "context reason " + reason + " stays English");
             if (!english.isEmpty()) same("⟦" + english + "⟧", CapabilityResolver.text(reason), "reasonText() would have stored the shown language");
         }
-        check(!shownLanguage().equals("en") && shownLanguage().startsWith("xx"), "another language is another shown language");
+        check(!java.util.Arrays.asList("en", null).equals(shownLanguage()) && "xx".equals(shownLanguage().get(0)), "another language is another shown language");
         Alert charged = new Alert(ChargeAlertPolicy.Event.CHARGE, 80, 81, "Synthetic GT3 Max", false);
         same("⟦Charged to 80%⟧", charged.title(), "the alert title renders in the shown language");
         same("⟦Synthetic GT3 Max is at 81%.⟧", charged.text(), "the alert text renders in the shown language");
@@ -161,7 +161,7 @@ public final class ServiceConsumersTest {
         Matcher first = Pattern.compile("if\\(first\\)\\{(.*?)return;\\s*\\}", Pattern.DOTALL).matcher(body);
         check(first.find() && !first.group(1).contains("relabelAlertNotice") && !first.group(1).contains("post(")
                 && !first.group(1).contains("updateNotification"), "the first applyLocale() posts no notice, as before");
-        String guard = "String language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;";
+        String guard = "java.util.List<?> language=shownLanguage();boolean relabel=!first&&!language.equals(noticeLanguage);noticeLanguage=language;";
         check(count(body, guard) == 1 && body.indexOf(guard) > body.indexOf("boolean first=noticeLocales==null;noticeLocales=locales;")
                 && body.indexOf(guard) < first.start(), "every applyLocale() past the locale-list check records the shown language");
         check(count(body, "if(relabel)relabelAlertNotice();\n        updateNotification();changed();") == 1
@@ -169,7 +169,7 @@ public final class ServiceConsumersTest {
                 && body.indexOf("relabelAlertNotice") > first.end(),
                 "only a change of the shown language re-posts the alert notice, then the connection notice");
         check(count(s, "relabelAlertNotice()") == 2 && count(s, "noticeLanguage") == 3, "only applyLocale() re-posts it");
-        check(count(s, "private static String shownLanguage(){return " + SHOWN_LANGUAGE + ";}") == 1 && count(s, "shownLanguage()") == 4,
+        check(count(s, "private static java.util.List<?> shownLanguage(){return " + SHOWN_LANGUAGE + ";}") == 1 && count(s, "shownLanguage()") == 4,
                 "the shown language is the catalog's resolved language and, outside English, the number locale");
         Matcher method = Pattern.compile("private void relabelAlertNotice\\(\\)\\{(.*?)\n    \\}\n", Pattern.DOTALL).matcher(s);
         check(method.find(), "relabelAlertNotice() found");
