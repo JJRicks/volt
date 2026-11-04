@@ -72,6 +72,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
             editHistoryNoOpsAndBounds();
             displayNames();
             exampleProvenance();
+            dialogSlotNames();
             require(historyCount() == 2, "Layout changes altered history rows");
             try (Cursor row = history.rawQuery("SELECT profile,wall,power FROM readings ORDER BY wall", null)) {
                 require(row.moveToFirst() && row.getString(0).equals("alpha")
@@ -1586,6 +1587,63 @@ public final class DashboardSlotsValidation extends Instrumentation {
             T.install(previousSource);
         }
         checks.add("Only the shipped example's own widgets and slot show its titles, note and name as Volt's; the same words typed by the owner, an edited example and an older version's example show as saved, through saves, exports and imports");
+    }
+
+    /**
+     * B13: the save dialog's name (DashboardConfig.slotNameToSave). The field starts at the slot's shown
+     * name; saved with that name (as saveSlot cleans a name), the slot keeps the name it saved, and an
+     * empty slot gets its own English "Slot N", so a name shown in another language is never stored as
+     * the owner's and slot 3 stays the example's. A typed name saves as typed. The other language is a
+     * stand-in shown string here (an existing test may not declare a T.Source).
+     */
+    private void dialogSlotNames() throws Exception {
+        T.Source dialogSource = T.source();
+        try {
+            T.install(null);
+            DashboardConfig dialogConfig = new DashboardConfig(preferences, "dialog-slot-names");
+            DashboardConfig.SavedSlot dialogExample = dialogConfig.slot(2);
+            require(dialogExample != null && DashboardConfig.voltSlotName(dialogExample, 2) != null, "No example slot for the save dialog");
+            // English: the shown name is the saved one, so saving it unchanged or respaced stores what typing it would.
+            String dialogShown = DashboardConfig.displaySlotName(dialogExample, 2);
+            require(dialogShown.equals("All widgets")
+                            && "All widgets".equals(DashboardConfig.slotNameToSave("All widgets", dialogShown, dialogExample, 2))
+                            && "All widgets".equals(DashboardConfig.slotNameToSave("  All   widgets ", dialogShown, dialogExample, 2))
+                            && "Commute".equals(DashboardConfig.slotNameToSave("Commute", dialogShown, dialogExample, 2)),
+                    "The save dialog changed an English slot name");
+            // Another language's shown name, saved unchanged or respaced, keeps the saved English; a typed one is the owner's.
+            require("All widgets".equals(DashboardConfig.slotNameToSave("Todos los widgets", "Todos los widgets", dialogExample, 2))
+                            && "All widgets".equals(DashboardConfig.slotNameToSave(" Todos  los widgets", "Todos los widgets", dialogExample, 2))
+                            && "Mis widgets".equals(DashboardConfig.slotNameToSave("Mis widgets", "Todos los widgets", dialogExample, 2)),
+                    "The save dialog stored a shown example name as the owner's");
+            // Slot 3 saved unchanged from the dialog with the example's own widgets stays the example's.
+            require(dialogConfig.restoreSlot(2)
+                            && dialogConfig.saveSlot(2, DashboardConfig.slotNameToSave("Todos los widgets", "Todos los widgets", dialogExample, 2), 6)
+                            && dialogConfig.slot(2).name.equals("All widgets") && DashboardConfig.voltSlotName(dialogConfig.slot(2), 2) != null
+                            && T.key(DashboardConfig.voltSlotName(dialogConfig.slot(2), 2).id()).equals("dashboard_model_slot_example"),
+                    "Slot 3 saved unchanged from the dialog lost the example's name");
+            for (int slotIndex = 0; slotIndex < 2; slotIndex++) {
+                // An empty slot starts at its default name; unchanged, in English or another language, it saves as its own "Slot N".
+                String emptyShown = DashboardConfig.defaultSlotName(slotIndex);
+                require(dialogConfig.slot(slotIndex) == null && emptyShown.equals("Slot " + (slotIndex + 1))
+                                && DashboardConfig.slotNameToSave(emptyShown, emptyShown, null, slotIndex) == null
+                                && DashboardConfig.slotNameToSave("Ranura " + (slotIndex + 1) + " ", "Ranura " + (slotIndex + 1), null, slotIndex) == null
+                                && "Commute".equals(DashboardConfig.slotNameToSave("Commute", "Ranura " + (slotIndex + 1), null, slotIndex)),
+                        "The save dialog's name for empty slot " + slotIndex);
+                require(dialogConfig.saveSlot(slotIndex, DashboardConfig.slotNameToSave("Ranura " + (slotIndex + 1), "Ranura " + (slotIndex + 1), null, slotIndex), 6)
+                                && dialogConfig.slot(slotIndex).name.equals("Slot " + (slotIndex + 1))
+                                && T.key(DashboardConfig.voltSlotName(dialogConfig.slot(slotIndex), slotIndex).id()).equals("dashboard_model_slot_default"),
+                        "Empty slot " + slotIndex + " saved unchanged from the dialog is not its own default name");
+                // A slot the owner named: unchanged it keeps that name, retyped it saves the new one.
+                require(dialogConfig.saveSlot(slotIndex, "Commute", 6)
+                                && DashboardConfig.displaySlotName(dialogConfig.slot(slotIndex), slotIndex).equals("Commute")
+                                && "Commute".equals(DashboardConfig.slotNameToSave("Commute", "Commute", dialogConfig.slot(slotIndex), slotIndex))
+                                && "Work".equals(DashboardConfig.slotNameToSave("Work", "Commute", dialogConfig.slot(slotIndex), slotIndex)),
+                        "The save dialog's name for owner-named slot " + slotIndex);
+            }
+        } finally {
+            T.install(dialogSource);
+        }
+        checks.add("The save dialog keeps a slot's saved name when its shown name is saved unchanged, gives an empty slot its own English default, and saves a typed name as typed");
     }
 
     private void require(boolean value, String message) {

@@ -7,8 +7,10 @@
   condition picks are checked against the original chain by tests/l10n/DashboardScreenTextTest.java,
   and the numbers and names by tests/l10n/characterization/DashboardScreenEnglishTest.java).
 
-  Stored values stay English: a widget's saved title and note, an export and an import keep the
-  English text. Widget type names, default titles and slot names come from strings_dashboard_model.xml.
+  Stored values stay English: a widget's saved title and note, a saved slot's name, an export and an
+  import keep the English text. The title, note and slot name editors start at the text as shown;
+  saved unchanged, they keep what was saved. Widget type names, default titles and slot names come
+  from strings_dashboard_model.xml.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">

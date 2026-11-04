@@ -153,6 +153,20 @@ public final class DashboardConfig {
     }
 
     /**
+     * The name the save dialog passes to saveSlot for slot index. Its field starts at shown: saved's
+     * {@link #displaySlotName}, or {@link #defaultSlotName} when saved is null (an empty or unreadable
+     * slot). When typed, the field's text, cleans to the same name as shown (as saveSlot cleans a name),
+     * the slot keeps the name it saved, and an empty one gets its own "Slot N" in English (null saves
+     * as that). So a name shown in the current language is never stored as the owner's, and slot 3
+     * saved unchanged with the example's widgets stays the example's ({@link #exampleSlot}). Anything
+     * else is the owner's, passed as typed. In English shown is the saved name (or "Slot N"), so this
+     * saves what typed alone would.
+     */
+    public static String slotNameToSave(String typed, String shown, SavedSlot saved, int index) {
+        return slotName(typed, index).equals(slotName(shown, index)) ? saved == null ? null : saved.name : typed;
+    }
+
+    /**
      * The name Volt gave a saved slot, as a catalogue message, or null when the name is the owner's.
      * Volt's are the shipped example's name on the example's own slot ({@link #exampleSlot}), and this
      * slot's own "Slot N": a blank name saves as it and the save dialog starts an empty slot with it, so

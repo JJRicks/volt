@@ -29,6 +29,9 @@ import java.util.Locale;
  *    DisplayUnits.featureValueText, which in English is the base's featureValue for every shortcut's
  *    feature, every value a readback can carry (0 to 255) and its range, far outside it, and each units
  *    preference, under five phone locales.
+ *  - The save-slot dialog: an empty slot's name is B12's default slot name, "Slot N" in English, and
+ *    the dialog's source starts a saved slot at its shown name and saves through
+ *    DashboardConfig.slotNameToSave (DashboardSlotsValidation runs that on an emulator).
  */
 public final class DashboardScreenTextTest {
     private static int checks;
@@ -42,6 +45,7 @@ public final class DashboardScreenTextTest {
             plurals();
             ladder();
             shortcuts();
+            slotDialog();
             for (Locale l : new Locale[]{Locale.US, Locale.GERMANY, new Locale("tr", "TR"), new Locale("ar", "EG"),
                     new Locale("hi", "IN")}) {
                 Locale.setDefault(l);
@@ -53,7 +57,8 @@ public final class DashboardScreenTextTest {
             T.install(saved);
         }
         System.out.println("DashboardScreenTextTest: " + checks + " checks passed (choice templates, plurals, "
-                + "format templates and Setting tile values under 5 locales, charge time ladder, shortcut names)");
+                + "format templates and Setting tile values under 5 locales, charge time ladder, shortcut names, "
+                + "save-slot dialog)");
     }
 
     private static void same(String expected, CharSequence actual, String what) {
@@ -228,6 +233,23 @@ public final class DashboardScreenTextTest {
         String grid = read("src/com/jjricks/volt/QuickAccessGrid.java");
         check(grid.contains(": DisplayUnits.featureValueText(feature, value, units);") && !grid.contains("DisplayUnits.featureValue("),
                 "a Setting tile shows DisplayUnits.featureValueText");
+    }
+
+    /** The save-slot dialog: an empty slot's name is "Slot N" in English, and the dialog keeps saved names. */
+    private static void slotDialog() {
+        for (int index = 0; index < 3; index++)
+            same("Slot " + (index + 1), T.dashboardModelSlotDefault(Fmt.integer(index + 1)), "empty slot " + index + " name");
+        String screen = read("src/com/jjricks/volt/DashboardScreen.java");
+        check(screen.contains("name.setText(saved == null ? T.dashboardModelSlotDefault(Fmt.integer(index + 1)) : saved.name);")
+                        && screen.contains("String shown = saved == null ? DashboardConfig.defaultSlotName(index) : DashboardConfig.displaySlotName(saved, index);")
+                        && screen.contains("if (saved != null) name.setText(shown);"),
+                "the save dialog starts at the slot's shown name");
+        check(screen.contains("config.saveSlot(index, DashboardConfig.slotNameToSave(name.getText().toString(), shown, saved, index),")
+                        && !screen.contains("config.saveSlot(index, name.getText().toString(),"),
+                "the save dialog saves through DashboardConfig.slotNameToSave");
+        String config = read("src/com/jjricks/volt/DashboardConfig.java");
+        check(config.contains("return slotName(typed, index).equals(slotName(shown, index)) ? saved == null ? null : saved.name : typed;"),
+                "slotNameToSave keeps the saved name for the name the dialog showed");
     }
 
     private static String read(String path) {
