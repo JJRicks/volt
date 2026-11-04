@@ -11,6 +11,8 @@ import android.os.Bundle;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardEditHistory;
 import com.jjricks.volt.DashboardLayout;
+import com.jjricks.volt.EnglishText;
+import com.jjricks.volt.T;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -69,6 +71,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
             editHistoryRestoresStructureOnly();
             editHistoryRestoresBothDisplays();
             editHistoryNoOpsAndBounds();
+            displayNames();
             require(historyCount() == 2, "Layout changes altered history rows");
             try (Cursor row = history.rawQuery("SELECT profile,wall,power FROM readings ORDER BY wall", null)) {
                 require(row.moveToFirst() && row.getString(0).equals("alpha")
@@ -1390,6 +1393,85 @@ public final class DashboardSlotsValidation extends Instrumentation {
         if (historyFile != null) SQLiteDatabase.deleteDatabase(historyFile);
         if (preferences != null) preferences.edit().clear().commit();
         if (fixtureName != null) getTargetContext().deleteSharedPreferences(fixtureName);
+    }
+
+    /**
+     * B12: titles, notes and slot names Volt gave show through the catalogue, in English exactly as
+     * saved; with a language that marks every text, they come from it while every saved value, the
+     * owner's own titles and the exported names stay English.
+     */
+    private void displayNames() throws Exception {
+        T.Source saved = T.source();
+        try {
+            T.install(null);
+            DashboardConfig config = new DashboardConfig(preferences, "display-names");
+            require(config.slot(2) != null && config.restoreSlot(2), "Example slot missing for display names");
+            for (DashboardConfig.Widget widget : config.widgets) {
+                require(DashboardConfig.displayTitle(widget).equals(widget.title),
+                        "English " + widget.type + " title changed: " + DashboardConfig.displayTitle(widget));
+                require(DashboardConfig.displayNote(widget).equals(widget.note), "English " + widget.type + " note changed");
+            }
+            for (int i = 0; i < DashboardConfig.TYPES.length; i++) {
+                require(DashboardConfig.typeName(i).equals(DashboardConfig.NAMES[i]), "English type name " + i + " changed");
+                require(DashboardConfig.typeName(DashboardConfig.TYPES[i]).equals(DashboardConfig.NAMES[i]),
+                        "English type name of " + DashboardConfig.TYPES[i] + " changed");
+            }
+            require(DashboardConfig.typeName("unknown").equals(DashboardConfig.NAMES[0]), "Unknown type name changed");
+            for (int i = 0; i < DashboardConfig.SLOT_COUNT; i++) {
+                require(DashboardConfig.defaultSlotName(i).equals("Slot " + (i + 1)), "English default slot name " + i);
+                require(DashboardConfig.displaySlotName("Slot " + (i + 1), i).equals("Slot " + (i + 1)), "English slot name " + i);
+                require(DashboardConfig.displaySlotName("All widgets", i).equals("All widgets"), "English example slot name " + i);
+                require(DashboardConfig.displaySlotName("Commute", i).equals("Commute"), "Owner slot name " + i);
+            }
+            require(config.slot(2).name.equals("All widgets"), "Example slot name not saved in English");
+
+            T.install(new Marked());
+            int marked = 0;
+            for (DashboardConfig.Widget widget : config.widgets) {
+                String shown = DashboardConfig.displayTitle(widget);
+                require(shown.equals("\u00ab" + widget.title + "\u00bb"), widget.type + " example title not from the catalogue: " + shown);
+                marked++;
+                if (widget.type.equals("note"))
+                    require(DashboardConfig.displayNote(widget).equals("\u00ab" + widget.note + "\u00bb"), "Example note not from the catalogue");
+                else require(DashboardConfig.displayNote(widget).equals(widget.note), widget.type + " note changed");
+            }
+            require(marked == DashboardConfig.TYPES.length, "Example lacks a widget type");
+            DashboardConfig.Widget owner = new DashboardConfig.Widget("gauge");
+            require(DashboardConfig.displayTitle(owner).equals("\u00ab" + DashboardConfig.NAMES[4] + "\u00bb"), "Default gauge title not from the catalogue");
+            require(owner.title.equals(DashboardConfig.NAMES[4]), "Default gauge title not saved in English");
+            owner.title = "My gauge";
+            require(DashboardConfig.displayTitle(owner).equals("My gauge"), "Owner title rewritten");
+            owner.title = "Battery charge";
+            require(DashboardConfig.displayTitle(owner).equals("Battery charge"), "Another type's example title translated");
+            owner.title = "Capacity experiment";
+            require(DashboardConfig.displayTitle(owner).equals("Capacity experiment"), "Legacy title on another type translated");
+            DashboardConfig.Widget note = new DashboardConfig.Widget("note");
+            note.note = "Check tyre pressure later";
+            require(DashboardConfig.displayNote(note).equals("Check tyre pressure later"), "Owner note rewritten");
+            for (int i = 0; i < DashboardConfig.SLOT_COUNT; i++) {
+                require(DashboardConfig.defaultSlotName(i).equals("\u00abSlot " + (i + 1) + "\u00bb"), "Default slot name " + i + " not from the catalogue");
+                require(DashboardConfig.displaySlotName("Slot " + (i + 1), i).equals("\u00abSlot " + (i + 1) + "\u00bb"), "Slot name " + i + " not from the catalogue");
+                require(DashboardConfig.displaySlotName("Slot " + (i + 2), i).equals("Slot " + (i + 2)), "Another slot's number translated in slot " + i);
+                require(DashboardConfig.displaySlotName("All widgets", i).equals("\u00abAll widgets\u00bb"), "Example slot name not from the catalogue");
+                require(DashboardConfig.displaySlotName("Commute", i).equals("Commute"), "Owner slot name rewritten");
+            }
+            require(config.saveSlot(0, "", 2), "Blank-named slot did not save");
+            require(config.slot(0).name.equals("Slot 1"), "Blank slot name not saved in English");
+            require(config.slot(2).name.equals("All widgets"), "Example slot name not kept in English");
+            String exported = config.exportLayouts();
+            require(exported.contains("\"Slot 1\"") && exported.contains("\"All widgets\"") && !exported.contains("\u00ab"),
+                    "Exported layouts not in English");
+        } finally {
+            T.install(saved);
+        }
+        checks.add("Volt's own titles, notes and slot names show through the catalogue; saved and exported text stays English");
+    }
+
+    /** A language whose every text is the English wrapped in marks. */
+    private static final class Marked implements T.Source {
+        public String string(int id) { return "\u00ab" + EnglishText.INSTANCE.string(id) + "\u00bb"; }
+        public String plural(int id, long quantity) { return "\u00ab" + EnglishText.INSTANCE.plural(id, quantity) + "\u00bb"; }
+        public String language() { return "en"; }
     }
 
     private void require(boolean value, String message) {

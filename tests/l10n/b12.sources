@@ -2,3 +2,5 @@
 # tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
 # G5: every quick-access shortcut's English (label, icon, group), pinned before the batch.
 tests/l10n/characterization/DashboardModelEnglishTest.java
+# B12's own suite: shortcut names in English and marked, the tile templates, widget and slot names.
+tests/l10n/DashboardModelTextTest.java
