@@ -707,11 +707,16 @@ class DeviceRulesTest(GrammarCase):
     STRINGS = HelperPluralTest.STRINGS
     convert = HelperPluralTest.convert
 
-    def test_the_honest_helper_row_waits_for_the_runtime_fix(self):
-        self.assertFalse(hasattr(gen_catalog, ledger_check.PLURAL_RULES_FLAG),
-                         "gen_catalog declares the flag: update this test and the README")
+    def test_gen_catalog_declares_the_runtime_fix(self):
+        # Gates round 3A made AndroidText pick default English items by English rules, so gen_catalog declares it.
+        self.assertIs(getattr(gen_catalog, ledger_check.PLURAL_RULES_FLAG, None), True)
         self.convert()
-        problems, _ = self.assertFails([readings()], "English one and other items differ")
+        self.assertEqual(self.check([readings()])[0], [])
+
+    def test_the_honest_helper_row_fails_without_the_runtime_fix(self):
+        self.convert()
+        with mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, False, create=True):
+            problems, _ = self.assertFails([readings()], "English one and other items differ")
         self.assertTrue(any("Russian phone at 21" in p and ledger_check.PLURAL_RULES_FLAG in p for p in problems), problems)
 
     def test_only_true_lifts_it(self):
@@ -743,7 +748,8 @@ class DeviceRulesTest(GrammarCase):
         self.assertEqual(self.check([row])[0], [])
         self.repo.write("res/values/strings_test.xml", self.text("res/values/strings_test.xml").replace(
             "%1$d skipped</item>\n    <item quantity=\"other\">", "%1$d skip</item>\n    <item quantity=\"other\">"))
-        self.assertFails([row], "English one and other items differ")
+        with mock.patch.object(gen_catalog, ledger_check.PLURAL_RULES_FLAG, False, create=True):
+            self.assertFails([row], "English one and other items differ")
 
 
 if __name__ == "__main__":
