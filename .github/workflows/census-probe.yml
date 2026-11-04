@@ -27,14 +27,15 @@ jobs:
       max-parallel: 12
       matrix:
         include:
-          # Probe-3: which API 36+ images have the BluetoothGatt fields the synthetic link needs
-          # (gatt_missing) and boot stably. c1 is the image census runs used until then.
-          - {id: c1, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c2, emu: latest, image: 'system-images;android-36-ext19;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c3, emu: latest, image: 'system-images;android-36-ext18;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c4, emu: latest, image: 'system-images;android-36.1;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c5, emu: latest, image: 'system-images;android-37.0;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
-          - {id: c6, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'swiftshader_indirect', hostgl: '0'}
+          # Probe-4. Probe-3 (run 41898211252): android-36, 36-ext19 and 36-ext18 google_apis are
+          # stable; 36.1 google_apis, 36.1 Play and 37.0 google_apis crash surfaceflinger like the
+          # 36.1 Play image did. Here: does a newer avdmanager or the 35.x emulator fix 36.1 / 37.0,
+          # and which images have the BluetoothGatt fields (gatt_missing)?
+          - {id: c1, emu: latest, image: 'system-images;android-36;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0', avdtools: runner}
+          - {id: c2, emu: latest, image: 'system-images;android-36.1;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0', avdtools: new}
+          - {id: c3, emu: latest, image: 'system-images;android-37.0;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0', avdtools: new}
+          - {id: c4, emu: pin35, image: 'system-images;android-36.1;google_apis;x86_64', gpu: 'swiftshader_indirect', hostgl: '0', avdtools: runner}
+          - {id: c5, emu: latest, image: 'system-images;android-36.1;google_apis_playstore;x86_64', gpu: 'swiftshader_indirect', hostgl: '0', avdtools: new}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -52,6 +53,7 @@ jobs:
           PROBE_IMAGE: ${{ matrix.image }}
           PROBE_GPU: ${{ matrix.gpu }}
           PROBE_HOSTGL: ${{ matrix.hostgl }}
+          PROBE_AVDTOOLS: ${{ matrix.avdtools }}
         run: bash ctl/ops/census/probe.sh "$RUNNER_TEMP/probe"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
@@ -79,7 +81,7 @@ jobs:
           rows = [json.loads(l) for l in open(sys.argv[1]) if l.strip()]
           rows.sort(key=lambda r: int(r.get('id', 'c0')[1:]))
           cols = ['id', 'verdict', 'sf_pid_changes', 'sf_fatal_in_window', 'boot_s', 'uiautomator_ok',
-                  'screenshot_ok', 'gatt_missing', 'renderer', 'emulator_version', 'fingerprint', 'notes']
+                  'screenshot_ok', 'gatt_missing', 'avd_target', 'renderer', 'emulator_version', 'fingerprint', 'notes']
           print('| ' + ' | '.join(cols) + ' |'); print('|' + '---|' * len(cols))
           for r in rows:
               print('| ' + ' | '.join(str(r.get(c, '')).replace('|', '/') for c in cols) + ' |')

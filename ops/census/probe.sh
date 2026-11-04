@@ -5,6 +5,8 @@
 #   PROBE_IMAGE   system-images;android-NN[.N|-extNN];google_apis[_playstore];x86_64
 #   PROBE_GPU     the -gpu mode, optionally followed by "-feature -Name" pairs
 #   PROBE_HOSTGL  1 to install Mesa software GL and run the emulator on an Xvfb display
+#   PROBE_AVDTOOLS runner | new  (new: create the AVD with cmdline-tools 23.0's avdmanager, not the
+#                 runner's older one, which may write target=android-0 for an NN.N image)
 # Boots one census-shaped AVD headless, watches the display stack for 180 s after boot, then checks
 # that Settings opens, uiautomator dumps and the screen is not black, and that the image's
 # BluetoothGatt has every field the synthetic-link validations set by reflection (gatt_missing; guided,
@@ -26,9 +28,10 @@ PIN_ZIP=emulator-linux_x64-13610412.zip; PIN_SIZE=319086252; PIN_SHA1=3b656b511e
 [[ "${PROBE_IMAGE:-}" =~ ^system-images\;android-[0-9]{2}(\.[0-9]|-ext[0-9]{2})?\;google_apis(_playstore)?\;x86_64$ ]] || { echo "bad PROBE_IMAGE" >&2; exit 2; }
 [[ "${PROBE_GPU:-}" =~ ^[a-z_]+(\ -feature\ -[A-Za-z]+)*$ ]] || { echo "bad PROBE_GPU" >&2; exit 2; }
 [[ "${PROBE_HOSTGL:-0}" =~ ^[01]$ ]] || { echo "bad PROBE_HOSTGL" >&2; exit 2; }
+[[ "${PROBE_AVDTOOLS:-runner}" =~ ^(runner|new)$ ]] || { echo "bad PROBE_AVDTOOLS" >&2; exit 2; }
 
 ELOG="$OUT/emulator.log"; : > "$ELOG"
-declare -A R=( [id]="$PROBE_ID" [emu]="$PROBE_EMU" [image]="$PROBE_IMAGE" [gpu]="$PROBE_GPU" [hostgl]="$PROBE_HOSTGL" )
+declare -A R=( [id]="$PROBE_ID" [emu]="$PROBE_EMU" [image]="$PROBE_IMAGE" [gpu]="$PROBE_GPU" [hostgl]="$PROBE_HOSTGL" [avdtools]="${PROBE_AVDTOOLS:-runner}" )
 R[host_cpu]="$(lscpu | sed -n 's/^Model name: *//p' | head -1)"
 note() { echo "$*"; R[notes]="${R[notes]:-}${R[notes]:+; }$*"; }
 sh_() { timeout 30 "$ADB" -s $SER shell "$@" 2>/dev/null | tr -d '\r'; }
@@ -68,6 +71,12 @@ R[stable]=0; R[booted]=0; R[verdict]=install_failed
 yes | "$SDKMANAGER" --licenses > /dev/null 2>&1 || true
 "$SDKMANAGER" --install platform-tools emulator "$PROBE_IMAGE" > "$OUT/sdkmanager.log" 2>&1 || { note "sdkmanager failed: $(tail -3 "$OUT/sdkmanager.log" | tr '\n' ' ')"; finish; }
 rm -f "$OUT/sdkmanager.log"
+if [[ ${PROBE_AVDTOOLS:-runner} == new ]]; then
+  "$SDKMANAGER" --install "cmdline-tools;23.0" > "$OUT/sdkmanager.log" 2>&1 && [[ -x "$SDK/cmdline-tools/23.0/bin/avdmanager" ]] \
+    || { note "cmdline-tools 23.0 install failed: $(tail -3 "$OUT/sdkmanager.log" | tr '\n' ' ')"; finish; }
+  rm -f "$OUT/sdkmanager.log"; AVDMANAGER="$SDK/cmdline-tools/23.0/bin/avdmanager"
+fi
+R[avdmanager]="$(sed -n 's/^Pkg.Revision=//p' "$(dirname "$(dirname "$AVDMANAGER")")/source.properties" | head -1)"
 if [[ $PROBE_HOSTGL == 1 ]]; then
   sudo apt-get update -qq > /dev/null 2>&1
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xvfb mesa-utils libgl1-mesa-dri libglx-mesa0 \
@@ -82,6 +91,7 @@ fi
 R[verdict]=create_failed
 echo no | "$AVDMANAGER" create avd -n "$AVD" -k "$PROBE_IMAGE" -p "$ANDROID_AVD_HOME/$AVD.avd" --force > "$OUT/avdmanager.log" 2>&1 || { note "avdmanager failed: $(grep -v '^ *$' "$OUT/avdmanager.log" | tail -3 | tr '\n' ' ' | cut -c1-300)"; finish; }
 rm -f "$OUT/avdmanager.log"
+R[avd_target]="$(grep -h '^target=' "$ANDROID_AVD_HOME/$AVD.ini" "$ANDROID_AVD_HOME/$AVD.avd/config.ini" 2>/dev/null | tr '\n' ' ')"
 playstore=false; [[ "$PROBE_IMAGE" == *google_apis_playstore* ]] && playstore=true
 gpumode=${PROBE_GPU%% *}
 python3 -I - "$ANDROID_AVD_HOME/$AVD.avd/config.ini" "$playstore" "$gpumode" <<'PY' || { note "config.ini edit failed"; finish; }
@@ -166,7 +176,7 @@ R[renderer]="$(sh_ dumpsys SurfaceFlinger | grep -i -m2 'GLES' | tr '\n' ' ' | c
 # --- BluetoothGatt fields (android-tests' synthetic GATT link sets these by reflection) ---------
 # A dex string_data item is its uleb128 length (one byte below 128), the MUTF-8 bytes, then NUL.
 R[gatt_ok]=0; R[gatt_missing]="framework-bluetooth.jar not found"
-jar="$(sh_ 'ls /apex/*/javalib/framework-bluetooth.jar' | grep -m1 '^/apex/[a-z.]*/javalib/')"
+jar="$(sh_ 'echo $BOOTCLASSPATH' | tr ':' '\n' | grep -m1 '/framework-bluetooth\.jar$')"
 R[bt_jar]=$jar
 if [[ -n $jar ]] && timeout 60 "$ADB" -s $SER pull "$jar" "$RUNNER_TEMP/framework-bluetooth.jar" > /dev/null 2>&1; then
   R[gatt_missing]="$(python3 -I - "$RUNNER_TEMP/framework-bluetooth.jar" <<'PY'
