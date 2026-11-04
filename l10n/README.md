@@ -137,7 +137,8 @@ Once a `res/values/strings_*.xml` exists, `tests/run.sh` generates the catalog (
 repository path to compile (`#` starts a comment; a hand-written `src/` class the batch's tests need,
 such as `UserFacingException` or B1's `Fmt`, is listed there too), and every listed
 `tests/l10n/**Test.java` runs from the repository root as `com.jjricks.volt.<Name>`. A batch adds
-its own `.sources` file (its characterization tests, its new suites) and never edits `tests/run.sh`.
+its own `.sources` file (its characterization tests, its new suites, and any new `src/` class they
+need, as B10 lists `BackupException`) and never edits `tests/run.sh`.
 
 ## The runtime (B0b)
 
@@ -364,8 +365,9 @@ How `ledger_check.py` (G1) reads it:
   `resources.getQuantityString` picks the item by the plural rules of the phone's first locale, so
   without help a Russian phone at 21, or a French or Portuguese phone at 0, would print `one`
   ("Readings for 21 scooter") where the base printed "21 scooters". Gates round 3A made
-  AndroidText pick the item of default English text by English rules ("plural rules follow the text
-  served"), and `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
+  AndroidText pick the item by the rules of the folder Android serves the key from, so default English
+  text takes English rules (see "Plural items follow the folder Android serves" above), and
+  `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
 - **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
@@ -374,9 +376,11 @@ How `ledger_check.py` (G1) reads it:
   `String noun = charges ? "charge" : "ride";` then `plural(full, noun)` (lines 710-714). A choice
   row's condition must sit in the row's expression, and a helper's text argument is a literal or a
   hole, so a hole for `noun` renders a fragment, not a sentence: the whole-sentence conversion
-  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. These
-  lines stay English until a tooling pull request models a local whose initializer is a ternary of
-  literals.
+  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
+  the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
+  piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence
+  still has no row form. These lines stay English until a tooling pull request both models a local
+  whose initializer is a ternary of literals and lets a choice row's branches be plural rows.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming

@@ -635,6 +635,13 @@ class HelperPluralTest(GrammarCase):
         self.repo.write("res/values/strings_test.xml", self.STRINGS.replace("%1$d scooters skipped", "%1$d scooter skipped"))
         self.assertFails([readings()], "[other] at quantity 0 renders 'Readings for 0 scooter")
 
+    def test_a_form_the_catalog_lacks_fails_in_g1(self):
+        # Review round 3: a helper row's one form passed G1 when the catalog plural had no one item (only G2 saw it).
+        self.repo.write("res/values/strings_test.xml", self.STRINGS.replace(
+            '    <item quantity="one">Readings for %1$d scooter skipped · not restored</item>\n', ""))
+        self.convert()
+        self.assertFails([readings()], "plural backup_readings_skipped has no one item")
+
     def test_a_template_row_with_a_helper_fails(self):
         self.repo.write("res/values/strings_test.xml", """<resources>
     <string name="backup_readings_skipped">Readings for %1$d scooters skipped · not restored</string>

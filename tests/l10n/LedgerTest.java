@@ -55,10 +55,7 @@ public final class LedgerTest {
                         // Each branch is a whole template of its own key (G1 proved it is the base expression with
                         // its conditions forced); render each one with sentinels.
                         String[] keys = row.get("key").split(",", -1);
-                        Object readings = L10nFiles.json("[\"Readings for \", {\"helper\": \"plural\", \"model\": \"count_noun\", \"args\": [{\"hole\": \"n\", \"arg\": 1, \"type\": \"d\", \"quantity\": true}, \"scooter\"]}, \" skipped\"]");
-        check(evaluate(readings, 1).equals("Readings for 1 scooter skipped") && evaluate(readings, 2).equals("Readings for 2 scooters skipped"),
-                "a count_noun helper prints its count, a space and the noun, with an s unless the count is 1");
-        List<Object> leaves = new ArrayList<>();
+                        List<Object> leaves = new ArrayList<>();
                         branches(L10nFiles.json(row.get("pieces")), leaves);
                         check(keys.length == leaves.size(), where + ": " + keys.length + " keys for " + leaves.size() + " branches");
                         for (int i = 0; i < keys.length; i++) {

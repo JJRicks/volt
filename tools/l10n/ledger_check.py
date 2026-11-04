@@ -232,7 +232,7 @@ HELPER_OUTPUT = {
 # The quantities G1 and G2 check each English plural form at (LedgerTest.compare).
 FORM_QUANTITIES = {"one": (1,), "other": (0, 2, 21)}
 # gen_catalog sets this True only once AndroidText picks the item of default English text by English rules,
-# whatever the phone's language (the runtime track, "plural rules follow the text served"). Until then Android
+# whatever the phone's language (gates round 3A, "plural rules follow the folder Android serves"). Before it Android
 # picks by the first locale's rules, so a phone in a language Volt does not ship serves "one" at 21 (ru) or
 # at 0 (fr, pt): a plural key whose English one and other items differ would change English there.
 PLURAL_RULES_FLAG = "PLURAL_ITEMS_FOLLOW_SERVED_TEXT"
@@ -817,6 +817,9 @@ def check_against_catalog(rows, catalog, changes=None):
                 problems.append("%s: template %s renders %r with sentinels, the original %r" % (
                     where, row.key, rendered[0], rendered[1]))
         elif helper_pieces(row.pieces):
+            for quantity in sorted(row.pieces):
+                if quantity not in entry.items:
+                    problems.append("%s: plural %s has no %s item" % (where, row.key, quantity))
             for quantity in sorted(entry.items):
                 if quantity not in row.pieces:
                     problems.append("%s: plural %s has a %s item, but the helper row models no %s form" % (

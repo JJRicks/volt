@@ -41,7 +41,7 @@ QUANTITIES = ("zero", "one", "two", "few", "many", "other")
 # The items an English plural in res/values may have: EnglishText serves "one" for exactly 1, "other" otherwise.
 ENGLISH_QUANTITIES = ("one", "other")
 # AndroidText picks the plural item of default English text by English rules, and other text by its own
-# folder's rules, whatever the phone's first language ("plural rules follow the text served", gates round 3A).
+# folder's rules, whatever the phone's first language ("plural rules follow the folder Android serves", gates round 3A).
 # ledger_check (G1) lifts its refusal of plural keys whose English one and other items differ only when this
 # is exactly True.
 PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True

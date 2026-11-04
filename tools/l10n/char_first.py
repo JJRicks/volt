@@ -10,7 +10,7 @@ head's first-parent line after the merge base:
   2. that first commit changes nothing under src/ or res/, so the tests ran against base behaviour;
   3. characterization is required when the range adds a template, plural, format or choice ledger row (or with
      --require): such a batch fails when its first commit holds no characterization tests.
-A range with no characterization files and no template, plural or format rows passes with a note.
+A range with no characterization files and no template, plural, format or choice rows passes with a note.
 
   char_first.py --base origin/main [--head <sha>] [--require] [--print-first]
 
