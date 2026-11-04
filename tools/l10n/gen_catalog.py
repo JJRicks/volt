@@ -38,6 +38,8 @@ PACKAGE = "com.jjricks.volt"
 TAG_KEY = "l10n_tag"
 
 QUANTITIES = ("zero", "one", "two", "few", "many", "other")
+# The items an English plural in res/values may have: EnglishText serves "one" for exactly 1, "other" otherwise.
+ENGLISH_QUANTITIES = ("one", "other")
 LADDERS = ("full", "short", "compact")
 SAFETY = ("lock", "ride", "alarm", "charge", "experimental", "owner-key", "pin", "privacy", "disclaimer")
 VOLT_ATTRIBUTES = ("screen", "purpose", "max", "ladder", "safety", "dnt", "english-fix")
@@ -410,6 +412,12 @@ def load_catalog(values_dir, display_root=None):
             for token in [t for t in entry.meta["dnt"].split("|") if t]:
                 if not any(token in item.text for item in entry.items.values()):
                     problems.append("%s: volt:dnt token %r does not appear in the text" % (where, token))
+        if entry.kind == "plural":
+            for quantity in entry.items:
+                if quantity not in ENGLISH_QUANTITIES:
+                    problems.append("%s: an English plural holds only \"one\" and \"other\" items; EnglishText never "
+                                    "shows a %s item, but Android would on a phone whose first language has that "
+                                    "category" % (where, quantity))
         if entry.name == TAG_KEY:
             if entry.kind != "string" or entry.items["other"].text != "en":
                 problems.append("%s: the default l10n_tag must be the string \"en\"" % where)
@@ -486,6 +494,8 @@ def load_languages(lang_dir):
         plurals = lang.plurals.split(",")
         if "other" not in plurals or any(p not in QUANTITIES for p in plurals):
             problems.append("%s: plurals must list CLDR categories including other" % path)
+        if lang.folder != "values" and re.match(r"^values(-[A-Za-z0-9+]+)*$", lang.folder):
+            problems.extend("%s: %s" % (path, p) for p in folder_locale_problems(lang.folder))
         languages.append(lang)
     english = [l for l in languages if l.tag == "en"]
     if not english or english[0].folder != "values":
@@ -494,6 +504,55 @@ def load_languages(lang_dir):
         raise CatalogError(problems)
     others = sorted((l for l in languages if l.tag != "en"), key=lambda l: (l.wave, l.tag))
     return english + others
+
+
+# Legacy and equivalent language codes, as Android compares them (Locale.adjustLanguageCode, langsAreEquivalent).
+MODERN_LANGUAGE = {"in": "id", "iw": "he", "ji": "yi", "tl": "fil"}
+# CLDR parent regions (parentLocales) that are not just the language: AndroidText's folder resolution ranks a
+# folder of the phone's own region first, then the folder without a region, so a folder for a region that other
+# regions inherit from (es-419, pt-PT for pt-AO, zh-Hant-HK for zh-Hant-MO) would be ranked wrongly.
+PARENT_REGIONS = {"pt": ("PT",), "zh": ("HK",)}
+
+
+def folder_locale(folder):
+    """(language, script, region) of a values-<language> folder as aapt reads it, or None for any other folder.
+
+    values-es, values-pt-rBR and values-b+zh+Hans give (es, "", ""), (pt, "", BR) and (zh, Hans, ""). The language is
+    the modern code (values-in gives id), the one AndroidText compares with the phone's.
+    """
+    if not folder.startswith("values-"):
+        return None
+    qualifier = folder[len("values-"):]
+    if qualifier.startswith("b+"):
+        parts = qualifier[2:].split("+")
+        language, script, region = parts[0].lower(), "", ""
+        if not re.match(r"^[a-z]{2,3}$", language):
+            return None
+        for part in parts[1:]:
+            if re.match(r"^[A-Za-z]{4}$", part) and not script and not region:
+                script = part[0].upper() + part[1:].lower()
+            elif re.match(r"^(?:[A-Za-z]{2}|\d{3})$", part) and not region:
+                region = part.upper()
+            else:
+                return None
+    else:
+        match = re.match(r"^([a-z]{2,3})(?:-r([A-Z]{2}))?$", qualifier)
+        if not match:
+            return None
+        language, script, region = match.group(1), "", match.group(2) or ""
+    return MODERN_LANGUAGE.get(language, language), script, region
+
+
+def folder_locale_problems(folder):
+    parsed = folder_locale(folder)
+    if parsed is None:
+        return ["folder %s is not a plain language folder (values-ll, values-ll-rRR or values-b+ll+Ssss+RR, "
+                "with no other qualifier)" % folder]
+    language, _, region = parsed
+    if region.isdigit() or region in PARENT_REGIONS.get(language, ()):
+        return ["folder %s names a region other regions inherit from (CLDR parentLocales); AndroidText's plural "
+                "folder resolution does not model region parents (see l10n/README.md)" % folder]
+    return []
 
 
 TEXT_ELEMENTS = ("string", "plurals", "string-array")
@@ -549,6 +608,70 @@ def check_text_folders(res_dir, languages, display_root=None):
                                 "folders from l10n/lang/*.tsv (not English) may hold text" % (
                                     display, ", ".join(names[:3]) + (" ..." if len(names) > 3 else ""), folder, folder))
     return problems
+
+
+# script is the one the folder name gives ("" when it names none); writing is the l10n/lang script when it does not.
+Folder = collections.namedtuple("Folder", "name tag language script region writing")
+
+
+def load_folder_plurals(res_dir, languages, entries, display_root=None):
+    """(folders, held): the language folders under res_dir that hold an English plural key, and for each such key
+    the folders that hold it with their items, [(folder index, [(quantity, text), ...])].
+
+    AndroidText decides from this which folder Android serves a plural from, and so whose plural rules apply
+    (plan section 1.3). A text is None when aapt would store it differently from how it is written (AndroidText
+    then keeps Android's own choice). Raises CatalogError when two folders could serve a key and AndroidText could
+    not tell which one Android picks.
+    """
+    plural_names = set(e.name for e in entries if e.kind == "plural")
+    folders, held, problems = [], collections.OrderedDict(), []
+    for lang in languages:
+        directory = os.path.join(res_dir, lang.folder)
+        parsed = folder_locale(lang.folder)
+        if lang.folder == "values" or parsed is None or not os.path.isdir(directory):
+            continue
+        found = collections.OrderedDict()
+        for filename in sorted(os.listdir(directory)):
+            if not filename.endswith(".xml"):
+                continue
+            path = os.path.join(directory, filename)
+            display = os.path.relpath(path, display_root) if display_root else path
+            try:
+                root = _parse_xml(path)
+            except CatalogError as error:
+                problems.extend(error.problems)
+                continue
+            for node in (root.children if root is not None else []):
+                if isinstance(node, str) or _local(node.tag) != "plurals" or node.attrs.get("name") not in plural_names:
+                    continue
+                items = []
+                for child in node.children:
+                    if isinstance(child, str) or _local(child.tag) != "item":
+                        continue
+                    ignored = []  # per item: one item's markup must not blank its plain siblings
+                    text, item_problems, _ = decode_resource_text(_flatten(child, display, ignored))
+                    items.append((child.attrs.get("quantity", ""), None if item_problems or ignored else text))
+                found[node.attrs["name"]] = items
+        if not found:
+            continue
+        folders.append(Folder(lang.folder, lang.tag, parsed[0], parsed[1], parsed[2], parsed[1] or lang.script))
+        for name, items in found.items():
+            held.setdefault(name, []).append((len(folders) - 1, items))
+    for name, holders in held.items():
+        groups = collections.OrderedDict()
+        for index, _ in holders:
+            folder = folders[index]
+            groups.setdefault((folder.language, folder.writing), []).append(folder)
+        for group in groups.values():
+            regional = [f.name for f in group if f.region]
+            if len(regional) > 1 and all(f.region for f in group):
+                problems.append("%s: plural %s is in %s but not in their language's folder without a region; Android "
+                                "would pick one of them for any other region by CLDR region distance, which "
+                                "AndroidText does not model, so add it there too" % (
+                                    res_dir, name, ", ".join(regional)))
+    if problems:
+        raise CatalogError(problems)
+    return folders, held
 
 
 # ---------------------------------------------------------------------------
@@ -690,6 +813,56 @@ def gen_t(entries, package):
            "        return isFormatted(id) ? String.format(Locale.ROOT, text, args) : text;",
            "    }",
            "",
+           "    /**",
+           "     * Which plural item Android serves (plan section 1.3). Resources.getQuantityString picks an item by the",
+           "     * plural rules of the configuration's first locale, and falls back to \"other\" when the resources lack",
+           "     * that item, even while it serves another language's text: on a phone whose only language is Thai the",
+           "     * English default would say \"1 minutes\", and on a Russian one \"21 minute\". AndroidText asks",
+           "     * standIn for a quantity that makes Android serve the item the served language's own rules choose.",
+           "     * Pure Java, so the JVM tests check it with any rules.",
+           "     */",
+           "    public static final class Plurals {",
+           "        private Plurals() {}",
+           "",
+           "        /** A language's plural rules: the CLDR category (zero, one, two, few, many, other) of a quantity. */",
+           "        public interface Rule { String select(long quantity); }",
+           "",
+           "        /** English as EnglishText reads it: \"one\" for exactly 1, \"other\" for every other quantity. */",
+           "        public static final Rule ENGLISH = new Rule() {",
+           "            @Override public String select(long quantity) { return quantity == 1 ? \"one\" : \"other\"; }",
+           "        };",
+           "        /** The items an English plural has (gen_catalog.py refuses any other in res/values). */",
+           "        static final String[] ENGLISH_ITEMS = {\"one\", \"other\"};",
+           "        /** standIn's answer when no int quantity makes Android serve the wanted item. */",
+           "        public static final long NONE = Long.MIN_VALUE;",
+           "",
+           "        /** The item Android serves for a category: that item when the text has it, else \"other\". */",
+           "        static String item(String category, String[] items) {",
+           "            for (String item : items) if (item.equals(category)) return item;",
+           "            return \"other\";",
+           "        }",
+           "",
+           "        /** The item the served language's rules choose for quantity, as the served text has it. */",
+           "        public static String wanted(long quantity, Rule served, String[] items) {",
+           "            return item(served.select(quantity), items);",
+           "        }",
+           "",
+           "        /**",
+           "         * A quantity for Resources.getQuantityString that serves the item served (with the served text's",
+           "         * items) chooses for quantity, when Android selects by android: quantity itself whenever it already",
+           "         * does (so a phone whose first language has the served language's rules passes what it always",
+           "         * did), else the first of 0 to 199 and the powers of ten from 1000 that does, else NONE.",
+           "         */",
+           "        public static long standIn(long quantity, Rule served, String[] items, Rule android) {",
+           "            String want = wanted(quantity, served, items);",
+           "            long same = Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, quantity));",
+           "            if (item(android.select(same), items).equals(want)) return same;",
+           "            for (long n = 0; n < 200; n++) if (item(android.select(n), items).equals(want)) return n;",
+           "            for (long n = 1000; n <= 1000000000L; n *= 10) if (item(android.select(n), items).equals(want)) return n;",
+           "            return NONE;",
+           "        }",
+           "    }",
+           "",
            "    /** Renders a plural id for a quantity now. */",
            "    public static String renderPlural(int id, long quantity, Object... args) {",
            "        if (!isPlural(id)) throw new IllegalArgumentException(key(id) + \" is not a plural\");",
@@ -794,16 +967,51 @@ def gen_english(entries, package):
     return "\n".join(out) + "\n"
 
 
-def gen_android(entries, tag, package):
+def _java_strings(values):
+    return "{" + ", ".join("null" if v is None else java_string(v) for v in values) + "}"
+
+
+def gen_android(entries, tag, package, folders=(), held=None):
+    held = held or {}
     fills = ["IDS[%d] = R.%s.%s;" % (i, "plurals" if e.kind == "plural" else "string", e.name)
              for i, e in enumerate(entries)]
+    for i, entry in enumerate(entries):
+        holders = held.get(entry.name) if entry.kind == "plural" else None
+        if not holders:
+            continue
+        fills.append("HELD[%d] = new int[]{%s};" % (i, ", ".join(str(index) for index, _ in holders)))
+        fills.append("HELD_ITEMS[%d] = new String[][]{%s};" % (
+            i, ", ".join(_java_strings([q for q, _ in items]) for _, items in holders)))
+        fills.append("HELD_TEXTS[%d] = new String[][]{%s};" % (
+            i, ", ".join(_java_strings([t for _, t in items]) for _, items in holders)))
     chunks = _chunks(fills)
     language = ("AppLanguages.resolve(resources.getString(R.string.%s))" % TAG_KEY) if tag else "AppLanguages.ENGLISH"
     out = [HEADER, "package %s;\n" % package,
-           "import android.content.res.Resources;\n",
-           "/** Catalog text from Android resources. Lookups are R constants, checked at compile time. */",
+           "import android.content.res.Resources;",
+           "import java.util.Arrays;",
+           "import java.util.Locale;\n",
+           "/**",
+           " * Catalog text from Android resources. Lookups are R constants, checked at compile time. A plural's item is",
+           " * the one the plural rules of the folder Android serves it from choose (English rules for res/values, also",
+           " * where a language folder leaves the key out), not the one the configuration's first locale would choose",
+           " * (see T.Plurals).",
+           " */",
            "public final class AndroidText implements T.Source {",
            "    private static final int[] IDS = new int[T.SIZE];",
+           "    /**",
+           "     * The res/values-* language folders that hold a plural (gen_catalog.py reads them at build time): the",
+           "     * l10n/lang tag whose plural rules their text follows, and the language (modern code), script (\"\" when",
+           "     * the folder name gives none) and region of the folder name.",
+           "     */",
+           "    private static final String[] FOLDER_TAGS = %s;" % _java_strings([f.tag for f in folders]),
+           "    private static final String[] FOLDER_LANGUAGES = %s;" % _java_strings([f.language for f in folders]),
+           "    private static final String[] FOLDER_SCRIPTS = %s;" % _java_strings([f.script for f in folders]),
+           "    private static final String[] FOLDER_REGIONS = %s;" % _java_strings([f.region for f in folders]),
+           "    /** Per plural id, the folders that hold it (FOLDER_* indices), null when only res/values does. */",
+           "    private static final int[][] HELD = new int[T.SIZE][];",
+           "    /** The items each of those folders has: quantity names, and texts (null when aapt stores it otherwise). */",
+           "    private static final String[][][] HELD_ITEMS = new String[T.SIZE][][];",
+           "    private static final String[][][] HELD_TEXTS = new String[T.SIZE][][];",
            "    static {"]
     out.extend("        fill%d();" % i for i in range(len(chunks)))
     out += ["    }",
@@ -822,7 +1030,108 @@ def gen_android(entries, tag, package):
             "    @Override public String plural(int id, long quantity) {",
             "        if (id < 0 || id >= T.SIZE || !T.isPlural(id)) return null;",
             "        int q = (int) Math.max(Integer.MIN_VALUE, Math.min(Integer.MAX_VALUE, quantity));",
-            "        return resources.getQuantityString(IDS[id], q);",
+            "        String served = served(id, quantity, q);",
+            "        return served != null ? served : resources.getQuantityString(IDS[id], q);",
+            "    }",
+            "",
+            "    /**",
+            "     * The plural item the rules of the folder Android serves the key from choose, or null to keep Android's",
+            "     * own choice. Android selects by the plural rules of the configuration's first locale",
+            "     * (ResourcesImpl.getPluralRule), so this asks for a stand-in quantity that makes it serve the wanted item.",
+            "     * The folder comes from the build-time table of folders that hold the key (see folder), never from the",
+            "     * text: a translation whose items equal English's (French \"%1$d watt\") still takes its own rules. Text",
+            "     * that is not one of that folder's items means the table does not describe these resources (a",
+            "     * pseudo-locale build, an Android that resolves differently), and Android's choice stands. When no",
+            "     * stand-in exists (the first locale has no such category: \"one\" on a Thai or Japanese phone), the",
+            "     * English default comes from EnglishText, which tools/l10n/roundtrip.py proves is what aapt compiled;",
+            "     * other text keeps Android's.",
+            "     */",
+            "    private String served(int id, long quantity, int q) {",
+            "        try {",
+            "            Locale first = resources.getConfiguration().getLocales().get(0);",
+            "            if (first == null) return null;",
+            "            String shown = resources.getQuantityString(IDS[id], q);",
+            "            int k = folder(id, first);",
+            "            T.Plurals.Rule rules = T.Plurals.ENGLISH;",
+            "            String[] items = T.Plurals.ENGLISH_ITEMS;",
+            "            if (k < 0) {",
+            "                if (!shown.equals(EnglishText.INSTANCE.plural(id, 0)) && !shown.equals(EnglishText.INSTANCE.plural(id, 1))) return null;",
+            "            } else {",
+            "                if (!Arrays.asList(HELD_TEXTS[id][k]).contains(shown)) return null;",
+            "                rules = icu(Locale.forLanguageTag(FOLDER_TAGS[HELD[id][k]]));",
+            "                items = HELD_ITEMS[id][k];",
+            "            }",
+            "            long n = T.Plurals.standIn(quantity, rules, items, icu(first));",
+            "            if (n == q) return shown;",
+            "            if (n != T.Plurals.NONE) return resources.getQuantityString(IDS[id], (int) n);",
+            "            return k < 0 ? EnglishText.INSTANCE.plural(id, quantity) : shown;",
+            "        } catch (RuntimeException error) {",
+            "            return null;",
+            "        }",
+            "    }",
+            "",
+            "    /**",
+            "     * Which folder Android serves plural id from under locale, as an index into HELD[id], or -1 for res/values.",
+            "     * The locale is the configuration's first, the one Android resolves every resource with: when the phone",
+            "     * lists several languages, ResourcesImpl.updateConfiguration moves the first one Volt has resources for",
+            "     * (LocaleList.getFirstMatchWithEnglishSupported) to the front. A key that locale's folders lack comes",
+            "     * from res/values, never from a later language of the list. Among the folders that hold the key, as",
+            "     * ResTable_config::match and isLocaleBetterThan pick: the language must be the locale's; the scripts",
+            "     * (given or likely) must agree, or, when either is unknown, a folder's region must be the locale's; then",
+            "     * the folder of the locale's region beats the one without a region, which beats another region",
+            "     * (pt-PT is served values-pt-rBR's text when values-pt lacks the key). gen_catalog.py refuses the",
+            "     * folders this cannot rank (CLDR parent regions, two regions without the region-less folder).",
+            "     */",
+            "    static int folder(int id, Locale locale) {",
+            "        int[] held = HELD[id];",
+            "        if (held == null) return -1;",
+            "        String language = modern(locale.getLanguage());",
+            "        String region = locale.getCountry();",
+            "        String script = script(locale.getScript(), language, region);",
+            "        int best = -1, bestRank = -1;",
+            "        for (int k = 0; k < held.length; k++) {",
+            "            int f = held[k];",
+            "            if (!FOLDER_LANGUAGES[f].equals(language)) continue;",
+            "            String folderScript = script(FOLDER_SCRIPTS[f], FOLDER_LANGUAGES[f], FOLDER_REGIONS[f]);",
+            "            if (script.isEmpty() || folderScript.isEmpty()) {",
+            "                if (!FOLDER_REGIONS[f].isEmpty() && !FOLDER_REGIONS[f].equals(region)) continue;",
+            "            } else if (!folderScript.equals(script)) {",
+            "                continue;",
+            "            }",
+            "            int rank = FOLDER_REGIONS[f].equals(region) ? 2 : FOLDER_REGIONS[f].isEmpty() ? 1 : 0;",
+            "            if (rank > bestRank) { best = k; bestRank = rank; }",
+            "        }",
+            "        return best;",
+            "    }",
+            "",
+            "    /** The language code Android compares (Locale.adjustLanguageCode and langsAreEquivalent), modern spelling. */",
+            "    private static String modern(String language) {",
+            "        switch (language) {",
+            "            case \"in\": return \"id\";",
+            "            case \"iw\": return \"he\";",
+            "            case \"ji\": return \"yi\";",
+            "            case \"tl\": return \"fil\";",
+            "            default: return language;",
+            "        }",
+            "    }",
+            "",
+            "    /** The given script, else the likely one for the language and region (\"\" when ICU has none). */",
+            "    private static String script(String given, String language, String region) {",
+            "        if (!given.isEmpty()) return given;",
+            "        try {",
+            "            String tag = region.isEmpty() ? language : language + \"_\" + region;",
+            "            return android.icu.util.ULocale.addLikelySubtags(new android.icu.util.ULocale(tag)).getScript();",
+            "        } catch (RuntimeException error) {",
+            "            return \"\";",
+            "        }",
+            "    }",
+            "",
+            "    /** Android's plural rules for a locale, as ResourcesImpl.getPluralRule builds them (API 24 and later). */",
+            "    private static T.Plurals.Rule icu(Locale locale) {",
+            "        final android.icu.text.PluralRules rules = android.icu.text.PluralRules.forLocale(locale);",
+            "        return new T.Plurals.Rule() {",
+            "            @Override public String select(long quantity) { return rules.select(quantity); }",
+            "        };",
             "    }",
             "",
             "    /** The resolved language, parsed defensively: anything that is not an exact shipped tag is English. */",
@@ -899,6 +1208,7 @@ def generate(res_dir, lang_dir, out_dir, tsv_path, android, package=PACKAGE, dis
     folder_problems = check_text_folders(res_dir, languages, display_root)
     if folder_problems:
         raise CatalogError(folder_problems)
+    folders, held = load_folder_plurals(res_dir, languages, entries, display_root)
     written = []
     if out_dir:
         java_dir = os.path.join(out_dir, *package.split("."))
@@ -906,7 +1216,7 @@ def generate(res_dir, lang_dir, out_dir, tsv_path, android, package=PACKAGE, dis
                  "EnglishText.java": gen_english(entries, package),
                  "AppLanguages.java": gen_languages(languages, package)}
         if android:
-            files["AndroidText.java"] = gen_android(entries, tag, package)
+            files["AndroidText.java"] = gen_android(entries, tag, package, folders, held)
         for name, text in sorted(files.items()):
             path = os.path.join(java_dir, name)
             l10nlib.write_text(path, text)
@@ -933,9 +1243,11 @@ def main(argv=None):
     try:
         if args.check:
             entries, tag = load_catalog(os.path.join(args.res, "values"), root)
-            folder_problems = check_text_folders(args.res, load_languages(args.lang), root)
+            languages = load_languages(args.lang)
+            folder_problems = check_text_folders(args.res, languages, root)
             if folder_problems:
                 raise CatalogError(folder_problems)
+            load_folder_plurals(args.res, languages, entries, root)
             written = []
         else:
             entries, tag, written = generate(args.res, args.lang, args.out, args.tsv, args.android, args.package, root)

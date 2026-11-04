@@ -51,6 +51,25 @@ class RepositoryFilesTest(unittest.TestCase):
             if name.endswith(".tsv"):
                 ledger_check.parse_ledger(l10nlib.read_text(os.path.join(directory, name)), name)
 
+    def test_golden_reports_see_the_catalog_and_stay_off_it(self):
+        """G9: the classes the reports reach may use T, M and Msg, so golden.sh compiles GoldenReports with the
+        generated catalog on the sourcepath (B3, B4, B5 and B9 could not otherwise touch Telemetry, ModelRegistry,
+        ChargeScheduleController or GuidedTest); the reports themselves must still come out the same with a
+        non-English text source and with one that throws on any use."""
+        script = l10nlib.read_text(os.path.join(ROOT, "tests", "l10n", "golden.sh"))
+        self.assertIn('gen_catalog.py" --res "$APP_DIR/res" --lang "$APP_DIR/l10n/lang" --out "$WORK/gen"', script)
+        code = "\n".join(line for line in script.splitlines() if not line.lstrip().startswith("#"))
+        self.assertNotIn("--android", code)
+        self.assertIn('-sourcepath "$APP_DIR/src:$WORK/gen"', script)
+        self.assertIn("for text in foreign throwing; do", script)
+        self.assertIn('com.jjricks.volt.GoldenReports "$out" "$text"', script)
+        self.assertIn('elif ! diff -r "$first" "$out"', script)
+        reports = l10nlib.read_text(os.path.join(ROOT, "tests", "l10n", "GoldenReports.java"))
+        self.assertIn('T.install(textSource(args.length == 2 ? args[1] : "english"));', reports)
+        for source in ('case "foreign"', 'case "throwing"', 'public String language() { return "de"; }',
+                       'throw new AssertionError("a report read catalog text "'):
+            self.assertIn(source, reports)
+
     def test_baselines_parse_and_name_real_files(self):
         # Baselines only shrink as batches convert files, so this checks their shape, not their number.
         sources = set(hardcoded_lint.baseline_name(p) for p in hardcoded_lint.source_files(ROOT))
