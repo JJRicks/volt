@@ -25,6 +25,12 @@ must be covered by exactly one new row in the batch's ledger, l10n/ledger/<batch
                            A compiled test under tests/l10n/ must call each Fmt method it passes
                            (G10's parity); every format row is listed, with the tests calling the
                            method that held it, or a note that none does
+  choice                   a + chain holding a parenthesized ternary (or chosen on by an id test,
+                           "On".equals(value)) becomes a ternary between whole templates: the pieces
+                           are {"if", "then", "else"} with one key per branch (the key column, then
+                           before else, joined by commas); each branch must be the base expression
+                           with its conditions forced, and head must hold the same conditions with
+                           each branch one call of its key; every choice row is listed
   removed                  the code was deleted: the changed lines holding it only lose tokens, and
                            the whole statement holding it is gone (not just the literal and its +);
                            when its enclosing block (an if, a method) went too, every other
@@ -66,7 +72,11 @@ declared in a private type itself or in a local type) whose initializer becomes 
 turning CharSequence (for a deferred M call), with the code around every use of the variable in
 its file; and a legacy locale wrapped for Fmt (Locale.US becoming Fmt.locale(Locale.US)) outside
 CatalogUsageTest.ENGLISH_ONLY files and the plan's data-tier files (DATA_TIER), which needs a
-compiled tests/l10n/ test calling Fmt.locale (G10).
+compiled tests/l10n/ test calling Fmt.locale (G10). Three more are allowed and listed (gates round 3b):
+a throw switching to a src subclass that keeps getMessage() English (exception_retype), a private
+method's String parameter becoming Msg or CharSequence when every caller passes a catalog call
+(parameter_retypes), and Locale.US becoming Locale.ROOT in a String.format whose pattern prints the
+same in both (locale_swaps). A plural row's pieces may model a helper call (HELPER_MODELS).
 
 Ledger format: a TSV with the header
 
@@ -145,6 +155,9 @@ def _check_sequence(sequence, where):
             if set(piece) != {"char"} or not isinstance(piece["char"], str) or len(piece["char"]) != 1:
                 raise LedgerError("%s: a char piece is {\"char\": \"x\"}" % where)
             continue
+        if "helper" in piece:
+            _check_helper(piece, where)
+            continue
         if not isinstance(piece.get("hole"), str) or not piece["hole"].strip():
             raise LedgerError("%s: a hole needs \"hole\": the Java source of the value" % where)
         if not isinstance(piece.get("arg"), int) or piece["arg"] < 1:
@@ -156,6 +169,83 @@ def _check_sequence(sequence, where):
         extra = set(piece) - {"hole", "arg", "type", "quantity", "as"}
         if extra:
             raise LedgerError("%s: unknown hole field(s) %s" % (where, ", ".join(sorted(extra))))
+
+
+# Helpers whose output a plural row may model (B10's BackupArchive.plural): the parameter types, the exact
+# body tokens with {0}, {1} for the parameter names, and what each argument of the row's call must be
+# ("count": a whole-number hole, "text": a string literal or a text hole). G1 requires the helper's
+# declaration in the row's file at the merge base to be exactly this; tests/l10n/LedgerTest evaluates the
+# same model (LedgerTest.helper) with the sentinel quantities.
+HELPER_MODELS = {
+    "count_noun": ((("int", "long"), ("String",)),
+                   'return {0} + " " + {1} + ( {0} == 1 ? "" : "s" ) ;',
+                   ("count", "text")),
+}
+
+
+def _check_helper(piece, where):
+    if set(piece) != {"helper", "model", "args"} or not isinstance(piece["helper"], str) or \
+            not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", piece["helper"]) or not isinstance(piece["args"], list):
+        raise LedgerError("%s: a helper piece is {\"helper\": <method name>, \"model\": <one of %s>, \"args\": [...]}" % (
+            where, ", ".join(sorted(HELPER_MODELS))))
+    model = HELPER_MODELS.get(piece["model"])
+    if model is None:
+        raise LedgerError("%s: unknown helper model %r (known: %s)" % (where, piece["model"], ", ".join(sorted(HELPER_MODELS))))
+    if len(piece["args"]) != len(model[2]):
+        raise LedgerError("%s: helper model %s takes %d argument(s)" % (where, piece["model"], len(model[2])))
+    for arg, want in zip(piece["args"], model[2]):
+        if isinstance(arg, str):
+            if want != "text":
+                raise LedgerError("%s: helper model %s takes a whole-number hole there, not the text %r" % (
+                    where, piece["model"], arg))
+            continue
+        _check_sequence([arg], where)
+        if "hole" not in arg or (want == "count") != (arg["type"] == "d"):
+            raise LedgerError("%s: helper model %s's %s argument is a %s hole" % (
+                where, piece["model"], want, "whole-number (type d)" if want == "count" else "text (type s)"))
+
+
+def helper_source(piece):
+    """The Java call a helper piece stands for: plural(skipped, "scooter")."""
+    return "%s(%s)" % (piece["helper"], ", ".join(
+        l10nlib.json_string(a) if isinstance(a, str) else a["hole"] for a in piece["args"]))
+
+
+def helper_pieces(pieces):
+    """The helper pieces of a row, once each (plural forms repeat them)."""
+    found = []
+    for p in (p for s in sequences(pieces) for p in s if isinstance(p, dict) and "helper" in p):
+        if p not in found:
+            found.append(p)
+    return found
+
+
+def helper_problem(piece, index):
+    """None when the file at the merge base declares the helper exactly as its model says, else why."""
+    model = HELPER_MODELS[piece["model"]]
+    tokens = index.tokens
+    found = []
+    for k, opener, close, first in method_declarations(tokens):
+        params = _parameter_type_tokens(tokens, opener, close)
+        if tokens[k].value == piece["helper"] and len(params) == len(model[0]):
+            found.append((k, opener, close, params))
+    if len(found) != 1:
+        return "helper %s(...) with %d parameter(s) is declared %d time(s) in the file at the merge base, not once" % (
+            piece["helper"], len(model[0]), len(found))
+    k, opener, close, params = found[0]
+    for (type_token, _), allowed in zip(params, model[0]):
+        if type_token is None or tokens[type_token].value not in allowed:
+            return "helper %s's parameters are not (%s)" % (piece["helper"], ", ".join("|".join(a) for a in model[0]))
+    body = close + 1
+    while body < len(tokens) and tokens[body].value != "{":
+        body += 1
+    end = expressions.match_brace(tokens, body)
+    want = [t.raw for t in l10nlib.lex_java(model[1].format(*[name for _, name in params]))]
+    got = [t.raw for t in tokens[body + 1:end]]
+    if got != want:
+        return "helper %s's body is `%s`, not model %s's `%s`" % (piece["helper"], " ".join(got), piece["model"],
+                                                                  " ".join(want))
+    return None
 
 
 # A java.util.Formatter specifier: %[index$][flags][width][.precision]conversion. %% and %n take no argument.
@@ -304,19 +394,29 @@ def sequences(pieces):
 
 
 def literal_counts(pieces):
-    """The string literals an expression consumed, as a Counter.
+    """The string literals an expression consumed, as a Counter (a helper call's literal arguments too).
 
     For plural forms a literal shared by several forms counts once (the per-value maximum).
     """
     total = collections.Counter()
     for sequence in sequences(pieces):
-        for value, count in collections.Counter(p for p in sequence if isinstance(p, str)).items():
+        flat = [p for p in sequence if isinstance(p, str)] + [
+            a for p in sequence if isinstance(p, dict) and "helper" in p for a in p["args"] if isinstance(a, str)]
+        for value, count in collections.Counter(flat).items():
             total[value] = max(total[value], count)
     return total
 
 
 def holes(pieces):
-    return [p for s in sequences(pieces) for p in s if isinstance(p, dict) and "hole" in p]
+    """Every hole of the pieces, with those inside a helper call's arguments."""
+    found = []
+    for s in sequences(pieces):
+        for p in s:
+            if isinstance(p, dict) and "hole" in p:
+                found.append(p)
+            elif isinstance(p, dict) and "helper" in p:
+                found.extend(a for a in p["args"] if isinstance(a, dict) and "hole" in a)
+    return found
 
 
 def parse_ledger(text, source="ledger"):
@@ -507,7 +607,8 @@ def render_simple(template, pieces):
     None when the template uses other conversions (tests/l10n/LedgerTest covers those with Java's formatter).
     """
     found = [p for p in pieces if isinstance(p, dict) and "hole" in p]
-    if any(h["type"] != "s" for h in found) or re.search(r"%(?!(\d+\$s|%))", template):
+    if any(h["type"] != "s" for h in found) or re.search(r"%(?!(\d+\$s|%))", template) or \
+            any(isinstance(p, dict) and "helper" in p for p in pieces):
         return None
     sentinel = {h["arg"]: chr(1) + chr(64 + h["arg"]) for h in found}
 
@@ -695,7 +796,27 @@ def locate(row, diff, claimed):
                 gone = all(k in diff.gone for k in e.tokens)
                 return (free, gone == (row.kind in MOVING))
             best = max(candidates, key=score)
-            return list(best.tokens), False, None
+            found = list(best.tokens)
+            names = set(p["helper"] for p in helper_pieces(row.pieces))
+            if names:
+                # A helper call's literal arguments (plural(n, "scooter")) leave with the expression.
+                tokens = index.tokens
+                for j in range(best.span[0], best.span[1] + 1):
+                    if tokens[j].kind == "string" and j not in found and _op(tokens, j - 1, "(", ",") and \
+                            _op(tokens, j + 1, ")", ","):
+                        depth, o = 0, j - 1
+                        while o >= 0:
+                            if _op(tokens, o, ")"):
+                                depth += 1
+                            elif _op(tokens, o, "("):
+                                if depth == 0:
+                                    break
+                                depth -= 1
+                            o -= 1
+                        if o > 0 and tokens[o - 1].kind == "ident" and tokens[o - 1].value in names and \
+                                not _op(tokens, o - 2, "."):
+                            found.append(j)
+            return sorted(found), False, None
     if row.kind == "format":
         on_line = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
                    if e.first_line <= row.base_line <= e.last_line]
@@ -3117,6 +3238,14 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 shown.add((first, last))
                 warnings.append("%s: removed row at %s:%d deletes `%s`; check by hand that no screen showed this "
                                 "text" % (where, row.path, row.base_line, _excerpt(diff.base.tokens[first:last + 1], None)))
+        for piece in helper_pieces(row.pieces):
+            problem = helper_problem(piece, diff.base)
+            if problem:
+                problems.append("%s: %s" % (where, problem))
+            else:
+                warnings.append("%s: at %s:%d `%s` is modelled as %s (its declaration matches the model token for token); "
+                                "G2 renders the row's forms against that model's output at each sentinel quantity" % (
+                                    where, row.path, row.base_line, helper_source(piece), piece["model"]))
         if is_manual:
             warnings.append("%s: manual row at %s:%d; check its pieces, and the statement around its call, by hand: %s" % (
                 where, row.path, row.base_line, json.dumps(row.pieces, ensure_ascii=False)))

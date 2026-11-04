@@ -55,7 +55,10 @@ public final class LedgerTest {
                         // Each branch is a whole template of its own key (G1 proved it is the base expression with
                         // its conditions forced); render each one with sentinels.
                         String[] keys = row.get("key").split(",", -1);
-                        List<Object> leaves = new ArrayList<>();
+                        Object readings = L10nFiles.json("[\"Readings for \", {\"helper\": \"plural\", \"model\": \"count_noun\", \"args\": [{\"hole\": \"n\", \"arg\": 1, \"type\": \"d\", \"quantity\": true}, \"scooter\"]}, \" skipped\"]");
+        check(evaluate(readings, 1).equals("Readings for 1 scooter skipped") && evaluate(readings, 2).equals("Readings for 2 scooters skipped"),
+                "a count_noun helper prints its count, a space and the noun, with an s unless the count is 1");
+        List<Object> leaves = new ArrayList<>();
                         branches(L10nFiles.json(row.get("pieces")), leaves);
                         check(keys.length == leaves.size(), where + ": " + keys.length + " keys for " + leaves.size() + " branches");
                         for (int i = 0; i < keys.length; i++) {
@@ -99,6 +102,9 @@ public final class LedgerTest {
         check(compare(ids.get("common_cancel"), "exact", L10nFiles.json("[\"Cancel it\"]"), changed).isEmpty(), "a recorded English change is undone first");
         check(evaluate(L10nFiles.json("[\"x\", {\"hole\": \"n\", \"arg\": 1, \"type\": \"d\"}, {\"char\": \"!\"}]"), 0).equals("x1234567!"),
                 "whole numbers and char pieces evaluate as Java's + does");
+        Object readings = L10nFiles.json("[\"Readings for \", {\"helper\": \"plural\", \"model\": \"count_noun\", \"args\": [{\"hole\": \"n\", \"arg\": 1, \"type\": \"d\", \"quantity\": true}, \"scooter\"]}, \" skipped\"]");
+        check(evaluate(readings, 1).equals("Readings for 1 scooter skipped") && evaluate(readings, 2).equals("Readings for 2 scooters skipped"),
+                "a count_noun helper prints its count, a space and the noun, with an s unless the count is 1");
         List<Object> leaves = new ArrayList<>();
         branches(L10nFiles.json("{\"if\": \"a\", \"then\": [\"x\"], \"else\": {\"if\": \"b\", \"then\": [\"y\"], \"else\": [\"z\"]}}"), leaves);
         check(leaves.size() == 3 && evaluate(leaves.get(0), 0).equals("x") && evaluate(leaves.get(2), 0).equals("z"),
@@ -242,17 +248,45 @@ public final class LedgerTest {
             if (piece instanceof String) { out.append((String) piece); continue; }
             Map<?, ?> hole = (Map<?, ?>) piece;
             if (hole.containsKey("char")) { out.append((String) hole.get("char")); continue; }
+            if (hole.containsKey("helper")) { out.append(helper(hole, quantity)); continue; }
             out.append(String.valueOf(sentinel(hole, quantity)));
         }
         return out.toString();
+    }
+
+    /**
+     * What a modelled helper call prints (tools/l10n/ledger_check.py HELPER_MODELS, whose declaration G1
+     * matched token for token at the merge base): count_noun is BackupArchive.plural's
+     * {@code count + " " + noun + (count == 1 ? "" : "s")}.
+     */
+    static String helper(Map<?, ?> piece, long quantity) {
+        List<?> args = (List<?>) piece.get("args");
+        Object[] values = new Object[args.size()];
+        for (int i = 0; i < values.length; i++) values[i] = args.get(i) instanceof Map ? sentinel((Map<?, ?>) args.get(i), quantity) : args.get(i);
+        if ("count_noun".equals(piece.get("model"))) {
+            long count = ((Number) values[0]).longValue();
+            return count + " " + values[1] + (count == 1 ? "" : "s");
+        }
+        throw new AssertionError("unknown helper model " + piece.get("model"));
+    }
+
+    /** The holes of one form, with those inside a helper call's arguments. */
+    private static List<Map<?, ?>> holes(Object pieces) {
+        List<Map<?, ?>> found = new ArrayList<>();
+        for (Object piece : (List<?>) pieces) {
+            if (!(piece instanceof Map)) continue;
+            Map<?, ?> map = (Map<?, ?>) piece;
+            if (map.containsKey("hole")) found.add(map);
+            if (map.containsKey("helper")) for (Object arg : (List<?>) map.get("args")) if (arg instanceof Map) found.add((Map<?, ?>) arg);
+        }
+        return found;
     }
 
     /** Placeholder arguments in index order for the holes of one form. */
     private static Object[] arguments(Object pieces, long quantity) {
         Map<Integer, Object> byArg = new HashMap<>();
         int max = 0;
-        for (Object piece : (List<?>) pieces) {
-            if (!(piece instanceof Map) || !((Map<?, ?>) piece).containsKey("hole")) continue;
+        for (Object piece : holes(pieces)) {
             Map<?, ?> hole = (Map<?, ?>) piece;
             if (!hole.containsKey("arg")) continue;
             int arg = ((Long) hole.get("arg")).intValue();

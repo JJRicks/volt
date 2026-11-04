@@ -475,5 +475,67 @@ class ChoiceRowTest(GrammarCase):
             self.assertIn(needle, str(caught.exception))
 
 
+# ---------------------------------------------------------------------------
+# 5. A plural row through a modelled helper: plural(n, "scooter")
+# ---------------------------------------------------------------------------
+
+ARCHIVE = PKG + "BackupArchive.java"
+HELPER_BODY = 'static String plural(int count, String noun) { return count + " " + noun + (count == 1 ? "" : "s"); }'
+
+
+def readings(noun="scooter", kind="d", model="count_noun"):
+    import json
+    helper = {"helper": "plural", "model": model,
+              "args": [{"hole": "skipped", "arg": 1, "type": kind, "quantity": True}, noun]}
+    form = ["Readings for ", helper, " skipped · not restored"]
+    return ARCHIVE + ":5\t%s\tbackup_readings_skipped\tplural\t" % json.dumps({"one": form, "other": form},
+                                                                              ensure_ascii=False)
+
+
+class HelperPluralTest(GrammarCase):
+    FILES = {ARCHIVE: java_class("BackupArchive", """    static void plan(java.util.List<String> lines, int skipped) {
+        if (skipped > 0) lines.add("Readings for " + plural(skipped, "scooter") + " skipped · not restored");
+    }
+    """ + HELPER_BODY)}
+    STRINGS = """<resources><plurals name="backup_readings_skipped">
+    <item quantity="one">Readings for %1$d scooter skipped · not restored</item>
+    <item quantity="other">Readings for %1$d scooters skipped · not restored</item>
+</plurals></resources>
+"""
+
+    def convert(self):
+        self.edit(ARCHIVE, '"Readings for " + plural(skipped, "scooter") + " skipped · not restored"',
+                  "T.backupReadingsSkipped(skipped, skipped)")
+
+    def test_a_modelled_helper_passes_and_is_listed(self):
+        self.convert()
+        problems, warnings, summary = self.check([readings()])
+        self.assertEqual(problems, [])
+        self.assertTrue(any('`plural(skipped, "scooter")` is modelled as count_noun' in w for w in warnings), warnings)
+        self.assertIn("3 literal(s) left", summary)
+
+    def test_careless_variants_fail(self):
+        self.convert()
+        self.assertFails([readings(noun="ride")], "the pieces do not match the expression on line 5")
+
+    def test_a_helper_that_is_not_the_model_fails(self):
+        for body in (HELPER_BODY.replace('count + " " + noun', "count + noun"),
+                     HELPER_BODY.replace("count == 1", "count <= 1"),
+                     HELPER_BODY.replace("int count", "double count"),
+                     HELPER_BODY + "\n    static String plural(long count, String noun) { return null; }"):
+            with self.subTest(body=body):
+                self.repo.write(ARCHIVE, self.FILES[ARCHIVE].replace(HELPER_BODY, body))
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.base = self.repo.commit("another helper")
+                self.convert()
+                self.assertFails([readings()], "helper plural")
+
+    def test_helper_pieces_parse(self):
+        for row, needle in ((readings(kind="s"), "whole-number (type d)"), (readings(model="plural_s"), "unknown helper model")):
+            with self.assertRaises(ledger_check.LedgerError) as caught:
+                ledger_check.parse_ledger(HEADER + row + "\n")
+            self.assertIn(needle, str(caught.exception))
+
+
 if __name__ == "__main__":
     unittest.main()

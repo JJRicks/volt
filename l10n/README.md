@@ -292,9 +292,9 @@ their own pull request first.
 | Column | Meaning |
 |---|---|
 | `location` | merge-base `file:line` of the expression's first literal, e.g. `src/com/jjricks/volt/Ui.java:812` |
-| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently: `Fmt.<method>(..., <hole>, ...)` is accepted, anything else needs a `manual:` note, and every `as` is listed for the reviewer. For `plural`, an object of English forms: `{"one": [...], "other": [...]}`. For `format`, the split (below) |
-| `key` | the resource key (for `format`, the template), or `-` for `stays-english` and `removed` |
-| `kind` | `exact`, `template`, `plural`, `format`, `id-kept`, `stays-english` or `removed` |
+| `pieces` | JSON: the expression as literal pieces and holes, e.g. `["Move ", {"hole": "title", "arg": 1, "type": "s"}]`. A char literal is `{"char": "x"}`; a plural's quantity hole adds `"quantity": true`; `"as": "<Java>"` names a hole's expression at head when the call passes it differently: `Fmt.<method>(..., <hole>, ...)` is accepted, anything else needs a `manual:` note, and every `as` is listed for the reviewer. For `plural`, an object of English forms: `{"one": [...], "other": [...]}`, whose pieces may hold a modelled helper call (below). For `format`, the split (below). For `choice`, a tree of conditions (below) |
+| `key` | the resource key (for `format`, the template; for `choice`, the branches' keys, then before else, joined by commas), or `-` for `stays-english` and `removed` |
+| `kind` | `exact`, `template`, `plural`, `format`, `choice`, `id-kept`, `stays-english` or `removed` |
 | `note` | free text; `manual: <why>` for a hand-written row |
 
 How `ledger_check.py` (G1) reads it:
@@ -310,6 +310,47 @@ How `ledger_check.py` (G1) reads it:
   `T.render(T.<KEY>, ...)` must pass the holes in placeholder order (a plural's quantity first),
   in the head lines that replaced the literal; each call serves one row, in the base order, so
   keys swapped between converted sites fail.
+- `choice`: a `+` chain that holds a parenthesized ternary, such as
+  `(measured ? "Measured this charge. " : "Planned for a fresh charge. ") + "Charging resumes at " + t`,
+  becoming a ternary between whole templates, `measured ? T.serviceMeasured(t) : T.servicePlanned(t)`
+  (two templates cannot share the `"Charging resumes at "` literal as two rows). The pieces are
+  `{"if": "<condition>", "then": <branch>, "else": <branch>}`, each branch a pieces array (the
+  whole sentence that branch prints) or another such object, and the key column lists one key per
+  branch, then before else: `service_measured,service_planned`. G1 finds the chain (or the
+  parenthesized ternary) whose first text literal is on the row's line, forces each condition true
+  and false and requires each branch's pieces to equal the base expression with its conditions forced
+  (adjacent strings may be joined; holes compared token by token), with no ternary of the base left
+  unresolved in any branch. A condition is either the condition of a ternary in the base expression,
+  token for token, or a test of a data id, `"On".equals(value)` with `value` a plain name: where it
+  holds, a hole that prints `value`, or `value.toLowerCase(Locale.ROOT)` or `toUpperCase` with
+  `Locale.ROOT`, `US` or `ENGLISH` (ASCII only), prints the literal or its case mapping, so
+  `"Is the tail light " + value.toLowerCase(Locale.ROOT) + "?"` can become
+  `"On".equals(value) ? T.qOn() : "Off".equals(value) ? T.qOff() : T.q(value.toLowerCase(Locale.ROOT))`.
+  The tested literal must already be a literal somewhere in `src/` at the merge base (a data id the
+  code has), and each one is listed with where. Every string and char of the chain outside the
+  conditions is the row's and must be gone; the conditions' own literals stay. Head must hold, where
+  the chain was, the same conditions in the same nesting (optionally in parentheses) with each branch
+  one `T.<key>(...)` or `M.<key>(...)` passing that branch's holes in placeholder order, standing
+  where an expression can start and end (after `(`, `=`, `,`, `?`, `:`, `return` and the like; before
+  `)`, `,`, `;`, `:`). Swapped calls, swapped holes, a negated condition, a shared piece kept outside
+  or a branch missing a piece fail. Each key must be a string whose English renders its branch
+  (G1 for plain `%n$s`, G2 for every branch), and every choice row is listed with the base code, the
+  head code and its branches. A numeric sum before the chain's first string is not modelled.
+- A `plural` row's pieces may hold a **modelled helper call**, for a count phrase a helper builds:
+  `"Readings for " + plural(skipped, "scooter") + " skipped · not restored"`, where
+  `BackupArchive.plural(n, noun)` prints `n + " " + noun + (n == 1 ? "" : "s")`, becomes
+  `T.backupReadingsSkipped(skipped, skipped)` with the forms `{"one": ["Readings for ", H,
+  " skipped · not restored"], "other": [the same]}` and `H` =
+  `{"helper": "plural", "model": "count_noun", "args": [{"hole": "skipped", "arg": 1, "type": "d",
+  "quantity": true}, "scooter"]}`. `ledger_check.HELPER_MODELS` names each model's parameter types
+  and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
+  "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
+  exactly so, and the helper call in the base expression to pass the row's arguments; the call's
+  literal arguments (`"scooter"`) belong to the row. G2 (`LedgerTest.helper`) evaluates the same
+  model with the sentinel quantities, so each form is checked against what the helper really printed
+  at 0, 1, 2 and 21. Each modelled call is listed. A helper with any other body (`count()` in
+  BackupArchive, which picks the noun by category) needs a model added in a tooling pull request,
+  with a test, or stays English.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -374,7 +415,7 @@ How `ledger_check.py` (G1) reads it:
   Whole new members (a method or field declared next to converted text, such as B1's
   `labelQuantity` beside `label`) do not run where the text is; they are listed with their code.
   Changes in regions with no text, and around a `stays-english` or `id-kept` move, are listed as
-  warnings. Two more changes are allowed around text, and each is listed:
+  warnings. Five more changes are allowed around text, and each is listed:
   - **String to CharSequence** on the declaration whose initializer is a row's expression and becomes
     the call that serves it: `private String subtitle = "Not reported";` becoming
     `private CharSequence subtitle = M.commonNotReported();` (a deferred `Msg` needs it). The same
@@ -407,6 +448,46 @@ How `ledger_check.py` (G1) reads it:
     was), listed too; any other change at a use, and `.toString()` on another variable, fails. Any
     other type change (to `Object` or `Msg`, CharSequence to String, a neighbouring declaration, a
     modifier) fails.
+  - **A throw switching to an exception that keeps its English** (plan section 1.6):
+    `throw new IOException("Not enough free storage")` becoming
+    `throw new BackupException(BackupException.Code.NO_SPACE, M.backupEngineNoSpace())`, and likewise
+    `IllegalArgumentException` to a `SetupException` or `RuntimeException` to `UserFacingException`.
+    Only around an `exact` or `template` row whose expression was a whole argument of `new X(...)`:
+    the new type `Y` must be one class declared in `src/` at head (a new file is fine) that extends
+    `X`, directly or through other `src/` classes (`extends` clauses by simple name), so every
+    `catch (X e)` still catches it, and `X` must be named like an exception (`...Exception`,
+    `...Error`, `Throwable`). The catalog call must be a deferred `M.<key>(...)` (a `Msg`); the other
+    arguments stay as they were, in order (a cause `e` too), and the only arguments that may join the
+    call are constants of `Y`: an enum constant of an enum `Y` declares (`Code.NO_SPACE`,
+    `BackupException.Code.NO_SPACE`) or a static final field of `Y`. `getMessage()` must stay the
+    English text: every constructor of `Y` the call can pick (same arity, a `Msg` parameter where the
+    call is) must start with `super(msg.english(), ...)` (or `super(english(msg))`, where `english` is
+    a method of the class whose body is `return msg.english();`, optionally after a null check) when
+    `Y`'s superclass is outside `src/`, or pass the `Msg` on whole through `this(...)` or to a
+    `src/` superclass constructor that does the same, as `UserFacingException` does. No class from `Y`
+    up to `X` may declare `getMessage`, `getLocalizedMessage` or `toString`. The warning prints both
+    calls, the chain and the constructors; check by hand that nothing shows or logs the exception
+    itself, since `toString()`, `"" + e` and stack traces now print the new class name. A
+    `T.<key>()` (rendered) argument, a type that is not a subclass, a constructor passing
+    `msg.render()` or nothing, a dropped cause or a non-constant extra argument fail.
+  - **A private method's String parameter becoming `Msg` or `CharSequence`** when its callers now pass
+    catalog calls (B7): `private void simulationUnavailable(String action)` becoming
+    `simulationUnavailable(Msg action)` while each `simulationUnavailable("Bluetooth pairing")` becomes
+    `simulationUnavailable(M.bleSimPairing())`. The method must be `private` (or package-private with
+    no other `src/` file naming it), declared once with that name and arity in the file, and every call
+    of it in the file must pass, at that parameter, a catalog call that serves a ledger row (an `M`
+    call for a `Msg`; `T` or `M` for a `CharSequence`). The warning prints the method, every call site
+    and every use of the parameter in its body (an overload chosen by type, `equals`, or `+` with a
+    String, which renders the `Msg`). A `public` or `protected` method, an overload of the same arity, a
+    caller passing anything else, or another type (`Object`) fails. Away from text such a change is
+    listed as before.
+  - **`Locale.US` becoming `Locale.ROOT` in a `String.format` that prints the same** (plan section
+    4.1 moves data sites such as Telemetry's `String.format(Locale.US, "response_%02x", cmd)` to
+    ROOT): only that one token, in a call head keeps token for token otherwise, whose pattern is a
+    literal with only `%x`, `%X`, `%o`, `%d` and `%s` (flags `-`, `0` or `#`, a width, no precision).
+    `%f`, `%e`, `%g`, a grouping `,`, `%S`, `%c` and the `%t` dates fail with the specifiers named:
+    G1 does not prove what they print in either locale. Each swap is listed; check that every `%s`
+    argument is an id or a string.
   - **A legacy locale wrapped for Fmt** (plan section 4.1): `Locale.US`, `java.util.Locale.US` or
     `Locale.getDefault()` becoming `Fmt.locale(<the same>)`, as in
     `String.format(Fmt.locale(Locale.US), "%.1f", v)` or `toUpperCase(Fmt.locale(Locale.ROOT))`.
@@ -527,6 +608,14 @@ Known limits:
   other file, a data-tier value is found by name only (`Telemetry`, `TelemetryHistory`,
   `putSimulationSample` in the statement) and gets a note, not a failure. A value stored through a
   variable or another helper gets the ordinary display warning, and the reviewer judges it.
+- An exception switched to a subclass is checked for its `extends` chain and constructors by simple
+  name, in `src/` at head; that nothing prints the exception itself (whose `toString()` now names the
+  new class) is the reviewer's to check, from the listing.
+- A `choice` row's branches are proved against the base expression with each condition forced; that
+  the condition reads the same value before the holes run (head evaluates it first) is not checked,
+  and an id test assumes the variable holds exactly the tested literal where `equals` is true.
+- A modelled helper is proved equal to its model token for token at the merge base; a model's Java
+  in `LedgerTest.helper` and its tokens in `HELPER_MODELS` must agree, which their tests check.
 - A private type's field may be retyped only when the private type is the field's own class and no
   `extends` or `implements` clause in its file names it, matched by simple name: a same-named type
   elsewhere in the file is refused too, and so is a field of a non-private class nested in a private
