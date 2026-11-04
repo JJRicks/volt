@@ -6,3 +6,8 @@ src/com/jjricks/volt/GuidedTest.java
 src/com/jjricks/volt/TestJournal.java
 src/com/jjricks/volt/CompatibilityReport.java
 tests/l10n/characterization/CompatibilityTextTest.java
+# B9's own suite: the panel's display accessors against the English the journal, the report and the
+# notices keep, under English and a key-echo text source.
+src/com/jjricks/volt/CompatibilityLabels.java
+src/com/jjricks/volt/UpdateCheck.java
+tests/l10n/CompatibilityDisplayTest.java
