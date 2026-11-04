@@ -1,0 +1,8 @@
+# B5, the charging domain (l10n/README.md). tests/run.sh compiles every path listed in tests/l10n/*.sources
+# and runs each tests/l10n/**Test.java from the repository root.
+# G5: alert wording, estimate labels, measuring and capacity reasons and the schedule's refusals, pinned
+# before the batch. The charging classes themselves are in tests/run.sh's own list.
+tests/l10n/characterization/ChargingTextTest.java
+# B5's own suite: the converted text is unchanged in English and comes from the catalog, while the
+# English ids (estimate label, measure and capacity reasons) stay English.
+tests/l10n/ChargingTest.java
