@@ -247,5 +247,85 @@ class RootSwapTest(GrammarCase):
                 self.base = self.repo.commit("reset to the original")
 
 
+# ---------------------------------------------------------------------------
+# 3. A private method's String parameter retyped for the catalog calls its callers pass
+# ---------------------------------------------------------------------------
+
+BLE = PKG + "BleController.java"
+
+
+class ParameterRetypeTest(GrammarCase):
+    FILES = {BLE: java_class("BleController", """    private void simulationUnavailable(String action){notice(action+" is unavailable in simulation. No scooter command was sent.");}
+    public void bond(boolean sim){if(sim){simulationUnavailable("Bluetooth pairing");return;}notice("Pair now");}
+    public void identify(boolean sim){if(sim){simulationUnavailable("Identify model");return;}}
+    void notice(CharSequence text){}""")}
+    STRINGS = ('<resources><string name="ble_simulation_unavailable">%1$s is unavailable in simulation. No scooter '
+               'command was sent.</string><string name="ble_sim_pairing">Bluetooth pairing</string>'
+               '<string name="ble_sim_identify">Identify model</string></resources>\n')
+    ROWS = [BLE + ':4\t[{"hole": "action", "arg": 1, "type": "s"}, " is unavailable in simulation. No scooter command '
+                  'was sent."]\tble_simulation_unavailable\ttemplate\t',
+            BLE + ':5\t["Bluetooth pairing"]\tble_sim_pairing\texact\t',
+            BLE + ':6\t["Identify model"]\tble_sim_identify\texact\t']
+    METHOD = ('private void simulationUnavailable(String action){notice(action+" is unavailable in simulation. No scooter '
+              'command was sent.");}')
+
+    def convert(self, kind="Msg", modifiers="private ", pairing="M.bleSimPairing()", identify="M.bleSimIdentify()"):
+        original = self.FILES[BLE].replace("private void simulationUnavailable", modifiers + "void simulationUnavailable")
+        self.repo.write(BLE, original)
+        self.base = self.repo.commit("modifiers")
+        text = original.replace(self.METHOD.replace("private ", modifiers), "%svoid simulationUnavailable(%s action)"
+                                "{notice(M.bleSimulationUnavailable(action));}" % (modifiers, kind))
+        text = text.replace('simulationUnavailable("Bluetooth pairing")', "simulationUnavailable(%s)" % pairing)
+        if identify is not None:
+            text = text.replace('simulationUnavailable("Identify model")', "simulationUnavailable(%s)" % identify)
+        self.repo.write(BLE, text)
+
+    def test_retype_with_catalog_callers_passes_and_is_listed(self):
+        for kind, pairing in (("Msg", "M.bleSimPairing()"), ("CharSequence", "T.bleSimPairing()")):
+            with self.subTest(kind=kind):
+                self.convert(kind, pairing=pairing)
+                problems, warnings, _ = self.check(self.ROWS)
+                self.assertEqual(problems, [])
+                shown = [w for w in warnings if "changes from String to %s" % kind in w]
+                self.assertEqual(len(shown), 1, warnings)
+                self.assertIn("every call passes a catalog call: line 5 `", shown[0])
+                self.assertIn("simulationUnavailable ( %s )" % " ".join(t.raw for t in ledger_check._Lexed(pairing).tokens),
+                              shown[0])
+                self.assertIn("line 6 `", shown[0])
+                self.assertIn("notice ( M . bleSimulationUnavailable ( action ) )", shown[0])
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.repo.write(BLE, self.FILES[BLE])
+                self.base = self.repo.commit("reset")
+
+    def test_careless_variants_fail(self):
+        other = PKG + "Screen.java"
+        cases = [
+            (dict(identify=None), self.ROWS[:2], "its argument is not an M catalog call"),
+            (dict(identify="T.bleSimIdentify()"), self.ROWS, "its argument is not an M catalog call"),
+            (dict(modifiers="public "), self.ROWS, "the method is public"),
+            (dict(modifiers=""), self.ROWS, "Screen.java name simulationUnavailable(...)"),
+            (dict(kind="Object"), self.ROWS, "adds `Object` and drops `String`"),
+        ]
+        for options, rows, needle in cases:
+            with self.subTest(needle=needle):
+                self.repo.write(other, java_class("Screen", "    void show(BleController b) { b.simulationUnavailable(\"x\"); }"))
+                self.convert(**options)
+                self.assertFails(rows, needle)
+                self.repo.write("l10n/ledger/b9.tsv", HEADER)
+                self.repo.write(BLE, self.FILES[BLE])
+                self.base = self.repo.commit("reset")
+
+    def test_an_overload_of_the_same_arity_fails(self):
+        self.repo.write(BLE, self.FILES[BLE].replace("    void notice(CharSequence text){}",
+                                                     "    void notice(CharSequence text){}\n"
+                                                     "    private void simulationUnavailable(int code){}"))
+        self.base = self.repo.commit("an overload")
+        self.edit(BLE, "String action){notice(action+\" is unavailable in simulation. No scooter command was sent.\");}",
+                  "Msg action){notice(M.bleSimulationUnavailable(action));}")
+        self.edit(BLE, 'simulationUnavailable("Bluetooth pairing")', "simulationUnavailable(M.bleSimPairing())")
+        self.edit(BLE, 'simulationUnavailable("Identify model")', "simulationUnavailable(M.bleSimIdentify())")
+        self.assertFails(self.ROWS, "is declared more than once in the file")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -2422,6 +2422,167 @@ def locale_swaps(path, diff):
     return found
 
 
+# ---------------------------------------------------------------------------
+# A private method's String parameter retyped for the catalog calls its callers now pass (B7)
+# ---------------------------------------------------------------------------
+
+NOT_METHOD_NAMES = NOT_METHOD_HEADERS | {"new", "return", "throw", "case", "assert", "super", "this"}
+PARAMETER_TYPES = ("Msg", "CharSequence")
+
+
+def method_declarations(tokens):
+    """[(name token, ( token, ) token, header first token)] of every method or constructor that has a
+    body: NAME(...) [throws ...] { with a type, a modifier or nothing in front of NAME."""
+    found = []
+    for k in range(1, len(tokens) - 1):
+        t = tokens[k]
+        if t.kind != "ident" or t.value in NOT_METHOD_NAMES or tokens[k + 1].kind != "op" or tokens[k + 1].value != "(":
+            continue
+        before = tokens[k - 1]
+        if before.kind == "op" and before.value not in (">", "]", ";", "{", "}"):
+            continue
+        if before.kind == "ident" and before.value in NOT_METHOD_NAMES:
+            continue
+        close = expressions.match_forward(tokens, k + 1)
+        if close is None:
+            continue
+        j = close + 1
+        if j < len(tokens) and tokens[j].kind == "ident" and tokens[j].value == "throws":
+            while j < len(tokens) and not (tokens[j].kind == "op" and tokens[j].value in ("{", ";")):
+                j += 1
+        if j >= len(tokens) or tokens[j].kind != "op" or tokens[j].value != "{":
+            continue
+        first = k
+        while first > 0 and not (tokens[first - 1].kind == "op" and tokens[first - 1].value in (";", "{", "}")):
+            first -= 1
+        found.append((k, k + 1, close, first))
+    return found
+
+
+def _parameter_type_tokens(tokens, opener, close):
+    """[(type token index or None, name)] of a parameter list, the type token being a simple name."""
+    out, start, depth = [], opener + 1, 0
+    if close == opener + 1:
+        return out
+    for k in range(opener + 1, close + 1):
+        t = tokens[k]
+        if k == close or (depth == 0 and t.kind == "op" and t.value == ","):
+            part = [j for j in range(start, k) if not (tokens[j].kind == "ident" and tokens[j].value == "final")]
+            simple = len(part) == 2 and all(tokens[j].kind == "ident" for j in part)
+            out.append((part[0] if simple else None, tokens[part[-1]].value if part else None))
+            start = k + 1
+        elif t.kind == "op" and t.value in ("(", "<", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", ">", "]"):
+            depth -= 1
+    return out
+
+
+def _call_sites(tokens, name, arity, skip):
+    """[(name token, [(first, last)] argument spans)] of the calls name(...) (or this.name(...)) with arity
+    arguments in one file, other than the declaration at token skip."""
+    sites = []
+    for k in range(len(tokens) - 1):
+        if k == skip or tokens[k].kind != "ident" or tokens[k].value != name or tokens[k + 1].value != "(":
+            continue
+        if k > 0 and tokens[k - 1].value == "." and not (k > 1 and tokens[k - 2].value == "this"):
+            continue
+        if k > 0 and (tokens[k - 1].kind == "ident" and tokens[k - 1].value not in ("return", "throw", "case", "else")
+                      or tokens[k - 1].value in (">", "]")):
+            continue  # another declaration of the name
+        _, spans = _argument_spans(tokens, k + 1)
+        if len(spans) == arity:
+            sites.append((k, spans))
+    return sites
+
+
+def parameter_retypes(path, diff, catalog_calls, other_texts):
+    """[(base type token, head type token, problem or None, warning or None)] for each method parameter
+    that changed from String to Msg or CharSequence. That is allowed around text only for a private
+    method (or a package-private one no other src file calls) declared once with that name and arity,
+    when the argument at every call of it in the file is a catalog call that serves a ledger row (an M
+    call for a Msg; T or M for a CharSequence). The method, every call site and every use of the
+    parameter in its body are listed. catalog_calls is {(first, last) head span: T or M token} of the
+    calls that serve rows in this file."""
+    found = []
+    if diff.base is None or diff.head is None:
+        return found
+    b_tokens, h_tokens = diff.base.tokens, diff.head.tokens
+    base_decls = collections.Counter((b_tokens[k].value, len(_parameter_type_tokens(b_tokens, o, c)))
+                                     for k, o, c, _ in method_declarations(b_tokens))
+    head_decls = method_declarations(h_tokens)
+    head_counts = collections.Counter((h_tokens[k].value, len(_parameter_type_tokens(h_tokens, o, c)))
+                                      for k, o, c, _ in head_decls)
+    base_by_key = {}
+    for k, o, c, first in method_declarations(b_tokens):
+        base_by_key.setdefault((b_tokens[k].value, len(_parameter_type_tokens(b_tokens, o, c))), (k, o, c, first))
+    for k, opener, close, first in head_decls:
+        name = h_tokens[k].value
+        params = _parameter_type_tokens(h_tokens, opener, close)
+        key = (name, len(params))
+        if key not in base_by_key:
+            continue
+        bk, b_open, b_close, b_first = base_by_key[key]
+        b_params = _parameter_type_tokens(b_tokens, b_open, b_close)
+        for position, ((h_type, h_name), (b_type, b_name)) in enumerate(zip(params, b_params)):
+            if h_type is None or b_type is None or h_name != b_name or b_tokens[b_type].value != "String" or \
+                    h_tokens[h_type].value not in PARAMETER_TYPES:
+                continue
+            hunk = next((n for n, (b1, b2, h1, h2) in enumerate(diff.hunks) if h1 <= h_tokens[h_type].line <= h2), None)
+            if hunk is None or not (
+                    any(t.kind in expressions.LITERALS for t in _region_tokens(diff.base, *diff.hunks[hunk][:2])) or
+                    any(t.kind in expressions.LITERALS for t in _region_tokens(diff.head, *diff.hunks[hunk][2:]))):
+                continue  # away from text, other_changes lists it as before
+            new_type = h_tokens[h_type].value
+            header = _excerpt(h_tokens[first:close + 1], None)
+            what = "%s:%d: the parameter `%s %s` of `%s` changes from String to %s" % (
+                path, h_tokens[h_type].line, new_type, h_name, header, new_type)
+            modifiers = [t.value for t in h_tokens[first:k]]
+            problem = None
+            if base_decls[key] != 1 or head_counts[key] != 1:
+                problem = "%s; %s(...) with %d parameter(s) is declared more than once in the file" % (
+                    what, name, len(params))
+            elif "public" in modifiers or "protected" in modifiers:
+                problem = "%s; the method is %s, so other files may call it" % (
+                    what, "public" if "public" in modifiers else "protected")
+            elif "private" not in modifiers:
+                callers = sorted(p for p, text in other_texts.items()
+                                 if p != path and text and re.search(r"\b%s\s*\(" % re.escape(name), text))
+                if callers:
+                    problem = "%s; the method is package-private and %s name %s(...)" % (what, ", ".join(callers), name)
+            sites = _call_sites(h_tokens, name, len(params), k)
+            listed = []
+            for at, spans in sites:
+                a, b = spans[position]
+                served = catalog_calls.get((a, b))
+                ok = served is not None and (new_type == "CharSequence" or h_tokens[served].value == "M" or
+                                             h_tokens[a].value == "Msg")
+                statement = expressions.statement_span(h_tokens, at)
+                excerpt = _excerpt(h_tokens[max(statement[0], at - 8):min(statement[1], spans[-1][1] + 2) + 1], None)
+                listed.append("line %d `%s`" % (h_tokens[at].line, excerpt))
+                if not ok and problem is None:
+                    problem = ("%s; at line %d `%s` its argument is not %s catalog call that serves a ledger row, and "
+                               "every caller must pass one" % (
+                                   what, h_tokens[at].line, excerpt, "an M" if new_type == "Msg" else "a T or M"))
+            if not sites and problem is None:
+                problem = "%s; nothing in the file calls it" % what
+            body_open = close + 1
+            while h_tokens[body_open].value != "{":
+                body_open += 1
+            body_close = expressions.match_brace(h_tokens, body_open)
+            uses = ["line %d `%s`" % (h_tokens[j].line, _excerpt(
+                h_tokens[max(expressions.statement_span(h_tokens, j)[0], j - 8):
+                         min(expressions.statement_span(h_tokens, j)[1], j + 8) + 1], None))
+                    for j in range(body_open, body_close) if h_tokens[j].kind == "ident" and h_tokens[j].value == h_name
+                    and not (j > 0 and h_tokens[j - 1].value == ".")]
+            warning = None if problem else (
+                "%s, and every call passes a catalog call: %s; check by hand that each use of %s in the body behaves "
+                "the same with a %s (an overload chosen by type, equals, + with a String renders it): %s" % (
+                    what, "; ".join(listed), h_name, new_type, "; ".join(uses) or "none"))
+            found.append((b_type, h_type, problem, warning))
+    return found
+
+
 def run(base, head, explicit_ledgers=None, cwd=None):
     """(problems, warnings, summary)."""
     merge = l10nlib.merge_base(base, head, cwd)
@@ -2761,6 +2922,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
     moved_hunks.update((a[0], a[1]) for a in arrivals if a[3])
     wrapped, english_only = 0, None
     for path in sorted(diffs):
+        served = {}
+        if diffs[path].head is not None:
+            for p, k in used:
+                if p == path and diffs[path].head.tokens[k].value in ("T", "M"):
+                    served[call_span(diffs[path].head.tokens, k)] = k
+        for n, (b_type, h_type, problem, warning) in enumerate(parameter_retypes(path, diffs[path], served, head_texts)):
+            allowed_base[path].setdefault(b_type, ("parameter", n))
+            allowed_head[path].setdefault(h_type, ("parameter", n))
+            if problem:
+                problems.append(problem)
+            else:
+                warnings.append(warning)
         for n, (b_loc, h_loc, problem, warning) in enumerate(locale_swaps(path, diffs[path])):
             allowed_base[path].setdefault(b_loc, ("root", n))
             allowed_head[path].setdefault(h_loc, ("root", n))
