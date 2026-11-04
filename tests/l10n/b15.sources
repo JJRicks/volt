@@ -3,3 +3,6 @@
 # G5: RidesScreen's base English (durations, numbers, counts, descriptions and the phone sensor
 # status), copied from the merge base, pinned before the batch.
 tests/l10n/characterization/RidesEnglishTest.java
+# B15's own suite: the head text of RidesScreen (templates, plurals, choices, numbers and the phone
+# sensor status from PhoneRideRecorder's flags) against the base copies, and from the catalog.
+tests/l10n/RidesTextTest.java
