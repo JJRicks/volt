@@ -1,0 +1,172 @@
+# Ledger for b4-controls: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/CapabilityResolver.java:71	["km/h"]	units_kmh	id-kept	the unit compare moves onto UnitCode.KMH.code (same value, B1's unit constant)
+src/com/jjricks/volt/CapabilityResolver.java:294	["Connect first"]	controls_reason_not_connected	exact	
+src/com/jjricks/volt/CapabilityResolver.java:295	["Waiting for fresh status"]	controls_reason_status_stale	exact	
+src/com/jjricks/volt/CapabilityResolver.java:296	["Not reported"]	common_not_reported	exact	
+src/com/jjricks/volt/CapabilityResolver.java:297	["Unknown value · can't change safely"]	controls_reason_value_unknown	exact	
+src/com/jjricks/volt/CapabilityResolver.java:298	["No choices reported"]	controls_reason_no_choices	exact	
+src/com/jjricks/volt/CapabilityResolver.java:299	["Wait for the current change"]	controls_reason_busy	exact	
+src/com/jjricks/volt/CapabilityResolver.java:300	["Stop the scooter first"]	controls_reason_moving	exact	
+src/com/jjricks/volt/CapabilityResolver.java:301	["No motion report yet"]	controls_reason_no_motion_report	exact	
+src/com/jjricks/volt/CapabilityResolver.java:302	["Resolve scooter warning first"]	controls_reason_warning_active	exact	
+src/com/jjricks/volt/CapabilityResolver.java:303	["Unlock first"]	controls_reason_locked	exact	
+src/com/jjricks/volt/CapabilityResolver.java:304	["Owner only"]	controls_reason_owner_only	exact	
+src/com/jjricks/volt/CapabilityResolver.java:305	["Pair this phone first"]	controls_reason_needs_bond	exact	
+src/com/jjricks/volt/CapabilityResolver.java:306	["Enable the handlebar PIN first"]	controls_reason_needs_pin	exact	
+src/com/jjricks/volt/CapabilityResolver.java:307	["Firmware not read yet"]	controls_reason_firmware_unknown	exact	
+src/com/jjricks/volt/CapabilityResolver.java:308	["Needs newer scooter firmware"]	controls_reason_firmware_old	exact	
+src/com/jjricks/volt/CapabilityResolver.java:309	["Identify model first"]	controls_reason_identify_model	exact	
+src/com/jjricks/volt/CapabilityResolver.java:310	["Model ID mismatch"]	controls_reason_identity_conflict	exact	
+src/com/jjricks/volt/CapabilityResolver.java:311	["Not mapped for this model"]	controls_reason_model_not_mapped	exact	
+src/com/jjricks/volt/CapabilityResolver.java:312	["Not on this model"]	controls_reason_model_excluded	exact	
+src/com/jjricks/volt/CapabilityResolver.java:313	["Not offered for this region"]	controls_reason_region_rule	exact	
+src/com/jjricks/volt/CapabilityResolver.java:314	["Not supported"]	controls_reason_unsupported	exact	
+src/com/jjricks/volt/CapabilityResolver.java:315	["Checking compatibility…"]	controls_reason_discovery_active	exact	
+src/com/jjricks/volt/CapabilityResolver.java:316	["Test in progress"]	controls_reason_test_active	exact	
+src/com/jjricks/volt/CapabilityResolver.java:317	["Not offered as a test"]	controls_reason_not_testable	exact	
+src/com/jjricks/volt/CapabilityResolver.java:318	["Stop recording first"]	controls_reason_recording	exact	
+src/com/jjricks/volt/CapabilityResolver.java:319	["Needs a real scooter"]	controls_reason_needs_real_scooter	exact	
+src/com/jjricks/volt/CapabilityResolver.java:320	["Confirm the scooter is parked"]	controls_reason_parked_unconfirmed	exact	
+src/com/jjricks/volt/CapabilityResolver.java:321	["No test running"]	controls_reason_no_test	exact	
+src/com/jjricks/volt/DriveModeStep.java:71	["Name your drive modes"]	controls_drive_mode_title	exact	
+src/com/jjricks/volt/DriveModeStep.java:72	["Optional, about a minute. Stay parked: you'll press your scooter's own mode button, and Volt only watches which mode it reports."]	controls_drive_mode_intro	exact	
+src/com/jjricks/volt/DriveModeStep.java:80	["Watching your scooter…"]	controls_drive_mode_watching	exact	
+src/com/jjricks/volt/DriveModeStep.java:107	["Skip"]	controls_drive_mode_skip	exact	
+src/com/jjricks/volt/DriveModeStep.java:108	["Done"]	common_done	exact	
+src/com/jjricks/volt/DriveModeStep.java:145	["Scooter disconnected"]	controls_drive_mode_disconnected	exact	
+src/com/jjricks/volt/DriveModeStep.java:145	["Waiting for your scooter's mode…"]	controls_drive_mode_waiting	exact	
+src/com/jjricks/volt/DriveModeStep.java:145	["Your scooter reports mode ", {"hole": "code", "arg": 1, "type": "s", "as": "Fmt.integer(code)"}]	controls_drive_mode_reported	template	
+src/com/jjricks/volt/DriveModeStep.java:146	["Reconnect your scooter to keep going."]	controls_drive_mode_reconnect	exact	
+src/com/jjricks/volt/DriveModeStep.java:147	["Reading your scooter's mode…"]	controls_drive_mode_reading	exact	
+src/com/jjricks/volt/DriveModeStep.java:148	["Which mode is your scooter in now?"]	controls_drive_mode_ask_first	exact	
+src/com/jjricks/volt/DriveModeStep.java:148	["And this mode?"]	controls_drive_mode_ask_next	exact	
+src/com/jjricks/volt/DriveModeStep.java:149	["Connecting to your scooter's mode…"]	controls_drive_mode_connecting	exact	
+src/com/jjricks/volt/DriveModeStep.java:150	["Press your scooter's mode button to switch to the next mode."]	controls_drive_mode_press_next	exact	
+src/com/jjricks/volt/DriveModeStep.java:158	["Named: ", {"hole": "survey.summary()", "arg": 1, "type": "s", "as": "survey.uiSummary()"}]	controls_drive_mode_named	template	manual: the confirm step shows the names through survey.uiSummary(), which joins each Label.label() with controls_drive_mode_sequence ("%1$s → %2$s"): in English Not sure and every mode name are their English ids, so it equals summary() byte for byte (ControlsTextTest checks every naming session); OwnerNotes keeps the English summary()
+src/com/jjricks/volt/DriveModeStep.java:167	["Look right?"]	controls_drive_mode_confirm_title	exact	
+src/com/jjricks/volt/DriveModeStep.java:169	["Your scooter went through these modes in this order."]	controls_drive_mode_confirm_closed	exact	
+src/com/jjricks/volt/DriveModeStep.java:169	["These are the modes you named, in the order your scooter showed them."]	controls_drive_mode_confirm_named	exact	
+src/com/jjricks/volt/DriveModeStep.java:172	["Start over"]	controls_drive_mode_start_over	exact	
+src/com/jjricks/volt/DriveModeStep.java:173	["Looks right"]	controls_drive_mode_looks_right	exact	
+src/com/jjricks/volt/DriveModeSurvey.java:13	["Not sure"]	controls_drive_mode_unsure	exact	
+src/com/jjricks/volt/FeatureVariant.java:130	["Value is outside the OEM feature domain"]	controls_refusal_outside_domain	exact	
+src/com/jjricks/volt/ModelRegistry.java:905	["The official app asks before this change. Volt has not tested it on this model."]	controls_caution_asks	exact	
+src/com/jjricks/volt/ModelRegistry.java:906	["Volt has not tested it on this model."]	controls_caution_untested	exact	
+src/com/jjricks/volt/ModelRegistry.java:908	["The official app shows a caution for this change. Volt has not tested it on this model."]	controls_caution_shows	exact	
+src/com/jjricks/volt/ModelRegistry.java:912	["Turn off traction control? ", {"hole": "ASKS", "arg": 1, "type": "s"}]	controls_caution_traction_control	template	
+src/com/jjricks/volt/ModelRegistry.java:913	["Turn off Low Battery Mode? ", {"hole": "ASKS", "arg": 1, "type": "s"}]	controls_caution_low_power	template	
+src/com/jjricks/volt/ModelRegistry.java:914	["Switch to single motor? ", {"hole": "ASKS", "arg": 1, "type": "s"}]	controls_caution_dual_drive	template	
+src/com/jjricks/volt/ModelRegistry.java:915	["Turn off energy recovery? ", {"hole": "SHOWS", "arg": 1, "type": "s"}]	controls_caution_energy_recovery	template	
+src/com/jjricks/volt/ModelRegistry.java:916	["Kick-start speed below 3 km/h. ", {"hole": "SHOWS", "arg": 1, "type": "s"}]	controls_caution_start_speed	template	
+src/com/jjricks/volt/ModelRegistry.java:917	["Above 32 km/h: check the rules where you ride. ", {"hole": "(SPEED_PROMPT_NOTE.equals(d.oemNote)?ASKS:UNTESTED)", "arg": 1, "type": "s"}]	controls_caution_maximum_speed	template	
+src/com/jjricks/volt/ModelRegistry.java:929	["Turns traction control off. Ride gently on wet or loose ground until you know how it behaves."]	controls_experimental_traction_control	exact	
+src/com/jjricks/volt/ModelRegistry.java:930	["Below 3 km/h, the motor can pull from a standstill as soon as you use the throttle."]	controls_experimental_start_speed	exact	
+src/com/jjricks/volt/ModelRegistry.java:931	["Turns motor braking off, so your brakes do more of the stopping."]	controls_experimental_energy_recovery	exact	
+src/com/jjricks/volt/ModelRegistry.java:932	["Caps your speed while riding, below your Top speed setting. Set back restores your previous setting."]	controls_experimental_speed_limit	exact	
+src/com/jjricks/volt/ModelRegistry.java:979	["Model ", {"hole": "d.rulePid()", "arg": 1, "type": "s"}]	controls_model_line	template	
+src/com/jjricks/volt/ModelRegistry.java:980	["Model ", {"hole": "d.serialPid", "arg": 1, "type": "s"}, " (unconfirmed)"]	controls_model_line_unconfirmed	template	
+src/com/jjricks/volt/NaveeModels.java:19	["High performance"]	controls_series_ut	exact	
+src/com/jjricks/volt/NaveeModels.java:20	["All-terrain"]	controls_series_nt	exact	
+src/com/jjricks/volt/NaveeModels.java:21	["Off-road"]	controls_series_xt	exact	
+src/com/jjricks/volt/NaveeModels.java:22	["SUV-style and older"]	controls_series_n	exact	
+src/com/jjricks/volt/NaveeModels.java:23	["Premium commuting"]	controls_series_st	exact	
+src/com/jjricks/volt/NaveeModels.java:24	["Commuting"]	controls_series_gt	exact	
+src/com/jjricks/volt/NaveeModels.java:25	["Lightweight commuting"]	controls_series_g	exact	
+src/com/jjricks/volt/NaveeModels.java:26	["Suspension-focused"]	controls_series_s	exact	
+src/com/jjricks/volt/NaveeModels.java:27	["City and budget"]	controls_series_v	exact	
+src/com/jjricks/volt/NaveeModels.java:29	["Entry-level"]	controls_series_easy_ride	exact	
+src/com/jjricks/volt/NaveeModels.java:30	["Kids"]	controls_series_k	exact	
+src/com/jjricks/volt/ScooterCommands.java:104	["Electronic lock"]	controls_feature_lock	exact	
+src/com/jjricks/volt/ScooterCommands.java:104	["Security"]	controls_group_security	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_SECURITY; groupLabel() shows controls_group_security
+src/com/jjricks/volt/ScooterCommands.java:105	["Cruise control"]	controls_feature_cruise_control	exact	
+src/com/jjricks/volt/ScooterCommands.java:105	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:106	["Energy recovery"]	controls_feature_energy_recovery	exact	
+src/com/jjricks/volt/ScooterCommands.java:106	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:108	["Acceleration profile"]	controls_feature_acceleration	exact	
+src/com/jjricks/volt/ScooterCommands.java:108	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:108	["Other models’ Eco/Turbo."]	controls_feature_acceleration_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:112	["Tail light"]	controls_feature_headlight	exact	
+src/com/jjricks/volt/ScooterCommands.java:112	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:113	["Automatic lights"]	controls_feature_auto_sensor	exact	
+src/com/jjricks/volt/ScooterCommands.java:113	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:113	["Power button pauses until restart."]	controls_feature_auto_sensor_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:114	["Traction control"]	controls_feature_traction_control	exact	
+src/com/jjricks/volt/ScooterCommands.java:114	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:115	["Turn signal sound"]	controls_feature_turn_sound	exact	
+src/com/jjricks/volt/ScooterCommands.java:115	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:116	["Dashboard units"]	controls_feature_display_units	exact	
+src/com/jjricks/volt/ScooterCommands.java:116	["Preferences"]	controls_group_preferences	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_PREFERENCES; groupLabel() shows controls_group_preferences
+src/com/jjricks/volt/ScooterCommands.java:118	["Range estimate"]	controls_feature_range_algorithm	exact	
+src/com/jjricks/volt/ScooterCommands.java:118	["Preferences"]	controls_group_preferences	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_PREFERENCES; groupLabel() shows controls_group_preferences
+src/com/jjricks/volt/ScooterCommands.java:118	["Changes the estimate only."]	controls_feature_range_algorithm_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:120	["Kick-start speed"]	controls_feature_start_speed	exact	
+src/com/jjricks/volt/ScooterCommands.java:120	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:122	["Custom speed cap"]	controls_feature_speed_limit	exact	
+src/com/jjricks/volt/ScooterCommands.java:122	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:124	["Maximum speed"]	controls_feature_maximum_speed	exact	
+src/com/jjricks/volt/ScooterCommands.java:124	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:124	["Sport mode only."]	controls_feature_maximum_speed_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:126	["Dual motor drive"]	controls_feature_dual_drive	exact	
+src/com/jjricks/volt/ScooterCommands.java:126	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:128	["Drive mode speed cap"]	controls_feature_drive_speed_limit	exact	
+src/com/jjricks/volt/ScooterCommands.java:128	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:130	["Charge ceiling"]	controls_feature_charge_limit	exact	
+src/com/jjricks/volt/ScooterCommands.java:130	["Battery"]	controls_group_battery	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_BATTERY; groupLabel() shows controls_group_battery
+src/com/jjricks/volt/ScooterCommands.java:132	["Scheduled charging"]	controls_feature_timed_charging	exact	
+src/com/jjricks/volt/ScooterCommands.java:132	["Battery"]	controls_group_battery	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_BATTERY; groupLabel() shows controls_group_battery
+src/com/jjricks/volt/ScooterCommands.java:134	["Charging start time"]	controls_feature_charge_start	exact	
+src/com/jjricks/volt/ScooterCommands.java:134	["Battery"]	controls_group_battery	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_BATTERY; groupLabel() shows controls_group_battery
+src/com/jjricks/volt/ScooterCommands.java:136	["Lock duration"]	controls_feature_lock_expiry	exact	
+src/com/jjricks/volt/ScooterCommands.java:136	["Security"]	controls_group_security	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_SECURITY; groupLabel() shows controls_group_security
+src/com/jjricks/volt/ScooterCommands.java:136	["Stays locked when off; know PIN."]	controls_feature_lock_expiry_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:138	["Low Battery Mode"]	controls_feature_low_power	exact	
+src/com/jjricks/volt/ScooterCommands.java:138	["Battery"]	controls_group_battery	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_BATTERY; groupLabel() shows controls_group_battery
+src/com/jjricks/volt/ScooterCommands.java:140	["Long range mode"]	controls_feature_long_range_mode	exact	
+src/com/jjricks/volt/ScooterCommands.java:140	["Battery"]	controls_group_battery	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_BATTERY; groupLabel() shows controls_group_battery
+src/com/jjricks/volt/ScooterCommands.java:142	["Walk Assist"]	controls_feature_hill_start_assist	exact	
+src/com/jjricks/volt/ScooterCommands.java:142	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:142	["Follows your push; brake stops."]	controls_feature_hill_start_assist_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:144	["Power Assist"]	controls_feature_parking_assist	exact	
+src/com/jjricks/volt/ScooterCommands.java:144	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:144	["Sport: Boost + full throttle uphill."]	controls_feature_parking_assist_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:146	["Hill descent control"]	controls_feature_hill_descent_control	exact	
+src/com/jjricks/volt/ScooterCommands.java:146	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:146	["Limits downhill speed."]	controls_feature_hill_descent_control_about	exact	
+src/com/jjricks/volt/ScooterCommands.java:148	["Overspeed active control"]	controls_feature_overspeed_control	exact	
+src/com/jjricks/volt/ScooterCommands.java:148	["Ride"]	controls_group_ride	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_RIDE; groupLabel() shows controls_group_ride
+src/com/jjricks/volt/ScooterCommands.java:149	["Prompt sound"]	controls_feature_prompt_tone	exact	
+src/com/jjricks/volt/ScooterCommands.java:149	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:151	["Line lights"]	controls_feature_line_lights	exact	
+src/com/jjricks/volt/ScooterCommands.java:152	["Star lights"]	controls_feature_star_lights	exact	
+src/com/jjricks/volt/ScooterCommands.java:153	["Proximity unlock"]	controls_feature_proximity_key	exact	
+src/com/jjricks/volt/ScooterCommands.java:153	["Security"]	controls_group_security	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_SECURITY; groupLabel() shows controls_group_security
+src/com/jjricks/volt/ScooterCommands.java:156	["Handlebar PIN"]	controls_feature_pin	exact	
+src/com/jjricks/volt/ScooterCommands.java:156	["Security"]	controls_group_security	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_SECURITY; groupLabel() shows controls_group_security
+src/com/jjricks/volt/ScooterCommands.java:159	["Ambient light"]	controls_feature_ambient_light_mode	exact	
+src/com/jjricks/volt/ScooterCommands.java:160	["Logo light"]	controls_feature_logo_light	exact	
+src/com/jjricks/volt/ScooterCommands.java:161	["Daytime running light"]	controls_feature_daytime_light	exact	
+src/com/jjricks/volt/ScooterCommands.java:204	["Value is outside the OEM feature domain"]	controls_refusal_outside_domain	exact	
+src/com/jjricks/volt/ScooterCommands.java:206	["Off or 8–32 km/h"]	controls_refusal_speed_limit_range	exact	
+src/com/jjricks/volt/ScooterCommands.java:210	["Off or 5–20 km/h"]	controls_refusal_drive_speed_limit_range	exact	
+src/com/jjricks/volt/ScooterCommands.java:223	["Not available now"]	controls_refusal_not_available	exact	
+src/com/jjricks/volt/ScooterCommands.java:227	["Not available now"]	controls_refusal_not_available	exact	
+src/com/jjricks/volt/ScooterCommands.java:285	["PIN access requires the authenticated owner"]	controls_refusal_pin_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:290	["PIN access requires the authenticated owner"]	controls_refusal_pin_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:291	["PIN must contain four decimal digits"]	controls_refusal_pin_digits	exact	
+src/com/jjricks/volt/ScooterCommands.java:298	["PIN access requires the authenticated owner"]	controls_refusal_pin_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:299	["A PIN must be configured before enabling it"]	controls_refusal_pin_not_configured	exact	
+src/com/jjricks/volt/ScooterCommands.java:304	["Proximity changes require the authenticated owner"]	controls_refusal_proximity_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:305	["Bond this phone before enabling proximity unlock"]	controls_refusal_proximity_bond	exact	
+src/com/jjricks/volt/ScooterCommands.java:307	["Enable a configured handlebar PIN before proximity unlock"]	controls_refusal_proximity_pin	exact	
+src/com/jjricks/volt/ScooterCommands.java:323	["PIN access requires the authenticated owner"]	controls_refusal_pin_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:338	["PIN access requires the authenticated owner"]	controls_refusal_pin_owner	exact	
+src/com/jjricks/volt/ScooterCommands.java:394	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:396	[{"hole": "label", "arg": 1, "type": "s"}, " pattern"]	controls_feature_light_pattern	template	
+src/com/jjricks/volt/ScooterCommands.java:396	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:398	[{"hole": "label", "arg": 1, "type": "s"}, " color"]	controls_feature_light_color	template	
+src/com/jjricks/volt/ScooterCommands.java:398	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:400	[{"hole": "label", "arg": 1, "type": "s"}, " Boost color"]	controls_feature_light_boost_color	template	
+src/com/jjricks/volt/ScooterCommands.java:400	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights
+src/com/jjricks/volt/ScooterCommands.java:406	["Lights & sound"]	controls_group_lights	id-kept	the group stays the English id (followUpReads, the More screen's sections): moved into ScooterCommands.GROUP_LIGHTS; groupLabel() shows controls_group_lights

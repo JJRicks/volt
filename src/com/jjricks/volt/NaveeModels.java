@@ -12,22 +12,23 @@ import java.util.Locale;
  */
 final class NaveeModels {
     static final class Series {
-        final String name, about; final List<String> models;
-        Series(String name, String about, String... models) { this.name = name; this.about = about; this.models = Collections.unmodifiableList(Arrays.asList(models)); }
+        /** about stays English (search, the tests); aboutLabel is the description in the current language. */
+        final String name, about; final Msg aboutLabel; final List<String> models;
+        Series(String name, Msg about, String... models) { this.name = name; this.aboutLabel = about; this.about = about.english(); this.models = Collections.unmodifiableList(Arrays.asList(models)); }
     }
     static final List<Series> SERIES = Collections.unmodifiableList(Arrays.asList(
-            new Series("UT", "High performance", "UT3 Max", "UT5 Max", "UT5 Ultra X"),
-            new Series("NT", "All-terrain", "NT5 Max", "NT5 Ultra X"),
-            new Series("XT", "Off-road", "XT5 Max", "XT5 Pro", "XT5 Ultra"),
-            new Series("N", "SUV-style and older", "N40", "N65", "N65i", "N65i II"),
-            new Series("ST", "Premium commuting", "ST3", "ST3 Pro", "ST5 Pro", "ST5 Max"),
-            new Series("GT", "Commuting", "GT3", "GT3 Pro", "GT3 Max", "GT5 Pro", "GT5 Max"),
-            new Series("G", "Lightweight commuting", "G5", "G5 Pro", "G5 Max"),
-            new Series("S", "Suspension-focused", "S40", "S60", "S65", "S65C"),
-            new Series("V", "City and budget", "V3 Pro", "V25", "V25 Pro", "V25i Pro", "V25i Pro II", "V40", "V40 Pro", "V40i", "V40i Pro",
+            new Series("UT", M.controlsSeriesUt(), "UT3 Max", "UT5 Max", "UT5 Ultra X"),
+            new Series("NT", M.controlsSeriesNt(), "NT5 Max", "NT5 Ultra X"),
+            new Series("XT", M.controlsSeriesXt(), "XT5 Max", "XT5 Pro", "XT5 Ultra"),
+            new Series("N", M.controlsSeriesN(), "N40", "N65", "N65i", "N65i II"),
+            new Series("ST", M.controlsSeriesSt(), "ST3", "ST3 Pro", "ST5 Pro", "ST5 Max"),
+            new Series("GT", M.controlsSeriesGt(), "GT3", "GT3 Pro", "GT3 Max", "GT5 Pro", "GT5 Max"),
+            new Series("G", M.controlsSeriesG(), "G5", "G5 Pro", "G5 Max"),
+            new Series("S", M.controlsSeriesS(), "S40", "S60", "S65", "S65C"),
+            new Series("V", M.controlsSeriesV(), "V3 Pro", "V25", "V25 Pro", "V25i Pro", "V25i Pro II", "V40", "V40 Pro", "V40i", "V40i Pro",
                     "V40i Pro II", "V40N", "V45i", "V50", "V50i Pro", "V50i Pro II"),
-            new Series("EasyRide", "Entry-level", "E20 (EasyRide 20)", "E25 Pro (EasyRide 25 Pro)"),
-            new Series("K", "Kids", "K100", "K100 Pro", "K100 Max", "K100 Plus")));
+            new Series("EasyRide", M.controlsSeriesEasyRide(), "E20 (EasyRide 20)", "E25 Pro (EasyRide 25 Pro)"),
+            new Series("K", M.controlsSeriesK(), "K100", "K100 Pro", "K100 Max", "K100 Plus")));
     static final int MAX_TYPED = 40;
     private NaveeModels() {}
 
@@ -48,6 +49,20 @@ final class NaveeModels {
         List<String> out = new ArrayList<>();
         for (Series s : SERIES) for (String m : s.models)
             if (q.isEmpty() || fold(m).contains(q) || fold(s.about).contains(q) || fold(s.name + "series").startsWith(q)) out.add(m);
+        return withShown(q, out);
+    }
+
+    /**
+     * search's English matches plus the models of every series whose description, as the current language shows
+     * it, contains the query, in list order. In English the shown description is the English one, so nothing is added.
+     */
+    private static List<String> withShown(String q, List<String> english) {
+        if (q.isEmpty()) return english;
+        List<String> out = new ArrayList<>();
+        for (Series s : SERIES) {
+            boolean shown = fold(s.aboutLabel.toString()).contains(q);
+            for (String m : s.models) if (shown || english.contains(m)) out.add(m);
+        }
         return out;
     }
 
