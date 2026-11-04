@@ -702,7 +702,7 @@ public final class ScooterService extends Service {
         boolean known=progress!=null&&(progress.startObserved||progress.ageInferred)&&chargeSchedule().doneByBlockedReason==null;
         ChargeMeasureWindow.Decision decision=chargeMeasure.evaluate(mono,activeProfileId(),c.ready,c.charging,known);
         if(decision.step==ChargeMeasureWindow.Step.ARM)armMeasured(decision.measured);
-        else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.reason);
+        else if(decision.step==ChargeMeasureWindow.Step.NOT_SET)endChargeMeasure(decision.message);
     }
     /**
      * A finish time edited while measuring: the window can only end sooner, and a plan that must
@@ -728,8 +728,8 @@ public final class ScooterService extends Service {
             endChargeMeasureWork();
         });
     }
-    /** A window that cannot finish is never silent: the owner hears why nothing was armed. */
-    private void endChargeMeasure(String reason){
+    /** A window that cannot finish is never silent: the owner hears why nothing was armed, in the shown language. */
+    private void endChargeMeasure(CharSequence reason){
         if(!chargeMeasure.active())return;
         chargeMeasure.finish();chargeDoneNotice(false,T.serviceMeasureNotSet(reason));
         if(!destroyed)endChargeMeasureWork();
