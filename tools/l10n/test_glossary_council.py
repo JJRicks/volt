@@ -1,5 +1,6 @@
 """The glossary round (glossary_council.py), with fake providers only: no test reaches the network."""
 
+import collections
 import contextlib
 import io
 import json
@@ -150,6 +151,14 @@ class Base(unittest.TestCase):
 
     def glossary(self):
         return self.repo.read("l10n/glossary/es.tsv")
+
+    def decisions_bytes(self):
+        with open(self.paths.work("es", "glossary", "decisions.jsonl"), "rb") as handle:
+            return handle.read()
+
+    def decisions(self):
+        return collections.OrderedDict((d["id"], d) for d in
+                                       translib.read_jsonl(self.paths.work("es", "glossary", "decisions.jsonl")))
 
     def rows(self):
         return dict((f[0], f) for _, f in translib._glossary_rows(self.repo.path("l10n/glossary/es.tsv"), "es")[0])
@@ -418,6 +427,12 @@ class DecideTest(Base):
         self.assertEqual(sorted((d["id"], d["outcome"]) for d in decisions),
                          [("battery", "judged"), ("charger", "agreed"), ("lock", "judged"), ("scooter", "agreed")])
         self.assertIn("0 rows claude-only", self.out.getvalue())
+        # decide again with nothing left keeps every decision, byte for byte.
+        glossary, decided = self.glossary(), self.decisions_bytes()
+        self.run_ok("decide", "--tag", "es")
+        self.assertEqual(self.glossary(), glossary)
+        self.assertEqual(self.decisions_bytes(), decided)
+        self.assertEqual(list(self.decisions()), ["scooter", "battery", "charger", "lock"])  # en.tsv order
         # Nothing is left for the round, and relabel finds nothing to label.
         self.run_ok("relabel", "--tag", "es")
         self.assertEqual(self.main("draft", "openai", "--tag", "es"), 0)
@@ -441,13 +456,85 @@ class DecideTest(Base):
         self.assertEqual(code, 2)
         self.assertIn("1 claude-only rows (lock)", err.getvalue())
         # decide again is idempotent, and a later ruling finishes the row.
-        before = self.glossary()
+        first = self.decisions()
+        self.assertEqual([(i, d["outcome"]) for i, d in first.items()],
+                         [("scooter", "agreed"), ("battery", "judged"), ("charger", "agreed"), ("lock", "unruled")])
+        before, decided = self.glossary(), self.decisions_bytes()
         self.run_ok("decide", "--tag", "es")
         self.assertEqual(self.glossary(), before)
+        self.assertEqual(self.decisions_bytes(), decided)
         self.answer(self.prompt_files()[0], {"battery": "pila | pilas", "lock": "bloquearclaude | bloqueoclaude"})
         self.run_ok("decide", "--tag", "es")
         self.assertEqual(translib.claude_only_glossary_rows(self.paths, "es"), [])
         self.assertTrue(self.rows()["lock"][6].endswith("judge:claude-opus-5-5; LockButton.java:30"))
+        # The decision log keeps the three earlier rows as they were and finishes lock.
+        last = self.decisions()
+        self.assertEqual(list(last), ["scooter", "battery", "charger", "lock"])
+        for term_id in ("scooter", "battery", "charger"):
+            self.assertEqual(last[term_id], first[term_id])
+        self.assertEqual((last["lock"]["outcome"], last["lock"]["term"]), ("judged", "bloquearclaude | bloqueoclaude"))
+        self.assertEqual(last["lock"]["en_sha1"], first["lock"]["en_sha1"])
+
+    def test_a_failed_decide_leaves_both_files(self):
+        self.through_requests()
+        self.answer(self.prompt_files()[0], {"battery": "pila | pilas"})
+        self.run_ok("decide", "--tag", "es")
+        glossary, decided = self.glossary(), self.decisions_bytes()
+        self.answer(self.prompt_files()[0], {"battery": "pila | pilas", "lock": "bloquear | bloqueo"})
+        original = translib.glossary_problems
+
+        def failing(paths, tag):  # glossary-check refuses the file that finishes lock
+            text = self.glossary()
+            return original(paths, tag) + (["forced"] if "bloquear | bloqueo" in text else [])
+
+        with unittest.mock.patch.object(translib, "glossary_problems", failing):
+            self.assertEqual(self.main("decide", "--tag", "es"), 2)
+        self.assertIn("would fail glossary-check", self.err.getvalue())
+        self.assertEqual(self.glossary(), glossary)
+        self.assertEqual(self.decisions_bytes(), decided)
+        # A decisions.jsonl that cannot be written puts the glossary back too.
+        real_write = translib.write_jsonl
+
+        def broken(path, rows):
+            if path.endswith("decisions.jsonl"):
+                raise OSError("disk full")
+            return real_write(path, rows)
+
+        with unittest.mock.patch.object(translib, "write_jsonl", broken):
+            self.assertEqual(self.main("decide", "--tag", "es"), 2)
+        self.assertIn("disk full", self.err.getvalue())
+        self.assertEqual(self.glossary(), glossary)
+        self.assertEqual(self.decisions_bytes(), decided)
+        self.run_ok("decide", "--tag", "es")
+        self.assertEqual(self.decisions()["lock"]["outcome"], "judged")
+
+    def test_a_row_decided_again_replaces_its_record(self):
+        self.through_requests()
+        self.answer(self.prompt_files()[0], {"battery": "pila | pilas", "lock": "bloquear | bloqueo"})
+        self.run_ok("decide", "--tag", "es")
+        first = self.decisions()
+        # The English of battery changes and its row goes back into the round: an editor puts Claude's
+        # new proposal in, labelled claude-only again.
+        self.repo.write("l10n/glossary/en.tsv", EN.replace("The scooter's battery.", "The scooter's main battery."))
+        self.repo.write("l10n/glossary/es.tsv", "\n".join(
+            "battery\tbatería | baterías\tThe scooter's main battery.\tnoun\tno\t-\tclaude-only %s; BatteryCard"
+            % CLAUDE if l.startswith("battery\t") else l for l in self.glossary().split("\n")))
+        self.run_ok("draft", "openai", "--tag", "es")
+        self.run_ok("draft", "google", "--tag", "es")
+        self.run_ok("judge-requests", "--tag", "es")
+        self.answer(self.prompt_files()[0], {"battery": "batería | baterías"})
+        self.run_ok("decide", "--tag", "es")
+        last = self.decisions()
+        self.assertEqual(list(last), ["scooter", "battery", "charger", "lock"])
+        for term_id in ("scooter", "charger", "lock"):
+            self.assertEqual(last[term_id], first[term_id])
+        self.assertNotEqual(last["battery"]["en_sha1"], first["battery"]["en_sha1"])
+        self.assertEqual(last["battery"]["term"], "batería | baterías")
+        self.assertEqual(sum(1 for d in translib.read_jsonl(self.paths.work("es", "glossary", "decisions.jsonl"))
+                             if d["id"] == "battery"), 1)  # the old record does not linger
+        runs = translib.read_jsonl(self.paths.work("es", "glossary", "runs.jsonl"))
+        self.assertEqual(runs[-1]["replaced"], ["battery"])
+        self.assertIn("replaced the earlier decision of battery", self.out.getvalue())
 
     def test_no_reply_leaves_every_disputed_row_claude_only(self):
         self.through_requests()

@@ -1293,8 +1293,15 @@ python3 tools/l10n/council.py glossary-check --tag $T
    and a row with no ruling stays `claude-only`, so `draft openai|google` keeps refusing. A decided
    row's source becomes `council claude:<model> openai:<model> google:<model> judge:<model>` (or
    `agreed` in place of the judge), then the old source. The new file must pass `glossary-check`, or
-   the old one stays. `decisions.jsonl` records each row's outcome, candidates and ruling. Running
-   `decide` again changes nothing; a later reply for the same set finishes the rows it rules.
+   the old one stays, and so does `decisions.jsonl`. `decisions.jsonl` records each row's
+   `en_sha1`, outcome, candidates and ruling, one line per id in `en.tsv` order, and `decide`
+   merges into it by id: rows decided in earlier runs or rounds keep their records, and every row
+   of the current round gets a new record that replaces its earlier one, even when that earlier one
+   was a council decision for other English (the row is `claude-only` again, so the old record no
+   longer describes it); `runs.jsonl` and the output name each replaced id. Running `decide` again
+   changes nothing, `decisions.jsonl` included, byte for byte; a later reply for the same set
+   finishes the rows it rules. `judge-requests.json`, the prompts and the drafts hold the current
+   round only, by design: a decided row's evidence is its `decisions.jsonl` record.
 
 Files, under `l10n/work/<tag>/glossary/`: `drafts/openai.json`, `drafts/google.json`, `runs.jsonl`
 (each provider call, with its token usage), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,

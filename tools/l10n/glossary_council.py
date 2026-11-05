@@ -50,8 +50,17 @@ Files, under l10n/work/<tag>/glossary/ (committed, staging only):
         the judge's reply: {"set", "model", "rulings": {id: {"choice": "A" | "B" | "C" | "new",
         "term", "reason"}}}. A pick copies its option's term; "new" is the judge's own term.
   decisions.jsonl
-        one line per row of the round as decide left it: agreed, judged or unruled, with the
-        candidates and the ruling.
+        one line per row id, in en.tsv order, as the last decide that covered the row left it: agreed,
+        judged or unruled, with en_sha1, the candidates and the ruling. decide merges by id: rows
+        decided in earlier runs or rounds keep their records, and a row in the current round gets a
+        new record that replaces its earlier one, even an unruled record replacing an earlier council
+        decision, or one for other English: the row is claude-only or missing again, so the old record
+        no longer describes its term (runs.jsonl and the output name each replaced id). A rerun with nothing new leaves the file byte for byte as it was. When the
+        new glossary fails glossary-check, or decisions.jsonl cannot be written, both files stay as
+        they were. Records of ids no longer in en.tsv are kept, after the others.
+  judge-requests.json, prompts/, drafts/
+        per round by design: they hold the current round's inputs only (the evidence of a decided row
+        is its decisions.jsonl record; earlier sets' replies stay under replies/).
 
 Keys come only from OPENAI_API_KEY and GEMINI_API_KEY (providers.py); nothing here prints one.
 """
@@ -727,6 +736,34 @@ def council_source(candidates, judge, rest):
     return " ".join(parts) + ("; " + rest if rest else "")
 
 
+def decisions_path(paths, tag):
+    return paths.work(tag, AREA, "decisions.jsonl")
+
+
+def merge_decisions(paths, tag, records, order):
+    """(merged records, ids whose earlier record was replaced by a different one).
+
+    Earlier records stay; a record of this run replaces the earlier one of its id. The order is
+    en.tsv's (order: ids), then ids en.tsv no longer has, in their earlier order."""
+    path = decisions_path(paths, tag)
+    by_id = collections.OrderedDict()
+    for number, record in enumerate(translib.read_jsonl(path), 1):
+        term_id = record.get("id")
+        if not isinstance(term_id, str) or term_id in by_id:
+            die("%s: record %d has %s; fix the file by hand, nothing was written" % (
+                paths.rel(path), number, "no id" if not isinstance(term_id, str) else "a repeated id %s" % term_id))
+        by_id[term_id] = record
+    replaced = []
+    for record in records:
+        earlier = by_id.get(record["id"])
+        if earlier is not None and translib.dump_json_line(earlier) != translib.dump_json_line(record):
+            replaced.append(record["id"])
+        by_id[record["id"]] = record
+    position = dict((term_id, index) for index, term_id in enumerate(order))
+    ids = sorted(by_id, key=lambda i: (0, position[i]) if i in position else (1, 0))  # stable for the rest
+    return [by_id[i] for i in ids], replaced
+
+
 def decide(paths, tag, out=None):
     out = out or sys.stdout
     translib.check_tag_area(tag, None)
@@ -786,16 +823,33 @@ def decide(paths, tag, out=None):
     note = "%s %d rows judged by a council, %d still claude-only." % (
         ROUND_NOTE, states["council"], states["claude-only"])
     text = "\n".join([note] + body) + "\n"
-    write_glossary_checked(paths, tag, text)
-    translib.write_jsonl(paths.work(tag, AREA, "decisions.jsonl"), records)
+    merged, replaced = merge_decisions(paths, tag, records, list(english))
+    path = decisions_path(paths, tag)
+    decided_before = l10nlib.read_text(path) if os.path.exists(path) else None
+    decided_text = "".join(translib.dump_json_line(r) + "\n" for r in merged)
+    glossary_before = l10nlib.read_text(glossary_path(paths, tag))
+    write_glossary_checked(paths, tag, text)  # refuses (old file restored) before decisions.jsonl is touched
+    if decided_text != decided_before:
+        try:
+            translib.write_jsonl(path, merged)
+        except BaseException:
+            l10nlib.write_text(glossary_path(paths, tag), glossary_before)
+            if decided_before is None:
+                if os.path.exists(path):
+                    os.remove(path)
+            else:
+                l10nlib.write_text(path, decided_before)
+            raise
     council.log_run(paths, tag, AREA, collections.OrderedDict([
         ("stage", "glossary-decide"), ("set", requests["set"]), ("agreed", counts["agreed"]),
         ("judged", counts["judged"]), ("unruled", counts["unruled"]),
-        ("judges", sorted(set(r["model"] for r in rulings.values())))]))
+        ("judges", sorted(set(r["model"] for r in rulings.values()))), ("replaced", replaced)]))
     unjudged = translib.claude_only_glossary_rows(paths, tag)
     out.write("l10n/glossary/%s.tsv: %d agreed, %d judged, %d unruled; %d rows claude-only%s\n" % (
         tag, counts["agreed"], counts["judged"], counts["unruled"], len(unjudged),
         " (draft openai|google still refuses)" if unjudged else " (the string drafts may start)"))
+    for term_id in replaced:
+        out.write("  replaced the earlier decision of %s\n" % term_id)
     for line in notes:
         out.write("  %s\n" % line)
     return counts
