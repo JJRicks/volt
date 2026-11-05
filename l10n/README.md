@@ -79,6 +79,9 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   - markup other than `<xliff:g>` (styled spans are not supported).
   `\uXXXX` escapes are kept as written, including spaces. `tools/l10n/fixtures/aapt/` shows every
   case with what aapt 36.1.0 actually stored.
+- **Symbols Saira lacks** may appear only from the list in "Glyph coverage" (below): ✓, ☆ and ★
+  as they are, and ⚠ only as `⚠\uFE0E`. Any other character Saira lacks fails `GlyphCoverageTest`.
+  A Java ⚠ without U+FE0E gets it in an ordinary pull request before a batch moves it (below).
 - **Only `res/values/` holds English.** Text (`string`, `plurals`, `string-array`) in any other
   `res/values-*` folder must be a non-English language folder listed in `l10n/lang/*.tsv`.
   `values-en`, `values-en-rGB`, `values-night` or `values-v31` text would replace the catalog
@@ -940,6 +943,63 @@ and clears any per-app language after each fresh install.
 `quote_style`, `percent_style`, `decimal_style`, `script`, `font` (`saira` or `system`), `rtl`,
 `unit_symbols`, `drive_mode_names`.
 
+### Glyph coverage
+
+`tests/l10n/GlyphCoverageTest` (B0b) reads the cmap tables of the four `res/font/saira_*.ttf`
+weights. Every character of every string and plural item (decoded as aapt reads it) of a
+`font=saira` language, English included, must be in all four. A language whose letters Saira lacks
+(Cyrillic Ж, for one) uses `font=system`. Line breaks, tabs and the pseudo-locales are not checked.
+The test reads its language list against `l10n/lang/*.tsv`, requires English text, and proves its
+own rules and its loop on synthetic text and a synthetic `res/` tree before it reads the catalog.
+
+The exception is `GlyphCoverageTest.FALLBACK_SYMBOLS`, a short reviewed list of symbols that no
+Saira weight has but Android's own fallback font draws as plain text. Volt already shows each of
+them from Java literals. The owner chose this list on 2026-11-04 over two alternatives: bundling a
+symbol font (`Typeface.CustomFallbackBuilder` needs API 29, and Volt supports API 26) and replacing
+the marks with icons (a visible design change).
+
+| Symbol | Code point | Where Volt shows it | `emoji-data.txt` | Catalog text |
+|---|---|---|---|---|
+| ✓ | U+2713 CHECK MARK | "✓ Save" buttons; "PIN ✓", "Paired ✓" and drive-mode chips; step pills; "Unrestricted ✓" (More > App preferences > Background recording); "Direction ✓"; "Check finished ✓"; a compatibility read's "✓ N bytes"; the Rides compare row's "2 ✓" | not an emoji (U+2714 ✔ is) | `✓` |
+| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), a Java literal without U+FE0E (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
+| ☆ | U+2606 WHITE STAR | Live Stats: a reading that is not starred, "☆ Star readings to pin here" | not an emoji | `☆` |
+| ★ | U+2605 BLACK STAR | Live Stats: a starred reading | not an emoji (U+2B50 ⭐ is) | `★` |
+
+- **U+FE0E after an emoji-capable symbol.** A symbol with `Emoji=Yes` and `Emoji_Presentation=No`
+  is text by default, but a phone may still draw it as a colour emoji. VARIATION SELECTOR-15
+  (U+FE0E) directly after it asks for the text form (the standardized sequence `26A0 FE0E`, "text
+  style"). The test requires U+FE0E directly after ⚠ and refuses it anywhere else, in every
+  language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
+  invisible in review.
+- **Moving ⚠ out of Java takes two pull requests.** The only ⚠ Volt shows is MoreScreen's literal
+  `"Optimized ⚠"`, which has no U+FE0E. A batch's `exact` row needs the catalog English to equal
+  that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch cannot do both.
+  `l10n/english-changes.tsv` does not help: it records changes to keys already in the catalog, and
+  that kind of pull request adds no ledger rows. So:
+  1. an ordinary pull request writes the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
+     with this list; the English reads the same). `hardcoded_lint.py --check` passes as is: G8 has no
+     baseline entry for that row;
+  2. the batch then moves it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
+     `["Optimized ⚠\ufe0e"]`.
+
+  On 2026-11-04 a simulation of both steps passed `ci_gates.py` (ordinary, then batch) and this
+  test; the batch alone fails G1. ✓, ☆ and ★ need no first step: they move as they are.
+- **The list stays short.** Only symbols go on it: Unicode general category Sm, Sc, Sk or So, never a
+  letter, mark, digit, space or format character (so not U+FE0E or U+2060). An entry that every
+  Saira weight covers fails the test (delete it). Adding a symbol is a tooling pull request with
+  review and evidence:
+  - a screenshot of Volt showing it as text, drawn by Android's fallback font;
+  - its `emoji-data.txt` properties, with U+FE0E required if it is emoji-capable;
+  - its absence from the four Saira cmaps.
+
+  Other characters Saira lacks in Volt's Java display text are not on the list and stay in Java
+  until a reviewed change handles them: the symbols ▾, ⤢ and the chart legend's ━ ┄ ⋯, and two
+  invisible ones. U+2060 WORD JOINER is what `CompatibilityPanel.unbroken()` puts into "km/h" at
+  run time; U+FFFC OBJECT REPLACEMENT CHARACTER marks the spinner's place in "Connecting…  ￼"
+  (DashboardScreen, MainActivity). The test refuses both in catalog text, while `check.py` lets
+  both through (`fontmetrics` skips format characters such as U+2060, and `check.py` skips U+FFFC).
+  U+FEFF and U+FFFD appear only in parsing code.
+
 ## Running a language
 
 The translation tools follow plan 7.1-7.4. Drafts come from **three providers**: Claude (Claude Code
@@ -1074,7 +1134,13 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    escapes, dnt tokens and markup, glossary, whitespace, Saira glyph coverage, ladder rungs and width
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
-   words and mixed-script leakage. Glossary terms match as whole words ("bloquear" is not found
+   words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
+   the U+FE0E after ⚠, exactly as the English has them. `check.py` and `council.py` do not know that
+   list yet. `check.py` reports each of those symbols, and U+FE0E itself (category Mn, so not the
+   warning it gives spaces and format characters), as a missing-glyph ERROR. The drafting prompt's
+   "Keep unchanged" rule names neither the symbols nor the invisible U+FE0E, which a drafter may
+   drop. Both need the list, in a tooling pull request, before a language translates a key that has
+   one. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a

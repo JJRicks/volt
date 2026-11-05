@@ -49,15 +49,16 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
    language". Keeping the mark in Java (`T.x() + " ✓"`) adds a literal, which G1 refuses in an
    extraction batch. It is the same block as B16's "☆ Star readings to pin here". G8 never listed it
    either: `Row.value(...)` is not a sink or text helper, and `is_multiword` counts "Unrestricted ✓"
-   as one word, so `l10n/baseline/MoreScreen.txt` has no entry for it. Follow-up: a tooling PR that
-   lets GlyphCoverageTest accept the symbol marks the English build already shows through Android's
-   font fallback, then keys `more_prefs_battery_value_unrestricted` and
-   `more_prefs_battery_value_optimized` with `volt:dnt="✓"` and `volt:dnt="⚠"` and a note that the
-   mark is a status mark to keep. Repro: change that line to the two `T.` calls, add the keys and the
-   two rows; `ledger_check.py` passes and `tests/run.sh` stops at GlyphCoverageTest. The PIN &
-   proximity chips ("PIN ✓" and "Paired ✓" with their "—" forms, listed in
-   `l10n/baseline/MoreScreen.txt`; their screen-reader text is translated) carry the same ✓, so they
-   wait on the same fix.
+   as one word, so `l10n/baseline/MoreScreen.txt` has no entry for it. Follow-up: GlyphCoverageTest
+   now accepts ✓, and ⚠ only as `⚠\uFE0E` (`l10n/README.md`, "Glyph coverage"). So an ordinary PR
+   first writes the literal as `"Optimized ⚠\uFE0E"`, and the batch then keys
+   `more_prefs_battery_value_unrestricted` and `more_prefs_battery_value_optimized` (`Optimized
+   ⚠\uFE0E`) with `volt:dnt="✓"` and `volt:dnt="⚠"` and a note that the mark is a status mark to
+   keep. Repro of the original block (before that tooling change): change that line to the two `T.`
+   calls, add the keys and the two rows; `ledger_check.py` passes and `tests/run.sh` stops at
+   GlyphCoverageTest. The PIN & proximity chips ("PIN ✓" and "Paired ✓" with their "—" forms,
+   listed in `l10n/baseline/MoreScreen.txt`; their screen-reader text is translated) carry the same
+   ✓, which now moves as it is.
 
 ## Keys no screen shows since F4
 
