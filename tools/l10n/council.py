@@ -562,7 +562,7 @@ def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, to
 
     A chunk gets the same rules as a single prompt, but its reply carries no src: the sidecar records
     each key's source hash as the prompt showed it, and import-claude --from-chunks reads the hash
-    from there. Returns (set id, [prompt paths]); ([], None) when there is nothing to draft.
+    from there. Returns (set id, [prompt paths]); (None, []) when there is nothing to draft.
     """
     pack = packlib.load_pack(paths, tag, area)
     stale = pack_out_of_date(paths, pack)
@@ -643,11 +643,11 @@ def load_chunk_set(paths, tag, area, draft_name, set_id=None):
     return fields
 
 
-def read_chunk_replies(paths, tag, area, prefix, set_id, count):
-    """({1-based index: the reply's strings}, ["why a chunk has no usable reply"])."""
+def read_chunk_replies(paths, directory, count):
+    """({1-based index: the reply's strings}, ["why a chunk has no usable reply"]) from one set's folder."""
     replies, missing = {}, []
     for index in range(1, count + 1):
-        reply = chunk_reply_path(paths, tag, area, prefix, set_id, index, count)
+        reply = os.path.join(directory, "chunk-%d-of-%d.json" % (index, count))
         where = paths.rel(reply)
         if not os.path.exists(reply):
             missing.append("chunk %d of %d: no reply at %s" % (index, count, where))
@@ -702,7 +702,8 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
     if redraft and previous is None:
         raise translib.L10nError("%s does not exist; a redraft replaces keys of an existing draft" % paths.rel(path))
     count = len(fields["chunks"])
-    replies, missing = read_chunk_replies(paths, tag, area, draft_name, fields["id"], count)
+    replies, missing = read_chunk_replies(paths, os.path.dirname(chunk_reply_path(
+        paths, tag, area, draft_name, fields["id"], 1, count)), count)
     if missing and not partial:
         raise translib.L10nError("%d of %d chunks have no usable reply; nothing was written (--partial imports the "
                                  "rest):\n  %s" % (len(missing), count, "\n  ".join(missing)))
@@ -931,27 +932,11 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
     out = out or sys.stdout
     draft_name = "claude-" + name
     fields = load_audit_set(paths, tag, area, draft_name)
-    replies_dir = audit_paths(paths, tag, area, draft_name, fields["id"])[3]
     count = len(fields["chunks"])
-    replies, missing = {}, []
-    for index in range(1, count + 1):
-        reply = os.path.join(replies_dir, "%s.%s" % (draft_name, fields["id"]), "chunk-%d-of-%d.json" % (index, count))
-        where = paths.rel(reply)
-        try:
-            value = json.loads(l10nlib.read_text(reply))
-            strings = value.get("strings") if isinstance(value, dict) else None
-        except OSError:
-            missing.append("part %d of %d: no reply at %s" % (index, count, where))
-            continue
-        except ValueError as error:
-            missing.append("part %d of %d: %s is not JSON: %s" % (index, count, where, error))
-            continue
-        if not isinstance(strings, dict):
-            missing.append("part %d of %d: %s has no \"strings\" object" % (index, count, where))
-            continue
-        replies[index] = strings
+    replies, missing = read_chunk_replies(paths, os.path.join(
+        audit_paths(paths, tag, area, draft_name, fields["id"])[3], "%s.%s" % (draft_name, fields["id"])), count)
     if missing and not partial:
-        raise translib.L10nError("%d of %d parts have no usable reply; nothing was written (--partial files the "
+        raise translib.L10nError("%d of %d chunks have no usable reply; nothing was written (--partial files the "
                                  "rest):\n  %s" % (len(missing), count, "\n  ".join(missing)))
     for line in missing:
         out.write("  %s\n" % line)
