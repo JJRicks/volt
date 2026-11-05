@@ -3801,10 +3801,9 @@ def _names_stable(tokens, condition, region, decl, end):
     return False
 
 
-def folded_append(diff, k, row, literals):
-    """True when base literal k is in `name += <operands>;` right after a statement that sets the String local name
-    with no condition and holds one of this row's literals, and the operands are, in order, this row's literals and
-    holes. So the head call prints the same thing, whichever tokens the aligner kept against it (an argument's
+def folded_append(diff, k, row):
+    """True when base literal k is in `name += <operands>;` right after the statement that sets the String local name
+    with no condition, and the two statements' operands are, in order, the row's pieces. So the head call prints the same thing, whichever tokens the aligner kept against it (an argument's
     `. ( )` may line up with the call's). An if, a return or a call the row does not pass is no such append."""
     tokens = diff.base.tokens
     first, _, terminator = statement_of(diff, k)
@@ -3822,25 +3821,14 @@ def folded_append(diff, k, row, literals):
     before = _statement_first(tokens, first - 1)
     start = before + 1 if _is_word(tokens, before, "final") else before
     start = start + 1 if _is_word(tokens, start, "String") else start
-    if not _is_word(tokens, start, name) or not _op(tokens, start + 1, "=", "+=") or \
-            not any(before <= j < first for j in literals):
+    if not _is_word(tokens, start, name) or not _op(tokens, start + 1, "="):
         return False
-    wanted = []
-    body = tokens[first + 2:terminator]
-    for part in _split_top(body, "+"):
-        at = first + 2 + _token_offset(body, part) if part else None
-        if len(part) == 1 and part[0].kind == "string":
-            if at not in literals:
-                return False
-            wanted.append(("s", part[0].value))
-        else:
-            wanted.append(("h", expressions.source_key(" ".join(t.raw for t in part))))
-    for sequence in sequences(row.pieces):
-        items = [("s", p) if isinstance(p, str) else ("h", expressions.source_key(p["hole"])) if "hole" in p else None
-                 for p in sequence]
-        if any(items[i:i + len(wanted)] == wanted for i in range(len(items) - len(wanted) + 1)):
-            return True
-    return False
+    parts = [tokens[start + 2:first - 1], tokens[first + 2:terminator]]
+    wanted = [("s", part[0].value) if len(part) == 1 and part[0].kind == "string"
+              else ("h", expressions.source_key(" ".join(t.raw for t in part)))
+              for body in parts for part in _split_top(body, "+")]
+    return any([("s", p) if isinstance(p, str) else ("h", expressions.source_key(p["hole"])) if "hole" in p else None
+                for p in sequence] == wanted for sequence in sequences(row.pieces))
 
 
 def _with_noun(source, name, value):
@@ -4212,7 +4200,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 first, last, terminator = statement_of(diff, k)
                 # A manual row may fold the one append that follows its sentence into its call (folded_append);
                 # that statement's ; goes too. Each one is listed.
-                if folded_append(diff, k, row, tokens):
+                if folded_append(diff, k, row):
                     gone_statement = _excerpt(diff.base.tokens[first:terminator + 1], None)
                     if terminator in diff.changed_tokens()[0]:
                         last = terminator

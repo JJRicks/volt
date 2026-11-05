@@ -349,6 +349,10 @@ class FormatPluralTest(PluralFlagCase):
         problems = self.check([self.row(split=[dict(spec="%d", arg=1, value="n", **{"as": "Fmt.integer(n)"}), " rides"])])[0]
         self.assertTrue(any("is a plural, but" in p for p in problems), problems)
 
+    def test_a_quantity_with_an_effect_is_refused(self):
+        with self.assertRaises(ledger_check.LedgerError):
+            ledger_check.parse_ledger(HEADER + self.row(split=[dict(self.ITEM, value="it.next()", **{"as": "Fmt.integer(it.next())"}), " rides"]) + "\n")
+
     def test_a_constant_quantity_fails(self):
         self.convert("T.sRides(1, Fmt.integer(n))")
         self.assertTrue(self.check([self.row()])[0])
@@ -644,7 +648,7 @@ class ShapeCase(PluralFlagCase):
 class FoldShapesTest(ShapeCase):
     """Item 3: a manual row folds only an unconditional append to the local its sentence just set, with operands
     that are the row's own. Whatever else it would delete is refused, whichever tokens the aligner kept."""
-    STRINGS_AT = strings_xml(s_on_at="On • %1$s", s_on_late="On later %1$s")
+    STRINGS_AT = strings_xml(s_on_at="On • %1$s", s_on_late="On later %1$s", s_on_chain="On later • %1$s")
 
     def fold(self, body, old, call, pieces, key="s_on_at"):
         row = "%s:%d\t%s\t%s\ttemplate\t%s" % (GRID, self.line_of(body, '"On"'), json.dumps(pieces, ensure_ascii=False), key, TAG)
@@ -709,6 +713,46 @@ class FoldShapesTest(ShapeCase):
     }
     static void log() { }""", 'String state = "On";\n        log();\n        state += " • " + t;',
                            "String state = T.sOnAt(t);\n        log();", ["On", " • ", hole("t", 1)])
+
+    def test_a_set_in_place_of_an_append_is_refused(self):
+        # The base prints only " • t": "On" is overwritten.
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state = " • " + t;
+        return state;
+    }""", 'String state = "On";\n        state = " • " + t;', "String state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+    def test_an_append_still_there_at_head_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state += " • " + t;
+        return state;
+    }""", 'String state = "On";\n        state += " • " + t;', "String state = T.sOnAt(t);\n        state += t;",
+                           ["On", " • ", hole("t", 1)])
+
+    def test_a_choice_in_the_first_statement_is_refused(self):
+        # What the first statement sets is part of the sentence, so the row must hold all of it.
+        self.assertRefused("""    static String tile(boolean c, String other, String t) {
+        String state = c ? "On" : other;
+        state += " • " + t;
+        return state;
+    }""", 'String state = c ? "On" : other;\n        state += " • " + t;', "String state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+    def test_a_piece_the_statements_do_not_print_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state += " • " + t;
+        return state;
+    }""", 'String state = "On";\n        state += " • " + t;', "String state = T.sOnLate(t);", ["On", " later ", " • ", hole("t", 1)], "s_on_late")
+
+    def test_a_second_append_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state += " later";
+        state += " • " + t;
+        return state;
+    }""", 'String state = "On";\n        state += " later";\n        state += " • " + t;', "String state = T.sOnChain(t);",
+                           ["On", " later", " • ", hole("t", 1)], "s_on_chain")
 
     def test_an_append_after_a_conditional_set_is_refused(self):
         self.assertRefused("""    static String tile(boolean c, String t) {
@@ -778,6 +822,9 @@ class ContextFactsTest(ShapeCase):
 
     def test_a_constant_of_an_object_is_not_a_constant(self):
         self.assertRefused(self.guarded("Cfg c", "c.ON", "c.ON = !c.ON;"), "c.ON")
+
+    def test_a_constant_of_a_field_is_not_a_constant(self):
+        self.assertRefused(self.guarded("int u", "c.ON", "flip();", "    static Cfg c;\n    static void flip() { }"), "c.ON")
 
     def test_a_class_field_this_file_assigns(self):
         self.assertRefused(self.guarded("int u", "Cfg.ON", "Cfg.ON = false;"), "Cfg.ON")
@@ -1038,13 +1085,14 @@ class PluralBranchNearMissTest(ShapeCase):
         self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? "1 try" : n + " tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
 
     def test_a_count_filled_into_an_other_form_is_not_a_literal(self):
-        # The base's other branch spells "1 tries"; the key's %1$d prints the real count there.
+        # The base's other branch spells "1 tries"; the key's placeholder prints the real count there. (A %1$d is
+        # LedgerTest's: Python renders only %s templates.)
         body = """    static String f(boolean h, int n) {
-        return (h ? (n == 1 ? "1 try" : "1 tries") : "None");
+        return (h ? (n == 1 ? n + " try" : "1 tries") : "None");
     }"""
-        strings = """<resources><plurals name="s_tr"><item quantity="one">%1$d try</item><item quantity="other">%1$d tries</item></plurals><string name="s_none">None</string></resources>\n"""
-        row = choice_row(self.line_of(body, "(h ?"), {"if": "h", "then": {"one": ["1 try"], "other": ["1 tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
-        self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? "1 try" : "1 tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
+        strings = """<resources><plurals name="s_tr"><item quantity="one">%1$d try</item><item quantity="other">%1$s tries</item></plurals><string name="s_none">None</string></resources>\n"""
+        row = choice_row(self.line_of(body, "(h ?"), {"if": "h", "then": {"one": [count(), " try"], "other": ["1 tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
+        self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? n + " try" : "1 tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
 
     def test_two_counts_in_a_branch_are_refused(self):
         row = choice_row(4, {"if": "h", "then": {"other": [count("n", 1), " of ", count("m", 2)]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
