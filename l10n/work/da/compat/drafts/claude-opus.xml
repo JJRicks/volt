@@ -33,17 +33,17 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-kortlagt (ikke testet)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås og måleværdier</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Ikke understøttet</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 uafsluttet test på et andet løbehjul. Vælg det for at gennemgå testen.</string>
-    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
-        <item quantity="one">%1$d uafsluttet test på et andet løbehjul. Vælg det for at gennemgå testen.</item>
-        <item quantity="other">%1$d uafsluttede test på andre løbehjul. Vælg et af dem for at gennemgå dets test.</item>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 ikke afsluttet test på et andet løbehjul. Vælg det for at gennemgå testen.</string>
+    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
+        <item quantity="one">%1$d ikke afsluttet test på et andet løbehjul. Vælg det for at gennemgå testen.</item>
+        <item quantity="other">%1$d ikke afsluttede test på andre løbehjul. Vælg et af løbehjulene for at gennemgå dets test.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Optegnelser over test er ikke tilgængelige. En tidligere test er måske ikke blevet sat tilbage; tjek løbehjulets indstillinger.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Forsøg · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Læser den aktuelle værdi…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Skifter til %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Tjekker, om værdien er uændret…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Tjekker, at indstillingen ikke er ændret…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Sætter tilbage til %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
@@ -193,7 +193,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Læsning understøttet</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Afvist, kode %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kvitteret, ikke bekræftet</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Tilbagelæsning uændret, værdi %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Tilbagelæsning: ikke ændret, værdi %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Tilbagelæsning viser en anden værdi: %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Indstilling bekræftet</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Virkning observeret</string>
@@ -203,7 +203,7 @@
     <string name="compat_note_not_saved" volt:src="ddf7520a51a6663ee26cf5a8e4860994741ed9f2">Kunne ikke gemme testregistreringen. Intet blev ændret.</string>
     <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Annulleret. Intet blev ændret.</string>
     <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef">Kunne ikke gemme testregistreringen, så indstillingen blev ikke sat tilbage af Volt.</string>
-    <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde">Ændret uden for testen (nu %1$s)</string>
+    <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde" volt:attempt="2">Ændret af noget andet end testen (nu %1$s)</string>
     <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2">Løbehjulet afviste tilbagesætningen (kode %1$d).</string>
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Der kom ingen ny aflæsning.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Accepteret, men der kom ingen entydig aflæsning.</string>
@@ -238,7 +238,7 @@
     <string name="compat_review_not_reported" volt:src="8b2223503abf6a6ba52fada12dd625e355ffff0f">Løbehjulet angiver ikke denne indstilling nu.</string>
     <string name="compat_review_related_not_reported" volt:src="56c764cfc48dde756cdb4c5188ccdc611c3fb356">Løbehjulet angiver ikke en relateret indstilling nu.</string>
     <string name="compat_review_related_changed" volt:src="4a706072880d20d481ff4350e76574682556b956">En relateret indstilling er ændret siden testen. Den bliver ikke sat tilbage af Volt.</string>
-    <string name="compat_review_changed_outside" volt:src="e13568a728f7699fb6c2bcca1d5737341d9718ca">Ændret uden for testen (nu %1$s).</string>
+    <string name="compat_review_changed_outside" volt:src="e13568a728f7699fb6c2bcca1d5737341d9718ca" volt:attempt="2">Ændret af noget andet end testen (nu %1$s).</string>
     <string name="compat_review_already_back" volt:src="7352e279e951744eeb98dafb12be21ae77a72e3e">Allerede tilbage på %1$s.</string>
     <string name="compat_review_still_test_value" volt:src="1f358820165cc7f4ef99565aa50af30a64cb60e1">Stadig på testværdien, %1$s.</string>
     <string name="compat_review_test_running" volt:src="201027e060d3751779d4bd38df19c3eb38d3db5d">Testen kører stadig.</string>

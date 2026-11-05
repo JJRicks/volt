@@ -30,7 +30,7 @@
     <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe">Jeg har allerede en ejerfil</string>
     <string name="onboarding_welcome_tile_lock" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Lås</string>
     <string name="onboarding_welcome_tile_lock_short" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Lås</string>
-    <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Indstillinger</string>
+    <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e" volt:attempt="2">Indst.</string>
     <string name="onboarding_welcome_tile_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Indst.</string>
     <string name="onboarding_welcome_tile_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
     <string name="onboarding_welcome_tile_battery_short" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Tilslut din telefon med et USB-datakabel</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Vælg din telefon i Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Godkend USB-fejlretning på denne telefon</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lad **Tillad altid fra denne computer** være umarkeret</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Sæt ikke flueben ved **Tillad altid fra denne computer**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Websitet har oprettet forbindelse</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Telefonen står ikke på listen</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Forbindelse i Chrome</string>
@@ -139,7 +139,7 @@
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Logget ind i NAVEE-appen, løbehjulet i nærheden\n•  Andre apps til løbehjul er lukket\n•  Stoppet for tidligt? Afslut først oprydningen i samme browser"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Din ejeropsætning</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importér din ejerfil</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Vælg navee-owner-setup.json. Det gendanner kun adgangen til løbehjulet, ikke ture eller andre appdata.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Vælg ejerfilen navee-owner-setup.json. Dette gendanner kun adgangen til løbehjulet, ikke ture eller andre data i appen.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Indlæser din ejerprofil…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Ingen fil valgt endnu</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Ikke en ejerfil.</string>

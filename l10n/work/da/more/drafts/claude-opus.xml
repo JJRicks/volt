@@ -157,7 +157,7 @@
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Kommandosvar</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Ryd resultater af forsøg</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Ryd resultater af forsøg?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt glemmer, hvad dine forsøg på dette løbehjul viste, så de forsvinder fra din næste rapport og fra ”Sæt tilbage”. Indstillingerne forbliver, som de er. Ufærdige forsøg bliver stående, indtil du gennemgår dem.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glemmer, hvad dine forsøg på dette løbehjul viste, så de forsvinder fra din næste rapport og fra ”Sæt tilbage”. Indstillingerne forbliver, som de er. Forsøg, der ikke blev færdige, bliver stående, indtil du gennemgår dem.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Ingen afsluttede forsøg at rydde</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">%1$d forsøg ryddet</item>
@@ -186,7 +186,7 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Gennemgå</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Sæt tilbage</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84">Gennemgå ufærdigt forsøg: %1$s</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Gennemgå forsøget med %1$s, der ikke blev færdigt</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">%1$s: sæt tilbage til %2$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Afprøv %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -208,15 +208,15 @@
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Sætter tilbage…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Simuleret ændring</string>
     <string name="more_lab_status_simulated_short" volt:src="781634cc580bebb6c14e20c88e6af911eb783f83">Simuleret</string>
-    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9">Ufærdigt · gennemgå</string>
-    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69">Ufærdigt</string>
+    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Ikke færdigt · gennemgå</string>
+    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Ikke færdigt</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Ikke afprøvet endnu</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Ikke verificeret på din model</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Ikke verificeret her</string>
     <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23">Ikke verificeret</string>
     <string name="more_lab_status_untested" volt:src="ae2b223c0444bbeca7873c7c98c5e9e11276e514">Ikke testet på din model</string>
     <string name="more_lab_status_untested_short" volt:src="64a3e790fa4a04842109f776f3343a17223113f5">Ikke testet her</string>
-    <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b">Utestet</string>
+    <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b" volt:attempt="2">Ikke testet</string>
     <string name="more_lab_status_worked" volt:src="8a055ce0ed8d06d3f7f23e08ac6f9f1bdfaab79c">Virkede her</string>
     <string name="more_lab_status_worked_short" volt:src="b1b6fb42bc14492a931a6d52b1a8540a8274d239">Virkede</string>
     <string name="more_lab_status_refused" volt:src="076ccb557fae7b59ad698827bf500a0a7e40faef">Afvist af løbehjulet</string>
@@ -242,7 +242,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Vælg en grænse</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Vælg en værdi</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt sender én ændring, mens løbehjulet er parkeret og oplåst, læser den tilbage og spørger derefter, hvad du så. Værdien forbliver, indtil du sætter tilbage. Hvis forbindelsen afbrydes, skriver Volt aldrig igen af sig selv: Forsøget venter på din gennemgang.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Tjekker, om den er uændret…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Tjekker, at værdien ikke er ændret…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Sætter tilbage til %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Læser den aktuelle værdi…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Sender %1$s og læser værdien tilbage…</string>
@@ -313,7 +313,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Hurtig</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Auto genkender UT5 MAX-opladere ud fra den aktuelle effekt. Hvis det er usikkert, bruger Volt den aktuelle opladningshastighed; vælg en oplader for at tilsidesætte den.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto genkender UT5 MAX-opladere ud fra effekten i realtid. Hvis Auto ikke er sikker, bruger Volt den aktuelle opladningshastighed; vælg en oplader for at tilsidesætte det.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Gemte opladningskurver</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Optag denne opladning</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stop optagelse af opladning</string>
