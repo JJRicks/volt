@@ -19,6 +19,8 @@ For depth, see the [localization workflow](../l10n/README.md). That manual is wr
 9. **Get text through `T` or `M` only, never `getString`.** `T` follows the language choice; a read through a `Context` can miss it, and CI refuses it.
 10. **Know your pull request's kind before you write it.** A feature with catalog text gets the strict gates, and adding file names or MIME types in the same PR fails them. See [Pull request kinds](#pull-request-kinds).
 
+No CI check catches a glued sentence (rule 5) or a hand-built count (rule 6), so check those yourself.
+
 ## Add a string
 
 Add it to the area's file. This one is real, from `res/values/strings_service.xml`:
@@ -43,12 +45,12 @@ String text = ride == null || ride.label.isEmpty()
 There is no generator step to commit or run by hand. `tests/run.sh` and `build.sh` generate `T` and `M` into build output, and generated files are never committed. For a fast check of your XML, run `python3 tools/l10n/gen_catalog.py --check`.
 
 - **File:** `res/values/strings_<area>.xml`. Words shared across screens go in `strings_common.xml`. English goes only in `res/values/`.
-- **Key:** `<area>_<screen>_<meaning>` in lower snake case. A test checks the form.
+- **Key:** `<area>_<screen>_<meaning>`. Checks enforce only lower snake case; the rest is convention. `CompatKeyNamesTest` also refuses a key with a part that is `b` or `f` plus digits, or `wave`.
 - **Translator note:** an XML comment right before the string. Write one whenever a placeholder or the context isn't obvious.
 
 ### Attributes
 
-All are optional. Any other `volt:` attribute is an error.
+All are optional. `volt:english-fix` also exists, for a known English bug in moved text; a feature doesn't need it. Any other `volt:` attribute is an error.
 
 | Attribute | Value |
 |---|---|
@@ -84,7 +86,7 @@ Placeholders are positional and numbered from 1 with no gaps:
 </plurals>
 ```
 
-The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
+The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
 
 ### Spelling
 
@@ -98,7 +100,7 @@ The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minut
 
 ### Symbols
 
-Every catalog character must exist in all four Saira font weights. The exceptions are ✓, ☆, ★ and ⚠, written `⚠︎`. Anything else, such as ▾, fails `GlyphCoverageTest`. Adding a symbol is a separate tooling PR.
+Every catalog character must exist in all four Saira font weights. The exceptions are ✓, ☆, ★ and ⚠, written `⚠\uFE0E`. Anything else, such as ▾, fails `GlyphCoverageTest`. Adding a symbol is a separate tooling PR.
 
 ## Which class to use
 
@@ -117,7 +119,7 @@ Call `T.x()` and `M.x()` by name. CI refuses static imports of `T`, `M` or `R` m
 CI rejects rendered text in these places, with these reasons:
 
 - **A field, static or enum constant.** The text would outlive a language change. A field typed as a view is fine, because it holds the view.
-- **A direct `.equals`, `.contains`, `.toUpperCase`, `.substring` or similar call.** The scan sees only the direct call chain. `String s = T.x(); if (s.equals(y))` passes CI and is still wrong.
+- **A `.equals`, `.contains`, `.toUpperCase`, `.substring` or similar call on a `T` call, or a comparison with one as the argument.** The scan sees only direct calls. `String s = T.x(); if (s.equals(y))` passes CI when `y` is a plain variable, and is still wrong.
 
 ## What stays English, and why
 
@@ -131,7 +133,6 @@ CI rejects rendered text in these places, with these reasons:
 
 The pattern is an English id or enum beside a display accessor. Code and files keep the id, and screens call the accessor. Examples:
 
-- `PhoneRideRecorder.status()` is an English id, with `statusFlags()` for labels.
 - `RouteSpeedScale.source` is English, with `sourceLabel` for display.
 - `ScooterProfiles.DEFAULT_NAME` is stored in English, with `Profile.displayName()` for display.
 
@@ -158,11 +159,11 @@ Screens work like this:
 - `MainActivity` doesn't declare `locale` in `configChanges`, so Android recreates it on a language change and its screens rebuild. A view built from `T` in a rebuild path is fine.
 - An activity that declares `locale` must relabel itself. `BackupActivity` keeps a `Msg` per view for this, because recreating it would end its session.
 
-**Don't copy old neighbours.** Some code still holds hard-coded text, such as `recordingError = "Storage full..."` in `ScooterService.stopRide`. That text hasn't been converted, and it isn't a pattern to follow. `l10n/baseline/<File>.txt` lists what each file still has.
+**Don't copy old neighbours.** Some code still holds hard-coded text, such as `recordingError = "Storage full..."` in `ScooterService.stopRide`. That text hasn't been converted, and it isn't a pattern to follow. Leave it alone in a catalog PR too: changing it there fails `G1`. Deleting old text belongs in an ordinary PR, and converting it follows the [ledger process](../l10n/README.md). `l10n/baseline/<File>.txt` lists what each file still has.
 
 ## Numbers, dates and units
 
-Any catalog string with `%` is formatted with `Locale.ROOT`, so locale-aware numbers must arrive already formatted, as `%n$s`:
+Any catalog string with `%` is formatted with `Locale.ROOT`, so decimals, grouped numbers and anything else locale-aware must arrive already formatted, as `%n$s`:
 
 ```java
 T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
@@ -170,14 +171,14 @@ T.fmtQuantity(Fmt.integer(seconds), T.moreUnitSecond())
 
 | Need | Use |
 |---|---|
-| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(legacyLocale, v, places)`, `Fmt.grouped(legacyLocale, v, places)` |
+| Number on screen | `Fmt.integer(n)`, `Fmt.decimal(Locale.US, v, places)`, `Fmt.grouped(Locale.US, v, places)`. `Locale.US` applies only in English; other languages use their own |
 | Number with unit, range, percent | `T.fmtQuantity`, `T.fmtRange`, `T.fmtPercent` |
 | Clock or date on screen | `DisplayTime.clock`, `DisplayTime.dateTime`, `Fmt.datePattern` |
 | Speed | `DisplayUnits.speed` |
 | Unit logic | `UnitCode.matches(dataUnit)`, never the shown symbol |
 | Number or date in a file | `Locale.ROOT` or the writer's fixed locale, never `Fmt` |
 
-No CI check refuses a new default-locale `String.format("%.1f", v)`. It is listed for a reviewer only, so check this yourself. Don't model code on `DisplayTime.recent`, whose `Locale.ENGLISH` upper-casing is old behaviour.
+No CI check refuses a new default-locale `String.format("%.1f", v)`. A `batch` lists it as a warning for the reviewer, and an `ordinary` PR doesn't mention it, so check this yourself. Don't model code on `DisplayTime.recent`, whose `Locale.ENGLISH` upper-casing is old behaviour.
 
 ## Narrow labels
 
@@ -188,7 +189,7 @@ Use the full label, then a short one, then a compact one. Never break a word or 
 <string name="more_lab_status_waiting_short" volt:ladder="short">Your answer</string>
 ```
 
-A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, `LadderPill`). No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
+A rung may use only its full key's placeholders. Code measures with the view's paint and picks the first rung that fits (`TileRung.pick`, or `LadderPill`, which is private to `MoreScreen`). No plain-JVM check requires a new row to use a ladder, so check narrow screens and large text yourself, as [CONTRIBUTING](../CONTRIBUTING.md#build-and-test) asks.
 
 Right-to-left languages are on hold. The manifest has `supportsRtl="true"`, but no check requires right-to-left layout yet.
 
@@ -206,7 +207,7 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 
 | | `ordinary` | `batch` |
 |---|---|---|
-| New `src/` literal | Allowed | Only lower-case ids such as `"ride_auto_export"`, and format-only literals such as `"%.1f"` |
+| New `src/` literal | Allowed; some need [a baseline entry](#hard-coded-text-and-baselines) | Only `""`, lower-case ids (letters and digits joined by `_` or `.`, two characters or more, such as `"ride_auto_export"`), and number-only formats such as `"%.1f"` (`%s` doesn't count) |
 | Code on a line holding a literal | Allowed | Refused; add a new statement on its own line |
 | Lint baselines (`l10n/baseline/`) | May grow | Shrink only |
 | Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
@@ -214,11 +215,11 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 | Existing tests | May change | May only gain whole statements |
 | `T.` or `M.` calls, catalog strings | Not possible; adding them makes it a `batch` | Yes |
 
-MIME types and file-name parts such as `"text/csv"` and `"-sensors.csv"` are not lower-case ids, so they fail a `batch`.
+MIME types, file-name parts, log tags, separators and char literals, such as `"text/csv"`, `"-sensors.csv"`, `"Volt"`, `","` and `','`, are not lower-case ids, so they fail a `batch`.
 
 ### Split a feature into two PRs when it needs both
 
-1. **Ordinary prep PR.** Logic and data with no catalog references: MIME types, file-name parts, a change to a long key list, report-format or golden changes, test registration, edits to existing tests.
+1. **Ordinary prep PR.** Logic and data with no catalog references: MIME types, file-name parts, a change to a long key list (with `--write-baselines`), report-format or golden changes, test registration, edits to existing tests.
 2. **Catalog PR**, after the first merges. Strings, `T` and `M` calls, and new statements calling the prep code.
 
 This split was tried against the real gates when this guide was written, and both PRs passed. If your feature adds no non-id literals, one PR is enough.
@@ -227,20 +228,28 @@ This split was tried against the real gates when this guide was written, and bot
 
 `tests/run.sh` names its core suites, so a `tests/<Name>Test.java` needs an edit that a `batch` refuses. This route works in either kind:
 
-- Add `tests/l10n/<Name>Test.java`, in package `com.jjricks.volt`.
-- Add `tests/l10n/<x>.sources` listing it, plus any pure `src/` class it needs.
+- Add `tests/l10n/<Name>Test.java`, in package `com.jjricks.volt`: a class with `main` that throws on failure and prints a pass line, like `ReportsStayEnglishTest`.
+- Add `tests/l10n/<x>.sources` listing it, plus any pure `src/` class it needs. Listing a file that is already compiled is harmless.
 
 Tests compile without Android, so keep decisions in a pure class such as `RideAutoStopPolicy`.
 
 ### Hard-coded text and baselines
 
-A new literal in `setText` or similar fails `hardcoded_lint.py --check` until `--write-baselines` lists it, and on an ordinary PR that then passes. This is an escape hatch for old code, not a way to add a feature. Don't use it for shown text. A passing lint also doesn't prove text is localized: `Row.value(...)` isn't checked today, and single words outside the text helpers go unseen.
+`hardcoded_lint.py --check` fails on three kinds of new literal in `src/`, shown or not:
+
+- `(sink)`: in `setText`, a toast, a notification or similar.
+- `(helper)`: an English-looking literal in a call named like a text helper, such as `label`, `status`, `event`, `text` or `group`.
+- `(multiword)`: any other literal with two or more words, including log lines, exception text and long key lists.
+
+Shown text goes in the catalog. Text that is never shown, such as a log line or English file text, takes `--write-baselines` in an ordinary PR, and the gate then passes. A `batch` can't grow baselines, so that text goes in the prep PR.
+
+A passing lint doesn't prove text is localized: a single word outside the text helpers goes unseen, as in `row.value("Automatic")`.
 
 ### Changing existing English
 
 - **Text you just added and has no ledger row:** edit it freely.
 - **A key that has a ledger row:** rewording fails on every kind unless `l10n/english-changes.tsv` records it. That route needs the project owner's approval and a screen-text comparison, so put it in its own PR.
-- **Retiring a key that has a ledger row:** that takes a tooling PR.
+- **Retiring a key that has a ledger row:** that takes a tooling PR. Removing the key fails with `key ... is not in res/values/strings*.xml`, and removing its row fails with `ledger files are append-only`.
 
 ## What gets refused, and how it reads
 
@@ -248,18 +257,19 @@ CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py`, 
 
 | Message contains | Meaning | Fix |
 |---|---|---|
-| `G1`: `new literal "..."; an extraction batch adds no text to src` | A `batch` PR added a text or data literal | Move it to a prep PR, or into the catalog if it is shown |
-| `G1`: `this change adds ...; around text` | You changed a statement near an old literal | Put your code on a new line, away from literals |
+| `G1`: `new literal "..."` or `new char "..."`; `an extraction batch adds no text to src` | A `batch` PR added a text or data literal | Move it to a prep PR, or into the catalog if it is shown |
+| `G1`: `this change adds ...; around text` | You added a literal in that part of the file, or changed a statement near an old literal | Clear any `new literal` line first, which also clears this. Otherwise put your code on a new line, away from literals |
+| `G1`: `literal "..." left with no ledger row` | A `batch` removed or changed old hard-coded text | Restore it. See [Don't copy old neighbours](#background-and-service-text) |
 | `G1`: `exact row: <key> is '...' but the literal was '...'` | You reworded a key that has a ledger row | Revert, or use `english-changes.tsv` |
-| `G8`: `new hard-coded English (sink) "..."` | Text in a `setText`, toast, notification or similar | Move it to the catalog |
-| `G8`: `<file>.txt can shrink by N entries; run --write-baselines` | You removed hard-coded text | Run that command and commit |
+| `G8`: `new hard-coded English (sink) "..."`, or `(helper)` or `(multiword)` | See [Hard-coded text](#hard-coded-text-and-baselines) | Shown: move it to the catalog. Not shown: `--write-baselines` in an ordinary PR |
+| `G8`: `<file>.txt can shrink by N entries; run --write-baselines` | You removed hard-coded text. Only a note in an `ordinary` PR | Run that command and commit |
 | `G4`: `a test statement with "..." was changed or removed` | You edited an existing test in a `batch` | Add whole statements, or move the edit to a prep PR |
 | `G9`: `<file> changed since <sha>` | A golden changed in a `batch` | Move the format change to a prep PR |
 | `proof tooling unchanged: tests/run.sh changed` | A `batch` touched proof tooling | Move it to a prep PR, or use a `.sources` file |
 | `import static ...; call T.x(), M.x() or R.string.x instead` | A static import of a catalog member | Call by the class name |
 | `gen_catalog: ...: unescaped apostrophe` | Spelling | Write `\'` |
 | `gen_catalog: ...: placeholders must be numbered %1$ to %2$ with no gaps` | Placeholder numbering | Renumber |
-| `R2 rendered text ...; store a Msg or an id` | Rendered text in a field | Store `M.x()` or `T.X` |
+| `R2 rendered text ...` | Rendered text in a field | Store `M.x()` or `T.X` |
 | `R3 ... compare ids or enums` | Shown text compared or cut | Compare the id or enum |
 | `R4 an English-only file references the catalog` | Catalog use in a report or log file | Add a display accessor elsewhere |
 | `R5 rendered text in a static ...; hold an id` | Rendered text in a static | Hold `T.KEY`; render when shown |
@@ -272,7 +282,7 @@ CI prints the check name and the message. `G1` to `G9` come from `ci_gates.py`, 
 
 ## Check your work
 
-Commit first, because the gates read `HEAD`. Run `git fetch origin` so `origin/main` is current.
+Commit first, because the gates read `HEAD`. Run `git fetch origin` so `origin/main` is current. To try uncommitted work, pass `--head WORKTREE` to `ci_gates.py`, also with `--print-mode`, and leave out `--pr-head`. Without it they judge your last commit, and the kind printed can be wrong.
 
 **No Android SDK needed, JDK 17+ and Python only:**
 
@@ -285,9 +295,12 @@ bash tests/run.sh
 python3 -m unittest discover -s tools/l10n
 python3 tests/owner-capture-guard-test.py
 python3 tests/capture-owner-test.py
+python3 tests/hardware-sweep-test.py
+python3 docs/validation/data/stock-pack-v6/fit_pack_model.py --check
+python3 -m unittest discover -s ops/ci -p 'test_*.py' -q
 ```
 
-The first four take seconds. `tests/run.sh` and the unit tests took a minute or two each on one Mac. `tests/run.sh` includes the catalog usage, glyph and catalog form checks.
+`tests/run.sh` and the `tools/l10n` unit tests took a few minutes each on one Mac. The others take under a minute. `tests/run.sh` includes the catalog usage, glyph and catalog form checks.
 
 **Android SDK 36 and build-tools 36.1.0 needed.** See the [build guide](building.md) for the one-time dependency fetch:
 
@@ -300,14 +313,14 @@ bash android-tests/build.sh
 
 | | Runs |
 |---|---|
-| CI | `tests/run.sh`, the other core Python suites, `tools/l10n` unit tests, `gen_catalog.py --check`, `golden.sh`, `ci_gates.py`; the website job separately |
+| CI | Everything in that first list; the website job separately |
 | Not in CI | `build.sh`, `android-tests`, pseudo-locale checks, the screen-text census, `prove-english.sh` |
 
 Say in your PR what you ran, and what you couldn't run.
 
 ### The `prove-english.sh` caveat
 
-`tools/l10n/prove-english.sh` is a local proof for moving old text. It isn't in CI, and a feature PR doesn't need it. If you run it on an ordinary PR, expect false alarms: it fails `G1` on any new or changed non-id literal and, at this writing, `G8` on grown baselines, even when `ci_gates.py` passes. `ci_gates.py` is the authority. A catalog-only PR with no new data literals passes it.
+`tools/l10n/prove-english.sh` is a local proof for moving old text. It isn't in CI, and a feature PR doesn't need it. If you run it on an ordinary PR, expect false alarms: at this writing it fails `G1` on any new or changed non-id literal and `G8` on grown baselines, even when `ci_gates.py` passes. `ci_gates.py` is the authority. A catalog-only PR with no new data literals passes it.
 
 ## See your text in the pseudo-locale build
 
@@ -324,7 +337,7 @@ bash android-tests/build.sh
 python3 android-tests/run-release-sweep.py --adb "$ADB" --serial emulator-5554 \
     --app dist/volt.apk --pseudo-app build/pseudo/volt-pseudo.apk \
     --runner .local/build/parked-validation/parked-validation.apk \
-    --out evidence/pseudo --only locale-en-XA-344 --only locale-ar-XB-344
+    --out .local/pseudo-evidence --only locale-en-XA-344 --only locale-ar-XB-344
 ```
 
-`$ADB` is your `adb` path. Use a disposable emulator. Read the runner first, and keep `--out` out of Git. It walks the main pages and More sections, so a new sheet may need checking by hand. If you have no emulator, say so in the PR so your reviewer knows.
+`$ADB` is your `adb` path. Use a disposable emulator. Read the runner first, and keep `--out` out of Git (`.local/` and `build/` are ignored). It walks the main pages and More sections, so a new sheet may need checking by hand. If you have no emulator, say so in the PR so your reviewer knows.

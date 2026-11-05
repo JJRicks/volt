@@ -12,13 +12,13 @@ Read [Localization for contributors](../localization-for-contributors.md) first.
 
 | Text | Where | Notes |
 |---|---|---|
-| Setting row and its description | `res/values/strings_more.xml` | `preferenceToggle(box, icon, T.title(), T.sub(), key, fallback)` |
+| Setting row title and sub-label | `res/values/strings_more.xml` | `preferenceToggle(box, icon, T.title(), T.sub(), key, fallback)`. It already speaks the title for the switch, so no separate spoken string is needed |
 | Notification title and text | `res/values/strings_service.xml`, Rides section | Render with `T` at each post |
 | Toasts and failure messages | Same | See [no screen open](#background-text-with-no-screen-open) |
 | Any folder choice or dialog text | `strings_more.xml` or `res/values/strings_rides.xml` | Depends on the destination decision |
-| Count of rides or files | `<plurals>` | Quantity first, `T.x(n, n)` |
+| Count of rides or files | `<plurals>` | Quantity first, `T.x(n, n)`, with `%1$d` |
 
-Don't take the `--write-baselines` route for shown text. The lint permits it on some PRs, but the owner's condition rules it out.
+Don't take the `--write-baselines` route for shown text. The lint permits it on some PRs, but the owner's condition rules it out. A log line or other text that is never shown does take that route, in the ordinary PR.
 
 ### What stays English
 
@@ -34,6 +34,7 @@ Don't take the `--write-baselines` route for shown text. The lint permits it on 
 - A failure on a worker thread hands back an enum or `Msg`. Render on the main thread when posting.
 - Toast only when `visible`, otherwise post a notification. `ScooterService.autoStopRide` and `showAutoStopNotice` are the model.
 - Use the existing `scooter` channel and `post(id, ...)`, which is paced by `NotificationPacer`. A new channel must be added to `applyLocale`.
+- A new notice needs a new id. `AUTO_STOP_NOTICE` and its neighbours use 72 to 77. Declare yours on a new line, because their line also holds a string literal and editing it fails `around text` in a catalog PR.
 - A ride's name in a notice is a `%1$s`, with a separate string for an unnamed ride. `serviceRideBluetoothLost` and `serviceRideBluetoothLostLabel` show the pattern.
 - Notifications can be denied. Then a hidden rider never hears about a failure, unless it is also stored as an id and shown in the app. See [Decisions](#decisions-to-settle-with-the-owner-first).
 
@@ -44,7 +45,7 @@ Don't take the `--write-baselines` route for shown text. The lint permits it on 
 
 ### No comparing shown text
 
-Decide from booleans, enums and constants such as `RideStore.STOP_AUTO_PARKED`. Don't decide from a label, a rendered message or `recordingError`. CI only catches direct calls on a `T` call, so a rendered local variable used this way passes and is still wrong.
+Decide from booleans, enums and constants such as `RideStore.STOP_AUTO_PARKED`. Don't decide from a label, a rendered message or `recordingError`. CI only catches direct calls on a `T` call or with one as the argument, so a rendered local variable compared with a plain variable passes and is still wrong.
 
 ### Safety check: how the existing export text works now
 
@@ -100,6 +101,8 @@ Three traps:
 
 Don't edit a line in `stopRide` that holds a literal, such as `"Storage full · free space, then Retry save"`. In a catalog PR that fails with `around text`. Add a new statement on the `return true` path. That string and its raw toast are unconverted code, not a pattern.
 
+`stopRide` is crammed onto a few long lines, so a new statement means breaking one. A trial passed `G1` doing that, away from the literal. `rides.activeId()` is null once `rides.stop` returns, so read the id into a local first, on a new line before the `try`.
+
 ### The existing export code
 
 | Part | Where | Usable with no screen? |
@@ -120,10 +123,10 @@ Don't edit a line in `stopRide` that holds a literal, such as `"Storage full · 
 | Step | Where |
 |---|---|
 | Row | `MoreScreen.preferences()` via `preferenceToggle`, or `MoreScreen.dataHistory()` (`recording` group) |
-| Constant and read | Like `ScooterService.RIDE_AUTO_STOP`. The fallback at each read must match the row's |
+| Constant and read | Like `ScooterService.RIDE_AUTO_STOP`, on a new line. The fallback at each read must match the row's |
 | Classification | `BackupRegistry` static block |
 | Inventory | A row in `docs/app-storage-inventory.md`, in the same change |
-| Pins to copy | `ride_auto_stop` in `tests/BackupRegistryTest.java`, `tests/BackupTestStore.java`, `tests/BackupPlanTest.java`, and `android-tests/RideAutoStopValidation.java` |
+| Pins to copy | `ride_auto_stop` in `tests/BackupRegistryTest.java`, `tests/BackupTestStore.java`, `tests/BackupPlanTest.java`, and `android-tests/RideAutoStopValidation.java`. Adding to `BackupTestStore` changes the `replaces N settings` counts pinned in `BackupPlanTest`, and editing those fails `G4` in a catalog PR, so make that pin in PR 1 |
 
 Register a boolean with its own line. A trial passed `ci_gates.py` and `tests/run.sh` in a catalog PR this way, because the key is a lower-case id on a new line:
 
@@ -131,7 +134,7 @@ Register a boolean with its own line. A trial passed `ci_gates.py` and `tests/ru
 add(app, "ride_auto_export", Boolean.class, PREFERENCES);
 ```
 
-Don't add it to the long key list beside it. That changes a literal, which fails `G1` and `G8` in a catalog PR.
+Don't add it to the long key list beside it. That changes a multi-word literal, which fails `G1` and `G8` in a catalog PR and needs `--write-baselines` in an ordinary one.
 
 `BackupRegistryTest` fails with `preference key <key> is unclassified; assign it in BackupRegistry` when it sees an unregistered key. It can't see a key used only through `preferenceToggle`, so read the value by literal or `UPPER_CASE` constant somewhere in the service, and add a pin.
 
@@ -172,7 +175,7 @@ Phone route, GPX, raw phone and combined exports can hold precise coordinates, a
 
 - Keep decisions in a pure class, like `RideAutoStopPolicy`. `ScooterService` is an Android class, and the JVM tests can't run it.
 - Add `tests/l10n/<Name>Test.java` plus a `tests/l10n/<x>.sources` listing it and the pure class. This avoids editing `tests/run.sh`.
-- A new native validation class must get a step or an `EXCLUDED` reason in `android-tests/run-release-sweep.py`. No existing test exercises the real ride-export path end to end.
+- A new native validation class must be registered in `android-tests/AndroidManifest.xml` and get a step or an `EXCLUDED` reason in `android-tests/run-release-sweep.py`. No existing test exercises the real ride-export path end to end.
 - Use synthetic data. Don't commit real recordings or routes.
 
 ## Decisions to settle with the owner first
@@ -185,7 +188,7 @@ CONTRIBUTING asks for an issue describing the intended behavior before a substan
    - App-specific external storage. Not user-friendly.
    - Stage the file and offer the picker at next app open. The picker can't appear at a hidden ride end.
 2. **What gets exported.** Scooter CSV, analysis JSON, route CSV, GPX, raw phone and motion, combined JSON: one, several or a bundle? Precise location by default, given a folder may sync to a cloud? What about rides with no phone data?
-3. **Failure.** Folder or grant gone, storage full, provider error: retry when, what does the rider see if notifications are denied, does a failed export stay pending across restarts, does the setting turn itself off?
+3. **Failure and success.** Folder or grant gone, storage full, provider error: retry when, what does the rider see if notifications are denied, does a failed export stay pending across restarts, does the setting turn itself off? Does a success post a notice at all, and does it while the app is visible?
 4. **Which rides.** Auto-ended, recovered and very short rides? Older rides retroactively? Per scooter or global? Default off is implied by "option"; confirm it.
 5. **Naming.** Overwrite or never overwrite, including a repeated export? English id-based names only, or the rider's label as well?
 6. **Backup and restore.** Does the setting travel when the folder grant can't? How does a restored setting with no folder behave? Does a running export block maintenance the way `chargeExporting` does?
@@ -212,20 +215,7 @@ Recommendation: put the work in a new class such as `RideAutoExport`, with thin 
 
 ## Definition of done
 
-Run these on each PR, committed, with `origin/main` fetched. They need a JDK 17+ and Python, and no Android SDK:
-
-```sh
-python3 tools/l10n/gen_catalog.py --check
-python3 tools/l10n/hardcoded_lint.py --check
-python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"
-bash tests/l10n/golden.sh
-bash tests/run.sh
-python3 -m unittest discover -s tools/l10n
-python3 tests/owner-capture-guard-test.py
-python3 tests/capture-owner-test.py
-```
-
-All must pass. On the catalog PR, `ci_gates.py` should print `batch change, 0 gate(s) failed`, with `0 new ledger row(s)`. Read its `warning:` lines: each new statement and id is listed there for the reviewer, and no id may appear on screen.
+Run the first list in [Check your work](../localization-for-contributors.md#check-your-work) on each PR, committed, with `origin/main` fetched. It needs a JDK 17+ and Python, and no Android SDK. All must pass. On the catalog PR, `ci_gates.py` should print `batch change, 0 gate(s) failed`, with `0 new ledger row(s)`. Read its `warning:` lines: each new statement and id is listed there for the reviewer, and no id may appear on screen.
 
 With the Android SDK, also run these. CI can't:
 
@@ -235,7 +225,7 @@ bash android-tests/build.sh
 VOLT_PSEUDO_LOCALES=1 bash build.sh
 ```
 
-`prove-english.sh` isn't required. On the ordinary PR it fails on new literals even when CI passes; see the [caveat](../localization-for-contributors.md#the-prove-englishsh-caveat).
+`prove-english.sh` isn't required; see the [caveat](../localization-for-contributors.md#the-prove-englishsh-caveat).
 
 With an emulator, per CONTRIBUTING, check lifecycle and UI, including narrow screens and large text, with a hidden stop from the notification. Don't run parked validation modes on someone else's scooter.
 
