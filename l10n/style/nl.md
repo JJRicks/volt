@@ -8,8 +8,8 @@
 
 - Address the rider as **je** (owner's decision, 2026-11-02): je, jij only for stress, jou, jouw only for stress. Possessive is normally **je**: *je step*. Never u, uw or a mix. NAVEE's own Dutch product page also uses je.
 - Tone: plain and calm, like a good app. Not a legal text and not marketing. No slang and no exclamation marks in errors.
-- **Buttons, toggles and menu actions use the infinitive**, verb last: *Vergrendelen*, *Verbinden*, *Back-up maken*, *Probleem melden*. **Instructions in sentences use the imperative**, the verb's stem with no -t: *Tik op ‘Toestaan’.*, *Verbind opnieuw.*, *Voer je stuur-PIN in.* Don't mix the two in one string.
-- Status text uses a participle or noun with no subject: *Verbonden*, *Bezig met meten…*. An action still running is **Bezig met vergrendelen…**, **Bezig met ontgrendelen…**, because *Vergrendelen…* differs from the button *Vergrendelen* by one glyph. Keep the short form only on a rung with a width budget. Past events use the perfect or simple past, whichever is shorter and natural: *Signaal verloren*, *Werkte hier*.
+- **Buttons, toggles and menu actions use the infinitive**, verb last: *Vergrendelen*, *Verbinden*, *Back-up maken*, *Probleem melden*. **Instructions in sentences use the imperative**, the verb's stem with no -t: *Tik op ‘Toestaan’.*, *Maak opnieuw verbinding.*, *Voer je stuur-PIN in.* Don't mix the two in one string.
+- Status text uses a participle or noun with no subject: *Verbonden*, *Bezig met meten…*. An action still running is **Bezig met vergrendelen…**, **Bezig met ontgrendelen…**, because *Vergrendelen…* differs from the button *Vergrendelen* by one glyph. Keep the short form only on a rung with a width budget. Connecting is the exception, in Android's wording: **Verbinding maken…**, *Opnieuw verbinding maken*, never *Bezig met verbinden*. **Debate item:** whether other running actions may also take the short form (*Opslaan…*); until then they keep *Bezig met*. Past events use the perfect or simple past, whichever is shorter and natural: *Signaal verloren*, *Werkte hier*.
 - Use **tik** for the screen and **druk** for a physical button. Android's own Dutch says tik.
 - Leave *alsjeblieft* out of labels. In a sentence, use it at most once, and only where a request really is polite.
 - **Gender.** Role nouns stay generic and short: *eigenaar*, *medegebruiker*. No slashes, stars or -e forms. Prefer a sentence that needs no role noun.
@@ -18,6 +18,7 @@
 
 - Quotes: **‘…’**, nested **“…”** (CLDR nl; Microsoft's Dutch guide also uses single marks). Never straight quotes or «…». When the English quotes a Volt button, quote the Dutch button's exact text. When it quotes a screen that stays English (the setup website, an adb prompt), keep the English inside the quotes: *‘Choose owner file’*. Android's own prompts appear in the phone's language, so use the Dutch text.
 - Apostrophe: **’** (U+2019), including in plurals that need it: *accu’s*, *foto’s*, *km’s*, *PIN’s*. It looks like the closing quote, which is normal.
+- **Default to *en*:** *Gegevens en geschiedenis*. *&* only on a rung with a width budget (*PIN & nabijheid*, *Data & historie*).
 - A full sentence ends with a period; a label, button or title has none. Keep the English's … as the single character with no space before it: *Bezig met ontgrendelen…*
 - Dash: en dash with spaces for a break ( – ), never an em dash. Ranges: en dash with no spaces (*10–20 km*). Keep the source's separators such as " · ".
 - After a colon, lower case unless a name or several sentences follow: *Laatst bekend: vergrendeld*.
@@ -65,10 +66,11 @@ Every ladder runs full, `_short`, `_compact`, then icon. Measure in Saira (`tool
 | Temperatuur | **Temp.** | Temp. 34.6; Accutemp. 60.5 at 12.5sp | Tmp. |
 | Capaciteit | **Cap.** | Gesch. cap. 64.2 at 12.5sp | Capac. |
 | Geschat(te), before cap. only | **Gesch.** | Gesch. cap. | Gesch. alone, which reads as geschiedenis |
-| Instellingen, in a hyphenated compound | **-inst.** | Accu-inst. 54.5, App-inst. 50.4 at 12sp | Inst. alone, Instell., Instel. |
+| Instellingen, in a hyphenated compound | **-inst.** | Accu-inst. 54.5 at 12sp | Inst. alone, Instell., Instel. |
 | Experimentele functies | **Exp. funct.** | 58.8 at 12sp, the 64dp shortcut only | Exp. alone, Experim., Exp. fn. |
 | Installeren | **Install.** | 43.3 at 14sp, `owner_shizuku_install` only | Inst. |
 | ongeveer | **ca.**, before a number | ca. 25 km | ong., +/- |
+| Firmware, on `*_version_compact` rungs only | **FW** | FW meter, FW accu; the English has FW too | Firmw. |
 
 Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate a safety word (section 6). *Vergr.*, *Ontgr.*, *Ontgrend.* and *Niet geverif.* are forbidden: they hide the state.
 
@@ -95,16 +97,16 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: **Slot** 22.9 (*Vergrendelen* is 78.1 and *Vergrendel* 63.6, so neither fits), **Opties** 37.4 (*Instellingen* is 68.0), Accu 27.5, Ritten 35.5.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: Licht 26.8, Opties 35.9 (*Instellingen* is 65.3), Livedata 47.6, Ritten 34.1, Rijden 35.4, Accu-inst. 54.5, Lijnlicht 43.5, Sterlicht 46.6, App-opties 60.9, Stepnaam 56.8, Mijn steps 57.3, Data 26.1, Display 41.5, Info 22.2, PIN & nabij 62.0, Klaar vóór 56.9, Exp. funct. 58.8.
-- The same keys' `_short`, 90dp at 12.5sp: Instellingen 68.0, Verlichting, Rijinstellingen 82.7, Livegegevens 79.4, Accu-inst. (*Accu-instellingen* is 99.7), Lijnverlichting 81.6, Sterverlichting 84.9, App-inst. (*App-voorkeuren* is 93.2), Data & historie 86.2, Display/geluid 83.7 (*Display & geluid* is 94.2), Info & rechten 82.3, PIN & nabijheid 89.7, Klaar vóór 59.3, Klaar vóór: tijd 84.0, Experimenteel 84.1.
+- `dashboard_model_qa_*`, 64dp at 12sp, one line: Licht 26.8, Opties 35.9 (*Instellingen* is 65.3), Livedata 47.6, Ritten 34.1, Rijden 35.4, Accu-inst. 54.5, Lijnlicht 43.5, Sterlicht 46.6, App-opties 60.9, Stepnaam 56.8, Mijn steps 57.3, Data 26.1, Display 41.5, Info 22.2, PIN & nabij 62.0, Klaar vóór 56.9, Exp. funct. 58.8. `dashboard_model_qa_charge_done_time` has no fitting rung: *Klaar vóór: tijd* is 80.7 at 12sp and bare *Klaar vóór* duplicates its sibling, so the width check warns and the judge decides (candidate: *Eindtijd* 42.5).
+- The same keys' `_short`, 90dp at 12.5sp: Instellingen 68.0, Verlichting, Rijinstellingen 82.7, Livegegevens 79.4, Accu-inst. (*Accu-instellingen* is 99.7), Lijnverlichting 81.6, Sterverlichting 84.9, App-opties 63.5 (*App-voorkeuren* is 93.2), Data & historie 86.2, Display/geluid 83.7 (*Display & geluid* is 94.2), Info & rechten 82.3, PIN & nabijheid 89.7, Klaar vóór 59.3, Klaar vóór: tijd 84.0, Experimenteel 84.1.
 - `dashboard_model_tile_charge_schedule`, 90dp: Laadschema 72.7. `dashboard_model_tile_top_speed`, 90dp: Max. snelheid, after D3.
 - `owner_shizuku_install`, 48dp at 14sp: Install. 43.3. `owner_shizuku_open`, same budget: **Open** (*Openen* is 50.5). `stats_health_chip`, 40dp at 9sp: *geschat* 32.7. `stats_raw_chip`, 40dp at 10sp: *RUW* 23.7. `stats_charge_fit`, 72dp at 14sp: *Passend* 55.3. `more_lab_badge`: LAB 20.0.
 
 **Compounds.** Dutch writes compounds as one word. Lines break only at spaces and real hyphens. Don't split a compound with a space: *eigenaars sleutel* and *laad limiet* are spelling errors.
 
 - **Must take a hyphen** (acronym, brand, digit, unit symbol or a vowel clash such as u-i): NAVEE-app, stuur-PIN, PIN-ontgrendeling, USB-foutopsporing, CSV-bestand, GPX-bestand, Model-ID, Volt-gegevens, Bluetooth-koppeling, 4-cijferig, km-stand, Accu-instellingen, Accu-inst., Back-up, Eco-schatting, NAVEE-logging, Volt-hulpprogramma.
-- **May take a hyphen, in this exact spelling:** App-instellingen, App-opties, App-inst., display-eenheden, Trip-topsnelheid.
-- **Stay closed:** eigenaarssleutel (double s is correct), eigenaarsbestand, eigenaarsprofiel, eigenaarsconfiguratie, laadlimiet, laadstart, laadschema, laadopname, laadwaarschuwing, rijmodus, rijinstellingen, energieterugwinning, tractiecontrole, afdaalhulp, loophulp, topsnelheid, maximumsnelheid, snelheidslimiet, startsnelheid, kilometerstand, vergrendelstatus, vergrendelduur, vergrendelbalk, accustand, accuspanning, accutemperatuur, actieradius, compatibiliteitscontrole, compatibiliteitsrapport, dagrijlicht, achterlicht, koplamp, richtingaanwijzer, stepnaam, stepinstellingen, widgetlimiet, vergrendelwidget, back-upwachtwoord, back-upbestand, ritback-up, snellader, snellaadsessie, snellaadreferentie, telefoonlogboek, ritopname, uitleesscript, livegegevens.
+- **May take a hyphen, in this exact spelling:** App-instellingen, App-opties, display-eenheden, Trip-topsnelheid.
+- **Stay closed:** eigenaarssleutel (double s is correct), eigenaarsbestand, eigenaarsprofiel, eigenaarsconfiguratie, laadlimiet, laadstart, laadschema, laadopname, laadwaarschuwing, rijmodus, rijinstellingen, energieterugwinning, tractiecontrole, afdaalhulp, loophulp, topsnelheid, maximumsnelheid, snelheidslimiet, startsnelheid, kilometerstand, vergrendelstatus, vergrendelduur, vergrendelbalk, accustand, accuspanning, accutemperatuur, actieradius, compatibiliteitscontrole, compatibiliteitsrapport, dagrijlicht, achterlicht, koplamp, richtingaanwijzer, stepnaam, stepinstellingen, widgetlimiet, vergrendelwidget, back-upwachtwoord, back-upbestand, ritback-up, privéback-up, snellader, snellaadsessie, snellaadreferentie, telefoonlogboek, ritopname, uitleesscript, livegegevens.
 - **Don't coin a compound of more than three stems.** Split it: *snelheidslimiet per rijmodus*, not *rijmodussnelheidslimiet*; *waarschuwing bij lage accustand*, not *lageaccustandwaarschuwing*; *configuratiebestand van de eigenaar*, not *eigenaarsconfiguratiebestand*.
 - Add a hyphen to a compound only if it's on these lists. Anything else goes to the judge with a note.
 
@@ -152,6 +154,9 @@ Use exactly these words. In a safety key a term that isn't used fails `check.py`
 - *Enkele* means *single* and also *a few*: **Eén motor**, never *Enkele motor*.
 - *Dashboard* in NAVEE's own Dutch means the scooter's display. In Volt it never does (section 7).
 - *Voor* for *vóór*, see Charge done by.
+- *Laden* is also loading data. A charging state is **Opladen** (section 7).
+- *Herstellen* also means repairing: see restore logging in Fixed words.
+- *Privé*, never *private*, which suggests the private sector.
 
 Other rules:
 
@@ -175,7 +180,7 @@ The glossary is authoritative; this explains what it can't. Official NAVEE wordi
 | scooter | **step**, de; steps; first mention **e-step** if needed | **Debate item.** In Dutch a *scooter* is first of all a moped. NAVEE's page mixes *step* and *scooter*. Keep it distinct from *stap*, a step in a procedure. |
 | phone | **telefoon** | Not *mobiel*, *gsm*, *smartphone*. |
 | battery | **accu**, de; plural *accu’s*; level **accustand** | NAVEE's page has both *accusysteem* and *batterij*. The phone's battery is **batterij**, as in Android's *Batterijbesparing*. **Debate item:** Flanders says *batterij* more often. |
-| charger, charging | **oplader**, **laden**, **opladen** | Verb in labels: *laden*. Never *lading* for the act. |
+| charger, charging | **oplader**, **opladen**, **het laden** | State and status: **Opladen**, *wordt opgeladen* (Android's word), because *laden* is also loading data. The process in a sentence: *het laden is hervat*. Compounds keep *laad-*. Never *lading* for the act. |
 | display on the scooter | **display**, het; **display van de step** | NAVEE: *Ingebouwd Display*. Never *dashboard* or *teller*. |
 | Dashboard | **Dashboard**, het | Only Volt's Home layout. |
 | handlebar, stem, deck, kickstand | **stuur**, **stuurpen**, **treeplank**, **standaard** | NAVEE: *stuur*. The rest are Claude's picks. |
@@ -199,8 +204,8 @@ The glossary is authoritative; this explains what it can't. Official NAVEE wordi
 | Hill descent control, Traction control | **Afdaalhulp**, **Tractiecontrole** | |
 | Overspeed active control | **Actieve snelheidsrem** | |
 | Low Battery Mode, Long range mode | **Spaarstand**, **Langeafstandsmodus** | |
-| Backup, restore | **back-up**, **herstellen** | Verb: *back-up maken*. |
-| permissions | **rechten** | Android's word. Not *machtigingen*. |
+| Backup, restore | **back-up**, **herstellen** | Verb: *back-up maken*. The `restore` glossary row also accepts *terugzetten* and *zoals die was*, for undoing a try and for NAVEE logging; a judge rejects them on a backup. |
+| permissions | **rechten**; one permission **toestemming** | *Rechten* as a heading only (Android's word); singular *recht* sounds legal. Not *machtigingen*. |
 
 Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarsopties**, **Buildnummer**, and the screen **Over de telefoon**, which phone makers rename, so write generally where you can: *open in de instellingen de info over je telefoon*.
 
@@ -215,7 +220,7 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - *Recovery*: energieterugwinning vs **herstel** (restore). Undoing a try is **terugzetten**.
 - *Test*: **proberen**, result **poging** (a try); **testen** (guided); **Gepland laden testen**; **compatibiliteitscontrole**. Never *testen* for Try. An ordinary retry always has *opnieuw* (see Fixed words).
 - *Readback*: **teruglezen**, neutral, because a readback can also fail: *Teruglezing wijkt af*. Nothing with *bevestiging* inside it.
-- *Rejected* and *Refused by scooter*: both **geweigerd**.
+- *Rejected* and *Refused by scooter*: both **geweigerd**. Rides an estimate left out are **afgekeurd** (`dashboard_rejected`): nothing refused them.
 - *Standing start*: **Start vanuit stilstand** is value 0 of **Startsnelheid**, not another name for it.
 - *Alert* and *warning*: an alert the rider chose is **waarschuwing** (*Laadwaarschuwing*, *Accuwaarschuwingen*). A fault the scooter reports is **waarschuwing van de step**, **waarschuwingscode**. **Debate item:** *Accuwaarschuwingen* can read as a reported battery fault; the alternative is *Laadmelding*.
 - *Help verify*: **Help mee verifiëren**, a card title that invites, so not the infinitive of section 1. Not *Help verifiëren*, a calque.
@@ -232,6 +237,12 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - English "Excludes…" (`stats_diagnostics_privacy`, `stats_diagnostics_export_description`) is not *Zonder…*: that fails the polarity check, because the English has no negation word. Write *Uitgezonderd: eigenaarssleutel en PIN*.
 - *Ont-* is not a negation, and the check knows it. *On-* is: *onbekend*, *onbevestigd*.
 - Possessive: *display van de step*, not *step’s display*.
+- **Errors:** *[X] kon niet worden [participle].* or *[X] is mislukt.* Not a subjectless *Kon … niet* or *Kan … niet*, and not a negated subject (*Geen browser kon …*): *Er is geen browser gevonden om …*
+- A bare *deze* needs its noun: *om deze functies te proberen*.
+- A question about what just happened uses the perfect: *Heb je het zien veranderen?*
+- A setting label in a sentence goes in quotes with no agreement: *Staat het achterlicht op ‘%1$s’?*
+- A value uses the same noun as its label (*Gemelde laadcycli* → *12 laadcycli*).
+- Two-noun rows are telegraphic with no article (*Afstand trip*, *Status accountbinding*, *Instelling X (ruw)*); write one closed compound only where this guide lists it.
 
 ## Rules every language follows
 
@@ -259,7 +270,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **Niet gemeld**. Says only that no value came, never that the value is zero or that nothing is wrong. Not *onbekend*, *geen gegevens*, *niet gerapporteerd*. |
 | reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **gemeld**, in full **door de step gemeld**. A claim, not a measurement. Not *gerapporteerd* (a *rapport* is the document), *gemeten* or *bevestigd*. |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE-logging**, then *logging* where the screen makes it clear. Debug logging on the phone. Never *registratie* or *aanmelden*, and not *logboek*, which is the rider's *Telefoonlogboek*. |
-| restore logging | turning that logging back to how it was (usually off) | **NAVEE-logging herstellen**; running: **Bezig met herstellen van NAVEE-logging…**. It means back to how it was, usually off, and a rider could read it as turning logging on, so a sentence says so: *Zet de NAVEE-logging terug zoals die was.* Where the English says turn off, write **uitzetten**. No backup is involved. |
+| restore logging | turning that logging back to how it was (usually off) | One form per use. Button: **NAVEE-logging herstellen**; running: **Bezig met herstellen van NAVEE-logging…**; done: **NAVEE-logging teruggezet**; waiting: *tot de NAVEE-logging is teruggezet*; imperative: **Zet de NAVEE-logging terug zoals die was.** A bare *Herstel de logging* or *NAVEE-logging hersteld* reads as repairing it or turning it on. Where the English says turn off, write **uitzetten**. No backup is involved. **Debate item:** *terugzetten* for the button and running state too. |
 | Volt's helper | the small helper Volt starts inside Shizuku | **Volt-hulpprogramma**, short **hulpprogramma**. Not the computer's **uitleesscript**, and not *helper* or *hulp*, which belong to Loophulp and Afdaalhulp. |
 | stock charger | the charger that came with the scooter | **originele oplader**. The one that came with the scooter; not a claim that another charger is fake. Not *standaardoplader*: **standaard** is also the kickstand. |
 | high-speed charger | a faster charger the rider may own | **snellader**. The rider's own faster charger. Recordings: *laadopnamen met snellader*. Never *Sterk* or *Hoog*. |
@@ -273,9 +284,23 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | add | adding a widget, scooter or item | **toevoegen**; button **Toevoegen**, **Widget toevoegen**; *Voeg een step toe.* |
 | enter (typing) | typing a value | **invoeren**: *Voer je stuur-PIN in.* Not *intypen* or *ingeven*. |
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **app**, de. Never *applicatie* or *toepassing*. |
-| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinden met**, with the rider or Volt as subject and no object: *Verbind met de step.*, *Volt verbindt met de step.* Button: **Verbinden**. Not *Verbind de step*, which reads as plugging something in, and not *koppelen*, which is pairing. |
+| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinding maken met**: *Maak verbinding met de step.*, *Maak eerst verbinding met de step*, *Volt maakt opnieuw verbinding.*, running *Verbinding maken…* (Android's wording). Button: **Verbinden**; state: **Verbonden**. Dutch *verbinden* wants an object, so no intransitive *Verbind met de step*, and not *Verbind de step*, which reads as plugging something in. Not *koppelen*, which is pairing. |
 | set a value | one verb for setting a value on the scooter | **instellen**: *Snelheidslimiet instellen*, *Stel de snelheidslimiet in.* Not *zetten* or *vastleggen*. *Aanzetten*, *uitzetten* and *terugzetten* keep their own meanings. |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Dit + verb in -t**: *Dit verwijdert de geschiedenis van alle steps. Ritten blijven bewaard.* *Dit vervangt alles op deze telefoon.* Never the imperative *Verwijder…* or the button's infinitive *Verwijderen…*, and not a bare *Verwijdert…*, which reads as a slip for the imperative. |
+| disconnected | a link that dropped, against one that isn't up | **Verbinding verbroken**, *Verbinding met de step verbroken*: the link dropped. **Niet verbonden**: no link now, and also for a *disconnected* value that only means not connected (`more_link_disconnected`, `ui_live_stats_disconnected`). |
+| the alert's watch | Volt watching a charge for an alert | **bewaken**: *deze laadsessie blijven bewaken*, button **Stoppen met bewaken**. Not *volgen*. |
+| one charge, charge count | one charging session; the count the scooter reports | **laadsessie**, plural **laadsessies** (*snellaadsessie*). Not *laadbeurt*. The reported count is **laadcyclus**, **laadcycli**, in label and value alike. |
+| samples | single recorded points | **meetpunt**, **meetpunten**. *Meting* is a reading. |
+| unfinished | a try or test not completed | **onafgerond**. Not *onvoltooid*. |
+| prompt | Android's dialog on the phone | **venster**. *Verzoek* only for Android's Bluetooth pairing request. |
+| authenticated owner | connected over the scooter link as owner | **als eigenaar verbonden**. Not *aangemeld*: the rider never logs in to Volt. |
+| shared-user identity | the key of a shared rider | **Sleutel van medegebruiker**, Claude's coinage. **Debate item.** Keep it apart from *eigenaarssleutel*. |
+| unplugged charger | the charger is no longer plugged in | **niet aangesloten**. Never a *koppel-* word: those are Bluetooth pairing. |
+| proximity key (reading) | the setting's reading under another English name | **Ontgrendelen bij nabijheid**. No *nabijheidssleutel*: *sleutel* is the owner key. |
+| undoing a try | restore or restoration on try and test cards | **terugzetten**, *teruggezet*, including *Terugzetten bevestigd*. *Herstel* is for backups. |
+| line and star pattern | a light's pattern, not the light | **Lijnpatroon**, **Sterpatroon**, against **Lijnverlichting**, **Sterverlichting**. |
+| other reading names | one name under `readings_*`, `stats_row_*`, `compat_field_*` | **Hellingshulp**, **Spraaktaal**, **Lichtsensor**, **Snelheidswaarschuwing**, **Actieradiusalgoritme**, **Modus actieradiusalgoritme** (narrow *Modus actieradius*), **E9-vlag**, **Status accountbinding**, lower-case **trip** mid-label. |
+| value outside the official range | "OEM feature domain" | **Waarde valt buiten wat de officiële app (OEM) toestaat**; `OEM` is do-not-translate here. No *OEM-bereik*: *bereik* is range. |
 | screen and section titles | noun form or verb form, with one example | **Noun form**: *Compatibiliteitscontrole*, *Back-up en herstel*. If the title is an action with no good noun, the infinitive: *Gepland laden testen*. Never the imperative. Buttons keep the infinitive of section 1. |
 
 ## 9. Sources consulted

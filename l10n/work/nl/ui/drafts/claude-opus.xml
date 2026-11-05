@@ -6,19 +6,19 @@
     <string name="ui_toggle_state_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, status niet gemeld</string>
     <string name="ui_battery_description" volt:src="19a80dd329bf1d36649b961bf2d7d0e5a8aa7e4d">Accu %1$s</string>
     <string name="ui_battery_description_caption" volt:src="016609de9934c14f95e1ee0ded24b1c5f68a731d">Accu %1$s, %2$s</string>
-    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Accu %1$s, bezig met laden</string>
-    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Accu %1$s, bezig met laden, %2$s</string>
+    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Accu %1$s, wordt opgeladen</string>
+    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Accu %1$s, wordt opgeladen, %2$s</string>
     <string name="ui_battery_description_last_seen" volt:src="61dbf3734e0e3d8e6874d11563a85c4e2541262b">Accu %1$s, laatst ontvangen meting</string>
     <string name="ui_battery_description_last_seen_caption" volt:src="33f61bc012fded01ef4ec0808ddbb58b144e4243">Accu %1$s, laatst ontvangen meting, %2$s</string>
-    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Accu %1$s, bezig met laden, laatst ontvangen meting</string>
-    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Accu %1$s, bezig met laden, laatst ontvangen meting, %2$s</string>
+    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Accu %1$s, wordt opgeladen, laatst ontvangen meting</string>
+    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Accu %1$s, wordt opgeladen, laatst ontvangen meting, %2$s</string>
     <string name="ui_battery_not_reported" volt:src="50d5d339e3c4836e7857d9dfd067b5da129f15b0">niet gemeld</string>
     <plurals name="ui_battery_percent" volt:src="ebc2b43c225316946adff277ee621916da7e230a">
         <item quantity="one">%1$d procent</item>
         <item quantity="other">%1$d procent</item>
     </plurals>
-    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Bezig met laden</string>
-    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Laden · %1$s</string>
+    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Opladen</string>
+    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Opladen · %1$s</string>
     <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Nog geen gemeten gegevens</string>
     <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
         <item quantity="one">Grafiek van metingen in %1$s, %2$d meetpunt. Getoonde as: %3$s tot %4$s. Tik om de metingen te bekijken.</item>

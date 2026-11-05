@@ -70,15 +70,15 @@
     <string name="stats_chart_group_state" volt:src="20f4bee7f4190f58d033fff8548212e7bf6d5138">Grafieken: %1$s, %2$s</string>
     <string name="stats_chart_group_expanded_said" volt:src="6d384e154d2b379f6c806080adbbda34f490a667">uitgevouwen</string>
     <string name="stats_chart_group_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">samengevouwen</string>
-    <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">Grafiek %1$s uitvouwen</string>
+    <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">Grafiek %1$s vergroten</string>
     <string name="stats_chart_favourite_add" volt:src="38dd597256a1bdd3203b5d1ecef1a07389cce896">Grafiek %1$s toevoegen aan favorieten</string>
     <string name="stats_chart_favourite_remove" volt:src="4799f63275652c76f2428845c9b77a6b2748f643">Grafiek %1$s verwijderen uit favorieten</string>
     <string name="stats_chart_live" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="stats_chart_sample" volt:src="a5b35279430d09a040e5014d4041977af7a7e0c4">%1$s · Voorbeeld</string>
     <string name="stats_chart_last_seen" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Laatst ontvangen: %2$s</string>
-    <string name="stats_chart_no_data" volt:src="368ef449b24b92884d5696983fc2de64f3cff670">Geen gegevens in dit tijdvak</string>
+    <string name="stats_chart_no_data" volt:src="368ef449b24b92884d5696983fc2de64f3cff670">Geen gegevens in deze periode</string>
     <string name="stats_chart_loading" volt:src="8ed194dd56ac0842cd5257f3bac3e72232c26669">Grafiek wordt geladen</string>
-    <string name="stats_chart_close" volt:src="a8cb29259fe3efe192a0f1e63e1079e5a27e7ff4">Uitgevouwen grafiek sluiten</string>
+    <string name="stats_chart_close" volt:src="a8cb29259fe3efe192a0f1e63e1079e5a27e7ff4">Vergrote grafiek sluiten</string>
     <string name="stats_window_2_min" volt:src="f4b4a7befc8b71487aa484f6662f0f268dce7d60">2 min</string>
     <string name="stats_window_10_min" volt:src="1c0a9e51a1ff3c9e497ce5bffefaf333a86fd593">10 min</string>
     <string name="stats_window_1_hour" volt:src="65adf4d048d8ba9ff6f37c54a45fcf0074ddc7d8">1 uur</string>
@@ -102,7 +102,7 @@
     <string name="stats_charge_history_title" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Laadopnamen</string>
     <string name="stats_charge_recording_title" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Laadopname</string>
     <string name="stats_charge_history_loading" volt:src="2623443eae468af22647be27d95086815e93817f">Bezig met laden van opnamen…</string>
-    <string name="stats_charge_history_failed" volt:src="3fb56a961a17c614181d1655eea5deeb4fce567c">Kan opnamen niet laden.</string>
+    <string name="stats_charge_history_failed" volt:src="3fb56a961a17c614181d1655eea5deeb4fce567c">De opnamen konden niet worden geladen.</string>
     <string name="stats_charge_history_retry" volt:src="f667cf687a057be2ab3a8277e65dcb88a6918ae7">Opnieuw proberen</string>
     <string name="stats_charge_history_empty" volt:src="74f937cd3cfc2f2c1325c9dd2a335dcbab10c784">Nog geen opgeslagen laadopnamen.</string>
     <string name="stats_charge_history_current" volt:src="e8c1a7d0fbaa4f6f734ae211bd7734cac196859f">De huidige opname verschijnt hier nadat die is gestopt.</string>
@@ -119,7 +119,7 @@
     <string name="stats_charge_duration_hours" volt:src="db8837fa251f29b98d5bfda88c57ed6f55cbd39d">%1$s u %2$s min</string>
     <string name="stats_charge_duration_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
     <string name="stats_charge_battery_span" volt:src="8391a43ef2ca8f7e4241b3cedd5a05a9b05feb2b">%1$s%% → %2$s%%</string>
-    <string name="stats_charge_no_battery_samples" volt:src="92f478a1b0046cf38751abb75d626913308a6f39">Geen accumetingen</string>
+    <string name="stats_charge_no_battery_samples" volt:src="92f478a1b0046cf38751abb75d626913308a6f39">Geen meetpunten van de accu</string>
     <string name="stats_charge_high_speed_charger" volt:src="9ec5f925a9b77c56e064c86213dc87de2c07fd6f">Snellader</string>
     <string name="stats_charge_stock_charger" volt:src="62ca2a26699e289edf4906ae3497990eda2ea81c">Originele oplader</string>
     <string name="stats_charge_source_personal" volt:src="ff8ebfc6f9a3deea60d1b520653c1de4d1202db6">Persoonlijke curve</string>
@@ -136,7 +136,7 @@
     <string name="stats_charge_readings" volt:src="661404f9cae10402c0e471e5795d2c3cdfd5172e">Metingen tijdens het laden</string>
     <string name="stats_charge_expand" volt:src="26224794d040727bfb4450df85da7177284c6fe4">Laadgrafiek vergroten</string>
     <string name="stats_charge_chart" volt:src="c441ffa30daaeb8fc1a67744cab7b26fb317d820">Laadgrafiek</string>
-    <string name="stats_charge_fit_whole" volt:src="58b3137a84973695ca6e2daa0a847b1310d74ac9">Hele laadsessie in beeld passen</string>
+    <string name="stats_charge_fit_whole" volt:src="58b3137a84973695ca6e2daa0a847b1310d74ac9">Hele laadsessie tonen</string>
     <string name="stats_charge_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Passend</string>
     <string name="stats_charge_zoom_out" volt:src="56cbe1d499420929a144d0a898a2c5fc582d5615">Laadgrafiek uitzoomen</string>
     <string name="stats_charge_zoom_in" volt:src="442618022a01ba69470f2aa260aa464e496c163b">Laadgrafiek inzoomen</string>
@@ -148,7 +148,7 @@
     <string name="stats_charge_sample_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Tijd: %1$s</string>
     <string name="stats_charge_cell_description" volt:src="4fcac77563f0e9e702814edf630e3d27d96af7b8">%1$s: %2$s, %3$s</string>
     <string name="stats_charge_close_expanded" volt:src="76bda29b2ee863ce9684de196f548ebf74b7a295">Vergrote laadgrafiek sluiten</string>
-    <string name="stats_row_charging_state" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Laden</string>
+    <string name="stats_row_charging_state" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Opladen</string>
     <string name="stats_row_self_discharge_raw" volt:src="3e4243dbbb1a14eab6aea61985725551f3872135">Zelfontlading</string>
     <string name="stats_row_extreme_temperature_charge_raw" volt:src="3dfa95806cd04ad8bba612faefb414c94fdf980b">Laadtijd bij hitte/kou</string>
     <string name="stats_row_temperature_sign_state" volt:src="4c8c9d6a369628c15ed80991a34d0295989895d3">Temperatuurteken</string>
@@ -158,16 +158,16 @@
     <string name="stats_row_cruise_control" volt:src="4bcaf6456fc552b2062a5529d8b0bed3f7322878">Cruisecontrol</string>
     <string name="stats_row_tail_light" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Achterlicht</string>
     <string name="stats_row_energy_recovery" volt:src="98733b2dbd677ee389f2e1a99bdea5c640b6fcea">Terugwinning</string>
-    <string name="stats_row_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Algoritme actieradius</string>
-    <string name="stats_row_auto_sensor" volt:src="5d9da02544ef2daf50ce56ae1ff0aec08451c828">Automatisch licht</string>
+    <string name="stats_row_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Actieradiusalgoritme</string>
+    <string name="stats_row_auto_sensor" volt:src="5d9da02544ef2daf50ce56ae1ff0aec08451c828">Lichtsensor</string>
     <string name="stats_row_tyre_reminder" volt:src="830d3b729d73aaae184b90a147c9f09e190d76fb">Bandenherinnering</string>
-    <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Lijnverlichting</string>
+    <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Lijnpatroon</string>
     <string name="stats_row_traction_control" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Tractiecontrole</string>
     <string name="stats_row_turn_sound" volt:src="cb472220793ecbbd5ab3c9e044deb8a692a60bb6">Knippergeluid</string>
     <string name="stats_row_proximity_key" volt:src="26c08fb26f6c8c9701f66cba1618708b452cbd1a">Ontgrendelen bij nabijheid</string>
     <string name="stats_row_night_mode" volt:src="a9897a7a21973a1cc8d2995438da457dee70256a">Nachtmodus</string>
     <string name="stats_row_range_algorithm_mode" volt:src="6fd161e587c50069b067077e5112373b3adb58c4">Modus actieradius</string>
-    <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Sterverlichting</string>
+    <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Sterpatroon</string>
     <string name="stats_row_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Startsnelheid</string>
     <string name="stats_row_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Snelheidslimiet</string>
     <string name="stats_row_volume" volt:src="49c26a1170a87fab1c4d8970b76c3666329b250e">Audio</string>
@@ -176,7 +176,7 @@
     <string name="stats_row_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Dagrijlicht</string>
     <string name="stats_row_maximum_speed_setting" volt:src="6c84403a8d738cc045c51c7643ef0e9abf64f46a">Instelling maximumsnelheid</string>
     <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Instelling rijmodus</string>
-    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Byte instellingenmodus</string>
+    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Modusbyte instellingen</string>
     <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Laadschema</string>
     <string name="stats_row_low_power" volt:src="0c6b1c731decb0322088608a6ed7366fb16d6e56">Spaarstand</string>
     <string name="stats_row_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Gepland laden</string>
@@ -186,11 +186,11 @@
     <string name="stats_row_slope_assist" volt:src="43d7ae0b1a79c51fd217f63bb2f66ece663f8bfb">Hellingshulp</string>
     <string name="stats_row_long_range_mode" volt:src="e01f9a5d1d632caa90d9a99ee75ad2af33253600">Langeafstandsmodus</string>
     <string name="stats_row_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Actieve snelheidsrem</string>
-    <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Waarschuwing bij te hoge snelheid</string>
+    <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Snelheidswaarschuwing</string>
     <string name="stats_row_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Snelheidslimiet Drive</string>
     <string name="stats_row_battery_serial_raw" volt:src="e019db8b162ae9c1f54809c6493beed2765122ab">Serienummer accu</string>
     <string name="stats_row_lock_push_warning" volt:src="24bfcde62ec3c5dbc262ae60c12b6374c266f477">Beweging bij vergrendeling</string>
     <string name="stats_row_hide_e9" volt:src="61fb804227518b96a7c4a5a058631345f44d7c61">E9-vlag</string>
-    <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Uitlezing rit</string>
+    <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Uitlezing ritten</string>
     <string name="stats_row_fault_history_raw" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Foutgeschiedenis</string>
 </resources>

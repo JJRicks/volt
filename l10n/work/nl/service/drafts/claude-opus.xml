@@ -12,37 +12,37 @@
     <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Wacht tot het instellen van het laadschema klaar is</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Wacht tot ‘Opgeladen vóór’ klaar is met meten</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Wacht tot het opschonen van de geschiedenis klaar is</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Rond eerst de eigenaarsconfiguratie af en herstel de NAVEE-logging</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Rond eerst de eigenaarsconfiguratie af en zet de NAVEE-logging terug zoals die was</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Rond eerst de huidige export af</string>
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Rond eerst het importeren van de eigenaarsconfiguratie af</string>
-    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Kan de appgegevens niet voorbereiden. Open Volt opnieuw.</string>
+    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">De appgegevens konden niet worden voorbereid. Open Volt opnieuw.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Rond de huidige opname af voordat je een simulatie start</string>
     <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Nog geen laadopname</string>
     <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">Opslag voor laadopnamen is niet beschikbaar</string>
     <string name="service_charge_enable_developer" volt:src="552c52b2aed3c9588b58961a1b1d9ad75cd3e3ce">Zet eerst de Ontwikkelaarsopties aan</string>
-    <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Zet de simulatie uit om een echte laadbeurt op te nemen</string>
+    <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Zet de simulatie uit om een echte laadsessie op te nemen</string>
     <string name="service_charge_finish_ride" volt:src="42f19d08bb0f01402fef4a0b43f0d3acca15a40e">Rond eerst de ritopname af</string>
     <string name="service_charge_preparing_export" volt:src="8b9565bee6a3846a078faedfae32e7b0a36a7f14">Bezig met voorbereiden van export van laadopnamen</string>
     <string name="service_charge_loading" volt:src="42bf22207416110b128d467977f6f1624c6524f5">Bezig met ophalen van opgeslagen laadopnamen</string>
-    <string name="service_charge_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Verbind eerst met de step</string>
+    <string name="service_charge_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Maak eerst verbinding met je step</string>
     <string name="service_charge_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Wacht op nieuwe metingen tijdens het laden</string>
     <string name="service_charge_battery_full" volt:src="b767f3faf2b7ab930807e4a02653bc447d3a7f87">De accu staat al op 100%%</string>
     <string name="service_charge_allow_notifications" volt:src="e982c4836d18d4cc16eb6e57ca5ce5529f464397">Sta meldingen van de app toe zodat de actie ‘Stop’ beschikbaar blijft</string>
     <string name="service_charge_choose_charger" volt:src="3ccb3921e30374f743508a8b459817be50de48f9">Kies de aangesloten oplader</string>
     <string name="service_charge_started" volt:src="80f0bd07fc7b2bc4187d664cf1346cc7f38b3498">Laadopname gestart</string>
-    <string name="service_charge_start_failed" volt:src="b316a3ec634f15dc4841b44a387cd90b2eb9428f">Kan laadopname niet starten</string>
-    <string name="service_charge_reconnecting" volt:src="e9d9e07e4ba154a2e05d56356ecf75f00b41778b">Bezig met opnieuw verbinden · %1$s s</string>
+    <string name="service_charge_start_failed" volt:src="b316a3ec634f15dc4841b44a387cd90b2eb9428f">De laadopname kon niet worden gestart</string>
+    <string name="service_charge_reconnecting" volt:src="e9d9e07e4ba154a2e05d56356ecf75f00b41778b">Opnieuw verbinding maken · %1$s s</string>
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Originele oplader · oplader gestopt · wachten tot die weer start</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Originele oplader · gepauzeerd tot de geplande start</string>
-    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Originele oplader · lokale metingen: %1$s</string>
+    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Originele oplader · lokale meetpunten: %1$s</string>
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Snellader · oplader gestopt · wachten tot die weer start</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Snellader · gepauzeerd tot de geplande start</string>
-    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Snellader · lokale metingen: %1$s</string>
+    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Snellader · lokale meetpunten: %1$s</string>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Niet toegepast tot de oplader bekend is · opgeslagen opnamen: %1$s</string>
-    <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s geschikte laadbeurt met snellader · opgeslagen opnamen: %2$s</string>
-    <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s geschikte laadbeurten met snellader · opgeslagen opnamen: %2$s</string>
-    <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">%1$s geschikte laadbeurt met originele oplader · opgeslagen opnamen: %2$s</string>
-    <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">%1$s geschikte laadbeurten met originele oplader · opgeslagen opnamen: %2$s</string>
+    <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s geschikte laadsessie met snellader · opgeslagen opnamen: %2$s</string>
+    <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s geschikte laadsessies met snellader · opgeslagen opnamen: %2$s</string>
+    <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">%1$s geschikte laadsessie met originele oplader · opgeslagen opnamen: %2$s</string>
+    <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">%1$s geschikte laadsessies met originele oplader · opgeslagen opnamen: %2$s</string>
     <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Laadopnamen gewist</string>
     <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">Laadopnamen konden niet worden gewist</string>
     <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">Geen opgeslagen laadopnamen voor deze step</string>
@@ -62,7 +62,7 @@
     <string name="service_charge_stop_recovery_timeout" volt:src="9731706961c9e5abd0e63c53081c5027cb8622ba">opnieuw verbinden duurde te lang</string>
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">verbinding mislukt</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth uit</string>
-    <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">Bluetooth-recht verloren</string>
+    <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">toestemming voor Bluetooth verloren</string>
     <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">herkenning van de step gewijzigd</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Opname gestopt; laadbestand kon niet worden afgerond</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Wacht tot de oplader is herkend of kies een oplader</string>
@@ -76,12 +76,12 @@
     <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Hervatting van het laden volgens de test van het laadschema: %1$s. De accu staat nog op %2$s%% (%3$s%% bij de test). Controleer of de oplader is aangesloten en of het lampje op de starttijd rood wordt. Open Volt om het schema uit te zetten zodat het laden nu start.</string>
     <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Ingestelde starttijd: %1$s. De accu staat nog op %2$s%% (%3$s%% toen je dit instelde). Controleer of de oplader is aangesloten en of het lampje op de starttijd rood wordt. Volt kan het schema uitzetten zodat het laden nu start.</string>
     <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Ingestelde starttijd: %1$s. De accu staat nog op %2$s%% (%3$s%% toen je dit instelde). Controleer of de oplader is aangesloten en of het lampje op de starttijd rood wordt. Open Volt om het schema uit te zetten zodat het laden nu start.</string>
-    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Deze laadbeurt is gemeten. Hervatting van het laden: %1$s. Klaar vóór: %2$s.</string>
-    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Gepland voor een nieuwe laadbeurt. Hervatting van het laden: %1$s. Klaar vóór: %2$s.</string>
+    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Deze laadsessie is gemeten. Hervatting van het laden: %1$s. Klaar vóór: %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Gepland voor een nieuwe laadsessie. Hervatting van het laden: %1$s. Klaar vóór: %2$s.</string>
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">‘Opgeladen vóór’ staat uit.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. ‘Opgeladen vóór’ staat uit.</string>
-    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Bluetooth-recht is ingetrokken tijdens het meten</string>
+    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Toestemming voor Bluetooth is ingetrokken tijdens het meten</string>
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt is gesloten tijdens het meten. ‘Opgeladen vóór’ staat uit.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">‘Opgeladen vóór’ is ingesteld. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">‘Opgeladen vóór’ is niet ingesteld. %1$s</string>
@@ -114,7 +114,7 @@
     <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">Het laden is %1$s vóór de starttijd hervat, dus de klok van de step loopt mogelijk %2$s voor.%3$s</string>
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">Het laden is %1$s na de starttijd hervat, dus de klok van de step loopt mogelijk %2$s achter.%3$s</string>
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">De step heeft niet gepauzeerd. De klok loopt mogelijk voor, of de step heeft het schema genegeerd.%1$s</string>
-    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Het laden was 5 minuten na de starttijd nog steeds gepauzeerd. De klok van de step loopt mogelijk meer dan 5 minuten achter, of het schema heeft het laden niet vrijgegeven. Als de oplader was losgekoppeld, test dan opnieuw.%1$s</string>
+    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Het laden was 5 minuten na de starttijd nog steeds gepauzeerd. De klok van de step loopt mogelijk meer dan 5 minuten achter, of het schema heeft het laden niet vrijgegeven. Als de oplader niet meer was aangesloten, test dan opnieuw.%1$s</string>
     <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt heeft de klok van de step vlak voor deze test ingesteld, dus de step houdt de ingestelde tijd mogelijk niet vast. Zolang dat niet is opgelost, is een slimme stekker een veiligere timer. Meld een probleem met diagnosegegevens zodat we ernaar kunnen kijken."</string>
     <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">De accu heeft tijdens de test de laadlimiet bereikt, dus de test gaf geen uitsluitsel. Test opnieuw met de accu verder onder de limiet.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">De test is onderbroken. Controleer of het laden is hervat. Zo niet, zet gepland laden dan uit.</string>
@@ -123,10 +123,10 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt kon niet bevestigen of het schema uit staat. Zet gepland laden uit zodat het laden doorgaat."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Accuwaarschuwingen</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Accuwaarschuwingen voor laadniveau, volle accu en lage accustand die je aanzet in Step › Accu</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Accuwaarschuwingen voor een ingestelde accustand, volle accu en lage accustand die je aanzet in Step › Accu</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Stop</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Stop de laadopname voordat je een rit start</string>
-    <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Verlaat eerst de simulatie</string>
+    <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Stop eerst de simulatie</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Bezig met afronden van de vorige rit</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Rit automatisch opgeslagen</string>
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth-verbinding verloren bij stilstand</string>
@@ -134,7 +134,7 @@
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Verbinding met de step en opname</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Bezig met meten van het laden voor ‘Opgeladen vóór’</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Bezig met testen van gepland laden</string>
-    <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Laadopname · bezig met opnieuw verbinden</string>
+    <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Laadopname · opnieuw verbinding maken</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Laadopname is actief</string>
     <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Bezig met opslaan van de rit</string>
     <string name="service_notice_ride_active" volt:src="9ad2e30cf8a5de52dd1e49495363158fed5bc8a8">Ritopname is actief</string>
@@ -143,7 +143,7 @@
     <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">Schema wordt binnen %1$s min ingesteld · houd de oplader aangesloten</string>
     <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · houd de telefoon bij de step</string>
     <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">Ritopname vraagt aandacht</string>
-    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Telefoonsensoren slaan niet op</string>
+    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Gegevens van telefoonsensoren worden niet opgeslagen</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Stoppen met bewaken</string>
     <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Nu plannen</string>
     <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Test annuleren</string>

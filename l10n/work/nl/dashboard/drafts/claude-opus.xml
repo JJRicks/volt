@@ -39,8 +39,8 @@
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Laadvermogen</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Vermogen</string>
     <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Tijd tot vol</string>
-    <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Laden</string>
-    <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Laden · limiet %1$s%%</string>
+    <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Opladen</string>
+    <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Opladen · limiet %1$s%%</string>
     <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">NAVEE UT5 MAX-step</string>
     <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Accustand niet gemeld</string>
     <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
@@ -93,20 +93,20 @@
     <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43">Accustand %1$s procent, laatst ontvangen: %2$s</string>
     <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Accustand %1$s procent, %2$s</string>
     <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Accustand %1$s procent, %2$s, laatst ontvangen: %3$s</string>
-    <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Accustand niet gemeld, bezig met laden</string>
-    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Accustand niet gemeld, bezig met laden, laatst ontvangen meting</string>
+    <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Accustand niet gemeld, wordt opgeladen</string>
+    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Accustand niet gemeld, wordt opgeladen, laatst ontvangen meting</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Accustand niet gemeld</string>
     <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Accustand niet gemeld, laatst ontvangen meting</string>
-    <string name="dashboard_cell_not_reported_line_charging" volt:src="b818a95b97127508541752d12c55c336683f0534">Accustand niet gemeld, %1$s, bezig met laden</string>
-    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Accustand niet gemeld, %1$s, bezig met laden, laatst ontvangen meting</string>
+    <string name="dashboard_cell_not_reported_line_charging" volt:src="b818a95b97127508541752d12c55c336683f0534">Accustand niet gemeld, %1$s, wordt opgeladen</string>
+    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Accustand niet gemeld, %1$s, wordt opgeladen, laatst ontvangen meting</string>
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Accustand niet gemeld, %1$s</string>
     <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Accustand niet gemeld, %1$s, laatst ontvangen meting</string>
-    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Accustand %1$s procent, bezig met laden</string>
-    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Accustand %1$s procent, bezig met laden, laatst ontvangen meting</string>
+    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Accustand %1$s procent, wordt opgeladen</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Accustand %1$s procent, wordt opgeladen, laatst ontvangen meting</string>
     <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Accustand %1$s procent</string>
     <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Accustand %1$s procent, laatst ontvangen meting</string>
-    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Accustand %1$s procent, %2$s, bezig met laden</string>
-    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Accustand %1$s procent, %2$s, bezig met laden, laatst ontvangen meting</string>
+    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Accustand %1$s procent, %2$s, wordt opgeladen</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Accustand %1$s procent, %2$s, wordt opgeladen, laatst ontvangen meting</string>
     <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Accustand %1$s procent, %2$s</string>
     <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Accustand %1$s procent, %2$s, laatst ontvangen meting</string>
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -114,17 +114,17 @@
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Rijmodus, %1$s</string>
     <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Rijmodus, %1$s, laatst ontvangen: %2$s</string>
-    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Gemelde laadbeurten: %1$s</string>
+    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Gemelde laadcycli: %1$s</string>
     <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">%1$s nominaal</string>
     <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Laatst ontvangen: %1$s</string>
     <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Opname · %1$s</string>
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Bezig met meten…</string>
     <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Bezig met opslaan van de laatste rit…</string>
-    <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Bezig met verbinden…</string>
+    <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Verbinding maken…</string>
     <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Rit opnemen. Bezig met opslaan van de laatste rit</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Opname starten</string>
-    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Rit opnemen. Bezig met verbinden</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Rit opnemen. Verbind met de step</string>
+    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Rit opnemen. Verbinding maken</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Rit opnemen. Maak verbinding met de step</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Voorbeeld</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 ritten · %1$s–%2$s %3$s</string>
@@ -141,14 +141,14 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Tijdvenster</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Benodigde ritten</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">90%-interval</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Lading per volle accumeter</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Lading per volle schaal van de accumeter</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Laadcontrole</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Dekking</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Accutemp.</string>
-    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Geweigerd</string>
+    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Afgekeurd</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Benadering: kan te hoog zijn; geen maat voor de conditie.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie die je ritten per volle accumeter verbruikten. Geen test van de conditie of capaciteit van de accu.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie die je ritten per volle schaal van de accumeter verbruikten. Geen test van de conditie of capaciteit van de accu.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Bruikbare energie voor ritten</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Voorbeeld · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Nog geen opgeslagen metingen</string>
@@ -260,10 +260,10 @@
     <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Plek %1$s vervangen?</string>
     <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Opslaan op plek %1$s?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Vervangen</string>
-    <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Kon de indeling niet opslaan. Probeer het opnieuw.</string>
+    <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">De indeling kon niet worden opgeslagen. Probeer het opnieuw.</string>
     <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Opgeslagen op plek %1$s</string>
     <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">‘%1$s’ herstellen?</string>
     <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Dit vervangt je indeling en de kolominstelling op alle steps.</string>
-    <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Kon niet herstellen. Er is niets gewijzigd.</string>
+    <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Herstellen is mislukt. Er is niets gewijzigd.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">‘%1$s’ hersteld</string>
 </resources>

@@ -79,7 +79,7 @@
     <string name="controls_option_sound" volt:src="63f8faf3e69940e5b48ffe61def32228ddeb9f84">Geluid %1$s</string>
     <string name="controls_option_default" volt:src="ebeb141d35c02da50e51267dfda58697ff18cb57">Standaard (%1$s)</string>
     <string name="controls_option_percent_spaced" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s%%</string>
-    <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Verbind eerst met de step</string>
+    <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Maak eerst verbinding met de step</string>
     <string name="controls_reason_status_stale" volt:src="be8bfcd081f6255bcda3377d532b6e19e86d5a99">Wachten op actuele status</string>
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Onbekende waarde · niet veilig te wijzigen</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Geen keuzes gemeld</string>
@@ -106,14 +106,14 @@
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Echte step nodig</string>
     <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Bevestig dat de step geparkeerd staat</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Geen test bezig</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Waarde valt buiten het OEM-bereik van deze functie</string>
+    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Waarde valt buiten wat de officiële app (OEM) toestaat</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Uit of 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Uit of 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Nu niet beschikbaar</string>
-    <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">Alleen de aangemelde eigenaar heeft toegang tot de PIN</string>
+    <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">Alleen wie als eigenaar is verbonden, heeft toegang tot de PIN</string>
     <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">De PIN moet uit vier cijfers bestaan</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">Stel een PIN in voordat je die aanzet</string>
-    <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Alleen de aangemelde eigenaar kan ‘Ontgrendelen bij nabijheid’ wijzigen</string>
+    <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Alleen wie als eigenaar is verbonden, kan ‘Ontgrendelen bij nabijheid’ wijzigen</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Koppel deze telefoon voordat je ontgrendelen bij nabijheid aanzet</string>
     <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Stel een stuur-PIN in en zet die aan voordat je ontgrendelen bij nabijheid aanzet</string>
     <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">De officiële app vraagt eerst of je deze wijziging wilt. Volt heeft dit op dit model niet getest.</string>
@@ -126,7 +126,7 @@
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Startsnelheid onder 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Boven 32 km/h: controleer de regels waar je rijdt. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Dit zet de tractiecontrole uit. Rijd rustig op natte of losse ondergrond tot je weet hoe de step zich gedraagt.</string>
-    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Onder 3 km/h kan de motor vanuit stilstand trekken zodra je de gashendel gebruikt.</string>
+    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Onder 3 km/h kan de step vanuit stilstand optrekken zodra je de gashendel gebruikt.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Dit zet de energieterugwinning (remmen met de motor) uit, dus je remmen moeten meer doen om te stoppen.</string>
     <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Dit begrenst je snelheid tijdens het rijden tot onder je instelling ‘Topsnelheid’. ‘Terugzetten’ herstelt je vorige instelling.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
@@ -145,13 +145,13 @@
     <string name="controls_drive_mode_title" volt:src="234310002e35b3d4952bb3294a7269968edd1fbb">Je rijmodi benoemen</string>
     <string name="controls_drive_mode_intro" volt:src="7ca0c73f856573e8f070d2449fa8653493c10c3a">Optioneel, duurt ongeveer een minuut. Blijf geparkeerd staan: je drukt op de modusknop op je step zelf, en Volt kijkt alleen mee met de modus die de step meldt.</string>
     <string name="controls_drive_mode_watching" volt:src="8daa24bfbde03ba4ecb9e64d4c08fa5737b4e8ef">Bezig met meekijken met je step…</string>
-    <string name="controls_drive_mode_disconnected" volt:src="91388f35f11f45cc131745daa38ce2092cefcda4">Step niet verbonden</string>
+    <string name="controls_drive_mode_disconnected" volt:src="91388f35f11f45cc131745daa38ce2092cefcda4">Verbinding met de step verbroken</string>
     <string name="controls_drive_mode_waiting" volt:src="6ff44e5c4223817f203e26d0aaee6a939cb0f4f6">Wachten op de modus van je step…</string>
-    <string name="controls_drive_mode_reconnect" volt:src="c1db10680bc4eb5e44914afbe6e4e2fc2fa67a13">Verbind opnieuw met je step om verder te gaan.</string>
+    <string name="controls_drive_mode_reconnect" volt:src="c1db10680bc4eb5e44914afbe6e4e2fc2fa67a13">Maak opnieuw verbinding met je step om verder te gaan.</string>
     <string name="controls_drive_mode_reading" volt:src="ad9d84e04e80a0de1f22ee0c25489e8abb722758">Bezig met uitlezen van de modus van je step…</string>
     <string name="controls_drive_mode_ask_first" volt:src="09e9797f41cc14a033f43d8aad48c58b9ec64d2f">In welke modus staat je step nu?</string>
     <string name="controls_drive_mode_ask_next" volt:src="abde86e2e437d8f162222773d77c64ebf25001f5">En deze modus?</string>
-    <string name="controls_drive_mode_connecting" volt:src="17d6d032d788d8b81636fa3b8148ca0ad174f7cc">Bezig met verbinden om de modus van je step uit te lezen…</string>
+    <string name="controls_drive_mode_connecting" volt:src="17d6d032d788d8b81636fa3b8148ca0ad174f7cc">Verbinding maken om de modus van je step uit te lezen…</string>
     <string name="controls_drive_mode_press_next" volt:src="57dafafc00a29bdd467aa55c85cf4e89f69cd17b">Druk op de modusknop van je step om naar de volgende modus te gaan.</string>
     <string name="controls_drive_mode_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Overslaan</string>
     <string name="controls_drive_mode_confirm_title" volt:src="7816bc2b2a6886c8f3e23e6c50158a5e31b69e03">Klopt dit?</string>
@@ -161,6 +161,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Klopt</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Je step meldt modus %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Benoemd: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Niet zeker</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Weet ik niet</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

@@ -10,7 +10,7 @@
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Vermogen</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Snelheid</string>
     <string name="rides_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Spanning</string>
-    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Accu %</string>
+    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Accustand (%)</string>
     <string name="rides_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Opnieuw verbinden</string>
     <string name="rides_reconnect_description" volt:src="a6308b27db97fca0f0e50b5eeeaeea6b52049c59">Opnieuw verbinden met de step</string>
     <string name="rides_notes" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Notities</string>
@@ -24,42 +24,42 @@
     <string name="rides_backups" volt:src="c2c66504f7d76dffa88ece488cc0953eb7ce7f1d">Ritback-ups</string>
     <string name="rides_history" volt:src="2deed1ef9f0ed4e22b4caa9f0fa01a841518d557">Ritgeschiedenis</string>
     <string name="rides_simulating_exit" volt:src="c962eddbfea604de450573056e16bbee3607ec99">Simulatie · Stoppen</string>
-    <string name="rides_saving_sensors_button" volt:src="e2ccc0ad8dc14a4a8f6551e5e29258fd38335aef">Bezig met opslaan van telefoonsensoren…</string>
+    <string name="rides_saving_sensors_button" volt:src="e2ccc0ad8dc14a4a8f6551e5e29258fd38335aef">Bezig met opslaan van sensorgegevens…</string>
     <string name="rides_simulating_exit_description" volt:src="c97242ae84cf7bb0f32575d58f3d44aa8b20031a">Simulatie loopt. Simulatie stoppen</string>
     <string name="rides_retry_save" volt:src="dc2a6e9b081239a00b33596f06af6a8467061f12">Opnieuw opslaan</string>
     <string name="rides_toast_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Stop eerst de simulatie</string>
-    <string name="rides_toast_could_not_stop" volt:src="9bdba88e4808d891f709eb14db2484b10c7a814b">Kon niet stoppen · opname loopt nog</string>
+    <string name="rides_toast_could_not_stop" volt:src="9bdba88e4808d891f709eb14db2484b10c7a814b">Stoppen is mislukt · opname loopt nog</string>
     <string name="rides_toast_finishing_previous" volt:src="19068315ac5ee3b46b95b3edd398a137793d4a01">Bezig met afronden van de vorige rit…</string>
     <string name="rides_toast_storage_unavailable" volt:src="e0bea38ae0c3d0887c06c1662491e1866f04c0a1">Ritopslag is niet beschikbaar.</string>
-    <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Verbind eerst met de step</string>
+    <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Maak eerst verbinding met de step</string>
     <string name="rides_notes_hint" volt:src="5b182063520bc5c1cad81d3a9cdf7bc8b1fadc8a">Modus, route, belading…</string>
     <string name="rides_notes_save" volt:src="4c22e443c2ace74760f89991e6a526078de026a7">Notities opslaan</string>
     <string name="rides_toast_notes_not_saved" volt:src="40a3e37d436e3a7b9f8a7003b4ed6a787e435299">Rit beëindigd · notities niet opgeslagen</string>
-    <string name="rides_toast_notes_failed" volt:src="b1fdba5d6a2ee631683e770bc167717f4350fcad">Kon de notities niet opslaan.</string>
+    <string name="rides_toast_notes_failed" volt:src="b1fdba5d6a2ee631683e770bc167717f4350fcad">De notities konden niet worden opgeslagen.</string>
     <string name="rides_sensors_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
     <string name="rides_sensors_elevation" volt:src="347570bcee9cb79462389b2d9c840afc80a9b0db">hoogte</string>
     <string name="rides_sensors_motion" volt:src="f4640bf7c34cd72966546e8edaf23b3fc6bbeca7">beweging</string>
     <string name="rides_sensors_scooter_only" volt:src="c995c2e80c723bb3522386476e47215bd0f91c06">Alleen metingen van de step</string>
     <string name="rides_default_name" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Rit</string>
-    <string name="rides_toast_chart_failed" volt:src="45807feb2eba11bd10992e9de0ced9675663ec4e">Kon de ritgrafiek niet lezen.</string>
+    <string name="rides_toast_chart_failed" volt:src="45807feb2eba11bd10992e9de0ced9675663ec4e">De ritgrafiek kon niet worden gelezen.</string>
     <string name="rides_chart_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Wachten op metingen</string>
     <string name="rides_not_measured" volt:src="fe4f5c08c3f5bbd09d619f5f92877a61a198700a">Niet gemeten</string>
     <string name="rides_storage_unavailable" volt:src="174d1b257014b09dbccf3aefdb54f6b30d1d0eca">Ritopslag niet beschikbaar</string>
     <string name="rides_show_more" volt:src="92997935cc07211589521ca0fd4e90e08418cb28">Meer opnamen tonen</string>
     <string name="rides_no_rides_yet" volt:src="baddce1cfb732fa0b4903ce739fcbe19a136cbfc">Nog geen ritten</string>
-    <string name="rides_history_unreadable" volt:src="bcf3000514915f3e10197d95080678471ab36ada">Kon opgeslagen ritten niet lezen</string>
+    <string name="rides_history_unreadable" volt:src="bcf3000514915f3e10197d95080678471ab36ada">Opgeslagen ritten konden niet worden gelezen</string>
     <string name="rides_compare_two_selected" volt:src="98613115f1c523bc7cede0c0bf60d3145806bf34">Twee ritten vergelijken, 2 ritten geselecteerd</string>
     <string name="rides_toast_compare_needs_two" volt:src="037abcb59e7daef3ab37b93571ed3312d127037f">Sla twee ritten op om ze te vergelijken.</string>
     <string name="rides_compare_title" volt:src="0df381d5eb5cd0760c64ea4b8efa882388dc7b9b">Ritten vergelijken</string>
     <string name="rides_compare_action" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Vergelijken</string>
-    <string name="rides_toast_saved_unreadable" volt:src="5be843407a8e7e6efedba3d282c47766afe4dfd7">Kon opgeslagen ritten niet lezen.</string>
+    <string name="rides_toast_saved_unreadable" volt:src="5be843407a8e7e6efedba3d282c47766afe4dfd7">Opgeslagen ritten konden niet worden gelezen.</string>
     <string name="rides_toast_recording_unavailable" volt:src="77e257acc8ebd4e0ee12ee136578d4db82bcae2f">Deze opname is niet beschikbaar.</string>
-    <string name="rides_toast_recording_unreadable" volt:src="22a8d8dd40861a773c235b056112bf2c0bee4e21">Kon deze opname niet lezen.</string>
+    <string name="rides_toast_recording_unreadable" volt:src="22a8d8dd40861a773c235b056112bf2c0bee4e21">Deze opname kon niet worden gelezen.</string>
     <string name="rides_rename" volt:src="3fb7329a941b0f7c39d6471159b120e4bb3a857f">Naam van rit wijzigen</string>
     <string name="rides_rename_hint" volt:src="8bdeac0fdb38f7004e3cbb8bc0dd8b6f826f64ef">Ritnaam</string>
     <string name="rides_rename_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Opslaan</string>
     <string name="rides_rename_empty" volt:src="3d7328db52cc5b0b00f7050421fa824c8bd9a873">Voer een naam in</string>
-    <string name="rides_toast_rename_failed" volt:src="0cb515d165bbf605ae755c55d6bc7b7b5ea7ffa7">Kon de naam van deze rit niet wijzigen.</string>
+    <string name="rides_toast_rename_failed" volt:src="0cb515d165bbf605ae755c55d6bc7b7b5ea7ffa7">De naam van deze rit kon niet worden gewijzigd.</string>
     <string name="rides_journey" volt:src="6dbf0d7baed8b711fa2af624e772a43931b4a287">Rit</string>
     <string name="rides_tile_distance" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Afstand</string>
     <string name="rides_tile_duration" volt:src="1746de74250a7b81835e2d91c032e099fca5d223">Duur</string>
@@ -84,7 +84,7 @@
     <string name="rides_chart_zoom_in" volt:src="c2573617bb451efe6809ef5e762ebaed8c3612ae">Ritgrafiek inzoomen</string>
     <string name="rides_chart_no_sample" volt:src="80c8285b1491cb71881ab4e02325ea736821ede2">geen opgenomen meetpunt</string>
     <string name="rides_saving" volt:src="acfaabb6b957209ceff3be3a430f95cd70bb2922">Bezig met opslaan…</string>
-    <string name="rides_saving_sensors" volt:src="cc1fa8e0c50c21f675c4f51c453f2bbcb73bf285">Bezig met opslaan van telefoonsensoren</string>
+    <string name="rides_saving_sensors" volt:src="cc1fa8e0c50c21f675c4f51c453f2bbcb73bf285">Bezig met opslaan van sensorgegevens</string>
     <string name="rides_all_samples" volt:src="d079405497641703fc671780f0cd03086fda4b66">Alle meetpunten</string>
     <string name="rides_all_samples_description" volt:src="1f613a0c01bd48658728229e641f504e50fd5908">Alle opgenomen meetpunten van de grafiek geladen</string>
     <string name="rides_toast_low_memory" volt:src="07bacb681055fedc9a4f6a6b12632628ad27800b">Weinig geheugen · alleen voorbeeld</string>
@@ -96,9 +96,9 @@
     <string name="rides_draw_short" volt:src="c14d7827ed8152cbec42ccd4357e84c0b3c3e01d">Verbruik</string>
     <string name="rides_draw" volt:src="157e4062a6580d8571728fd66d3971f3fe44e7f4">Accuverbruik</string>
     <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Toevoer</string>
-    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Accutoevoer / laden</string>
+    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Toevoer naar accu / laden</string>
     <string name="rides_draw_partial" volt:src="d4c1c10d28c4a97edfd36d3ed750bc5c334020cd">Accuverbruik, alleen bevestigde intervallen</string>
-    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Accutoevoer of laden, alleen bevestigde intervallen</string>
+    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Toevoer naar accu of laden, alleen bevestigde intervallen</string>
     <string name="rides_net_energy" volt:src="c485e22ba72d6e26dce9679deebc9a11f53cccd6">Netto gemeten energie</string>
     <string name="rides_throughput_per_distance" volt:src="7ffc7192f9e336f862ed6bf775981032c7376149">Doorvoer per afstand</string>
     <string name="rides_net_per_distance" volt:src="08ed3b0daf54c1f0d0302fec975527160e09da60">Netto energie per afstand</string>
@@ -137,9 +137,9 @@
     <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Bewegingssensoren</string>
     <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Plaats van de telefoon</string>
     <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">Op het stuur</string>
-    <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">In zak</string>
+    <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">In je zak</string>
     <string name="rides_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Lab, experimenteel</string>
+    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Experimenteel</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Wijzigingen gelden vanaf de volgende rit</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Geen browser beschikbaar.</string>
     <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Ruwe bestanden exporteren</string>
@@ -147,7 +147,7 @@
     <string name="rides_export_motion_csv" volt:src="f02bca6d002344576307241dcafef54b0c6daddb">Bewegingsgegevens (CSV)</string>
     <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">Geen telefoongegevens opgenomen voor deze rit.</string>
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Route</string>
-    <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Telefoon &amp; route</string>
+    <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Telefoon en route</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">GPS-afstand</string>
     <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Klim / afdaling</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Versnelling</string>
@@ -178,7 +178,7 @@
     <string name="rides_point_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Accu</string>
     <string name="rides_point_grade" volt:src="e54e37f023694e37242ae6f32c3d858abb02a52f">Helling</string>
     <string name="rides_point_gps_accel" volt:src="cc9b4c3f4669f66e012964018832a0fc140dd12b">GPS-versnelling</string>
-    <string name="rides_point_scooter_accel" volt:src="4e8c17c8d3f450c486eec52cfb206abf21f9f701">Stepversnelling</string>
+    <string name="rides_point_scooter_accel" volt:src="4e8c17c8d3f450c486eec52cfb206abf21f9f701">Versnelling (step)</string>
     <string name="rides_point_not_measured" volt:src="32d8810cda3b35b00fbd339cda619742b45377cd">niet gemeten</string>
     <string name="rides_export_route_csv" volt:src="beec17fdc1fe1446e3888762337cfee92896b858">Route (CSV)</string>
     <string name="rides_export_gpx" volt:src="b22dd3b2c7f3f9586f3d38170d49539dd3c1ee76">GPX</string>
@@ -241,7 +241,7 @@
     <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Stroomrichting bevestigd gedurende %1$s, onbevestigd gedurende %2$s</string>
     <string name="rides_switch_experimental" volt:src="550602e28c6658e848285df423a96bb5370f3597">%1$s, experimenteel</string>
     <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">Op het stuur · meetpunten: %1$s</string>
-    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">In zak · meetpunten: %1$s</string>
+    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">In je zak · meetpunten: %1$s</string>
     <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Absoluut vermogen · blauw 0 → geel %1$s · grijs: ontbreekt</string>
     <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Relatieve hoogte · blauw %1$s → geel %2$s · grijs: ontbreekt</string>
     <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Snelheid van de step · blauw 0 → geel %1$s of sneller · grijs gestreept: ontbreekt</string>
@@ -259,16 +259,16 @@
     <string name="rides_compare_reason_both" volt:src="ffb08c74a22526a1d6fb0e0a48f0f93a54295142">Eerste: %1$s · Tweede: %2$s</string>
     <string name="rides_efficiency_throughput" volt:src="cd986f5555eb12c161fbf8ac5bf0b3f1476ea315">%1$s · doorvoer</string>
     <string name="rides_efficiency_net" volt:src="250dfc5aa6a4cc723d5cd7714eecc0439d77ccac">%1$s · netto</string>
-    <string name="rides_sensor_status_storage" volt:src="4462e74a3b02b334235783394a973c661d9fa152">Opslag voor telefoonsensoren niet beschikbaar</string>
+    <string name="rides_sensor_status_storage" volt:src="4462e74a3b02b334235783394a973c661d9fa152">Opslag voor sensorgegevens niet beschikbaar</string>
     <string name="rides_sensor_status_idle" volt:src="1ec0b6dab3cd9ae4351dbff57fd902a288a28335">Telefoonsensoren inactief</string>
     <string name="rides_sensor_status_gps_off" volt:src="75c04e35b2d89eca3bde37036b307fa4dadfefd2">GPS uit</string>
     <string name="rides_sensor_status_gps_starting" volt:src="a346418a13d57f9b346ab0465863f9a5f673057e">Bezig met starten van telefoonsensoren</string>
     <string name="rides_sensor_status_gps_waiting" volt:src="e3903e7d2d36005e33470097c914331d78fff983">Wachten op GPS</string>
     <string name="rides_sensor_status_location_off" volt:src="10a74ad888dad8f93ebb019dd191cee751a5f2e1">Locatie staat uit</string>
     <string name="rides_sensor_status_gps_unavailable" volt:src="62af34112baf119bbe633c2f6048f0c17731cc6e">GPS niet beschikbaar</string>
-    <string name="rides_sensor_status_permission_unavailable" volt:src="f402690f9c2f70bd5939b47553b6cf6bfa4122ec">Recht voor GPS niet beschikbaar</string>
-    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Locatierecht niet verleend</string>
-    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">GPS neemt op</string>
+    <string name="rides_sensor_status_permission_unavailable" volt:src="f402690f9c2f70bd5939b47553b6cf6bfa4122ec">Toestemming voor GPS niet beschikbaar</string>
+    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Geen toestemming voor locatie</string>
+    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">GPS-opname loopt</string>
     <string name="rides_sensor_status_signal_lost" volt:src="e2bde72be6f83b3e70f8b79a3756132492ab8268">GPS-signaal verloren</string>
     <string name="rides_sensor_status_signal_unavailable" volt:src="05f1bf581ffd97ab18638daae52e2b61bb4dcade">GPS-signaal niet beschikbaar</string>
     <string name="rides_sensor_status_barometer" volt:src="2957566839bc1b3438a1f9ee177477ee70a00315">%1$s · barometer</string>
@@ -279,10 +279,10 @@
     <string name="rides_chart_chip_from_kmh" volt:src="2709d6f867db56f2b247afc593fe6e1aa9084b5b">" · ≥3 km/h"</string>
     <string name="rides_chart_chip_no_data" volt:src="3dce5678e5b62e5571a565a115faa1814bf74dc8">" · geen gegevens"</string>
     <string name="rides_chart_series_only_at_mph" volt:src="0f1d963f528e1da144ff2f1d15050501262b8550">%1$s, alleen bij 2 mph of sneller</string>
-    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, alleen bij 2 mph of sneller, geen metingen opgenomen</string>
+    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, alleen bij 2 mph of sneller, geen meetpunten opgenomen</string>
     <string name="rides_chart_series_only_at_kmh" volt:src="033e6164abc0053676b6f2fab6c5381a634bcc7e">%1$s, alleen bij 3 km/h of sneller</string>
-    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, alleen bij 3 km/h of sneller, geen metingen opgenomen</string>
+    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, alleen bij 3 km/h of sneller, geen meetpunten opgenomen</string>
     <string name="rides_chart_series" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
-    <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, geen metingen opgenomen</string>
+    <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, geen meetpunten opgenomen</string>
     <string name="rides_chart_cell_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
 </resources>

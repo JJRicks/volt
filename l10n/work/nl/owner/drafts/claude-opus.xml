@@ -6,10 +6,10 @@
     <string name="owner_shizuku_import_backup" volt:src="381afce9a36947119565397388392c20ade240ba">Back-up importeren</string>
     <string name="owner_shizuku_back_to_choices" volt:src="200b9443aac4cec42a3fc8bd4193fa205aedfde7">Terug naar configuratieopties</string>
     <string name="owner_shizuku_needs_android_11" volt:src="6390dbd9379a6b9f580799e0783b64c74fcafea1">Dit vereist Android 11 of nieuwer.</string>
-    <string name="owner_shizuku_connecting_title" volt:src="5d006cefe48f252748471b8b59a1109c5824a525">Verbind met je step in NAVEE</string>
+    <string name="owner_shizuku_connecting_title" volt:src="5d006cefe48f252748471b8b59a1109c5824a525">Maak in NAVEE verbinding met je step</string>
     <string name="owner_shizuku_restoring_title" volt:src="22742f70b1986bdde7a6317edf9d0f59bde30380">Bezig met herstellen van NAVEE-logging…</string>
     <string name="owner_shizuku_preparing_title" volt:src="23b6b5501196b942d4a2f7834a868c4a8a2a173f">Bezig met voorbereiden van uitlezen…</string>
-    <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Verbind in NAVEE en kom dan terug.</string>
+    <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Maak in NAVEE verbinding en kom dan terug.</string>
     <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Laat Shizuku actief blijven.</string>
     <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Uitlezen annuleren</string>
     <plurals name="owner_countdown_seconds_left" volt:src="403d585757493b61548f9ec61dfc56e11f85aec9">
@@ -18,7 +18,7 @@
     </plurals>
     <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s over</string>
     <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Configuratie stoppen?</string>
-    <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Wacht hier tot de NAVEE-logging is hersteld.</string>
+    <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Wacht hier tot de NAVEE-logging is teruggezet.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Blijven wachten</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Configuratie stoppen</string>
     <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Eerst opruimen afronden</string>
@@ -28,7 +28,7 @@
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Klaar om te importeren</string>
     <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Sleutel van medegebruiker gevonden</string>
     <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Eigenaarssleutel gevonden</string>
-    <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">NAVEE-logging hersteld</string>
+    <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">NAVEE-logging teruggezet</string>
     <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Eigenaarsconfiguratie importeren</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Weggooien</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Shizuku starten</string>
@@ -48,7 +48,7 @@
     <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Verbinding met Shizuku controleren</string>
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Controleren of Shizuku actief is</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Uitlezen van je step</string>
-    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Verbind eerst in NAVEE met je geparkeerde step.</string>
+    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Maak in NAVEE eerst verbinding met je geparkeerde step.</string>
     <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Uitlezen start NAVEE opnieuw en zet de logging tijdelijk aan. Laat Shizuku actief blijven tot het opruimen klaar is.</string>
     <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Ik ben de eigenaar van deze step of heb toestemming.</string>
     <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Uitlezen starten</string>
@@ -67,20 +67,20 @@
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Volt-hulpprogramma is niet gestart</string>
     <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Opruimen van logging onbevestigd</string>
     <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Niets gevonden binnen 90 s</string>
-    <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Meerdere steps. Verbind met één step.</string>
+    <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Meerdere steps. Maak verbinding met één step.</string>
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">Er loopt een andere uitlezing</string>
-    <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt kon de NAVEE-logging niet lezen</string>
+    <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt kon het log van NAVEE niet lezen</string>
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Gestopt</string>
     <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Uitlezen mislukt</string>
-    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Herstel de logging opnieuw</string>
+    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Zet de NAVEE-logging opnieuw terug zoals die was</string>
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Bezig met herstellen van NAVEE-logging…</string>
-    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Shizuku is weggevallen. Herstel de logging.</string>
+    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Shizuku is weggevallen. Zet de NAVEE-logging terug zoals die was.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Geen browser gevonden</string>
     <string name="owner_setup_empty_or_large" volt:src="4a200d2bd2318934b72355920a208152c5182530">Het configuratiebestand van de eigenaar is leeg of te groot.</string>
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 hexadecimale tekens nodig</string>
     <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Geen eigenaarssleutel in bestand</string>
     <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Eigenaarsrol niet ondersteund</string>
-    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Dit bestand bevat meer dan één eigenaarssleutel of rol, en die spreken elkaar tegen. Lees één verbinding met een NAVEE-account uit of importeer één private back-up van de configuratie.</string>
+    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Dit bestand bevat meer dan één eigenaarssleutel of rol, en die spreken elkaar tegen. Lees één verbinding met een NAVEE-account uit of importeer één privéback-up van de configuratie.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Importeren mislukt. Kies het bestand opnieuw.</string>
     <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Voer een eigenaarssleutel van 12 tekens in.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Step</string>

@@ -24,7 +24,7 @@
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Stepnaam</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Stepnaam</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">App-opties</string>
-    <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">App-inst.</string>
+    <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">App-opties</string>
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mijn steps</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mijn steps</string>
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Exp. funct.</string>
@@ -50,7 +50,7 @@
     <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Niet gepland</string>
     <string name="dashboard_model_tile_at_time" volt:src="bf2c1d9211787ac67f4d9a7a67895abba193869e">" • %1$s"</string>
     <string name="dashboard_model_tile_select_scooter" volt:src="0bdc879ede74c25ac4b6035f02786961ef730f91">Kies eerst een step</string>
-    <string name="dashboard_model_tile_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Verbind eerst met je step</string>
+    <string name="dashboard_model_tile_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Maak eerst verbinding met je step</string>
     <string name="dashboard_model_tile_desc_part" volt:src="98a40beb85ba42cd1ed30f7e82c4632955333fff">, %1$s</string>
     <string name="dashboard_model_tile_desc_region" volt:src="2fd82cd81007d8bf033ebf243b5aa421434722b9">, niet aangeboden in deze regio</string>
     <string name="dashboard_model_tile_desc_model" volt:src="51e225830430897715101c40266bde3626d54162">, niet op dit model</string>
@@ -58,7 +58,7 @@
     <string name="dashboard_model_tile_desc_last_seen" volt:src="aef78e6eb321d9a16e6cc49539ab0e9d8d90378a">, laatst ontvangen</string>
     <string name="dashboard_model_tile_desc_toggle" volt:src="1cf72c14bf0d560b4eaab726bc18466b286ac97b">, schakelaar</string>
     <string name="dashboard_model_tile_desc_open" volt:src="d15196074cd770409167ffb0947503be92be30a5">, openen</string>
-    <string name="dashboard_model_type_lock" volt:src="82a0196a396baea9ea97de4d9f644f07770d41a9">Vergrendeling &amp; verbinding</string>
+    <string name="dashboard_model_type_lock" volt:src="82a0196a396baea9ea97de4d9f644f07770d41a9">Vergrendeling en verbinding</string>
     <string name="dashboard_model_type_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">Je step</string>
     <string name="dashboard_model_type_battery" volt:src="d13a864d0e7b3a0e22bf742edbe9279b62770794">Accuoverzicht</string>
     <string name="dashboard_model_type_metric" volt:src="0b439eb438e50b802e90a213d377bb188e1c4b46">Eén meting</string>
@@ -68,8 +68,8 @@
     <string name="dashboard_model_type_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Metingen</string>
     <string name="dashboard_model_type_trip" volt:src="22238fa2b3847217534642265c3fbf6fd0244169">Tripoverzicht</string>
     <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Gemelde conditie</string>
-    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Bruikbare rijenergie</string>
-    <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Laden</string>
+    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Bruikbare energie voor ritten</string>
+    <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Opladen</string>
     <string name="dashboard_model_type_quick" volt:src="558fd0a4fa154c2e4a8eec1fb009fa472b189666">Snelkoppelingen</string>
     <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Ritopname</string>
     <string name="dashboard_model_type_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Notitie</string>

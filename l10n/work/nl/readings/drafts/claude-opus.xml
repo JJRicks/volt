@@ -23,8 +23,8 @@
     <string name="readings_battery_status_short" volt:src="ba5fd149ed56f6838dc85175b4276c7a68344f61">Accustatus</string>
     <string name="readings_battery_status_compact" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Status</string>
     <string name="readings_charging_state" volt:src="905e2ecbdf52368d2e89a7e8c7ed403db5db0eca">Laadstatus (ruw)</string>
-    <string name="readings_charging_state_short" volt:src="342f0864c9a33dbf6664b5b6371f9c8810738462">Laden (ruw)</string>
-    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Laden (ruw)</string>
+    <string name="readings_charging_state_short" volt:src="342f0864c9a33dbf6664b5b6371f9c8810738462">Opladen (ruw)</string>
+    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Opladen (ruw)</string>
     <string name="readings_charge_cycles" volt:src="9f3a5527fd4191292f97400b43ec5145617c8679">Gemeld aantal laadcycli</string>
     <string name="readings_charge_cycles_short" volt:src="9ab3830434d1aad6b87e3828e013cf244cfaf846">Gemelde laadcycli</string>
     <string name="readings_charge_cycles_compact" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Laadcycli</string>
@@ -45,13 +45,13 @@
     <string name="readings_health_adjusted_capacity_ah_short" volt:src="bee90e1c5769318cfdb42e1429593ffa0dc50a00">Gesch. cap. (conditie)</string>
     <string name="readings_health_adjusted_capacity_ah_compact" volt:src="c6878acd6d040bfcb701c4910bcb2b47c6be75f9">Gesch. cap.</string>
     <string name="readings_battery_manufactured" volt:src="7555e85f574b560bdffbb6ea9aedb1dcf9b223f8">Productiedatum accu</string>
-    <string name="readings_battery_manufactured_short" volt:src="dac5cb9c0b4cf1d3da1cc59a209c0eaa0f9534d6">Accu gemaakt</string>
+    <string name="readings_battery_manufactured_short" volt:src="dac5cb9c0b4cf1d3da1cc59a209c0eaa0f9534d6">Productiedatum accu</string>
     <string name="readings_high_temperature_duration" volt:src="20d2ad2e31f0ab7c4bf2b7b632d3f8ba792f5e2b">Blootstelling aan hoge temperatuur</string>
     <string name="readings_high_temperature_duration_short" volt:src="fc07b30fdf16d9e53f4781a4596ff0194a1ba8c0">Tijd bij hoge temp.</string>
     <string name="readings_extreme_temperature_charge_raw" volt:src="980e577c5189fcbfe7c002dfd6f7f509fab39620">Laadduur bij extreme temperatuur (ruw; eenheid onbekend)</string>
-    <string name="readings_extreme_temperature_charge_raw_short" volt:src="7ba90795b6bdac575ead0ffdb58e9ed6c43ef5ac">Laadtijd heet/koud (ruw)</string>
+    <string name="readings_extreme_temperature_charge_raw_short" volt:src="7ba90795b6bdac575ead0ffdb58e9ed6c43ef5ac">Laadtijd bij hitte/kou (ruw)</string>
     <string name="readings_temperature_sign_state" volt:src="b58918def7ccbb9386060ccd7e1cc941bddf84ca">Status temperatuurteken (ruw)</string>
-    <string name="readings_temperature_sign_state_short" volt:src="b943e11006be09777c4a9efab18df2efa53aa62d">Teken temp. (ruw)</string>
+    <string name="readings_temperature_sign_state_short" volt:src="b943e11006be09777c4a9efab18df2efa53aa62d">Temperatuurteken (ruw)</string>
     <string name="readings_current_sign_state" volt:src="bee4c9ce9c76bbce1ff6aeee0a28419666f93184">Status stroomteken (ruw)</string>
     <string name="readings_current_sign_state_short" volt:src="13679d53c0abdbdfc2cf8803ebeb4537d2293e58">Stroomteken (ruw)</string>
     <string name="readings_speed_kmh" volt:src="717d3dba3ed88598db4179355211b00433d144e5">Actuele snelheid</string>
@@ -60,17 +60,17 @@
     <string name="readings_remaining_range_km" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Door de step geschatte resterende actieradius</string>
     <string name="readings_remaining_range_km_short" volt:src="d7669bae52f339f84800ff72f4ec92497b2834dd">Geschat bereik</string>
     <string name="readings_remaining_range_km_compact" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Bereik</string>
-    <string name="readings_trip_km" volt:src="2bbd79b5f048bebd076b1e89b5cf0b16b11b5777">Afstand van de huidige Trip van de step</string>
-    <string name="readings_trip_km_short" volt:src="397b00c366d758288a7564d09bda483a89298035">Afstand Trip</string>
+    <string name="readings_trip_km" volt:src="2bbd79b5f048bebd076b1e89b5cf0b16b11b5777">Afstand van de huidige trip van de step</string>
+    <string name="readings_trip_km_short" volt:src="397b00c366d758288a7564d09bda483a89298035">Afstand trip</string>
     <string name="readings_trip_km_compact" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Afstand</string>
-    <string name="readings_trip_minutes" volt:src="03d7ed55e48de381fac031a7eaa1e9653293d6f4">Duur van de huidige Trip van de step</string>
-    <string name="readings_trip_minutes_short" volt:src="d8c2def1bdb327e9582a98aee6ec34674f491d5c">Duur Trip</string>
+    <string name="readings_trip_minutes" volt:src="03d7ed55e48de381fac031a7eaa1e9653293d6f4">Duur van de huidige trip van de step</string>
+    <string name="readings_trip_minutes_short" volt:src="d8c2def1bdb327e9582a98aee6ec34674f491d5c">Duur trip</string>
     <string name="readings_trip_minutes_compact" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Duur</string>
     <string name="readings_maximum_speed_kmh" volt:src="33b4bdf2459659c914e2e99032ad48e8a1088c10">Current trip maximum speed</string>
     <string name="readings_maximum_speed_kmh_short" volt:src="b32c219506a82df18171f269b241a95055523dd0">Trip top speed</string>
     <string name="readings_maximum_speed_kmh_compact" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Top speed</string>
-    <string name="readings_average_speed_kmh" volt:src="475f4a3043351f56010ea35afe879a4bfce68294">Gemiddelde snelheid van de huidige Trip</string>
-    <string name="readings_average_speed_kmh_short" volt:src="9ce635ccc269f0d6a75890baa90f11dddc03d421">Gem. snelheid Trip</string>
+    <string name="readings_average_speed_kmh" volt:src="475f4a3043351f56010ea35afe879a4bfce68294">Gemiddelde snelheid van de huidige trip</string>
+    <string name="readings_average_speed_kmh_short" volt:src="9ce635ccc269f0d6a75890baa90f11dddc03d421">Gem. snelheid trip</string>
     <string name="readings_average_speed_kmh_compact" volt:src="93c2d63a2f9dfc29f9bced985292aafb358e1e9f">Gem. snelheid</string>
     <string name="readings_odometer_km" volt:src="9b51943cfe775f6e1df4a4a52895bb3d4d10211d">Kilometerstand</string>
     <string name="readings_odometer_km_short" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">km-stand</string>
@@ -93,8 +93,8 @@
     <string name="readings_tail_light_short" volt:src="2c4d7eae913c11230c529a0c23d529432cc38e8d">Achterlicht (ruw)</string>
     <string name="readings_energy_recovery" volt:src="a2f7eb53b276ee6ebb679c2a7fbdc84b6d5b153c">Instelling energieterugwinning (ruw)</string>
     <string name="readings_energy_recovery_short" volt:src="e4b3e9931bddb0c40e7c1c2e8eaa4c972362f13e">Terugwinning (ruw)</string>
-    <string name="readings_range_algorithm" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Algoritme actieradius (ruw)</string>
-    <string name="readings_range_algorithm_short" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Algoritme bereik (ruw)</string>
+    <string name="readings_range_algorithm" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Actieradiusalgoritme (ruw)</string>
+    <string name="readings_range_algorithm_short" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Actieradiusalgoritme (ruw)</string>
     <string name="readings_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Eenheden op het display</string>
     <string name="readings_display_units_short" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Display-eenheden</string>
     <string name="readings_auto_sensor" volt:src="397f36851ccf78fed42e79f1c6b2d4226013dd70">Automatische lichtsensor (ruw)</string>
@@ -107,12 +107,12 @@
     <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Tractie (ruw)</string>
     <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Knippergeluid (ruw)</string>
     <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Knippergeluid (ruw)</string>
-    <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Instelling nabijheidssleutel (ruw)</string>
-    <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Nabijheidssleutel (ruw)</string>
+    <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Instelling ontgrendelen bij nabijheid (ruw)</string>
+    <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Ontgrendelen bij nabijheid (ruw)</string>
     <string name="readings_night_mode" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nachtmodus (ruw)</string>
     <string name="readings_night_mode_short" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nachtmodus (ruw)</string>
-    <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Modus algoritme actieradius (ruw)</string>
-    <string name="readings_range_algorithm_mode_short" volt:src="3fdec013655b8c21f8b6da012adeb3e259ad0730">Bereikmodus (ruw)</string>
+    <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Modus actieradiusalgoritme (ruw)</string>
+    <string name="readings_range_algorithm_mode_short" volt:src="3fdec013655b8c21f8b6da012adeb3e259ad0730">Modus actieradius (ruw)</string>
     <string name="readings_eco_light" volt:src="a31b53e7c8895431826926ef893c28e1a0cb295d">Lijnkleuren normaal / Boost (gebundeld, ruw)</string>
     <string name="readings_eco_light_short" volt:src="cf72bc48c0ef9b243989bef457ed30ac900d6c55">Lijnkleuren (gebundeld)</string>
     <string name="readings_drive_light" volt:src="effffda37fb56bf29b39e5eeb28c2e1237891834">Status / patroon sterverlichting (ruw)</string>
@@ -125,8 +125,8 @@
     <string name="readings_speed_limit_short" volt:src="d3c6f1de71dca005c7fcb10ee8fa86a8f12e5c78">Snelheidslimiet (ruw)</string>
     <string name="readings_volume" volt:src="d1bd05601c5a18a8bd2b8f0f137b94302625945b">Instelling audio (ruw, afhankelijk van model)</string>
     <string name="readings_volume_short" volt:src="30e7e4acc2be6ddcadfddd098baff0d6ee7a2783">Audio (ruw)</string>
-    <string name="readings_voice_language" volt:src="1758c72d51fb18766c31a97654b252b6cb4e9c38">Instelling gesproken taal (ruw)</string>
-    <string name="readings_voice_language_short" volt:src="b0e0b68ba51e3850262e4df8c56de788ef4cd26d">Gesproken taal (ruw)</string>
+    <string name="readings_voice_language" volt:src="1758c72d51fb18766c31a97654b252b6cb4e9c38">Instelling spraaktaal (ruw)</string>
+    <string name="readings_voice_language_short" volt:src="b0e0b68ba51e3850262e4df8c56de788ef4cd26d">Spraaktaal (ruw)</string>
     <string name="readings_logo_light" volt:src="83ee5f980e0f82dfc132d0fde1f0993275748ad4">Instelling logolicht (ruw)</string>
     <string name="readings_logo_light_short" volt:src="716febaf4149a64cc5835f86911805b21a374e6f">Logolicht (ruw)</string>
     <string name="readings_daytime_light" volt:src="f42ad3192ac2c21b909bebb5ef354820ec1c35d8">Dagrijlicht (ruw)</string>
@@ -149,11 +149,11 @@
     <string name="readings_auto_lock_time" volt:src="e51795b4cca6806e194b5fd04e42452e7d9dc79c">Instelling vergrendelduur (ruw)</string>
     <string name="readings_auto_lock_time_short" volt:src="75991588a8e054b4dea4bb029c14de82c57280f4">Vergrendelduur (ruw)</string>
     <string name="readings_speed_limit_eligibility" volt:src="0837e1828a5133506f19fbd8005781156aad3678">Vlag geschiktheid snelheidslimiet (ruw)</string>
-    <string name="readings_speed_limit_eligibility_short" volt:src="9b8d35f1cc589b86f56893d4c451af5826970450">Geschiktheid snelheid (ruw)</string>
+    <string name="readings_speed_limit_eligibility_short" volt:src="9b8d35f1cc589b86f56893d4c451af5826970450">Geschiktheid snelheidslimiet (ruw)</string>
     <string name="readings_weather" volt:src="8fb4725abf7700363b9432cf7e49e1b523027692">Instelling weer (ruw)</string>
     <string name="readings_weather_short" volt:src="e02e117eef631d0cfb727c38bf388bee8bcc4392">Weer (ruw)</string>
-    <string name="readings_slope_assist" volt:src="1bd7ac69fc33fb7acf518ec0594ae99b5a723b09">Instelling hellinghulp (ruw)</string>
-    <string name="readings_slope_assist_short" volt:src="3dda87e7d2f324173b08643d637927da0c80d6d3">Hellinghulp (ruw)</string>
+    <string name="readings_slope_assist" volt:src="1bd7ac69fc33fb7acf518ec0594ae99b5a723b09">Instelling hellingshulp (ruw)</string>
+    <string name="readings_slope_assist_short" volt:src="3dda87e7d2f324173b08643d637927da0c80d6d3">Hellingshulp (ruw)</string>
     <string name="readings_long_range_mode" volt:src="0d07d515063510cb637bf967926c502cec829af9">Instelling langeafstandsmodus (ruw)</string>
     <string name="readings_long_range_mode_short" volt:src="40189fb5c01dddf3c278f523edfb7a811afa6ec2">Langeafstandsmodus (ruw)</string>
     <string name="readings_overspeed_control" volt:src="6cea63cae1d62672d0a980aa1a36dda0b669ba85">Instelling actieve snelheidsrem (ruw)</string>
@@ -186,8 +186,8 @@
     <string name="readings_warning_code_compact" volt:src="63647a656653eda2f9ed432b853672b34a5d0ac4">Waarschuwing</string>
     <string name="readings_lock_push_warning" volt:src="239a62b4d4ac8ddf6bd51480f3d161228b260b01">Waarschuwing beweging terwijl vergrendeld (ruw)</string>
     <string name="readings_lock_push_warning_short" volt:src="b392996949fa4bb67e39ba9912e65604622c1c5a">Beweging bij vergrendeling (ruw)</string>
-    <string name="readings_hide_e9" volt:src="ecf2a3aa4b8b5842c7b276a54095ebc674902f96">Displayvlag E9 (ruw)</string>
-    <string name="readings_hide_e9_short" volt:src="40a54d78e0f827f43dd4386f508a3ec4cc88fe3e">Vlag E9 (ruw)</string>
+    <string name="readings_hide_e9" volt:src="ecf2a3aa4b8b5842c7b276a54095ebc674902f96">E9-displayvlag (ruw)</string>
+    <string name="readings_hide_e9_short" volt:src="40a54d78e0f827f43dd4386f508a3ec4cc88fe3e">E9-vlag (ruw)</string>
     <string name="readings_ride_report_format" volt:src="978644e29f908b2e6e869c51eafd8661b56f42ae">Formaat ritbericht</string>
     <string name="readings_ride_report_format_short" volt:src="f41b81709d9278813379e982494a0c4af88e12f8">Ritformaat</string>
     <string name="readings_ride_read_raw" volt:src="a9e059c0b0b99885cec903a536263fc93a33ecc0">Ontvangstbevestiging uitlezing ritten (ruw)</string>
@@ -243,8 +243,8 @@
     </plurals>
     <string name="readings_value_unknown_format" volt:src="4fbf82bfa837313b3c11b92fd4a9d20b36f05c51">Records in onbekend formaat %1$s</string>
     <plurals name="readings_value_charges" volt:src="e616e0b3b5111b202cec26323d8a9f6a75be123b">
-        <item quantity="one">%1$d laadsessie</item>
-        <item quantity="other">%1$d laadsessies</item>
+        <item quantity="one">%1$d laadcyclus</item>
+        <item quantity="other">%1$d laadcycli</item>
     </plurals>
     <string name="readings_value_percent" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s%%</string>
     <string name="readings_value_empty_response" volt:src="047f4e5915f472bf49b17432f665e77ba7775756">Leeg antwoord</string>
@@ -271,7 +271,7 @@
     <string name="readings_history_stored" volt:src="f904c41099cf86356680b817abe2ecfdc95541f9">Opgeslagen op deze telefoon</string>
     <string name="readings_history_unavailable" volt:src="9b90a579d0021f6a132b0e6b92f3a6ec5262df1e">Geschiedenisopslag niet beschikbaar</string>
     <string name="readings_history_unavailable_live" volt:src="54d55bd8ba6bbc777f762059f072568b1c2ed670">Geschiedenisopslag niet beschikbaar; actuele metingen werken nog wel</string>
-    <string name="readings_history_read_failed" volt:src="7818911998b28c3c2eab0247cd4b165ecd8eade1">Kan geschiedenis niet lezen</string>
+    <string name="readings_history_read_failed" volt:src="7818911998b28c3c2eab0247cd4b165ecd8eade1">De geschiedenis kon niet worden gelezen</string>
     <string name="readings_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Geschiedenis gewist</string>
-    <string name="readings_history_clear_failed" volt:src="156100e7d2a86dba729aa79416b40575a53993eb">Kan geschiedenis niet wissen</string>
+    <string name="readings_history_clear_failed" volt:src="156100e7d2a86dba729aa79416b40575a53993eb">De geschiedenis kon niet worden gewist</string>
 </resources>

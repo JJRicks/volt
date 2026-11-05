@@ -191,7 +191,7 @@
     <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">In de back-up ontbreken opnamebestanden.</string>
     <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Toewijzing aan een step ontbreekt.</string>
     <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">De lijst met ritten is inconsistent.</string>
-    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Bij metingen van de telefoon ontbreekt de bijbehorende rit.</string>
+    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Bij meetpunten van de telefoon ontbreekt de bijbehorende rit.</string>
     <string name="backup_engine_choose_destination_every_scooter" volt:src="9d0e8e7d2b492149ede88066de128fd38afc3b58">Kies een bestemming voor elke step.</string>
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Opgeslagen ritten zijn gewijzigd. Controleer de back-up opnieuw.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Het herstel van ritten kon niet worden voorbereid.</string>

@@ -3,16 +3,16 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="ble_status_not_connected" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Niet verbonden</string>
     <string name="ble_status_searching" volt:src="843972942cebb292d9f98d72b7f665e780316706">Bezig met zoeken…</string>
-    <string name="ble_status_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Bezig met verbinden…</string>
+    <string name="ble_status_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Verbinding maken…</string>
     <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Bezig met controleren van eigenaar…</string>
     <string name="ble_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Verbonden</string>
     <string name="ble_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Verbinding verbroken</string>
     <string name="ble_status_paused" volt:src="1c8e31fe8678fa854df7fdfd9b602b38219a9454">Gepauzeerd op de achtergrond</string>
-    <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Bezig met compatibiliteitscontrole…</string>
+    <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Bezig met controleren van compatibiliteit…</string>
     <string name="ble_status_setting_clock" volt:src="94ef95e2c55c05d529641f6bf2e6f3b7a4b7e1b3">Bezig met instellen van de klok van de step vanaf deze telefoon…</string>
     <string name="ble_reading" volt:src="728cf773a5c57a15f19c5c603f34929b6502bb7f">Bezig met uitlezen van %1$s…</string>
     <string name="ble_applying" volt:src="d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c">Bezig met toepassen van %1$s…</string>
-    <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Recht ‘Apparaten in de buurt’ nodig</string>
+    <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Toestemming ‘Apparaten in de buurt’ nodig</string>
     <string name="ble_bluetooth_off" volt:src="4debe331fb38bcc98e9858d56866deca5ce1f911">Bluetooth uit</string>
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Geen step gevonden</string>
     <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Eigenaarssleutel geweigerd</string>
@@ -33,13 +33,13 @@
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · bezig met opnieuw proberen</string>
     <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · wijziging geannuleerd</string>
     <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · wijziging niet bevestigd</string>
-    <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · bezig met opnieuw verbinden om te bevestigen</string>
-    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">De step kan Bluetooth opnieuw hebben gestart · bezig met opnieuw verbinden om te bevestigen</string>
+    <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · opnieuw verbinding maken om te bevestigen</string>
+    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">De step kan Bluetooth opnieuw hebben gestart · opnieuw verbinding maken om te bevestigen</string>
     <string name="ble_simulation_on" volt:src="9a071404250fdeb0dc8b004b7dddf5ca3007f4a6">Simulatie aan</string>
     <string name="ble_simulation_off" volt:src="b3b027cf8fec2759dbb726557304098b6251a539">Simulatie uit</string>
     <string name="ble_simulated_connection" volt:src="30ec556a62e2fafa48ac2dcbf14d67e7368d0eec">Gesimuleerde verbinding</string>
     <string name="ble_simulation_disconnected" volt:src="3396a41a7c1c7026985b5764df331426308a52d1">Verbinding met simulatie verbroken</string>
-    <string name="ble_connect_simulated_first" volt:src="2d67a27158efdcd7c7ef687459e6b672d04569b9">Verbind eerst met de gesimuleerde step.</string>
+    <string name="ble_connect_simulated_first" volt:src="2d67a27158efdcd7c7ef687459e6b672d04569b9">Maak eerst verbinding met de gesimuleerde step.</string>
     <string name="ble_scan_failed" volt:src="bdc93ce3c70f5f5611f29af5ed5cd28b88ada420">Zoeken mislukt</string>
     <string name="ble_choose_scooter" volt:src="a2093a7720bc3fe1871ad6c1f8daef1a76fee71e">Kies je step.</string>
     <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">Bluetooth start nog op. Probeer het opnieuw.</string>
@@ -49,12 +49,12 @@
     <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Stop eerst de opname</string>
     <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Wacht tot de huidige wijziging klaar is.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Stop eerst de compatibiliteitscontrole</string>
-    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Verbind eerst</string>
+    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Maak eerst verbinding met de step</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Wacht op een nieuwe verbinding met de step.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Los waarschuwing %1$d van de step op voordat je vergrendelt.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Zet de step eerst stil</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Nu niet beschikbaar</string>
-    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Waarde valt buiten wat de officiële app toestaat</string>
+    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Waarde valt buiten wat de officiële app (OEM) toestaat</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: al ingesteld.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Wijziging geweigerd</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">Instelling gewijzigd tijdens het wachten. Probeer het opnieuw.</string>
@@ -62,7 +62,7 @@
     <string name="ble_charge_start_confirmed" volt:src="fedbcf711b90e26341bc2f742f7b85c7abdfefe2">Starttijd van het laden bevestigd.</string>
     <string name="ble_setting_confirmed" volt:src="3e509dc08ecbe51d4effef6fb4ba219cd323d95a">%1$s: instelling bevestigd.</string>
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s: bevestigd.</string>
-    <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Klok verzonden (niet geverifieerd)</string>
+    <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Kloktijd verzonden (niet geverifieerd)</string>
     <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Lees de PIN-status uit en koppel daarna deze telefoon.</string>
     <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Stel de stuur-PIN in en zet die aan voordat je koppelt voor ontgrendelen bij nabijheid.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Deze telefoon is al gekoppeld aan je step.</string>
@@ -73,9 +73,9 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">PIN-status is niet beschikbaar op deze firmware.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">PIN-instellingen vereisen het eigenaarsprofiel.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Koppel deze telefoon voordat je ontgrendelen bij nabijheid aanzet</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Zet eerst een ingestelde stuur-PIN aan voor ontgrendelen bij nabijheid</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Stel een stuur-PIN in en zet die aan voordat je ontgrendelen bij nabijheid aanzet</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Lees de PIN-status uit en pas daarna ontgrendelen bij nabijheid toe.</string>
-    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Verbind als eigenaar van de step om PIN-instellingen uit te lezen.</string>
+    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Maak verbinding als eigenaar van de step om PIN-instellingen uit te lezen.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Zet ontgrendelen bij nabijheid uit voordat je de stuur-PIN uitzet.</string>
     <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Lees eerst de huidige PIN-status uit.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Rond eerst de begeleide test af</string>
@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Terugzetten is niet gelukt. Er is niets gewijzigd.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Rond eerst de huidige test af</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test niet gevonden</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Herstellen kon niet starten. Er is niets gewijzigd.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Terugzetten kon niet starten. Er is niets gewijzigd.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Bevestigd</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Instelling bevestigd via teruglezing; lichtopbrengst niet gemeten</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Geaccepteerd; teruglezen van de klok niet beschikbaar</string>
@@ -98,6 +98,6 @@
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Geannuleerd vóór verzending</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Begeleide test</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Verbinding verloren voordat de vergrendeling veranderde</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">De step heeft de wijziging van de vergrendeling niet bevestigd</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">De step heeft niet bevestigd of de vergrendeling is gewijzigd</string>
     <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">De step was niet klaar om de vergrendeling te wijzigen; probeer het opnieuw</string>
 </resources>
