@@ -642,7 +642,12 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
   `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
   prefer putting new text in the catalog). If it changes a report format, update the goldens with
-  `bash tests/l10n/golden.sh --update` and say so in the PR.
+  `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run what CI runs:
+  `python3 tools/l10n/ci_gates.py --base origin/main`, `python3 -m unittest discover -s tools/l10n`,
+  `python3 tools/l10n/gen_catalog.py --check`, `bash tests/l10n/golden.sh`, `bash tests/run.sh` and
+  `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary pull request does not need it.
+  If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
+  change may change a literal, so its report is not a proof that English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
@@ -723,7 +728,7 @@ Known limits:
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
