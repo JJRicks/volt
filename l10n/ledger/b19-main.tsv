@@ -66,7 +66,7 @@ src/com/jjricks/volt/MainActivity.java:917	["Last known"]	main_lock_last_known	e
 src/com/jjricks/volt/MainActivity.java:924	["Connected"]	ble_status_connected	exact	
 src/com/jjricks/volt/MainActivity.java:924	["Connecting"]	main_lock_connecting	exact	
 src/com/jjricks/volt/MainActivity.java:924	["Disconnected"]	ble_status_disconnected	exact	
-src/com/jjricks/volt/MainActivity.java:925	[{"hole": "state", "arg": 1, "type": "s"}, " · ", {"hole": "active.name", "arg": 2, "type": "s", "as": "active.displayName()"}, ""]	main_status_connected_named	template	manual: a ternary picks a whole template; displayName() is the stored name in English except default names, whose English is the same
+src/com/jjricks/volt/MainActivity.java:925	[{"hole": "state", "arg": 1, "type": "s"}, " · ", {"hole": "active.name", "arg": 2, "type": "s", "as": "active.shownName()"}, ""]	main_status_connected_named	template	manual: a ternary picks a whole template; shownName() is the stored name in English except default names, whose English is the same
 src/com/jjricks/volt/MainActivity.java:925	[{"hole": "state", "arg": 1, "type": "s"}, " · last seen ", {"hole": "DisplayTime.recent(this,preferences,last,System.currentTimeMillis())", "arg": 2, "type": "s"}, ""]	main_status_last_seen	template	manual: a ternary picks a whole template. Neither condition holds: the plain state, no text of its own
 src/com/jjricks/volt/MainActivity.java:927	[{"hole": "state", "arg": 1, "type": "s"}, ", last connected ", {"hole": "DisplayTime.dateTime(this,preferences,last)", "arg": 2, "type": "s"}, "", ". Connection details"]	main_status_description_last	template	manual: a ternary picks a whole template; without the clause, main_status_description "%1$s. Connection details", which MainTextTest checks
 src/com/jjricks/volt/MainActivity.java:931	["Your scooter"]	main_your_scooter	exact	
@@ -469,7 +469,7 @@ src/com/jjricks/volt/MainActivity.java:3272	["Export failed: unreadable slot."]	
 src/com/jjricks/volt/MainActivity.java:3275	["Choose a scooter first."]	main_import_choose_scooter	exact	
 src/com/jjricks/volt/MainActivity.java:3278	["A document picker could not open."]	main_import_no_picker	exact	
 src/com/jjricks/volt/MainActivity.java:3283	["Replace dashboard layouts?"]	main_import_replace_title	exact	
-src/com/jjricks/volt/MainActivity.java:3284	["Replaces ", {"hole": "scooterService.profiles.active().name", "arg": 1, "type": "s", "as": "scooterService.profiles.active().displayName()"}, "’s dashboard and all 3 slots."]	main_import_replace_body	template	manual: a default name shows through displayName(), the stored name otherwise; English the same. 
+src/com/jjricks/volt/MainActivity.java:3284	["Replaces ", {"hole": "scooterService.profiles.active().name", "arg": 1, "type": "s", "as": "scooterService.profiles.active().shownName()"}, "’s dashboard and all 3 slots."]	main_import_replace_body	template	manual: a default name shows through shownName(), the stored name otherwise; English the same. 
 src/com/jjricks/volt/MainActivity.java:3285	["Cancel"]	common_cancel	exact	
 src/com/jjricks/volt/MainActivity.java:3285	["Import layouts"]	main_import_import_layouts	exact	
 src/com/jjricks/volt/MainActivity.java:3287	["The selected scooter changed. Import again."]	main_import_scooter_changed	exact	

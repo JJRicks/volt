@@ -35,7 +35,9 @@ public final class ScooterProfiles {
         /** Saved evidence only (no session firmware, standard transport), for model assumptions in dashboards and stats. */
         public DeviceDescriptor savedDescriptor(){return descriptor(DeviceDescriptor.Firmware.NONE,false,DeviceDescriptor.Transport.STANDARD);}
         /** The name to show: Volt's own default name in the current language while it is still that default, else the name as saved. */
-        public String displayName(){return nameDefault?nameText(name):name;}
+        public String displayName(){return nameDefault&&DEFAULT_NAME.equals(name)?T.ownerProfileDefaultName():name;}
+        /** As displayName(), and Volt's other default names (an imported scooter, an unnamed scan) are shown translated too. */
+        public String shownName(){return nameDefault?nameText(name):name;}
         public boolean configured(){try{return (role==0||role==1)&&Protocol.fromHex(identity).length==6;}catch(Exception e){return false;}}
     }
     private final SharedPreferences prefs,legacy;

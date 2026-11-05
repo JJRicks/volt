@@ -898,7 +898,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         long last=active==null?0:active.lastConnected;
         String scooterName=active==null?T.mainLockYourScooter():active.name;
         pumpLockQueue(ble,ready,shownLock,pending);
-        if(active!=null)scooterName=active.displayName();
+        if(active!=null)scooterName=active.shownName();
         for(int lockIndex=dashboardLocks.isEmpty()?-1:0;lockIndex<dashboardLocks.size();lockIndex++){
         if(lockIndex>=0)loadLockViews(dashboardLocks.get(lockIndex));
         if(lockTitle!=null){
@@ -933,7 +933,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(!dashboardLocks.isEmpty())loadLockViews(dashboardLocks.get(0));
         if(connectionTitle!=null){
             String state=ready?T.bleStatusConnected():connecting?T.mainLockConnecting():T.bleStatusDisconnected();
-            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,active.displayName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
+            String shown=ready&&active!=null?T.mainStatusConnectedNamed(state,active.shownName()):!ready&&!connecting&&last>0?T.mainStatusLastSeen(state,DisplayTime.recent(this,preferences,last,System.currentTimeMillis())):state;
             connectionTitle.setText(connecting?connectingLabel(connectionTitle):shown);
             connectionTitle.setContentDescription(!ready&&!connecting&&last>0?T.mainStatusDescriptionLast(state,DisplayTime.dateTime(this,preferences,last)):T.mainStatusDescription(state));
             connectionTitle.setTextColor(design.muted);
@@ -1233,7 +1233,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();if(name==null||name.isEmpty())name=T.mainScanNavee();
         if(saved!=null)name=saved.name;
         ScooterProfiles.Profile active=scooterService.profiles.active();boolean match=saved!=null&&active!=null&&saved.id.equals(active.id);
-        if(saved!=null)name=saved.displayName();
+        if(saved!=null)name=saved.shownName();
         String address=result.getDevice().getAddress(),suffix=address.substring(Math.max(0,address.length()-5));
         int rank=signalRank(result.getRssi());String strength=rank==4?T.mainScanStrong():rank==3?T.mainScanGood():rank==2?T.mainScanFair():T.mainScanWeak();
         LinearLayout option=row();option.setGravity(Gravity.CENTER_VERTICAL);option.setPadding(design.dp(12),design.dp(10),design.dp(14),design.dp(10));option.setMinimumHeight(design.dp(64));
@@ -1584,7 +1584,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             zonesValue.setText(zonesSummary());
             ScooterProfiles.Profile profile=scooterService==null?null:scooterService.profiles.active();nameValue.setText(profile==null?T.mainRowNameNotSet():profile.name);
             boolean chargerEditable=profile!=null&&!scooterService.isChargeRecording();
-            if(profile!=null)nameValue.setText(profile.displayName());
+            if(profile!=null)nameValue.setText(profile.shownName());
             chargerLine.line.setEnabled(chargerEditable);chargerLine.name.setTextColor(chargerEditable?design.text:design.muted);
             // Name the family estimates actually use, and why when it is not the saved choice.
             ScooterService.ChargerBasis basis=scooterService==null?ScooterService.ChargerBasis.UNKNOWN:scooterService.chargerBasis();
@@ -3329,7 +3329,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(destroyed||enteringMaintenance||scooterService==null||scooterService.profiles.active()==null)return;
         String profileId=scooterService.profiles.active().id;
         AlertDialog dialog=new AlertDialog.Builder(dialogContext()).setTitle(T.mainImportReplaceTitle())
-                .setMessage(T.mainImportReplaceBody(scooterService.profiles.active().displayName()))
+                .setMessage(T.mainImportReplaceBody(scooterService.profiles.active().shownName()))
                 .setNegativeButton(T.commonCancel(),null).setPositiveButton(T.mainImportImportLayouts(),(d,n)->{
                     if(destroyed||enteringMaintenance||DataMaintenance.active())return;
                     if(scooterService==null||scooterService.profiles.active()==null||!profileId.equals(scooterService.profiles.active().id)){toast(T.mainImportScooterChanged());return;}
