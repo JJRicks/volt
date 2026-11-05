@@ -1,0 +1,307 @@
+# Ledger for b13-dashboard-screen: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/DashboardScreen.java:65	["32-widget limit"]	dashboard_widget_limit	exact	the constant becomes a CharSequence holding the deferred M.dashboardWidgetLimit(), rendered where each use shows it (R5: no rendered text in a static field)
+src/com/jjricks/volt/DashboardScreen.java:121	["Connection details"]	dashboard_connection_details	exact	
+src/com/jjricks/volt/DashboardScreen.java:130	["Your scooter"]	dashboard_your_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:134	["Rename scooter"]	dashboard_rename_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:166	["Undo dashboard edit"]	dashboard_undo_edit	exact	
+src/com/jjricks/volt/DashboardScreen.java:167	["Redo dashboard edit"]	dashboard_redo_edit	exact	
+src/com/jjricks/volt/DashboardScreen.java:179	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:183	["Layout"]	dashboard_layout	exact	
+src/com/jjricks/volt/DashboardScreen.java:591	["Undo"]	dashboard_undo	exact	
+src/com/jjricks/volt/DashboardScreen.java:591	["Redo"]	dashboard_redo	exact	
+src/com/jjricks/volt/DashboardScreen.java:674	["Done"]	common_done	exact	
+src/com/jjricks/volt/DashboardScreen.java:691	["Finish editing dashboard"]	dashboard_finish_editing	exact	
+src/com/jjricks/volt/DashboardScreen.java:691	["Edit dashboard"]	dashboard_edit_dashboard	exact	
+src/com/jjricks/volt/DashboardScreen.java:700	["Add widget, ", {"hole": "WIDGET_LIMIT_TEXT", "arg": 1, "type": "s"}]	dashboard_add_widget_limit	template	
+src/com/jjricks/volt/DashboardScreen.java:700	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:753	["Your scooter"]	dashboard_your_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:871	["now"]	dashboard_age_now	exact	
+src/com/jjricks/volt/DashboardScreen.java:872	[{"hole": "minutes", "arg": 1, "type": "s", "as": "Fmt.integer(minutes)"}, " min"]	dashboard_age_minutes	template	
+src/com/jjricks/volt/DashboardScreen.java:873	[{"hole": "minutes / 60", "arg": 1, "type": "s", "as": "Fmt.integer(minutes / 60)"}, " h"]	dashboard_age_hours	template	
+src/com/jjricks/volt/DashboardScreen.java:874	[{"hole": "minutes / (24 * 60)", "arg": 1, "type": "s", "as": "Fmt.integer(minutes / (24 * 60))"}, " d"]	dashboard_age_days	template	
+src/com/jjricks/volt/DashboardScreen.java:909	["about ", {"hole": "format(r)", "arg": 1, "type": "s"}]	dashboard_about	template	
+src/com/jjricks/volt/DashboardScreen.java:910	[{"spec": "%.0f", "arg": 1, "value": "r.number", "as": "Fmt.decimal(Locale.US, r.number, 0)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:911	[{"spec": "%.0f", "arg": 1, "value": "r.number / 1.609344", "as": "Fmt.decimal(Locale.US, r.number / 1.609344, 0)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:913	["about ", {"hole": "(units.equals(\"km\") ? km : units.equals(\"dual\") ? miles + \" / \" + km : miles)", "arg": 1, "type": "s", "as": "(units.equals(\"km\") ? km : units.equals(\"dual\") ? T.fmtDual(miles, km) : miles)"}]	dashboard_about	template	manual: the hole is the same choice of distances, with its dual form miles + " / " + km now T.fmtDual(miles, km) (the next row), whose English is the same
+src/com/jjricks/volt/DashboardScreen.java:913	[{"hole": "miles", "arg": 1, "type": "s"}, " / ", {"hole": "km", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/DashboardScreen.java:952	["Estimated remaining range"]	dashboard_estimated_range	exact	
+src/com/jjricks/volt/DashboardScreen.java:953	["Drive mode"]	dashboard_drive_mode	exact	
+src/com/jjricks/volt/DashboardScreen.java:955	[" (signed)"]	-	stays-english	Telemetry's English marker of a signed reading stays data: moved into the constant TELEMETRY_SIGNED, which label() and englishLabel() test and strip on Telemetry's English label (never on shown text); a signed reading shows its ScooterReadingLabels short name ("Battery current", "Battery power": the base's stripped label), any other its full name
+src/com/jjricks/volt/DashboardScreen.java:1029	["At target"]	dashboard_at_target	exact	
+src/com/jjricks/volt/DashboardScreen.java:1030	{"if": "value >= 60", "then": ["≈ ", {"hole": "value / 60", "arg": 1, "type": "s", "as": "Fmt.integer(value / 60)"}, "h ", {"hole": "value % 60", "arg": 2, "type": "s", "as": "Fmt.integer(value % 60)"}, "m"], "else": ["≈ ", "", {"hole": "value % 60", "arg": 1, "type": "s", "as": "Fmt.integer(value % 60)"}, "m"]}	dashboard_duration_hours,dashboard_duration_minutes	choice	the optional hours part becomes two whole templates, with hours and without
+src/com/jjricks/volt/DashboardScreen.java:1338	[{"spec": "%.0f", "arg": 1, "value": "estimate.targetPercent", "as": "Fmt.decimal(Locale.US, estimate.targetPercent, 0)"}, "%%"]	fmt_percent	format	
+src/com/jjricks/volt/DashboardScreen.java:1339	["To ", {"hole": "target", "arg": 1, "type": "s"}, " limit"]	dashboard_charge_to_limit	template	
+src/com/jjricks/volt/DashboardScreen.java:1339	["Time to ", {"hole": "target", "arg": 1, "type": "s"}]	dashboard_charge_time_to	template	
+src/com/jjricks/volt/DashboardScreen.java:1340	["To ", {"hole": "target", "arg": 1, "type": "s"}]	dashboard_charge_time_to_compact	template	
+src/com/jjricks/volt/DashboardScreen.java:1343	["Time to 100% if uncapped"]	dashboard_charge_time_uncapped	exact	
+src/com/jjricks/volt/DashboardScreen.java:1343	["To 100% if uncapped"]	dashboard_charge_time_uncapped_short	exact	
+src/com/jjricks/volt/DashboardScreen.java:1343	["100% if uncapped"]	dashboard_charge_time_uncapped_compact	exact	
+src/com/jjricks/volt/DashboardScreen.java:1344	["Time to full (est.)"]	dashboard_charge_time_full	exact	
+src/com/jjricks/volt/DashboardScreen.java:1344	["Time to full (est.)"]	dashboard_charge_time_full_short	exact	
+src/com/jjricks/volt/DashboardScreen.java:1344	["To full (est.)"]	dashboard_charge_time_full_compact	exact	
+src/com/jjricks/volt/DashboardScreen.java:1371	["Charging power"]	-	removed	whole block: the two-argument InfoCell constructor, which picked the narrow label by comparing the title with the English "Charging power" (R3: never compare shown text), is gone; InfoTiles.add(icon, title) builds every cell with its one title, and both charging power cells then set their narrow label with InfoCell.narrowLabel(T.dashboardChargingPower(), T.dashboardChargingPowerCompact()) on a line of its own
+src/com/jjricks/volt/DashboardScreen.java:1371	["Power"]	-	removed	whole block: the narrow label "Power" moved to dashboard_charging_power_compact, which both charging power cells set with InfoCell.narrowLabel right after they are made
+src/com/jjricks/volt/DashboardScreen.java:1555	["Charging"]	dashboard_charging	exact	
+src/com/jjricks/volt/DashboardScreen.java:1573	["NAVEE UT5 MAX scooter"]	dashboard_hero_photo	exact	
+src/com/jjricks/volt/DashboardScreen.java:1581	["Charging power"]	dashboard_charging_power	exact	
+src/com/jjricks/volt/DashboardScreen.java:1582	["Time to full"]	dashboard_time_to_full	exact	
+src/com/jjricks/volt/DashboardScreen.java:1674	["Charging · limit ", {"spec": "%.0f", "arg": 1, "value": "estimate.targetPercent", "as": "Fmt.decimal(Locale.US, estimate.targetPercent, 0)"}, "%%"]	dashboard_charging_limit	format	
+src/com/jjricks/volt/DashboardScreen.java:1675	["Charging"]	dashboard_charging	exact	
+src/com/jjricks/volt/DashboardScreen.java:1678	["Battery not reported"]	dashboard_battery_not_reported	exact	
+src/com/jjricks/volt/DashboardScreen.java:1685	{"one": ["Battery ", {"hole": "number", "arg": 1, "type": "d", "quantity": true, "as": "Math.round(level)"}, " percent"], "other": ["Battery ", {"hole": "number", "arg": 1, "type": "d", "quantity": true, "as": "Math.round(level)"}, " percent"]}	dashboard_battery_percent	plural	manual: a plural, so a language can inflect "percent" by the number; number was Long.toString(Math.round(level)), so the call passes Math.round(level) as the quantity and the number (English says "percent" for every number)
+src/com/jjricks/volt/DashboardScreen.java:1694	{"if": "etaTag.getVisibility() == View.VISIBLE", "then": {"if": "estimate.status == null || estimate.status.isEmpty()", "then": [{"hole": "timeLabel[0]", "arg": 1, "type": "s"}, ", ", {"hole": "eta.getText()", "arg": 2, "type": "s"}, ", ", {"hole": "etaTag.getText()", "arg": 3, "type": "s"}, ""], "else": [{"hole": "timeLabel[0]", "arg": 1, "type": "s"}, ", ", {"hole": "eta.getText()", "arg": 2, "type": "s"}, ", ", {"hole": "etaTag.getText()", "arg": 3, "type": "s"}, ". ", {"hole": "estimate.status", "arg": 4, "type": "s"}]}, "else": {"if": "estimate.status == null || estimate.status.isEmpty()", "then": [{"hole": "timeLabel[0]", "arg": 1, "type": "s"}, ", ", {"hole": "eta.getText()", "arg": 2, "type": "s"}, "", ""], "else": [{"hole": "timeLabel[0]", "arg": 1, "type": "s"}, ", ", {"hole": "eta.getText()", "arg": 2, "type": "s"}, "", ". ", {"hole": "estimate.status", "arg": 3, "type": "s"}]}}	dashboard_hero_time_tag,dashboard_hero_time_tag_status,dashboard_hero_time,dashboard_hero_time_status	choice	the chip and the explanation, each optional, become four whole templates; estimate.status is ChargingEstimate's English diagnostic (B5 left it English)
+src/com/jjricks/volt/DashboardScreen.java:1700	[{"spec": "%.0f", "arg": 1, "value": "estimate.inputWatts", "as": "Fmt.decimal(Locale.US, estimate.inputWatts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:1704	{"if": "Double.isNaN(level)", "then": {"if": "hasLimit", "then": ["Charge not reported", ", charge limit ", {"hole": "Math.round(limit)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(limit))"}, " percent"], "else": ["Charge not reported", ""]}, "else": {"if": "hasLimit", "then": ["Charge ", {"hole": "Math.round(level)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(level))"}, " percent", ", charge limit ", {"hole": "Math.round(limit)", "arg": 2, "type": "s", "as": "Fmt.integer(Math.round(limit))"}, " percent"], "else": ["Charge ", {"hole": "Math.round(level)", "arg": 1, "type": "s", "as": "Fmt.integer(Math.round(level))"}, " percent", ""]}}	dashboard_hero_charge_not_reported_limit,dashboard_hero_charge_not_reported,dashboard_hero_charge_limit,dashboard_hero_charge	choice	the level (or not reported) and the optional charge limit become four whole sentences
+src/com/jjricks/volt/DashboardScreen.java:1937	["Move ", {"hole": "widget.title", "arg": 1, "type": "s", "as": "DashboardConfig.displayTitle(widget)"}]	dashboard_move_widget_named	template	manual: the title is shown through DashboardConfig.displayTitle(widget) (B12): a title Volt gave the widget shows in the current language, the owner's as saved; in English it is widget.title
+src/com/jjricks/volt/DashboardScreen.java:1949	["Resize ", {"hole": "widget.title", "arg": 1, "type": "s", "as": "DashboardConfig.displayTitle(widget)"}]	dashboard_resize_widget_named	template	manual: the title is shown through DashboardConfig.displayTitle(widget) (B12): a title Volt gave the widget shows in the current language, the owner's as saved; in English it is widget.title
+src/com/jjricks/volt/DashboardScreen.java:2022	["Options for ", {"hole": "widget.title", "arg": 1, "type": "s", "as": "DashboardConfig.displayTitle(widget)"}]	dashboard_options_for	template	manual: the title is shown through DashboardConfig.displayTitle(widget) (B12): a title Volt gave the widget shows in the current language, the owner's as saved; in English it is widget.title
+src/com/jjricks/volt/DashboardScreen.java:2026	["Duplicate ", {"hole": "widget.title", "arg": 1, "type": "s", "as": "DashboardConfig.displayTitle(widget)"}]	dashboard_duplicate_named	template	manual: the title is shown through DashboardConfig.displayTitle(widget) (B12): a title Volt gave the widget shows in the current language, the owner's as saved; in English it is widget.title
+src/com/jjricks/volt/DashboardScreen.java:2027	["Remove ", {"hole": "widget.title", "arg": 1, "type": "s", "as": "DashboardConfig.displayTitle(widget)"}]	dashboard_remove_named	template	manual: the title is shown through DashboardConfig.displayTitle(widget) (B12): a title Volt gave the widget shows in the current language, the owner's as saved; in English it is widget.title
+src/com/jjricks/volt/DashboardScreen.java:2030	["One lock widget per dashboard"]	dashboard_one_lock_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2031	["Duplicate widget"]	dashboard_duplicate_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2038	["Move widget"]	dashboard_move_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2039	["Edit widget"]	dashboard_edit_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2040	["Duplicate widget"]	dashboard_duplicate_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2042	["Remove widget"]	dashboard_remove_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2073	["Move or edit widget"]	dashboard_move_or_edit_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2073	["Move widget"]	dashboard_move_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:2158	["NAVEE scooter"]	ui_photo_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:2164	["Scooter"]	dashboard_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:2208	["Charging power"]	dashboard_charging_power	exact	
+src/com/jjricks/volt/DashboardScreen.java:2209	["Time to full"]	dashboard_time_to_full	exact	
+src/com/jjricks/volt/DashboardScreen.java:2210	["Battery temperature"]	dashboard_battery_temperature	exact	
+src/com/jjricks/volt/DashboardScreen.java:2213	["Time to full"]	dashboard_time_to_full	exact	
+src/com/jjricks/volt/DashboardScreen.java:2275	["Controller-reported, not a capacity test"]	dashboard_controller_reported	exact	
+src/com/jjricks/volt/DashboardScreen.java:2291	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:2298	["Set reference"]	dashboard_set_reference	exact	
+src/com/jjricks/volt/DashboardScreen.java:2299	["Set reference capacity"]	dashboard_set_reference_capacity	exact	
+src/com/jjricks/volt/DashboardScreen.java:2308	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:2310	["Estimate details"]	dashboard_estimate_details	exact	
+src/com/jjricks/volt/DashboardScreen.java:2349	["Empty note"]	dashboard_empty_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:2363	{"if": "widget.note.isEmpty()", "then": ["Empty note", ". Edit note"], "else": [{"hole": "widget.note", "arg": 1, "type": "s"}, ". Edit note"]}	dashboard_empty_note_edit,dashboard_edit_note	choice	an empty note or the note's text, each with Edit note as one whole template; a line of its own after the click listener then announces a saved note through DashboardConfig.displayNote(widget) (B12: the shipped example's note in the current language, any other as saved)
+src/com/jjricks/volt/DashboardScreen.java:2365	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:2394	["Record ride"]	dashboard_record_ride	exact	
+src/com/jjricks/volt/DashboardScreen.java:2416	["View rides"]	dashboard_view_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:2586	[{"hole": "label", "arg": 1, "type": "s"}, ", not reported"]	dashboard_not_reported_named	template	
+src/com/jjricks/volt/DashboardScreen.java:2724	["Battery"]	dashboard_battery	exact	
+src/com/jjricks/volt/DashboardScreen.java:2882	["Charging"]	dashboard_charging	exact	
+src/com/jjricks/volt/DashboardScreen.java:2882	[{"hole": "distance", "arg": 1, "type": "s"}, " left"]	dashboard_range_left	template	
+src/com/jjricks/volt/DashboardScreen.java:2887	{"if": "level == null", "then": {"if": "line.isEmpty()", "then": {"if": "charge != null && charge.value != null && !live", "then": ["Battery ", "not reported", "", ", last seen ", {"hole": "when(charge.capturedWallMs)", "arg": 1, "type": "s"}], "else": ["Battery ", "not reported", "", ""]}, "else": {"if": "charge != null && charge.value != null && !live", "then": ["Battery ", "not reported", ", ", {"hole": "line", "arg": 1, "type": "s"}, ", last seen ", {"hole": "when(charge.capturedWallMs)", "arg": 2, "type": "s"}], "else": ["Battery ", "not reported", ", ", {"hole": "line", "arg": 1, "type": "s"}, ""]}}, "else": {"if": "line.isEmpty()", "then": {"if": "charge != null && charge.value != null && !live", "then": ["Battery ", {"hole": "amount", "arg": 1, "type": "s"}, " percent", "", ", last seen ", {"hole": "when(charge.capturedWallMs)", "arg": 2, "type": "s"}], "else": ["Battery ", {"hole": "amount", "arg": 1, "type": "s"}, " percent", "", ""]}, "else": {"if": "charge != null && charge.value != null && !live", "then": ["Battery ", {"hole": "amount", "arg": 1, "type": "s"}, " percent", ", ", {"hole": "line", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(charge.capturedWallMs)", "arg": 3, "type": "s"}], "else": ["Battery ", {"hole": "amount", "arg": 1, "type": "s"}, " percent", ", ", {"hole": "line", "arg": 2, "type": "s"}, ""]}}}	dashboard_overview_not_reported_seen,dashboard_overview_not_reported,dashboard_overview_not_reported_line_seen,dashboard_overview_not_reported_line,dashboard_overview_percent_seen,dashboard_overview_percent,dashboard_overview_percent_line_seen,dashboard_overview_percent_line	choice	the level (or not reported), the optional range line and the optional last seen time become eight whole sentences; amount is the level's whole number as the base printed it
+src/com/jjricks/volt/DashboardScreen.java:3288	["Time to full"]	-	removed	whole block: the private chargingRow method, which compared its label with the English "Time to full" (R3: never compare shown text), had no caller at the merge base or since, so it is deleted; the charging time cells name their label directly (dashboard_time_to_full rows)
+src/com/jjricks/volt/DashboardScreen.java:3333	["Charging power"]	dashboard_charging_power	exact	
+src/com/jjricks/volt/DashboardScreen.java:3334	["Time to full"]	dashboard_time_to_full	exact	
+src/com/jjricks/volt/DashboardScreen.java:3353	[{"spec": "%.0f", "arg": 1, "value": "estimate.inputWatts", "as": "Fmt.decimal(Locale.US, estimate.inputWatts, 0)"}, " ", {"text": "W", "key": "units_watt", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3361	["Charging power"]	dashboard_charging_power	exact	
+src/com/jjricks/volt/DashboardScreen.java:3361	["Battery-side power"]	dashboard_battery_side_power	exact	
+src/com/jjricks/volt/DashboardScreen.java:3364	[{"hole": "etaLabels[0]", "arg": 1, "type": "s"}, " (", {"hole": "chargingEtaTag.getText()", "arg": 2, "type": "s"}, ")", ""]	dashboard_charging_time_tag	template	manual: etaLabels[0] + (tag shown ? " (" + tag + ")" : "") became tag shown ? T.dashboardChargingTimeTag(etaLabels[0], tag) : etaLabels[0]; without the chip the name is passed as it is (no text of its own)
+src/com/jjricks/volt/DashboardScreen.java:3371	["Battery temperature"]	dashboard_battery_temperature	exact	
+src/com/jjricks/volt/DashboardScreen.java:3376	{"if": "detail.isEmpty()", "then": [{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value.getText()", "arg": 2, "type": "s"}, ""], "else": [{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value.getText()", "arg": 2, "type": "s"}, ". ", {"hole": "detail", "arg": 3, "type": "s"}]}	dashboard_charging_description,dashboard_charging_description_detail	choice	the optional detail becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3415	{"if": "r != null && !live", "then": [{"hole": "label(key)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(r.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(key)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3432	{"if": "selected != null && !selectedLive", "then": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(selected.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "text", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:3435	{"if": "selected != null && !selectedLive", "then": ["Drive mode, ", {"hole": "text", "arg": 1, "type": "s"}, ", last seen ", {"hole": "when(selected.capturedWallMs)", "arg": 2, "type": "s"}], "else": ["Drive mode, ", {"hole": "text", "arg": 1, "type": "s"}, ""]}	dashboard_drive_mode_reading_seen,dashboard_drive_mode_reading	choice	the optional last-seen time becomes two whole templates; the mode's name is the scooter's own
+src/com/jjricks/volt/DashboardScreen.java:3468	[{"hole": "(cycles.number != null ? String.format(Locale.US, \"%.0f\", cycles.number) : format(cycles))", "arg": 1, "type": "s"}, " reported charges"]	dashboard_reported_charges	template	
+src/com/jjricks/volt/DashboardScreen.java:3469	[{"hole": "format(rated)", "arg": 1, "type": "s"}, " rated"]	dashboard_rated	template	
+src/com/jjricks/volt/DashboardScreen.java:3485	["Last seen ", {"hole": "when(oldest)", "arg": 1, "type": "s"}]	dashboard_last_seen	template	
+src/com/jjricks/volt/DashboardScreen.java:3486	["Last seen ", {"hole": "when(oldest)", "arg": 1, "type": "s"}]	dashboard_last_seen	template	
+src/com/jjricks/volt/DashboardScreen.java:3520	["Recording · ", {"hole": "clock", "arg": 1, "type": "s"}]	dashboard_recording_clock	template	
+src/com/jjricks/volt/DashboardScreen.java:3526	[{"spec": "%.0f", "arg": 1, "value": "summary.measuredThroughputWh", "as": "Fmt.decimal(Locale.US, summary.measuredThroughputWh, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3527	["Measuring…"]	dashboard_measuring	exact	
+src/com/jjricks/volt/DashboardScreen.java:3531	["Record ride"]	dashboard_record_ride	exact	
+src/com/jjricks/volt/DashboardScreen.java:3534	["Saving the last ride…"]	dashboard_saving_ride	exact	
+src/com/jjricks/volt/DashboardScreen.java:3534	["Connecting…"]	dashboard_connecting	exact	
+src/com/jjricks/volt/DashboardScreen.java:3535	["Record ride. Saving the last ride"]	dashboard_record_saving	exact	
+src/com/jjricks/volt/DashboardScreen.java:3536	["Start recording"]	dashboard_start_recording	exact	
+src/com/jjricks/volt/DashboardScreen.java:3536	["Record ride. Connecting"]	dashboard_record_connecting	exact	
+src/com/jjricks/volt/DashboardScreen.java:3537	["Record ride. Connect to scooter"]	dashboard_record_connect	exact	
+src/com/jjricks/volt/DashboardScreen.java:3552	[{"spec": "%.1f", "arg": 1, "value": "km", "as": "Fmt.decimal(Locale.US, km, 1)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3553	[{"spec": "%.1f", "arg": 1, "value": "km / 1.609344", "as": "Fmt.decimal(Locale.US, km / 1.609344, 1)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3555	[{"hole": "miles", "arg": 1, "type": "s"}, " / ", {"hole": "metric", "arg": 2, "type": "s"}]	fmt_dual	template	
+src/com/jjricks/volt/DashboardScreen.java:3592	["≈ ", {"spec": "%.0f", "arg": 1, "value": "sample", "as": "Fmt.decimal(Locale.US, sample, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	dashboard_approx_energy	format	
+src/com/jjricks/volt/DashboardScreen.java:3594	["Sample"]	dashboard_sample	exact	
+src/com/jjricks/volt/DashboardScreen.java:3595	["8 rides · ", {"spec": "%.0f", "arg": 1, "value": "sample * .96", "as": "Fmt.decimal(Locale.US, sample * .96, 0)"}, "–", {"spec": "%.0f", "arg": 2, "value": "sample * 1.04", "as": "Fmt.decimal(Locale.US, sample * 1.04, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	dashboard_sample_rides	format	
+src/com/jjricks/volt/DashboardScreen.java:3601	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3601	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3609	["No scooter set up"]	dashboard_no_scooter	exact	
+src/com/jjricks/volt/DashboardScreen.java:3610	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3611	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3624	["Processing…"]	dashboard_processing	exact	
+src/com/jjricks/volt/DashboardScreen.java:3624	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3626	["Updating recorded rides…"]	dashboard_updating_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3644	["Last estimate · refresh unavailable"]	dashboard_refresh_unavailable	exact	
+src/com/jjricks/volt/DashboardScreen.java:3647	["Estimate unavailable"]	dashboard_estimate_unavailable	exact	
+src/com/jjricks/volt/DashboardScreen.java:3665	["Not enough ride data"]	dashboard_not_enough_data	exact	
+src/com/jjricks/volt/DashboardScreen.java:3666	["≈ ", {"spec": "%.0f", "arg": 1, "value": "value", "as": "Fmt.decimal(Locale.US, value, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 2}]	dashboard_approx_energy	format	
+src/com/jjricks/volt/DashboardScreen.java:3691	[{"spec": "%d", "arg": 1, "value": "rides", "as": "Fmt.integer(rides)"}, " rides · ", {"spec": "%.0f", "arg": 2, "value": "low", "as": "Fmt.decimal(Locale.US, low, 0)"}, "–", {"spec": "%.0f", "arg": 3, "value": "high", "as": "Fmt.decimal(Locale.US, high, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 4}]	dashboard_rides_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3692	[{"spec": "%d", "arg": 1, "value": "rides", "as": "Fmt.integer(rides)"}, " rides · ", {"spec": "%.0f", "arg": 2, "value": "estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints", "as": "Fmt.decimal(Locale.US, estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints, 0)"}, " points used"]	dashboard_rides_points	format	
+src/com/jjricks/volt/DashboardScreen.java:3717	[{"spec": "%.0f", "arg": 1, "value": "percent", "as": "Fmt.decimal(Locale.US, percent, 0)"}, "%% of ", {"spec": "%.0f", "arg": 2, "value": "reference", "as": "Fmt.decimal(Locale.US, reference, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	dashboard_percent_of	format	
+src/com/jjricks/volt/DashboardScreen.java:3732	["Rides"]	dashboard_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3733	["Points"]	dashboard_points	exact	
+src/com/jjricks/volt/DashboardScreen.java:3734	["Window"]	dashboard_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:3735	["Sample"]	dashboard_sample	exact	
+src/com/jjricks/volt/DashboardScreen.java:3737	["Checking recorded rides…"]	dashboard_checking_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3744	["Rides"]	dashboard_rides	exact	
+src/com/jjricks/volt/DashboardScreen.java:3745	["Points"]	dashboard_points	exact	
+src/com/jjricks/volt/DashboardScreen.java:3750	["Rides needed"]	dashboard_rides_needed	exact	
+src/com/jjricks/volt/DashboardScreen.java:3754	["90% range"]	dashboard_range_90	exact	
+src/com/jjricks/volt/DashboardScreen.java:3754	[{"spec": "%.0f", "arg": 1, "value": "low", "as": "Fmt.decimal(Locale.US, low, 0)"}, "–", {"spec": "%.0f", "arg": 2, "value": "high", "as": "Fmt.decimal(Locale.US, high, 0)"}, " ", {"text": "Wh", "key": "units_watt_hour", "arg": 3}]	fmt_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3756	["Charge per gauge"]	dashboard_charge_per_gauge	exact	
+src/com/jjricks/volt/DashboardScreen.java:3757	[{"spec": "%.1f", "arg": 1, "value": "r.ahPerGauge", "as": "Fmt.decimal(Locale.US, r.ahPerGauge, 1)"}, " ", {"text": "Ah", "key": "units_amp_hour", "arg": 2}, " (", {"spec": "%.1f", "arg": 3, "value": "r.ahPerGaugeLow", "as": "Fmt.decimal(Locale.US, r.ahPerGaugeLow, 1)"}, "–", {"spec": "%.1f", "arg": 4, "value": "r.ahPerGaugeHigh", "as": "Fmt.decimal(Locale.US, r.ahPerGaugeHigh, 1)"}, ")"]	dashboard_ah_range	format	
+src/com/jjricks/volt/DashboardScreen.java:3758	[{"spec": "%.1f", "arg": 1, "value": "r.ahPerGauge", "as": "Fmt.decimal(Locale.US, r.ahPerGauge, 1)"}, " ", {"text": "Ah", "key": "units_amp_hour", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/DashboardScreen.java:3760	["Charging check"]	dashboard_charging_check	exact	
+src/com/jjricks/volt/DashboardScreen.java:3763	["Coverage"]	dashboard_coverage	exact	
+src/com/jjricks/volt/DashboardScreen.java:3764	[{"spec": "%.0f", "arg": 1, "value": "r.electricalCoverage * 100", "as": "Fmt.decimal(Locale.US, r.electricalCoverage * 100, 0)"}, "%%"]	fmt_percent	format	
+src/com/jjricks/volt/DashboardScreen.java:3766	["Pack temp"]	dashboard_pack_temp	exact	
+src/com/jjricks/volt/DashboardScreen.java:3768	["Window"]	dashboard_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:3771	["Rejected"]	dashboard_rejected	exact	
+src/com/jjricks/volt/DashboardScreen.java:3775	["Proxy: may overstate; not health."]	dashboard_proxy_caveat	exact	
+src/com/jjricks/volt/DashboardScreen.java:3776	["Energy your rides drew per full gauge. Not a battery health or capacity test."]	dashboard_energy_caveat	exact	
+src/com/jjricks/volt/DashboardScreen.java:3779	["Usable ride energy"]	dashboard_usable_energy	exact	
+src/com/jjricks/volt/DashboardScreen.java:3794	[{"hole": "label", "arg": 1, "type": "s"}, ", ", {"hole": "value", "arg": 2, "type": "s"}]	dashboard_reading	template	
+src/com/jjricks/volt/DashboardScreen.java:3813	["Sample · ", {"hole": "windowName(widget.windowMs)", "arg": 1, "type": "s"}]	dashboard_sample_window	template	
+src/com/jjricks/volt/DashboardScreen.java:3872	["No saved readings yet"]	dashboard_no_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:3875	["Scooter's estimated remaining range"]	dashboard_range_reported	exact	
+src/com/jjricks/volt/DashboardScreen.java:3975	{"if": "Double.isNaN(percent)", "then": {"if": "detail.isEmpty()", "then": {"if": "charging", "then": {"if": "live", "then": ["Battery ", "not reported", "", ", charging", ""], "else": ["Battery ", "not reported", "", ", charging", ", last seen reading"]}, "else": {"if": "live", "then": ["Battery ", "not reported", "", "", ""], "else": ["Battery ", "not reported", "", "", ", last seen reading"]}}, "else": {"if": "charging", "then": {"if": "live", "then": ["Battery ", "not reported", ", ", {"hole": "detail", "type": "s", "arg": 1}, ", charging", ""], "else": ["Battery ", "not reported", ", ", {"hole": "detail", "type": "s", "arg": 1}, ", charging", ", last seen reading"]}, "else": {"if": "live", "then": ["Battery ", "not reported", ", ", {"hole": "detail", "type": "s", "arg": 1}, "", ""], "else": ["Battery ", "not reported", ", ", {"hole": "detail", "type": "s", "arg": 1}, "", ", last seen reading"]}}}, "else": {"if": "detail.isEmpty()", "then": {"if": "charging", "then": {"if": "live", "then": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", "", ", charging", ""], "else": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", "", ", charging", ", last seen reading"]}, "else": {"if": "live", "then": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", "", "", ""], "else": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", "", "", ", last seen reading"]}}, "else": {"if": "charging", "then": {"if": "live", "then": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", ", ", {"hole": "detail", "type": "s", "arg": 2}, ", charging", ""], "else": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", ", ", {"hole": "detail", "type": "s", "arg": 2}, ", charging", ", last seen reading"]}, "else": {"if": "live", "then": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", ", ", {"hole": "detail", "type": "s", "arg": 2}, "", ""], "else": ["Battery ", {"hole": "Math.round(percent)", "type": "s", "as": "Fmt.integer(Math.round(percent))", "arg": 1}, " percent", ", ", {"hole": "detail", "type": "s", "arg": 2}, "", ", last seen reading"]}}}}	dashboard_cell_not_reported_charging,dashboard_cell_not_reported_charging_stale,dashboard_cell_not_reported,dashboard_cell_not_reported_stale,dashboard_cell_not_reported_line_charging,dashboard_cell_not_reported_line_charging_stale,dashboard_cell_not_reported_line,dashboard_cell_not_reported_line_stale,dashboard_cell_percent_charging,dashboard_cell_percent_charging_stale,dashboard_cell_percent,dashboard_cell_percent_stale,dashboard_cell_percent_line_charging,dashboard_cell_percent_line_charging_stale,dashboard_cell_percent_line,dashboard_cell_percent_line_stale	choice	the level (or not reported), the optional range or status line, charging and a last seen reading become sixteen whole sentences (safety: charge); the level is Math.round(percent) through Fmt.integer, which prints the same digits
+src/com/jjricks/volt/DashboardScreen.java:4053	["Charging"]	dashboard_charging	exact	
+src/com/jjricks/volt/DashboardScreen.java:4140	{"if": "reading != null && !reading.live", "then": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ", last seen ", {"hole": "when(reading.capturedWallMs)", "arg": 3, "type": "s"}], "else": [{"hole": "label(widget.metric)", "arg": 1, "type": "s"}, ", ", {"hole": "formatted", "arg": 2, "type": "s"}, ""]}	dashboard_reading_seen,dashboard_reading	choice	the optional last-seen time becomes two whole templates
+src/com/jjricks/volt/DashboardScreen.java:4978	{"if": "type.equals(\"capacity\")", "then": ["Add ", {"hole": "DashboardConfig.NAMES[i]", "arg": 1, "type": "s"}, ", experimental"], "else": ["Add ", {"hole": "DashboardConfig.NAMES[i]", "arg": 1, "type": "s"}, ""]}	dashboard_add_type_experimental,dashboard_add_type	choice	the optional experimental mark becomes two whole templates; a line of its own after the icon then sets the same description from DashboardConfig.typeName(i), B12's shown name of the type, whose English is NAMES[i]
+src/com/jjricks/volt/DashboardScreen.java:4991	["Experimental"]	dashboard_experimental	exact	
+src/com/jjricks/volt/DashboardScreen.java:5001	["On Home"]	dashboard_on_home	exact	
+src/com/jjricks/volt/DashboardScreen.java:5016	["Already on Home"]	dashboard_already_on_home	exact	
+src/com/jjricks/volt/DashboardScreen.java:5045	["Add widget"]	dashboard_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:5045	["Close add widget"]	dashboard_close_add_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:5052	["Title"]	dashboard_title	exact	
+src/com/jjricks/volt/DashboardScreen.java:5065	["Widget title"]	dashboard_widget_title	exact	
+src/com/jjricks/volt/DashboardScreen.java:5078	["Quick settings"]	dashboard_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5078	{"one": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d", "quantity": true}, " selected"], "other": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d", "quantity": true}, " selected"]}	dashboard_selected_count	plural	manual: a plural, so a language can inflect "selected" by the count; the call passes the count as the quantity and the number (English says "selected" for every count)
+src/com/jjricks/volt/DashboardScreen.java:5083	["Show Disconnect button"]	dashboard_show_disconnect	exact	
+src/com/jjricks/volt/DashboardScreen.java:5089	["Show Disconnect button when connected"]	dashboard_show_disconnect_connected	exact	
+src/com/jjricks/volt/DashboardScreen.java:5100	["Scooter name"]	dashboard_scooter_name	exact	
+src/com/jjricks/volt/DashboardScreen.java:5110	["Parameter"]	dashboard_parameter	exact	
+src/com/jjricks/volt/DashboardScreen.java:5119	["Readings"]	dashboard_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5120	{"one": [{"hole": "widget.keys.size()", "arg": 1, "type": "d", "quantity": true}, " selected"], "other": [{"hole": "widget.keys.size()", "arg": 1, "type": "d", "quantity": true}, " selected"]}	dashboard_selected_count	plural	manual: a plural, so a language can inflect "selected" by the count; the call passes the count as the quantity and the number (English says "selected" for every count)
+src/com/jjricks/volt/DashboardScreen.java:5125	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:5130	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:5136	["Advertised capacity"]	dashboard_advertised_capacity	exact	
+src/com/jjricks/volt/DashboardScreen.java:5142	["Scale minimum"]	dashboard_scale_minimum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5147	["Scale maximum"]	dashboard_scale_maximum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5157	["Ride data window"]	dashboard_ride_data_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5157	["Time window"]	dashboard_time_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5164	["Time window"]	dashboard_time_window	exact	
+src/com/jjricks/volt/DashboardScreen.java:5171	["Y axis"]	dashboard_y_axis	exact	
+src/com/jjricks/volt/DashboardScreen.java:5172	["Y axis"]	dashboard_y_axis	exact	
+src/com/jjricks/volt/DashboardScreen.java:5173	["Relative"]	dashboard_relative	exact	
+src/com/jjricks/volt/DashboardScreen.java:5173	["Absolute"]	dashboard_absolute	exact	
+src/com/jjricks/volt/DashboardScreen.java:5179	["Color"]	dashboard_color	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Red"]	dashboard_color_red	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Blue"]	dashboard_color_blue	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Amber"]	dashboard_color_amber	exact	
+src/com/jjricks/volt/DashboardScreen.java:5181	["Rose"]	dashboard_color_rose	exact	
+src/com/jjricks/volt/DashboardScreen.java:5212	["Save widget options"]	dashboard_save_widget_options	exact	
+src/com/jjricks/volt/DashboardScreen.java:5236	[{"hole": "widget.quickActions.size()", "arg": 1, "type": "s", "as": "Fmt.integer(widget.quickActions.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}]	dashboard_count_of	template	
+src/com/jjricks/volt/DashboardScreen.java:5237	{"one": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d"}, " of ", {"hole": "most", "arg": 2, "type": "d", "quantity": true}, " shortcuts"], "other": [{"hole": "widget.quickActions.size()", "arg": 1, "type": "d"}, " of ", {"hole": "most", "arg": 2, "type": "d", "quantity": true}, " shortcuts"]}	dashboard_count_of_shortcuts	plural	manual: a plural on most (the second number), so a language can inflect "shortcuts" by it; the numbers were Fmt.integer(...), so the call passes most as the quantity, then the count and most (English says "shortcuts" for every number)
+src/com/jjricks/volt/DashboardScreen.java:5247	["Change shortcut ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, ", ", {"hole": "entry.label", "arg": 2, "type": "s", "as": "entry.label()"}]	dashboard_change_shortcut	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label; the place (index + 1) goes through Fmt.integer
+src/com/jjricks/volt/DashboardScreen.java:5255	["Move ", {"hole": "entry.label", "arg": 1, "type": "s", "as": "entry.label()"}, " earlier"]	dashboard_move_earlier	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label
+src/com/jjricks/volt/DashboardScreen.java:5264	["Remove shortcut ", {"hole": "entry.label", "arg": 1, "type": "s", "as": "entry.label()"}]	dashboard_remove_shortcut	template	manual: entry.label (QuickAccessActions.Entry's English label, kept for search) is passed as entry.label(), B12's display Msg of the same entry, whose English is entry.label
+src/com/jjricks/volt/DashboardScreen.java:5278	["Add shortcut"]	dashboard_add_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5280	["Add quick shortcut"]	dashboard_add_quick_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5287	["Quick settings"]	dashboard_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5287	["Close quick settings"]	dashboard_close_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5328	["Search settings"]	dashboard_search_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5329	["Search quick settings"]	dashboard_search_quick_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5355	{"if": "selected", "then": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ", selected"], "else": {"if": "entry.directToggle()", "then": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ", toggle"], "else": [{"hole": "entry.label", "arg": 1, "type": "s"}, ", ", {"hole": "entry.group", "arg": 2, "type": "s"}, ""]}}	dashboard_shortcut_selected,dashboard_shortcut_toggle,dashboard_shortcut	choice	the optional state becomes three whole templates; a line of its own after setClickable then sets the same description from entry.label() and entry.groupLabel(), B12's display Msgs, whose English is entry.label and entry.group
+src/com/jjricks/volt/DashboardScreen.java:5370	["No matching settings"]	dashboard_no_matching_settings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5378	["Choose shortcut"]	dashboard_choose_shortcut	exact	
+src/com/jjricks/volt/DashboardScreen.java:5378	["Close shortcut picker"]	dashboard_close_shortcut_picker	exact	
+src/com/jjricks/volt/DashboardScreen.java:5471	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/DashboardScreen.java:5512	[{"hole": "ms / 60000", "arg": 1, "type": "s", "as": "Fmt.integer(ms / 60000)"}, " min"]	dashboard_window_minutes	template	
+src/com/jjricks/volt/DashboardScreen.java:5513	[{"hole": "ms / 3600000", "arg": 1, "type": "s", "as": "Fmt.integer(ms / 3600000)"}, " h"]	dashboard_window_hours	template	
+src/com/jjricks/volt/DashboardScreen.java:5515	["1 year"]	dashboard_window_one_year	exact	
+src/com/jjricks/volt/DashboardScreen.java:5516	["2 years"]	dashboard_window_two_years	exact	
+src/com/jjricks/volt/DashboardScreen.java:5517	["1 day"]	dashboard_window_one_day	exact	
+src/com/jjricks/volt/DashboardScreen.java:5517	{"one": [{"hole": "days", "arg": 1, "type": "d", "quantity": true}, " days"], "other": [{"hole": "days", "arg": 1, "type": "d", "quantity": true}, " days"]}	dashboard_window_days	plural	manual: a plural, so a language can inflect "days" by the number; days was Fmt.integer(days), so the call passes days as the quantity and the number; days == 1 keeps its own exact row (dashboard_window_one_day), so English says "days" in both items
+src/com/jjricks/volt/DashboardScreen.java:5624	["Set comparison value"]	dashboard_set_comparison	exact	
+src/com/jjricks/volt/DashboardScreen.java:5644	["716 Wh · UT5 MAX"]	dashboard_capacity_hint	exact	
+src/com/jjricks/volt/DashboardScreen.java:5644	["Wh"]	units_watt_hour	exact	
+src/com/jjricks/volt/DashboardScreen.java:5645	["Advertised capacity in watt-hours"]	dashboard_capacity_input	exact	
+src/com/jjricks/volt/DashboardScreen.java:5647	["Wh"]	units_watt_hour	exact	
+src/com/jjricks/volt/DashboardScreen.java:5655	["Use model rating"]	dashboard_use_model_rating	exact	
+src/com/jjricks/volt/DashboardScreen.java:5661	["Advertised capacity"]	dashboard_advertised_capacity	exact	
+src/com/jjricks/volt/DashboardScreen.java:5663	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:5664	["Save"]	dashboard_save	exact	
+src/com/jjricks/volt/DashboardScreen.java:5678	["0–10,000 Wh"]	dashboard_capacity_limit	exact	
+src/com/jjricks/volt/DashboardScreen.java:5692	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:5695	["Note"]	dashboard_note	exact	
+src/com/jjricks/volt/DashboardScreen.java:5701	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:5703	["Save"]	dashboard_save	exact	
+src/com/jjricks/volt/DashboardScreen.java:5715	["Search parameters"]	dashboard_search_parameters	exact	
+src/com/jjricks/volt/DashboardScreen.java:5752	["Choose parameter"]	dashboard_choose_parameter	exact	
+src/com/jjricks/volt/DashboardScreen.java:5767	["Search readings"]	dashboard_search_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5768	["Search readings"]	dashboard_search_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5772	[{"hole": "chosen.size()", "arg": 1, "type": "s", "as": "Fmt.integer(chosen.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}, " selected"]	dashboard_count_of_selected	template	
+src/com/jjricks/volt/DashboardScreen.java:5777	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/DashboardScreen.java:5783	["All readings"]	dashboard_all_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5797	[{"hole": "metric.label", "arg": 1, "type": "s", "as": "ScooterReadingLabels.full(metric.key, metric.label)"}, ", ", {"hole": "metric.group", "arg": 2, "type": "s", "as": "ScooterReadingLabels.group(metric.group)"}]	dashboard_reading_group	template	manual: the Choose readings row's spoken name and group are the ones its visible text shows (B3's ScooterReadingLabels.full and group), whose English is metric.label and metric.group (the parity probes pin both for every Telemetry metric)
+src/com/jjricks/volt/DashboardScreen.java:5840	[{"hole": "chosen.size()", "arg": 1, "type": "s", "as": "Fmt.integer(chosen.size())"}, " of ", {"hole": "most", "arg": 2, "type": "s", "as": "Fmt.integer(most)"}, " selected"]	dashboard_count_of_selected	template	
+src/com/jjricks/volt/DashboardScreen.java:5869	[{"hole": "label(key)", "arg": 1, "type": "s"}, ", selected, uncheck"]	dashboard_reading_uncheck	template	
+src/com/jjricks/volt/DashboardScreen.java:5899	["No matching readings"]	dashboard_no_matching_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5927	["Choose at least one reading."]	dashboard_choose_one_reading	exact	
+src/com/jjricks/volt/DashboardScreen.java:5936	["Save selected readings"]	dashboard_save_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5940	["Choose readings"]	dashboard_choose_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5940	["Cancel reading selection"]	dashboard_cancel_readings	exact	
+src/com/jjricks/volt/DashboardScreen.java:5986	["Scale maximum"]	dashboard_scale_maximum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5986	["Scale minimum"]	dashboard_scale_minimum	exact	
+src/com/jjricks/volt/DashboardScreen.java:5988	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:5989	["Save"]	dashboard_save	exact	
+src/com/jjricks/volt/DashboardScreen.java:6011	["Must be above ", {"hole": "scaleSummary(widget, widget.minimum)", "arg": 1, "type": "s"}]	dashboard_must_be_above	template	
+src/com/jjricks/volt/DashboardScreen.java:6012	["Must be below ", {"hole": "scaleSummary(widget, widget.maximum)", "arg": 1, "type": "s"}]	dashboard_must_be_below	template	
+src/com/jjricks/volt/DashboardScreen.java:6031	["Columns"]	dashboard_columns	exact	
+src/com/jjricks/volt/DashboardScreen.java:6033	["Rows"]	dashboard_rows	exact	
+src/com/jjricks/volt/DashboardScreen.java:6037	["Widget size"]	dashboard_widget_size	exact	
+src/com/jjricks/volt/DashboardScreen.java:6039	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:6041	["Apply"]	dashboard_apply	exact	
+src/com/jjricks/volt/DashboardScreen.java:6064	["Column"]	dashboard_column	exact	
+src/com/jjricks/volt/DashboardScreen.java:6069	["Row"]	dashboard_row	exact	
+src/com/jjricks/volt/DashboardScreen.java:6070	["Column"]	dashboard_column	exact	
+src/com/jjricks/volt/DashboardScreen.java:6072	["Row"]	dashboard_row	exact	
+src/com/jjricks/volt/DashboardScreen.java:6076	["Move widget"]	dashboard_move_widget	exact	
+src/com/jjricks/volt/DashboardScreen.java:6078	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:6080	["Move"]	dashboard_move	exact	
+src/com/jjricks/volt/DashboardScreen.java:6124	["Adaptive"]	dashboard_adaptive	exact	
+src/com/jjricks/volt/DashboardScreen.java:6133	["Adaptive columns"]	dashboard_adaptive_columns	exact	
+src/com/jjricks/volt/DashboardScreen.java:6138	["Needs a wider screen"]	dashboard_needs_wider_screen	exact	
+src/com/jjricks/volt/DashboardScreen.java:6162	["Selected"]	common_selected	exact	
+src/com/jjricks/volt/DashboardScreen.java:6214	["Columns"]	dashboard_columns	exact	
+src/com/jjricks/volt/DashboardScreen.java:6220	["Saved layouts"]	dashboard_saved_layouts	exact	
+src/com/jjricks/volt/DashboardScreen.java:6223	["Export"]	dashboard_export	exact	
+src/com/jjricks/volt/DashboardScreen.java:6224	["Import"]	dashboard_import	exact	
+src/com/jjricks/volt/DashboardScreen.java:6230	["Default layout"]	dashboard_default_layout	exact	
+src/com/jjricks/volt/DashboardScreen.java:6241	["Restore default widgets"]	dashboard_restore_defaults	exact	
+src/com/jjricks/volt/DashboardScreen.java:6249	["Dashboard layout"]	dashboard_layout_title	exact	
+src/com/jjricks/volt/DashboardScreen.java:6249	["Close dashboard layout"]	dashboard_close_layout	exact	
+src/com/jjricks/volt/DashboardScreen.java:6276	["Defaults restored"]	dashboard_defaults_restored	exact	
+src/com/jjricks/volt/DashboardScreen.java:6280	["Defaults restored"]	dashboard_defaults_restored	exact	
+src/com/jjricks/volt/DashboardScreen.java:6280	["Undo"]	dashboard_undo	exact	
+src/com/jjricks/volt/DashboardScreen.java:6457	["Save"]	dashboard_save	exact	
+src/com/jjricks/volt/DashboardScreen.java:6458	["Save current dashboard to slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}]	dashboard_save_to_slot_description	template	
+src/com/jjricks/volt/DashboardScreen.java:6460	["Restore"]	dashboard_restore	exact	
+src/com/jjricks/volt/DashboardScreen.java:6461	{"if": "saved == null", "then": ["Restore slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, ""], "else": ["Restore slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, ", ", {"hole": "saved.name", "arg": 2, "type": "s"}]}	dashboard_restore_slot,dashboard_restore_slot_named	choice	the optional slot name becomes two whole templates; a line of its own after setTag then sets the named form from DashboardConfig.displaySlotName(saved, index), B12's shown slot name, whose English is saved.name
+src/com/jjricks/volt/DashboardScreen.java:6484	["Layout name"]	dashboard_layout_name	exact	
+src/com/jjricks/volt/DashboardScreen.java:6485	["Saved layout name"]	dashboard_saved_layout_name	exact	
+src/com/jjricks/volt/DashboardScreen.java:6494	{"if": "replacing", "then": ["Replace slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, "?"], "else": ["Save to slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}, "?"]}	dashboard_replace_slot_title,dashboard_save_slot_title	choice	the two titles become whole templates
+src/com/jjricks/volt/DashboardScreen.java:6496	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:6498	["Replace"]	dashboard_replace	exact	
+src/com/jjricks/volt/DashboardScreen.java:6498	["Save"]	dashboard_save	exact	
+src/com/jjricks/volt/DashboardScreen.java:6508	["Couldn’t save the layout. Please try again."]	dashboard_save_layout_failed	exact	
+src/com/jjricks/volt/DashboardScreen.java:6511	["Saved to slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}]	dashboard_saved_to_slot	template	
+src/com/jjricks/volt/DashboardScreen.java:6525	["Restore “", {"hole": "saved.name", "arg": 1, "type": "s", "as": "DashboardConfig.displaySlotName(saved, index)"}, "”?"]	dashboard_restore_title	template	manual: saved.name (SavedSlot's stored English name) is passed as DashboardConfig.displaySlotName(saved, index), B12's shown name of the slot: this slot's own default name, or the shipped example's name on the example's own slot, in the current language, else the owner's name as saved; its English is saved.name
+src/com/jjricks/volt/DashboardScreen.java:6526	["Replaces your layout and the column setting on all scooters."]	dashboard_restore_message	exact	
+src/com/jjricks/volt/DashboardScreen.java:6527	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/DashboardScreen.java:6529	["Restore"]	dashboard_restore	exact	
+src/com/jjricks/volt/DashboardScreen.java:6537	["Couldn’t restore. Nothing changed."]	dashboard_restore_failed	exact	
+src/com/jjricks/volt/DashboardScreen.java:6545	["Restored “", {"hole": "saved.name", "arg": 1, "type": "s", "as": "DashboardConfig.displaySlotName(saved, index)"}, "”"]	dashboard_restored	template	manual: saved.name (SavedSlot's stored English name) is passed as DashboardConfig.displaySlotName(saved, index), B12's shown name of the slot: this slot's own default name, or the shipped example's name on the example's own slot, in the current language, else the owner's name as saved; its English is saved.name
+src/com/jjricks/volt/DashboardScreen.java:6564	["Close"]	common_close	exact	
+src/com/jjricks/volt/DashboardScreen.java:2715	[""]	-	removed	whole block: the String field spoken and its empty initializer are deleted; the field is declared again three lines up as CharSequence spoken = "" (no text: an empty start value), because the overview now keeps its spoken text as a deferred M Msg (R2: no rendered text in a field) that speak() renders through new StringBuilder(spoken)
+src/com/jjricks/volt/DashboardScreen.java:6442	[{"hole": "slotName", "arg": 1, "type": "s"}, " · ", {"hole": "saved.name", "arg": 2, "type": "s"}]	-	removed	the unused local title in addLayoutSlot is deleted: since the slot heading and the Restore description come from the catalog, nothing read it
+src/com/jjricks/volt/DashboardScreen.java:6490	["Slot ", {"hole": "(index + 1)", "arg": 1, "type": "s", "as": "Fmt.integer(index + 1)"}]	dashboard_model_slot_default	template	the save dialog's name for an empty slot, B12's default slot name (DashboardConfig.defaultSlotName); a line of its own after setSelectAllOnFocus then sets a saved slot's from DashboardConfig.displaySlotName(saved, index), whose English is saved.name, and the Save button passes DashboardConfig.slotNameToSave, which keeps the name the slot saved (an empty slot's English "Slot N") when the field still holds the name it started with and that name stays Volt's after the save (the example's only with the example's own widgets), else saves the field's text
