@@ -127,9 +127,19 @@ gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
 if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
     # An owner-approved English change rewrites its characterization tests to pin the new English, which the
-    # base code does not print yet, so they cannot pass at the first commit. Its order is still G5's (above),
-    # and G6 runs them at head, where they must pass.
-    record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order and G6 runs them at head"
+    # base code does not print yet, so they cannot pass at the first commit. Their order is still G5's (above),
+    # and G6 runs them at head, where they must pass. G6 runs only what a tests/l10n/*.sources list names, so
+    # each one must be listed at head, or it would never run (checked with or without --skip-tests).
+    unwired=()
+    while IFS= read -r test_file; do
+        [[ -n "$test_file" ]] || continue
+        grep -qsF "$test_file" tests/l10n/*.sources || unwired+=("$test_file")
+    done < <(git diff --name-only --diff-filter=d "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
+    if (( ${#unwired[@]} )); then
+        record "G5 tests pass at the first commit" FAIL "not in any tests/l10n/*.sources at head, so tests/run.sh never runs them: ${unwired[*]}"
+    else
+        record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order, and each is in a tests/l10n/*.sources list at head, so G6 runs them there"
+    fi
 elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     tree="$WORK/first"
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then

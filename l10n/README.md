@@ -816,7 +816,8 @@ commit changes nothing under `src/` or `res/`. A batch with a `template` or `plu
 have them. `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
 and fails when a characterization test is not listed in a `tests/l10n/*.sources` file. An English
 change is the exception: its characterization tests pin the new English, which the base code does
-not print yet, so that run is `n/a` there. Its order is still checked, and G6 runs the tests at head.
+not print yet, so that run is `n/a` there. Its order is still checked, each test must still be
+listed in a `tests/l10n/*.sources` file at head (with or without `--skip-tests`), and G6 runs them there.
 
 **G8** is a Python tool run in CI, instead of the plan's `tests/l10n/HardcodedTextLint.java`, so it
 shares the Java lexer with the other gates. It flags any literal with letters inside a platform UI
