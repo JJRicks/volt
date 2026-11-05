@@ -577,15 +577,15 @@ public final class RideAutoExportValidation extends Instrumentation {
         Rect r = new Rect(); check(view.isShown() && view.getGlobalVisibleRect(r) && r.width() == view.getWidth() && r.height() == view.getHeight(), what + " fully visible, not clipped");
         if (view instanceof TextView) { android.text.Layout layout = ((TextView) view).getLayout(); check(layout != null && layout.getEllipsisCount(layout.getLineCount() - 1) == 0, what + " text not ellipsized"); }
     }
-    private void screenshot(String label) { screenshot(label, false); }
-    private void screenshot(String label, boolean withNotifications) {
+    /** The text census goes beside it (TextCensus.write; the shade's notification text is not part of it). */
+    private void screenshot(String label) {
         File dir = new File(getTargetContext().getExternalFilesDir(null), "auto-export-validation"); dir.mkdirs();
         File file = new File(dir, label + ".png");
         android.graphics.Bitmap bitmap = getUiAutomation().takeScreenshot();
         try (FileOutputStream out = new FileOutputStream(file)) { bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, out); }
         catch (IOException e) { throw new IllegalStateException(e); } finally { bitmap.recycle(); }
         screenshots.add(file.getAbsolutePath());
-        if (withNotifications) TextCensus.writeWithNotifications(this, file); else TextCensus.write(this, file);
+        TextCensus.write(this, file);
     }
     private void check(boolean condition, String message) { checks++; if (!condition) throw new AssertionError(message); }
     private void await(BooleanSupplier test, long timeout, String why) { long end = SystemClock.elapsedRealtime() + timeout; while (SystemClock.elapsedRealtime() < end) { if (test.getAsBoolean()) { checks++; return; } SystemClock.sleep(100); } throw new AssertionError(why + " " + exportState()); }
