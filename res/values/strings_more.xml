@@ -12,9 +12,8 @@
   "Try ..."), each combination is a whole template here, so a language can order and inflect it. PIN,
   experimental-control and disclaimer text is whole sentences.
 
-  The App preferences battery row's shown value ("Unrestricted ✓", "Optimized ⚠") stays English for now:
-  none of the Saira weights has a glyph for its status marks, so GlyphCoverageTest refuses that text here.
-  Its screen-reader text (more_prefs_battery_unrestricted, more_prefs_battery_optimized) is translated.
+  Text with a mark (✓, —, ⚠) keeps the mark (volt:dnt): Android's fallback font draws it, not Saira
+  (l10n/README.md, "Glyph coverage"). Its screen-reader text is separate and has no mark.
   What else stays English, and why, is in l10n/pending/b18-more-followups.md.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
@@ -169,6 +168,10 @@
     <string name="more_prefs_battery_unrestricted" volt:screen="App preferences" volt:purpose="accessibility">Battery use unrestricted</string>
     <!-- Screen-reader text of the battery value when Android may stop Volt in the background. -->
     <string name="more_prefs_battery_optimized" volt:screen="App preferences" volt:purpose="accessibility">Battery optimized; long recordings may stop. Opens battery settings</string>
+    <!-- The Background recording row's value when battery use is unrestricted: keep the check mark. Screen readers say more_prefs_battery_unrestricted instead. -->
+    <string name="more_prefs_battery_value_unrestricted" volt:screen="App preferences" volt:purpose="status" volt:dnt="✓">Unrestricted ✓</string>
+    <!-- The Background recording row's value when Android may stop recordings: keep the warning sign and the \uFE0E right after it, which keeps the sign a plain symbol. Screen readers say more_prefs_battery_optimized instead. -->
+    <string name="more_prefs_battery_value_optimized" volt:screen="App preferences" volt:purpose="status" volt:dnt="⚠">Optimized ⚠\uFE0E</string>
     <!-- Map settings row value: a custom map source. USGS and OSM stay as they are (map service names). -->
     <string name="more_prefs_map_custom" volt:screen="App preferences" volt:purpose="value">Custom</string>
     <!-- Shown when Android's app list opens instead of Volt's own settings page. -->
@@ -801,6 +804,14 @@
     <string name="more_pin_disabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Disabled</string>
     <!-- PIN state: on (shown in green). -->
     <string name="more_pin_enabled" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin">Enabled</string>
+    <!-- The PIN chip when the PIN is on: keep the check mark. Screen readers say more_chip_pin_on instead. -->
+    <string name="more_chip_pin_on_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin" volt:dnt="✓">PIN ✓</string>
+    <!-- The PIN chip when the PIN is not on: keep the dash. Screen readers say more_chip_pin_off instead. -->
+    <string name="more_chip_pin_off_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="pin" volt:dnt="—">PIN —</string>
+    <!-- The pairing chip when this phone is paired: keep the check mark. Screen readers say more_chip_paired instead. -->
+    <string name="more_chip_paired_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="lock" volt:dnt="✓">Paired ✓</string>
+    <!-- The pairing chip when this phone is not paired: keep the dash. Screen readers say more_chip_not_paired instead. -->
+    <string name="more_chip_not_paired_value" volt:screen="PIN &amp; proximity" volt:purpose="status" volt:safety="lock" volt:dnt="—">Paired —</string>
     <!-- Screen-reader text of the PIN chip (the chip itself shows "PIN ✓"). -->
     <string name="more_chip_pin_on" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">PIN enabled</string>
     <!-- Screen-reader text of the PIN chip. -->

@@ -1029,13 +1029,12 @@ public final class MoreScreen implements AppScreen {
         // Default on. ScooterService/RideAutoStopPolicy decide; this only stores the choice.
         preferenceToggle(connection, "walk", T.morePrefsAutoStop(), T.morePrefsAutoStopSub(), "ride_auto_stop", true);
         // Battery use is the one setting that decides whether long background recordings survive:
-        // show it as the value and open Android's page for this app directly. The shown value stays English
-        // for now: Saira has no ✓ or ⚠ glyph, so GlyphCoverageTest refuses it in the catalog (l10n/pending/b18-more-followups.md).
+        // show it as the value and open Android's page for this app directly.
         Row background = row(connection, "battery", T.morePrefsBattery(), null,
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
-            background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠︎");
+            background.value(unrestricted ? T.morePrefsBatteryValueUnrestricted() : T.morePrefsBatteryValueOptimized());
             background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
@@ -2564,9 +2563,9 @@ public final class MoreScreen implements AppScreen {
         proximitySpinner.setVisibility("proximity_key".equals(pending) || confirming ? View.VISIBLE : View.GONE);
         // Proximity on without this phone's pairing is said plainly; Volt only offers Pair or Off, it never writes by itself.
         proximityRow.sub(ProximityFollowUp.sectionNote(owner, s.ble.ready(), proximity, paired, confirming, s.ble.pairingEndedWithoutBond()));
-        pill(proximityPinChip, pinOn ? "PIN ✓" : "PIN —", ui.ok, pinOn);
+        pill(proximityPinChip, pinOn ? T.moreChipPinOnValue() : T.moreChipPinOffValue(), ui.ok, pinOn);
         proximityPinChip.setContentDescription(pinOn ? T.moreChipPinOn() : T.moreChipPinOff());
-        pill(proximityPairedChip, paired ? "Paired ✓" : "Paired —", ui.ok, paired);
+        pill(proximityPairedChip, paired ? T.moreChipPairedValue() : T.moreChipNotPairedValue(), ui.ok, paired);
         proximityPairedChip.setContentDescription(paired ? T.moreChipPaired() : T.moreChipNotPaired());
         BleController.State link = s.ble.state();
         CapabilityResolver.Decision near = s.ble.decision("proximity_key");

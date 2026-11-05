@@ -19,19 +19,11 @@
     14:05", "Connected, Sport mode. Connection details", :792-813): the state word is picked on the
     line above, and G1 has no row for a choice set on an earlier line (l10n/README.md, "Still
     blocked"); see the comment at :787;
-  - text with a mark the Saira font has no glyph for: GlyphCoverageTest refuses it in the catalog,
-    and keeping the mark in Java beside a key would be a new literal, which G1 refuses. It waits for
-    the font check, not for the G1 tooling round. The owner chose a reviewed GlyphCoverageTest
-    allow-list, not icons; the glyph tooling branch (claude/l10n-glyph-symbols) allows U+2713,
-    U+26A0 with U+FE0E, U+2606 and U+2605, as B16's star and B18's battery row need:
-    - the three "✓ Save" buttons (U+2713, on that list): widget options :5295, quick settings
-      :5382, Choose readings :6035. The widget options and Choose readings buttons have translated
-      spoken names (dashboard_save_widget_options, dashboard_save_readings); the quick settings one
-      is read as shown;
-    - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in
-      U+FFFC, the place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is
-      not on that list, so the allow-list does not move it: it waits for a change that keeps only
-      "Connecting…" in the catalog and appends the placeholder in code where the span is set;
+  - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in U+FFFC,
+    the place of the inline spinner's ImageSpan, which the font never draws. GlyphCoverageTest
+    refuses U+FFFC in the catalog, and G1 cannot follow the word alone out of a literal that also
+    holds the placeholder. It waits for an ordinary pull request that splits the literal, so a batch
+    can then move "Connecting…" and leave the placeholder appended in code where the span is set;
   - count phrases whose plural ending shares an expression with a choice: a choice row's branches
     cannot be plural rows, and a choice of fixed whole templates would keep English's two forms in
     every language:
@@ -454,6 +446,8 @@
     <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
     <!-- A dialog's or slot's Save button. -->
     <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>
+    <!-- The Save button of the widget options, quick settings and Choose readings sheets: keep the check mark. Read as shown in quick settings; the other two have their own spoken names. -->
+    <string name="dashboard_save_checked" volt:screen="Widget options, quick settings, Choose readings sheet" volt:purpose="button" volt:dnt="✓">✓ Save</string>
     <!-- A time window chip: %1$s is a whole number of minutes or hours; one day, one year and two years have their own. -->
     <string name="dashboard_window_minutes" volt:screen="Widget options" volt:purpose="choice">%1$s min</string>
     <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>

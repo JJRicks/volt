@@ -191,7 +191,7 @@ public final class StatsScreen implements AppScreen {
         favouriteHeader.addView(reorderFavourites, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
         overviewSection.addView(favouriteHeader);
         favouritesCard = ui.groupCard(); overviewSection.addView(favouritesCard);
-        favouritesHint = ui.text("☆ Star readings to pin here", 14, false);
+        favouritesHint = ui.text(T.statsFavouritesEmptyHint(), 14, false);
         favouritesHint.setTextColor(ui.muted); favouritesHint.setGravity(Gravity.CENTER);
         favouritesHint.setMinHeight(ui.dp(120)); favouritesHint.setPadding(ui.dp(20), ui.dp(22), ui.dp(20), ui.dp(22));
         GradientDrawable empty = new GradientDrawable(); empty.setColor(Ui.withAlpha(ui.surface, 140));
