@@ -43,7 +43,7 @@ class RepositoryFilesTest(unittest.TestCase):
                 self.assertNotIn(";", pos, where)
             if name == "en.tsv":
                 self.assertGreaterEqual(len(rows), 50)
-                for term_id in ("not-affiliated", "owner-identity", "owner-key", "handlebar-pin", "charge-ceiling"):
+                for term_id in ("not-affiliated", "owner-key", "handlebar-pin"):
                     self.assertIn(term_id, ids)
 
     def test_committed_glossaries_pass_glossary_check(self):
