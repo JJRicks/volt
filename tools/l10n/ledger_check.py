@@ -3751,17 +3751,31 @@ def choice_context(index, span, items, helpers):
         return None
     shared, notes = [], []
     resolved = _resolve_locals(index, items, span[0], region, helpers, shared, notes)
+
+    def condition_words(group):
+        words = set()
+        for item in group:
+            if item[0] == "t":
+                words.update(t.raw for t in l10nlib.lex_java(item[2]))
+                words.update(condition_words(item[3]) | condition_words(item[4]))
+        return words
+
+    # Only what this sentence's conditions read counts; with none of it, nothing here changes the old check.
+    words = condition_words(resolved)
     facts = {}
     for first, last, truth in _guards(tokens, span[0], region[0]):
         parts = _split_top(tokens[first:last + 1], "&&") if truth else [tokens[first:last + 1]]
         for part in parts:
             start = first + _token_offset(tokens[first:last + 1], part)
-            if _stable_condition(tokens, start, start + len(part) - 1, region, start):
+            if words.intersection(t.raw for t in part if t.kind == "ident") and \
+                    _stable_condition(tokens, start, start + len(part) - 1, region, start):
                 assert_fact(part, truth, facts)
                 notes.append("`%s` is %s around it" % (" ".join(t.raw for t in part), "true" if truth else "false"))
-    implied = _null_implications(tokens, region, span[0])
+    implied = {name: held for name, held in _null_implications(tokens, region, span[0]).items() if name in words}
     for name, held in sorted(implied.items()):
         notes.append("%s stays null unless %s" % (name, " and ".join(held)))
+    if not (shared or facts or implied):
+        return None
     return Context(resolved, shared, facts, implied, notes)
 
 
