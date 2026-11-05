@@ -156,7 +156,7 @@ test('frames decode and annotate in plain English where Volt knows the command',
   assert.equal(annotate(`Send write command: ${frame(0x52, [1])}`), 'Cruise control → On');
   assert.equal(annotate(`Write success: ${frame(0x6d, [4, 2, 1])}`), 'Line lights color → Red');
   assert.equal(annotate(`Write success: ${frame(0x6d, [1, 2])}`), 'Ambient light → Follow headlight');
-  assert.equal(annotate(`Send write command: ${frame(0x6f, [4, 90])}`), 'Charge ceiling → 90%');
+  assert.equal(annotate(`Send write command: ${frame(0x6f, [4, 90])}`), 'Charge limit → 90%');
   assert.equal(annotate(`Send write command: ${frame(0x5e, [1, 3, 5, 2])}`), '0x5e = 1, 3, 5, 2');
   assert.equal(annotate(`Send read command: ${hex(bytes(0x70, [], 0, true))}`), 'Read vehicle status');
   assert.equal(annotate(`Send read command: ${hex(bytes(0x73, [], 0, true))} (ok)`), 'Read firmware version');
@@ -169,9 +169,9 @@ test('frames decode and annotate in plain English where Volt knows the command',
 // Real UT5 MAX write sequence (values as captured; clock bytes synthetic): every one is known.
 const UT5 = [
   [0x51, [1], 'Electronic lock → On'], [0x51, [0], 'Electronic lock → Off'], [0x53, [60], 'Energy recovery → Medium'], [0x53, [90], 'Energy recovery → High'],
-  [0x55, [1], 'Dashboard units → Kilometers / km/h'], [0x55, [0], 'Dashboard units → Miles / mph'], [0x52, [1], 'Cruise control → On'], [0x52, [0], 'Cruise control → Off'],
+  [0x55, [1], 'Scooter display units → Kilometers / km/h'], [0x55, [0], 'Scooter display units → Miles / mph'], [0x52, [1], 'Cruise control → On'], [0x52, [0], 'Cruise control → Off'],
   [0x54, [1], 'Tail light → On'], [0x57, [0], 'Automatic lights → Off'], [0x57, [1], 'Automatic lights → On'], [0x6f, [5, 1], 'Low Battery Mode → On'],
-  [0x6f, [5, 0], 'Low Battery Mode → Off'], [0x6f, [4, 95], 'Charge ceiling → 95%'], [0x6f, [4, 80], 'Charge ceiling → 80%'], [0x6f, [4, 100], 'Charge ceiling → 100%'],
+  [0x6f, [5, 0], 'Low Battery Mode → Off'], [0x6f, [4, 95], 'Charge limit → 95%'], [0x6f, [4, 80], 'Charge limit → 80%'], [0x6f, [4, 100], 'Charge limit → 100%'],
   [0x6a, [3], 'Kick-start speed → 3 km/h'], [0x6a, [0], 'Kick-start speed → 0 km/h'], [0x5f, [1], 'Traction control → On'], [0x5f, [0], 'Traction control → Off'],
   [0x81, [1, 1], 'Walk Assist → On'], [0x81, [1, 0], 'Walk Assist → Off'], [0x81, [3, 1], 'Hill descent control → On'], [0x81, [3, 0], 'Hill descent control → Off'],
   [0x6f, [1, 1], 'Scheduled charging → On'], [0x6f, [1, 0], 'Scheduled charging → Off'],
@@ -208,13 +208,13 @@ test('unknown commands are new, unknown values of known commands are new values'
   assert.deepEqual(['status', 'key', 'reading'].map(k => info(0x6d, [9, 1])[k]), ['new', '6d:09', '0x6d:09 = 1']);
   assert.deepEqual(['status', 'key', 'reading'].map(k => info(0x6f, [8, 1])[k]), ['new', '6f:08', '0x6f:08 = 1']);
   assert.deepEqual(['status', 'name', 'reading', 'sig'].map(k => info(0x53, [45])[k]), ['new-value', 'Energy recovery', 'Energy recovery = 45', '53=45']);
-  for (const [cmd, payload, reading] of [[0x52, [2], 'Cruise control = 2'], [0x52, [1, 1], 'Cruise control = 1, 1'], [0x6f, [4, 77], 'Charge ceiling = 77'],
-    [0x6d, [4, 2, 3], 'Line lights color = 3'], [0x6a, [6], 'Kick-start speed = 6'], [0x6b, [0x85], 'Custom speed cap = 133'], [0x6b, [20], 'Custom speed cap = 20'],
+  for (const [cmd, payload, reading] of [[0x52, [2], 'Cruise control = 2'], [0x52, [1, 1], 'Cruise control = 1, 1'], [0x6f, [4, 77], 'Charge limit = 77'],
+    [0x6d, [4, 2, 3], 'Line lights color = 3'], [0x6a, [6], 'Kick-start speed = 6'], [0x6b, [0x85], 'Custom speed limit = 133'], [0x6b, [20], 'Custom speed limit = 20'],
     [0x6f, [3, 0, 0, 0, 0], 'Charging start time = 0, 0, 0, 0'], [0x6f, [3, 1, 2], 'Charging start time = 1, 2'], [0x6c, [0x80 | 50, 1], 'Prompt sound = 178, 1']])
     assert.deepEqual([info(cmd, payload).status, info(cmd, payload).reading], ['new-value', reading], reading);
   // Speed caps: 0 is Off, enabled values carry bit 7 and Volt's lower bound.
-  assert.equal(info(0x6b, [0]).reading, 'Custom speed cap → Off'); assert.equal(info(0x6b, [0x80 | 25]).reading, 'Custom speed cap → 25 km/h');
-  assert.equal(info(0x6e, [3, 0x80 | 5]).reading, 'Drive mode speed cap → 5 km/h'); assert.equal(info(0x6e, [3, 0x80 | 4]).status, 'new-value');
+  assert.equal(info(0x6b, [0]).reading, 'Custom speed limit → Off'); assert.equal(info(0x6b, [0x80 | 25]).reading, 'Custom speed limit → 25 km/h');
+  assert.equal(info(0x6e, [3, 0x80 | 5]).reading, 'Drive mode speed limit → 5 km/h'); assert.equal(info(0x6e, [3, 0x80 | 4]).status, 'new-value');
   assert.equal(info(0x6e, [1, 40]).reading, 'Maximum speed → 40 km/h'); assert.equal(info(0x6e, [2, 1]).reading, 'Dual motor drive → Dual motor');
   // Reads are routine; only an unknown read is new, and it is never asked about.
   assert.deepEqual([info(0x7b, [], true).status, info(0x7c, [], true).status, info(0x7c, [], true).reading, askable(info(0x7c, [], true))], ['read', 'new', 'Read 0x7c', false]);
