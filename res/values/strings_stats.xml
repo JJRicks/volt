@@ -42,6 +42,8 @@
          replaces the tag and the space before it, so it starts with a space. -->
     <string name="stats_health_chip_said" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">" estimated"</string>
     <string name="stats_favourites_title" volt:screen="Live Stats › Overview" volt:purpose="heading">Favourites</string>
+    <!-- The empty favourites card, read as shown: keep the star, the same outline star a reading's button shows. -->
+    <string name="stats_favourites_empty_hint" volt:screen="Live Stats › Overview" volt:purpose="hint" volt:dnt="☆">☆ Star readings to pin here</string>
     <string name="stats_favourites_reorder_description" volt:screen="Live Stats › Overview" volt:purpose="accessibility description">Reorder favourite readings and charts</string>
     <!-- The reorder button's tooltip and the reorder sheet's title. -->
     <string name="stats_favourites_reorder" volt:screen="Live Stats › Overview, reorder sheet" volt:purpose="heading">Reorder favourites</string>

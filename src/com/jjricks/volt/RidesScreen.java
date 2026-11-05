@@ -616,7 +616,7 @@ public final class RidesScreen implements AppScreen {
         boolean possible = savedCount >= 2;
         // Looks disabled until two rides exist, yet stays tappable so it can say why.
         compareRow.setEnabled(possible); compareRow.view.setEnabled(true);
-        compareRow.update("", !possible ? savedCount + "/2" : selected.size() == 2 ? "2 ✓" : "");
+        compareRow.update("", !possible ? savedCount + "/2" : selected.size() == 2 ? T.ridesCompareTwoSelectedValue() : "");
         if (!possible) compareRow.view.setContentDescription(T.ridesCompareTwoSaved(savedCount));
         else if (selected.size() == 2) compareRow.view.setContentDescription(T.ridesCompareTwoSelected());
     }
@@ -972,7 +972,7 @@ public final class RidesScreen implements AppScreen {
         // Section label with a Direction ✓ / ? chip that gives its reason on tap.
         LinearLayout energyHead = horizontal(); energyHead.setGravity(Gravity.CENTER_VERTICAL);
         energyHead.addView(ui.sectionLabel(T.ridesElectricalEnergy()));
-        TextView direction = pill(s.directionConfirmed ? "Direction ✓" : "Direction ?", s.directionConfirmed ? ui.ok : ui.orange);
+        TextView direction = pill(s.directionConfirmed ? T.ridesDirectionChipConfirmed() : T.ridesDirectionChipUnconfirmed(), s.directionConfirmed ? ui.ok : ui.orange);
         // A 48dp touch target around a compact pill.
         direction.setBackground(new InsetDrawable(direction.getBackground(), 0, ui.dp(9), 0, ui.dp(9))); direction.setMinHeight(ui.dp(48));
         reasonOnTap(direction, s.directionConfirmed ? T.ridesDirectionConfirmed() : T.ridesDirectionUnconfirmed());

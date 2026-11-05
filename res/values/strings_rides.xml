@@ -77,6 +77,8 @@
     <string name="rides_no_rides_yet" volt:screen="Rides, history" volt:purpose="label">No rides yet</string>
     <string name="rides_history_unreadable" volt:screen="Rides, history" volt:purpose="label">Could not read saved rides</string>
     <string name="rides_compare_two_selected" volt:screen="Rides, history" volt:purpose="label">Compare two rides, 2 rides selected</string>
+    <!-- The compare row's value when two rides are chosen, "2" being the count: keep the check mark. Screen readers say rides_compare_two_selected instead. -->
+    <string name="rides_compare_two_selected_value" volt:screen="Rides, history" volt:purpose="status" volt:dnt="✓">2 ✓</string>
     <string name="rides_toast_compare_needs_two" volt:screen="Rides, history" volt:purpose="message">Save two rides to compare them.</string>
     <string name="rides_compare_title" volt:screen="Rides, history" volt:purpose="label">Compare rides</string>
     <!-- Button that opens the comparison of the two chosen rides. -->
@@ -127,6 +129,10 @@
     <string name="rides_electrical_energy" volt:screen="Rides, ride details" volt:purpose="label">Electrical energy</string>
     <string name="rides_direction_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Current direction confirmed</string>
     <string name="rides_direction_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction not confirmed for the whole ride · values are absolute throughput</string>
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_confirmed instead, and tapping the chip shows that text: keep the check mark. -->
+    <string name="rides_direction_chip_confirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="✓">Direction ✓</string>
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_unconfirmed instead, and tapping the chip shows that text: keep the question mark. -->
+    <string name="rides_direction_chip_unconfirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="?">Direction ?</string>
     <!-- Short form of rides_draw, used where direction was confirmed only part of the time. -->
     <string name="rides_draw_short" volt:screen="Rides, ride details" volt:purpose="label">Draw</string>
     <string name="rides_draw" volt:screen="Rides, ride details" volt:purpose="label">Battery draw</string>

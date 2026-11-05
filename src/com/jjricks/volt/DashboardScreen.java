@@ -5292,7 +5292,7 @@ public final class DashboardScreen implements AppScreen {
             swatches.addView(swatch, new ViewGroup.LayoutParams(ui.dp(48), ui.dp(48)));
         }
         list.addView(swatches, new LinearLayout.LayoutParams(-1, -2));
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> {
             applyTitle.run();
             if (!config.widgets.contains(widget)) {
                 DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
@@ -5379,7 +5379,7 @@ public final class DashboardScreen implements AppScreen {
             animateRows(rows, old);
         };
         fill[0].run();
-        TextView save = ui.button("✓ Save", () -> options(widget));
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> options(widget));
         showSheet(T.dashboardQuickSettings(), list, save, T.dashboardCloseQuickSettings(), null);
     }
 
@@ -6032,7 +6032,7 @@ public final class DashboardScreen implements AppScreen {
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> {
             if (chosen.size() > most) return;
             if (chosen.size() < least) {
                 host.toast(T.dashboardChooseOneReading());
