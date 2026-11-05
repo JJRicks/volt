@@ -830,11 +830,11 @@ public final class ScooterService extends Service {
             case LIMIT_REACHED:text=T.serviceTestLimit();break;
             case INTERRUPTED:return T.serviceTestInterrupted();
             case CANCELLED:text="";break;
-            default:text=r.failure==null?T.serviceTestNotStarted():T.serviceTestNotStartedReason(r.failure);
+            default:text=r.failure==null?T.serviceTestNotStarted():T.serviceTestNotStartedReason(ChargeScheduleText.shown(r.failure));
         }
         // Cleanup is reported plainly; an unconfirmed OFF leaves the missed-start alert to follow up.
         if(!r.scheduleOff)text+=T.serviceTestOffUnconfirmed();
-        else if(r.cleanup!=null)text+=T.serviceTestCleanup(r.cleanup);
+        else if(r.cleanup!=null)text+=T.serviceTestCleanup(ChargeScheduleText.shown(r.cleanup));
         return text.trim();
     }
     private void scheduleTestNotice(ChargeScheduleController.TestResult result){

@@ -967,7 +967,6 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(ble==null)return false;CapabilityResolver.Decision d=ble.decision("lock",shownLock==null||!shownLock?1:0);
         return d.available()||d.blockedByRide()||d.reason==CapabilityResolver.Reason.BUSY||d.reason==CapabilityResolver.Reason.STATUS_STALE;
     }
-    /** What a lock row's connection button shows now, by id: its text is never read back. A new button says Connect. */
     /** Ids the text below sits beside: keys and tags, never shown. */
     private static final String KEY_CLOCK_SYNC="clock_sync",KEY_DISPLAY_UNITS="display_units",KEY_LOCK_EXPIRY="lock_expiry",PREF_UNITS="units",UNIT_KM="km",
             GROUP_LIGHTS="Lights",SECTION_SETTINGS="Settings",SECTION_COMPATIBILITY="Compatibility",TAG_IDENTIFY="scooter-identify-model",PAGE_HOME="home",NO_TEXT="",TAG_DIAGNOSTICS_NOTE="diagnostics-note";
@@ -1215,7 +1214,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         boolean present=false;for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected))present=true;
         // The profile's own scooter starts selected; other scooters need a deliberate tap before Connect.
         if(!present){scanSelected=null;for(ScanResult result:scanResults)if(!mine.isEmpty()&&result.getDevice().getAddress().equalsIgnoreCase(mine))scanSelected=result.getDevice().getAddress();}
-        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():scanResults.size()==1?T.mainScanFoundOne():T.mainScanFoundMany(scanResults.size()));
+        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():T.mainScanFound(scanResults.size(),scanResults.size()));
         scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
         StringBuilder signature=new StringBuilder(String.valueOf(scanSelected)).append(':').append(profile==null?"":profile.id);
         for(ScanResult result:scanResults){String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,result.getDevice().getAddress(),null);signature.append('|').append(result.getDevice().getAddress()).append(':').append(signalRank(result.getRssi())).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}
@@ -1768,19 +1767,21 @@ public final class MainActivity extends Activity implements ScreenHost {
         chip.setVisibility(View.GONE);return chip;
     }
     /** Phone-width labels; search still matches the catalog's full names and descriptions. */
-    private String shortLabel(ScooterCommands.Feature f){
-        if(f.key.equals("charge_start"))return T.mainShortChargeStart();
-        if(f.key.equals("charge_limit"))return T.mainShortChargeLimit();
+    private String shortLabel(ScooterCommands.Feature f){return shortText(f).render();}
+    private Msg shortText(ScooterCommands.Feature f){
+        if(f.key.equals("charge_start"))return M.mainShortChargeStart();
+        if(f.key.equals("charge_limit"))return M.mainShortChargeLimit();
         // "Dashboard" also names the Home tab; this setting is the scooter's own display.
-        if(f.key.equals(KEY_DISPLAY_UNITS))return T.mainShortDisplayUnits();
-        if(f.key.endsWith("_boost_color"))return T.mainShortBoostColor();
-        if(f.key.endsWith("_pattern"))return T.mainShortPattern();
-        if(f.key.endsWith("_color"))return T.mainShortColor();
-        return f.label().render();
+        if(f.key.equals(KEY_DISPLAY_UNITS))return M.mainShortDisplayUnits();
+        if(f.key.endsWith("_boost_color"))return M.mainShortBoostColor();
+        if(f.key.endsWith("_pattern"))return M.mainShortPattern();
+        if(f.key.endsWith("_color"))return M.mainShortColor();
+        return f.label();
     }
-    private String rowDetail(ScooterCommands.Feature f){
-        if(f.key.equals("parking_assist"))return T.mainDetailParking();
-        if(f.key.equals("low_power"))return T.mainDetailLowPower();
+    private String rowDetail(ScooterCommands.Feature f){Msg detail=rowDetailText(f);return detail==null?null:detail.render();}
+    private Msg rowDetailText(ScooterCommands.Feature f){
+        if(f.key.equals("parking_assist"))return M.mainDetailParking();
+        if(f.key.equals("low_power"))return M.mainDetailLowPower();
         return null;
     }
     private String rowIcon(ScooterCommands.Feature f){
@@ -2236,7 +2237,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             this.feature=feature;inline=inlineChoice(feature);
             String detail=rowDetail(feature);
             row=new SettingLine(inline?null:rowIcon(feature),shortLabel(feature),detail);card=row.card;name=row.name;value=row.value;action=row.line;
-            haystack=normalize(feature.searchText()+" "+shortLabel(feature)+" "+feature.key+" "+(detail==null?"":detail));
+            Msg detailText=rowDetailText(feature);
+            haystack=normalize(feature.searchText()+" "+shortText(feature).english()+" "+feature.key+" "+(detailText==null?"":detailText.english()));
             if(feature.key.equals("range_algorithm"))action.setTag("scooter-range-estimate");
             // Result state lives on the row line: a red chip for a failed change, a spinner while one is pending.
             result=failureChip();LinearLayout.LayoutParams chipSize=new LinearLayout.LayoutParams(-2,-2);chipSize.setMarginStart(design.dp(8));row.line.addView(result,1,chipSize);
@@ -2274,7 +2276,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }else{toggle=null;row.chevron(()->{if(feature.key.equals("charge_start"))showChargingTime();else if(parkedBlocked)toast(T.mainRowStopToChange());else editFeature(feature);});}
         }
         /** Search also matches what the row shows in the current language; the English haystack stays as it was. */
-        boolean matchesShown(String query){return StatsLabels.matchesShown(query,feature.label().toString(),feature.description().toString(),shortLabel(feature));}
+        boolean matchesShown(String query){return StatsLabels.matchesShown(query,feature.label().toString(),feature.description().toString(),shortLabel(feature),rowDetail(feature));}
         void refresh(){
             if(feature.key.equals("timed_charging")||feature.key.equals("charge_start")){refreshChargeSchedule();return;}
             if(feature.key.equals("range_algorithm")){
@@ -3130,7 +3132,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             }
             int value=selected[0];
             confirmChange(feature,value,()->{if(scooterService.ble.set(feature.key,value)){if(sheet[0]!=null)sheet[0].dismiss();}else error.setText(scooterService.ble.displayMessage());redraw();});});
-        check[0]=new ApplyCheck(apply,"Apply");
+        check[0]=new ApplyCheck(apply,M.mainEditApply());
         LinearLayout.LayoutParams left=new LinearLayout.LayoutParams(0,-2,1);left.rightMargin=design.dp(5);actions.addView(cancel,left);
         LinearLayout.LayoutParams right=new LinearLayout.LayoutParams(0,-2,1);right.leftMargin=design.dp(5);actions.addView(apply,right);
         body.addView(actions);
@@ -3154,7 +3156,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             @Override public void setColorFilter(android.graphics.ColorFilter filter){}
             @Override public int getOpacity(){return android.graphics.PixelFormat.TRANSLUCENT;}
         };
-        ApplyCheck(TextView button,String action){this.button=button;this.label=M.mainEditApply();this.colors=button.getTextColors();}
+        ApplyCheck(TextView button,Msg action){this.button=button;this.label=action;this.colors=button.getTextColors();}
         void show(){
             button.removeCallbacks(hide);
             mark.setBounds(0,0,button.getWidth(),button.getHeight());button.getOverlay().remove(mark);button.getOverlay().add(mark);
@@ -3433,7 +3435,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(request==IMPORT_OWNER&&result==RESULT_OK&&data!=null&&data.getData()!=null){Uri uri=data.getData();pickedOwnerUri=null;try(InputStream in=getContentResolver().openInputStream(uri)){if(in==null)throw new java.io.IOException();stageOwnerImport(readLimited(in));pickedOwnerUri=uri;maybeApplyOwnerImport();}catch(Exception e){pickedOwnerUri=null;
             if(onboarding==null&&e instanceof IllegalArgumentException){toast(SetupException.shown((IllegalArgumentException)e));return;}
             // First-run setup shows its own inline "Not an owner file."; elsewhere the parser's reason is a toast.
-            if(onboarding==null)toast(e instanceof IllegalArgumentException?e.getMessage():T.mainImportSetupUnreadable());else onboarding.onOwnerImported(false);}}
+            if(onboarding==null)toast(T.mainImportSetupUnreadable());else onboarding.onOwnerImported(false);}}
     }
     /** Only the normalized owner setup is staged, never raw Bluetooth capture logs. */
     private void stageOwnerImport(String text)throws Exception{

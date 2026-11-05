@@ -18,7 +18,7 @@ final class ChargeScheduleText {
                 M.mainScheduleNotOnModel(), M.mainScheduleTurnOffDoneBy(), M.mainScheduleTurnOffScheduled(),
                 M.mainScheduleWaitReadings(), M.mainScheduleAlreadyAtLimit(), M.mainScheduleCancelNotConfirmed(),
                 M.mainScheduleClockFailed(), M.mainScheduleBatteryChanged(), M.mainScheduleStartNotConfirmed(),
-                M.mainScheduleLimitChanged(), M.mainScheduleStartChangedEstimate(), M.mainSchedulePassedNotCancelled(),
+                M.mainScheduleLimitChanged(), M.mainScheduleStartChangedEstimate(), M.mainSchedulePassedNotCancelled(), M.mainScheduleChargingNow(),
                 M.mainScheduleLimitSavedNoEstimate(), M.mainScheduleBatterySavedNoEstimate(), M.mainScheduleEnableNotConfirmed(),
                 M.mainScheduleConnectionChanged(), M.mainScheduleStoppedBeforeFinish()};
     }

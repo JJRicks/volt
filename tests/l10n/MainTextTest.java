@@ -3,6 +3,8 @@ package com.jjricks.volt;
 import java.awt.Font;
 import java.awt.font.FontRenderContext;
 import java.io.File;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -66,7 +68,7 @@ public final class MainTextTest {
                     equal(MainActivityTextTest.Base.topSpeed(n, units, ready), ready ? T.mainSpeedValue(v) : T.mainSpeedValueSeen(v), "top " + n);
                 }
             }
-            equal(MainActivityTextTest.Base.scanStatus(false, n), n == 0 ? T.mainScanNone() : n == 1 ? T.mainScanFoundOne() : T.mainScanFoundMany(n), "scan " + n);
+            equal(MainActivityTextTest.Base.scanStatus(false, n), n == 0 ? T.mainScanNone() : T.mainScanFound(n, n), "scan " + n);
             equal(MainActivityTextTest.Base.results(n), T.mainSearchResults(n, n), "results " + n);
             for (boolean isTry : new boolean[]{false, true}) {
                 String want = MainActivityTextTest.Base.banner(isTry, "Lights", n);
@@ -155,6 +157,8 @@ public final class MainTextTest {
         // Charge schedule reasons: English stays what the controller said; what no table knows passes through.
         check(ChargeScheduleText.shown(null) == null, "null reason");
         for (String reason : new String[]{"Wait for the current scooter change", "Connect a charger first", "Something else",
+                "Charging now — the calculated start time has passed", "Volt stopped before it finished; check that Scheduled charging is off",
+                "Scheduled charging is off; restoring Charge start was not confirmed",
                 T.mainScheduleOffRestoreDoneBy("Connect a charger first"), T.mainScheduleOffRestoreScheduled("Something else")}) {
             equal(reason, ChargeScheduleText.shown(reason), "reason");
         }
@@ -229,10 +233,38 @@ public final class MainTextTest {
         // A reason the controller says in English shows in the installed language; other text passes through.
         check(ChargeScheduleText.shown(M.commonConnectChargerFirst().english()).startsWith("⟦common_connect_charger_first⟧"), "a known reason follows the source");
         equal("typed", ChargeScheduleText.shown("typed"), "an unknown reason passes through");
+        controllerSentences();
         // Once another language ships, its layouts measure (Fmt.legacy() is true until then, whatever the source says).
         if (!Fmt.legacy()) {
             check(TextFit.over(1, 10, 5.12, 600f, 100f), "wide by width");
             check(!TextFit.over(99, 10, 5.12, 100f, 100f), "narrow by width");
+        }
+    }
+
+    /**
+     * Every sentence ChargeScheduleController finishes with reaches a screen through ChargeScheduleText, so none may
+     * stay in English under a translated source; the schedule test's dialog and notice pass through it as well.
+     */
+    private static void controllerSentences() {
+        String controller = source("src/com/jjricks/volt/ChargeScheduleController.java");
+        Matcher sentence = Pattern.compile("(?:completion\\.accept\\(|deliver\\(t,[^;]*?,failure,)\"([^\"]+)\"\\)").matcher(controller);
+        int found = 0;
+        for (; sentence.find(); found++) {
+            String english = sentence.group(1), shown = ChargeScheduleText.shown(english);
+            check(shown.startsWith("⟦"), "the controller's sentence follows the source: " + english);
+        }
+        check(found > 10, "the controller's sentences were found: " + found);
+        check(ChargeScheduleText.shown("Scheduled charging is off; restoring Charge start was not confirmed").startsWith("⟦main_schedule_off_start_scheduled⟧"), "a cleanup follows the source");
+        String service = source("src/com/jjricks/volt/ScooterService.java");
+        check(service.contains("T.serviceTestNotStartedReason(ChargeScheduleText.shown(r.failure))"), "the test's failure reason is shown through ChargeScheduleText");
+        check(service.contains("T.serviceTestCleanup(ChargeScheduleText.shown(r.cleanup))"), "the test's cleanup is shown through ChargeScheduleText");
+    }
+
+    private static String source(String path) {
+        try {
+            return new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get(path)), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (java.io.IOException e) {
+            throw new AssertionError(path, e);
         }
     }
 

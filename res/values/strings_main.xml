@@ -16,7 +16,7 @@
     <string name="main_preparing_data" volt:screen="Activity shell" volt:purpose="status">Preparing your app data…</string>
     <string name="main_opening_data" volt:screen="Activity shell" volt:purpose="status">Opening your saved data…</string>
     <string name="main_export_cleared" volt:screen="Activity shell" volt:purpose="toast">Unfinished export cleared</string>
-    <string name="main_service_failed" volt:screen="Activity shell" volt:purpose="toast">Service failed. Reopen Volt.</string>
+    <string name="main_service_failed" volt:screen="Activity shell" volt:purpose="toast" volt:dnt="Volt">Service failed. Reopen Volt.</string>
     <string name="main_nav_home" volt:screen="Tab bar" volt:purpose="tab name">Home</string>
     <string name="main_nav_stats" volt:screen="Tab bar" volt:purpose="tab name">Live Stats</string>
     <string name="main_nav_scooter" volt:screen="Tab bar" volt:purpose="tab name">Scooter</string>
@@ -32,7 +32,7 @@
     <string name="main_lock_unlocked" volt:screen="Home lock row" volt:purpose="state" volt:safety="lock">Unlocked</string>
     <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unknown</string>
     <string name="main_lock_state_unverified" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unverified</string>
-    <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status">Connecting</string>
+    <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Connecting</string>
     <!-- %1$s is main_lock_locked or main_lock_unlocked. -->
     <string name="main_lock_last_known_full" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: %1$s. Reconnect to verify.</string>
     <!-- %1$s is the scooter name or main_lock_your_scooter, %2$s a whole sentence about the lock state. -->
@@ -78,8 +78,8 @@
     <string name="main_connection_last_connected" volt:screen="Connection sheet" volt:purpose="row label">Last connected</string>
     <string name="main_connection_why" volt:screen="Connection sheet" volt:purpose="link">Why?</string>
     <string name="main_connection_why_detail" volt:screen="Connection sheet" volt:purpose="explanation" volt:dnt="NAVEE">Power the scooter on and close the NAVEE app.</string>
-    <string name="main_connection_check_owner" volt:screen="Connection sheet" volt:purpose="link">Check owner setup</string>
-    <string name="main_connection_turn_on_bluetooth" volt:screen="Connection sheet" volt:purpose="button">Turn on Bluetooth</string>
+    <string name="main_connection_check_owner" volt:screen="Connection sheet" volt:purpose="link" volt:safety="owner-key">Check owner setup</string>
+    <string name="main_connection_turn_on_bluetooth" volt:screen="Connection sheet" volt:purpose="button" volt:dnt="Bluetooth">Turn on Bluetooth</string>
     <string name="main_connection_add_scooter" volt:screen="Connection sheet" volt:purpose="button">Add scooter</string>
     <string name="main_connection_title" volt:screen="Connection sheet" volt:purpose="title">Connection</string>
     <!-- A row read aloud: its label, then its value. -->
@@ -91,7 +91,7 @@
     <string name="main_loading_needed" volt:screen="Loading screen" volt:purpose="caption">Needed to connect</string>
 
     <!-- ===== Connecting and the scanner ===== -->
-    <string name="main_scan_no_bluetooth" volt:screen="Scanner" volt:purpose="toast">This phone does not support Bluetooth.</string>
+    <string name="main_scan_no_bluetooth" volt:screen="Scanner" volt:purpose="toast" volt:dnt="Bluetooth">This phone does not support Bluetooth.</string>
     <string name="main_scan_exit_simulation" volt:screen="Scanner" volt:purpose="toast">Exit simulation first</string>
     <string name="main_scan_exit_simulation_find" volt:screen="Scanner" volt:purpose="toast">Exit simulation to find a real scooter</string>
     <string name="main_scan_stop_recording" volt:screen="Scanner" volt:purpose="toast">Stop recording first</string>
@@ -99,16 +99,18 @@
     <string name="main_scan_title" volt:screen="Scanner" volt:purpose="title">Choose your scooter</string>
     <string name="main_scan_again" volt:screen="Scanner" volt:purpose="button">Scan again</string>
     <string name="main_scan_none" volt:screen="Scanner" volt:purpose="status">No scooter found. Is it on?</string>
-    <string name="main_scan_navee" volt:screen="Scanner" volt:purpose="name">Navee scooter</string>
+    <string name="main_scan_navee" volt:screen="Scanner" volt:purpose="name" volt:dnt="Navee">Navee scooter</string>
     <string name="main_scan_strong" volt:screen="Scanner" volt:purpose="signal">Strong signal</string>
     <string name="main_scan_good" volt:screen="Scanner" volt:purpose="signal">Good signal</string>
     <string name="main_scan_fair" volt:screen="Scanner" volt:purpose="signal">Fair signal</string>
     <string name="main_scan_weak" volt:screen="Scanner" volt:purpose="signal">Weak signal</string>
     <string name="main_scan_yours" volt:screen="Scanner" volt:purpose="chip">Yours</string>
     <string name="main_scan_saved" volt:screen="Scanner" volt:purpose="chip">Saved</string>
-    <!-- Count of nearby scooters. -->
-    <string name="main_scan_found_one" volt:screen="Scanner" volt:purpose="status">1 scooter found</string>
-    <string name="main_scan_found_many" volt:screen="Scanner" volt:purpose="status">%1$d scooters found</string>
+    <!-- Count of nearby scooters. %1$d is the count. -->
+    <plurals name="main_scan_found" volt:screen="Scanner" volt:purpose="status">
+        <item quantity="one">%1$d scooter found</item>
+        <item quantity="other">%1$d scooters found</item>
+    </plurals>
     <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>
 
     <!-- ===== Scooter tab: groups, banners and search ===== -->
@@ -130,7 +132,7 @@
     <string name="main_group_profile" volt:screen="Scooter tab" volt:purpose="group name">Profile</string>
     <string name="main_group_headlights" volt:screen="Scooter tab" volt:purpose="group name">Headlights</string>
     <!-- Words search matches for the top speed card, never shown; the English stays searchable too. -->
-    <string name="main_search_top_speed" volt:screen="Scooter tab" volt:purpose="search keywords" volt:safety="ride">Top speed maximum speed sport mode limit mph km/h</string>
+    <string name="main_search_top_speed" volt:screen="Scooter tab" volt:purpose="search keywords" volt:safety="ride" volt:dnt="mph|km/h">Top speed maximum speed sport mode limit mph km/h</string>
     <!-- Words search matches, never shown. -->
     <string name="main_search_done_by" volt:screen="Scooter tab" volt:purpose="search keywords" volt:safety="charge">charge done by finish charging deadline time</string>
     <!-- Words search matches, never shown. -->
@@ -187,7 +189,7 @@
     <string name="main_row_automatic" volt:screen="Scooter tab" volt:purpose="charger value">Automatic</string>
     <string name="main_row_recording_label" volt:screen="Scooter tab" volt:purpose="row detail">Recording label · stop to change</string>
     <string name="main_row_detected" volt:screen="Scooter tab" volt:purpose="row detail">Detected from power</string>
-    <string name="main_row_stop_recording" volt:screen="Scooter tab" volt:purpose="row detail">Stop charge recording to change</string>
+    <string name="main_row_stop_recording" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="charge">Stop charge recording to change</string>
     <!-- %1$s is the charger family. -->
     <string name="main_row_auto_family" volt:screen="Scooter tab" volt:purpose="charger value">Auto · %1$s</string>
     <string name="main_row_clock_sending" volt:screen="Scooter tab" volt:purpose="screen reader">Scooter clock, sending</string>
@@ -234,10 +236,10 @@
     <string name="main_short_charge_start" volt:screen="Scooter tab" volt:purpose="row name" volt:safety="charge">Charge start</string>
     <string name="main_short_charge_limit" volt:screen="Scooter tab" volt:purpose="row name" volt:safety="charge">Charge limit</string>
     <string name="main_short_display_units" volt:screen="Scooter tab" volt:purpose="row name">Scooter display units</string>
-    <string name="main_short_boost_color" volt:screen="Scooter tab" volt:purpose="row name">Boost color</string>
+    <string name="main_short_boost_color" volt:screen="Scooter tab" volt:purpose="row name" volt:dnt="Boost">Boost color</string>
     <string name="main_short_pattern" volt:screen="Scooter tab" volt:purpose="row name">Pattern</string>
     <string name="main_short_color" volt:screen="Scooter tab" volt:purpose="row name">Color</string>
-    <string name="main_detail_parking" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride">Boost + full throttle uphill in Sport</string>
+    <string name="main_detail_parking" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride" volt:dnt="Boost|Sport">Boost + full throttle uphill in Sport</string>
     <string name="main_detail_low_power" formatted="false" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride">Limits speed below 20%</string>
     <string name="main_value_miles" volt:screen="Scooter tab" volt:purpose="row value">Miles</string>
     <string name="main_value_kilometers" volt:screen="Scooter tab" volt:purpose="row value">Kilometers</string>
@@ -249,7 +251,7 @@
 
     <!-- ===== Battery alerts ===== -->
     <string name="main_alert_title" volt:screen="Battery alerts" volt:purpose="title" volt:safety="alarm">Battery alerts</string>
-    <string name="main_alert_intro" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm">Volt checks the battery while it\'s connected to this scooter. Alerts stay on for every charge until you turn them off.</string>
+    <string name="main_alert_intro" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm" volt:dnt="Volt">Volt checks the battery while it\'s connected to this scooter. Alerts stay on for every charge until you turn them off.</string>
     <string name="main_alert_charge" volt:screen="Battery alerts" volt:purpose="row name" volt:safety="alarm">Charge alert</string>
     <string name="main_alert_low" volt:screen="Battery alerts" volt:purpose="row name" volt:safety="alarm">Low battery alert</string>
     <string name="main_alert_charge_level" volt:screen="Battery alerts" volt:purpose="screen reader" volt:safety="alarm">Charge alert level</string>
@@ -261,15 +263,15 @@
     <string name="main_alert_alarm_detail" volt:screen="Battery alerts" volt:purpose="row detail" volt:safety="alarm">Your alarm sound, for up to a minute, even when notifications are silent</string>
     <string name="main_alert_need_delivery" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm">Turn on Notify me or Alarm sound to get alerts.</string>
     <string name="main_alert_allow" volt:screen="Battery alerts" volt:purpose="button" volt:safety="alarm">Allow</string>
-    <string name="main_alert_background" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm">While a charge alert waits, Volt stays connected in the background with a notification, for up to 12 hours. The low battery alert needs Volt to be connected already.</string>
-    <string name="main_alert_saver" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm" volt:dnt="Xiaomi">Phones that close apps in the background, like Xiaomi, can stop the alert. In Volt\'s app settings, set battery use to No restrictions.</string>
+    <string name="main_alert_background" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm" volt:dnt="Volt">While a charge alert waits, Volt stays connected in the background with a notification, for up to 12 hours. The low battery alert needs Volt to be connected already.</string>
+    <string name="main_alert_saver" volt:screen="Battery alerts" volt:purpose="explanation" volt:safety="alarm" volt:dnt="Xiaomi|Volt">Phones that close apps in the background, like Xiaomi, can stop the alert. In Volt\'s app settings, set battery use to No restrictions.</string>
     <string name="main_alert_app_settings" volt:screen="Battery alerts" volt:purpose="link">App settings</string>
-    <string name="main_alert_app_settings_description" volt:screen="Battery alerts" volt:purpose="screen reader">Open Volt\'s app settings</string>
-    <string name="main_alert_perm_app" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm">Notifications are off for Volt, so alerts work only while Volt is open.</string>
-    <string name="main_alert_perm_watch" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm">Volt\'s connection notification is off, so Volt can\'t watch a charge in the background.</string>
+    <string name="main_alert_app_settings_description" volt:screen="Battery alerts" volt:purpose="screen reader" volt:dnt="Volt">Open Volt\'s app settings</string>
+    <string name="main_alert_perm_app" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm" volt:dnt="Volt">Notifications are off for Volt, so alerts work only while Volt is open.</string>
+    <string name="main_alert_perm_watch" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm" volt:dnt="Volt">Volt\'s connection notification is off, so Volt can\'t watch a charge in the background.</string>
     <string name="main_alert_perm_alerts" volt:screen="Battery alerts" volt:purpose="warning" volt:safety="alarm">Battery alert notifications are off, so Notify me can\'t show.</string>
-    <string name="main_alert_allow_description" volt:screen="Battery alerts" volt:purpose="screen reader" volt:safety="alarm">Allow notifications for Volt</string>
-    <string name="main_alert_open_settings" volt:screen="Battery alerts" volt:purpose="toast">Open Volt\'s settings in Android</string>
+    <string name="main_alert_allow_description" volt:screen="Battery alerts" volt:purpose="screen reader" volt:safety="alarm" volt:dnt="Volt">Allow notifications for Volt</string>
+    <string name="main_alert_open_settings" volt:screen="Battery alerts" volt:purpose="toast" volt:dnt="Volt|Android">Open Volt\'s settings in Android</string>
     <string name="main_alert_choose_delivery" volt:screen="Battery alerts" volt:purpose="row detail" volt:safety="alarm">Choose Notify me or Alarm sound</string>
     <string name="main_alert_notifications_off" volt:screen="Battery alerts" volt:purpose="row detail" volt:safety="alarm">Notifications are off</string>
     <string name="main_alert_watching" volt:screen="Battery alerts" volt:purpose="row detail" volt:safety="alarm">Watching this charge</string>
@@ -294,7 +296,7 @@
     <string name="main_schedule_schedule_off" volt:screen="Charge schedule" volt:purpose="toast" volt:safety="charge">Schedule off. Charging starts now if the charger is plugged in.</string>
     <string name="main_schedule_connect_the_scooter" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Connect the scooter first</string>
     <string name="main_schedule_test_title" volt:screen="Charge schedule" volt:purpose="title" volt:safety="charge">Test scheduled charging?</string>
-    <string name="main_schedule_test_intro" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge">Volt pauses charging and sets the scooter to resume in about 2 minutes, to check the scooter\'s clock and schedule. It takes about 3–5 minutes; keep the phone near the scooter.</string>
+    <string name="main_schedule_test_intro" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge" volt:dnt="Volt">Volt pauses charging and sets the scooter to resume in about 2 minutes, to check the scooter\'s clock and schedule. It takes about 3–5 minutes; keep the phone near the scooter.</string>
     <string name="main_schedule_start_test" volt:screen="Charge schedule" volt:purpose="button" volt:safety="charge">Start test</string>
     <string name="main_schedule_testing_title" volt:screen="Charge schedule" volt:purpose="title" volt:safety="charge">Testing scheduled charging</string>
     <string name="main_schedule_keep_testing" volt:screen="Charge schedule" volt:purpose="button" volt:safety="charge">Keep testing</string>
@@ -314,12 +316,12 @@
     <string name="main_schedule_result_cancelled" volt:screen="Charge schedule" volt:purpose="test result" volt:safety="charge">Cancelled</string>
     <string name="main_schedule_result_interrupted" volt:screen="Charge schedule" volt:purpose="test result" volt:safety="charge">Interrupted</string>
     <string name="main_schedule_result_not_started" volt:screen="Charge schedule" volt:purpose="test result" volt:safety="charge">Didn\'t start</string>
-    <string name="main_schedule_measure_body" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge">Volt didn\'t see this charge begin, so it would plan for a fresh charger, which usually finishes early. Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. Volt stays connected and shows a notification until the schedule is set.</string>
-    <string name="main_schedule_measure_body_foreground" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge">Volt didn\'t see this charge begin, so it would plan for a fresh charger, which usually finishes early. Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. Volt stays connected, even in the background, and shows a notification until the schedule is set.</string>
+    <string name="main_schedule_measure_body" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge" volt:dnt="Volt">Volt didn\'t see this charge begin, so it would plan for a fresh charger, which usually finishes early. Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. Volt stays connected and shows a notification until the schedule is set.</string>
+    <string name="main_schedule_measure_body_foreground" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge" volt:dnt="Volt">Volt didn\'t see this charge begin, so it would plan for a fresh charger, which usually finishes early. Watching the charger for about 10 minutes lets it plan closer to your time, still with the 20-minute buffer. Volt stays connected, even in the background, and shows a notification until the schedule is set.</string>
     <!-- %1$s is whole minutes. -->
     <string name="main_schedule_measuring_toast" volt:screen="Charge schedule" volt:purpose="toast" volt:safety="charge">Measuring · Charge done by is set within %1$s min</string>
     <!-- %1$s is whole minutes. -->
-    <string name="main_schedule_measuring_body" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge">Charge done by is set automatically within %1$s min. Schedule now plans with what Volt knows so far. Stop measuring leaves Charge done by off.</string>
+    <string name="main_schedule_measuring_body" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge" volt:dnt="Volt">Charge done by is set automatically within %1$s min. Schedule now plans with what Volt knows so far. Stop measuring leaves Charge done by off.</string>
     <!-- %1$s is a clock time. -->
     <string name="main_schedule_test_body" volt:screen="Charge schedule" volt:purpose="explanation" volt:safety="charge">Charging should resume at %1$s. Cancel test turns the schedule off and restores your Charge start.</string>
     <!-- %1$s is whole minutes. -->
@@ -328,7 +330,7 @@
     <!-- ===== Scooter tab control rows ===== -->
     <string name="main_row_stop_to_change" volt:screen="Scooter tab rows" volt:purpose="toast" volt:safety="ride">Stop to change</string>
     <string name="main_row_not_scheduled" volt:screen="Scooter tab rows" volt:purpose="row value" volt:safety="charge">Not scheduled</string>
-    <string name="main_row_range_learned" volt:screen="Scooter tab rows" volt:purpose="row value">Volt (learned)</string>
+    <string name="main_row_range_learned" volt:screen="Scooter tab rows" volt:purpose="row value" volt:dnt="Volt">Volt (learned)</string>
     <string name="main_row_range_scooter" volt:screen="Scooter tab rows" volt:purpose="row value">Scooter</string>
     <string name="main_row_unconfirmed" volt:screen="Scooter tab rows" volt:purpose="caption" volt:safety="experimental">Unconfirmed here</string>
     <string name="main_row_untested" volt:screen="Scooter tab rows" volt:purpose="caption" volt:safety="experimental">Untested here</string>
@@ -342,27 +344,27 @@
     <string name="main_join_note" volt:screen="Scooter tab rows" volt:purpose="caption">%1$s · %2$s</string>
 
     <!-- ===== Top speed card ===== -->
-    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride">Top speed · Sport</string>
-    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Top speed, Sport mode maximum, not reported</string>
-    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Top speed, Sport mode maximum, not reported, last seen setting</string>
+    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Top speed · Sport</string>
+    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, not reported</string>
+    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, not reported, last seen setting</string>
     <string name="main_speed_confirming" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
     <string name="main_speed_confirming_visible" volt:screen="Top speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Top speed, Sport mode maximum, %1$s</string>
+    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, %1$s</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Top speed, Sport mode maximum, %1$s, last seen setting</string>
-    <!-- %1$s is whole km/h. -->
+    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, %1$s, last seen setting</string>
+    <!-- %1$s is whole km/h. If the unit word changes with the number in your language, write the symbol km/h instead of the word. -->
     <string name="main_speed_spoken_km" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometres per hour</string>
-    <!-- %1$s is whole mph, %2$s the exact km/h value the scooter is sent. -->
+    <!-- %1$s is whole mph, %2$s the exact km/h value the scooter is sent. If the unit words change with the number in your language, write the symbols mph and km/h instead of the words. -->
     <string name="main_speed_spoken_mi" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometres per hour</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
     <string name="main_speed_set" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Set top speed to %1$s</string>
     <!-- %1$s is the exact km/h. Keep the unit symbols. -->
-    <string name="main_speed_unit_dual" volt:screen="Top speed" volt:purpose="unit">mph · %1$s km/h</string>
+    <string name="main_speed_unit_dual" volt:screen="Top speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
 
     <!-- ===== Report sheets ===== -->
-    <string name="main_report_invite_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy">No serial, MAC, owner key, PIN, names or routes are included.</string>
-    <string name="main_report_invite_title" volt:screen="Report sheets" volt:purpose="title">Help Volt support this scooter</string>
+    <string name="main_report_invite_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="MAC|PIN">No serial, MAC, owner key, PIN, names or routes are included.</string>
+    <string name="main_report_invite_title" volt:screen="Report sheets" volt:purpose="title" volt:dnt="Volt">Help Volt support this scooter</string>
     <string name="main_report_check_share" volt:screen="Report sheets" volt:purpose="button">Check &amp; share</string>
     <string name="main_report_not_now" volt:screen="Report sheets" volt:purpose="button">Not now</string>
     <string name="main_report_dont_ask" volt:screen="Report sheets" volt:purpose="button">Don\'t ask again</string>
@@ -373,26 +375,26 @@
     <string name="main_report_check_choose" volt:screen="Report sheets" volt:purpose="status">Check finished ✓ Choose your scooter, or Not sure.</string>
     <string name="main_report_check_stopped" volt:screen="Report sheets" volt:purpose="status">The check stopped before it finished.</string>
     <string name="main_report_which" volt:screen="Report sheets" volt:purpose="title">Which scooter is this?</string>
-    <string name="main_report_changed" volt:screen="Report sheets" volt:purpose="toast">The scooter changed, so Volt didn\'t open the report.</string>
+    <string name="main_report_changed" volt:screen="Report sheets" volt:purpose="toast" volt:dnt="Volt">The scooter changed, so Volt didn\'t open the report.</string>
     <string name="main_report_thanks_report" volt:screen="Report sheets" volt:purpose="toast">Your email app has the report. Thanks for helping!</string>
     <string name="main_report_save" volt:screen="Report sheets" volt:purpose="button">Save</string>
-    <string name="main_report_model_note" volt:screen="Report sheets" volt:purpose="status">Volt shows this model\'s name and photo until it can identify your scooter itself.</string>
-    <string name="main_report_failure_body" volt:screen="Report sheets" volt:purpose="explanation">Sending Volt\'s connection details helps fix this for your model. Your email app opens a short report you can read before you send it.</string>
-    <string name="main_report_failure_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy">It lists each connection step and error code, the scooter\'s model ID, and your Android version and phone model. No serial, MAC, owner key, PIN or names.</string>
-    <string name="main_report_failure_title" volt:screen="Report sheets" volt:purpose="title">Volt couldn\'t connect to this scooter</string>
+    <string name="main_report_model_note" volt:screen="Report sheets" volt:purpose="status" volt:dnt="Volt">Volt shows this model\'s name and photo until it can identify your scooter itself.</string>
+    <string name="main_report_failure_body" volt:screen="Report sheets" volt:purpose="explanation" volt:dnt="Volt">Sending Volt\'s connection details helps fix this for your model. Your email app opens a short report you can read before you send it.</string>
+    <string name="main_report_failure_privacy" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="Android|MAC|PIN">It lists each connection step and error code, the scooter\'s model ID, and your Android version and phone model. No serial, MAC, owner key, PIN or names.</string>
+    <string name="main_report_failure_title" volt:screen="Report sheets" volt:purpose="title" volt:dnt="Volt">Volt couldn\'t connect to this scooter</string>
     <string name="main_report_send_details" volt:screen="Report sheets" volt:purpose="button">Send details</string>
     <string name="main_report_thanks_details" volt:screen="Report sheets" volt:purpose="toast">Your email app has the details. Thanks for helping!</string>
     <string name="main_report_no_email_details" volt:screen="Report sheets" volt:purpose="toast">No email app could open the details.</string>
     <string name="main_report_send" volt:screen="Report sheets" volt:purpose="button">Send</string>
     <string name="main_report_email_next" volt:screen="Report sheets" volt:purpose="status">Your email app opens next, so you can read it first.</string>
     <string name="main_report_choose_send" volt:screen="Report sheets" volt:purpose="status">Choose your scooter, or Not sure, then Send.</string>
-    <string name="main_report_diagnostics_note" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy">Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names.</string>
-    <string name="main_report_email_title" volt:screen="Report sheets" volt:purpose="title">Email Volt</string>
+    <string name="main_report_diagnostics_note" volt:screen="Report sheets" volt:purpose="explanation" volt:safety="privacy" volt:dnt="PIN">Adds a diagnostics file: app and scooter details, and recent connection and control events. Never your owner key, PIN, serial, location or names.</string>
+    <string name="main_report_email_title" volt:screen="Report sheets" volt:purpose="title" volt:dnt="Volt">Email Volt</string>
     <string name="main_report_preview" volt:screen="Report sheets" volt:purpose="button">Preview</string>
     <string name="main_report_preview_description" volt:screen="Report sheets" volt:purpose="screen reader">Preview the diagnostics file</string>
-    <string name="main_report_no_bundle" volt:screen="Report sheets" volt:purpose="explanation">Volt couldn\'t prepare the diagnostics file, so this email goes without it.</string>
+    <string name="main_report_no_bundle" volt:screen="Report sheets" volt:purpose="explanation" volt:dnt="Volt">Volt couldn\'t prepare the diagnostics file, so this email goes without it.</string>
     <string name="main_report_open_email" volt:screen="Report sheets" volt:purpose="button">Open email</string>
-    <string name="main_report_no_attach" volt:screen="Report sheets" volt:purpose="toast">Volt couldn\'t attach the diagnostics file, so the email goes without it.</string>
+    <string name="main_report_no_attach" volt:screen="Report sheets" volt:purpose="toast" volt:dnt="Volt">Volt couldn\'t attach the diagnostics file, so the email goes without it.</string>
     <string name="main_report_no_email" volt:screen="Report sheets" volt:purpose="toast">No email app could open the report.</string>
     <string name="main_report_diagnostics_title" volt:screen="Report sheets" volt:purpose="title">Diagnostics file</string>
     <string name="main_report_chooser" volt:screen="Report sheets" volt:purpose="dialog title">Email the report</string>
@@ -400,7 +402,7 @@
     <!-- The narrow form of main_report_include. -->
     <string name="main_report_include_short" volt:screen="Report sheets" volt:purpose="row name" volt:ladder="short">Diagnostics</string>
     <!-- %1$s is a model number, sent as the scooter reports it. -->
-    <string name="main_report_invite_body" volt:screen="Report sheets" volt:purpose="explanation">Volt hasn\'t seen a Model %1$s before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it.</string>
+    <string name="main_report_invite_body" volt:screen="Report sheets" volt:purpose="explanation" volt:dnt="Volt">Volt hasn\'t seen a Model %1$s before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it.</string>
     <!-- %1$s is an email address. -->
     <string name="main_report_to" volt:screen="Report sheets" volt:purpose="caption">To %1$s</string>
     <!-- A small file's size. The English says 1 bytes; pending an English fix. -->
@@ -409,28 +411,32 @@
         <item quantity="other">%1$d bytes</item>
     </plurals>
     <!-- %1$s is a size with one decimal. Keep the unit symbol. -->
-    <string name="main_report_size_kb" volt:screen="Report sheets" volt:purpose="caption">%1$s KB</string>
+    <string name="main_report_size_kb" volt:screen="Report sheets" volt:purpose="caption" volt:dnt="KB">%1$s KB</string>
     <!-- %1$s is the file name, %2$s its size. The file itself stays English. -->
-    <string name="main_report_preview_body" volt:screen="Report sheets" volt:purpose="explanation">%1$s · %2$s. This is exactly what Volt attaches.</string>
+    <string name="main_report_preview_body" volt:screen="Report sheets" volt:purpose="explanation" volt:dnt="Volt">%1$s · %2$s. This is exactly what Volt attaches.</string>
     <!-- A saved scooter's default name when its model is unknown. -->
     <string name="main_name_navee" volt:screen="Scooter names" volt:purpose="default name" volt:dnt="NAVEE">NAVEE scooter</string>
 
     <!-- ===== Range estimate sheet ===== -->
     <string name="main_range_title" volt:screen="Range estimate" volt:purpose="title">Range estimate</string>
     <string name="main_range_scooter" volt:screen="Range estimate" volt:purpose="option">Scooter\'s estimate</string>
-    <string name="main_range_volt" volt:screen="Range estimate" volt:purpose="option">Volt\'s estimate (learned)</string>
+    <string name="main_range_volt" volt:screen="Range estimate" volt:purpose="option" volt:dnt="Volt">Volt\'s estimate (learned)</string>
     <string name="main_range_exit_simulation" volt:screen="Range estimate" volt:purpose="toast">Exit simulation to use saved rides.</string>
     <string name="main_range_checking" volt:screen="Range estimate" volt:purpose="status">Checking saved rides…</string>
-    <string name="main_range_intro_title" volt:screen="Range estimate" volt:purpose="title">Volt\'s estimate</string>
+    <string name="main_range_intro_title" volt:screen="Range estimate" volt:purpose="title" volt:dnt="Volt">Volt\'s estimate</string>
     <string name="main_range_more_title" volt:screen="Range estimate" volt:purpose="title">More rides needed</string>
-    <string name="main_range_intro_body" volt:screen="Range estimate" volt:purpose="explanation">Volt uses your recorded rides to learn how far you can go. It improves as you record more rides.</string>
-    <string name="main_range_more_body" volt:screen="Range estimate" volt:purpose="explanation">Record a few more rides so Volt can learn your range. Use your scooter\'s estimate for now.</string>
+    <string name="main_range_intro_body" volt:screen="Range estimate" volt:purpose="explanation" volt:dnt="Volt">Volt uses your recorded rides to learn how far you can go. It improves as you record more rides.</string>
+    <string name="main_range_more_body" volt:screen="Range estimate" volt:purpose="explanation" volt:dnt="Volt">Record a few more rides so Volt can learn your range. Use your scooter\'s estimate for now.</string>
     <string name="main_range_not_selected" volt:screen="Range estimate" volt:purpose="screen reader">Not selected</string>
+    <!-- Attached to common_selected or main_range_not_selected, the state of the "Volt's estimate" option. Keeps its own leading comma. -->
     <string name="main_range_state_simulation" volt:screen="Range estimate" volt:purpose="screen reader">, unavailable in simulation</string>
+    <!-- Attached to common_selected or main_range_not_selected, the state of the "Volt's estimate" option. Keeps its own leading comma. -->
     <string name="main_range_state_checking" volt:screen="Range estimate" volt:purpose="screen reader">, checking saved rides</string>
+    <!-- Attached to common_selected or main_range_not_selected, the state of the "Volt's estimate" option. Keeps its own leading comma. -->
     <string name="main_range_state_more" volt:screen="Range estimate" volt:purpose="screen reader">, more rides needed</string>
+    <!-- Attached to common_selected or main_range_not_selected, the state of the "Volt's estimate" option. Keeps its own leading comma. -->
     <string name="main_range_state_retry" volt:screen="Range estimate" volt:purpose="screen reader">, tap to retry</string>
-    <string name="main_range_read_failed" volt:screen="Range estimate" volt:purpose="status">Couldn\'t read saved rides. Tap Volt\'s estimate to retry.</string>
+    <string name="main_range_read_failed" volt:screen="Range estimate" volt:purpose="status" volt:dnt="Volt">Couldn\'t read saved rides. Tap Volt\'s estimate to retry.</string>
     <string name="main_range_using_scooter" volt:screen="Range estimate" volt:purpose="status">Using scooter\'s estimate for now.</string>
     <!-- %1$s is a distance with its unit, %2$s a battery percent. -->
     <string name="main_range_summary" volt:screen="Range estimate" volt:purpose="status">About %1$s at %2$s%%</string>
@@ -441,7 +447,7 @@
     <string name="main_charger_intro" volt:screen="Charger for estimates" volt:purpose="explanation" volt:safety="charge" volt:dnt="UT5 MAX">Automatic recognizes UT5 MAX chargers from live charging power. You can choose a charger yourself instead.</string>
     <string name="main_charger_auto" volt:screen="Charger for estimates" volt:purpose="option" volt:safety="charge">Auto</string>
     <string name="main_charger_stop_recording" volt:screen="Charger for estimates" volt:purpose="toast" volt:safety="charge">Stop charge recording before changing the charger.</string>
-    <string name="main_charger_note" volt:screen="Charger for estimates" volt:purpose="explanation" volt:safety="charge">Connecting near full may leave the charger uncertain; Volt uses the current rate until it knows. This preference changes estimates only and is saved for this scooter.</string>
+    <string name="main_charger_note" volt:screen="Charger for estimates" volt:purpose="explanation" volt:safety="charge" volt:dnt="Volt">Connecting near full may leave the charger uncertain; Volt uses the current rate until it knows. This preference changes estimates only and is saved for this scooter.</string>
 
     <!-- ===== Change a setting ===== -->
     <string name="main_edit_apply" volt:screen="Change a setting" volt:purpose="button">Apply</string>
@@ -470,8 +476,8 @@
     <string name="main_import_all_title" volt:screen="Import and backup" volt:purpose="title">Back up &amp; restore</string>
     <string name="main_import_restore_title" volt:screen="Import and backup" volt:purpose="title">Restore?</string>
     <string name="main_import_back_up_title" volt:screen="Import and backup" volt:purpose="title">Back up?</string>
-    <string name="main_import_restore_body" volt:screen="Import and backup" volt:purpose="explanation">Choose a backup, review its contents, then confirm. Nothing changes before you approve. Volt pauses until you reopen it.</string>
-    <string name="main_import_pause_body" volt:screen="Import and backup" volt:purpose="explanation">Volt pauses until you reopen it.</string>
+    <string name="main_import_restore_body" volt:screen="Import and backup" volt:purpose="explanation" volt:dnt="Volt">Choose a backup, review its contents, then confirm. Nothing changes before you approve. Volt pauses until you reopen it.</string>
+    <string name="main_import_pause_body" volt:screen="Import and backup" volt:purpose="explanation" volt:dnt="Volt">Volt pauses until you reopen it.</string>
     <string name="main_import_still_opening" volt:screen="Import and backup" volt:purpose="toast">Still opening. Try again.</string>
     <string name="main_import_finish_first" volt:screen="Import and backup" volt:purpose="toast">Finish the current import or export first.</string>
     <string name="main_import_finish_shizuku" volt:screen="Import and backup" volt:purpose="toast" volt:dnt="Shizuku">Finish Shizuku cleanup first</string>
@@ -480,15 +486,15 @@
     <string name="main_import_export_missing" volt:screen="Import and backup" volt:purpose="toast">The export file is unavailable.</string>
     <string name="main_import_finish_save" volt:screen="Import and backup" volt:purpose="toast">Finish the current save before starting another export.</string>
     <string name="main_import_retry_setup" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Import failed. Retry setup.</string>
-    <string name="main_import_not_layout" volt:screen="Import and backup" volt:purpose="toast">Not a Volt layout file. Nothing changed.</string>
+    <string name="main_import_not_layout" volt:screen="Import and backup" volt:purpose="toast" volt:dnt="Volt">Not a Volt layout file. Nothing changed.</string>
     <string name="main_import_setup_unreadable" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">The setup file could not be read.</string>
     <string name="main_import_pick_again" volt:screen="Import and backup" volt:purpose="toast">Import failed. Pick file again.</string>
-    <string name="main_import_no_longer_matches" volt:screen="Import and backup" volt:purpose="toast">Saved setup no longer matches. Pick file again.</string>
+    <string name="main_import_no_longer_matches" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Saved setup no longer matches. Pick file again.</string>
     <string name="main_import_removed" volt:screen="Import and backup" volt:purpose="toast">That scooter was removed. Pick file again.</string>
     <string name="main_import_unavailable" volt:screen="Import and backup" volt:purpose="toast">Imported scooter is unavailable. Pick file again.</string>
     <string name="main_import_imported_owner" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Owner setup imported</string>
     <string name="main_import_paused" volt:screen="Import and backup" volt:purpose="toast">Import paused. Will retry.</string>
-    <string name="main_import_too_big" volt:screen="Import and backup" volt:purpose="toast">Setup files must be smaller than 1 MiB.</string>
+    <string name="main_import_too_big" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key" volt:dnt="MiB">Setup files must be smaller than 1 MiB.</string>
     <!-- %1$s is the scooter's name. -->
     <string name="main_import_replace_body" volt:screen="Import and backup" volt:purpose="explanation">Replaces %1$s’s dashboard and all 3 slots.</string>
     <!-- A scooter's default name after an import without one. Shown only; the saved name stays English. -->
@@ -508,11 +514,12 @@
     <string name="main_schedule_limit_changed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge limit changed; check the schedule and try again</string>
     <string name="main_schedule_start_changed_estimate" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge start changed, but a fresh charging estimate is needed</string>
     <string name="main_schedule_passed_not_cancelled" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Start time passed, but schedule cancellation was not confirmed</string>
+    <string name="main_schedule_charging_now" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Charging now — the calculated start time has passed</string>
     <string name="main_schedule_limit_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Charge limit changed; the charge start is saved without a finish estimate</string>
     <string name="main_schedule_battery_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Battery level changed; the charge start is saved without a finish estimate</string>
     <string name="main_schedule_enable_not_confirmed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge start changed, but enabling the schedule was not confirmed</string>
     <string name="main_schedule_connection_changed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Connection changed; check the scooter schedule before trying again</string>
-    <string name="main_schedule_stopped_before_finish" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Volt stopped before it finished; check that Scheduled charging is off</string>
+    <string name="main_schedule_stopped_before_finish" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge" volt:dnt="Volt">Volt stopped before it finished; check that Scheduled charging is off</string>
     <string name="main_schedule_off_clock_done_by" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge done by is off; the scooter clock could not be confirmed</string>
     <string name="main_schedule_off_clock_scheduled" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Scheduled charging is off; the scooter clock could not be confirmed</string>
     <string name="main_schedule_off_start_done_by" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge done by is off; restoring Charge start was not confirmed</string>
@@ -529,12 +536,14 @@
     <string name="main_import_save_failed" volt:screen="Import and backup" volt:purpose="toast">The export could not be saved.</string>
     <!-- A control row read aloud adds this after its name and value; %1$s is the caption. -->
     <string name="main_row_state_note" volt:screen="Scooter tab rows" volt:purpose="screen reader">", %1$s"</string>
-    <!-- Never shown: Volt compares a command's saved evidence with the start of this English. Leave it as it is. -->
-    <string name="main_result_clock_accepted" volt:screen="Scooter tab rows" volt:purpose="id" volt:dnt="Accepted; no clock">Accepted; no clock</string>
     <string name="main_schedule_test_row_both" volt:screen="Charge schedule" volt:purpose="screen reader" volt:safety="charge">Test scheduled charging, %1$s, %2$s</string>
     <string name="main_label_value_state" volt:screen="Scooter tab" volt:purpose="screen reader">%1$s, %2$s%3$s</string>
+    <!-- Fills %3$s of main_label_value_state, right after the setting's value. Keeps its own leading comma. -->
     <string name="main_row_confirming_part" volt:screen="Scooter tab" volt:purpose="screen reader">, confirming</string>
+    <!-- Fills %3$s of main_label_value_state, right after the setting's value. Keeps its own leading comma. -->
     <string name="main_row_stop_part" volt:screen="Scooter tab" volt:purpose="screen reader">, stop to change</string>
+    <!-- Fills %3$s of main_scan_option, right after the signal strength. Keeps its own leading comma. -->
     <string name="main_scan_state_yours" volt:screen="Connection" volt:purpose="screen reader">, your scooter</string>
+    <!-- Fills %3$s of main_scan_option, right after the signal strength. Keeps its own leading comma. -->
     <string name="main_scan_state_saved" volt:screen="Connection" volt:purpose="screen reader">, saved scooter in My scooters</string>
 </resources>
