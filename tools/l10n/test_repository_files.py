@@ -9,6 +9,7 @@ import gen_catalog  # noqa: E402
 import hardcoded_lint  # noqa: E402
 import l10nlib  # noqa: E402
 import ledger_check  # noqa: E402
+import translib  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 L10N = os.path.join(ROOT, "l10n")
@@ -44,6 +45,9 @@ class RepositoryFilesTest(unittest.TestCase):
                 self.assertGreaterEqual(len(rows), 50)
                 for term_id in ("not-affiliated", "owner-identity", "owner-key", "handlebar-pin", "charge-ceiling"):
                     self.assertIn(term_id, ids)
+
+    def test_committed_glossaries_pass_glossary_check(self):
+        self.assertEqual(translib.committed_glossary_problems(translib.Paths(ROOT)), {})
 
     def test_ledgers_parse(self):
         directory = os.path.join(L10N, "ledger")
