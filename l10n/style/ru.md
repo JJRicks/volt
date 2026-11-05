@@ -138,7 +138,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Settings vs setup:** settings are **Настройки**. A one-time setup is **настройка** too, so name what is being set up: *Получение ключа владельца*.
 - **Restore vs set back:** bringing back a backup is **Восстановить**. Undoing a try is **Вернуть**, with a noun where needed: *Вернуть прежнее значение*. Energy recovery is **Рекуперация энергии**, unrelated to either; *Рекуперация* alone once the screen has said it. Reviews and retailers use this word.
 - **Readback:** **контрольное считывание**, a neutral word, because a readback can also fail to confirm.
-- **Rejected:** *Rejected* is **Отклонено**, *Refused by scooter* **Отклонено самокатом**.
+- **Rejected:** on an Experimental try, *Rejected* is **Отклонено**, *Refused by scooter* **Отклонено самокатом**. On the capacity card it means rides left out of the estimate (rule 14): **Не учтено в оценке**, with the count *Не учтено поездок: %1$d*. Never *Отклонено* there.
 - **Roles:** owner is **владелец**. Shared rider is **пользователь с общим доступом**. The compact role label (`more_role_shared`, English *Shared*) is **Общий доступ**. **Debate item:** long, but no shorter Russian word says it without inventing a role.
 - **Owner key parts:** the file is **файл с ключом владельца**, shortened to **файл владельца** on onboarding steps. `navee-owner-setup.json` stays as written. It carries the secret, so never *файл настройки владельца*, which reads as a harmless settings file. Website button names are English until the website changes, so quote them in English.
 - **Levels:** Energy recovery levels are translated and agree with *рекуперация*: *Выключена, Низкая, Средняя, Высокая*.
@@ -166,6 +166,60 @@ The glossary is authoritative; this explains the distinctions it can't.
 | Move %1$s | Переместить: %1$s | Переместить %1$s |
 
 - Nothing may agree with a value: no adjective or verb gender before `%1$s`.
+
+## Rules every language follows
+
+These came from the independent review of the first full draft (Spanish, 2026-11-05). They override anything above that disagrees. The table at the end holds this language's fixed words; a term in it is used every time the concept appears, in every area.
+
+1. **Try versus try again.** The glossary's "try" word is only for trying a control (Experimental, Controls to try). An ordinary retry ("Try again", "Try shortly") uses the fixed retry phrase below, so it can never read as "test this".
+2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
+3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done.
+4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: "Start time: %1$s". Numbers and units after a placeholder follow this guide's spacing.
+5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder.
+6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
+7. **Drive modes and level names.** Keep the case the English string uses in that string (Sport, ECO, Drive). Don't change it, and don't translate them.
+8. **Fit.** Never swap in a different meaning, or a colloquial word, to fit a budget. Use this guide's accepted abbreviation. If none fits, write the correct word and say so in the reply's notes: an overflow is a design problem that gets fixed, a wrong word isn't noticed.
+9. **Naming things on screen.** When a sentence names a button, tab or screen, use exactly that label's translation and this guide's rule for marking it. Don't paraphrase a label.
+10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
+11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
+12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
+13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+14. **English that misleads.** These read wrongly word for word, so translate what they mean, whatever the English says. "Rejected" on capacity means rides left out of the estimate. "Cleanup" of logging means putting logging back as it was, and logging may still be on. "Restore" in Experimental means setting a value back, not restoring a backup. "Full" of a battery means fully charged, never a bare word that could mean something else. "Decimal digits" means number digits. "OEM feature domain" means outside what the official app allows. "Stop the scooter" means bring it to a halt, not switch it off. "Below 3 km/h" on a kick-start setting means a setting value, not riding slowly.
+15. **Tags after a value.** A tag such as "(raw)" or "(est.)" follows a value you can't see, so it must not need to agree with it. Use a form that needs no agreement, such as "(raw value)".
+16. **When the check refuses good wording.** Don't change the meaning to please the check, and don't widen a glossary row just to make a string pass unless the wording is one this guide approves. Find a wording that passes and keeps the meaning, and list the better wording in your notes for the debate.
+
+### Fixed words
+
+| English concept | Meaning | This language |
+|---|---|---|
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Повторите попытку**; *Повторите попытку чуть позже*. As a button, **Повторить**. Never *Попробуйте ещё раз* or *Попробовать снова*, which read as trying a control |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **нет данных**. Says only that no value came, not that anything is off or fine. Never *не сообщается*, *не сообщено* or *не передано* |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **по данным самоката**; verb **показывает**: *самокат показывает 80 %*. A claim, not a measurement. Never *подтверждено*, *измерено* or *сообщено*. *отчёт* stays the word for a document |
+| NAVEE logging | debug logging on the phone (activity log), never account registration | **журнал отладки NAVEE**. Never *регистрация*, which reads as signing up for an account |
+| restore logging | turning that logging back to how it was (usually off) | **вернуть журнал отладки в прежнее состояние**. Means putting that logging back as it was, usually off; logging may still be on afterwards. Never *восстановить журнал*: *Восстановить* is for a backup |
+| Volt's helper | the small helper Volt starts inside Shizuku | **служебный процесс Volt**; *процесс* alone once the screen makes clear which. Never *помощник* or *ассистент*. The script on the computer is the different **программа извлечения** |
+| stock charger | the charger that came with the scooter | **комплектное зарядное устройство**; alone, *Комплектное*. Never *стандартное* |
+| high-speed charger | a faster charger the rider may own | **быстрое зарядное устройство**; alone, *Быстрое*. Never *скоростное*: this is about charging, not riding speed |
+| gap (in a recording) | a stretch of a recording with no data | **пропуск в записи**; *Пропуски в записи* in a list. Means no data was recorded, not that power or the link was cut. Never *разрыв* or *обрыв* |
+| elevation | height above sea level on a route | **высота**: *Высота не измерена*. Never *подъём*, which is a climb |
+| current direction | which way battery current flows | **направление тока**. Never bare *направление*, which reads as a route |
+| throughput | how much energy has passed through the battery | **прошедшая энергия**; *энергия, прошедшая через батарею* in a sentence. An amount, not a rate. Never *пропускная способность* |
+| battery gauge | the scooter's own battery percentage reading | **индикатор заряда**; *индикатор* alone where the screen is about the battery. The scooter's own figure, not a measurement. Never *датчик*, which reads as a sensor |
+| raw | an unprocessed value, also used as a short tag | **без обработки**, which needs no agreement: *(без обработки)* as a tag, *значение без обработки* in a sentence. Where the English writes the badge RAW, keep **RAW** like LAB. **Debate item:** *без* counts as a negation word, so a check may warn |
+| last seen | when Volt last had data from the scooter | **Последние данные**; with a value, *Последние данные: %1$s*. The data may be old, so never word it as current. Not *Последнее состояние*, which is the last known state |
+| add | adding a widget, scooter or item | **добавить**: *Добавить виджет*, *Добавьте ещё один самокат* |
+| enter (typing) | typing a value | **ввести**: *Введите новый PIN*. Never *набрать* or *вбить* |
+| the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **приложение**, neuter: *приложение NAVEE*, *официальное приложение*. Never *апп* or *прога* |
+| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **подключите самокат**, *Сначала подключите самокат*, *Подключить самокат снова*. Never *подключитесь*, which reads as going online. The button stays *Подключить*; plugging in says *подключите зарядное устройство* |
+| set a value | one verb for setting a value on the scooter | **задать**: *Задать PIN*, *Задать значение: %1$s*. Never *установить*, which also means installing an app. The noun stays *настройка*, and setting something back stays *Вернуть* |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | Passive future or impersonal, in dialogs and hints alike: *Поездка будет удалена*, *Откроется карта*. Never *Удалите…* or *Откройте…*, which read as commands |
+| screen and section titles | noun form or verb form, with one example | Noun form: *Резервное копирование и восстановление*. If the title is an action with no good noun, the infinitive: *Проверить зарядку по расписанию*. Never the imperative |
+| sign (+ or −) | whether a value is positive or negative; never a calque meaning a signal or a road sign | **знак (плюс или минус)**; *знак значения* where *знак* alone could read as a symbol. Never *сигнал* or *признак* |
+| window (of time) | the span of time a chart or widget covers; never reads as a window on screen | **период**: *Период времени*, *Период данных поездки*. Never *окно* |
+| connected history | readings stored while connected, not a log of connections | **История показателей**. Never *История подключений*, which reads as a log of connections |
+| app preferences | Volt's own settings section and its shortcut, the same word on both; scooter preferences saved in Volt keep a different name | **Настройки приложения**, the same on the shortcut and the section. *Параметры самоката* stays for scooter preferences saved in Volt, which aren't the settings on the scooter |
+| a value you can't see | a question or sentence ending in an on, off or level word: name it without any agreement, with one example | Name it as a label: *При включённом поворотнике звук в таком состоянии: %1$s?* |
+| NAVEE, meaning the app | the English says NAVEE alone for the app: write "the NAVEE app" if bare NAVEE would need gender, case or an article | **приложение NAVEE**: *Приложение NAVEE не подключилось*. Never bare *NAVEE* with a verb that must agree with it |
 
 ## Sources consulted
 
