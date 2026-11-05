@@ -3,3 +3,9 @@
 # G5: the English F4 changes how the screens build (the submenu titles, the lab's two count sentences, the
 # default scooter name sentences and the layout destination's spoken labels), pinned before the change.
 tests/l10n/characterization/FollowupsEnglishTest.java
+# F4's own suite: the screens' calls (read from their source), Select all while frozen, the toasts' display
+# text against message()'s English, and a key-echo source. BackupSelectAll is the pure Select all rule.
+src/com/jjricks/volt/BackupSelectAll.java
+src/com/jjricks/volt/ConnectionText.java
+src/com/jjricks/volt/ProximityFollowUp.java
+tests/l10n/FollowupsTest.java
