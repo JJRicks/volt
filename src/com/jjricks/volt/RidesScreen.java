@@ -707,7 +707,7 @@ public final class RidesScreen implements AppScreen {
         boolean batteryGain = ride.batteryDropPercent != null && ride.batteryDropPercent < 0;
         tileReadings(efficiencyParts(ride), quantityParts(ride.measuredThroughputWh, T.unitsWattHour(), 2));
         List<View> energy = tiles(body, new String[]{"battery", batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), "route", T.ridesTilePerDistance(), efficiency(ride),
-                "bolt", T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, "Wh", 2), "bolt", T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
+                "bolt", T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, T.unitsWattHour(), 2), "bolt", T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
         if (ride.batteryDropPercent != null && Double.isFinite(ride.batteryDropPercent))
             energy.get(0).setContentDescription((batteryGain ? T.ridesBatteryGainDescription(Math.round(Math.abs(ride.batteryDropPercent)))
                     : T.ridesBatteryDropDescription(Math.round(Math.abs(ride.batteryDropPercent)))));

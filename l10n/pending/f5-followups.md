@@ -24,3 +24,12 @@ pull request or a tooling pull request where noted; none changes English.
    labels statement's. Delete the extra `;` in any ordinary pull request.
 
 5. **Legend text direction.** The legend's right-to-left mirror stays out of scope, as the plan says.
+
+6. **Grade legend ticks.** `LegendView.show` still hard-codes `{"−12%", "0", "+12%"}`, so a language that
+   writes the sign first (Turkish `%12`) shows the percent sign on the wrong side. It should read
+   `"−" + T.fmtPercent(Fmt.integer(12))`, and the same with `"+"`; English stays `−12%` and `+12%`. G1 blocks
+   this in a batch: one literal becoming a kept sign plus a call fits no row, and the sign is a new literal.
+   Repro: make that change, add `template` rows for `fmt_percent`, and run `python3 tools/l10n/ledger_check.py
+   --base <base> --head WORKTREE --ledger l10n/ledger/f5.tsv`. It reports `no call of fmtPercent passes the
+   holes in placeholder order` and `new literal "−"`. Reusing `change(12.0)` is refused too (`this change adds
+   change ( 12.0 )`). Do it in an ordinary pull request. The accel ticks are numbers and a symbol and may stay.

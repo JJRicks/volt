@@ -1,7 +1,12 @@
 package com.jjricks.volt;
 
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.Locale;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * F5: the head Rides text against the base English pinned in RidesFollowupsEnglishTest, and the point of
@@ -96,7 +101,31 @@ public final class RidesFollowupsTest {
         }
     }
 
+    /**
+     * tileParts finds a tile's parts by its whole text, so a value registered with quantityParts must be
+     * built by quantity with the same unit and decimals. A literal "Wh" beside a T.unitsWattHour() part
+     * matches in English only, and a translated tile loses its number and unit styling.
+     */
+    private static void tilePartsMatchTileValues() throws Exception {
+        String source = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/RidesScreen.java")), StandardCharsets.UTF_8);
+        Matcher registered = Pattern.compile("(?<![\\w.])quantityParts\\(([^,()]+), ((?:[^,()]|\\(\\))+), (\\d+)\\)").matcher(source);
+        int found = 0;
+        while (registered.find()) {
+            found++;
+            String value = registered.group(1), wanted = registered.group(2) + ", " + registered.group(3);
+            Matcher built = Pattern.compile("(?<![\\w.])quantity\\(" + Pattern.quote(value) + ", ((?:[^,()]|\\(\\))+, \\d+)\\)").matcher(source);
+            int uses = 0;
+            while (built.find()) {
+                uses++;
+                eq(wanted, built.group(1), "tile value " + value + " unit and decimals");
+            }
+            eq(true, uses > 0, "tile value " + value + " is built by quantity");
+        }
+        eq(true, found > 0, "RidesScreen registers a quantity part");
+    }
+
     public static void main(String[] args) throws Exception {
+        tilePartsMatchTileValues();
         Locale saved = Locale.getDefault();
         try {
             for (Locale phone : new Locale[] {Locale.US, Locale.GERMANY, new Locale("ar", "EG"), new Locale("hi", "IN")}) {

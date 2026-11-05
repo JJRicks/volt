@@ -20,6 +20,7 @@ src/com/jjricks/volt/RidesScreen.java:603	["rides"]	-	stays-english	measureStora
 src/com/jjricks/volt/RidesScreen.java:603	["phone-rides"]	-	stays-english	measureStorage moved whole below the value methods, and keeps the number; these ids move with it
 src/com/jjricks/volt/RidesScreen.java:605	[""]	-	removed	whole block: see the storageText row: the measured bytes are kept, and "" when nothing is saved is decided by updateHistoryCount
 src/com/jjricks/volt/RidesScreen.java:641	[{"hole": "picked.size()", "arg": 1, "type": "s"}, "/2"]	-	stays-english	the picker count mark moves to OF_TWO so the spoken count beside it can be a plural; the mark is a number and a slash
+src/com/jjricks/volt/RidesScreen.java:715	["Wh"]	units_watt_hour	exact	manual: the throughput tile value now passes the same translated unit as the tile parts registered for it, so the parts are found in any language
 src/com/jjricks/volt/RidesScreen.java:870	["━ "]	-	stays-english	the chart line pattern marks moved into named constants so the label beside them can be displayLabel(); symbols, not words
 src/com/jjricks/volt/RidesScreen.java:870	["┄ "]	-	stays-english	the chart line pattern marks moved into named constants so the label beside them can be displayLabel(); symbols, not words
 src/com/jjricks/volt/RidesScreen.java:870	["⋯ "]	-	stays-english	the chart line pattern marks moved into named constants so the label beside them can be displayLabel(); symbols, not words
