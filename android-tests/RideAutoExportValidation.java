@@ -98,7 +98,7 @@ public final class RideAutoExportValidation extends Instrumentation {
 
     private void offByDefault() {
         check(!settings.contains(ROUTE) && !settings.contains(JSON) && !settings.contains(FOLDER) && !settings.contains(PENDING), "Absent on a fresh install, so both types off");
-        String id = record("Before turning on", true); stopOnly(null); awaitPassDone(); rideSaved(id);
+        String id = recordRide("Before turning on", true); stopOnly(null); awaitPassDone(); rideSaved(id);
         check(!settings.contains(PENDING) && !shellText("ls /sdcard/Download/").contains("ride-"), "Off: a finished ride is never copied");
     }
 
@@ -146,8 +146,8 @@ public final class RideAutoExportValidation extends Instrumentation {
     // ---- Rides -------------------------------------------------------------------------------------
 
     /** The PhoneRideValidation fixture: a journal below the BLE-authenticated Start, the real recorder and synthetic fixes. */
-    private String record(String label, boolean gps) { return record(label, gps, true); }
-    private String record(String label, boolean gps, boolean motion) {
+    private String recordRide(String label, boolean gps) { return recordRide(label, gps, true); }
+    private String recordRide(String label, boolean gps, boolean motion) {
         settings.edit().putBoolean("phone_gps", gps).putBoolean("phone_motion", motion).commit();
         ScooterService service = activity.service();
         AtomicReference<String> id = new AtomicReference<>();
@@ -276,7 +276,7 @@ public final class RideAutoExportValidation extends Instrumentation {
 
     /** Rider's Stop from the notification with Volt in the background and the screen off. */
     private void hiddenStopFromNotification() {
-        String id = record("Hidden stop, screen off", true); rides.put("A", id);
+        String id = recordRide("Hidden stop, screen off", true); rides.put("A", id);
         hide(); screenOff();
         Watch watch = new Watch().begin();
         stopFromNotification(true);
@@ -299,18 +299,18 @@ public final class RideAutoExportValidation extends Instrumentation {
     private void bothTypes() {
         setType(JSON, true);
         check(settings.getBoolean(ROUTE, false) && settings.getBoolean(JSON, false) && settings.contains(FOLDER), "Both types on, one folder");
-        String b = record("Both types", true); rides.put("B", b); stopFor(null); awaitPassDone(); rideSaved(b);
+        String b = recordRide("Both types", true); rides.put("B", b); stopFor(null); awaitPassDone(); rideSaved(b);
         check(listing().contains(csvName(b)) && listing().contains(combinedName(b)) && settings.getString(PENDING, "").isEmpty(), "Route CSV and All (JSON): " + listing());
         check(folderFile(combinedName(b)).equals(expectedCombined(b)), "All (JSON) copy equals the manual export's text");
         check(folderFile(csvName(b)).equals(expectedCsv(b)), "Route CSV copy equals Track.toCsv()");
-        String c = record("Motion only", false); stopFor(null); awaitPassDone(); rideSaved(c);
+        String c = recordRide("Motion only", false); stopFor(null); awaitPassDone(); rideSaved(c);
         PhoneRideStore.Track motion; try { motion = activity.service().phoneRides.load(c); } catch (IOException e) { throw new IllegalStateException(e); }
         check(motion.locationCount == 0, "No GPS fixes");
         check(!listing().contains(csvName(c)), "No GPS fixes: no Route CSV, skipped quietly");
         if (motion.motionSampleCount > 0) check(folderFile(combinedName(c)).equals(expectedCombined(c)), "Motion-only phone recording: All (JSON)");
         else check(folderFile(analysisName(c)).equals(expectedAnalysis(c)), "No phone samples at all: Export JSON");
         notes.add("motion-only ride motion samples: " + motion.motionSampleCount);
-        String d = record("No phone data", false, false); stopFor(null); awaitPassDone(); rideSaved(d);
+        String d = recordRide("No phone data", false, false); stopFor(null); awaitPassDone(); rideSaved(d);
         check(!listing().contains(csvName(d)) && !listing().contains(combinedName(d)), "No phone recording: no Route CSV and no All (JSON)");
         check(folderFile(analysisName(d)).equals(expectedAnalysis(d)), "No phone recording: Export JSON's analysis, byte for byte");
         check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Nothing waiting, no problem");
@@ -375,12 +375,12 @@ public final class RideAutoExportValidation extends Instrumentation {
     private void folderDeletedRetriedOnNextRide() {
         shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
         check(!shellText("ls /sdcard/Download/").contains(FOLDER_NAME), "Folder deleted");
-        String d = record("Folder deleted", true); rides.put("D", d); stopFor(null); awaitPassDone();
+        String d = recordRide("Folder deleted", true); rides.put("D", d); stopFor(null); awaitPassDone();
         rideSaved(d);
         try { check(activity.service().phoneRides.load(d).locationCount > 0, "The ride and its route are saved in Volt"); } catch (IOException e) { throw new IllegalStateException(e); }
         check(settings.getString(PENDING, "").equals(d) && "folder".equals(settings.getString(PROBLEM, "")), "Waiting, with a folder problem: " + exportState());
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
-        String e = record("Folder back", true); stopFor(null); awaitPassDone();
+        String e = recordRide("Folder back", true); stopFor(null); awaitPassDone();
         check(settings.getString(PENDING, "").isEmpty() && !settings.contains(PROBLEM), "Next ride end retried the waiting ride");
         List<String> names = listing(); check(names.contains(csvName(d)) && names.contains(combinedName(d)) && names.contains(csvName(e)) && names.contains(combinedName(e)), "Both rides, both types: " + names);
         folderClean();
@@ -388,7 +388,7 @@ public final class RideAutoExportValidation extends Instrumentation {
 
     private void folderDeletedRetriedAtAppStart() {
         shell("rm -rf " + FOLDER_PATH); SystemClock.sleep(500);
-        String f = record("Retried at app start", true); stopFor(null); awaitPassDone();
+        String f = recordRide("Retried at app start", true); stopFor(null); awaitPassDone();
         check(settings.getString(PENDING, "").equals(f), "Waiting after the failure");
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
         main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
@@ -403,7 +403,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         Uri tree = Uri.parse(settings.getString(FOLDER, ""));
         getTargetContext().getContentResolver().releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         check(!granted(tree), "Grant revoked");
-        String g = record("Grant revoked", true); stopFor(null); awaitPassDone(); rideSaved(g);
+        String g = recordRide("Grant revoked", true); stopFor(null); awaitPassDone(); rideSaved(g);
         check(settings.getString(PENDING, "").equals(g) && "folder".equals(settings.getString(PROBLEM, "")), "Waiting after the revoked grant");
         // Choose the folder again (no type: both stay as they are): the picker opens on it.
         openPicker(null);
@@ -418,7 +418,7 @@ public final class RideAutoExportValidation extends Instrumentation {
     private void restoredWithoutFolder() {
         String kept = settings.getString(FOLDER, "");
         settings.edit().remove(FOLDER).remove(PROBLEM).commit(); settle();
-        String h = record("Restored, no folder yet", true); rides.put("H", h); stopFor(null); awaitPassDone(); rideSaved(h);
+        String h = recordRide("Restored, no folder yet", true); rides.put("H", h); stopFor(null); awaitPassDone(); rideSaved(h);
         check(settings.getString(PENDING, "").equals(h) && "folder".equals(settings.getString(PROBLEM, "")), "Ride waits for a folder");
         settings.edit().putString(FOLDER, kept).commit();
         main(() -> method(activity.service(), "rideAutoExportFolderChosen", new Class<?>[0]));
@@ -434,7 +434,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         check(!settings.getBoolean(ROUTE, true) && !settings.getBoolean(JSON, true) && !settings.contains(FOLDER) && !settings.contains(PENDING) && !settings.contains(PROBLEM), "Both off forgets the folder and the waiting list");
         check(getTargetContext().getContentResolver().getPersistedUriPermissions().isEmpty(), "Both off releases the folder grant");
         int before = shellText("ls " + FOLDER_PATH).split("\n").length;
-        String i = record("After turning off", true); stopFor(null); awaitPassDone(); rideSaved(i);
+        String i = recordRide("After turning off", true); stopFor(null); awaitPassDone(); rideSaved(i);
         check(!settings.contains(PENDING) && !shellText("ls " + FOLDER_PATH).contains(shortId(i)) && shellText("ls " + FOLDER_PATH).split("\n").length == before, "Nothing copied while both are off");
     }
 
