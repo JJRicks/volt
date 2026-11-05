@@ -245,21 +245,21 @@ public final class MainTextTest {
     }
 
     /**
-     * Setup's import summary may show a default name in the current language, but the editable field starts from the
-     * stored name: Save and continue keeps what the field holds, and applyPendingName overwrites Profile.name and clears
-     * nameDefault whenever that differs from the stored name. OnboardingScreen needs Android, so this reads its source.
+     * pendingSummary()[0] starts setup's editable name field, so it holds the stored name: Save and continue keeps what the
+     * field holds, and applyPendingName overwrites Profile.name and clears nameDefault when that differs from the stored
+     * name. A translated start value would be saved as the scooter's name. OnboardingScreen needs Android, so this reads
+     * its source.
      */
     private static void pendingImportName() {
         String setup = source("src/com/jjricks/volt/OnboardingScreen.java");
         int start = setup.indexOf("private String[] pendingSummary()"), end = setup.indexOf("private String importMode()");
         check(start >= 0 && end > start, "pendingSummary was found");
-        check(!setup.substring(start, end).contains("nameText"), "pendingSummary returns the stored name");
+        String summary = setup.substring(start, end);
+        check(summary.contains("new String[] {name, role == 1") && !summary.contains("nameText"), "pendingSummary returns the stored name");
         check(setup.contains("nameInput(prefs.getString(KEY_PENDING_NAME, summary[0]))"), "the name field starts from pendingSummary's stored name");
-        check(setup.contains("T.onboardingImportSummary(applied && p != null ? p.shownName() : ScooterProfiles.nameText(summary[0]), summary[1])"), "only the sentence shows the name in the current language");
         check(setup.contains("!name.trim().equals(p.name)"), "an untouched field equal to the stored name writes nothing");
-        // The same comparison under this translated source: the stored name passes, the shown name would not.
-        check(T.mainNameImported().startsWith("⟦main_name_imported⟧"), "the summary sentence follows the source");
-        check(!T.mainNameImported().equals(M.mainNameImported().english()), "the shown name differs from the stored one, so the field must not start from it");
+        // Why it matters under a translated source: the shown name is not the stored one, so a field that started from it would be written.
+        check(!T.mainNameImported().equals(M.mainNameImported().english()), "the shown imported name differs from the stored one");
     }
 
     /**

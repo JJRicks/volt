@@ -13,9 +13,16 @@ today. Delete an entry when it is done. Line numbers are on B19's head.
 2. **F4's `l10n/pending/b17-onboarding-followups.md`** is not on B19's branch. Whichever of F4 and B19
    merges second updates it: delete its MainActivity rows, which B19 did with `shownName()`, and add
    item 1 here to "The other default names". Its `:931` row is `profileTitle`, which is dead code
-   (item 7), so it needs no translation or test. Setup's import summary uses `p.displayName()` on main:
-   the merge keeps B19's `applied && p != null ? p.shownName() : ScooterProfiles.nameText(summary[0])`.
-   `pendingSummary` itself must keep returning the stored name, because it starts the editable field.
+   (item 8), so it needs no translation or test.
+3. **Setup's import summary still shows default names in English before the import applies.**
+   `OnboardingScreen` shows `summary[0]` in the sentence and also starts the editable name field from it, so
+   B19 keeps it as the stored name, and that name stays English in other languages. Translating the array
+   stored a translated name: Save and continue wrote it to `pending_name`, `applyPendingName` saw it differ
+   from `Profile.name`, wrote it there and cleared `nameDefault`, so `BleController` stopped applying the model
+   name. MainTextTest.pendingImportName pins the stored name. To show it translated, change only the sentence's
+   argument to `ScooterProfiles.nameText(summary[0])`. B19 cannot: `tests/l10n/FollowupsTest.java` on main pins
+   `T.onboardingImportSummary(applied && p != null ? p.displayName() : summary[0], summary[1])`, and G4 freezes
+   that statement in a batch. Do it in an ordinary pull request that updates that test.
 
 ## Deferred from the plan, owner: the batches that clear each file
 
@@ -36,31 +43,32 @@ today. Delete an entry when it is done. Line numbers are on B19's head.
 
 ## A read-back with no live input, owner: this file
 
-3. **`MainActivity.valueText`** still runs `label.replace(" hours"," h")` for a `lock_expiry` value
+4. **`MainActivity.valueText`** still runs `label.replace(" hours"," h")` for a `lock_expiry` value
    outside 1-3. `lockHours` answers 1-3, and every table (ScooterCommands, ModelRegistry) holds only those,
    so the line cannot run today. Delete it, with a test that English stays the same, if a table ever
    grows or when the rest of F3's read-backs go.
 
 ## Dead code G1 keeps while B19 is open, owner: an ordinary follow-up after B19 merges
 
-G1 refuses both in an extraction batch ("around text, an extraction batch only replaces a ledger row's
-expression with the call that serves it"). Neither changes what the app shows.
+G1 refuses items 5, 6 and 9 in an extraction batch ("around text, an extraction batch only replaces a
+ledger row's expression with the call that serves it"). None of these changes what the app shows in English.
 
-4. **`new ApplyCheck(apply,"Apply")`**: the constructor ignores its second parameter and always uses
+5. **`new ApplyCheck(apply,"Apply")`**: the constructor ignores its second parameter and always uses
    `M.mainEditApply()`. Drop the parameter and the literal.
-5. **The owner import's catch** still has `e instanceof IllegalArgumentException?e.getMessage():...`, but the
+6. **The owner import's catch** still has `e instanceof IllegalArgumentException?e.getMessage():...`, but the
    line before it returns for that exception when `onboarding==null`, so the arm cannot run. Reduce it to
    `toast(T.mainImportSetupUnreadable())`.
-6. **The control list's search in a translated language.** `ControlRow.haystack` is built from
+7. **The control list's search in a translated language.** `ControlRow.haystack` is built from
    `searchText()`, `shortLabel()` and `rowDetail()`, and the last two now render in the current language.
    English that exists only in those two ("limits speed", "scooter display units") matches in English but
    stops matching once a language ships, because `matchesShown` holds the rendered text too. Add their
    `.english()` forms to the haystack if English search should keep working in every language. English
    itself is unchanged.
-7. **`profileTitle` is never assigned** (only `=null`, at `MainActivity.java:380`, `:452` and `:803`), so the
+8. **`profileTitle` is never assigned** (only `=null`, at `MainActivity.java:380`, `:452` and `:803`), so the
    `profileTitle!=null` branch beside `:944` never runs, including its raw `p.name`. `main_your_scooter` is
    shown nowhere else, so translators are asked for a string nobody sees. Delete the field, the branch and
    the key.
-8. **The lock title's two `setText` calls** (`offlineTitle`, about `:921` and `:924`). `known` holds the state
+9. **The lock title's two `setText` calls** (`offlineTitle`, about `:921` and `:924`). `known` holds the state
    id now, because G1's id test needs that variable. G1 refuses `known` being replaced on the line that
-   holds "Connecting", so the word is set in the next statement. Join them after B19 merges.
+   holds "Connecting", so the word is set in the next statement. Join them after B19 merges, and drop
+   `main_lock_last_known_full` and `main_lock_last_known_word`, the branches G1's id test needs that cannot run.
