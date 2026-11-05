@@ -1242,7 +1242,7 @@ public final class OnboardingScreen implements AppScreen {
                     : state == BleController.State.CONNECTING ? 1 : 0;
             boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);
             boolean waitingToStart = prefs.getBoolean(KEY_CONNECT, false);
-            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.name) : T.onboardingConnectTitle());
+            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.displayName()) : T.onboardingConnectTitle());
             for (int i = 0; i < rows.length; i++) {
                 int mode = i < progress ? StateDot.DONE : i == progress && (busy || waitingToStart) ? StateDot.ACTIVE : StateDot.WAITING;
                 dots[i].setMode(mode);
@@ -1294,7 +1294,7 @@ public final class OnboardingScreen implements AppScreen {
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
         heading(T.onboardingDoneTitle(), true, true);
         ScooterProfiles.Profile p = onboardingProfile();
-        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.name), true);
+        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.displayName()), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
         content.addView(group, gp);
