@@ -176,7 +176,7 @@
     <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Zapisane dane zmieniły się. Należy ponownie przejrzeć kopię zapasową.</string>
     <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Za mało wolnego miejsca</string>
     <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Nie udało się przygotować przywracania.</string>
-    <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Pamięć zapisów zmieniła się podczas przywracania.</string>
+    <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Miejsce przechowywania zapisów zmieniło się podczas przywracania.</string>
     <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Rekord odzyskiwania po przywracaniu jest nieczytelny.</string>
     <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Nieprawidłowa lista odzyskiwania po przywracaniu.</string>
     <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Nieprawidłowa ścieżka odzyskiwania po przywracaniu.</string>
@@ -224,7 +224,7 @@
     <string name="backup_engine_incomplete_ride_record_was" volt:src="59cff835f0d7f0b66ccf132bf18c5da66b7f0a63">Znaleziono niekompletny rekord przejazdu.</string>
     <string name="backup_engine_phone_sensor_record_invalid" volt:src="1079c5bf5005009fcd5e3dd7e89e222ab35f30e7">Rekord czujnika telefonu jest nieprawidłowy.</string>
     <string name="backup_engine_ride_backup_exceeds_size" volt:src="c628fece13322d1ab371ce92a147a1f301cbdae0">Kopia zapasowa przejazdów przekracza limit rozmiaru.</string>
-    <string name="backup_engine_recording_storage_does_not_support" volt:src="b69bf8718826d7c2d2bcfe2b2304949698d4c957">Pamięć zapisów nie obsługuje bezpiecznego odzyskiwania po przywracaniu.</string>
+    <string name="backup_engine_recording_storage_does_not_support" volt:src="b69bf8718826d7c2d2bcfe2b2304949698d4c957">Miejsce przechowywania zapisów nie obsługuje bezpiecznego odzyskiwania po przywracaniu.</string>
     <string name="backup_engine_ride_backup_storage_unavailable" volt:src="592e98a79a246965bc81e127145392c083701635">Pamięć kopii zapasowej przejazdów jest niedostępna.</string>
     <string name="backup_engine_not_enough_available_storage" volt:src="b8b33850bfdea11ea4f55deb5272744d3ba87f1a">Za mało dostępnego miejsca.</string>
     <string name="backup_engine_ride_backup_could_not_processed" volt:src="2ba1f594fa284c0fcbe209a23feaa31b4850476a">Nie udało się przetworzyć kopii zapasowej przejazdów.</string>

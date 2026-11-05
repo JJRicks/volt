@@ -3,7 +3,7 @@ key	english	translation	back-translation	draft	model	source_sha1	target_sha1
 readings_lock_status	Electronic lock	Blokada elektroniczna	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	81271279fe859351cb43ea9821744e3c73ea038f
 readings_lock_status_short	Electronic lock	Blokada elektroniczna	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	81271279fe859351cb43ea9821744e3c73ea038f
 readings_lock_status_compact	Lock	Blokada	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	addd566ede8a8804641a0184dec285a65c9e2d45
-readings_lock_push_warning	Locked movement warning (raw)	Ostrzeżenie o ruchu zablokowanej hulajnogi (surowe)	Warning about movement of a locked scooter (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	64c5cadedbeda7801318a12eac0dfd8c9a08ee27
+readings_lock_push_warning	Locked movement warning (raw)	Ostrzeżenie o ruchu zablokowanej hulajnogi (surowa wartość)	Warning about movement of a locked scooter (raw value)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	d0c9a84a40c77b1a5bce3eb2368cc3c9c5eaead2
 readings_lock_push_warning_short	Lock movement (raw)	Ruch po zablokowaniu (surowy)	Movement after locking (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	1b3b41ec4e6eac2dc990ec35ace1202a5c8a818f
 readings_value_unlocked	Unlocked	Odblokowana	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	6e805905dd235d9ada12ce49e6d1489bbd2a8837
 readings_value_locked	Locked	Zablokowana	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	83fc1e3f3578b47e06dc3f94558498573304777b

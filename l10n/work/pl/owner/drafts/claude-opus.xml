@@ -23,7 +23,7 @@
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Należy poczekać tutaj na przywrócenie ustawienia dziennika NAVEE.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Czekaj dalej</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Zatrzymaj konfigurację</string>
-    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Najpierw dokończ czyszczenie</string>
+    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Najpierw należy dokończyć czyszczenie</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Zapisywanie dziennika NAVEE może być nadal włączone.</string>
     <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">Przywróć ustawienie dziennika NAVEE</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Wstecz</string>

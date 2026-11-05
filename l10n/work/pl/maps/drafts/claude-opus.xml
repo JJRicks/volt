@@ -69,8 +69,8 @@
     <string name="maps_route_power_not_measured" volt:src="528749ecef0162ba9996ea389dbd583dad8411bb">Nie zmierzono mocy</string>
     <string name="maps_chart_ride" volt:src="80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a">Wykres przejazdu</string>
     <string name="maps_chart_fit_ride" volt:src="b77c503c54be648b7df6a02be88206ec789e2829">Pokaż cały przejazd</string>
-    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Wykres zapisu</string>
-    <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Pokaż cały zapis</string>
+    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Wykres nagrania</string>
+    <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Pokaż całe nagranie</string>
     <string name="maps_chart_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Powiększ</string>
     <string name="maps_chart_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Pomniejsz</string>
     <string name="maps_chart_previous_sample" volt:src="e783b197e8874c0ea7622c1e59d00e5185e27fd1">Poprzednia zapisana próbka</string>

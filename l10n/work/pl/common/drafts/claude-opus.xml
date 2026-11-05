@@ -11,7 +11,7 @@
     <string name="common_not_reported" volt:src="d4eb0bbd21fc68a85beb13021c0e481f43097c61">Brak danych</string>
     <string name="common_try_again" volt:src="a028005df66fc7daa7ba1a91881535382a6d5df3">Spróbuj ponownie</string>
     <string name="common_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Brak skonfigurowanej hulajnogi</string>
-    <string name="common_connect_charger_first" volt:src="5b031d6cb469e6bedcd3749c53369e3bb19f9c53">Najpierw podłącz ładowarkę</string>
-    <string name="common_wait_current_change" volt:src="f265acce1f963121bdd996fc77ce76c2e07a5bb5">Zaczekaj na zakończenie bieżącej zmiany</string>
+    <string name="common_connect_charger_first" volt:src="5b031d6cb469e6bedcd3749c53369e3bb19f9c53">Najpierw należy podłączyć ładowarkę</string>
+    <string name="common_wait_current_change" volt:src="f265acce1f963121bdd996fc77ce76c2e07a5bb5">Należy poczekać na zakończenie bieżącej zmiany</string>
     <string name="common_restore_failed" volt:src="53589534b8bfe4078f5166020b002627f4e86da3">Przywracanie nie powiodło się. Otwórz ponownie aplikację Volt. Nie czyść pamięci aplikacji.</string>
 </resources>

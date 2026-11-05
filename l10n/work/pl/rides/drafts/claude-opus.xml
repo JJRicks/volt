@@ -274,7 +274,7 @@
     <string name="rides_sensor_status_gps_unavailable" volt:src="62af34112baf119bbe633c2f6048f0c17731cc6e">GPS niedostępny</string>
     <string name="rides_sensor_status_permission_unavailable" volt:src="f402690f9c2f70bd5939b47553b6cf6bfa4122ec">Uprawnienie GPS niedostępne</string>
     <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Nie przyznano uprawnienia do lokalizacji</string>
-    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">Trwa zapis GPS</string>
+    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">Trwa nagrywanie GPS</string>
     <string name="rides_sensor_status_signal_lost" volt:src="e2bde72be6f83b3e70f8b79a3756132492ab8268">Utracono sygnał GPS</string>
     <string name="rides_sensor_status_signal_unavailable" volt:src="05f1bf581ffd97ab18638daae52e2b61bb4dcade">Sygnał GPS niedostępny</string>
     <string name="rides_sensor_status_barometer" volt:src="2957566839bc1b3438a1f9ee177477ee70a00315">%1$s · barometr</string>
