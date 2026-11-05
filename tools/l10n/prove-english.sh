@@ -187,6 +187,9 @@ if bash tests/l10n/golden.sh >"$log" 2>&1; then
     if git cat-file -e "$MERGE:tests/l10n/golden" 2>/dev/null && ! git diff --quiet "$MERGE" HEAD -- tests/l10n/golden; then
         if [[ "$KIND" == english-change ]]; then
             record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base (owner-approved change)"
+        elif [[ "$KIND" == ordinary ]]; then
+            # As in CI: an ordinary change may change a report format and update its goldens. Say so, never PASS.
+            record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base; not enforced on an ordinary change, so name it in the PR"
         else
             record "G9 reports stay English (goldens)" FAIL "tests/l10n/golden changed since the merge base"
         fi

@@ -648,7 +648,8 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
   pull request does not need it.
   If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
-  change may change a literal, so its report is not a proof that English is unchanged.
+  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
@@ -737,7 +738,7 @@ Known limits:
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english (other kinds: a golden change is REPORT, never FAIL) |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI

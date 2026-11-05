@@ -284,6 +284,18 @@ class ProveEnglishKindsTest(unittest.TestCase):
         self.assertNotIn("every gate that runs locally passed", report)
         self.assertNotRegex(report, r"\| G1[^|]*\| PASS")
 
+    def test_an_ordinary_golden_update_is_reported_and_a_batch_one_fails(self):
+        self.repo.write(GOLDEN, "<trk updated>\n")
+        self.repo.commit("an ordinary report format change")
+        code, _, report, everything = self.prove()
+        self.assertEqual(code, 0, everything)
+        self.assertRegex(report, r"\| G9 reports stay English \(goldens\) \| REPORT \|")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("now a batch")
+        code, _, report, everything = self.prove()
+        self.assertEqual(code, 1, everything)
+        self.assertRegex(report, r"\| G9 reports stay English \(goldens\) \| FAIL \|")
+
     def test_an_ordinary_change_is_still_held_to_the_catalog(self):
         self.repo.write("l10n/ledger/b1.tsv", HEADER + "\t".join(
             ["src/com/jjricks/volt/A.java:1", '["x"]', "zz_gone", "exact", ""]) + "\n")
