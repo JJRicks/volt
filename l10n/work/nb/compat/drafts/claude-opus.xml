@@ -33,10 +33,10 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-kartlagt (ikke testet)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås og avlesninger</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Støttes ikke</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 uferdig test på en annen sparkesykkel. Velg den for å se gjennom testen.</string>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">En annen sparkesykkel har 1 test som ikke er fullført. Velg den for å se gjennom testen.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
-        <item quantity="one">%1$d uferdig test på en annen sparkesykkel. Velg den for å se gjennom testen.</item>
-        <item quantity="other">%1$d uferdige tester på andre sparkesykler. Velg en sparkesykkel for å se gjennom testene der.</item>
+        <item quantity="one">En annen sparkesykkel har %1$d test som ikke er fullført. Velg den for å se gjennom testen.</item>
+        <item quantity="other">Andre sparkesykler har %1$d tester som ikke er fullført. Velg en sparkesykkel for å se gjennom testene der.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testoppføringene er ikke tilgjengelige. En tidligere test er kanskje ikke satt tilbake; sjekk innstillingene på sparkesykkelen.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Forsøk · %1$s</string>
