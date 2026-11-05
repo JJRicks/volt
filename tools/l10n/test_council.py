@@ -23,9 +23,11 @@ import translib  # noqa: E402
 
 OPENAI_KEY = "sk-test-OPENAI-SECRET-0123456789abcdef"
 GEMINI_KEY = "AIzaTEST-GEMINI-SECRET-0123456789abcdef"
-OPENAI_MODELS = ["gpt-4o", "gpt-4o-mini", "gpt-5", "gpt-5.1", "gpt-5.1-mini", "gpt-5.1-realtime",
-                 "gpt-6-audio-preview", "text-embedding-3-large"]
-GOOGLE_MODELS = ["gemini-2.5-pro", "gemini-3-pro", "gemini-3-flash", "gemini-3-pro-preview-tts"]
+# The owner's keys list these (2026-11-05), plus older and top-end ids that must not be chosen.
+OPENAI_MODELS = ["gpt-4o", "gpt-4o-mini", "gpt-5", "gpt-5.1", "gpt-5.1-mini", "gpt-5.5", "gpt-6-luna", "gpt-6-astra",
+                 "gpt-6.1-terra", "gpt-6.1-sol", "gpt-6.1-realtime", "gpt-6-audio-preview", "text-embedding-3-large"]
+GOOGLE_MODELS = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3-pro", "gemini-3.5-flash-lite", "gemini-3.7-flash",
+                 "gemini-3.8-flash", "gemini-4-argon", "gemini-3.8-flash-preview-tts"]
 BACK = {
     "common_lock_waiting": "Waiting for the scooter",
     "common_lock_waiting_short": "Waiting",
@@ -135,9 +137,9 @@ class Base(unittest.TestCase):
         google_texts = dict(cf.SPANISH, common_move_widget="Mueve %1$s al hueco %2$d")
         google_texts.update(google_overrides or {})
         fake = self.transport(**{
-            "gpt-5.1": cf.drafting_reply(cf.SPANISH),
-            "gemini-3-pro": cf.drafting_reply(google_texts),
-            "gemini-3-flash": lambda prompt: {"strings": dict((k, BACK[k]) for k in cf.requested_keys(prompt))}})
+            "gpt-6.1-terra": cf.drafting_reply(cf.SPANISH),
+            "gemini-3.8-flash": cf.drafting_reply(google_texts),
+            "gemini-3.7-flash": lambda prompt: {"strings": dict((k, BACK[k]) for k in cf.requested_keys(prompt))}})
         self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
         self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
         if not skip_claude:
@@ -156,11 +158,26 @@ class ModelChoiceTest(Base):
         openai = providers.list_models("openai")
         google = providers.list_models("google")
         self.assertNotIn("text-embedding-9", google)
-        self.assertEqual(providers.choose_model("openai", "draft", openai), "gpt-5.1")
-        self.assertEqual(providers.choose_model("openai", "backtranslate", openai), "gpt-5.1-mini")
-        self.assertEqual(providers.choose_model("openai", "backtranslate", openai, avoid={"gpt-5.1-mini"}), "gpt-4o-mini")
-        self.assertEqual(providers.choose_model("google", "draft", google), "gemini-3-pro")
-        self.assertEqual(providers.choose_model("google", "backtranslate", google), "gemini-3-flash")
+        # The owner's choice of 2026-11-05: modest current models, not the top end.
+        self.assertEqual(providers.choose_model("openai", "draft", openai), "gpt-6.1-terra")
+        self.assertEqual(providers.choose_model("google", "draft", google), "gemini-3.8-flash")
+        self.assertEqual(providers.choose_model("openai", "backtranslate", openai), "gpt-6.1-sol")
+        # The back-translator never drafted: each falls back to a model that did not.
+        self.assertEqual(providers.choose_model("openai", "backtranslate", openai, avoid={"gpt-6.1-sol"}),
+                         "gpt-6.1-terra")
+        self.assertEqual(providers.choose_model("google", "backtranslate", google, avoid={"gemini-3.8-flash"}),
+                         "gemini-3.7-flash")
+        self.assertEqual(providers.choose_model("google", "backtranslate", google,
+                                                avoid={"gemini-3.8-flash", "gemini-3.7-flash", "gemini-2.5-flash"}),
+                         "gemini-3.5-flash-lite")
+        with self.assertRaises(providers.ProviderError):  # never a top-end or older line instead
+            providers.choose_model("openai", "backtranslate", openai, avoid={"gpt-6.1-sol", "gpt-6.1-terra"})
+        # A newer version of the same line is chosen when it appears; a top-end line never is.
+        self.assertEqual(providers.choose_model("openai", "draft", openai + ["gpt-6.2-terra", "gpt-7-astra"]),
+                         "gpt-6.2-terra")
+        self.assertEqual(providers.choose_model("openai", "backtranslate", openai + ["gpt-6.2-sol"]), "gpt-6.2-sol")
+        self.assertEqual(providers.choose_model("google", "draft", google + ["gemini-3.9-flash", "gemini-4-pro",
+                                                                             "gemini-4.1-argon"]), "gemini-3.9-flash")
         self.assertEqual(providers.choose_model("openai", "draft", openai, prefer=[r"^gpt-4o$"]), "gpt-4o")
         with self.assertRaises(providers.ProviderError):
             providers.choose_model("openai", "draft", ["gpt-5.1-realtime", "whisper-1"])
@@ -175,7 +192,8 @@ class ModelChoiceTest(Base):
                 self.assertEqual(headers["x-goog-api-key"], GEMINI_KEY)
                 self.assertNotIn("Authorization", headers)
         self.assertEqual(self.main("models", "openai"), 0)
-        self.assertIn("draft: gpt-5.1", self.out.getvalue())
+        self.assertIn("draft: gpt-6.1-terra", self.out.getvalue())
+        self.assertIn("backtranslate: gpt-6.1-sol", self.out.getvalue())
         self.assert_no_secret()
 
 
@@ -274,7 +292,7 @@ class SecretHandlingTest(Base):
         cleaned = providers.redact(text)
         for secret in ("abc.def", "AIzaSyD", "hunter2", "sk-proj-abcdefghij"):
             self.assertNotIn(secret, cleaned)
-        self.assertEqual(providers.redact("model gpt-5.1 is fine"), "model gpt-5.1 is fine")
+        self.assertEqual(providers.redact("model gpt-6.1-terra is fine"), "model gpt-6.1-terra is fine")
 
     def test_tools_never_name_the_keys_file(self):
         here = os.path.dirname(os.path.abspath(__file__))
@@ -288,13 +306,13 @@ class SecretHandlingTest(Base):
 
 class DraftingTest(Base):
     def test_api_drafts_record_exact_models(self):
-        fake = self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})
+        fake = self.transport(**{"gpt-6.1-terra": cf.drafting_reply(cf.SPANISH), "gemini-3.8-flash": cf.drafting_reply(cf.SPANISH)})
         self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
         self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common", "--style", "glossary-first"), 0)
         openai = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/openai.xml"))
         google = translib.read_draft(self.repo.path("l10n/work/es/common/drafts/google.xml"))
-        self.assertEqual((openai.model, openai.model_reported), ("gpt-5.1", "gpt-5.1-2026-10-01"))
-        self.assertEqual((google.model, google.model_reported, google.prompt), ("gemini-3-pro", "gemini-3-pro-001",
+        self.assertEqual((openai.model, openai.model_reported), ("gpt-6.1-terra", "gpt-6.1-terra-2026-10-01"))
+        self.assertEqual((google.model, google.model_reported, google.prompt), ("gemini-3.8-flash", "gemini-3.8-flash-001",
                                                                                 "glossary-first"))
         self.assertEqual(openai.entries["common_scooters_skipped"].items["many"], "%1$d de patinetes omitidos")
         self.assertEqual(len(openai.entries), len(cf.SPANISH))
@@ -311,7 +329,7 @@ class DraftingTest(Base):
         self.assertNotIn("volt-internal-id", responses["input"])
         runs = translib.read_jsonl(self.repo.path("l10n/work/es/common/runs.jsonl"))
         self.assertEqual([(r["provider"], r["model"], r["model_reported"]) for r in runs],
-                         [("openai", "gpt-5.1", "gpt-5.1-2026-10-01"), ("google", "gemini-3-pro", "gemini-3-pro-001")])
+                         [("openai", "gpt-6.1-terra", "gpt-6.1-terra-2026-10-01"), ("google", "gemini-3.8-flash", "gemini-3.8-flash-001")])
         self.assert_no_secret()
 
     def test_only_changed_strings_are_drafted_with_their_ladder(self):
@@ -337,10 +355,10 @@ class DraftingTest(Base):
 
     def test_redraft_sends_only_failed_keys_once(self):
         texts = dict(cf.SPANISH, common_move_widget="Mover %1$s")
-        fake = self.transport(**{"gpt-5.1": cf.drafting_reply(texts)})
+        fake = self.transport(**{"gpt-6.1-terra": cf.drafting_reply(texts)})
         self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
         self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
-        fake.replies["gpt-5.1"] = cf.drafting_reply(cf.SPANISH)
+        fake.replies["gpt-6.1-terra"] = cf.drafting_reply(cf.SPANISH)
         self.assertEqual(self.main("redraft", "openai", "--tag", "es", "--area", "common"), 0)
         last = fake.requests[-1][3]
         self.assertEqual(cf.requested_keys(last["input"]), ["common_move_widget"])
@@ -387,7 +405,7 @@ class ClaudeImportTest(Base):
         self.assertIn("common_unknown is not in the pack", self.out.getvalue())
         self.assertIn("common_scooters_skipped: a string where English has a plural", self.out.getvalue())
         self.repo.write("l10n/work/es/common/drafts/claude-haiku.xml",
-                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:model="gpt-5.1">\n'
+                        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:model="gpt-6.1-terra">\n'
                         '  <string name="common_cancel">Cancelar</string>\n</resources>\n')
         self.assertEqual(self.main("import-claude", "--tag", "es", "--area", "common"), 1)
         self.assertIn("not a Claude model id", self.out.getvalue())
@@ -403,7 +421,7 @@ class CouncilFlowTest(Base):
         # The back-translator is a model that drafted nothing.
         backs = translib.read_jsonl(self.repo.path("l10n/work/es/common/backtranslation.jsonl"))
         self.assertEqual(sorted(r["key"] for r in backs), sorted(BACK))
-        self.assertEqual(set(r["model"] for r in backs), {"gemini-3-flash"})
+        self.assertEqual(set(r["model"] for r in backs), {"gemini-3.7-flash"})
         back_prompt = fake.requests[-1][3]["contents"][0]["parts"][0]["text"]
         self.assertNotIn("Waiting for the scooter", back_prompt)  # it never sees the English
         # Without the judge, the run is incomplete and nothing is written.
@@ -440,8 +458,8 @@ class CouncilFlowTest(Base):
         self.assertEqual(d["common_not_reported"]["outcome"], "judged")
         self.assertEqual(d["common_lock_waiting"]["outcome"], "safety-agreed")
         self.assertEqual(d["common_lock_waiting"]["models"], {
-            "drafters": ["claude-opus-5-5", "gemini-3-pro", "gpt-5.1"], "judge": "claude-opus-5-5",
-            "backtranslator": "gemini-3-flash"})
+            "drafters": ["claude-opus-5-5", "gemini-3.8-flash", "gpt-6.1-terra"], "judge": "claude-opus-5-5",
+            "backtranslator": "gemini-3.7-flash"})
         self.assertEqual(d["common_lock_waiting"]["backtranslation"]["back"], "Waiting for the scooter")
         self.assertEqual(d["common_alarm_on"]["outcome"], "fallback-english")
         self.assertIn("on_off_never_always_not_inverted", d["common_alarm_on"]["reason"])
@@ -449,7 +467,7 @@ class CouncilFlowTest(Base):
         self.assertEqual(d["common_scooters_skipped"]["text"]["many"], "%1$d de patinetes omitidos")
         alternatives = d["common_move_widget"]["alternatives"]
         self.assertEqual(sorted(a["draft"] for a in alternatives), ["claude-opus-context", "google", "openai"])
-        self.assertEqual([a["model_reported"] for a in alternatives if a["draft"] == "openai"], ["gpt-5.1-2026-10-01"])
+        self.assertEqual([a["model_reported"] for a in alternatives if a["draft"] == "openai"], ["gpt-6.1-terra-2026-10-01"])
         for row in d.values():
             self.assertEqual(row["format"], council.DECISION_FORMAT)
             self.assertEqual(len(row["source_sha1"]), 40)
@@ -463,10 +481,14 @@ class CouncilFlowTest(Base):
                    [{"key": "common_move_widget", "verdict": "pick", "pick": "google",
                      "text": "Mueve %1$s al hueco %2$d"},
                     {"key": "common_not_reported", "verdict": "pick", "pick": "openai", "text": "No informado"}])
-        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 0)
+        # Since 2026-11-05 the judge may pick or merge a disagreeing safety key, so it waits for that ruling.
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("common_lock_waiting: waiting for the judge's pick or merge", self.out.getvalue())
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
         d = self.decisions()
         self.assertEqual(d["common_lock_waiting"]["outcome"], "fallback-english")
         self.assertIn("disagree", d["common_lock_waiting"]["reason"])
+        self.assertIn("not judged", d["common_lock_waiting"]["reason"])
         # Its short rung was confirmed, but a half-translated ladder falls back as a whole.
         self.assertEqual(d["common_lock_waiting_short"]["outcome"], "fallback-english")
         self.assertIn("ladder group incomplete", d["common_lock_waiting_short"]["reason"])
@@ -493,7 +515,7 @@ class CouncilFlowTest(Base):
         self.assertEqual(set(r["model"] for r in rows), {"claude-haiku-5"})
         # A back-translation by a drafter that is already on file does not count.
         self.repo.write("l10n/work/es/common/backtranslation.jsonl", "".join(
-            json.dumps(dict(r, model="gpt-5.1")) + "\n" for r in rows))
+            json.dumps(dict(r, model="gpt-6.1-terra")) + "\n" for r in rows))
         self.judge([self.confirm("common_alarm_on")])
         self.main("decide", "--tag", "es", "--area", "common", "--final")
         self.assertIn("also drafted", self.decisions()["common_alarm_on"]["reason"])
@@ -591,8 +613,8 @@ class ProvenanceTest(Base):
         pack.write_pack(self.paths, pack.build_pack(self.paths, "es", "common", measurer))
 
     def draft(self, openai_text, google_text):
-        self.transport(**{"gpt-5.1": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: openai_text})),
-                          "gemini-3-pro": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: google_text}))})
+        self.transport(**{"gpt-6.1-terra": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: openai_text})),
+                          "gemini-3.8-flash": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: google_text}))})
         self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
         self.assertEqual(self.main("draft", "google", "--tag", "es", "--area", "common"), 0)
 
@@ -712,7 +734,7 @@ class ProvenanceTest(Base):
         self.assertEqual((self.decisions()[self.KEY]["outcome"], self.decisions()[self.KEY]["text"]),
                          ("judged", "Guardar copia"))
         # Only openai's draft is replaced; the old ruling stays in judge.jsonl.
-        self.transport(**{"gpt-5.1": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: "Restaurar copia"}))})
+        self.transport(**{"gpt-6.1-terra": cf.drafting_reply(dict(cf.SPANISH, **{self.KEY: "Restaurar copia"}))})
         self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common"), 0)
         self.out.truncate(0)
         self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
@@ -853,6 +875,179 @@ class ProvenanceTest(Base):
         return path
 
 
+class SafetyJudgedTest(Base):
+    """The owner's rule of 2026-11-05: a safety key whose drafts disagree may take the judge's picked or
+    merged text, only once a model that drafted nothing back-translated exactly that text and the judge
+    then confirmed that text and that back-translation."""
+
+    KEY = "common_alarm_on"
+    YES = dict((c, True) for c in council.SAFETY_CONFIRMATIONS)
+
+    def requests(self):
+        self.assertEqual(self.main("judge-requests", "--tag", "es", "--area", "common"), 0)
+        return dict((r["key"], r) for r in translib.read_jsonl(self.repo.path(
+            "l10n/work/es/common/judge-requests.jsonl")))
+
+    def pick_google(self):
+        return {"key": self.KEY, "verdict": "pick", "pick": "google", "text": "Alarma encendida"}
+
+    def judged_confirm(self, text="Alarma encendida", back="Alarm activated", **extra):
+        row = {"key": self.KEY, "verdict": "confirm", "confirm": dict(self.YES), "backtranslation_meaning_kept": True,
+               "text": text, "back": back, "reason": "the judged text keeps the meaning"}
+        row.update(extra)
+        return row
+
+    def backtranslate(self):
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common"), 0)
+
+    def decide_final(self):
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
+        return self.decisions()[self.KEY]
+
+    def setUp(self):
+        super().setUp()
+        self.fake = self.draft_all(google_overrides={self.KEY: "Alarma encendida"})
+        self.main("check", "--tag", "es", "--area", "common")
+
+    def test_judged_text_confirmed_after_its_back_translation(self):
+        self.backtranslate()
+        self.assertNotIn(self.KEY, self.stored_backs())  # nothing judged yet: nothing to back-translate
+        request = self.requests()[self.KEY]
+        self.assertEqual(request["reason"], "safety-disagreement")
+        self.assertEqual(request["verdicts"], ["pick", "merge", "fallback"])
+        self.assertIsNone(request["backtranslation"])
+        self.judge([self.pick_google()])
+        # The judged text waits for its back-translation, and the judge is not asked to confirm it before.
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("%s: waiting for a back-translation of the judged safety text" % self.KEY, self.out.getvalue())
+        self.assertNotIn(self.KEY, self.requests())
+        self.backtranslate()
+        back = self.stored_backs()[self.KEY]
+        self.assertEqual((back["target"], back["model"]), ("Alarma encendida", "gemini-3.7-flash"))
+        self.assertNotIn("Alarma activada", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
+        # A back-translated judged text is not sent again.
+        calls = len(self.fake.requests)
+        self.backtranslate()
+        self.assertNotIn("Alarma encendida", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
+        self.assertGreater(len(self.fake.requests), calls)  # the unanimous keys are, as before
+        request = self.requests()[self.KEY]
+        self.assertEqual(request["reason"], "safety-judged-confirmation")
+        self.assertEqual(request["text"], "Alarma encendida")
+        self.assertEqual(request["backtranslation"]["back"], "Alarm activated")
+        self.assertEqual(request["verdicts"], ["confirm", "fallback"])
+        self.assertEqual(request["confirm"], list(council.SAFETY_CONFIRMATIONS))
+        self.judge([self.pick_google(), self.judged_confirm()])
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "safety-judged")
+        self.assertIn("safety-judged", council.TRANSLATED)
+        self.assertEqual(d["text"], "Alarma encendida")
+        self.assertEqual(d["models"]["backtranslator"], "gemini-3.7-flash")
+        self.assertEqual(d["judge"]["verdict"], "confirm")
+        self.assertIn("picked", d["reason"])
+        # A merge works the same way once its own text is back-translated and confirmed.
+        merge = {"key": self.KEY, "verdict": "merge", "text": "Alarma conectada"}
+        self.judge([self.pick_google(), self.judged_confirm(), merge])
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        self.backtranslate()
+        self.assertEqual(self.stored_backs()[self.KEY]["target"], "Alarma conectada")
+        self.judge([merge, self.judged_confirm(text="Alarma conectada")])
+        d = self.decide_final()
+        self.assertEqual((d["outcome"], d["text"]), ("safety-judged", "Alarma conectada"))
+        self.assertIn("merged", d["reason"])
+
+    def test_judged_text_rejected_stays_english(self):
+        self.judge([self.pick_google()])
+        self.backtranslate()
+        for confirm in (self.judged_confirm(backtranslation_meaning_kept=False),
+                        self.judged_confirm(confirm=dict(self.YES, on_off_never_always_not_inverted=False)),
+                        {"key": self.KEY, "verdict": "fallback", "reason": "inverted"}):
+            self.judge([self.pick_google(), confirm])
+            self.assertEqual(self.main("decide", "--tag", "es", "--area", "common", "--final"), 0)
+            d = self.decisions()[self.KEY]
+            self.assertEqual(d["outcome"], "fallback-english")
+            self.assertIsNone(d["text"])
+            self.assertNotIn("final run", d["reason"])  # a ruling, not a missing step
+        # A merged text that fails the checks is never back-translated.
+        self.judge([{"key": self.KEY, "verdict": "merge", "text": "Alarma %1$s"}])
+        self.backtranslate()
+        self.assertEqual(self.stored_backs()[self.KEY]["target"], "Alarma encendida")
+        self.assertIn("failed the checks", self.decide_final()["reason"])
+        # Two drafts with one provider missing still fall back as before: no judging.
+        os.remove(self.repo.path("l10n/work/es/common/drafts/google.xml"))
+        self.assertNotIn(self.KEY, self.requests())
+        self.assertIn("no draft from google", self.decide_final()["reason"])
+
+    def test_backtranslator_that_drafted_is_refused(self):
+        self.judge([self.pick_google()])
+        self.assertEqual(self.main("backtranslate", "google", "--tag", "es", "--area", "common",
+                                   "--model", "gemini-3.8-flash"), 2)
+        self.assertIn("drafted this area", self.err.getvalue())
+        self.assertNotIn(self.KEY, self.stored_backs())
+        # A Claude agent on a drafting model is refused too.
+        self.assertEqual(self.import_back(self.backtranslation_reply(
+            self.backtranslation_prompt(), dict((k, BACK[k]) for k in ("common_alarm_on",))), "claude-opus-5-5"), 2)
+        self.assertIn("model that drafted nothing", self.err.getvalue())
+        # A drafter's back-translation already on file does not count, even with the judge's confirm.
+        self.backtranslate()
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = [dict(r, model="gpt-6.1-terra") if r["key"] == self.KEY else r
+                for r in translib.read_jsonl(self.repo.path(path))]
+        translib.write_jsonl(self.repo.path(path), rows)
+        self.judge([self.pick_google(), self.judged_confirm()])
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("also drafted", d["reason"])
+
+    def test_text_edited_after_back_translation_is_refused(self):
+        # A confirm written before any back-translation exists confirms nothing.
+        self.judge([self.pick_google(), self.judged_confirm()])
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("no back-translation", d["reason"])
+        self.backtranslate()
+        # The judge then merges another text: the old back-translation and confirm do not carry over.
+        self.judge([self.pick_google(), self.judged_confirm(),
+                    {"key": self.KEY, "verdict": "merge", "text": "Alarma puesta"},
+                    self.judged_confirm(text="Alarma puesta")])
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("%s: waiting for a back-translation of the judged safety text" % self.KEY, self.out.getvalue())
+        self.assertIn("no back-translation", self.decide_final()["reason"])
+        self.assertNotIn(self.KEY, self.requests())
+        # Someone edits the stored back-translation's target to the new text: the confirm still names
+        # the old back-translation, so it confirms nothing.
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = [dict(r, target="Alarma puesta", back="Alarm set") if r["key"] == self.KEY else r
+                for r in translib.read_jsonl(self.repo.path(path))]
+        translib.write_jsonl(self.repo.path(path), rows)
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("confirmed another text or back-translation", d["reason"])
+        # The picked draft changes after its back-translation: the pick, and so the confirm, lapse.
+        self.judge([self.pick_google(), self.judged_confirm()])
+        self.backtranslate()
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+        draft = "l10n/work/es/common/drafts/google.xml"
+        self.repo.write(draft, self.repo.read(draft).replace("Alarma encendida", "Alarma prendida"))
+        self.assertEqual(self.main("decide", "--tag", "es", "--area", "common"), 1)
+        self.assertIn("%s: waiting for a new pick or merge" % self.KEY, self.out.getvalue())
+        self.assertEqual(self.decide_final()["outcome"], "fallback-english")
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-disagreement")
+
+    def test_unanimous_safety_keys_keep_their_path(self):
+        self.backtranslate()
+        requests = self.requests()
+        self.assertEqual(requests["common_disclaimer"]["reason"], "safety-confirmation")
+        self.assertEqual(requests["common_disclaimer"]["text"], "Volt no está afiliada a NAVEE")
+        # A pick or merge is no way into a unanimous safety key: only the confirm counts.
+        self.judge([{"key": "common_disclaimer", "verdict": "pick", "pick": "openai",
+                     "text": "Volt no está afiliada a NAVEE"}])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertEqual(self.decisions()["common_disclaimer"]["outcome"], "fallback-english")
+        self.judge([self.confirm("common_disclaimer")])
+        self.main("decide", "--tag", "es", "--area", "common", "--final")
+        self.assertEqual(self.decisions()["common_disclaimer"]["outcome"], "safety-agreed")
+
+
 class BetaBarTest(Base):
     def write_bulk(self, count):
         lines = ['<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">']
@@ -897,6 +1092,14 @@ class BetaBarTest(Base):
         self.assertIn("1 of 100 keys", lines[0])
         self.assertEqual(self.main("beta", "--tag", "es"), 0)
         self.assertIn("beta bar: PASS", self.out.getvalue())
+        # A judged, back-translated and confirmed safety key (2026-11-05) counts as translated.
+        self.decide_all()
+        path = self.paths.decisions("es", "common")
+        translib.write_jsonl(path, [dict(r, outcome="safety-judged") if r["key"] == "common_alarm_on" else r
+                                    for r in translib.read_jsonl(path)])
+        passes, lines = council.beta_report(self.paths, "es")
+        self.assertTrue(passes, lines)
+        self.assertIn("0 of 100 keys", lines[0])
 
 
 if __name__ == "__main__":

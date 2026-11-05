@@ -5,7 +5,7 @@
   merge.py --tag es --all                  every area with a decisions file
   merge.py --tag es --check                validate res/<folder>/ only; write nothing
 
-For each key whose decision is translated (agreed, judged or safety-agreed) and whose source_sha1
+For each key whose decision is translated (agreed, judged, safety-agreed or safety-judged) and whose source_sha1
 still matches the English, it writes the string with a <!-- src:<sha1> --> comment (translib's
 source hash). Keys that fall back, or whose English changed since the decision, are left out, so
 Android shows English. The area that holds the default l10n_tag also gets
@@ -34,7 +34,7 @@ import l10nlib  # noqa: E402
 import roundtrip  # noqa: E402
 import translib  # noqa: E402
 
-TRANSLATED = ("agreed", "judged", "safety-agreed")
+TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged")
 AAPT_VERSION = "36.1.0"
 ANDROID_PLATFORM = "android-36"
 SRC_COMMENT = re.compile(r"^src:([0-9a-f]{40})$")
