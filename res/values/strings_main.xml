@@ -33,24 +33,24 @@
     <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unknown</string>
     <string name="main_lock_state_unverified" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unverified</string>
     <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status">Connecting</string>
-    <string name="main_lock_last_known_locked_full" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: locked. Reconnect to verify.</string>
-    <string name="main_lock_last_known_unlocked_full" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: unlocked. Reconnect to verify.</string>
+    <!-- %1$s is main_lock_locked or main_lock_unlocked. -->
+    <string name="main_lock_last_known_full" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: %1$s. Reconnect to verify.</string>
     <!-- %1$s is the scooter name or main_lock_your_scooter, %2$s a whole sentence about the lock state. -->
     <string name="main_lock_connecting_to" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Connecting to %1$s. %2$s</string>
     <!-- Fills main_lock_connecting_to when no scooter is set up. -->
     <string name="main_lock_your_scooter" volt:screen="Home lock row" volt:purpose="name in a sentence">your scooter</string>
-    <string name="main_lock_last_known_locked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: locked</string>
-    <string name="main_lock_last_known_unlocked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: unlocked</string>
+    <!-- %1$s is main_lock_locked or main_lock_unlocked. -->
+    <string name="main_lock_last_known_word" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: %1$s</string>
     <!-- Under the last known lock state word. -->
     <string name="main_lock_last_known" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known</string>
-    <!-- %1$s is the scooter name. -->
-    <string name="main_status_connected_named" volt:screen="Connection line" volt:purpose="status">Connected · %1$s</string>
-    <!-- %1$s is a relative time. -->
-    <string name="main_status_last_seen" volt:screen="Connection line" volt:purpose="status">Disconnected · last seen %1$s</string>
+    <!-- %1$s is the state word, %2$s the scooter name. -->
+    <string name="main_status_connected_named" volt:screen="Connection line" volt:purpose="status">%1$s · %2$s</string>
+    <!-- %1$s is the state word, %2$s a relative time. -->
+    <string name="main_status_last_seen" volt:screen="Connection line" volt:purpose="status">%1$s · last seen %2$s</string>
     <!-- %1$s is the state word; the line opens the connection sheet. -->
     <string name="main_status_description" volt:screen="Connection line" volt:purpose="screen reader">%1$s. Connection details</string>
-    <!-- %1$s is a date and time. -->
-    <string name="main_status_description_last" volt:screen="Connection line" volt:purpose="screen reader">Disconnected, last connected %1$s. Connection details</string>
+    <!-- %1$s is the state word, %2$s a date and time. -->
+    <string name="main_status_description_last" volt:screen="Connection line" volt:purpose="screen reader">%1$s, last connected %2$s. Connection details</string>
     <string name="main_connection_details" volt:screen="Connection line" volt:purpose="tooltip">Connection details</string>
     <string name="main_your_scooter" volt:screen="Home header" volt:purpose="name">Your scooter</string>
     <string name="main_action_disconnect" volt:screen="Home lock row" volt:purpose="button">Disconnect</string>
@@ -111,9 +111,7 @@
         <item quantity="one">%1$d scooter found</item>
         <item quantity="other">%1$d scooters found</item>
     </plurals>
-    <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s, address ending %3$s</string>
-    <string name="main_scan_option_yours" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s, your scooter, address ending %3$s</string>
-    <string name="main_scan_option_saved" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s, saved scooter in My scooters, address ending %3$s</string>
+    <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>
 
     <!-- ===== Scooter tab: groups, banners and search ===== -->
     <!-- The group's English is also its stored id (section:Battery); only the shown name translates. -->
@@ -242,7 +240,7 @@
     <string name="main_short_pattern" volt:screen="Scooter tab" volt:purpose="row name">Pattern</string>
     <string name="main_short_color" volt:screen="Scooter tab" volt:purpose="row name">Color</string>
     <string name="main_detail_parking" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride">Boost + full throttle uphill in Sport</string>
-    <string name="main_detail_low_power" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride">Limits speed below 20%%</string>
+    <string name="main_detail_low_power" formatted="false" volt:screen="Scooter tab" volt:purpose="row detail" volt:safety="ride">Limits speed below 20%</string>
     <string name="main_value_miles" volt:screen="Scooter tab" volt:purpose="row value">Miles</string>
     <string name="main_value_kilometers" volt:screen="Scooter tab" volt:purpose="row value">Kilometers</string>
     <!-- Lock duration in a row: %1$s is a number of hours. -->
@@ -338,10 +336,6 @@
     <string name="main_row_untested" volt:screen="Scooter tab rows" volt:purpose="caption" volt:safety="experimental">Untested here</string>
     <!-- %1$s is the estimate source: Volt (learned) or Scooter. -->
     <string name="main_row_range_description" volt:screen="Scooter tab rows" volt:purpose="screen reader">Range estimate, %1$s, opens choices</string>
-    <!-- A control row read aloud while the scooter confirms a change: its name, then its value. -->
-    <string name="main_row_confirming" volt:screen="Scooter tab rows" volt:purpose="screen reader">%1$s, %2$s, confirming</string>
-    <!-- A control row read aloud while riding blocks it: its name, then its value. -->
-    <string name="main_row_stop_description" volt:screen="Scooter tab rows" volt:purpose="screen reader" volt:safety="ride">%1$s, %2$s, stop to change</string>
     <!-- A row read aloud: its label, its value, then two states. -->
     <string name="main_label_value_details" volt:screen="Scooter tab rows" volt:purpose="screen reader">%1$s, %2$s, %3$s, %4$s</string>
     <!-- A colour swatch read aloud: the setting name, then the colour. -->
@@ -434,10 +428,10 @@
     <string name="main_range_intro_body" volt:screen="Range estimate" volt:purpose="explanation">Volt uses your recorded rides to learn how far you can go. It improves as you record more rides.</string>
     <string name="main_range_more_body" volt:screen="Range estimate" volt:purpose="explanation">Record a few more rides so Volt can learn your range. Use your scooter\'s estimate for now.</string>
     <string name="main_range_not_selected" volt:screen="Range estimate" volt:purpose="screen reader">Not selected</string>
-    <string name="main_range_state_simulation" volt:screen="Range estimate" volt:purpose="screen reader">unavailable in simulation</string>
-    <string name="main_range_state_checking" volt:screen="Range estimate" volt:purpose="screen reader">checking saved rides</string>
-    <string name="main_range_state_more" volt:screen="Range estimate" volt:purpose="screen reader">more rides needed</string>
-    <string name="main_range_state_retry" volt:screen="Range estimate" volt:purpose="screen reader">tap to retry</string>
+    <string name="main_range_state_simulation" volt:screen="Range estimate" volt:purpose="screen reader">, unavailable in simulation</string>
+    <string name="main_range_state_checking" volt:screen="Range estimate" volt:purpose="screen reader">, checking saved rides</string>
+    <string name="main_range_state_more" volt:screen="Range estimate" volt:purpose="screen reader">, more rides needed</string>
+    <string name="main_range_state_retry" volt:screen="Range estimate" volt:purpose="screen reader">, tap to retry</string>
     <string name="main_range_read_failed" volt:screen="Range estimate" volt:purpose="status">Couldn\'t read saved rides. Tap Volt\'s estimate to retry.</string>
     <string name="main_range_using_scooter" volt:screen="Range estimate" volt:purpose="status">Using scooter\'s estimate for now.</string>
     <!-- %1$s is a distance with its unit, %2$s a battery percent. -->
@@ -535,4 +529,14 @@
     <string name="main_import_prepare_failed" volt:screen="Import and backup" volt:purpose="toast">Could not prepare the export.</string>
     <string name="main_import_saved" volt:screen="Import and backup" volt:purpose="toast">Saved.</string>
     <string name="main_import_save_failed" volt:screen="Import and backup" volt:purpose="toast">The export could not be saved.</string>
+    <!-- A control row read aloud adds this after its name and value; %1$s is the caption. -->
+    <string name="main_row_state_note" volt:screen="Scooter tab rows" volt:purpose="screen reader">", %1$s"</string>
+    <!-- Never shown: Volt compares a command's saved evidence with the start of this English. Leave it as it is. -->
+    <string name="main_result_clock_accepted" volt:screen="Scooter tab rows" volt:purpose="id" volt:dnt="Accepted; no clock">Accepted; no clock</string>
+    <string name="main_schedule_test_row_both" volt:screen="Charge schedule" volt:purpose="screen reader" volt:safety="charge">Test scheduled charging, %1$s, %2$s</string>
+    <string name="main_label_value_state" volt:screen="Scooter tab" volt:purpose="screen reader">%1$s, %2$s%3$s</string>
+    <string name="main_row_confirming_part" volt:screen="Scooter tab" volt:purpose="screen reader">, confirming</string>
+    <string name="main_row_stop_part" volt:screen="Scooter tab" volt:purpose="screen reader">, stop to change</string>
+    <string name="main_scan_state_yours" volt:screen="Connection" volt:purpose="screen reader">, your scooter</string>
+    <string name="main_scan_state_saved" volt:screen="Connection" volt:purpose="screen reader">, saved scooter in My scooters</string>
 </resources>
