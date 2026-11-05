@@ -1187,6 +1187,42 @@ The language pull request then runs the local build, LocaleValidation in that la
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
 
+### Seeing draft languages in a running app
+
+```sh
+python3 tools/l10n/draft_apk.py --tags es,de --workdir <scratch dir> --out <dir>
+```
+
+`draft_apk.py` builds `<out>/volt-draft-languages.apk` from the Claude drafts of `draft` languages,
+for a look on an emulator or test phone. Claude-only text stays `draft`, out of `res/` and out of
+every release; the drafts are only read, so they stay usable as the Claude provider's draft in the
+council.
+
+- **Where it works.** It exports HEAD into a fresh copy under `--workdir`, deleted at the end unless
+  `--keep`. Only that copy gets `res/values-<qual>/`, status `beta`, `locales_config.xml` and
+  `android:localeConfig`. Nothing else is written outside `--workdir` and `--out`, and it refuses
+  either path inside the worktree or another git checkout, any `res/` or `dist/` path, and a checkout
+  whose `res/` has uncommitted changes (the build would not include them).
+- **Which text.** `l10n/work/<tag>/<area>/drafts/claude-<config>.xml`, chosen with `--name` (default:
+  the only one). `--drafts <root>` reads the drafts and the language's `l10n/` files from another
+  folder. Only keys whose `volt:src` still matches and that pass `check.py` are written, with
+  `merge.py`'s writer; every other key shows English, and a ladder goes whole or not at all. A language
+  with no drafts is an error.
+- **Checks.** `merge.py`'s validation, the catalog generator, `CatalogCheckTest` and
+  `GlyphCoverageTest` run on the copy. A failure means no APK. `--no-build` stops after the Python
+  checks and writes the report.
+- **Not a release.** The versionName ends in `-draft-languages` (`1.11.1-dev+abc1234-draft-languages`),
+  and the copy's `build.sh` refuses `VOLT_RELEASE`. The APK is signed with a key made for that copy
+  and deleted with it, and the caller's `NAVEE_*` and `VOLT_*` settings are dropped. So it cannot update
+  an installed Volt: uninstall Volt first, which removes its data.
+- **Report.** `<out>/report.tsv` has one row per language and area and a `TOTAL` row: `translated`,
+  `english_fallback` (every key shown in English), `failing` and `stale` (drafted keys refused, also
+  counted in `english_fallback`), `unknown` (draft keys the English no longer has) and the safety and
+  lock or alarm counts. `<out>/report-keys.tsv` gives the reason for each refused key.
+
+The app's own Language row appears (More > App preferences), since the copy's language is `beta`.
+Text still in Java, such as the bottom bar's labels, stays English whatever the draft says.
+
 ### Limits of the automated checks
 
 `check.py` and `lexicon.py` are a **first filter**. They reject the common ways a draft goes wrong
