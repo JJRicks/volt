@@ -1,0 +1,158 @@
+# Brazilian Portuguese glossary. CLAUDE-ONLY PROPOSAL, drafted 2026-11-05 alone by Claude, pending the three-vendor debate; not final. No native speaker has reviewed it.
+# Same columns as en.tsv: term holds the Portuguese, forms separated by " | ", the first being the canonical one. Definitions are D3's where D3 changed them, and stay in English because they describe the en.tsv term.
+# Rows D3 retires stay, mapped to the chosen term, until D3 merges and en.tsv drops them. D3's new and renamed rows wait in l10n/pending/glossary-d3/pt-BR.tsv until then (glossary_hold.py restore).
+# HOLD until D3 merges: en.tsv and the strings still use Top speed and Maximum speed in their old senses, while the top-speed and maximum-speed rows below already use D3's. Following those rows now would call the setting Velocidade de pico and the measured value Velocidade máxima, the swap section 7 of the style guide forbids.
+# So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3.
+id	term	definition	pos	dnt	safety	source
+not-affiliated	não afiliado à NAVEE | não afiliada à NAVEE | não é afiliado à NAVEE | não é afiliada à NAVEE | sem afiliação com a NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	claude-only claude-opus-5-5; MoreScreen.java:184, 2360
+official-app	app oficial | aplicativo oficial	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	claude-only claude-opus-5-5; ModelRegistry.java:834; MoreScreen.java:1547
+navee-app	app NAVEE | aplicativo NAVEE | app da NAVEE | aplicativo da NAVEE	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	claude-only claude-opus-5-5; ModelRegistry.java:834; MoreScreen.java:1547
+scooter	patinete | patinetes	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	claude-only claude-opus-5-5; throughout
+owner	proprietário | proprietária | proprietários | proprietárias	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+owner-profile	perfil de proprietário | perfis de proprietário | perfil do proprietário	The saved profile of the owner role.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+owner-role	proprietário | proprietária | proprietários	D3 retired the English 'owner role' (owner is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+shared-access	usuário autorizado | usuários autorizados | usuária autorizada	D3 retired the English 'shared access' (shared rider is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+shared-user	usuário autorizado | usuários autorizados | usuária autorizada	D3 retired the English 'shared user' (shared rider is the role word; also an orphan). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+shared-role	usuário autorizado | usuários autorizados | usuária autorizada	D3 retired the English 'shared role' (shared rider is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; Protocol.java:79; MoreScreen.java:2441
+owner-identity	chave de proprietário | chaves de proprietário | chave do proprietário	D3 retired the English 'owner identity' (owner key chosen; no string keeps it after D3). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
+owner-key	chave de proprietário | chaves de proprietário | chave do proprietário	The 12-hex-character credential Volt authenticates with. Older website text and docs may say owner identity or scooter key. Treat it as a secret.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
+setup-key	chave de proprietário | chaves de proprietário | chave do proprietário	D3 retired the English 'setup key' (owner key chosen; also an orphan). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
+scooter-key	chave de proprietário | chaves de proprietário | chave do proprietário	D3 retired the English 'scooter key' (owner key chosen). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupRegistry.java:19; OnboardingScreen.java:927
+owner-setup	configuração do proprietário | configuração de proprietário	Getting the owner key from the NAVEE app.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
+owner-setup-file	arquivo de configuração do proprietário | arquivos de configuração do proprietário	The file that carries the owner key. Onboarding's buttons shorten it to owner file because the setup website names them. Its name, navee-owner-setup.json, stays as written.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
+capture	captura | capturas | capturar	Reading the owner key from the NAVEE app during owner setup.	noun	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
+capture-helper	ferramenta de captura | ferramentas de captura	The computer script that captures the owner key; setup/capture-owner.py stays as written.	noun phrase	no	owner-key	claude-only claude-opus-5-5; OnboardingScreen.java:722-1083; setup/capture-owner.py
+usb-debugging	Depuração USB	Android's setting. Use Android's own localized wording.	noun phrase	no	-	claude-only claude-opus-5-5; OnboardingScreen.java
+developer-options	Opções do desenvolvedor	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	claude-only claude-opus-5-5; OnboardingScreen.java
+build-number	Número da versão	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	claude-only claude-opus-5-5; OnboardingScreen.java
+electronic-lock	bloqueio eletrônico	Volt's lock control.	noun phrase	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+lock	Bloquear | bloqueio | bloqueios | bloqueie | bloqueá-lo | bloqueá-la	The action that locks the scooter.	verb	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+locked	Bloqueado | bloqueada | bloqueados | bloqueadas	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+unlock	Desbloquear | desbloqueio | desbloqueie | desbloqueá-lo | desbloqueá-la	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+unlocked	Desbloqueado | desbloqueada | desbloqueados | desbloqueadas	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+lock-bar	Barra de bloqueio	The lock row on Home.	noun phrase	no	lock	claude-only claude-opus-5-5; DashboardConfig.java:58
+lock-state-unverified	Estado de bloqueio não verificado	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+lock-state-unknown	Estado de bloqueio desconhecido	Same meaning as Lock state unverified. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
+lock-duration	Duração do bloqueio	How long the scooter stays locked when off.	noun phrase	no	lock	claude-only claude-opus-5-5; ScooterCommands.java:136
+handlebar-pin	PIN do guidão	The 4-digit code entered on the handlebar. It is the rider's phone-free way to unlock. Keep distinct from a backup password.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
+fallback-pin	PIN do guidão	D3 retired the English 'fallback PIN' (handlebar PIN chosen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
+dashboard-pin	PIN do guidão	D3 retired the English 'dashboard PIN' (handlebar PIN chosen; dashboard means Volt's screen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
+proximity-unlock	desbloqueio por proximidade	Unlocking when the paired phone is near.	noun phrase	no	pin	claude-only claude-opus-5-5; ScooterCommands.java:153
+pair	parear | pareamento | pareado | pareada | pareados | pareadas | pareie	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	claude-only claude-opus-5-5; BleController.java:559
+connect	Conectar | conexão | conecte | conectado | conectada	Start the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
+disconnect	Desconectar | desconexão | desconecte | desconectado | desconectada	End the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
+connection-details	Detalhes da conexão	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:969
+signal-lost	Sinal perdido | perda de sinal | o sinal foi perdido	The Bluetooth link dropped.	clause	no	-	claude-only claude-opus-5-5; MainActivity.java:969
+parked	parado | parada	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5; CapabilityResolver.java:312
+model-id	ID do modelo	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	claude-only claude-opus-5-5; ReportInvite.java:32
+firmware	firmware	The scooter's software. Volt never changes it.	noun	no	-	claude-only claude-opus-5-5; MoreScreen.java:1552
+compatibility-check	verificação de compatibilidade | verificações de compatibilidade	A read-only check of what this scooter supports.	noun phrase	no	-	claude-only claude-opus-5-5; MoreScreen.java:2150; CompatibilityPanel.java
+compatibility-checker	verificador de compatibilidade	The screen that runs the compatibility check.	noun phrase	no	-	claude-only claude-opus-5-5; MoreScreen.java:2150; CompatibilityPanel.java
+compatibility-report	relatório de compatibilidade | relatórios de compatibilidade	The emailed result of the compatibility check. The UI is translated; the report content stays English.	noun phrase	no	-	claude-only claude-opus-5-5; MoreScreen.java:2150; CompatibilityPanel.java
+report-an-issue	Relatar um problema	Send an email to Volt with an English attachment.	verb phrase	no	privacy	claude-only claude-opus-5-5; MoreScreen.java:188
+diagnostics	Diagnóstico | diagnósticos	The section that collects the information a report sends.	noun	no	privacy	claude-only claude-opus-5-5; MainActivity.java:2719
+diagnostics-file	arquivo de diagnóstico | arquivos de diagnóstico	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5; MainActivity.java:2719
+experimental-controls	Controles experimentais | controle experimental	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
+untested-controls	Controles para experimentar	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
+try	Experimentar | experimente | experimentá-lo | experimentá-la | experimentá-los | experimentá-las | tentativa | tentativas | tentar | tente	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+set-back	Reverter | reversão | reverta | revertido | revertida | revertê-lo | revertê-la	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+help-verify	Ajudar a verificar | Ajude a verificar	Ask the rider to confirm what a try did.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+unverified	Não verificado | não verificada | não verificados | não verificadas	Volt has not confirmed the control on this model.	adjective	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+untested	Não testado | não testada | não testados | não testadas	No one has tried the control on this model yet.	adjective	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+unconfirmed	Sem confirmação	The scooter acknowledged a try, but the value was not kept or read back.	adjective	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+refused-by-scooter	Rejeitado pelo patinete | rejeitada pelo patinete	The scooter rejected the try.	adjective phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+worked-here	Funcionou aqui	The try worked on this scooter.	clause	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+readback	releitura | releituras	Whether the scooter reported the new value back.	noun	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+confirmed	confirmado | confirmada | confirmados | confirmadas	The scooter read the new value back.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+not-confirmed	Não confirmado | não confirmada | não confirmados | não confirmadas	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+rejected	Rejeitado | rejeitada | rejeitados | rejeitadas	The scooter refused the value.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+acceleration-profile	Perfil de aceleração	How hard the motor accelerates.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
+acceleration-eco	Eco	The gentle acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
+acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
+energy-recovery	Recuperação de energia	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+regen	Recuperação de energia	D3 retired the English 'regen' (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Use the term shown.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+motor-braking	Recuperação de energia	D3 retired the English 'motor braking' (energy recovery chosen). Use the term shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+energy-recovery-off	Desativada | desativado | desligada | desligado	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+energy-recovery-low	Baixa | baixo	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+energy-recovery-medium	Média | médio	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+energy-recovery-high	Alta | alto	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
+cruise-control	Controle de cruzeiro	Holds the current speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+traction-control	Controle de tração	Limits wheel spin.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+overspeed-active-control	Controle ativo de excesso de velocidade	Brakes the motor above the speed limit.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+hill-descent-control	Controle de descida	Holds a steady speed downhill.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+dual-motor-drive	Motor duplo	Both motors drive.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+single-motor	Motor único	Only one motor drives.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+kick-start-speed	Velocidade inicial	The speed before the motor engages from a push.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:120
+standing-start	Partida do zero	The value 0 of Kick-start speed: the motor engages from a standstill. Not another name for the setting.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:120
+custom-speed-cap	Limite de velocidade personalizado | limites de velocidade personalizados	D3 renamed this row custom-speed-limit. A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+drive-mode-speed-cap	Limite de velocidade do modo | limites de velocidade do modo	D3 renamed this row drive-mode-speed-limit. The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+maximum-speed	Velocidade máxima | Vel. máxima | Vel. máx.	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+top-speed	Velocidade de pico | Vel. de pico	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
+walk-assist	Assistência ao caminhar	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
+power-assist	Assistência de potência	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
+boost	Boost	Extra power in Sport mode.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
+low-battery-mode	Modo de bateria fraca	A battery toggle that limits power to save charge.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:138-140
+long-range-mode	Modo de longa autonomia	A battery toggle that trades speed for distance.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:138-140
+tail-light	Luz traseira | luzes traseiras	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+automatic-lights	Luzes automáticas	Lights that switch on by themselves.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+line-lights	Luzes de linha	A light strip on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+star-lights	Luzes de estrela	A light pattern on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+ambient-light	Luz ambiente	Decorative light on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+logo-light	Luz do logotipo	The lit logo on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+daytime-running-light	Luz de rodagem diurna	A light that stays on while riding by day.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+turn-signal	Seta | setas	The turn indicator; in Volt, the control for its sound.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+prompt-sound	Som de aviso | sons de aviso	The scooter's beeps.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+follow-headlight	Igual ao farol | com o farol	A light setting that follows the headlight.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+always-on	Sempre ligada | sempre ligado	A light setting that never switches off.	adjective phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+light-red	Vermelho | vermelha	A light colour.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+light-ice-blue	Azul-gelo	A light colour.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
+dashboard-units	Unidades do visor do patinete | unidades do visor	D3 retired the English 'Dashboard units' (scooter display units chosen). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
+scooter-display-units	Unidades do visor do patinete | unidades do visor	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
+miles	Milhas | milha	A display unit choice.	noun	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
+kilometers	Quilômetros | quilômetro	A display unit choice.	noun	no	-	claude-only claude-opus-5-5; ScooterCommands.java:116; MainActivity.java:1736
+dashboard	Painel | painéis	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
+widget	widget | widgets	A tile on the Dashboard.	noun	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
+quick-access	Acesso rápido	D3 retired the English 'Quick access' (The UI says Quick settings (dashboard_quick_settings). Rows for what is actually shown serve better; add quick-settings if translators need one. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5; DashboardConfig.java; QuickAccessActions.java
+live-stats	Dados ao vivo	The telemetry pages.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
+readings	leituras | leitura	Telemetry values the scooter reports.	noun	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
+readings-history	Histórico de leituras	Stored telemetry.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:78; BackupRegistry.java:19
+odometer	Odômetro	Total distance. The narrow-label ladder is full, then abbreviated, then icon, with no mid-word breaks.	noun	no	-	claude-only claude-opus-5-5; ScooterReadingLabels.java:30, 74
+odometer-short	Odôm.	The abbreviated rung of Odometer.	abbreviation	no	-	claude-only claude-opus-5-5; ScooterReadingLabels.java:30, 74
+trip	Trajeto | trajetos	Distance since the last reset.	noun	no	-	claude-only claude-opus-5-5; ScooterReadingLabels.java:30, 74
+range-estimate	Estimativa de autonomia | estimativas de autonomia	Remaining-distance estimate.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
+learned-range	autonomia aprendida	D3 retired the English 'learned range' (The UI says Volt (learned) and learned curves; the phrase never appears. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
+theoretical	Teórica | teórico	A range basis: the maker's figure.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
+actual-riding	Condução real	A range basis: how this scooter has really been ridden.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
+charge-limit	Limite de carga	The maximum charge percentage.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
+charge-ceiling	Limite de carga	D3 retired the English 'charge ceiling' (charge limit chosen; ceiling stays only as a search keyword). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
+scheduled-charging	Carregamento programado | carga programada	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
+charge-start	Início do carregamento | início da carga	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
+charging-start-time	Horário de início do carregamento | horário de carregamento	The setting for when scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
+next-charge-start	Próximo início do carregamento | próximo início da carga	When the next scheduled charge begins.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
+charge-done-by	Carga pronta até | Pronta até | horário de carga pronta	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	claude-only claude-opus-5-5; MainActivity.java:2149; QuickAccessActions.java:59
+test-scheduled-charging	Verificar o carregamento programado | Verifique o carregamento programado	A check of the scooter's clock and schedule.	verb phrase	no	charge	claude-only claude-opus-5-5; MainActivity.java:2072
+measure	Medir | medição | medições | meça	Watch the charger for about 10 minutes before planning.	verb	no	charge	claude-only claude-opus-5-5; MainActivity.java:2018-2045
+measuring	medindo | medição	The state while Volt measures the charger.	verb	no	charge	claude-only claude-opus-5-5; MainActivity.java:2018-2045
+battery-alerts	Alertas de bateria	Alerts on models without a charge limit.	noun phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+charge-alert	Alerta de carga | alertas de carga	An alert when charging reaches a level.	noun phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+low-battery-alert	Alerta de bateria fraca | alertas de bateria fraca	An alert when the battery falls to a level.	noun phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+notify-me	Avise-me	Choose a notification for an alert.	verb phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+alarm-sound	Som de alarme	Choose a sounding alarm for an alert.	noun phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+stop	Parar | pare	Silence a sounding alarm.	verb	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+stop-watching	Parar de monitorar | Pare de monitorar	End an alert's watch.	verb phrase	no	alarm	claude-only claude-opus-5-5; MainActivity.java:1872-1990
+charge-recording	Gravação de carregamento | gravações de carregamento	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
+charger-profile	perfil do carregador | perfis do carregador	D3 retired the English 'charger profile' (The UI says Charger for estimates; the phrase never appears. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
+time-to-full	Tempo até a carga completa | até a carga completa	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterService.java; DashboardScreen.java:3288
+rides	Viagens | viagem	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
+ride-recording	gravação de viagens | gravação da viagem	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
+phone-journal	Diário do telefone	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
+motion	Movimento	Movement data of a ride.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
+route	Rota | rotas	The path of a ride on the map.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
+backup	Backup | backups	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+full-backup	Backup completo | backups completos	A backup of everything.	noun phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+selected-data	Dados selecionados	A backup of the chosen parts.	noun phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+restore	Restaurar | restauração | restaure | restaurá-lo | restaurá-la	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+replace-everything	Substituir tudo | Substitua tudo	A restore that replaces all of Volt's data.	verb phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+owner-setup-file-scooter-access	Arquivo de configuração do proprietário · somente acesso ao patinete	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupActivity.java:176-414
+simulated-scooter	Patinete simulado | patinetes simulados	Demo mode with no real scooter.	noun phrase	no	-	claude-only claude-opus-5-5; CompatibilityReport.java:246; IssueReport.java:18
+simulation	simulação	The demo mode itself.	noun	no	-	claude-only claude-opus-5-5; CompatibilityReport.java:246; IssueReport.java:18
