@@ -107,7 +107,7 @@
     <string name="main_scan_yours" volt:screen="Scanner" volt:purpose="chip">Yours</string>
     <string name="main_scan_saved" volt:screen="Scanner" volt:purpose="chip">Saved</string>
     <string name="main_scan_found_one" volt:screen="Scanner" volt:purpose="status">1 scooter found</string>
-    <!-- Count of nearby scooters, 0 and 2 or more; main_scan_found_one says exactly 1. %1$d is the count. -->
+    <!-- Count of nearby scooters, 2 or more; main_scan_found_one says exactly 1 and main_scan_none says none. %1$d is the count. English's "one" item never shows; a language whose "one" covers numbers like 21 writes it for those. -->
     <plurals name="main_scan_found_many" volt:screen="Scanner" volt:purpose="status">
         <item quantity="one">%1$d scooters found</item>
         <item quantity="other">%1$d scooters found</item>

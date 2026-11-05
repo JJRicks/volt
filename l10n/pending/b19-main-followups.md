@@ -31,3 +31,9 @@ expression with the call that serves it"). Neither changes what the app shows.
 5. **The owner import's catch** still has `e instanceof IllegalArgumentException?e.getMessage():...`, but the
    line before it returns for that exception when `onboarding==null`, so the arm cannot run. Reduce it to
    `toast(T.mainImportSetupUnreadable())`.
+6. **The control list's search in a translated language.** `ControlRow.haystack` is built from
+   `searchText()`, `shortLabel()` and `rowDetail()`, and the last two now render in the current language.
+   English that exists only in those two ("limits speed", "scooter display units") matches in English but
+   stops matching once a language ships, because `matchesShown` holds the rendered text too. Add their
+   `.english()` forms to the haystack if English search should keep working in every language. English
+   itself is unchanged.
