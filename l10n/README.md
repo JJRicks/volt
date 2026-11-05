@@ -640,7 +640,7 @@ changes since the merge base:
 | Kind | When | Gates |
 |---|---|---|
 | `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference (bare or spelled `com.jjricks.volt.T.`, and so on) | every gate, strict; proof tooling unchanged |
-| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog |
+| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only, G5; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog; proof tooling unchanged, except that edits to existing `tests/l10n/<Name>Test.java` files that are not gate tests are reported |
 | `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
 
 Every kind also refuses a static import of a `T`, `M` or `R` member in `src/`: a bare call through one
@@ -662,6 +662,14 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
   approval), updates the tests that assert the old English, and shows the census diff.
+  Its characterization changes (`tests/l10n/characterization/`) all go in the first commit, which
+  changes nothing under `src/` or `res/` (G5). It may edit an existing top-level
+  `tests/l10n/<Name>Test.java`: CI lists each such edit in a REPORT line, and the reviewer checks
+  that each one only follows a row of `l10n/english-changes.tsv`. The gate tests stay strict:
+  `LedgerTest`, `FmtLegacyTest`, `ReportsStayEnglishTest`, `GlyphCoverageTest`, `CatalogCheckTest`
+  and `CatalogUsageTest`. So do deleting a test, the other `tests/l10n/` files (`GoldenReports.java`,
+  `L10nFiles.java`, the scripts, subdirectories) and the rest of the proof tooling. Change those in a
+  tooling pull request of their own.
 
 ## Threat model
 
@@ -742,7 +750,7 @@ Known limits:
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch pull requests), prove-english |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
