@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- aapt keeps only the % of the first, cut, in en-XA. The second is English that matches that cut text
+         up to its NULs, so aapt gives both one pool slot, and a repair of the slot would change this English. -->
+    <string name="cut_short" formatted="false">%{x}%</string>
+    <string name="shares_the_slot" formatted="false">[»%</string>
+</resources>

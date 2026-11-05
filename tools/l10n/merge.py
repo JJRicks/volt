@@ -3,17 +3,19 @@
 
   merge.py --tag es --area common          res/values-es/strings_common.xml
   merge.py --tag es --all                  every area with a decisions file
-  merge.py --tag es --check                validate res/<folder>/ only; write nothing
+  merge.py --tag es --check                validate res/<folder>/ and compare it with what the
+                                           decisions would write; write nothing
 
 For each key whose decision is translated (agreed, judged or safety-agreed) and whose source_sha1
 still matches the English, it writes the string with a <!-- src:<sha1> --> comment (translib's
-source hash). Keys that fall back, or whose English changed since the decision, are left out, so
-Android shows English. The area that holds the default l10n_tag also gets
+source hash). Keys that fall back, whose English changed since the decision, or whose text is blank,
+the wrong shape or missing a plural form (translib.why_english) are left out, so Android shows
+English, and the beta bar counts them as falling back. The area that holds the default l10n_tag also gets
 <string name="l10n_tag"><tag></string>. Only merge.py writes res/values-<qual>/.
 
 Then it validates the whole folder (the CatalogCheckTest rules): every key exists in the default
 with the same kind and is translatable; placeholders match; every plural category the language
-needs is present; every sha comment matches the current English; ladders are complete; l10n_tag
+needs is present; no text is blank unless the English is; every sha comment matches the current English; ladders are complete; l10n_tag
 names the language; the folder is listed in l10n/lang/; and aapt stores every text exactly as
 written (when the SDK's aapt is available; --aapt off skips it, --aapt required fails without it).
 """
@@ -34,7 +36,6 @@ import l10nlib  # noqa: E402
 import roundtrip  # noqa: E402
 import translib  # noqa: E402
 
-TRANSLATED = ("agreed", "judged", "safety-agreed")
 AAPT_VERSION = "36.1.0"
 ANDROID_PLATFORM = "android-36"
 SRC_COMMENT = re.compile(r"^src:([0-9a-f]{40})$")
@@ -55,31 +56,18 @@ def render_file(tag, area, lang, sources, decisions, tag_area):
         d = decisions.get(s.key)
         if not s.translatable:
             continue
-        if d is None:
-            skipped.append((s.key, "no decision"))
-            continue
-        if d.get("outcome") not in TRANSLATED:
-            skipped.append((s.key, "falls back to English"))
+        why = translib.why_english(s, d, categories)
+        if why:
+            skipped.append((s.key, why))
             continue
         sha = translib.source_sha1(s.kind, s.items)
-        if d.get("source_sha1") != sha:
-            skipped.append((s.key, "the English changed since the decision"))
-            continue
         items = translib.items_of(s.kind, d.get("text"))
-        if items is None:
-            skipped.append((s.key, "the decision's text has the wrong shape"))
-            continue
         formatted = "" if s.formatted else ' formatted="false"'
         lines.append("    <!-- src:%s -->" % sha)
         if s.kind == "string":
             lines.append('    <string name="%s"%s>%s</string>' % (
                 s.key, formatted, translib.xml_text(translib.encode_resource_text(items["other"]))))
         else:
-            missing = [q for q in categories if q not in items]
-            if missing:
-                lines.pop()
-                skipped.append((s.key, "missing plural forms %s" % ", ".join(missing)))
-                continue
             lines.append('    <plurals name="%s"%s>' % (s.key, formatted))
             for quantity in categories:
                 lines.append('        <item quantity="%s">%s</item>' % (
@@ -114,8 +102,51 @@ def merge_area(paths, tag, area, sources=None, tag_area=None):
 # Validation
 # ---------------------------------------------------------------------------
 
-def validate_folder(paths, tag, aapt="auto"):
-    """(problems, notes) for res/<folder>/ of one language."""
+def decided_areas(paths, tag):
+    directory = os.path.dirname(paths.decisions(tag, "x"))
+    return sorted(f[:-6] for f in os.listdir(directory) if f.endswith(".jsonl")) if os.path.isdir(directory) else []
+
+
+def drift_problems(paths, tag):
+    """Problems: res/<folder>/ is not byte for byte what merging every decided area writes (merge_area's rule)."""
+    lang = translib.load_language(paths, tag)
+    sources, tag_area = translib.load_source(paths)
+    problems, expected = [], {}
+    for area in decided_areas(paths, tag):
+        if area not in sources:
+            problems.append("%s: no res/values/strings_%s.xml any more" % (paths.rel(paths.decisions(tag, area)), area))
+            continue
+        decisions = collections.OrderedDict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
+        text, written, _ = render_file(tag, area, lang, sources[area], decisions, tag_area)
+        if written or area == tag_area:
+            expected["strings_%s.xml" % area] = text
+    folder = paths.res(lang.folder)
+    present = [f for f in sorted(os.listdir(folder)) if f.endswith(".xml")] if os.path.isdir(folder) else []
+    again = "merge.py --tag %s --all writes" % tag
+    for filename in sorted(set(present) | set(expected)):
+        display = paths.rel(os.path.join(folder, filename))
+        if filename not in expected:
+            problems.append("%s: no decisions would write this file; %s only from l10n/decisions/" % (display, again))
+        elif filename not in present:
+            problems.append("%s: missing; %s it" % (display, again))
+        else:
+            actual = l10nlib.read_text(os.path.join(folder, filename))
+            if actual != expected[filename]:
+                problems.append("%s: not what %s (first difference at line %d): edit the decision and merge again, "
+                                "never the file" % (display, again, _first_difference(actual, expected[filename])))
+    return problems
+
+
+def _first_difference(left, right):
+    left, right = left.split("\n"), right.split("\n")
+    for number, (a, b) in enumerate(zip(left, right), 1):
+        if a != b:
+            return number
+    return min(len(left), len(right)) + 1
+
+
+def validate_folder(paths, tag, aapt="auto", shipped=False):
+    """(problems, notes) for res/<folder>/ of one language. A shipped language must also have its l10n_tag."""
     lang = translib.load_language(paths, tag)
     languages = gen_catalog.load_languages(paths.lang_dir())
     problems, notes = [], []
@@ -184,6 +215,8 @@ def validate_folder(paths, tag, aapt="auto"):
                 if missing:
                     problems.append("%s: missing plural forms %s" % (where, ", ".join(missing)))
             for quantity, item in e.items.items():
+                if not item.text.strip() and s.items.get(quantity, s.items["other"]).strip():
+                    problems.append("%s[%s]: blank, and the English is not" % (where, quantity))
                 if s.formatted:
                     specs = set(_specs(item.text))
                     if e.kind == "string" and specs != set(_specs(s.items["other"])):
@@ -201,7 +234,10 @@ def validate_folder(paths, tag, aapt="auto"):
                 problems.append("%s: ladder %s is partly translated (missing %s)" % (
                     paths.rel(folder), base, ", ".join(k for k in members if k not in seen)))
     if tag_value is None:
-        if tag_area:
+        if tag_area and shipped:
+            problems.append("%s: no l10n_tag, so the app treats this folder as English: merge the %s area" % (
+                paths.rel(folder), tag_area))
+        elif tag_area:
             notes.append("no l10n_tag yet: merge the %s area, or the app treats this folder as English" % tag_area)
         else:
             problems.append("the default catalog has no l10n_tag (B0b adds it), so the language cannot be detected")
@@ -281,7 +317,7 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--area")
     group.add_argument("--all", action="store_true")
-    group.add_argument("--check", action="store_true", help="validate only")
+    group.add_argument("--check", action="store_true", help="validate and compare with the decisions; write nothing")
     parser.add_argument("--aapt", choices=("auto", "off", "required"), default="auto")
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)
@@ -289,12 +325,7 @@ def main(argv=None):
         translib.check_tag_area(args.tag, args.area)
         if not args.check:
             sources, tag_area = translib.load_source(paths)
-            if args.all:
-                directory = os.path.dirname(paths.decisions(args.tag, "x"))
-                areas = sorted(f[:-6] for f in os.listdir(directory) if f.endswith(".jsonl")) \
-                    if os.path.isdir(directory) else []
-            else:
-                areas = [args.area]
+            areas = decided_areas(paths, args.tag) if args.all else [args.area]
             for area in areas:
                 path, written, skipped, unknown = merge_area(paths, args.tag, area, sources, tag_area)
                 print("%s: %d translated, %d English" % (paths.rel(path), len(written), len(skipped)))
@@ -303,6 +334,8 @@ def main(argv=None):
                 for key in unknown:
                     print("  %s: decided but no longer in the English; dropped" % key)
         problems, notes = validate_folder(paths, args.tag, args.aapt)
+        if args.check:
+            problems = problems + drift_problems(paths, args.tag)
     except (translib.L10nError, gen_catalog.CatalogError) as error:
         print("merge.py: %s" % error, file=sys.stderr)
         return 2
