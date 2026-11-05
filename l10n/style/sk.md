@@ -53,8 +53,10 @@ A value in `%1$s` can't decline, so build the sentence so the value stands alone
 | Keep %1$s | Ponechať hodnotu: %1$s | Ponechať %1$s |
 | Changing to %1$s… | Mení sa na hodnotu: %1$s… | Mení sa na %1$s… |
 | Restore to %1$s | Obnoviť hodnotu: %1$s | |
-| Last known lock state: %1$s | Posledný známy stav zámku: %1$s | |
+| Last known lock state: %1$s | Posledný známy stav zámku: %1$s | Posledný známy stav: %1$s (no lock word, so the check refuses it on a lock key) |
 | Starts at %1$s | Začiatok: %1$s | Začne sa o %1$s |
+
+In the lock state row above, the value agrees with `zámku`: `zamknutý`, `odomknutý`.
 
 Prepositions change before some sounds (`k/ku`, `s/so`, `v/vo`, `z/zo`), so never put one directly before a placeholder: `v aplikácii %1$s`, `Názov: %1$s`. Before the scooter itself it's `ku kolobežke`, `s kolobežkou`, `z kolobežky`, `v kolobežke`.
 
@@ -87,7 +89,7 @@ More (one, few, many, other): `minúta, minúty, minúty, minút`; `jazda, jazdy
 Fit is measured, so use a shorter rung only as far as the budget needs. In order:
 
 1. Say less: drop what the screen supplies (`Teplota batérie`, then `Tepl. batérie`, then `Tepl.`).
-2. Use a shorter natural word with the same meaning (`Jazda` for `Nastavenia jazdy` in a 64 dp tile).
+2. Use a shorter natural word with the same meaning (`Batéria` for `Nastavenia batérie` in a 64 dp tile).
 3. Use only an abbreviation from the list below.
 4. If nothing fits, write the correct word and say so in the reply's notes. Never swap in another meaning or a colloquial word.
 
@@ -102,10 +104,10 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | `Najv.` | najvyššia (see the Top speed rule) | `Odh.` | odhadovaný |
 | `Rýchl.` | rýchlosť, only as a last resort | `Nast.` | nastavenia, only with a following noun (`Nast. jazdy`) |
 | `Experim.` | experimentálne | `Zap.`, `Vyp.` | zapnuté, vypnuté: narrow on and off values |
-| `Neover.` | neoverená, where the whole word misses by little | `Netest.` | netestovaná, likewise |
 | `č.` | číslo | | |
 
 **Refused:**
+- `Neover.` and `Netest.`: the whole words fit, and a status that must never read as confirmed gains nothing from being cut. If a budget ever appears, add them to the glossary rows then.
 - **`Odo.`, the English rung's obvious copy: it's the start of `Odomknúť` and `Odomknutá`.** The odometer's short form is capital `ODO` only.
 - Any shortening of a lock word (`Zamk.`, `Odomk.`, `Zám.`, `Odom.`): both stay whole.
 - `Nast.` alone and `Nastav.` (`nastav` reads as an imperative in the ty form); `Kap.` (reads as kapitola); `Min.` for minimum (clashes with `min`); `Bat.`, `Kolob.`: drop the word instead; `Temp.`, the Latin-looking copy, because Slovak writes `tepl.`; `Exp.`, which reads as expedícia or exponent.
@@ -122,15 +124,15 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | Est. range / Range | Odh. dojazd / Dojazd | 66 / 38 at 12 sp |
 | Trip distance / Distance | Dĺžka úseku / Vzdialenosť | 67 / 65 at 12 sp |
 | Electronic lock / Lock | Elektronický zámok / Zámok | 109 / 38 at 12 sp |
-| Unverified here / Unverified | Neoverená tu / Neoverená | 75 / 60 at 12 sp |
-| Untested here / Untested | Netestovaná tu / Netestovaná | 85 / 71 at 12 sp |
+| Unverified here / Unverified | Tu neoverená / Neoverená | 75.5 / 60 at 12 sp |
+| Untested here / Untested | Tu netestovaná / Netestovaná | 85.9 / 71 at 12 sp |
 
 Quick access tiles: 64 dp at 12 sp, then 90 dp at 12.5 sp.
 
 | English | 64 dp | 90 dp |
 |---|---|---|
 | Settings | Nastavenia (63, tight) | Nastavenia |
-| Ride settings | Jazda (31) | Nast. jazdy (65) |
+| Ride settings | Nast. jazdy (62) | Nast. jazdy (65) |
 | Battery settings | Batéria (41) | Nast. batérie (74) |
 | Live Stats | Živé údaje (57) | Živé údaje (60) |
 | Rides | Jazdy (32) | Jazdy |
@@ -145,7 +147,7 @@ Quick access tiles: 64 dp at 12 sp, then 90 dp at 12.5 sp.
 | About & permissions | O aplikácii (57) | O aplikácii (59) |
 | Scooter name | Názov (35) | Názov (36) |
 | Charge done by | Nabité do (54) | Nabité do (56) |
-| Charge done by time | Čas nabitia (61) | Čas nabitia (64) |
+| Charge done by time | Termín (38) | Termín nabitia (83) |
 | Shared (role, `more_role_shared`) | Oprávnený (64 at 12.5 sp) | |
 
 These are examples of the method, not approved strings. `prib.` is allowed only in that one label; it is a judgment call and the debate may do better.
@@ -161,8 +163,8 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 | Lock (action, button) | **Zamknúť** | Instruction: `Zamknite kolobežku`. Noun: `zamknutie`. In progress: `Zamyká sa…`. Failed: `Zamknutie zlyhalo`. |
 | Lock (title, row, the thing) | **Zámok** | Electronic lock: **Elektronický zámok**. Lock bar: **Lišta zámku**. Lock duration: **Trvanie zamknutia**. |
 | Unlock (action, button) | **Odomknúť** | Instruction: `Odomknite kolobežku`. Noun: `odomknutie`. In progress: `Odomyká sa…`. |
-| Locked | **Zamknutá** | Feminine, agreeing with `kolobežka`, on every bare state label. With a noun beside it, agree with that noun: `Elektronický zámok, zamknutý`. |
-| Unlocked | **Odomknutá** | Same agreement rule. Never `nezamknutá`. |
+| Locked | **Zamknutá** | Feminine, agreeing with `kolobežka`, on a bare state label about the scooter. With a noun beside it or on the screen it reports, agree with that noun: `Elektronický zámok, zamknutý`. `readings_value_locked`, under Live Stats › Electronic lock: **Zamknutý**. |
+| Unlocked | **Odomknutá** | Same agreement rule; `readings_value_unlocked`: **Odomknutý**. Never `nezamknutá`. |
 | Lock state unverified | **Stav zámku nie je overený** | Never reads as confirmed. |
 | Lock state unknown | **Stav zámku je neznámy** | Same meaning as above. |
 | Last known: locked / unlocked | **Posledný známy stav: zamknutá / odomknutá** | With "Reconnect to verify": `Na overenie sa znova pripojte.` |
@@ -184,7 +186,7 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 
 **Lock rules**
 
-- Say a lock state with `zamknutá` or `odomknutá`. **Never** `Zámok vypnutý`, `Zámok zapnutý`, `Vypnúť zámok`, `Odstrániť zámok`, `Zrušiť zámok`, `Odomknúť zámok`, `Otvoriť`, `Otvorená`. "Lock off" and "open" are ambiguous on a safety control. Unlocking is said of the scooter: `Odomknúť kolobežku`. **`check.py` has no Slovak list for these phrases, so nothing stops them but the judge.**
+- Say a lock state with `zamknutá` or `odomknutá`. **Never** `Zámok vypnutý`, `Zámok zapnutý`, `Vypnúť zámok`, `Zapnúť zámok`, `Odstrániť zámok`, `Zrušiť zámok`, `Odomknúť zámok`, `Otvoriť`, `Otvorená`. "Lock off" and "open" are ambiguous on a safety control. Unlocking is said of the scooter: `Odomknúť kolobežku`. **`check.py` has no Slovak list for these phrases, so nothing stops them but the judge.**
 - **Buttons act; states report.** Buttons use `Zamknúť` / `Odomknúť`; states use `Zamknutá` / `Odomknutá`. A Lock button that reads `Zamknutá` tells the rider it is already locked. The check can't tell them apart reliably, so judges confirm action or state on every lock key.
 - **Not used:** `zablokovaná` and `odblokovať` (`zablokované koleso` is a jammed wheel, which reads as a fault), `uzamknúť` (correct Slovak, but one word per concept here), `poistka`, `zabezpečená`.
 - `zámok` alone can also be a mechanical lock (other brands' manuals have `zámok na kľúč`), so write `Elektronický zámok` wherever the two could be confused.
@@ -203,6 +205,7 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 Slovak writes verb negation as one word (`nemá`, `nepodarilo sa`, `nezobrazí sa`). On a safety key, an English `not`, `no`, `never`, `can't`, `don't` or `couldn't` needs one of the separate words `nie`, `nikdy`, `žiadny`, `žiadna`, `žiadne`, `bez`, `nič`, or it fails. A joined verb alone fails, and so do other cases of `žiadny` (tested: `Nepodarilo sa potvrdiť`, `Nezamykajte`, `Toto nemôžete zmeniť`, `Žiadnu kolobežku` all fail).
 
 - Write `Nie je možné potvrdiť…` for "could not confirm", `Telefón nie je spárovaný` for "phone not paired", `Nikdy sa nezobrazí` for "never shown".
+- **`Nie je možné` is a workaround for the check.** It says impossible, where `nepodarilo sa`, the normal Slovak, says it failed this time. `Záznam sa však nepodarilo uložiť` is the natural wording for "couldn't be saved" and gets a polarity error. Where the result can be stated, that is closer: `záznam však nie je uložený`. The debate decides, along with whether the check should accept `nepodarilo sa`.
 - English `un-` words keep the prefix form (`Neoverená`, `Netestovaná`, `Neznámy`, `Nedostupné`); these pass.
 - Where no natural wording fits, keep the correct Slovak and say so in the reply's notes rather than bending the meaning. A false alarm falls back to English, which is safe.
 - Don't add `nie` or `bez` where the English has no negation: that is an error on a safety key.
@@ -228,7 +231,7 @@ Slovak writes verb negation as one word (`nemá`, `nepodarilo sa`, `nezobrazí s
 | Trip | úsek | P | Boost | Boost | |
 | Route (on the map) | trasa | M | Walk Assist | asistent pri tlačení | P |
 | Rides (records) | jazdy; one: jazda | M | Power Assist | asistent výkonu | P |
-| Dashboard (Volt's Home) | panel | P | Hill descent control | kontrola zjazdu zo svahu | P |
+| Dashboard (Volt's Home) | prehľad | P | Hill descent control | kontrola zjazdu zo svahu | P |
 | scooter's display | displej kolobežky (not `obrazovka`, `prístrojová doska`) | M | Tail light | zadné svetlo | E |
 | widget | miniaplikácia (Android's word) | M | headlight | predné svetlo | E |
 | firmware | firmvér | M | Turn signal | smerovka | E |
@@ -241,7 +244,7 @@ Slovak writes verb negation as one word (`nemá`, `nepodarilo sa`, `nezobrazí s
 
 Drive-mode names stay English (the owner's default). D3 made `Eco` and `Turbo` do-not-translate. `Boost` also stays as the scooter shows it. `Model ID` stays in English, as its glossary definition asks, though `ID modelu` would read more naturally. Android names vary by phone maker; a Samsung may differ.
 
-**Open for the debate:** Walk Assist (e-bike Slovak has `pomoc pri tlačení`; `asistent chôdze` reads as a walking aid); Power Assist (a calque); Shared rider (`zdieľaný jazdec` reads oddly, and `zdieľaná` would describe the scooter); Charge done by (`Nabité do` reads as a state, which is why it's always quoted in sentences); Trip (`úsek` is clear but unusual on scooters, and a NAVEE display may print `TRIP`); Kick-start speed (no Slovak source explains this setting); Dashboard (`panel` vs `prehľad`); `prib.`.
+**Open for the debate:** Walk Assist (e-bike Slovak has `pomoc pri tlačení`; `asistent chôdze` reads as a walking aid); Power Assist (a calque); Shared rider (`zdieľaný jazdec` reads oddly, and `zdieľaná` would describe the scooter); the compact `more_role_shared` value (`Oprávnený` alone means authorized or entitled and could suggest full rights beside `Vlastník`; `Zdieľaný`, 50.5 dp at 12.5 sp, agrees with `profil` and `prístup`, while `oprávnený jazdec` stays the full term); Charge done by (`Nabité do` reads as a state, which is why it's always quoted in sentences, and can read as "charged up to" a level, as in `Nabité do 80 %`, with `Limit nabíjania` nearby; look for a deadline wording); Trip (`úsek` is clear but unusual on scooters, and a NAVEE display may print `TRIP`); Kick-start speed (no Slovak source explains this setting); Dashboard (`prehľad` chosen, because `panel` is the word for a physical instrument panel, the confusion D3 removed; a software `panel` is also common); `prib.`.
 
 **Same English, different meaning, so keep them apart**
 
@@ -249,7 +252,7 @@ Drive-mode names stay English (the owner's default). D3 made `Eco` and `Turbo` d
 - Maximum speed `maximálna rýchlosť` (a setting) / Top speed `najvyššia dosiahnutá rýchlosť` (measured) / speed limit `limit rýchlosti` (rider-set, below the maximum). `Limits downhill speed` and similar use a verb, not this noun.
 - Try a control `Vyskúšať`, `pokus` / Try again `Skúsiť znova` (never `Vyskúšať znova`) / Test `test`, `Otestovať` / compatibility check `kontrola kompatibility`.
 - Restore a backup `Obnoviť` / Set back a try `Vrátiť späť` / Energy recovery `rekuperácia`, unrelated to either.
-- Dashboard `panel` / scooter's display `displej`.
+- Dashboard `prehľad` / scooter's display `displej`. Not `panel`, which reads as the scooter's instrument panel.
 - Owner key `kľúč vlastníka` / JSON or preference key `kľúč`: same word, but `vlastníka` only on the first.
 - Settings `nastavenia` / Owner setup `nastavenie vlastníka`: nearly the same word. Keep `vlastníka` on the second, and don't shorten it to `nastavenie` where settings could be meant.
 - Pair `spárovať` / Connect `pripojiť` / NAVEE account binding `prepojenie účtu`, which isn't the disclaimer's `spojený`.
@@ -257,7 +260,7 @@ Drive-mode names stay English (the owner's default). D3 made `Eco` and `Turbo` d
 - Levels: Energy recovery levels are translated, unlike drive modes, and agree with `rekuperácia`: `Vypnutá, Nízka, Stredná, Vysoká`. Elsewhere they agree with their own noun.
 - Experimental adjective: controls `experimentálne funkcie`, a ride's motion `experimentálny pohyb`.
 
-**Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. The glossary's `top-speed` and `maximum-speed` rows already carry D3's meanings, the opposite of what those strings mean today. Read those strings by today's meaning, what the value really is, never by the English word. These keys, the whole `readings_maximum_speed_kmh` ladder (with `_short` and `_compact`) and any `main_speed_*` key stay in English until D3 lands. Flag them in your notes; a judge answers fallback.
+**Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. The glossary's `top-speed` and `maximum-speed` rows already carry D3's meanings, the opposite of what those strings mean today. Read those strings by today's meaning, what the value really is, never by the English word. `rides_tile_max_speed` says `Max speed`, which no glossary row matches, so nothing warns: it is a measured value that D3 renames Top speed. These keys, the whole `readings_maximum_speed_kmh` ladder (with `_short` and `_compact`), `rides_tile_max_speed` and any `main_speed_*` key stay in English until D3 lands. Flag them in your notes; a judge answers fallback. If `rides_tile_max_speed` is drafted before D3 anyway, it is `Najv. na jazde`, never `Max. rýchlosť`.
 
 **Matching, for `check.py`:** a form inflects only if it ends in a plain vowel (`a e i o u y á é í ó ú`, not `ý`, `ô`, `ä`) and its stem has five letters or more. So `kolobežiek`, `zámku`, `úseku`, `rýchlosti` and the `-ý` forms must be listed, and they are. Word order matters in a multi-word term, so `limit nabíjania` isn't found in `nabíjania limit`. Stems differ by aspect, so `zamyká sa` and `odomyká sa` are listed too.
 
@@ -295,7 +298,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | elevation | height above sea level on a route | **nadmorská výška**; narrow: `Výška`. Not `prevýšenie` (height gained) or `stúpanie`. |
 | current direction | which way battery current flows | **smer prúdu**. `Current` is the electric one; never `aktuálny smer`. |
 | throughput | how much energy has passed through the battery | **prenesená energia**; narrow: `Energia`; lifetime: `celková prenesená energia`. An amount that has passed, not a rate, and never `priepustnosť`. |
-| battery gauge | the scooter's own battery percentage reading | **údaj o nabití**; narrow: `Údaj`. "Charge per gauge": `Nabitie podľa kolobežky`. The scooter's own percentage, not a measured level. Not `ukazovateľ`, the device. |
+| battery gauge | the scooter's own battery percentage reading | **údaj o nabití**; narrow: `Nabitie`. "Charge per gauge": `Nabitie podľa kolobežky`. The scooter's own percentage, not a measured level. Not `ukazovateľ`, the device. |
 | raw | an unprocessed value, also used as a short tag | **nespracovaná hodnota**; as a tag, agreeing with its noun: `(surový)`, `(surová)`, `(surové)`. Use the tag only beside a noun; alone `surový` can read as "harsh". |
 | last seen | when Volt last had data from the scooter | **posledný údaj**, as a label: `Posledný údaj: %1$s`. Never `naposledy videná`, which reads as a person sighted and carries gender. |
 | add | adding a widget, scooter or item | **Pridať**; instruction `pridajte`. |
