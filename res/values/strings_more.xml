@@ -29,19 +29,21 @@
     <string name="more_back_to" volt:screen="More" volt:purpose="accessibility">Back to %1$s</string>
     <!-- Menu row: back up all of Volt's data to a file, or restore from one. -->
     <string name="more_backup_restore" volt:screen="More" volt:purpose="menu row">Back up &amp; restore</string>
-    <!-- Menu row for the app's own settings page, and the back link to it from Units. -->
+    <!-- Menu row for the app's own settings page, its title, and the back link to it from Units. -->
     <string name="more_section_app" volt:screen="More" volt:purpose="navigation">App preferences</string>
-    <!-- Menu row for the hidden testing tools page, and the back link to it from Compatibility. -->
+    <!-- Menu row for the hidden testing tools page, its title, and the back link to it from Compatibility. -->
     <string name="more_section_developer" volt:screen="More" volt:purpose="navigation">Developer options</string>
-    <!-- Menu row: the scooters Volt knows and their settings. -->
+    <!-- Menu row, and its submenu's title: the scooters Volt knows and their settings. -->
     <string name="more_section_scooters" volt:screen="More" volt:purpose="menu row">My scooters</string>
     <!-- Menu row: the scooter's handlebar PIN and unlocking when the phone comes near. -->
     <string name="more_section_security" volt:screen="More" volt:purpose="menu row" volt:safety="pin">PIN &amp; proximity unlock</string>
-    <!-- Menu row: controls the official app may not offer on this model, to try with care. -->
+    <!-- Title at the top of the PIN & proximity unlock submenu (shorter than its menu row). The other submenus show their menu row's text as the title. -->
+    <string name="more_section_security_title" volt:screen="PIN &amp; proximity" volt:purpose="title" volt:safety="pin">PIN &amp; proximity</string>
+    <!-- Menu row, and its submenu's title: controls the official app may not offer on this model, to try with care. -->
     <string name="more_section_lab" volt:screen="More" volt:purpose="menu row" volt:safety="experimental">Experimental controls</string>
-    <!-- Menu row: ride and telemetry history stored on the phone. -->
+    <!-- Menu row, and its submenu's title: ride and telemetry history stored on the phone. -->
     <string name="more_section_data" volt:screen="More" volt:purpose="menu row">Data &amp; history</string>
-    <!-- Menu row: version, licences, disclaimers and Android permissions. -->
+    <!-- Menu row, and its submenu's title: version, licences, disclaimers and Android permissions. -->
     <string name="more_section_about" volt:screen="More" volt:purpose="menu row">About &amp; permissions</string>
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
@@ -360,10 +362,15 @@
     <string name="more_lab_clear_body" volt:screen="Experimental controls" volt:purpose="dialog" volt:safety="experimental">Volt forgets what your tries on this scooter showed, so they leave your next report and Set back. Settings stay as they are. Unfinished tries stay until you review them.</string>
     <!-- Shown after Clear when there was nothing to clear. -->
     <string name="more_lab_cleared_none" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">No finished tries to clear</string>
-    <!-- Shown after Clear removed one try's result. -->
-    <string name="more_lab_cleared_one" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
-    <!-- Shown after Clear removed two or more tries' results. %1$d is how many (2 or more). Not yet a plural (l10n/pending/b18-more-followups.md): where your language changes the noun with the count (Polish 2 próby, 5 prób), choose the form for most counts. -->
-    <string name="more_lab_cleared_many" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
+    <!-- Shown after Clear removed tries' results. %1$d is how many (1 or more), so use it in every form your language has. -->
+    <plurals name="more_lab_cleared" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">
+        <item quantity="one">Cleared %1$d try</item>
+        <item quantity="other">Cleared %1$d tries</item>
+    </plurals>
+    <!-- No screen shows this since more_lab_cleared replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_cleared_one" translatable="false" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
+    <!-- No screen shows this since more_lab_cleared replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_cleared_many" translatable="false" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
     <!-- Added after the footnote (more_lab_foot, _oem, _elsewhere) when there are rows to try; it starts with a space because it follows that sentence. Drop the space if your language joins sentences without one. -->
     <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."</string>
     <!-- Footnote for a model whose controls the official app lists. -->
@@ -542,10 +549,15 @@
     <string name="more_lab_cant_set_back" volt:screen="Try sheet" volt:purpose="caution" volt:safety="experimental">Volt can\'t set it back to %1$s afterwards: the official app doesn\'t offer that here.</string>
     <!-- Set back button. %1$s is the value before the try. -->
     <string name="more_lab_set_back_to" volt:screen="Try sheet" volt:purpose="button" volt:safety="experimental">Set back to %1$s</string>
-    <!-- Try sheet caution. %1$d is 1. -->
-    <string name="more_lab_why_one" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</string>
-    <!-- Try sheet caution. %1$d is how many other models (2 or more). -->
-    <string name="more_lab_why_many" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- Try sheet caution. %1$d is how many other models (1 or more), so use it in every form your language has. -->
+    <plurals name="more_lab_why_offered" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">
+        <item quantity="one">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</item>
+        <item quantity="other">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</item>
+    </plurals>
+    <!-- No screen shows this since more_lab_why_offered replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_why_one" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- No screen shows this since more_lab_why_offered replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_why_many" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
     <!-- Try sheet caution when no other model has it in the official app. -->
     <string name="more_lab_why_none" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer this on your model. It may do nothing here, or work differently.</string>
     <!-- Under the Command evidence title. -->

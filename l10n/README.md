@@ -971,7 +971,7 @@ the marks with icons (a visible design change).
   style"). The test requires U+FE0E directly after ⚠ and refuses it anywhere else, in every
   language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
   invisible in review.
-- **Moving ⚠ out of Java took two pull requests.** The only ⚠ Volt shows was MoreScreen's literal
+- **Moving ⚠ out of Java took two pull requests.** Volt's only ⚠ was MoreScreen's literal
   `"Optimized ⚠"`, which had no U+FE0E. A batch's `exact` row needs the catalog English to equal
   that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch could not do both.
   `l10n/english-changes.tsv` does not help: it records changes to keys already in the catalog, and
