@@ -1056,11 +1056,12 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
    drive_mode_names	english
    ```
 
-2. `l10n/style/<tag>.md`, with the sections `l10n/style/README.md` requires. `council.py prompt`
-   refuses without it (`--no-style-guide` waives that) and refuses a pack older than it, so write
-   the guide before `pack.py`, and pack again after editing it. `draft openai|google` does not
-   check this.
-3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen: the same
+2. `l10n/style/<tag>.md`, with the sections `l10n/style/README.md` requires. A translator's
+   `council.py prompt` refuses without it (`--no-style-guide` waives that) and refuses a pack older
+   than it, so write the guide before `pack.py`, and pack again after editing it. `draft
+   openai|google`, `prompt --role judge` and `judge-requests` do not check this.
+3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen (until
+   the keys arrive, see "The glossary before the keys" below): the same
    columns as `en.tsv`, where `id` names the `en.tsv` term and `term` holds the approved
    translation, with inflected forms separated by ` | ` (`patinete | patinetes`). List the nominal
    forms too where the language makes nouns from verbs (`bloquear | bloqueo`, `verrouiller |
@@ -1071,8 +1072,9 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
    quietly have no target), a missing row for a term that is not do-not-translate, a row for one
    that is, a repeated id, a wrong column count, an empty term or form, a term with a placeholder,
    `;` or `(`, U+202F in a form (Saira has no glyph for it, so French writes U+00A0), an empty
-   definition, part of speech or source, and a bad id, `dnt` or `safety`. `pack.py` and `prompt`
-   refuse the same problems when the file exists; with no file they go on without targets. CI runs
+   definition, part of speech or source, a bad id, `dnt` or `safety`, and a file that is not UTF-8.
+   `pack.py` and `prompt` refuse the same problems when the file exists; with no file they go on
+   without targets. CI runs
    the same check on every committed glossary (`test_repository_files.py`), so a glossary goes in
    whole, and a pull request that adds a term to `en.tsv` adds its row to each language's glossary.
    `glossary-check --english` validates `en.tsv` the same way, and lists the rows no English string
@@ -1215,8 +1217,30 @@ the council runs from step 3 with this draft as Claude's. It is not redone or re
 `agreed`, and `merge.py` would then write that text to `res/values-<qual>/`, whatever the language's
 status. `tests/run.sh` fails on the result (`CatalogCheckTest`), but nothing before that stops it.
 
+**The glossary before the keys.** Step 3 needs the three providers, so until then one Claude agent
+writes `l10n/glossary/<tag>.tsv`, and every row's `source` starts with `claude-only`, then the
+agent's model id (`claude-only claude-opus-5-5`). Without a glossary, parallel chunk agents each
+pick their own word for "lock". It is committed whole like any glossary, and it stays what it is:
+Claude's proposal, not an approved term list, whatever the prompts call it. `glossary-check` counts
+those rows as information, and a row keeps the label until the council has judged it.
+
+**At the debate the glossary comes first.** `draft openai|google` refuses while any row says
+`claude-only`, because `check` would hold the other vendors' safety keys to Claude's word and
+`decide` would then send them to fallback. So:
+
+1. Step 3 runs with this file as Claude's proposal, on equal terms with the other two, and the
+   judged result replaces it, with no `claude-only` row left.
+2. `pack.py` runs again for every area (prompts refuse an older pack). Claude's draft stays current,
+   since `volt:src` hashes only the English, and nothing rewrites or relabels it.
+3. `check` runs. Where the judged word differs, a safety key that used the old word now fails, and
+   any other key gets only a warning and keeps its text.
+4. Those failed keys take the ordinary `prompt --redraft`: only those keys, in the same file under
+   the same name and model. A key already at `volt:attempt="2"` has no redraft left and falls back
+   to English in `decide`, which is safe.
+
 ```sh
 T=fr A=more
+#   first: l10n/lang/$T.tsv, l10n/style/$T.md and the claude-only l10n/glossary/$T.tsv
 python3 tools/l10n/council.py glossary-check --tag $T
 python3 tools/l10n/pack.py --tag $T --area $A
 python3 tools/l10n/council.py prompt --tag $T --area $A --name opus --style context-first --chunk-keys 80
@@ -1239,7 +1263,8 @@ errors. The `notes` are not stored, as in the single-file flow.
   guide, glossary hits, findings) and the draft file as it stood. So rerunning the same command keeps
   the same set and the replies so far, but anything that changes a prompt, or any import since, makes a
   new set. `prompts/claude-<name>.chunks.current` names the latest set. The prompt refuses a pack
-  older than the English, the `volt:safety` marks, `l10n/lang/<tag>.tsv` or the glossary.
+  older than the English, the `volt:safety` marks, `l10n/lang/<tag>.tsv` or the glossary, including
+  a new term the pack never matched.
 - **Replies** go to `replies/claude-<name>.<set>/chunk-<i>-of-<n>.json`. The folder keeps a later
   set from adopting an earlier set's replies, which were written under other rules, or are already
   filed and would undo a redraft. New prompts delete the earlier set's prompt files, but not its
@@ -1249,7 +1274,8 @@ errors. The `notes` are not stored, as in the single-file flow.
   prompt is reported and left out, so it can't be filed against the new English. A chunk with no
   usable reply (none, not JSON, no `strings`) refuses the whole import with nothing written, unless
   `--partial`. A key missing from a reply, in the wrong shape or changed exits 1, and the rest is still
-  written; so does `--partial` while any chunk has no usable reply, even with no draft to write.
+  written; so does `--partial` while any chunk has no usable reply, even with no draft to write. A
+  text with a lone surrogate (half a character, which JSON can spell) is such a key and is left out.
 - **It merges**: keys the set covers are replaced, the rest stay, including stale ones (`check` and
   `drafts-status` show those), and the same import run twice writes the same file. A key no longer
   in the English is dropped and reported. It refuses a model id that does not start with `claude`,
@@ -1258,9 +1284,11 @@ takes another model, but read the warning above first.
 - **Top-ups and redrafts.** `--top-up` prompts only the keys the draft lacks or has stale, with the
   rest of their ladders, which is how a `--partial` import or an English change is finished. `--redraft`
   prompts the keys `checks.jsonl` lists as failed first attempts and marks them `volt:attempt="2"`,
-  which a later top-up of the same English keeps, so a key gets one redraft. A redraft set must be
-  imported with `--redraft` and only a redraft set may be. Without
-  `--style`, both use the style the draft records.
+  which a later top-up of the same English keeps, so a key gets one redraft, even if `check` has not
+  run since. A redraft set must be imported with `--redraft` and only a redraft set may be. Both use
+  the style the draft records, and refuse another `--style`.
+- **One style per draft.** A set in another style relabels the draft only if it replaces every key
+  the draft holds; an import that would leave some in the old style refuses, with nothing written.
 
 **Status.** `drafts-status --tag <tag> [--name N] [--json]` prints, per area and in total: `total`
 keys, `drafted` (a `claude-*` draft has a text of the current English), `stale` (only of other
@@ -1295,7 +1323,9 @@ python3 tools/l10n/council.py audit-record --tag $T --area $A --name opus --from
   is reported and left out. A back-translation by the model that drafted the text is noted, not
   refused, and the `model` column shows it; a fresh session is the minimum, another model is
   better. One set is filed under one model: another `--model` on the same replies refuses, and a new
-  reader starts from a new `audit-prompt`. `--partial` exits 1 while a part has no usable reply.
+  reader starts from a new `audit-prompt`. `--partial` exits 1 while a part has no usable reply. A
+  blank back-translation, a lone surrogate or a plural that does not cover exactly the text's
+  categories is reported and left out, so nothing unread can count as audited.
   Tabs, line breaks and backslashes in a cell are escaped, and a plural is compact JSON.
 - `audit-record --from <json>` takes `{"verdicts": [{"key", "ok", "problem"}, ...]}` and stores
   `audit/verdicts.tsv`: those, then `draft`, `reader`, the row's two hashes and `back_sha1`, the
