@@ -61,7 +61,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word, never shri
 | Full | Abbreviated | Note |
 |---|---|---|
 | Максимальна швидкість | **Макс. швидкість**, then **Макс. шв.** | The setting. *Макс. швидкість* is the NAVEE manual's own form |
-| Пікова швидкість | **Пік швидкості**, then **Пік** | The measured value. Never *Макс.* |
+| Пікова швидкість | **Пік швидкості**, then **Пік** | The measured value. Never *Макс.* Bare **Пік** has no noun, and Rides also shows *Пікова потужність*, so use it only with a speed unit or icon beside it. **Пік швидкості** is the normal short rung |
 | Середня швидкість | **Сер. швидкість**, then **Сер. шв.** | |
 | Одометр | **Одом.** | Or the whole word **Пробіг**, the manual's *Загальний пробіг* |
 | Температура | **Темп.** | |
@@ -85,7 +85,7 @@ Real ladders:
 
 An abbreviation's period counts toward the width. A two-word label may wrap at a space where the English also wraps.
 
-**Never abbreviate:** *Заблокувати, Розблокувати, Заблоковано, Розблоковано, Блокування, Не перевірено, Не випробувано, Не підтверджено, Невідомо, Ніколи, Завжди, Звуковий сигнал*. No *Блок.*, *Заблок.*, *Розблок.*, *Невід.*, *Неперев.*, *Сигн.* Don't drop the *Не* from any state. If one of these doesn't fit, write the whole word and say so in your notes: overflow is a design problem that gets fixed, and a wrong state isn't noticed.
+**Never abbreviate:** *Заблокувати, Розблокувати, Заблоковано, Розблоковано, Блокування, Не перевірено, Не випробувано, Не підтверджено, Невідомо, Ніколи, Завжди, Звук будильника*. No *Блок.*, *Заблок.*, *Розблок.*, *Невід.*, *Неперев.*, *Буд.* Don't drop the *Не* from any state. If one of these doesn't fit, write the whole word and say so in your notes: overflow is a design problem that gets fixed, and a wrong state isn't noticed.
 
 ## 6. Safety wording
 
@@ -101,13 +101,14 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Lock state unverified | **Стан блокування не перевірено** | Must never read as confirmed. Keep *не* |
 | Lock state unknown | **Стан блокування невідомий** | Must never read as confirmed |
 | Unknown (alone) | **Невідомо** | *невідомий* where it agrees with a named noun |
-| Unverified | **Не перевірено** | Two words; keep *Не* |
-| Untested | **Не випробувано** | |
-| Unconfirmed, Not confirmed | **Не підтверджено** | |
+| Unverified | **Не перевірено** | Two words as a state; keep *Не*. Before a noun, one word: *неперевірена модель* |
+| Untested | **Не випробувано** | Before a noun, one word: *невипробувана функція* |
+| Unconfirmed, Not confirmed | **Не підтверджено** | Before a noun, one word: *непідтверджене значення* |
 | Never | **Ніколи** | Never a bare *не* where the English says never |
-| Always | **Завжди** | *Always on*: **Завжди ввімкнено** |
-| Alarm, Alarm sound | **Звуковий сигнал** | The phone sounding an alert. Never *тривога* or *сигналізація* (see below) |
-| Stop alarm | **Зупинити сигнал** | *Stop* alone is **Зупинити** |
+| Always | **Завжди** | *Always on*: **Завжди увімкнено**, so that every On starts with *У* (see section 8) |
+| Alarm, Alarm sound | **Звук будильника** | The phone playing its alarm sound. Never *тривога*, *сигналізація* or *звуковий сигнал* (see below) |
+| Stop alarm | **Зупинити будильник** | *Stop* alone is **Зупинити** |
+| Parked | **Припарковано** | Never *зупинено*, which is only stopped: a rider at a red light is stopped, not parked. *Припаркуйте самокат*. *Stop the scooter* is *зупиніть самокат* |
 | PIN | **PIN-код** | Latin PIN, hyphen, *код*. A tight chip may show *PIN ✓*. Never *пароль*, which stays the word for a backup password |
 | Handlebar PIN | **PIN-код на кермі** | *PIN unlock* is **Розблокування PIN-кодом** |
 | Owner key | **ключ власника** | A secret. Never *код*, which is the PIN, or *пароль*. "Not a password" is *Це не пароль* |
@@ -117,7 +118,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 
 Words that look right and aren't:
 
-- **тривога** in Ukraine means an air-raid alert first of all. A battery message must never use it. **сигналізація** promises a theft alarm that this feature isn't. The feature is the phone playing its alarm sound (Android's *будильник*): *Your alarm sound* is *звук будильника телефона*, and only there.
+- **тривога** in Ukraine means an air-raid alert first of all. A battery message must never use it. **сигналізація** promises a theft alarm that this feature isn't. **звуковий сигнал** is first of all the horn, or a generic beep, so a rider could expect a beep from the scooter. The feature is the phone playing its alarm sound at alarm volume (Android's *будильник*): **Звук будильника**, and *Your alarm sound* is *звук будильника телефона*.
 - **Заблоковано** and **Розблоковано** differ only in the prefix. Keep both whole in every rung.
 - **не заблоковано** says only "not locked" and may not be used for *Unlocked*. **не розблоковано** isn't *Locked* either.
 - Don't describe an unlock as removing the lock (*зняти блокування*, *вимкнути блокування*). Say *Розблокувати*. Use *вимкнути блокування* only where the English itself says turn off.
@@ -134,22 +135,22 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **App:** **додаток**, as NAVEE's manual and Android both write: *додаток NAVEE*, *офіційний додаток*. **Debate item:** *застосунок* is the word many Ukrainian editors prefer. Use one, not both.
 - **Battery:** **акумулятор** in text, as Android and the manual write. *Батарея* only as a short rung (section 5).
 - **Charge:** **заряд** is the level (*Рівень заряду*, *Ліміт заряду*). **заряджання** is the process (*Заряджання за розкладом*). *зарядка* is colloquial. The charger is **зарядний пристрій**.
-- **Three speeds:** the setting is **Максимальна швидкість**. A limit below it is **Обмеження швидкості**. The measured value on a trip or ride is **Пікова швидкість**. Never swap them.
+- **Three speeds:** the setting is **Максимальна швидкість**. A limit below it is **Обмеження швидкості**. The measured value on a trip or ride is **Пікова швидкість**. Never swap them. `rides_tile_max_speed` (English *Max speed*, on a recorded ride) is the measured value: **Пікова швидкість**, never *Макс.*, before and after D3. No glossary row matches its English, so `check.py` won't catch the swap.
 - **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. The `top-speed` and `maximum-speed` glossary rows already carry D3's meanings, so following them in those keys today would swap the two speeds. Flag them in your notes; a judge answers fallback.
 - **Rides vs trips:** a recorded ride is a **поїздка**, the screen is **Поїздки**. *Trip*, the scooter's distance since a reset, is **поточна поїздка**, and *Trip distance* is **Пробіг за поїздку**. *Odometer* is the total: never call a trip distance plain *Пробіг*. A path on a map is a **маршрут**.
 - **Try vs retry vs test:** trying a control is **Випробувати**, so that it agrees with *Не випробувано*; its result is **випробування**. An ordinary retry is never *випробувати*: *Повторіть спробу*. A guided test is **тест**. *Test scheduled charging* is a check: **Перевірити заряджання за розкладом**. A compatibility check is **перевірка сумісності**. *Controls to try* is **Що можна випробувати**.
 - **Dashboard vs display:** Volt's Home layout is the **Панель**. The scooter's own screen is the **дисплей самоката**. NAVEE's manual calls the scooter's screen *Приладова панель*, so never write that for Volt's screen, and never write bare *Панель* for the scooter's. *Display & sound* is **Дисплей і звук**.
-- **Settings vs setup:** Ukrainian has one word, **налаштування**, for both. Where it matters, one-time setup is **початкове налаштування**. *Owner setup* is **налаштування власника**.
-- **Restore vs set back:** bringing back a backup is **Відновити**. Undoing a try is **Повернути назад**. Energy recovery is **Рекуперація енергії**, unrelated to either.
+- **Settings vs setup:** Ukrainian has one word, **налаштування**, for both. Where it matters, one-time setup is **початкове налаштування**. *Owner setup* is **початкове налаштування власника**, because *налаштування власника* alone reads as the owner's settings.
+- **Restore vs set back:** bringing back a backup is **Відновити**. Undoing a try is **Повернути як було**, and *Set back to %1$s* is *Повернути до %1$s*. Not *Повернути назад*, a tautology that can read as turn back. Energy recovery is **Рекуперація енергії**, unrelated to either.
 - **Readback:** **контрольне зчитування**, a neutral term, because a readback can also fail to confirm.
 - **Rejected:** *Rejected* is **Відхилено**, *Refused by scooter* **Відхилено самокатом**.
-- **Pair vs bind vs connect:** Bluetooth pairing is **об’єднати в пару** (*об’єднання в пару*, *Об’єднано в пару ✓*). NAVEE account binding is **прив’язати**. A live link is **підключити**, ended by **від’єднати**. **Debate item:** current Android writes *Підключити* for pairing too. It's kept apart here because Volt shows both on one screen.
-- **Alerts:** an alert is **попередження**, an Android notification is **сповіщення**, and *Notify me* is **Сповістити мене**. They stay distinct from *Звуковий сигнал*. *Prompt sound*, the scooter's beeps, is **Звук підказок**.
-- **Lights:** **передня фара** and **задній ліхтар**, as in the manual. *Line lights*, *Star lights* and *Ambient light* are **підсвічування**. *Turn signal* is **покажчик повороту**. Colours are masculine: *Червоний*, *Крижаний блакитний*.
+- **Pair vs bind vs connect:** Bluetooth pairing is **створити пару** (*створіть пару*, *створення пари*, *Пару створено ✓*, *Пару не створено*), the words of Android's own pairing request and errors. Keep the phrase whole: *Створіть пару між телефоном і самокатом*. NAVEE account binding is **прив’язати**. A live link is **підключити**, ended by **від’єднати**. **Debate item:** Android's pairing buttons and titles write *Підключити* too. It's kept apart here because Volt shows both on one screen.
+- **Alerts:** an alert is **попередження**, an Android notification is **сповіщення**, and *Notify me* is **Сповістити мене**. They stay distinct from *Звук будильника*. *Prompt sound*, the scooter's beeps, is **Звук підказок**.
+- **Lights:** **передня фара** and **задній ліхтар**, as in the manual. *Line lights*, *Star lights* and *Ambient light* are **підсвічування**. *Turn signal* is **покажчик повороту**. Colours are masculine: *Червоний*, *Крижано-блакитний*, a hyphenated compound.
 - **Levels:** Energy recovery levels are ordinary words and agree with *рекуперація*: *Вимкнено, Низька, Середня, Висока*. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** stay in English, as the scooter shows them. **Оцінка Eco** is a range option, translated. Today's English glossary has Eco and Turbo as translatable, so the rows repeat the English; D3 makes them do-not-translate.
 - **Roles:** owner is **власник**, shared rider is **запрошений користувач**. The compact role label (`more_role_shared`, English *Shared*) is **Запрошений**. Never *Спільний*, which reads as a jointly owned scooter. **Debate item.**
-- **Charge done by:** the feature name is **Завершення заряджання**, its time setting **Час завершення заряджання**. The feature only plans a start, so never word it as a charge that has finished (*Заряджено до*). In a sentence, quote the name.
+- **Charge done by:** the feature name is **Завершити заряджання до**, its time setting **Час завершення заряджання**. It names a deadline and only plans a start, so never word it as a charge that has finished (*Заряджено до*), and never as an event or a stop (*Завершення заряджання*, bare *Завершення*). In a sentence, quote the name: *«Завершити заряджання до» вимкнено*. **Debate item** (section 8).
 - **Owner key parts:** the file is the **файл налаштування власника**, shortened to **файл власника** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
 - **LAB badge:** **ЛАБ**. TalkBack speaks **Експериментальне**.
 - **Android's own wording:** **Налагодження USB**, **Параметри розробника**, **Номер складання**. Phone makers rename the rest, so write generally: *у налаштуваннях відкрийте відомості про телефон*.
@@ -159,10 +160,13 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 1. Latin unit symbols against *км/год*, *год*, *хв* (section 4). The largest visible question.
 2. *додаток* against *застосунок*.
-3. *Звуковий сигнал* for alarm, chosen over *тривога* (section 6).
+3. *Звук будильника* for alarm, chosen over *тривога*, *сигналізація* and *звуковий сигнал*, which is first of all the horn (section 6). If the debate keeps *сигнал*, use *Гучний сигнал*.
 4. *запрошений користувач* for shared rider.
-5. *об’єднати в пару* against Android's current *підключити*.
+5. *створити пару* against Android's *підключити* and against *об’єднати в пару*, which is correct but stiff and splits badly around an object.
 6. Drive mode names stay in English, though the manual translates *Режим ходьби* for WALK.
+7. *Завершити заряджання до* for Charge done by. A judgment call; the feature name may be too long for its 64dp and 90dp tiles, and nothing here can measure that. A shorter rung is the owner's call after a width check. *Заряджання до* was suggested, but it collides with *Charging to 80 %*.
+8. *Завжди увімкнено* bends the у/в euphony rule (after a vowel, *ввімкнено*) so that On never looks like *Вимкнено*, one letter from *ввімкнено*. The glossary accepts both.
+9. Percent: *85 %* with U+00A0 follows NAVEE's manual and Ukrainian typography, but the JDK's locale data for uk prints *85%*. Android's own text, if it follows that data, may show *85%* next to Volt's *85 %*. Volt's literals are consistent, so nothing is broken.
 
 ## 9. Sources consulted
 
@@ -172,7 +176,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - [Jabko, NAVEE N65 product page](https://jabko.ua/gadzheti-i-drugoe/elektrotransport/jelektrosamokat-navee-n65--black---1378913-), a retailer: *Запас ходу*, *рекуперативне гальмо*, *Режим "круїз"*.
 - [Microsoft Ukrainian Localization Style Guide](https://download.microsoft.com/download/6/4/a/64a8b98e-e69f-47c9-96dd-f8bc55c176c6/ukr-ukr-StyleGuide.pdf): lower-case *ваш*, UI items in «…», U+2019 apostrophe, dash and range rules, *Увага!* and *Примітка.*, no spelled numbers in UI, no overused *будь ласка*, short question dialogs, -но/-то forms without *було*, verbs over verb plus noun, & as a word.
 - [Mozilla Ukrainian style guide](https://wiki.mozilla.org/L10n:Teams:uk/Style_Guide): decimal comma, space for thousands, *dd.mm.yyyy*.
-- Android's own Ukrainian, read from AOSP: [Settings](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-uk/strings.xml) (*Додати*, *Готово*, *Скасувати*, *Зберегти*, *Налаштування*, *Акумулятор*, *Гучність будильника*, *Сповіщення*, *Номер складання*, *Підключити новий пристрій*, *Від’єднати пристрій?*; *додаток* appears 675 lines to none for *застосунок*) and [SettingsLib](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-uk/strings.xml) (*Налагодження USB*, *Параметри розробника*).
+- Android's own Ukrainian, read from AOSP: [Settings](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-uk/strings.xml) (*Додати*, *Готово*, *Скасувати*, *Зберегти*, *Налаштування*, *Акумулятор*, *Гучність будильника*, *Сповіщення*, *Номер складання*, *Підключити новий пристрій*, *Запит на створення пари*, *Від’єднати пристрій?*; *додаток* appears 675 lines to none for *застосунок*) and [SettingsLib](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-uk/strings.xml) (*Налагодження USB*, *Параметри розробника*, *Не вдалося створити пару*).
 - Other makers' usage, weaker evidence: [ITC review, Segway Ninebot ZT3 Pro E](https://itc.ua/ua/articles/oglyad-segway-ninebot-zt3-pro-e/) (*рекуперація енергії*, *додаток*), [ITC, Acer ES Series 5](https://itc.ua/ua/blogs/5-prychyn-zakohatysya-v-novyj-elektrosamokat-acer-es-series-5-select/) (*круїз-контроль*), [E-Katalog](https://e-katalog.pl/ua/list/1237/pr-47818/) (*Стоп-сигнал*).
-- **Judgment calls, with no source:** *Пікова швидкість*, *Ліміт заряду*, *Обмеження швидкості*, *Звуковий сигнал* for alarm, the *тривога* warning, *ключ власника*, *запрошений користувач*, *об’єднати в пару*, *Контроль тяги*, *Контроль спуску*, *Силова допомога*, the abbreviations not marked as the manual's or Android's, and the plural and quote rules, which come from general knowledge of CLDR and Ukrainian typography. The official text of the 2019 *Український правопис* could not be read; a search returned only teaching notes.
+- **Judgment calls, with no source:** *Пікова швидкість*, *Ліміт заряду*, *Обмеження швидкості*, *Звук будильника* for alarm, the *тривога* warning, *ключ власника*, *запрошений користувач*, *Завершити заряджання до*, *Повернути як було*, *Контроль тяги*, *Контроль спуску*, *Силова допомога*, the abbreviations not marked as the manual's or Android's, and the plural and quote rules, which come from general knowledge of CLDR and Ukrainian typography. The official text of the 2019 *Український правопис* could not be read; a search returned only teaching notes.
 - No width figures: Saira has no Cyrillic, checked with `tools/l10n/fontmetrics.py`.
