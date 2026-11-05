@@ -90,6 +90,13 @@ class TextClassTest(unittest.TestCase):
         self.assertFalse(l10nlib.is_multiword("%d %s"))
         self.assertFalse(l10nlib.is_multiword("12 34"))
 
+    def test_is_multiword_counts_a_word_and_a_symbol(self):
+        for value in ("Unrestricted ✓", "Optimized ⚠", "Optimized ⚠\ufe0e", "☆ Star", "✓ Save", "PIN ✓", "★ %1$s pinned"):
+            self.assertTrue(l10nlib.is_multiword(value), value)
+        # A symbol alone, joined to a word, or with a number is not a word and a mark; ASCII symbols are code.
+        for value in ("✓", "⚠\ufe0e", "✓ ✓", "✓Save", "2 ✓", "x = ", "a +", "%d ✓", "Temp -", "km · "):
+            self.assertFalse(l10nlib.is_multiword(value), value)
+
     def test_has_letters_ignores_format_specifiers(self):
         self.assertFalse(l10nlib.has_letters("%1$d%%"))
         self.assertFalse(l10nlib.has_letters("%.1f"))
