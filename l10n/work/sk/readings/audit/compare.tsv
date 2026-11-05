@@ -1,0 +1,16 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+readings_lock_status	Electronic lock	Elektronický zámok	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	2005bb8172914bec64ec139f9c7581a40c3aa28b
+readings_lock_status_short	Electronic lock	Elektronický zámok	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	2005bb8172914bec64ec139f9c7581a40c3aa28b
+readings_lock_status_compact	Lock	Zámok	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	47d1375598235d88b3fc006ead00f0b67762341e
+readings_lock_push_warning	Locked movement warning (raw)	Varovanie pri pohybe zamknutej kolobežky (surové)	Warning during movement of the locked scooter (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	168cccb8cb649b15d427578ea24bd3d7dc343a5c
+readings_lock_push_warning_short	Lock movement (raw)	Pohyb v stave zamknutia (surový)	Movement in the locked state (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	ff6860c1bd862870e1b495f52ae28a27dbaff2c0
+readings_value_unlocked	Unlocked	Odomknutý	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	986d0d6c32150fbe9c0e829de4cc7664f33a988c
+readings_value_locked	Locked	Zamknutý	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	3edfa0f44871a50593bd94fcbf29714e64cb03d1
+readings_chart_est_finish	Est. finish time	Odh. čas konca nabíjania	Est. time of end of charging	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	f776b54f1fbe8124af91cb8e056ae53f88055c67
+readings_chart_est_countdown	Est. countdown time	Odh. zostávajúci čas	Est. remaining time	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	e04b0897aec23e79802db28f02290afbbb676adb
+readings_chart_est_finish_limit	Est. finish at limit	Odh. čas dosiahnutia limitu	Est. time of reaching the limit	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	81d39c99ff475afeecca9b8080171380a446567f
+readings_chart_est_countdown_limit	Est. countdown to limit	Odh. zostávajúci čas do limitu	Est. remaining time until the limit	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	2df2f08323ee78c24c2802b471f47abd2c5aa11c
+readings_chart_charge_limit	Charge limit	Limit nabíjania	Charging limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	bb2bd83f2eae16ccf42f13129972d2c57cb3de70
+readings_chart_observed_finish	Observed finish	Skutočný koniec nabíjania	Actual end of charging	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	9659d597bc6a5dfc5897676502c8975ba7bb5eee
+readings_chart_actual_countdown	Actual countdown	Skutočný zostávajúci čas	Actual remaining time	claude-opus	claude-opus-5-5	f79949dd92e33164bc3d2fec7112b46c9c44aee1	98d005846e1710d11adfbaf496dc4b765fc7b641
