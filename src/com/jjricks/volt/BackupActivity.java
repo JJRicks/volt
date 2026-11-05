@@ -174,11 +174,13 @@ public final class BackupActivity extends Activity {
         list.setBackground(ui.shape(ui.surface,18,0));list.setPadding(ui.dp(14),ui.dp(2),ui.dp(14),ui.dp(2));
         LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=ui.dp(14);content.addView(list,lp);return list;
     }
-    /** Select all mirrors the category boxes and checks or clears every enabled one. */
+    /** Select all mirrors the category boxes and checks or clears every enabled one; frozen by createBackup, it keeps what it shows (BackupSelectAll). */
     private void selectAll(LinearLayout list,Runnable changed){
         CheckBox all=checkRow(list,null,M.backupSelectAll(),null,true,true);all.setTag("backup-select-all");
         boolean[] syncing={false};
-        Runnable sync=()->{boolean every=true;for(CheckBox b:boxes.values())if(b.isEnabled()&&!b.isChecked())every=false;syncing[0]=true;all.setChecked(every);syncing[0]=false;if(changed!=null)changed.run();};
+        Runnable sync=()->{boolean[] enabled=new boolean[boxes.size()],checked=new boolean[boxes.size()];int i=0;
+            for(CheckBox b:boxes.values()){enabled[i]=b.isEnabled();checked[i++]=b.isChecked();}
+            syncing[0]=true;all.setChecked(BackupSelectAll.checked(all.isChecked(),!all.isEnabled(),enabled,checked));syncing[0]=false;if(changed!=null)changed.run();};
         all.setOnCheckedChangeListener((v,on)->{if(syncing[0])return;for(CheckBox b:boxes.values())if(b.isEnabled())b.setChecked(on);sync.run();});
         for(CheckBox b:boxes.values())b.setOnCheckedChangeListener((v,on)->sync.run());
         sync.run();
@@ -193,6 +195,10 @@ public final class BackupActivity extends Activity {
         submit(()->{try{Map<String,long[]> counted=AppDataBackup.inventory(this);show(()->{busy=false;inventory=counted;backupCategories();});}
             catch(Exception failure){show(()->done(M.backupInventoryUnreadable()));}});
     }
+    /** A destination's name in its spoken labels: the layout file's display name, else the scooter's name as the backup has it.
+     * The engine keeps its English "Layout file" in d.name (data, BackupArchive); backup_file_layout shows it. A backup's scooter
+     * may have that source id under another name (BackupProfiles takes any id), so the name must match too. */
+    private static CharSequence destinationName(AppDataBackup.Destination d){return d.source.equals(BackupArchive.LAYOUT_SOURCE)&&d.name.equals(M.backupFileLayout().english())?M.backupFileLayout():d.name;}
     private boolean hasItems(String id){return inventory.get(id)[0]>0||inventory.get(id)[1]>0;}
     private void backupCategories(){
         reset(M.backupBackUpTitle());
@@ -397,7 +403,7 @@ public final class BackupActivity extends Activity {
             choice.setContentDescription(M.backupDestinationFor(d.name));choice.setTag("restore-destination");
             choice.setSelection(accountChoice?0:d.suggested==null?ids.size()-1:Math.max(0,ids.indexOf(d.suggested)));
             // A description replaces the spoken value, so it carries the current choice too.
-            final String source=d.name;
+            final CharSequence source=destinationName(d);
             choice.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener(){
                 public void onItemSelected(AdapterView<?> parent,View view,int position,long id){parent.setContentDescription(M.backupDestinationForChoice(source,names.get(position)));updateReady.run();}
                 public void onNothingSelected(AdapterView<?> parent){}});
