@@ -10,17 +10,13 @@ today. Delete an entry when it is done. Line numbers are on B19's head.
    scooter card labels use `displayName()` (`MoreScreen.java:929`, `:943`, `:2492`-`:2497`), which
    tests/l10n ServiceConsumersTest pins, so those two names stay English there. Fix: move these sites
    to `shownName()`. MoreScreen was closed to B19.
-2. **F4's `l10n/pending/b17-onboarding-followups.md`** is not on B19's branch. Whichever of F4 and B19
-   merges second updates it: delete its MainActivity rows, which B19 did with `shownName()`, and add
-   item 1 here to "The other default names". Its `:931` row is `profileTitle`, which is dead code
-   (item 8), so it needs no translation or test.
 3. **Setup's import summary still shows default names in English before the import applies.**
    `OnboardingScreen` shows `summary[0]` in the sentence and also starts the editable name field from it, so
    B19 keeps it as the stored name, and that name stays English in other languages. Translating the array
    stored a translated name: Save and continue wrote it to `pending_name`, `applyPendingName` saw it differ
    from `Profile.name`, wrote it there and cleared `nameDefault`, so `BleController` stopped applying the model
    name. MainTextTest.pendingImportName pins the stored name. To show it translated, change only the sentence's
-   argument to `ScooterProfiles.nameText(summary[0])`. B19 cannot: `tests/l10n/FollowupsTest.java` on main pins
+   argument to `ScooterProfiles.nameText(summary[0])`. B19 cannot: `tests/l10n/FollowupsTest.java` pins
    `T.onboardingImportSummary(applied && p != null ? p.displayName() : summary[0], summary[1])`, and G4 freezes
    that statement in a batch. Do it in an ordinary pull request that updates that test.
 
