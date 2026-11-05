@@ -998,7 +998,7 @@ public final class OnboardingScreen implements AppScreen {
         found.addView(lock, new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)));
         LinearLayout words = column();
         words.addView(ui.text(T.onboardingImportFound(), 15.5f, true));
-        TextView detail = ui.caption(T.onboardingImportSummary(summary[0], summary[1]));
+        TextView detail = ui.caption(T.onboardingImportSummary(applied && p != null ? p.displayName() : summary[0], summary[1]));
         detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale); detail.setPadding(0, ui.dp(3), 0, 0);
         words.addView(detail);
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(12);
@@ -1242,7 +1242,7 @@ public final class OnboardingScreen implements AppScreen {
                     : state == BleController.State.CONNECTING ? 1 : 0;
             boolean busy = !ready && (linked || state != BleController.State.DISCONNECTED);
             boolean waitingToStart = prefs.getBoolean(KEY_CONNECT, false);
-            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.name) : T.onboardingConnectTitle());
+            title.setText(progress >= 1 && active != null ? T.onboardingConnectConnecting(active.displayName()) : T.onboardingConnectTitle());
             for (int i = 0; i < rows.length; i++) {
                 int mode = i < progress ? StateDot.DONE : i == progress && (busy || waitingToStart) ? StateDot.ACTIVE : StateDot.WAITING;
                 dots[i].setMode(mode);
@@ -1294,7 +1294,7 @@ public final class OnboardingScreen implements AppScreen {
         content.addView(gap, new LinearLayout.LayoutParams(-1, ui.dp(18)));
         heading(T.onboardingDoneTitle(), true, true);
         ScooterProfiles.Profile p = onboardingProfile();
-        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.name), true);
+        paragraph(p == null ? T.onboardingDoneReadyDefault() : T.onboardingDoneReady(p.displayName()), true);
         LinearLayout group = column();
         LinearLayout.LayoutParams gp = new LinearLayout.LayoutParams(-1, -2); gp.topMargin = ui.dp(18);
         content.addView(group, gp);
