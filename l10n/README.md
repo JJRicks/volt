@@ -1261,23 +1261,29 @@ python3 tools/l10n/council.py glossary-check --tag $T
    other commands refuse such a proposal while any row is unlabelled.
 2. **`draft openai|google`** sends the provider the English rows of the round (every `en.tsv` row
    that is not do-not-translate and whose `$T.tsv` row is `claude-only` or missing: id, term,
-   definition, part of speech, `dnt`, safety), `l10n/lang/$T.tsv` and `l10n/style/$T.md`, and asks for
-   its own term per row, with the forms separated by ` | `. Drafting is independent: it never sees
-   Claude's terms, and the guide's "Safety wording" and "Scooter vocabulary" sections, which restate
-   them, are withheld (from the judge too, so it cannot tell Claude's candidate). The guide's other
-   sections are Claude's as well and may still use a proposed word in an example; the draft lists
-   those in `style_guide_overlap`, and prints how many. The models are the owner's, `gpt-6.1-terra`
+   definition, part of speech, `dnt`, safety, and up to 3 example texts), `l10n/lang/$T.tsv` and
+   `l10n/style/$T.md` whole, and asks for its own term per row, with the forms separated by ` | `.
+   The examples are real English texts from `res/values/` that contain the term, each with its
+   string key, so the drafter sees how the term is used: every form of a translatable string is
+   matched as `glossary_orphans` matches, and the pick is fixed (the shortest label, the shortest
+   full sentence, then the shortest other text of a new key; a text over about 200 characters only
+   when nothing shorter has the term). A term in no text goes with an empty list, and the prompt
+   says so. Drafting never sees Claude's terms, the rows of `l10n/glossary/$T.tsv`. Sending the
+   whole guide, to the vendors and to the judge, is the owner's decision of 2026-11-05: the guide is
+   Claude-written and its "Safety wording" and "Scooter vocabulary" sections name some of Claude's
+   proposed terms, which the owner accepted for the sake of context. The models are the owner's, `gpt-6.1-terra`
    and `gemini-3.8-flash`, or `--model`; either must be in the provider's model list. About 80 rows
    go in each call. `drafts/<provider>.json` records the exact model id, the reported one, the token
-   usage, and per row the term and `en_sha1`, the hash of the English row it was drafted from; a
-   term `glossary-check` would refuse is left out and listed under `problems`.
+   usage, and per row the term and `en_sha1`, the hash of the English row it was drafted from (its
+   own fields, not the examples: a string elsewhere changing its wording does not make a term
+   stale); a term `glossary-check` would refuse is left out and listed under `problems`.
 3. **`judge-requests`** needs both drafts and refuses one drafted from other English. A row whose three
    candidates (Claude's row and the two drafts) are identical after the normalisation `council.py`
    uses (NFC, whitespace, quote style, form by form) is agreed; every other row, and every safety row
    even when all three agree, goes to the judge. `judge-requests.json` holds the whole round. The judge
-   sees each row's English, definition, part of speech and safety value and the distinct candidates
-   as options A to C, without names, in an order shuffled per row, with how many drafters proposed
-   each, plus the language settings and the same withheld guide. It picks one or writes a better
+   sees each row's English, definition, part of speech, safety value and examples, and the distinct
+   candidates as options A to C, without names, in an order shuffled per row, with how many drafters
+   proposed each, plus the language settings and the whole guide. It picks one or writes a better
    term, with a one-line reason. The prompts are about 80 rows each and name the `set`, a hash of
    the requests and the prompt text; replies go to `replies/judge.<set>/chunk-<i>-of-<n>.json`.
 4. **`decide`** refuses, writing nothing, when the English or a candidate changed since

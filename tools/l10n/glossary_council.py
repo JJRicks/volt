@@ -19,20 +19,29 @@ that round, for one language at a time:
 The round covers every English row that is not do-not-translate and whose row in <tag>.tsv is still
 claude-only, or missing. A row whose source starts with `council ` was judged and is left alone.
 
+What the drafters and the judge see: each row's English fields (id, term, definition, pos, dnt,
+safety) with up to EXAMPLES real English texts from res/values/ that contain the term, each with its
+string key (an empty list when the term is in no translatable text), the language settings, and
+l10n/style/<tag>.md whole. Sending the whole guide is the owner's decision of 2026-11-05: the guide
+is Claude-written and its "Safety wording" and "Scooter vocabulary" sections name some of Claude's
+proposed terms, which the owner accepted for the sake of context. Claude's proposal itself, the rows
+of l10n/glossary/<tag>.tsv, never goes into a vendor prompt.
+
 Files, under l10n/work/<tag>/glossary/ (committed, staging only):
   drafts/openai.json, drafts/google.json
         {"format", "tag", "provider", "model", "model_reported", "usage", "rows": {id: {"en_sha1",
         "term"}}, "notes": {id: note}, "problems": [...]}. en_sha1 hashes the English row the term was
-        drafted from (id, term, definition, pos, dnt, safety); a row of other English is stale, and
-        judge-requests and decide refuse until it is drafted again. A term the provider got wrong
+        drafted from (id, term, definition, pos, dnt, safety; not the example texts); a row of other
+        English is stale, and judge-requests and decide refuse until it is drafted again. A term the provider got wrong
         (an empty form, ";" or "(", a placeholder, U+202F) is left out and named in problems.
   runs.jsonl
         one line per provider call (stage draft: provider, model, model_reported, chunk, rows,
         received, usage with the provider's token counts), per judge-requests and per decide.
   judge-requests.json
         {"format", "tag", "set", "chunks", "chunk_rows", "rows": [...]}: every row of the round with
-        its candidates (claude, openai, google, each with its model) and, for the rows to judge, the
-        options the judge sees (A, B, C: distinct candidates in a shuffled order, without names).
+        its example texts, its candidates (claude, openai, google, each with its model) and, for the
+        rows to judge, the options the judge sees (A, B, C: distinct candidates in a shuffled order,
+        without names).
         set hashes the requests and the prompt text; a later run with other inputs makes a new set.
   prompts/judge.chunk-<i>-of-<n>.md
         the judge's prompt, about CHUNK_ROWS rows each, for one short-lived Claude Code judge agent
@@ -73,10 +82,10 @@ REQUESTS_FORMAT = "volt-l10n-glossary-requests-v1"
 COUNCIL_SOURCE = "council "
 PROPOSAL_HEADER = re.compile(r"claude-only proposal", re.I)
 ROUND_NOTE = "# Glossary council round (tools/l10n/glossary_council.py decide):"
-# Style-guide sections that restate the Claude-proposed glossary terms. They are withheld from the
-# other drafters (independence) and from the judge (so Claude's candidate cannot be recognised).
-WITHHELD_SECTIONS = ("safety wording", "scooter vocabulary")
 OPTION_LETTERS = "ABC"
+EXAMPLES = 3  # real English texts per row, as context for the drafters and the judge
+EXAMPLE_MAX_CHARS = 200  # longer texts are used only when the term is in nothing shorter
+LABEL_MAX_CHARS = 40
 
 
 def die(message):
@@ -88,7 +97,10 @@ def die(message):
 # ---------------------------------------------------------------------------
 
 def en_sha1(fields):
-    """The hash of an English row as a drafter saw it: id, term, definition, pos, dnt, safety."""
+    """The hash of an English row as a drafter saw it: id, term, definition, pos, dnt, safety.
+
+    The example texts (term_examples) are deliberately not in it: they are context, and a row's term
+    should not go stale because a string elsewhere in the app changed its wording."""
     return hashlib.sha1("\t".join(fields[:6]).encode("utf-8")).hexdigest()
 
 
@@ -279,25 +291,6 @@ def candidates_of(paths, tag, require_drafts=True):
 # draft openai|google
 # ---------------------------------------------------------------------------
 
-def withheld_style_guide(text):
-    """The style guide without the sections that restate the Claude-proposed glossary terms."""
-    out, skipping = [], False
-    for line in text.split("\n"):
-        if line.startswith("## "):
-            heading = re.sub(r"^\d+\.\s*", "", line[3:].strip()).lower()
-            skipping = heading.startswith(WITHHELD_SECTIONS)
-            if skipping:
-                out.append(line)
-                out.append("")
-                out.append("(Withheld from this round: it restates the proposed glossary terms the council "
-                           "is judging.)")
-                out.append("")
-                continue
-        if not skipping:
-            out.append(line)
-    return "\n".join(out).strip()
-
-
 def language_settings(paths, tag):
     path = os.path.join(paths.lang_dir(), tag + ".tsv")
     if not os.path.exists(path):
@@ -310,23 +303,65 @@ def style_guide(paths, tag):
     path = paths.style(tag)
     if not os.path.exists(path):
         die("l10n/style/%s.md does not exist; the glossary round needs the style guide" % tag)
-    return withheld_style_guide(l10nlib.read_text(path))
+    # The whole guide, by the owner's decision of 2026-11-05 (see the module docstring).
+    return l10nlib.read_text(path).strip()
 
 
-def guide_overlap(paths, tag, guide, ids):
-    """{id: [forms]} of Claude's proposed forms that the withheld style guide still names as words.
+def is_sentence(text):
+    return bool(re.search(r"[.!?]$", text.strip())) and len(text.split()) >= 3
 
-    The guide is Claude's too, and its other sections give examples in the language, so withholding
-    the two term sections cannot make it blind; this records how far it is not."""
-    _, rows, _ = read_language_glossary(paths, tag)
+
+def is_label(text):
+    return len(text) <= LABEL_MAX_CHARS and len(text.split()) <= 4 and not is_sentence(text)
+
+
+def pick_examples(matches):
+    """Up to EXAMPLES of [(key, quantity, text)], deterministic: the shortest label, the shortest
+    sentence, then the shortest of the rest (a key not yet picked first). Texts over
+    EXAMPLE_MAX_CHARS only when the term is in nothing shorter."""
+    seen, unique = set(), []
+    for key, quantity, text in matches:
+        folded = " ".join(text.split()).casefold()
+        if folded not in seen:
+            seen.add(folded)
+            unique.append((key, quantity, text))
+    pool = [m for m in unique if len(m[2]) <= EXAMPLE_MAX_CHARS] or unique
+    pool.sort(key=lambda m: (len(m[2]), m[0], m[1] or "", m[2]))
+    picked = []
+    for wanted in (is_label, is_sentence):
+        hit = next((m for m in pool if wanted(m[2]) and m not in picked), None)
+        if hit is not None:
+            picked.append(hit)
+    rest = [m for m in pool if m not in picked]
+    rest.sort(key=lambda m: m[0] in set(p[0] for p in picked))  # stable: new keys first, by length
+    picked.extend(rest[:max(0, EXAMPLES - len(picked))])
+    out = []
+    for key, quantity, text in picked[:EXAMPLES]:
+        example = collections.OrderedDict([("key", key), ("text", text)])
+        if quantity is not None:
+            example["quantity"] = quantity
+        out.append(example)
+    return out
+
+
+def term_examples(paths, rows):
+    """{id: [{"key", "text"[, "quantity"]}]}: real English texts of the app containing each row's term,
+    matched as translib.glossary_orphans matches (every form of a translatable string). A row whose term
+    is in no text gets an empty list."""
+    sources, _ = translib.load_source(paths)
+    texts = []
+    for area_rows in sources.values():
+        for source in area_rows:
+            if not source.translatable:
+                continue
+            plural = source.kind in ("plural", "plurals")
+            for quantity, text in source.items.items():
+                texts.append((source.key, quantity if plural else None, text))
     out = collections.OrderedDict()
-    for term_id in ids:
-        if term_id not in rows:
-            continue
-        forms = [f.strip() for f in rows[term_id][1][1].split("|") if f.strip()]
-        found = [f for f in forms if re.search(r"(?<!\w)%s(?!\w)" % re.escape(f), guide, re.I)]
-        if found:
-            out[term_id] = found
+    for fields in rows:
+        term = translib.Term(fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], None)
+        pattern = translib.term_pattern(term.term, translib.inflects(term))
+        out[fields[0]] = pick_examples([t for t in texts if pattern.search(t[2])])
     return out
 
 
@@ -346,6 +381,10 @@ def draft_instructions(settings, guide):
         "- Rows with a safety value name a safety meaning: locked and unlocked stay distinct, on/off and "
         "never/always are never inverted, \"unverified\" or \"unknown\" never reads as confirmed, and \"not "
         "affiliated with NAVEE\" is never softened.",
+        "- Each row comes with up to %d real English texts from the app that contain the term, with their "
+        "string keys, so you can see how it is used (a button label, a status, a full sentence). Choose a term "
+        "that works in all of them. An empty examples list means the term is in no text of the app yet: go by "
+        "the definition." % EXAMPLES,
         "- Follow the language settings and the style guide below.",
         "Answer with one JSON object only: {\"terms\": {\"<id>\": \"<forms>\"}, \"notes\": {\"<id>\": \"<optional "
         "short note for the judge>\"}}. Include every id you were given.",
@@ -354,11 +393,16 @@ def draft_instructions(settings, guide):
     ])
 
 
-def draft_prompt(rows):
+def draft_prompt(rows, examples):
     body = [collections.OrderedDict([("id", f[0]), ("term", f[1]), ("definition", f[2]), ("pos", f[3]),
-                                     ("dnt", f[4]), ("safety", f[5])]) for f in rows]
-    return "Give your term for each of these %d English glossary rows.\n\n%s" % (
-        len(body), json.dumps(body, ensure_ascii=False, indent=1))
+                                     ("dnt", f[4]), ("safety", f[5]), ("examples", examples.get(f[0], []))])
+            for f in rows]
+    empty = [f[0] for f in rows if not examples.get(f[0])]
+    note = (" These rows have no example, since their term is in no text of the app yet: %s." % ", ".join(empty)
+            if empty else "")
+    return "Give your term for each of these %d English glossary rows. Each lists up to %d real app texts that " \
+        "contain the term, with their string keys.%s\n\n%s" % (
+            len(body), EXAMPLES, note, json.dumps(body, ensure_ascii=False, indent=1))
 
 
 @contextlib.contextmanager
@@ -416,14 +460,14 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
     settings = language_settings(paths, tag)
     guide = style_guide(paths, tag)
     system = draft_instructions(settings, guide)
-    overlap = guide_overlap(paths, tag, guide, ids)
     model = council.pick_model(provider, "draft", model or DEFAULT_MODELS[provider])
     rows = [english[i] for i in ids]
+    examples = term_examples(paths, rows)
     drafted, notes, problems, reported, usage = collections.OrderedDict(), {}, [], None, {}
     for index in range(0, len(rows), CHUNK_ROWS):
         chunk = rows[index:index + CHUNK_ROWS]
         with recorded_responses() as responses:
-            text, reported = providers.generate(provider, model, system, draft_prompt(chunk))
+            text, reported = providers.generate(provider, model, system, draft_prompt(chunk, examples))
         chunk_usage = usage_of(responses[-1]) if responses else None
         add_usage(usage, chunk_usage)
         value = providers.parse_json_reply(text)
@@ -459,14 +503,11 @@ def vendor_draft(paths, provider, tag, model=None, out=None):
     path = draft_path(paths, tag, provider)
     translib.write_json(path, collections.OrderedDict([
         ("format", DRAFT_FORMAT), ("tag", tag), ("provider", provider), ("model", model),
-        ("model_reported", reported), ("usage", usage or None), ("style_guide_overlap", overlap), ("rows", ordered),
+        ("model_reported", reported), ("usage", usage or None), ("rows", ordered),
         ("notes", collections.OrderedDict(sorted(notes.items()))), ("problems", problems)]))
     got = sum(1 for r in ordered.values() if r["term"])
     out.write("%s: %d of %d rows drafted by %s%s\n" % (paths.rel(path), got, len(rows), model,
                                                        " (reported %s)" % reported if reported != model else ""))
-    if overlap:
-        out.write("  note: the style guide it saw still names %d of Claude's proposed terms (%s); see "
-                  "style_guide_overlap\n" % (len(overlap), ", ".join(sorted(overlap)[:5])))
     for problem in problems:
         out.write("  %s\n" % problem)
     return path
@@ -495,7 +536,9 @@ def options_of(term_id, sha, candidates):
 
 def build_requests(paths, tag):
     rows = []
-    for term_id, fields, candidates in candidates_of(paths, tag):
+    round_rows = candidates_of(paths, tag)
+    examples = term_examples(paths, [fields for _, fields, _ in round_rows])
+    for term_id, fields, candidates in round_rows:
         sha = en_sha1(fields)
         agree = len(candidates) == 3 and len(set(forms_key(c["term"]) for c in candidates)) == 1
         safety = fields[5] != "-"
@@ -505,7 +548,8 @@ def build_requests(paths, tag):
             status, reason = "judge", ("safety" if safety else "disagreement")
         row = collections.OrderedDict([
             ("id", term_id), ("en_sha1", sha), ("english", fields[1]), ("definition", fields[2]), ("pos", fields[3]),
-            ("safety", fields[5]), ("status", status), ("reason", reason), ("candidates", candidates)])
+            ("safety", fields[5]), ("examples", examples[term_id]), ("status", status), ("reason", reason),
+            ("candidates", candidates)])
         if status == "judge":
             row["options"] = options_of(term_id, sha, candidates)
         rows.append(row)
@@ -526,6 +570,9 @@ def judge_instructions(tag, settings, guide):
         "- Rows with reason \"safety\" are listed even when every drafter agreed. Check that locked and unlocked "
         "stay distinct, on/off and never/always are not inverted, \"unverified\" or \"unknown\" never reads as "
         "confirmed, and \"not affiliated with NAVEE\" is not softened.",
+        "- Each row lists up to %d real English texts from the app that contain the term, with their string "
+        "keys: the term must work in all of them. An empty examples list means the term is in no text of the app "
+        "yet; go by the definition." % EXAMPLES,
         "- A row you leave out keeps no council term: it stays Claude's proposal and the string drafts wait.",
         "Language settings:\n" + json.dumps(settings, ensure_ascii=False, indent=1),
         "Style guide for %s:\n%s" % (tag, guide),
@@ -533,7 +580,8 @@ def judge_instructions(tag, settings, guide):
 
 
 def judge_view(row):
-    view = collections.OrderedDict((f, row[f]) for f in ("id", "english", "definition", "pos", "safety", "reason"))
+    view = collections.OrderedDict((f, row[f]) for f in ("id", "english", "definition", "pos", "safety", "reason",
+                                                        "examples"))
     view["options"] = [collections.OrderedDict([("option", o["option"]), ("term", o["term"]),
                                                 ("drafters", o["drafters"])]) for o in row["options"]]
     return view

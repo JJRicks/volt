@@ -47,11 +47,11 @@ Use tú. REGISTER-RULE-MARKER.
 
 ## 6. Safety wording
 
-Use exactly bloquearclaude for lock. They match the glossary.
+SAFETY-WORDING-MARKER: locked and unlocked stay distinct.
 
 ## 7. Scooter vocabulary
 
-Say bateríasclaude, never pila.
+SCOOTER-VOCAB-MARKER: say the common word for each part.
 
 ## 8. Regional choices
 
@@ -62,6 +62,23 @@ REGIONAL-RULE-MARKER.
 # same normalisation council.py uses); they disagree on battery; everyone agrees on the safety row lock.
 OPENAI_TERMS = {"scooter": "patinete | patinetes", "battery": "batería | baterías",
                 "charger": "cargador  |  cargadores", "lock": "bloquearclaude | bloqueoclaude"}
+# English strings with the glossary terms in them, for the examples (ble area). battery has a label, a
+# sentence, more texts than fit, a text over 200 characters and a text that is not translatable.
+LONG = "The battery " + "is described at great length " * 8 + "here."
+BLE = """<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="ble_unlock" volt:screen="Home lock row" volt:safety="lock">Unlock scooter</string>
+    <string name="ble_searching">Searching for 2 scooters</string>
+    <string name="ble_battery_long">%s</string>
+    <string name="ble_battery_internal" translatable="false">battery</string>
+    <string name="ble_battery_low">The battery is low. Charge it soon.</string>
+    <string name="ble_battery_saver">Battery saver on</string>
+    <string name="ble_battery_title">Battery</string>
+    <string name="ble_battery_state">Battery state unknown</string>
+    <string name="ble_battery_title_copy">battery</string>
+</resources>
+""" % LONG
+
 GOOGLE_TERMS = {"scooter": "patinete | patinetes", "battery": "pila | pilas",
                 "charger": "cargador | cargadores", "lock": "bloquearclaude | bloqueoclaude"}
 
@@ -109,6 +126,7 @@ class Base(unittest.TestCase):
         self.repo.write("l10n/glossary/en.tsv", EN)
         self.repo.write("l10n/glossary/es.tsv", ES)
         self.repo.write("l10n/style/es.md", STYLE)
+        self.repo.write("res/values/strings_ble.xml", BLE)
         self.network = cf.NoNetwork().__enter__()
         self.env = unittest.mock.patch.dict(os.environ, {"OPENAI_API_KEY": OPENAI_KEY, "GEMINI_API_KEY": GEMINI_KEY})
         self.env.start()
@@ -203,6 +221,8 @@ class RelabelTest(Base):
 
 class DraftTest(Base):
     def test_prompts_exclude_claudes_terms(self):
+        for claude_word in ("bateríaclaude", "bateríasclaude", "bloquearclaude", "bloqueoclaude"):
+            self.assertNotIn(claude_word, STYLE)  # only the guide is shared, and this one names none
         self.run_ok("relabel", "--tag", "es")
         self.run_ok("draft", "openai", "--tag", "es")
         self.run_ok("draft", "google", "--tag", "es")
@@ -238,16 +258,67 @@ class DraftTest(Base):
         self.assertIs(providers.call.__name__, "call")  # the usage recorder is removed again
         self.assert_no_secret()
 
-    def test_records_what_the_style_guide_still_names(self):
+    def test_the_whole_style_guide_is_sent(self):
+        requests = self.through_requests()
+        self.assertNotIn("style_guide_overlap", self.repo.read("l10n/work/es/glossary/drafts/openai.json"))
+        with open(self.prompt_files()[0], encoding="utf-8") as handle:
+            judge = handle.read()
+        self.assertEqual(len(self.fake.prompts), 2)
+        for text in [p[1] for p in self.fake.prompts] + [judge]:
+            for marker in ("REGISTER-RULE-MARKER", "## 6. Safety wording", "SAFETY-WORDING-MARKER",
+                           "## 7. Scooter vocabulary", "SCOOTER-VOCAB-MARKER", "REGIONAL-RULE-MARKER"):
+                self.assertIn(marker, text)
+            self.assertNotIn("Withheld", text)
+        self.assertTrue(requests["rows"])
+
+    def test_examples_per_row(self):
         self.run_ok("relabel", "--tag", "es")
         self.run_ok("draft", "openai", "--tag", "es")
-        self.assertEqual(json.loads(self.repo.read("l10n/work/es/glossary/drafts/openai.json"))["style_guide_overlap"],
-                         {})
-        self.repo.write("l10n/style/es.md", STYLE.replace("Use tú.", "Use tú: tu patinete."))
+        prompt = self.fake.prompts[0][2]
+        rows = dict((r["id"], r) for r in json.loads(prompt[prompt.index("["):]))
+        # battery: the shortest label, the shortest sentence, then the shortest other text of a new key;
+        # never the untranslatable string, a repeat of the same text, or the text over 200 characters.
+        self.assertEqual(rows["battery"]["examples"], [
+            {"key": "ble_battery_title", "text": "Battery"},
+            {"key": "ble_battery_low", "text": "The battery is low. Charge it soon."},
+            {"key": "ble_battery_saver", "text": "Battery saver on"}])
+        # scooter: every plural form is a text; there is no sentence, so the three shortest.
+        self.assertEqual(rows["scooter"]["examples"], [
+            {"key": "ble_unlock", "text": "Unlock scooter"},
+            {"key": "common_scooters_skipped", "text": "%1$d scooter skipped", "quantity": "one"},
+            {"key": "common_lock_waiting", "text": "Waiting for the scooter"}])
+        self.assertEqual(rows["charger"]["examples"], [])  # in no text: sent anyway, and the prompt says so
+        self.assertIn("These rows have no example, since their term is in no text of the app yet: charger", prompt)
+        self.assertIn("An empty examples list means", self.fake.prompts[0][1])
+        for row in rows.values():
+            self.assertLessEqual(len(row["examples"]), 3)
+        # Only the long text has the term: then it is used.
+        self.repo.write("res/values/strings_ble.xml", BLE.replace(">Battery<", ">Unlock<").replace(
+            "The battery is low", "Low").replace("Battery saver", "Saver").replace("Battery state", "State")
+            .replace(">battery</string>\n</resources>", ">x</string>\n</resources>"))
         self.run_ok("draft", "openai", "--tag", "es")
-        draft = json.loads(self.repo.read("l10n/work/es/glossary/drafts/openai.json"))
-        self.assertEqual(draft["style_guide_overlap"], {"scooter": ["patinete"]})
-        self.assertIn("still names 1 of Claude's proposed terms (scooter)", self.out.getvalue())
+        prompt = self.fake.prompts[-1][2]
+        rows = dict((r["id"], r) for r in json.loads(prompt[prompt.index("["):]))
+        self.assertEqual(rows["battery"]["examples"], [{"key": "ble_battery_long", "text": LONG}])
+
+    def test_examples_are_stable(self):
+        self.run_ok("relabel", "--tag", "es")
+        self.run_ok("draft", "openai", "--tag", "es")
+        self.run_ok("draft", "openai", "--tag", "es")
+        self.assertEqual(self.fake.prompts[0], self.fake.prompts[1])
+        self.assertEqual(gc.term_examples(self.paths, gc.english_rows(self.paths)),
+                         gc.term_examples(self.paths, gc.english_rows(self.paths)))
+
+    def test_en_sha1_ignores_the_examples(self):
+        requests = self.through_requests()
+        before = json.loads(self.repo.read("l10n/work/es/glossary/drafts/openai.json"))["rows"]["battery"]["en_sha1"]
+        self.answer(self.prompt_files()[0], {"battery": "batería | baterías", "lock": "bloquear | bloqueo"})
+        self.repo.write("res/values/strings_ble.xml", BLE.replace("The battery is low.", "The battery is nearly empty."))
+        # The drafts stay current and the rulings apply: a string elsewhere changed, not the row.
+        self.run_ok("decide", "--tag", "es")
+        self.assertEqual(self.rows()["battery"][1], "batería | baterías")
+        self.assertEqual(gc.en_sha1(gc.english_rows(self.paths)[1]), before)
+        self.assertEqual(next(r for r in requests["rows"] if r["id"] == "battery")["en_sha1"], before)
 
     def test_model_override_and_bad_terms(self):
         self.run_ok("relabel", "--tag", "es")
@@ -288,7 +359,10 @@ class JudgeRequestsTest(Base):
             self.assertNotIn(word, text.split("## Rows", 1)[1])
         self.assertIn("The scooter's battery.", text)
         self.assertIn("REGISTER-RULE-MARKER", text)
-        self.assertNotIn("Use exactly bloquearclaude", text)  # the withheld sections would name Claude's word
+        self.assertIn("SCOOTER-VOCAB-MARKER", text)  # the whole guide
+        self.assertIn('"key": "ble_battery_low"', text)  # the examples
+        self.assertEqual(shown[1]["examples"], [])  # lock is in no text of the fixture
+        self.assertEqual(rows["battery"]["examples"][0], {"key": "ble_battery_title", "text": "Battery"})
 
     def test_options_are_shuffled_and_stable(self):
         orders = set()
