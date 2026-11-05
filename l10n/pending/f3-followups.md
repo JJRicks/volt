@@ -24,22 +24,43 @@ these itself if it prefers; otherwise they are the first follow-up after it merg
 
 4. **`withUnit`** (:929-937) splits the reading at its last ASCII space. Cosmetic: B13 documents the
    deferral.
+5. **The String `styleDriveMode`, the label-only `toggleRow`/`settingRow` overloads and `Ui.labelIcon`**
+   stay while DashboardScreen calls them. Its callers on B13 are `styleDriveMode` at :3457 and :3470 and
+   label-only `settingRow` calls such as :5204; no screen on this branch calls the label-only `toggleRow`.
+   Fix: pass a DriveMode decoded from the number, as `StatsScreen.driveMode` does, and an icon id to each
+   `settingRow`, then delete the overloads. Deleting them also needs a tooling pull request, because
+   UiToolkitTest requires exactly those three legacy calls in Ui (`ui.size() == 3`, :151).
 
-## Widest word, owner: the batch that adds a non-Latin language
+## Widest word and non-Latin units, owner: the batch that adds a non-Latin language
 
-5. **`split("\\s+")`** measures the widest word in SegmentedSelector:170, StatsScreen:355 and
+6. **`split("\\s+")`** measures the widest word in SegmentedSelector:170, StatsScreen:355 and
    DashboardScreen:3063 on B13 (:3019 on main). A language that writes no spaces measures its whole
    label as one word. Fix, in all three together: keep the split while `Fmt.legacy()` and otherwise use
    `BreakIterator.getLineInstance(Fmt.locale())`, as `StatsLabels.matchesShown` gates on `!Fmt.legacy()`.
    The gate keeps English identical (BreakIterator alone would split "Left-right"). No gate blocks
    this. It waits because the sweep marked it low priority, non-Latin languages are deferred, and one
    of the three sites is in an open pull request.
+7. **`DisplayUnits.unbroken`** joins only after punctuation, symbols and spaces, so a unit written in
+   ideographs or kana can still wrap between its letters on a Keep, Set or Restore button. It waits
+   because non-Latin languages are deferred. Fix: also join between the letters of a unit that allow a
+   break.
 
 ## MainActivity, owner: B19
 
-6. **`lock_expiry`'s `label.replace(" hours", " h")`** (:1762) reads `featureLabel`'s English id, so it
+8. **`lock_expiry`'s `label.replace(" hours", " h")`** (:1762) reads `featureLabel`'s English id, so it
    works today; it becomes a read-back when B19 makes that label display text. Fix: a catalog short-hours
    form built from the option value.
-7. **The label-only `toggleRow`/`settingRow` overloads, `Ui.labelIcon` and the String `styleDriveMode`**
-   stay while DashboardScreen calls them. UiToolkitTest's legacy count holds them until then.
-   `MoreScreen`'s lower-casing of `row.feature.label` into `T.moreLabSetBackRow` is B19/F4 label work.
+
+## MoreScreen, owner: B19 or F4
+
+9. **`row.feature.label` lower-cased into `T.moreLabSetBackRow`** (:1706) is label work for B19 or F4.
+
+## Census coverage, nothing to fix for now
+
+10. **No release-sweep step opens MainActivity's real slider sheet.** The only `editFeature` call in
+    android-tests is `CompatControlsValidation.choiceSheet`, which covers listed-value controls, and
+    GuidedTestValidation's slider is MoreScreen's. So the census has not seen `DisplayUnits.sliderEnds`,
+    and a census pass is not proof for it. It is covered by TextLogicTest, the parity harnesses and F3's
+    language check (`work/l10n-wt/scratch/harness-f3-parity2` and `harness-f3-translate2`, kept outside
+    the repository). To close this, a validation would open `editFeature` on a slider with no listed
+    values, such as on the UT5 MAX, and record the ends row.
