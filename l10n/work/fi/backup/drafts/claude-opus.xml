@@ -78,7 +78,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Mille potkulaudalle tämä asetustiedosto on tarkoitettu?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Asettelun kohde:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Kohteen ”%1$s” tiedot menevät:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Useampi potkulauta voi käyttää tätä asetustiedostoa. Valitse nykyinen potkulauta tai lisää toinen.</string>
+    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Useampi potkulauta voi käyttää tätä asetustiedostoa. Valitse olemassa oleva potkulauta tai lisää toinen.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Valitse potkulauta…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Lisää toinen potkulauta</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Lisää varmuuskopiosta</string>

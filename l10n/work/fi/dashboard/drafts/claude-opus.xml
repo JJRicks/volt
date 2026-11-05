@@ -12,9 +12,9 @@
     <string name="dashboard_layout" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Asettelu</string>
     <string name="dashboard_finish_editing" volt:src="f91cc759e0df6e6f70bb7b49b30578125863008f">Lopeta koontinäytön muokkaus</string>
     <string name="dashboard_edit_dashboard" volt:src="44ccf5dfe5e2d4b4eb12258bf968b91d1a7c5995">Muokkaa koontinäyttöä</string>
-    <string name="dashboard_widget_limit" volt:src="ed396a13dc6a72543b05ba0ff0f6b924070e306e">32 widgetin raja</string>
+    <string name="dashboard_widget_limit" volt:src="ed396a13dc6a72543b05ba0ff0f6b924070e306e">Enintään 32 widgetiä</string>
     <string name="dashboard_add_widget_limit" volt:src="0fd21782cc33d5c25a803f6aac5ff1d1f3f5b625">Lisää widget, %1$s</string>
-    <string name="dashboard_one_lock_widget" volt:src="f3470f7c64029e92524b62d16308b8b874deb7be">Yksi lukitus-widget koontinäyttöä kohden</string>
+    <string name="dashboard_one_lock_widget" volt:src="f3470f7c64029e92524b62d16308b8b874deb7be">Koontinäytössä voi olla vain yksi lukitus-widget</string>
     <string name="dashboard_duplicate_widget" volt:src="deb8350dab1d4a4ccd54c5f64ff2da02cbc35dd4">Monista widget</string>
     <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">nyt</string>
     <string name="dashboard_age_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
@@ -29,8 +29,8 @@
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Latausrajaan %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Aika tasolle %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Tasolle %1$s</string>
-    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Aika tasolle 100 % ilman latausrajaa</string>
-    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Tasolle 100 % ilman rajaa</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Aika 100 %:iin ilman latausrajaa</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">100 %:iin ilman rajaa</string>
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % ilman rajaa</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Aika täyteen (arvio)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Aika täyteen (arvio)</string>
@@ -80,7 +80,7 @@
     <string name="dashboard_edit_note" volt:src="eb6b6c906d5b94162312606a589e8152c27ecbfe">%1$s. Muokkaa muistiinpanoa</string>
     <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Tyhjä muistiinpano. Muokkaa muistiinpanoa</string>
     <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Muistiinpano</string>
-    <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Tallenna ajo</string>
+    <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Ajon tallennus</string>
     <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Näytä ajot</string>
     <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s, ei tietoa</string>
     <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Akku</string>
@@ -89,10 +89,10 @@
     <string name="dashboard_overview_not_reported_seen" volt:src="ea0748130f30c6687f41cc741f75eca549fa43c4">Akun varaus: ei tietoa, viimeisin lukema: %1$s</string>
     <string name="dashboard_overview_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Akun varaus: ei tietoa, %1$s</string>
     <string name="dashboard_overview_not_reported_line_seen" volt:src="484687dbd44e137c9ede6b4a74efe5b4d634dd39">Akun varaus: ei tietoa, %1$s, viimeisin lukema: %2$s</string>
-    <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Akku %1$s prosenttia</string>
-    <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43" volt:attempt="2">Akku %1$s prosenttia, viimeisin lukema: %2$s</string>
-    <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Akku %1$s prosenttia, %2$s</string>
-    <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa" volt:attempt="2">Akku %1$s prosenttia, %2$s, viimeisin lukema: %3$s</string>
+    <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Akun varaus %1$s prosenttia</string>
+    <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43" volt:attempt="2">Akun varaus %1$s prosenttia, viimeisin lukema: %2$s</string>
+    <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s</string>
+    <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s, viimeisin lukema: %3$s</string>
     <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Akun varaus: ei tietoa, ladataan</string>
     <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Akun varaus: ei tietoa, ladataan, viimeisin lukema</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Akun varaus: ei tietoa</string>
@@ -101,14 +101,14 @@
     <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Akun varaus: ei tietoa, %1$s, ladataan, viimeisin lukema</string>
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Akun varaus: ei tietoa, %1$s</string>
     <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Akun varaus: ei tietoa, %1$s, viimeisin lukema</string>
-    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449" volt:attempt="2">Akku %1$s prosenttia, latautuu</string>
-    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1" volt:attempt="2">Akku %1$s prosenttia, latautuu, viimeisin lukema</string>
-    <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Akku %1$s prosenttia</string>
-    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e" volt:attempt="2">Akku %1$s prosenttia, viimeisin lukema</string>
-    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab" volt:attempt="2">Akku %1$s prosenttia, %2$s, latautuu</string>
-    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526" volt:attempt="2">Akku %1$s prosenttia, %2$s, latautuu, viimeisin lukema</string>
-    <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Akku %1$s prosenttia, %2$s</string>
-    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e" volt:attempt="2">Akku %1$s prosenttia, %2$s, viimeisin lukema</string>
+    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449" volt:attempt="2">Akun varaus %1$s prosenttia, ladataan</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1" volt:attempt="2">Akun varaus %1$s prosenttia, ladataan, viimeisin lukema</string>
+    <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Akun varaus %1$s prosenttia</string>
+    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e" volt:attempt="2">Akun varaus %1$s prosenttia, viimeisin lukema</string>
+    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s, ladataan</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s, ladataan, viimeisin lukema</string>
+    <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s</string>
+    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e" volt:attempt="2">Akun varaus %1$s prosenttia, %2$s, viimeisin lukema</string>
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, viimeisin lukema: %3$s</string>
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -121,10 +121,10 @@
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Mitataan…</string>
     <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Tallennetaan viimeisintä ajoa…</string>
     <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Yhdistetään…</string>
-    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Tallenna ajo. Tallennetaan viimeisintä ajoa</string>
+    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Ajon tallennus. Tallennetaan viimeisintä ajoa</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Aloita tallennus</string>
-    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Tallenna ajo. Yhdistetään</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Tallenna ajo. Yhdistä potkulautaan</string>
+    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Ajon tallennus. Yhdistetään</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Ajon tallennus. Yhdistä potkulautaan</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Esimerkki</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 ajoa · %1$s–%2$s %3$s</string>
@@ -141,14 +141,14 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Aikaväli</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Tarvittavat ajot</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">90 %:n vaihteluväli</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Varaus täyttä akkumittaria kohti</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Varaus koko akkumittarin asteikkoa kohti</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Latauksen tarkistus</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Kattavuus</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Akun lämpötila</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Hylätty</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
-    <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Epäsuora arvio: voi olla todellista suurempi. Ei kerro akun kunnosta.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia, jonka ajosi kuluttivat täyttä akkumittaria kohti. Ei ole akun kunnon eikä kapasiteetin testi.</string>
+    <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Epäsuora arvio: voi olla todellista suurempi. Tämä ei kerro akun kunnosta.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia, jonka ajosi kuluttivat koko akkumittarin asteikkoa kohti. Tämä ei ole akun kunnon eikä kapasiteetin testi.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Ajoihin käytettävissä oleva energia</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Esimerkki · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ei vielä tallennettuja lukemia</string>
@@ -191,7 +191,7 @@
         <item quantity="other">Pikatoiminnot: %1$d, enintään %2$d</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Vaihda pikatoiminto %1$s, %2$s</string>
-    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Siirrä pikatoiminto %1$s aiemmaksi</string>
+    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Siirrä pikatoiminto %1$s lähemmäs alkua</string>
     <string name="dashboard_remove_shortcut" volt:src="a0fa5dc9717f24a09c80391494fbbf46fcd9fcf6">Poista pikatoiminto %1$s</string>
     <string name="dashboard_add_shortcut" volt:src="824ff298b4221456b34b069c13c1a5bedb1ad968">Lisää pikatoiminto</string>
     <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Lisää pikatoiminto</string>
@@ -201,7 +201,7 @@
     <string name="dashboard_shortcut" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_shortcut_selected" volt:src="d402d676908fb25f990be350c72f2b72a5e471e2">%1$s, %2$s, valittu</string>
     <string name="dashboard_shortcut_toggle" volt:src="90915c6200c3a00184f2c6ab58e8d7ab70bab9f7">%1$s, %2$s, kytkin</string>
-    <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Ei vastaavia asetuksia</string>
+    <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Ei hakua vastaavia asetuksia</string>
     <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Valitse pikatoiminto</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Sulje pikatoiminnon valinta</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Tallenna</string>
@@ -225,7 +225,7 @@
     <string name="dashboard_count_of_selected" volt:src="3fe59a55d689fb3e35fcb68600edf1cd9fcce901">%1$s / %2$s valittu</string>
     <string name="dashboard_all_readings" volt:src="2eebe68cde6c67da287eb233eb159616c2629193">Kaikki lukemat</string>
     <string name="dashboard_reading_uncheck" volt:src="7e0530ef7a5d8f8793db0d827fb8f6a7dbb69f89">%1$s, valittu, poista valinta</string>
-    <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Ei vastaavia lukemia</string>
+    <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Ei hakua vastaavia lukemia</string>
     <string name="dashboard_choose_one_reading" volt:src="020ca0df31d814c9399faf2d946bccfb1f84e3c0">Valitse vähintään yksi lukema.</string>
     <string name="dashboard_save_readings" volt:src="d0e01a05386bd4feee0606f5ac2e68b046b3e1f0">Tallenna valitut lukemat</string>
     <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Valitse lukemat</string>
@@ -241,7 +241,7 @@
     <string name="dashboard_move" volt:src="8198b6bd59ba9a1d74babde2a9ef812275ba7d5a">Siirrä</string>
     <string name="dashboard_adaptive" volt:src="c04f8ecae9f434f28a04840d93d8a8a13d2a44b6">Mukautuva</string>
     <string name="dashboard_adaptive_columns" volt:src="0cf2de71108308f0ef0412c984862a6f84cfb37e">Mukautuvat sarakkeet</string>
-    <string name="dashboard_needs_wider_screen" volt:src="ca8c6c60ef5e5e5da34a3c83ba274a8a3279a3fc">Vaatii leveämmän näytön</string>
+    <string name="dashboard_needs_wider_screen" volt:src="ca8c6c60ef5e5e5da34a3c83ba274a8a3279a3fc">Tarvitaan leveämpi näyttö</string>
     <string name="dashboard_saved_layouts" volt:src="9f2b1d4f4259c56be28f5db94f9e58f305d6705e">Tallennetut asettelut</string>
     <string name="dashboard_export" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Vie</string>
     <string name="dashboard_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Tuo</string>

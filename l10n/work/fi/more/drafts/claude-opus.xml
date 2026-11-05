@@ -11,7 +11,7 @@
     <string name="more_section_security" volt:src="c37d69a4cc528cb88ba0d4abbee25e2fae4411fe">PIN-koodi ja lukituksen avaus läheltä</string>
     <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN-koodi ja lähiavaus</string>
     <string name="more_section_lab" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Kokeelliset toiminnot</string>
-    <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data ja historia</string>
+    <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Tiedot ja historia</string>
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Tiedot ja luvat</string>
     <string name="more_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">KOE</string>
     <string name="more_lab_badge_description" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Kokeellinen</string>
@@ -19,22 +19,22 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Ilmoita ongelmasta</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Yksiköt</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Yhteensopivuus</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Testi ei valmistunut</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Keskeneräinen testi</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, tilasta ei tietoa</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Vaihe %1$d</string>
     <string name="more_onboarding_title" volt:src="481273709dc4b3396f6168624d997dccac537c64">Oma potkulautasi. Omat tietosi.</string>
-    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Tuo omistajan käyttöönoton tiedosto</string>
+    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Tuo omistajan asetustiedosto</string>
     <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Anna lupa ”Lähellä olevat laitteet”</string>
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Yhdistä</string>
-    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Tuo ensin omistajan käyttöönoton tiedosto</string>
+    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Tuo ensin omistajan asetustiedosto</string>
     <string name="more_onboarding_guide" volt:src="0d1d7161e799e8b1bf44f6126c1efd07a13fd81b">Omistajan käyttöönoton opas</string>
-    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Paikallinen potkulautapalvelusi käynnistyy.</string>
+    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Voltin paikallinen palvelu käynnistyy.</string>
     <string name="more_disconnect_first" volt:src="3632a33eb6bd747af0b3f51970e9c4fa89c65365">Katkaise yhteys ensin</string>
     <string name="more_scooters_add" volt:src="72a1a6c08f258e294cc394b845b6f46750b533db">Lisää potkulauta</string>
     <string name="more_scooters_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Nykyinen</string>
     <string name="more_scooters_use" volt:src="d8a6e8cf76bd0de4a97e971538e638aea00d3159">Käytä tätä potkulautaa</string>
-    <string name="more_scooters_edit" volt:src="b95d7568d998990cafa2fbe972fea5a23a0a7a00">Muokkaa potkulautaa</string>
+    <string name="more_scooters_edit" volt:src="b95d7568d998990cafa2fbe972fea5a23a0a7a00">Muokkaa potkulaudan tietoja</string>
     <string name="more_scooters_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Potkulaudan nimi</string>
     <string name="more_scooters_owner_answer" volt:src="ad6a60be79eeb0c077b259454e74b7a3f440e712">Vastauksesi: %1$s</string>
     <string name="more_scooters_which_model" volt:src="907f67494fa980f6baa71e4cb4f99c88e4f4e023">Mikä malli tämä on?</string>
@@ -70,8 +70,8 @@
     <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">Ajo lopetetaan 10 s sen jälkeen, kun Bluetooth-yhteys katkeaa pysähdyksissä</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Taustatallennus</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Akun käyttöä ei ole rajoitettu</string>
-    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Akun käyttö on optimoitu; pitkät tallennukset voivat keskeytyä. Akun asetukset avataan</string>
-    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Mukautettu</string>
+    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Akun käyttö on optimoitu; pitkät tallennukset voivat keskeytyä. Napauta, niin akun asetukset avautuvat</string>
+    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Oma</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Valitse Volt, niin voit hallita sen Android-asetuksia</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Avaa Voltin asetukset Androidissa</string>
     <string name="more_units_distance" volt:src="1f80f00b9165f3a5a5a178d4cbd7eacd1cbabacf">Matka ja nopeus</string>
@@ -127,7 +127,7 @@
     <string name="more_proximity_pair" volt:src="14a611adba760ec799d776213f86a9936c8c6661">Muodosta laitepari tämän puhelimen ja potkulaudan välille</string>
     <string name="more_pin_guide_row" volt:src="01f6163f19b5ab5a2b3c7e1eb878edf25b4cdab4">Avaa lukitus ilman puhelinta</string>
     <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">Odotetaan potkulaudan vahvistusta</string>
-    <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Yhdistä potkulautaan omistajana ennen kuin vaihdat sen PIN-koodin.</string>
+    <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Yhdistä potkulautaan omistajana, ennen kuin vaihdat sen PIN-koodin.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Aseta ohjaustangon PIN-koodi</string>
     <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Varakeinosi ilman puhelinta. Pidä se tallessa. Numeroita ei koskaan näytetä eikä viedä.</string>
     <string name="more_pin_enter" volt:src="ffff0f603c55d92f365fe9ef9bc221f1f7b257f7">Anna uusi PIN-koodi</string>
@@ -144,7 +144,7 @@
     <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Odota, että potkulaudan nykyinen muutos valmistuu.</string>
     <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">PIN-koodin vaihto ei alkanut. %1$s</string>
     <string name="more_pin_guide_body" volt:src="56841e50454a5f70cf1a90d94a32d93d0f66553e">Potkulauta pysäköitynä ja lukittuna.</string>
-    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Napauta suuntavilkkupainiketta</string>
+    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Paina suuntavilkkupainiketta lyhyesti</string>
     <string name="more_pin_guide_digit" volt:src="4e357338627ffe8aaa390f8636d59b477628ef94">Aseta numero, purista jarrua</string>
     <string name="more_pin_guide_power" volt:src="6803ccbe9cf35fc27acc31be5f7ab9d921b2f83a">Paina virtapainiketta</string>
     <string name="more_pin_guide_step" volt:src="274e8fee2e123191dfaa434b0f0898951ec84362">Vaihe %1$d, %2$s</string>
@@ -157,7 +157,7 @@
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Komentojen vastaukset</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Tyhjennä kokeilujen tulokset</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Tyhjennetäänkö kokeilujen tulokset?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt unohtaa, mitä kokeilusi tällä potkulaudalla osoittivat, joten ne jäävät pois seuraavasta raportistasi, eikä painike ”Peru muutos” enää koske niitä. Asetukset pysyvät ennallaan. Kokeilut, jotka eivät valmistuneet, säilyvät, kunnes tarkistat ne.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt unohtaa, mitä kokeilusi tällä potkulaudalla osoittivat, joten ne jäävät pois seuraavasta raportistasi, eikä painike ”Peru muutos” enää koske niitä. Asetukset pysyvät ennallaan. Keskeneräiset kokeilut säilyvät, kunnes tarkistat ne.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Ei tyhjennettäviä valmiita kokeiluja</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">%1$d kokeilu tyhjennetty</item>
@@ -169,7 +169,7 @@
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt ei koskaan muuta laiteohjelmistoa.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Yhdistetään…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Kokeile tällä potkulaudalla</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Virallinen sovellus tarjoaa näitä mallillesi, mutta Volt ei ole testannut niitä tällä mallilla. Kokeilusi ja vastauksesi menevät seuraavaan yhteensopivuusraporttiisi.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Virallinen sovellus tarjoaa näitä mallillesi, mutta Volt ei ole testannut niitä tässä mallissa. Kokeilusi ja vastauksesi lisätään seuraavaan yhteensopivuusraporttiisi.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Ei tietoa tältä potkulaudalta</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt ei voi lukea näitä takaisin, joten se ei tarjoa niitä.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt ei lähetä potkulautakomentoja tälle tuotteelle.</string>
@@ -186,7 +186,7 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Tarkista</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Peru muutos</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Tarkista kokeilu, joka ei valmistunut: %1$s</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Tarkista keskeneräinen kokeilu: %1$s</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">Peru muutos: %1$s, takaisin arvoon %2$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Kokeile: %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -195,7 +195,7 @@
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Odotetaan potkulaudan ajantasaista tilaa.</string>
     <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Pysäytä potkulauta, niin voit kokeilla näitä.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Odotetaan, että potkulauta ilmoittaa olevansa pysäköitynä.</string>
-    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Selvitä potkulaudan varoitus, jos haluat kokeilla näitä.</string>
+    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Korjaa potkulaudan varoituksen syy, jos haluat kokeilla näitä.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Avaa potkulaudan lukitus, jos haluat kokeilla näitä.</string>
     <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Vain omistajan profiili voi kokeilla näitä.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Odota, että yhteensopivuuden tarkistus valmistuu.</string>
@@ -211,10 +211,10 @@
     <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Ei valmistunut · tarkista</string>
     <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Ei valmis</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Ei vielä kokeiltu</string>
-    <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Ei varmistettu mallillasi</string>
+    <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Ei varmistettu mallissasi</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Ei varmistettu tässä</string>
     <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23">Ei varmistettu</string>
-    <string name="more_lab_status_untested" volt:src="ae2b223c0444bbeca7873c7c98c5e9e11276e514">Ei testattu mallillasi</string>
+    <string name="more_lab_status_untested" volt:src="ae2b223c0444bbeca7873c7c98c5e9e11276e514">Ei testattu mallissasi</string>
     <string name="more_lab_status_untested_short" volt:src="64a3e790fa4a04842109f776f3343a17223113f5">Ei testattu tässä</string>
     <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b">Ei testattu</string>
     <string name="more_lab_status_worked" volt:src="8a055ce0ed8d06d3f7f23e08ac6f9f1bdfaab79c">Toiminut tässä</string>
@@ -229,34 +229,34 @@
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Ei vahvistettu · yhdistä uudelleen ja tarkista</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Ei vahvistettu</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Tarkistetaan…</string>
-    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Virallinen sovellus tarjoaa tämän mallillesi, mutta Volt ei ole testannut sitä tällä mallilla. Kokeilusi ja vastauksesi menevät seuraavaan yhteensopivuusraporttiisi.</string>
+    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Virallinen sovellus tarjoaa tämän mallillesi, mutta Volt ei ole testannut sitä tässä mallissa. Kokeilusi ja vastauksesi lisätään seuraavaan yhteensopivuusraporttiisi.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Nyt</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Viimeisin kokeilu</string>
     <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12">Potkulautasi hylkäsi tämän viime kerralla: se vastasi virheellä, joten se ei todennäköisesti tue tätä asetusta. Uusi kokeilu tuottaa yleensä saman vastauksen.</string>
     <string name="more_lab_your_answer" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Vastauksesi</string>
-    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Katso potkulautaa, kun se on pysäköitynä. Vastauksesi menee seuraavaan yhteensopivuusraporttiisi yhdessä potkulaudan takaisinluvun kanssa.</string>
+    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Katso potkulautaa, kun se on pysäköitynä. Vastauksesi lisätään seuraavaan yhteensopivuusraporttiisi yhdessä potkulaudan takaisinluvun kanssa.</string>
     <string name="more_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Kyllä</string>
     <string name="more_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Ei</string>
     <string name="more_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Ohita</string>
     <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b" volt:attempt="2">Tämä kokeilu ei valmistunut, joten potkulaudassa voi yhä olla kokeiltu arvo. Tarkista se ja peru muutos tai pidä arvo.</string>
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Valitse raja</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Valitse arvo</string>
-    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt lähettää yhden muutoksen, kun potkulauta on pysäköitynä ja sen lukitus on avattu, lukee sen takaisin ja kysyy sitten, mitä näit. Arvo pysyy, kunnes perut muutoksen. Jos yhteys katkeaa, Volt ei koskaan kirjoita uudelleen itsestään: kokeilu odottaa tarkistustasi.</string>
+    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt lähettää yhden muutoksen, kun potkulauta on pysäköitynä ja sen lukitus on avattu, lukee sen takaisin ja kysyy sitten, mitä näit. Arvo pysyy, kunnes perut muutoksen. Jos yhteys katkeaa, Volt ei koskaan lähetä arvoa uudelleen itsestään: kokeilu odottaa tarkistustasi.</string>
     <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Tarkistetaan, että arvo ei ole muuttunut…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Perutaan muutosta, takaisin arvoon %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Luetaan nykyistä arvoa…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Lähetetään arvoa %1$s ja luetaan se takaisin…</string>
-    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Näitkö sen muuttuvan?</string>
+    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Näitkö muutoksen?</string>
     <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Jo asetettu: %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Kokeile uudelleen: %1$s</string>
     <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Kokeile: %1$s</string>
     <string name="more_lab_cant_set_back" volt:src="c94e159a7371b9f61d6f3a973106863a495b45b7">Volt ei voi perua muutosta jälkeenpäin: virallinen sovellus ei tarjoa arvoa %1$s tässä.</string>
-    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Peru muutos: %1$s</string>
+    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Peru muutos, takaisin arvoon %1$s</string>
     <plurals name="more_lab_why_offered" volt:src="ebce9d2283a1b0db0c26b1dae4fc9165aecbd5ea">
-        <item quantity="one">Virallinen sovellus tarjoaa tämän %1$d muussa mallissa, mutta ei mallissasi. Se ei ehkä tee tässä mitään, tai se voi toimia eri tavalla.</item>
-        <item quantity="other">Virallinen sovellus tarjoaa tämän %1$d muussa mallissa, mutta ei mallissasi. Se ei ehkä tee tässä mitään, tai se voi toimia eri tavalla.</item>
+        <item quantity="one">Virallinen sovellus tarjoaa tämän %1$d muussa mallissa, mutta ei mallissasi. Se ei ehkä tee tässä mitään tai voi toimia eri tavalla.</item>
+        <item quantity="other">Virallinen sovellus tarjoaa tämän %1$d muussa mallissa, mutta ei mallissasi. Se ei ehkä tee tässä mitään tai voi toimia eri tavalla.</item>
     </plurals>
-    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Virallinen sovellus ei tarjoa tätä mallissasi. Se ei ehkä tee tässä mitään, tai se voi toimia eri tavalla.</string>
+    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Virallinen sovellus ei tarjoa tätä mallissasi. Se ei ehkä tee tässä mitään tai voi toimia eri tavalla.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN-koodi ja todennustavut piilotettu</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Ei vielä muutoksia</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Paikallisen kellon synkronointi\n%1$s</string>
@@ -304,7 +304,7 @@
     <string name="more_report_no_email" volt:src="5eeeb7ecce599a88354042513cd2ee9c5949e343">Mikään sähköpostisovellus ei voinut avata raporttia.</string>
     <string name="more_dev_compat" volt:src="8492f43b2160210b468a69dd049171a6e0b9a4a3">Yhteensopivuuden tarkistin</string>
     <string name="more_dev_compat_sub" volt:src="054fa580d38ad30a2d90471fa68958c3be7e3945">Mallin tarkistus ja raportti</string>
-    <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Simuloi potkulauta yhdistettynä</string>
+    <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Simuloi yhdistettyä potkulautaa</string>
     <string name="more_dev_simulated_model" volt:src="d1f71ab8da3622272a8550620b16eb90a8c0f5fd">Simuloitu malli</string>
     <string name="more_dev_simulation_active" volt:src="ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650">Simulaatio käynnissä · esimerkkitiedot</string>
     <string name="more_dev_simulating" volt:src="7ba690e370878c8a9dd9152ce3649c1a56544346">Simuloidaan</string>
@@ -315,7 +315,7 @@
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Pika</string>
     <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Asetus ”Automaattinen” tunnistaa UT5 MAX -laturit reaaliaikaisesta tehosta. Jos tunnistus on epävarma, Volt käyttää nykyistä lataustahtia; ohita tunnistus valitsemalla laturi.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Tallennetut latauskäyrät</string>
-    <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Tallenna tämä lataus</string>
+    <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Aloita tämän latauksen tallennus</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Lopeta lataustallennus</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Lataustallenteet</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Tallennetut arviot ja valmistumisajat</string>
@@ -327,7 +327,7 @@
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Lataukset ja opitut käyrät poistetaan. Ajot säilyvät.</string>
     <string name="more_dev_clear_recordings" volt:src="4dd7d1113be57287eaa4014ec0fb40e7c877bb44">Poista tallenteet</string>
     <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Testiasettelut</string>
-    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Lataa asettelu ”Kaikki widgetit” paikkaan 3</string>
+    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Aseta asettelu ”Kaikki widgetit” paikkaan 3</string>
     <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Korvataanko paikka 3?</string>
     <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Vain paikka 3 korvataan.</string>
     <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Korvaa paikka 3</string>
@@ -337,10 +337,10 @@
     <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Lopeta lataustallennus ennen kehittäjäasetusten piilottamista</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Suorita testi loppuun tai peruuta se ensin</string>
     <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Yhdistä ensin potkulautaan</string>
-    <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Tallennetaan puhelimeen · päättyy tasolla 100 % · 20 viimeisintä säilytetään</string>
+    <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Tallennetaan puhelimeen · päättyy, kun varaus on 100 % · 20 viimeisintä säilytetään</string>
     <string name="more_dev_which_charger" volt:src="7b52501fb200660f62b9170ec96b9318ade02e6a">Mikä laturi on kytketty?</string>
-    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Tallennetaanko alkuperäisellä laturilla?</string>
-    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Tallennetaanko pikalaturilla?</string>
+    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Tallennetaanko lataus alkuperäisellä laturilla?</string>
+    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Tallennetaanko lataus pikalaturilla?</string>
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Kytketty laturi</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Aloita tallennus</string>
     <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Potkulauta vaihtui · avaa uudelleen</string>
@@ -370,7 +370,7 @@
     <string name="more_scooters_model_unknown" volt:src="6fedbc5bb2d906c46447405f68ddba4baeefbaee">Mallia ei tunnistettu</string>
     <string name="more_scooters_shared_suffix" volt:src="649dfaf5acdfa3d19bf15761d0232b27af8f1712">" · Lisäkäyttäjä"</string>
     <string name="more_scooters_last_connected" volt:src="efdfc14b5d1d610e5756c3e8a2d6b81afad5bbb5">Viimeksi yhdistetty: %1$s</string>
-    <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Muokkaa potkulautaa %1$s</string>
+    <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Muokkaa potkulaudan %1$s tietoja</string>
     <string name="more_scooters_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Katkaise yhteys</string>
     <string name="more_scooters_action_named" volt:src="2d3dacf52b2e03498713ce8ccea2f6833184ac4e">%1$s: %2$s</string>
     <string name="more_scooters_use_named" volt:src="e0c555963cb7c36a33b69480be2226d587632a3f">Käytä potkulautaa %1$s. Katso tallennetut tiedot ilman yhdistämistä</string>
@@ -395,5 +395,5 @@
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Muodosta laitepari ensin tämän puhelimen kanssa</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Paritettu</string>
-    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testaa, kun potkulauta on pysäköitynä. Kun lukituksen avaus läheltä on otettu käyttöön, yhteys potkulautaan voi katketa hetkeksi. Volt yhdistää uudelleen ja vahvistaa muutoksen.</string>
+    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testaa, kun potkulauta on pysäköitynä. Kun lukituksen avaus läheltä on otettu käyttöön, yhteys potkulautaan voi katketa hetkeksi. Volt muodostaa yhteyden uudelleen ja vahvistaa muutoksen.</string>
 </resources>

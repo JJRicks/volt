@@ -158,7 +158,7 @@
     <string name="backup_engine_backup_invalid_scooter_owner" volt:src="a5df0c1afd5aaeb4192aaf7e89aa38345242e72d">Varmuuskopiossa on virheellinen potkulaudan omistajan rooli.</string>
     <string name="backup_engine_backup_invalid_scooter_connection" volt:src="5dee12f94f7b1a0b54185c7b760097ddd3324da1">Varmuuskopiossa on virheellinen potkulaudan yhteyden päivämäärä.</string>
     <string name="backup_engine_backup_invalid_scooter_setup" volt:src="1efe4d4475bbd78ff690b9539a72ad8a70771394">Varmuuskopiossa on virheellinen potkulaudan omistaja-avain.</string>
-    <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">Varmuuskopiossa on sovellusasetus, jonka tyyppi ei ole yhteensopiva.</string>
+    <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">Varmuuskopiossa on Voltin asetus, jonka tyyppi ei ole yhteensopiva.</string>
     <string name="backup_engine_backup_invalid_display_text" volt:src="194fd5048e934d2fa854e7e693f332706da65c69">Varmuuskopiossa on virheellinen näytön tekstikoko.</string>
     <string name="backup_engine_review_backup_first" volt:src="1dde6c2a50a1278db6941d64547da7196557199d">Tarkista ensin varmuuskopio.</string>
     <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Tallennetut tiedot muuttuivat. Tarkista uudelleen.</string>
@@ -169,7 +169,7 @@
     <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Virheellinen palautuksen korjausluettelo.</string>
     <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Virheellinen palautuksen korjauspolku.</string>
     <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:src="15228d6e90ee9f7bc024b957c52ec93c70c20218">Keskeytynyttä palautusta ei voitu perua.</string>
-    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Palautuksen tilannevedos on epätäydellinen. Säilytä sovelluksen tallennustila ennallaan.</string>
+    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Palautuksen tilannevedos on epätäydellinen. Pidä sovelluksen tallennustila ennallaan.</string>
     <string name="backup_engine_ride_storage_cannot_read" volt:src="0ede1a82e6831be351b54891fc112668141e0d8c">Ajojen tallennustilaa ei voi lukea.</string>
     <string name="backup_engine_unsupported_ride_file" volt:src="b660f7cdb17159f2687838bd710010e444f8662a">Ajotiedostoa ei tueta.</string>
     <string name="backup_engine_too_many_rides_one" volt:src="de8abfaaeda3958bde310f5911f556efdcc5e134">Liikaa ajoja yhteen varmuuskopioon.</string>
@@ -196,7 +196,7 @@
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Tallennetut ajot muuttuivat. Tarkista varmuuskopio uudelleen.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Ajojen palautusta ei voitu valmistella.</string>
     <string name="backup_engine_restore_interrupted_reopen_volt" volt:src="b0d7118e39c2abebc697c5bd7f9d589e2a52b766">Palautus keskeytyi. Avaa Volt uudelleen; älä tyhjennä tallennustilaa.</string>
-    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Ajojen palautuksen korjaus vaatii huomiota. Säilytä sovelluksen tallennustila ennallaan.</string>
+    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Ajojen palautuksen korjaus vaatii huomiota. Pidä sovelluksen tallennustila ennallaan.</string>
     <string name="backup_engine_ride_restore_storage_unavailable" volt:src="df81a76f4eb20ac8ad9dc094ce5553679048e3c1">Ajojen palautuksen tallennustila ei ole käytettävissä.</string>
     <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Odottamattomia ajojen palautuksen korjaustietoja.</string>
     <string name="backup_engine_invalid_ride_recovery_list" volt:src="11f84a914e3636306f31de4a66b81bca505374a1">Virheellinen ajojen korjausluettelo.</string>
@@ -208,7 +208,7 @@
     <string name="backup_engine_invalid_ride_path" volt:src="24f318c33e90e9a2aeec3c0c1431b0d6cef844a9">Virheellinen ajon polku.</string>
     <string name="backup_engine_unexpected_ride_storage_link" volt:src="299b93725ebe941afbd0c28cf486743ca720f79d">Odottamaton ajojen tallennustilan linkki.</string>
     <string name="backup_engine_ride_record_too_large" volt:src="93a7d93c531a64a62fa68baf6daface912ce4887">Ajotietue on liian suuri.</string>
-    <string name="backup_engine_unsupported_ride_journal_format" volt:src="7e22a8fde27b3e6c090d56071e482e755826c4be">Ajojen lokin muotoa ei tueta.</string>
+    <string name="backup_engine_unsupported_ride_journal_format" volt:src="7e22a8fde27b3e6c090d56071e482e755826c4be">Ajopäiväkirjan muotoa ei tueta.</string>
     <string name="backup_engine_incomplete_ride_record_was" volt:src="59cff835f0d7f0b66ccf132bf18c5da66b7f0a63">Löytyi epätäydellinen ajotietue.</string>
     <string name="backup_engine_phone_sensor_record_invalid" volt:src="1079c5bf5005009fcd5e3dd7e89e222ab35f30e7">Puhelimen anturitietue on virheellinen.</string>
     <string name="backup_engine_ride_backup_exceeds_size" volt:src="c628fece13322d1ab371ce92a147a1f301cbdae0">Ajojen varmuuskopio ylittää kokorajan.</string>
@@ -217,7 +217,7 @@
     <string name="backup_engine_not_enough_available_storage" volt:src="b8b33850bfdea11ea4f55deb5272744d3ba87f1a">Käytettävissä oleva tallennustila ei riitä.</string>
     <string name="backup_engine_ride_backup_could_not_processed" volt:src="2ba1f594fa284c0fcbe209a23feaa31b4850476a">Ajojen varmuuskopiota ei voitu käsitellä.</string>
     <string name="backup_engine_backup_unsupported_preference_type" volt:src="51c2d879fd005c2f736f57d9d4a4e57cc7bb1547">Varmuuskopiossa on asetustyyppi, jota ei tueta.</string>
-    <string name="backup_engine_app_preferences_could_not_written" volt:src="ec0e490b1556c9d2054b5695c29e4c31b8949633">Sovelluksen asetuksia ei voitu kirjoittaa. Aiemmat tiedot palautetaan.</string>
+    <string name="backup_engine_app_preferences_could_not_written" volt:src="ec0e490b1556c9d2054b5695c29e4c31b8949633">Voltin asetuksia ei voitu tallentaa. Aiemmat tiedot palautetaan.</string>
     <string name="backup_engine_backup_history_database_could_not_read" volt:src="0f827b42920e95a9414badc1a01c60476839e97e">Varmuuskopion historiatietokantaa ei voitu lukea.</string>
     <string name="backup_engine_backup_history_too_many" volt:src="e616e0b35c9c428864a0c85d13f6e234b29222de">Varmuuskopion historiassa on liian monta potkulautaa.</string>
     <string name="backup_engine_readings_history_could_not_merged" volt:src="e319370010e49ee493d578301c04ddfa9f1bd3ee">Lukemahistoriaa ei voitu yhdistää.</string>

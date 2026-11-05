@@ -38,7 +38,7 @@
     <string name="controls_feature_light_color" volt:src="b8c5d740f7f6d2100d197f849fac96450d6e85ed">%1$s: väri</string>
     <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s: Boost-väri</string>
     <string name="controls_feature_acceleration_about" volt:src="6ff0ecbed4c6617cdf05fd33be56868ab6c7f0e9">Muissa malleissa Eco/Turbo.</string>
-    <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Virtapainike keskeyttää uudelleenkäynnistykseen asti.</string>
+    <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Virtapainike keskeyttää toiminnon uudelleenkäynnistykseen asti.</string>
     <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Vain arvio muuttuu.</string>
     <string name="controls_feature_maximum_speed_about" volt:src="2e9ec9d25e4fbb0fb06e1c25c85ee3a430b9216f">Vain Sport-tilassa.</string>
     <string name="controls_feature_lock_expiry_about" volt:src="92b40c2c0835027491598b62764bcb3401fe9437">Potkulauta pysyy lukittuna sammutettuna; muista PIN-koodi.</string>
@@ -84,17 +84,17 @@
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Tuntematon arvo · ei voi muuttaa turvallisesti</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Ei tietoa valinnoista</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Odota nykyisen muutoksen valmistumista</string>
-    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a" volt:attempt="2">Lopeta ajo ja pysäytä potkulauta ensin</string>
+    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a" volt:attempt="2">Pysäytä potkulauta ensin</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Ei vielä tietoa liikkeestä</string>
-    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Selvitä potkulaudan varoitus ensin</string>
+    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Korjaa ensin potkulaudan varoituksen syy</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Avaa ensin lukitus</string>
     <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Vain omistaja</string>
-    <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Muodosta laitepari ensin tällä puhelimella</string>
+    <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Muodosta laitepari ensin tämän puhelimen kanssa</string>
     <string name="controls_reason_needs_pin" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Ota ensin käyttöön ohjaustangon PIN-koodi</string>
     <string name="controls_reason_firmware_unknown" volt:src="dc3ecf1b86340e6787b58edd8057d65da19a092a">Laiteohjelmistoa ei ole vielä luettu</string>
     <string name="controls_reason_firmware_old" volt:src="5a5a8975d892b475c6b5a54f55b07f7a5c3b46aa">Potkulaudan laiteohjelmiston on oltava uudempi</string>
     <string name="controls_reason_identify_model" volt:src="7a80acff0a99bbd1c09c3d21b8720607dd0bb9d2">Tunnista malli ensin</string>
-    <string name="controls_reason_identity_conflict" volt:src="2904aa42b6766ceb2503149c959398208e70fcb0">Mallitunnus (ID) ei täsmää</string>
+    <string name="controls_reason_identity_conflict" volt:src="2904aa42b6766ceb2503149c959398208e70fcb0">Mallitunnus ei täsmää</string>
     <string name="controls_reason_model_not_mapped" volt:src="c0ed1ee42af9a732b347dfcf225ba7b78e1f4631">Ei kartoitettu tälle mallille</string>
     <string name="controls_reason_model_excluded" volt:src="d2efb35e4d1e8531706467ddde6ed369b8bdb783">Ei tässä mallissa</string>
     <string name="controls_reason_region_rule" volt:src="c68f2b262d41f6109e11ab41c9fe6ef618800d44">Ei tarjolla tällä alueella</string>
@@ -103,18 +103,18 @@
     <string name="controls_reason_test_active" volt:src="b1ca7a968c456a2ff239e608bfbda2d6338e7b4a">Testi käynnissä</string>
     <string name="controls_reason_not_testable" volt:src="1cd5e7c5fff48b1a556f7c0e730546a768daf5f4">Ei tarjolla testinä</string>
     <string name="controls_reason_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Lopeta ensin tallennus</string>
-    <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Tarvitaan oikea potkulauta</string>
-    <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Vahvista, että potkulauta on pysäköity</string>
+    <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Tarvitaan todellinen potkulauta</string>
+    <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Varmista, että potkulauta on pysäköity</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Testiä ei ole käynnissä</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Arvo on OEM-toiminnon arvoalueen ulkopuolella</string>
+    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Arvo on valmistajan sallimien arvojen ulkopuolella</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Ei käytössä tai 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Ei käytössä tai 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Ei nyt käytettävissä</string>
-    <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">PIN-koodia voi käyttää vain todennettu omistaja</string>
+    <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">PIN-koodin asetuksia voi käyttää vain todennettu omistaja</string>
     <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">PIN-koodissa on oltava neljä numeroa</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">PIN-koodi on asetettava, ennen kuin sen voi ottaa käyttöön</string>
     <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Lukituksen avausta läheltä voi muuttaa vain todennettu omistaja</string>
-    <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Muodosta laitepari tällä puhelimella, ennen kuin otat lukituksen avauksen läheltä käyttöön</string>
+    <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Muodosta laitepari tämän puhelimen kanssa, ennen kuin otat lukituksen avauksen läheltä käyttöön</string>
     <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Ota asetettu ohjaustangon PIN-koodi käyttöön, ennen kuin otat lukituksen avauksen läheltä käyttöön</string>
     <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Virallinen sovellus kysyy varmistusta ennen tätä muutosta. Volt ei ole testannut muutosta tässä mallissa.</string>
     <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt ei ole testannut muutosta tässä mallissa.</string>

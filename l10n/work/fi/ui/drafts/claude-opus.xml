@@ -3,15 +3,15 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="ui_metric_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="ui_metric_description_hint" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="ui_toggle_state_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, tila: ei tietoa</string>
-    <string name="ui_battery_description" volt:src="19a80dd329bf1d36649b961bf2d7d0e5a8aa7e4d">Akku: %1$s</string>
-    <string name="ui_battery_description_caption" volt:src="016609de9934c14f95e1ee0ded24b1c5f68a731d">Akku: %1$s, %2$s</string>
-    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Akku: %1$s, ladataan</string>
-    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Akku: %1$s, ladataan, %2$s</string>
-    <string name="ui_battery_description_last_seen" volt:src="61dbf3734e0e3d8e6874d11563a85c4e2541262b">Akku, viimeisin lukema: %1$s</string>
-    <string name="ui_battery_description_last_seen_caption" volt:src="33f61bc012fded01ef4ec0808ddbb58b144e4243">Akku, viimeisin lukema: %1$s, %2$s</string>
-    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Akku, viimeisin lukema: %1$s, ladataan</string>
-    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Akku, viimeisin lukema: %1$s, ladataan, %2$s</string>
+    <string name="ui_toggle_state_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, tilasta ei tietoa</string>
+    <string name="ui_battery_description" volt:src="19a80dd329bf1d36649b961bf2d7d0e5a8aa7e4d">Akun varaus: %1$s</string>
+    <string name="ui_battery_description_caption" volt:src="016609de9934c14f95e1ee0ded24b1c5f68a731d">Akun varaus: %1$s, %2$s</string>
+    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Akun varaus: %1$s, ladataan</string>
+    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Akun varaus: %1$s, ladataan, %2$s</string>
+    <string name="ui_battery_description_last_seen" volt:src="61dbf3734e0e3d8e6874d11563a85c4e2541262b">Akun varaus, viimeisin lukema: %1$s</string>
+    <string name="ui_battery_description_last_seen_caption" volt:src="33f61bc012fded01ef4ec0808ddbb58b144e4243">Akun varaus, viimeisin lukema: %1$s, %2$s</string>
+    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Akun varaus, viimeisin lukema: %1$s, ladataan</string>
+    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Akun varaus, viimeisin lukema: %1$s, ladataan, %2$s</string>
     <string name="ui_battery_not_reported" volt:src="50d5d339e3c4836e7857d9dfd067b5da129f15b0">ei tietoa</string>
     <plurals name="ui_battery_percent" volt:src="ebc2b43c225316946adff277ee621916da7e230a">
         <item quantity="one">%1$d prosentti</item>

@@ -5,7 +5,7 @@
     <string name="service_stop_recording_first" volt:src="4fd630cc644ce85af927e714376db75a7a098657">Lopeta ensin käynnissä oleva tallennus</string>
     <string name="service_wait_ride_saving" volt:src="dde7a768fd375aa9b91eed6384cbc875b9291969">Odota, että ajo on tallennettu</string>
     <string name="service_wait_scooter_change" volt:src="9ae1c7f912aeba28b610a96d05e83c0423c361f4">Odota, että käynnissä oleva asetuksen muutos potkulaudassa päättyy</string>
-    <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Odota, että aikataulun testi päättyy</string>
+    <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Odota, että ajastetun latauksen tarkistus päättyy</string>
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">Sovelluksen tietojen ylläpito on jo käynnissä</string>
     <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Odota, että puhelimen tallenne on tallennettu</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Saata ensin käynnissä oleva lataustallenteiden vienti loppuun</string>
@@ -14,7 +14,7 @@
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Odota, että historian siivous päättyy</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Saata ensin omistajan käyttöönotto loppuun ja palauta NAVEE-tapahtumaloki ennalleen</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Saata ensin käynnissä oleva vienti loppuun</string>
-    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Saata ensin omistajan käyttöönoton tuonti loppuun</string>
+    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Saata ensin omistaja-avaimen tuonti loppuun</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Sovelluksen tietoja ei voitu valmistella. Avaa Volt uudelleen.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Saata käynnissä oleva tallennus loppuun ennen simulaatiota</string>
     <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ei vielä lataustallennetta</string>
@@ -60,8 +60,8 @@
     <string name="service_charge_stop_process_ended" volt:src="a020b418f75b2f8f7a6381b7eb8d88cd864a4172">prosessi päättyi</string>
     <string name="service_charge_stop_interrupted" volt:src="4990fa492de579ec49a07c599aa420b73eed5337">keskeytyi</string>
     <string name="service_charge_stop_recovery_timeout" volt:src="9731706961c9e5abd0e63c53081c5027cb8622ba">uudelleenyhdistäminen aikakatkaistiin</string>
-    <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">yhteys epäonnistui</string>
-    <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth pois päältä</string>
+    <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">yhdistäminen epäonnistui</string>
+    <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth ei käytössä</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">lupa menetetty</string>
     <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">tunniste vaihtui</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Tallennus lopetettu, mutta lataustiedostoa ei voitu viimeistellä</string>
@@ -70,10 +70,10 @@
     <string name="service_missed_title_schedule" volt:src="bee23b65a6abd7239871dcf29f238f045ab35407">Ajastettu lataus ei alkanut</string>
     <string name="service_missed_done_by_dialog" volt:src="9f6666bdc6b0ddd647793012a35705ed13da556e">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% asettaessasi). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
     <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% asettaessasi). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
-    <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% testin aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
-    <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% testin aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
-    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Aikataulun testi asetti latauksen jatkumaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% testin aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
-    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Aikataulun testi asetti latauksen jatkumaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% testin aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
+    <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% tarkistuksen aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
+    <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% tarkistuksen aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
+    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Ajastetun latauksen tarkistus asetti latauksen jatkumaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% tarkistuksen aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
+    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Ajastetun latauksen tarkistus asetti latauksen jatkumaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% tarkistuksen aikana). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
     <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% asettaessasi). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Volt voi poistaa aikataulun käytöstä, jolloin lataus alkaa heti.</string>
     <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Lataus oli asetettu alkamaan klo %1$s, ja akun varaus on yhä %2$s %% (%3$s %% asettaessasi). Tarkista, että laturi on kytketty ja että sen valo palaa punaisena aloitusaikana. Avaa Volt ja poista aikataulu käytöstä, jolloin lataus alkaa heti.</string>
     <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Tämä lataus mitattiin. Lataus jatkuu klo %1$s, jotta se valmistuu klo %2$s mennessä.</string>
@@ -88,7 +88,7 @@
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">Lataus valmiiksi: asetettu</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">Lataus valmiiksi: ei asetettu</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Avaa Volt uudelleen</string>
-    <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Testi peruutettu. Ajastettu lataus on pois päältä.</string>
+    <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Tarkistus peruutettu. Ajastettu lataus on pois päältä.</string>
     <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Asetetaan aikataulua…</string>
     <string name="service_test_pausing" volt:src="65e2bd4326b7da4fbe8b08ccaf2085b5e7dd79c1">Keskeytetään latausta…</string>
     <string name="service_test_ending" volt:src="6a0c1f0c045938f28b1dc93e5c88015e15739990">Poistetaan aikataulua käytöstä…</string>
@@ -99,9 +99,9 @@
     <string name="service_test_title_late" volt:src="00092ee4187b5180e78141563e71e7883e41eb5f">Lataus jatkui myöhässä</string>
     <string name="service_test_title_no_pause" volt:src="ec6fc3ed1b0292c043cf2893873103d2cc1be8a9">Potkulauta ei keskeyttänyt latausta</string>
     <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72">Lataus ei jatkunut</string>
-    <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Ajastetun latauksen testi keskeytyi</string>
-    <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Testi peruutettu</string>
-    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Testi ei valmistunut</string>
+    <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Ajastetun latauksen tarkistus keskeytyi</string>
+    <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Tarkistus peruutettu</string>
+    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Tarkistus ei valmistunut</string>
     <string name="service_test_passed_on_time" volt:src="0dafb048ea96a47f02073efff7fb1a02dea7cffc">Potkulaudan kello ja aikataulu toimivat. Lataus jatkui aloitusaikana.</string>
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">Potkulaudan kello ja aikataulu toimivat. Lataus jatkui %1$s sekunti ennen aloitusaikaa.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">Potkulaudan kello ja aikataulu toimivat. Lataus jatkui %1$s sekunti aloitusajan jälkeen.</string>
@@ -114,12 +114,12 @@
     <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">Lataus jatkui %1$s ennen aloitusaikaa, joten potkulaudan kello saattaa olla %2$s edellä.%3$s</string>
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">Lataus jatkui %1$s aloitusajan jälkeen, joten potkulaudan kello saattaa olla %2$s jäljessä.%3$s</string>
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">Potkulauta ei keskeyttänyt latausta. Sen kello saattaa olla edellä, tai potkulauta ei noudattanut aikataulua.%1$s</string>
-    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Lataus oli yhä keskeytettynä 5 minuuttia aloitusajan jälkeen. Potkulaudan kello saattaa olla yli 5 minuuttia jäljessä, tai sen aikataulu ei vapauttanut latausta. Jos laturi oli irrotettu, testaa uudelleen.%1$s</string>
-    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt asetti potkulaudan kellon juuri ennen tätä testiä, joten potkulauta ei ehkä pidä sille annettua aikaa. Kunnes tämä on ratkaistu, älypistorasia on turvallisempi ajastin. Ilmoita ongelmasta diagnostiikkatietojen kanssa, jotta voimme selvittää asiaa."</string>
-    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">Akun varaus saavutti latausrajan testin aikana, joten testi ei pystynyt päättelemään tulosta. Testaa uudelleen, kun varaus on selvemmin latausrajan alapuolella.</string>
-    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Testi keskeytyi. Tarkista, että lataus jatkui. Jos se ei jatkunut, poista ajastettu lataus käytöstä.</string>
-    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Testiä ei voitu aloittaa.</string>
-    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Testiä ei voitu aloittaa: %1$s.</string>
+    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Lataus oli yhä keskeytettynä 5 minuuttia aloitusajan jälkeen. Potkulaudan kello saattaa olla yli 5 minuuttia jäljessä, tai sen aikataulu ei vapauttanut latausta. Jos laturi oli irrotettu, tee tarkistus uudelleen.%1$s</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt asetti potkulaudan kellon juuri ennen tätä tarkistusta, joten potkulauta ei ehkä pidä sille annettua aikaa. Kunnes tämä on ratkaistu, älypistorasia on turvallisempi ajastin. Ilmoita ongelmasta diagnostiikkatietojen kanssa, jotta voimme selvittää asiaa."</string>
+    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">Akun varaus saavutti latausrajan tarkistuksen aikana, joten tulosta ei voitu päätellä. Tee tarkistus uudelleen, kun varaus on selvemmin latausrajan alapuolella.</string>
+    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Tarkistus keskeytyi. Tarkista, että lataus jatkui. Jos se ei jatkunut, poista ajastettu lataus käytöstä.</string>
+    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Tarkistusta ei voitu aloittaa.</string>
+    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Tarkistusta ei voitu aloittaa: %1$s.</string>
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt ei voinut vahvistaa, poistuiko aikataulu käytöstä. Poista ajastettu lataus käytöstä, jotta lataus jatkuu."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Akkuvaroitukset</string>
@@ -129,8 +129,8 @@
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Poistu ensin simulaatiosta</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Edellistä ajoa viimeistellään</string>
     <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Ajo tallennettu automaattisesti</string>
-    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth-yhteys katkesi pysäköitynä</string>
-    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Bluetooth-yhteys katkesi pysäköitynä</string>
+    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth-yhteys katkesi, kun potkulauta oli pysäköitynä</string>
+    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Bluetooth-yhteys katkesi, kun potkulauta oli pysäköitynä</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Potkulaudan yhteys ja tallennus</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Mitataan latausta asetusta ”Lataus valmiiksi” varten</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Tarkistetaan ajastettua latausta</string>
@@ -146,7 +146,7 @@
     <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Puhelimen anturien tietoja ei tallenneta</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Lopeta seuranta</string>
     <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Ajasta nyt</string>
-    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Peruuta testi</string>
+    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Peruuta tarkistus</string>
     <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Lopeta lataustallennus</string>
     <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Lopeta tallennus</string>
     <string name="service_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Katkaise yhteys</string>

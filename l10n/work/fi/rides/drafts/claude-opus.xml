@@ -10,7 +10,7 @@
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Teho</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Nopeus</string>
     <string name="rides_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Jännite</string>
-    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Akku %</string>
+    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Akku (%)</string>
     <string name="rides_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Yhdistä uudelleen</string>
     <string name="rides_reconnect_description" volt:src="a6308b27db97fca0f0e50b5eeeaeea6b52049c59">Yhdistä uudelleen potkulautaan</string>
     <string name="rides_notes" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Muistiinpanot</string>
@@ -18,7 +18,7 @@
     <string name="rides_end" volt:src="680ad627c1146e341e2ff22ac594ef6c95096346">Lopeta</string>
     <string name="rides_end_description" volt:src="80bf04d55f35f37bd7412a107c8077f7fbe6f1dc">Lopeta ja tallenna ajo</string>
     <string name="rides_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Aloita tallennus</string>
-    <string name="rides_connect_to_record" volt:src="032280b287039694c97a81f7a4f5f20140cc3689">Yhdistä, niin voit tallentaa</string>
+    <string name="rides_connect_to_record" volt:src="032280b287039694c97a81f7a4f5f20140cc3689">Yhdistä, niin voit aloittaa tallennuksen</string>
     <string name="rides_phone_sensors" volt:src="2f0f9c2e6c2d343d301e46e072a8a862dc1b896e">Puhelimen anturit</string>
     <string name="rides_compare_two" volt:src="5b6ee25b6cf68c45b0deeb85213c55bc84e35266">Vertaa kahta ajoa</string>
     <string name="rides_backups" volt:src="c2c66504f7d76dffa88ece488cc0953eb7ce7f1d">Ajojen varmuuskopiot</string>
@@ -73,10 +73,10 @@
     <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Akun läpi kulkenut energia</string>
     <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Tehotietojen kattavuus</string>
     <string name="rides_route_finishing" volt:src="cfed97e5a40f26b62cbc4c33d66487ae0f9060fd">Viimeistellään anturitiedostoja</string>
-    <string name="rides_route_loading" volt:src="e5ee923441491f076bb108ed763a050df2d9f5c4">Ladataan reittiä</string>
+    <string name="rides_route_loading" volt:src="e5ee923441491f076bb108ed763a050df2d9f5c4">Haetaan reittiä</string>
     <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Reitti ei ole käytettävissä</string>
     <string name="rides_readings_title" volt:src="4e02ae3baa7de7657a0a92544870bd9dd4bdd990">Ajon lukemat</string>
-    <string name="rides_loading" volt:src="d34759349252de47e5944d7abac2e2dec226cdd7">Ladataan…</string>
+    <string name="rides_loading" volt:src="d34759349252de47e5944d7abac2e2dec226cdd7">Haetaan…</string>
     <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Laajenna</string>
     <string name="rides_chart_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Sovita</string>
     <string name="rides_chart_zoom_out" volt:src="1ab878a130ac7f96258d81121954840b6dcea335">Loitonna ajokaaviota</string>
@@ -89,7 +89,7 @@
     <string name="rides_all_samples_description" volt:src="1f613a0c01bd48658728229e641f504e50fd5908">Kaikki tallennetut kaavion näytteet ladattu</string>
     <string name="rides_toast_low_memory" volt:src="07bacb681055fedc9a4f6a6b12632628ad27800b">Muisti vähissä · vain esikatselu</string>
     <string name="rides_preview_retry" volt:src="ddbae7b02681c69703fc19822070815540c039d7">Esikatselu · Yritä uudelleen</string>
-    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Vain esikatselu. Yritä uudelleen ladata kaikki tallennetut kaavion näytteet</string>
+    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Vain esikatselu. Yritä ladata kaikki tallennetut kaavion näytteet uudelleen</string>
     <string name="rides_electrical_energy" volt:src="c25cbe0cc36ce2c248cbfc7818933e13e17add77">Sähköenergia</string>
     <string name="rides_direction_confirmed" volt:src="3517b661574c4c41efd4351cc06b903953465adc">Virran suunta vahvistettu</string>
     <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Virran suuntaa ei ole vahvistettu koko ajolta · arvot ovat akun läpi kulkenutta energiaa suunnasta riippumatta</string>
@@ -110,7 +110,7 @@
     <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Energia liikkeessä</string>
     <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Energia paikallaan</string>
     <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Energia, liike tuntematon</string>
-    <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Jännite min / maks</string>
+    <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Jännite min / maks.</string>
     <string name="rides_peak_power" volt:src="ba2c25e35603a64aba9071d8cb253c0aabc1c63e">Huipputeho</string>
     <string name="rides_temperature" volt:src="f15eba24737081c7101a88db3658b99a0bd52861">Lämpötila</string>
     <string name="rides_saved_automatically" volt:src="58efd69f1a809c6adad917d9ec4f95fce547b039">Tallennettu automaattisesti</string>
@@ -187,7 +187,7 @@
     <string name="rides_export_all_json" volt:src="d591c3ad2a9ac82a4d446003594007fff087aee0">Kaikki (JSON)</string>
     <string name="rides_toast_export_failed" volt:src="aaa225c9739810f61b99b35a0b8b53c36d6870ed">Tätä ajoa ei voitu viedä.</string>
     <string name="rides_toast_export_csv_failed" volt:src="48d4ac38add95f760e03cd66b350736f1068401f">Ajon CSV-tiedostoa ei voitu viedä.</string>
-    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Reitti- ja anturitiedot poistetaan. Tätä ei voi perua.</string>
+    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Reitti- ja anturitiedot poistetaan. Tätä ei voi kumota.</string>
     <string name="rides_delete_keep" volt:src="4d20ae693afdbf19356702263c029117d66d8cbc">Säilytä ajo</string>
     <string name="rides_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Poista</string>
     <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Tallennetaan… yritä uudelleen</string>
@@ -196,7 +196,7 @@
     <string name="rides_toast_select_two" volt:src="ce134f33d022481a58606227d02d9d2b3680b56e">Valitse kaksi käytettävissä olevaa tallennetta.</string>
     <string name="rides_compare_battery_change" volt:src="7f6a47ec11acd5f485a4f273f62b389db73b9da0">Akun varauksen muutos</string>
     <string name="rides_compare_measured_throughput" volt:src="d6a0827c998b167e7d3a95377af171af53a3c63f">Mitattu akun läpi kulkenut energia</string>
-    <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Energia matkaa kohden</string>
+    <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Energia matkaa kohti</string>
     <string name="rides_compare_gaps" volt:src="046c47c2e084ac901e847c73a699bb7eb64d8de2">Katkokset</string>
     <string name="rides_compare_min_voltage" volt:src="069f69e2489b3f52cbc3595ab0146fed40883493">Vähimmäisjännite</string>
     <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Näytä ensimmäinen</string>
@@ -221,14 +221,14 @@
         <item quantity="other">%1$d katkosta</item>
     </plurals>
     <string name="rides_coverage" volt:src="753c1f5f4e7a47aa8181ae4d5a7f1a7d89b9a93c">Kattavuus: %1$s</string>
-    <string name="rides_coverage_description" volt:src="3490808f3c32a9cd8c1666717ad0a078c3ca4d9f">Tehon kattavuus: %1$s, havaittu aika: %2$s, koko aika: %3$s</string>
+    <string name="rides_coverage_description" volt:src="3490808f3c32a9cd8c1666717ad0a078c3ca4d9f">Tehotietojen kattavuus: %1$s, havaittu aika: %2$s, koko aika: %3$s</string>
     <string name="rides_history_none" volt:src="b61b1b2cb582a7f025202093ca2d2470291655b2">Ei tallennettuja ajoja</string>
     <plurals name="rides_history_count" volt:src="478462d261178706c40ba2b0ca244c16ab78038d">
         <item quantity="one">%1$d ajo</item>
         <item quantity="other">%1$d ajoa</item>
     </plurals>
     <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. Tiedot näytetään luettelon vieressä.</string>
-    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Ajon tiedot avataan.</string>
+    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Napauta, niin ajon tiedot avautuvat.</string>
     <string name="rides_showing" volt:src="3b155b2ef7a92fd6a06dabf28667e75a6f6aff11">Näytetään: %1$s</string>
     <string name="rides_unit_kilobyte" volt:src="45886c037746f5b96600e1d46c002f20df5f5c9b">kt</string>
     <string name="rides_unit_megabyte" volt:src="524c413d2ca2775c5d77a297c2cc28b406e14022">Mt</string>

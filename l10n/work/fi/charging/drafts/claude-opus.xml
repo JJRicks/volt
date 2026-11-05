@@ -15,20 +15,20 @@
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: akun varaus on %2$s %%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Odotetaan tietoja</string>
-    <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792">Ei lataudu</string>
+    <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792">Lataus ei käynnissä</string>
     <string name="charging_estimate_waiting_readings" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Odotetaan lukemia</string>
     <string name="charging_estimate_out_of_range" volt:src="c57affcd338bb5dce1fe4daca90b62bac125e5e3">Lukemat käyttökelpoisen alueen ulkopuolella</string>
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapasiteetti tuntematon</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Odotetaan akun varausprosenttia</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Ei arviota</string>
-    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Nykyisellä lataustahdilla</string>
-    <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Pikalaturin viitearvo</string>
-    <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Alkuperäisen laturin viitearvo</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Nykyinen lataustahti</string>
+    <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Pikalaturin vertailukäyrä</string>
+    <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Alkuperäisen laturin vertailukäyrä</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
         <item quantity="one">Perustuu %1$d aiempaan lataukseen</item>
         <item quantity="other">Perustuu %1$d aiempaan lataukseen</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Laturi poikkeaa · arvio latausnopeuden mukaan</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Laturi poikkeaa · arvio lataustahdin mukaan</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Arvio lataustahdin mukaan</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Valittu potkulauta vaihtui mittauksen aikana</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Puhelimen kello muuttui mittauksen aikana</string>
