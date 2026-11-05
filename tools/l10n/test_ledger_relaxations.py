@@ -1090,9 +1090,10 @@ class PluralBranchNearMissTest(ShapeCase):
         body = """    static String f(boolean h, int n) {
         return (h ? (n == 1 ? n + " try" : "1 tries") : "None");
     }"""
-        strings = """<resources><plurals name="s_tr"><item quantity="one">%1$d try</item><item quantity="other">%1$s tries</item></plurals><string name="s_none">None</string></resources>\n"""
+        strings = """<resources><plurals name="s_tr"><item quantity="one">%1$s try</item><item quantity="other">%1$s tries</item></plurals><string name="s_none">None</string></resources>\n"""
         row = choice_row(self.line_of(body, "(h ?"), {"if": "h", "then": {"one": [count(), " try"], "other": ["1 tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
-        self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? n + " try" : "1 tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
+        problems = self.attempt(body, [('(h ? (n == 1 ? n + " try" : "1 tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0]
+        self.assertTrue(any("s_tr[other]" in p for p in problems), problems)
 
     def test_two_counts_in_a_branch_are_refused(self):
         row = choice_row(4, {"if": "h", "then": {"other": [count("n", 1), " of ", count("m", 2)]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
