@@ -11,8 +11,9 @@ import java.util.UUID;
  * An example id is a random UUID in the same canonical 36-character form as every other widget id, so
  * saves, exports and imports carry it, older versions read it as they always have, and two examples (two
  * profiles, or a reseeded slot) never share one. Two fixed parts mark it: version 8 (RFC 9562's custom
- * layout), where UUID.randomUUID(), which makes every other widget's id (DashboardConfig.Widget, also
- * when it duplicates one), always writes version 4; and "Volt" in ASCII as its first eight hex digits.
+ * layout), where UUID.randomUUID(), which makes every other widget's id (DashboardConfig.Widget),
+ * always writes version 4; and "Volt" in ASCII as its first eight hex digits. A duplicate of an example
+ * widget that still shows the example's words gets one too (AllWidgetsDashboard.emptyCopy).
  * An example saved by an older version has random version 4 ids too, so it counts as the owner's.
  *
  * Pure Java: tests/l10n compiles it (DashboardModelTextTest).

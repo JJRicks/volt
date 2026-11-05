@@ -47,13 +47,24 @@ final class AllWidgetsDashboard {
     /**
      * The current language's example note, when widget is the example's own note widget and still holds
      * it; else null. Any other note is the owner's and shows as saved, even one that says NOTE_TEXT: a
-     * note widget the owner added or duplicated, or one saved by an older version, has a random id. (As
+     * note widget the owner added, or one saved by an older version, has a random id. (As
      * with titles, the example's own note widget edited and then given NOTE_TEXT back counts as the
      * example's again.)
      */
     static Msg exampleNote(DashboardConfig.Widget widget) {
         return isExample(widget) && "note".equals(widget.type) && NOTE_TEXT.equals(widget.note)
                 ? M.dashboardModelExampleNote() : null;
+    }
+
+    /**
+     * The new widget a duplicate of widget starts from. A copy of a widget that shows the example's title or note
+     * gets an example id of its own, so it shows the same words as its original in every language (the saved title
+     * and note stay English, like the original's); any other copy gets a random id, as every other widget does.
+     */
+    static DashboardConfig.Widget emptyCopy(DashboardConfig.Widget widget) {
+        return exampleTitle(widget) != null || exampleNote(widget) != null
+                ? new DashboardConfig.Widget(DashboardExampleIds.create(), widget.type)
+                : new DashboardConfig.Widget(widget.type);
     }
 
     static ArrayList<DashboardConfig.Widget> create() {

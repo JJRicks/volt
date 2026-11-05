@@ -534,4 +534,92 @@
     <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t restore. Nothing changed.</string>
     <!-- %1$s is the slot's name. -->
     <string name="dashboard_restored" volt:screen="Dashboard layout slots" volt:purpose="toast">Restored “%1$s”</string>
+
+    <!-- Follow-ups after B13 (batch F6) -->
+    <!-- The status line under the scooter's name. -->
+    <string name="dashboard_status_connected" volt:screen="Home header" volt:purpose="status">Connected</string>
+    <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
+    <string name="dashboard_status_connected_mode" volt:screen="Home header" volt:purpose="status">Connected · %1$s</string>
+    <string name="dashboard_status_disconnected" volt:screen="Home header" volt:purpose="status">Disconnected</string>
+    <!-- %1$s is when the scooter was last connected ("14:05", "03 NOV · 14:05"). -->
+    <string name="dashboard_status_disconnected_seen" volt:screen="Home header" volt:purpose="status">Disconnected · last seen %1$s</string>
+    <!-- The status line as a screen reader says it; a tap opens the connection details. -->
+    <string name="dashboard_status_spoken_connected" volt:screen="Home header" volt:purpose="accessibility description">Connected. Connection details</string>
+    <!-- %1$s is the drive mode, as the scooter shows it ("Sport"). -->
+    <string name="dashboard_status_spoken_connected_mode" volt:screen="Home header" volt:purpose="accessibility description">Connected, %1$s mode. Connection details</string>
+    <string name="dashboard_status_spoken_connecting" volt:screen="Home header" volt:purpose="accessibility description">Connecting. Connection details</string>
+    <string name="dashboard_status_spoken_disconnected" volt:screen="Home header" volt:purpose="accessibility description">Disconnected. Connection details</string>
+    <!-- %1$s is the date and time the scooter was last connected. -->
+    <string name="dashboard_status_spoken_disconnected_seen" volt:screen="Home header" volt:purpose="accessibility description">Disconnected, last seen %1$s. Connection details</string>
+    <!-- The estimate details' Window value: how many days of rides it reads. -->
+    <plurals name="dashboard_estimate_window_days" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- The same, with the ride being recorded now included: %1$s is dashboard_estimate_window_days. -->
+    <string name="dashboard_estimate_window_live" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · live</string>
+    <!-- Spoken for a column choice in the widget size dialog. -->
+    <plurals name="dashboard_column_count" volt:screen="Widget size dialog" volt:purpose="accessibility description">
+        <item quantity="one">%1$d column</item>
+        <item quantity="other">%1$d columns</item>
+    </plurals>
+    <!-- Spoken for a column choice this screen is too narrow for: %1$s is dashboard_column_count. -->
+    <string name="dashboard_column_count_needs_wider" volt:screen="Widget size dialog" volt:purpose="accessibility description">%1$s, needs a wider screen</string>
+    <!-- A saved slot's summary line. -->
+    <string name="dashboard_slot_unreadable" volt:screen="Dashboard layout slots" volt:purpose="status">Unreadable</string>
+    <string name="dashboard_slot_empty" volt:screen="Dashboard layout slots" volt:purpose="status">Empty</string>
+    <plurals name="dashboard_slot_widgets" volt:screen="Dashboard layout slots" volt:purpose="value">
+        <item quantity="one">%1$d widget</item>
+        <item quantity="other">%1$d widgets</item>
+    </plurals>
+    <!-- %1$s is dashboard_slot_widgets, %2$s when the slot was saved. -->
+    <string name="dashboard_slot_summary" volt:screen="Dashboard layout slots" volt:purpose="value">%1$s · %2$s</string>
+    <!-- The advertised capacity row's value: %1$s the energy, %2$s the unit ("Wh"), %3$s dashboard_rating_model or nothing. -->
+    <string name="dashboard_rating_value" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">%1$s %2$s%3$s</string>
+    <!-- Said after the rating when it is the model's documented one rather than the owner's: keep the separator and its leading space. -->
+    <string name="dashboard_rating_model" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">" · model"</string>
+    <!-- The capacity widget's summary: how many rides were used. English keeps "rides" for every number (a known bug, kept until an approved English change). -->
+    <plurals name="dashboard_capacity_rides" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental" volt:english-fix="pending">
+        <item quantity="one">%1$s rides</item>
+        <item quantity="other">%1$s rides</item>
+    </plurals>
+    <!-- How many battery percentage points those rides used. English keeps "points" for every number. -->
+    <plurals name="dashboard_capacity_points_used" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental" volt:english-fix="pending">
+        <item quantity="one">%1$s points used</item>
+        <item quantity="other">%1$s points used</item>
+    </plurals>
+    <!-- %1$s is dashboard_capacity_rides, %2$s the energy range or dashboard_capacity_points_used. -->
+    <string name="dashboard_capacity_summary" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · %2$s</string>
+    <!-- The Choose readings count: %1$s readings chosen, %2$s the most this widget takes. The plural follows the number chosen. -->
+    <plurals name="dashboard_selected_of_most" volt:screen="Choose readings sheet" volt:purpose="value">
+        <item quantity="one">%1$s of %2$s selected</item>
+        <item quantity="other">%1$s of %2$s selected</item>
+    </plurals>
+    <!-- The estimate details' Rejected value: %1$s rides left out, %2$s the most common reason. -->
+    <string name="dashboard_rejected_reason" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s · %2$s</string>
+    <!-- Spoken for the widget options sheet's close button. -->
+    <string name="dashboard_close_widget_options" volt:screen="Widget options" volt:purpose="accessibility description">Close widget options</string>
+    <!-- The reported range's chart caption: the range the scooter itself reports. -->
+    <string name="dashboard_scooter_range" volt:screen="Home chart widgets" volt:purpose="caption">Scooter range</string>
+    <!-- A chart window's long name, in the chart and sample captions. -->
+    <plurals name="dashboard_window_name_minutes" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d minute</item>
+        <item quantity="other">%1$d minutes</item>
+    </plurals>
+    <plurals name="dashboard_window_name_hours" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d hour</item>
+        <item quantity="other">%1$d hours</item>
+    </plurals>
+    <plurals name="dashboard_window_name_days" volt:screen="Home chart widgets" volt:purpose="value">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <!-- Spoken for the recording button: %1$s is the elapsed time; a tap stops and saves the ride. -->
+    <string name="dashboard_recording_spoken" volt:screen="Home ride recorder widget" volt:purpose="accessibility description" volt:safety="ride">Recording %1$s. Stop &amp; save</string>
+    <!-- The same with what it has measured: %2$s is a list ("1.2 mi, 15 Wh") joined by dashboard_recording_spoken_separator. -->
+    <string name="dashboard_recording_spoken_parts" volt:screen="Home ride recorder widget" volt:purpose="accessibility description" volt:safety="ride">Recording %1$s, %2$s. Stop &amp; save</string>
+    <string name="dashboard_recording_spoken_separator" volt:screen="Home ride recorder widget" volt:purpose="accessibility description">", "</string>
+    <!-- Spoken for the scale dialog's input: %1$s is the unit ("mph"). -->
+    <string name="dashboard_scale_maximum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale maximum in %1$s</string>
+    <string name="dashboard_scale_minimum_in" volt:screen="Widget options" volt:purpose="accessibility description">Scale minimum in %1$s</string>
 </resources>
