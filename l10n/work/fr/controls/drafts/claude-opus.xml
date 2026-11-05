@@ -129,7 +129,7 @@
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Le contrôle de traction sera désactivé. Roulez en douceur sur sol mouillé ou meuble jusqu’à ce que vous sachiez comment la trottinette se comporte.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">En dessous de 3 km/h, le moteur peut entraîner la trottinette depuis l’arrêt dès que vous actionnez l’accélérateur.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">La récupération d’énergie sera désactivée : le moteur ne freinera plus, et vos freins travailleront davantage pour vous arrêter.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modèle %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Modèle %1$s (sans confirmation)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Hautes performances</string>

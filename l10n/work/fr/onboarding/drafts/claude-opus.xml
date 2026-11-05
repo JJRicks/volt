@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Connectez votre téléphone avec un câble de données USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Sélectionnez votre téléphone dans Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Autorisez le débogage USB sur ce téléphone</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Laissez **Toujours autoriser sur cet ordinateur** décoché</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Ne cochez pas **Toujours autoriser sur cet ordinateur**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Le site web est connecté</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Téléphone absent de la liste</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Connexion dans Chrome</string>
@@ -139,7 +139,7 @@
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Session NAVEE ouverte, trottinette à proximité\n•  Autres applications de trottinette fermées\n•  Arrêt anticipé ? Terminez d’abord le nettoyage dans le même navigateur"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Votre configuration du propriétaire</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importer votre fichier de propriétaire</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Choisissez navee-owner-setup.json. Cela restaure uniquement l’accès à la trottinette, pas les trajets ni les autres données de l’application.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Choisissez le fichier de propriétaire navee-owner-setup.json. Seul l’accès à la trottinette sera restauré : les trajets et les autres données de l’application ne le seront pas.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Chargement de votre profil de propriétaire…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Aucun fichier choisi pour l’instant</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Ce n’est pas un fichier de propriétaire.</string>
@@ -155,7 +155,7 @@
     <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Clé stockée de façon privée. Révoquez l’accès dans Shizuku maintenant.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Supprimer la copie dans Téléchargements</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Copie dans Téléchargements supprimée</string>
-    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Suppression impossible · supprimez-la dans Fichiers</string>
+    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778" volt:attempt="2">Copie non supprimée · supprimez-la dans « Fichiers »</string>
     <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Enregistrer et continuer</string>
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Ouvrir Shizuku</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Choisir un autre fichier</string>
@@ -168,7 +168,7 @@
     <string name="onboarding_identity_backup_shared" volt:src="5a4f288e08b3be239113ec47662843224a58c85c">Sauvegarde privée reconnue · rôle d’utilisateur autorisé</string>
     <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Sauvegarde privée reconnue · rôle de propriétaire</string>
     <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Uniquement 0–9 et A–F.</string>
-    <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662">Impossible de supprimer l’ancien fichier. Réessayez.</string>
+    <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662" volt:attempt="2">L’ancien fichier n’a pas pu être supprimé. Réessayez.</string>
     <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Autoriser les appareils à proximité</string>
     <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Bluetooth uniquement. Aucun serveur.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Autoriser</string>

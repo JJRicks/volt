@@ -19,7 +19,7 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Signaler un problème</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Unités</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Compatibilité</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Test inachevé</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Test non terminé</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, état : aucune donnée</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Étape %1$d</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Garder l’écran allumé</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Pendant l’enregistrement</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Terminer les trajets à l’arrêt</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s après la perte du Bluetooth à l’arrêt</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s après la perte du Bluetooth, si vous vous arrêtez</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Enregistrement en arrière-plan</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Utilisation de la batterie non restreinte</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batterie optimisée ; les longs enregistrements peuvent s’arrêter. Les paramètres de la batterie s’ouvriront</string>
@@ -316,7 +316,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">D’origine</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapide</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">« Auto » reconnaît les chargeurs de la UT5 MAX d’après la puissance en direct. En cas de doute, Volt utilise le rythme actuel ; choisissez un chargeur pour passer outre.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">« Auto » reconnaît les chargeurs UT5 MAX d’après la puissance en direct. Si le résultat n’est pas certain, Volt utilise le rythme de recharge actuel ; choisissez un chargeur pour passer outre.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Courbes de recharge enregistrées</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Enregistrer cette recharge</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Arrêter l’enregistrement de recharge</string>

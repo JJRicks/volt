@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Impossible de rétablir la valeur. Rien n’a été modifié.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Terminez d’abord le test en cours</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test introuvable</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Impossible de lancer le rétablissement de la valeur. Rien n’a été modifié.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc" volt:attempt="2">Impossible de lancer la restauration. Rien n’a été modifié.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Confirmé</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Réglage confirmé par relecture ; intensité lumineuse non mesurée</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Accepté ; aucune relecture de l’horloge disponible</string>

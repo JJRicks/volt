@@ -24,7 +24,7 @@
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Arrêter la configuration</string>
     <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Terminer d’abord le nettoyage</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Le journal d’activité de NAVEE est peut-être encore activé.</string>
-    <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">Rétablir le journal d’activité de NAVEE</string>
+    <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5" volt:attempt="2">Rétablir le journal d’activité de NAVEE</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Retour</string>
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Prêt à importer</string>
     <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Clé d’utilisateur autorisé trouvée</string>
@@ -73,9 +73,9 @@
     <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt n’a pas pu lire le journal d’activité de NAVEE</string>
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Capture arrêtée</string>
     <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Échec de la capture</string>
-    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Rétablissez de nouveau le journal d’activité</string>
+    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc" volt:attempt="2">Rétablissez de nouveau le journal d’activité</string>
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Rétablissement du journal d’activité de NAVEE…</string>
-    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Connexion à Shizuku perdue. Rétablissez le journal d’activité.</string>
+    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274" volt:attempt="2">Connexion à Shizuku perdue. Rétablissez le journal d’activité.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Aucun navigateur trouvé</string>
     <string name="owner_setup_empty_or_large" volt:src="4a200d2bd2318934b72355920a208152c5182530">Le fichier de configuration est vide ou trop volumineux.</string>
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 caractères hexadécimaux requis</string>
