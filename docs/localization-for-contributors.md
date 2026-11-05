@@ -243,7 +243,7 @@ Tests compile without Android, so keep decisions in a pure class such as `RideAu
 
 Shown text goes in the catalog. Text that is never shown, such as a log line or English file text, takes `--write-baselines` in an ordinary PR, and the gate then passes. A `batch` can't grow baselines, so that text goes in the prep PR.
 
-A passing lint doesn't prove text is localized: a single word outside the text helpers goes unseen, as in `row.value("Automatic")`.
+A passing lint doesn't prove text is localized: a single word outside the text helpers goes unseen.
 
 ### Changing existing English
 
