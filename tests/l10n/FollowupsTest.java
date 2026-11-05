@@ -15,11 +15,15 @@ import java.util.Locale;
  *  - the PIN, pairing and proximity toasts show BleController.displayText(): for every message those
  *    paths leave it is message()'s English in English, the shown language otherwise, and null or empty
  *    exactly when message() is (so the toast shows in the same cases; MainActivity.toast skips both);
+ *  - the PIN builders' refusals, which setPin and enablePin catch as plain text, still show translated;
  *  - the default scooter name goes through Profile.displayName() on the My scooters card, the menu
- *    index and the setup sentences, while the rename field keeps the stored name;
+ *    index, the clear history confirmation, the setup sentences and the import summary, while the rename
+ *    field keeps the stored name;
+ *  - the lab's two count sentences are plurals that print the base English at every quantity;
  *  - BackupSelectAll: Select all mirrors the enabled boxes exactly as base did, and keeps what it shows
  *    while createBackup has frozen the list (B11 review item 1);
- *  - the Restore page's layout destination is spoken with backup_file_layout, not the engine's English.
+ *  - the Restore page's layout destination is spoken with backup_file_layout, not the engine's English,
+ *    and a backup's scooter with the layout file's id keeps its own name.
  */
 public final class FollowupsTest {
     private static int checks;
@@ -34,20 +38,24 @@ public final class FollowupsTest {
     public static void main(String[] args) throws Exception {
         Locale saved = Locale.getDefault();
         try {
-            for (Locale phone : new Locale[]{Locale.US, Locale.GERMANY, new Locale("en", "IN"), new Locale("tr", "TR")}) {
+            for (Locale phone : new Locale[]{Locale.US, Locale.GERMANY, new Locale("en", "IN"), new Locale("tr", "TR"), new Locale("ar", "EG")}) {
                 Locale.setDefault(phone);
                 T.install(null);
                 titles(false);
                 toasts(false);
+                pinRefusals(false);
                 names(false);
                 layout(false);
+                counts(false);
             }
             Locale.setDefault(Locale.US);
             T.install(ECHO);
             titles(true);
             toasts(true);
+            pinRefusals(true);
             names(true);
             layout(true);
+            counts(true);
             T.install(null);
             selectAll();
             sources();
@@ -55,8 +63,8 @@ public final class FollowupsTest {
             T.install(null);
             Locale.setDefault(saved);
         }
-        System.out.println("FollowupsTest: " + checks + " checks passed (submenu titles, PIN and pairing toasts, default "
-                + "scooter names, Select all while frozen, the layout destination's spoken name, and the key-echo source)");
+        System.out.println("FollowupsTest: " + checks + " checks passed (submenu titles, PIN and pairing toasts, PIN refusals, count "
+                + "plurals, default scooter names, Select all while frozen, the layout destination's spoken name, and the key-echo source)");
     }
 
     // ---- Submenu titles ---------------------------------------------------------------------
@@ -89,9 +97,9 @@ public final class FollowupsTest {
                 M.bleStatusNotConnected(), M.bleWaitCurrentChange(), M.bleWaitFreshConnection(), M.bleResolveWarning(5),
                 M.bleStopScooterFirst(), M.blePinOwnerOnly(), M.bleNeedsBond(), M.bleNeedsPin(), M.bleNotAvailableNow(),
                 M.bleOutsideDomain(), M.blePinConnectOwner()));
-        // simulationUnavailable's English sentence, an exception's own message and quiet()'s "" stay plain text.
+        // simulationUnavailable's English sentence, a developer error's own message and quiet()'s "" stay plain text.
         messages.add("Handlebar PIN changes is unavailable in simulation. No scooter command was sent.");
-        messages.add("PIN must be 4 digits");
+        messages.add("Some other developer error");
         messages.add("");
         messages.add(null);
         for (CharSequence message : messages) {
@@ -108,6 +116,19 @@ public final class FollowupsTest {
         }
     }
 
+    /** setPin and enablePin catch a builder's refusal as e.getMessage(), plain text: the notice still finds its Msg. */
+    private static void pinRefusals(boolean echo) {
+        for (Msg refusal : new Msg[]{M.controlsRefusalPinOwner(), M.controlsRefusalPinDigits(), M.controlsRefusalPinNotConfigured()}) {
+            String message = new ScooterCommands.Refused(refusal).getMessage();
+            CharSequence shown = ConnectionText.notice(null, message);
+            equal(message, ConnectionText.english(shown), "message() keeps the refusal's English");
+            equal(refusal.toString(), shown.toString(), "the toast shows the refusal");
+            if (echo) check(shown.toString().startsWith("⟦controls_refusal_pin_"), "the refusal follows the shown language: " + shown);
+            else equal(message, shown.toString(), "the refusal's English");
+        }
+        equal("A PIN must be configured before enabling it", M.controlsRefusalPinNotConfigured().english(), "the review's case");
+    }
+
     // ---- Default scooter names ----------------------------------------------------------------
 
     private static void names(boolean echo) {
@@ -117,6 +138,7 @@ public final class FollowupsTest {
         if (!echo) {
             equal("Connecting to Scooter", T.onboardingConnectConnecting(name), "connecting sentence");
             equal("Scooter is ready.", T.onboardingDoneReady(name), "done sentence");
+            equal("Removes Scooter's history. Rides stay.", T.moreHistoryClearOneBody(name), "clear history");
         }
     }
 
@@ -127,6 +149,38 @@ public final class FollowupsTest {
         if (echo) check(!spoken.toString().contains("Layout file"), "no English layout name: " + spoken);
         else equal("Destination for Layout file: Don't restore", spoken.toString(), "the spoken choice in English");
         equal("Destination for Layout file: Don't restore", spoken.english(), "the spoken choice's English");
+        // destinationName's expression, as BackupActivity has it (sources() holds the source to this): a backup's
+        // scooter with the layout file's id keeps its own name.
+        String[][] inputs = {{BackupArchive.LAYOUT_SOURCE, FollowupsEnglishTest.Base.LAYOUT_NAME},
+                {BackupArchive.LAYOUT_SOURCE, "Blue"}, {BackupArchive.LAYOUT_SOURCE, ""}, {"scooter-1", "Blue"},
+                {"scooter-1", FollowupsEnglishTest.Base.LAYOUT_NAME}};
+        for (String[] d : inputs) {
+            CharSequence shown = destinationName(d[0], d[1]);
+            if (!echo) equal(FollowupsEnglishTest.Base.destinationName(d[0], d[1]), shown.toString(), "destination " + Arrays.toString(d));
+            else check(shown.toString().equals(d[0].equals(BackupArchive.LAYOUT_SOURCE) && d[1].equals(FollowupsEnglishTest.Base.LAYOUT_NAME)
+                    ? "⟦backup_file_layout⟧" : d[1]), "destination " + Arrays.toString(d) + ": " + shown);
+        }
+    }
+
+    private static CharSequence destinationName(String source, String name) {
+        return source.equals(BackupArchive.LAYOUT_SOURCE) && name.equals(M.backupFileLayout().english()) ? M.backupFileLayout() : name;
+    }
+
+    // ---- The lab's count sentences ------------------------------------------------------------
+
+    private static void counts(boolean echo) {
+        for (int n : FollowupsEnglishTest.Base.COUNTS) {
+            String cleared = T.moreLabCleared(n, n), offered = T.moreLabWhyOffered(n, n);
+            if (echo) {
+                equal("⟦more_lab_cleared⟧", cleared, "cleared follows the source");
+                equal("⟦more_lab_why_offered⟧", offered, "offered follows the source");
+            } else {
+                equal(FollowupsEnglishTest.Base.clearedTries(n), cleared, "cleared " + n);
+                equal(FollowupsEnglishTest.Base.labWhyOffered(n), offered, "offered " + n);
+                equal(MoreScreenTextTest.Base.clearTries(n), cleared, "cleared against B18's copy, " + n);
+                equal(MoreScreenTextTest.Base.labWhy(n), offered, "offered against B18's copy, " + n);
+            }
+        }
     }
 
     // ---- Select all ---------------------------------------------------------------------------
@@ -177,11 +231,18 @@ public final class FollowupsTest {
         check(ProximityFollowUp.KEY.equals("proximity_key"), "ProximityFollowUp.KEY is the proximity feature key");
         check(more.contains("String name = p == null ? T.moreIndexNoScooter() : p.displayName();"), "the menu index shows displayName()");
         check(more.contains("card.name.setText(item.displayName());"), "the My scooters card shows displayName()");
+        check(more.contains("T.moreHistoryClearOneBody(profile.displayName())"), "the clear history confirmation shows displayName()");
+        check(more.contains("host.toast(n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n));"), "the cleared toast is the plural");
+        check(more.contains("return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])\n                : T.moreLabWhyNone();"), "the caution is the plural");
+        check(!more.contains("moreLabClearedOne") && !more.contains("moreLabClearedMany") && !more.contains("moreLabWhyOne") && !more.contains("moreLabWhyMany"),
+                "no screen shows the retired one and many keys");
         check(more.contains("name.setText(p.name); name.selectAll();"), "the rename field keeps the stored name");
 
         String setup = FollowupsEnglishTest.read("src/com/jjricks/volt/OnboardingScreen.java");
         check(setup.contains("T.onboardingConnectConnecting(active.displayName())") && !setup.contains("T.onboardingConnectConnecting(active.name)"),
                 "the connecting sentence names displayName()");
+        check(setup.contains("new String[] {p.displayName(), p.role == 1") && !setup.contains("new String[] {p.name,"),
+                "the import summary names displayName()");
         check(setup.contains("T.onboardingDoneReady(p.displayName())") && !setup.contains("T.onboardingDoneReady(p.name)"),
                 "the done sentence names displayName()");
 
@@ -190,7 +251,7 @@ public final class FollowupsTest {
                 "Select all syncs through BackupSelectAll, frozen while it is disabled");
         check(count(backup, "all.setEnabled(false)") == 1 && backup.contains("if(all!=null)all.setEnabled(false);\n        setBusy(M.backupEncrypting());"),
                 "only createBackup disables Select all");
-        check(backup.contains("private static CharSequence destinationName(AppDataBackup.Destination d){return d.source.equals(BackupArchive.LAYOUT_SOURCE)?M.backupFileLayout():d.name;}"),
+        check(backup.contains("private static CharSequence destinationName(AppDataBackup.Destination d){return d.source.equals(BackupArchive.LAYOUT_SOURCE)&&d.name.equals(M.backupFileLayout().english())?M.backupFileLayout():d.name;}"),
                 "the layout destination's name is backup_file_layout");
         check(backup.contains("final CharSequence source=destinationName(d);") && count(backup, "M.backupDestinationForChoice(source,") == 2,
                 "both spoken choices use the display name");
