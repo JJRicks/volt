@@ -13,6 +13,8 @@ final class StatusRungs implements View.OnLayoutChangeListener {
     private static final CharSequence NONE = "";
     final TextView view;
     boolean iconBeside;
+    /** Lines a rung may take, each broken between whole words; one line measures the rung's width alone. */
+    int maxLines = 1;
     private CharSequence[] rungs = {NONE};
     private CharSequence shown, spoken;
     StatusRungs(TextView view) { this.view = view; }
@@ -36,7 +38,9 @@ final class StatusRungs implements View.OnLayoutChangeListener {
             paint.setTextSize(view.getAutoSizeTextType() == TextView.AUTO_SIZE_TEXT_TYPE_UNIFORM
                     ? view.getAutoSizeMinTextSize() : view.getTextSize());
             float[] widths = new float[rungs.length];
-            for (int i = 0; i < rungs.length; i++) widths[i] = paint.measureText(rungs[i], 0, rungs[i].length());
+            for (int i = 0; i < rungs.length; i++) widths[i] = maxLines > 1
+                    ? (wholeLines(rungs[i].toString(), view, room, maxLines) ? 0 : Float.MAX_VALUE)
+                    : paint.measureText(rungs[i], 0, rungs[i].length());
             int pick = TileRung.first(widths, room);
             next = pick >= 0 ? rungs[pick] : icon ? NONE : rungs[rungs.length - 1];
         }
@@ -48,5 +52,26 @@ final class StatusRungs implements View.OnLayoutChangeListener {
         }
         if (!TextUtils.equals(next, view.getText())) view.setText(next);
         shown = view.getText();
+    }
+
+    /**
+     * Text laid out as the view would lay it out in width keeps to maxLines and breaks only where its language
+     * allows a line break, so a word too wide for the line (which TextView would cut in two) fails as well.
+     */
+    static boolean wholeLines(String text, TextView view, int width, int maxLines) {
+        if (text.isEmpty()) return true;
+        if (width <= 0) return false;
+        android.text.StaticLayout layout = android.text.StaticLayout.Builder.obtain(text, 0, text.length(), view.getPaint(), width)
+                .setIncludePad(view.getIncludeFontPadding())
+                .setLineSpacing(view.getLineSpacingExtra(), view.getLineSpacingMultiplier())
+                .setBreakStrategy(view.getBreakStrategy())
+                .setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE)
+                .build();
+        if (layout.getLineCount() > maxLines) return false;
+        java.text.BreakIterator breaks = java.text.BreakIterator.getLineInstance(Fmt.displayLocale());
+        breaks.setText(text);
+        for (int line = 0; line + 1 < layout.getLineCount(); line++)
+            if (!breaks.isBoundary(layout.getLineEnd(line))) return false;
+        return true;
     }
 }

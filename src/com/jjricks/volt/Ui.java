@@ -547,10 +547,11 @@ public final class Ui {
         item.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 30)),
                 shape(selected ? withAlpha(accent, dark ? 40 : 26) : Color.TRANSPARENT, 18, 0), null));
         item.addView(icon(iconKey, 24, selected ? text : muted), new LinearLayout.LayoutParams(dp(24), dp(24)));
-        TextView caption = text(label, 10, selected); caption.setMaxLines(1); caption.setTextColor(selected ? text : muted);
-        caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption);
-        caption.setEllipsize(TextUtils.TruncateAt.END);
-        ladder(caption, true).show(new CharSequence[]{label, shortLabel});
+        TextView caption = text(label, 10, selected); caption.setMaxLines(2); caption.setTextColor(selected ? text : muted);
+        caption.setGravity(Gravity.CENTER); caption.setPadding(0, dp(5), 0, 0); item.addView(caption, new LinearLayout.LayoutParams(-1, -2));
+        caption.setEllipsize(TextUtils.TruncateAt.END); caption.setHyphenationFrequency(android.text.Layout.HYPHENATION_FREQUENCY_NONE);
+        // Up to two lines of whole words: the name, then its short rung, then the icon alone.
+        StatusRungs rungs = ladder(caption, true); rungs.maxLines = 2; rungs.show(new CharSequence[]{label, shortLabel});
         item.setContentDescription(label); item.setSelected(selected); item.setFocusable(true);
         if (Build.VERSION.SDK_INT >= 30) item.setStateDescription(selected ? T.commonSelected() : "");
         item.setOnClickListener(v -> { if (!selected) Haptics.tick(v); if (action != null) action.run(); });

@@ -12,7 +12,7 @@ import java.io.File;
  *   - The new rungs' English: each short rung is its full word, except the side rail's Stats and the two
  *     connection lines' shorter forms.
  *   - The five sites in source: no auto-size below Ui.READABLE_FLOOR_SP, no 10 sp Quick access fallback, a
- *     one-line rail caption, a one-line reading caption that ends at an icon, and a lock switch with no blank word.
+ *     rail caption of up to two whole-word lines, a one-line reading caption that ends at an icon, and a lock switch with no blank word.
  * Runs from the repository root (it reads sources).
  */
 public final class NarrowLabelLadderTest {
@@ -101,8 +101,10 @@ public final class NarrowLabelLadderTest {
         check(body(read("StatusRungs.java"), "private void fit()").contains("TileRung.first(widths, room)"),
                 "status lines pick with TileRung.first");
         String nav = body(ui, "public View nav(String label, String shortLabel,");
-        check(nav.contains("caption.setMaxLines(1);") && nav.contains("ladder(caption, true).show(new CharSequence[]{label, shortLabel});"),
-                "the rail caption is one line: the name, its short rung, then the icon alone");
+        check(nav.contains("caption.setMaxLines(2);") && nav.contains("rungs.maxLines = 2; rungs.show(new CharSequence[]{label, shortLabel});"),
+                "the rail caption is up to two lines of whole words: the name, its short rung, then the icon alone");
+        check(body(read("StatusRungs.java"), "static boolean wholeLines(").contains("breaks.isBoundary(layout.getLineEnd(line))"),
+                "a rung on more than one line breaks only between whole words");
         check(nav.contains("item.setContentDescription(label);"), "the rail tab is still read by its full name");
         String content = body(quick, "void measureContent(int width, boolean compact)");
         check(!content.contains("10 * ui.textScale"), "Quick access labels no longer shrink to 10 sp");
