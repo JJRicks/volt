@@ -5429,7 +5429,7 @@ public final class DashboardScreen implements AppScreen {
                 boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
                 // The English name and group still match, beside the shown ones.
                 if (!query.isEmpty() && !SearchFold.holds(entry.label, entry.group, query)
-                        && !SearchFold.holdsShown(entry.label(), entry.groupLabel(), query)) continue;
+                        && !SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query)) continue;
                 LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
                 item.setMinimumHeight(ui.dp(60)); item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
                 item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));

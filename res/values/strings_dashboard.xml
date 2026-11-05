@@ -531,9 +531,10 @@
     <!-- A saved slot's summary line. -->
     <string name="dashboard_slot_unreadable" volt:screen="Dashboard layout slots" volt:purpose="status">Unreadable</string>
     <string name="dashboard_slot_empty" volt:screen="Dashboard layout slots" volt:purpose="status">Empty</string>
-    <!-- A saved layout slot: how many widgets it holds, then when it was saved (%2$s). -->
+    <!-- A saved layout slot: how many widgets it holds (%1$d), then when it was saved (%2$s). English's one item
+         writes its 1 out; where a language's one item covers other numbers (21), use %1$d there. -->
     <plurals name="dashboard_slot_summary" volt:screen="Dashboard layout slots" volt:purpose="value">
-        <item quantity="one">%1$d widget · %2$s</item>
+        <item quantity="one">1 widget · %2$s</item>
         <item quantity="other">%1$d widgets · %2$s</item>
     </plurals>
     <!-- The advertised capacity row's value: %1$s the energy, %2$s the unit ("Wh"), %3$s dashboard_rating_model or nothing. -->
