@@ -365,7 +365,7 @@ public final class OnboardingScreen implements AppScreen {
             name = json.optString("name", name).trim(); role = json.optInt("role", 0);
             if (name.isEmpty()) name = MainActivity.IMPORTED_NAME;
         } catch (Exception ignored) { }
-        return new String[] {name, role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()};
+        return new String[] {ScooterProfiles.nameText(name), role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()};
     }
 
     private String importMode() {

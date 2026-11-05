@@ -9,6 +9,13 @@ import org.json.*;
 public final class ScooterProfiles {
     /** The name Volt itself once gave every migrated or Shizuku-captured profile, whatever its model. */
     static final String LEGACY_NAME="My UT5 MAX";
+    /** A stored default name as shown: the stored English stays the id, anything else (a typed name) shows as it is. */
+    static String nameText(String stored){
+        if(DEFAULT_NAME.equals(stored))return T.ownerProfileDefaultName();
+        if(M.mainNameImported().english().equals(stored))return T.mainNameImported();
+        if(M.mainNameNavee().english().equals(stored))return T.mainNameNavee();
+        return stored;
+    }
     /** The name a profile gets when none was typed. Stored in English; {@link Profile#displayName()} shows it translated. */
     static final String DEFAULT_NAME="Scooter";
     public static final class Profile {
@@ -28,7 +35,7 @@ public final class ScooterProfiles {
         /** Saved evidence only (no session firmware, standard transport), for model assumptions in dashboards and stats. */
         public DeviceDescriptor savedDescriptor(){return descriptor(DeviceDescriptor.Firmware.NONE,false,DeviceDescriptor.Transport.STANDARD);}
         /** The name to show: Volt's own default name in the current language while it is still that default, else the name as saved. */
-        public String displayName(){return nameDefault&&DEFAULT_NAME.equals(name)?T.ownerProfileDefaultName():name;}
+        public String displayName(){return nameDefault?nameText(name):name;}
         public boolean configured(){try{return (role==0||role==1)&&Protocol.fromHex(identity).length==6;}catch(Exception e){return false;}}
     }
     private final SharedPreferences prefs,legacy;
