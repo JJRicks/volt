@@ -21,11 +21,12 @@ the working manual.
 | `l10n/baseline/<File>.txt` | G8: the hard-coded English each unconverted source file still has |
 | `tests/l10n/characterization/` | G5: tests that pin a batch's English output, committed first |
 | `tests/l10n/GoldenReports.java`, `golden.sh`, `golden/` | G9: report outputs that must stay byte-identical |
-| `tools/l10n/` | Generator, round-trip, gates, the CI driver (`ci_gates.py`), the translation tools and their unit tests |
+| `tools/l10n/` | Generator, round-trip, gates, the CI drivers (`ci_gates.py`, `ship_check.py`), the translation tools and their unit tests |
 | `l10n/glossary/<tag>.tsv` | A language's approved glossary terms (same columns as `en.tsv`; see Running a language) |
-| `l10n/style/<tag>.md` | A language's punctuation, capitalization and abbreviation rules for ladder rungs |
+| `l10n/style/<tag>.md` | A language's style guide; `l10n/style/README.md` lists the sections every guide has |
 | `l10n/packs/<tag>/<area>.json` | Work packs from `pack.py` (generated, not committed) |
 | `l10n/work/<tag>/<area>/` | Translation staging: drafts, checks, back-translations, judge requests and rulings |
+| `l10n/work/<tag>/<area>/audit/` | The safety audit of a Claude-only draft, a QA record only (see Drafting a whole language with Claude alone) |
 | `l10n/decisions/<tag>/<area>.jsonl` | The audit trail of every translated or fallen-back key |
 | `res/values-<qual>/strings_<area>.xml` | A language's text, written only by `merge.py` |
 
@@ -355,10 +356,10 @@ How `ledger_check.py` (G1) reads it:
   and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
   "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
   exactly so, and the helper call in the base expression to pass the row's arguments; the call's
-  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row
-  with `one` and `other` forms, each the same base expression, whose count argument is the row's
-  one quantity hole (`"quantity": true`), so the call's quantity argument is checked too; anything
-  else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
+  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row,
+  or a plural branch of a `choice` row (below), with `one` and `other` forms, each the same base
+  expression, whose count argument is the row's one quantity hole (`"quantity": true`), so the call's
+  quantity argument is checked too; anything else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
   the model with the sentinels, so `one` is checked at 1 and `other` at 0, 2 and 21 against what the
   helper really printed. Each modelled call is listed with the key, its quantity and what the base
   prints for each form. A helper with any other body (`count()` in
@@ -373,23 +374,46 @@ How `ledger_check.py` (G1) reads it:
   `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
-- **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
-  summary picks words in a local and uses it later. For a merge, `perScooter` sets
-  `String what = ... ? "layouts" : "settings";` then adds the Dashboards and Scooter preferences
-  lines, `label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + ...)`
-  (BackupArchive.java lines 667-668 since B10, 656-657 before), and `recordings` sets
-  `String noun = charges ? "charge" : "ride";` then adds the rides and charges lines for what is
-  skipped: `plural(full, noun) + " skipped · " + ...`,
-  `plural(notRestored, noun) + " skipped · scooter not restored"` and
-  `plural(unreadable, noun) + " skipped · unreadable"` (lines 721-725 since B10, 710-714 before).
-  The Review page (B11) shows these lines in English. A choice row's condition must sit in the
-  row's expression, and a helper's text argument is a literal or a hole, so a hole for `noun`
-  renders a fragment, not a sentence: the whole-sentence conversion
-  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
-  the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
-  piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence
-  still has no row form. These lines stay English until a tooling pull request both models a local
-  whose initializer is a ternary of literals and lets a choice row's branches be plural rows.
+- **A choice set on an earlier line is refused.** A choice row's conditions must sit in the row's own
+  expression. G1 reads nothing from a line above or from around the sentence: not a local holding a
+  ternary, not the `if` or `else` around it, not a local that stays null unless something held. Such a
+  row fails with "neither a choice of the base expression on this branch nor a test of a data id".
+  G1 tried this in round T1 and took it out: each review found a new way to pass an English change
+  through a home-grown data-flow analysis, which is the wrong thing to base this proof on.
+  BackupArchive's restore summary is the live case. `perScooter` sets
+  `String what = ... ? "layouts" : "settings";` and `recordings` sets
+  `String noun = charges ? "charge" : "ride";`, and later lines read them. These lines stay English
+  until an ordinary pull request, merged first, writes each choice in its sentence:
+  `(charges ? plural(full, "charge") : plural(full, "ride")) + " skipped · " + ...`. G1 compares with the
+  merge base, so a commit in the batch's own pull request does not do. For `what`, the same pull
+  request moves `String.join(", ", labels)` to a local, because the join would otherwise be in two
+  branches, and a literal repeated in a hole is a new literal. A choice row with plural branches
+  (below) then converts them. An ordinary change can also convert such a sentence whole, as F6 did
+  for the Dashboard header status, with `removed` rows for the whole block.
+- A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
+  one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
+  own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
+  branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
+  "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
+  Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
+  the same both times: names, fields, array elements and `ids.length`, joined by operators. Any call
+  fails, whatever its name (`size()` may be the class's own method that counts its calls, and G1 does
+  not resolve the receiver of `rides.size()` or `Math.round(x)`). Set a count from a call on a local
+  in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
+- A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
+  count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
+  a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
+- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
+  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
+  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
+  string with a `removed` row). The statement must be one declarator, with only literals, numbers,
+  names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
+  its `;` and the row fails.
+- A manual row covers one statement. It cannot fold `state += " • " + clock(t);` into the template of
+  the statement before: G1 cannot show that the call prints what the two statements did. No line in
+  `src/` needs that today: QuickAccessGrid.java's manual charge tile (B12) has an `if`, so it keeps
+  `"On"` and `" • %1$s"` as two keys.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -626,7 +650,14 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
   `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
   prefer putting new text in the catalog). If it changes a report format, update the goldens with
-  `bash tests/l10n/golden.sh --update` and say so in the PR.
+  `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run CI's localization steps
+  (`python3 -m unittest discover -s tools/l10n`, `python3 tools/l10n/gen_catalog.py --check`,
+  `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main`), then, as for any
+  change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
+  pull request does not need it.
+  If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
+  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
@@ -707,7 +738,7 @@ Known limits:
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
@@ -715,12 +746,12 @@ Known limits:
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english (other kinds: a golden change is REPORT, never FAIL) |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
-runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
-`ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
+runs them, `gen_catalog.py --check`, `ship_check.py` and `tests/l10n/golden.sh` on every push and pull
+request, then `ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
 changes in a batch) and review are what keep a batch from weakening them.
 
 **G2.** `LedgerTest` renders every `exact`, `template` and `plural` row through `EnglishText` with
@@ -822,7 +853,15 @@ worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 bracketed, longer) and ar-XB (right-to-left). The build checks that the resource ids are unchanged
 and that both configurations are present. Every build runs a release guard on `dist/volt.apk`:
 `aapt dump configurations` must not list en-XA or ar-XB, and no text may sit in an English or
-non-locale configuration. Known aapt1 quirk: a trailing `%` is mangled (`75%` becomes `[75»%`).
+non-locale configuration. aapt1 cuts en-XA text at a `%` with no letter after it (`Battery %`,
+`Battery charge (%)`, only possible with `formatted="false"`): `[βåţţéŕý »%` and NUL characters, no
+closing bracket. aapt refuses a `values-en-rXA` folder next to `--pseudo-localize`, so the pseudo
+build runs `tools/l10n/pseudo_fix.py` on its output, which rewrites those strings in place as the
+text aapt meant (`[βåţţéŕý % one two]`) and fails if any text still holds a NUL. A letter soon after
+the `%` is not cut, only marked: `90% range` becomes `[90»% ra«ñĝé one]`, which the repair leaves alone.
+After the repair, the pseudo build's round trip still names any en-XA text that opens with `[` and has
+no closing `]` as a `roundtrip: note:` line, so a bracket the repair missed, or one lost for another
+reason, shows up in the build log. None is expected.
 
 ## Census format (G7)
 
@@ -953,15 +992,15 @@ The test reads its language list against `l10n/lang/*.tsv`, requires English tex
 own rules and its loop on synthetic text and a synthetic `res/` tree before it reads the catalog.
 
 The exception is `GlyphCoverageTest.FALLBACK_SYMBOLS`, a short reviewed list of symbols that no
-Saira weight has but Android's own fallback font draws as plain text. Volt already shows each of
-them from Java literals. The owner chose this list on 2026-11-04 over two alternatives: bundling a
+Saira weight has but Android's own fallback font draws as plain text. Volt showed each of them
+from Java literals before the catalog held it. The owner chose this list on 2026-11-04 over two alternatives: bundling a
 symbol font (`Typeface.CustomFallbackBuilder` needs API 29, and Volt supports API 26) and replacing
 the marks with icons (a visible design change).
 
 | Symbol | Code point | Where Volt shows it | `emoji-data.txt` | Catalog text |
 |---|---|---|---|---|
 | ✓ | U+2713 CHECK MARK | "✓ Save" buttons; "PIN ✓", "Paired ✓" and drive-mode chips; step pills; "Unrestricted ✓" (More > App preferences > Background recording); "Direction ✓"; "Check finished ✓"; a compatibility read's "✓ N bytes"; the Rides compare row's "2 ✓" | not an emoji (U+2714 ✔ is) | `✓` |
-| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), a Java literal with U+FE0E (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
+| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), the catalog string `more_prefs_battery_value_optimized` (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
 | ☆ | U+2606 WHITE STAR | Live Stats: a reading that is not starred, "☆ Star readings to pin here" | not an emoji | `☆` |
 | ★ | U+2605 BLACK STAR | Live Stats: a starred reading | not an emoji (U+2B50 ⭐ is) | `★` |
 
@@ -971,19 +1010,20 @@ the marks with icons (a visible design change).
   style"). The test requires U+FE0E directly after ⚠ and refuses it anywhere else, in every
   language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
   invisible in review.
-- **Moving ⚠ out of Java takes two pull requests.** The only ⚠ Volt shows is MoreScreen's literal
-  `"Optimized ⚠\uFE0E"`, which had no U+FE0E at first. A batch's `exact` row needs the catalog English to equal
-  that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch cannot do both.
+- **Moving ⚠ out of Java took two pull requests.** Volt's only ⚠ was MoreScreen's literal
+  `"Optimized ⚠"`, which had no U+FE0E. A batch's `exact` row needs the catalog English to equal
+  that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch could not do both.
   `l10n/english-changes.tsv` does not help: it records changes to keys already in the catalog, and
   that kind of pull request adds no ledger rows. So:
-  1. done: an ordinary pull request wrote the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
-     with this list; the English reads the same). `hardcoded_lint.py --check` passes as is: G8 has no
+  1. an ordinary pull request (S0) wrote the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
+     with this list; the English reads the same). `hardcoded_lint.py --check` passed as is: G8 had no
      baseline entry for that row;
-  2. the batch then moves it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
+  2. a batch (S1) then moved it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
      `["Optimized ⚠\ufe0e"]`.
 
   On 2026-11-04 a simulation of both steps passed `ci_gates.py` (ordinary, then batch) and this
-  test; the batch alone fails G1. ✓, ☆ and ★ need no first step: they move as they are.
+  test; the batch alone fails G1. A new ⚠ in Java needs the same two steps. ✓, ☆ and ★ need no first
+  step: they move as they are.
 - **The list stays short.** Only symbols go on it: Unicode general category Sm, Sc, Sk or So, never a
   letter, mark, digit, space or format character (so not U+FE0E or U+2060). An entry that every
   Saira weight covers fails the test (delete it). Adding a symbol is a tooling pull request with
@@ -1055,14 +1095,29 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
    drive_mode_names	english
    ```
 
-2. `l10n/style/<tag>.md`: punctuation, capitalization and how to abbreviate ladder rungs.
-3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen: the same
+2. `l10n/style/<tag>.md`, with the sections `l10n/style/README.md` requires. A translator's
+   `council.py prompt` refuses without it (`--no-style-guide` waives that) and refuses a pack older
+   than it, so write the guide before `pack.py`, and pack again after editing it. `draft
+   openai|google`, `prompt --role judge` and `judge-requests` do not check this.
+3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen (until
+   the keys arrive, see "The glossary before the keys" below): the same
    columns as `en.tsv`, where `id` names the `en.tsv` term and `term` holds the approved
    translation, with inflected forms separated by ` | ` (`patinete | patinetes`). List the nominal
    forms too where the language makes nouns from verbs (`bloquear | bloqueo`, `verrouiller |
    verrouillage`): only the listed forms count where the English has the exact term, and the
    automatic -ing matching covers few of them (Indonesian pe(N)-...-an nouns such as "penguncian").
-   Do-not-translate terms need no row.
+   Do-not-translate terms need no row, and may not have one. `council.py glossary-check --tag <tag>`
+   exits non-zero on an id en.tsv lacks (`load_glossary` ignores such a row, so the term would
+   quietly have no target), a missing row for a term that is not do-not-translate, a row for one
+   that is, a repeated id, a wrong column count, an empty term or form, a term with a placeholder,
+   `;` or `(`, U+202F in a form (Saira has no glyph for it, so French writes U+00A0), an empty
+   definition, part of speech or source, a bad id, `dnt` or `safety`, and a file that is not UTF-8.
+   `pack.py` and `prompt` refuse the same problems when the file exists; with no file they go on
+   without targets. CI runs
+   the same check on every committed glossary (`test_repository_files.py`), so a glossary goes in
+   whole, and a pull request that adds a term to `en.tsv` adds its row to each language's glossary.
+   `glossary-check --english` validates `en.tsv` the same way, and lists the rows no English string
+   matches as information, which does not fail it.
 
 ### API keys
 
@@ -1135,12 +1190,10 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
    words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
-   the U+FE0E after ⚠, exactly as the English has them. `check.py` and `council.py` do not know that
-   list yet. `check.py` reports each of those symbols, and U+FE0E itself (category Mn, so not the
-   warning it gives spaces and format characters), as a missing-glyph ERROR. The drafting prompt's
-   "Keep unchanged" rule names neither the symbols nor the invisible U+FE0E, which a drafter may
-   drop. Both need the list, in a tooling pull request, before a language translates a key that has
-   one. Glossary terms match as whole words ("bloquear" is not found
+   the U+FE0E after ⚠, exactly as the English has them: `check.py` (`FALLBACK_SYMBOLS`, which a test
+   keeps equal to the Java list) lets those symbols past Saira's cmap and fails a draft that changes
+   their count, drops the U+FE0E or puts one anywhere else, and the drafting prompt's "Keep
+   unchanged" rule names them. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
@@ -1180,12 +1233,239 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    36.1.0 when the SDK is installed, comparing what aapt stored with the decisions' text.
 7. **The beta bar** (owner, 2026-11-02): a language may ship as `beta` only when at most **2%** of
    its keys fall back to English and **no lock or alarm** key falls back. `council.py beta` checks
-   it across every area (a key whose English changed after its decision counts as a fallback).
+   it across every area. It counts what `merge.py` writes, so a key whose English changed after its
+   decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
+   or alarm key must also be `safety-agreed`, which Claude's drafts alone never reach.
    Releases still need the owner's explicit authorization.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
+
+### What CI checks
+
+The `core-tests` job's "Localization proof gates" step runs `python3 tools/l10n/ship_check.py` on every
+push and pull request.
+It looks only at committed files and never needs a key or the network; the beta bar comes from the
+recorded decisions. It fails when:
+
+- a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
+- that text fails `merge.py`'s validation (above), including a stale `src` hash, a blank text or a
+  missing `l10n_tag`;
+- that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
+  a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
+- that language is under the beta bar (`council.py beta`);
+- that language has no line in `res/xml/locales_config.xml`, or `AndroidManifest.xml` has no
+  `android:localeConfig`;
+- a `res/values-*` folder holds text and its language is not listed or does not have status `beta` or
+  `stable`, `locales_config.xml` lists a language that does not ship, or the manifest names
+  `localeConfig` while only English ships.
+
+A language at `draft` or `held` is not read, so it can't fail the step unless its text has reached
+`res/`. While nothing ships, the step says that it checked no translated text and passes.
+
+An English change therefore fails CI for every shipped language that translates that key. Run
+`merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
+the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). `CatalogCheckTest`
+(in `tests/run.sh`) keeps the same folder rules for the real tree's `strings*.xml` files; `ship_check.py`
+also reads a language folder's other XML files.
+
+What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
+providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local
+build compiles the text), and LocaleValidation (it needs an emulator).
+
+### Drafting a whole language with Claude alone
+
+Until the OpenAI and Google keys arrive, a language can be drafted by Claude agents alone. **Such a
+draft stays a draft:** `l10n/lang/<tag>.tsv` keeps status `draft`, none of the commands in this
+section writes `res/`, and no safety key can pass, since step 5 needs drafts from all three providers.
+The file is an ordinary `drafts/claude-<name>.xml` with `volt:provider="claude"` and the agent's
+exact model id. When the keys arrive, `draft openai|google` adds the other two drafts beside it, and
+the council runs from step 3 with this draft as Claude's. It is not redone or relabelled.
+
+**Keep one Claude draft per area, and do not run `decide` or `merge.py` until the debate.** Two
+`claude-*` drafts that agree on a key that is not a safety key are enough for `decide` to write
+`agreed`, and `merge.py` would then write that text to `res/values-<qual>/`, whatever the language's
+status. `tests/run.sh` fails on the result (`CatalogCheckTest`), but nothing before that stops it.
+
+**The glossary before the keys.** Step 3 needs the three providers, so until then one Claude agent
+writes `l10n/glossary/<tag>.tsv`, and every row's `source` starts with `claude-only`, then the
+agent's model id (`claude-only claude-opus-5-5`). Without a glossary, parallel chunk agents each
+pick their own word for "lock". It is committed whole like any glossary, and it stays what it is:
+Claude's proposal, not an approved term list, whatever the prompts call it. `glossary-check` counts
+those rows as information, and a row keeps the label until the council has judged it.
+
+**At the debate the glossary comes first.** `draft openai|google` refuses while any row says
+`claude-only`, because `check` would hold the other vendors' safety keys to Claude's word and
+`decide` would then send them to fallback. So:
+
+1. Step 3 runs with this file as Claude's proposal, on equal terms with the other two, and the
+   judged result replaces it, with no `claude-only` row left.
+2. `pack.py` runs again for every area (prompts refuse an older pack). Claude's draft stays current,
+   since `volt:src` hashes only the English, and nothing rewrites or relabels it.
+3. `check` runs. Where the judged word differs, a safety key that used the old word now fails, and
+   any other key gets only a warning and keeps its text.
+4. Those failed keys take the ordinary `prompt --redraft`: only those keys, in the same file under
+   the same name and model. A key already at `volt:attempt="2"` has no redraft left and falls back
+   to English in `decide`, which is safe.
+
+```sh
+T=fr A=more
+#   first: l10n/lang/$T.tsv, l10n/style/$T.md and the claude-only l10n/glossary/$T.tsv
+python3 tools/l10n/council.py glossary-check --tag $T
+python3 tools/l10n/pack.py --tag $T --area $A
+python3 tools/l10n/council.py prompt --tag $T --area $A --name opus --style context-first --chunk-keys 80
+#   one fresh Claude Code agent per prompts/claude-opus.chunk-<i>-of-<n>.md; each writes its reply
+python3 tools/l10n/council.py import-claude --tag $T --area $A --name opus --model <exact model id> --from-chunks
+python3 tools/l10n/council.py check --tag $T --area $A
+python3 tools/l10n/council.py prompt --tag $T --area $A --name opus --redraft --chunk-keys 80   # failed keys, once
+python3 tools/l10n/council.py import-claude --tag $T --area $A --name opus --model <exact model id> --from-chunks --redraft
+python3 tools/l10n/council.py drafts-status --tag $T
+```
+
+**Chunked prompts.** `prompt --chunk-keys K` writes `prompts/claude-<name>.chunk-<i>-of-<n>.md`,
+keeping each ladder group in one chunk (a group larger than K makes a larger chunk). Each has the same
+rules as a single prompt, and says where its reply goes and the exact import command. The reply is
+`{"strings": ..., "notes": ...}`, with no `src`, which would only cost output and invite copy
+errors. The `notes` are not stored, as in the single-file flow.
+
+- **The sidecar** `prompts/claude-<name>.chunks.<set>.json` records each chunk's keys and the source
+  hash of the English it showed. `<set>` is a hash of that, the text of the prompts (rules, style
+  guide, glossary hits, findings) and the draft file as it stood. So rerunning the same command keeps
+  the same set and the replies so far, but anything that changes a prompt, or any import since, makes a
+  new set. `prompts/claude-<name>.chunks.current` names the latest set. The prompt refuses a pack
+  older than the English, the `volt:safety` marks, `l10n/lang/<tag>.tsv` or the glossary, including
+  a new term the pack never matched.
+- **Replies** go to `replies/claude-<name>.<set>/chunk-<i>-of-<n>.json`. The folder keeps a later
+  set from adopting an earlier set's replies, which were written under other rules, or are already
+  filed and would undo a redraft. New prompts delete the earlier set's prompt files, but not its
+  sidecar or replies: `--set <set>` still imports them, deliberately.
+- **`import-claude --from-chunks`** takes each `volt:src` from the sidecar, whatever a reply says.
+  It compares that with `res/values/`, not with a pack, and a key whose English changed since its
+  prompt is reported and left out, so it can't be filed against the new English. A chunk with no
+  usable reply (none, not JSON, no `strings`) refuses the whole import with nothing written, unless
+  `--partial`. A key missing from a reply, in the wrong shape or changed exits 1, and the rest is still
+  written; so does `--partial` while any chunk has no usable reply, even with no draft to write. A
+  text with a lone surrogate (half a character, which JSON can spell) is such a key and is left out.
+- **It merges**: keys the set covers are replaced, the rest stay, including stale ones (`check` and
+  `drafts-status` show those), and the same import run twice writes the same file. A key no longer
+  in the English is dropped and reported. It refuses a model id that does not start with `claude`,
+  and a model other than the one the draft names, since a draft names one model. Another `--name`
+takes another model, but read the warning above first.
+- **Top-ups and redrafts.** `--top-up` prompts only the keys the draft lacks or has stale, with the
+  rest of their ladders, which is how a `--partial` import or an English change is finished. `--redraft`
+  prompts the keys `checks.jsonl` lists as failed first attempts and marks them `volt:attempt="2"`,
+  which a later top-up of the same English keeps, so a key gets one redraft, even if `check` has not
+  run since. A redraft set must be imported with `--redraft` and only a redraft set may be. Both use
+  the style the draft records, and refuse another `--style`.
+- **One style per draft.** A set in another style relabels the draft only if it replaces every key
+  the draft holds; an import that would leave some in the old style refuses, with nothing written.
+
+**Status.** `drafts-status --tag <tag> [--name N] [--json]` prints, per area and in total: `total`
+keys, `drafted` (a `claude-*` draft has a text of the current English), `stale` (only of other
+English), `missing` (none, and no current translation in `res/`), `failing` (a current text fails
+`check.py`'s errors, recomputed rather than read from `checks.jsonl`), `safety` keys, `audited` and
+`flagged`. It writes nothing. Several `claude-*` drafts count together unless `--name` picks one. An
+area it can't read (a malformed draft, say) is named with the error and left out of the total, the
+other areas still print, and it exits 1.
+
+**Safety audit.** A Claude-only draft has no council back-translation, so an audit records what each
+safety key's text really says. It is a **QA record only**: it never counts as step 5's back-translation.
+`decide`, `beta` and the judge do not read `audit/`, and it writes nothing to `backtranslation.jsonl`
+or `judge.jsonl`. The later debate starts as if it did not exist.
+
+```sh
+python3 tools/l10n/council.py audit-prompt --tag $T --area $A --name opus --chunk-keys 80
+#   a fresh agent per audit/prompts/claude-opus.chunk-<i>-of-<n>.md
+python3 tools/l10n/council.py audit-compare --tag $T --area $A --name opus --from-chunks --model <its model id>
+#   a separate reader judges audit/compare.tsv and writes verdicts.json
+python3 tools/l10n/council.py audit-record --tag $T --area $A --name opus --from verdicts.json --model <its model id>
+```
+
+- `audit-prompt` holds only the texts of the keys `pack.py` marks safety, each with its `volt:screen`
+  (its ladder's, or else the area). There is no English, and keys appear under opaque ids, since a
+  name like `ble_lock_waiting` says what the English means. A safety key the draft lacks or has
+  stale is reported and not audited. `--top-up` lists only keys without a `compare.tsv` row of the
+  current text. It refuses a stale pack, as `prompt --chunk-keys` does. The set's hash covers the
+  shown texts and this draft's `compare.tsv` rows: rerunning before anything is filed keeps the set
+  and its replies, and once something is filed a new `audit-prompt` gets a new reply folder.
+- `audit-compare` writes `audit/compare.tsv`: `key`, `english`, `translation`, `back-translation`,
+  then `draft`, `model` and the two hashes. A key whose English or draft text changed since its prompt
+  is reported and left out. A back-translation by the model that drafted the text is noted, not
+  refused, and the `model` column shows it; a fresh session is the minimum, another model is
+  better. One set is filed under one model: another `--model` on the same replies refuses, and a new
+  reader starts from a new `audit-prompt`. `--partial` exits 1 while a part has no usable reply. A
+  blank back-translation, a lone surrogate or a plural that does not cover exactly the text's
+  categories is reported and left out, so nothing unread can count as audited.
+  Tabs, line breaks and backslashes in a cell are escaped, and a plural is compact JSON.
+- `audit-record --from <json>` takes `{"verdicts": [{"key", "ok", "problem"}, ...]}` and stores
+  `audit/verdicts.tsv`: those, then `draft`, `reader`, the row's two hashes and `back_sha1`, the
+  hash of the back-translation judged. An unknown key, a
+  repeated one, a non-boolean `ok`, or `ok: false` with no `problem` refuses the file whole.
+  Optional `compare_sha1`, which `audit-compare` prints, refuses verdicts on an older `compare.tsv`.
+  A verdict stops counting in `audited` and `flagged` once the English, the draft's text or the
+  back-translation changes, and `audit-compare` says so.
+
+**What git keeps:** `drafts/`, `audit/compare.tsv`, `audit/verdicts.tsv`, `checks.jsonl` and
+`runs.jsonl`. Prompts, replies and sidecars stay ignored, under `prompts/`, `replies/` and `audit/`
+(`l10n/.gitignore`), so a reply whose sidecar is gone means prompting again.
+
+### Seeing draft languages in a running app
+
+```sh
+python3 tools/l10n/draft_apk.py --tags es,de --workdir <scratch dir> --out <dir>
+```
+
+`draft_apk.py` builds `<out>/volt-draft-languages.apk` from the Claude drafts of `draft` languages,
+for a look on an emulator or test phone. Claude-only text stays `draft`, out of `res/` and out of
+every release; the drafts are only read, so they stay usable as the Claude provider's draft in the
+council.
+
+- **Where it works.** It exports HEAD into a fresh copy under `--workdir`, deleted at the end unless
+  `--keep`. Only that copy gets `res/values-<qual>/`, status `beta`, `locales_config.xml` and
+  `android:localeConfig`. Nothing else is written outside `--workdir` and `--out`, and it refuses
+  either path inside the worktree or another git checkout (its `.git` directory included), any `res/`
+  or `dist/` path, and a checkout whose `res/` has uncommitted changes (the build would not include
+  them). `--root` exports another checkout than the one the tool is in.
+- **Which text.** `l10n/work/<tag>/<area>/drafts/claude-<config>.xml`, chosen with `--name` (default:
+  the only one). `--drafts <root>` reads the drafts and the language's `l10n/` files from another
+  folder. Only keys whose `volt:src` still matches and that pass `check.py` are written, with
+  `merge.py`'s writer; every other key shows English, and a ladder goes whole or not at all. A language
+  with no drafts is an error, and so is one none of whose draft text can be shown.
+- **Safety terms.** No judge stands behind this tool, so a safety key shows English (state `unchecked`)
+  when `check.py` could not notice an inversion in it. One cause is a safety term with no approved
+  target in `l10n/glossary/<tag>.tsv` ("Unlocked" for "Locked"); a language with no glossary file gets a
+  warning and every such key in English. The other is a language without a word list in `lexicon.py`
+  that the key needs, since a glossary target alone does not catch these: `NEGATION` for any safety key
+  ("No bloquejat"), `REMOVAL_CONTEXT` for a key with a lock term ("Odstranit zámek", "remove lock", for
+  "Lock status": today da, nb, fi, cs, sk, ro, hu, hr and tr lack it), and `STATE_WORDS` where the
+  English says on or off. The run names the missing lists. Add the glossary or the list to see those
+  keys translated.
+- **What is still unchecked.** Passing these checks does not prove the meaning. A written safety key with
+  no safety term that has a target (a charge alarm's "Full" as "Empty"), and a key that names a lock word
+  but has no `volt:safety`, are counted as `unverified` and listed for a person to read.
+- **Checks.** `merge.py`'s validation, the catalog generator, `CatalogCheckTest` and
+  `GlyphCoverageTest` run on the copy. A failure means no APK. `--no-build` stops after the Python
+  checks and writes the report. Once a run has accepted its paths and found its drafts, it removes the
+  APK, its `.idsig` and the reports of an earlier run from `--out`, and a run that then fails leaves no
+  APK. A refusal before that (bad paths, `res/` with uncommitted changes, no drafts) leaves `--out` as
+  it was, so what is there still describes the earlier run.
+- **Not a release.** The versionName ends in `-draft-languages` (`1.11.1-dev-draft-languages`: the
+  app's version pattern has room for three suffix parts, so the commit is in the report instead), and
+  the copy's `build.sh` refuses `VOLT_RELEASE`. The APK is signed with a key made for that copy
+  and deleted with it, and the caller's `NAVEE_*` and `VOLT_*` settings are dropped. So it cannot update
+  an installed Volt: uninstall Volt first, which removes its data.
+- **Report.** `<out>/report.tsv` has one row per language and area and a `TOTAL` row: `translated`,
+  `english_fallback` (every key shown in English), `failing`, `stale` and `unchecked` (drafted keys
+  refused, also counted in `english_fallback`), `unknown` (unused draft keys: the English no longer has
+  them, has them in another area, or no longer has the area), `warned` (written keys with `check.py`
+  warnings, for a person to read, since no judge does), `unverified` (written keys whose meaning nothing
+  checked), the safety and lock or alarm counts with `safety_unverified` and `lock_alarm_unverified`,
+  and `commit`. `<out>/report-keys.tsv` gives the reason for each refused, unknown, warned or unverified
+  key.
+
+The app's own Language row appears (More > App preferences), since the copy's language is `beta`.
+Text still in Java, such as the bottom bar's labels, stays English whatever the draft says.
 
 ### Limits of the automated checks
 

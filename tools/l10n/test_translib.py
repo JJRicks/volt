@@ -78,7 +78,13 @@ class SourceTest(unittest.TestCase):
         terms = dict((t.id, t) for t in translib.load_glossary(self.repo.paths, "es"))
         self.assertEqual(terms["scooter"].targets, ["patinete", "patinetes"])
         self.assertTrue(terms["navee"].dnt)
-        self.assertIsNone(terms["lock"].targets)
+        self.assertEqual(terms["lock"].targets, ["bloquear", "bloqueado", "bloqueo"])
+        # A term with no row yet has no target (glossary-check reports the missing row).
+        glossary = self.repo.read("l10n/glossary/es.tsv")
+        self.repo.write("l10n/glossary/es.tsv", "".join(
+            line for line in glossary.splitlines(True) if not line.startswith("lock\t")))
+        self.addCleanup(self.repo.write, "l10n/glossary/es.tsv", glossary)
+        self.assertIsNone(dict((t.id, t) for t in translib.load_glossary(self.repo.paths, "es"))["lock"].targets)
         hits = [t.id for t in translib.glossary_hits(terms.values(), "Unlock the Scooter")]
         self.assertEqual(hits, ["scooter"])  # "lock" inside "Unlock" is not a whole word
 

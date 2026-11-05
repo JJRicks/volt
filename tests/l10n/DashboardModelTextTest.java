@@ -221,9 +221,11 @@ public final class DashboardModelTextTest {
     /**
      * DashboardExampleIds.exampleSlot against the example create() makes (its types read from src/, its
      * ids made as add() makes them): the whole example in slot 3 under its name counts, and so does it
-     * with any one type fewer (an example this version saves, read by a version with a type more) or one
-     * more (a later version's example); any widget not the example's, a type twice, another slot, another
-     * name or no widgets does not. And where the example is saved: slot index 2, EXAMPLE_SLOT_NAME.
+     * with any one type fewer (an example this version saves, read by a version with a type more). This
+     * method alone does not compare types with TYPES, so a tagged widget of an unknown type also counts;
+     * DashboardConfig.validateSlot refuses such a slot before this runs. Any widget not the example's, a
+     * type twice, another slot, another name or no widgets does not count. And where the example is
+     * saved: slot index 2, EXAMPLE_SLOT_NAME.
      */
     private static void exampleSlotRule() throws Exception {
         String example = new String(Files.readAllBytes(Paths.get("src/com/jjricks/volt/AllWidgetsDashboard.java")), StandardCharsets.UTF_8);
@@ -258,7 +260,7 @@ public final class DashboardModelTextTest {
         check(!DashboardExampleIds.exampleSlot(2, true, with(ids, UUID.randomUUID().toString()), with(kinds, "future")),
                 "the example with an owner's widget of a new type is the example's slot");
         check(DashboardExampleIds.exampleSlot(2, true, with(ids, DashboardExampleIds.create()), with(kinds, "future")),
-                "a later example, with a type more, is not the example's slot");
+                "exampleSlot alone does not check types against TYPES (validateSlot does that first)");
         check(DashboardExampleIds.exampleSlot(2, true, new String[] {ids[0]}, new String[] {kinds[0]}), "one example widget");
         for (int index : new int[] {-1, 0, 1, 3})
             check(!DashboardExampleIds.exampleSlot(index, true, ids, kinds), "the example in slot index " + index + " is the example's slot");

@@ -44,6 +44,8 @@ jobs:
         run: |
           python3 -m unittest discover -s tools/l10n
           python3 tools/l10n/gen_catalog.py --check
+          # Every beta or stable language, from committed files; no keys or network. See l10n/README.md.
+          python3 tools/l10n/ship_check.py
           bash tests/l10n/golden.sh
           # Strict English-unchanged gates for localization batches only; see tools/l10n/ci_gates.py.
           python3 tools/l10n/ci_gates.py --base "$L10N_BASE" --pr-head "$L10N_PR_HEAD"

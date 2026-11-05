@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 
 /** Optional saved example. It contains definitions only; every reading still comes from the scooter. */
-final class AllWidgetsDashboard {
+public final class AllWidgetsDashboard {
     static final int COLUMNS = 6;
     private static final long DAY = 86400000L;
     /** The example's own titles and note, saved in English like any widget's (data); exampleTitle and
@@ -16,11 +16,12 @@ final class AllWidgetsDashboard {
     private AllWidgetsDashboard() {}
 
     /**
-     * True when widget is one of the example's own: create() gave it an example id (DashboardExampleIds),
-     * which saves, exports and imports keep and no other widget gets. Only on those are the titles and
-     * note below Volt's; the same words on any other widget are the owner's.
+     * True when widget is one of the example's own: create() or a duplicate that still shows the example's
+     * words (emptyCopy) gave it an example id (DashboardExampleIds), which saves, exports and imports keep
+     * and no other widget gets. Only on those are the titles and note below Volt's; the same words on any
+     * other widget are the owner's.
      */
-    static boolean isExample(DashboardConfig.Widget widget) {
+    public static boolean isExample(DashboardConfig.Widget widget) {
         return widget != null && DashboardExampleIds.is(widget.id);
     }
 
@@ -30,7 +31,7 @@ final class AllWidgetsDashboard {
      * who retitles such a widget and later types its example title back gets the example's title again:
      * the saved widget cannot tell the two apart, and it is the example's own widget.
      */
-    static Msg exampleTitle(DashboardConfig.Widget widget) {
+    public static Msg exampleTitle(DashboardConfig.Widget widget) {
         if (!isExample(widget)) return null;
         String type = widget.type, title = widget.title;
         if (type == null || title == null) return null;
@@ -47,16 +48,27 @@ final class AllWidgetsDashboard {
     /**
      * The current language's example note, when widget is the example's own note widget and still holds
      * it; else null. Any other note is the owner's and shows as saved, even one that says NOTE_TEXT: a
-     * note widget the owner added or duplicated, or one saved by an older version, has a random id. (As
+     * note widget the owner added, or one saved by an older version, has a random id. (As
      * with titles, the example's own note widget edited and then given NOTE_TEXT back counts as the
      * example's again.)
      */
-    static Msg exampleNote(DashboardConfig.Widget widget) {
+    public static Msg exampleNote(DashboardConfig.Widget widget) {
         return isExample(widget) && "note".equals(widget.type) && NOTE_TEXT.equals(widget.note)
                 ? M.dashboardModelExampleNote() : null;
     }
 
-    static ArrayList<DashboardConfig.Widget> create() {
+    /**
+     * The new widget a duplicate of widget starts from. A copy of a widget that shows the example's title or note
+     * gets an example id of its own, so it shows the same words as its original in every language (the saved title
+     * and note stay English, like the original's); any other copy gets a random id, as every other widget does.
+     */
+    public static DashboardConfig.Widget emptyCopy(DashboardConfig.Widget widget) {
+        return exampleTitle(widget) != null || exampleNote(widget) != null
+                ? new DashboardConfig.Widget(DashboardExampleIds.create(), widget.type)
+                : new DashboardConfig.Widget(widget.type);
+    }
+
+    public static ArrayList<DashboardConfig.Widget> create() {
         ArrayList<DashboardConfig.Widget> result = new ArrayList<>();
         DashboardConfig.Widget scooter = add(result, "scooter");
         DashboardConfig.Widget lock = add(result, "lock");
@@ -160,7 +172,7 @@ final class AllWidgetsDashboard {
     }
 
     private static DashboardConfig.Widget add(ArrayList<DashboardConfig.Widget> result, String type) {
-        // The example's ids mark its widgets as Volt's (isExample); every other widget's id is random.
+        // The example's ids mark its widgets as Volt's (isExample); a widget not from the example or a copy of its words has a random id.
         DashboardConfig.Widget widget = new DashboardConfig.Widget(DashboardExampleIds.create(), type);
         result.add(widget);
         return widget;

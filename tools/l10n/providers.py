@@ -35,7 +35,8 @@ _PATTERNS = [
     re.compile(r"(?i)(bearer\s+)[^\s\"',;]+"),
     re.compile(r"(?i)(authorization[\"']?\s*[:=]\s*[\"']?)[^\"',;\n]+"),
     re.compile(r"(?i)(x-goog-api-key[\"']?\s*[:=]\s*[\"']?)[^\s\"',;]+"),
-    re.compile(r"(?i)((?:api[_-]?key|key|token)[\"']?\s*[:=]\s*[\"']?)[^\s\"'&,;]+"),
+    # Not expat's "unclosed token: line 1, column 0", where the "value" is the position.
+    re.compile(r"(?i)(?<!unclosed )((?:api[_-]?key|key|token)[\"']?\s*[:=]\s*[\"']?)[^\s\"'&,;]+"),
 ]
 
 
