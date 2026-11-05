@@ -1061,7 +1061,8 @@ public final class ScooterService extends Service {
         if(raw!=null&&raw>=0&&raw<=0xffffffffL)c.wireStart=raw.longValue();
         if(Integer.valueOf(1).equals(c.charging)){
             ChargingEstimate.Result estimate=chargingEstimate(displayReadings());
-            // Use the displayed estimate; ChargeScheduleController adds the safety buffer once.
+            // Use the planning estimate: the displayed one, or a longer personal time while the
+            // own taper sets the display. ChargeScheduleController adds the safety buffer once.
             c.estimateMinutes=estimate.planningMinutesToLimit;
             // A raw current-rate estimate remains useful on the dashboard while automatic
             // identification gathers its first frames, but must not freeze a finish plan yet.

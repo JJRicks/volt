@@ -210,7 +210,8 @@ points, so it includes the decay's own fall: about 0.025 A in 10 s near 2 A on a
 reading 0.06 A low there still hands back. With one every 1.5 or 3 minutes, the own taper is off from
 1.94 to 0.81 A (12 minutes). These probes have two synthetic past charges at a constant 4 A. v7
 shows them (PERSONAL) from about 5.3-5.4 A down to 1.9-2.1 A (1.6-1.9 A on the fast tapers), then
-the high-speed reference, once live power no longer matches them. Every hand-back that `STEP_AMPS`
+the high-speed reference (near the end, on some, the current rate), once live power no longer
+matches them. Every hand-back that `STEP_AMPS`
 removes is in that later stretch, where v7 no longer uses those charges. So all 1,177 probe samples
 it changes show v7's time and source, and the recorded source switches are the same.
 With saved charges that still matched there, each hand-back would switch to them for those minutes.
@@ -396,8 +397,8 @@ In constructed timelines (synthetic profiles and past charges) the time shown ca
 enough to take a start set from it well past Charge done by's buffer, as Charge done by was until
 59ac1d9. The figures below are examples from profiles built to find such cases, not limits: other
 shapes can do worse. Charge done by now uses matching past charges' longer time instead, so where v7
-stayed inside the buffer it now does too in every case listed
-([details](#charge-done-by-under-the-own-taper)). For each family, the largest found (minutes past
+stayed inside the buffer it now does too in every example listed; a few samples of the same families
+remain ([details](#charge-done-by-under-the-own-taper)). For each family, the largest found (minutes past
 the buffer on the worst own-taper sample, for a start set from the time shown):
 
 - a decay that stops and creeps on, where the own taper can stay on for up to 2 minutes after the
@@ -512,7 +513,10 @@ inside the buffer, a start set from the time shown had been past it on 8,281 own
 to 3.9 minutes past in the decay before the stop, where no past charge matches yet and v7 shows the
 high-speed reference (+5.0). Charge done by is below v7's time only in such timelines: on 210
 samples, the first 2.3 minutes of the own taper in 14 creep timelines, by up to 9.3 minutes, where
-v7 shows that reference, as at 59ac1d9. Samples where v7 is past the buffer as well stay past it:
+v7 shows that reference, as at 59ac1d9. These are examples, not limits: Charge done by does not use
+the high-speed reference when it is longer than the own taper, and an independent matrix of holds and
+declines found about 8 minutes past the buffer on 6,651 of its 358,666 own-taper samples at 100%,
+none with a personal time. Samples where v7 is past the buffer as well stay past it:
 creeps far slower than any past charge, the taper that slows by 0.8 minutes per minute, and currents
 the 4 A past charges don't match (up to about 13 minutes past on single readings near 1.9 A after a
 step down).

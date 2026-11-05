@@ -252,8 +252,8 @@ public final class ChargingEstimate {
         // (withPersonalLimit), never longer than the time to 100%. v7's choice is made first, so a
         // plateau, a stopped, creeping or slow decay, a charger's step down faster than STEP_TAU
         // (while it is in the RECENT_FIT window), or a declining taper model returns it unchanged,
-        // with v7's held personal finish kept up to date throughout. Only the display follows the
-        // own taper: Charge done by plans with the longer of it and v7's personal time
+        // with v7's held personal finish kept up to date throughout. Charge done by plans with the
+        // longer of the own taper and v7's personal time
         // (withPersonalPlanning), the one case where display and planning differ, because a
         // stopped decay can keep the own taper for up to RECENT_FIT minutes and a one-shot start
         // set from it then cannot be corrected.
