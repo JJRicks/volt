@@ -736,17 +736,6 @@ public final class MoreScreen implements AppScreen {
     private void note(LinearLayout box, String value) {
         TextView text = ui.caption(value); text.setPadding(0, ui.dp(7), 0, ui.dp(7)); box.addView(text);
     }
-    private TextView button(LinearLayout box, String label, Runnable action, boolean primary) {
-        TextView view = primary ? ui.button(label, action) : ui.text(label, 15, false);
-        if (!primary) {
-            view.setTextColor(new ColorStateList(new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {}}, new int[] {ui.muted, ui.text})); view.setGravity(Gravity.CENTER_VERTICAL); view.setMinHeight(ui.dp(52));
-            view.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(10)); view.setFocusable(true);
-            view.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 24)), ui.shape(Color.TRANSPARENT, 10, 0), null));
-            view.setOnClickListener(v -> { if (action != null) action.run(); });
-            if (box.getChildCount() > 0) ui.divider(box);
-        }
-        ui.decorate(view, ui.labelIcon(label)); box.addView(view); return view;
-    }
     private TextView value(LinearLayout box, String label) {
         TextView text = ui.text(label, 15, true); text.setTextColor(ui.accent);
         text.setPadding(0, ui.dp(10), 0, ui.dp(10)); box.addView(text); return text;
@@ -1652,6 +1641,11 @@ public final class MoreScreen implements AppScreen {
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         if (f.key.equals("start_speed") && value == 0) return T.moreLabStandingStart();
+        Msg oem = d.oemText(value);
+        return oem != null ? oem.toString() : DisplayUnits.featureValueText(f, value, settings().getString("units", "mi"));
+    }
+    /** labValue's English id (oemLabel, or featureValue), which CompatibilityPanel.question chooses its sentence by; never shown. */
+    private String labId(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         String oem = d.oemLabel(value);
         return oem != null ? oem : DisplayUnits.featureValue(f, value, settings().getString("units", "mi"));
     }
@@ -2001,7 +1995,7 @@ public final class MoreScreen implements AppScreen {
             if (live == null && shown != null && shown.terminal() && shown.keeps() && shown.feature.equals(feature.key) && shown.nothingWritten() && !shown.note().isEmpty()) doing = shown.noteMsg().toString();
             progress.setText(doing); progress.setVisibility(doing.isEmpty() ? View.GONE : View.VISIBLE);
             observe.setVisibility(asking ? View.VISIBLE : View.GONE);
-            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labValue(feature, d, live.target)) : T.moreLabDidYouSee());
+            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labId(feature, d, live.target), labValue(feature, d, live.target)) : T.moreLabDidYouSee());
             unfinished.setVisibility(held ? View.VISIBLE : View.GONE);
             controls.setVisibility(live == null && !held ? View.VISIBLE : View.GONE);
             if (selected == null && current != null) {

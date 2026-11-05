@@ -64,6 +64,9 @@ final class StatsLabels {
         }
     }
 
+    /** Telemetry's raw marker on a reading's English label (an id); the row name drops it from that label, never from a shown name. */
+    static final String RAW_MARK = " (raw)";
+
     /** Catalog ids of the chart-window labels, in StatsCharts.WINDOWS order (rule R5); the saved choice is the index. */
     private static final int[] WINDOW_LABELS = {T.STATS_WINDOW_2_MIN, T.STATS_WINDOW_10_MIN, T.STATS_WINDOW_1_HOUR,
         T.STATS_WINDOW_6_HOURS, T.STATS_WINDOW_24_HOURS, T.STATS_WINDOW_7_DAYS, T.STATS_WINDOW_30_DAYS, T.STATS_WINDOW_ALL};
