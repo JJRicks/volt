@@ -1,0 +1,18 @@
+# Hungarian (hu). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# percent_style has no space, as Android's Hungarian strings and NAVEE's Hungarian manual write it (85%). Other units take a no-break space (U+00A0): 25 km/h. quote_style is „…” outside, »…« inside. decimal_style is an example of the separators: the group mark is a no-break space (U+00A0), never U+202F, and four-digit numbers take no separator (1234,5), as CLDR's minimumGroupingDigits 2 says.
+field	value
+tag	hu
+folder	values-hu
+endonym	Magyar
+wave	2
+status	draft
+formality	te
+plurals	one,other
+quote_style	„…” »…«
+percent_style	%1$s%%
+decimal_style	12 345,6
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english
