@@ -2,33 +2,15 @@
 
 B18 (MoreScreen, LanguageSheet) leaves these shown strings in English. Each one is either blocked by
 G1 in an extraction batch, blocked by GlyphCoverageTest (item 7), or kept English on purpose. F4 did
-items 1-3 (the submenu titles, the PIN, pairing and proximity toasts, and the scooter names). Each
-blocked item needs an ordinary (non-extraction) follow-up pull request, or a tooling pull request
-where noted. The B4 consumer reads that stay are in
-`l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an entry when it is done.
+items 1-5 (the submenu titles, the PIN, pairing and proximity toasts, the scooter names, and the two
+count plurals). Item 6 stays blocked; item 7 needs a tooling pull request. The B4 consumer reads that
+stay are in `l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an entry when it is done.
 
 Repro for each G1 block: make the change in a scratch worktree of the B18 head, then run
 `python3 tools/l10n/ledger_check.py --base f529f43 --head WORKTREE --ledger l10n/ledger/b18-more.tsv`.
 
 ## Blocked by G1
 
-4. **"Other model(s)" in the try sheet** (`more_lab_why_one`, `more_lab_why_many`). This should be a
-   `<plurals>` (Arabic needs the dual form, and Polish, Russian and Ukrainian need few/many). The base
-   sentence is a choice with a shared tail (`(n > 0 ? ... : ...) + " It may do nothing here..."`),
-   and a choice row's branches cannot be plurals: "choice key more_lab_why is a plural, but each
-   branch is one string" (l10n/README.md, "Still blocked"). Follow-up: a tooling PR that lets a
-   choice branch be a plural, or an ordinary PR that rewrites the line. Until then do not ship a
-   language with dual or few forms without that fix.
-5. **"Cleared N tries"** (`more_lab_cleared_one`, `more_lab_cleared_many`) should be one `<plurals>`
-   (Polish, Russian and Ukrainian few/many). The base has its own literal for 1
-   (`n == 1 ? "Cleared 1 try" : "Cleared " + n + " tries"`). G1 accepts a manual plural row whose
-   `one` form is `["Cleared 1 try"]`, but the proof tests then refuse it either way.
-   With `<item quantity="one">Cleared %1$d try</item>`, LedgerTest gives the hole-less `one` form
-   a String sentinel and crashes: `IllegalFormatConversionException: d != java.lang.String` at
-   `LedgerTest.render` (from `comparePlural`). With `<item quantity="one">Cleared 1 try</item>`,
-   CatalogCheckTest fails: "more_lab_cleared is formatted only when its text has %". A `one` form
-   with the hole fails G1: "literal \"Cleared 1 try\" left with no ledger row". Follow-up: a tooling PR
-   (a quantity sentinel for a `one` form that wrote the 1 out), then the plural.
 6. **Units summary** row value (`unitsSummary()`: "mi + km · °C · 24h"). Its separators and
    "mi + km" sit beside the unit ids it tests, which stay data. Follow-up: whole template with unit
    keys (`more_prefs_units_summary` "%1$s · %2$s · %3$s", `more_prefs_units_dual` "%1$s + %2$s" over
@@ -70,6 +52,20 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
    proximity chips ("PIN ✓" and "Paired ✓" with their "—" forms, listed in
    `l10n/baseline/MoreScreen.txt`; their screen-reader text is translated) carry the same ✓, so they
    wait on the same fix.
+
+## Keys no screen shows since F4
+
+`more_lab_cleared_one`, `more_lab_cleared_many`, `more_lab_why_one` and `more_lab_why_many` were replaced
+by the plurals `more_lab_cleared` and `more_lab_why_offered`. They stay in the catalog, with comments
+telling translators to skip them, because deleting them fails two gates:
+
+- `ledger_check.py --catalog-only`: "l10n/ledger/b18-more.tsv:179: key more_lab_cleared_one is not in
+  res/values/strings*.xml" (also :180 and :279);
+- `frozen_literals.py`, once `tests/l10n/MoreTextTest.java` stops calling them: ":74: existing test code
+  changed (...); existing tests only gain new statements" (also :73 and :155).
+
+Follow-up: a tooling pull request that lets a key retire, then delete the four keys, their rows and those
+test lines.
 
 ## Kept English on purpose
 
