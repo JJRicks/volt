@@ -414,7 +414,7 @@ public final class BatteryCapacityEstimate {
         return !finite(b) ? a : a == null ? b : Math.max(a, b);
     }
 
-    /** Four words or fewer for each rejection reason, in English: Result.reason, which the card shows until it reads reasonMsg. */
+    /** Four words or fewer for each rejection reason, in English: Result.reason, kept as data; the card shows reasonMsg. */
     public static String shortReason(String reason) {
         Msg shown = shortReasonMsg(reason);
         return shown == null ? null : shown.english();
