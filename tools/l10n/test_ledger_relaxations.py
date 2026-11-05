@@ -70,6 +70,22 @@ class ArrayTableTest(GrammarCase):
         problems, _, _ = self.check(self.rows() + [removed(CHARTS, 5, "Keep")])
         self.assertTrue(problems)
 
+    def test_a_table_with_a_call_in_it_keeps_its_semicolon(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static final String[] LABELS = {compute(), "All"};
+    static String compute() { return ""; }"""))
+        self.base = self.repo.commit("base with a call")
+        self.edit(CHARTS, '    static final String[] LABELS = {compute(), "All"};\n', "")
+        problems = self.check([removed(CHARTS, 4, "All")])[0]
+        self.assertTrue(problems)
+
+    def test_an_anonymous_class_keeps_its_semicolon(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static final Runnable R = new Runnable() { public void run() { lock("Engage now"); } };
+    static void lock(String w) { }"""))
+        self.base = self.repo.commit("base with a class")
+        self.edit(CHARTS, '    static final Runnable R = new Runnable() { public void run() { lock("Engage now"); } };\n', "")
+        problems = self.check([removed(CHARTS, 4, "Engage now")])[0]
+        self.assertTrue(problems)
+
     def test_a_table_left_half_there_fails(self):
         self.edit(CHARTS, '{"2 min", "All"};', '{"2 min"};')
         problems, _, _ = self.check(self.rows())
@@ -603,6 +619,480 @@ class ReplacesWhatTest(GrammarCase):
         self.convert()
         problems = self.check([self.row("settings")])[0]
         self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+
+def strings_xml(**entries):
+    return "<resources>\n%s</resources>\n" % "".join('<string name="%s">%s</string>\n' % e for e in entries.items())
+
+
+class ShapeCase(PluralFlagCase):
+    """Each test builds its own base: body, with the head's edits and rows."""
+
+    def attempt(self, body, edits, rows, strings):
+        self.repo.write(GRID, java_class("Grid", body))
+        self.base = self.repo.commit("base")
+        self.repo.write("res/values/strings_test.xml", strings)
+        for old, new in edits:
+            self.edit(GRID, old, new)
+        return self.check(rows)
+
+    @staticmethod
+    def line_of(body, text):
+        return body[:body.index(text)].count("\n") + 4
+
+
+class FoldShapesTest(ShapeCase):
+    """Item 3: a manual row folds only an unconditional append to the local its sentence just set, with operands
+    that are the row's own. Whatever else it would delete is refused, whichever tokens the aligner kept."""
+    STRINGS_AT = strings_xml(s_on_at="On • %1$s", s_on_late="On later %1$s")
+
+    def fold(self, body, old, call, pieces, key="s_on_at"):
+        row = "%s:%d\t%s\t%s\ttemplate\t%s" % (GRID, self.line_of(body, '"On"'), json.dumps(pieces, ensure_ascii=False), key, TAG)
+        return self.attempt(body, [(old, call)], [row], self.STRINGS_AT)
+
+    def test_a_call_in_the_append_passes(self):
+        body = """    static String tile(String t) {
+        String state = "On";
+        state += " • " + fmt(t);
+        return state;
+    }
+    static String fmt(String t) { return t; }"""
+        problems, warnings, _ = self.fold(body, 'String state = "On";\n        state += " • " + fmt(t);', "String state = T.sOnAt(fmt(t));",
+                                          ["On", " • ", hole("fmt(t)", 1)])
+        self.assertEqual(problems, [])
+        self.assertTrue(any("deletes the whole statement" in w for w in warnings), warnings)
+
+    def test_the_b12_argument_passes(self):
+        clock = "DisplayTime.clock(host.activity(), preferences, charge.startWallMs)"
+        body = """    static String tile(Host host, Prefs preferences, Charge charge) {
+        String state = "On";
+        state += " • " + %s;
+        return state;
+    }""" % clock
+        problems = self.fold(body, 'String state = "On";\n        state += " • " + %s;' % clock, "String state = T.sOnAt(%s);" % clock,
+                             ["On", " • ", hole(clock, 1)])[0]
+        self.assertEqual(problems, [])
+
+    def assertRefused(self, body, old, call, pieces, key="s_on_at"):
+        problems = self.fold(body, old, call, pieces, key)[0]
+        self.assertTrue(problems)
+
+    def test_a_guarded_append_is_refused(self):
+        self.assertRefused("""    static String tile(boolean charging, String t) {
+        String state = "On";
+        if (charging) state += " • " + t;
+        return state;
+    }""", 'String state = "On";\n        if (charging) state += " • " + t;', "String state = T.sOnAt(t);",
+                           ["On", " • ", hole("t", 1)])
+
+    def test_an_early_return_is_refused(self):
+        self.assertRefused("""    static String tile(boolean bad) {
+        String state = "On";
+        if (bad) return " stop";
+        return state;
+    }""", 'String state = "On";\n        if (bad) return " stop";', "String state = T.sOnStop();", ["On", " stop"], "s_on_stop")
+
+    def test_another_locals_append_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String other = "";
+        String state = "On";
+        other += " • " + t;
+        return state + other;
+    }""", 'String state = "On";\n        other += " • " + t;', "String state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+    def test_an_append_after_another_statement_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        log();
+        state += " • " + t;
+        return state;
+    }
+    static void log() { }""", 'String state = "On";\n        log();\n        state += " • " + t;',
+                           "String state = T.sOnAt(t);\n        log();", ["On", " • ", hole("t", 1)])
+
+    def test_an_append_after_a_conditional_set_is_refused(self):
+        self.assertRefused("""    static String tile(boolean c, String t) {
+        String state = t;
+        if (c) state = "On";
+        state += " • " + t;
+        return state;
+    }""", 'if (c) state = "On";\n        state += " • " + t;', "if (c) state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+    def test_a_call_the_row_does_not_hold_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state += " • " + t + bump();
+        return state;
+    }
+    static String bump() { return ""; }""", 'String state = "On";\n        state += " • " + t + bump();', "String state = T.sOnAt(t);",
+                           ["On", " • ", hole("t", 1)])
+
+    def test_operands_out_of_the_rows_order_are_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = "On";
+        state += t + " • ";
+        return state;
+    }""", 'String state = "On";\n        state += t + " • ";', "String state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+    def test_a_field_is_refused(self):
+        self.assertRefused("""    static String state;
+    static String tile(String t) {
+        state = "On";
+        state += " • " + t;
+        return state;
+    }""", 'state = "On";\n        state += " • " + t;', "state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
+
+
+class ContextFactsTest(ShapeCase):
+    """Item 6: what a fact rests on. In each base the second choice holds a word the row can only get from a fact."""
+    SETTLED = strings_xml(s_pa="pA", s_qa="qA", s_pb="pB", s_qb="qB")
+
+    def settle(self, body, condition, word="A"):
+        sentence = '(x ? "p" : "q") + (%s ? "A" : "B")' % condition
+        body = body.replace("@", sentence)
+        low = word.lower()
+        row = choice_row(self.line_of(body, sentence), {"if": "x", "then": ["p", word], "else": ["q", word]}, ("s_p" + low, "s_q" + low), GRID)
+        return self.attempt(body, [(sentence, "x ? T.sP%s() : T.sQ%s()" % (low, low))], [row], self.SETTLED)[0]
+
+    def assertRefused(self, body, condition, word="A"):
+        problems = self.settle(body, condition, word)
+        self.assertTrue(any("still holds the choice" in p or "choice row at" in p for p in problems), problems)
+
+    GUARDED = """    static String f(boolean x, %s) {
+        if (%s) {
+            %s
+            return @;
+        }
+        return "";
+    }
+%s"""
+
+    def guarded(self, params, condition, between="", members=""):
+        return self.GUARDED % (params, condition, between, members)
+
+    def test_an_all_caps_local_changed_after_the_guard(self):
+        self.assertRefused(self.guarded("boolean N", "N", "N = false;"), "N")
+
+    def test_an_all_caps_field_not_final(self):
+        self.assertRefused(self.guarded("int u", "LIVE", "flip();", "    static boolean LIVE;\n    static void flip() { LIVE = !LIVE; }"), "LIVE")
+
+    def test_a_constant_of_an_object_is_not_a_constant(self):
+        self.assertRefused(self.guarded("Cfg c", "c.ON", "c.ON = !c.ON;"), "c.ON")
+
+    def test_a_class_field_this_file_assigns(self):
+        self.assertRefused(self.guarded("int u", "Cfg.ON", "Cfg.ON = false;"), "Cfg.ON")
+
+    def test_an_all_caps_method(self):
+        self.assertRefused(self.guarded("int u", "Cfg.ON()", "flip();", "    static void flip() { }"), "Cfg.ON()")
+
+    def test_equals_on_a_list_that_changes(self):
+        self.assertRefused(self.guarded("java.util.List<String> l, java.util.List<String> m", "l.equals(m)", 'l.add("z");'), "l.equals(m)")
+
+    def test_equals_on_a_builder_that_changes(self):
+        self.assertRefused(self.guarded("StringBuilder l, String m", "l.equals(m)", 'l.append("z");'), "l.equals(m)")
+
+    def test_equals_on_a_string_reassigned(self):
+        self.assertRefused(self.guarded("String l, String m", "l.equals(m)", "l = m + m;"), "l.equals(m)")
+
+    def test_a_field_with_a_local_of_its_name_in_a_closed_block(self):
+        self.assertRefused("""    static boolean live;
+    static String f(boolean x) {
+        { boolean live = true; }
+        if (live) {
+            refresh();
+            return @;
+        }
+        return "";
+    }
+    static void refresh() { live = false; }""", "live")
+
+    def test_a_field_with_a_loop_variable_of_its_name(self):
+        self.assertRefused("""    static boolean live;
+    static String f(boolean x, boolean[] all) {
+        for (boolean live : all) use(live);
+        if (live) {
+            refresh();
+            return @;
+        }
+        return "";
+    }
+    static void use(boolean b) { }
+    static void refresh() { live = false; }""", "live")
+
+    def test_an_else_through_a_while(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean b, boolean c) {
+        String out = "";
+        if (a) while (b) if (c) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
+
+    def test_an_else_through_a_foreach(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean c, int[] all) {
+        String out = "";
+        if (a) for (int n : all) if (c) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
+
+    def test_a_block_else_through_a_while(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean b, boolean c) {
+        String out = "";
+        if (a) while (b) if (c) { out = "z"; } else { out = @; }
+        return out;
+    }""", "a", "B")
+
+    def test_a_dangling_else_belongs_to_the_inner_if(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean c) {
+        String out = "";
+        if (a) if (c) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
+
+    def test_an_else_settles_its_if_only_as_a_whole(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean b) {
+        String out = "";
+        if (a && b) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
+
+    def test_a_true_or_settles_neither_side(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean b) {
+        if (a || b) return @;
+        return "";
+    }""", "a", "B")
+
+    def test_a_guard_says_the_opposite_of_its_negation(self):
+        self.assertRefused(self.guarded("int a, int b", "a != b"), "a == b")
+        self.assertEqual(self.settle_more(self.guarded("int a, int b", "a != b"), "a == b", "B"), [])
+
+    def settle_more(self, body, condition, word):
+        self.repo.close()
+        self.setUp()
+        return self.settle(body, condition, word)
+
+    def test_a_guard_outside_a_loop_is_not_read_through_it(self):
+        self.assertRefused("""    static String f(boolean a, boolean c, boolean x) {
+        String r = "";
+        if (a) {
+            while (c) { r = @; c = false; }
+        }
+        return r;
+    }""", "a")
+
+    def test_a_constant_settles(self):
+        self.assertEqual(self.settle(self.guarded("int u", "LIVE", "flip();", "    static final boolean LIVE = true;\n    static void flip() { }"), "LIVE"), [])
+
+    def test_a_class_constant_settles(self):
+        self.assertEqual(self.settle(self.guarded("int u", "Cfg.ON", "u = 1;"), "Cfg.ON"), [])
+
+    def test_equals_on_a_string_local_settles(self):
+        self.assertEqual(self.settle(self.guarded("String l, String m", "l.equals(m)", "use();", "    static void use() { }"), "l.equals(m)"), [])
+
+    def test_a_plain_statement_before_an_else_settles(self):
+        self.assertEqual(self.settle("""    static String f(boolean x, boolean a) {
+        String out = "";
+        if (a) use(); else out = @;
+        return out;
+    }
+    static void use() { }""", "a", "B"), [])
+
+    def test_a_block_else_settles_each_if_of_its_chain(self):
+        body = """    static String f(boolean x, boolean a, boolean b) {
+        String out = "";
+        if (a) { use(); } else if (b) { use(); } else { out = @; }
+        return out;
+    }
+    static void use() { }"""
+        self.assertEqual(self.settle(body, "a", "B"), [])
+        self.assertEqual(self.settle_more(body, "b", "B"), [])
+
+    def test_a_loop_variable_settles_in_its_own_body(self):
+        self.assertEqual(self.settle("""    static String f(boolean x, boolean[] all) {
+        String out = "";
+        for (boolean live : all) {
+            if (live) { use(); out = @; }
+        }
+        return out;
+    }
+    static void use() { }""", "live"), [])
+
+
+class NullImplicationShapesTest(ShapeCase):
+    """Item 6: `T name = null;`, assigned only under a guard, stays null where the guard is false."""
+    STRINGS_NULL = strings_xml(s_a="On · %1$s", s_b="On", s_c="Off")
+    PIECES = {"if": "ready", "then": {"if": "mode != null", "then": ["On", " · ", hole("mode", 1)], "else": ["On"]}, "else": ["Off"]}
+    SENTENCE = '(ready ? "On" : "Off") + (mode != null ? " · " + mode : "")'
+    HEAD = "ready ? (mode != null ? T.sA(mode) : T.sB()) : T.sC()"
+
+    def problems(self, body):
+        row = choice_row(self.line_of(body, self.SENTENCE), self.PIECES, ("s_a", "s_b", "s_c"), GRID)
+        return self.attempt(body, [(self.SENTENCE, self.HEAD)], [row], self.STRINGS_NULL)[0]
+
+    def test_it_settles(self):
+        self.assertEqual(self.problems("""    static String s(boolean ready, String m) {
+        String mode = null;
+        if (ready) { mode = m; }
+        return %s;
+    }""" % self.SENTENCE), [])
+
+    def test_a_guard_set_earlier_in_the_loop_does_not_hold_later(self):
+        # An earlier pass sets mode, the last one clears ready: the base prints "Off · m".
+        self.assertTrue(self.problems("""    static String s(java.util.Iterator<Integer> it) {
+        boolean ready = false;
+        String mode = null;
+        while (it.hasNext()) {
+            ready = it.next() > 0;
+            if (ready) { mode = "m"; }
+        }
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_an_assignment_under_the_opposite_of_the_guard_does_not_count(self):
+        # Where ready is false mode is set, so the row's Off branch would drop it.
+        self.assertTrue(self.problems("""    static String s(boolean ready, String m) {
+        String mode = null;
+        if (ready) { } else { mode = m; }
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_local_null_in_a_closed_block_says_nothing_of_a_field(self):
+        self.assertTrue(self.problems("""    static String mode = "z";
+    static String s(boolean ready) {
+        { String mode = null; if (ready) mode = "m"; use(mode); }
+        return %s;
+    }
+    static void use(String u) { }""" % self.SENTENCE))
+
+
+class LocalChoiceNearMissTest(ShapeCase):
+    """Item 6: the local's own limits; each base here prints something the row does not."""
+    WORDS = strings_xml(s_py="pYes", s_qy="qYes", s_pn="pNo", s_qn="qNo")
+    ROW_PIECES = {"if": "a", "then": {"if": "x", "then": ["p", "Yes"], "else": ["q", "Yes"]},
+                  "else": {"if": "x", "then": ["p", "No"], "else": ["q", "No"]}}
+    SENTENCE = '(x ? "p" : "q") + w'
+    HEAD = "a ? (x ? T.sPy() : T.sQy()) : x ? T.sPn() : T.sQn()"
+
+    def problems(self, body, edits=()):
+        row = choice_row(self.line_of(body, self.SENTENCE), self.ROW_PIECES, ("s_py", "s_qy", "s_pn", "s_qn"), GRID)
+        return self.attempt(body, [(self.SENTENCE, self.HEAD)] + list(edits), [row], self.WORDS)[0]
+
+    def test_a_data_id_test_with_a_literal_receiver_passes(self):
+        condition = '"eco".equals(id)'
+        body = """    static String f(String id, boolean x) {
+        String w = %s ? "Yes" : "No";
+        return %s;
+    }""" % (condition, self.SENTENCE)
+        pieces = dict(self.ROW_PIECES, **{"if": condition})
+        row = choice_row(self.line_of(body, self.SENTENCE), pieces, ("s_py", "s_qy", "s_pn", "s_qn"), GRID)
+        problems = self.attempt(body, [(self.SENTENCE, self.HEAD.replace("a ?", condition + " ?", 1)),
+                                       ('String w = %s ? "Yes" : "No";\n' % condition, "")], [row], self.WORDS)[0]
+        self.assertEqual(problems, [])
+
+    def test_a_condition_changed_after_the_local_is_refused(self):
+        self.assertTrue(self.problems("""    static String f(boolean a, boolean x) {
+        String w = a ? "Yes" : "No";
+        a = !a;
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_local_in_a_closed_block_is_not_the_field_the_sentence_reads(self):
+        self.assertTrue(self.problems("""    static String w = "Field";
+    static String f(boolean a, boolean x) {
+        { String w = a ? "Yes" : "No"; use(w); }
+        return %s;
+    }
+    static void use(String u) { }""" % self.SENTENCE))
+
+    def test_a_local_with_a_second_declarator_is_refused(self):
+        self.assertTrue(self.problems("""    static String f(boolean a, boolean x, Lock l) {
+        String w = a ? "Yes" : "No", z = l.engage();
+        return %s;
+    }""" % self.SENTENCE, [('String w = a ? "Yes" : "No", z = l.engage();\n', "")]))
+
+    def test_a_local_holding_more_than_strings_is_refused(self):
+        body = """    static String f(boolean a, boolean x, String name) {
+        String w = a ? name : "No";
+        return %s;
+    }""" % self.SENTENCE
+        row = choice_row(self.line_of(body, self.SENTENCE), {"if": "a", "then": {"if": "x", "then": ["p", hole("name", 1)], "else": ["q", hole("name", 1)]},
+                                                             "else": {"if": "x", "then": ["p", "No"], "else": ["q", "No"]}},
+                         ("s_py", "s_qy", "s_pn", "s_qn"), GRID)
+        problems = self.attempt(body, [(self.SENTENCE, "a ? (x ? T.sPy(name) : T.sQy(name)) : x ? T.sPn() : T.sQn()"),
+                                       ('String w = a ? name : "No";\n', "")], [row],
+                                strings_xml(s_py="p%1$s", s_qy="q%1$s", s_pn="pNo", s_qn="qNo"))[0]
+        self.assertTrue(problems)
+
+    def test_a_string_half_gone_leaves_the_local_with_no_row(self):
+        self.assertTrue(self.problems("""    static String f(boolean a, boolean x) {
+        String w = a ? "Yes" : "No";
+        return %s;
+    }""" % self.SENTENCE, [('a ? "Yes" : "No"', 'a ? "Oui" : "No"')]))
+
+
+class PluralBranchNearMissTest(ShapeCase):
+    def test_an_other_only_branch_does_not_print_the_bases_one(self):
+        body = """    static String f(boolean h, int n) {
+        return (h ? (n == 1 ? "1 try" : n + " tries") : "None");
+    }"""
+        strings = """<resources><plurals name="s_tr"><item quantity="other">%1$d tries</item></plurals><string name="s_none">None</string></resources>\n"""
+        row = choice_row(self.line_of(body, "(h ?"), {"if": "h", "then": {"other": [count(), " tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
+        self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? "1 try" : n + " tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
+
+    def test_a_count_filled_into_an_other_form_is_not_a_literal(self):
+        # The base's other branch spells "1 tries"; the key's %1$d prints the real count there.
+        body = """    static String f(boolean h, int n) {
+        return (h ? (n == 1 ? "1 try" : "1 tries") : "None");
+    }"""
+        strings = """<resources><plurals name="s_tr"><item quantity="one">%1$d try</item><item quantity="other">%1$d tries</item></plurals><string name="s_none">None</string></resources>\n"""
+        row = choice_row(self.line_of(body, "(h ?"), {"if": "h", "then": {"one": ["1 try"], "other": ["1 tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
+        self.assertTrue(self.attempt(body, [('(h ? (n == 1 ? "1 try" : "1 tries") : "None")', "h ? T.sTr(n, n) : T.sNone()")], [row], strings)[0])
+
+    def test_two_counts_in_a_branch_are_refused(self):
+        row = choice_row(4, {"if": "h", "then": {"other": [count("n", 1), " of ", count("m", 2)]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
+        with self.assertRaises(ledger_check.LedgerError):
+            ledger_check.parse_ledger(HEADER + row + "\n")
+
+    def test_a_count_read_twice_with_an_effect_is_refused(self):
+        row = choice_row(4, {"if": "h", "then": {"other": [count("it.next()"), " tries"]}, "else": ["None"]}, ("s_tr", "s_none"), GRID)
+        with self.assertRaises(ledger_check.LedgerError):
+            ledger_check.parse_ledger(HEADER + row + "\n")
+
+
+class RepeatableQuantityTest(unittest.TestCase):
+    def test_plain_reads_repeat(self):
+        for source in ("n", "rides.size()", "stats.count", "n + 1", "Math.round(x)", "a[i]", "a == b ? 1 : 2"):
+            self.assertTrue(ledger_check.repeatable_quantity(source), source)
+
+    def test_anything_with_an_effect_or_an_unknown_call_does_not(self):
+        for source in ("it.next()", "n++", "--n", "n += 1", "n = 2", "bump()", "a.b().size()"):
+            self.assertFalse(ledger_check.repeatable_quantity(source), source)
+
+
+class ScopeTest(unittest.TestCase):
+    def scope(self, source, name, mark="MARK"):
+        tokens = ledger_check.l10nlib.lex_java(source)
+        before = [t.value for t in tokens].index(mark)
+        return ledger_check._declaration(tokens, name, 0, before) is not None
+
+    def test_a_declaration_in_scope(self):
+        self.assertTrue(self.scope("class C { void m(boolean a) { MARK(); } }", "a"))
+        self.assertTrue(self.scope("class C { void m() { boolean a = true; { MARK(); } } }", "a"))
+        self.assertTrue(self.scope("class C { void m(int[] all) { for (int a : all) { MARK(); } } }", "a"))
+        self.assertTrue(self.scope("class C { void m(int[] all) { for (int a : all) MARK(); } }", "a"))
+        self.assertTrue(self.scope("class C { void m() { run((String a) -> { MARK(); }); } }", "a"))
+        self.assertTrue(self.scope("class C { void m() { try { x(); } catch (E a) { MARK(); } } }", "a"))
+
+    def test_a_declaration_out_of_scope(self):
+        self.assertFalse(self.scope("class C { void m() { { boolean a = true; } MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m(int[] all) { for (int a : all) { x(); } MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m(int[] all) { for (int a : all) x(); MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m() { run((String a) -> { x(); }); MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m() { try { x(); } catch (E a) { y(); } MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m(boolean a) { } void n() { MARK(); } }", "a"))
+
+    def test_no_declaration_at_all(self):
+        self.assertFalse(self.scope("class C { void m() { a = true; MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m() { outer: while (x) { continue a; MARK(); } } }", "a"))
+        self.assertFalse(self.scope("class C { void m() { else_(); if (y) z(); else a = true; MARK(); } }", "a"))
 
 
 class NoFactFromAFieldTest(unittest.TestCase):
