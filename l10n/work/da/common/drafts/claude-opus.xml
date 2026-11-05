@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="common_cancel" volt:src="69d69f762147c2b1cca07f8e9d8f24b109f5605e">Annuller</string>
+    <string name="common_ok" volt:src="df213cea6431ceb473bb062fd76472807e541de0">OK</string>
+    <string name="common_close" volt:src="56656d497328d6cb0430353e5ea60f7da3b35ea7">Luk</string>
+    <string name="common_done" volt:src="a3226307b1168b09401e9231e2fe8a8ab6d0d8af">Færdig</string>
+    <string name="common_selected" volt:src="278db35a279ede48dd566d9eb0c4065b1b1e2d25">Valgt</string>
+    <string name="common_on" volt:src="a84504c0e510dfc286d6a3b204ca352b95648266">Til</string>
+    <string name="common_off" volt:src="1a3a5312083d6e01b851e509937825a5aa74ef7b">Fra</string>
+    <string name="common_not_reported" volt:src="d4eb0bbd21fc68a85beb13021c0e481f43097c61">Ingen data</string>
+    <string name="common_try_again" volt:src="a028005df66fc7daa7ba1a91881535382a6d5df3">Prøv igen</string>
+    <string name="common_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Intet løbehjul er sat op</string>
+    <string name="common_connect_charger_first" volt:src="5b031d6cb469e6bedcd3749c53369e3bb19f9c53">Tilslut en oplader først</string>
+    <string name="common_wait_current_change" volt:src="f265acce1f963121bdd996fc77ce76c2e07a5bb5">Vent, til den igangværende ændring er færdig</string>
+    <string name="common_restore_failed" volt:src="53589534b8bfe4078f5166020b002627f4e86da3">Gendannelsen mislykkedes. Åbn Volt igen. Ryd ikke lagerpladsen.</string>
+</resources>

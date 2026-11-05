@@ -1,0 +1,155 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="service_wait_backup" volt:src="ad050a8c30a8cf5b578006a5884bc1ff0b909043">Vent, til sikkerhedskopiering eller gendannelse er færdig</string>
+    <string name="service_stop_recording_first" volt:src="4fd630cc644ce85af927e714376db75a7a098657">Stop den aktuelle optagelse først</string>
+    <string name="service_wait_ride_saving" volt:src="dde7a768fd375aa9b91eed6384cbc875b9291969">Vent, til turen er gemt</string>
+    <string name="service_wait_scooter_change" volt:src="9ae1c7f912aeba28b610a96d05e83c0423c361f4">Vent, til den aktuelle ændring på løbehjulet er færdig</string>
+    <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Vent, til testen af planen er færdig</string>
+    <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">Vedligeholdelse af appdata er allerede i gang</string>
+    <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Vent, til telefonoptagelsen er gemt</string>
+    <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Afslut den aktuelle eksport af opladninger først</string>
+    <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Vent, til ladeplanen er indstillet</string>
+    <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Vent, mens funktionen Færdig senest måler</string>
+    <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Vent, til oprydningen i historikken er færdig</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Afslut først ejeropsætningen, og gendan logindstillingen for NAVEE-aktivitetsloggen</string>
+    <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Afslut den aktuelle eksport først</string>
+    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Afslut importen af ejeropsætningen først</string>
+    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Kunne ikke klargøre appdata. Åbn Volt igen.</string>
+    <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Afslut den aktuelle optagelse, før du simulerer</string>
+    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ingen opladningsoptagelse endnu</string>
+    <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">Lager til opladningsoptagelser er ikke tilgængeligt</string>
+    <string name="service_charge_enable_developer" volt:src="552c52b2aed3c9588b58961a1b1d9ad75cd3e3ce">Aktivér Indstillinger for udviklere først</string>
+    <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Slå simulering fra for at optage en rigtig opladning</string>
+    <string name="service_charge_finish_ride" volt:src="42f19d08bb0f01402fef4a0b43f0d3acca15a40e">Afslut turoptagelsen først</string>
+    <string name="service_charge_preparing_export" volt:src="8b9565bee6a3846a078faedfae32e7b0a36a7f14">Forbereder eksport af opladninger</string>
+    <string name="service_charge_loading" volt:src="42bf22207416110b128d467977f6f1624c6524f5">Indlæser gemte opladningsoptagelser</string>
+    <string name="service_charge_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Opret forbindelse til løbehjulet først</string>
+    <string name="service_charge_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Vent på nye måleværdier fra opladningen</string>
+    <string name="service_charge_battery_full" volt:src="b767f3faf2b7ab930807e4a02653bc447d3a7f87">Batteriet er allerede på 100 %%</string>
+    <string name="service_charge_allow_notifications" volt:src="e982c4836d18d4cc16eb6e57ca5ce5529f464397">Tillad notifikationer fra appen, så handlingen Stop stadig er tilgængelig</string>
+    <string name="service_charge_choose_charger" volt:src="3ccb3921e30374f743508a8b459817be50de48f9">Vælg den tilsluttede oplader</string>
+    <string name="service_charge_started" volt:src="80f0bd07fc7b2bc4187d664cf1346cc7f38b3498">Opladningsoptagelse startet</string>
+    <string name="service_charge_start_failed" volt:src="b316a3ec634f15dc4841b44a387cd90b2eb9428f">Kunne ikke starte opladningsoptagelse</string>
+    <string name="service_charge_reconnecting" volt:src="e9d9e07e4ba154a2e05d56356ecf75f00b41778b">Opretter forbindelse igen · %1$ss</string>
+    <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Original oplader · opladeren er stoppet · venter på, at den fortsætter</string>
+    <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Original oplader · sat på pause indtil den planlagte start</string>
+    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Original oplader · lokale måleværdier: %1$s</string>
+    <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Hurtigoplader · opladeren er stoppet · venter på, at den fortsætter</string>
+    <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Hurtigoplader · sat på pause indtil den planlagte start</string>
+    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Hurtigoplader · lokale måleværdier: %1$s</string>
+    <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Anvendes ikke, før opladeren er kendt · gemte optagelser: %1$s</string>
+    <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s kvalificeret opladning med hurtigoplader · gemte optagelser: %2$s</string>
+    <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s kvalificerede opladninger med hurtigoplader · gemte optagelser: %2$s</string>
+    <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">%1$s kvalificeret opladning med original oplader · gemte optagelser: %2$s</string>
+    <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">%1$s kvalificerede opladninger med original oplader · gemte optagelser: %2$s</string>
+    <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Opladningsoptagelser ryddet</string>
+    <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">Kunne ikke rydde opladningsoptagelser</string>
+    <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">Ingen gemte opladningsoptagelser for dette løbehjul</string>
+    <string name="service_charge_export_failed" volt:src="40864ec60c9a18190a7e1a6e17f7a43ec7a4a5d2">Kunne ikke eksportere opladningsoptagelser</string>
+    <string name="service_charge_limit_reached" volt:src="b1c8518e742e457ef8feb570ef910ebba417fc81">Opladningsoptagelsen nåede sin grænse for lager eller tid</string>
+    <string name="service_charge_saved_full" volt:src="1934e79391d8d7f3dd824f3ea5355c6e66b02e6d">Opladningsoptagelse gemt · batteriet nåede 100 %%</string>
+    <string name="service_charge_saved" volt:src="7d1c1cc6bca567ad6f3596d2f6340628e77bfd14">Opladningsoptagelse gemt</string>
+    <string name="service_charge_storage_error" volt:src="66f5dfa7c5dd5f0fa3bfd53a751fde96a14583a4">Opladningsoptagelsen stoppede efter en lagerfejl</string>
+    <string name="service_charge_stopped_reason" volt:src="1e3631b6e0ed4709c1c7e0b2cbd7ab852fb170b5">Opladningsoptagelse stoppet · %1$s</string>
+    <string name="service_charge_stop_charging_ended" volt:src="f0aa9c28edd2d20045c665fcfaf01aaca0bfaafd">opladning sluttet</string>
+    <string name="service_charge_stop_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">forbindelse afbrudt</string>
+    <string name="service_charge_stop_profile_changed" volt:src="b173f0857c0b3be53f3083f67910026742280083">profil ændret</string>
+    <string name="service_charge_stop_readings_stopped" volt:src="b4c0e343df8c5ff6bee17cc10eb62e9433badebb">måleværdier stoppet</string>
+    <string name="service_charge_stop_limit" volt:src="ec19ee005f7201024d5b54161c87880895bfe636">grænse nået</string>
+    <string name="service_charge_stop_process_ended" volt:src="a020b418f75b2f8f7a6381b7eb8d88cd864a4172">proces afsluttet</string>
+    <string name="service_charge_stop_interrupted" volt:src="4990fa492de579ec49a07c599aa420b73eed5337">afbrudt</string>
+    <string name="service_charge_stop_recovery_timeout" volt:src="9731706961c9e5abd0e63c53081c5027cb8622ba">kunne ikke genoprette forbindelsen i tide</string>
+    <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">kunne ikke oprette forbindelse</string>
+    <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth slået fra</string>
+    <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">tilladelse mistet</string>
+    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">identitet ændret</string>
+    <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Optagelsen stoppede; opladningsfilen kunne ikke færdiggøres</string>
+    <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Vent, til opladeren er registreret, eller vælg en oplader</string>
+    <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">Funktionen Færdig senest startede ikke opladningen</string>
+    <string name="service_missed_title_schedule" volt:src="bee23b65a6abd7239871dcf29f238f045ab35407">Planlagt opladning startede ikke</string>
+    <string name="service_missed_done_by_dialog" volt:src="9f6666bdc6b0ddd647793012a35705ed13da556e">Opladningen var indstillet til at starte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %%, da du indstillede planen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Volt kan slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Opladningen var indstillet til at starte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %%, da du indstillede planen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Åbn Volt for at slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Opladningen var indstillet til at starte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %% ved testen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Volt kan slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Opladningen var indstillet til at starte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %% ved testen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Åbn Volt for at slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Testen af planen indstillede opladningen til at fortsætte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %% ved testen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Volt kan slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Testen af planen indstillede opladningen til at fortsætte kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %% ved testen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Åbn Volt for at slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Den var indstillet til kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %%, da du indstillede planen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Volt kan slå planen fra, så opladningen starter nu.</string>
+    <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Den var indstillet til kl. %1$s, og batteriet er stadig på %2$s %% (%3$s %%, da du indstillede planen). Tjek, at opladeren er tilsluttet, og at dens lys skifter til rød på starttidspunktet. Åbn Volt for at slå planen fra, så opladningen starter nu.</string>
+    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Denne opladning er målt. Opladningen fortsætter kl. %1$s for at blive færdig senest kl. %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Planlagt ud fra en ny opladning. Opladningen fortsætter kl. %1$s for at blive færdig senest kl. %2$s.</string>
+    <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">Funktionen Færdig senest er slået fra.</string>
+    <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
+    <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. Funktionen Færdig senest er slået fra.</string>
+    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Bluetooth-tilladelsen blev fjernet med måling i gang</string>
+    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt blev lukket med måling i gang. Funktionen Færdig senest er slået fra.</string>
+    <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">Funktionen Færdig senest er indstillet. %1$s</string>
+    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">Funktionen Færdig senest blev ikke indstillet. %1$s</string>
+    <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">Funktionen Færdig senest er indstillet</string>
+    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">Funktionen Færdig senest blev ikke indstillet</string>
+    <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Åbn Volt igen</string>
+    <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Test annulleret. Planlagt opladning er slået fra.</string>
+    <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Indstiller planen…</string>
+    <string name="service_test_pausing" volt:src="65e2bd4326b7da4fbe8b08ccaf2085b5e7dd79c1">Sætter opladningen på pause…</string>
+    <string name="service_test_ending" volt:src="6a0c1f0c045938f28b1dc93e5c88015e15739990">Slår planen fra…</string>
+    <string name="service_test_resumes_in" volt:src="741c5a78b510347260ecfd786f024d4452b6ca21">Fortsætter om %1$s:%2$s</string>
+    <string name="service_test_waiting" volt:src="6549bbdc7445740b977c65102d0fee8a279bf6b5">Venter på, at opladningen fortsætter</string>
+    <string name="service_test_title_passed" volt:src="dcb571d9de7df16c36f00b66a878a9c20f575f6c">Planlagt opladning virker</string>
+    <string name="service_test_title_early" volt:src="0bf33921dfad57049c36e900b7ea95b1fe7e1f1b">Opladningen fortsatte for tidligt</string>
+    <string name="service_test_title_late" volt:src="00092ee4187b5180e78141563e71e7883e41eb5f">Opladningen fortsatte for sent</string>
+    <string name="service_test_title_no_pause" volt:src="ec6fc3ed1b0292c043cf2893873103d2cc1be8a9">Løbehjulet satte ikke opladningen på pause</string>
+    <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72">Opladningen fortsatte ikke</string>
+    <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Test af planlagt opladning afbrudt</string>
+    <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Test annulleret</string>
+    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Testen blev ikke færdig</string>
+    <string name="service_test_passed_on_time" volt:src="0dafb048ea96a47f02073efff7fb1a02dea7cffc">Løbehjulets ur og plan virker. Opladningen fortsatte på starttidspunktet.</string>
+    <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">Løbehjulets ur og plan virker. Opladningen fortsatte %1$s sekund før starttidspunktet.</string>
+    <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">Løbehjulets ur og plan virker. Opladningen fortsatte %1$s sekund efter starttidspunktet.</string>
+    <string name="service_test_passed_seconds_before" volt:src="4d0a7e2e8b19afa3560c66ac24c8f4856e7e5325">Løbehjulets ur og plan virker. Opladningen fortsatte %1$s sekunder før starttidspunktet.</string>
+    <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">Løbehjulets ur og plan virker. Opladningen fortsatte %1$s sekunder efter starttidspunktet.</string>
+    <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
+        <item quantity="one">ca. %1$d minut</item>
+        <item quantity="other">ca. %1$d minutter</item>
+    </plurals>
+    <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">Opladningen fortsatte %1$s før starttidspunktet, så løbehjulets ur går måske %2$s for hurtigt.%3$s</string>
+    <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">Opladningen fortsatte %1$s efter starttidspunktet, så løbehjulets ur går måske %2$s for langsomt.%3$s</string>
+    <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">Løbehjulet satte ikke opladningen på pause. Dets ur går måske for hurtigt, eller det ignorerede planen.%1$s</string>
+    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Opladningen var stadig sat på pause 5 minutter efter starttidspunktet. Løbehjulets ur går måske mere end 5 minutter for langsomt, eller dets plan frigav ikke opladningen. Hvis opladeren blev frakoblet, skal du teste igen.%1$s</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt indstillede løbehjulets ur lige før denne test, så løbehjulet holder måske ikke den tid, det får. Indtil det er løst, er et smart stik en sikrere timer. Rapportér et problem med diagnosticeringsdata, så vi kan undersøge det."</string>
+    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">Batteriet nåede sin opladningsgrænse under testen, så den kunne ikke afgøre det. Test igen længere under grænsen.</string>
+    <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Testen blev afbrudt. Tjek, om opladningen fortsatte. Hvis den ikke gjorde det, skal du slå planlagt opladning fra.</string>
+    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Testen kunne ikke starte.</string>
+    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Testen kunne ikke starte: %1$s.</string>
+    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt kunne ikke bekræfte, om planen blev slået fra. Slå planlagt opladning fra, så opladningen fortsætter."</string>
+    <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
+    <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Batteribeskeder</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Batteribeskeder om opladningsniveau, fuldt opladet og lavt batteri, som du slår til under Løbehjul › Batteri</string>
+    <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Stop</string>
+    <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Stop opladningsoptagelsen, før du starter en tur</string>
+    <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Afslut simuleringen først</string>
+    <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Afslutter den forrige tur</string>
+    <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Turen blev gemt automatisk</string>
+    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth mistet, mens løbehjulet var parkeret</string>
+    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Bluetooth mistet, mens løbehjulet var parkeret</string>
+    <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Forbindelse til løbehjulet og optagelse</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Måler opladning til ”Færdig senest”</string>
+    <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Tester planlagt opladning</string>
+    <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Opladningsoptagelse · forbinder igen</string>
+    <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Opladningsoptagelsen er aktiv</string>
+    <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Gemmer turen</string>
+    <string name="service_notice_ride_active" volt:src="9ad2e30cf8a5de52dd1e49495363158fed5bc8a8">Turoptagelsen er aktiv</string>
+    <string name="service_notice_ride_attention" volt:src="b59463e9d015f05da66fcb7daacf51b3dcf55f85">Optagelsen kræver opmærksomhed</string>
+    <string name="service_notice_connected" volt:src="043ef303a7dde859a4f0661d22054c3664b40dd1">Løbehjulet er forbundet</string>
+    <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">Planen bliver indstillet inden for %1$s min · lad opladeren være tilsluttet</string>
+    <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · hold telefonen tæt på løbehjulet</string>
+    <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">Turoptagelsen kræver opmærksomhed</string>
+    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Telefonens sensordata bliver ikke gemt</string>
+    <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Stop overvågning</string>
+    <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Planlæg nu</string>
+    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Annuller test</string>
+    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stop opladningsoptagelse</string>
+    <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Stop optagelse</string>
+    <string name="service_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Afbryd</string>
+    <string name="service_notice_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Løbehjul</string>
+    <string name="service_notice_scooter_battery" volt:src="7a50ce085dfe20bbc1b8d76de540dd3cf63e5e02">%1$s · %2$s %%</string>
+</resources>
