@@ -1,7 +1,7 @@
 # Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
 key	english	translation	back-translation	draft	model	source_sha1	target_sha1
 charging_alert_level_full	Full	Fulladdad	Fully charged	claude-opus	claude-opus-5-5	ac212b9682a4291b8ed466a08e804878d7bcd02e	cdadfe5b430a6ccac505dcc117978227787cb5dd
-charging_alert_watch_full	Charging to full	Laddar till fullt	Charging to full	claude-opus	claude-opus-5-5	6307c2b16d0a1578a2b594d66f41929fcf5c828e	782bb50a38239cc2d5292bc0b2dd539727539337
+charging_alert_watch_full	Charging to full	Laddar tills batteriet är fullt	Charging until the battery is full	claude-opus	claude-opus-5-5	6307c2b16d0a1578a2b594d66f41929fcf5c828e	8eb8ad24cdd22b8397706fe767c8dc388ea086c0
 charging_alert_watch_title	Charging to %1$s%%	Laddar till %1$s %%	Charging to %1$s %%	claude-opus	claude-opus-5-5	f5a8a98dee559c956440570b99faee4a54c3b681	429f310ac710b8a144458c9eb11719be7bd094f9
 charging_alert_title_full	Fully charged	Fulladdad	Fully charged	claude-opus	claude-opus-5-5	80b5a6cc81051776ed3a4148c3cf69215d5f22c4	cdadfe5b430a6ccac505dcc117978227787cb5dd
 charging_alert_title_low	Battery low	Låg batterinivå	Low battery level	claude-opus	claude-opus-5-5	ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc	420aaf7d7d1afea50378e4b0a975157f75c8ca7e

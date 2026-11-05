@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Din lokala tjänst för elsparkcykeln startar.</string>
     <string name="compat_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Anslut</string>
-    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Inga oavslutade tester.</string>
+    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Inga ej slutförda test.</string>
     <string name="compat_run_check" volt:src="8908fbf7457a4fe529bb9649e73cecde12a253d4">Kör kontrollen</string>
     <string name="compat_run_again" volt:src="0358856e402abdc06315d4f38abf2f9ded72208e">Kör igen</string>
     <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">Mejla till Volt</string>
@@ -33,10 +33,10 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-mappade (otestade)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås och mätvärden</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Stöds inte</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 oavslutat test på en annan elsparkcykel. Välj den för att granska testet.</string>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 ej slutfört test på en annan elsparkcykel. Välj den för att granska testet.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
-        <item quantity="one">%1$d oavslutat test på en annan elsparkcykel. Välj den för att granska testet.</item>
-        <item quantity="other">%1$d oavslutade test på andra elsparkcyklar. Välj en för att granska testet.</item>
+        <item quantity="one">%1$d ej slutfört test på en annan elsparkcykel. Välj den för att granska testet.</item>
+        <item quantity="other">%1$d ej slutförda test på andra elsparkcyklar. Välj en för att granska testet.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testuppgifterna är inte tillgängliga. Ett tidigare test kanske inte har ställts tillbaka; kontrollera elsparkcykelns inställningar.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Prova · %1$s</string>
@@ -52,8 +52,8 @@
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Värdet behölls</string>
     <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Tillbakaställd och bekräftad</string>
     <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Tillbakaställning återstår · granska nedan</string>
-    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Oavslutat försök · %1$s</string>
-    <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Oavslutat test · %1$s</string>
+    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Ej slutfört försök · %1$s</string>
+    <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Ej slutfört test · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Före försöket</string>
     <string name="compat_before_test" volt:src="0013c71b6f6ca92eac22436c874f139fe599f39d">Före testet</string>
     <string name="compat_value_tried" volt:src="eaeb926168edaad2a5f6b927a46f8d47104b3e24">Provat värde</string>
@@ -66,11 +66,11 @@
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Behåll %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Ställ in %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Stäng · lämna oförändrat</string>
-    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Stäng det oavslutade försöket med %1$s utan att ställa tillbaka värdet</string>
-    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Stäng det oavslutade testet av %1$s utan att ställa tillbaka värdet</string>
+    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Stäng det ej slutförda försöket med %1$s utan att ställa tillbaka värdet</string>
+    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Stäng det ej slutförda testet av %1$s utan att ställa tillbaka värdet</string>
     <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef">Elsparkcykeln har glömts, så Volt kan inte kontrollera den här inställningen eller ställa tillbaka den. Kontrollera inställningen på själva elsparkcykeln.</string>
     <string name="compat_dismiss" volt:src="2f05b359cebb7fdbdd7e576511561f1de4f382a7">Stäng</string>
-    <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Stäng det oavslutade testet av %1$s på en glömd elsparkcykel</string>
+    <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Stäng det ej slutförda testet av %1$s på en glömd elsparkcykel</string>
     <string name="compat_question_units_mph" volt:src="019f4ffd7b3fece0995c4e05ea22dc0655ba83e6">Visar elsparkcykelns display mph?</string>
     <string name="compat_question_units_kmh" volt:src="4a1d028262b4d78b0c69b5fd135029c52d05ca93">Visar elsparkcykelns display km/h?</string>
     <string name="compat_question_tail_light_on" volt:src="b84549856bb8e366237dfe250243c94d91d85476">Är bakljuset tänt?</string>
@@ -210,7 +210,7 @@
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Inget svar från elsparkcykeln.</string>
     <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt kunde inte skicka kommandot för att ställa tillbaka värdet.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Det gick inte att hämta ett nytt utgångsvärde. Anslut igen och försök igen. Inget ändrades.</string>
-    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Det gick inte att verifiera inställningen. Anslut igen och granska det oavslutade testet.</string>
+    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Det gick inte att verifiera inställningen. Anslut igen och granska det ej slutförda testet.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Anslutningen bröts under testet.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Profilen för en annan elsparkcykel valdes under testet.</string>
     <string name="compat_note_restarted" volt:src="cb6020286262dba4b68518e42aa35c280840d9b3">Volt startades om under testet.</string>
