@@ -81,7 +81,7 @@
     <string name="readings_trip_minutes" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter\'s current trip time</string>
     <string name="readings_trip_minutes_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip time</string>
     <string name="readings_trip_minutes_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Time</string>
-    <string name="readings_maximum_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current trip maximum speed</string>
+    <string name="readings_maximum_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current trip top speed</string>
     <string name="readings_maximum_speed_kmh_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Trip top speed</string>
     <string name="readings_maximum_speed_kmh_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Top speed</string>
     <string name="readings_average_speed_kmh" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Current trip average speed</string>
@@ -98,7 +98,7 @@
     <!-- Settings readings. -->
     <string name="readings_binding_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Account binding status (raw)</string>
     <string name="readings_binding_status_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Account binding (raw)</string>
-    <string name="readings_driving_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Driving mode (raw)</string>
+    <string name="readings_driving_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive mode (raw)</string>
     <string name="readings_driving_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Drive mode</string>
     <string name="readings_driving_mode_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Mode</string>
     <string name="readings_lock_status" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full" volt:safety="lock">Electronic lock</string>
@@ -112,20 +112,20 @@
     <string name="readings_energy_recovery_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Recovery (raw)</string>
     <string name="readings_range_algorithm" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Range algorithm (raw)</string>
     <string name="readings_range_algorithm_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Range algorithm (raw)</string>
-    <string name="readings_display_units" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Dashboard units</string>
+    <string name="readings_display_units" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scooter display units</string>
     <string name="readings_display_units_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Display units</string>
-    <string name="readings_auto_sensor" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Automatic light sensor (raw)</string>
+    <string name="readings_auto_sensor" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Automatic lights (raw)</string>
     <string name="readings_auto_sensor_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Auto light (raw)</string>
-    <string name="readings_tyre_reminder" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Tyre reminder (raw)</string>
-    <string name="readings_tyre_reminder_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Tyre reminder (raw)</string>
+    <string name="readings_tyre_reminder" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Tire reminder (raw)</string>
+    <string name="readings_tyre_reminder_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Tire reminder (raw)</string>
     <string name="readings_ambient_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Line lighting state / pattern (raw)</string>
     <string name="readings_ambient_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Line pattern (raw)</string>
     <string name="readings_traction_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Traction control (raw)</string>
     <string name="readings_traction_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Traction (raw)</string>
     <string name="readings_turn_sound" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Turn signal sound (raw)</string>
     <string name="readings_turn_sound_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Turn sound (raw)</string>
-    <string name="readings_proximity_key" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Proximity key setting (raw)</string>
-    <string name="readings_proximity_key_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Proximity key (raw)</string>
+    <string name="readings_proximity_key" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Proximity unlock setting (raw)</string>
+    <string name="readings_proximity_key_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Proximity unlock (raw)</string>
     <string name="readings_night_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Night mode (raw)</string>
     <string name="readings_night_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Night mode (raw)</string>
     <string name="readings_range_algorithm_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Range algorithm mode (raw)</string>
@@ -136,8 +136,8 @@
     <string name="readings_drive_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Star pattern (raw)</string>
     <string name="readings_sport_light" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Star normal / Boost colors (packed raw)</string>
     <string name="readings_sport_light_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Star colors (packed)</string>
-    <string name="readings_start_speed" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Start speed setting (raw)</string>
-    <string name="readings_start_speed_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Start speed (raw)</string>
+    <string name="readings_start_speed" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Kick-start speed setting (raw)</string>
+    <string name="readings_start_speed_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Kick-start speed (raw)</string>
     <string name="readings_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Speed limit setting (raw)</string>
     <string name="readings_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Speed limit (raw)</string>
     <string name="readings_volume" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Audio setting (model-dependent raw)</string>
@@ -160,24 +160,24 @@
     <string name="readings_charge_limit_percent_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Charge limit</string>
     <string name="readings_charge_limit_percent_compact" volt:screen="Narrow Home cards" volt:purpose="reading name" volt:ladder="compact">Limit</string>
     <string name="readings_low_power" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Low Battery Mode (raw)</string>
-    <string name="readings_low_power_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Low-battery mode (raw)</string>
-    <string name="readings_timed_charging" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Timed charging setting (raw)</string>
-    <string name="readings_timed_charging_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Timed charging (raw)</string>
+    <string name="readings_low_power_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Low Battery Mode (raw)</string>
+    <string name="readings_timed_charging" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Scheduled charging setting (raw)</string>
+    <string name="readings_timed_charging_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Scheduled charging (raw)</string>
     <string name="readings_auto_lock_time" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Lock duration setting (raw)</string>
     <string name="readings_auto_lock_time_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Lock duration (raw)</string>
     <string name="readings_speed_limit_eligibility" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Speed-limit eligibility flag (raw)</string>
     <string name="readings_speed_limit_eligibility_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Speed eligibility (raw)</string>
     <string name="readings_weather" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Weather setting (raw)</string>
     <string name="readings_weather_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Weather (raw)</string>
-    <string name="readings_slope_assist" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Slope assistance setting (raw)</string>
-    <string name="readings_slope_assist_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Hill assist (raw)</string>
+    <string name="readings_slope_assist" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Assist settings (raw)</string>
+    <string name="readings_slope_assist_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Assist settings (raw)</string>
     <string name="readings_long_range_mode" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Long range setting (raw)</string>
     <string name="readings_long_range_mode_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Long range (raw)</string>
-    <string name="readings_overspeed_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed control setting (raw)</string>
+    <string name="readings_overspeed_control" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed active control setting (raw)</string>
     <string name="readings_overspeed_control_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed control (raw)</string>
     <string name="readings_overspeed_alert" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Overspeed alert setting (raw)</string>
     <string name="readings_overspeed_alert_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Overspeed alert (raw)</string>
-    <string name="readings_drive_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive speed limit setting (raw)</string>
+    <string name="readings_drive_speed_limit" volt:screen="Live Stats reading details, Home cards" volt:purpose="reading name" volt:ladder="full">Drive mode speed limit setting (raw)</string>
     <string name="readings_drive_speed_limit_short" volt:screen="Live Stats rows, Home cards" volt:purpose="reading name" volt:ladder="short">Drive speed limit (raw)</string>
 
     <!-- Device readings. -->

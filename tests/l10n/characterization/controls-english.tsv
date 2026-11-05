@@ -254,11 +254,11 @@ feature turn_sound value 81	81
 feature turn_sound value 100	100
 feature turn_sound value 101	101
 feature turn_sound value 255	255
-feature display_units label	Dashboard units
+feature display_units label	Scooter display units
 feature display_units group	Preferences
 feature display_units description	
 feature display_units unit	
-feature display_units search	Dashboard units  miles kilometers dashboard
+feature display_units search	Scooter display units  miles kilometers dashboard
 feature display_units option 0	Miles / mph
 feature display_units option 1	Kilometers / km/h
 feature display_units value -1	-1
@@ -337,11 +337,11 @@ feature start_speed value 81	81 km/h
 feature start_speed value 100	100 km/h
 feature start_speed value 101	101 km/h
 feature start_speed value 255	255 km/h
-feature speed_limit label	Custom speed cap
+feature speed_limit label	Custom speed limit
 feature speed_limit group	Ride
 feature speed_limit description	
 feature speed_limit unit	km/h
-feature speed_limit search	Custom speed cap  
+feature speed_limit search	Custom speed limit  
 feature speed_limit value -1	-1 km/h
 feature speed_limit value 0	Off
 feature speed_limit value 1	1 km/h
@@ -464,11 +464,11 @@ feature dual_drive value 81	81
 feature dual_drive value 100	100
 feature dual_drive value 101	101
 feature dual_drive value 255	255
-feature drive_speed_limit label	Drive mode speed cap
+feature drive_speed_limit label	Drive mode speed limit
 feature drive_speed_limit group	Ride
 feature drive_speed_limit description	
 feature drive_speed_limit unit	km/h
-feature drive_speed_limit search	Drive mode speed cap  
+feature drive_speed_limit search	Drive mode speed limit  
 feature drive_speed_limit value -1	-1 km/h
 feature drive_speed_limit value 0	Off
 feature drive_speed_limit value 1	1 km/h
@@ -503,11 +503,11 @@ feature drive_speed_limit value 81	81 km/h
 feature drive_speed_limit value 100	100 km/h
 feature drive_speed_limit value 101	101 km/h
 feature drive_speed_limit value 255	255 km/h
-feature charge_limit label	Charge ceiling
+feature charge_limit label	Charge limit
 feature charge_limit group	Battery
 feature charge_limit description	
 feature charge_limit unit	%
-feature charge_limit search	Charge ceiling  ceiling
+feature charge_limit search	Charge limit  ceiling
 feature charge_limit option 0	80%
 feature charge_limit option 1	85%
 feature charge_limit option 2	90%
@@ -6621,7 +6621,7 @@ experimental dual_drive 100	null
 experimental dual_drive 101	null
 experimental dual_drive 255	null
 experimental energy_recovery -1	null
-experimental energy_recovery 0	Turns motor braking off, so your brakes do more of the stopping.
+experimental energy_recovery 0	Turns energy recovery off, so your brakes do more of the stopping.
 experimental energy_recovery 1	null
 experimental energy_recovery 2	null
 experimental energy_recovery 3	null
@@ -7020,26 +7020,26 @@ experimental range_algorithm 81	null
 experimental range_algorithm 100	null
 experimental range_algorithm 101	null
 experimental range_algorithm 255	null
-experimental speed_limit -1	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
+experimental speed_limit -1	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
 experimental speed_limit 0	null
-experimental speed_limit 1	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 2	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 3	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 4	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 5	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 8	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 20	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 25	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 32	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 33	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 40	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 50	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 70	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 80	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 81	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 100	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 101	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
-experimental speed_limit 255	Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.
+experimental speed_limit 1	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 2	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 3	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 4	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 5	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 8	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 20	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 25	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 32	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 33	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 40	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 50	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 70	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 80	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 81	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 100	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 101	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
+experimental speed_limit 255	Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.
 experimental star_boost_color -1	null
 experimental star_boost_color 0	null
 experimental star_boost_color 1	null
@@ -8048,7 +8048,7 @@ refusal setPin 12a4 true	PIN must contain four numeric digits
 refusal setPin 12345 true	PIN must contain four numeric digits
 refusal setPin ٠١٢٣ true	PIN must contain four numeric digits
 refusal enablePin true true false	A PIN must be configured before enabling it
-refusal setProximity true true false	Bond this phone before enabling proximity unlock
+refusal setProximity true true false	Pair this phone before enabling proximity unlock
 refusal setProximity true true true	Set up and turn on the handlebar PIN before turning on proximity unlock
 refusal parsePin null true	Expected an explicit PIN response
 refusal encode ModelRegistry.CLOCK -1	The official app doesn't offer this value

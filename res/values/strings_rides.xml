@@ -95,7 +95,7 @@
     <string name="rides_tile_distance" volt:screen="Rides, history" volt:purpose="label">Distance</string>
     <string name="rides_tile_duration" volt:screen="Rides, history" volt:purpose="label">Duration</string>
     <string name="rides_tile_avg_speed" volt:screen="Rides, history" volt:purpose="label">Avg speed</string>
-    <string name="rides_tile_max_speed" volt:screen="Rides, history" volt:purpose="label">Max speed</string>
+    <string name="rides_tile_max_speed" volt:screen="Rides, history" volt:purpose="label">Top speed</string>
     <string name="rides_reason_odometer_reset" volt:screen="Rides, history" volt:purpose="reason">Odometer reset</string>
     <string name="rides_battery_energy" volt:screen="Rides, history" volt:purpose="label">Battery &amp; energy</string>
     <string name="rides_tile_battery_gain" volt:screen="Rides, history" volt:purpose="label">Battery gain</string>
@@ -190,7 +190,7 @@
     <string name="rides_placement_pocket" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
     <!-- A small all-caps badge on experimental settings. Keep it very short. -->
     <string name="rides_lab_badge" volt:screen="Rides, phone sensors sheet" volt:purpose="label">LAB</string>
-    <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Lab, experimental</string>
+    <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Experimental</string>
     <string name="rides_changes_next_ride" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Changes apply to the next ride</string>
     <string name="rides_toast_no_browser" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No browser available.</string>
     <string name="rides_export_raw" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>

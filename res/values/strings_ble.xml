@@ -202,10 +202,10 @@
 
     <!-- Pairing for proximity unlock needs a fresh PIN status first; Volt just asked the scooter. -->
     <string name="ble_pair_read_pin" volt:screen="Proximity unlock" volt:purpose="instruction"
-        volt:safety="pin">Read PIN status, then pair this phone.</string>
+        volt:safety="pin">Read PIN state, then pair this phone.</string>
     <!-- Proximity unlock needs the handlebar (dashboard) PIN set up and enabled before pairing. -->
     <string name="ble_pair_needs_pin" volt:screen="Proximity unlock" volt:purpose="reason"
-        volt:safety="pin">Configure and enable the dashboard PIN before pairing for proximity unlock.</string>
+        volt:safety="pin">Configure and enable the handlebar PIN before pairing for proximity unlock.</string>
     <string name="ble_pair_already" volt:screen="Proximity unlock" volt:purpose="notice">This phone is already paired with your scooter.</string>
     <!-- Android shows a pairing request; the rider accepts it. -->
     <string name="ble_pair_approve" volt:screen="Proximity unlock" volt:purpose="instruction">Approve the Bluetooth pairing request on your phone.</string>
@@ -213,15 +213,15 @@
     <string name="ble_pair_unavailable" volt:screen="Proximity unlock" volt:purpose="error">Bluetooth pairing is unavailable.</string>
     <!-- The PIN status was asked for and did not come back; "Read PIN status" is the button's name. -->
     <string name="ble_pin_status_missing" volt:screen="Handlebar PIN" volt:purpose="error"
-        volt:safety="pin">PIN status did not arrive. Tap Read PIN status to try again.</string>
+        volt:safety="pin">PIN state did not arrive. Tap Read PIN state to try again.</string>
     <string name="ble_pin_state_unavailable" volt:screen="Handlebar PIN" volt:purpose="error"
         volt:safety="pin">PIN state is unavailable on this firmware.</string>
     <!-- Only the scooter's owner profile may change PIN settings. -->
     <string name="ble_pin_owner_only" volt:screen="Handlebar PIN" volt:purpose="reason"
-        volt:safety="pin,owner-key">PIN settings require the owner profile.</string>
+        volt:safety="pin,owner-key">PIN settings require the scooter owner.</string>
     <!-- Proximity unlock needs this phone bonded (paired) with the scooter; the change was not sent. -->
     <string name="ble_needs_bond" volt:screen="Proximity unlock" volt:purpose="reason"
-        volt:safety="lock">Bond this phone before enabling proximity unlock</string>
+        volt:safety="lock">Pair this phone before enabling proximity unlock</string>
     <!-- Proximity unlock needs the handlebar PIN set up and enabled first; the change was not sent. -->
     <string name="ble_needs_pin" volt:screen="Proximity unlock" volt:purpose="reason"
         volt:safety="lock,pin">Set up and turn on the handlebar PIN before turning on proximity unlock</string>
@@ -232,7 +232,7 @@
         volt:safety="pin,owner-key">Connect as the scooter owner to read PIN settings.</string>
     <!-- The PIN is proximity unlock's fallback, so it cannot be disabled while proximity unlock is on. -->
     <string name="ble_pin_proximity_first" volt:screen="Handlebar PIN" volt:purpose="reason"
-        volt:safety="lock,pin">Turn off proximity unlock before disabling its fallback PIN.</string>
+        volt:safety="lock,pin">Turn off proximity unlock before disabling the handlebar PIN.</string>
     <string name="ble_pin_read_first" volt:screen="Handlebar PIN" volt:purpose="instruction"
         volt:safety="pin">Read the current PIN state first.</string>
 
@@ -260,7 +260,7 @@
     <string name="ble_test_not_found" volt:screen="Compatibility" volt:purpose="error">Test not found</string>
     <!-- Writing a guided test's earlier value back could not start. -->
     <string name="ble_restore_failed" volt:screen="Compatibility" volt:purpose="error"
-        volt:safety="experimental">Couldn\'t start the restore. Nothing was changed.</string>
+        volt:safety="experimental">Couldn\'t start setting it back. Nothing was changed.</string>
 
     <!-- ===== A control's latest result (Command evidence, and the chips on control rows) ===== -->
 

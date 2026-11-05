@@ -123,8 +123,8 @@ public final class OnboardingTextTest {
         equal(h + ", " + c, T.onboardingOptionSpokenChip(h, c), "choice with chip");
         equal(h + ", " + c + ". " + d + ". Needs Android 11 or newer",
                 T.onboardingOptionSpokenChipDetailUnavailable(h, c, d), "choice with every part");
-        equal("Private backup recognised · shared role", T.onboardingIdentityBackupShared(), "shared backup status");
-        equal("Private backup recognised · owner role", T.onboardingIdentityBackupOwner(), "owner backup status");
+        equal("Private backup recognized · shared rider", T.onboardingIdentityBackupShared(), "shared backup status");
+        equal("Private backup recognized · owner", T.onboardingIdentityBackupOwner(), "owner backup status");
         equal("Command: python3 setup/capture-owner.py --push",
                 T.onboardingHelperCommandDescription("python3 setup/capture-owner.py --push"), "command description");
     }

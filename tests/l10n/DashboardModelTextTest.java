@@ -81,7 +81,7 @@ public final class DashboardModelTextTest {
             same(e.group, e.groupLabel().english(), e.id + " groupLabel().english()");
             check(e.id.equals(QuickAccessActions.find(e.id).id), e.id + " find");
         }
-        same("Top speed", T.dashboardModelTileTopSpeed(), "tile top speed");
+        same("Max. speed", T.dashboardModelTileTopSpeed(), "tile top speed (the abbreviated rung of Maximum speed)");
         same("Charge schedule", T.dashboardModelTileChargeSchedule(), "tile charge schedule");
     }
 
@@ -150,13 +150,19 @@ public final class DashboardModelTextTest {
         String[][] pairs = {
             {"SPEED_TITLE", T.dashboardModelExampleSpeed()}, {"BATTERY_CHARGE_TITLE", T.dashboardModelExampleBatteryCharge()},
             {"ELECTRICAL_TITLE", T.dashboardModelExampleElectrical()}, {"BATTERY_POWER_TITLE", T.dashboardModelExampleBatteryPower()},
-            {"CHARGE_HISTORY_TITLE", T.dashboardModelExampleChargeHistory()}, {"NOTE_TEXT", T.dashboardModelExampleNote()},
+            {"CHARGE_HISTORY_TITLE", T.dashboardModelExampleChargeHistory()},
         };
         for (String[] pair : pairs) {
             Matcher c = Pattern.compile("\\b" + pair[0] + " = \"([^\"]*)\"").matcher(example);
             check(c.find(), pair[0] + " not declared");
             same(c.group(1), pair[1], "example " + pair[0]);
         }
+        // NOTE_TEXT is the example note's stored value and keeps its saved spelling, so saved example notes still
+        // read as Volt's; the catalog shows the US spelling (an owner-approved change, l10n/english-changes.tsv).
+        Matcher note = Pattern.compile("\\bNOTE_TEXT = \"([^\"]*)\"").matcher(example);
+        check(note.find(), "NOTE_TEXT not declared");
+        same("Check tyre pressure", note.group(1), "example NOTE_TEXT stays the stored value");
+        same("Check tire pressure", T.dashboardModelExampleNote(), "example note shown");
         Matcher slot = Pattern.compile("EXAMPLE_SLOT_NAME = \"([^\"]*)\"").matcher(config);
         check(slot.find(), "EXAMPLE_SLOT_NAME not declared");
         same(slot.group(1), T.dashboardModelSlotExample(), "example slot name");

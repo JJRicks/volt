@@ -48,7 +48,7 @@
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>
     <!-- Screen-reader text of the LAB badge. -->
-    <string name="more_lab_badge_description" volt:screen="More" volt:purpose="accessibility">Lab</string>
+    <string name="more_lab_badge_description" volt:screen="More" volt:purpose="accessibility">Experimental</string>
     <!-- Footer under the menu. %1$s is the version ("1.11.1"). Volt and NAVEE are names. -->
     <string name="more_footer" volt:screen="More" volt:purpose="caption" volt:safety="disclaimer" volt:dnt="Volt|NAVEE">Volt %1$s · not affiliated with NAVEE</string>
     <!-- Link under the menu: draft an email to Volt about a problem. -->
@@ -219,9 +219,9 @@
     <!-- ===== Data & history ===== -->
 
     <!-- Group label: readings Volt saves while connected to the scooter. -->
-    <string name="more_history_connected" volt:screen="Data &amp; history" volt:purpose="label">Connected history</string>
+    <string name="more_history_connected" volt:screen="Data &amp; history" volt:purpose="label">Readings history</string>
     <!-- Switch: save readings while connected. -->
-    <string name="more_history_save" volt:screen="Data &amp; history" volt:purpose="row">Save connected history</string>
+    <string name="more_history_save" volt:screen="Data &amp; history" volt:purpose="row">Save readings history</string>
     <!-- Under the history switch when it is on. -->
     <string name="more_history_while_connected" volt:screen="Data &amp; history" volt:purpose="caption">While connected</string>
     <!-- Under the history switch when it is off: the last readings stay. -->
@@ -247,7 +247,7 @@
     <!-- Red row: delete the current scooter's saved history (asks first). -->
     <string name="more_history_clear_scooter" volt:screen="Data &amp; history" volt:purpose="row">Clear this scooter\'s history</string>
     <!-- Red row: delete every scooter's saved history (asks first). -->
-    <string name="more_history_clear_all" volt:screen="Data &amp; history" volt:purpose="row">Clear all connected history</string>
+    <string name="more_history_clear_all" volt:screen="Data &amp; history" volt:purpose="row">Clear all readings history</string>
     <!-- Symbol for mebibytes (1,048,576 bytes), after a number. -->
     <string name="more_unit_mib" volt:screen="Data &amp; history" volt:purpose="unit">MiB</string>
     <!-- Stored history: %1$s used of %2$s allowed, both numbers in %3$s ("MiB"): "1.5 of 256 MiB". -->
@@ -282,7 +282,7 @@
     <!-- Group label: the PIN typed on the scooter's handlebar. -->
     <string name="more_pin_handlebar" volt:screen="PIN &amp; proximity" volt:purpose="label" volt:safety="pin">Handlebar PIN</string>
     <!-- Switch: let the handlebar PIN unlock the scooter without the phone. -->
-    <string name="more_pin_fallback" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">Fallback PIN</string>
+    <string name="more_pin_fallback" volt:screen="PIN &amp; proximity" volt:purpose="row" volt:safety="pin">PIN unlock</string>
     <!-- Icon button: ask the scooter whether the PIN is on. -->
     <string name="more_pin_read" volt:screen="PIN &amp; proximity" volt:purpose="accessibility" volt:safety="pin">Read PIN state</string>
     <!-- Row: set a new handlebar PIN. -->
@@ -347,7 +347,7 @@
     <!-- ===== Experimental controls ===== -->
 
     <!-- Card title when the official app doesn't offer some controls on this model. -->
-    <string name="more_lab_untested" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Untested controls</string>
+    <string name="more_lab_untested" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Controls to try</string>
     <!-- Card title and group label: controls the official app offers here but Volt hasn't tested. -->
     <string name="more_lab_help_verify" volt:screen="Experimental controls" volt:purpose="title" volt:safety="experimental">Help verify</string>
     <!-- Card title when there is nothing to try on this scooter. -->
@@ -440,7 +440,7 @@
     <!-- Why no control can be tried now. -->
     <string name="more_lab_held_locked" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="lock">Unlock the scooter to try these.</string>
     <!-- Why no control can be tried now. -->
-    <string name="more_lab_held_owner" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="owner-key">Only the owner\'s profile can try these.</string>
+    <string name="more_lab_held_owner" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="owner-key">Only the scooter owner can try these.</string>
     <!-- Why no control can be tried now. -->
     <string name="more_lab_held_discovery" volt:screen="Experimental controls" volt:purpose="notice" volt:safety="experimental">Wait for the compatibility check to finish.</string>
     <!-- Why no control can be tried now. -->
@@ -789,7 +789,7 @@
     <!-- Card line when Volt doesn't know the scooter's model. -->
     <string name="more_scooters_model_unknown" volt:screen="My scooters" volt:purpose="caption">Model not identified</string>
     <!-- Added after the model on a shared scooter's card ("N65i · Shared access"). Keep the leading space and the separator. -->
-    <string name="more_scooters_shared_suffix" volt:screen="My scooters" volt:purpose="caption">" · Shared access"</string>
+    <string name="more_scooters_shared_suffix" volt:screen="My scooters" volt:purpose="caption">" · Shared rider"</string>
     <!-- Card line: %1$s is Android's relative time ("5 minutes ago", "Yesterday"). -->
     <string name="more_scooters_last_connected" volt:screen="My scooters" volt:purpose="caption">Last connected %1$s</string>
     <!-- Screen-reader label of the pencil button. %1$s is the scooter's name. -->
@@ -843,7 +843,7 @@
     <!-- Why proximity unlock can't be changed: the scooter doesn't report it. -->
     <string name="more_proximity_not_reported" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Not reported by firmware</string>
     <!-- Why proximity unlock can't be turned on. -->
-    <string name="more_proximity_pin_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Enable the fallback PIN first</string>
+    <string name="more_proximity_pin_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Enable the handlebar PIN first</string>
     <!-- Why proximity unlock can't be turned on. -->
     <string name="more_proximity_pair_first" volt:screen="PIN &amp; proximity" volt:purpose="reason" volt:safety="lock">Pair this phone first</string>
     <!-- Screen-reader label of the disabled proximity switch: %1$s its name, %2$s why it is disabled. -->

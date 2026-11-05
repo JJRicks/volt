@@ -215,7 +215,7 @@ public final class GuidedTestValidation extends Instrumentation {
         awaitText("Unfinished test · removed scooter");openRecoveryFromBanner();
         awaitText("Its scooter was forgotten, so Volt can't check this setting or set it back. Check it on the scooter itself.");
         requireRecoveryOnly();
-        tapDescription("Dismiss the unfinished Dashboard units test of a forgotten scooter","orphan recovery");
+        tapDescription("Dismiss the unfinished Scooter display units test of a forgotten scooter","orphan recovery");
         awaitText("No unfinished tests.");requireRecoveryOnly();
         main(()->{
             require(activity.service().ble.orphanedTests().isEmpty(),"Orphan dismissal did not resolve the journal");
@@ -431,7 +431,7 @@ public final class GuidedTestValidation extends Instrumentation {
             fake.set(at, fake.baseline[at]);
         }
     }
-    /** The link drops after a slider try's target: unfinished; Review → Restore to Off writes once and reads it back. */
+    /** The link drops after a slider try's target: unfinished; Review → Set back to Off writes once and reads it back. */
     private void sliderReview(String step, String feature, int before, int after) throws Exception {
         // Dropped while the sheet asks (closing the sheet first would count as Skip).
         int writes = fake.writes.size();
@@ -440,9 +440,9 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> { TestJournal.Entry e = activity.service().ble.latestTry(feature); require(!e.resolved && e.phase.equals("OUTSTANDING"), step + ": after the drop " + TestJournal.line(e)); });
         reconnect("ut5", writes); parked("ut5"); openLab();
         openTry(feature); tapSheetTag("lab-review");
-        awaitText("Restore to Off");
+        awaitText("Set back to Off");
         main(() -> require(texts(root()).contains("Still on the test value, 10 km/h."), step + ": review " + texts(root()).replace('\n', '|')));
-        tapText("Restore to Off", step + " restore");
+        tapText("Set back to Off", step + " restore");
         awaitPhase(GuidedTest.Phase.DONE, step + " restored after review");
         await(() -> fake.value(feature) == before, step + ": review did not set it back", 10000);
         require(fake.writes.size() == writes + 1 && fake.lastWriteValue() == before, step + ": restore writes " + fake.describeWrites());
@@ -536,9 +536,9 @@ public final class GuidedTestValidation extends Instrumentation {
             TextView pill = (TextView)field(row, "action"); require("Review".contentEquals(pill.getText()), label + ": row pill " + pill.getText()); pill.performClick(); } });
         settle();
         awaitText("Still on the test value, Sound 1.");
-        main(() -> require(texts(root()).contains("Unfinished try · Prompt sound") && texts(root()).contains("Keep Sound 1") && texts(root()).contains("Restore to Sound 3"), label + ": review card " + texts(root()).replace('\n', '|')));
+        main(() -> require(texts(root()).contains("Unfinished try · Prompt sound") && texts(root()).contains("Keep Sound 1") && texts(root()).contains("Set back to Sound 3"), label + ": review card " + texts(root()).replace('\n', '|')));
         revealText("Unfinished try · Prompt sound"); screenshot(label + "-switch-review");
-        main(() -> { View dismiss = byDescription(root(), "Dismiss the unfinished Prompt sound try without restoring it"); require(dismiss != null, label + ": no Dismiss"); dismiss.performClick(); });
+        main(() -> { View dismiss = byDescription(root(), "Dismiss the unfinished Prompt sound try without setting it back"); require(dismiss != null, label + ": no Dismiss"); dismiss.performClick(); });
         settle();
         main(() -> {
             TestJournal journal = (TestJournal)field(activity.service().ble, "testJournal");
@@ -559,17 +559,17 @@ public final class GuidedTestValidation extends Instrumentation {
         main(() -> { BleController ble = activity.service().ble; require(!ble.testing() && ble.unresolvedTests().size() == 1 && ble.unresolvedTests().get(0).isTry(), label + ": disconnect did not leave one unfinished try"); });
         closeSheetIfOpen();
         main(() -> invoke(activity, "select", new Class<?>[]{String.class}, "controls")); settle();
-        awaitText("Unfinished try · Dashboard units"); screenshot(label + "-scooter-banner");
+        awaitText("Unfinished try · Scooter display units"); screenshot(label + "-scooter-banner");
         reconnect(label, writes);
         openLab();
         openTry("display_units");
         awaitSheetText("This try didn't finish"); sheetShot(label + "-unfinished-sheet");
         tapSheetTag("lab-review");
-        awaitText("Restore to Kilometers / km/h");
+        awaitText("Set back to Kilometers / km/h");
         main(() -> require(texts(root()).contains("Still on the test value, Miles / mph.") && texts(root()).contains("Keep Miles / mph"), label + ": review text"));
-        revealText("Unfinished try · Dashboard units"); screenshot(label + "-review-restore");
+        revealText("Unfinished try · Scooter display units"); screenshot(label + "-review-restore");
         require(fake.writes.size() == writes, label + ": reconnect wrote " + fake.describeWrites());
-        tapText("Restore to Kilometers / km/h", "restore");
+        tapText("Set back to Kilometers / km/h", "restore");
         awaitPhase(GuidedTest.Phase.DONE, label + " explicit restore");
         require(fake.writes.size() == writes + 1 && fake.lastWriteValue() == 1 && fake.value("display_units") == 1, label + ": explicit restore writes " + fake.describeWrites());
         main(() -> {
@@ -577,11 +577,11 @@ public final class GuidedTestValidation extends Instrumentation {
             require(t.outcomeTexts().equals(Arrays.asList("Setting confirmed", "Interrupted/no response", "Restoration confirmed")) && t.restorationStatus().equals("confirmed"), label + ": restored outcomes " + t.outcomeTexts());
             require(activity.service().ble.unresolvedTests().isEmpty(), label + ": still unfinished after restore");
         });
-        awaitText("Restoration confirmed"); revealText("Try · Dashboard units"); screenshot(label + "-review-restored");
+        awaitText("Restoration confirmed"); revealText("Try · Scooter display units"); screenshot(label + "-review-restored");
         closeCard(label);
         checks.add(label + ": disconnect after the target → unfinished try (row Review, sheet note, Scooter banner), zero writes on reconnect, one write on the explicit Restore tap → Restoration confirmed");
     }
-    /** Interrupted, then the owner set it back on the dashboard: Already back, Mark restored, no write. */
+    /** Interrupted, then the owner set it back on the dashboard: Already back, Mark set back, no write. */
     private void disconnectAlreadyRestored(String label) throws Exception {
         tryToObserve(label, "display_units");
         int writes = fake.writes.size();
@@ -590,16 +590,16 @@ public final class GuidedTestValidation extends Instrumentation {
         fake.set(7, fake.baseline[7]);
         reconnect(label, writes);
         openCompatibility();
-        awaitText("Mark restored");
+        awaitText("Mark set back");
         main(() -> require(texts(root()).contains("Already back to Kilometers / km/h."), label + ": review text"));
-        revealText("Unfinished try · Dashboard units"); screenshot(label + "-review-already-restored");
-        tapText("Mark restored", label); settle();
+        revealText("Unfinished try · Scooter display units"); screenshot(label + "-review-already-restored");
+        tapText("Mark set back", label); settle();
         main(() -> {
             TestJournal.Entry e = activity.service().ble.latestTry("display_units");
             require(e.resolved && e.restoration.equals("confirmed") && e.resolution.equals("already_restored") && e.outcomes.get(e.outcomes.size() - 1).equals("restoration_confirmed"), label + ": already-restored entry " + TestJournal.line(e));
         });
-        require(fake.writes.size() == writes, label + ": Mark restored wrote");
-        checks.add(label + ": an interrupted try the owner already set back reads \"Already back to …\"; Mark restored records Restoration confirmed with no write");
+        require(fake.writes.size() == writes, label + ": Mark set back wrote");
+        checks.add(label + ": an interrupted try the owner already set back reads \"Already back to …\"; Mark set back records Restoration confirmed with no write");
     }
     private void closeCard(String label) {
         main(() -> { TextView close = byText(root(), "Close"); require(close != null, label + ": no Close"); close.performClick(); }); settle();
@@ -927,11 +927,11 @@ public final class GuidedTestValidation extends Instrumentation {
         await(() -> { boolean[] r = {false}; main(() -> r[0] = activity.service().ble.ready()); return r[0]; }, "reconnect not ready", 12000);
         SystemClock.sleep(6000);
         require(fake.writes.isEmpty() && fake.reads.contains(0x70), "automatic writes after restart and reconnect: " + fake.describeWrites());
-        awaitText("Restore to Sound 3");
+        awaitText("Set back to Sound 3");
         main(() -> require(texts(root()).contains("Still on the test value, Sound 5.") && texts(root()).contains("Keep Sound 5"), "review text"));
         revealText("Unfinished try · Prompt sound"); screenshot("interrupt-4-reconnected-review");
         require(fake.writes.isEmpty(), "write before the Restore tap");
-        tapText("Restore to Sound 3", "restore");
+        tapText("Set back to Sound 3", "restore");
         awaitPhase(GuidedTest.Phase.DONE, "restore after restart");
         require(fake.writes.size() == 1 && fake.lastWriteValue() == 2 && fake.state[21] == 2, "restore writes " + fake.describeWrites());
         main(() -> {
@@ -1088,9 +1088,9 @@ public final class GuidedTestValidation extends Instrumentation {
             parked(label);
             final int writes = fake.writes.size();
             openTry("turn_sound"); tapSheetTag("lab-review");
-            awaitText("Restore to Off");
+            awaitText("Set back to Off");
             main(() -> require(texts(root()).contains("Still on the test value, On."), label + ": review " + texts(root()).replace('\n', '|')));
-            tapText("Restore to Off", label + " restore");
+            tapText("Set back to Off", label + " restore");
             awaitPhase(GuidedTest.Phase.DONE, label + " unconfirmed try restored");
             await(() -> fake.value("turn_sound") == 0, label + ": review did not set it back", 10000);
             require(fake.writes.size() == writes + 1, label + ": restore writes " + fake.describeWrites());
