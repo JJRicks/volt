@@ -3,3 +3,8 @@
 # G5: the English MainActivity joins, chooses and formats today, pinned before the batch.
 src/com/jjricks/volt/Fmt.java
 tests/l10n/characterization/MainActivityTextTest.java
+# B19's own suite: the catalog keys against MainActivityTextTest.Base, every branch, the short-hours
+# form, the charge reasons, TextFit's thresholds on Saira, and a key-echo source.
+tests/l10n/MainTextTest.java
+src/com/jjricks/volt/TextFit.java
+src/com/jjricks/volt/ChargeScheduleText.java
