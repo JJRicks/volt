@@ -748,5 +748,57 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
                                   ("es", "Bloqueo: activado", "bloqueo")):
             self.assertTrue(lexicon.term_found(tag, "Latn", target, text), (tag, text))
 
+class HungarianChecksTest(unittest.TestCase):
+    """hu: the lock and on or off checks, on the wordings its style guide allows and forbids."""
+    LOCK = ["Lezárás", "zárd le", "lezárod", "lezárja", "zárja le", "lezárni", "lezárhatod", "lezárható",
+            "zárta le", "lezárta", "zárható le", "le kell zárni"]
+    LOCKED = ["Lezárva", "lezárt", "le van zárva"]
+
+    def test_lock_inverted_is_not_the_lock_term(self):
+        for text in ("A lezárás feloldása", "Lezárás feloldása", "Lezárás: feloldva", "A lezárás fel van oldva",
+                     "A lezárást oldd fel", "Oldd fel a lezárást", "Oldd fel a roller lezárását",
+                     "A Volt feloldja a lezárást", "lezárásfeloldás", "Lezárás-feloldás", "Lezárás kioldása",
+                     "A lezárás nem oldható fel", "A lezárás kikapcsolása", "Lezárás megszüntetése", "Lezárás: ki",
+                     "Lezárás: kikapcsolva", "A lezárás ki van kapcsolva", "Kapcsold ki a lezárást",
+                     "Szüntesd meg a lezárást", "Lezárás törlése", "Lezárás eltávolítása"):
+            self.assertFalse(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCK), text)
+        self.assertFalse(any(lexicon.term_found("hu", "Latn", t, "Lezárva: feloldva") for t in self.LOCKED))
+
+    def test_lock_wording_keeps_the_lock_term(self):
+        for text in ("Lezárás", "Lezárás…", "A roller lezárásához", "Zárd le a rollert", "Lezárás és feloldás",
+                     "Lezárás vagy feloldás", "Nem zárta le a rollert", "A roller nem zárható le",
+                     "Le kell zárni a rollert", "Oldd fel, majd zárd le", "Oldd fel a rollert és zárd le",
+                     "A Volt nem tudja feloldani vagy lezárni", "Feloldhatod lezárás után", "A lezárás sikertelen",
+                     "Kapcsold ki a lámpát lezárás előtt", "A lezárás törli a szakaszt",
+                     "A lezárás kikapcsolja a lámpát", "Lezárás feloldás nélkül"):
+            self.assertTrue(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCK), text)
+        for text in ("Lezárva", "Lezárva feloldásig", "A roller le van zárva", "Feloldja a lezárt rollert",
+                     "Kapcsold ki a lezárt rollert"):
+            self.assertTrue(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCKED), text)
+
+    def test_removal_words_are_right_when_the_english_removes(self):
+        self.assertEqual(_errors("hu", "Turn off the lock", "Kapcsold ki a lezárást", ["Lezárás"]), [])
+        self.assertIn("glossary", _errors("hu", "Lock scooter", "Kapcsold ki a lezárást", ["Lezárás"]))
+        self.assertIn("glossary", _errors("hu", "Lock scooter", "A lezárás feloldása", ["Lezárás"]))
+
+    def test_on_off_state_inversion_fails_a_safety_key(self):
+        for english, text in (("Lock: on", "Lezárás: Ki"), ("Lock: on", "Lezárás: kikapcsolva"),
+                              ("Alarm sound off", "Riasztási hang bekapcsolva"), ("Alarm sound off", "Riasztási hang: Be"),
+                              ("Lock: on", "A lezárás nincs bekapcsolva"), ("Alarm off", "A riasztás be van kapcsolva")):
+            self.assertIn("polarity", _errors("hu", english, text), text)
+        for english, text in (("Alarm sound off", "Riasztási hang kikapcsolva"), ("Alarm sound off", "Riasztási hang: Ki"),
+                              ("Alarm on", "Mindig bekapcsolva"),
+                              ("Alarm off", "Kapcsold ki a riasztást"), ("Alarm on", "Kapcsold be a riasztást")):
+            self.assertNotIn("polarity", _errors("hu", english, text), text)
+
+    def test_a_negated_state_counts_as_the_other(self):
+        self.assertEqual(lexicon.state_words("hu", "A riasztás nincs kikapcsolva"), (["kikapcsolva"], []))
+        self.assertEqual(lexicon.state_words("hu", "Nem volt bekapcsolva"), ([], ["bekapcsolva"]))
+
+    def test_power_button_is_no_state(self):
+        self.assertEqual(lexicon.state_words("hu", "Nyomd meg a bekapcsoló gombot"), ([], []))
+        self.assertEqual(lexicon.state_words("hu", "Kipróbálás"), ([], []))
+
+
 if __name__ == "__main__":
     unittest.main()

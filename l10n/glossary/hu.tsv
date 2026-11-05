@@ -1,6 +1,6 @@
 # Hungarian glossary. CLAUDE-ONLY PROPOSAL (2026-11-05): drafted by one model, not judged by the council; nothing here is final, safety rows included.
 # Same columns as en.tsv: term holds the Hungarian, forms separated by " | ". Definitions are D3's where D3 changed them. Evidence and reasons are in l10n/style/hu.md; the source column names only Hungarian evidence, so a bare claude-only row is Claude's choice.
-# Hungarian takes suffixes, and the check matches a form at the start of a word, so roller also finds rollert. Forms are listed only where the stem changes (lámpa, lámpát) or a verb splits (feloldod, oldd fel). Lock and unlock rows list whole forms, never a bare stem, so a word such as lezáratlan cannot pass as Lock.
+# Hungarian takes suffixes, and the check matches a form at the start of a word, so roller also finds rollert. Forms are listed only where the stem changes (lámpa, lámpát) or a verb splits (feloldod, oldd fel). Lock and unlock rows list whole forms, never a bare stem, so a word such as lezáratlan cannot pass as Lock. A few other rows end a form at the long stem (diagnosztiká, hátsó lámpá, töltés kezdeté) so that every suffixed form matches; those forms are for the check, not words to copy.
 # Rows D3 retires keep the chosen term's Hungarian until en.tsv drops them. D3's new and renamed rows wait in l10n/pending/glossary-d3/hu.tsv until D3 merges (scratch/lang/glossary_hold.py restores them). acceleration-eco and acceleration-turbo become do-not-translate at D3, so those two rows must go when it merges.
 # HOLD until D3 merges: en.tsv and the strings still use Top speed and Maximum speed in their old senses, while the top-speed and maximum-speed rows already use D3's. Following those rows now would call the setting Csúcssebesség and the measured value Maximális sebesség, the swap section 7 of the style guide forbids.
 # So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3.
@@ -27,9 +27,9 @@ usb-debugging	USB hibakeresés | USB-hibakeresés	Android's setting. Use Android
 developer-options	Fejlesztői beállítások	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	claude-only claude-opus-5-5; AOSP hu
 build-number	Buildszám	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	claude-only claude-opus-5-5; AOSP hu
 electronic-lock	elektronikus zár	Volt's lock control.	noun phrase	no	lock	claude-only claude-opus-5-5
-lock	Lezárás | zárd le | lezárod | lezárja | zárja le | lezárni | lezárhatod | lezárható	The action that locks the scooter.	verb	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
-locked	Lezárva | lezárt | le van zárva	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
-unlock	Feloldás | oldd fel | oldod fel | oldja fel | feloldod | feloldja | feloldani | feloldhatod | feloldható	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
+lock	Lezárás | zárd le | lezárod | lezárja | zárja le | lezárni | lezárhatod | lezárható | zárta le | lezárta | zárható le | zárhatod le | zárhatja le | lezárhatja | le kell zárni | le tudod zárni	The action that locks the scooter.	verb	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
+locked	Lezárva | lezárt | le van zárva | le volt zárva | le lesz zárva	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
+unlock	Feloldás | oldd fel | oldod fel | oldja fel | feloldod | feloldja | feloldani | feloldhatod | feloldható | oldotta fel | feloldotta | oldható fel | oldhatod fel | oldhatja fel | feloldhatja | fel kell oldani | fel tudod oldani	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
 unlocked	Feloldva | feloldott | fel van oldva	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
 lock-bar	Lezárási sáv	The lock row on Home.	noun phrase	no	lock	claude-only claude-opus-5-5
 lock-state-unverified	Zár állapota nincs ellenőrizve | a zár állapota nincs ellenőrizve	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5
@@ -44,19 +44,19 @@ connect	Csatlakozás | csatlakozz | csatlakozol | csatlakozik | csatlakozni | cs
 disconnect	Leválasztás | válaszd le | leválasztod | leválasztja | leválasztani | leválasztva | leválasztott	End the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; AOSP hu
 connection-details	Kapcsolat részletei | kapcsolat részleteit	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	claude-only claude-opus-5-5
 signal-lost	Elveszett a jel | a jel elveszett	The Bluetooth link dropped.	clause	no	-	claude-only claude-opus-5-5
-parked	álló helyzetben | álló helyzet | álló roller | áll a roller | állj meg	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5
-model-id	Modellazonosító	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	claude-only claude-opus-5-5
+parked	álló helyzetben | álló helyzet | álló roller | áll a roller | parkol	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5
+model-id	Modell-azonosító | modellazonosító	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	claude-only claude-opus-5-5
 firmware	firmware	The scooter's software. Volt never changes it.	noun	no	-	claude-only claude-opus-5-5
 compatibility-check	kompatibilitás-ellenőrzés	A read-only check of what this scooter supports.	noun phrase	no	-	claude-only claude-opus-5-5
 compatibility-checker	kompatibilitás-ellenőrző	The screen that runs the compatibility check.	noun phrase	no	-	claude-only claude-opus-5-5
 compatibility-report	kompatibilitási jelentés	The emailed result of the compatibility check. The UI is translated; the report content stays English.	noun phrase	no	-	claude-only claude-opus-5-5
 report-an-issue	Probléma jelentése | jelents problémát | jelentsd a problémát	Send an email to Volt with an English attachment.	verb phrase	no	privacy	claude-only claude-opus-5-5
-diagnostics	Diagnosztika | diagnosztikát | diagnosztikai	The section that collects the information a report sends.	noun	no	privacy	claude-only claude-opus-5-5
+diagnostics	Diagnosztika | diagnosztiká | diagnosztikai	The section that collects the information a report sends.	noun	no	privacy	claude-only claude-opus-5-5
 diagnostics-file	diagnosztikai fájl	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5
 experimental-controls	Kísérleti funkciók | kísérleti funkció | Kísérleti	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5
-untested-controls	Kipróbálható funkciók | kipróbálható funkció	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5
-try	Kipróbálás | próbáld ki | próbálja ki | kipróbálod | kipróbálja | kipróbálni | kipróbálhatod | kipróbálható	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5
-set-back	Visszavonás | vond vissza | visszavonod | visszavonja | visszavonni | visszavonva	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5
+untested-controls	Kipróbálásra váró funkciók | kipróbálásra váró funkció	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5
+try	Kipróbálás | próbáld ki | próbálja ki | kipróbálod | kipróbálja | kipróbálni | kipróbálhatod | kipróbálható | próbálhatja ki | próbálhatod ki | próbálta ki | kipróbálhatja | kipróbált | próbáld újra | próbálja újra	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5
+set-back	Visszaállítás | állítsd vissza | visszaállítod | visszaállítja | visszaállítani | visszaállítva | állítja vissza | állította vissza | állítható vissza | állíthatod vissza | visszaállítható | visszaállíthatod	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5
 help-verify	Segíts az ellenőrzésben | segíts ellenőrizni	Ask the rider to confirm what a try did.	verb phrase	no	experimental	claude-only claude-opus-5-5
 unverified	Nincs ellenőrizve | nem ellenőrzött	Volt has not confirmed the control on this model.	adjective	no	experimental	claude-only claude-opus-5-5
 untested	Nincs kipróbálva | nem kipróbált	No one has tried the control on this model yet.	adjective	no	experimental	claude-only claude-opus-5-5
@@ -73,7 +73,7 @@ acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own n
 energy-recovery	Energia-visszanyerés | Visszanyerés	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	claude-only claude-opus-5-5
 regen	Energia-visszanyerés | Visszanyerés	D3 retired the English 'regen' (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Use the term shown.	noun	no	ride	claude-only claude-opus-5-5
 motor-braking	Energia-visszanyerés | Visszanyerés	D3 retired the English 'motor braking' (energy recovery chosen). Use the term shown.	noun phrase	no	ride	claude-only claude-opus-5-5
-energy-recovery-off	Ki | Kikapcsolva	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5
+energy-recovery-off	Kikapcsolva	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5
 energy-recovery-low	Alacsony	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5
 energy-recovery-medium	Közepes	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5
 energy-recovery-high	Magas	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5
@@ -92,13 +92,13 @@ top-speed	Csúcssebesség | Csúcs	The highest speed measured on a trip or ride.
 walk-assist	Tolássegéd	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5
 power-assist	Teljesítmény-rásegítés | Rásegítés	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5
 boost	Boost	Extra power in Sport mode.	noun	no	ride	claude-only claude-opus-5-5
-low-battery-mode	Alacsony akkuszint mód	A battery toggle that limits power to save charge.	noun phrase	no	-	claude-only claude-opus-5-5
+low-battery-mode	Alacsony akkuszintű mód	A battery toggle that limits power to save charge.	noun phrase	no	-	claude-only claude-opus-5-5
 long-range-mode	Nagy hatótávú mód	A battery toggle that trades speed for distance.	noun phrase	no	-	claude-only claude-opus-5-5
-tail-light	Hátsó lámpa | hátsó lámpát | hátsó lámpája | hátsó lámpáját	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	claude-only claude-opus-5-5; other brands HU manuals
+tail-light	Hátsó lámpa | hátsó lámpá	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	claude-only claude-opus-5-5; other brands HU manuals
 automatic-lights	Automatikus világítás	Lights that switch on by themselves.	noun phrase	no	-	claude-only claude-opus-5-5
 line-lights	Fénycsík	A light strip on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5
 star-lights	Csillagfény	A light pattern on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5
-ambient-light	Hangulatvilágítás	Decorative light on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5
+ambient-light	Hangulat-világítás | hangulatvilágítás	Decorative light on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5
 logo-light	Logóvilágítás	The lit logo on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5
 daytime-running-light	Nappali menetfény	A light that stays on while riding by day.	noun phrase	no	-	claude-only claude-opus-5-5
 turn-signal	Irányjelző	The turn indicator; in Volt, the control for its sound.	noun phrase	no	-	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
@@ -107,8 +107,8 @@ follow-headlight	Fényszóróval együtt	A light setting that follows the headli
 always-on	Mindig bekapcsolva	A light setting that never switches off.	adjective phrase	no	-	claude-only claude-opus-5-5
 light-red	Piros	A light colour.	adjective	no	-	claude-only claude-opus-5-5
 light-ice-blue	Jégkék	A light colour.	adjective	no	-	claude-only claude-opus-5-5
-dashboard-units	Kijelző mértékegysége | kijelző mértékegységei | roller kijelzőjének mértékegysége	D3 retired the English 'Dashboard units' (scooter display units chosen). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5
-scooter-display-units	Kijelző mértékegysége | kijelző mértékegységei | roller kijelzőjének mértékegysége	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5
+dashboard-units	Kijelző mértékegysége | kijelző mértékegység | roller kijelzőjének mértékegység	D3 retired the English 'Dashboard units' (scooter display units chosen). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5
+scooter-display-units	Kijelző mértékegysége | kijelző mértékegység | roller kijelzőjének mértékegység	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5
 miles	Mérföld	A display unit choice.	noun	no	-	claude-only claude-opus-5-5
 kilometers	Kilométer	A display unit choice.	noun	no	-	claude-only claude-opus-5-5
 dashboard	Irányítópult	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	claude-only claude-opus-5-5
@@ -127,14 +127,14 @@ actual-riding	Valós használat	A range basis: how this scooter has really been 
 charge-limit	Töltési korlát	The maximum charge percentage.	noun phrase	no	charge	claude-only claude-opus-5-5
 charge-ceiling	Töltési korlát	D3 retired the English 'charge ceiling' (charge limit chosen; ceiling stays only as a search keyword). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5
 scheduled-charging	Ütemezett töltés | töltés ütemezése	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	claude-only claude-opus-5-5; official NAVEE XT5 EU guide HU
-charge-start	Töltés kezdete | töltés kezdetét | töltés kezdetekor	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5
+charge-start	Töltés kezdete | töltés kezdeté | töltés kezdetekor	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5
 charging-start-time	Töltés kezdési időpontja | töltés kezdési időpontját	The setting for when scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5
-next-charge-start	Következő töltés kezdete | következő töltés kezdetét	When the next scheduled charge begins.	noun phrase	no	charge	claude-only claude-opus-5-5
-charge-done-by	Legyen kész | Töltés legyen kész | Befejezési idő	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	claude-only claude-opus-5-5
+next-charge-start	Következő töltés kezdete | következő töltés kezdeté	When the next scheduled charge begins.	noun phrase	no	charge	claude-only claude-opus-5-5
+charge-done-by	Legyen kész | Befejezési idő | Célidő	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	claude-only claude-opus-5-5
 test-scheduled-charging	Ütemezett töltés tesztelése | teszteld az ütemezett töltést	A check of the scooter's clock and schedule.	verb phrase	no	charge	claude-only claude-opus-5-5
-measure	Mérés | mérd meg | megméri	Watch the charger for about 10 minutes before planning.	verb	no	charge	claude-only claude-opus-5-5
-measuring	Mérés folyamatban | mérés	The state while Volt measures the charger.	verb	no	charge	claude-only claude-opus-5-5
-battery-alerts	Akkufigyelmeztetések | akkufigyelmeztetés	Alerts on models without a charge limit.	noun phrase	no	alarm	claude-only claude-opus-5-5
+measure	Mérés | mérd meg | megméri | méri | mérni	Watch the charger for about 10 minutes before planning.	verb	no	charge	claude-only claude-opus-5-5
+measuring	Mérés folyamatban | mérés | méri | mérni	The state while Volt measures the charger.	verb	no	charge	claude-only claude-opus-5-5
+battery-alerts	Akku-figyelmeztetések | akku-figyelmeztetés | akkufigyelmeztetés	Alerts on models without a charge limit.	noun phrase	no	alarm	claude-only claude-opus-5-5
 charge-alert	Töltési figyelmeztetés	An alert when charging reaches a level.	noun phrase	no	alarm	claude-only claude-opus-5-5
 low-battery-alert	Figyelmeztetés alacsony akkuszintre | Alacsony akkuszint	An alert when the battery falls to a level.	noun phrase	no	alarm	claude-only claude-opus-5-5
 notify-me	Értesíts | értesítést kérek	Choose a notification for an alert.	verb phrase	no	alarm	claude-only claude-opus-5-5
@@ -143,8 +143,8 @@ stop	Leállítás | állítsd le | leállítod | leállítja	Silence a sounding 
 stop-watching	Figyelés leállítása | állítsd le a figyelést	End an alert's watch.	verb phrase	no	alarm	claude-only claude-opus-5-5
 charge-recording	Rögzített töltés | töltés rögzítése	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5
 charger-profile	töltőprofil	What Volt has learned about a charger, for estimates.	noun phrase	no	charge	claude-only claude-opus-5-5
-time-to-full	Idő a teljes töltésig | teljes töltésig	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5
-rides	Utak | út | utat | útja | útjai	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5
+time-to-full	Idő a teljes töltésig | teljes töltésig | teljes feltöltésig	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5
+rides	Utak | utat | útja	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5
 ride-recording	út rögzítése | utak rögzítése | útrögzítés	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5
 phone-journal	Telefonos napló	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5
 motion	Mozgás	Movement data of a ride.	noun	no	-	claude-only claude-opus-5-5
@@ -152,7 +152,7 @@ route	Útvonal	The path of a ride on the map.	noun	no	-	claude-only claude-opus-
 backup	Biztonsági mentés	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; AOSP hu
 full-backup	Teljes biztonsági mentés | teljes mentés	A backup of everything.	noun phrase	no	privacy	claude-only claude-opus-5-5
 selected-data	Kiválasztott adatok	A backup of the chosen parts.	noun phrase	no	privacy	claude-only claude-opus-5-5
-restore	Visszaállítás | állítsd vissza | visszaállítod | visszaállítja | visszaállítani | visszaállítva | visszaállítható	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; AOSP hu
+restore	Visszaállítás | állítsd vissza | visszaállítod | visszaállítja | visszaállítani | visszaállítva | visszaállítható | állítja vissza | állította vissza | állítható vissza | visszaállíthatod	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; AOSP hu
 replace-everything	Minden lecserélése | cseréld le az összeset	A restore that replaces all of Volt's data.	verb phrase	no	privacy	claude-only claude-opus-5-5
 owner-setup-file-scooter-access	Tulajdonosi beállítófájl · csak a roller elérése	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5
 simulated-scooter	Szimulált roller	Demo mode with no real scooter.	noun phrase	no	-	claude-only claude-opus-5-5

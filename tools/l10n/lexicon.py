@@ -214,6 +214,12 @@ STATE_WORDS = {
            "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
            "inaktiverad\\w*|inaktiverat|inaktivera|avaktiverad\\w*|avaktiverat|avaktivera|inaktiv|inaktivt|"
            "hävd|hävt"),
+    # A split verb keeps its state word after the verb ("kapcsold be") or before "van" ("ki van kapcsolva").
+    # The power button ("bekapcsoló gomb") is no state. Bare "be" and "ki" count only at the end of a phrase.
+    "hu": ("be" + _STATE_END + "|bekapcsol(?!ó\\s+gomb)\\w*|be\\s+(?:van|volt|lesz|lett)\\s+kapcsolva|"
+           "kapcsol(?:d|od|ja|ta|tad|ni|ható|hatod|hatja)?\\s+be|engedélyez\\w*|aktív\\w*|aktivál\\w*",
+           "ki" + _STATE_END + "|kikapcsol\\w*|ki\\s+(?:van|volt|lesz|lett)\\s+kapcsolva|"
+           "kapcsol(?:d|od|ja|ta|tad|ni|ható|hatod|hatja)?\\s+ki|letilt\\w*|tiltva|inaktív\\w*|deaktivál\\w*"),
     "id": ("aktif|diaktifkan|aktifkan(?:nya)?|mengaktifkan(?:nya)?|menyala|nyala|nyalakan(?:nya)?|"
            "menyalakan(?:nya)?|dinyalakan|hidup|dihidupkan|hidupkan(?:nya)?",
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
@@ -240,6 +246,7 @@ STATE_NEGATION_GAP = {
     "nl": {"is", "wordt", "zijn", "worden", "meer", "langer"},
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
+    "hu": {"van", "volt", "lesz", "lett"},
     "id": {"sedang", "akan", "lagi"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
@@ -324,6 +331,14 @@ OPPOSITE_CONTEXT = {
     "nb": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "nn": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "da": ("", "^[^\\W\\d_]*\\s+op(?![^\\W_])"),
+    # Unlock as the lock word plus "release" after it: "A lezárás feloldása" ("release of the lock"),
+    # "Lezárás: feloldva", "A lezárás fel van oldva", "A lezárást oldd fel", "lezárásfeloldás", and the
+    # same with nem or nincs. Not "Lezárva feloldásig" or "Lezárás feloldás nélkül". The verb before the
+    # lock word ("Oldd fel a lezárást") is in OPPOSITE_AROUND.
+    "hu": ("", "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)?(?:(?:nem|nincs|sincs)\\s+)?"
+               "(?:felold(?!ásig|ásra|ásnál|ás\\s+(?:előtt|után|nélkül|helyett))|"
+               "fel\\s+(?:van|volt|lesz|lett|kell|lehet)\\s+old|"
+               "old(?:d|od|ja|otta|ottad|ható|hatod|hatja)\\s+fel|kiold|kinyit|nyit(?:ás|va|ott|d|ni))"),
     "id": ("(?<![^\\W_])(?:buka|bukalah|membuka|dibuka|terbuka|pembukaan)\\s+$", ""),
     "ar": ("(?<![^\\W_])[وف]?[لب]?(?:ال)?(?:فتح|افتح|يفتح|تفتح|فك|يفك|إلغاء|الغاء)\\s+$", ""),
     "ur": ("(?<![^\\W_])ان\\s*$", "^\\S*\\s+(?:کھول|کھل)"),
@@ -445,6 +460,12 @@ REMOVAL_CONTEXT = {
                    "του|της|το|την|τα|των|τον|η|ο"),
            _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
                   "εχει|ειναι|θα")),
+    # "A lezárás kikapcsolása", "Lezárás: ki", "A lezárás ki van kapcsolva", "A lezárás megszüntetése". Nouns and
+    # participles only: "A lezárás törli…" and "A lezárás kikapcsolja a lámpát" say what locking does.
+    "hu": ("", "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:(?:nem|nincs|sincs)\\s+)?"
+               "(?:kikapcsol(?:ás|va|t(?![^\\W_]))|ki\\s+(?:van|volt|lesz|lett)\\s+kapcsol|"
+               "kapcsol(?:d|od|ja|ta|ható|hatod|hatja)\\s+ki|megszüntet(?:és|ve)|megszűn|szüntesd\\s+meg|"
+               "törlés|törölve|töröld|eltávolít(?:ás|va)|távolítsd\\s+el|ki\\s*[.!?)]?\\s*$)"),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
 }
@@ -453,11 +474,24 @@ REMOVAL_CONTEXT = {
 # lock) and "关闭滑板车锁定" (turn off the scooter lock) only when the target ends the clause, so
 # "打开应用的锁定页面" (open the app's lock page) keeps its lock term. The removal pairs follow
 # REMOVAL_CONTEXT's English rule.
+# hu: a verb before the lock word, "Oldd fel a (roller) lezárását", "Kapcsold ki a lezárást". Only when
+# the lock word itself is the object, so it runs on into its ending or ends the text: "Feloldja a lezárt
+# rollert" and "Feloldhatod lezárás után" keep the lock term. The one word between is a possessor, so it
+# isn't another object (-t) or a word that starts a new step ("Oldd fel a rollert és zárd le").
+_HU_OBJECT = ("\\s+(?:az?\\s+)?(?:(?!(?:és|vagy|majd|hogy|ha|mert|de|ami|amikor|aztán|mielőtt|után|előtt)\\s)"
+              "[^\\W\\d_]*[^\\W\\d_t]\\s+)?$")
+_HU_OBJECT_END = "^(?:[^\\W\\d_]|\\s*$)"
 OPPOSITE_AROUND = {
     "zh": (("(?:打开|打開)(?:%s的)?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+    "hu": (("(?<![^\\W_])(?:old(?:d|od|ja|otta|ottad|ható|hatod|hatja)\\s+fel|fel\\s+(?:kell|tudod|tudja)\\s+oldani|"
+            "felold(?:od|ja|otta|ani|hatod|hatja|ható)|nyisd\\s+ki|kinyit(?:od|ja|ni)|oldd\\s+ki|kiold(?:od|ja|ani))"
+            + _HU_OBJECT, _HU_OBJECT_END),),
 }
 REMOVAL_AROUND = {
     "zh": (("(?:关闭|關閉|停用|禁用)%s的?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+    "hu": (("(?<![^\\W_])(?:kapcsol(?:d|od|ja|ta|ható|hatod|hatja)\\s+ki|kikapcsol(?:od|ja|ta|ni|hatod|hatja|ható)|"
+            "szüntesd\\s+meg|szünteti\\s+meg|megszüntet(?:i|ni|heted|heti)|töröld|törli|távolítsd\\s+el|"
+            "eltávolít(?:od|ja|ani))" + _HU_OBJECT, _HU_OBJECT_END),),
 }
 
 

@@ -9,7 +9,7 @@
 - Address the rider as **te**, singular, always: *Csatlakoztasd a töltőt*, *a rollered*. Never Ön, never *önözés*, never a mix. NAVEE's own Hungarian manual mixes the two, and Android's Hungarian and Microsoft's guide use Ön, so don't copy sentences from them.
 - Use no pronoun where the verb already says who: *Csatlakozz a rollerhez*, not *Te csatlakozz*. Possessives sparingly: *a roller*, and *a rollered* only where ownership matters.
 - Calm, plain, direct. No marketing tone, no slang, no *kérlek* in short labels, and at most one in a sentence where a real request is polite.
-- **Buttons, toggles and menu actions use the verbal noun** (-ás, -és), as Android's Hungarian does: *Mentés*, *Csatlakozás*, *Lezárás*, *Feloldás*, *Visszaállítás*. With an object the noun takes -a/-e: *Modul hozzáadása*, *Probléma jelentése*. Never the imperative or a bare infinitive on a button. The exception is *Értesíts* (Notify me), which is an answer in the rider's voice.
+- **Buttons, toggles and menu actions use the verbal noun** (-ás, -és), as Android's Hungarian does: *Mentés*, *Csatlakozás*, *Lezárás*, *Feloldás*, *Visszaállítás*. With an object the noun takes -a/-e: *Modul hozzáadása*, *Probléma jelentése*. Never the imperative or a bare infinitive on a button. There are three exceptions and no others: *Értesíts* (Notify me), an answer in the rider's voice; *Segíts az ellenőrzésben* (Help verify), an invitation; and the bare verbs *Telepít* and *Megnyit* on the 48dp buttons of `owner_shizuku_install` and `owner_shizuku_open` (section 5).
 - **Instructions in sentences use the te imperative**: *Koppints*, *Nyisd meg*, *Add meg az új PIN-kódot*, *Csatlakozz újra*. Don't mix the two in one string.
 - **Status text uses -va/-ve with no subject**: *Lezárva*, *Csatlakozva*, *Bekapcsolva*. A running action is the verbal noun plus `…`: *Csatlakozás…*, *Lezárás…*. It stays distinct from the finished *Lezárva*.
 - Finished events are past tense without a subject where it's clear: *Itt működött*, *Elveszett a jel*.
@@ -29,7 +29,7 @@
 
 ## 3. Capitalization
 
-- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Töltési korlát*, *Kísérleti funkciók*, *Alacsony akkuszint mód*. Never English Title Case, even when the English has it (*Walk Assist* → *Tolássegéd*).
+- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Töltési korlát*, *Kísérleti funkciók*, *Alacsony akkuszintű mód*. Never English Title Case, even when the English has it (*Walk Assist* → *Tolássegéd*).
 - Feature names are lower case mid-sentence: *kapcsold be az ütemezett töltést*. Days, months and language names are lower case.
 - Button: *Mentés*. Label: *Hatótáv*. Title: *Biztonsági mentés és visszaállítás*. After a colon: lower case (section 2).
 - Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android. Drive modes and level names are never translated and keep the case the English string uses in that string (*Sport*, *ECO*, *Drive*): *Sport mód* where the English says Sport.
@@ -43,7 +43,7 @@
 - **Number and unit take a no-break space (U+00A0):** *25 km/h*, *36 V*, *25 °C*, *2 h 05 min*. Symbols stay, with no period and no plural: km, mi, mph, h, min, s, V, A, W, Wh, Ah. Not *km/óra*, which everyday Hungarian also uses, because unit symbols stay as written. Unit words are translated: *kilométer*, *mérföld*, *perc*, *óra*.
 - Keep every number the English has, as digits. Don't spell them out, even short ones.
 - **Dates and times** come from Volt's formatters; don't hard-code an order. Hungarian runs year, month, day, and each numeric part and the day end in a period: *2026. 11. 05.*, *2026. nov. 5.*, *nov. 5.* Months are lower case. Time is 24-hour with no leading zero in the hour: *9:30*, *14:30*. A placeholder may hold *2:30 PM*, so it takes no suffix and no *-kor* (section 8).
-- Compact words: *k* on a chart is *e* (ezer: *10 e*), *pts* is *pt*.
+- Compact words: *k* on a chart is *e* (ezer: *10 e*), *pts* is *pt*.
 - **Plurals: `one` and `other`.** A noun after a number or a word of quantity stays singular, and so does its verb: *1 perc*, *5 perc*, *3 roller van*, *több út*. Never *5 percek* or *3 rollerek*. So `one` and `other` are often the same phrase, and that's correct, not a copy error. `one` covers exactly 1, and may drop the number (*Egy perc*). `other` must keep it.
 
 ## 5. How to shorten labels for ladder rungs
@@ -63,7 +63,7 @@ Order: full → `_short` → `_compact` → icon. Width is measured in Saira, ne
 | sebesség | **seb.** | | Only after *Max.* or *Átl.* Never alone: *seb* means a wound |
 | hőmérséklet | **Hőm.**, in a compound **-hőm.** | Hőm. 30.3, Akkuhőm. 58.0 | |
 | teljesítmény | **Telj.** | 22.9 | |
-| kapacitás | **Kap.** | 25.7, Becs. kapacitás 88.8 | |
+| kapacitás | **kap.**, only after *Becs.* | Becs. kap. 57.9, Becs. kapacitás 88.8 | Never a bare *Kap.*: it drops "estimated" and *kap* is an everyday verb ("gets"). Rated capacity's compact rung is the whole word *Kapacitás* 56.6 |
 | becsült | **Becs.**; a separate tag **becs.** | Becs. hatótáv 77.9, becs. 21.2 at 9sp | `stats_health_chip` takes *becs.* |
 | körülbelül | **kb.** | 16.9 | Before a number |
 | beállítások | **Beáll.**, in a compound **-beáll.** | Beáll. 32.2, Akkubeáll. 60.4, Menetbeáll. 68.4, App-beáll. 58.9 | |
@@ -82,7 +82,7 @@ Order: full → `_short` → `_compact` → icon. Width is measured in Saira, ne
 | Battery current / Current | Akkuáram (59.0) | Akkuáram | Áram (31.2) |
 | Trip avg. speed / Avg. speed | Szakasz átlagsebessége | Átlagsebesség (85.2) | Átl. seb. (46.3) |
 | Est. range / Range | Becsült hatótáv (90.3) | Becs. hatótáv (77.9) | Hatótáv (46.0) |
-| Est. capacity | Becsült kapacitás (101.1) | Becs. kapacitás (88.8) | Kap. (25.7) |
+| Est. capacity | Becsült kapacitás (101.1) | Becs. kapacitás (88.8) | Becs. kap. (57.9) |
 | Energy recovery | Energia-visszanyerés (124.7) | Visszanyerés (77.3) | fall to the icon |
 | Compatibility check | Kompatibilitás-ellenőrzés (147.7) | Kompatibilitás (83.5) | Ellenőrzés (60.2) |
 | Worked here / Worked | Itt működött (71.7) | Működött (56.0) | |
@@ -92,15 +92,15 @@ Order: full → `_short` → `_compact` → icon. Width is measured in Saira, ne
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: Lezárás 45.1, Akku 29.3, Utak 27.3. *Beállítások* is 64.3 and doesn't fit, so **Beáll.** 32.2.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: Beállítások 61.7, Világítás 48.4, Élő adatok 58.7, Utak 26.2, Akkubeáll. 58.0, Fénycsík 48.9, Csillagfény 61.8, Roller neve 62.4, Rollereim 53.0, Kísérleti 46.0, Névjegy 45.9, Adatok 39.9. Ride settings: *Menetbeáll.* is 65.7, so **Menet** 35.8. Display & sound: **Kijelző** 37.3. PIN & proximity: **PIN** 20.1. Charge done by: **Legyen kész** is 68.9 and overflows by 4.9; note it rather than swapping the meaning. Charge done time: **Befejezés** 54.8.
+- `dashboard_model_qa_*`, 64dp at 12sp, one line: Beállítások 61.7, Világítás 48.4, Élő adatok 58.7, Utak 26.2, Akkubeáll. 58.0, Fénycsík 48.9, Csillagfény 61.8, Roller neve 62.4, Rollereim 53.0, Kísérleti 46.0, Névjegy 45.9, Adatok 39.9. Ride settings: *Menetbeáll.* is 65.7, so **Menet** 35.8. Display & sound: **Kijelző** 37.3. PIN & proximity: **PIN** 20.1. Charge done by: **Legyen kész** is 68.9 and overflows by 4.9; note it rather than swapping the meaning. Charge done by time: **Célidő** 33.9. Not *Befejezés*, which looks like a button that finishes charging.
 - `dashboard_model_qa_*_short`, 90dp at 12.5sp: Menetbeáll. 68.4, Kijelző és hang 87.4, PIN, közelség 77.7, Legyen kész 71.8, Befejezési idő 81.3, Rollereim 55.2, App-beáll. 58.9, Kísérleti 47.9. *Kísérleti funkciók* is 100.0: it may wrap at the space.
 - `dashboard_model_tile_top_speed`, 90dp at 12.5sp: **Max. sebesség** 85.6 (held, section 7). `dashboard_model_tile_charge_schedule`: **Ütemezés** 57.9, since *Töltésütemezés* is 91.1.
-- `owner_shizuku_install`, 48dp at 14sp: *Telepítés* is 58.2, so **Telepít** 43.5. `owner_shizuku_open`: *Megnyitás* is 69.0, so **Nyitás** 42.2. `stats_charge_fit`, 72dp at 14sp: **Illeszkedés** 71.3. `stats_raw_chip`, 40dp at 10sp: **NYERS** 32.5. `onboarding_skip`: **Kihagyás**.
+- `owner_shizuku_install`, 48dp at 14sp: *Telepítés* is 58.2, so **Telepít** 43.5. `owner_shizuku_open`: *Megnyitás* is 69.0, so **Megnyit** 54.3, which overflows by 6.3: note it (rule 8). Never *Nyitás*, the word section 6 bans for Unlock. `stats_charge_fit`, 72dp at 14sp: **Illesztés** 53.5. It zooms the chart to fit; not *Illeszkedés*, which reads as a curve-fit status. `stats_raw_chip`, 40dp at 10sp: **NYERS** 32.5. `onboarding_skip`: **Kihagyás**.
 
 **Compounds.** By Hungarian spelling, a two-part compound longer than six syllables takes a hyphen, and so does one built on an acronym, name or digit. Use these exact spellings:
 
-- **Hyphen:** kilométer-számláló, km-számláló, energia-visszanyerés, kompatibilitás-ellenőrzés, kompatibilitás-ellenőrző, teljesítmény-rásegítés, túlsebesség-szabályozás, lejtmenet-szabályozás, kormány-PIN, PIN-kód, NAVEE-naplózás, Eco-becslés, App-beáll., Bluetooth-közelségi.
-- **Closed:** csúcssebesség, átlagsebesség, sebességkorlát, akkuszint, akkufeszültség, akkuáram, akkuteljesítmény, akkuhőmérséklet, akkufigyelmeztetés, hatótávbecslés, töltőprofil, gyorstöltő, kipörgésgátló, tolássegéd, menetmód, fénycsík, csillagfény, jelzőhang, hangulatvilágítás, logóvilágítás, adatelőzmények, gyorselérés, modellazonosító, beállítófájl.
+- **Hyphen:** kilométer-számláló, km-számláló, energia-visszanyerés, kompatibilitás-ellenőrzés, kompatibilitás-ellenőrző, teljesítmény-rásegítés, modell-azonosító, akku-figyelmeztetés, hangulat-világítás, túlsebesség-szabályozás, lejtmenet-szabályozás, kormány-PIN, PIN-kód, NAVEE-naplózás, Eco-becslés, App-beáll., Bluetooth-közelségi.
+- **Closed:** csúcssebesség, átlagsebesség, sebességkorlát, akkuszint, akkufeszültség, akkuáram, akkuteljesítmény, akkuhőmérséklet, hatótávbecslés, töltőprofil, gyorstöltő, kipörgésgátló, tolássegéd, menetmód, fénycsík, csillagfény, jelzőhang, logóvilágítás, adatelőzmények, gyorselérés, beállítófájl.
 - **Separate:** *NAVEE alkalmazás*, as NAVEE's manual writes it (a spelling guide would hyphenate it; *NAVEE-alkalmazás* also passes the check, but use the manual's), *USB hibakeresés*, as Android writes it.
 - Don't coin a compound of more than three stems. Split it with a possessive: *Menetmód sebességkorlátja*, not *Menetmódsebességkorlát*.
 
@@ -119,7 +119,7 @@ Use exactly these words. They match `l10n/glossary/hu.tsv`; don't use synonyms.
 | Lock (the thing) | **zár**: **elektronikus zár** | NAVEE's menu: *Bluetooth-zár* |
 | Lock state unverified | **Zár állapota nincs ellenőrizve** | Must never read as confirmed. Keep *nincs* |
 | Lock state unknown | **Zár állapota ismeretlen** | Must never read as confirmed |
-| Last known | **Utolsó ismert állapot: lezárva**; in full **A zár utolsó ismert állapota: feloldva. Csatlakozz újra az ellenőrzéshez.** | Keep *utolsó ismert*. Never a plain *Lezárva* |
+| Last known | **Utolsó ismert állapot: lezárva**; in full **A zár utolsó ismert állapota: feloldva. Csatlakozz újra a rollerhez, hogy ellenőrizd.** | Keep *utolsó ismert*. Never a plain *Lezárva* |
 | Unknown | **Ismeretlen** | Not *Nincs adat*, which is "not reported" |
 | Never | **Soha**; in a sentence **soha nem** | Hungarian needs both words with a verb: *Soha nem küldi el*. Never *nem* alone where the English says never |
 | Always | **Mindig** | Always on: **Mindig bekapcsolva** |
@@ -130,7 +130,7 @@ Use exactly these words. They match `l10n/glossary/hu.tsv`; don't use synonyms.
 | Handlebar PIN | **kormány-PIN** | D3's term. Toggle: **Feloldás PIN-kóddal**. NAVEE's manual calls the feature *Jelszavas feloldás* (section 9) |
 | Owner key | **tulajdonosi kulcs** | A secret. Never *azonosító* or *kulcs* alone. "Not a password" is **Nem jelszó** |
 | Charge limit | **Töltési korlát** | Keep the number and %. At limit: **Elérte a korlátot** |
-| Experimental | **Kísérleti**; Experimental controls: **Kísérleti funkciók** | Badge **LAB**, spoken *Kísérleti* |
+| Experimental | **Kísérleti**; Experimental controls: **Kísérleti funkciók** | Badge **LABOR** (34.6 of 40dp), spoken *Kísérleti* |
 | Untested | **Nincs kipróbálva** | Keep *nincs* |
 | Unverified | **Nincs ellenőrizve** | Keep *nincs* |
 | Unconfirmed / Not confirmed | **Nincs megerősítve** / **Nem megerősített** | Never *megerősítve* alone |
@@ -138,7 +138,7 @@ Use exactly these words. They match `l10n/glossary/hu.tsv`; don't use synonyms.
 
 **Words that look right and aren't:**
 
-- **Lezárás is the lock, and removing it is Feloldás.** Never *lezárás feloldása*, *zár feloldása*, *zár kikapcsolása*, *zárolás feloldása* or *zárolásfeloldás* for Unlock. **`check.py` won't catch this:** the lexicon has no Hungarian opposite or removal patterns, so *A lezárás feloldása* counts as the Lock term (tested). Judges must read for it. Only use *a zár kikapcsolása* where the English itself says turn off.
+- **Lezárás is the lock, and removing it is Feloldás.** Never *lezárás feloldása*, *zár feloldása*, *zár kikapcsolása*, *zárolás feloldása* or *zárolásfeloldás* for Unlock. `check.py` refuses the usual shapes next to the lock word (`lexicon.OPPOSITE_CONTEXT`, `REMOVAL_CONTEXT`: *A lezárás feloldása*, *Oldd fel a lezárást*, *Lezárás: ki*) and a swapped state (`STATE_WORDS`: *Lezárás: Ki* for Lock: on). It can't read a sentence, so a word between (*a lezárás azonnali feloldása*) still passes, and readers must look for it. Only use *a zár kikapcsolása* where the English itself says turn off.
 - **Felold- has one meaning here.** NAVEE's manual also uses it for removing an account (*A NAVEE app feloldása*). In Volt, account binding is **társítás** and undoing it **társítás megszüntetése**, so *Feloldás* only ever means unlocking.
 - **-atlan/-etlen words fail the checks and blur the state:** *lezáratlan*, *feloldatlan* (which also means "unresolved"), *ellenőrizetlen*, *kipróbálatlan*, *megerősítetlen*. Use *nincs* or *nem*. The native negated forms the check accepts are *ismeretlen, lehetetlen, érvénytelen, váratlan, hiányos, elégtelen, inaktív, sikertelen*; the negation words are *nem, ne, soha, nincs, sincs, nélkül, semmi*.
 - **Be** and **Ki** are one syllable each and are also everyday words (in, out, who). Prefer the full *Bekapcsolva*, *Kikapcsolva* wherever they fit.
@@ -172,7 +172,7 @@ The glossary is authoritative; this explains the distinctions it can't. NAVEE's 
 | ride, trip, route | **út** (*Utak*), **szakasz**, **útvonal** | A recorded ride is *út*. *Trip*, the distance since a reset, is *Szakasz*. The path on the map is *útvonal* |
 | range | **hatótáv** | NAVEE's manual also says *hatótávolság*; use the shorter one |
 | owner, shared rider | **tulajdonos**, **társfelhasználó** | The compact role label (`more_role_shared`) is **Társ** (25.3). Not *Megosztott*, which reads as a shared scooter |
-| Charge done by | **Legyen kész**; full **Töltés legyen kész**; time setting **Befejezési idő** | The feature only plans a start, so never *Feltöltve* or *Kész*, which read as finished, and not *eddig*, which also means "so far". In a sentence: *a „Legyen kész” funkció ki van kapcsolva* |
+| Charge done by | **Legyen kész**; full **Legyen kész a töltés**; time setting **Befejezési idő**, narrow **Célidő** | The feature only plans a start, so never *Feltöltve* or *Kész*, which read as finished, and not *eddig*, which also means "so far". In a sentence: *a „Legyen kész” funkció ki van kapcsolva* |
 | Quick settings | **Gyorselérés** | Never *Gyorsbeállítások*: that is Android's pull-down panel |
 | Eco, Turbo, Boost | stay as written | **Eco-becslés** is a range option, translated |
 
@@ -182,11 +182,11 @@ The glossary is authoritative; this explains the distinctions it can't. NAVEE's 
 
 **Try, retry, test.** Trying a control (Experimental, Controls to try) is **Kipróbálás**, *próbáld ki*. The preverb *ki-* is what makes it a trial, so it stays. An ordinary retry never has it (Fixed words). A guided test is **teszt**, *Ütemezett töltés tesztelése*. A compatibility check is **kompatibilitás-ellenőrzés**.
 
-**Restore vs set back.** Bringing back a backup, or NAVEE logging as Fixed words says, is **Visszaállítás**. Undoing a try is **Visszavonás**, and so is putting back a test's earlier value even when the English says restore. **Energia-visszanyerés** is unrelated.
+**Restore vs set back.** Bringing back a backup, undoing a try, and putting back a test's earlier value are all **Visszaállítás**; the screen and the object keep them apart: *Visszaállítás erre: %1$s* takes a value, and a backup restore names the backup. Not *Visszavonás*: Android's Hungarian uses it for both undo and revoke, and it can't take a target value. **Energia-visszanyerés** is unrelated.
 
 **Readback and rejection.** Readback is **visszaolvasás**, a neutral word, because a readback can also fail to confirm. *Rejected* is **Elutasítva**, *Refused by scooter* **A roller elutasította**.
 
-**Levels.** Energy recovery levels are ordinary words: *Ki, Alacsony, Közepes, Magas*. Standing start is **Állórajt**, value 0 of **Indulási sebesség** (NAVEE's manual), not another name for it.
+**Levels.** Energy recovery levels are ordinary words: *Kikapcsolva, Alacsony, Közepes, Magas*. A bare *Ki* only where *Kikapcsolva* really can't fit, with a note, since the check doesn't accept it. Standing start is **Állórajt**, value 0 of **Indulási sebesség** (NAVEE's manual), not another name for it.
 
 **Words shared only by accident (D3). Do not unify them:**
 
@@ -212,8 +212,8 @@ Hungarian says "to", "with", "at" and "from" with suffixes, and a suffix must ag
 2. **A label form,** which also covers times and dates, since *-kor* and *-én* have the same problem:
    - Full backup from %1$s → `Teljes biztonsági mentés, dátum: %1$s`
    - Time to %1$s → `Idő a következőig: %1$s`
-   - Setting it back to %1$s… → `Visszavonás, érték: %1$s…`
-   - Restore to %1$s (undoing a try) → `Visszavonás, érték: %1$s`
+   - Setting it back to %1$s… → `Visszaállítás erre: %1$s…`
+   - Restore to %1$s (undoing a try) → `Visszaállítás erre: %1$s`
    - %1$s %2$s at %3$s → `%1$s %2$s, időpont: %3$s`
 3. **A head noun after the value, and the suffix on that noun.** Use it where the value's kind is known and the noun fits: `%1$d perc múlva`, `a %1$s nevű rollerhez`, `%1$s funkció`.
 4. **In mid-sentence, move the value to the end behind a colon:** Charging resumed %1$s before the start → `A töltés ennyivel a kezdés előtt indult újra: %1$s.`
@@ -227,7 +227,7 @@ Also:
 - **NAVEE takes no suffix,** because its pronunciation decides the ending and it isn't settled. Use a head noun: *a NAVEE alkalmazásban*, *a NAVEE céggel*. *NAVEE-vel* and *NAVEE-val* are both wrong here. A suffix on GPX, CSV, PIN or USB goes after a hyphen and follows the spoken letters: *CSV-fájl*, or better a head noun.
 - **Volt is also a Hungarian word:** *volt* means "was", and it is the unit. **Never start a sentence with a bare Volt, and never put it next to a verb without an article.** *Volt nem küld semmit* reads as "There was…". Write *A Volt nem küld semmit*, or *A Volt alkalmazás…*. For a suffix use the head noun: *a Volt alkalmazásban*, not *Voltban*. The footer's *Volt %1$s ·* is a name with a version, and stays.
 - **Separable verbs split.** The preverb follows the verb in imperatives and negatives: *Oldd fel a rollert*, *Nem oldotta fel*, *Zárd le*, *Kapcsold be*. The glossary lists both shapes.
-- **Definite and indefinite verbs:** use the definite form with a definite object: *Mentsd a fájlt*, and the indefinite without: *Ments másolatot*.
+- **Definite and indefinite verbs:** use the definite form with a definite object: *Mentsd el a fájlt*, and the indefinite without: *Készíts másolatot*.
 - **Final -a and -e lengthen before a suffix:** *lámpa, lámpát*; *kezdete, kezdetét*; *diagnosztika, diagnosztikát*. Long forms are in the glossary only where the check needs them.
 
 ## Rules every language follows
@@ -252,7 +252,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 
 | English concept | Meaning | This language |
 |---|---|---|
-| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | Button **Újrapróbálás**; sentence **Próbáld újra.** and **Próbáld újra kicsit később.** Never *Próbáld ki újra*, *Kipróbálás* or *teszteld*, which read as testing something |
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | Button **Újra** (26.7), Android's word; sentence **Próbáld újra.** and **Próbáld újra kicsit később.** Never *Próbáld ki újra*, *Kipróbálás* or *teszteld*, which read as testing something. One exception: `more_lab_try_again_value` really repeats an experimental try, so it is **Kipróbálás újra: %1$s** |
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **Nincs adat**. Says only that no value came, not that anything is off or fine. Never *nincs jelentve* or *nem jelentett* |
 | reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **jelzett**; verb **jelez**: *a roller jelzi*, *a roller által jelzett*. A claim, not a measurement. Never *jelentett* (*jelentés* is the document), *mért* or *megerősített* |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE-naplózás**. Never *regisztráció* or *bejelentkezés* |
@@ -271,8 +271,9 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | enter (typing) | typing a value | **megadás**: *Add meg az új PIN-kódot*. Not *beír* or *bevisz* |
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **alkalmazás**: *a hivatalos alkalmazás*, *a NAVEE alkalmazás*. *app* only in *App-beáll.* on a narrow rung |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The rider or Volt is the subject: **csatlakozz a rollerhez**, *A Volt csatlakozik a rollerhez*. Button **Csatlakozás**. Never *Csatlakoztasd a rollert*, which reads as plugging it in. Plugging in says **csatlakoztasd a töltőt** |
-| set a value | one verb for setting a value on the scooter | **beállítás**: *Sebességkorlát beállítása*, *Állítsd be*, *Beállítás erre: %1$s*. Setting back stays *Visszavonás*; typing a PIN stays *Add meg* |
-| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Ez + present tense**: *Ez törli ezt az utat.*, *Ez lecseréli a telefonon lévő összes adatot.* A hint with no subject stays third person: *Megnyitja a térképet.* Never *Töröld…* or *Nyisd meg…*, which are commands. Rule 3's open clause uses **-e**: *Nem sikerült megerősíteni, hogy az ütemezés kikapcsolt-e.* |
+| set a value | one verb for setting a value on the scooter | **beállítás**: *Sebességkorlát beállítása*, *Állítsd be*, *Beállítás erre: %1$s*. Setting back stays *Visszaállítás* (*Visszaállítás erre: %1$s*); typing a PIN stays *Add meg* |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Ez + present tense**: *Ez törli ezt az utat.*, *Ez lecseréli a telefonon lévő összes adatot.* A hint with no subject stays third person: *Megnyitja a térképet.* Never *Töröld…* or *Nyisd meg…*, which are commands. Rule 3's open clause uses **-e**: *Nem sikerült megerősíteni, hogy kikapcsolt-e az ütemezés.* |
+| Revoke Shizuku | ending Volt's access in Shizuku, not a backup or an undo | **Shizuku-hozzáférés megszüntetése**; sentence **Szüntesd meg most a Shizuku-hozzáférést.** Never bare *Visszavonás*, which looks like undo. Android's own "Revoke USB debugging authorizations" keeps Android's wording |
 | screen and section titles | noun form or verb form, with one example | **Noun form**: *Biztonsági mentés és visszaállítás*, *Ütemezett töltés tesztelése*. Never the imperative |
 
 ## 9. Sources consulted
@@ -285,10 +286,10 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - **CLDR `hu.xml`** (read directly): „ ”, » «, minimumGroupingDigits 2, `y. MMM d.`, `H:mm`, decimal comma.
 - **Other brands' Hungarian manuals, weak evidence:** Vivax MS Energy e21 (robotworld.hu), Kaabo Mantis (dwn.alza.cz/manual/108604), City Boss (dwn.alza.cz/manual/118773): *hátsó lámpa*, *fényszóró*, *sebességtartó automatika*, *Sport mód*, *ECO üzemmód*, *Kilométer-számláló*, *TRIP*, *ODO*, *MAXIMÁLIS SEBESSÉG*, *végsebesség*, *Sebességhatároló*, *gumiabroncs*, *100%-ra*. *Tempomat* came from search results for Sencor's manuals, not a page read in full. *Sebességkorlát* is from Hungarian press search results.
 - **Could not be read:** telex.hu's NAVEE test and alza.hu (403), Ausom's Hungarian store pages (404). Hungarian spelling rules on hyphens and compounds (the six-syllable rule), date periods and a/az come from memory of the Academy's *A magyar helyesírás szabályai* (12th edition), not a fresh reading.
-- **Automotive terms from general knowledge, not looked up:** *kipörgésgátló*, *lejtmenet-szabályozás*, *nappali menetfény*, *hangulatvilágítás*, *menetmód*, *állórajt*.
+- **Automotive terms from general knowledge, not looked up:** *kipörgésgátló*, *lejtmenet-szabályozás*, *nappali menetfény*, *hangulat-világítás*, *menetmód*, *állórajt*.
 - **Width figures:** measured with `tools/l10n/fontmetrics.py`, java.awt, `saira_medium.ttf`. Glyphs: the cmaps of all four `res/font/saira_*.ttf`.
 
-**No source, Claude's choice. Debate these first:** *tulajdonosi kulcs*, *társfelhasználó* and *Társ*, *kormány-PIN*, *Töltési korlát*, *Csúcssebesség*, *Szakasz* for Trip (cars say *napi számláló*, which isn't daily here), *Utak* for Rides (*út* is also a road), *Össztáv*, *Legyen kész*, *Tolássegéd*, *Teljesítmény-rásegítés*, *Fénycsík*, *Csillagfény*, *Irányítópult*, *Gyorselérés*, *Visszavonás* for Set back, the "not affiliated" wording, and the fixed words table.
+**No source, Claude's choice. Debate these first:** *tulajdonosi kulcs*, *társfelhasználó* and *Társ*, *kormány-PIN*, *Töltési korlát*, *Csúcssebesség*, *Szakasz* for Trip (cars say *napi számláló*, which isn't daily here; alternatives *Megtett táv* or *Táv*, paired with *Össztáv*, since *Szakasz* reads as a road section and *Szakasz átlagsebessége* prompts "which section?"), *Utak* for Rides (*út* is also a road, so a tab reading *Utak* first says Roads; alternative *Utazások*, singular *utazás*, which fits at 52.0 of 64dp and 54.2 of 62dp), *Össztáv*, *Legyen kész* (it also reads as a formal "Be ready" in a te UI and overflows at 64dp; alternative feature *Töltési célidő* 74.7, tile *Célidő* 33.9, which fits and can't read as finished), *Tolássegéd*, *Teljesítmény-rásegítés*, *Fénycsík*, *Csillagfény*, *Irányítópult*, *Gyorselérés*, *Visszaállítás* for Set back (the alternative *Visszavonás* is Android's word for both undo and revoke, verified in the SDK's `values-hu`, and needs the unnatural *Visszavonás, érték: %1$s*; if it stays, keep *Shizuku-hozzáférés megszüntetése* for Revoke), *Kipróbálásra váró funkciók* (*Kipróbálható* reads as cleared to use), *LABOR* for the badge, *Hangulat-világítás* (*Hangulatvilágítás* is common in car text, so it could be a stated exception to the six-syllable rule), the "not affiliated" wording, and the fixed words table.
 
 **Choices against a source:**
 
