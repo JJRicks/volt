@@ -23,6 +23,8 @@ environment; see providers.py for how they are kept out of every output.
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
+  council.py glossary-check --tag es | --english        validate a glossary (exit 1 on a problem); --english
+                                                        validates en.tsv and lists terms no string uses
 
 Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
   drafts/<name>.xml        claude-<config>.xml, openai.xml, google.xml: Android resource XML whose root
@@ -132,7 +134,8 @@ def instructions(pack, style="standard"):
         "- Plurals: give every one of these categories: %s." % ", ".join(lang["plurals"]),
         "- Keys ending in _short and _compact are shorter rungs of the same label (\"ladder_group\"). Draft every "
         "rung. A string with budget_dp must fit that width at budget_sp in the Saira typeface; english_width_dp "
-        "is the English width. Abbreviate per the style guide rather than overflow; never break a word.",
+        "is the English width. %s rather than overflow; never break a word." % (
+            "Abbreviate per the style guide" if pack.get("style_guide") else "Abbreviate"),
         "- Never change the meaning: locked and unlocked stay distinct; on/off and never/always are never "
         "inverted; \"unverified\" or \"unknown\" never reads as confirmed; numbers, units and the named action "
         "stay the same; \"not affiliated with NAVEE\" is never softened. Keep every negation.",
@@ -349,6 +352,24 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
 # ---------------------------------------------------------------------------
 # Claude Code agents
 # ---------------------------------------------------------------------------
+
+def prompt_gate(paths, tag, area, no_style_guide=False):
+    """What a translator's prompt needs: a valid glossary, and a style guide unless waived.
+
+    The pack holds the guide the prompt quotes, so a guide written or changed after pack.py also
+    refuses: the prompt would tell the translator about a guide it does not show.
+    """
+    translib.require_valid_glossary(paths, tag)
+    path = paths.style(tag)
+    if not os.path.exists(path):
+        if no_style_guide:
+            return
+        raise translib.L10nError("%s does not exist: write it first (l10n/style/README.md), or pass "
+                                 "--no-style-guide to draft without one" % paths.rel(path))
+    if packlib.load_pack(paths, tag, area).get("style_guide") != l10nlib.read_text(path):
+        raise translib.L10nError("%s changed after the pack was built; run tools/l10n/pack.py --tag %s --area %s "
+                                 "again" % (paths.rel(path), tag, area))
+
 
 def claude_prompt(paths, tag, area, name, style, redraft=False):
     pack = packlib.load_pack(paths, tag, area)
@@ -1107,6 +1128,28 @@ def beta_report(paths, tag):
 
 
 # ---------------------------------------------------------------------------
+# Glossary validation
+# ---------------------------------------------------------------------------
+
+def glossary_check(paths, tag, out=None):
+    """Print a glossary's problems; 0 only for a glossary that exists and has none."""
+    out = out or sys.stdout
+    if tag != "en" and not os.path.exists(os.path.join(paths.glossary_dir(), tag + ".tsv")):
+        out.write("no l10n/glossary/%s.tsv\n" % tag)
+        return 1
+    problems = translib.glossary_problems(paths, tag)
+    for problem in problems:
+        out.write("%s\n" % problem)
+    if tag == "en" and not problems:
+        orphans = translib.glossary_orphans(paths)
+        out.write("information: %d rows match no English string\n" % len(orphans))
+        for term in orphans:
+            out.write("  %s (%s)\n" % (term.id, term.term))
+    out.write("%s glossary: %s\n" % (tag, "%d problems" % len(problems) if problems else "valid"))
+    return 1 if problems else 0
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -1128,6 +1171,7 @@ def main(argv=None):
     p.add_argument("--name", help="the draft's config name: drafts/claude-<name>.xml")
     p.add_argument("--style", choices=sorted(STYLES), default="standard")
     p.add_argument("--redraft", action="store_true", help="only the keys whose first attempt failed")
+    p.add_argument("--no-style-guide", action="store_true", help="allow a prompt without l10n/style/<tag>.md")
     p = sub.add_parser("import-claude", help="validate drafts/claude-*.xml, or convert a JSON reply into one")
     area_args(p)
     p.add_argument("--from", dest="source")
@@ -1158,11 +1202,15 @@ def main(argv=None):
     p.add_argument("--final", action="store_true", help="keys still waiting fall back to English")
     p = sub.add_parser("beta")
     p.add_argument("--tag", required=True)
+    p = sub.add_parser("glossary-check", help="validate l10n/glossary/<tag>.tsv against en.tsv, or en.tsv itself")
+    group = p.add_mutually_exclusive_group(required=True)
+    group.add_argument("--tag")
+    group.add_argument("--english", action="store_true", help="en.tsv, plus the rows no English string matches")
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)
     use_java = not args.no_java
     try:
-        if hasattr(args, "tag"):
+        if getattr(args, "tag", None) is not None:
             translib.check_tag_area(args.tag, getattr(args, "area", None))
         if args.command == "models":
             available = providers.list_models(args.provider)
@@ -1174,6 +1222,8 @@ def main(argv=None):
                     print("  %s: %s" % (role, error))
             return 0
         if args.command == "prompt":
+            if args.role != "backtranslate":  # a back-translator sees neither the rules nor the glossary
+                prompt_gate(paths, args.tag, args.area, args.no_style_guide)
             if args.role == "draft":
                 if not args.name or not translib.DRAFT_NAME.match(args.name):
                     raise translib.L10nError("--name is required: lower-case letters, digits and dashes")
@@ -1215,6 +1265,8 @@ def main(argv=None):
             passes, lines = beta_report(paths, args.tag)
             print("\n".join(lines))
             return 0 if passes else 1
+        if args.command == "glossary-check":
+            return glossary_check(paths, "en" if args.english else args.tag)
     except providers.ProviderError as error:
         print("council.py: %s" % providers.redact(error), file=sys.stderr)
         return 2

@@ -181,6 +181,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)
     try:
+        translib.require_valid_glossary(paths, args.tag)
         sources, _ = translib.load_source(paths)
         areas = list(sources) if args.all else [args.area]
         measurer = fontmetrics.Measurer(paths.font(), use_java=not args.no_java)
