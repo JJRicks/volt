@@ -360,7 +360,7 @@ def state_words(primary, text):
     patterns = STATE_WORDS.get(primary)
     if not patterns:
         return None
-    text = normalize(text)
+    text = normalize(text, primary)
     found = ([], [])
     for side, p in enumerate(patterns):
         for m in p.finditer(text):
@@ -632,9 +632,26 @@ HYPHENS = "-‐‑"
 ARABIC_MARKS = re.compile("[ؐ-ًؚ-ٰٟـ]")
 
 
-def normalize(text):
-    """NFC, lower case, Arabic vowel marks and tatweel removed, typographic hyphens made plain."""
-    text = ARABIC_MARKS.sub("", unicodedata.normalize("NFC", text)).lower()
+# Languages that write the dotted and the dotless i as two letters: I is the capital of ı and İ
+# of i ("KAPALI" is "kapalı", "AÇIK" is "açık", "KİLİT" is "kilit"). Python's lower case knows no
+# language, so it makes "kapali" and "i" plus a combining dot of them.
+DOTTED_I_LANGUAGES = {"tr", "az"}
+_DOTTED_I = {ord("I"): "ı", ord("İ"): "i"}
+
+
+def lower_for(primary, text):
+    """Lower case as the language writes it: in DOTTED_I_LANGUAGES, I becomes ı and İ (also as I
+    plus a combining dot) becomes i before the ordinary lower case. Any other language, or none,
+    gets Python's lower case unchanged."""
+    if primary and primary.split("-")[0] in DOTTED_I_LANGUAGES:
+        text = text.replace("I\u0307", "i").translate(_DOTTED_I)
+    return text.lower()
+
+
+def normalize(text, primary=None):
+    """NFC, lower case (the language's own, see lower_for), Arabic vowel marks and tatweel removed,
+    typographic hyphens made plain."""
+    text = lower_for(primary, ARABIC_MARKS.sub("", unicodedata.normalize("NFC", text)))
     return text.replace("‐", "-").replace("‑", "-")
 
 
@@ -688,7 +705,7 @@ def negation_text(primary, text):
     look like a negation are replaced, then the text is normalized."""
     if primary == "ar":
         text = _AR_CHANGE.sub(lambda m: m.group(1) + "تغيير", unicodedata.normalize("NFC", text))
-    text = normalize(text)
+    text = normalize(text, primary)
     for phrase in NON_NEGATING_PHRASES.get(primary, ()):
         text = re.sub(r"(?<![^\W_])" + r"\s+".join(map(re.escape, phrase.split())) + r"(?![^\W_])", " ", text)
     return text
@@ -827,7 +844,7 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
     still subject to the contexts above; in Indonesian its first word may also take its pe(N)-...-an
     noun form (pen_an: "Penguncian gagal", "Pembukaan kunci gagal").
     """
-    text, term = normalize(text), normalize(term)
+    text, term = normalize(text, primary), normalize(term, primary)
     if primary == "el":
         text, term = _strip_accents(text), _strip_accents(term)
     if not term.split():

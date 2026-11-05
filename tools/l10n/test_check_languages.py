@@ -5,12 +5,14 @@ way check.py checks a real wave-3 or RTL draft. Nothing here reaches the network
 """
 
 import os
+import re
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check  # noqa: E402
 import council_fixture  # noqa: E402
+import draft_apk  # noqa: E402
 import fontmetrics  # noqa: E402
 import lexicon  # noqa: E402
 import pack  # noqa: E402
@@ -1222,6 +1224,108 @@ class TermInAnotherSenseTest(unittest.TestCase):
         # One ordinary "try again" does not excuse the experimental Try beside it.
         self.assertTrue(self._glossary_errors("Try failed. Try again or try another control.",
                                               "Échec. Réessayez ou testez une autre commande.", "experimental"))
+
+class TurkishCaseTest(unittest.TestCase):
+    """Turkish lower case: "KAPALI" is "kapalı" and "AÇIK" is "açık" (I to ı, İ to i), so changing
+    only the case of a draft does not get an inverted state past the on/off check."""
+
+    TR_STRINGS = (
+        '<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">\n'
+        '    <string name="trcase_on" volt:safety="alarm">Alarm sound on</string>\n'
+        '    <string name="trcase_off" volt:safety="alarm">Alarm sound off</string>\n'
+        '</resources>\n')
+    TR = LanguageChecksTest.TR
+
+    @classmethod
+    def setUpClass(cls):
+        cls.repo = council_fixture.FixtureRepo()
+        cls.repo.write("res/values/strings_trcase.xml", cls.TR_STRINGS)
+        cls.repo.write("l10n/glossary/en.tsv", cls.repo.read("l10n/glossary/en.tsv") +
+                       "alarm-sound\tAlarm sound\tThe alarm's sound.\tnoun\tno\talarm\tfixture\n")
+        cls.repo.write("l10n/lang/tr.tsv", cls.repo.read("l10n/lang/ru.tsv").replace("\tru\n", "\ttr\n")
+                       .replace("values-ru", "values-tr").replace("Русский", "Türkçe")
+                       .replace("one,few,many,other", "one,other").replace("Cyrl", "Latn")
+                       .replace("font\tsystem", "font\tsaira"))
+        cls.repo.write("l10n/glossary/tr.tsv", GLOSSARY_HEAD +
+                       "alarm-sound\tAlarm sesi\tThe alarm's sound.\tnoun\tno\talarm\tfixture\n")
+        measurer = fontmetrics.Measurer(cls.repo.paths.font(), use_java=False)
+        cls.font = fontmetrics.Font(cls.repo.paths.font())
+        cls.pack = pack.build_pack(cls.repo.paths, "tr", "trcase", measurer)
+        cls.sha = dict((e["key"], e["source_sha1"]) for e in cls.pack["entries"])
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.repo.close()
+
+    def classify(self, key, text):
+        """draft_apk.classify_area's state for one drafted key."""
+        entry = translib.DraftEntry(key, "string", {"other": text}, text, 1, [], self.sha[key])
+        draft = translib.Draft("claude-opus", "claude", "opus", "opus", None, {key: entry}, None)
+        states, _, warned = draft_apk.classify_area(self.pack, draft, self.font, None)
+        return states[key][0], states[key][1], warned.get(key, "")
+
+    def test_the_case_of_an_inverted_state_does_not_hide_it(self):
+        for key, text in (("trcase_on", "Alarm sesi kapalı"), ("trcase_on", "Alarm sesi KAPALI"),
+                          ("trcase_on", "ALARM SESİ KAPALI"), ("trcase_on", "Alarm sesi Kapalı"),
+                          ("trcase_off", "Alarm sesi açık"), ("trcase_off", "Alarm sesi AÇIK"),
+                          ("trcase_off", "ALARM SESİ AÇIK"), ("trcase_off", "Alarm sesi Açık")):
+            state, reason, _ = self.classify(key, text)
+            self.assertEqual(state, "failing", (key, text, reason))
+            self.assertIn("the opposite state", reason, (key, text))
+
+    def test_the_right_state_in_any_case_passes(self):
+        for key, text in (("trcase_off", "Alarm sesi kapalı"), ("trcase_off", "Alarm sesi KAPALI"),
+                          ("trcase_off", "ALARM SESİ KAPALI"), ("trcase_off", "Alarm Sesi Kapalı"),
+                          ("trcase_on", "Alarm sesi açık"), ("trcase_on", "Alarm sesi AÇIK"),
+                          ("trcase_on", "ALARM SESİ AÇIK"), ("trcase_on", "Alarm sesi Açık"),
+                          ("trcase_on", "ALARM SESİ ETKİN"), ("trcase_off", "ALARM SESİ DEVRE DIŞI")):
+            self.assertEqual(self.classify(key, text), ("translated", "", ""), (key, text))
+
+    def test_negation_and_lock_words_in_capitals(self):
+        self.assertEqual(lexicon.state_words("tr", "ALARM AÇIK DEĞİL"), ([], ["açık"]))
+        self.assertEqual(lexicon.state_words("tr", "Alarm KAPALI DEĞİLDİR"), (["kapalı"], []))
+        self.assertEqual(lexicon.state_words("tr", "ALARM KAPATILMADI"), (["kapatılmadı"], []))
+        polarity = LanguageChecksTest.tr_polarity
+        self.assertEqual(polarity(self, "Volt isn't affiliated", "Volt İLİŞKİLİ DEĞİLDİR"), [])
+        self.assertEqual(polarity(self, "Never", "HİÇBİR ZAMAN"), [])
+        self.assertEqual(polarity(self, "Not confirmed", "ONAYLANDI"), ["error"])
+        self.assertEqual(polarity(self, "Confirmed", "ONAYLANMADI"), ["error"])
+        for text in ("KİLİTLİ", "Kilitli", "KİLİT DURUMU", "SCOOTER’I KİLİTLE"):
+            self.assertTrue(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        for text in ("KİLİT AÇIK", "Kilit: AÇIK", "KİLİTSİZ", "KİLİT KALDIRILDI", "KİLİT DEVRE DIŞI"):
+            self.assertFalse(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        # An approved target written with a dotted capital still matches a lower-case draft.
+        self.assertTrue(lexicon.term_found("tr", "Latn", "KİLİT", "Kilit durumu", True, True))
+        for english, text in (("Lock: on", "KİLİT: AÇIK"), ("Lock: off", "Kilit: KAPALI")):
+            self.assertIn("error", polarity(self, english, text, "lock"), text)
+
+    def test_lower_for(self):
+        self.assertEqual(lexicon.lower_for("tr", "KAPALI AÇIK İZİN"), "kapalı açık izin")
+        self.assertEqual(lexicon.lower_for("az", "İŞIQ"), "işıq")
+        # Every other language keeps Python's lower case, byte for byte.
+        for lang in ("de", "en", "es", "ru", None):
+            for text in ("AUS", "Alarm AUS", "KAPALI", "İstanbul", "ÄÖÜ ẞ"):
+                self.assertEqual(lexicon.lower_for(lang, text), text.lower(), (lang, text))
+        self.assertEqual(lexicon.state_words("de", "Alarm AUS"), lexicon.state_words("de", "Alarm aus"))
+        self.assertEqual(lexicon.normalize("İ"), "İ".lower())
+
+    def test_the_turkish_lists_are_in_turkish_lower_case(self):
+        def words(value):
+            if isinstance(value, str):
+                yield value
+            elif isinstance(value, (set, frozenset, tuple, list)):
+                for v in value:
+                    yield from words(v)
+            elif hasattr(value, "pattern"):
+                yield value.pattern
+        tables = [getattr(lexicon, name) for name in dir(lexicon) if name.isupper()]
+        for table in tables:
+            if not isinstance(table, dict):
+                continue
+            for lang in ("tr", "az"):
+                for word in words(table.get(lang, ())):
+                    stripped = re.sub(r"\\[A-Za-z]", "", word)
+                    self.assertEqual(stripped, lexicon.lower_for(lang, stripped), (lang, word))
 
 
 class NegatedAdjectiveTest(unittest.TestCase):

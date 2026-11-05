@@ -246,12 +246,13 @@ def target_negation(primary, text, stems=()):
     return found, prefixed, native
 
 
-def glossary_targets(entry):
-    """Every approved target form of the entry's glossary hits, lower case, whole words only."""
+def glossary_targets(entry, primary=None):
+    """Every approved target form of the entry's glossary hits, in the language's lower case
+    (lexicon.lower_for), whole words only."""
     out = set()
     for hit in entry.get("glossary") or []:
         for target in hit.get("target") or []:
-            out.update(w.lower() for w in WORD.findall(target))
+            out.update(lexicon.lower_for(primary, w) for w in WORD.findall(target))
     return out
 
 
@@ -431,10 +432,11 @@ def _polarity(language, reference, text, safety, q, entry=None):
 def _lock_state_trap(language, text, q, entry):
     """The lock word next to a bare open or closed in a lock key (lexicon.LOCK_STATE_TRAP): "Kilit: açık"
     reads as unlocked whatever the English says, so it is an error also when the English says "on"."""
-    trap = lexicon.LOCK_STATE_TRAP.get(language["tag"].split("-")[0])
+    primary = language["tag"].split("-")[0]
+    trap = lexicon.LOCK_STATE_TRAP.get(primary)
     if not trap or "lock" not in ((entry or {}).get("safety") or []):
         return []
-    m = trap.search(lexicon.normalize(text))
+    m = trap.search(lexicon.normalize(text, primary))
     if not m:
         return []
     return [finding("polarity", ERROR, "%r says the lock is open or closed, not that a setting is on or off" %
@@ -485,7 +487,7 @@ def _negation(language, reference, text, safety, q, entry=None):
         if plain or un:
             return [finding("polarity", WARN, "no negation word list for %s; the judge checks polarity" % primary, q)]
         return []
-    stems = glossary_targets(entry)
+    stems = glossary_targets(entry, primary)
     found, prefixed, native = target_negation(primary, text, stems)
     if plain or un:
         # cs and sk join "ne" to the verb ("nepotvrdila"): there a native negated word keeps the
