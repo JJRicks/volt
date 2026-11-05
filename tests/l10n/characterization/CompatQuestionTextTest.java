@@ -49,8 +49,8 @@ public final class CompatQuestionTextTest {
     /** The question's sentences, as CompatibilityPanel.question picks them (a UI class tests/run.sh does not build). */
     private static void sentences(Locale phone) {
         String at = phone + " question ";
-        equal("Does the dashboard show mph?", T.compatQuestionUnitsMph(), at + "units mph");
-        equal("Does the dashboard show km/h?", T.compatQuestionUnitsKmh(), at + "units km/h");
+        equal("Does the scooter's display show mph?", T.compatQuestionUnitsMph(), at + "units mph");
+        equal("Does the scooter's display show km/h?", T.compatQuestionUnitsKmh(), at + "units km/h");
         equal("Is the tail light on?", T.compatQuestionTailLightOn(), at + "tail light on");
         equal("Is the tail light off?", T.compatQuestionTailLightOff(), at + "tail light off");
         equal("Is the tail light follow headlight?", T.compatQuestionTailLight("follow headlight"), at + "tail light other");
@@ -60,7 +60,7 @@ public final class CompatQuestionTextTest {
         equal("Are automatic lights on?", T.compatQuestionAutoLightsOn(), at + "auto lights on");
         equal("Are automatic lights off?", T.compatQuestionAutoLightsOff(), at + "auto lights off");
         equal("Are automatic lights 2?", T.compatQuestionAutoLights("2"), at + "auto lights other");
-        equal("Did the range estimate on the dashboard change?", T.compatQuestionRange(), at + "range");
+        equal("Did the range estimate on the scooter's display change?", T.compatQuestionRange(), at + "range");
         equal("Did you see it change?", T.compatQuestionDefault(), at + "default");
     }
 
