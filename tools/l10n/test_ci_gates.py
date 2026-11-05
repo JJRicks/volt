@@ -439,6 +439,30 @@ class ProveEnglishKindsTest(unittest.TestCase):
         self.assertEqual(g1, "FAIL")
         self.assertIn("english-change change", report)
 
+    CHAR = "tests/l10n/characterization/RidesEnglishTest.java"
+
+    def test_an_english_change_does_not_run_its_characterization_tests_on_the_base_code(self):
+        """Its characterization tests pin the new English, which the base code does not print yet."""
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "New words"; }'))
+        self.repo.commit("pin the new English")
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\nzz\t-\ta\tb\towner approved in #999\n")
+        self.repo.commit("the English change")
+        _, _, report, everything = self.prove()
+        self.assertIn("english-change change", report)
+        self.assertRegex(report, r"\| G5 characterization first \| PASS \|", everything)
+        self.assertRegex(report, r"\| G5 tests pass at the first commit \| n/a \| an English change's characterization "
+                                 r"tests pin the new English")
+
+    def test_a_batch_still_runs_its_characterization_tests_at_the_first_commit(self):
+        self.repo.write(self.CHAR, java_class("RidesEnglishTest", '    String s() { return "Same words"; }'))
+        self.repo.commit("characterize")
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.commit("a batch")
+        _, _, report, everything = self.prove()
+        self.assertIn("batch change", report)
+        # --skip-tests (see prove) skips the run itself; the n/a row is the English change's alone.
+        self.assertNotIn("G5 tests pass at the first commit", report, everything)
+
     def test_a_batch_that_keeps_its_literals_gets_a_real_g1_pass(self):
         self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
         self.repo.commit("catalog only")

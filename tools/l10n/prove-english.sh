@@ -125,7 +125,12 @@ else
 fi
 gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
-if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
+if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
+    # An owner-approved English change rewrites its characterization tests to pin the new English, which the
+    # base code does not print yet, so they cannot pass at the first commit. Its order is still G5's (above),
+    # and G6 runs them at head, where they must pass.
+    record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order and G6 runs them at head"
+elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     tree="$WORK/first"
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then
         WORKTREES+=("$tree")
