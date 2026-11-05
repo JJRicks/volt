@@ -622,6 +622,11 @@ class NoFactFromAFieldTest(unittest.TestCase):
         self.assertIs(ledger_check.evaluate_condition(lex("b && c"), facts, {}), False)
         self.assertIs(ledger_check.evaluate_condition(lex("b || c"), facts, {}), None)
         self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("c", "==", "null"): True}, {}), False)
+        # a != b && z being false says nothing about a == b && z.
+        facts = {}
+        ledger_check.assert_fact(lex("a != b && z"), False, facts)
+        self.assertIs(ledger_check.evaluate_condition(lex("a == b && z"), facts, {}), None)
+        self.assertIs(ledger_check.evaluate_condition(lex("a != b && z"), facts, {}), False)
         self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("a",): False}, {"c": ["a"]}), False)
         self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("a",): True}, {"c": ["a"]}), None)
 

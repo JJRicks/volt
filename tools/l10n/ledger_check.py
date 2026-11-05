@@ -3374,6 +3374,8 @@ def _strip_group(tokens):
 
 def _fact_key(tokens):
     """(key, negated): a != b is the opposite of a == b, so both settle by one fact."""
+    if len(_split_top(tokens, "&&")) > 1 or len(_split_top(tokens, "||")) > 1 or len(_split_top(tokens, "?")) > 1:
+        return tuple(t.raw for t in tokens), False
     for sign, negated in (("==", False), ("!=", True)):
         sides = _split_top(tokens, sign)
         if len(sides) == 2 and sides[0] and sides[1]:
