@@ -263,18 +263,21 @@ public final class MainTextTest {
     }
 
     /**
-     * Every sentence ChargeScheduleController finishes with reaches a screen through ChargeScheduleText, so none may
-     * stay in English under a translated source; the schedule test's dialog and notice pass through it as well.
+     * Every blocked reason ChargeScheduleController keeps as an English id reaches a screen through ChargeScheduleText,
+     * so none may stay in English under a translated source, and a sentence a completion answers is the controller's
+     * own catalog text, never a literal; the schedule test's dialog and notice pass through ChargeScheduleText as well.
      */
     private static void controllerSentences() {
         String controller = source("src/com/jjricks/volt/ChargeScheduleController.java");
-        Matcher sentence = Pattern.compile("(?:completion\\.accept\\(|deliver\\(t,[^;]*?,failure,)\"([^\"]+)\"\\)").matcher(controller);
+        check(!Pattern.compile("(?:completion\\.accept\\(|deliver\\(t,[^;]*?,failure,)\"[^\"]+\"\\)").matcher(controller).find(), "a completion answers catalog text, not a literal");
+        int ids = controller.indexOf("private static final String WAIT_CHANGE=");
+        Matcher id = Pattern.compile("[A-Z_]+=\"([^\"]+)\"").matcher(controller.substring(ids, controller.indexOf(';', ids)));
         int found = 0;
-        for (; sentence.find(); found++) {
-            String english = sentence.group(1), shown = ChargeScheduleText.shown(english);
-            check(shown.startsWith("⟦"), "the controller's sentence follows the source: " + english);
+        for (; id.find(); found++) {
+            String english = id.group(1), shown = ChargeScheduleText.shown(english);
+            check(shown.startsWith("⟦"), "the controller's reason follows the source: " + english);
         }
-        check(found > 10, "the controller's sentences were found: " + found);
+        check(found == 11, "the controller's reasons were found: " + found);
         check(ChargeScheduleText.shown("Scheduled charging is off; restoring Charge start was not confirmed").startsWith("⟦main_schedule_off_start_scheduled⟧"), "a cleanup follows the source");
         String service = source("src/com/jjricks/volt/ScooterService.java");
         check(service.contains("T.serviceTestNotStartedReason(ChargeScheduleText.shown(r.failure))"), "the test's failure reason is shown through ChargeScheduleText");

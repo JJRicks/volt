@@ -1,10 +1,11 @@
 package com.jjricks.volt;
 
 /**
- * Display text for ChargeScheduleController's English ids (batch B19, l10n/README.md). The controller keeps
- * English where it is data: the View's blocked reasons, its completion messages and State.status, which it
- * saves, logs and compares (tests/ChargeScheduleControllerTest reads them). A screen passes such a reason
- * through shown() just before showing it.
+ * Display text for ChargeScheduleController's English ids (batch B19, l10n/README.md), and the only place they
+ * become text. The controller keeps English where it is data: the View's blocked reasons and State.status, which
+ * it saves, logs and compares (tests/ChargeScheduleControllerTest reads them). What a completion answers is only
+ * ever shown, so the controller renders that itself, through this class for a blocked reason. A screen passes a
+ * reason or a saved status through shown() just before showing it.
  *
  * Pure Java (no Android), so the JVM tests reach it. A reason is matched only by its exact English: anything
  * this class does not know, including text already rendered in the current language, shows as it is.
@@ -14,13 +15,9 @@ final class ChargeScheduleText {
 
     private static Msg[] known() {
         return new Msg[]{M.commonWaitCurrentChange(), M.chargingScheduleWaitTest(), M.commonConnectChargerFirst(),
-                M.mainScheduleDisableDoneBy(), M.mainAlertChooseScooter(), M.mainScheduleConnectTheScooter(),
-                M.mainScheduleNotOnModel(), M.mainScheduleTurnOffDoneBy(), M.mainScheduleTurnOffScheduled(),
-                M.mainScheduleWaitReadings(), M.mainScheduleAlreadyAtLimit(), M.mainScheduleCancelNotConfirmed(),
-                M.mainScheduleClockFailed(), M.mainScheduleBatteryChanged(), M.mainScheduleStartNotConfirmed(),
-                M.mainScheduleLimitChanged(), M.mainScheduleStartChangedEstimate(), M.mainSchedulePassedNotCancelled(), M.mainScheduleChargingNow(),
-                M.mainScheduleLimitSavedNoEstimate(), M.mainScheduleBatterySavedNoEstimate(), M.mainScheduleEnableNotConfirmed(),
-                M.mainScheduleConnectionChanged(), M.mainScheduleStoppedBeforeFinish()};
+                M.chargingScheduleDisableDoneBy(), M.chargingScheduleChooseScooter(), M.chargingScheduleConnectScooter(),
+                M.chargingScheduleNotOnModel(), M.chargingScheduleTurnOffDoneBy(), M.chargingScheduleTurnOffScheduled(),
+                M.chargingScheduleWaitReadings(), M.chargingScheduleAtLimit()};
     }
 
     /** What the screen shows for a reason in the controller's English; null stays null. */

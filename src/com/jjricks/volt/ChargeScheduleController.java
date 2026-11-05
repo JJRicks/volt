@@ -30,31 +30,13 @@ public final class ChargeScheduleController {
         void enabled(boolean enabled, Consumer<Boolean> completion);
     }
     // Why the View's controls are blocked, in English: the View keeps these as ids (it is checked for null and compared
-    // in tests), and reasonText shows them. A reason from the Context (toggleReason, timeReason) has no id here yet.
+    // in tests), and ChargeScheduleText.shown shows them, along with the Context's reasons (toggleReason, timeReason).
     // What a completion or a test result answers is only ever shown, so it is in the current language. State.status
     // stays English, and so does a failed restore's answer, which is that status (restoreFailed).
     private static final String WAIT_CHANGE="Wait for the current change to finish",WAIT_TEST="Wait for the schedule test to finish",
             DISABLE_DONE_BY="Disable Charge done by first",CONNECT_CHARGER="Connect a charger first",CHOOSE_SCOOTER="Choose a scooter first",
             CONNECT_SCOOTER="Connect the scooter first",NOT_ON_MODEL="Not available on this model",TURN_OFF_DONE_BY="Turn off Charge done by first",
             TURN_OFF_SCHEDULED="Turn off Scheduled charging first",WAIT_READINGS="Wait for fresh charging readings",AT_LIMIT="Battery is already at its charge limit";
-    /** A blocked reason as a person reads it, in the current language; null stays null, and text with no id here shows as it is. Display only. */
-    public static String reasonText(String reason){
-        if(reason==null)return null;
-        switch(reason){
-            case WAIT_CHANGE:return T.commonWaitCurrentChange();
-            case WAIT_TEST:return T.chargingScheduleWaitTest();
-            case DISABLE_DONE_BY:return T.chargingScheduleDisableDoneBy();
-            case CONNECT_CHARGER:return T.commonConnectChargerFirst();
-            case CHOOSE_SCOOTER:return T.chargingScheduleChooseScooter();
-            case CONNECT_SCOOTER:return T.chargingScheduleConnectScooter();
-            case NOT_ON_MODEL:return T.chargingScheduleNotOnModel();
-            case TURN_OFF_DONE_BY:return T.chargingScheduleTurnOffDoneBy();
-            case TURN_OFF_SCHEDULED:return T.chargingScheduleTurnOffScheduled();
-            case WAIT_READINGS:return T.chargingScheduleWaitReadings();
-            case AT_LIMIT:return T.chargingScheduleAtLimit();
-            default:return reason;
-        }
-    }
     /** All readings must come from the current authenticated transport, never a display cache. */
     public static final class Context {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;
@@ -294,7 +276,7 @@ public final class ChargeScheduleController {
     public void setDoneTime(int hour,int minute,Consumer<String> completion){
         Context c=context();View view=view();
         if(hour<0||hour>23||minute<0||minute>59){completion.accept(T.chargingScheduleChooseValidTime());return;}
-        if(view.timeBlockedReason!=null){completion.accept(reasonText(view.timeBlockedReason));return;}
+        if(view.timeBlockedReason!=null){completion.accept(ChargeScheduleText.shown(view.timeBlockedReason));return;}
         if(c.ready&&view.doneByEnabled){enableDone(hour*60+minute,completion);return;}
         State s=state(c);s.minute=hour*60+minute;save(c,s);completion.accept(null);
     }
@@ -306,7 +288,7 @@ public final class ChargeScheduleController {
     private void enableDone(int minute,Consumer<String> completion){
         Context c=context();View view=view();
         String blocked=view.doneByEnabled?(busy?T.commonWaitCurrentChange():baseReason(c,true)):view.doneByBlockedReason;
-        if(blocked!=null){completion.accept(reasonText(blocked));return;}
+        if(blocked!=null){completion.accept(ChargeScheduleText.shown(blocked));return;}
         State previous=state(c);boolean paused=!Integer.valueOf(1).equals(c.charging);
         if(!paused&&c.estimateUnavailableReason!=null){completion.accept(c.estimateUnavailableReason);return;}
         if(paused){
@@ -338,7 +320,7 @@ public final class ChargeScheduleController {
     }
     public void setManualEnabled(boolean enabled,Consumer<String> completion){
         Context c=context();View view=view();
-        if(view.manualBlockedReason!=null){completion.accept(reasonText(view.manualBlockedReason));return;}
+        if(view.manualBlockedReason!=null){completion.accept(ChargeScheduleText.shown(view.manualBlockedReason));return;}
         if(!enabled){disable(completion);return;}
         long start=view.manualStartWallMs;
         if(start<=c.now){
@@ -355,7 +337,7 @@ public final class ChargeScheduleController {
     public void setManualStart(long wallMs,Consumer<String> completion){
         Context c=context();View view=view();
         String reason=view.manualTimeBlockedReason;
-        if(reason!=null){completion.accept(reasonText(reason));return;}
+        if(reason!=null){completion.accept(ChargeScheduleText.shown(reason));return;}
         if(wallMs<=c.now||wallMs-c.now>48*60*60_000L){completion.accept(T.chargingScheduleStartWithin48h());return;}
         if(c.wholeHours){Calendar cal=Calendar.getInstance(c.zone);cal.setTimeInMillis(wallMs);if(cal.get(Calendar.MINUTE)!=0||cal.get(Calendar.SECOND)!=0){completion.accept(T.chargingScheduleWholeHour());return;}}
         int offset=c.zone.getOffset(c.now)/1000;
@@ -374,7 +356,7 @@ public final class ChargeScheduleController {
     /** OFF, then optionally the manual Charge start; off names what is off if that restore fails. */
     private void disable(boolean restoreManual,String off,Consumer<String> completion){
         Context c=context();String reason=busy?WAIT_CHANGE:baseReason(c,false);
-        if(reason!=null){completion.accept(reasonText(reason));return;}
+        if(reason!=null){completion.accept(ChargeScheduleText.shown(reason));return;}
         long token=++operation;busy=true;pendingContext=c;pendingCompletion=completion;
         driver.enabled(false,success->{
             if(!valid(c,token,completion))return;
@@ -485,7 +467,7 @@ public final class ChargeScheduleController {
     public String startTest(Consumer<TestResult> finished){
         Context c=context();View view=view();
         if(test!=null)return T.chargingScheduleWaitTest();
-        if(view.testBlockedReason!=null)return reasonText(view.testBlockedReason);
+        if(view.testBlockedReason!=null)return ChargeScheduleText.shown(view.testBlockedReason);
         State s=state(c);
         // As Charge done by does: an unowned native time becomes the preference restored afterwards.
         if(s.manualStart==0&&view.manualStartWallMs>0)s.manualStart=view.manualStartWallMs;

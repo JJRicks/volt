@@ -88,7 +88,7 @@ final class QuickAccessGrid extends ViewGroup {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
             }
-            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : ChargeScheduleController.reasonText(doneTime ? charge.timeBlockedReason
+            String chargeBlocked = charge == null ? (doneTime ? T.dashboardModelTileSelectScooter() : T.commonConnectChargerFirst()) : ChargeScheduleText.shown(doneTime ? charge.timeBlockedReason
                     : doneBy ? charge.doneByBlockedReason : startTime ? charge.manualTimeBlockedReason : charge.manualBlockedReason);
             // An armed plan deliberately pauses charging; its own off action remains available.
             if (doneBy && charge != null && charge.doneByEnabled)
@@ -152,7 +152,7 @@ final class QuickAccessGrid extends ViewGroup {
             String description = (tiles ? tileSpokenName(cell.entry) : cell.entry.label()) + (state.isEmpty() ? NO_STATE : T.dashboardModelTileDescPart(state))
                     // A control the official app hides only by region (Top speed) says so, as its tap does.
                     + (unmapped ? (decision.reason == CapabilityResolver.Reason.REGION_RULE ? T.dashboardModelTileDescRegion() : T.dashboardModelTileDescModel())
-                            : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(ChargeScheduleText.shown(chargeBlocked))
+                            : unreadable ? T.dashboardModelTileDescUnreadable() : chargeControl && chargeBlocked != null ? T.dashboardModelTileDescPart(chargeBlocked)
                             : feature != null && !featureLive ? T.dashboardModelTileDescLastSeen() : "")
                     + (toggle ? T.dashboardModelTileDescToggle() : T.dashboardModelTileDescOpen());
             cell.setContentDescription(description);

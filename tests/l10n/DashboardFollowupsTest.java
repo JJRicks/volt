@@ -291,18 +291,18 @@ public final class DashboardFollowupsTest {
                 {"Turn off Scheduled charging first", "charging_schedule_turn_off_scheduled"},
                 {"Wait for fresh charging readings", "charging_schedule_wait_readings"},
                 {"Battery is already at its charge limit", "charging_schedule_at_limit"}};
-        for (String[] id : ids) same(id[0], ChargeScheduleController.reasonText(id[0]));
-        same(null, ChargeScheduleController.reasonText(null));
-        same("Some other reason", ChargeScheduleController.reasonText("Some other reason"));
+        for (String[] id : ids) same(id[0], ChargeScheduleText.shown(id[0]));
+        same(null, ChargeScheduleText.shown(null));
+        same("Some other reason", ChargeScheduleText.shown("Some other reason"));
         T.install(new T.Source() {
             public String string(int id) { return "‹" + T.key(id) + "›"; }
             public String plural(int id, long quantity) { return null; }
             public String language() { return "de"; }
         });
         try {
-            for (String[] id : ids) same("‹" + id[1] + "›", ChargeScheduleController.reasonText(id[0]));
-            same(null, ChargeScheduleController.reasonText(null));
-            same("Some other reason", ChargeScheduleController.reasonText("Some other reason"));
+            for (String[] id : ids) same("‹" + id[1] + "›", ChargeScheduleText.shown(id[0]));
+            same(null, ChargeScheduleText.shown(null));
+            same("Some other reason", ChargeScheduleText.shown("Some other reason"));
         } finally {
             T.install(null);
         }

@@ -506,25 +506,6 @@
     <string name="main_name_imported" volt:screen="Scooter names" volt:purpose="default name">Imported scooter</string>
 
     <!-- ===== Charge schedule reasons (ChargeScheduleText) ===== -->
-    <string name="main_schedule_disable_done_by" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Disable Charge done by first</string>
-    <string name="main_schedule_not_on_model" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Not available on this model</string>
-    <string name="main_schedule_turn_off_done_by" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Turn off Charge done by first</string>
-    <string name="main_schedule_turn_off_scheduled" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Turn off Scheduled charging first</string>
-    <string name="main_schedule_wait_readings" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Wait for fresh charging readings</string>
-    <string name="main_schedule_already_at_limit" volt:screen="Charge schedule" volt:purpose="refusal" volt:safety="charge">Battery is already at its charge limit</string>
-    <string name="main_schedule_cancel_not_confirmed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Schedule cancellation was not confirmed; reconnect and try again</string>
-    <string name="main_schedule_clock_failed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Could not set the scooter clock; schedule unchanged</string>
-    <string name="main_schedule_battery_changed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Battery level changed; a fresh charging estimate is needed</string>
-    <string name="main_schedule_start_not_confirmed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge start was not confirmed; check the scooter schedule</string>
-    <string name="main_schedule_limit_changed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge limit changed; check the schedule and try again</string>
-    <string name="main_schedule_start_changed_estimate" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge start changed, but a fresh charging estimate is needed</string>
-    <string name="main_schedule_passed_not_cancelled" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Start time passed, but schedule cancellation was not confirmed</string>
-    <string name="main_schedule_charging_now" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Charging now — the calculated start time has passed</string>
-    <string name="main_schedule_limit_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Charge limit changed; the charge start is saved without a finish estimate</string>
-    <string name="main_schedule_battery_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status" volt:safety="charge">Battery level changed; the charge start is saved without a finish estimate</string>
-    <string name="main_schedule_enable_not_confirmed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge start changed, but enabling the schedule was not confirmed</string>
-    <string name="main_schedule_connection_changed" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Connection changed; check the scooter schedule before trying again</string>
-    <string name="main_schedule_stopped_before_finish" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge" volt:dnt="Volt">Volt stopped before it finished; check that Scheduled charging is off</string>
     <string name="main_schedule_off_clock_done_by" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge done by is off; the scooter clock could not be confirmed</string>
     <string name="main_schedule_off_clock_scheduled" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Scheduled charging is off; the scooter clock could not be confirmed</string>
     <string name="main_schedule_off_start_done_by" volt:screen="Charge schedule" volt:purpose="error" volt:safety="charge">Charge done by is off; restoring Charge start was not confirmed</string>

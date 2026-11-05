@@ -165,7 +165,7 @@
     <string name="charging_schedule_wait_test" volt:screen="Charge schedule" volt:purpose="reason"
         volt:safety="charge">Wait for the schedule test to finish</string>
 
-    <!-- Why a charging control is blocked now (ChargeScheduleController.reasonText): the toast, or read out after a
+    <!-- Why a charging control is blocked now (ChargeScheduleText): the toast, or read out after a
          Setting tile's name. -->
     <!-- Charge done by is on, so the Scheduled charging control waits for it to be off. -->
     <string name="charging_schedule_disable_done_by" volt:screen="Charge schedule" volt:purpose="reason"
