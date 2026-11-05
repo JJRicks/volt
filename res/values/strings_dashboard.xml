@@ -17,8 +17,9 @@
   What this screen still shows or speaks in English, and why (DashboardScreen.java lines drift; find
   the code by the words quoted):
   - the Charging check value ("12.4 Ah · 3 charges"): the plural ending is an argument of a
-    String.format, and a plural row cannot replace a String.format line, so it waits for the gate
-    tooling (F6's report has the repro);
+    String.format, so a whole plural cannot replace it where it stands (G1: no row form), and the row
+    cannot move away from the statement around it without changing the rows' order. It waits for the
+    gate tooling;
   - the header's "Connecting…" while it connects (connectingLabel): the text ends in U+FFFC, the
     place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is not on
     GlyphCoverageTest's allow-list (merged as #187, with U+2713, U+26A0 with U+FE0E, U+2606 and
@@ -27,10 +28,6 @@
   - the three "✓ Save" buttons (U+2713, on that list), which move with that same change. The widget
     options and Choose readings buttons have translated spoken names (dashboard_save_widget_options,
     dashboard_save_readings); the quick settings one is read as shown;
-  - the scale dialog's spoken input names the chart's data unit ("Scale maximum in mph"): chartUnit
-    is a data unit that Ui.ChartView matches against UnitCode data codes (see its javadoc), so it
-    stays data, and that statement cannot take shownUnit around text (G1). The dialog's unit beside
-    the field and the scale rows' values show the unit's symbol. In English they are the same text;
   - the scale dialog's own number field (GaugeScaleInput) keeps US digits, so what is typed parses;
   - two big percents that put the sign after the digits in Java, as English does, with US digits:
     the charging hero's (number + "%") and the Overview widget's (amount + "%"). A language's percent
@@ -38,18 +35,16 @@
     the same change, which also places the sign's smaller span;
   - text other files still build in English, shown as it is wherever the screen shows or speaks it:
     ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
-    (:1729-1735) and in the Charging and Battery widgets' time cell, spoken and as the tile's
-    tooltip (describeCharging, :3400-3402, :3420); BatteryCapacityEstimate.Result's label and
-    rejection reason (the capacity widget's chip, summary and bar description, the details caveat
-    and the Rejected value, :3704-3719, :3807-3809); ScooterService's unavailable reason (:3673,
-    and the details caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE,
+    and in the Charging and Battery widgets' time cell, spoken and as the tile's tooltip
+    (describeCharging); BatteryCapacityEstimate.Result's label (the capacity widget's chip, summary
+    and bar description, and the details caveat); ScooterService's unavailable reason (the capacity
+    widget, and the details caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE,
     SPORT) wherever a reading shows it, e.g. the drive mode card, the header, and the reading tiles
     of the Scooter and Overview cards, which have driving_mode among their default readings
     (DashboardConfig.Widget); DisplayTime.recent's English month ("03 NOV · 14:05") wherever a last
-    seen time shows, through when() (:871) or directly: the header's last seen time (:800), the
-    card footers' "Last seen" description and tooltip (:3517-3518), the spoken last seen of the
-    reading cells and the gauge (:3452, :3466, :3469, :4232), the Overview's spoken text
-    (:2930-2934) and a saved slot's summary (:6561); and reading values from format()
+    seen time shows, through when() or directly: the header's last seen time, the card footers'
+    "Last seen" description and tooltip, the spoken last seen of the reading cells and the gauge, the
+    Overview's spoken text and a saved slot's summary; and reading values from format()
     (DisplayUnits.metricText's canonical English: US digits and Telemetry's unit symbols), which
     withUnit and Gauge.set read through ReadingUnits: speed and temperature by their number and unit
     parts (Formatted), others by their space, a no-break space included.

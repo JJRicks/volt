@@ -6070,6 +6070,8 @@ public final class DashboardScreen implements AppScreen {
         content.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         content.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
         if (!unitName.isEmpty()) {
+            // Said with the unit's shown symbol, as beside the field; G1's choice row above holds the data unit.
+            input.setContentDescription(maximum ? T.dashboardScaleMaximumIn(shownUnit(unitName)) : T.dashboardScaleMinimumIn(shownUnit(unitName)));
             TextView unit = ui.text(shownUnit(unitName), 15, false);
             unit.setTextColor(ui.muted);
             unit.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
