@@ -95,7 +95,7 @@ public final class CompatibilityTextTest {
     /** The distinct texts the walk shows, as the base printed them. */
     private static final String[] TEXTS = {
         "A related setting changed during the test.",
-        "A related setting changed since the test. Volt won't set it back.",
+        "A related setting changed since the test. Volt won't set the tested setting back.",
         "A setting changed while the test was waiting. Review it before restoring.",
         "Accepted, but no conclusive reading arrived.",
         "Actual riding isn't offered now.",
@@ -695,7 +695,7 @@ public final class CompatibilityTextTest {
         "Waiting for a fresh reading."
     };
     /** SHA-256 of the whole walk's record (209177042 bytes of UTF-8) at the base. */
-    private static final String DIGEST = "8354ddf52ca0d5f4346f346896037cf8ce01959a1ba03d76fe6d76410a88c4f0";
+    private static final String DIGEST = "c95d492164e0f0e04423e9397dd93b68a0ae03591254453558fde583b22803b3";
 
     static final class Memory implements TestJournal.Storage {
         String text; boolean failWrites;

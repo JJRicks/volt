@@ -312,7 +312,7 @@ public final class ReadingsTextTest {
 
     // Expected English, generated from the merge base
 
-    static final String DISPLAY_GRID_DIGEST = "831428e67174134ab060c4f381de57a899cf2b9c6c0a11049e4555ca7dcaeaf9";
+    static final String DISPLAY_GRID_DIGEST = "d68d9f044846cb6946ae576f45bb031445cf10eadb2c4ba54780f517087770f0";
     static final String DISPLAY_GRID_COUNT = "289971";
     static final String DECODED_DIGEST = "8632a3308378c480c3689e99fba1415ce66b1863c67dbf5c5a6fd3864727125a";
     static final String DECODED_COUNT = "67680";
@@ -648,7 +648,7 @@ public final class ReadingsTextTest {
         {"rated_capacity_ah", "12.34 Ah", "12.34", "12.34 Ah"},
         {"health_adjusted_capacity_ah", "12.09 Ah", "12.0932", "12.09 Ah"},
         {"charge_cycles", "12 charges", "12.0", "12 charges"},
-        {"charge_cycles", "1 charges", "1.0", "1 charges"},
+        {"charge_cycles", "1 charges", "1.0", "1 charge"},
         {"charge_cycles", "0 charges", "0.0", "0 charges"},
         {"deep_discharge", "3", "3.0", "3"},
         {"speed_kmh", "25.3 km/h", "25.3", "25.3 km/h"},
