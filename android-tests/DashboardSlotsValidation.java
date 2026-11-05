@@ -1423,7 +1423,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
 
     /**
      * B12: titles, notes and slot names Volt gave show through the catalogue, in English exactly as
-     * saved, and an owner's own text shows as saved. (A marked language needs a T.Source type, which an
+     * saved except the example note's tyre/tire spelling, and an owner's own text shows as saved. (A marked language needs a T.Source type, which an
      * existing test may not declare; DashboardModelTextTest checks the keys against this English.)
      */
     private void displayNames() throws Exception {
@@ -1435,7 +1435,11 @@ public final class DashboardSlotsValidation extends Instrumentation {
             for (DashboardConfig.Widget widget : config.widgets) {
                 require(DashboardConfig.displayTitle(widget).equals(widget.title),
                         "English " + widget.type + " title changed: " + DashboardConfig.displayTitle(widget));
-                require(DashboardConfig.displayNote(widget).equals(widget.note), "English " + widget.type + " note changed");
+                // The example's note is saved as "Check tyre pressure" and shows the catalogue's English, which the
+                // owner-approved D3 fix made US spelling; every other note shows exactly as saved.
+                String note = DashboardConfig.voltNote(widget) != null ? "Check tire pressure" : widget.note;
+                require(DashboardConfig.displayNote(widget).equals(note),
+                        "English " + widget.type + " note changed: " + DashboardConfig.displayNote(widget));
             }
             for (int i = 0; i < DashboardConfig.TYPES.length; i++) {
                 require(DashboardConfig.typeName(i).equals(DashboardConfig.NAMES[i]), "English type name " + i + " changed");
