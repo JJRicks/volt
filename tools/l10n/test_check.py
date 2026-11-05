@@ -168,6 +168,8 @@ class CheckTest(unittest.TestCase):
     def test_untranslated_and_empty(self):
         self.assertIn("untranslated", self.checks(self.run_check("common_not_reported", "Not reported"), check.WARN))
         self.assertEqual(self.checks(self.run_check("common_cancel", "")), ["empty"])
+        for blank in ("\u200b", " \u200b\u2060", "\u00a0", "\u3164", "\u2800"):
+            self.assertEqual(self.checks(self.run_check("common_cancel", blank)), ["empty"], repr(blank))
 
     def test_script_leakage(self):
         self.assertEqual(self.checks(self.run_check("common_cancel", "Cancelar отмена")), ["glyphs", "script"])

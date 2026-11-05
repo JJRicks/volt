@@ -229,7 +229,10 @@ Term = collections.namedtuple("Term", "id term definition pos dnt safety targets
 
 
 def _read_glossary(path):
-    _, rows = l10nlib.read_tsv(l10nlib.read_text(path), GLOSSARY_HEADER)
+    try:
+        _, rows = l10nlib.read_tsv(l10nlib.read_text(path), GLOSSARY_HEADER)
+    except ValueError as error:  # a bad header or row, or text that is not UTF-8
+        raise L10nError("%s: %s" % (path, error))
     return [fields for _, fields in rows]
 
 

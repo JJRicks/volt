@@ -16,7 +16,7 @@ Checks, per key (a plural is checked per quantity):
   source        the entry's volt:src is the hash of the current English (check_draft only; the
                 council drops such entries before every other step)
   kind          the draft has a string where English has a string, plurals where it has plurals
-  empty         no empty text where English has text
+  empty         no empty text where English has text; spaces and invisible characters alone are empty
   placeholders  the same %n$ placeholders with the same conversions, and %% where English has it;
                 only positional forms and %%; a plural category that covers more than one number
                 (every one but n=1-only "one" and the like) keeps the count
@@ -110,6 +110,7 @@ EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|u
 # Glossary terms that are the lock itself (Lock, Locked, Lock bar, electronic lock; not unlock): only
 # these get the opposite-term and lock-removed contexts (lexicon.OPPOSITE_CONTEXT, REMOVAL_CONTEXT).
 LOCK_TERM = re.compile(r"(?<![a-z])lock", re.IGNORECASE)
+NAMES_LOCK = re.compile(r"(?<![a-z])(?:un)?lock", re.IGNORECASE)
 # English that itself turns something off or removes it: then "Desactivar el bloqueo" may be right,
 # so the lock-removed context is not applied.
 EN_REMOVAL = re.compile(r"(?<![a-z])(?:off|disabl\w*|remov\w*|releas\w*|lift\w*|clear\w*|cancel\w*|"
@@ -131,6 +132,7 @@ EN_SAYS_OFF = re.compile(r"(?<![a-z])(?:off|disabl(?:e|ed|es)|inactive|deactivat
                           r"(?![a-z])", re.IGNORECASE)
 # Negation words that are also ordinary words (French "personne" is "person", Arabic "دون" is also
 # "below", Urdu "بنا" is also "made"): not counted as added.
+BLANK_LETTERS = "\u115f\u1160\u2800\u3164\uffa0"  # Hangul fillers and the blank Braille pattern
 AMBIGUOUS_NEGATION = {"fr": {"personne"}, "ar": {"دون"}, "ur": {"بنا"}}
 
 NEGATION = lexicon.NEGATION
@@ -266,6 +268,11 @@ def fixed_tokens(text):
     return counts
 
 
+def is_blank(text):
+    """Nothing a person could read: only spaces, invisible format characters ("\\u200b") and blank letters."""
+    return all(ch.isspace() or unicodedata.category(ch)[0] in "ZC" or ch in BLANK_LETTERS for ch in text)
+
+
 def _items(kind, value):
     items = translib.items_of(kind, value)
     if items is None:
@@ -307,7 +314,7 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
     for quantity, text in items.items():
         q = quantity if kind == "plural" else None
         reference = source.get(quantity, english_other)
-        if not text.strip() and reference.strip():
+        if is_blank(text) and reference.strip():
             out.append(finding("empty", ERROR, "empty text", q))
             continue
         for ch in text:
@@ -416,6 +423,15 @@ def _polarity(language, reference, text, safety, q, entry=None):
     return _negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q)
 
 
+def _english_state(reference):
+    """(on match, off match) of an English that says just one of them with no negation, or None."""
+    plain, un = english_negation(reference)
+    english_on, english_off = EN_SAYS_ON.search(reference), EN_SAYS_OFF.search(reference)
+    if plain or un or bool(english_on) == bool(english_off):
+        return None
+    return english_on, english_off
+
+
 def _state(language, reference, text, safety, q):
     """An English on (or off) state drafted as only the other state's words (lexicon.STATE_WORDS):
     "Lock: on" as "Sperre: aus", "Alarm sound off" as "Sonido de alarma activado". An error in a
@@ -423,10 +439,10 @@ def _state(language, reference, text, safety, q):
     found = lexicon.state_words(language["tag"].split("-")[0], text)
     if found is None:
         return []
-    plain, un = english_negation(reference)
-    english_on, english_off = EN_SAYS_ON.search(reference), EN_SAYS_OFF.search(reference)
-    if plain or un or bool(english_on) == bool(english_off):
+    stated = _english_state(reference)
+    if stated is None:
         return []
+    english_on, english_off = stated
     on, off = found
     english, wrong, right = (english_on, off, on) if english_on else (english_off, on, off)
     if wrong and not right:
@@ -556,6 +572,59 @@ def safety_terms_without_target(entry):
             if hit.get("safety") and not hit.get("target") and hit["term"] not in found:
                 found.append(hit["term"])
     return found
+
+
+def word_lists_missing(primary):
+    """The word lists a safety key's meaning checks need that this language does not have."""
+    missing = []
+    if not has_negation_list(primary):
+        missing.append("NEGATION")
+    if primary not in lexicon.REMOVAL_CONTEXT and primary not in lexicon.REMOVAL_AROUND:
+        missing.append("REMOVAL_CONTEXT")
+    if primary not in lexicon.STATE_WORDS:
+        missing.append("STATE_WORDS")
+    return missing
+
+
+def safety_checks_without_list(entry, language):
+    """Word lists this safety key would be checked against, which the language lacks.
+
+    Without NEGATION any added or dropped negation only warns ("No bloquejat" for "Locked"). Without
+    REMOVAL_CONTEXT a glossary target is found in "Odstranit zámek" ("remove lock") for "Lock status".
+    Without STATE_WORDS an English on or off state is not compared at all. The council has a judge
+    behind these gaps; a caller with no judge must not trust such a text.
+    """
+    if not entry.get("safety"):
+        return []
+    missing = word_lists_missing(language["tag"].split("-")[0])
+    references = list(_items(entry["kind"], entry["english"]).values())
+    needed = []
+    if "NEGATION" in missing:
+        needed.append("NEGATION")
+    if "REMOVAL_CONTEXT" in missing and any(
+            hit.get("safety") and LOCK_TERM.search(hit["term"]) and not EN_REMOVAL.search(reference)
+            for reference in references for hit in _terms_in(entry, reference)):
+        needed.append("REMOVAL_CONTEXT")
+    if "STATE_WORDS" in missing and any(_english_state(reference) for reference in references):
+        needed.append("STATE_WORDS")
+    return needed
+
+
+def meaning_unverified(entry):
+    """Why check_key cannot catch an antonym in this key even when it passes, or None.
+
+    A safety term with an approved target is the only check on what a text says. So a safety key whose
+    English has none ("Full" for a charge alarm) rests on the drafter alone, and so does a key that
+    names a lock word with no volt:safety, where a missing target only warns.
+    """
+    references = list(_items(entry["kind"], entry["english"]).values())
+    if entry.get("safety"):
+        if any(hit.get("safety") and hit.get("target") for r in references for hit in _terms_in(entry, r)):
+            return None
+        return "safety key with no glossary safety term that has a target: nothing checks its meaning"
+    if any(NAMES_LOCK.search(r) for r in references):
+        return "names a lock word but has no volt:safety: a wrong term only warns"
+    return None
 
 
 def _glossary(language, entry, reference, text, safety, q):

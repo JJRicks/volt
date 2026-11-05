@@ -20,15 +20,22 @@ The APK goes to <out>/volt-draft-languages.apk, signed with a key made for that 
 it, so it cannot update an installed Volt: uninstall Volt first. Nothing is ever written to res/ or
 dist/ of the repository, or anywhere else outside --workdir and --out.
 
-A safety key whose safety term has no approved target in l10n/glossary/<tag>.tsv also shows English
-(state unchecked): there is no judge here, and without the target nothing would notice "Unlocked"
-written for "Locked". A language none of whose draft text can be shown fails the run.
+There is no judge here, so a safety key shows English (state unchecked) when check.py could not notice
+an inversion in it: its safety term has no approved target in l10n/glossary/<tag>.tsv ("Unlocked" for
+"Locked"), or the language lacks a word list the key needs (lexicon.NEGATION for "No bloquejat" in any
+safety key, REMOVAL_CONTEXT for "Odstranit zámek", "remove lock", in a key with a lock term, STATE_WORDS
+where the English says on or off). A language none of whose draft text can be shown fails the run.
 
 <out>/report.tsv has one row per language and area, and a TOTAL row per language; english_fallback is
 every key shown in English, of which failing, stale and unchecked are the drafted keys that were
-refused; unknown counts draft keys the English no longer has, warned counts written keys with check.py
-warnings, and commit is the HEAD that was built. <out>/report-keys.tsv says why for each of those keys.
-A run removes the APK and reports of an earlier one first, and a run that fails leaves no APK.
+refused; unknown counts draft keys that are unused, because the English no longer has them or has them
+in another area; warned counts written keys with check.py warnings; unverified counts written keys whose
+meaning nothing checked (check.meaning_unverified: for example a charge alarm's "Full" as "Empty"), with
+safety_unverified and lock_alarm_unverified the same among those columns' keys; and commit is the HEAD
+that was built. <out>/report-keys.tsv says why for each of those keys.
+Once a run has accepted its paths and found its drafts it removes the APK and reports of an earlier one,
+and a run that then fails leaves no APK. A refusal before that (bad paths, res/ with uncommitted changes,
+no drafts) leaves --out as it was, so what is there still describes the earlier run.
 The drafts stay exactly as they are: this tool never edits or relabels them.
 """
 
@@ -61,8 +68,8 @@ KEYS_NAME = "report-keys.tsv"
 VERSION_SUFFIX = "-draft-languages"
 REFUSED_NAMES = ("res", "dist")
 COUNT_COLUMNS = ("total", "translated", "english_fallback", "failing", "stale", "unchecked", "unknown", "warned",
-                 "safety_total", "safety_translated", "safety_fallback",
-                 "lock_alarm_total", "lock_alarm_translated", "lock_alarm_fallback")
+                 "unverified", "safety_total", "safety_translated", "safety_fallback", "safety_unverified",
+                 "lock_alarm_total", "lock_alarm_translated", "lock_alarm_fallback", "lock_alarm_unverified")
 REPORT_COLUMNS = ("language", "area") + COUNT_COLUMNS + ("commit",)
 REFUSED_STATES = ("failing", "stale", "unchecked")
 JAVA_CHECKS = ("CatalogCheckTest", "GlyphCoverageTest")
@@ -107,6 +114,11 @@ def check_target(option, value, root):
         raise DraftApkError("%s %s is inside the worktree %s; use a scratch directory outside it" % (option, value, root))
     if any(part in REFUSED_NAMES for part in path.split(os.sep)):
         raise DraftApkError("%s %s is a res/ or dist/ path; a draft build never writes there" % (option, value))
+    existing = path
+    while not os.path.lexists(existing):
+        existing = os.path.dirname(existing)
+    if not os.path.isdir(existing):
+        raise DraftApkError("%s %s: %s is a file, not a directory" % (option, value, existing))
     ancestor = _existing_ancestor(path)
     # --git-dir too: inside a .git directory there is no top level, but it is a checkout's all the same.
     if _git(ancestor, "rev-parse", "--git-dir") is not None:
@@ -200,6 +212,20 @@ def bring_language_files(drafts_paths, copy_paths, tag):
             l10nlib.write_text(target, l10nlib.read_text(source))
 
 
+def unchecked_reasons(entry, language):
+    """Why check.py could not notice an inverted meaning in this safety key; empty when it could."""
+    reasons = []
+    terms = checklib.safety_terms_without_target(entry)
+    if terms:
+        reasons.append("glossary: no approved target for %s, so its meaning cannot be checked" %
+                       ", ".join(repr(t) for t in terms))
+    lists = checklib.safety_checks_without_list(entry, language)
+    if lists:
+        reasons.append("lexicon: %s has no %s, so its meaning cannot be checked" % (
+            language["tag"], ", ".join(lists)))
+    return reasons
+
+
 def classify_area(pack, draft, font, measurer):
     """{key: (state, reason)} for every key of the pack, state being translated, missing, failing, stale or unchecked.
 
@@ -222,12 +248,12 @@ def classify_area(pack, draft, font, measurer):
             states[key] = ("stale", stale)
             continue
         errors = [f for f in results.get(key, []) if f["severity"] == checklib.ERROR]
-        unchecked = checklib.safety_terms_without_target(entry)
         if errors:
             states[key] = ("failing", "; ".join("%s: %s" % (f["check"], f["message"]) for f in errors))
-        elif unchecked:
-            states[key] = ("unchecked", "glossary: no approved target for %s, so its meaning cannot be checked" %
-                           ", ".join(repr(t) for t in unchecked))
+            continue
+        unchecked = unchecked_reasons(entry, pack["language"])
+        if unchecked:
+            states[key] = ("unchecked", "; ".join(unchecked))
         else:
             states[key] = ("translated", "")
     for entry in entries.values():
@@ -285,14 +311,18 @@ def area_row(tag, area, pack, states, unknown, warned):
         row["failing"] += state == "failing"
         row["stale"] += state == "stale"
         row["unchecked"] += state == "unchecked"
+        unverified = translated and bool(checklib.meaning_unverified(entry))
+        row["unverified"] += unverified
         if entry["safety"]:
             row["safety_total"] += 1
             row["safety_translated"] += translated
             row["safety_fallback"] += not translated
+            row["safety_unverified"] += unverified
         if any(v in translib.SAFETY_BLOCKING for v in entry["safety"]):
             row["lock_alarm_total"] += 1
             row["lock_alarm_translated"] += translated
             row["lock_alarm_fallback"] += not translated
+            row["lock_alarm_unverified"] += unverified
     return row
 
 
@@ -302,8 +332,13 @@ def total_row(tag, rows):
     return row
 
 
+def tsv_field(value):
+    """One TSV field whatever a draft's key holds: a tab or line break would shift or split the row."""
+    return re.sub("[\\x00-\\x1f\\x7f\\x85\\u2028\\u2029]", lambda m: "\\u%04x" % ord(m.group()), str(value))
+
+
 def tsv_lines(columns, rows):
-    return "\n".join(["\t".join(columns)] + ["\t".join(str(r[c]) for c in columns) for r in rows]) + "\n"
+    return "\n".join(["\t".join(columns)] + ["\t".join(tsv_field(r[c]) for c in columns) for r in rows]) + "\n"
 
 
 def write_report(out, rows, key_rows, commit):
@@ -513,6 +548,13 @@ def inspect_apk(apk_path, tags, lang_folders):
 # The run
 # ---------------------------------------------------------------------------
 
+def unknown_reason(key, key_areas, fallback):
+    """Why a draft's key is unused; a key filed in the wrong area is not a key the English lost."""
+    if key in key_areas:
+        return "filed in the wrong area: the English has it in %s, so this text is unused" % key_areas[key]
+    return fallback
+
+
 def generate_language(copy_paths, drafts_paths, tag, name, sources, tag_area, font, measurer):
     """Write the language's folder in the copy; (report rows, key rows)."""
     lang = translib.load_language(copy_paths, tag)
@@ -524,6 +566,11 @@ def generate_language(copy_paths, drafts_paths, tag, name, sources, tag_area, fo
     if not os.path.exists(os.path.join(copy_paths.glossary_dir(), tag + ".tsv")):
         print("warning: %s has no l10n/glossary/%s.tsv, so its safety terms cannot be checked and those keys show English"
               % (tag, tag))
+    lists = checklib.word_lists_missing(tag.split("-")[0])
+    if lists:
+        print("warning: %s: lexicon.py has no %s, so the safety keys that depend on it show English (state unchecked)"
+              % (tag, ", ".join(lists)))
+    key_areas = dict((s.key, a) for a, items in sources.items() for s in items if s.translatable)
     rows, key_rows = [], []
     for area, path in chosen.items():
         if area not in sources:
@@ -533,7 +580,7 @@ def generate_language(copy_paths, drafts_paths, tag, name, sources, tag_area, fo
             row["unknown"] = len(lost)
             rows.append(row)
             key_rows.extend({"language": tag, "area": area, "key": key, "state": "unknown",
-                             "reason": "the English has no such area"} for key in lost)
+                             "reason": unknown_reason(key, key_areas, "the English has no such area")} for key in lost)
     for area, area_sources in sources.items():
         pack = packlib.build_pack(copy_paths, tag, area, measurer, sources)
         draft = translib.read_draft(chosen[area]) if area in chosen else None
@@ -548,9 +595,13 @@ def generate_language(copy_paths, drafts_paths, tag, name, sources, tag_area, fo
                 key_rows.append({"language": tag, "area": area, "key": key, "state": state, "reason": reason})
         for key, reason in warned.items():
             key_rows.append({"language": tag, "area": area, "key": key, "state": "warned", "reason": reason})
+        for entry in pack["entries"]:
+            reason = checklib.meaning_unverified(entry)
+            if reason and states[entry["key"]][0] == "translated":
+                key_rows.append({"language": tag, "area": area, "key": entry["key"], "state": "unverified", "reason": reason})
         for key in unknown:
             key_rows.append({"language": tag, "area": area, "key": key, "state": "unknown",
-                             "reason": "not a translatable key of the English"})
+                             "reason": unknown_reason(key, key_areas, "not a translatable key of the English")})
     rows.append(total_row(tag, rows))
     return rows, key_rows
 
@@ -612,10 +663,15 @@ def run_in_copy(args, root, out, tags, drafts_paths, run_dir, copy):
         if row["lock_alarm_fallback"]:
             print("%s: %d lock or alarm keys show English" % (row["language"], row["lock_alarm_fallback"]))
         if row["unchecked"]:
-            print("%s: %d drafted safety keys show English: no approved glossary target (state unchecked)" % (
-                row["language"], row["unchecked"]))
+            print("%s: %d drafted safety keys show English: no approved glossary target or word list "
+                  "(state unchecked)" % (row["language"], row["unchecked"]))
         if row["warned"]:
             print("%s: %d written keys have check.py warnings: see %s" % (row["language"], row["warned"], KEYS_NAME))
+        if row["unverified"]:
+            print("%s: %d written keys have nothing checking their meaning, %d of them lock or alarm keys: see %s" % (
+                row["language"], row["unverified"], row["lock_alarm_unverified"], KEYS_NAME))
+        if row["unknown"]:
+            print("%s: %d draft keys are unused: see %s" % (row["language"], row["unknown"], KEYS_NAME))
         if not row["translated"]:
             problems.append("%s: none of its draft text can be shown, so it would be all English" % row["language"])
 
@@ -669,7 +725,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         return run(args)
-    except (DraftApkError, translib.L10nError, fontmetrics.FontError) as error:
+    except (DraftApkError, translib.L10nError, fontmetrics.FontError, OSError) as error:
         print("draft_apk: %s" % error, file=sys.stderr)
         return 2
     except gen_catalog.CatalogError as error:

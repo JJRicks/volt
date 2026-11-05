@@ -434,6 +434,157 @@ class GenerateTest(Base):
         self.assertEqual(code, 2)
         self.assertIn("de has no drafts", output)
 
+    def language(self, tag, glossary=(), plurals="one,few,many,other"):
+        """A language the fixture does not have: its settings and glossary rows, beside the drafts."""
+        text = self.repo.read("l10n/lang/es.tsv")
+        text = text.replace("tag\tes\n", "tag\t%s\n" % tag).replace("folder\tvalues-es\n", "folder\tvalues-%s\n" % tag)
+        self.repo.write("l10n/lang/%s.tsv" % tag, text.replace("plurals\tone,many,other", "plurals\t" + plurals))
+        self.repo.write("l10n/glossary/%s.tsv" % tag, "id\tterm\tdefinition\tpos\tdnt\tsafety\tsource\n" + "".join(
+            "%s\t%s\tx\tnoun\tno\tlock\ttest\n" % row for row in glossary))
+
+    def lock_key(self, english="Lock status", name="common_lock_status"):
+        """A safety key whose English has the fixture's safety term "lock", in the source and committed."""
+        path = "res/values/strings_common.xml"
+        self.repo.write(path, self.repo.read(path).replace(
+            "</resources>", '    <string name="%s" volt:safety="lock">%s</string>\n</resources>' % (name, english)))
+        self.git("add", path)
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false",
+                 "-c", "core.hooksPath=" + os.devnull, "commit", "-q", "-m", "a lock key")
+        self.sources, _ = translib.load_source(self.paths)
+
+    def test_a_lock_key_needs_the_removal_list_too(self):
+        """"Odstranit zámek" ("remove lock") has the approved target, and cs has no list to notice."""
+        self.lock_key()
+        self.language("cs", [("lock", "zámek")])
+        self.draft(tag="cs", texts={"common_lock_status": "Odstranit zámek", "common_cancel": "Zrušit"})
+        code, output = self.run_tool("--tags", "cs", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertIn("warning: cs: lexicon.py has no REMOVAL_CONTEXT, STATE_WORDS", output)
+        self.assertIn("1 drafted safety keys show English", output)
+        text = read_file(self.kept_copy(output).res("values-cs", "strings_common.xml"))
+        self.assertNotIn("common_lock_status", text)
+        self.assertIn('name="common_cancel"', text)
+        common = read_report(os.path.join(self.out, "report.tsv"))[("cs", "common")]
+        self.assertEqual(common["unchecked"], "1")
+        self.assertEqual(common["lock_alarm_translated"], "0")
+        self.assertIn("common_lock_status\tunchecked\tlexicon: cs has no REMOVAL_CONTEXT",
+                      read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def test_with_the_removal_list_the_same_text_fails(self):
+        self.lock_key()
+        self.language("es", [("lock", "bloqueo")], plurals="one,many,other")
+        self.draft(texts={"common_lock_status": "Quitar bloqueo", "common_cancel": "Cancelar"})
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("lexicon.py has no", output)
+        self.assertIn("common_lock_status\tfailing\tglossary: 'lock' should be 'bloqueo'",
+                      read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def test_english_that_removes_the_lock_needs_no_removal_list(self):
+        self.lock_key("Remove lock")
+        self.language("cs", [("lock", "zámek")])
+        self.draft(tag="cs", texts={"common_lock_status": "Odstranit zámek"})
+        code, output = self.run_tool("--tags", "cs")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(read_report(os.path.join(self.out, "report.tsv"))[("cs", "common")]["translated"], "1")
+
+    def test_a_language_with_no_negation_list_keeps_safety_keys_english(self):
+        """The fixture's "Alarm on" as "No alarma" in ca, which has no lists at all."""
+        self.language("ca")
+        self.draft(tag="ca", texts={"common_alarm_on": "No alarma", "common_cancel": "Cancel·la",
+                                    "common_not_reported": "Informat"})
+        code, output = self.run_tool("--tags", "ca", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertIn("warning: ca: lexicon.py has no NEGATION, REMOVAL_CONTEXT, STATE_WORDS", output)
+        text = read_file(self.kept_copy(output).res("values-ca", "strings_common.xml"))
+        self.assertNotIn("common_alarm_on", text)
+        self.assertIn('name="common_not_reported"', text)  # not a safety key: a person reads its warning
+        keys = read_file(os.path.join(self.out, "report-keys.tsv"))
+        self.assertIn("common_alarm_on\tunchecked\tlexicon: ca has no NEGATION, STATE_WORDS", keys)
+        self.assertIn("common_not_reported\twarned\t", keys)
+
+    def test_an_on_or_off_state_needs_the_state_list(self):
+        """cs has a negation list but no state words: "Alarm on" as "Alarm vypnutý" ("alarm off")."""
+        self.language("cs")
+        self.draft(tag="cs", texts={"common_alarm_on": "Alarm vypnutý", "common_cancel": "Zrušit"})
+        code, output = self.run_tool("--tags", "cs")
+        self.assertEqual(code, 0, output)
+        self.assertIn("common_alarm_on\tunchecked\tlexicon: cs has no STATE_WORDS",
+                      read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def test_a_written_key_nothing_could_check_is_counted(self):
+        """"Full" as "Vacía" ("empty") passes every check, so the report has to say nothing looked at its meaning."""
+        self.lock_key("Full", "common_full")
+        self.lock_key("Lock this one later", "common_plain_lock")
+        path = "res/values/strings_common.xml"
+        self.repo.write(path, self.repo.read(path).replace(
+            '<string name="common_plain_lock" volt:safety="lock">', '<string name="common_plain_lock">'))
+        self.git("add", path)
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false",
+                 "-c", "core.hooksPath=" + os.devnull, "commit", "-q", "-m", "not a safety key")
+        self.sources, _ = translib.load_source(self.paths)
+        self.draft(texts={"common_full": "Vacía", "common_plain_lock": "Sin bloqueo después", "common_cancel": "Cancelar",
+                          "common_disclaimer": "Volt no está afiliada a NAVEE"})
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        common = read_report(os.path.join(self.out, "report.tsv"))[("es", "common")]
+        self.assertEqual(common["unverified"], "2")
+        self.assertEqual(common["safety_unverified"], "1")
+        self.assertEqual(common["lock_alarm_unverified"], "1")
+        self.assertIn("es: 2 written keys have nothing checking their meaning, 1 of them lock or alarm keys", output)
+        keys = read_file(os.path.join(self.out, "report-keys.tsv"))
+        self.assertIn("common_full\tunverified\tsafety key with no glossary safety term", keys)
+        self.assertIn("common_plain_lock\tunverified\tnames a lock word but has no volt:safety", keys)
+        self.assertNotIn("common_disclaimer\tunverified", keys)  # its safety term has a target
+        self.assertNotIn("common_cancel\tunverified", keys)
+
+    def test_a_blank_text_is_refused(self):
+        self.draft(texts={"common_cancel": "\u200b", "common_not_reported": "No informado"})
+        code, output = self.run_tool("--tags", "es", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertNotIn('name="common_cancel"', read_file(self.kept_copy(output).res("values-es", "strings_common.xml")))
+        self.assertIn("common_cancel\tfailing\tempty: empty text", read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def test_a_key_with_a_tab_or_line_break_keeps_its_report_row_whole(self):
+        self.draft()
+        path = self.paths.drafts("es", "common") + "/claude-opus.xml"
+        self.repo.write(self.paths.rel(path), read_file(path).replace(
+            "</resources>", '    <string name="a&#9;b&#10;c" volt:src="%s">y</string>\n</resources>' % ("2" * 40)))
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        lines = read_file(os.path.join(self.out, "report-keys.tsv")).splitlines()
+        self.assertEqual(set(len(line.split("\t")) for line in lines), {5})
+        self.assertTrue(any(line.startswith("es\tcommon\ta\\u0009b\\u000ac\tunknown\t") for line in lines), lines)
+        self.assertIn("es: 1 draft keys are unused", output)
+
+    def test_a_key_in_the_wrong_area_says_where_it_belongs(self):
+        self.draft(texts={"common_cancel": "Cancelar"})
+        source = next(s for s in self.sources["ble"] if s.key == "ble_unlock")
+        translib.write_draft(self.paths.drafts("es", "common") + "/claude-opus.xml", "claude-opus", "claude-opus-5-5", [
+            ("common_cancel", "string", {"other": "Cancelar"}, 1, translib.source_sha1("string", {"other": "Cancel"})),
+            ("ble_unlock", "string", {"other": "Desbloquear patinete"}, 1, translib.source_sha1(source.kind, source.items))])
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        self.assertIn("es\tcommon\tble_unlock\tunknown\tfiled in the wrong area: the English has it in ble",
+                      read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def test_a_malformed_glossary_is_a_refusal(self):
+        self.draft()
+        self.repo.write("l10n/glossary/es.tsv", "id\tterm\n")
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 2, output)
+        self.assertRegex(output, r"es\.tsv: line 1: expected header")
+        self.assertEqual(os.listdir(self.workdir), [])
+
+    def test_a_refusal_at_the_start_leaves_an_earlier_run_in_place(self):
+        self.draft()
+        self.earlier_run()
+        before = sorted(os.listdir(self.out))
+        code, output = self.run_tool("--tags", "de")
+        self.assertEqual(code, 2, output)
+        self.assertIn("de has no drafts", output)
+        self.assertEqual(sorted(os.listdir(self.out)), before)
+
     def test_only_draft_languages(self):
         self.repo.write("l10n/lang/es.tsv", self.repo.read("l10n/lang/es.tsv").replace("status\tdraft", "status\tbeta"))
         self.draft()
@@ -473,6 +624,15 @@ class RefusalTest(Base):
             self.assertIn("res/ or dist/ path", output)
             code, output = self.tool(os.path.join(self.scratch, name), self.out)
             self.assertEqual(code, 2, output)
+
+    def test_a_file_in_the_way(self):
+        path = os.path.join(self.scratch, "a-file")
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("not a folder\n")
+        for workdir, out in ((self.workdir, path), (path, self.out), (self.workdir, path + "/under"), (path + "/under", self.out)):
+            code, output = self.tool(workdir, out)
+            self.assertEqual(code, 2, output)
+            self.assertIn("is a file, not a directory", output)
 
     def test_another_checkout(self):
         other = os.path.join(self.scratch, "other")
@@ -662,6 +822,39 @@ class RealTreeTest(unittest.TestCase):
         report = read_report(os.path.join(self.scratch, "o", "report.tsv"))
         self.assertEqual(report[(self.tag, "TOTAL")]["translated"], "1")
         self.assertEqual(os.listdir(os.path.join(self.scratch, "w")), [])
+
+    def test_the_real_lock_status_key_without_a_removal_list(self):
+        """The real English's "Lock status" as "Remove lock" in a language with a target but no REMOVAL_CONTEXT."""
+        paths = translib.Paths()
+        if os.path.exists(paths.res("values-cs")):
+            self.skipTest("the tree ships cs, which the tool refuses")
+        drafts = translib.Paths(os.path.join(self.scratch, "cs-drafts"))
+        text = read_file(os.path.join(cf.FIXTURE, "l10n", "lang", "es.tsv")).replace("tag\tes\n", "tag\tcs\n")
+        text = text.replace("folder\tvalues-es\n", "folder\tvalues-cs\n").replace("one,many,other", "one,few,many,other")
+        os.makedirs(drafts.lang_dir())
+        os.makedirs(drafts.glossary_dir())
+        with open(os.path.join(drafts.lang_dir(), "cs.tsv"), "w", encoding="utf-8") as handle:
+            handle.write(text)
+        with open(os.path.join(drafts.glossary_dir(), "cs.tsv"), "w", encoding="utf-8") as handle:
+            handle.write("id\tterm\tdefinition\tpos\tdnt\tsafety\tsource\nlock\tzámek\tx\tnoun\tno\tlock\ttest\n")
+        sources, _ = translib.load_source(paths)
+        area = next(a for a, items in sources.items() if any(s.key == "compat_field_lock_status" for s in items))
+        source = next(s for s in sources[area] if s.key == "compat_field_lock_status")
+        harmless = next(s for s in sources[area] if s.kind == "string" and s.translatable and not s.meta.get("ladder")
+                        and "%" not in s.items["other"] and s.key + "_short" not in [o.key for o in sources[area]]
+                        and not s.meta.get("safety") and not s.meta.get("max"))
+        rows = [(s.key, "string", {"other": v}, 1, translib.source_sha1(s.kind, s.items))
+                for s, v in ((source, "Odstranit zámek"), (harmless, harmless.items["other"]))]
+        translib.write_draft(os.path.join(drafts.drafts("cs", area), "claude-test.xml"), "claude-test", "test", rows)
+        code, output = run_tool("--tags", "cs", "--workdir", os.path.join(self.scratch, "w"),
+                                "--out", os.path.join(self.scratch, "o"), "--drafts", drafts.root,
+                                "--no-build", "--no-java", "--aapt", "off")
+        self.assertEqual(code, 0, output)
+        self.assertIn("compat_field_lock_status\tunchecked\tlexicon: cs has no REMOVAL_CONTEXT",
+                      read_file(os.path.join(self.scratch, "o", "report-keys.tsv")))
+        report = read_report(os.path.join(self.scratch, "o", "report.tsv"))
+        self.assertEqual(report[("cs", area)]["unchecked"], "1")
+        self.assertEqual(report[("cs", area)]["translated"], "1")
 
     def test_an_inverted_lock_text_needs_the_glossary_to_be_caught(self):
         """The real English's "Locked", drafted as "Unlocked": never written, with or without the glossary."""
