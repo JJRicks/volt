@@ -1075,6 +1075,7 @@ class ScopeTest(unittest.TestCase):
 
     def test_a_declaration_in_scope(self):
         self.assertTrue(self.scope("class C { void m(boolean a) { MARK(); } }", "a"))
+        self.assertTrue(self.scope("class C { void m(boolean a) throws E, F { x(); MARK(); } }", "a"))
         self.assertTrue(self.scope("class C { void m() { boolean a = true; { MARK(); } } }", "a"))
         self.assertTrue(self.scope("class C { void m(int[] all) { for (int a : all) { MARK(); } } }", "a"))
         self.assertTrue(self.scope("class C { void m(int[] all) { for (int a : all) MARK(); } }", "a"))
@@ -1087,6 +1088,7 @@ class ScopeTest(unittest.TestCase):
         self.assertFalse(self.scope("class C { void m(int[] all) { for (int a : all) x(); MARK(); } }", "a"))
         self.assertFalse(self.scope("class C { void m() { run((String a) -> { x(); }); MARK(); } }", "a"))
         self.assertFalse(self.scope("class C { void m() { try { x(); } catch (E a) { y(); } MARK(); } }", "a"))
+        self.assertFalse(self.scope("class C { void m(boolean a) throws E { } void n() { MARK(); } }", "a"))
         self.assertFalse(self.scope("class C { void m(boolean a) { } void n() { MARK(); } }", "a"))
 
     def test_no_declaration_at_all(self):

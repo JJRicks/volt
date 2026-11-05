@@ -3616,6 +3616,9 @@ def _in_scope(tokens, decl, before):
                 body = j + 1
                 if _op(tokens, body, "->"):
                     body += 1
+                elif _is_word(tokens, body, "throws"):
+                    while body < before and not _op(tokens, body, "{", ";"):
+                        body += 1
                 if _op(tokens, body, "{"):
                     end = expressions.match_brace(tokens, body)
                     return end is not None and before < end
