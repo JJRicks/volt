@@ -19,7 +19,7 @@
 ## 2. Punctuation and quotes
 
 - **U+00A0 goes before `:` `;` `?` `!` and `%`:** *Batterie : %1$s*, *Continuer ?*, *85 %*. Also around a placeholder: `%1$s : %2$s`, `%1$s %%`. The space after the mark is a normal space.
-- **Quotes: `« … »`** with U+00A0 inside both marks: *« Fin de recharge »*. Inner quotes are `“…”`, with no space. Never straight quotes.
+- **Quotes: `« … »`** with U+00A0 inside both marks: *« Finir la recharge à »*. Inner quotes are `“…”`, with no space. Never straight quotes.
 - A final period goes outside closing quotes and parentheses. No space inside parentheses.
 - **Apostrophe: always `’` (U+2019), never `'`:** *d’énergie*, *l’application*. Glossary forms use `’`, and the term check matches it literally, so a straight apostrophe makes a safety key fail. Saira has `’`.
 - Keep `·`, `•`, `–` and `…` from the English. `…` is one character (U+2026) with no space before it. Numeric ranges keep the en dash with no spaces (`fmt_range`).
@@ -53,7 +53,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 
 1. **Drop the words the screen already supplies:** *Réglages de conduite* → *Conduite*, *Tension de la batterie* → *Tension*, *Durée du parcours* → *Durée*.
 2. **Use a shorter real word:** *Réglages* not *Paramètres*, *Feux* for lights, *Infos* for *Informations*, *Appli* for *Application*, *Stats* for *Statistiques*, *Verrou* for the lock as a card or tile title.
-3. **Use an abbreviation from this table.** Nothing else: no invented cuts such as *Verr.*, *Déverr.*, *Conf.*, *Exp.*, *Rech.*
+3. **Use an abbreviation from this table.** Nothing else: no invented cuts such as *Verr.*, *Déverr.*, *Conf.*, *Exp.*, *Rech.*, *est.* (it reads as the verb *est*)
 
 | Full | Abbreviation | Where | Do not write |
 |---|---|---|---|
@@ -64,7 +64,6 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Température | **Temp.** (34.6) | *Temp. batterie* (83.3) | *Tº* |
 | batterie | **batt.** | *Temp. batt.* (64.4) | *bat.* |
 | Capacité | **Cap.** | *Cap. estimée* (73.7) | |
-| estimée, estimé | **est.** | *Autonomie est.* (87.6) | |
 | environ | **env.** | Before a number: *env. 25 km* | |
 | Puissance | **Puiss.** (34.4) | Only where *Puissance* (58.6) doesn't fit | |
 | Programme | **Prog.** | *Prog. recharge* (84.4) | |
@@ -72,6 +71,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | proximité | **prox.** | *PIN, prox.* (53.9 at 12sp) | |
 | trottinettes | **trott.** | Only *Mes trott.* (54.2 at 12sp) | Anywhere else |
 | Installer | **Install.** | Only `owner_shizuku_install` | Anywhere else |
+| Expérimental | **Expérim.** | Only `dashboard_model_qa_experimental` (48.8 at 12sp), where *Expérimental* doesn't fit | Anywhere else; *Exp.*; *Labo* |
 
 An abbreviation ends in a period, which counts toward the width, unless the word stays whole in the cut (*Infos*, *Appli*, *Stats*, *Labo*). A two-word label may wrap at a space where the English also wraps. **"Odo." is not French:** the odometer rungs are real words (table below).
 
@@ -79,29 +79,29 @@ An abbreviation ends in a period, which counts toward the width, unless the word
 
 | English (full / short / compact) | Full | `_short` | `_compact` |
 |---|---|---|---|
-| Total odometer / Odometer / Odo. | Compteur kilométrique (132.4) | Compteur (56.4) | Total (28.3) |
+| Total odometer / Odometer / Odo. | Kilométrage total (100.5) | Kilométrage (70.8) | Total (28.3) |
 | Battery voltage / same / Voltage | Tension de la batterie (124.2) | same | Tension (44.8) |
 | Battery temp. / Temp. | Température de la batterie (153.3) | Temp. batterie (83.3) | Temp. (34.6) |
 | Est. capacity (health) / Est. capacity | Capacité estimée (état) (132.6) | Cap. estimée (état) (108.0) | Cap. estimée (73.7) |
 | Trip top speed / Top speed | Vitesse de pointe du parcours | Vit. de pointe (76.6) | Pointe (37.7) |
 | Trip avg. speed / Avg. speed | Vitesse moyenne du parcours | Vit. moy. du parcours (122.4) | Vit. moy. (51.1) |
 | Trip distance / Distance | Distance du parcours (121.1) | same | Distance |
-| Est. range / Range | Autonomie estimée (112.7) | Autonomie est. (87.6) | Autonomie (63.7) |
+| Est. range / Range | Autonomie estimée (112.7) | same | Autonomie (63.7) |
 | Maximum speed, the setting | Vitesse maximale (102.1) | Vitesse max. (73.6) | Vit. max. (50.4) |
 | Energy recovery | Récupération d’énergie (134.3) | Récupération (77.2) | icon |
 | Compatibility check | Vérification de compatibilité (161.9) | Compatibilité (76.5) | Vérification (66.5) |
-| Experimental controls, 90dp and 64dp | Commandes expérimentales (164.1) | Expérimental (77.1) | Labo (27.2 at 12sp) |
+| Experimental controls; `dashboard_model_qa_experimental` is 64dp and its `_short` 90dp | Commandes expérimentales (164.1) | `_short`: Expérimental (77.1) | The 64dp key: Expérim. (48.8 at 12sp) |
 | Unverified here / Unverified | Non vérifié ici (78.8) | Non vérifié (63.5) | Non vérifié |
 | Worked here / Worked | A fonctionné ici (89.2) | A fonctionné (73.8) | |
-| Charge done by | Fin de recharge (89.1) | Finir à (34.5 at 12sp) | |
+| Charge done by; on the 64dp and 90dp shortcut keys use the narrow form | Finir la recharge à (103.3) | Finir à (34.5 at 12sp, 36.0 at 12.5sp) | |
 | Charge done by time | Heure de fin de recharge (142.4) | Heure de fin (71.1) | Heure fin (51.6 at 12sp) |
 
 **Hard budgets in the catalog at the time of writing:**
 
 - `onboarding_welcome_tile_*`, 62dp at 12.5sp: *Verrouiller* 60.6 (tight; *Verrouillage* is 70.3 and doesn't fit), *Réglages* 53.7 (*Paramètres* is 67.4), *Batterie* 46.8, *Trajets* 40.1.
-- `dashboard_model_qa_*`, 64dp at 12sp, one line: *Feux* 27.1, *Réglages* 51.6, *En direct* 48.7, *Trajets* 38.5, *Conduite* 49.4, *Batterie* 44.9, *Bandes* 41.8, *Étoiles* 37.6, *Écran, son* 57.1, *PIN, prox.* 53.9, *Nom* 26.1, *Préf. appli* 56.7, *Mes trott.* 54.2 (*Trottinettes* is 65.9), *Labo* 27.2, *Données* 48.8, *À propos* 49.5, *Finir à* 34.5, *Heure fin* 51.6.
-- `dashboard_model_tile_*`, 90dp at 12.5sp: *Vitesse max.* 73.6, *Prog. recharge* 84.4, *Fin de recharge* 89.1 (tight).
-- `more_lab_badge`, 40dp at 10.5sp: *LABO* 27.4.
+- `dashboard_model_qa_*`, 64dp at 12sp, one line: *Feux* 27.1, *Réglages* 51.6, *En direct* 48.7, *Trajets* 38.5, *Conduite* 49.4, *Batterie* 44.9, *Bandes* 41.8, *Étoiles* 37.6, *Écran, son* 57.1, *PIN, prox.* 53.9, *Nom* 26.1, *Préf. appli* 56.7, *Mes trott.* 54.2 (*Trottinettes* is 65.9), *Expérim.* 48.8, *Données* 48.8, *À propos* 49.5, *Finir à* 34.5, *Heure fin* 51.6.
+- `dashboard_model_tile_*`, 90dp at 12.5sp: *Vitesse max.* 73.6, *Prog. recharge* 84.4. The `_short` rungs of `dashboard_model_qa_*` are 90dp at 12.5sp too: *Expérimental* 77.1, *Finir à* 36.0, *Heure de fin* 71.1.
+- `more_lab_badge`, 40dp at 10.5sp: *LABO* 27.4. *LABO* is for the badge keys only.
 - `owner_shizuku_install`, 48dp at 14sp: *Installer* is 52.9, over budget. Use *Install.*, measured below.
 
 **Never abbreviate:** *Verrouiller, Déverrouiller, Verrouillée, Déverrouillée, Non vérifié, Inconnu, Jamais, Toujours, Alarme, PIN*. *Verr.* and *Déverr.* are not allowed. If one of these doesn't fit, report it in your notes rather than shortening it. Falling back to English is the safe outcome.
@@ -122,7 +122,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Unknown (alone) | **Inconnu** | *Inconnue* with a feminine subject |
 | Unverified | **Non vérifié** | *Non vérifiée* with a feminine subject. Never *Invérifié* or *À vérifier* |
 | Never | **Jamais** | In a sentence *ne … jamais*, and keep the *ne* |
-| Always | **Toujours** | See the trap below. *Always on* is **Toujours allumé**, or **Allumé en permanence** |
+| Always | **Toujours** | See the trap below. *Always on* is **Allumé en permanence** (132.7), agreed with its noun, and **En permanence** (89.7) where narrow. Never *Toujours allumé*, which can read as "still on" |
 | Alarm | **Alarme** | Never *alerte*: alert is **Alerte**, and they stay distinct |
 | Alarm sound | **Son d’alarme** | |
 | Stop (a sounding alarm) | **Arrêter** | *Arrêter l’alarme* |
@@ -130,9 +130,9 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Handlebar PIN | **code PIN du guidon** | Toggle: **Déverrouillage par code PIN** |
 | Owner key | **clé de propriétaire** | A secret. *Clé* is the usual word for a digital key too. "Not a password" is *Ce n’est pas un mot de passe* |
 | Charge limit | **Limite de recharge** | Never *Limite de charge*, which reads as a load limit in kilograms (see section 7). Never *plafond* |
-| Experimental | **Expérimental**, *expérimentale*, *expérimentaux*, *expérimentales* | The section is **Commandes expérimentales** |
-| Untested | **Non testé** | *Non testée* with a feminine subject |
-| Unconfirmed | **Sans confirmation** | Acknowledged but not kept or read back |
+| Experimental | **Expérimental**, *expérimentale*, *expérimentaux*, *expérimentales* | The section is **Commandes expérimentales**. *Expérim.* only on the 64dp shortcut |
+| Untested | **Non testé** | *Non testée* with a feminine subject. The card title *Untested controls* is **Commandes non testées** until D3 |
+| Unconfirmed | **Sans confirmation** | Acknowledged but not kept or read back. Always a status beside its control, never "done without asking". **Debate item:** *Non maintenu*, or *Non confirmé (non relu)*; *Non confirmé* alone is taken by *Not confirmed* |
 | Not confirmed | **Non confirmé** | Not read back |
 | not affiliated with NAVEE | **non affiliée à NAVEE** | Never soften it: no *non officielle*, *indépendante de*, *sans lien direct*. In a sentence about Volt: *Volt n’est pas affiliée à NAVEE* |
 
@@ -158,11 +158,11 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 - **e-scooter:** **trottinette**, feminine, as NAVEE's French material says. Never *scooter*, which in French is a moped, and never *patinette*. Agreement: *la trottinette est verrouillée*, *trottinette simulée*.
 - **Three speeds:** the setting is **Vitesse maximale** (NAVEE's word). A limit below it is **Limite de vitesse**. The measured value on a trip or ride is **Vitesse de pointe**. Never swap them.
-- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. The glossary rows `top-speed` and `maximum-speed` already carry D3's meanings, so following them now would call the setting *Vitesse de pointe* and the measured value *Vitesse maximale*. Flag these keys in your notes; a judge answers fallback.
+- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. So does `rides_tile_max_speed`: its English says Max speed for a value measured on a ride, D3 makes it Top speed, and its French is then **Vitesse de pointe**, never *Vitesse max.*. The glossary rows `top-speed` and `maximum-speed` already carry D3's meanings, so following them now would call the setting *Vitesse de pointe* and the measured value *Vitesse maximale*. Flag these keys in your notes; a judge answers fallback.
 - **Charge and recharge:** the act and the session are **recharge** (*Recharge programmée*, *Limite de recharge*, *Début de recharge*); the level in the battery is **charge** (*Niveau de charge*, and the compact reading *Charge*). The device is the **chargeur**. This keeps every limit from reading as a weight. **Debate item:** NAVEE's store says *Temps de charge*.
-- **Charge done by:** the feature name is **Fin de recharge**, its time setting **Heure de fin de recharge**, and the narrow quick-access label **Finir à**. The feature only plans a start, so never word it as a finished charge (*Recharge terminée*). In a sentence, quote the name: *La fonction « Fin de recharge » est désactivée*.
-- **Rides vs trips:** a recorded ride is a **trajet**. *Trip* (the distance since a reset) is **parcours**, invariable. A path on the map is a **tracé**. Never *voyage*.
-- **Try vs test:** *Try* is **Essayer**, its result **essai**. A guided test is **test**, **tester**. A compatibility check is **vérification de compatibilité**. *Test scheduled charging* is **Tester la recharge programmée**.
+- **Charge done by:** a finish-by deadline. The feature name is **Finir la recharge à**, its time setting **Heure de fin de recharge**, and the narrow label **Finir à**. The feature only plans a start, so never word it as a finished charge (*Recharge terminée*, *Recharge finie à*), and never as the bare event *Fin de recharge*, which on a tile can read as "stop charging". In a sentence, quote the name: *La fonction « Finir la recharge à » est désactivée*. **Debate item:** *Fin de recharge* (89.1) fits a 90dp tile and pairs with *Début de recharge*, but has no deadline sense; if the debate keeps it, keep the quoted-name rule and never use it as a bare button label.
+- **Rides vs trips:** a recorded ride is a **trajet**. *Trip* (the distance since a reset) is **parcours**, invariable. A path on the map is a **tracé**. Never *voyage*. **Debate item:** *trajet* and *parcours* are near-synonyms, so a rider can't infer the distance since a reset; *Partiel* (*Distance partielle*, *Vitesse de pointe partielle*) is the trip-meter word.
+- **Try vs test:** *Try* is **Essayer**, its result **essai**. *Try again* is **Réessayer**, and in a sentence *Réessayez*. A guided test is **test**, **tester**. A compatibility check is **vérification de compatibilité**. *Test scheduled charging* is **Tester la recharge programmée**.
 - **Dashboard vs display:** Volt's Home layout is the **Tableau de bord**. The scooter's own screen is the **écran de la trottinette**. They never swap, even though French calls a car's instruments a *tableau de bord*.
 - **Settings vs setup:** settings are **Réglages**, a one-time setup is **configuration**. Android's own settings are **Paramètres** (section 9).
 - **Restore vs set back:** bringing back a backup is **Restaurer**. Undoing a try is **Rétablir**. Energy recovery is **Récupération d’énergie**, unrelated to either.
@@ -170,18 +170,18 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Refused vs rejected:** *Refused by scooter* is **Refusé par la trottinette**, *Rejected* is **Rejeté**. Agree with the noun: *valeur rejetée*.
 - **Pair vs bind vs connect:** Bluetooth pairing is **associer**, as Android writes it. NAVEE account binding is **lier** (*lier le compte*). A live link is **connecter**.
 - **Owner key parts:** the file is the **fichier de configuration du propriétaire**, shortened to **fichier de propriétaire** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
-- **Roles:** owner is **propriétaire**, shared rider is **utilisateur autorisé**. The compact role label (`more_role_shared`, English *Shared*) is **Autorisé** (49.1), never *Partagé*, which reads as a shared scooter. A shared rider's key is **clé d’utilisateur autorisé**.
+- **Roles:** owner is **propriétaire**, shared rider is **utilisateur autorisé**. The compact role label (`more_role_shared`, English *Shared*) is **Autorisé** (49.1), for that key only and never as a state, never *Partagé*, which reads as a shared scooter. **Debate item:** *Invité* (32.7), since bare *Autorisé* reads as "allowed". `compat_evidence_shared` and `compat_report_privacy` are not the role: they use *partagé*. A shared rider's key is **clé d’utilisateur autorisé**.
 - **Levels:** Energy recovery levels agree with *récupération*: *Désactivée, Faible, Moyenne, Élevée*. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimation Eco** is a range option, translated.
 - **Drive modes:** WALK, ECO, DRIVE, SPORT stay as the scooter shows them (`drive_mode_names` is english), even though NAVEE's store says *mode piéton*, *mode standard*, *mode sport*. A drive mode in general is a **mode de conduite**. **Walk Assist** is **Assistance à la marche**, and **Power Assist** is **Assistance motrice**.
 - **Kick-start speed vs standing start:** the setting is **Vitesse de démarrage**, and value 0 of it is **Démarrage à l’arrêt**.
-- **Parked:** the meaning is stationary, so **à l’arrêt**. Not *garée*.
+- **Parked:** the meaning is stationary, so **à l’arrêt**. Not *garée*. *À l’arrêt* can also mean switched off, so where power is in question use **immobile**: `onboarding_prepare_parked` is *Trottinette immobile et allumée*.
 - **Readings and measuring:** telemetry values are **relevés** (*Historique des relevés*). Watching the charger is **Mesurer**, and its state is *Mesure en cours*.
 - **Parts:** *guidon* (handlebar), *phare* (headlight, NAVEE's word), *feu arrière*, *feu stop*, *clignotant*, *batterie* (never *pile* or *accu*), *pneu*, *frein*, *accélérateur* (throttle), *béquille*, *micrologiciel* (firmware, as Android writes it). The range is **autonomie**.
 - **Quick settings:** the Dashboard's shortcut row and widget (*Quick access*, *Quick settings*) are **Accès rapide**. Never *Réglages rapides*: Settings is itself one of the shortcuts.
-- **Experimental LAB badge:** **LABO**, a French word that needs no period. D3 lets a language use its own short word. TalkBack speaks **Expérimental**. **Debate item:** Spanish keeps LAB.
+- **Experimental LAB badge:** **LABO**, a French word that needs no period, on the badge keys only (`more_lab_badge`, `rides_lab_badge`). D3 lets a language use its own short word. TalkBack speaks **Expérimental**. A shortcut names the section instead: **Expérimental**, or *Expérim.* at 64dp. **Debate item:** Spanish keeps LAB.
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does.
-- **Odometer. Debate item:** *Compteur kilométrique* is the everyday word, but it says kilometers even when Volt shows miles, and *compteur* alone can suggest a speedometer. *Odomètre* (57.7) avoids both, but it reads as rare or Canadian in France.
+- **Odometer:** **Kilométrage total**, **Kilométrage**, **Total**. *Compteur kilométrique* is accepted in running text. Never bare *Compteur*, which riders use for the speedometer or the display unit. **Debate item:** *Kilométrage* and *Compteur kilométrique* say kilometers even when Volt shows miles. *Odomètre* (57.7) avoids that, but it reads as rare or Canadian in France.
 - **Regional words:** say *téléphone*, never *portable* or *cellulaire*; say *e-mail*, the form Android uses for France, where a Canadian reader would say *courriel*.
 
 ## 8. Grammar traps
@@ -207,5 +207,5 @@ Quote Android's settings as Android writes them: **Débogage USB**, **Options po
 - Android's own French, from AOSP: [SettingsLib fr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-fr/strings.xml) (*Débogage USB*, *Options pour les développeurs*, *Associer*); [Settings fr](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-fr/strings.xml) (*Paramètres*). *Numéro de build* and *À propos du téléphone* come from search snippets of Google's [Android developer docs](https://developer.android.com/studio/debug/dev-options) and [Pixel help](https://support.google.com/pixelphone/answer/6398243?hl=fr). *micrologiciel* is from memory.
 - Retailer and press usage, weaker evidence: [Wee-Bot GT3](https://www.wee-bot.com/products/trottinette-electrique-navee-gt3) (*système de contrôle de traction (TCS)*, *Temps de recharge*, *Vitesse maximale*, *Guidon*); [Journal du Geek, N65](https://www.journaldugeek.com/test/test-de-la-trottinette-electrique-navee-n65-un-poids-lourd-qui-passe-presque-partout/) (*verrouiller la trottinette*, *régulateur de vitesse*, *feu arrière*, *mode de conduite*, *mode piéton*, *un code à 4 chiffres*); [Fnac L’Éclaireur](https://leclaireur.fnac.com/test/629140-test-labo-de-la-navee-gt3maxn-une-trottinette-presque-parfaite/) (*Vitesse max mesurée*, *Clignotants*, *Feu stop*). A search on charge limits showed *charge* used for the rider's weight, which led to the *recharge* rule; that rule is a judgment call.
 - **Typography:** the U+00A0 rules follow the plan and `l10n/style/README.md`. French spacing and capitalization follow memory of the *Lexique des règles typographiques en usage à l’Imprimerie nationale*, which wasn't read here. A search found only general support ([Purnelle syllabus](https://orbi.uliege.be/bitstream/2268/298446/1/R%C3%A8glesTypographiquesSyllabus-Purnelle.pdf), [OQLF](https://vitrinelinguistique.oqlf.gouv.qc.ca/fiche-gdt/fiche/8361819/espace)). Buttons in the infinitive and *Appuyez sur* follow memory of Microsoft's French style guide and Android, also not read here.
-- **Judgment calls, with no source:** *Vitesse de pointe*, *parcours*, *tracé*, *relevés*, *relecture*, *Assistance motrice*, *Contrôle actif de survitesse*, *Commandes expérimentales*, *utilisateur autorisé*, *clé de propriétaire*, the abbreviation table. No French term list for electric scooters was found.
+- **Judgment calls, with no source:** *Vitesse de pointe*, *parcours*, *tracé*, *relevés*, *relecture*, *Assistance motrice*, *Contrôle actif de survitesse*, *Commandes expérimentales*, *utilisateur autorisé*, *clé de propriétaire*, *Finir la recharge à*, *Kilométrage*, *immobile*, *Suit le phare*, the abbreviation table. No French term list for electric scooters was found.
 - Width figures: measured with `tools/l10n/fontmetrics.py`, java.awt, `res/font/saira_medium.ttf`. Glyphs: every French letter and mark used here is in all four Saira weights; U+202F is in none.
