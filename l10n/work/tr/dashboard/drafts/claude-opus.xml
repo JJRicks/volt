@@ -29,9 +29,9 @@
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">%1$s sınırına kadar</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">%1$s için kalan süre</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">%1$s için</string>
-    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Sınır yoksa %100’e kalan süre</string>
-    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Sınır yoksa %100’e</string>
-    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">Sınır yoksa %100</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00" volt:attempt="2">Sınır yoksa %100’e kadar süre</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0" volt:attempt="2">Sınır yoksa %100’e kadar</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d" volt:attempt="2">Sınır yoksa %100</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Dolmasına kalan süre (tahmini)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Dolmasına kalan süre (tahmini)</string>
     <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Dolmasına (tahmini)</string>

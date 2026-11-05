@@ -12,7 +12,7 @@
     <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Şarj zamanlaması bitene kadar bekleyin</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">“Şarj bitiş hedefi” ölçümü bitirene kadar bekleyin</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Geçmiş temizliği bitene kadar bekleyin</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Önce sahip kurulumunu bitirin ve NAVEE etkinlik günlüğünü eski hâline getirin</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Önce sahip kurulumunu bitirin ve NAVEE etkinlik günlüğünü eski hâline getirin</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Önce mevcut dışa aktarımı bitirin</string>
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Önce sahip kurulumunun içe aktarımını bitirin</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Uygulama verileri hazırlanamadı. Volt’u yeniden açın.</string>

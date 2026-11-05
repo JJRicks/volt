@@ -139,7 +139,7 @@
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  NAVEE’de oturum açık, scooter yakında\n•  Diğer scooter uygulamaları kapalı\n•  Erken mi durdu? Önce aynı tarayıcıda temizliği tamamlayın"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Sahip kurulumu</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Sahip dosyasını içe aktar</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">navee-owner-setup.json dosyasını seçin. Bu, yalnızca scooter erişimini geri yükler; sürüşler veya diğer uygulama verileri dahil değildir.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Sahip kurulum dosyasını (navee-owner-setup.json) seçin. Bu dosya sürüşleri veya diğer uygulama verilerini değil, yalnızca scooter erişimini geri yükler.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Sahip profiliniz yükleniyor…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Henüz dosya seçilmedi</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Sahip dosyası değil.</string>

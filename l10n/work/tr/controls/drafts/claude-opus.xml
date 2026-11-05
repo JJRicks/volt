@@ -15,7 +15,7 @@
     <string name="controls_feature_speed_limit" volt:src="eae0a786d24497605ec2abc368fb032b5599a2c3">Özel hız sınırı</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Maksimum hız</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Çift motorlu sürüş</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9">Drive modu hız sınırı</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9" volt:attempt="2">Drive sürüş modu hız sınırı</string>
     <string name="controls_feature_charge_limit" volt:src="69ff0b43f5632ac15b553dfeeab26e66e603e019">Şarj sınırı</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Zamanlanmış şarj</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Şarj başlangıç saati</string>
@@ -122,13 +122,13 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Çekiş kontrolü kapatılsın mı? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Düşük pil modu kapatılsın mı? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Tek motora geçilsin mi? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Enerji geri kazanımı kapatılsın mı? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Enerji geri kazanımı “Kapalı” olarak ayarlansın mı? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Kalkış hızı 3 km/h altında. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">32 km/h üzeri: sürdüğünüz yerdeki kuralları kontrol edin. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Çekiş kontrolü kapatılacak. Nasıl davrandığını öğrenene kadar ıslak veya gevşek zeminde dikkatli sürün.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">3 km/h altında motor, gaz kolunu kullandığınız anda scooter’ı duruştan harekete geçirebilir.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Enerji geri kazanımı (motorla frenleme) kapatılacak, bu yüzden durmanın daha büyük kısmını frenleriniz üstlenir.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Sürüş sırasında hızınız “En yüksek hız” ayarının altında sınırlanacak. “Geri al” düğmesi önceki ayarınızı geri getirir.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Model %1$s (onaylanmadı)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Yüksek performans</string>

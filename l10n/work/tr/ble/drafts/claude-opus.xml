@@ -83,12 +83,12 @@
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Uyumluluk kontrolü bitti</string>
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Önce geçerli denemeyi bitirin</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Test kayıtları kullanılamıyor</string>
-    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Önce yarım kalan denemeyi gözden geçirin</string>
+    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34" volt:attempt="2">Önceki deneme tamamlanmadı. Önce onu inceleyin</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Geri alınacak bir şey yok</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Geri alınamadı. Hiçbir şey değiştirilmedi.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Önce geçerli testi bitirin</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test bulunamadı</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Geri alma işlemi başlatılamadı. Hiçbir şey değiştirilmedi.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc" volt:attempt="2">Geri yükleme başlatılamadı. Hiçbir şey değiştirilmedi.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Onaylandı</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Ayar geri okumayla onaylandı; ışık çıkışı ölçülmedi</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Kabul edildi; saat için geri okuma yok</string>

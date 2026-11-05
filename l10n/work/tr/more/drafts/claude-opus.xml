@@ -44,7 +44,7 @@
     <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Unut: %1$s</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Bir scooter adı girin</string>
     <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">%1$s adlı scooter unutulsun mu?</string>
-    <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Scooter’ın bağlantı kurulumu bu telefondan kaldırılacak. Kaydedilen sürüşler ve şarj kayıtları silinmez.</string>
+    <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd" volt:attempt="2">Bağlantı kurulumu bu telefondan kaldırılacak. Kaydedilen sürüşler ve şarj kayıtları korunacak.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Önce yedek kaydet</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Unut</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Görünüm</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Ekranı açık tut</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Kayıt sırasında</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Park hâlindeki sürüşleri bitir</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">Dururken Bluetooth kesildikten 10 sn. sonra</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">Bluetooth, durdurulmuş scooter’da kesildikten 10 sn. sonra</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Arka planda kayıt</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Pil kullanımı kısıtlanmamış</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Pil kullanımı optimize edilmiş; uzun kayıtlar durabilir. Pil ayarları açılacak</string>
@@ -125,7 +125,7 @@
     <string name="more_pin_set_row" volt:src="603eff531215e4206165cd40552c3fbc3521366d">PIN ayarla veya değiştir</string>
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Yakınlıkla kilit açma</string>
     <string name="more_proximity_pair" volt:src="14a611adba760ec799d776213f86a9936c8c6661">Bu telefonu scooter ile eşleştir</string>
-    <string name="more_pin_guide_row" volt:src="01f6163f19b5ab5a2b3c7e1eb878edf25b4cdab4">Telefonsuz kilit açma</string>
+    <string name="more_pin_guide_row" volt:src="01f6163f19b5ab5a2b3c7e1eb878edf25b4cdab4" volt:attempt="2">Telefon olmadan kilit açma</string>
     <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">Scooter onayı bekleniyor</string>
     <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">PIN’i değiştirmeden önce scooter’a sahip olarak bağlanın.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Gidon PIN’ini ayarla</string>
@@ -151,7 +151,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Yakınlıkla kilit açma ile: eşleştirilmiş telefon yakında olsun, freni sıkın. Bunlara güvenmeden önce ikisini de park hâlindeyken test edin.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Anladım</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Gidon: 1 dönüş sinyali düğmesi, 2 fren kolu, 3 güç düğmesi</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Denenecek özellikler</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Denenecek özellikler</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Doğrulamaya yardım et</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Denenecek bir şey yok</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Komut kanıtları</string>
@@ -242,7 +242,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Bir sınır seçin</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Bir değer seçin</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt, scooter park hâlinde ve kilidi açıkken tek bir değişiklik gönderir, geri okur, ardından ne gördüğünüzü sorar. Değer siz geri alana kadar kalır. Bağlantı koparsa Volt asla kendiliğinden yeniden yazmaz: deneme sizin incelemenizi bekler.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Değişmediği kontrol ediliyor…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Değişiklik yok mu diye kontrol ediliyor…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Geri alınıyor: %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Mevcut değer okunuyor…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">%1$s gönderiliyor ve geri okunuyor…</string>
@@ -378,7 +378,7 @@
     <string name="more_permission_not_allowed" volt:src="5d9e1e5a17373c3c4ab45e14a5c7f4585e022446">İzin verilmedi</string>
     <string name="more_permission_approximate" volt:src="56e4a378af5c8974821105ae5d24de20fd9ef934">Yaklaşık</string>
     <string name="more_pin_not_read" volt:src="5f09f0c7557469533b6b0a57ff74636ce28a2421">Okunmadı</string>
-    <string name="more_pin_rejected" volt:src="4c145cb0761526ad2b04e889e812bfd698cd5ec9">Scooter reddetti</string>
+    <string name="more_pin_rejected" volt:src="4c145cb0761526ad2b04e889e812bfd698cd5ec9" volt:attempt="2">Scooter tarafından reddedildi</string>
     <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Ayarlanmadı</string>
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Devre dışı</string>
     <string name="more_pin_enabled" volt:src="d5a5252181dc44fe1192e2b23c52a00e573a8166">Etkin</string>
