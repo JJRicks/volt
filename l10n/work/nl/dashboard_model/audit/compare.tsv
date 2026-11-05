@@ -16,7 +16,7 @@ dashboard_model_tile_on_at	On • %1$s	Aan • %1$s	On • %1$s	claude-opus	clau
 dashboard_model_tile_not_scheduled	Not scheduled	Niet gepland	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	620bf32867b50e272dd4e18db1c5ec64eaea3599
 dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
 dashboard_model_tile_select_scooter	Select a scooter first	Kies eerst een step	Choose a scooter first	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	bdf66f54b1967dd766bbcb853bc787500fc5e12e
-dashboard_model_tile_connect_scooter	Connect your scooter first	Verbind eerst met je step	Connect to your scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	56f1261eb54620f297cb4d60e722a1b1d2c4b327
-dashboard_model_type_lock	Lock & connection	Vergrendeling & verbinding	Locking & connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	967a6955a8c7e9589af797400447f9cb98675fee
-dashboard_model_type_charging	Charging	Laden	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	306b76d1f33cb3875a23544323c8d8bdd5e14d7c
+dashboard_model_tile_connect_scooter	Connect your scooter first	Maak eerst verbinding met je step	First make connection with your scooter	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	036608d27a849984e06c2b2b6f43511d37c2d1b0
+dashboard_model_type_lock	Lock & connection	Vergrendeling en verbinding	Locking and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	26f5a903c3e505660a5160af60190082b49e1efe
+dashboard_model_type_charging	Charging	Opladen	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	fc87347744fce14440827c2aba00a5d1b2eefcd1
 dashboard_model_type_lockbar	Lock bar	Vergrendelbalk	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	14bc5d78856e22c17ed76ff5993e879fbbb14f9a
