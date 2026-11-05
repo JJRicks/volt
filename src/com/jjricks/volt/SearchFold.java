@@ -19,7 +19,16 @@ final class SearchFold {
     static String fold(String text) {
         String lower = text.toLowerCase(Fmt.locale(Locale.ROOT));
         if (Fmt.legacy()) return lower;
-        return Normalizer.normalize(lower, Normalizer.Form.NFD).replaceAll("\\p{M}+", "");
+        String split = Normalizer.normalize(lower, Normalizer.Form.NFD);
+        StringBuilder folded = new StringBuilder(split.length());
+        for (int i = 0; i < split.length(); ) {
+            int c = split.codePointAt(i);
+            i += Character.charCount(c);
+            int type = Character.getType(c);
+            if (type != Character.NON_SPACING_MARK && type != Character.COMBINING_SPACING_MARK && type != Character.ENCLOSING_MARK)
+                folded.appendCodePoint(c);
+        }
+        return folded.toString();
     }
 
     /** True when text, folded, holds the query, which {@link #fold} already folded. */

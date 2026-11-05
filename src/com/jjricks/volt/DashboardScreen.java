@@ -882,7 +882,7 @@ public final class DashboardScreen implements AppScreen {
         if (r.number != null) {
             if (DisplayTemperature.isTemperature(r.key))
                 return DisplayTemperature.format(r.number, temperatureUnit(), 0);
-            if (r.key.endsWith("_kmh")) return DisplayUnits.speed(r.number, units());
+            if (r.key.endsWith(SPEED_KEY)) return DisplayUnits.speed(r.number, units());
             if (r.key.endsWith("_km"))
                 return DisplayUnits.metricText(
                         String.format(Locale.US, "%.2f km", r.number), units());
@@ -900,6 +900,9 @@ public final class DashboardScreen implements AppScreen {
         return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
 
+    /** How a speed reading's key ends. */
+    private static final String SPEED_KEY = "_kmh";
+
     /**
      * format(r) with its number and unit parts where the reading has them (speed and temperature, whose text comes
      * from a language's fmt_quantity), else null: the other readings are split at their space (ReadingUnits).
@@ -907,7 +910,7 @@ public final class DashboardScreen implements AppScreen {
     private Formatted parts(TelemetryHistory.Reading r) {
         if (r == null || r.value == null || r.number == null) return null;
         if (DisplayTemperature.isTemperature(r.key)) return DisplayTemperature.quantity(r.number, temperatureUnit(), 0);
-        return r.key.endsWith("_kmh") ? DisplayUnits.speedQuantity(r.number, units()) : null;
+        return r.key.endsWith(SPEED_KEY) ? DisplayUnits.speedQuantity(r.number, units()) : null;
     }
 
     /** Large value with its unit drawn smaller (and muted when live), e.g. 412 W: ReadingUnits.smallPart says where. */

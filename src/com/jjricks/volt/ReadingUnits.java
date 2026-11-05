@@ -17,7 +17,7 @@ final class ReadingUnits {
      */
     static int[] smallPart(String value, Formatted parts) {
         if (parts == null) return smallPart(value);
-        if (parts.numbers() != 1 || parts.units() != 1 || value.contains("/")) return null;
+        if (parts.numbers() != 1 || parts.units() != 1 || slashed(value)) return null;
         int numberStart = parts.numberStart(0), numberEnd = parts.numberEnd(0);
         int unitStart = parts.unitStart(0), unitEnd = parts.unitEnd(0);
         if (!unitFits(value.substring(unitStart, unitEnd)) || numberEnd <= numberStart
@@ -27,10 +27,13 @@ final class ReadingUnits {
 
     private static int[] smallPart(String value) {
         int space = lastSpace(value);
-        if (space <= 0 || space >= value.length() - 1 || value.contains("/")) return null;
+        if (space <= 0 || space >= value.length() - 1 || slashed(value)) return null;
         if (!unitFits(value.substring(space + 1)) || !Character.isDigit(value.charAt(space - 1))) return null;
         return new int[]{space, value.length()};
     }
+
+    /** A slash means km/h or a dual reading, which keep one size. */
+    private static boolean slashed(String value) { return value.contains("/"); }
 
     private static boolean unitFits(String unit) {
         if (unit.isEmpty()) return false;
