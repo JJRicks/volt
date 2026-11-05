@@ -21,7 +21,7 @@ the working manual.
 | `l10n/baseline/<File>.txt` | G8: the hard-coded English each unconverted source file still has |
 | `tests/l10n/characterization/` | G5: tests that pin a batch's English output, committed first |
 | `tests/l10n/GoldenReports.java`, `golden.sh`, `golden/` | G9: report outputs that must stay byte-identical |
-| `tools/l10n/` | Generator, round-trip, gates, the CI driver (`ci_gates.py`), the translation tools and their unit tests |
+| `tools/l10n/` | Generator, round-trip, gates, the CI drivers (`ci_gates.py`, `ship_check.py`), the translation tools and their unit tests |
 | `l10n/glossary/<tag>.tsv` | A language's approved glossary terms (same columns as `en.tsv`; see Running a language) |
 | `l10n/style/<tag>.md` | A language's style guide; `l10n/style/README.md` lists the sections every guide has |
 | `l10n/packs/<tag>/<area>.json` | Work packs from `pack.py` (generated, not committed) |
@@ -356,10 +356,10 @@ How `ledger_check.py` (G1) reads it:
   and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
   "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
   exactly so, and the helper call in the base expression to pass the row's arguments; the call's
-  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row
-  with `one` and `other` forms, each the same base expression, whose count argument is the row's
-  one quantity hole (`"quantity": true`), so the call's quantity argument is checked too; anything
-  else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
+  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row,
+  or a plural branch of a `choice` row (below), with `one` and `other` forms, each the same base
+  expression, whose count argument is the row's one quantity hole (`"quantity": true`), so the call's
+  quantity argument is checked too; anything else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
   the model with the sentinels, so `one` is checked at 1 and `other` at 0, 2 and 21 against what the
   helper really printed. Each modelled call is listed with the key, its quantity and what the base
   prints for each form. A helper with any other body (`count()` in
@@ -374,23 +374,46 @@ How `ledger_check.py` (G1) reads it:
   `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
-- **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
-  summary picks words in a local and uses it later. For a merge, `perScooter` sets
-  `String what = ... ? "layouts" : "settings";` then adds the Dashboards and Scooter preferences
-  lines, `label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + ...)`
-  (BackupArchive.java lines 667-668 since B10, 656-657 before), and `recordings` sets
-  `String noun = charges ? "charge" : "ride";` then adds the rides and charges lines for what is
-  skipped: `plural(full, noun) + " skipped · " + ...`,
-  `plural(notRestored, noun) + " skipped · scooter not restored"` and
-  `plural(unreadable, noun) + " skipped · unreadable"` (lines 721-725 since B10, 710-714 before).
-  The Review page (B11) shows these lines in English. A choice row's condition must sit in the
-  row's expression, and a helper's text argument is a literal or a hole, so a hole for `noun`
-  renders a fragment, not a sentence: the whole-sentence conversion
-  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
-  the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
-  piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence
-  still has no row form. These lines stay English until a tooling pull request both models a local
-  whose initializer is a ternary of literals and lets a choice row's branches be plural rows.
+- **A choice set on an earlier line is refused.** A choice row's conditions must sit in the row's own
+  expression. G1 reads nothing from a line above or from around the sentence: not a local holding a
+  ternary, not the `if` or `else` around it, not a local that stays null unless something held. Such a
+  row fails with "neither a choice of the base expression on this branch nor a test of a data id".
+  G1 tried this in round T1 and took it out: each review found a new way to pass an English change
+  through a home-grown data-flow analysis, which is the wrong thing to base this proof on.
+  BackupArchive's restore summary is the live case. `perScooter` sets
+  `String what = ... ? "layouts" : "settings";` and `recordings` sets
+  `String noun = charges ? "charge" : "ride";`, and later lines read them. These lines stay English
+  until an ordinary pull request, merged first, writes each choice in its sentence:
+  `(charges ? plural(full, "charge") : plural(full, "ride")) + " skipped · " + ...`. G1 compares with the
+  merge base, so a commit in the batch's own pull request does not do. For `what`, the same pull
+  request moves `String.join(", ", labels)` to a local, because the join would otherwise be in two
+  branches, and a literal repeated in a hole is a new literal. A choice row with plural branches
+  (below) then converts them. An ordinary change can also convert such a sentence whole, as F6 did
+  for the Dashboard header status, with `removed` rows for the whole block.
+- A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
+  one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
+  own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
+  branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
+  "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
+  Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
+  the same both times: names, fields, array elements and `ids.length`, joined by operators. Any call
+  fails, whatever its name (`size()` may be the class's own method that counts its calls, and G1 does
+  not resolve the receiver of `rides.size()` or `Math.round(x)`). Set a count from a call on a local
+  in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
+- A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
+  count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
+  a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
+- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
+  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
+  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
+  string with a `removed` row). The statement must be one declarator, with only literals, numbers,
+  names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
+  its `;` and the row fails.
+- A manual row covers one statement. It cannot fold `state += " • " + clock(t);` into the template of
+  the statement before: G1 cannot show that the call prints what the two statements did. No line in
+  `src/` needs that today: QuickAccessGrid.java's manual charge tile (B12) has an `if`, so it keeps
+  `"On"` and `" • %1$s"` as two keys.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -617,7 +640,7 @@ changes since the merge base:
 | Kind | When | Gates |
 |---|---|---|
 | `batch` | it changes `l10n/ledger/` or a `res/values*/strings_*.xml`, or a `src/` file gains a `T.`, `M.`, `R.string` or `R.plurals` reference (bare or spelled `com.jjricks.volt.T.`, and so on) | every gate, strict; proof tooling unchanged |
-| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog |
+| `english-change` | it changes `l10n/english-changes.tsv` | G1 with the recorded changes, G8 shrink-only, G5; G4 and the golden diff report only; no ledger rows may be added, and every recorded key must be in the catalog; proof tooling unchanged, except that edits to existing `tests/l10n/<Name>Test.java` files that are not gate tests are reported |
 | `ordinary` | anything else | baselines list every finding; ledgers agree with the catalog |
 
 Every kind also refuses a static import of a `T`, `M` or `R` member in `src/`: a bare call through one
@@ -627,11 +650,26 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
   `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
   prefer putting new text in the catalog). If it changes a report format, update the goldens with
-  `bash tests/l10n/golden.sh --update` and say so in the PR.
+  `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run CI's localization steps
+  (`python3 -m unittest discover -s tools/l10n`, `python3 tools/l10n/gen_catalog.py --check`,
+  `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main`), then, as for any
+  change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
+  pull request does not need it.
+  If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
+  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
   approval), updates the tests that assert the old English, and shows the census diff.
+  Its characterization changes (`tests/l10n/characterization/`) all go in the first commit, which
+  changes nothing under `src/` or `res/` (G5). It may edit an existing top-level
+  `tests/l10n/<Name>Test.java`: CI lists each such edit in a REPORT line, and the reviewer checks
+  that each one only follows a row of `l10n/english-changes.tsv`. The gate tests stay strict:
+  `LedgerTest`, `FmtLegacyTest`, `ReportsStayEnglishTest`, `GlyphCoverageTest`, `CatalogCheckTest`
+  and `CatalogUsageTest`. So do deleting a test, the other `tests/l10n/` files (`GoldenReports.java`,
+  `L10nFiles.java`, the scripts, subdirectories) and the rest of the proof tooling. Change those in a
+  tooling pull request of their own.
 
 ## Threat model
 
@@ -708,20 +746,20 @@ Known limits:
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
-| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch pull requests), prove-english |
+| G5 characterization first | `tools/l10n/char_first.py --base origin/main` | CI (batch and English change pull requests), prove-english |
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english (other kinds: a golden change is REPORT, never FAIL) |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
-runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
-`ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
+runs them, `gen_catalog.py --check`, `ship_check.py` and `tests/l10n/golden.sh` on every push and pull
+request, then `ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
 changes in a batch) and review are what keep a batch from weakening them.
 
 **G2.** `LedgerTest` renders every `exact`, `template` and `plural` row through `EnglishText` with
@@ -776,7 +814,12 @@ path or id.
 pull request adds or changes must be added by its first commit and left alone afterwards, and that
 commit changes nothing under `src/` or `res/`. A batch with a `template` or `plural` ledger row must
 have them. `prove-english.sh` runs `tests/run.sh` and `tests/l10n/golden.sh` at the first commit,
-and fails when a characterization test is not listed in a `tests/l10n/*.sources` file.
+and fails when a characterization test is not an active entry of a `tests/l10n/*.sources` list,
+read as `tests/run.sh` reads it (from `#` on is a comment, the rest is trimmed, and the entry must be
+exactly the test's path). An English change is the exception: its characterization tests pin the
+new English, which the base code does not print yet, so that run is `n/a` there. Its order is still
+checked, each test must still be an active entry at head (with or without `--skip-tests`), and G6
+runs them there.
 
 **G8** is a Python tool run in CI, instead of the plan's `tests/l10n/HardcodedTextLint.java`, so it
 shares the Java lexer with the other gates. It flags any literal with letters inside a platform UI
@@ -823,7 +866,15 @@ worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 bracketed, longer) and ar-XB (right-to-left). The build checks that the resource ids are unchanged
 and that both configurations are present. Every build runs a release guard on `dist/volt.apk`:
 `aapt dump configurations` must not list en-XA or ar-XB, and no text may sit in an English or
-non-locale configuration. Known aapt1 quirk: a trailing `%` is mangled (`75%` becomes `[75»%`).
+non-locale configuration. aapt1 cuts en-XA text at a `%` with no letter after it (`Battery %`,
+`Battery charge (%)`, only possible with `formatted="false"`): `[βåţţéŕý »%` and NUL characters, no
+closing bracket. aapt refuses a `values-en-rXA` folder next to `--pseudo-localize`, so the pseudo
+build runs `tools/l10n/pseudo_fix.py` on its output, which rewrites those strings in place as the
+text aapt meant (`[βåţţéŕý % one two]`) and fails if any text still holds a NUL. A letter soon after
+the `%` is not cut, only marked: `90% range` becomes `[90»% ra«ñĝé one]`, which the repair leaves alone.
+After the repair, the pseudo build's round trip still names any en-XA text that opens with `[` and has
+no closing `]` as a `roundtrip: note:` line, so a bracket the repair missed, or one lost for another
+reason, shows up in the build log. None is expected.
 
 ## Census format (G7)
 
@@ -1116,9 +1167,11 @@ python3 tools/l10n/council.py check --tag $T --area $A               # 3. automa
 ( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py redraft openai --tag $T --area $A )
 python3 tools/l10n/council.py prompt --tag $T --area $A --name opus-context --redraft   # Claude's redraft
 python3 tools/l10n/council.py check --tag $T --area $A
-( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate google --tag $T --area $A )
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate openai --tag $T --area $A )
 python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then a separate Opus judge session
-python3 tools/l10n/council.py decide --tag $T --area $A              #      writes judge.jsonl; then decide
+#      writes judge.jsonl; for a safety key whose drafts disagree, back-translate the judge's text
+#      (backtranslate openai again) and run judge-requests again for the judge's confirm
+python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
 ```
@@ -1132,7 +1185,11 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    `volt:safety` takes its full key's.
 2. **Drafts**, independently. `council.py draft openai|google` asks each provider's model-list
    endpoint which models exist and picks one per `tools/l10n/council_models.json` (first matching
-   pattern, newest version; `--model` or `--prefer` overrides), then drafts in JSON mode
+   pattern, newest version; `--model` or `--prefer` overrides). The owner chose modest current
+   models, not the top end (2026-11-05): drafts come from `gpt-6.1-terra` and `gemini-3.8-flash`,
+   and back-translation from `gpt-6.1-sol`, which drafts nothing (with Google, the newest plain
+   flash that did not draft, then flash-lite). The patterns name each line, so a newer version
+   of the same line is picked when it appears, and never a top-end line (pro, argon). It then drafts in JSON mode
    (OpenAI's Responses API, `"store": false`; Gemini's `generateContent`). Each draft records the
    exact model id, and the id the API reported. Claude drafts come from Claude Code agents, each
    in its own session with a different configuration (`--style` `context-first`,
@@ -1152,12 +1209,10 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
    words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
-   the U+FE0E after ⚠, exactly as the English has them. `check.py` and `council.py` do not know that
-   list yet. `check.py` reports each of those symbols, and U+FE0E itself (category Mn, so not the
-   warning it gives spaces and format characters), as a missing-glyph ERROR. The drafting prompt's
-   "Keep unchanged" rule names neither the symbols nor the invisible U+FE0E, which a drafter may
-   drop. Both need the list, in a tooling pull request, before a language translates a key that has
-   one. Glossary terms match as whole words ("bloquear" is not found
+   the U+FE0E after ⚠, exactly as the English has them: `check.py` (`FALLBACK_SYMBOLS`, which a test
+   keeps equal to the Java list) lets those symbols past Saira's cmap and fails a draft that changes
+   their count, drops the U+FE0E or puts one anywhere else, and the drafting prompt's "Keep
+   unchanged" rule names them. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
@@ -1173,16 +1228,30 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    candidate needs a new ruling and falls back until it has one. A `fallback` ruling is not bound
    to the drafts it saw (it keeps English, so it can never ship a wrong text): after redrafting a
    key the judge sent to English, delete that ruling or judge the key again, or it stays English.
-5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
-   providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
-   text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
-   Claude agent on a model that did not draft: each such prompt gets a request id, the hash of
-   exactly what it showed, recorded in `prompts/backtranslation.request.<id>.json` and never
-   overwritten; the agent copies the id and each text's `target_sha1` into its reply, and
-   `import-backtranslation` refuses a reply without a known id or with a text hash its request
-   did not show, and drops a key whose English or agreed text changed since that request, so a
-   later prompt cannot adopt an earlier agent's answer); and the judge, shown that text and its
-   back-translation and naming both in its ruling, confirms every item: locked and
+5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
+   every drafter agrees**, with drafts from all three providers that all pass the checks, a model
+   that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
+   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   such a key always fell back), with drafts from all three providers and at least one passing,
+   `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
+   or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
+   That judged text is not used yet: `backtranslate` (and the Claude back-translation prompt)
+   then covers each judged text that has no back-translation of exactly that text, by a model
+   that drafted nothing; the next `judge-requests` lists the key as `safety-judged-confirmation`
+   with the judged text and its back-translation, and the judge confirms it on a later line of
+   `judge.jsonl` exactly as for an agreed text (`safety-judged`). The latest pick or merge is the
+   judged text: a new one, or a picked draft that changed, needs a new back-translation and a new
+   confirm, and the judge can never confirm a text it has not seen back-translated. A key with a
+   provider's draft missing, or no passing draft, still falls back. Either way the back-translation
+   is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
+   backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
+   each such prompt gets a request id, the hash of exactly what it showed, recorded in
+   `prompts/backtranslation.request.<id>.json` and never overwritten; the agent copies the id and
+   each text's `target_sha1` into its reply, and `import-backtranslation` refuses a reply without
+   a known id or with a text hash its request did not show, and drops a key whose English or
+   agreed or judged text changed since that request, so a later prompt cannot adopt an earlier
+   agent's answer); and the judge, shown that text and its back-translation and naming both in
+   its ruling, confirms every item: locked and
    unlocked stay distinct, on/off and never/always are not inverted, "unverified" or "unknown"
    never reads as confirmed, numbers, units and the named action are unchanged, "not affiliated
    with NAVEE" is not softened, and the back-translation keeps the meaning. Anything less **falls
@@ -1197,12 +1266,46 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    36.1.0 when the SDK is installed, comparing what aapt stored with the decisions' text.
 7. **The beta bar** (owner, 2026-11-02): a language may ship as `beta` only when at most **2%** of
    its keys fall back to English and **no lock or alarm** key falls back. `council.py beta` checks
-   it across every area (a key whose English changed after its decision counts as a fallback).
+   it across every area. It counts what `merge.py` writes, so a key whose English changed after its
+   decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
+   or alarm key must also be `safety-agreed` or `safety-judged`, which Claude's drafts alone never reach.
    Releases still need the owner's explicit authorization.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
+
+### What CI checks
+
+The `core-tests` job's "Localization proof gates" step runs `python3 tools/l10n/ship_check.py` on every
+push and pull request.
+It looks only at committed files and never needs a key or the network; the beta bar comes from the
+recorded decisions. It fails when:
+
+- a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
+- that text fails `merge.py`'s validation (above), including a stale `src` hash, a blank text or a
+  missing `l10n_tag`;
+- that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
+  a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
+- that language is under the beta bar (`council.py beta`);
+- that language has no line in `res/xml/locales_config.xml`, or `AndroidManifest.xml` has no
+  `android:localeConfig`;
+- a `res/values-*` folder holds text and its language is not listed or does not have status `beta` or
+  `stable`, `locales_config.xml` lists a language that does not ship, or the manifest names
+  `localeConfig` while only English ships.
+
+A language at `draft` or `held` is not read, so it can't fail the step unless its text has reached
+`res/`. While nothing ships, the step says that it checked no translated text and passes.
+
+An English change therefore fails CI for every shipped language that translates that key. Run
+`merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
+the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). `CatalogCheckTest`
+(in `tests/run.sh`) keeps the same folder rules for the real tree's `strings*.xml` files; `ship_check.py`
+also reads a language folder's other XML files.
+
+What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
+providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local
+build compiles the text), and LocaleValidation (it needs an emulator).
 
 ### Drafting a whole language with Claude alone
 
@@ -1230,7 +1333,7 @@ those rows as information, and a row keeps the label until the council has judge
 `decide` would then send them to fallback. So:
 
 1. Step 3 runs with this file as Claude's proposal, on equal terms with the other two, and the
-   judged result replaces it, with no `claude-only` row left.
+   judged result replaces it, with no `claude-only` row left. That is the glossary round below.
 2. `pack.py` runs again for every area (prompts refuse an older pack). Claude's draft stays current,
    since `volt:src` hashes only the English, and nothing rewrites or relabels it.
 3. `check` runs. Where the judged word differs, a safety key that used the old word now fails, and
@@ -1238,6 +1341,75 @@ those rows as information, and a row keeps the label until the council has judge
 4. Those failed keys take the ordinary `prompt --redraft`: only those keys, in the same file under
    the same name and model. A key already at `volt:attempt="2"` has no redraft left and falls back
    to English in `decide`, which is safe.
+
+**The glossary round** (`tools/l10n/glossary_council.py`), one language at a time:
+
+```sh
+T=es
+python3 tools/l10n/glossary_council.py relabel --tag $T          # 1. label Claude's rows claude-only <model>
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/glossary_council.py draft openai --tag $T )
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/glossary_council.py draft google --tag $T )
+python3 tools/l10n/glossary_council.py judge-requests --tag $T   # 3. the rows to judge, and the judge's prompts
+#   give l10n/work/$T/glossary/prompts/judge.chunk-<i>-of-<n>.md to one fresh Claude Code judge agent;
+#   it writes each chunk's reply where the prompt says
+python3 tools/l10n/glossary_council.py decide --tag $T           # 4. the judged l10n/glossary/$T.tsv
+python3 tools/l10n/council.py glossary-check --tag $T
+```
+
+1. **`relabel`** writes `claude-only <model>; ` before the source of every unlabelled row when the
+   file's header says it is a Claude-only proposal (`--model`, default `claude-opus-5-5`; it must
+   start with `claude`). The glossaries written before the labelling rule need it, or the `draft
+   openai|google` guard never fires. It is idempotent, never touches a row whose source starts with
+   `council `, and refuses a file whose header does not say it is a Claude-only proposal. The round's
+   other commands refuse such a proposal while any row is unlabelled.
+2. **`draft openai|google`** sends the provider the English rows of the round (every `en.tsv` row
+   that is not do-not-translate and whose `$T.tsv` row is `claude-only` or missing: id, term,
+   definition, part of speech, `dnt`, safety, and up to 3 example texts), `l10n/lang/$T.tsv` and
+   `l10n/style/$T.md` whole, and asks for its own term per row, with the forms separated by ` | `.
+   The examples are real English texts from `res/values/` that contain the term, each with its
+   string key, so the drafter sees how the term is used: every form of a translatable string is
+   matched as `glossary_orphans` matches, and the pick is fixed (the shortest label, the shortest
+   full sentence, then the shortest other text of a new key; a text over about 200 characters only
+   when nothing shorter has the term). A term in no text goes with an empty list, and the prompt
+   says so. Drafting never sees Claude's terms, the rows of `l10n/glossary/$T.tsv`. Sending the
+   whole guide, to the vendors and to the judge, is the owner's decision of 2026-11-05: the guide is
+   Claude-written and its "Safety wording" and "Scooter vocabulary" sections name some of Claude's
+   proposed terms, which the owner accepted for the sake of context. The models are the owner's, `gpt-6.1-terra`
+   and `gemini-3.8-flash`, or `--model`; either must be in the provider's model list. About 80 rows
+   go in each call. `drafts/<provider>.json` records the exact model id, the reported one, the token
+   usage, and per row the term and `en_sha1`, the hash of the English row it was drafted from (its
+   own fields, not the examples: a string elsewhere changing its wording does not make a term
+   stale); a term `glossary-check` would refuse is left out and listed under `problems`.
+3. **`judge-requests`** needs both drafts and refuses one drafted from other English. A row whose three
+   candidates (Claude's row and the two drafts) are identical after the normalisation `council.py`
+   uses (NFC, whitespace, quote style, form by form) is agreed; every other row, and every safety row
+   even when all three agree, goes to the judge. `judge-requests.json` holds the whole round. The judge
+   sees each row's English, definition, part of speech, safety value and examples, and the distinct
+   candidates as options A to C, without names, in an order shuffled per row, with how many drafters
+   proposed each, plus the language settings and the whole guide. It picks one or writes a better
+   term, with a one-line reason. The prompts are about 80 rows each and name the `set`, a hash of
+   the requests and the prompt text; replies go to `replies/judge.<set>/chunk-<i>-of-<n>.json`.
+4. **`decide`** refuses, writing nothing, when the English or a candidate changed since
+   `judge-requests` (run it, and the judge, again), when a reply is for another set or model family, or
+   when a ruling names an id the judge was not asked about, a pick whose term is not that option's, or
+   a term `glossary-check` would refuse. Otherwise agreed rows take that term, judged rows the judge's,
+   and a row with no ruling stays `claude-only`, so `draft openai|google` keeps refusing. A decided
+   row's source becomes `council claude:<model> openai:<model> google:<model> judge:<model>` (or
+   `agreed` in place of the judge), then the old source. The new file must pass `glossary-check`, or
+   the old one stays, and so does `decisions.jsonl`. `decisions.jsonl` records each row's
+   `en_sha1`, outcome, candidates and ruling, one line per id in `en.tsv` order, and `decide`
+   merges into it by id: rows decided in earlier runs or rounds keep their records, and every row
+   of the current round gets a new record that replaces its earlier one, even when that earlier one
+   was a council decision for other English (the row is `claude-only` again, so the old record no
+   longer describes it); `runs.jsonl` and the output name each replaced id. Running `decide` again
+   changes nothing, `decisions.jsonl` included, byte for byte; a later reply for the same set
+   finishes the rows it rules. `judge-requests.json`, the prompts and the drafts hold the current
+   round only, by design: a decided row's evidence is its `decisions.jsonl` record.
+
+Files, under `l10n/work/<tag>/glossary/`: `drafts/openai.json`, `drafts/google.json`, `runs.jsonl`
+(each provider call, with its token usage), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
+`replies/judge.<set>/` and `decisions.jsonl`. When no `claude-only` row is left, the string debate
+starts as above: `pack.py` again for every area, `check`, and the redrafts.
 
 ```sh
 T=fr A=more
@@ -1402,9 +1574,9 @@ Text still in Java, such as the bottom bar's labels, stays English whatever the 
 `check.py` and `lexicon.py` are a **first filter**. They reject the common ways a draft goes wrong
 cheaply, before anyone pays for a judge, but word lists cannot read a sentence, so they are not
 the guarantee that a lock, alarm, power or speed key means what the English means. That guarantee
-is step 5: every drafter agrees, a model that drafted nothing back-translates the agreed text,
-the judge rules on that exact text and its back-translation, and anything less falls back to
-English. The checks' job for a safety key is to fail closed: a false alarm sends a correct key
+is step 5: every drafter agrees, or (owner, 2026-11-05) the judge picks or merges a text from
+drafts that disagree; a model that drafted nothing back-translates that exact text; the judge
+rules on that exact text and its back-translation; and anything less falls back to English. The checks' job for a safety key is to fail closed: a false alarm sends a correct key
 back to English (a coverage cost), and a miss is left to step 5.
 
 What they catch reliably: broken placeholders, numbers, plural categories, escapes, markup,
@@ -1432,13 +1604,14 @@ also match their English -s and -ing forms ("before locking", "This file unlocks
 inside the opposite term. In Indonesian the target's first word may also take its pe(N)-...-an
 noun ("Penguncian gagal" for "Locking failed", "Pembukaan kunci gagal" for "Unlocking failed").
 
-Two rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
+Three rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
 duration", "Low" in "Low battery alert") is not required on its own. A one-word adjective whose id
 is another term's id plus a suffix (`energy-recovery-off`) is that setting's value, required only
 where the text is the value alone or names the setting, so "Turn off charge alerts" does not need
-the Energy recovery level "Desactivada". In German, Dutch and Swedish a lock target may start a
-compound ("Sperrdauer", "Vergrendelstatus", "Låstid"), never after ent-, ont- or upp- and not when
-the rest of the compound removes the lock ("Sperraufhebung").
+the Energy recovery level "Desactivada". An ordinary "try again" is not the experimental Try term
+(`check.NOT_THE_TERM`), so a retry hint needs no Try target. In German, Dutch and Swedish a lock
+target may start a compound ("Sperrdauer", "Vergrendelstatus", "Låstid"), never after ent-, ont-
+or upp- and not when the rest of the compound removes the lock ("Sperraufhebung").
 
 Known gaps, by language family:
 
@@ -1454,7 +1627,9 @@ Known gaps, by language family:
   ("Hebe die Sperre auf"). A prefix like "des-" or "dé-" is only a guess for polarity.
 - **Slavic (pl, ru, uk, cs, sk, hr)**: inflected glossary targets match any ending of up to four
   letters after a stem of five or more letters, so a short stem must be listed in every form.
-  The removal lists cover pl, ru and uk only; cs, sk and hr have none yet.
+  The removal lists cover pl, ru, uk and hr; cs and sk have none yet. cs and sk join "ne" to the
+  verb ("nepotvrdila"), so there a native ne- word keeps an English "not"
+  (`lexicon.JOINED_VERB_NEGATION`); a ne- word the English lacks only warns.
 - **Greek**: matched without accents; the removal list is short.
 - **Indonesian and Malay**: word order is free and affixes are many; only the listed buka-,
   lepas-, nonaktif- and di- forms are caught.
@@ -1465,8 +1640,9 @@ Known gaps, by language family:
   word boundaries; an ordinary word that contains a negation character and is not in the list
   reads as a negation (fails closed), and a context word in another role can hide or reject the
   lock term. zh 打开…的锁 and 关闭…锁定 count as unlock only when the lock word ends the clause.
-- **Languages with no list yet** (fi, hu, ro, tr and others in the later waves): negation and
-  removal are not checked at all; polarity only warns, and the judge decides.
+- **Languages with no list yet** (the later waves without a `lexicon.NEGATION` or
+  `REMOVAL_CONTEXT` row): negation and removal are not checked at all; polarity only warns, and
+  the judge decides.
 - **Negated states**: a negation further from the state word than the allowed distance (the word
   right before it, or one listed copula or particle between) is not read, so the state counts as written ("no se encuentra activa", "non sarà più attivo" are
   read as on); the lists of words allowed between are short (`lexicon.STATE_NEGATION_GAP`).
@@ -1486,6 +1662,16 @@ Known gaps, by language family:
 
 Later-wave languages (ru, uk, el, zh, ja, hi, bn, ar, ur, da, nb, fi, cs, sk, ro, hu, hr, tr) need
 their lists reviewed before their wave starts.
+
+**When a safety key is flagged.** Read the finding against the English first: most are real (a
+lost "not", the lock word inside the unlock word, "on" drafted as off). Fix those in the text. If
+the text is right and the check is wrong, reword to a form the lists know where that reads as
+well (a separate negation word, the glossary's own target), and leave a note in the language's
+review notes. If no natural wording passes, the key falls back to English for now; the fix is a
+tooling pull request that adds the word to `lexicon.py` with a test in
+`test_check_languages.py` showing both the correct wording passing and the inverted one still
+failing. Never add a glossary target or an allow-list entry only to silence a finding, and never
+change a check inside a language or batch pull request.
 
 ### Formats
 
@@ -1514,7 +1700,7 @@ their lists reviewed before their wave starts.
   prompt. `import-backtranslation` loads the request by that id and checks it against its id;
   it refuses the whole reply (nothing stored) when the id is missing or unknown, or a key is not
   in that request or its `target_sha1` is not that request's, and stores a key only while the
-  request's `source_sha1` and `target` are still the current English and agreed text.
+  request's `source_sha1` and `target` are still the current English and agreed (or judged) text.
 - **`judge.jsonl`** (written by the judge): `{"key", "source_sha1", "model", "verdict", "pick",
   "text", "back", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
   `confirm` (safety keys) or `fallback`; `confirm` maps each of `lock_states_distinct`,
@@ -1522,16 +1708,19 @@ their lists reviewed before their wave starts.
   `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A pick copies the
   picked candidate's text into `text` and counts only while that draft still has it (after
   normalizing); a pick without it, or of a changed draft, waits for a new ruling. A confirm also copies
-  the request's `text` (the agreed text) and `backtranslation.back` into `text` and `back`; it
-  counts only while both still match the current agreed text and back-translation, so a changed
-  draft needs a new ruling. A safety key reaches `judge-requests` only after a current
-  back-translation exists. A ruling whose `source_sha1` is not the current English is ignored.
+  the request's `text` (the agreed or judged text) and `backtranslation.back` into `text` and `back`; it
+  counts only while both still match the current agreed or judged text and back-translation, so a changed
+  draft needs a new ruling. A safety key reaches `judge-requests` for a confirm only after a current
+  back-translation exists. For a safety key whose drafts disagree, the latest `pick` or `merge`
+  line is the judged text and the latest line must be the `confirm` (a later `fallback` keeps
+  English). A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
   and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,
   so rewriting the requests while a judge works cannot rebind an earlier ruling.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
-  (`agreed`, `judged`, `safety-agreed` or `fallback-english`), `text`, `reason`, `alternatives`
+  (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
+  translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
   ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.

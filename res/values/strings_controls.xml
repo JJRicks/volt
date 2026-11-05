@@ -34,21 +34,21 @@
     <!-- The beep while a turn signal is on. -->
     <string name="controls_feature_turn_sound" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Turn signal sound</string>
     <!-- Whether the scooter's own dashboard shows miles or kilometres. -->
-    <string name="controls_feature_display_units" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Dashboard units</string>
+    <string name="controls_feature_display_units" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Scooter display units</string>
     <!-- How the scooter estimates its remaining range. -->
     <string name="controls_feature_range_algorithm" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name">Range estimate</string>
     <!-- The speed you must push to before the motor starts helping. -->
     <string name="controls_feature_start_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Kick-start speed</string>
     <!-- A top speed the owner sets below the scooter's maximum. -->
-    <string name="controls_feature_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Custom speed cap</string>
+    <string name="controls_feature_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Custom speed limit</string>
     <!-- The scooter's top speed setting. -->
     <string name="controls_feature_maximum_speed" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Maximum speed</string>
     <!-- Whether one or both motors drive. -->
     <string name="controls_feature_dual_drive" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride">Dual motor drive</string>
     <!-- A speed cap for the scooter's Drive mode (a mode name: keep it as the scooter shows it). -->
-    <string name="controls_feature_drive_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride" volt:dnt="Drive">Drive mode speed cap</string>
+    <string name="controls_feature_drive_speed_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="ride" volt:dnt="Drive">Drive mode speed limit</string>
     <!-- The battery level charging stops at. -->
-    <string name="controls_feature_charge_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charge ceiling</string>
+    <string name="controls_feature_charge_limit" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Charge limit</string>
     <!-- Charging that waits for a start time. -->
     <string name="controls_feature_timed_charging" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="control name" volt:safety="charge">Scheduled charging</string>
     <!-- When scheduled charging begins. -->
@@ -92,7 +92,7 @@
 
     <!-- Control captions (ScooterCommands.Feature.description()): short notes under a control. -->
     <!-- Explains that this control is what other NAVEE models call Eco/Turbo (the scooter's own mode names). -->
-    <string name="controls_feature_acceleration_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride" volt:dnt="Eco|Turbo">Other models’ Eco/Turbo.</string>
+    <string name="controls_feature_acceleration_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption" volt:safety="ride" volt:dnt="Eco|Turbo">Other models\' Eco/Turbo.</string>
     <!-- Pressing the scooter's power button turns automatic lights off until the scooter restarts. -->
     <string name="controls_feature_auto_sensor_about" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="caption">Power button pauses until restart.</string>
     <!-- Choosing a range estimate changes only how range is estimated, not the riding. -->
@@ -189,7 +189,7 @@
     <!-- Another change is still being written and checked. -->
     <string name="controls_reason_busy" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason">Wait for the current change</string>
     <!-- The scooter is moving; this needs it parked. -->
-    <string name="controls_reason_moving" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Stop the scooter first</string>
+    <string name="controls_reason_moving" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">Bring the scooter to a stop first</string>
     <!-- The scooter has not yet said whether it is moving. -->
     <string name="controls_reason_no_motion_report" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="reason" volt:safety="ride">No motion report yet</string>
     <!-- The scooter shows a warning; clear it before this change. -->
@@ -235,7 +235,7 @@
 
     <!-- Refusals from the control builders (ScooterCommands.Refused): getMessage() keeps the English for logs; screens show these. -->
     <!-- The chosen value is not one the scooter's official app offers for this control. -->
-    <string name="controls_refusal_outside_domain" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:dnt="OEM">Value is outside the OEM feature domain</string>
+    <string name="controls_refusal_outside_domain" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error">The official app doesn\'t offer this value</string>
     <!-- The custom speed cap is either off or between 8 and 32 km/h. -->
     <string name="controls_refusal_speed_limit_range" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="ride" volt:dnt="km/h">Off or 8–32 km/h</string>
     <!-- The Drive mode speed cap is either off or between 5 and 20 km/h. -->
@@ -243,17 +243,17 @@
     <!-- The scooter does not offer this setting right now. -->
     <string name="controls_refusal_not_available" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error">Not available now</string>
     <!-- Only the scooter's owner, signed in with the owner key, may read or change the handlebar PIN. -->
-    <string name="controls_refusal_pin_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin,owner-key" volt:dnt="PIN">PIN access requires the authenticated owner</string>
+    <string name="controls_refusal_pin_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin,owner-key" volt:dnt="PIN">PIN access requires connecting as the owner</string>
     <!-- The handlebar PIN is exactly four digits, 0 to 9. -->
-    <string name="controls_refusal_pin_digits" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin" volt:dnt="PIN">PIN must contain four decimal digits</string>
+    <string name="controls_refusal_pin_digits" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin" volt:dnt="PIN">PIN must contain four numeric digits</string>
     <!-- Set a handlebar PIN before turning it on. -->
     <string name="controls_refusal_pin_not_configured" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="pin" volt:dnt="PIN">A PIN must be configured before enabling it</string>
     <!-- Only the signed-in owner can change proximity unlock. -->
-    <string name="controls_refusal_proximity_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Proximity changes require the authenticated owner</string>
+    <string name="controls_refusal_proximity_owner" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Proximity changes require connecting as the owner</string>
     <!-- Pair this phone with the scooter over Bluetooth before turning on proximity unlock. -->
-    <string name="controls_refusal_proximity_bond" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Bond this phone before enabling proximity unlock</string>
+    <string name="controls_refusal_proximity_bond" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,owner-key">Pair this phone before enabling proximity unlock</string>
     <!-- Proximity unlock needs a handlebar PIN that is set and turned on. -->
-    <string name="controls_refusal_proximity_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,pin" volt:dnt="PIN">Enable a configured handlebar PIN before proximity unlock</string>
+    <string name="controls_refusal_proximity_pin" volt:screen="Controls rows (More, Home, Quick access)" volt:purpose="error" volt:safety="lock,pin" volt:dnt="PIN">Set up and turn on the handlebar PIN before turning on proximity unlock</string>
 
     <!-- Cautions before a change on another NAVEE model (ModelRegistry.caution). Each %1$s is a following whole sentence (controls_caution_asks, _shows or _untested). -->
     <!-- Second part of a caution: the official NAVEE app asks before this change too. -->
@@ -279,11 +279,11 @@
     <!-- Shown before trying traction control off. -->
     <string name="controls_experimental_traction_control" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns traction control off. Ride gently on wet or loose ground until you know how it behaves.</string>
     <!-- Shown before trying a kick-start speed under 3 km/h. -->
-    <string name="controls_experimental_start_speed" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">Below 3 km/h, the motor can pull from a standstill as soon as you use the throttle.</string>
+    <string name="controls_experimental_start_speed" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental" volt:dnt="km/h">A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.</string>
     <!-- Shown before trying energy recovery off. -->
-    <string name="controls_experimental_energy_recovery" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns motor braking off, so your brakes do more of the stopping.</string>
+    <string name="controls_experimental_energy_recovery" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Turns energy recovery off, so your brakes do more of the stopping.</string>
     <!-- Shown before trying a custom speed cap. "Top speed" and "Set back" name a setting and a button on the same screen. -->
-    <string name="controls_experimental_speed_limit" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:screen="More › Experimental controls" volt:purpose="caution" volt:safety="ride,experimental">Limits your speed while riding, below your Maximum speed setting. Set back restores your previous setting.</string>
 
     <!-- The model line under a scooter's name (ModelRegistry.modelLineText); the report keeps the English. -->
     <!-- A scooter Volt cannot name: %1$s is its numeric NAVEE Model ID. -->

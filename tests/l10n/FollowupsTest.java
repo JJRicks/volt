@@ -136,9 +136,9 @@ public final class FollowupsTest {
         if (echo) check(name.equals("⟦owner_profile_default_name⟧"), "the default name follows the source: " + name);
         else equal(FollowupsEnglishTest.Base.DEFAULT_NAME, name, "the default name in English");
         if (!echo) {
-            equal("Connecting to Scooter", T.onboardingConnectConnecting(name), "connecting sentence");
+            equal("Connecting to Scooter…", T.onboardingConnectConnecting(name), "connecting sentence");
             equal("Scooter is ready.", T.onboardingDoneReady(name), "done sentence");
-            equal("Removes Scooter's history. Rides stay.", T.moreHistoryClearOneBody(name), "clear history");
+            equal("Removes history for Scooter. Rides stay.", T.moreHistoryClearOneBody(name), "clear history");
         }
     }
 

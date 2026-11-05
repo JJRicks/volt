@@ -95,7 +95,7 @@
     <string name="rides_tile_distance" volt:screen="Rides, history" volt:purpose="label">Distance</string>
     <string name="rides_tile_duration" volt:screen="Rides, history" volt:purpose="label">Duration</string>
     <string name="rides_tile_avg_speed" volt:screen="Rides, history" volt:purpose="label">Avg speed</string>
-    <string name="rides_tile_max_speed" volt:screen="Rides, history" volt:purpose="label">Max speed</string>
+    <string name="rides_tile_max_speed" volt:screen="Rides, history" volt:purpose="label">Top speed</string>
     <string name="rides_reason_odometer_reset" volt:screen="Rides, history" volt:purpose="reason">Odometer reset</string>
     <string name="rides_battery_energy" volt:screen="Rides, history" volt:purpose="label">Battery &amp; energy</string>
     <string name="rides_tile_battery_gain" volt:screen="Rides, history" volt:purpose="label">Battery gain</string>
@@ -190,7 +190,7 @@
     <string name="rides_placement_pocket" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Pocket</string>
     <!-- A small all-caps badge on experimental settings. Keep it very short. -->
     <string name="rides_lab_badge" volt:screen="Rides, phone sensors sheet" volt:purpose="label">LAB</string>
-    <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Lab, experimental</string>
+    <string name="rides_lab_description" volt:screen="Rides, phone sensors sheet" volt:purpose="accessibility description">Experimental</string>
     <string name="rides_changes_next_ride" volt:screen="Rides, phone sensors sheet" volt:purpose="label">Changes apply to the next ride</string>
     <string name="rides_toast_no_browser" volt:screen="Rides, phone sensors sheet" volt:purpose="error">No browser available.</string>
     <string name="rides_export_raw" volt:screen="Rides, phone sensors sheet" volt:purpose="option">Export raw files</string>
@@ -245,7 +245,7 @@
     <string name="rides_export_all_json" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
     <string name="rides_toast_export_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not export this ride.</string>
     <string name="rides_toast_export_csv_failed" volt:screen="Rides, export and delete" volt:purpose="error" volt:dnt="CSV">Could not export the ride CSV.</string>
-    <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Route and sensor data. Can\'t undo.</string>
+    <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Deletes its route and sensor data. Can\'t undo.</string>
     <!-- Cancels deleting the ride. -->
     <string name="rides_delete_keep" volt:screen="Rides, export and delete" volt:purpose="label">Keep ride</string>
     <!-- Confirms deleting the ride. -->
@@ -292,8 +292,8 @@
     <string name="rides_gap_one" volt:screen="Rides, live recording" volt:purpose="status">1 gap</string>
     <!-- Chip: the recording has %1$d gaps in its readings. English shows rides_gap_one for 1, so its
          one form is never shown in English; languages whose one form covers other numbers inflect it. -->
-    <plurals name="rides_gaps" volt:screen="Rides, live recording" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">%1$d gaps</item>
+    <plurals name="rides_gaps" volt:screen="Rides, live recording" volt:purpose="status">
+        <item quantity="one">%1$d gap</item>
         <item quantity="other">%1$d gaps</item>
     </plurals>
     <!-- Caption: %1$s is the share of the ride with power readings (fmt_percent, "80%"). -->
@@ -322,10 +322,20 @@
     <string name="rides_compare_two_saved" volt:screen="Rides, history" volt:purpose="accessibility description">Compare two rides, %1$d of 2 saved rides</string>
     <!-- Spoken count in the compare picker: %1$d of the two rides are chosen (0 to 2). -->
     <string name="rides_compare_chosen" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$d of 2 rides chosen</string>
-    <!-- Spoken for the battery tile: the battery gained %1$d percentage points. English says "points" for 1. -->
+    <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_gain_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery gain, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points. English says "points" for 1. -->
+    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
+    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
+        <item quantity="one">Battery gain, %1$d percentage points</item>
+        <item quantity="other">Battery gain, %1$d percentage points</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_drop_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery drop, %1$d percentage points</string>
+    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
+    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
+        <item quantity="one">Battery drop, %1$d percentage points</item>
+        <item quantity="other">Battery drop, %1$d percentage points</item>
+    </plurals>
     <!-- Under the direction bar: the current direction was confirmed for %1$s ("12m 05s"). -->
     <string name="rides_direction_confirmed_for" volt:screen="Rides, ride details" volt:purpose="caption">Confirmed %1$s</string>
     <!-- Under the direction bar: the current direction was not confirmed for %1$s. -->

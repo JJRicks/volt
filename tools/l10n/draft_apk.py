@@ -277,7 +277,7 @@ def write_language_file(paths, tag, area, lang, sources, tag_area, draft, states
     for s in sources:
         if states.get(s.key, ("missing",))[0] == "translated":
             # Only for merge.render_file, in this copy: no decision file is written, and nothing was agreed.
-            decisions[s.key] = {"outcome": merge.TRANSLATED[0], "source_sha1": translib.source_sha1(s.kind, s.items),
+            decisions[s.key] = {"outcome": translib.TRANSLATED[0], "source_sha1": translib.source_sha1(s.kind, s.items),
                                 "text": translib.text_value(s.kind, draft.entries[s.key].items)}
     text, written, skipped = merge.render_file(tag, area, lang, sources, decisions, tag_area)
     skipped = [(k, why) for k, why in skipped if k in decisions]

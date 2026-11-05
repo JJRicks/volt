@@ -709,8 +709,8 @@ public final class RidesScreen implements AppScreen {
         List<View> energy = tiles(body, new String[]{"battery", batteryGain ? T.ridesTileBatteryGain() : T.ridesTileBatteryDrop(), battery(ride), "route", T.ridesTilePerDistance(), efficiency(ride),
                 "bolt", T.ridesTileThroughput(), quantity(ride.measuredThroughputWh, T.unitsWattHour(), 2), "bolt", T.ridesPowerCoverage(), percent(ride.electricalCoverage)});
         if (ride.batteryDropPercent != null && Double.isFinite(ride.batteryDropPercent))
-            energy.get(0).setContentDescription((batteryGain ? T.ridesBatteryGainDescription(Math.round(Math.abs(ride.batteryDropPercent)))
-                    : T.ridesBatteryDropDescription(Math.round(Math.abs(ride.batteryDropPercent)))));
+            energy.get(0).setContentDescription((batteryGain ? T.ridesBatteryGainDescriptionCount(Math.round(Math.abs(ride.batteryDropPercent)), Math.round(Math.abs(ride.batteryDropPercent)))
+                    : T.ridesBatteryDropDescriptionCount(Math.round(Math.abs(ride.batteryDropPercent)), Math.round(Math.abs(ride.batteryDropPercent)))));
         reasonOnTap(energy.get(1), efficiencyReason(ride));
         LinearLayout phone = vertical(); body.addView(phone);
         detailSections(body, ride.id, ride, measured, afterDelete);

@@ -66,11 +66,9 @@
     <!-- Drawn in and spoken for a chart with no points yet, unless its screen gives its own text. -->
     <string name="ui_chart_empty" volt:screen="Live Stats and dashboard charts" volt:purpose="empty state">No measured data yet</string>
     <!-- A chart's spoken description: %1$s is the unit symbol, %2$d how many points it shows, %3$s
-         and %4$s the lowest and highest axis values. English says "samples" for 1 too, kept as it was
-         until an English fix; a language gives each of its plural forms. -->
-    <plurals name="ui_chart_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description"
-        volt:english-fix="pending">
-        <item quantity="one">Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</item>
+         and %4$s the lowest and highest axis values. A language gives each of its plural forms. -->
+    <plurals name="ui_chart_description" volt:screen="Live Stats and dashboard charts" volt:purpose="accessibility description">
+        <item quantity="one">Measured %1$s chart, %2$d sample. Displayed axis %3$s to %4$s. Touch to inspect readings.</item>
         <item quantity="other">Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.</item>
     </plurals>
     <!-- The chart's tooltip for the touched point: %1$s is the value, %2$s the unit symbol, %3$s the
@@ -108,7 +106,7 @@
     <!-- Spoken for the Live Stats heading while the scooter is connected. -->
     <string name="ui_live_stats_connected" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats, connected</string>
     <!-- Spoken for the Live Stats heading while the scooter is not connected. -->
-    <string name="ui_live_stats_disconnected" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats, disconnected</string>
+    <string name="ui_live_stats_disconnected" volt:screen="Live Stats" volt:purpose="accessibility description">Live Stats, not connected</string>
 
     <!-- Spoken for the chart-window button: %1$s is the chosen window. -->
     <string name="ui_stats_window_description" volt:screen="Live Stats chart window" volt:purpose="accessibility description">Chart time window: %1$s. Choose time window</string>

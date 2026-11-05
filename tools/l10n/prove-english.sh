@@ -15,6 +15,8 @@
 # G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census twice
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
 # --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
+#
+# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 reads "not applied".
 set -uo pipefail
 umask 077
 
@@ -22,7 +24,7 @@ TOOLS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$TOOLS_DIR" rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 
-usage() { sed -n '2,17p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,19p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
 [[ $# -ge 1 ]] || usage
 BASE_ARG="$1"; shift
 SAME_APK=0; PSEUDO=0; SKIP_BUILD=0; SKIP_TESTS=0
@@ -89,7 +91,15 @@ else
 fi
 
 # G1, G4, G5.
-gate "G1 ledger of moved literals" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --base "$BASE"
+# The same rule as ci_gates.py (plan): G1 binds a batch and an English change, and a kind ci_gates could not
+# tell. An ordinary change may change English, so its report says G1 was not applied, never PASS, and only
+# the ledger check CI holds it to runs.
+if [[ "$KIND" == ordinary ]]; then
+    record "G1 ledger of moved literals" "not applied" "an ordinary change may change a literal, so this run does not show English is unchanged"
+    gate "Ledgers agree with the catalog" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --catalog-only
+else
+    gate "G1 ledger of moved literals" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --base "$BASE"
+fi
 if [[ -f tests/l10n/LedgerTest.java ]]; then
     record "G2 template equivalence" "in G6" "tests/l10n/LedgerTest runs inside tests/run.sh"
 else
@@ -113,21 +123,50 @@ else
         record "G4 frozen test statements" PASS "$detail"
     fi
 fi
+# The active entries of the tests/l10n/*.sources lists in the tree $1, read as tests/run.sh reads them:
+# everything from "#" on is a comment, the rest is trimmed, and blank lines are skipped. tests/run.sh runs
+# only these, so a characterization test counts as listed only when one of them is exactly its path.
+active_sources() {
+    local list line
+    for list in "$1"/tests/l10n/*.sources; do
+        [[ -f "$list" ]] || continue
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+            [[ -n "$line" ]] && printf '%s\n' "$line"
+        done < "$list"
+    done
+    return 0
+}
 gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
-if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
+if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
+    # An owner-approved English change rewrites its characterization tests to pin the new English, which the
+    # base code does not print yet, so they cannot pass at the first commit. Their order is still G5's (above),
+    # and G6 runs them at head, where they must pass. G6 runs only what a tests/l10n/*.sources list names, so
+    # each one must be listed at head, or it would never run (checked with or without --skip-tests).
+    unwired=(); active="$(active_sources .)"
+    while IFS= read -r test_file; do
+        [[ -n "$test_file" ]] || continue
+        grep -qxF -- "$test_file" <<<"$active" || unwired+=("$test_file")
+    done < <(git diff --name-only --diff-filter=d "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
+    if (( ${#unwired[@]} )); then
+        record "G5 tests pass at the first commit" FAIL "not an active entry of any tests/l10n/*.sources list at head, so tests/run.sh never runs them: ${unwired[*]}"
+    else
+        record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order, and each is an active entry of a tests/l10n/*.sources list at head, so G6 runs them there"
+    fi
+elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     tree="$WORK/first"
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then
         WORKTREES+=("$tree")
         log="$WORK/g5-first.log"
         # The characterization tests must be compiled by tests/run.sh (a tests/l10n/*.sources list, B0b on).
-        unwired=()
+        unwired=(); active="$(active_sources "$tree")"
         while IFS= read -r test_file; do
             [[ -n "$test_file" ]] || continue
-            grep -qsF "$test_file" "$tree"/tests/l10n/*.sources || unwired+=("$test_file")
+            grep -qxF -- "$test_file" <<<"$active" || unwired+=("$test_file")
         done < <(git -C "$tree" diff --name-only "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
         if (( ${#unwired[@]} )); then
-            record "G5 tests pass at the first commit" FAIL "not in any tests/l10n/*.sources, so tests/run.sh never runs them: ${unwired[*]}"
+            record "G5 tests pass at the first commit" FAIL "not an active entry of any tests/l10n/*.sources list, so tests/run.sh never runs them: ${unwired[*]}"
         elif (cd "$tree" && NAVEE_BUILD_DIR="$WORK/first-build" bash tests/run.sh && \
                 { [[ ! -f tests/l10n/golden.sh ]] || NAVEE_BUILD_DIR="$WORK/first-build" bash tests/l10n/golden.sh; }) >"$log" 2>&1; then
             record "G5 tests pass at the first commit" PASS "tests/run.sh and tests/l10n/golden.sh at $(git rev-parse --short=12 "$FIRST") (base code plus the new tests)"
@@ -165,12 +204,21 @@ fi
 record "G7 screen text census" "not run" "emulator: run-release-sweep.py --census, then census_diff.py"
 
 # G8, G9, G10.
-gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+# The same rule as ci_gates.py: an ordinary change may record new text (or findings a stronger lint now
+# sees) with --write-baselines, so every finding must be listed; a batch or an English change may only shrink.
+if [[ "$KIND" == ordinary ]]; then
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check
+else
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+fi
 log="$WORK/g9.log"
 if bash tests/l10n/golden.sh >"$log" 2>&1; then
     if git cat-file -e "$MERGE:tests/l10n/golden" 2>/dev/null && ! git diff --quiet "$MERGE" HEAD -- tests/l10n/golden; then
         if [[ "$KIND" == english-change ]]; then
             record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base (owner-approved change)"
+        elif [[ "$KIND" == ordinary ]]; then
+            # As in CI: an ordinary change may change a report format and update its goldens. Say so, never PASS.
+            record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base; not enforced on an ordinary change, so name it in the PR"
         else
             record "G9 reports stay English (goldens)" FAIL "tests/l10n/golden changed since the merge base"
         fi
@@ -181,7 +229,8 @@ else
     record "G9 reports stay English (goldens)" FAIL "$(tail -1 "$log")"; show_failure G9 "$log"
 fi
 # The same list CI uses (ci_gates.is_tooling): tools/l10n, workflows, tests/l10n outside
-# characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh.
+# characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh. An English
+# change's edits to existing non-gate tests/l10n/*Test.java files are left out and listed for review, as in CI.
 tooling_files=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-tooling))
 tooling="${#tooling_files[@]} file(s)"
 (( ${#tooling_files[@]} )) && tooling+=", e.g. ${tooling_files[0]}"
@@ -198,6 +247,10 @@ if [[ "$KIND" == english-change ]]; then
         record "No ledger rows in an English change" FAIL "an English change must not also extract text: ${ledger_files[*]}"
     else
         record "No ledger rows in an English change" PASS "l10n/ledger unchanged"
+    fi
+    english_tests=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-english-tests))
+    if (( ${#english_tests[@]} )); then
+        record "tests/l10n edits for review" REPORT "${#english_tests[@]} file(s): ${english_tests[*]}; check that each edit only follows a row of l10n/english-changes.tsv"
     fi
 fi
 if [[ -f tests/l10n/FmtLegacyTest.java ]]; then
@@ -264,6 +317,12 @@ fi
     echo "|---|---|---|"
     printf '%s\n' "${ROWS[@]}"
     echo
-    if [[ "$FAILED" == 0 ]]; then echo "Result: every gate that runs locally passed."; else echo "Result: FAILED (see above)."; fi
+    if [[ "$FAILED" != 0 ]]; then
+        echo "Result: FAILED (see above)."
+    elif [[ "$KIND" == ordinary ]]; then
+        echo "Result: every gate an ordinary change is held to passed. G1 was not applied, so this is not a proof that English is unchanged."
+    else
+        echo "Result: every gate that runs locally passed."
+    fi
 }
 exit "$FAILED"
