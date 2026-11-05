@@ -165,7 +165,13 @@ fi
 record "G7 screen text census" "not run" "emulator: run-release-sweep.py --census, then census_diff.py"
 
 # G8, G9, G10.
-gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+# The same rule as ci_gates.py: an ordinary change may record new text (or findings a stronger lint now
+# sees) with --write-baselines, so every finding must be listed; a batch or an English change may only shrink.
+if [[ "$KIND" == ordinary ]]; then
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check
+else
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+fi
 log="$WORK/g9.log"
 if bash tests/l10n/golden.sh >"$log" 2>&1; then
     if git cat-file -e "$MERGE:tests/l10n/golden" 2>/dev/null && ! git diff --quiet "$MERGE" HEAD -- tests/l10n/golden; then

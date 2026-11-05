@@ -220,5 +220,17 @@ class GoldenRewriteTest(unittest.TestCase):
         self.assertIn("FAILED proof tooling unchanged", output)
 
 
+class ProveEnglishRuleTest(unittest.TestCase):
+    def test_g8_follows_ci_gates_for_each_kind(self):
+        here = os.path.dirname(os.path.abspath(__file__))
+        with open(os.path.join(here, "prove-english.sh"), encoding="utf-8") as handle:
+            script = handle.read()
+        ordinary = script.index('if [[ "$KIND" == ordinary ]]; then\n    gate "G8')
+        branch = script[ordinary:script.index("fi\n", ordinary)]
+        listed, rest = branch.split("else\n")
+        self.assertNotIn("--base", listed)
+        self.assertIn('--base "$BASE" --tight', rest, "a batch or an English change may only shrink")
+
+
 if __name__ == "__main__":
     unittest.main()
