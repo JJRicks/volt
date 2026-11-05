@@ -3,11 +3,11 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="onboarding_step_prepare" volt:src="18e32aef04a1ae13d6acd8c27405cb79b0ac0891">Preparação</string>
     <string name="onboarding_step_usb_debugging" volt:src="901fecbb087f60e29eea461e6cc68777ce662bcc">Depuração USB</string>
-    <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Conexão ao computador</string>
+    <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Conexão com o computador</string>
     <string name="onboarding_step_run_helper" volt:src="156f834730eeac180c962741e3f0828ee4daafb8">Ferramenta de captura</string>
     <string name="onboarding_step_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importação</string>
     <string name="onboarding_step_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Dispositivos por perto</string>
-    <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Conexão do patinete</string>
+    <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Conexão com o patinete</string>
     <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Configuração inicial, etapa %1$d de 7</string>
     <string name="onboarding_pane_setup" volt:src="02b4f3d379774aeaef1823fcdaf67355120a211c">Configuração inicial</string>
     <string name="onboarding_side_title" volt:src="d9305cb9836e674521c30f828cd3339b11529e6d">Configuração do seu patinete</string>
@@ -42,7 +42,7 @@
     <string name="onboarding_path_webadb_detail" volt:src="53de51e2ea250ea3f74c7c50f9d096429f8dd174">Computador · alguns minutos</string>
     <string name="onboarding_path_recommended" volt:src="42ebf007789f744dead0eaedfffe93d7bcb556f6">Recomendado</string>
     <string name="onboarding_path_restore_detail" volt:src="f1dd2bc5c1f8b52f0b5892dd59b30eaa6b4f8979">Patinetes, viagens, painéis e configurações</string>
-    <string name="onboarding_path_capture" volt:src="ebdadb5778da9a9a0e909b62fa5a9ca0c4f8d95b">Capturar do app NAVEE</string>
+    <string name="onboarding_path_capture" volt:src="ebdadb5778da9a9a0e909b62fa5a9ca0c4f8d95b">Capturar a chave do app NAVEE</string>
     <string name="onboarding_path_capture_detail" volt:src="bc5ab66a9c15f8b762d93a54399f12fd88c7c23f">Computador · 10 min</string>
     <string name="onboarding_path_shizuku" volt:src="1561f4b2129390a13ab9c431954035b813620555">Usar o Shizuku neste telefone</string>
     <string name="onboarding_path_shizuku_detail" volt:src="0c2ae59881a89238cb4b5cbd6659c6d4bf0f57af">Sem computador · Android 11+</string>
@@ -65,7 +65,7 @@
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Continuar</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Antes de começar</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">App NAVEE funcionando</string>
-    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Com login feito e conectando ao patinete</string>
+    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Login feito e conexão com o patinete funcionando</string>
     <string name="onboarding_prepare_browser_computer" volt:src="4f9a15f2cc462561fc149d65cfcbe11918e2d845">Um computador com Chrome ou Edge</string>
     <string name="onboarding_prepare_adb_computer" volt:src="e39ebd8f0a7415518494a60aff0a75d9afea24c1">Um computador com ADB e Python 3</string>
     <string name="onboarding_prepare_source" volt:src="4179cdb733bc59821ab6e42c350d66c9088275bc">O código-fonte do Volt, extraído</string>
@@ -75,7 +75,7 @@
     <string name="onboarding_prepare_parked" volt:src="1e05f66a5e0927184ba4fb6de7477cc1f7e25b63">Patinete parado e ligado</string>
     <string name="onboarding_prepare_parked_detail" volt:src="bb7b3271538299a22cd03b586629b05fec7ba407">Feche qualquer outro app de patinete</string>
     <string name="onboarding_prepare_where_adb" volt:src="d1bade96e0535d5e5f99674546e852148175fccb">Onde consigo o ADB?</string>
-    <string name="onboarding_prepare_where_adb_description" volt:src="8c08cba72e1c84ce3a3120f1aae8d887dd681ab4">Onde consigo o ADB? O download do Platform-Tools será aberto</string>
+    <string name="onboarding_prepare_where_adb_description" volt:src="8c08cba72e1c84ce3a3120f1aae8d887dd681ab4">Onde consigo o ADB? A página de download do Platform-Tools será aberta</string>
     <string name="onboarding_prepare_get_source" volt:src="467156dc9677e3700c3a3015249688cc7f56e0e9">Baixar código-fonte</string>
     <string name="onboarding_prepare_get_source_description" volt:src="83779b92a25eeae4ced361f6e7f697448ae6b670">Baixar código-fonte. O pacote do código-fonte com a ferramenta de captura será aberto</string>
     <string name="onboarding_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Nenhum navegador encontrado</string>
@@ -90,20 +90,20 @@
     <string name="onboarding_usb_turn_on" volt:src="f58af9223d65646316b91d433af6f2c10c819d5d">Ative a **Depuração USB**</string>
     <string name="onboarding_usb_done" volt:src="3b659dd770197d9a37b4cb6ffd08f0e5b4654439">Já ativei</string>
     <string name="onboarding_open_settings" volt:src="c08f8d5af1c4dd3e3dc683ade490b52ce5eab310">Abrir Configurações</string>
-    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Conexão ao computador</string>
-    <string name="onboarding_mock_allow_title" volt:src="aaf1246404dc90419472e2ceb97b349667a472ab">Permitir depuração USB?</string>
+    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Conexão com o computador</string>
+    <string name="onboarding_mock_allow_title" volt:src="aaf1246404dc90419472e2ceb97b349667a472ab">Permitir a depuração USB?</string>
     <string name="onboarding_mock_fingerprint" volt:src="05e9fe6ae8530787bbad3f54bde936fdc0d214d2">A impressão digital da chave RSA do computador é:\n4F:2A:…:9C</string>
-    <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Sempre permitir neste computador</string>
+    <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Sempre permitir a partir deste computador</string>
     <string name="onboarding_mock_cancel" volt:src="69d69f762147c2b1cca07f8e9d8f24b109f5605e">Cancelar</string>
     <string name="onboarding_mock_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Permitir</string>
-    <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3" volt:attempt="2">Exemplo: o aviso “Permitir a depuração USB” no seu telefone, com a opção “Sempre permitir neste computador” não marcada.</string>
+    <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3" volt:attempt="2">Exemplo: a solicitação “Permitir a depuração USB?” no seu telefone, com a opção “Sempre permitir a partir deste computador” desmarcada.</string>
     <string name="onboarding_computer_connect_cable" volt:src="ee33cce91739bd084d5a40bb6bacf370fdb278a8">Conecte seu telefone com o cabo de dados</string>
-    <string name="onboarding_computer_tap_allow" volt:src="7e4206ea7c4f010bfa7de6428ee60a5c56d3dba2">Toque em **Permitir** no aviso acima</string>
+    <string name="onboarding_computer_tap_allow" volt:src="7e4206ea7c4f010bfa7de6428ee60a5c56d3dba2">Toque em **Permitir** na solicitação acima</string>
     <string name="onboarding_computer_adb_devices" volt:src="d0f48ccf9f2b16efbf9f187fd8d852f0c9ba0eb2">`adb devices` mostra **device**</string>
     <string name="onboarding_computer_shows_device" volt:src="67e4acb64f56334869629e863fc3fa97eb3cccfb">Mostra “device”</string>
     <string name="onboarding_computer_unauthorized" volt:src="189b278023e2a260ba2b46e0619cd9c247bc3bb5">Mostra “unauthorized”</string>
     <string name="onboarding_computer_unauthorized_title" volt:src="c85b839c73b04ee099901d414bc99f60258a34a6">O telefone aparece como “unauthorized”</string>
-    <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Desbloqueie o telefone, desconecte o cabo e conecte novamente.\n2  Toque em “Permitir” no aviso “Permitir depuração USB?”.\n3  Nenhum aviso? Em “Opções do desenvolvedor”, toque em “Revogar autorizações de depuração USB” e conecte novamente."</string>
+    <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Desbloqueie o telefone, desconecte o cabo e conecte novamente.\n2  Toque em “Permitir” na solicitação “Permitir a depuração USB?”.\n3  A solicitação não apareceu? Em “Opções do desenvolvedor”, toque em “Revogar autorizações de depuração USB” e conecte novamente."</string>
     <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Executar a ferramenta de captura</string>
     <string name="onboarding_helper_run_in_folder" volt:src="79f97d059844ab3e9d4569637ee4d5ef8832c306">Na pasta do código-fonte extraído no computador, execute:</string>
     <string name="onboarding_helper_command_description" volt:src="9eedae01f4f28dd44575b0d1f9b2fec35f803565">Comando: %1$s</string>
@@ -122,31 +122,31 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Conecte seu telefone com um cabo de dados USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Escolha seu telefone no Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Aprove a depuração USB neste telefone</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Não marque **Sempre permitir neste computador**</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Não marque **Sempre permitir a partir deste computador**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">O site se conectou</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">O telefone não aparece na lista</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Conexão no Chrome</string>
-    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telefone desbloqueado, depuração USB ativada\n•  Um cabo de dados, não apenas de carga\n•  Android Studio, outras ferramentas ADB e abas de configuração inicial fechados\n•  Chrome ou Edge, não Safari nem Firefox"</string>
+    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telefone desbloqueado, depuração USB ativada\n•  Um cabo de dados, não somente de carga\n•  Android Studio, outras ferramentas ADB e abas de configuração inicial fechados\n•  Chrome ou Edge, não Safari nem Firefox"</string>
     <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Aprovação da captura no site</string>
     <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Mantenha o cabo conectado até a limpeza terminar.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Leia a explicação da captura e escolha **Start**</string>
-    <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Selecione seu patinete no app NAVEE e conecte</string>
+    <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Selecione seu patinete no app NAVEE e conecte-o</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Até **90 s**</string>
     <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Após a limpeza, escolha **Save to phone Downloads**</string>
-    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Este arquivo é uma chave de proprietário. Mantenha-o em sigilo.</string>
+    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Este arquivo é uma chave de proprietário. Não compartilhe este arquivo.</string>
     <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">O arquivo está em Downloads</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Captura no navegador</string>
-    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  App NAVEE com login feito, patinete por perto\n•  Outros apps de patinete fechados\n•  Parou antes do fim? Termine primeiro a limpeza no mesmo navegador"</string>
-    <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Sua configuração do proprietário</string>
+    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  App NAVEE com login, patinete por perto\n•  Outros apps de patinete fechados\n•  Parou antes do fim? Termine primeiro a limpeza no mesmo navegador"</string>
+    <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Sua configuração de proprietário</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importação do arquivo de proprietário</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Escolha o arquivo de proprietário navee-owner-setup.json. Isso restaura apenas o acesso ao patinete, não as viagens nem outros dados do app.</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Escolha o arquivo de proprietário navee-owner-setup.json. Isso restaura somente o acesso ao patinete, não as viagens nem outros dados do app.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Carregando seu perfil de proprietário…</string>
-    <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Nenhum arquivo escolhido ainda</string>
+    <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Ainda não há arquivo escolhido</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Não é um arquivo de proprietário.</string>
-    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Este arquivo desbloqueia seu patinete. Mantenha-o em sigilo.</string>
+    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Este arquivo desbloqueia seu patinete. Não compartilhe este arquivo.</string>
     <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Escolher arquivo de proprietário</string>
-    <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Digitar a chave de proprietário em vez disso</string>
-    <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Restaurar backup do Volt em vez disso</string>
+    <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Digitar a chave de proprietário</string>
+    <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Restaurar um backup do Volt</string>
     <string name="onboarding_role_shared" volt:src="5d49485c583c28802db55e3118c072a5da721b96">usuário autorizado</string>
     <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">proprietário</string>
     <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Chave de proprietário encontrada</string>
@@ -155,7 +155,7 @@
     <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Armazenada de forma privada. Revogue o acesso no Shizuku agora.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Excluir a cópia em Downloads</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Cópia em Downloads excluída</string>
-    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Não foi possível excluir · remova-a em Arquivos</string>
+    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Não foi possível excluir · exclua a cópia no app Arquivos</string>
     <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Salvar e continuar</string>
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Abrir o Shizuku</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Escolher outro arquivo</string>
@@ -167,10 +167,10 @@
     <string name="onboarding_save_continue_starting" volt:src="2990341f0b730f8068bd24583800fdac67f4801f">Salvar e continuar, iniciando</string>
     <string name="onboarding_identity_backup_shared" volt:src="5a4f288e08b3be239113ec47662843224a58c85c">Backup privado reconhecido · usuário autorizado</string>
     <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Backup privado reconhecido · proprietário</string>
-    <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Apenas 0–9 e A–F.</string>
+    <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Somente 0–9 e A–F.</string>
     <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662">Não foi possível remover o arquivo antigo. Tente novamente.</string>
-    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir “Dispositivos por perto”</string>
-    <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Apenas Bluetooth. Sem servidores.</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir acesso a dispositivos por perto</string>
+    <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Somente Bluetooth. Sem servidores.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Permitir</string>
     <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Abrir as configurações do app</string>
     <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Encontrar seu patinete</string>
@@ -181,14 +181,14 @@
     <string name="onboarding_connect_button" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectar</string>
     <string name="onboarding_connect_connecting" volt:src="3b178abc1bf308531bda58ad8d0ab6bcb601a039">Conectando a %1$s</string>
     <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Procurando seu patinete</string>
-    <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, concluído</string>
+    <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, etapa concluída</string>
     <string name="onboarding_connect_row_in_progress" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, em andamento</string>
     <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, ainda não</string>
     <string name="onboarding_connect_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Iniciando…</string>
     <string name="onboarding_connect_waiting_profile" volt:src="ed1a42f914f9ac6f6d550079a760fef93626223b">Aguardando seu perfil de proprietário…</string>
     <string name="onboarding_connect_is_it_on" volt:src="60721fc4afe52dc10fdaea9dd7e504617ab74f1c">O patinete está ligado? O app NAVEE está fechado?</string>
-    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir “Dispositivos por perto”</string>
-    <string name="onboarding_done_title" volt:src="fa40aad297a79922e85dd5b2b5ee012e8f7ced84">Conexão estabelecida</string>
+    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir acesso a dispositivos por perto</string>
+    <string name="onboarding_done_title" volt:src="fa40aad297a79922e85dd5b2b5ee012e8f7ced84">Patinete conectado</string>
     <string name="onboarding_done_ready_default" volt:src="4398b540cd7935b604522b2a91d1d567741d6be3">Seu patinete está pronto.</string>
     <string name="onboarding_done_ready" volt:src="8f159a8f58e66cadc06c55746245256fc2b0523a">%1$s: tudo pronto.</string>
     <string name="onboarding_done_backup" volt:src="98781c091fd9394d14ef35a8dd55e1955e50d5c9">Fazer backup do Volt</string>
@@ -197,11 +197,11 @@
     <string name="onboarding_done_usb_off_detail" volt:src="40e19de8b1df5e9e83e20975c2557cbfb8d81f5a">Você não precisa mais do computador</string>
     <string name="onboarding_done_revoke" volt:src="ab1135db30145dde8dbf62ea5c43015ee89026f1">Revogar o acesso no Shizuku</string>
     <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Revogar o acesso no Shizuku. O Shizuku será aberto para remover o acesso do Volt</string>
-    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Ir para “Início”</string>
+    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Ir para o Início</string>
     <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Telefone não listado como “device”</string>
     <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Aprove a solicitação · use um cabo de dados</string>
     <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">O app NAVEE não se conectou</string>
-    <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Verifique se o app NAVEE se conecta sozinho</string>
+    <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Verifique se o app NAVEE se conecta sem a ferramenta de captura</string>
     <string name="onboarding_fix_timeout" volt:src="6b10fd83995c23734b0f1bfb45e2b3578b5eb360">A ferramenta de captura excedeu o tempo limite</string>
     <string name="onboarding_fix_timeout_detail" volt:src="2f8570402f727f679e3b0050ac736730dd37f710">Feche outros apps e execute novamente</string>
     <string name="onboarding_fix_exists" volt:src="04380b3a018b38e2c530ec8f246da72fa92a0732">O arquivo já existe</string>

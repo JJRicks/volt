@@ -22,9 +22,9 @@
     <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Carregando · %1$s</string>
     <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Ainda não há dados medidos</string>
     <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
-        <item quantity="one">Gráfico de valores medidos em %1$s, %2$d amostra. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
-        <item quantity="many">Gráfico de valores medidos em %1$s, %2$d amostras. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
-        <item quantity="other">Gráfico de valores medidos em %1$s, %2$d amostras. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
+        <item quantity="one">Gráfico de valores medidos: %1$s, %2$d amostra. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
+        <item quantity="many">Gráfico de valores medidos: %1$s, %2$d amostras. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
+        <item quantity="other">Gráfico de valores medidos: %1$s, %2$d amostras. Eixo exibido de %3$s a %4$s. Toque para inspecionar as leituras.</item>
     </plurals>
     <string name="ui_chart_tooltip" volt:src="19e2f801b756022087ce6c171d4f9cc395f299b7">"%1$s %2$s  ·  %3$s"</string>
     <string name="ui_chart_tooltip_unitless" volt:src="680ec86d6e253920d82049246e5acb8c39ac35e2">"%1$s  ·  %2$s"</string>

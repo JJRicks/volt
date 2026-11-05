@@ -111,7 +111,7 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Registro de backup criptografado inválido.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">O backup tem dados inesperados no final.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">O backup já foi concluído.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Escolha do que fazer backup.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Escolha o que incluir no backup.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Há arquivos demais para um único backup.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Os metadados do backup são grandes demais.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Os dados do app mudaram durante o backup. Tente novamente.</string>

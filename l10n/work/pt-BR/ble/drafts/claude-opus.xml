@@ -54,7 +54,7 @@
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Resolva o aviso %1$d do patinete antes de bloquear.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Pare o patinete primeiro</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Indisponível no momento</string>
-    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Valor fora do que o app oficial permite</string>
+    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">O valor está fora das opções do app oficial (OEM)</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: valor já definido.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Alteração rejeitada</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">Uma configuração mudou durante a espera. Tente novamente.</string>
@@ -63,21 +63,21 @@
     <string name="ble_setting_confirmed" volt:src="3e509dc08ecbe51d4effef6fb4ba219cd323d95a">Configuração confirmada: %1$s.</string>
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s: valor confirmado.</string>
     <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Relógio enviado (não verificado)</string>
-    <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Leia o status do PIN e depois pareie este telefone.</string>
+    <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Leia o estado do PIN e depois pareie este telefone.</string>
     <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Configure e ative o PIN do guidão antes de parear para o desbloqueio por proximidade.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Este telefone já está pareado com seu patinete.</string>
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Aprove a solicitação de pareamento Bluetooth no seu telefone.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Não foi possível iniciar o pareamento Bluetooth. Tente novamente.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">O pareamento Bluetooth está indisponível.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">O status do PIN não chegou. Toque em “Ler status do PIN” para tentar novamente.</string>
-    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">O status do PIN está indisponível neste firmware.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">O estado do PIN não chegou. Toque em “Ler estado do PIN” para tentar novamente.</string>
+    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">O estado do PIN está indisponível neste firmware.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">As configurações do PIN exigem o perfil de proprietário.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Pareie este telefone antes de ativar o desbloqueio por proximidade</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Ative um PIN do guidão configurado antes do desbloqueio por proximidade</string>
-    <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Leia o status do PIN e depois aplique o desbloqueio por proximidade.</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Defina e ative o PIN do guidão antes de ativar o desbloqueio por proximidade</string>
+    <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Leia o estado do PIN e depois aplique o desbloqueio por proximidade.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Conecte o patinete como proprietário para ler as configurações do PIN.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Desative o desbloqueio por proximidade antes de desativar o PIN do guidão.</string>
-    <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Leia primeiro o status atual do PIN.</string>
+    <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Leia primeiro o estado atual do PIN.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Conclua o teste guiado primeiro</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Verificação de compatibilidade interrompida</string>
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Verificação de compatibilidade concluída</string>

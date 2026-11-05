@@ -24,12 +24,12 @@
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Etapa %1$d</string>
     <string name="more_onboarding_title" volt:src="481273709dc4b3396f6168624d997dccac537c64">Seu patinete. Seus dados.</string>
-    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Importar minha configuração do proprietário</string>
-    <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir “Dispositivos por perto”</string>
+    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Importar minha configuração de proprietário</string>
+    <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permitir acesso a dispositivos por perto</string>
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectar</string>
-    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Importe primeiro sua configuração do proprietário</string>
+    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Importe primeiro sua configuração de proprietário</string>
     <string name="more_onboarding_guide" volt:src="0d1d7161e799e8b1bf44f6126c1efd07a13fd81b">Guia da configuração do proprietário</string>
-    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Seu serviço local do patinete está sendo iniciado.</string>
+    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">O serviço local do patinete está iniciando.</string>
     <string name="more_disconnect_first" volt:src="3632a33eb6bd747af0b3f51970e9c4fa89c65365">Desconecte o patinete primeiro</string>
     <string name="more_scooters_add" volt:src="72a1a6c08f258e294cc394b845b6f46750b533db">Adicionar um patinete</string>
     <string name="more_scooters_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Atual</string>
@@ -144,7 +144,7 @@
     <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Aguarde a conclusão da alteração atual no patinete.</string>
     <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">A alteração do PIN não foi iniciada. %1$s</string>
     <string name="more_pin_guide_body" volt:src="56841e50454a5f70cf1a90d94a32d93d0f66553e">Patinete parado e bloqueado.</string>
-    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Toque no botão da seta</string>
+    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Pressione rapidamente o botão da seta</string>
     <string name="more_pin_guide_digit" volt:src="4e357338627ffe8aaa390f8636d59b477628ef94">Defina o dígito, aperte o freio</string>
     <string name="more_pin_guide_power" volt:src="6803ccbe9cf35fc27acc31be5f7ab9d921b2f83a">Pressione o botão liga/desliga</string>
     <string name="more_pin_guide_step" volt:src="274e8fee2e123191dfaa434b0f0898951ec84362">Etapa %1$d, %2$s</string>
@@ -157,12 +157,12 @@
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Evidências dos comandos</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Limpar resultados das tentativas</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Limpar resultados das tentativas?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">O Volt vai esquecer o que suas tentativas neste patinete mostraram, então elas sairão do próximo relatório e de “Reverter”. As configurações continuam como estão. As tentativas não concluídas permanecem até você revisá-las.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">O Volt vai esquecer o que suas tentativas neste patinete mostraram, então elas não vão aparecer no próximo relatório nem em “Reverter”. As configurações continuam como estão. As tentativas não concluídas permanecem até você revisá-las.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Nenhuma tentativa concluída para limpar</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
-        <item quantity="one">%1$d tentativa limpa</item>
-        <item quantity="many">%1$d tentativas limpas</item>
-        <item quantity="other">%1$d tentativas limpas</item>
+        <item quantity="one">%1$d tentativa removida</item>
+        <item quantity="many">%1$d tentativas removidas</item>
+        <item quantity="other">%1$d tentativas removidas</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Os resultados das tentativas ficam neste telefone até que um relatório de compatibilidade enviado por você os inclua ou até que você os limpe."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Os controles que o app oficial oferece para seu modelo ficam em “Configurações do patinete”. Limites de velocidade, carregamento, o bloqueio, o PIN, o desbloqueio por proximidade e o relógio nunca são adicionados aqui. O Volt nunca altera o firmware.</string>
@@ -193,7 +193,7 @@
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Conecte o patinete para experimentar estes controles.</string>
-    <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Aguardando um status atualizado do patinete.</string>
+    <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Aguardando o estado atualizado do patinete.</string>
     <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Pare o patinete para experimentar estes controles.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Aguardando o patinete informar que está parado.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Resolva o aviso do patinete para experimentar estes controles.</string>
@@ -220,12 +220,12 @@
     <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b">Não testado</string>
     <string name="more_lab_status_worked" volt:src="8a055ce0ed8d06d3f7f23e08ac6f9f1bdfaab79c">Funcionou aqui</string>
     <string name="more_lab_status_worked_short" volt:src="b1b6fb42bc14492a931a6d52b1a8540a8274d239">Funcionou</string>
-    <string name="more_lab_status_refused" volt:src="076ccb557fae7b59ad698827bf500a0a7e40faef">Rejeitado pelo patinete</string>
-    <string name="more_lab_status_refused_short" volt:src="00eb4358f726bcc7f3a16489e785ca52501e0af0">Rejeitado</string>
+    <string name="more_lab_status_refused" volt:src="076ccb557fae7b59ad698827bf500a0a7e40faef">Rejeitada pelo patinete</string>
+    <string name="more_lab_status_refused_short" volt:src="00eb4358f726bcc7f3a16489e785ca52501e0af0">Rejeitada</string>
     <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Outro valor lido</string>
     <string name="more_lab_status_other_value_short" volt:src="38723630e69bf18d7ac54a45f3a0b090e1009de1">Outro valor</string>
-    <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Não enviado</string>
-    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nenhuma mudança vista</string>
+    <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Não enviada</string>
+    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nenhuma mudança percebida</string>
     <string name="more_lab_status_no_change_short" volt:src="c886b0ef61f47d6864568f13677e7d5060ea3c10">Sem mudança</string>
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Sem confirmação · conecte o patinete novamente para verificar</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Sem confirmação</string>
@@ -260,19 +260,19 @@
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">O app oficial não oferece isso no seu modelo. Pode não fazer nada aqui ou funcionar de outro modo.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN e bytes de autenticação ocultos</string>
-    <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Nenhuma alteração ainda</string>
+    <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Ainda não há alterações</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Sincronização do relógio local\n%1$s</string>
     <string name="more_lab_evidence_line" volt:src="f1e1172cfc1d0ac09f8cc6a24cb1ce797a398eff">%1$s\n%2$s</string>
     <string name="more_lab_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Atividade da conexão</string>
-    <string name="more_lab_no_activity" volt:src="462dec70513dd381151e68249466416956b886a4">Nenhuma atividade de conexão ainda.</string>
+    <string name="more_lab_no_activity" volt:src="462dec70513dd381151e68249466416956b886a4">Ainda não há atividade de conexão.</string>
     <string name="more_about_version" volt:src="c9e02c9cf70aa51cd2bd641033c56dfe4b24f66b">Volt %1$s</string>
     <string name="more_about_tagline" volt:src="8c7e6a976a5463b2e998c6aeb25cba786ebee12a">Somente Bluetooth · sem conta</string>
     <string name="more_about_check_updates" volt:src="707493b7bd7351c922e9498d70301d0735e6ac4e">Verificar atualizações</string>
     <string name="more_about_permissions" volt:src="f6f5293d8c597ed9c0df6c66c8fbf5200c5a1838">Permissões</string>
     <string name="more_about_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Dispositivos por perto</string>
     <string name="more_about_nearby_sub" volt:src="2309be1a695dde12de5e77b0fc0ba1eb772fa306">Para conectar seu patinete</string>
-    <string name="more_about_location" volt:src="d3a22be0d35dedce303b85aeda4bbb7d6b26c7c5">Local</string>
-    <string name="more_about_location_old" volt:src="adf5c2503955b21c30af975601aa9770b75193a7">Rota da viagem · também é preciso para o Bluetooth</string>
+    <string name="more_about_location" volt:src="d3a22be0d35dedce303b85aeda4bbb7d6b26c7c5">Localização</string>
+    <string name="more_about_location_old" volt:src="adf5c2503955b21c30af975601aa9770b75193a7">Rota da viagem · também necessária para o Bluetooth</string>
     <string name="more_about_location_sub" volt:src="8ce1366efda75b99ed438795e6ca5894298a6619">Rota da viagem, somente durante a gravação</string>
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Notificações</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Notificação de gravação com “Parar”</string>
@@ -288,7 +288,7 @@
     <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Verificando atualizações</string>
     <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Perguntando ao GitHub qual é a versão mais recente…</string>
     <string name="more_update_available" volt:src="7ffd9079e0f2563ea01c2ee25b063cb771a7be94">O Volt %1$s está disponível</string>
-    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Você tem a versão %1$s. Baixe a nova na página da versão e instale-a sobre esta; seus dados são mantidos.</string>
+    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Você tem a versão %1$s. Baixe a nova versão na página dela e instale por cima da atual; seus dados serão mantidos.</string>
     <string name="more_update_current" volt:src="0735317844597e79fefa950a5cf4011e9a40a532">O Volt está atualizado</string>
     <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">O Volt %1$s é uma versão de desenvolvimento. A versão mais recente é %2$s.</string>
     <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">O Volt %1$s é a versão mais recente.</string>
@@ -316,10 +316,10 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automático</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rápido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">O modo automático reconhece carregadores UT5 MAX pela potência ao vivo. Se não houver certeza, o Volt usa a taxa atual; escolha um carregador para substituir a detecção.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">O modo automático reconhece carregadores UT5 MAX pela potência em tempo real. Se não houver certeza, o Volt usa o ritmo atual; escolha um carregador para substituir a detecção.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curvas de carga salvas</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Gravar este carregamento</string>
-    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Parar a gravação de carregamento</string>
+    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Parar gravação de carregamento</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Gravações de carregamento</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Estimativas e horários de término salvos</string>
     <string name="more_dev_export" volt:src="b0060df221c4dc4a3e20f885ced9326da40f3c81">Exportar gravações de carregamento</string>
@@ -354,7 +354,7 @@
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Curvas de carga salvas não aplicadas até o carregador ser identificado</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Gravações de carregamento qualificadas com carregador original: %1$s</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Gravações de carregamento qualificadas com carregador rápido: %1$s</string>
-    <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Um carregamento concluído pode refinar a faixa em que terminou. As outras faixas precisam de duas gravações correspondentes. As estimativas dependem da cobertura e da potência ao vivo; as estimativas do UT5 MAX com carregador original e rápido também funcionam sem gravações.</string>
+    <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Um carregamento concluído pode refinar a faixa em que terminou. As outras faixas precisam de duas gravações correspondentes. As estimativas dependem da cobertura e da potência em tempo real; as estimativas do UT5 MAX com carregador original e rápido também funcionam sem gravações.</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Ver avisos completos</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Avisos completos</string>
     <string name="more_notices_unreadable" volt:src="5f65b6a856c7646ae7452808d89371f67149989d">Não foi possível ler os avisos.</string>
@@ -363,7 +363,7 @@
     <string name="more_link_connected" volt:src="43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8">conectado</string>
     <string name="more_link_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">desconectado</string>
     <string name="more_link_connecting" volt:src="5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa">conectando</string>
-    <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Nenhum patinete ainda</string>
+    <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Ainda não há patinetes</string>
     <string name="more_index_add" volt:src="a57928c50bc55109a2723d8b20876d74073feeac">Adicione um patinete para começar</string>
     <string name="more_index_status" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_index_description" volt:src="f81669b9dde0aa7e99f3900e8f80916390656531">%1$s, %2$s. Abrir “Meus patinetes”</string>

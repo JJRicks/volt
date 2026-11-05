@@ -3,12 +3,12 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">O serviço local do patinete está iniciando.</string>
     <string name="compat_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectar</string>
-    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Não há testes não concluídos.</string>
+    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Nenhum teste pendente.</string>
     <string name="compat_run_check" volt:src="8908fbf7457a4fe529bb9649e73cecde12a253d4">Executar verificação</string>
     <string name="compat_run_again" volt:src="0358856e402abdc06315d4f38abf2f9ded72208e">Executar novamente</string>
     <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">Enviar e-mail ao Volt</string>
     <string name="compat_preview_report" volt:src="d10343655f76329222f53dfc96063dee8802e970">Visualizar relatório</string>
-    <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Nenhuma verificação concluída ainda</string>
+    <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Ainda não há verificação concluída</string>
     <string name="compat_footer" volt:src="86d3d6fcbcee53279410f8c97de4654f969c217a">A verificação só faz leituras. As tentativas ficam em “Mais › Controles experimentais”, e o relatório inclui os resultados delas. O firmware nunca é alterado.</string>
     <string name="compat_connect_to_check" volt:src="465b99a776e3987ff95e10fad6eac713fc821b6e">Conecte este patinete para verificá-lo.</string>
     <string name="compat_model_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">ID do modelo não capturado</string>
@@ -99,7 +99,7 @@
     <string name="compat_read_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="compat_reports" volt:src="1c9af93ad84c7bcdb1536ad2b9dd1b6712508929">Informações enviadas pelo patinete</string>
     <string name="compat_reports_none" volt:src="5b551da1ec37022b302edb57b026314e2d5e679f">Nenhuma vista (talvez só cheguem durante a condução)</string>
-    <string name="compat_read_status" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Status</string>
+    <string name="compat_read_status" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Estado</string>
     <string name="compat_status_not_received" volt:src="3ccfafc47b737582bcafa5f35a0e61120a8a8a73">Não recebido</string>
     <string name="compat_status_read" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Lido</string>
     <string name="compat_control_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Relógio</string>
@@ -122,7 +122,7 @@
     <string name="compat_read_battery_id" volt:src="190ae1c24e429def9ad49db06004030f2de1bebc">ID da bateria (sondagem)</string>
     <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Sinais da bateria (sondagem)</string>
     <string name="compat_read_other" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Leitura</string>
-    <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Rejeitado %1$d</string>
+    <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Rejeitado, código %1$d</string>
     <plurals name="compat_read_too_short" volt:src="7745dc0659fdff73d44a35ee36a86959b4ba2ef2">
         <item quantity="one">Muito curto (%1$d byte)</item>
         <item quantity="many">Muito curto (%1$d bytes)</item>
@@ -151,7 +151,7 @@
     <string name="compat_close_preview" volt:src="86e5835353fc29c7468f112ed9798659f0da8dc1">Fechar prévia</string>
     <string name="compat_share_chooser" volt:src="38837226b739ea6d4921fb38c355016713b2274d">Compartilhar relatório de compatibilidade</string>
     <string name="compat_share_none" volt:src="6bed8b6fe25cccaf7dacd70463a895049cb6a882">Nenhum app pode compartilhar este relatório</string>
-    <string name="compat_field_binding_status" volt:src="44da727d9bcff9e30863edc34f8069983d68e65c">Estado de vinculação</string>
+    <string name="compat_field_binding_status" volt:src="44da727d9bcff9e30863edc34f8069983d68e65c">Estado do vínculo</string>
     <string name="compat_field_driving_mode" volt:src="2111e4b942a6daf799ec4cea9c1f0c80d7f0cd26">Modo de condução</string>
     <string name="compat_field_lock_status" volt:src="f16962b0731f9264d6905c0e6b91618783edcb37">Estado de bloqueio</string>
     <string name="compat_field_cruise_control" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Controle de cruzeiro</string>
@@ -179,12 +179,12 @@
     <string name="compat_field_maximum_speed_setting" volt:src="2ca9795c0e0aed9b105f45e8b2328f7162b6b90b">Configuração de velocidade máxima</string>
     <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Configuração do modo de condução</string>
     <string name="compat_field_charge_limit_percent" volt:src="3fb2ccac0699d8546fc4a9934efba0aa96fa47fa">Porcentagem do limite de carga</string>
-    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Baixa potência</string>
+    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Modo de bateria fraca</string>
     <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Carregamento programado</string>
     <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Duração do bloqueio</string>
     <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Elegibilidade do limite de velocidade</string>
     <string name="compat_field_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Clima</string>
-    <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Assistência em rampas</string>
+    <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Assistência em subidas</string>
     <string name="compat_field_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modo de longa autonomia</string>
     <string name="compat_field_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Controle de excesso de velocidade</string>
     <string name="compat_field_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Limite de velocidade do modo Drive</string>

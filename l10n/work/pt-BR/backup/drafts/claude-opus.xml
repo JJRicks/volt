@@ -46,7 +46,7 @@
     <string name="backup_saving" volt:src="60febe597604a2959f387165bcb44392beea8405">Salvando o backup…</string>
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Falha ao salvar. Tente outro local.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Backup salvo.</string>
-    <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restaurar</string>
+    <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restauração</string>
     <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Escolha um backup do Volt para recuperar os dados salvos do app. Arquivos antigos de configuração do proprietário, de viagens e de layout também funcionam; você verá exatamente o que eles contêm antes de restaurar.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Permissões e pareamento Bluetooth não estão incluídos.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Escolher arquivo</string>

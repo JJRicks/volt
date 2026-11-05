@@ -115,7 +115,7 @@
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Modo de condução, %1$s</string>
     <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Modo de condução, %1$s, última leitura: %2$s</string>
-    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Cargas informadas: %1$s</string>
+    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Carregamentos informados: %1$s</string>
     <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">Nominal: %1$s</string>
     <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Última leitura: %1$s</string>
     <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Gravando · %1$s</string>
@@ -139,18 +139,18 @@
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s%% de %2$s %3$s</string>
     <string name="dashboard_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viagens</string>
     <string name="dashboard_points" volt:src="7ae1f9b220ef9f2f4aed38c665c220294b064148">Pontos</string>
-    <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Janela</string>
+    <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Período</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Viagens necessárias</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervalo de 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Carga por indicador cheio</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Carga por 100% do indicador</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Verificação de carregamento</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Cobertura</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Temp. da bateria</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Rejeitados</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Estimativa indireta: pode superestimar; não indica a saúde da bateria.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia que suas viagens consumiram por indicador cheio. Não é um teste de saúde nem de capacidade da bateria.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia utilizável em viagens</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia que suas viagens consumiram a cada 100% do indicador. Não é um teste de saúde nem de capacidade da bateria.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia útil para viagens</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Exemplo · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ainda não há leituras salvas</string>
     <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Autonomia restante estimada pelo patinete</string>
@@ -171,8 +171,8 @@
     <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Capacidade anunciada</string>
     <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Mínimo da escala</string>
     <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Máximo da escala</string>
-    <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Janela de dados de viagem</string>
-    <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Janela de tempo</string>
+    <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Período dos dados de viagem</string>
+    <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Período</string>
     <string name="dashboard_y_axis" volt:src="6f9667133aab1ca864bef89670c9226eead24efa">Eixo Y</string>
     <string name="dashboard_relative" volt:src="0f8072d7f37218550c680263ed85186346eca1f9">Relativo</string>
     <string name="dashboard_absolute" volt:src="0af4a2c574275b365db0859acdb2b7551b42606e">Absoluto</string>
@@ -189,12 +189,12 @@
     </plurals>
     <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s de %2$s</string>
     <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
-        <item quantity="one">%1$d de %2$d atalho</item>
+        <item quantity="one">%1$d de %2$d atalhos</item>
         <item quantity="many">%1$d de %2$d atalhos</item>
         <item quantity="other">%1$d de %2$d atalhos</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Alterar atalho %1$s, %2$s</string>
-    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Mover %1$s para antes</string>
+    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Mover %1$s para a posição anterior</string>
     <string name="dashboard_remove_shortcut" volt:src="a0fa5dc9717f24a09c80391494fbbf46fcd9fcf6">Remover atalho %1$s</string>
     <string name="dashboard_add_shortcut" volt:src="824ff298b4221456b34b069c13c1a5bedb1ad968">Adicionar atalho</string>
     <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Adicionar atalho de acesso rápido</string>
@@ -253,7 +253,7 @@
     <string name="dashboard_restore_defaults" volt:src="fba123ce491ac60a0f652ee2c74cc24cb06c25ce">Restaurar widgets padrão</string>
     <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Layout do painel</string>
     <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Fechar layout do painel</string>
-    <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Padrões restaurados</string>
+    <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Widgets padrão restaurados</string>
     <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Salvar o painel atual no espaço %1$s</string>
     <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restaurar</string>

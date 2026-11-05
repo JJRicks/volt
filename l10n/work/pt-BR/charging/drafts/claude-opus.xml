@@ -30,7 +30,7 @@
         <item quantity="many">Com base em %1$d cargas anteriores</item>
         <item quantity="other">Com base em %1$d cargas anteriores</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Carregador divergente · estimativa pela taxa</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Carregador divergente · estimativa pelo ritmo</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimativa pelo ritmo atual</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">O patinete selecionado mudou durante a medição</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">O relógio do telefone mudou durante a medição</string>
@@ -42,7 +42,7 @@
     <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Sentido da corrente mudou</string>
     <string name="charging_capacity_reason_short" volt:src="6720813ef194da35220a213f19c55b064d3c9c92">Menos de 1 minuto</string>
     <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Bateria sem leitura inicial/final</string>
-    <string name="charging_capacity_reason_drop" volt:src="23d901ac85e7f40738f439d9825f174a6a467477">Queda abaixo de 5%</string>
+    <string name="charging_capacity_reason_drop" volt:src="23d901ac85e7f40738f439d9825f174a6a467477">Queda menor que 5%</string>
     <string name="charging_capacity_reason_coverage" volt:src="d1a240e2b0ab5ceed1763a8e91579d20ecda9f7c">Cobertura abaixo de 95%</string>
     <string name="charging_capacity_reason_movement" volt:src="d4fbb0b84c836e661c1bfdce10f478adfa427453">Movimento insuficiente</string>
     <string name="charging_capacity_reason_no_energy" volt:src="512a3262c7036d3e7cf2ff6e33bd5fcae331f5a7">Sem leitura de energia</string>
@@ -61,5 +61,5 @@
     <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Escolha “Início do carregamento” primeiro</string>
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Escolha um início do carregamento nas próximas 48 horas</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Escolha uma hora cheia nas próximas 48 horas</string>
-    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Aguarde o fim da verificação da programação</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Aguarde a conclusão do teste da programação</string>
 </resources>

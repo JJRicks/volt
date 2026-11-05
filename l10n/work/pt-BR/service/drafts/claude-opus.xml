@@ -17,7 +17,7 @@
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Conclua primeiro a importação da configuração do proprietário</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Não foi possível preparar os dados do app. Abra o Volt novamente.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Conclua a gravação atual antes de simular</string>
-    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Nenhuma gravação de carregamento ainda</string>
+    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ainda não há gravação de carregamento</string>
     <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">O armazenamento das gravações de carregamento está indisponível</string>
     <string name="service_charge_enable_developer" volt:src="552c52b2aed3c9588b58961a1b1d9ad75cd3e3ce">Ative primeiro as “Opções do desenvolvedor”</string>
     <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Desative a simulação para gravar um carregamento real</string>
@@ -63,7 +63,7 @@
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">falha na conexão</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth desativado</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">permissão perdida</string>
-    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">identidade alterada</string>
+    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">identidade do patinete alterada</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Gravação interrompida; não foi possível finalizar o arquivo de carregamento</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Aguarde a detecção do carregador ou selecione um carregador</string>
     <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">“Carga pronta até” não iniciou o carregamento</string>
@@ -116,7 +116,7 @@
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">O carregamento foi retomado %1$s depois do início, então o relógio do patinete pode estar atrasado em %2$s.%3$s</string>
     <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">O patinete não pausou. O relógio dele pode estar adiantado, ou ele ignorou a programação.%1$s</string>
     <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">O carregamento ainda estava pausado 5 minutos depois do início. O relógio do patinete pode estar atrasado em mais de 5 minutos, ou a programação dele não liberou o carregamento. Se o carregador foi desconectado, teste novamente.%1$s</string>
-    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" O Volt acertou o relógio do patinete logo antes deste teste, então o patinete pode não estar mantendo o horário recebido. Até que isso seja resolvido, uma tomada inteligente é um temporizador mais seguro. Use “Relatar um problema” com o diagnóstico para que possamos investigar."</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" O Volt definiu o relógio do patinete logo antes deste teste, então o patinete pode não estar mantendo o horário recebido. Até que isso seja resolvido, uma tomada inteligente é um temporizador mais seguro. Use “Relatar um problema” com o diagnóstico para que possamos investigar."</string>
     <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">A bateria atingiu o limite de carga durante o teste, então não foi possível determinar o resultado. Teste novamente com a carga mais abaixo do limite.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">O teste foi interrompido. Verifique se o carregamento foi retomado. Se não foi, desative o carregamento programado.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Não foi possível iniciar o teste.</string>
@@ -124,7 +124,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" O Volt não conseguiu confirmar se a programação foi desativada. Desative o carregamento programado para que o carregamento continue."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertas de bateria</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de bateria de nível de carga, carga completa e bateria fraca que você ativa em Patinete › Bateria</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de nível de carga, carga completa e bateria fraca que você ativa em “Patinete › Bateria”</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Parar</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Pare a gravação de carregamento antes de iniciar uma viagem</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Saia da simulação primeiro</string>
