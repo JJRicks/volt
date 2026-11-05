@@ -1,0 +1,10 @@
+# B13, the Home dashboard screen (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the numbers, units, percents and reading names DashboardScreen shows, pinned before the batch.
+tests/l10n/characterization/DashboardScreenEnglishTest.java
+# B13's own suite: the whole templates a ternary picks, plurals, format templates, the charge time
+# ladder and the shortcut names the screen shows.
+tests/l10n/DashboardScreenTextTest.java
+# The save-slot dialog's slot 3 rule asks DashboardExampleIds (pure Java; b12.sources lists it too, and
+# tests/run.sh compiles a path once).
+src/com/jjricks/volt/DashboardExampleIds.java

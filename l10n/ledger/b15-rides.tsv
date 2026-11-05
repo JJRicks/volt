@@ -1,0 +1,316 @@
+# Ledger for b15-rides: one row per original Java expression whose literals left src/.
+# Format: tools/l10n/ledger_check.py and l10n/README.md.
+location	pieces	key	kind	note
+src/com/jjricks/volt/RidesScreen.java:125	["Recording"]	rides_live_recording	exact	
+src/com/jjricks/volt/RidesScreen.java:129	["Disconnected"]	rides_live_disconnected	exact	
+src/com/jjricks/volt/RidesScreen.java:139	["W now"]	rides_live_power_now	exact	
+src/com/jjricks/volt/RidesScreen.java:139	["Wh"]	units_watt_hour	exact	
+src/com/jjricks/volt/RidesScreen.java:139	["battery"]	rides_live_battery	exact	
+src/com/jjricks/volt/RidesScreen.java:156	["Recovered · gap excluded"]	rides_recovered_gap	exact	
+src/com/jjricks/volt/RidesScreen.java:162	["Live recording chart"]	rides_live_chart_title	exact	
+src/com/jjricks/volt/RidesScreen.java:162	["Power"]	rides_chart_power	exact	
+src/com/jjricks/volt/RidesScreen.java:162	["Speed"]	rides_chart_speed	exact	
+src/com/jjricks/volt/RidesScreen.java:162	["Voltage"]	rides_chart_voltage	exact	
+src/com/jjricks/volt/RidesScreen.java:162	["Battery %"]	rides_chart_battery	exact	
+src/com/jjricks/volt/RidesScreen.java:168	["Reconnect"]	rides_reconnect	exact	
+src/com/jjricks/volt/RidesScreen.java:169	["Reconnect to the scooter"]	rides_reconnect_description	exact	
+src/com/jjricks/volt/RidesScreen.java:171	["Notes"]	rides_notes	exact	
+src/com/jjricks/volt/RidesScreen.java:172	["Recording notes"]	rides_notes_description	exact	
+src/com/jjricks/volt/RidesScreen.java:173	["End"]	rides_end	exact	
+src/com/jjricks/volt/RidesScreen.java:174	["End and save the ride"]	rides_end_description	exact	
+src/com/jjricks/volt/RidesScreen.java:180	["Start recording"]	rides_start_recording	exact	
+src/com/jjricks/volt/RidesScreen.java:184	["Connect to record"]	rides_connect_to_record	exact	
+src/com/jjricks/volt/RidesScreen.java:187	["Phone sensors"]	rides_phone_sensors	exact	
+src/com/jjricks/volt/RidesScreen.java:191	["Compare two rides"]	rides_compare_two	exact	
+src/com/jjricks/volt/RidesScreen.java:194	["Ride backups"]	rides_backups	exact	
+src/com/jjricks/volt/RidesScreen.java:198	["History"]	rides_history	exact	
+src/com/jjricks/volt/RidesScreen.java:220	["Simulating · Exit"]	rides_simulating_exit	exact	
+src/com/jjricks/volt/RidesScreen.java:220	["Saving phone sensors…"]	rides_saving_sensors_button	exact	
+src/com/jjricks/volt/RidesScreen.java:220	["Start recording"]	rides_start_recording	exact	
+src/com/jjricks/volt/RidesScreen.java:225	["Simulating. Exit simulation"]	rides_simulating_exit_description	exact	
+src/com/jjricks/volt/RidesScreen.java:229	["End"]	rides_end	exact	
+src/com/jjricks/volt/RidesScreen.java:229	["Retry save"]	rides_retry_save	exact	
+src/com/jjricks/volt/RidesScreen.java:230	["End and save the ride"]	rides_end_description	exact	
+src/com/jjricks/volt/RidesScreen.java:230	["Retry save"]	rides_retry_save	exact	
+src/com/jjricks/volt/RidesScreen.java:247	["Exit simulation first"]	rides_toast_exit_simulation	exact	
+src/com/jjricks/volt/RidesScreen.java:254	["Couldn't stop · still recording"]	rides_toast_could_not_stop	exact	
+src/com/jjricks/volt/RidesScreen.java:257	["Finishing the previous ride…"]	rides_toast_finishing_previous	exact	
+src/com/jjricks/volt/RidesScreen.java:258	["Ride storage is unavailable."]	rides_toast_storage_unavailable	exact	
+src/com/jjricks/volt/RidesScreen.java:259	["Connect first"]	rides_toast_connect_first	exact	
+src/com/jjricks/volt/RidesScreen.java:305	["Mode, route, load…"]	rides_notes_hint	exact	
+src/com/jjricks/volt/RidesScreen.java:309	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/RidesScreen.java:309	["Save notes"]	rides_notes_save	exact	
+src/com/jjricks/volt/RidesScreen.java:316	["Ride ended · notes not saved"]	rides_toast_notes_not_saved	exact	
+src/com/jjricks/volt/RidesScreen.java:318	["Could not save the notes."]	rides_toast_notes_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:330	["GPS"]	rides_sensors_gps	exact	
+src/com/jjricks/volt/RidesScreen.java:330	["elevation"]	rides_sensors_elevation	exact	
+src/com/jjricks/volt/RidesScreen.java:330	["motion"]	rides_sensors_motion	exact	
+src/com/jjricks/volt/RidesScreen.java:331	["Scooter readings only"]	rides_sensors_scooter_only	exact	
+src/com/jjricks/volt/RidesScreen.java:338	["Ride"]	rides_default_name	exact	
+src/com/jjricks/volt/RidesScreen.java:348	["Could not read the ride chart."]	rides_toast_chart_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:369	["Waiting for readings"]	rides_chart_waiting	exact	
+src/com/jjricks/volt/RidesScreen.java:388	["Not measured"]	rides_not_measured	exact	
+src/com/jjricks/volt/RidesScreen.java:422	["Ride storage unavailable"]	rides_storage_unavailable	exact	
+src/com/jjricks/volt/RidesScreen.java:447	["Show more recordings"]	rides_show_more	exact	
+src/com/jjricks/volt/RidesScreen.java:450	["No rides yet"]	rides_no_rides_yet	exact	
+src/com/jjricks/volt/RidesScreen.java:455	["Could not read saved rides"]	rides_history_unreadable	exact	
+src/com/jjricks/volt/RidesScreen.java:474	["Ride"]	rides_default_name	exact	
+src/com/jjricks/volt/RidesScreen.java:600	["Compare two rides, 2 rides selected"]	rides_compare_two_selected	exact	
+src/com/jjricks/volt/RidesScreen.java:609	["Save two rides to compare them."]	rides_toast_compare_needs_two	exact	
+src/com/jjricks/volt/RidesScreen.java:614	["Compare rides"]	rides_compare_title	exact	
+src/com/jjricks/volt/RidesScreen.java:626	["Ride"]	rides_default_name	exact	
+src/com/jjricks/volt/RidesScreen.java:637	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/RidesScreen.java:637	["Compare"]	rides_compare_action	exact	
+src/com/jjricks/volt/RidesScreen.java:641	["Could not read saved rides."]	rides_toast_saved_unreadable	exact	
+src/com/jjricks/volt/RidesScreen.java:645	["This recording is unavailable."]	rides_toast_recording_unavailable	exact	
+src/com/jjricks/volt/RidesScreen.java:650	["Done"]	common_done	exact	
+src/com/jjricks/volt/RidesScreen.java:652	["Could not read this recording."]	rides_toast_recording_unreadable	exact	
+src/com/jjricks/volt/RidesScreen.java:661	["Rename ride"]	rides_rename	exact	
+src/com/jjricks/volt/RidesScreen.java:665	["Ride name"]	rides_rename_hint	exact	
+src/com/jjricks/volt/RidesScreen.java:666	["Rename ride"]	rides_rename	exact	
+src/com/jjricks/volt/RidesScreen.java:667	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/RidesScreen.java:667	["Save"]	rides_rename_save	exact	
+src/com/jjricks/volt/RidesScreen.java:669	["Enter a name"]	rides_rename_empty	exact	
+src/com/jjricks/volt/RidesScreen.java:676	["Could not rename this ride."]	rides_toast_rename_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:687	["Journey"]	rides_journey	exact	
+src/com/jjricks/volt/RidesScreen.java:688	["Distance"]	rides_tile_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:688	["Duration"]	rides_tile_duration	exact	
+src/com/jjricks/volt/RidesScreen.java:689	["Avg speed"]	rides_tile_avg_speed	exact	
+src/com/jjricks/volt/RidesScreen.java:689	["Max speed"]	rides_tile_max_speed	exact	
+src/com/jjricks/volt/RidesScreen.java:690	["Odometer reset"]	rides_reason_odometer_reset	exact	
+src/com/jjricks/volt/RidesScreen.java:691	["Battery & energy"]	rides_battery_energy	exact	
+src/com/jjricks/volt/RidesScreen.java:693	["Battery gain"]	rides_tile_battery_gain	exact	
+src/com/jjricks/volt/RidesScreen.java:693	["Battery drop"]	rides_tile_battery_drop	exact	
+src/com/jjricks/volt/RidesScreen.java:693	["Per distance"]	rides_tile_per_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:694	["Throughput"]	rides_tile_throughput	exact	
+src/com/jjricks/volt/RidesScreen.java:694	["Power coverage"]	rides_power_coverage	exact	
+src/com/jjricks/volt/RidesScreen.java:719	["Finishing the sensor files"]	rides_route_finishing	exact	
+src/com/jjricks/volt/RidesScreen.java:719	["Loading route"]	rides_route_loading	exact	
+src/com/jjricks/volt/RidesScreen.java:724	["Finishing the sensor files"]	rides_route_finishing	exact	
+src/com/jjricks/volt/RidesScreen.java:727	["Loading route"]	rides_route_loading	exact	
+src/com/jjricks/volt/RidesScreen.java:745	["Route unavailable"]	rides_route_unavailable	exact	
+src/com/jjricks/volt/RidesScreen.java:789	["Ride readings"]	rides_readings_title	exact	
+src/com/jjricks/volt/RidesScreen.java:790	["Loading…"]	rides_loading	exact	
+src/com/jjricks/volt/RidesScreen.java:792	["Expand"]	rides_expand	exact	
+src/com/jjricks/volt/RidesScreen.java:816	["Fit"]	rides_chart_fit	exact	
+src/com/jjricks/volt/RidesScreen.java:817	["Zoom out ride chart"]	rides_chart_zoom_out	exact	
+src/com/jjricks/volt/RidesScreen.java:817	["Fit the whole ride in the chart"]	rides_chart_fit_description	exact	
+src/com/jjricks/volt/RidesScreen.java:817	["Zoom in ride chart"]	rides_chart_zoom_in	exact	
+src/com/jjricks/volt/RidesScreen.java:854	["no recorded sample"]	rides_chart_no_sample	exact	
+src/com/jjricks/volt/RidesScreen.java:884	["Done"]	common_done	exact	
+src/com/jjricks/volt/RidesScreen.java:894	["Loading…"]	rides_loading	exact	
+src/com/jjricks/volt/RidesScreen.java:897	["Saving…"]	rides_saving	exact	
+src/com/jjricks/volt/RidesScreen.java:897	["Saving phone sensors"]	rides_saving_sensors	exact	
+src/com/jjricks/volt/RidesScreen.java:917	["All samples"]	rides_all_samples	exact	
+src/com/jjricks/volt/RidesScreen.java:917	["All recorded chart samples loaded"]	rides_all_samples_description	exact	
+src/com/jjricks/volt/RidesScreen.java:928	["Low memory · preview only"]	rides_toast_low_memory	exact	
+src/com/jjricks/volt/RidesScreen.java:938	["Preview · Retry"]	rides_preview_retry	exact	
+src/com/jjricks/volt/RidesScreen.java:939	["Preview only. Retry loading all recorded chart samples"]	rides_preview_retry_description	exact	
+src/com/jjricks/volt/RidesScreen.java:953	["Electrical energy"]	rides_electrical_energy	exact	
+src/com/jjricks/volt/RidesScreen.java:957	["Current direction confirmed"]	rides_direction_confirmed	exact	
+src/com/jjricks/volt/RidesScreen.java:957	["Direction not confirmed for the whole ride · values are absolute throughput"]	rides_direction_unconfirmed	exact	
+src/com/jjricks/volt/RidesScreen.java:962	["Draw"]	rides_draw_short	exact	
+src/com/jjricks/volt/RidesScreen.java:962	["Battery draw"]	rides_draw	exact	
+src/com/jjricks/volt/RidesScreen.java:963	["Input"]	rides_input_short	exact	
+src/com/jjricks/volt/RidesScreen.java:963	["Battery input / charging"]	rides_input	exact	
+src/com/jjricks/volt/RidesScreen.java:965	["Battery draw, confirmed intervals only"]	rides_draw_partial	exact	
+src/com/jjricks/volt/RidesScreen.java:965	["Battery input or charging, confirmed intervals only"]	rides_input_partial	exact	
+src/com/jjricks/volt/RidesScreen.java:967	["Net measured energy"]	rides_net_energy	exact	
+src/com/jjricks/volt/RidesScreen.java:968	["Throughput per distance"]	rides_throughput_per_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:968	["Net energy per distance"]	rides_net_per_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:972	["Measurement quality"]	rides_measurement_quality	exact	
+src/com/jjricks/volt/RidesScreen.java:974	["Power coverage"]	rides_power_coverage	exact	
+src/com/jjricks/volt/RidesScreen.java:975	["Observed / recorded"]	rides_observed_recorded	exact	
+src/com/jjricks/volt/RidesScreen.java:976	["Unobserved power"]	rides_unobserved_power	exact	
+src/com/jjricks/volt/RidesScreen.java:977	["Samples / gaps"]	rides_samples_gaps	exact	
+src/com/jjricks/volt/RidesScreen.java:978	["Moving / stationary"]	rides_moving_stationary	exact	
+src/com/jjricks/volt/RidesScreen.java:979	["Moving throughput"]	rides_moving_throughput	exact	
+src/com/jjricks/volt/RidesScreen.java:980	["Stationary throughput"]	rides_stationary_throughput	exact	
+src/com/jjricks/volt/RidesScreen.java:981	["Unknown motion"]	rides_unknown_motion	exact	
+src/com/jjricks/volt/RidesScreen.java:982	["Voltage min / max"]	rides_voltage_min_max	exact	
+src/com/jjricks/volt/RidesScreen.java:983	["Peak power"]	rides_peak_power	exact	
+src/com/jjricks/volt/RidesScreen.java:984	["Temperature"]	rides_temperature	exact	
+src/com/jjricks/volt/RidesScreen.java:987	["Recovered · gap excluded"]	rides_recovered_gap	exact	
+src/com/jjricks/volt/RidesScreen.java:992	["Saved automatically"]	rides_saved_automatically	exact	
+src/com/jjricks/volt/RidesScreen.java:993	["Saved automatically after Bluetooth was lost while parked"]	rides_saved_automatically_description	exact	
+src/com/jjricks/volt/RidesScreen.java:998	["Notes"]	rides_notes_section	exact	
+src/com/jjricks/volt/RidesScreen.java:1000	["Export CSV"]	rides_export_csv	exact	
+src/com/jjricks/volt/RidesScreen.java:1001	["Export the complete ride sensor CSV"]	rides_export_csv_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1002	["Export JSON"]	rides_export_json	exact	
+src/com/jjricks/volt/RidesScreen.java:1003	["Export ride analysis JSON"]	rides_export_json_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1005	["Delete ride"]	rides_delete_ride	exact	
+src/com/jjricks/volt/RidesScreen.java:1008	["Saving…"]	rides_saving	exact	
+src/com/jjricks/volt/RidesScreen.java:1008	["Delete ride"]	rides_delete_ride	exact	
+src/com/jjricks/volt/RidesScreen.java:1018	["Odometer reset"]	rides_reason_odometer_reset	exact	
+src/com/jjricks/volt/RidesScreen.java:1019	["No odometer distance"]	rides_reason_no_odometer	exact	
+src/com/jjricks/volt/RidesScreen.java:1020	["Too short"]	rides_reason_too_short	exact	
+src/com/jjricks/volt/RidesScreen.java:1021	["Coverage <80%"]	rides_reason_low_coverage	exact	
+src/com/jjricks/volt/RidesScreen.java:1022	["Not measured"]	rides_not_measured	exact	
+src/com/jjricks/volt/RidesScreen.java:1081	["No ride to show yet"]	rides_empty_none	exact	
+src/com/jjricks/volt/RidesScreen.java:1081	["Ride storage unavailable"]	rides_storage_unavailable	exact	
+src/com/jjricks/volt/RidesScreen.java:1081	["Saved rides could not be read"]	rides_empty_unreadable	exact	
+src/com/jjricks/volt/RidesScreen.java:1088	["Could not read this recording."]	rides_toast_recording_unreadable	exact	
+src/com/jjricks/volt/RidesScreen.java:1093	["Phone data files"]	rides_phone_files	exact	
+src/com/jjricks/volt/RidesScreen.java:1094	["Export the original phone data files"]	rides_phone_files_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1110	["Phone sensors"]	rides_phone_sensors	exact	
+src/com/jjricks/volt/RidesScreen.java:1110	["Next ride"]	rides_next_ride	exact	
+src/com/jjricks/volt/RidesScreen.java:1112	["GPS route"]	rides_gps_route	exact	
+src/com/jjricks/volt/RidesScreen.java:1112	["Only while recording"]	rides_gps_route_sub	exact	
+src/com/jjricks/volt/RidesScreen.java:1116	["Barometer elevation"]	rides_barometer	exact	
+src/com/jjricks/volt/RidesScreen.java:1116	["Auto"]	rides_barometer_auto	exact	
+src/com/jjricks/volt/RidesScreen.java:1116	["GPS altitude"]	rides_barometer_gps	exact	
+src/com/jjricks/volt/RidesScreen.java:1118	["Motion sensors"]	rides_motion_sensors	exact	
+src/com/jjricks/volt/RidesScreen.java:1121	["Phone placement"]	rides_placement	exact	
+src/com/jjricks/volt/RidesScreen.java:1122	["Phone placement"]	rides_placement	exact	
+src/com/jjricks/volt/RidesScreen.java:1122	["Mounted"]	rides_placement_mounted	exact	
+src/com/jjricks/volt/RidesScreen.java:1122	["Pocket"]	rides_placement_pocket	exact	
+src/com/jjricks/volt/RidesScreen.java:1133	["LAB"]	rides_lab_badge	exact	
+src/com/jjricks/volt/RidesScreen.java:1135	["Lab, experimental"]	rides_lab_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1166	["Changes apply to the next ride"]	rides_changes_next_ride	exact	
+src/com/jjricks/volt/RidesScreen.java:1173	["Close"]	common_close	exact	
+src/com/jjricks/volt/RidesScreen.java:1214	["No browser available."]	rides_toast_no_browser	exact	
+src/com/jjricks/volt/RidesScreen.java:1217	["Export raw files"]	rides_export_raw	exact	
+src/com/jjricks/volt/RidesScreen.java:1218	["Phone journal CSV"]	rides_export_phone_journal	exact	
+src/com/jjricks/volt/RidesScreen.java:1218	["Motion CSV"]	rides_export_motion_csv	exact	
+src/com/jjricks/volt/RidesScreen.java:1220	["No phone data recorded for this ride."]	rides_toast_no_phone_data	exact	
+src/com/jjricks/volt/RidesScreen.java:1222	["Close"]	common_close	exact	
+src/com/jjricks/volt/RidesScreen.java:1225	["Phone sensors"]	rides_phone_sensors	exact	
+src/com/jjricks/volt/RidesScreen.java:1233	["Route"]	rides_route	exact	
+src/com/jjricks/volt/RidesScreen.java:1233	["Done"]	common_done	exact	
+src/com/jjricks/volt/RidesScreen.java:1247	["Phone & route"]	rides_phone_route	exact	
+src/com/jjricks/volt/RidesScreen.java:1252	["GPS distance"]	rides_tile_gps_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:1253	["Ascent / descent"]	rides_tile_ascent_descent	exact	
+src/com/jjricks/volt/RidesScreen.java:1255	["Acceleration"]	rides_acceleration	exact	
+src/com/jjricks/volt/RidesScreen.java:1259	["GPS speed change · min / max"]	rides_gps_speed_change	exact	
+src/com/jjricks/volt/RidesScreen.java:1260	["Scooter speed change · min / max"]	rides_scooter_speed_change	exact	
+src/com/jjricks/volt/RidesScreen.java:1261	["Phone linear acceleration · peak"]	rides_linear_peak	exact	
+src/com/jjricks/volt/RidesScreen.java:1264	["Export phone data"]	rides_export_phone	exact	
+src/com/jjricks/volt/RidesScreen.java:1273	["Selected route measurements"]	rides_route_selection_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Route color"]	rides_route_color	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Power"]	rides_route_color_power	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Speed"]	rides_route_color_speed	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Grade"]	rides_route_color_grade	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Accel"]	rides_route_color_accel	exact	
+src/com/jjricks/volt/RidesScreen.java:1296	["Elev."]	rides_route_color_elevation	exact	
+src/com/jjricks/volt/RidesScreen.java:1308	["Zoom in"]	rides_map_zoom_in	exact	
+src/com/jjricks/volt/RidesScreen.java:1309	["Zoom out"]	rides_map_zoom_out	exact	
+src/com/jjricks/volt/RidesScreen.java:1310	["Fit route"]	rides_map_fit	exact	
+src/com/jjricks/volt/RidesScreen.java:1311	["Expand route map"]	rides_map_expand	exact	
+src/com/jjricks/volt/RidesScreen.java:1317	["Fit route"]	rides_map_fit	exact	
+src/com/jjricks/volt/RidesScreen.java:1328	["Grade · blue −12% → gray 0% → orange +12% · gray dashed: missing"]	rides_legend_grade	exact	
+src/com/jjricks/volt/RidesScreen.java:1329	["GPS acceleration · blue −2 → gray 0 → orange +2 m/s² · gray dashed: missing"]	rides_legend_accel	exact	
+src/com/jjricks/volt/RidesScreen.java:1344	["Route map readings and colors"]	rides_map_controls_description	exact	
+src/com/jjricks/volt/RidesScreen.java:1356	["Route"]	rides_route	exact	
+src/com/jjricks/volt/RidesScreen.java:1364	["Close expanded route map"]	rides_map_close_expanded	exact	
+src/com/jjricks/volt/RidesScreen.java:1379	["Speed not recorded · gray dashed: missing"]	rides_legend_speed_none	exact	
+src/com/jjricks/volt/RidesScreen.java:1399	["Time"]	rides_point_time	exact	
+src/com/jjricks/volt/RidesScreen.java:1399	["GPS"]	rides_point_gps	exact	
+src/com/jjricks/volt/RidesScreen.java:1399	["Scooter"]	rides_point_scooter	exact	
+src/com/jjricks/volt/RidesScreen.java:1399	["Power"]	rides_point_power	exact	
+src/com/jjricks/volt/RidesScreen.java:1399	["Battery"]	rides_point_battery	exact	
+src/com/jjricks/volt/RidesScreen.java:1400	["Grade"]	rides_point_grade	exact	
+src/com/jjricks/volt/RidesScreen.java:1401	["GPS accel"]	rides_point_gps_accel	exact	
+src/com/jjricks/volt/RidesScreen.java:1401	["Scooter accel"]	rides_point_scooter_accel	exact	
+src/com/jjricks/volt/RidesScreen.java:1408	["not measured"]	rides_point_not_measured	exact	
+src/com/jjricks/volt/RidesScreen.java:1422	["Route CSV"]	rides_export_route_csv	exact	
+src/com/jjricks/volt/RidesScreen.java:1422	["GPX"]	rides_export_gpx	exact	
+src/com/jjricks/volt/RidesScreen.java:1422	["Phone raw CSV"]	rides_export_phone_raw	exact	
+src/com/jjricks/volt/RidesScreen.java:1422	["Motion raw CSV"]	rides_export_motion_raw	exact	
+src/com/jjricks/volt/RidesScreen.java:1422	["All (JSON)"]	rides_export_all_json	exact	
+src/com/jjricks/volt/RidesScreen.java:1423	["Export phone data"]	rides_export_phone	exact	
+src/com/jjricks/volt/RidesScreen.java:1430	["No phone data recorded for this ride."]	rides_toast_no_phone_data	exact	
+src/com/jjricks/volt/RidesScreen.java:1436	["Could not export this ride."]	rides_toast_export_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:1437	["Cancel"]	common_cancel	exact	
+src/com/jjricks/volt/RidesScreen.java:1444	["Could not export the ride CSV."]	rides_toast_export_csv_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:1450	["Route and sensor data. Can't undo."]	rides_delete_message	exact	
+src/com/jjricks/volt/RidesScreen.java:1451	["Keep ride"]	rides_delete_keep	exact	
+src/com/jjricks/volt/RidesScreen.java:1451	["Delete"]	rides_delete_action	exact	
+src/com/jjricks/volt/RidesScreen.java:1452	["Saving… try again"]	rides_toast_saving_try_again	exact	
+src/com/jjricks/volt/RidesScreen.java:1453	["Recording deleted."]	rides_toast_deleted	exact	
+src/com/jjricks/volt/RidesScreen.java:1454	["Could not delete this recording."]	rides_toast_delete_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:1464	["Select two available recordings."]	rides_toast_select_two	exact	
+src/com/jjricks/volt/RidesScreen.java:1472	["Distance"]	rides_tile_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:1473	["Duration"]	rides_tile_duration	exact	
+src/com/jjricks/volt/RidesScreen.java:1474	["Avg speed"]	rides_tile_avg_speed	exact	
+src/com/jjricks/volt/RidesScreen.java:1475	["Battery change"]	rides_compare_battery_change	exact	
+src/com/jjricks/volt/RidesScreen.java:1476	["Measured throughput"]	rides_compare_measured_throughput	exact	
+src/com/jjricks/volt/RidesScreen.java:1477	["Net measured energy"]	rides_net_energy	exact	
+src/com/jjricks/volt/RidesScreen.java:1478	["Energy per distance"]	rides_compare_energy_per_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:1479	["Power coverage"]	rides_power_coverage	exact	
+src/com/jjricks/volt/RidesScreen.java:1480	["Gaps"]	rides_compare_gaps	exact	
+src/com/jjricks/volt/RidesScreen.java:1481	["Minimum voltage"]	rides_compare_min_voltage	exact	
+src/com/jjricks/volt/RidesScreen.java:1482	["Stationary throughput"]	rides_stationary_throughput	exact	
+src/com/jjricks/volt/RidesScreen.java:1484	["View first"]	rides_view_first	exact	
+src/com/jjricks/volt/RidesScreen.java:1484	["View second"]	rides_view_second	exact	
+src/com/jjricks/volt/RidesScreen.java:1493	["GPS distance"]	rides_tile_gps_distance	exact	
+src/com/jjricks/volt/RidesScreen.java:1494	["Estimated ascent"]	rides_compare_ascent	exact	
+src/com/jjricks/volt/RidesScreen.java:1495	["Estimated descent"]	rides_compare_descent	exact	
+src/com/jjricks/volt/RidesScreen.java:1499	["2 rides"]	rides_compare_sheet_rides	exact	
+src/com/jjricks/volt/RidesScreen.java:1499	["Compare"]	rides_compare_sheet_title	exact	
+src/com/jjricks/volt/RidesScreen.java:1499	["Done"]	common_done	exact	
+src/com/jjricks/volt/RidesScreen.java:1500	["Could not compare the recordings."]	rides_toast_compare_failed	exact	
+src/com/jjricks/volt/RidesScreen.java:1502	["Ride"]	rides_default_name	exact	
+src/com/jjricks/volt/RidesScreen.java:307	{"if": "recording.label.isEmpty()", "then": ["Notes for ", "this ride"], "else": ["Notes for ", {"hole": "recording.label", "arg": 1, "type": "s"}]}	rides_notes_title_unnamed,rides_notes_title	choice	the ride's name is the owner's text, shown as typed; an unnamed ride gets its own whole sentence
+src/com/jjricks/volt/RidesScreen.java:325	["Off"]	common_off	exact	
+src/com/jjricks/volt/RidesScreen.java:325	{"one": [{"hole": "on", "arg": 1, "type": "d", "quantity": true}, " on"], "other": [{"hole": "on", "arg": 1, "type": "d", "quantity": true}, " on"]}	rides_sensors_on_count	plural	a plural so a language can agree the word with the number of sensors on (1 to 3); English one and other are the same
+src/com/jjricks/volt/RidesScreen.java:339	{"if": "error == null", "then": ["Recording · ", {"hole": "name", "arg": 1, "type": "s"}], "else": ["Recording needs attention · ", {"hole": "name", "arg": 1, "type": "s"}]}	rides_live_title,rides_live_title_attention	choice	name is the owner's ride name or rides_default_name
+src/com/jjricks/volt/RidesScreen.java:343	["Elapsed ", {"hole": "duration(elapsed)", "arg": 1, "type": "s"}]	rides_elapsed_description	template	
+src/com/jjricks/volt/RidesScreen.java:359	["1 gap"]	rides_gap_one	exact	
+src/com/jjricks/volt/RidesScreen.java:359	{"one": [{"hole": "s.gapCount", "arg": 1, "type": "d", "quantity": true}, " gaps"], "other": [{"hole": "s.gapCount", "arg": 1, "type": "d", "quantity": true}, " gaps"]}	rides_gaps	plural	a plural so a language can inflect gaps by the number; English shows rides_gap_one for 1, so the one form (tagged english-fix pending) is never shown in English
+src/com/jjricks/volt/RidesScreen.java:362	[{"hole": "percent(s.electricalCoverage)", "arg": 1, "type": "s"}, " coverage"]	rides_coverage	template	
+src/com/jjricks/volt/RidesScreen.java:363	["Power coverage ", {"hole": "percent(s.electricalCoverage)", "arg": 1, "type": "s"}, ", ", {"hole": "duration(s.electricalCoverageMs)", "arg": 2, "type": "s"}, " observed of ", {"hole": "duration(s.elapsedMs)", "arg": 3, "type": "s"}]	rides_coverage_description	template	
+src/com/jjricks/volt/RidesScreen.java:458	["No saved rides"]	rides_history_none	exact	
+src/com/jjricks/volt/RidesScreen.java:458	{"one": [{"hole": "savedCount", "arg": 1, "type": "d", "quantity": true}, " ride"], "other": [{"hole": "savedCount", "arg": 1, "type": "d", "quantity": true}, " rides"]}	rides_history_count	plural	manual: savedCount + (savedCount == 1 ? " ride" : " rides") became one plural call T.ridesHistoryCount(savedCount, savedCount); English one is "%1$d ride" and other "%1$d rides", so 1 and every other count print as before, and a language inflects rides by the number
+src/com/jjricks/volt/RidesScreen.java:489	[{"hole": "spoken", "arg": 1, "type": "s"}, ". Shows its details beside the list."]	rides_history_row_wide	template	
+src/com/jjricks/volt/RidesScreen.java:493	[{"hole": "spoken", "arg": 1, "type": "s"}, ". Opens ride details."]	rides_history_row	template	
+src/com/jjricks/volt/RidesScreen.java:520	["Showing ", {"hole": "((TextView) title).getText()", "arg": 1, "type": "s"}]	rides_showing	template	
+src/com/jjricks/volt/RidesScreen.java:583	[{"spec": "%.0f", "arg": 1, "value": "Math.max(1, bytes / 1000.0)", "as": "Fmt.decimal(Locale.US, Math.max(1, bytes / 1000.0), 0)"}, " ", {"text": "KB", "key": "rides_unit_kilobyte", "arg": 2}]	fmt_quantity	format	the size is measured off the UI thread and kept in storageText until the next measure, as before
+src/com/jjricks/volt/RidesScreen.java:583	[{"spec": "%.1f", "arg": 1, "value": "bytes / 1e6", "as": "Fmt.decimal(Locale.US, bytes / 1e6, 1)"}, " ", {"text": "MB", "key": "rides_unit_megabyte", "arg": 2}]	fmt_quantity	format	the size is measured off the UI thread and kept in storageText until the next measure, as before
+src/com/jjricks/volt/RidesScreen.java:599	["Compare two rides, ", {"hole": "savedCount", "arg": 1, "type": "d"}, " of 2 saved rides"]	rides_compare_two_saved	template	
+src/com/jjricks/volt/RidesScreen.java:620	[{"hole": "picked.size()", "arg": 1, "type": "d"}, " of 2 rides chosen"]	rides_compare_chosen	template	
+src/com/jjricks/volt/RidesScreen.java:696	{"if": "batteryGain", "then": ["Battery gain, ", {"hole": "Math.round(Math.abs(ride.batteryDropPercent))", "arg": 1, "type": "d"}, " percentage points"], "else": ["Battery drop, ", {"hole": "Math.round(Math.abs(ride.batteryDropPercent))", "arg": 1, "type": "d"}, " percentage points"]}	rides_battery_gain_description,rides_battery_drop_description	choice	
+src/com/jjricks/volt/RidesScreen.java:853	["At ", {"hole": "RideChartView.sampleTime(value.time)", "arg": 1, "type": "s"}]	maps_chart_cursor_at	template	B14 handoff: the chart cursor's key from strings_maps.xml; sampleTime stays RideChartView's clock
+src/com/jjricks/volt/RidesScreen.java:1051	["Confirmed ", {"hole": "duration(confirmedMs)", "arg": 1, "type": "s"}]	rides_direction_confirmed_for	template	
+src/com/jjricks/volt/RidesScreen.java:1052	["Unconfirmed ", {"hole": "duration(unconfirmedMs)", "arg": 1, "type": "s"}]	rides_direction_unconfirmed_for	template	
+src/com/jjricks/volt/RidesScreen.java:1054	["Current direction confirmed for ", {"hole": "duration(confirmedMs)", "arg": 1, "type": "s"}, ", unconfirmed for ", {"hole": "duration(unconfirmedMs)", "arg": 2, "type": "s"}]	rides_direction_split_description	template	
+src/com/jjricks/volt/RidesScreen.java:1185	[{"hole": "title", "arg": 1, "type": "s"}, ", experimental"]	rides_switch_experimental	template	
+src/com/jjricks/volt/RidesScreen.java:1263	{"if": "\"mounted\".equals(track.placement)", "then": ["Mounted", " · ", {"hole": "String.format(Locale.US, \"%,d\", track.motionSampleCount)", "arg": 1, "type": "s"}, " samples"], "else": ["Pocket", " · ", {"hole": "String.format(Locale.US, \"%,d\", track.motionSampleCount)", "arg": 1, "type": "s"}, " samples"]}	rides_motion_note_mounted,rides_motion_note_pocket	choice	track.placement stays the stored id (mounted or pocket); the grouped count keeps its String.format
+src/com/jjricks/volt/RidesScreen.java:1332	["Power magnitude · blue 0 → yellow ", {"hole": "RouteSpeedScale.wattsLabel(RouteSpeedScale.powerTopWatts(track.points))", "arg": 1, "type": "s"}, " · gray: missing"]	rides_legend_power	template	
+src/com/jjricks/volt/RidesScreen.java:1376	["Relative elevation · blue ", {"hole": "height(low)", "arg": 1, "type": "s"}, " → yellow ", {"hole": "height(high)", "arg": 2, "type": "s"}, " · gray: missing"]	rides_legend_elevation	template	
+src/com/jjricks/volt/RidesScreen.java:1380	{"if": "RouteSpeedScale.SCOOTER.equals(scale.source)", "then": ["Scooter speed", " · blue 0 → yellow ", {"hole": "RouteSpeedScale.label(scale.topKmh, preferences.getString(\"units\", \"mi\"))", "arg": 1, "type": "s"}, " or faster · gray dashed: missing"], "else": ["GPS speed", " · blue 0 → yellow ", {"hole": "RouteSpeedScale.label(scale.topKmh, preferences.getString(\"units\", \"mi\"))", "arg": 1, "type": "s"}, " or faster · gray dashed: missing"]}	rides_legend_speed_scooter,rides_legend_speed_gps	choice	scale.source stays RouteSpeedScale's English id
+src/com/jjricks/volt/RidesScreen.java:1409	[", accuracy ±", {"hole": "height(p.accuracyM)", "arg": 1, "type": "s"}]	rides_point_accuracy	template	
+src/com/jjricks/volt/RidesScreen.java:1415	[{"spec": "%.2f", "arg": 1, "value": "value", "as": "Fmt.decimal(Locale.US, value, 2)"}, " ", {"text": "m/s²", "key": "rides_unit_acceleration", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RidesScreen.java:1416	[{"spec": "%.2f", "arg": 1, "value": "value", "as": "Fmt.decimal(Locale.US, value, 2)"}, " ", {"text": "m/s²", "key": "rides_unit_acceleration", "arg": 2}, " (", {"spec": "%.2f", "arg": 3, "value": "value / 9.80665", "as": "Fmt.decimal(Locale.US, value / 9.80665, 2)"}, " ", {"text": "g", "key": "rides_unit_gravity", "arg": 4}, ")"]	rides_acceleration_with_g	format	
+src/com/jjricks/volt/RidesScreen.java:1449	{"if": "label.isEmpty()", "then": ["Delete ", "this ride", "?"], "else": ["Delete ", {"hole": "label", "arg": 1, "type": "s"}, "?"]}	rides_delete_title_unnamed,rides_delete_title	choice	label is the owner's ride name, shown as typed
+src/com/jjricks/volt/RidesScreen.java:1485	["View route of ", {"hole": "nameOf(a)", "arg": 1, "type": "s"}]	rides_view_route_of	template	
+src/com/jjricks/volt/RidesScreen.java:1485	["View route of ", {"hole": "nameOf(b)", "arg": 1, "type": "s"}]	rides_view_route_of	template	
+src/com/jjricks/volt/RidesScreen.java:1523	[{"hole": "title", "arg": 1, "type": "s"}, ": first ride ", {"hole": "spokenFirst", "arg": 2, "type": "s"}, ", second ride ", {"hole": "spokenSecond", "arg": 3, "type": "s"}]	rides_compare_line_description	template	
+src/com/jjricks/volt/RidesScreen.java:1527	["Second: ", {"hole": "secondReason", "arg": 1, "type": "s"}]	rides_compare_reason_second	template	
+src/com/jjricks/volt/RidesScreen.java:1527	["First: ", {"hole": "firstReason", "arg": 1, "type": "s"}]	rides_compare_reason_first	template	
+src/com/jjricks/volt/RidesScreen.java:1528	["First: ", {"hole": "firstReason", "arg": 1, "type": "s"}, " · Second: ", {"hole": "secondReason", "arg": 2, "type": "s"}]	rides_compare_reason_both	template	
+src/com/jjricks/volt/RidesScreen.java:2077	[{"spec": "%.2f", "arg": 1, "value": "km", "as": "Fmt.decimal(Locale.US, km, 2)"}, " ", {"text": "km", "key": "units_km", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RidesScreen.java:2077	[{"spec": "%.2f", "arg": 1, "value": "km / RideStore.KM_PER_MILE", "as": "Fmt.decimal(Locale.US, km / RideStore.KM_PER_MILE, 2)"}, " ", {"text": "mi", "key": "units_mi", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RidesScreen.java:2082	[{"spec": "%.1f", "arg": 1, "value": "kmh", "as": "Fmt.decimal(Locale.US, kmh, 1)"}, " ", {"text": "km/h", "key": "units_kmh", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RidesScreen.java:2082	[{"spec": "%.1f", "arg": 1, "value": "kmh / RideStore.KM_PER_MILE", "as": "Fmt.decimal(Locale.US, kmh / RideStore.KM_PER_MILE, 1)"}, " ", {"text": "mph", "key": "units_mph", "arg": 2}]	fmt_quantity	format	
+src/com/jjricks/volt/RidesScreen.java:2092	{"if": "s.netWhPerKm == null", "then": [{"hole": "value", "arg": 1, "type": "s"}, " · throughput"], "else": [{"hole": "value", "arg": 1, "type": "s"}, " · net"]}	rides_efficiency_throughput,rides_efficiency_net	choice	
+src/com/jjricks/volt/RidesScreen.java:2111	[{"spec": "%.0f", "arg": 1, "value": "coverage * 100", "as": "Fmt.decimal(Locale.US, coverage * 100, 0)"}, "%%"]	fmt_percent	format	
+src/com/jjricks/volt/RidesScreen.java:1506	["MMM d"]	-	stays-english	the compare column's legacy date pattern, moved into the RIDE_DATE constant that Fmt.datePattern keeps while Volt is English (plan section 4.5); a shipped language gets the best pattern for its fields in the display locale
+src/com/jjricks/volt/RidesScreen.java:2094	["MMM d"]	-	stays-english	shortDate's legacy date pattern, moved into the RIDE_DATE constant that Fmt.datePattern keeps while Volt is English (plan section 4.5)
+src/com/jjricks/volt/RidesScreen.java:2095	["EEE, MMM d"]	-	stays-english	longDate's legacy date pattern, moved into the RIDE_DAY_DATE constant that Fmt.datePattern keeps while Volt is English (plan section 4.5)
+src/com/jjricks/volt/RidesScreen.java:868	{"if": "miles()", "then": [" · ≥", "2 mph"], "else": [" · ≥", "3 km/h"]}	rides_chart_chip_from_mph,rides_chart_chip_from_kmh	choice	the energy-per-distance chip suffix; series.key stays the data id "wh_per_distance"
+src/com/jjricks/volt/RidesScreen.java:869	[" · no data"]	rides_chart_chip_no_data	exact	chip suffix after the series name; the name and the chip text before it stay as they were (G1 refuses Series.displayLabel() beside the line marker; named deferral)
+src/com/jjricks/volt/RidesScreen.java:854	[{"hole": "s.label", "arg": 1, "type": "s", "as": "s.displayLabel()"}, ": ", {"hole": "(available ? reading.getText() + \", \" + stamp.getText() : \"no recorded sample\")", "arg": 2, "type": "s", "as": "(available ? reading.getText() + \", \" + stamp.getText() : T.ridesChartNoSample())"}]	rides_chart_cell_description	template	manual: the inspection cell description; B3 handoff: the series name is Series.displayLabel() (the catalog legend name, equal to the English label in English) while label stays the English data name; the second hole keeps its reading and time, joined by ", ", or rides_chart_no_sample
+src/com/jjricks/volt/RidesScreen.java:871	{"if": "\"wh_per_distance\".equals(series.key)", "then": {"if": "miles()", "then": {"if": "series.available()", "then": [{"hole": "series.label", "arg": 1, "type": "s"}, ", only at ", "2 mph", " or faster"], "else": [{"hole": "series.label", "arg": 1, "type": "s"}, ", only at ", "2 mph", " or faster", ", no samples recorded"]}, "else": {"if": "series.available()", "then": [{"hole": "series.label", "arg": 1, "type": "s"}, ", only at ", "3 km/h", " or faster"], "else": [{"hole": "series.label", "arg": 1, "type": "s"}, ", only at ", "3 km/h", " or faster", ", no samples recorded"]}}, "else": {"if": "series.available()", "then": [{"hole": "series.label", "arg": 1, "type": "s"}], "else": [{"hole": "series.label", "arg": 1, "type": "s"}, ", no samples recorded"]}}	rides_chart_series_only_at_mph,rides_chart_series_only_at_mph_no_samples,rides_chart_series_only_at_kmh,rides_chart_series_only_at_kmh_no_samples,rides_chart_series,rides_chart_series_no_samples	choice	the series chip description as whole phrases; series.key stays the data id "wh_per_distance"; the name stays Series.label (G1 refuses Series.displayLabel() in a choice row; named deferral)
+src/com/jjricks/volt/RidesScreen.java:1569	["speed"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["speed"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1569	["Distance"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["distance"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["route"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1569	["Duration"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["clock"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1569	["Battery"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["battery"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1569	["Ascent"]	-	removed	tile()'s icon search key: the icon was picked by looking for this English word in the label, which is catalog text now; each tiles() call site passes its tile's icon id instead, and the whole statement goes (it was never shown)
+src/com/jjricks/volt/RidesScreen.java:1569	["hill"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1569	["bolt"]	-	stays-english	ui.icon id, not text: moved from tile()'s label search to the tiles() call sites, which name each tile's icon (icon / label / value triples)
+src/com/jjricks/volt/RidesScreen.java:1575	["+-−≈"]	-	stays-english	the characters a tile value's number may start with besides a digit, moved into the NUMBER_LEADS constant beside hasDigit(); signs, not text

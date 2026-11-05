@@ -15,6 +15,8 @@ public final class DisplayUnits {
      * joiner after each punctuation mark, symbol or space inside the unit ("km/\u2060h" in English; "mph" has none, so
      * it stays as it is). The units are the language's units_kmh and units_mph, so the joiner follows the wording a
      * language shows, never a fixed English spelling. Display only: a report or log never holds a joiner.
+     * Limit: it joins only after punctuation, symbols and spaces, so a unit written in ideographs or kana can still wrap
+     * between its letters (l10n/pending/f3-followups.md).
      */
     public static String unbroken(String text) {
         return unbroken(unbroken(text, T.unitsKmh()), T.unitsMph());

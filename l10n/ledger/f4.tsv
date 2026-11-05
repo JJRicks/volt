@@ -1,0 +1,2 @@
+location	pieces	key	kind	note
+src/com/jjricks/volt/MoreScreen.java:1271	["proximity_key"]	-	stays-english	the proximity unlock feature key (data: ScooterCommands, the command log) moves onto ProximityFollowUp.KEY, the same value; beside it the switch's toast shows ble.displayText() instead of message() (b18-more-followups item 2)

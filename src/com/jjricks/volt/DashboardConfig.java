@@ -153,6 +153,44 @@ public final class DashboardConfig {
     }
 
     /**
+     * The name the save dialog passes to {@link #saveSlot(int, String, int)}, which saves this dashboard's
+     * widgets to slot index. Its field starts at shown: saved's {@link #displaySlotName}, or
+     * {@link #defaultSlotName} when saved is null (an empty or unreadable slot). A name the owner typed,
+     * one that does not clean to the same name as shown (as saveSlot cleans a name), is theirs, passed as
+     * typed. When typed is still the shown name, the slot keeps a name of Volt's only where it survives
+     * this save, so the slot goes on showing it in the current language:
+     *  - an empty or unreadable slot gets its own "Slot N" in English (null saves as that);
+     *  - a saved "Slot N" keeps it: voltSlotName reads a default name from the name and slot alone, so it
+     *    survives any save;
+     *  - the example's name (saved.example) is kept only when the widgets saved make slot 3 the example's
+     *    again ({@link #savesExample}), as saving the example's own widgets back unchanged does. Any
+     *    other save (the owner's own layout, or the example with a widget of theirs) would leave the
+     *    English example name as the owner's, a name they never saw in another language, so the field's
+     *    text is saved instead, the name as the dialog showed it;
+     *  - an owner's name saves as saved, which is what typed cleans to.
+     * In English shown is the saved name (or "Slot N"), so every case saves what typed alone would.
+     */
+    public String slotNameToSave(String typed, String shown, SavedSlot saved, int index) {
+        if (!slotName(typed, index).equals(slotName(shown, index))) return typed;
+        if (saved == null) return null;
+        return saved.example && !savesExample(index) ? typed : saved.name;
+    }
+
+    /**
+     * True when {@link #saveSlot(int, String, int)} under the example's name would make slot index the
+     * example's (exampleSlot, from the same stored form of this dashboard's widgets that saveSlot writes):
+     * slot 3, holding only example widgets. False for a widget that cannot be written, which saveSlot
+     * would refuse too.
+     */
+    private boolean savesExample(int index) {
+        try {
+            return exampleSlot(index, EXAMPLE_SLOT_NAME, writeWidgets(widgets));
+        } catch (JSONException | RuntimeException invalid) {
+            return false;
+        }
+    }
+
+    /**
      * The name Volt gave a saved slot, as a catalogue message, or null when the name is the owner's.
      * Volt's are the shipped example's name on the example's own slot ({@link #exampleSlot}), and this
      * slot's own "Slot N": a blank name saves as it and the save dialog starts an empty slot with it, so
