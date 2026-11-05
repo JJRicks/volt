@@ -47,7 +47,8 @@ NEGATION = {
     "sv": ({"inte", "ej", "ingen", "inget", "inga", "aldrig", "utan", "icke"}, ("o",)),
     "da": ({"ikke", "ingen", "intet", "aldrig", "uden"}, ("u",)),
     "nb": ({"ikke", "ingen", "intet", "aldri", "uten"}, ("u",)),
-    "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "bez", "ani", "nic"}, ("nie", "bez")),
+    "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "żadnego", "żadnej", "żadnym", "żadną", "bez", "ani",
+            "nic", "niczego", "nikt", "nikogo", "nigdzie", "brak", "braku", "brakuje"}, ("nie", "bez")),
     "id": ({"tidak", "tak", "bukan", "jangan", "belum", "tanpa"}, ()),
     "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman", "koskaan"}, ("epä",)),
     "cs": ({"ne", "nikdy", "žádný", "žádná", "žádné", "bez", "nic"}, ("ne", "bez")),
@@ -206,9 +207,9 @@ STATE_WORDS = {
            "aan\\s+te\\s+zetten|in\\s+te\\s+schakelen|geactiveerd\\w*|activeren|actief|actieve",
            "uit\\s+te\\s+(?:zetten|schakelen)|uit" + _STATE_END + "|uitgeschakeld\\w*|uitschakelen|uitgezet|uitzetten|gedeactiveerd\\w*|"
            "deactiveren|inactief|inactieve|opgeheven"),
-    "pl": ("włączon\\w*|włącz|włączyć|włączcie|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
-           "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|zdjęt\\w*|"
-           "usunięt\\w*"),
+    "pl": ("włączon\\w*|włącz|włączyć|włączcie|wł(?=\\.)|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
+           "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|wył(?=\\.)|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|"
+           "zdjęt\\w*|usunięt\\w*"),
     "sv": ("på" + _STATE_END + "|sl[åa]r?\\s+på|sätt\\s+på|påslag\\w*|aktiverad\\w*|aktiverat|aktivera|aktiv|"
            "aktivt|aktiva",
            "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
@@ -243,6 +244,10 @@ STATE_NEGATION_GAP = {
     "id": {"sedang", "akan", "lagi"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
+# English "never": (words the target must have, words that invert it unless the English says always
+# too). Any other negation word ("bez telefonu") would otherwise satisfy the polarity check for
+# "Digits are never shown" drafted as "Cyfry są zawsze pokazywane". Unlisted languages rely on the judge.
+NEVER_WORDS = {"pl": ({"nigdy", "nie"}, {"zawsze"})}
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
 # "que" before a real second part (pas, plus, jamais...) negates nothing. "ne ... plus" (no longer)
 # negates: "plus" counts as a negation word after a "ne" in the same clause.
@@ -354,10 +359,11 @@ def _after(participles, gap="", aux="", tail=""):
 
 
 # Lock removed: unlock said as "remove / lift / release / turn off the lock" ("Quitar el bloqueo",
-# "Zdejmij blokadę", "Sperre aufheben", "Снять блокировку", "ロックをオフにする", "关闭滑板车锁定"), and
-# the lock said to be removed ("Bloqueo desactivado", "Blokada wyłączona"). Same shape as
-# OPPOSITE_CONTEXT, but skipped when the English itself says off, remove, disable and the like
-# (check.EN_REMOVAL: "Turn off the lock" is rightly "Desactivar el bloqueo"). These words are a first
+# "Zdejmij blokadę", "Odblokuj blokadę", "Sperre aufheben", "Снять блокировку", "ロックをオフにする",
+# "关闭滑板车锁定"), and the lock said to be removed ("Bloqueo desactivado", "Blokada wyłączona",
+# "Blokada odblokowana"). Same shape as OPPOSITE_CONTEXT, but skipped when the English itself says
+# off, remove, disable, unlock and the like (check.EN_REMOVAL: "Turn off the lock" is rightly
+# "Desactivar el bloqueo", "Unlock the locked scooter" "Odblokuj zablokowaną hulajnogę"). These words are a first
 # filter: a phrasing missing here still has to pass every drafter, the back-translation and the judge.
 _NOT_A_GAP = "(?!(?:y|e|o|u|ni|et|ou|ni|ed|od|i|oraz|lub|albo|a|gdy|kiedy|jeśli|po|przy|und|oder|en|of|"\
     "och|eller|dan|atau|saat|jika|ketika|setelah|lalu|и|или|а|когда|при|если|после|і|або|коли|якщо|"\
@@ -418,8 +424,8 @@ REMOVAL_CONTEXT = {
     "pl": (_before("zdejmij|zdejmijcie|zdjąć|zdejmowanie|zdjęcie|wyłącz|wyłączcie|wyłączyć|wyłączenie|"
                    "wyłączanie|usuń|usuńcie|usunąć|usunięcie|usuwanie|zwolnij|zwolnić|zwolnienie|znieś|znieść|"
                    "zniesienie|otwórz|otworzyć|otwarcie|dezaktywuj|dezaktywować|dezaktywacja|dezaktywacji|"
-                   "anuluj|anulować|anulowanie"),
-           _after("wyłączon|zdjęt|usunięt|zniesion|zwolnion|otwart|dezaktywowan|anulowan", _GAP_WORD,
+                   "anuluj|anulować|anulowanie|odblok\\w*"),
+           _after("wyłączon|wył\\.|zdjęt|usunięt|zniesion|zwolnion|otwart|dezaktywowan|anulowan|odblokowan", _GAP_WORD,
                   "została|zostanie|zostało|został|zostały|jest|są")),
     "sv": (_before("ta\\s+bort|tar\\s+bort|inaktivera|avaktivera|deaktivera|stäng\\s+av|stänger\\s+av|"
                    "slå\\s+av|öppna|frigör|häv|upphäv|borttagning\\s+av|avaktivering\\s+av|"
@@ -571,9 +577,22 @@ def _strip_accents(text):
                                                 if not unicodedata.combining(c)))
 
 
+# Polish lock words share one stem between the verbal noun (zablokowanie, the action) and the
+# participle (zablokowana, the state), so a free ending would let a Lock button say "Zablokowana"
+# (already locked). Each form inflects only within its own family.
+_PL_LOCK_WORD = re.compile("^((?:za|od)?blokowan|odblokowywan)(.+)$")
+_PL_VERBAL_NOUN_ENDINGS = "i(?:e|a|u|em|om|ami|ach)"
+_PL_PARTICIPLE_ENDINGS = "(?:a|y|e|o|ą|ej|ego|emu|ym|ych|ymi)"
+
+
 def _inflected(primary, word):
     """A pattern for one word of a target: the word, or in an inflecting language its stem plus
-    any ending of up to four letters."""
+    any ending of up to four letters (Polish lock words: only their own family's endings)."""
+    if primary == "pl":
+        lock_word = _PL_LOCK_WORD.match(word)
+        if lock_word:
+            verbal = lock_word.group(2).startswith("i")
+            return re.escape(lock_word.group(1)) + (_PL_VERBAL_NOUN_ENDINGS if verbal else _PL_PARTICIPLE_ENDINGS)
     if primary in INFLECTING:
         stem = word.rstrip(_ENDING_LETTERS)
         if stem != word and len(stem) >= 5:

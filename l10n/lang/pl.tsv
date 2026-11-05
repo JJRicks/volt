@@ -9,7 +9,7 @@ formality	ty, impersonal for instructions
 plurals	one,few,many,other
 quote_style	„…” «…»
 percent_style	%1$s%%
-decimal_style	1 234,5
+decimal_style	12 345,6
 script	Latn
 font	saira
 rtl	false

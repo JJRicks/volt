@@ -97,15 +97,15 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 |---|---|---|---|
 | `ODO` | przebieg całkowity (the NAVEE manual's label) | `Temp.` | temperatura |
 | `Maks.` | maksymalna (not `Max`) | `Śr.` | średnia |
-| `Najw.` | najwyższa | `Szac.` | szacowany |
-| `Prędk.` | prędkość | `Bat.` | baterii |
+| `Najw.` | najwyższa (see the Top speed rule below) | `Szac.` | szacowany |
+| `Prędk.` | prędkość | `Wł.`, `Wył.` | włączone, wyłączone: narrow on and off values (Android's own short forms, with no gender to agree) |
 | `Ust.` | ustawienia, only with a following noun (`Ust. jazdy`); alone it reads as "ustęp" | `Ład.` | ładowania |
 | `Wyśw.` | wyświetlacz | `Poz.` | poziom |
-| `Pojem.` | pojemność | `Eksperym.` | eksperymentalne |
+| `Poj.` | pojemność | `Eksperym.` | eksperymentalne |
 | `Niezweryf.` | niezweryfikowana | `Nieprzetest.` | nieprzetestowana |
 | `godz.` | godzina | `nr` | numer |
 
-**Refused:** `Św.` for światła (it reads as "święty"; use `Liniowe`, `Gwiezdne`), `Hulajn.`, `Ustaw.` (reads as the imperative "Ustaw"), `Min.` for minimum (clashes with `min`), and any shortening of a lock word (`Zablok.`, `Odblok.`, `Blok.`): only the prefix tells locked from unlocked, so both words stay whole. Drop other words first.
+**Refused:** `Św.` for światła (it reads as "święty"; use `Liniowe`, `Gwiezdne`), `Bat.` (it reads as `bat`, a whip; write `baterii` or drop the word), `Hulajn.`, `Ustaw.` (reads as the imperative "Ustaw"), `Min.` for minimum (clashes with `min`), and any shortening of a lock word (`Zablok.`, `Odblok.`, `Blok.`): only the prefix tells locked from unlocked, so both words stay whole. Drop other words first.
 
 **Real rungs, measured with `fontmetrics` (hmtx at the given size, which errs slightly wide)**
 
@@ -113,7 +113,7 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 |---|---|---|
 | Total odometer / Odometer / Odo. | Przebieg całkowity / Przebieg / ODO | ODO 25 dp at 12 sp (Odo. 26) |
 | Maximum speed / Max. speed | Prędkość maksymalna / Maks. prędkość | 89.9 of 90 dp at 12.5 sp: tight, recheck with java.awt |
-| Trip top speed / Top speed | Najw. prędkość na trasie / Najw. prędkość | 88 dp at 12.5 sp |
+| Trip top speed / Top speed | Najw. prędkość na trasie / Najw. na trasie | 86 dp at 12.5 sp (`Najw. osiągnięta` is 96.5, over the 90 dp budget) |
 | Battery temp. / Temp. | Temp. baterii / Temp. | 73 / 34 dp at 12 sp |
 | Trip avg. speed / Avg. speed | Śr. prędkość na trasie / Śr. prędkość | 68 dp at 12 sp (English 61) |
 | Est. range / Range | Szac. zasięg / Zasięg | 68 / 37 dp at 12 sp |
@@ -121,8 +121,9 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | Electronic lock / Lock | Blokada elektroniczna / Blokada | 45 dp at 12 sp |
 | Unverified here / Unverified | Niezweryf. tutaj / Niezweryf. | 61 dp at 12 sp |
 | Untested here / Untested | Nieprzetest. tutaj / Nieprzetest. | 68 dp at 12 sp |
-| Ride settings, 64 dp tile | Ust. jazdy | 55 of 64 dp at 12 sp |
-| Battery settings, 64 dp tile | Ust. baterii | 61 of 64 dp at 12 sp |
+| Ride settings, 64 dp tile | Jazda | 31 of 64 dp at 12 sp |
+| Battery settings, 64 dp tile | Bateria | 41 of 64 dp at 12 sp |
+| Charge done by / tile | Termin końca ładowania / Koniec ład. | 141 of 90 dp at 12.5 sp, which wraps as the English does / 60.5 of 64 dp at 12 sp |
 | Live Stats, 64 dp tile | Na żywo | 49 of 64 dp at 12 sp |
 | My scooters, 64 dp tile | Hulajnogi | 53 of 64 dp at 12 sp |
 | Experimental controls, 64 dp tile | Eksperym. | 59 of 64 dp at 12 sp |
@@ -130,6 +131,8 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | Line lights, 64 dp tile | Liniowe | fits |
 
 These are examples of the method, not approved strings. `Zbliż.` is allowed only in this one label.
+
+**Top speed rule:** `Maks. prędkość` (the setting) and `Najw. prędkość` (the measured value) are near synonyms in Polish, so a rider can't tell them apart alone. Use `najwyższa osiągnięta prędkość` where there is room. In a narrow label, keep the trip or ride in it (`Najw. na trasie`), and don't write `Najw. prędkość` with no trip or ride context beside it.
 
 ## Safety wording
 
@@ -160,10 +163,17 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 
 **Lock rules**
 
-- Say a lock state with `zablokowana` or `odblokowana`. **Never** `Blokada wyłączona`, `Wyłącz blokadę`, `Zdejmij blokadę`, `Usuń blokadę` or `Otwórz`: `check.py` rejects them, and "lock off" is ambiguous on a safety control.
+- Say a lock state with `zablokowana` or `odblokowana`. **Never** `Blokada wyłączona`, `Blokada: wył.`, `Wyłącz blokadę`, `Zdejmij blokadę`, `Usuń blokadę`, `Odblokuj blokadę`, `Blokada odblokowana` or `Otwórz`: `check.py` rejects them, and "lock off" or "unlock the lock" is ambiguous on a safety control. Unlocking is said of the scooter: `Odblokuj hulajnogę`.
+- **Buttons act; states report.** Buttons use `Zablokuj` / `Odblokuj`, states use `Zablokowana` / `Odblokowana`. A Lock button that reads `Zablokowana` tells the rider the scooter is already locked. `check.py` keeps `zablokowanie` and `zablokowana` apart for Lock, Locked, Unlock and Unlocked, but not for the English -ing forms (`Locking…` accepts any form starting `zablok-`) or in other wording. Judges: confirm action or state on every lock key.
 - Never `zamek` (the manual's parts diagram has a mechanical `zamek bezpieczeństwa` beside the quick-release lever), `kłódka` or `zabezpieczona`.
 - Keep the two words visibly different in a sentence: `Hulajnoga zablokowana. Przesuń, aby odblokować.`
 - The checks accept `Nie udało się zablokować` for "Locking failed", and it is the natural wording. A negation the English lacks is still an error in other safety strings, so read the finding before rewording.
+
+**Negation rules**
+
+- **English `not X` in a safety key takes a separate `nie` with a verb:** `Telefon nie jest sparowany`, `Nie potwierdzono`. A prefix alone fails the check (`Telefon niesparowany`, `Zmiana niepotwierdzona`), although Polish spelling favours it. English `un-` words keep the prefix form, as in the table above.
+- **`Brak` is the standard "No X":** `Brak jeszcze raportu o ruchu`, `Brak funkcji do wypróbowania`. `Nie ma…` is fine too. For English `Missing`, which has no negation word, `Brak` gets a warning for the judge; that is expected.
+- **Never:** the check wants `nigdy` or `nie` and refuses `zawsze`, unless the English also says always. It can't tell which verb a `nie` belongs to, so judges read every safety key with `never` or `nigdy` by hand: `Cyfry nigdy nie są pokazywane`.
 
 ## Scooter vocabulary
 
@@ -175,14 +185,14 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 | handlebar | kierownica | O | Kick-start speed | prędkość startowa | O |
 | brake lever | dźwignia hamulca | O | Standing start | start z miejsca | P |
 | throttle | manetka (manual: `przyspieszacz`) | E | Maximum speed (setting) | prędkość maksymalna | O |
-| battery | bateria (not `akumulator`) | O | Top speed (measured) | najwyższa prędkość | P |
+| battery | bateria (not `akumulator`) | O | Top speed (measured) | najwyższa osiągnięta prędkość, najwyższa prędkość | P |
 | charger | ładowarka | O | speed limit | limit prędkości | P |
 | charging port | gniazdo ładowania | O | Traction control | kontrola trakcji | O |
 | range | zasięg | O | Cruise control | tempomat | E |
 | speed | prędkość | O | Energy recovery | odzysk energii | E |
 | Odometer | przebieg całkowity, ODO | O | Boost | Boost (manual: `tryb BOOST`) | O |
-| Trip | trasa | O | Walk Assist | wspomaganie prowadzenia | P |
-| Route (on the map) | ślad trasy, ślad | P | Power Assist | wspomaganie mocy | P |
+| Trip | trasa | O | Walk Assist | wspomaganie prowadzenia pieszo; short: wspomaganie prowadzenia | P |
+| Route (on the map) | ślad przejazdu, ślad; `Ślad GPS` for the GPS route | P | Power Assist | wspomaganie mocy (or `wspomaganie mocą`) | P |
 | Rides (records) | przejazdy; riding as an activity: jazda | P | Hill descent control | kontrola zjazdu ze wzniesienia | P |
 | Dashboard (Volt's Home) | pulpit | P | Tail light | światło tylne | O |
 | scooter's display | wyświetlacz hulajnogi | O | headlight | reflektor, światło przednie | O |
@@ -194,19 +204,23 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 
 The manual calls the scooter's display `Deska rozdzielcza` as well as `wyświetlacz`. Volt uses only `wyświetlacz`, because `pulpit` already means Volt's Home. Drive-mode names stay English (the owner's default); the manual's Polish is `tryb spacerowy` (walk, 6 km/h), `tryb standardowy` (D) and `tryb sportowy` (S). D3 made `Eco` and `Turbo` do-not-translate. `Model ID` stays in English, as its glossary definition asks, though `ID modelu` would read more naturally.
 
+**Open for the debate:** Walk Assist (`prowadzenie` alone can read as driving, hence `pieszo`; the manual has `tryb spacerowy` and other sellers `tryb pieszy`); Power Assist (`wspomaganie mocy` is a calque that reads as "assisting the power", and `wspomaganie mocą` or `dodatkowa moc` may be better; the current form stays until the debate rules); Charge done by (`Termin końca ładowania` replaces `Koniec ładowania do`, whose preposition dangles; `ładowanie do godziny` was not used because `do godziny` also reads as "up to an hour").
+
 **Same English, different meaning, so keep them apart**
 
-- Trip `trasa` / Route `ślad` / Rides `przejazdy`. Polish would use `trasa` for both of the first two, and the manual takes it for Trip.
+- Trip `trasa` / Route `ślad` / Rides `przejazdy`. Polish would use `trasa` for both of the first two, and the manual takes it for Trip. So never `ślad trasy`.
 - Maximum speed `prędkość maksymalna` (a setting) / Top speed `najwyższa prędkość` (measured).
-- Try `wypróbuj`, `próba` / Test `test` / compatibility check `sprawdzanie zgodności`.
+- Try a control `wypróbuj`, `próba` / Try again `Spróbuj ponownie` (including `more_lab_try_again_value`; never `Wypróbuj ponownie`) / Test `test` / compatibility check `sprawdzanie zgodności`.
 - Restore a backup `przywróć` / Set back a try `cofnij zmianę`.
 - Dashboard `pulpit` / scooter's display `wyświetlacz`.
 - Owner key `klucz właściciela` / JSON or preference key `klucz`: same word, but keep `właściciela` only on the first.
+- Connect a charger `podłącz` / Connect over Bluetooth `połącz`. `Najpierw podłącz ładowarkę` gets a glossary warning; that is expected on charger strings, so don't switch to `połącz`.
+- While parked `na postoju` or `gdy hulajnoga jest zaparkowana` / at a stop `po zatrzymaniu`: `stop` is the alarm's safety term, so `na postoju` doesn't satisfy it.
 - Pair `sparuj` / Connect `połącz` / NAVEE account binding `powiązanie konta`, which is not the disclaimer's `powiązany`.
 - Standing start (value 0) / Kick-start speed (the setting).
 - Energy recovery `odzysk energii` / restoring data `przywracanie`.
 
-**Matching, for `check.py`:** a form inflects only if it ends in a vowel and its stem has five letters or more, so `hulajnóg`, `hulajnodze`, `tras` and `prób` must be listed. They are. Word order matters in a multi-word term, so `limit ładowania` is not found in `ładowania limit`.
+**Matching, for `check.py`:** a form inflects only if it ends in a vowel and its stem has five letters or more, so `hulajnóg`, `hulajnodze`, `tras` and `prób` must be listed. They are. Polish lock words are the exception: `zablokowanie` inflects only as a verbal noun and `zablokowana` only as a participle. Word order matters in a multi-word term, so `limit ładowania` is not found in `ładowania limit`.
 
 ## Sources consulted
 

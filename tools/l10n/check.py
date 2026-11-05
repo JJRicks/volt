@@ -53,8 +53,9 @@ common meaning faults by word lists: a missing glossary term (Unlock has its own
 key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
 removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
-ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
-as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
+ja, zh), negation dropped or added where the language has a list, an English "never" drafted as
+always (lexicon.NEVER_WORDS: pl), and an on or off state drafted as the other in the first-wave
+languages (lexicon.STATE_WORDS). Known gaps: a removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
 text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
@@ -110,10 +111,10 @@ EN_UN_EXCEPTIONS = re.compile(r"^(?:unlock\w*|under\w*|unit\w*|until|unique\w*|u
 # Glossary terms that are the lock itself (Lock, Locked, Lock bar, electronic lock; not unlock): only
 # these get the opposite-term and lock-removed contexts (lexicon.OPPOSITE_CONTEXT, REMOVAL_CONTEXT).
 LOCK_TERM = re.compile(r"(?<![a-z])lock", re.IGNORECASE)
-# English that itself turns something off or removes it: then "Desactivar el bloqueo" may be right,
-# so the lock-removed context is not applied.
+# English that itself turns something off, removes it or unlocks: then "Desactivar el bloqueo" or
+# "Odblokuj zablokowaną hulajnogę" may be right, so the lock-removed context is not applied.
 EN_REMOVAL = re.compile(r"(?<![a-z])(?:off|disabl\w*|remov\w*|releas\w*|lift\w*|clear\w*|cancel\w*|"
-                        r"deactivat\w*|delet\w*|open\w*|end|ends|ended|ending|turn\w*\s+off|switch\w*\s+off)"
+                        r"deactivat\w*|delet\w*|open\w*|unlock\w*|end|ends|ended|ending|turn\w*\s+off|switch\w*\s+off)"
                         r"(?![a-z])", re.IGNORECASE)
 
 # English words whose translation often carries a negating prefix ("off" -> "desactivada").
@@ -457,6 +458,9 @@ def _negation(language, reference, text, safety, q, entry=None):
         if plain and not found:
             return [finding("polarity", severity, "the English says %s; the target has no negation word" %
                             ", ".join(repr(w) for w in plain[:3]), q)]
+        inverted = _never_inverted(primary, reference, plain, text)
+        if inverted:
+            return [finding("polarity", severity, inverted, q)]
         if un and not plain and not found:
             approved = [w for w in prefixed if w in stems] + native
             if safety and not approved:
@@ -490,6 +494,20 @@ def _negation(language, reference, text, safety, q, entry=None):
         return [finding("polarity", WARN, "the English says %s; check the target is not the opposite" % ", ".join(
             repr(w) for w in sorted(opposite & EN_STATE_OFF)), q)]
     return []
+
+
+def _never_inverted(primary, reference, plain, text):
+    """Why a target does not keep an English "never" (lexicon.NEVER_WORDS), or None."""
+    if "never" not in plain or primary not in lexicon.NEVER_WORDS:
+        return None
+    needed, opposite = lexicon.NEVER_WORDS[primary]
+    tokens = set(lexicon.tokens(lexicon.negation_text(primary, text)))
+    always = [w for w in tokens & opposite if not re.search(r"(?<![a-z])always(?![a-z])", reference, re.IGNORECASE)]
+    if always:
+        return "the English says 'never'; the target says %s" % ", ".join(repr(w) for w in sorted(always))
+    if not tokens & needed:
+        return "the English says 'never'; the target has neither %s" % " nor ".join(repr(w) for w in sorted(needed))
+    return None
 
 
 def english_opposite_words(text):

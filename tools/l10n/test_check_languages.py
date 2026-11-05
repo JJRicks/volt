@@ -256,6 +256,62 @@ def _errors(*args, **kwargs):
     return sorted(set(f["check"] for f in _key_findings(*args, **kwargs) if f["severity"] == check.ERROR))
 
 
+class PolishWordingTest(unittest.TestCase):
+    """Polish wording the setup review found: action against state, negation words, never."""
+
+    LOCK = ["zablokuj", "zablokować", "zablokuje", "zablokowanie", "blokuj", "blokować", "blokowanie", "blokada"]
+    LOCKED = ["zablokowana", "zablokowany", "zablokowane", "zablokowano"]
+    UNLOCK = ["odblokuj", "odblokować", "odblokuje", "odblokowanie", "odblokowuj", "odblokowywać", "odblokowywanie"]
+    UNLOCKED = ["odblokowana", "odblokowany", "odblokowane", "odblokowano"]
+
+    def test_lock_action_and_state_do_not_cross(self):
+        for english, text, targets in (("Lock", "Zablokowana", self.LOCK),
+                                       ("Locked", "Zablokowanie", self.LOCKED),
+                                       ("Unlocked", "Odblokowanie", self.UNLOCKED),
+                                       ("Unlock", "Odblokowana", self.UNLOCK),
+                                       ("Unlock first", "Najpierw odblokowana", self.UNLOCK)):
+            self.assertIn("glossary", _errors("pl", english, text, targets, term=english.split()[0]), (english, text))
+
+    def test_lock_families_still_inflect(self):
+        for english, text, targets in (("Lock", "Zablokowanie", self.LOCK),
+                                       ("Lock", "Po zablokowaniu", self.LOCK),
+                                       ("Locked", "Zablokowana", self.LOCKED),
+                                       ("Locked", "Zablokowanych", self.LOCKED),
+                                       ("Locked", "Zablokowano", self.LOCKED),
+                                       ("Unlock", "Odblokowania", self.UNLOCK),
+                                       ("Unlocked", "Odblokowanej", self.UNLOCKED)):
+            self.assertEqual(_errors("pl", english, text, targets, term=english), [], (english, text))
+
+    def test_other_polish_words_keep_free_endings(self):
+        self.assertTrue(lexicon.term_found("pl", "Latn", "hulajnoga", "hulajnogi", False))
+        self.assertTrue(lexicon.term_found("pl", "Latn", "sparowana", "sparowanie", False))
+
+    def test_negation_words(self):
+        for english, text in (("No motion report yet", "Brak jeszcze raportu o ruchu"),
+                              ("Nothing to try", "Brak funkcji do wypróbowania"),
+                              ("Nothing was changed", "Niczego nie zmieniono"),
+                              ("No permission", "Brakuje uprawnienia"),
+                              ("Nobody connected", "Nikt nie jest połączony"),
+                              ("No alerts", "Żadnej nowej wiadomości")):
+            self.assertEqual(_errors("pl", english, text), [], (english, text))
+        # A negation the English lacks is still an error; "missing" leaves it to the judge.
+        self.assertEqual(_errors("pl", "Motion report ready", "Brak raportu o ruchu"), ["polarity"])
+        self.assertEqual(_errors("pl", "Missing motion report", "Brak raportu o ruchu"), [])
+
+    def test_never_needs_its_own_negation(self):
+        for text in ("Twój sposób bez telefonu. Cyfry są zawsze pokazywane.",
+                     "Twój sposób bez telefonu. Cyfry są pokazywane."):
+            self.assertEqual(_errors("pl", "Your fallback. Digits are never shown.", text), ["polarity"], text)
+        self.assertEqual(_errors("pl", "Digits are never shown.", "Cyfry nigdy nie są pokazywane."), [])
+        self.assertEqual(_errors("pl", "Never shown, always kept.", "Nigdy nie pokazywane, zawsze przechowywane."), [])
+
+    def test_abbreviated_states(self):
+        self.assertEqual(_errors("pl", "Alarm sound off", "Dźwięk alarmu: wł."), ["polarity"])
+        self.assertEqual(_errors("pl", "Alarm sound on", "Dźwięk alarmu: wył."), ["polarity"])
+        self.assertEqual(_errors("pl", "Alarm sound off", "Dźwięk alarmu: wył."), [])
+        self.assertEqual(_errors("pl", "Alarm sound on", "Dźwięk alarmu: wł."), [])
+
+
 class MoreLanguagesTest(unittest.TestCase):
     """Safety keys checked directly for languages the fixture repository does not set up."""
 
@@ -353,6 +409,13 @@ class MoreLanguagesTest(unittest.TestCase):
         ("pl", "Lock scooter", "Usuń blokadę", ["zablokuj", "blokada"]),
         ("pl", "The lock is on", "Blokada hulajnogi wyłączona", ["zablokowana", "blokada"]),
         ("pl", "The lock is on", "Blokada została zdjęta", ["zablokowana", "blokada"]),
+        ("pl", "Lock", "Odblokuj blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Lock", "Odblokowanie blokady", ["zablokuj", "blokada"]),
+        ("pl", "Lock", "Odblokowano blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Electronic lock", "Odblokuj blokadę elektroniczną", ["blokada elektroniczna"]),
+        ("pl", "Electronic lock", "Blokada elektroniczna odblokowana", ["blokada elektroniczna"]),
+        ("pl", "The lock is on", "Blokada została odblokowana", ["zablokowana", "blokada"]),
+        ("pl", "Lock: on", "Blokada: wył.", ["zablokowana", "blokada"]),
         ("sv", "Lock scooter", "Ta bort låset", ["lås", "låset"]),
         ("sv", "Lock scooter", "Inaktivera låset", ["lås", "låset"]),
         ("sv", "The lock is on", "Låset inaktiverat", ["låst", "låset"]),
@@ -392,6 +455,11 @@ class MoreLanguagesTest(unittest.TestCase):
         # The English itself turns the lock off: the removal words are the right translation.
         ("es", "Turn off the lock", "Desactivar el bloqueo", ["bloquear", "bloqueo"]),
         ("pl", "Remove the lock", "Zdejmij blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Lock or unlock", "Zablokuj lub odblokuj", ["zablokuj"]),
+        ("pl", "Locked. Slide to unlock.", "Zablokowana. Przesuń, aby odblokować.", ["zablokowana"]),
+        # An unlock key that mentions the lock: the English says unlock, so the wording may too.
+        ("pl", "Unlock the locked scooter", "Odblokuj zablokowaną hulajnogę", ["zablokowana"]),
+        ("pl", "Unlock the lock", "Odblokuj blokadę", ["blokada"]),
         ("de", "Disable the lock", "Sperre deaktivieren", ["sperren", "Sperre"]),
     )
 
