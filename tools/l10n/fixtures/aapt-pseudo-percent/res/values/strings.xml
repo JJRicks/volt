@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- aapt's pseudo-localizer reads past the end of each of these: nothing after the % ends a placeholder. -->
+    <string name="trailing" formatted="false">Battery %</string>
+    <string name="in_brackets" formatted="false">Battery charge (%)</string>
+    <string name="digits_after" formatted="false">50% 1</string>
+    <string name="two_percents" formatted="false">% only and 100%</string>
+    <plurals name="plural_percent" formatted="false">
+        <item quantity="one">One %</item>
+        <item quantity="other">Many %</item>
+    </plurals>
+    <!-- These come out of aapt whole and must stay byte for byte. -->
+    <string name="letter_after" formatted="false">50% done</string>
+    <string name="placeholder_percent">%1$s%%</string>
+    <string name="plain">Battery</string>
+</resources>

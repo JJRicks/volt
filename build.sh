@@ -183,6 +183,8 @@ navee_build_pseudo() {
         echo "Pseudo build: aapt assigned different resource ids; refusing to reuse classes.dex." >&2
         return 1
     }
+    # aapt cuts en-XA text at a bare % (formatted="false") and fills it with NULs; the English stays as it is.
+    python3 "$APP_DIR/tools/l10n/pseudo_fix.py" --apk "$work/resources.apk"
     navee_l10n_roundtrip "$work/resources.apk" --allow-pseudo
     cp "$work/resources.apk" "$work/unsigned.apk"
     zip -q -j "$work/unsigned.apk" "$BUILD_DIR"/dex/classes*.dex
