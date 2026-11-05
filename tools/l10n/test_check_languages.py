@@ -394,6 +394,33 @@ class MoreLanguagesTest(unittest.TestCase):
         ("pl", "Remove the lock", "Zdejmij blokadę", ["zablokuj", "blokada"]),
         ("de", "Disable the lock", "Sperre deaktivieren", ["sperren", "Sperre"]),
     )
+    RO_LOCK = ["Blochează", "Blocare", "blocarea", "bloca"]
+    RO_LOCK_REMOVED = (
+        ("Lock scooter", "Elimină blocarea"),
+        ("Lock scooter", "Scoate blocarea"),
+        ("Lock scooter", "Șterge blocarea"),
+        ("Lock scooter", "Dezactivează blocarea"),
+        ("Lock scooter", "Anulează blocarea"),
+        ("Lock scooter", "Ridică blocarea"),
+        ("The lock is on", "Blocare dezactivată"),
+        ("The lock is on", "Blocare: dezactivată"),
+        ("The lock is on", "Blocarea a fost anulată"),
+        ("The lock is on", "Blocarea trotinetei este dezactivată"),
+    )
+    RO_LOCK_KEPT = (
+        ("Lock scooter", "Blochează trotineta"),
+        ("Lock scooter", "Oprește alarma și blochează trotineta"),
+        ("Lock scooter", "Deschide „Blocare”"),
+        ("Lock the scooter when it is stopped", "Blochează trotineta oprită"),
+        # The English itself says turn off, so the context is skipped.
+        ("Turn off the lock", "Dezactivează blocarea"),
+    )
+
+    def test_romanian_lock_removed(self):
+        for english, text in self.RO_LOCK_REMOVED:
+            self.assertIn("glossary", _errors("ro", english, text, self.RO_LOCK), text)
+        for english, text in self.RO_LOCK_KEPT:
+            self.assertNotIn("glossary", _errors("ro", english, text, self.RO_LOCK), text)
 
     def test_lock_removed_is_not_the_lock_term(self):
         for tag, english, text, targets in self.LOCK_REMOVED:
@@ -452,6 +479,9 @@ FIRST_WAVE_TARGETS = {
            "low-battery-alert": "varning för låg batterinivå"},
     "id": {"lock": "kunci | mengunci", "unlock": "buka kunci | membuka kunci", "scooter": "skuter",
            "low-battery-alert": "peringatan baterai lemah"},
+    "ro": {"lock": "Blochează | Blocare | blocarea | a bloca", "unlock": "Deblochează | Deblocare | deblocarea",
+           "scooter": "trotinetă | trotineta", "low-battery-alert": "Alertă de baterie scăzută",
+           "alarm-sound": "Sunet de alarmă"},
 }
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -558,6 +588,13 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("nl", "Low battery alert enabled", "Waarschuwing bij lage batterij uitgeschakeld"),
         ("sv", "Low battery alert enabled", "Varning för låg batterinivå avstängd"),
         ("id", "Low battery alert enabled", "Peringatan baterai lemah dinonaktifkan"),
+        ("ro", "Alarm on", "Alarmă dezactivată"),
+        ("ro", "Lock: on", "Blocare: dezactivată"),
+        ("ro", "On", "Dezactivat"),
+        ("ro", "Off", "Activat"),
+        ("ro", "Alarm sound off", "Sunet de alarmă aprins"),
+        ("ro", "Turn on the alarm", "Oprește alarma"),
+        ("ro", "Alarm sound off", "Sunetul de alarmă nu este dezactivat"),
         ("es", "Lock: on", "Bloqueo: desactivado"),
         ("de", "Lock: on", "Sperre: aus"),
         ("de", "Lock: on", "Sperre: deaktiviert"),
@@ -576,6 +613,14 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("es", "Alarm sound on", "Sonido de alarma sin activar"),
     )
     STATE_KEPT = (
+        ("ro", "Alarm on", "Alarmă activată"),
+        ("ro", "Lock: on", "Blocare: activată"),
+        ("ro", "Off", "Dezactivat"),
+        ("ro", "Alarm sound off", "Sunetul de alarmă nu este activat"),
+        ("ro", "Turn off NAVEE logging", "Oprește jurnalul de activitate NAVEE"),
+        # "activitate" is the logging word, not an on state.
+        ("ro", "NAVEE logging off", "Jurnalul de activitate NAVEE: oprit"),
+        ("ro", "NAVEE logging off", "Jurnalul de activitate NAVEE"),
         ("es", "Alarm sound on", "Sonido de alarma activado"),
         ("es", "Alarm sound off", "Sonido de alarma desactivado"),
         ("fr", "Low battery alert disabled", "Alerte de batterie faible désactivée"),

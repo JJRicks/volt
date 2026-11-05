@@ -219,6 +219,10 @@ STATE_WORDS = {
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
            "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
+    # "activitate" is the logging word (jurnalul de activitate), not a state. "oprește" stays off
+    # even in "Oprește-te cu trotineta": a key that also says on has both states, so it is left alone.
+    "ro": ("activ(?!it)\\w*|pornit\\w*|pornește|pornești|porni|aprins\\w*|aprinde\\w*|aprinzi",
+           "dezactiv\\w*|neactiv\\w*|inactiv\\w*|oprit\\w*|oprește|oprești|opri|stins\\w*|stinge\\w*|stingi"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
@@ -241,6 +245,7 @@ STATE_NEGATION_GAP = {
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
     "id": {"sedang", "akan", "lagi"},
+    "ro": {"este", "e", "va", "sunt", "se", "mai", "a"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
@@ -445,6 +450,13 @@ REMOVAL_CONTEXT = {
                    "του|της|το|την|τα|των|τον|η|ο"),
            _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
                   "εχει|ειναι|θα")),
+    # The gap is the scooter's genitive only: "Blochează trotineta oprită" keeps its lock term.
+    "ro": (_before("elimină|elimini|elimina|eliminați|eliminare|eliminarea|scoate|scoți|scoateți|scoaterea|șterge|ștergi|"
+                   "ștergeți|ștergerea|dezactivează|dezactivezi|dezactiva|dezactivați|dezactivare|dezactivarea|"
+                   "anulează|anulezi|anula|anulați|anulare|anularea|ridică|ridici|ridica|ridicați|ridicare|ridicarea|"
+                   "oprește|oprești|opri|oprire|oprirea|deschide|deschizi|deschideți|deschiderea", "de"),
+           _after("dezactivat|eliminat|scos|scoas|șters|ștear|anulat|ridicat|oprit|deschis", "\\s+trotinetei",
+                  "este|e|a\\s+fost|va\\s+fi|s-a")),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
 }

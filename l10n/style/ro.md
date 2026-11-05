@@ -29,7 +29,7 @@
 
 ## 3. Capitalization
 
-- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Limită de încărcare*, *Comenzi experimentale*, *Mod baterie scăzută*. Never English Title Case, even when the English has it (*Walk Assist* → *Asistență la mers*).
+- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Limită de încărcare*, *Comenzi experimentale*, *Mod baterie scăzută*. Never English Title Case, even when the English has it (*Walk Assist* → *Asistență la mers pe jos*; never bare *la mers*, which means while moving).
 - Feature names are lower case mid-sentence: *activează încărcarea programată*.
 - Days, months, languages and nationalities are lower case.
 - Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android, TCS. Drive modes and their level names are never translated and keep the case the English string uses in that string (*Sport*, *ECO*, *Drive*): *modul Sport* where the English says Sport.
@@ -58,7 +58,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 
 1. Drop words the screen already supplies: *Temperatura bateriei* → *Temp. baterie* → *Temp.*
 2. Drop the genitive ending and prepositions, as Romanian labels and manuals do: *Tensiunea bateriei* → *Tensiune baterie*, *Limita de încărcare* → *Limită încărcare*.
-3. Use a shorter common word: *Timp până la încărcarea completă* → *Timp rămas*.
+3. Use a shorter common word: *Timp până la încărcarea completă* → *Timp rămas*, only where the card title says charging; bare *Rămas* could mean remaining range or ride time, so a compact rung says *Până la plin*.
 4. Use an accepted abbreviation from this table. Nothing else.
 
 Real rungs:
@@ -68,7 +68,9 @@ Real rungs:
 | Total odometer, Odometer, Odo. | *Odometru total*, *Odometru*, *Odom.* |
 | Battery temperature, Battery temp., Temp. | *Temperatura bateriei*, *Temp. baterie*, *Temp.* |
 | Battery voltage, Battery voltage, Voltage | *Tensiune baterie*, *Tensiune baterie*, *Tensiune* |
-| Time to full (est.), Time to full (est.), To full (est.) | *Timp până la încărcarea completă (estim.)*, *Timp rămas (estim.)*, *Rămas (estim.)* |
+| Time to full (est.), Time to full (est.), To full (est.) | *Timp până la încărcarea completă (estim.)*, *Timp rămas (estim.)*, *Până la plin (estim.)* (113.8) |
+| Charge done by (64dp and 90dp rungs) | *Termen încărcare* (99.1 at 12.5sp). Wraps at the space: *încărcare* is 50.7 at 12sp, so it fits the 64dp rung on its own line. The English is wider than both budgets too |
+| Charge done by time (64dp and 90dp rungs) | *Ora-limită încărcare* (113.4 at 12.5sp). Wraps at the space: *Ora-limită* is 55.3 at 12sp. The full *Ora-limită de încărcare* (130.8) needs three lines at 64dp, because *de încărcare* is 67.3 |
 | Unverified on your model, Unverified here, Unverified | *Neverificat pe modelul tău*, *Neverificat aici*, *Neverificat* |
 
 Accepted abbreviations, with widths measured at 12.5sp in `saira_medium.ttf` (java.awt):
@@ -89,7 +91,7 @@ Accepted abbreviations, with widths measured at 12.5sp in `saira_medium.ttf` (ja
 
 Measured words that fit as they are: *Blocare* 43.5, *Setări* 34.5, *Baterie* 42.1, *Curse* 32.6, *Blochează* 59.7 (all under the 62dp tab budget); *Trotinete* 53.1, *Conducere* 61.0 for My scooters and Ride settings (under 90dp; *Conducere* is 58.5 at 12sp, under the 64dp shortcut budget); *Viteză maximă* 85.9, *Experimental* 77.1, *Experimentale* 84.1, *Autorizat* 54.0, *Autonomie* 63.7, *Date live* 50.3, *Acces rapid* 66.0.
 
-Words that don't fit: *Deblochează* is 74.1, over a 62dp tab, so it is never abbreviated and gets reported if a tab needs it. *Trotinetele mele* is 94.5: keep it on menu rows, and use *Trotinete* in the 90dp and 64dp rungs. *Info și permisiuni* is 99.7, so it only fits wrapped at a space. *Fără confirmare* is 91.8. *Comenzi experimentale* (136.0) and *Comenzi de încercat* (115.4) wrap at a space where the English also wraps.
+Words that don't fit: *Deblochează* is 74.1, over a 62dp tab, so it is never abbreviated and gets reported if a tab needs it. *Trotinetele mele* is 94.5: keep it on menu rows, and use *Trotinete* in the 90dp and 64dp rungs. *Info și permisiuni* is 99.7, so it only fits wrapped at a space. *Fără confirmare* is 91.8. *Comenzi experimentale* (136.0) and *Comenzi de încercat* (115.4) wrap at a space where the English also wraps. *Instalează* is 67.0 and *Deschide* is 58.9 at 14sp, over the 48dp budget of `owner_shizuku_install` and `owner_shizuku_open`, where English *Install* (39.8) and *Open* (34.3) fit. The check returns a width error on both: write the whole word, never abbreviate it, and report it so the budget can be raised with the owner.
 
 An abbreviation ends in a period, and the period counts toward the width. Keep diacritics in an abbreviation (*Încărc.*). A two-word label may wrap at a space where the English also wraps.
 
@@ -117,6 +119,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Alarm | **Alarmă** | Never *alertă*: alert is **Alertă**, and they stay distinct |
 | Alarm sound | **Sunet de alarmă** | |
 | Stop (a sounding alarm) | **Oprește** | *Oprește alarma* where there is room |
+| Stop the scooter (come to a halt) | **Oprește-te mai întâi cu trotineta** | "Stop the scooter first". *Stop the scooter to try these* is *Oprește-te cu trotineta ca să le încerci*. *Oprește trotineta* also means turn it off, so a moving rider could be told to power off: keep it for power, if the English ever says that |
 | PIN | **PIN** | Neuter: *PIN-ul*, *PIN-uri*. Not *cod* or *parolă* |
 | Handlebar PIN | **PIN de ghidon** | *PIN-ul de ghidon*, or *PIN-ul de pe ghidon* in a sentence. A password is **parolă**; keep them separate |
 | PIN unlock | **Deblocare cu PIN** | |
@@ -125,25 +128,25 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Experimental | **Experimental**, **experimentală**, plural **experimentale** | Agrees with its noun |
 | Untested | **Netestat** | *Netestată* with a feminine subject |
 | Unconfirmed | **Neconfirmat** | |
-| Not confirmed | **Fără confirmare** | Gender-free. In a sentence: *nu a fost confirmată* |
-| not affiliated with NAVEE | **nu este afiliată cu NAVEE** | Feminine, for *aplicația*: *Volt 1.2 · nu este afiliată cu NAVEE*. Never soften it: no *neoficial*, *independent de*, *neafiliată direct*. Where a gender can't fit, **fără afiliere cu NAVEE** |
+| Not confirmed | **nu a fost confirmată** (*nu a fost confirmat*, *nu au fost confirmate*) | Use the clause wherever there is a subject: *Modificarea nu a fost confirmată*. **Fără confirmare** only as a bare status chip with no noun. *Modificare fără confirmare* reads as a change made without a confirmation step, so an unconfirmed lock can read as done |
+| not affiliated with NAVEE | **fără afiliere cu NAVEE** | Gender-free, for the footer: *Volt 1.2 · fără afiliere cu NAVEE*. *Volt* takes no feminine adjective. Only where the subject is *aplicația*: **nu este afiliată cu NAVEE**. Never soften it: no *neoficial*, *independent de*, *neafiliată direct* |
 
 **Words that look right and aren't:**
 
 - **a se bloca** also means to jam or freeze. *Trotineta s-a blocat* can read as "got stuck". Say *Trotineta este blocată* for the state and *Blocarea a reușit* for the result. An app that hangs *nu răspunde*.
 - **se încarcă** means both "is charging" and "is loading". Keep it for the battery. For data, name the action: *Se citesc datele…*, *Se deschide…*. Never *Se încarcă…* for loading on a screen about charging.
 - **deschis** means open and also light in colour (*albastru deschis*). It never means unlocked.
-- **oprit** means stopped, off, and also forbidden. For a scooter's power say **pornită, oprită**, for settings **Activat, Dezactivat**, for lights **Aprinsă, Stinsă**. Never *Da* or *Nu* in their place, and never invert them.
+- **oprit** means stopped, off, and also forbidden. For a scooter's power say **pornită, oprită**, for settings **Activat, Dezactivat**, for lights **Aprinsă, Stinsă**. Never *Da* or *Nu* in their place, and never invert them. A rider coming to a halt is not *oprit*: see Stop the scooter above.
 - **indicat** also means advisable. That's one reason "reported" isn't *indicat* (see Fixed words).
 
 Keep these distinct and whole:
 
 - *Blocată* and *Deblocată* differ only by *De-*. Keep both whole, never truncate, and in sentences keep the full word so the difference stays visible.
-- Don't describe an unlock as removing the lock (*Elimină blocarea*, *Scoate blocarea*); say *Deblochează*. Only say *dezactivează blocarea* where the English itself says turn off. The checks have no list of these phrases for Romanian, so a judge has to catch them.
+- Don't describe an unlock as removing the lock (*Elimină blocarea*, *Scoate blocarea*); say *Deblochează*. Only say *dezactivează blocarea* where the English itself says turn off. The checks list these phrases (`lexicon.REMOVAL_CONTEXT`) and the on and off words (`lexicon.STATE_WORDS`: *activ-, pornit, aprins* against *dezactiv-, oprit, stins, inactiv*), but only as a first filter. Any other removal verb, any other on or off word, and a negation further than one short word from the state word (*nu a fost activată*) are left to the judge.
 - Keep every negation. For the checks, *nu, niciodată, fără, niciun, nicio, nimic* are negation words.
 - **In a safety key, an English un- word needs one of these forms:** a negation word (*Nu este disponibil*, not *Indisponibil*; *Nu este acceptat*, not *Neacceptat*), or a glossary word (*Neverificat*, *Netestat*, *Neconfirmat*), or a form the checks list (*Necunoscut*, *Imposibil*, *Incompatibil*, *Neconectat*, *Nereușit*).
-- **In a safety key, if the English has no negation, don't add one.** "Stop watching" is *Oprește urmărirea*, never *Nu mai urmări*.
-- *neafiliat* alone fails the checks and reads softer; keep *nu este afiliată*.
+- **In a safety key, if the English has no negation, don't add one.** "Stop watching" is *Oprește monitorizarea*, never *Nu mai monitoriza*. Watching a charge or a connection is **monitorizare**; never *urmărire*, which in an app with GPS and rides reads as location tracking.
+- *neafiliat* alone fails the checks and reads softer; keep *fără afiliere* or *nu este afiliată*.
 - Don't add reassurance the English lacks (*sigur*, *garantat*), and don't add warnings it doesn't have.
 
 ## 7. Scooter vocabulary
@@ -151,7 +154,8 @@ Keep these distinct and whole:
 The glossary is authoritative; this explains the distinctions it can't.
 
 - **Three speeds:** the setting is **Viteză maximă**. A limit below it is **Limită de viteză**. The measured value on a trip or ride is **Viteză de vârf**. Never swap them.
-- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
+- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder, `rides_tile_max_speed` (its English *Max speed* is the value measured on a ride, and D3 renames it Top speed; *Viteză max.* here would be the swap this section forbids) and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
+- **Untested controls until D3:** today's `more_lab_untested` says *Untested controls*, a warning, so it is **Comenzi netestate**. *Comenzi de încercat* waits for D3's *Controls to try*; it would be an invitation before the English changes.
 - **Rides vs trips:** a recorded ride is a **cursă** (plural *curse*), the word Romanian ride apps use. *Trip* (the distance since a reset) is **parcurs**. A path on the map is a **rută**. Riding is **conducere**, and a drive mode is a **mod de condus**.
 - **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Încearcă**, with the noun **încercare**. An ordinary retry uses the retry phrase in Fixed words. A guided test is the noun **test**, verb **testează**: *Testează cu trotineta parcată*, *Volt nu va face testul*. *Test scheduled charging* is a check, so it's **Verifică încărcarea programată**. A compatibility check is **verificare de compatibilitate**.
 - **Dashboard vs display:** Volt's Home layout is the **Panou**. The scooter's own screen is the **afișajul trotinetei**. They never swap, and *bord* is not used for either. *Display & sound* is **Afișaj și sunet**.
@@ -164,7 +168,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *recuperare*: *Scăzută, Medie, Ridicată, Dezactivată*. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimare Eco** is a range option, translated.
 - **Roles:** owner is **proprietar**, shared rider is **utilizator autorizat**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizat**, never *Partajat*, which reads as a shared scooter.
-- **Charge done by:** the feature name is **Final de încărcare**, and its time setting **Ora de final de încărcare**. The feature only plans a start, so never word it as a charge that has finished (no *finalizată*, *gata*). In a sentence, quote the name: *„Final de încărcare” este dezactivat*.
+- **Charge done by:** the feature name is **Termen de încărcare**, a deadline, and its time setting **Ora-limită de încărcare**. The feature only plans a start, so never word it as a charge that has finished or will end then (no *final de încărcare*, *finalizată*, *gata*). In a sentence, quote the name: *„Termen de încărcare” este dezactivat*. Short rungs are in section 5.
 - **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Acces rapid**. Never *Setări rapide*, which is Android's pull-down panel.
 - **Controls:** a control is a **comandă**, plural **comenzi**. Features named Control keep *control*: *Controlul tracțiunii*, *Control de croazieră*. Never *pilot automat* for cruise control, which promises more than the feature does.
 - **Parts:** handlebar **ghidon**, headlight **far**, tail light **lumină spate**, brake **frână**, charger **încărcător**, range **autonomie**, battery **baterie**, turn signal **semnalizare**, tire **anvelopă**, throttle **accelerație**.
@@ -173,7 +177,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 ## 8. Android's own wording
 
-Quote Android's settings as Android writes them: **Remedierea erorilor prin USB**, **Opțiuni pentru dezvoltatori**, **Numărul versiunii**. On a phone screen, tap is **atinge**; a physical button is **apasă**. *Despre telefon* could not be confirmed and phone makers rename it, so write generally where you can: *în setări, deschide informațiile despre telefon*.
+Quote Android's settings as Android writes them: **Remedierea erorilor prin USB**, **Opțiuni pentru dezvoltatori**, **Numărul versiunii**. On a phone screen, tap is **atinge**; a physical button is **apasă**. The path is **Setări › Despre telefon**, exactly as Android writes it (AOSP `about_settings`). Phone makers can rename it, but don't paraphrase it.
 
 ## Rules every language follows
 
@@ -208,7 +212,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | gap (in a recording) | a stretch of a recording with no data | **întrerupere**. Means no data was recorded, not that power or the ride was cut. Never *gol* |
 | elevation | height above sea level on a route | **altitudine** |
 | current direction | which way battery current flows | **sensul curentului**. Never *direcție*, which reads as a route or steering |
-| throughput | how much energy has passed through the battery | **flux de energie**; *flux* once the screen has said energy. An amount of energy that passed through, not a rate |
+| throughput | how much energy has passed through the battery | **energie transferată**; for a value in Ah **capacitate transferată**; on a bare tile **Transferat**. An amount that passed through, not a rate. Never *flux*, which reads as current power |
 | battery gauge | the scooter's own battery percentage reading | **indicatorul de baterie**; *indicatorul* alone where the screen is about the battery. The scooter's own figure, not a measurement |
 | raw | an unprocessed value, also used as a short tag | **brut**, agreeing with its noun; as a tag **BRUT**, where the English writes RAW |
 | last seen | when Volt last had data from the scooter | **Ultima citire**; with a value, *Ultima citire: %1$s*. The data may be old, so never word it as current. Not *ultima stare*, which is the last known state |
@@ -227,9 +231,9 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - [Dedeman, NAVEE EasyRide E25 Pro](https://www.dedeman.ro/ro/trotineta-electrica-adulti-navee-easyride-e25-pro-motor-480-w-viteza-maxima-25-km/h-autonomie-25-km-roti-8-5-inch-max-90-kg-pliabila-pentru-asfalt-negru-aluminiu-110-5-x-47-5-x-115-5-cm/p/7077828) (a Romanian retailer, not NAVEE, written without diacritics): *trotinetă electrică*, *aplicația dedicată NAVEE*, *blocare la distanță*, *viteză maximă*, *autonomie*, *far frontal*, *stop spate*.
 - [gadget.ro on a NAVEE scooter](https://gadget.ro/trotineta-electrica-cu-autonomie-de-pana-la-65-km-si-pret-de-479-euro-livrare-gratuita-din-depozit-european/): *autonomie*, *viteza maximă*, *frâne*.
 - [Evocity Veloci UP manual](https://ebd-cdn.serverhost.ro/support/vehicule-electrice/evocity-veloci-up/manual-de-utilizare-trotineta-electrica-evocity-veloci-up.pdf) (another brand): *frână*, *încărcător*, *manetă accelerație*, *lumini frontale*, *port de încărcare*, and label style without genitives (*buton pornire*). It says *display* where this guide says *afișaj*.
-- Android's own Romanian, read from AOSP: [SettingsLib ro](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-ro/strings.xml) (*Remedierea erorilor prin USB*, *Opțiuni pentru dezvoltatori*, *Asociază*, *Necunoscut*) and [Settings ro](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-ro/strings.xml) (*Setări*, *Numărul versiunii*, *Salvează*, *Adaugă*, *Încearcă din nou*, *Asociază un nou dispozitiv*, *Ecran de blocare*). The SettingsLib words came through a page reader, not an exact file search.
+- Android's own Romanian, read from AOSP: [SettingsLib ro](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-ro/strings.xml) (*Remedierea erorilor prin USB*, *Opțiuni pentru dezvoltatori*, *Asociază*, *Necunoscut*) and [Settings ro](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-ro/strings.xml) (*Setări*, *Numărul versiunii*, *Salvează*, *Adaugă*, *Încearcă din nou*, *Asociază un nou dispozitiv*, *Ecran de blocare*) and [Settings res-product ro](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res-product/values-ro/strings.xml) (`about_settings`: *Despre telefon*, read from the raw file). The SettingsLib words came through a page reader, not an exact file search.
 - [Microsoft Romanian Localization Style Guide](https://download.microsoft.com/download/9/c/d/9cd86a60-685a-477f-9286-a610addd10e8/ron-rou-StyleGuide.pdf): „…” and «…», sentence case, a space before % and units, abbreviation rules. **This guide departs from it on address:** Microsoft uses the plural imperative for buttons, and the owner's plan and Android use tu.
 - Search snippets only, weak evidence: [Acer Predator ES Thunder](https://www.acer.com/ro-ro/predator/emobility/escooters/predator-es-thunder) for *electronic lock* in a Romanian listing (the page itself timed out). [Xiaomi Romania](https://www.mi.com/ro/xiaomi-electric-scooter-6-ultra/) returned 403.
-- **From memory, not read:** DOOM3 for â, î, ș and ț and the plural *de*; CLDR ro for one, few, other and the spaced percent; *cursă* as the ride-app word; *viteză de vârf*, *Control de croazieră*, *Controlul tracțiunii*, *anvelopă* and *lumini de zi* as motoring usage. **Debate items:** *cheie de proprietar* (*cheie* also means a physical key; Romanian has no better word for a secret), *Control de croazieră* (against *tempomat*), *Date live*, *cursă* (it can also mean a race), *Lumini liniare* and *Lumini stelare* (literal, since nothing official was found), and feminine *afiliată* for Volt.
+- **From memory, not read:** DOOM3 for â, î, ș and ț and the plural *de*; CLDR ro for one, few, other and the spaced percent; *cursă* as the ride-app word; *viteză de vârf*, *Control de croazieră*, *Controlul tracțiunii*, *anvelopă* and *lumini de zi* as motoring usage. **Debate items:** *cheie de proprietar* (*cheie* also means a physical key; Romanian has no better word for a secret), *Control de croazieră* (against *tempomat*), *Date live*, *cursă* (it can also mean a race), *Lumini liniare* and *Lumini stelare* (literal, since nothing official was found), *afiliere cu* against *afiliere la* (*la* is the more standard preposition), *Autorizat* against *Invitat* (37.4) for the compact shared role (*utilizator invitat* in full; *Autorizat* beside *Proprietar* can read as a status, not a lesser role), *Termen de încărcare* and *Ora-limită de încărcare*, *Oprește-te cu trotineta*, *Până la plin*, and *energie transferată*.
 - All other terms are judgment calls.
 - Fonts: `tools/l10n/fontmetrics.py` `Font.missing` on all four `res/font/saira_*.ttf`: every Romanian letter is present, including ș ț Ș Ț (U+0219, U+021B, U+0218, U+021A), and „ ” « » … – · and U+00A0. Only U+202F is missing. Widths: `fontmetrics.Measurer`, java.awt, `saira_medium.ttf`.

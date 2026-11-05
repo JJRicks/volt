@@ -1356,10 +1356,10 @@ protected tokens, glyphs and widths, which are mechanical; a glossary term that 
 разблокировать, 解锁, ロック解除);
 unlock written as the lock word plus the common separate word (sv "lås upp", id "buka kunci", ar
 "فتح القفل", zh 解除锁定, ja ロックを解除, ko 잠금 해제); the lock said to be removed or turned off in
-the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
+the first-wave languages and ro, ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
 "Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"), also after a status colon,
 dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
-list; and, in a safety key of a first-wave language, an English on or off state drafted with only
+list; and, in a safety key of a first-wave language or Romanian, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
 alarma activado"; `lexicon.STATE_WORDS`). A state word right after a negation word counts as the
 other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on), and so does
@@ -1384,7 +1384,7 @@ the rest of the compound removes the lock ("Sperraufhebung").
 
 Known gaps, by language family:
 
-- **Romance (es, pt, fr, it) and Germanic (de, nl, sv, nb, da)**: the removal and on/off state
+- **Romance (es, pt, fr, it, ro) and Germanic (de, nl, sv, nb, da)**: the removal and on/off state
   words are lists; an on or off said another way, or a target with both states' words, is left to
   step 5. The state of a whole sentence is one bag of words, so a long sentence that names one
   state and turns another thing off must use a listed verb form (clitic forms such as "apagarla",
@@ -1407,7 +1407,7 @@ Known gaps, by language family:
   word boundaries; an ordinary word that contains a negation character and is not in the list
   reads as a negation (fails closed), and a context word in another role can hide or reject the
   lock term. zh 打开…的锁 and 关闭…锁定 count as unlock only when the lock word ends the clause.
-- **Languages with no list yet** (fi, hu, ro, tr and others in the later waves): negation and
+- **Languages with no list yet** (fi, hu, tr and others in the later waves): negation and
   removal are not checked at all; polarity only warns, and the judge decides.
 - **Negated states**: a negation further from the state word than the allowed distance (the word
   right before it, or one listed copula or particle between) is not read, so the state counts as written ("no se encuentra activa", "non sarà più attivo" are
