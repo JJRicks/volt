@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="ui_metric_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="ui_metric_description_hint" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
+    <string name="ui_toggle_state_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, stav: bez údajov</string>
+    <string name="ui_battery_description" volt:src="19a80dd329bf1d36649b961bf2d7d0e5a8aa7e4d">Batéria: %1$s</string>
+    <string name="ui_battery_description_caption" volt:src="016609de9934c14f95e1ee0ded24b1c5f68a731d">Batéria: %1$s, %2$s</string>
+    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Batéria: %1$s, nabíja sa</string>
+    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Batéria: %1$s, nabíja sa, %2$s</string>
+    <string name="ui_battery_description_last_seen" volt:src="61dbf3734e0e3d8e6874d11563a85c4e2541262b">Batéria: %1$s, posledný údaj</string>
+    <string name="ui_battery_description_last_seen_caption" volt:src="33f61bc012fded01ef4ec0808ddbb58b144e4243">Batéria: %1$s, posledný údaj, %2$s</string>
+    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Batéria: %1$s, nabíja sa, posledný údaj</string>
+    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Batéria: %1$s, nabíja sa, posledný údaj, %2$s</string>
+    <string name="ui_battery_not_reported" volt:src="50d5d339e3c4836e7857d9dfd067b5da129f15b0">bez údajov</string>
+    <plurals name="ui_battery_percent" volt:src="ebc2b43c225316946adff277ee621916da7e230a">
+        <item quantity="one">%1$d percento</item>
+        <item quantity="few">%1$d percentá</item>
+        <item quantity="many">%1$d percenta</item>
+        <item quantity="other">%1$d percent</item>
+    </plurals>
+    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Nabíja sa</string>
+    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Nabíja sa · %1$s</string>
+    <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Zatiaľ žiadne namerané údaje</string>
+    <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
+        <item quantity="one">Graf nameraných údajov, jednotka: %1$s, %2$d vzorka. Zobrazená os: %3$s až %4$s. Dotykom zobrazíte údaje.</item>
+        <item quantity="few">Graf nameraných údajov, jednotka: %1$s, %2$d vzorky. Zobrazená os: %3$s až %4$s. Dotykom zobrazíte údaje.</item>
+        <item quantity="many">Graf nameraných údajov, jednotka: %1$s, %2$d vzorky. Zobrazená os: %3$s až %4$s. Dotykom zobrazíte údaje.</item>
+        <item quantity="other">Graf nameraných údajov, jednotka: %1$s, %2$d vzoriek. Zobrazená os: %3$s až %4$s. Dotykom zobrazíte údaje.</item>
+    </plurals>
+    <string name="ui_chart_tooltip" volt:src="19e2f801b756022087ce6c171d4f9cc395f299b7">"%1$s %2$s  ·  %3$s"</string>
+    <string name="ui_chart_tooltip_unitless" volt:src="680ec86d6e253920d82049246e5acb8c39ac35e2">"%1$s  ·  %2$s"</string>
+    <string name="ui_chart_point_description" volt:src="6313cdad3481cbd566159577bc5819e647fba310">%1$s %2$s, čas: %3$s</string>
+    <string name="ui_chart_thousands" volt:src="77e6d25f03aae0997933528ad407d470065019bf">%1$s %2$s</string>
+    <string name="ui_chart_thousands_suffix" volt:src="22701e4930a93932a81a8f0364d9f43020bdae94">tis.</string>
+    <string name="ui_drive_mode_walk" volt:src="3d3deb53e35f87f97abfa11ce97215f57cb7b4ff">WALK</string>
+    <string name="ui_selector_choice" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
+    <string name="ui_reorder_drag" volt:src="007b1367f62cee4f0622b48b0aff2fa1a0a5faa1">Presunutím zmeníte poradie položky: %1$s</string>
+    <string name="ui_reorder_move_up" volt:src="a2bcff45a636ff3c848025f5f174f794559b0c2d">Posunúť nahor</string>
+    <string name="ui_reorder_move_down" volt:src="9c5e03a6e3d8702646d6007439d4fef41f53a1ec">Posunúť nadol</string>
+    <string name="ui_reorder_moved" volt:src="026112d1ba878469be474b341e07b6f34e59cf5c">%1$s, nová pozícia: %2$s, počet položiek: %3$s</string>
+    <string name="ui_live_stats_title" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Živé údaje</string>
+    <string name="ui_live_stats_connected" volt:src="df97b9a2493761c96f06724818610d0d0cd4bf5b">Živé údaje, kolobežka je pripojená</string>
+    <string name="ui_live_stats_disconnected" volt:src="d4fe34e32132ec7178006f7ec0f2c3157b4a4ef1">Živé údaje, kolobežka nie je pripojená</string>
+    <string name="ui_stats_window_description" volt:src="9071108354cdd42f773487c913746bf8503a4727">Časový rozsah grafu: %1$s. Vybrať časový rozsah</string>
+    <string name="ui_stats_window_title" volt:src="3e8c259a6998ce0ddacc723900b1c9a00ee5a15a">Časový rozsah grafu</string>
+    <string name="ui_stats_window_close" volt:src="01147b84972511e429ca6cff9f907e6970c319a6">Zavrieť výber časového rozsahu grafu</string>
+    <string name="ui_stats_window_choice" volt:src="ed21b93ccdc509b509d88711a9c68db69b4c1968">Časový rozsah grafu: %1$s</string>
+    <string name="ui_model_search_hint" volt:src="b6cf78eb8a42bbb927778912ce3aee32991bb81d">Hľadať modely</string>
+    <string name="ui_model_search_description" volt:src="43f70d2d031c9cef5c974068c150965ed578ab52">Hľadať modely kolobežiek</string>
+    <string name="ui_model_not_sure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Neviem</string>
+    <string name="ui_model_not_listed" volt:src="bd99b08bd3910e7b0e64d3aee4722055d2208a76">Nie je v zozname</string>
+    <string name="ui_model_use_typed" volt:src="a6722a0d44de10d9ed5f3d45a04799139bd771be">Použiť „%1$s“</string>
+    <string name="ui_model_no_match" volt:src="afeea9dfcf0ba5583633f846bfdb0cde83aa9636">Výrazu „%1$s“ nezodpovedá žiadny model zo zoznamu. Vymažte hľadaný výraz a vyberte model alebo možnosť „Neviem“.</string>
+    <string name="ui_model_series" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="ui_photo_model" volt:src="5f568b8b80cee964bfcce59d686ce2500dbddf77">Kolobežka NAVEE %1$s</string>
+    <string name="ui_photo_scooter" volt:src="4fbb60c4d92a76c9beb1e40041248793fe4bb75b">Kolobežka NAVEE</string>
+</resources>

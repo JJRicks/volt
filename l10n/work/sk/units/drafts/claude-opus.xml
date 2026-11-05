@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="units_kmh" volt:src="8d99c9b0c78af77c609237a7ff710bc4bdcf94a3">km/h</string>
+    <string name="units_mph" volt:src="0fecc5cd5686dc9567e1597543ddf24f23e1a3a1">mph</string>
+    <string name="units_km" volt:src="de7029fbca9425c084681319e790e2193bb7a489">km</string>
+    <string name="units_mi" volt:src="6d9eaac56c41385bd53ef30ba9fc4f91aba0dd3e">mi</string>
+    <string name="units_volt" volt:src="3425fd1880afe7f6ddb28bccaa8f51a761389115">V</string>
+    <string name="units_amp" volt:src="e51a119559950024956c8695d468c980afb93a8b">A</string>
+    <string name="units_watt" volt:src="932693fe78ec90fbe685156b8944846fcf5fb73f">W</string>
+    <string name="units_watt_hour" volt:src="2f8837861ae9b988f21990bb3f6f5ea3e0cec539">Wh</string>
+    <string name="units_amp_hour" volt:src="26c04c40ee366e7df8e15a570e74a653ed0b86f7">Ah</string>
+    <string name="units_celsius" volt:src="09cf658fcebc812ae1ffc76ef3fccdf6a1ab9241">°C</string>
+    <string name="units_fahrenheit" volt:src="dcd33af4ca28362419d1830133eb7fe4bd6eb252">°F</string>
+    <string name="units_minute" volt:src="0524b09c10e93e2c7bfa145cddc2ee2b7b893bf9">min</string>
+    <string name="units_route_speed_title" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Rýchlosť</string>
+    <string name="units_route_speed_title_source" volt:src="e0e5d65c3d2acc813a8c87b196832d50cf603688">Rýchlosť · %1$s</string>
+    <string name="units_route_source_scooter" volt:src="9d37d4169ea9c724e1c91df5b4afcaa6c89c0e93">kolobežka</string>
+    <string name="units_route_source_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
+</resources>
