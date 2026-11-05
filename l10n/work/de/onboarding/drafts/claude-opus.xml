@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Verbinde dein Telefon über ein USB-Datenkabel mit dem Computer</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Wähle dein Telefon in Chrome aus</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Lass USB-Debugging auf diesem Telefon zu</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lass **Von diesem Computer immer zulassen** deaktiviert</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Hake **Von diesem Computer immer zulassen** nicht an</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Die Website ist verbunden</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Telefon ist nicht aufgeführt</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Verbindung in Chrome</string>

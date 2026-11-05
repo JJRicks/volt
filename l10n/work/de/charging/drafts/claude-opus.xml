@@ -30,11 +30,11 @@
     </plurals>
     <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Abweichendes Ladegerät · Schätzung nach Laderate</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Schätzung nach Laderate</string>
-    <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Der ausgewählte Scooter hat sich während der Messung geändert</string>
-    <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Die Uhrzeit des Telefons hat sich während der Messung geändert</string>
+    <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4" volt:attempt="2">Der ausgewählte Scooter hat sich im Status „Messung läuft“ geändert</string>
+    <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3" volt:attempt="2">Die Uhr des Telefons hat sich im Status „Messung läuft“ geändert</string>
     <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">Der Ladevorgang endete, bevor der Zeitplan eingestellt war</string>
-    <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Die Messwerte zum Laden blieben während der Messung aus</string>
-    <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">Die Verbindung zum Scooter wurde während der Messung getrennt</string>
+    <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5" volt:attempt="2">Die Messwerte zum Ladevorgang sind im Status „Messung läuft“ ausgeblieben</string>
+    <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee" volt:attempt="2">Die Verbindung zum Scooter wurde im Status „Messung läuft“ getrennt</string>
     <string name="charging_capacity_reason_clock" volt:src="bd0cbe1e6a34024c382e0a173b62a0a590da83ed">Uhrzeit geändert</string>
     <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Aufzeichnungslücken</string>
     <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Stromrichtung geändert</string>

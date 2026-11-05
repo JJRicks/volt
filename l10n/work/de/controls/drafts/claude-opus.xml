@@ -122,13 +122,13 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Traktionskontrolle ausschalten? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Energiesparmodus ausschalten? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Auf Einzelmotor umschalten? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Energierückgewinnung ausschalten? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Energierückgewinnung auf „Aus“ einstellen? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Startgeschwindigkeit unter 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Über 32 km/h: Prüfe die Regeln dort, wo du fährst. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Dadurch wird die Traktionskontrolle ausgeschaltet. Fahre auf nassem oder losem Untergrund vorsichtig, bis du weißt, wie sich der Scooter verhält.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Unter 3 km/h kann der Motor aus dem Stand anziehen, sobald du den Gashebel betätigst.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Dadurch wird die Energierückgewinnung, also das Bremsen mit dem Motor, ausgeschaltet. Deine Bremsen müssen dann mehr leisten.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Dadurch wird dein Tempo während der Fahrt auf einen Wert unter deiner Einstellung „Höchstgeschwindigkeit“ begrenzt. Mit „Zurücksetzen“ wird deine vorherige Einstellung wiederhergestellt.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Dadurch wird dein Tempo während der Fahrt auf einen Wert unter deiner Einstellung „Höchstgeschwindigkeit“ begrenzt. „Zurücksetzen“ stellt deine vorherige Einstellung wieder her.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modell %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Modell %1$s (unbestätigt)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Hochleistung</string>

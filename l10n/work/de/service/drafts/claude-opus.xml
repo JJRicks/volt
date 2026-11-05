@@ -81,8 +81,8 @@
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">„Fertig geladen bis“ ist aus.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. „Fertig geladen bis“ ist aus.</string>
-    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Die Bluetooth-Berechtigung wurde während der Messung entzogen</string>
-    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt wurde während der Messung geschlossen. „Fertig geladen bis“ ist aus.</string>
+    <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696" volt:attempt="2">Bluetooth-Berechtigung wurde im Status „Messung läuft“ entfernt</string>
+    <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228" volt:attempt="2">Volt wurde im Status „Messung läuft“ geschlossen. „Fertig geladen bis“ ist aus.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">„Fertig geladen bis“ ist eingestellt. %1$s</string>
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">„Fertig geladen bis“ wurde nicht eingestellt. %1$s</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">„Fertig geladen bis“ ist eingestellt</string>
@@ -132,7 +132,7 @@
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth-Verbindung im geparkten Zustand verloren</string>
     <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Bluetooth-Verbindung im geparkten Zustand verloren</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Verbindung zum Scooter &amp; Aufzeichnung</string>
-    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Ladevorgang wird für „Fertig geladen bis“ gemessen</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Ladevorgang wird gemessen für „Fertig geladen bis“</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Geplantes Laden wird getestet</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Ladeaufzeichnung · Verbindung wird neu aufgebaut</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Ladeaufzeichnung läuft</string>
