@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">O serviço local da tua trotinete está a iniciar-se.</string>
     <string name="compat_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectar</string>
-    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Não há testes por concluir.</string>
+    <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Não há testes não concluídos.</string>
     <string name="compat_run_check" volt:src="8908fbf7457a4fe529bb9649e73cecde12a253d4">Iniciar verificação</string>
     <string name="compat_run_again" volt:src="0358856e402abdc06315d4f38abf2f9ded72208e">Repetir verificação</string>
     <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">Enviar email à Volt</string>
@@ -33,11 +33,11 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">Mapeamento OEM (não testado)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Bloqueio e leituras</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Não suportado</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 teste por concluir noutra trotinete. Seleciona-a para rever.</string>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 teste não concluído noutra trotinete. Seleciona-a para rever.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
-        <item quantity="one">%1$d teste por concluir noutra trotinete. Seleciona-a para rever.</item>
-        <item quantity="many">%1$d de testes por concluir noutras trotinetes. Seleciona uma para rever.</item>
-        <item quantity="other">%1$d testes por concluir noutras trotinetes. Seleciona uma para rever.</item>
+        <item quantity="one">%1$d teste não concluído noutra trotinete. Seleciona-a para rever.</item>
+        <item quantity="many">%1$d de testes não concluídos noutras trotinetes. Seleciona uma para rever.</item>
+        <item quantity="other">%1$d testes não concluídos noutras trotinetes. Seleciona uma para rever.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Registos de testes indisponíveis. O valor de um teste anterior pode não ter sido reposto; verifica as definições da trotinete.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Tentativa · %1$s</string>
@@ -53,8 +53,8 @@
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Mantido</string>
     <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Reposição confirmada</string>
     <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Reposição pendente · revê abaixo</string>
-    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Tentativa por concluir · %1$s</string>
-    <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Teste por concluir · %1$s</string>
+    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Tentativa não concluída · %1$s</string>
+    <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Teste não concluído · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Antes da tentativa</string>
     <string name="compat_before_test" volt:src="0013c71b6f6ca92eac22436c874f139fe599f39d">Antes do teste</string>
     <string name="compat_value_tried" volt:src="eaeb926168edaad2a5f6b927a46f8d47104b3e24">Valor da tentativa</string>
@@ -67,11 +67,11 @@
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Manter %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Definir %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Ignorar · deixar como está</string>
-    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Ignorar a tentativa por concluir sem repor o valor: %1$s</string>
-    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Ignorar o teste por concluir sem repor o valor: %1$s</string>
+    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Ignorar a tentativa não concluída sem repor o valor: %1$s</string>
+    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Ignorar o teste não concluído sem repor o valor: %1$s</string>
     <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef">A trotinete deste teste foi esquecida, por isso a Volt não consegue verificar esta definição nem repô-la. Verifica-a na própria trotinete.</string>
     <string name="compat_dismiss" volt:src="2f05b359cebb7fdbdd7e576511561f1de4f382a7">Ignorar</string>
-    <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Ignorar o teste por concluir de uma trotinete esquecida: %1$s</string>
+    <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Ignorar o teste não concluído de uma trotinete esquecida: %1$s</string>
     <string name="compat_question_units_mph" volt:src="019f4ffd7b3fece0995c4e05ea22dc0655ba83e6">O ecrã da trotinete mostra mph?</string>
     <string name="compat_question_units_kmh" volt:src="4a1d028262b4d78b0c69b5fd135029c52d05ca93">O ecrã da trotinete mostra km/h?</string>
     <string name="compat_question_tail_light_on" volt:src="b84549856bb8e366237dfe250243c94d91d85476">A luz traseira está ligada?</string>
@@ -213,7 +213,7 @@
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Sem resposta da trotinete.</string>
     <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">A Volt não conseguiu enviar a reposição.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Não foi possível obter um valor de referência recente. Volta a conectar a trotinete e tenta novamente. Nada foi alterado.</string>
-    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Não foi possível verificar a definição. Volta a conectar a trotinete e revê o teste por concluir.</string>
+    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Não foi possível verificar a definição. Volta a conectar a trotinete e revê o teste não concluído.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">A ligação terminou durante o teste.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Foi selecionado outro perfil de trotinete durante o teste.</string>
     <string name="compat_note_restarted" volt:src="cb6020286262dba4b68518e42aa35c280840d9b3">A Volt reiniciou durante o teste.</string>
@@ -231,7 +231,7 @@
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Está a mostrar o valor do teste, %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Teste parado antes de qualquer alteração. Nada foi alterado.</string>
     <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Reposto e confirmado, mas não foi possível guardar o registo.</string>
-    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Mantido, mas não foi possível guardar o registo. Vai aparecer como teste por concluir.</string>
+    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Mantido, mas não foi possível guardar o registo. Vai aparecer como não concluído.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Conecta esta trotinete para rever.</string>
     <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">O ID do modelo difere do usado no teste. A Volt não vai alterar a definição.</string>
     <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c">As regras da Volt para esta definição mudaram. A Volt não a vai alterar.</string>

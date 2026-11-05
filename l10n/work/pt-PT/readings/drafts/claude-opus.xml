@@ -178,9 +178,9 @@
     <string name="readings_uwb_version_short" volt:src="0aa048e2ec4b4b8ee7c3621f41bd21ad1f830914">Firmware de proximidade</string>
     <string name="readings_uwb_version_compact" volt:src="2e011bb8ea2fdea95c1677a7df8b47edb1a71cb6">FW proximidade</string>
     <string name="readings_scooter_serial" volt:src="bb7af5a44ba75bd1c2e4a6ce599979656dcff6ae">Número de série da trotinete</string>
-    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">N.º de série da trotinete</string>
+    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">Número de série da trotinete</string>
     <string name="readings_battery_serial_raw" volt:src="c2fa7c6ec826cbb85b9c04e2310ffb0fe2bb0c37">Resposta do número de série da bateria (em bruto)</string>
-    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">N.º de série da bateria (em bruto)</string>
+    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">Número de série da bateria (em bruto)</string>
     <string name="readings_warning_code" volt:src="6f0188bab92e86b0766dcf7b1f95ede2c64346ce">Código de aviso ativo</string>
     <string name="readings_warning_code_short" volt:src="92fb7eb6ac49b53d8ddc28b1490fbd4947deb0ea">Código de aviso</string>
     <string name="readings_warning_code_compact" volt:src="63647a656653eda2f9ed432b853672b34a5d0ac4">Aviso</string>
@@ -203,9 +203,9 @@
     <string name="readings_response_73" volt:src="59d1f5db6acefe8255fe466065e9083a478c33b8">Leitura das versões de firmware (0x73)</string>
     <string name="readings_response_73_short" volt:src="1ac244f54b1854da36f11a10588ba49ff9828abe">Leitura de firmware · 73</string>
     <string name="readings_response_74" volt:src="4bc5db62231d20c0075ccb23c636b4ff41577bdb">Leitura do número de série da trotinete (0x74)</string>
-    <string name="readings_response_74_short" volt:src="30b55c83bca1fbd526abf77c6e7145778123e370">N.º de série · 74</string>
+    <string name="readings_response_74_short" volt:src="30b55c83bca1fbd526abf77c6e7145778123e370">Número de série · 74</string>
     <string name="readings_response_75" volt:src="54f53c0ccdf697b9483e93e55dd08613ed41ca2c">Leitura do número de série da bateria (0x75)</string>
-    <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">N.º de série da bateria · 75</string>
+    <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">Número de série da bateria · 75</string>
     <string name="readings_response_76" volt:src="b4dd985788daee847907d9f97b5349e148d70062">Leitura do histórico de viagens (0x76)</string>
     <string name="readings_response_76_short" volt:src="550b657b98a151bd2976bb37625b0062eb9c6ed4">Histórico de viagens · 76</string>
     <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Leitura dos estados dos sinais da bateria (0x79)</string>
