@@ -9,7 +9,7 @@
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">El mantenimiento de los datos de la app ya está en curso</string>
     <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Espera a que termine de guardarse la grabación del teléfono</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Termina primero la exportación de carga actual</string>
-    <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Espera a que termine la programación de carga</string>
+    <string name="service_wait_charging_schedule" volt:src="2b6aa097258211e30c582805759c50b06e86b773">Espera a que Volt termine de establecer la programación de carga</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Espera a que «Fin de carga» termine la medición</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Espera a que termine la limpieza del historial</string>
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Termina primero la configuración del propietario y restaura el registro de actividad de NAVEE</string>
@@ -35,14 +35,44 @@
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Cargador original · cargador detenido · esperando a que se reanude</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Cargador original · en pausa hasta el inicio programado</string>
     <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Cargador original · %1$s muestras locales</string>
+    <plurals name="service_charge_stock_samples_count" volt:src="1a9a266bf7b8cc499f4cf6332934f1ceb7fa5bdf">
+        <item quantity="one">Cargador original · %1$s muestra local</item>
+        <item quantity="many">Cargador original · %1$s muestras locales</item>
+        <item quantity="other">Cargador original · %1$s muestras locales</item>
+    </plurals>
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Cargador rápido · cargador detenido · esperando a que se reanude</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Cargador rápido · en pausa hasta el inicio programado</string>
     <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Cargador rápido · %1$s muestras locales</string>
+    <plurals name="service_charge_fast_samples_count" volt:src="6be8091e11eef7d3f17dd0349b5ff60b16522952">
+        <item quantity="one">Cargador rápido · %1$s muestra local</item>
+        <item quantity="many">Cargador rápido · %1$s muestras locales</item>
+        <item quantity="other">Cargador rápido · %1$s muestras locales</item>
+    </plurals>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">No se aplica hasta conocer el cargador · %1$s grabaciones guardadas</string>
+    <plurals name="service_charge_learning_unknown_count" volt:src="51d999f633cc6a6eda52e49ef3b3cbbd4a0f8dc7">
+        <item quantity="one">No se aplica hasta que se conozca el cargador · %1$s grabación guardada</item>
+        <item quantity="many">No se aplica hasta que se conozca el cargador · %1$s grabaciones guardadas</item>
+        <item quantity="other">No se aplica hasta que se conozca el cargador · %1$s grabaciones guardadas</item>
+    </plurals>
     <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s carga válida con cargador rápido · %2$s grabaciones guardadas</string>
+    <plurals name="service_charge_recordings_stored" volt:src="2a99d666ee821ad3d8ff999d0b049b460d26e161">
+        <item quantity="one">%1$s grabación guardada</item>
+        <item quantity="many">%1$s grabaciones guardadas</item>
+        <item quantity="other">%1$s grabaciones guardadas</item>
+    </plurals>
     <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s cargas válidas con cargador rápido · %2$s grabaciones guardadas</string>
+    <plurals name="service_charge_learning_fast_count" volt:src="895a8b5a30809d23bccf65fb7966af79635b1696">
+        <item quantity="one">%1$s carga válida con cargador rápido · %2$s</item>
+        <item quantity="many">%1$s cargas válidas con cargador rápido · %2$s</item>
+        <item quantity="other">%1$s cargas válidas con cargador rápido · %2$s</item>
+    </plurals>
     <string name="service_charge_learning_stock_one" volt:src="90ff12ab3088ba6733215a938686cd4f262518eb">%1$s carga válida con cargador original · %2$s grabaciones guardadas</string>
     <string name="service_charge_learning_stock_other" volt:src="2794fbf3fee4c49a6b3dc84626bf7dbf424d471c">%1$s cargas válidas con cargador original · %2$s grabaciones guardadas</string>
+    <plurals name="service_charge_learning_stock_count" volt:src="503999cd4b9fd7618f17940c7888894eda44cb2f">
+        <item quantity="one">%1$s carga válida con cargador original · %2$s</item>
+        <item quantity="many">%1$s cargas válidas con cargador original · %2$s</item>
+        <item quantity="other">%1$s cargas válidas con cargador original · %2$s</item>
+    </plurals>
     <string name="service_charge_cleared" volt:src="0df5308a8eb6173d5943c5b2fb6a4ae960daf6e8">Grabaciones de carga borradas</string>
     <string name="service_charge_clear_failed" volt:src="fa0c862630dc278a1a9b555f6b43e248a973a27d">No se pudieron borrar las grabaciones de carga</string>
     <string name="service_charge_export_empty" volt:src="4e2350918f9800971431e40b47e55a4df518e686">No hay grabaciones de carga guardadas para este patinete</string>
@@ -63,7 +93,7 @@
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">conexión fallida</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth desactivado</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">permiso perdido</string>
-    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">identidad cambiada</string>
+    <string name="service_charge_stop_identity_changed" volt:src="797bb568d0e9ea59223f2eeec94d76db7460c586">patinete diferente</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Grabación detenida; no se pudo finalizar el archivo de carga</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Espera a que se detecte el cargador o selecciona uno</string>
     <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">«Fin de carga» no inició la carga</string>
@@ -106,7 +136,17 @@
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundo antes del inicio.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundo después del inicio.</string>
     <string name="service_test_passed_seconds_before" volt:src="4d0a7e2e8b19afa3560c66ac24c8f4856e7e5325">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos antes del inicio.</string>
+    <plurals name="service_test_passed_before_count" volt:src="cbe3c4cf9a15ba3979dff54dd084d36bb12d1828">
+        <item quantity="one">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundo antes del inicio.</item>
+        <item quantity="many">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos antes del inicio.</item>
+        <item quantity="other">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos antes del inicio.</item>
+    </plurals>
     <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos después del inicio.</string>
+    <plurals name="service_test_passed_after_count" volt:src="a4537fc2503749b4a58e4633fdc5281cd9dca570">
+        <item quantity="one">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundo después del inicio.</item>
+        <item quantity="many">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos después del inicio.</item>
+        <item quantity="other">El reloj y la programación del patinete funcionan. La carga se reanudó %1$s segundos después del inicio.</item>
+    </plurals>
     <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
         <item quantity="one">aproximadamente %1$d minuto</item>
         <item quantity="many">aproximadamente %1$d minutos</item>

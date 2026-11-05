@@ -9,10 +9,10 @@
     <string name="charging_alert_title_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">Cargado al %1$s %%</string>
     <string name="charging_alert_title_paused" volt:src="c0f5087cc1f2f76881eb4df511f993c66f34f372">Alerta de carga en pausa</string>
     <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">Volt perdió la conexión con %1$s. Abre Volt para seguir vigilando esta carga.</string>
-    <plurals name="charging_alert_text_time_limit" volt:src="5169df0edfed2dda16e37a24f58c081c7a92fb95">
-        <item quantity="one">Volt dejó de vigilar tras %1$d hora. Abre Volt para seguir vigilando esta carga.</item>
-        <item quantity="many">Volt dejó de vigilar tras %1$d horas. Abre Volt para seguir vigilando esta carga.</item>
-        <item quantity="other">Volt dejó de vigilar tras %1$d horas. Abre Volt para seguir vigilando esta carga.</item>
+    <plurals name="charging_alert_text_time_limit" volt:src="32b9b982b24bca33971b9665cb271e5a54340f1a">
+        <item quantity="one">Volt dejó de vigilar la carga tras %1$d hora. Abre Volt para seguir vigilando esta carga.</item>
+        <item quantity="many">Volt dejó de vigilar la carga tras %1$d horas. Abre Volt para seguir vigilando esta carga.</item>
+        <item quantity="other">Volt dejó de vigilar la carga tras %1$d horas. Abre Volt para seguir vigilando esta carga.</item>
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s está al %2$s %%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Esperando datos</string>
@@ -62,4 +62,24 @@
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Elige un inicio de carga en las próximas 48 horas</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Elige una hora en punto en las próximas 48 horas</string>
     <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Espera a que termine la prueba de programación</string>
+    <string name="charging_schedule_disable_done_by" volt:src="a197560e1fef7930b9170fdeb68a078ad5036d90">Desactiva «Fin de carga» primero</string>
+    <string name="charging_schedule_choose_scooter" volt:src="e1b0e0a597ae31db97ba169a3c3740e9ac855524">Elige un patinete primero</string>
+    <string name="charging_schedule_connect_scooter" volt:src="9d7ee8bc7cc9ddeb3f41a345d4d79eebb2bd61cd">Conecta el patinete primero</string>
+    <string name="charging_schedule_not_on_model" volt:src="0518e1140e1f916f793160a631b6265d02a55883">No disponible en este modelo</string>
+    <string name="charging_schedule_turn_off_done_by" volt:src="96cca66872e859bcf1616978b7cb0fe8a74b8abf">Desactiva «Fin de carga» primero</string>
+    <string name="charging_schedule_turn_off_scheduled" volt:src="5f0067adf313562c67b074bc33608e1853cab5f4">Desactiva la carga programada primero</string>
+    <string name="charging_schedule_wait_readings" volt:src="4698ba0084169d42e52e01ebf20fd599439a1f3c">Espera a que lleguen lecturas de carga nuevas</string>
+    <string name="charging_schedule_cancel_not_confirmed" volt:src="63289e8a5cc58aeab6d1d0e0f4f8e7634446bac4">No se confirmó que se cancelara la programación; vuelve a conectar el patinete e inténtalo de nuevo</string>
+    <string name="charging_schedule_clock_failed" volt:src="c4b495c877ca869fae6c108aadfc74766637a6c4">No se pudo establecer la hora del reloj del patinete; la programación no cambió</string>
+    <string name="charging_schedule_battery_changed" volt:src="0a27c043c120c8ba089de42d53565c25b9b20bab">El nivel de batería cambió; se necesita una estimación de carga nueva</string>
+    <string name="charging_schedule_start_not_confirmed" volt:src="a91441dba7b7dea111b3393eeba4acf83ef82629">No se confirmó el inicio de carga; comprueba la programación del patinete</string>
+    <string name="charging_schedule_limit_changed" volt:src="a51efe59592d08bd0aec88843bd4cc04680feb96">El límite de carga cambió; comprueba la programación e inténtalo de nuevo</string>
+    <string name="charging_schedule_start_changed_estimate" volt:src="27db30fb4a095e46706d219c2044a55c9fbb7a22">El inicio de carga cambió, pero se necesita una estimación de carga nueva</string>
+    <string name="charging_schedule_start_passed" volt:src="35da343e6ca1933a8d187632b5b5673a990a003c">Cargando ahora — ya pasó la hora de inicio calculada</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:src="39a93eddd6a247e1c32e3cf51179c5a012f1bea5">La hora de inicio pasó, pero no se confirmó que se cancelara la programación</string>
+    <string name="charging_schedule_limit_saved_no_estimate" volt:src="2cc8005ea08f3fc5617ad39055e67924ba7c253a">El límite de carga cambió; el inicio de carga se guardó sin una estimación de fin</string>
+    <string name="charging_schedule_battery_saved_no_estimate" volt:src="40f4b80d5c3e565325127cddf97c07970a1d0936">El nivel de batería cambió; el inicio de carga se guardó sin una estimación de fin</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:src="634e2ebcee0b6520bffd2454e166fd1de348658d">El inicio de carga cambió, pero no se confirmó que se activara la programación</string>
+    <string name="charging_schedule_connection_changed" volt:src="25fe61147b8404efb684ce3a9bfda49efc2c7207">La conexión cambió; comprueba la programación del patinete antes de volver a intentarlo</string>
+    <string name="charging_schedule_stopped_before_finish" volt:src="7bc9b4b59362f543f1dda93235a136bf1848b91b">Volt se detuvo antes de terminar; comprueba que la carga programada esté desactivada</string>
 </resources>
