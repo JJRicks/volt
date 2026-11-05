@@ -1,0 +1,169 @@
+# German glossary. CLAUDE-ONLY PROPOSAL (2026-11-05): drafted by one model, not judged by the council; nothing here is final.
+# Term column: approved German forms, separated by " | "; first form is the canonical one. Definitions carry D3's meanings (scratch/english-fixes/d3-*).
+# Rows D3 retires keep the chosen term's German until their en.tsv row is dropped. D3's new rows are included so they work as soon as en.tsv gains them.
+# Evidence, source wording and the reasons are in l10n/style/de.md. Definition text is English on purpose: it describes the en.tsv term.
+id	term	definition	pos	dnt	safety	source
+not-affiliated	steht in keiner Verbindung zu NAVEE | in keiner Verbindung zu NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	Claude proposal; nothing official found
+official-app	offizielle App | offiziellen App	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	established de usage
+navee-app	NAVEE-App	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	official: NAVEE XT5 EU guide, DE
+scooter	Scooter | Scooters | Scootern	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	official: NAVEE XT5 EU guide, DE
+owner	Besitzer | Besitzers	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	Claude proposal; nothing official found
+owner-profile	Besitzerprofil | Besitzerprofils	The saved profile of the owner role.	noun phrase	no	owner-key	Claude proposal; nothing official found
+owner-role	Besitzer | Besitzers | Besitzerrolle	D3 retires this English term (owner is the role word). Same German as the chosen term. Was: Another name for owner in the source; D3 picks one term.	noun phrase	no	owner-key	Claude proposal; nothing official found
+shared-access	Mitnutzer | Mitnutzers | Mitnutzern	D3 retires this English term (shared rider is the role word). Same German as the chosen term. Was: A role the owner grants to another account.	noun phrase	no	owner-key	Claude proposal; nothing official found
+shared-user	Mitnutzer | Mitnutzers | Mitnutzern	D3 retires this English term (shared rider is the role word; also an orphan). Same German as the chosen term. Was: An account that has shared access.	noun phrase	no	owner-key	Claude proposal; nothing official found
+shared-role	Mitnutzer | Mitnutzers | Mitnutzern	D3 retires this English term (shared rider is the role word). Same German as the chosen term. Was: Another name for shared access in the source; D3 picks one term.	noun phrase	no	owner-key	Claude proposal; nothing official found
+owner-identity	Besitzerschlüssel | Besitzerschlüssels | Besitzerschlüsseln	D3 retires this English term (owner key chosen; no string keeps it after D3). Same German as the chosen term. Was: The 12-hex-character credential Volt authenticates with. The source also calls it owner key, setup key and scooter key; D3 picks one target term. Treat it as a secret.	noun phrase	no	owner-key	Claude proposal; nothing official found
+owner-key	Besitzerschlüssel | Besitzerschlüssels | Besitzerschlüsseln	The 12-hex-character credential Volt authenticates with. Older website text and docs may say owner identity or scooter key. Treat it as a secret.	noun phrase	no	owner-key	Claude proposal; nothing official found
+setup-key	Besitzerschlüssel | Besitzerschlüssels | Besitzerschlüsseln	D3 retires this English term (owner key chosen; also an orphan). Same German as the chosen term. Was: Another name for owner identity in the source; D3 picks one term.	noun phrase	no	owner-key	Claude proposal; nothing official found
+scooter-key	Besitzerschlüssel | Besitzerschlüssels | Besitzerschlüsseln	D3 retires this English term (owner key chosen). Same German as the chosen term. Was: Another name for owner identity in the source; D3 picks one term.	noun phrase	no	owner-key	Claude proposal; nothing official found
+owner-setup	Besitzer-Einrichtung	Getting the owner key from the NAVEE app.	noun phrase	no	owner-key	Claude proposal; nothing official found
+owner-setup-file	Besitzer-Einrichtungsdatei	The file that carries the owner key. Onboarding's buttons shorten it to owner file because the setup website names them. Its name, navee-owner-setup.json, stays as written.	noun phrase	no	owner-key	Claude proposal; nothing official found
+capture	Auslesen | ausgelesen	Reading the owner key from the NAVEE app during owner setup.	noun	no	owner-key	Claude proposal; nothing official found
+capture-helper	Auslese-Skript | Auslese-Skripts	The computer script that captures the owner key; setup/capture-owner.py stays as written.	noun phrase	no	owner-key	Claude proposal; nothing official found
+usb-debugging	USB-Debugging	Android's setting. Use Android's own localized wording.	noun phrase	no	-	Android de UI
+developer-options	Entwickleroptionen	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	Android de UI
+build-number	Build-Nummer	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	Android de UI
+electronic-lock	elektronische Sperre | elektronischen Sperre | elektronischer Sperre	Volt's lock control.	noun phrase	no	lock	official: NAVEE XT5 EU guide, DE (Sperre)
+lock	sperren | Sperre	The action that locks the scooter.	verb	no	lock	official: NAVEE XT5 EU guide, DE
+locked	gesperrt	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	official: NAVEE XT5 EU guide, DE
+unlock	entsperren | Entsperrung	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	official: NAVEE XT5 EU guide, DE
+unlocked	entsperrt	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	official: NAVEE XT5 EU guide, DE
+lock-bar	Sperrleiste	The lock row on Home.	noun phrase	no	lock	Claude proposal; nothing official found
+lock-state-unverified	Sperrstatus nicht verifiziert	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	Claude proposal; nothing official found
+lock-state-unknown	Sperrstatus unbekannt	Same meaning as Lock state unverified. Must never read as confirmed.	noun phrase	no	lock	Claude proposal; nothing official found
+lock-duration	Sperrdauer	How long the scooter stays locked when off.	noun phrase	no	lock	Claude proposal; nothing official found
+handlebar-pin	Lenker-PIN	The 4-digit code entered on the handlebar. It is the rider's phone-free way to unlock. Keep distinct from a backup password.	noun phrase	no	pin	Claude proposal; nothing official found
+fallback-pin	Lenker-PIN	D3 retires this English term (handlebar PIN chosen). Same German as the chosen term. Was: Another name for handlebar PIN in the source; D3 picks one term.	noun phrase	no	pin	Claude proposal; nothing official found
+dashboard-pin	Lenker-PIN	D3 retires this English term (handlebar PIN chosen; dashboard means Volt's screen). Same German as the chosen term. Was: Another name for handlebar PIN in the source; D3 picks one term.	noun phrase	no	pin	Claude proposal; nothing official found
+proximity-unlock	Entsperrung per Nähe | Entsperren per Nähe	Unlocking when the paired phone is near.	noun phrase	no	pin	official: NAVEE XT5 EU guide, DE (Entsperrung per Bluetooth-Nähe)
+pair	koppeln | Kopplung | gekoppelt	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	official: NAVEE XT5 EU guide, DE
+connect	verbinden | Verbindung | verbunden	Start the Bluetooth link to the scooter.	verb	no	-	official: NAVEE XT5 EU guide, DE
+disconnect	trennen | getrennt | Trennung	End the Bluetooth link to the scooter.	verb	no	-	established de usage
+connection-details	Verbindungsdetails	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	established de usage
+signal-lost	Signal verloren	The Bluetooth link dropped.	clause	no	-	established de usage
+parked	geparkt	Stationary; some changes require it.	adjective	no	ride	Claude proposal; nothing official found
+model-id	Modell-ID	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	established de usage
+firmware	Firmware	The scooter's software. Volt never changes it.	noun	no	-	official: NAVEE XT5 EU guide, DE
+compatibility-check	Kompatibilitätsprüfung	A read-only check of what this scooter supports.	noun phrase	no	-	established de usage
+compatibility-checker	Kompatibilitätsprüfung	The screen that runs the compatibility check.	noun phrase	no	-	established de usage
+compatibility-report	Kompatibilitätsbericht	The emailed result of the compatibility check. The UI is translated; the report content stays English.	noun phrase	no	-	established de usage
+report-an-issue	Problem melden	Send an email to Volt with an English attachment.	verb phrase	no	privacy	established de usage
+diagnostics	Diagnose | Diagnosedaten	The section that collects the information a report sends.	noun	no	privacy	established de usage
+diagnostics-file	Diagnosedatei	The English attachment sent with a report.	noun phrase	no	privacy	established de usage
+experimental-controls	Experimentelle Funktionen | experimentellen Funktionen | Experimentell | Exp. Funkt.	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	Claude proposal; nothing official found
+untested-controls	Funktionen zum Ausprobieren | Zum Ausprobieren	D3 retires this English term (card title becomes Controls to try). Same German as the chosen term. Was: Another name for Experimental controls in the source (the card title); D3 picks one term.	noun phrase	no	experimental	Claude proposal; nothing official found
+try	ausprobieren | ausprobiert | Versuch	Attempt an experimental control on this scooter.	verb	no	experimental	Claude proposal; nothing official found
+set-back	zurücksetzen	Restore the value a try changed.	verb phrase	no	experimental	official: NAVEE XT5 EU guide, DE
+help-verify	beim Prüfen helfen	Ask the rider to confirm what a try did.	verb phrase	no	experimental	Claude proposal; nothing official found
+unverified	nicht verifiziert | ungeprüft	Volt has not confirmed the control on this model.	adjective	no	experimental	Claude proposal; nothing official found
+untested	ungetestet	No one has tried the control on this model yet.	adjective	no	experimental	Claude proposal; nothing official found
+unconfirmed	unbestätigt	The scooter acknowledged a try, but the value was not kept or read back.	adjective	no	experimental	Claude proposal; nothing official found
+refused-by-scooter	vom Scooter abgelehnt | abgelehnt	The scooter rejected the try.	adjective phrase	no	experimental	Claude proposal; nothing official found
+worked-here	hat hier funktioniert | funktioniert	The try worked on this scooter.	clause	no	experimental	Claude proposal; nothing official found
+readback	Rücklesen | Rücklesewert | zurückgelesen	Whether the scooter reported the new value back.	noun	no	experimental	Claude proposal; nothing official found
+confirmed	bestätigt	The scooter read the new value back.	adjective	no	experimental	established de usage
+not-confirmed	nicht bestätigt	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	Claude proposal; nothing official found
+rejected	abgelehnt	The scooter refused the value.	adjective	no	experimental	established de usage
+acceleration-profile	Beschleunigungsprofil	How hard the motor accelerates.	noun phrase	no	ride	established de usage
+acceleration-eco	Eco	The gentle acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	D3: dnt
+acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	D3: dnt
+energy-recovery	Energierückgewinnung | Rückgewinnung	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	official: naveetech.de
+regen	Energierückgewinnung | Rückgewinnung	D3 retires this English term (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Same German as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun	no	ride	official: naveetech.de
+motor-braking	Energierückgewinnung | Rückgewinnung	D3 retires this English term (energy recovery chosen). Same German as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun phrase	no	ride	official: naveetech.de
+energy-recovery-off	Aus	An Energy recovery level.	adjective	no	ride	established de usage
+energy-recovery-low	Niedrig	An Energy recovery level.	adjective	no	ride	established de usage
+energy-recovery-medium	Mittel	An Energy recovery level.	adjective	no	ride	established de usage
+energy-recovery-high	Hoch	An Energy recovery level.	adjective	no	ride	established de usage
+cruise-control	Tempomat	Holds the current speed.	noun phrase	no	ride	established de usage
+traction-control	Traktionskontrolle	Limits wheel spin.	noun phrase	no	ride	official: naveetech.de
+overspeed-active-control	Aktive Tempokontrolle | aktiven Tempokontrolle	Brakes the motor above the speed limit.	noun phrase	no	ride	Claude proposal; nothing official found
+hill-descent-control	Bergabfahrhilfe	Holds a steady speed downhill.	noun phrase	no	ride	established de usage
+dual-motor-drive	Doppelmotorantrieb | Doppelmotor	Both motors drive.	noun phrase	no	ride	Claude proposal; nothing official found
+single-motor	Einzelmotor	Only one motor drives.	noun phrase	no	ride	Claude proposal; nothing official found
+kick-start-speed	Startgeschwindigkeit | Starttempo	The speed before the motor engages from a push.	noun phrase	no	ride	official: NAVEE XT5 EU guide, DE
+standing-start	Start aus dem Stand | aus dem Stand	The value 0 of Kick-start speed: the motor engages from a standstill. Not another name for the setting.	noun phrase	no	ride	Claude proposal; nothing official found
+custom-speed-cap	eigenes Tempolimit | eigenen Tempolimit | eigene Geschwindigkeitsbegrenzung	D3 renames this row to custom-speed-limit. A rider-set speed limit below Maximum speed.	noun phrase	no	ride	official: NAVEE XT5 EU guide, DE (Geschwindigkeitsbegrenzung)
+drive-mode-speed-cap	Tempolimit des Fahrmodus | Fahrmodus-Tempolimit	D3 renames this row to drive-mode-speed-limit. The speed limit of one drive mode.	noun phrase	no	ride	Claude proposal; nothing official found
+maximum-speed	Höchstgeschwindigkeit | Max. Tempo	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	official: naveetech.de
+top-speed	Spitzengeschwindigkeit | Spitzentempo | Spitze	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	Claude proposal; nothing official found
+walk-assist	Schiebehilfe	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	established de usage
+power-assist	Kraftunterstützung	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	Claude proposal; nothing official found
+boost	Boost	Extra power in Sport mode.	noun	no	ride	established de usage
+low-battery-mode	Energiesparmodus	A battery toggle that limits power to save charge.	noun phrase	no	-	established de usage
+long-range-mode	Langstreckenmodus	A battery toggle that trades speed for distance.	noun phrase	no	-	Claude proposal; nothing official found
+tail-light	Rücklicht	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	official: naveetech.de
+automatic-lights	Automatisches Licht | automatischen Licht	Lights that switch on by themselves.	noun phrase	no	-	official: naveetech.de (Automatisches Scheinwerferlicht)
+line-lights	Lichtleiste | Lichtleisten	A light strip on the scooter.	noun phrase	no	-	Claude proposal; nothing official found
+star-lights	Sternlicht | Sternlichter	A light pattern on the scooter.	noun phrase	no	-	Claude proposal; nothing official found
+ambient-light	Ambientelicht	Decorative light on the scooter.	noun phrase	no	-	established de usage
+logo-light	Logo-Licht	The lit logo on the scooter.	noun phrase	no	-	Claude proposal; nothing official found
+daytime-running-light	Tagfahrlicht	A light that stays on while riding by day.	noun phrase	no	-	official: naveetech.de
+turn-signal	Blinker | Blinkers | Blinkerton	The turn indicator; in Volt, the control for its sound.	noun phrase	no	-	official: NAVEE XT5 EU guide, DE
+prompt-sound	Signalton | Signaltöne	The scooter's beeps.	noun phrase	no	-	official: NAVEE XT5 EU guide, DE
+follow-headlight	Folgt Scheinwerfer | Folgt dem Scheinwerfer	A light setting that follows the headlight.	noun phrase	no	-	Claude proposal; nothing official found
+always-on	Immer an	A light setting that never switches off.	adjective phrase	no	-	established de usage
+light-red	Rot	A light colour.	adjective	no	-	established de usage
+light-ice-blue	Eisblau	A light colour.	adjective	no	-	established de usage
+dashboard-units	Einheiten am Scooter-Display | Display-Einheiten	D3 retires this English term (scooter display units chosen). Same German as the chosen term. Was: Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	official: NAVEE XT5 EU guide, DE (Display)
+scooter-display-units	Einheiten am Scooter-Display | Display-Einheiten	Units on the scooter's own display. Keep distinct from Volt's Home Dashboard.	noun phrase	no	-	official: NAVEE XT5 EU guide, DE (Display)
+miles	Meilen	A display unit choice.	noun	no	-	established de usage
+kilometers	Kilometer	A display unit choice.	noun	no	-	established de usage
+dashboard	Dashboard	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	established de usage
+widget	Widget | Widgets	A tile on the Dashboard.	noun	no	-	established de usage
+quick-access	Schnellzugriff	D3 retires this English term (The UI says Quick settings (dashboard_quick_settings). Rows for what is actually shown serve better; add quick-settings if translators need one. (orphan on: main, overlay)). Same German as the chosen term. Was: The row of shortcut actions on the Dashboard.	noun phrase	no	-	established de usage
+live-stats	Live-Daten	The telemetry pages.	noun phrase	no	-	Claude proposal; nothing official found
+readings	Messwerte | Messwert | Messwerten	Telemetry values the scooter reports.	noun	no	-	established de usage
+readings-history	Messwertverlauf	Stored telemetry.	noun phrase	no	-	Claude proposal; nothing official found
+odometer	Kilometerzähler | km-Zähler	Total distance. The narrow-label ladder is full, then abbreviated, then icon, with no mid-word breaks.	noun	no	-	established de usage
+odometer-short	Gesamt | km-Zähler	The abbreviated rung of Odometer.	abbreviation	no	-	Claude proposal; nothing official found
+trip	Trip | Trips	Distance since the last reset.	noun	no	-	established de usage
+range-estimate	Reichweitenschätzung	Remaining-distance estimate.	noun phrase	no	-	official: naveetech.de (Reichweite)
+learned-range	gelernte Reichweite | gelernten Reichweite	D3 retires this English term (The UI says Volt (learned) and learned curves; the phrase never appears. (orphan on: main, overlay)). Same German as the chosen term. Was: A range estimate learned from this scooter's rides.	noun phrase	no	-	official: naveetech.de (Reichweite)
+theoretical	Theoretisch	A range basis: the maker's figure.	adjective	no	-	Claude proposal; nothing official found
+actual-riding	Tatsächliche Fahrweise | tatsächlichen Fahrweise	A range basis: how this scooter has really been ridden.	noun phrase	no	-	Claude proposal; nothing official found
+charge-limit	Ladegrenze	The maximum charge percentage.	noun phrase	no	charge	Claude proposal; nothing official found
+charge-ceiling	Ladegrenze	D3 retires this English term (charge limit chosen; ceiling stays only as a search keyword). Same German as the chosen term. Was: Another name for Charge limit in the source; D3 picks one term.	noun phrase	no	charge	Claude proposal; nothing official found
+scheduled-charging	Geplantes Laden | geplanten Laden	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	official: NAVEE XT5 EU guide, DE
+charge-start	Ladestart	When scheduled charging begins.	noun phrase	no	charge	Claude proposal; nothing official found
+charging-start-time	Ladestartzeit	The setting for when scheduled charging begins.	noun phrase	no	charge	Claude proposal; nothing official found
+next-charge-start	Nächster Ladestart | nächsten Ladestart	When the next scheduled charge begins.	noun phrase	no	charge	Claude proposal; nothing official found
+charge-done-by	Geladen bis	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	Claude proposal; nothing official found
+test-scheduled-charging	Geplantes Laden testen	A check of the scooter's clock and schedule.	verb phrase	no	charge	official: NAVEE XT5 EU guide, DE (Geplantes Laden)
+measure	messen | Messung	Watch the charger for about 10 minutes before planning.	verb	no	charge	established de usage
+measuring	wird gemessen | Messung läuft	The state while Volt measures the charger.	verb	no	charge	established de usage
+battery-alerts	Akkuwarnungen | Akkuwarnung	Alerts on models without a charge limit.	noun phrase	no	alarm	Claude proposal; nothing official found
+charge-alert	Ladewarnung | Ladewarnungen	An alert when charging reaches a level.	noun phrase	no	alarm	Claude proposal; nothing official found
+low-battery-alert	Warnung bei niedrigem Akkustand | Akkuwarnung	An alert when the battery falls to a level.	noun phrase	no	alarm	official: NAVEE XT5 EU guide, DE (Akkustand)
+notify-me	Mich benachrichtigen | Benachrichtige mich	Choose a notification for an alert.	verb phrase	no	alarm	established de usage
+alarm-sound	Alarmton	Choose a sounding alarm for an alert.	noun phrase	no	alarm	established de usage
+stop	Stopp | stoppen	Silence a sounding alarm.	verb	no	alarm	established de usage
+stop-watching	Überwachung beenden	End an alert's watch.	verb phrase	no	alarm	Claude proposal; nothing official found
+charge-recording	Ladeaufzeichnung | Ladeaufzeichnungen	A recorded charging session.	noun phrase	no	charge	Claude proposal; nothing official found
+charger-profile	Ladegerätprofil	D3 retires this English term (The UI says Charger for estimates; the phrase never appears. (orphan on: main, overlay)). Same German as the chosen term. Was: What Volt has learned about a charger, for estimates.	noun phrase	no	charge	official: NAVEE XT5 EU guide, DE (Ladegerät)
+time-to-full	Restladezeit | Zeit bis voll	The estimated time until the battery is full.	noun phrase	no	charge	established de usage
+rides	Fahrten | Fahrt	Recorded ride data and its screen.	noun	no	-	established de usage
+ride-recording	Fahrtaufzeichnung	Recording a ride.	noun phrase	no	-	Claude proposal; nothing official found
+phone-journal	Telefon-Fahrtenbuch | Fahrtenbuch	Rides recorded by the phone's GPS.	noun phrase	no	-	Claude proposal; nothing official found
+motion	Bewegung | Bewegungsdaten	Movement data of a ride.	noun	no	-	Claude proposal; nothing official found
+route	Route | Routen	The path of a ride on the map.	noun	no	-	established de usage
+backup	Backup | Backups	A file of Volt's data.	noun	no	privacy	established de usage
+full-backup	Vollständiges Backup | vollständigen Backup	A backup of everything.	noun phrase	no	privacy	established de usage
+selected-data	Ausgewählte Daten | ausgewählten Daten	A backup of the chosen parts.	noun phrase	no	privacy	established de usage
+restore	wiederherstellen | Wiederherstellung	Put a backup's data back.	verb	no	privacy	established de usage
+replace-everything	Alles ersetzen	A restore that replaces all of Volt's data.	verb phrase	no	privacy	established de usage
+owner-setup-file-scooter-access	Besitzer-Einrichtungsdatei · nur Scooter-Zugriff	A backup choice that holds only the owner key.	noun phrase	no	owner-key	Claude proposal; nothing official found
+simulated-scooter	Simulierter Scooter | simulierten Scooter	Demo mode with no real scooter.	noun phrase	no	-	Claude proposal; nothing official found
+simulation	Simulation	The demo mode itself.	noun	no	-	established de usage
+shared-rider	Mitnutzer | Mitnutzers | Mitnutzern	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	Claude proposal; nothing official found; D3 new row
+owner-file	Besitzerdatei | Besitzerdateien	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	Claude proposal; nothing official found; D3 new row
+pin-unlock	PIN-Entsperrung	The toggle that enables the handlebar PIN.	noun phrase	no	pin	official: NAVEE XT5 EU guide, DE (Entsperrung mit Code); D3 new row
+controls-to-try	Funktionen zum Ausprobieren | Zum Ausprobieren	The card of untried controls in Experimental controls.	noun phrase	no	experimental	Claude proposal; nothing official found; D3 new row
+lab-badge	LAB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	Claude proposal; nothing official found; D3 new row
+eco-estimate	Eco-Schätzung	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	Claude proposal; nothing official found; D3 new row
+maximum-speed-short	Max. Tempo | Höchstgeschw.	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	Claude proposal; nothing official found; D3 new row
+speed-limit	Tempolimit | Geschwindigkeitsbegrenzung	A limit below Maximum speed; the general word for the two rows above.	noun phrase	no	ride	official: NAVEE XT5 EU guide, DE (Geschwindigkeitsbegrenzung); D3 new row
+scooter-display	Scooter-Display | Display	The screen on the scooter itself.	noun phrase	no	-	official: NAVEE XT5 EU guide, DE (Display); D3 new row
+display-sound	Display & Ton	The settings group for the scooter's display and sounds. Display here is the scooter's, not Volt's Dashboard.	noun phrase	no	-	Claude proposal; nothing official found; D3 new row
+custom-speed-limit	eigenes Tempolimit | eigenen Tempolimit | eigene Geschwindigkeitsbegrenzung	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	official: NAVEE XT5 EU guide, DE (Geschwindigkeitsbegrenzung); D3 rename
+drive-mode-speed-limit	Tempolimit des Fahrmodus | Fahrmodus-Tempolimit	The speed limit of one drive mode.	noun phrase	no	ride	Claude proposal; nothing official found; D3 rename
