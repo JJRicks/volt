@@ -1033,6 +1033,79 @@ class SafetyJudgedTest(Base):
         self.assertEqual(self.decide_final()["outcome"], "fallback-english")
         self.assertEqual(self.requests()[self.KEY]["reason"], "safety-disagreement")
 
+    def haiku_back_confirmed(self):
+        """Pick google, store an independent claude-haiku-5 back-translation ("Alarm on") of it and
+        confirm that: the key is safety-judged with Haiku as its back-translator."""
+        self.judge([self.pick_google()])
+        self.assertEqual(self.import_back(self.backtranslation_reply(
+            self.backtranslation_prompt(), {self.KEY: "Alarm on"})), 0)
+        back = self.stored_backs()[self.KEY]
+        self.assertEqual((back["model"], back["back"]), ("claude-haiku-5", "Alarm on"))
+        old = self.judged_confirm(back="Alarm on")
+        self.judge([self.pick_google(), old])
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+        return old
+
+    def prompt_keys(self):
+        return json.loads(self.repo.read("l10n/work/es/common/prompts/backtranslation.request.%s.json" %
+                                         self.backtranslation_prompt()))["keys"]
+
+    def test_back_translator_that_later_drafts_is_requeued(self):
+        # Codex's sequence: the Haiku back-translation is confirmed, then Haiku drafts in this area
+        # (the picked Google text unchanged), so its back-translation is no longer independent.
+        old = self.haiku_back_confirmed()
+        self.assertEqual(self.claude_reply({"common_cancel": "Cancelar"}, name="haiku", model="claude-haiku-5"), 0)
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("also drafted", d["reason"])
+        # It is back-translated again, by a model that drafted nothing, which replaces the record.
+        self.assertIn(self.KEY, self.prompt_keys())
+        self.backtranslate()
+        self.assertIn("Alarma encendida", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
+        back = self.stored_backs()[self.KEY]
+        self.assertEqual((back["model"], back["target"], back["back"]),
+                         ("gemini-3.7-flash", "Alarma encendida", "Alarm activated"))
+        # The old confirm names Haiku's back-translation: it confirms nothing now.
+        self.assertEqual(self.requests()[self.KEY]["reason"], "safety-judged-confirmation")
+        self.assertEqual(self.requests()[self.KEY]["backtranslation"]["back"], "Alarm activated")
+        d = self.decide_final()
+        self.assertEqual(d["outcome"], "fallback-english")
+        self.assertIn("confirmed another text or back-translation", d["reason"])
+        self.judge([self.pick_google(), old, self.judged_confirm()])
+        d = self.decide_final()
+        self.assertEqual((d["outcome"], d["models"]["backtranslator"]), ("safety-judged", "gemini-3.7-flash"))
+        # Now independent again: it is not sent again.
+        self.assertNotIn(self.KEY, self.prompt_keys())
+
+    def test_independent_back_translation_is_still_skipped(self):
+        self.haiku_back_confirmed()
+        # Another model drafts; Haiku stays independent, so the key is not back-translated again.
+        self.assertEqual(self.claude_reply({"common_cancel": "Cancelar"}, name="sonnet", model="claude-sonnet-5"), 0)
+        self.assertNotIn(self.KEY, self.prompt_keys())
+        calls = len(self.fake.requests)
+        self.backtranslate()
+        self.assertGreater(len(self.fake.requests), calls)  # the unanimous keys, as before
+        for request in self.fake.requests[calls:]:
+            self.assertNotIn("Alarma encendida", json.dumps(request, ensure_ascii=False))
+        self.assertEqual(self.stored_backs()[self.KEY]["model"], "claude-haiku-5")
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+
+    def test_reported_model_that_drafted_is_requeued(self):
+        self.judge([self.pick_google()])
+        self.backtranslate()
+        # The stored record's model drafted nothing, but the model the provider reported did.
+        path = "l10n/work/es/common/backtranslation.jsonl"
+        rows = [dict(r, model="gemini-3.7-flash", model_reported="gemini-3.8-flash") if r["key"] == self.KEY else r
+                for r in translib.read_jsonl(self.repo.path(path))]
+        translib.write_jsonl(self.repo.path(path), rows)
+        self.judge([self.pick_google(), self.judged_confirm()])
+        self.assertIn("also drafted", self.decide_final()["reason"])
+        self.assertIn(self.KEY, self.prompt_keys())
+        self.backtranslate()
+        self.assertIn("Alarma encendida", self.fake.requests[-1][3]["contents"][0]["parts"][0]["text"])
+        self.assertEqual(self.stored_backs()[self.KEY]["model_reported"], "gemini-3.7-flash-001")  # the fake's report
+        self.assertEqual(self.decide_final()["outcome"], "safety-judged")
+
     def test_unanimous_safety_keys_keep_their_path(self):
         self.backtranslate()
         requests = self.requests()

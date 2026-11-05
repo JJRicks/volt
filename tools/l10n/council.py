@@ -1318,17 +1318,25 @@ def all_drafter_models(drafts):
     return set(d.model for d in drafts) | set(d.model_reported for d in drafts)
 
 
+def independent_backtranslator(model, model_reported, drafters):
+    """True when neither the model asked nor the model the provider reported drafted in this area
+    (drafters: all_drafter_models()). A back-translation counts only while this holds."""
+    return model not in drafters and model_reported not in drafters
+
+
 # ---------------------------------------------------------------------------
 # Back-translation
 # ---------------------------------------------------------------------------
 
-def backtranslation_targets(states, judged=None, backs=None):
+def backtranslation_targets(states, judged=None, backs=None, drafters=frozenset()):
     """The safety keys to back-translate, as KeyStates whose agreed field is the text to back-translate.
 
     Every unanimous safety key, with its agreed text (as before 2026-11-05). Then, for a safety key
     whose drafts disagree, the text the judge picked or merged (judged: judged_safety_texts()), with
     the state's agreed field replaced by that text; when backs (load_backtranslations()) is given, a
-    judged text that already has a current back-translation of exactly that text is left out.
+    judged text that already has a current back-translation of exactly that text is left out, but only
+    while that back-translation's model is still independent of drafters (all_drafter_models()): one
+    whose model drafted in the area since is queued again, for a model that drafted nothing to replace.
     """
     out = collections.OrderedDict()
     for key, state in states.items():
@@ -1341,7 +1349,9 @@ def backtranslation_targets(states, judged=None, backs=None):
         if items is None:
             continue
         target = state._replace(agreed=items)
-        if backs is not None and current_backtranslation(target, backs.get(key)) is not None:
+        back = current_backtranslation(target, backs.get(key)) if backs is not None else None
+        if back is not None and independent_backtranslator(back.get("model"), back.get("model_reported"),
+                                                           drafters):
             continue
         out[key] = target
     return out
@@ -1428,7 +1438,7 @@ def backtranslate_prompt(pack, targets):
 
 
 def store_backtranslation(paths, pack, targets, strings, provider, model, model_reported, drafters):
-    if model in drafters or model_reported in drafters:
+    if not independent_backtranslator(model, model_reported, drafters):
         raise translib.L10nError("%s drafted this area; a back-translation must come from a model that drafted "
                                  "nothing" % model)
     path = paths.work(pack["tag"], pack["area"], "backtranslation.jsonl")
@@ -1455,12 +1465,12 @@ def api_backtranslate(paths, provider, tag, area, model=None, prefer=None, use_j
     pack = packlib.load_pack(paths, tag, area)
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
+    drafters = all_drafter_models(drafts)
     targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
-                                      load_backtranslations(paths, pack))
+                                      load_backtranslations(paths, pack), drafters)
     if not targets:
         out.write("no safety keys to back-translate\n")
         return 0
-    drafters = all_drafter_models(drafts)
     model = pick_model(provider, "backtranslate", model, prefer, avoid=drafters)
     stored, reported = 0, model
     keys = list(targets)
@@ -1594,7 +1604,7 @@ def backtranslation_prompt_file(paths, tag, area, use_java=True):
     drafts = translib.list_drafts(paths, tag, area)
     states = analyze(paths, pack, drafts, use_java)
     targets = backtranslation_targets(states, judged_safety_texts(paths, pack, states, use_java),
-                                      load_backtranslations(paths, pack))
+                                      load_backtranslations(paths, pack), all_drafter_models(drafts))
     request = backtranslation_request(tag, area, targets)
     request_path = backtranslation_request_path(paths, tag, area, request["id"])
     if not os.path.exists(request_path):  # the same id is the same contents: never rewrite one
@@ -1870,7 +1880,8 @@ def decide(paths, tag, area, final=False, use_java=True):
                 pending.append((key, "a back-translation of the current text"))
                 rows[key] = row(entry, state, "fallback-english", "safety: the back-translation is of another text")
                 continue
-            if back.get("model") in drafters or back.get("model_reported") in drafters:
+            if not independent_backtranslator(back.get("model"), back.get("model_reported"), drafters):
+                pending.append((key, "a back-translation by a model that drafted nothing"))
                 rows[key] = row(entry, state, "fallback-english",
                                 "safety: the back-translator %s also drafted" % back.get("model"), back=back)
                 continue
@@ -1997,7 +2008,8 @@ def decide_judged_safety(entry, state, why, judged, ruling, back, drafters, pend
         pending.append((key, "a back-translation of the judged safety text"))
         return row(entry, state, "fallback-english", "safety: %s; the judged text has no back-translation" % why,
                    judge=selection)
-    if back.get("model") in drafters or back.get("model_reported") in drafters:
+    if not independent_backtranslator(back.get("model"), back.get("model_reported"), drafters):
+        pending.append((key, "a back-translation of the judged safety text by a model that drafted nothing"))
         return row(entry, state, "fallback-english",
                    "safety: the back-translator %s also drafted" % back.get("model"), judge=selection, back=back)
     if ruling is None or ruling["verdict"] != "confirm":
