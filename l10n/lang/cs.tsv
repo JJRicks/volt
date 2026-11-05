@@ -1,0 +1,17 @@
+# Czech. Claude-only proposal, drafted 2026-11-05; not final until the three-vendor debate. See l10n/README.md for each field.
+field	value
+tag	cs
+folder	values-cs
+endonym	Čeština
+wave	2
+status	draft
+formality	vy
+plurals	one,few,many,other
+quote_style	„…“ ‚…‘
+percent_style	%1$s %%
+decimal_style	1 234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english
