@@ -207,7 +207,7 @@ CI (`tools/l10n/ci_gates.py`) picks a kind from what changed since the merge bas
 
 | | `ordinary` | `batch` |
 |---|---|---|
-| New `src/` literal | Allowed; some need [a baseline entry](#hard-coded-text-and-baselines) | Only `""`, lower-case ids (letters and digits joined by `_` or `.`, two characters or more, such as `"ride_auto_export"`), and number-only formats such as `"%.1f"` (`%s` doesn't count) |
+| New `src/` literal | Allowed; some need [a baseline entry](#hard-coded-text-and-baselines) | Only `""`, lower-case ids (letters and digits joined by `_` or `.`, starting with a letter, two characters or more, such as `"ride_auto_export"`), and number-only formats such as `"%.1f"` (`%s` doesn't count) |
 | Code on a line holding a literal | Allowed | Refused; add a new statement on its own line |
 | Lint baselines (`l10n/baseline/`) | May grow | Shrink only |
 | Goldens | May change with `golden.sh --update`; say so in the PR | Must not change |
