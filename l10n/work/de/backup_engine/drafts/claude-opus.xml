@@ -8,7 +8,7 @@
     <string name="backup_engine_category_charges" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Ladevorgänge</string>
     <string name="backup_engine_category_history" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Messwertverlauf</string>
     <string name="backup_engine_category_scooter_preferences" volt:src="0f02a808e448b696f8f3497274bc7b5fb262ca5d">Einstellungen je Scooter</string>
-    <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Dadurch wird alles auf diesem Telefon ersetzt</string>
+    <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Alles auf diesem Telefon wird ersetzt</string>
     <string name="backup_engine_plan_destination" volt:src="a134bd15453918d4853314810a6c3b42ec86cfa7">„%1$s“ → %2$s</string>
     <string name="backup_engine_plan_scooters" volt:src="eb15ccd27f523e9ca84e41294b320674e622968b">Scooter: %1$d neu · %2$d bereits hier</string>
     <plurals name="backup_engine_plan_scooters_skipped" volt:src="553dda243a5e013b4eea7526c95cedba2e508ec6">
@@ -21,8 +21,8 @@
         <item quantity="other">%1$s für %2$d Scooter übersprungen · nicht wiederhergestellt</item>
     </plurals>
     <plurals name="backup_engine_plan_preferences" volt:src="42f76202eb5d61bcc9268f7d20c6cf620ccdbc0a">
-        <item quantity="one">App-Einstellungen: Dadurch wird %1$d Einstellung ersetzt</item>
-        <item quantity="other">App-Einstellungen: Dadurch werden %1$d Einstellungen ersetzt</item>
+        <item quantity="one">App-Einstellungen: %1$d Einstellung wird ersetzt</item>
+        <item quantity="other">App-Einstellungen: %1$d Einstellungen werden ersetzt</item>
     </plurals>
     <string name="backup_engine_plan_rides" volt:src="c449f5fa84a407dfc967b4955b93a95cf137c00f">Fahrten: %1$d neu · %2$d bereits hier · %3$d hier beibehalten</string>
     <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Ladevorgänge: %1$d neu · %2$d bereits hier · %3$d hier beibehalten</string>
@@ -105,12 +105,12 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Ungültiger Datensatz im verschlüsselten Backup.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Das Backup enthält unerwartete Daten am Ende.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Backup bereits abgeschlossen.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Wähle aus, was ins Backup aufgenommen werden soll.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Wähle aus, was ins Backup soll.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Es gibt zu viele Dateien für ein Backup.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Die Backup-Metadaten sind zu groß.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Die App-Daten haben sich während des Backups geändert. Versuche es erneut.</string>
     <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">Eine Aufzeichnung ist zu groß für ein Backup.</string>
-    <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Wähle eine Backup-Datei von Volt.</string>
+    <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Wähle eine Volt-Backup-Datei aus.</string>
     <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Die temporären Nutzdaten des Backups konnten nicht entfernt werden.</string>
     <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Das Backup erfordert eine neuere App-Version oder enthält ungültige Metadaten.</string>
     <string name="backup_engine_backup_invalid_metadata" volt:src="6f68482f72856b4a69891f453da13733a639915a">Das Backup enthält ungültige Metadaten.</string>
@@ -191,7 +191,7 @@
     <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">Im Backup fehlen Aufzeichnungsdateien.</string>
     <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Die Zuordnung zum Scooter fehlt.</string>
     <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">Die Liste der Fahrten ist inkonsistent.</string>
-    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Bei Messdaten des Telefons fehlt die zugehörige Fahrt.</string>
+    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Bei Messpunkten des Telefons fehlt die zugehörige Fahrt.</string>
     <string name="backup_engine_choose_destination_every_scooter" volt:src="9d0e8e7d2b492149ede88066de128fd38afc3b58">Wähle für jeden Scooter ein Ziel aus.</string>
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Gespeicherte Fahrten haben sich geändert. Prüfe das Backup erneut.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Die Wiederherstellung der Fahrten konnte nicht vorbereitet werden.</string>

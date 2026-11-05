@@ -17,8 +17,8 @@
         <item quantity="one">%1$d Prozent</item>
         <item quantity="other">%1$d Prozent</item>
     </plurals>
-    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Wird geladen</string>
-    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Wird geladen · %1$s</string>
+    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Akku lädt</string>
+    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Akku lädt · %1$s</string>
     <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Noch keine Messdaten</string>
     <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
         <item quantity="one">Diagramm der Messwerte in %1$s, %2$d Messpunkt. Angezeigte Achse: %3$s bis %4$s. Berühre das Diagramm, um die Messwerte anzusehen.</item>
@@ -43,7 +43,7 @@
     <string name="ui_stats_window_close" volt:src="01147b84972511e429ca6cff9f907e6970c319a6">Auswahl für das Zeitfenster des Diagramms schließen</string>
     <string name="ui_stats_window_choice" volt:src="ed21b93ccdc509b509d88711a9c68db69b4c1968">Zeitfenster des Diagramms: %1$s</string>
     <string name="ui_model_search_hint" volt:src="b6cf78eb8a42bbb927778912ce3aee32991bb81d">Modelle suchen</string>
-    <string name="ui_model_search_description" volt:src="43f70d2d031c9cef5c974068c150965ed578ab52">Scootermodelle suchen</string>
+    <string name="ui_model_search_description" volt:src="43f70d2d031c9cef5c974068c150965ed578ab52">Scooter-Modelle suchen</string>
     <string name="ui_model_not_sure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Nicht sicher</string>
     <string name="ui_model_not_listed" volt:src="bd99b08bd3910e7b0e64d3aee4722055d2208a76">Nicht aufgeführt</string>
     <string name="ui_model_use_typed" volt:src="a6722a0d44de10d9ed5f3d45a04799139bd771be">„%1$s“ verwenden</string>

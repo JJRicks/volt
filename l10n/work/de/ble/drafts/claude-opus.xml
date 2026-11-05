@@ -33,8 +33,8 @@
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · wird erneut versucht</string>
     <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · Änderung abgebrochen</string>
     <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · Änderung nicht bestätigt</string>
-    <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · wird neu verbunden, um zu bestätigen</string>
-    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Der Scooter hat Bluetooth möglicherweise neu gestartet · wird neu verbunden, um zu bestätigen</string>
+    <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · Verbindung wird zur Bestätigung neu aufgebaut</string>
+    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Der Scooter hat Bluetooth möglicherweise neu gestartet · Verbindung wird zur Bestätigung neu aufgebaut</string>
     <string name="ble_simulation_on" volt:src="9a071404250fdeb0dc8b004b7dddf5ca3007f4a6">Simulation an</string>
     <string name="ble_simulation_off" volt:src="b3b027cf8fec2759dbb726557304098b6251a539">Simulation aus</string>
     <string name="ble_simulated_connection" volt:src="30ec556a62e2fafa48ac2dcbf14d67e7368d0eec">Simulierte Verbindung</string>
@@ -69,21 +69,21 @@
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Nimm die Anfrage zur Bluetooth-Kopplung auf deinem Telefon an.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Die Bluetooth-Kopplung konnte nicht gestartet werden. Versuche es erneut.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">Die Bluetooth-Kopplung ist nicht verfügbar.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Der PIN-Status ist nicht angekommen. Tippe auf „PIN-Status lesen“, um es erneut zu versuchen.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Der PIN-Status ist nicht angekommen. Tippe auf „PIN-Status abfragen“, um es erneut zu versuchen.</string>
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Der PIN-Status ist mit dieser Firmware nicht verfügbar.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">PIN-Einstellungen erfordern das Besitzerprofil.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Kopple dieses Telefon, bevor du die Entsperrung per Nähe einschaltest</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Schalte vor der Entsperrung per Nähe eine eingerichtete Lenker-PIN ein</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Schalte eine eingerichtete Lenker-PIN ein, bevor du die Entsperrung per Nähe einschaltest</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Lies den PIN-Status und übernimm dann die Entsperrung per Nähe.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Verbinde dich als Besitzer des Scooters, um die PIN-Einstellungen zu lesen.</string>
-    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Schalte die Entsperrung per Nähe aus, bevor du die zugehörige Lenker-PIN ausschaltest.</string>
+    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Schalte die Entsperrung per Nähe aus, bevor du die Lenker-PIN ausschaltest, die als Ersatz für sie dient.</string>
     <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Lies zuerst den aktuellen PIN-Status.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Schließe zuerst den geführten Test ab</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Kompatibilitätsprüfung gestoppt</string>
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Kompatibilitätsprüfung abgeschlossen</string>
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Schließe zuerst den laufenden Versuch ab</string>
-    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testdaten sind nicht verfügbar</string>
-    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Prüfe zuerst den nicht abgeschlossenen Versuch</string>
+    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testprotokolle sind nicht verfügbar</string>
+    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Überprüfe zuerst den nicht abgeschlossenen Versuch</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Nichts zurückzusetzen</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Konnte nicht zurückgesetzt werden. Es wurde nichts geändert.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Schließe zuerst den laufenden Test ab</string>
@@ -97,7 +97,7 @@
     <string name="ble_result_rejected" volt:src="3909a6b37661b392ed8c7b99dff3f45cbb7fff43">Abgelehnt (%1$s)</string>
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Vor dem Senden abgebrochen</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Geführter Test</string>
-    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Verbindung verloren, bevor sich die Sperre geändert hat</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Der Scooter hat die Änderung der Sperre nicht bestätigt</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Der Scooter war nicht bereit, die Sperre zu ändern. Versuche es erneut.</string>
+    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Verbindung verloren, bevor sich der Sperrstatus geändert hat</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Der Scooter hat die Änderung des Sperrstatus nicht bestätigt</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Der Scooter war nicht bereit, den Sperrstatus zu ändern. Versuche es erneut.</string>
 </resources>

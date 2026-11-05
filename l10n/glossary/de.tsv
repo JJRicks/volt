@@ -25,9 +25,9 @@ usb-debugging	USB-Debugging	Android's setting. Use Android's own localized wordi
 developer-options	Entwickleroptionen	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	Android de UI
 build-number	Build-Nummer	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	Android de UI
 electronic-lock	elektronische Sperre | elektronischen Sperre | elektronischer Sperre	Volt's lock control.	noun phrase	no	lock	official: NAVEE XT5 EU guide, DE (Sperre)
-lock	sperren | Sperre	The action that locks the scooter.	verb	no	lock	official: NAVEE XT5 EU guide, DE
+lock	sperren | Sperre | sperre	The action that locks the scooter.	verb	no	lock	official: NAVEE XT5 EU guide, DE
 locked	gesperrt	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	official: NAVEE XT5 EU guide, DE
-unlock	entsperren | Entsperrung	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	official: NAVEE XT5 EU guide, DE
+unlock	entsperren | Entsperrung | entsperre	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	official: NAVEE XT5 EU guide, DE
 unlocked	entsperrt	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	official: NAVEE XT5 EU guide, DE
 lock-bar	Sperrleiste	The lock row on Home.	noun phrase	no	lock	Claude proposal; nothing official found
 lock-state-unverified	Sperrstatus nicht verifiziert	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	Claude proposal; nothing official found
@@ -131,7 +131,7 @@ next-charge-start	Nächster Ladestart | nächsten Ladestart | nächste Ladestart
 charge-done-by	Fertig geladen bis | Fertig bis	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	Claude proposal; nothing official found
 test-scheduled-charging	Geplantes Laden testen	A check of the scooter's clock and schedule.	verb phrase	no	charge	official: NAVEE XT5 EU guide, DE (Geplantes Laden)
 measure	messen | miss | gemessen | Messung	Watch the charger for about 10 minutes before planning.	verb	no	charge	established de usage
-measuring	wird gemessen | Messung läuft	The state while Volt measures the charger.	verb	no	charge	established de usage
+measuring	wird gemessen | Messung läuft | während der Messung | Messung	The state while Volt measures the charger.	verb	no	charge	established de usage
 battery-alerts	Akkuwarnungen | Akkuwarnung	Alerts on models without a charge limit.	noun phrase	no	alarm	Claude proposal; nothing official found
 charge-alert	Ladewarnung | Ladewarnungen	An alert when charging reaches a level.	noun phrase	no	alarm	Claude proposal; nothing official found
 low-battery-alert	Warnung bei niedrigem Akkustand | Niedriger Akkustand	An alert when the battery falls to a level.	noun phrase	no	alarm	official: NAVEE XT5 EU guide, DE (Akkustand)

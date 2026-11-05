@@ -111,6 +111,7 @@ In the labels measured here German is 40-65% wider than English (Odometer 57.7dp
 | Experimentell | Exp. | Exp. Funkt. | Experim. |
 | ungefähr, geschätzt | ca., before a number only | ca. 25 km. One exception: `stats_health_chip`, a separate 40dp tag after the figure, is "ca." ("Geschätzt" is 41.5dp at 9sp) | gesch., Kapazität ca., Reichweite ca. |
 | Installieren | Install. | `owner_shizuku_install` | Inst. |
+| Firmware | -FW, on a `_compact` rung only | Motor-FW, Akku-FW | Firmw. |
 
 Avoid an abbreviation in a sentence, except the common z. B., ca., d. h., with spaces inside. Never abbreviate
 safety words (section 6), except "Exp. Funkt.". "Funkt." can read as the verb funkt, so the debate should weigh "Exp. Funkt."
@@ -146,7 +147,8 @@ against the real word "Labor" (31.8dp at 12sp); D3 lets a language use its own s
   (`charge_done_by` and `charge_done_time`; "Fertig geladen bis" is 99.3). English overflows on
   several of these already, where the check only warns; "Einstellungen" alone would turn the Settings key
   into an error.
-- `dashboard_model_tile_top_speed`, 90dp at 12.5sp: Max. Tempo.
+- `dashboard_model_tile_top_speed`, 90dp at 12.5sp: Max. Tempo. `dashboard_model_tile_charge_schedule`, 90dp: Ladezeitplan 74.7 (Geplantes Laden is 97.0).
+- In `dashboard_model_qa_*` the rung names run against the widths: the plain key is 64dp and `_short` is 90dp. So the plain key gets the **narrower** text. Narrow forms: Meine Scooter → Scooter 42.6, Scooter-Name → Name 32.7, Display & Ton → Display 41.5, Daten & Verlauf → Daten 33.4, Info & Rechte → Info 22.3. The 90dp rung keeps the longer text; "Daten, Verlauf" stays because "Daten & Verlauf" is 92.7 at 12.5sp. "Rechte" alone reads as legal rights, so Info & Rechte goes to the judge.
 - `owner_shizuku_install`, 48dp at 14sp: "Installieren" is 72.7. Use "Install.".
 
 **Compounds.** Line breaking follows only spaces and real hyphens. German compounds never get an invented
@@ -158,14 +160,17 @@ break.
 - **May take a hyphen, in this exact spelling,** because the closed form misreads or is too long to fit:
   Besitzer-Einrichtung, Besitzer-Einrichtungsdatei (closed reads like furniture), Akku-Einstellungen, Fahr-Einstellungen,
   Scooter-Display, Scooter-Name, Display-Einheiten, Telefon-Fahrtenbuch, Fahrmodus-Tempolimit, Logo-Licht,
-  Live-Daten, Trip-Strecke, Trip-Zeit, Mitnutzer-Schlüssel, Auslese-Skript, Eco-Schätzung.
+  Live-Daten, Trip-Strecke, Trip-Zeit, Mitnutzer-Schlüssel, Auslese-Skript, Eco-Schätzung, D-Modus-Schätzung, Online-Karte,
+  Akku-Übersicht, Akku-Vorzeichen, Akku-Messpunkte, Akku-Seriennummer, Fahrten-Backups.
+- **Ordinary hyphen compounds with a loanword or proper first element are allowed** without listing: Scooter-, Widget-, Dashboard-, Layout-, GPS-, NAVEE-, Trip- (Scooter-Modelle, Scooter-Profil, Dashboard-Layout, Widget-Größe). Write them one way: always hyphenated.
+- **A label prefers a compound over "X des Y"** where the compound stays at three stems or fewer: Telefonposition, not "Position des Telefons". The genitive stays in sentences and long descriptions.
 - **Stay closed; do not hyphenate:** Besitzerschlüssel, Besitzerdatei, Besitzerprofil, Energierückgewinnung, Kilometerzähler,
   Höchstgeschwindigkeit, Spitzengeschwindigkeit, Startgeschwindigkeit, Geschwindigkeitsbegrenzung, Kompatibilitätsprüfung,
   Kompatibilitätsbericht, Reichweitenschätzung, Beschleunigungsprofil, Ladegrenze, Ladestart, Akkustand, Akkuspannung,
   Akkuwarnung, Sperrstatus, Sperrdauer, Sperrleiste, Messwertverlauf, Traktionskontrolle, Bergabfahrhilfe.
 - Do not coin a new compound of more than three stems. Split it: "Tempolimit des Fahrmodus", not
   "Fahrmodustempolimit"; "Warnung bei niedrigem Akkustand", not "Niedrigakkustandswarnung".
-- Add a hyphen to a compound only if it is on these lists. Anything else goes to the judge with a note.
+- Any other hyphen goes to the judge with a note.
 
 ## 6. Safety wording
 
@@ -257,7 +262,7 @@ Android's settings keep Android's German: **USB-Debugging**, **Entwickleroptione
 - Separable verbs split in sentences: "Schalte den Alarm aus." Keep the particle at the end of the clause.
 - Keep a sentence's negation next to the word it negates: "nicht verifiziert", "nicht bestätigt".
 - English "Excludes…" (`stats_diagnostics_privacy`, `stats_diagnostics_export_description`) is not "Ohne…": that fails the polarity check, because the English has no negation word. Write "Ausgenommen: Besitzerschlüssel und PIN".
-- German does not inflect in the check: only the listed forms match. Every adjective phrase row lists the -e, -en, -em, -er and -es forms it needs ("das geplante Laden", "beim geplanten Laden", "des geplanten Ladens").
+- German does not inflect in the check: only the listed forms match, so a verb row also lists its imperative (entsperre, sperre) and a state row its prepositional form (während der Messung). Never quote a check term as a pseudo-status to pass the check ("im Status „Messung läuft“"). Every adjective phrase row lists the -e, -en, -em, -er and -es forms it needs ("das geplante Laden", "beim geplanten Laden", "des geplanten Ladens").
 
 **Regions.** One `values-de` serves Germany, Austria and Switzerland. Swiss readers see ß. Do not use regional words.
 
@@ -303,8 +308,32 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **App** (die). Never Anwendung or Applikation. |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinden**, with the rider or Volt as subject: "Verbinde dich mit dem Scooter.", "Volt verbindet sich mit dem Scooter." Button: **Verbinden**. Not "Verbinde den Scooter", which reads as plugging something in. |
 | set a value | one verb for setting a value on the scooter | **einstellen**: "Tempolimit einstellen". Not setzen or festlegen. |
-| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Dadurch wird/werden … + participle**: "Dadurch wird alles auf diesem Telefon ersetzt." Not "Entfernt…" or "Ersetzt…", which read as done or as a command to several people, and not "Entferne…". |
-| screen and section titles | noun form or verb form, with one example | **Noun form**: "Geplantes Laden", "Kompatibilitätsprüfung". Action buttons keep the infinitive of section 1. |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Plain passive with the thing as subject, no connector**: "Alles auf diesem Telefon wird ersetzt.", "Der Verlauf aller Scooter wird gelöscht." Not "Entfernt…" or "Ersetzt…", which read as done, and not "Entferne…". "Dadurch" only where the sentence before it really is the cause ("Wähle die Datei aus. Dadurch wird…"). `controls_experimental_speed_limit` keeps its old "Dadurch" until D3 lands. |
+| "Opens…", "Shows…" in hints | what a tap does, spoken by TalkBack after the label | **Third person**: "Öffnet die Fahrtdetails.", "Zeigt die Details neben der Liste an." In a du-address app this does not read as a plural command. Only for hints that open or show; anything destructive takes the passive above. |
+| screen and section titles | noun form or verb form, with one example | **Noun form** for a named section: "Geplantes Laden", "Kompatibilitätsprüfung". **Action form** for a picker or action sheet: "Verknüpfung auswählen", "Widget hinzufügen". Action buttons keep the infinitive of section 1. |
+| while measuring | a sentence saying what happened during a measurement | **während der Messung**. "Messung läuft" is the status label only and is never quoted inside a sentence. |
+| resumes at %1$s | charging is paused now and starts again later | **Fortsetzung des Ladens: %1$s**. Never a full sentence "Das Laden wird fortgesetzt." beside the placeholder, which reads as running now. Rule 4's label must keep the verb's meaning. |
+| charging (status) | the battery is taking charge | **Akku lädt**. **Wird geladen…** is only for a screen or data loading. The two must never share a string. |
+| configure a PIN | the PIN exists and is set up | **einrichten**: "eine eingerichtete Lenker-PIN". Different from a value you set (**einstellen**). "Set PIN" stays **PIN einstellen**. |
+| enabled, disabled (PIN, proximity) | the same on/off state as the rest of Volt | **Eingeschaltet / Ausgeschaltet**, verbs of the On/Off row. Developer options keep Android's own **aktiviert**. Debate aktivieren for the PIN. |
+| change the lock | the locked or unlocked state changes | **Sperrstatus ändern**, "die Änderung des Sperrstatus". Not "die Sperre ändern", which reads as changing the mechanism. |
+| read a value from the scooter | asking for a status or setting | **abfragen**: "PIN-Status abfragen", "Fahrtabfrage". **Auslesen** is reserved for capturing the owner key. |
+| acknowledged | the scooter answered; the value is not read back | **Quittiert**, Quittierung. Never bestätigt, which means read back. |
+| sign (plus or minus) | flags on a battery or temperature value | **Vorzeichen**: Akku-Vorzeichen, Temperaturvorzeichen. "Current sign" is **Stromrichtung**. Never Anzeichen. |
+| observed | data Volt captured | **erfasst**: "Ladeende nicht erfasst". Actual is **tatsächlich**. **beobachtet** only for what a person saw or Volt watched ("Wirkung beobachtet"). |
+| sample | one recorded data point in a ride or charge | **Messpunkt**. Messwert is a reading. |
+| sample while simulating | a value from Volt's simulation | **Simulation** on a live chart. "Beispiel" is for illustrative data. |
+| slot | a saved dashboard layout position | **Slot**. Never Speicherplatz, which means free storage, or Platz. |
+| forget a device | remove a scooter from this phone | **entfernen**: "Diesen Scooter entfernen". "Volt vergisst" stays for forgetting results. |
+| uncapped | without the charge limit | **ohne Ladegrenze**. Not "falls unbegrenzt". |
+| unfinished | a try or test that was interrupted | **nicht abgeschlossen**; `_short` rung only **Unfertig**. "No unfinished tests": **Keine offenen Tests**. |
+| review (a test or try) | look at it and decide | **überprüfen**. |
+| test record | the saved record of a test | **Testprotokoll**. Not Testdaten or Testaufzeichnung. |
+| chart window | the time span a chart shows | **Zeitfenster**. Not Zeitraum. |
+| the NAVEE app | the official app, named in a sentence | **NAVEE-App**, never bare NAVEE for the app. Bare NAVEE is for the company ("steht in keiner Verbindung zu NAVEE"). A photo description: **NAVEE-Scooter UT5 MAX**. |
+| X setting (raw) | a raw reading of a setting | **Einstellung für X (roh)**. Bytes stay uninflected after a number: "5 Byte". Spoken units take U+00A0 too: "1 Stunde". |
+| or newer | an Android version floor | **oder höher**. |
+| screen name in a sentence | a screen or feature named after a preposition | In quotes like a button: unter „Experimentelle Funktionen“. |
 
 ## 9. Sources consulted
 

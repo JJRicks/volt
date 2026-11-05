@@ -17,21 +17,21 @@
     <string name="dashboard_model_qa_line_lights_short" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Lichtleiste</string>
     <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Sternlicht</string>
     <string name="dashboard_model_qa_star_lights_short" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Sternlicht</string>
-    <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Display &amp; Ton</string>
+    <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Display</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Display &amp; Ton</string>
     <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN &amp; Nähe</string>
     <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN &amp; Nähe</string>
-    <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Scooter-Name</string>
+    <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Name</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Scooter-Name</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">App-Einst.</string>
     <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">App-Einst.</string>
-    <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Meine Scooter</string>
+    <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Scooter</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Meine Scooter</string>
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Exp. Funkt.</string>
     <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimentell</string>
-    <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Daten &amp; Verlauf</string>
+    <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Daten</string>
     <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0" volt:attempt="2">Daten, Verlauf</string>
-    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info &amp; Rechte</string>
+    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info</string>
     <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info &amp; Rechte</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Fertig bis</string>
     <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Fertig bis</string>
@@ -41,7 +41,7 @@
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Seiten</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimentelle Funktionen</string>
     <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Max. Tempo</string>
-    <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Geplantes Laden</string>
+    <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Ladezeitplan</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Wird aktualisiert…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (gelernt)</string>
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Scooter</string>
@@ -60,7 +60,7 @@
     <string name="dashboard_model_tile_desc_open" volt:src="d15196074cd770409167ffb0947503be92be30a5">, öffnen</string>
     <string name="dashboard_model_type_lock" volt:src="82a0196a396baea9ea97de4d9f644f07770d41a9">Sperre &amp; Verbindung</string>
     <string name="dashboard_model_type_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">Dein Scooter</string>
-    <string name="dashboard_model_type_battery" volt:src="d13a864d0e7b3a0e22bf742edbe9279b62770794">Akkuübersicht</string>
+    <string name="dashboard_model_type_battery" volt:src="d13a864d0e7b3a0e22bf742edbe9279b62770794">Akku-Übersicht</string>
     <string name="dashboard_model_type_metric" volt:src="0b439eb438e50b802e90a213d377bb188e1c4b46">Einzelner Messwert</string>
     <string name="dashboard_model_type_gauge" volt:src="c01b9c12acf940b5558e24cf251dc96b3c9fd490">Rundanzeige</string>
     <string name="dashboard_model_type_live" volt:src="c7464659b572ef8fabb68421a8d20ff788de9c72">Live-Verlauf</string>
@@ -77,12 +77,12 @@
     <string name="dashboard_model_type_overview" volt:src="9d6911af641123c82fada2174893c2d4a14caec0">Scooter-Übersicht</string>
     <string name="dashboard_model_type_tiles" volt:src="d9db99e8db5b3eb139a4cf1685c6035e37aa2593">Messwertkacheln</string>
     <string name="dashboard_model_type_shortcuts" volt:src="5f8ddee2b0a42b4c2b5f7a0bb9a05a2d5f25edbc">Einstellungskacheln</string>
-    <string name="dashboard_model_example_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Geschwindigkeit</string>
+    <string name="dashboard_model_example_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Tempo</string>
     <string name="dashboard_model_example_battery_charge" volt:src="b0d858ec349ad16f9864f07a805b2cfe61ebc35c">Akkustand</string>
     <string name="dashboard_model_example_electrical" volt:src="f66ec4436c5bfbb62fc0c6be45b855c504823083">Elektrische Messwerte</string>
     <string name="dashboard_model_example_battery_power" volt:src="4cf2ca4c83ab84b80bb85a0b328be5c34e0b4f9b">Akkuleistung</string>
     <string name="dashboard_model_example_charge_history" volt:src="49e4226b880f838ef8bcfcd1dfa7d282a5c3adb3">Ladeverlauf</string>
     <string name="dashboard_model_example_note" volt:src="0348b8f6a81497ac28d044e5fef53009c1222dde">Reifendruck prüfen</string>
-    <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Platz %1$s</string>
+    <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Slot %1$s</string>
     <string name="dashboard_model_slot_example" volt:src="0740b63c52f763156abb78cc674a59a536f7eb7e">Alle Widgets</string>
 </resources>

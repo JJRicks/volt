@@ -76,8 +76,8 @@
     <string name="backup_checking_scooters" volt:src="32d6c32212f987bde8a26bbc2435ee898ba418c4">Scooter werden geprüft…</string>
     <string name="backup_scooters_title" volt:src="92a76d55d86fe8e034053531773e32d3e8438564">Scooter</string>
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Für welchen Scooter ist diese Besitzer-Einrichtung?</string>
-    <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Layout geht an:</string>
-    <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Daten von „%1$s“ gehen an:</string>
+    <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Ziel für das Layout:</string>
+    <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Ziel für Daten von „%1$s“:</string>
     <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Mehr als ein Scooter kann diese Besitzer-Einrichtungsdatei verwenden. Wähle einen vorhandenen Scooter aus oder füge einen weiteren hinzu.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Scooter auswählen…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Weiteren Scooter hinzufügen</string>

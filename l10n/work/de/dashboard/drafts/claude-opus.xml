@@ -16,7 +16,7 @@
     <string name="dashboard_add_widget_limit" volt:src="0fd21782cc33d5c25a803f6aac5ff1d1f3f5b625">Widget hinzufügen, %1$s</string>
     <string name="dashboard_one_lock_widget" volt:src="f3470f7c64029e92524b62d16308b8b874deb7be">Nur ein Widget zum Sperren pro Dashboard</string>
     <string name="dashboard_duplicate_widget" volt:src="deb8350dab1d4a4ccd54c5f64ff2da02cbc35dd4">Widget duplizieren</string>
-    <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">Jetzt</string>
+    <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">gerade eben</string>
     <string name="dashboard_age_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
     <string name="dashboard_age_hours" volt:src="3708457c3189d22c84d3b9ea33b4e3a05a66e6fc">%1$s h</string>
     <string name="dashboard_age_days" volt:src="5c236b8f4ed35dad7fca64ecc28210f8c71429f7">%1$s Tg.</string>
@@ -29,9 +29,9 @@
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Bis Ladegrenze %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Zeit bis %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Bis %1$s</string>
-    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Zeit bis 100 %, falls unbegrenzt</string>
-    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Bis 100 %, falls unbegrenzt</string>
-    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 %, falls unbegrenzt</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Zeit bis 100 % ohne Ladegrenze</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Bis 100 % ohne Ladegrenze</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % ohne Ladegrenze</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Restladezeit (geschätzt)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Restladezeit (geschätzt)</string>
     <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Bis voll (geschätzt)</string>
@@ -39,9 +39,9 @@
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Ladeleistung</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Leistung</string>
     <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Restladezeit</string>
-    <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Wird geladen</string>
-    <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Wird geladen · Ladegrenze %1$s %%</string>
-    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Scooter NAVEE UT5 MAX</string>
+    <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Akku lädt</string>
+    <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Akku lädt · Ladegrenze %1$s %%</string>
+    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">NAVEE-Scooter UT5 MAX</string>
     <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Akkustand nicht gemeldet</string>
     <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
         <item quantity="one">Akkustand %1$d Prozent</item>
@@ -141,14 +141,14 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Zeitraum</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Benötigte Fahrten</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Bereich (90 %)</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ladungsmenge pro volle Akkuanzeige</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ladung für volle Akkuanzeige</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Ladeprüfung</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Abdeckung</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Akkutemperatur</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Abgelehnt</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Näherungswert: kann zu hoch sein; nicht der Akkuzustand.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie, die deine Fahrten pro volle Akkuanzeige entnommen haben. Kein Test des Akkuzustands oder der Kapazität.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie, die deine Fahrten entnommen haben, hochgerechnet auf eine volle Akkuanzeige. Kein Test des Akkuzustands oder der Kapazität.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Nutzbare Fahrenergie</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Beispiel · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Noch keine gespeicherten Messwerte</string>
@@ -160,10 +160,10 @@
     <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Bereits auf der Startseite</string>
     <string name="dashboard_close_add_widget" volt:src="350ff8b2fa60c268afc3623cc84fd18212323a86">„Widget hinzufügen“ schließen</string>
     <string name="dashboard_title" volt:src="f4ff3984e55c02995eed14b0a2fe7382981a7221">Titel</string>
-    <string name="dashboard_widget_title" volt:src="858080416dc370b07eff049863f9cb1a2e444c68">Titel des Widgets</string>
+    <string name="dashboard_widget_title" volt:src="858080416dc370b07eff049863f9cb1a2e444c68">Widget-Titel</string>
     <string name="dashboard_quick_settings" volt:src="f3329358b5dda50a7afa0b646cce04561401ef9b">Schnelleinstellungen</string>
-    <string name="dashboard_show_disconnect" volt:src="0b0d3e8ebe6d4196aaea351bd597e19dca32da48">Schaltfläche „Verbindung trennen“ anzeigen</string>
-    <string name="dashboard_show_disconnect_connected" volt:src="ef982990aaa48c1b684abb9cf6e388219485e358">Schaltfläche „Verbindung trennen“ anzeigen, wenn verbunden</string>
+    <string name="dashboard_show_disconnect" volt:src="0b0d3e8ebe6d4196aaea351bd597e19dca32da48">Schaltfläche „Trennen“ anzeigen</string>
+    <string name="dashboard_show_disconnect_connected" volt:src="ef982990aaa48c1b684abb9cf6e388219485e358">Schaltfläche „Trennen“ anzeigen, wenn verbunden</string>
     <string name="dashboard_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Scooter-Name</string>
     <string name="dashboard_parameter" volt:src="7e3362da027805cd737ba5112c124a578d8de639">Parameter</string>
     <string name="dashboard_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Messwerte</string>
@@ -180,14 +180,14 @@
     <string name="dashboard_color_blue" volt:src="0f91ab0b686194ff7844d62d60da8bddfc7e4fc3">Blau</string>
     <string name="dashboard_color_amber" volt:src="11b9e6ef050ba4916efbcf698f5ec223e3e2e55d">Bernstein</string>
     <string name="dashboard_color_rose" volt:src="3c59b2cdfaeee31f0b1d2692dff1a62d531b86f7">Rosa</string>
-    <string name="dashboard_save_widget_options" volt:src="9e0cb9cd67f08435b4528b10ac53e5ff4ec788ca">Optionen des Widgets speichern</string>
+    <string name="dashboard_save_widget_options" volt:src="9e0cb9cd67f08435b4528b10ac53e5ff4ec788ca">Widget-Optionen speichern</string>
     <plurals name="dashboard_selected_count" volt:src="e39d9259f1444c20fa9f4aacf4f146b0d34cd94e">
         <item quantity="one">%1$d ausgewählt</item>
         <item quantity="other">%1$d ausgewählt</item>
     </plurals>
     <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s von %2$s</string>
     <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
-        <item quantity="one">%1$d von %2$d Verknüpfung</item>
+        <item quantity="one">%1$d von %2$d Verknüpfungen</item>
         <item quantity="other">%1$d von %2$d Verknüpfungen</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Verknüpfung %1$s ändern, %2$s</string>
@@ -202,7 +202,7 @@
     <string name="dashboard_shortcut_selected" volt:src="d402d676908fb25f990be350c72f2b72a5e471e2">%1$s, %2$s, ausgewählt</string>
     <string name="dashboard_shortcut_toggle" volt:src="90915c6200c3a00184f2c6ab58e8d7ab70bab9f7">%1$s, %2$s, Schalter</string>
     <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Keine passenden Einstellungen</string>
-    <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Auswahl der Verknüpfung</string>
+    <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Verknüpfung auswählen</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Auswahl der Verknüpfung schließen</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Speichern</string>
     <string name="dashboard_window_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
@@ -220,7 +220,7 @@
     <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Modellangabe verwenden</string>
     <string name="dashboard_capacity_limit" volt:src="e950ce1d44324dbddf531e00ddfb58ba4b0603f5">0–10.000 Wh</string>
     <string name="dashboard_search_parameters" volt:src="a0d40f931c452fcc977d655b79ae45ec2e945478">Parameter suchen</string>
-    <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Auswahl des Parameters</string>
+    <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Parameter auswählen</string>
     <string name="dashboard_search_readings" volt:src="b2388f11c9bf3c80bfda85e216c8dea246ecbbab">Messwerte suchen</string>
     <string name="dashboard_count_of_selected" volt:src="3fe59a55d689fb3e35fcb68600edf1cd9fcce901">%1$s von %2$s ausgewählt</string>
     <string name="dashboard_all_readings" volt:src="2eebe68cde6c67da287eb233eb159616c2629193">Alle Messwerte</string>
@@ -228,13 +228,13 @@
     <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Keine passenden Messwerte</string>
     <string name="dashboard_choose_one_reading" volt:src="020ca0df31d814c9399faf2d946bccfb1f84e3c0">Wähle mindestens einen Messwert aus.</string>
     <string name="dashboard_save_readings" volt:src="d0e01a05386bd4feee0606f5ac2e68b046b3e1f0">Ausgewählte Messwerte speichern</string>
-    <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Auswahl der Messwerte</string>
+    <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Messwerte auswählen</string>
     <string name="dashboard_cancel_readings" volt:src="e4b17b6c5dbf2a6e2b9427b1bb305a019857689e">Auswahl der Messwerte abbrechen</string>
     <string name="dashboard_must_be_above" volt:src="6d99e9fc95e2f47592274cf569cc19a213982c86">Muss über %1$s liegen</string>
     <string name="dashboard_must_be_below" volt:src="ed308e2951f06cd71a3842bd378a89953d0fb762">Muss unter %1$s liegen</string>
     <string name="dashboard_columns" volt:src="6f72ece408a5c4ad7db41b0d6bc1245937250bde">Spalten</string>
     <string name="dashboard_rows" volt:src="e1b798d6d541d5e72ec6815b2ab4fc0c23d75ed2">Zeilen</string>
-    <string name="dashboard_widget_size" volt:src="9d7a29700c4f2773063cb038353afc831c5dc055">Größe des Widgets</string>
+    <string name="dashboard_widget_size" volt:src="9d7a29700c4f2773063cb038353afc831c5dc055">Widget-Größe</string>
     <string name="dashboard_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Übernehmen</string>
     <string name="dashboard_column" volt:src="6bd93e63042c6232129fe3cda8d46cb8baf891b8">Spalte</string>
     <string name="dashboard_row" volt:src="380769e7515f5b2603bb58fe0c415781c2dac7d2">Zeile</string>
@@ -247,23 +247,23 @@
     <string name="dashboard_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importieren</string>
     <string name="dashboard_default_layout" volt:src="37cc2ca0602648d00bb9cd435425223696ce8d44">Standardlayout</string>
     <string name="dashboard_restore_defaults" volt:src="fba123ce491ac60a0f652ee2c74cc24cb06c25ce">Standardwidgets wiederherstellen</string>
-    <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Layout des Dashboards</string>
-    <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Layout des Dashboards schließen</string>
+    <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Dashboard-Layout</string>
+    <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Dashboard-Layout schließen</string>
     <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Standard wiederhergestellt</string>
     <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Aktuelles Dashboard in Slot %1$s speichern</string>
     <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Wiederherstellen</string>
-    <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Speicherplatz %1$s wiederherstellen</string>
-    <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Speicherplatz %1$s wiederherstellen, %2$s</string>
+    <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Slot %1$s wiederherstellen</string>
+    <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Slot %1$s wiederherstellen, %2$s</string>
     <string name="dashboard_layout_name" volt:src="1511f633afa568e0f73e0bb2de30e3e26f2ad48f">Layoutname</string>
-    <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Gespeicherter Layoutname</string>
-    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Speicherplatz %1$s ersetzen?</string>
-    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">In Speicherplatz %1$s speichern?</string>
+    <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Name des gespeicherten Layouts</string>
+    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Slot %1$s ersetzen?</string>
+    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">In Slot %1$s speichern?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Ersetzen</string>
     <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Das Layout konnte nicht gespeichert werden. Versuche es erneut.</string>
-    <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">In Speicherplatz %1$s gespeichert</string>
+    <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">In Slot %1$s gespeichert</string>
     <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">„%1$s“ wiederherstellen?</string>
-    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Dadurch werden dein Layout und die Spalteneinstellung auf allen Scootern ersetzt.</string>
+    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Dein Layout und die Spalteneinstellung werden auf allen Scootern ersetzt.</string>
     <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Konnte nicht wiederhergestellt werden. Es wurde nichts geändert.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">„%1$s“ wiederhergestellt</string>
 </resources>
