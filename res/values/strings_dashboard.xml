@@ -21,13 +21,11 @@
     cannot move away from the statement around it without changing the rows' order. It waits for the
     gate tooling;
   - the header's "Connecting…" while it connects (connectingLabel): the text ends in U+FFFC, the
-    place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is not on
-    GlyphCoverageTest's allow-list (merged as #187, with U+2713, U+26A0 with U+FE0E, U+2606 and
-    U+2605), so it waits for a change that keeps only "Connecting…" in the catalog and appends the
-    placeholder in code where the span is set;
-  - the three "✓ Save" buttons (U+2713, on that list), which move with that same change. The widget
-    options and Choose readings buttons have translated spoken names (dashboard_save_widget_options,
-    dashboard_save_readings); the quick settings one is read as shown;
+    place of the inline spinner's ImageSpan, which the font never draws. GlyphCoverageTest refuses
+    U+FFFC in the catalog (it is not on the allow-list merged as #187), and G1 cannot follow the
+    word alone out of a literal that also holds the placeholder. It waits for an ordinary pull
+    request that splits the literal, so a batch can then move "Connecting…" and leave the
+    placeholder appended in code where the span is set;
   - the scale dialog's own number field (GaugeScaleInput) keeps US digits, so what is typed parses;
   - the chart's unit: chartUnit is a data unit that Ui.ChartView matches against UnitCode data codes
     and also draws and speaks (see chartUnit's javadoc), so it waits for ChartView to take a data
@@ -418,6 +416,8 @@
     <!-- Dialogs: time windows, capacity, readings, scale, size and position -->
     <!-- A dialog's or slot's Save button. -->
     <string name="dashboard_save" volt:screen="Dialogs" volt:purpose="button">Save</string>
+    <!-- The Save button of the widget options, quick settings and Choose readings sheets: keep the check mark. Read as shown in quick settings; the other two have their own spoken names. -->
+    <string name="dashboard_save_checked" volt:screen="Widget options, quick settings, Choose readings sheet" volt:purpose="button" volt:dnt="✓">✓ Save</string>
     <!-- A time window chip: %1$s is a whole number of minutes or hours; one day, one year and two years have their own. -->
     <string name="dashboard_window_minutes" volt:screen="Widget options" volt:purpose="choice">%1$s min</string>
     <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>
