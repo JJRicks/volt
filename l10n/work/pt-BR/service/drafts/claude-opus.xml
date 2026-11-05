@@ -124,7 +124,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" O Volt não conseguiu confirmar se a programação foi desativada. Desative o carregamento programado para que o carregamento continue."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertas de bateria</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de nível de carga, carga completa e bateria fraca que você ativa em “Patinete › Bateria”</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertas de bateria: nível de carga, carga completa e bateria fraca, que você ativa em “Patinete › Bateria”</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Parar</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Pare a gravação de carregamento antes de iniciar uma viagem</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Saia da simulação primeiro</string>

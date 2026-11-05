@@ -19,7 +19,7 @@ Rule of thumb: write what a Brazilian Android phone would say. Where Android has
 
 - Quotes: **“…”** first, **‘…’** inside. Never straight quotes in new text. Never « », which belong to European typography.
 - A sentence-final period goes outside closing quotes and parentheses: *Toque em “Salvar”.*
-- A sentence that names a button, tab or screen puts its exact label in “…”: *Toque em “Salvar”*, *abra “Detalhes da conexão”*. A feature mentioned in passing stays unquoted (section 3).
+- A sentence that names a button, tab or screen puts its exact label in “…”: *Toque em “Salvar”*, *abra “Detalhes da conexão”*. A feature mentioned in passing stays unquoted (section 3). Quotes belong to sentences: buttons, toggles and titles don't quote a label (*Ir para o Início*, *Permitir acesso a dispositivos por perto*).
 - Lists use commas, with no serial comma before *e* or *ou*.
 - Use the crase where it belongs: *à NAVEE*, *às 7:00*, *Volte à tela inicial*. Don't add it before a masculine noun or a verb.
 - A colon is followed by lower case unless a name follows: *Último valor: bloqueado*.
@@ -43,6 +43,7 @@ Rule of thumb: write what a Brazilian Android phone would say. Where Android has
 - **Unit symbols take a no-break space (U+00A0) after a number or placeholder:** *25 km/h*, *36 V*, *2 h 5 min*, *25 °C*. Never a plain space, and never U+202F, which Saira lacks. Symbols take no plural and no period: `km`, `mi`, `mph`, `h`, `min`, `s`, `V`, `A`, `W`, `Wh`, `Ah`. Unit words are translated: *quilômetros*, *milhas*, *quilômetros por hora*.
 - Numbers in the English stay in the Portuguese as digits. Don't write them out or change them.
 - Dates and times come from Volt's formatters, so don't hard-code an order. Brazil reads day, month, year and a 24-hour clock. A fixed date in prose reads *5 de março*. Don't write *a.m./p.m.* yourself. Around a time placeholder, prefer a colon or *até*: *Início: %1$s*, *até %1$s*. Never *às %1$s*: it would give *às 1:00* and *às 0:00*, where the norm is *à*, and grammar can't depend on a value you can't see.
+- **In “X of Y nouns” the noun agrees with the total,** so `one` keeps the plural: *%1$d de %2$d atalhos*.
 - **Plurals: `one` covers 0 and 1 in Brazilian Portuguese.** So an `one` form always keeps its count placeholder (`check.py` requires it) and has to read correctly with 0: *%1$d patinete*. Don't write *Um patinete* or *Nenhum patinete*. Copy `other` into `many`. The grammar only differs with a bare large number (*1 milhão de viagens*); a placeholder's digits don't trigger it, so the form stays the same.
 
 ## 5. Shortening labels for ladder rungs
@@ -68,7 +69,7 @@ An abbreviation ends in a consonant and a period, keeps its accents, and the per
 | estimado, estimada | **estim.** | 35 | *Autonomia estim.* (102). *est.* can read as *estado* |
 | aproximadamente | **aprox.** | | |
 | máximo, mínimo | **máx.**, **mín.** | | |
-| informações | **info**, no period | | *Info e permissões* is 102, so it wraps at a space on the 90dp tile |
+| informações | **info**, no period | | *Info e permissões* is 102: it wraps at a space on the 64dp shortcut. The one-line 90dp tile says *Permissões* |
 
 **Ladder examples from the catalog:**
 
@@ -81,9 +82,11 @@ An abbreviation ends in a consonant and a period, keeps its accents, and the per
 
 **Tile budgets.** At the 62dp welcome tiles and 64dp shortcut tiles (12.5sp and 12sp), these fit: *Bloqueio* 51, *Ajustes* 43, *Bateria* 42, *Viagens* 47, *Luzes* 33, and *Condução* 54 for Ride settings. *Configurações* (79 at 12sp) doesn't fit either, so those tiles say *Ajustes*, which Brazilians know from iPhone and which reads as an ordinary word. Everywhere there is room, Settings is *Configurações*.
 
-On the 90dp tiles, these fit on one line: *Meus patinetes* 89.5, *Dados ao vivo* 80, *Experimental* 77, *Programação* 77 for Charge schedule, *Visor e som* 67 (the scooter's display and sound, see section 7), *Luzes de linha* 83, *Limite de carga* 88. These only fit wrapped at a space, as the English does: *Luzes de estrela* 94, *Info e permissões*, *PIN e proximidade* 106, *Nome do patinete* 103, *Carga pronta até* 96.
+**Two tile kinds, and `_short` is the wider one.** `dashboard_model_qa_*` is the 64dp Quick access shortcut, whose label wraps with no line limit and `BREAK_STRATEGY_SIMPLE`, so a two-word label wraps at a space but any single word over 64dp breaks mid-word. `dashboard_model_qa_*_short` is the 90dp Setting tile, whose label is **one line with an end ellipsis** (`QuickAccessGrid.java:225`): it never wraps, and what doesn't fit is cut.
 
-*Experimental* is 74 at 12sp, over the 64dp shortcut budget, and it has no accepted shorter form. The English word has the same problem. Report it rather than cutting it. *Instalar* (`owner_shizuku_install`, 48dp at 14sp) measures 49.3, a hair over. Report that too; it isn't to be replaced by a word that means something else.
+On the 90dp tiles, these fit: *Meus patinetes* 89.5, *Dados ao vivo* 80, *Experimental* 77, *Programação* 77 for Charge schedule, *Visor e som* 67 (the scooter's display and sound, see section 7), *Luzes de linha* 83, *Limite de carga* 88, *Pronta até* 61, *Horário limite* 79, *Preferências* 73, *Permissões* 67, *Histórico*, *Nome*. Never *Carga pronta até* (96) here: the ellipsis leaves *Carga pronta…*, which section 6 forbids. Two have no good fit and are reported, not cut: *Luzes de estrela* 94 and *PIN e proximidade* 106. Tile value lines and readings `_compact` rungs have no budget yet (*Não programado* 140 at 18sp, *Ativado • 07:00* 131), so an ellipsis can hide the time there: report these.
+
+*Experimental* is 74 at 12sp, over the 64dp shortcut budget, and it has no accepted shorter form. The English word has the same problem. Report it rather than cutting it. *Preferências* (70) and *proximidade* (69.5) are the same case on that shortcut, new in Portuguese: report them. `FW` is not an accepted abbreviation; a version row drops the word (*Controlador*, *Proximidade*). *Instalar* (`owner_shizuku_install`, 48dp at 14sp) measures 49.3, a hair over. Report that too; it isn't to be replaced by a word that means something else.
 
 A two-word label may wrap at a space where the English also wraps.
 
@@ -110,6 +113,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Alarm sound | **Som de alarme** | |
 | Stop (a sounding alarm) | **Parar** | *Parar alarme* |
 | PIN | **PIN** | Masculine: *o PIN*. Plural *os PINs*. Not *código* or *senha* |
+| Lock state, PIN state, status | **Estado** | *Estado de bloqueio*, *Ler estado do PIN*, *Estado da resposta*. Never *status* |
 | Handlebar PIN | **PIN do guidão** | A password is **senha**; keep them separate. *PIN unlock* is **Desbloqueio por PIN** |
 | Owner key | **chave de proprietário** | A secret, not a physical key. "Not a password" is *Não é uma senha* |
 | Charge limit | **Limite de carga** | Never *teto*. See below on *carga* |
@@ -120,6 +124,9 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | not affiliated with NAVEE | **não afiliado à NAVEE** | Never soften it: no *não oficial*, *independente da*, *sem vínculo com*, *não associado diretamente*. In a sentence: *O Volt não é afiliado à NAVEE*. Footer: *Volt %1$s · não afiliado à NAVEE* |
 
 **Words that look right and mean something else:**
+
+- **Para before a noun.** Since 2009 the verb *para* has no accent, so *o freio para o patinete* first reads as "the brake for the scooter". Don't put the verb directly before a noun: *ao frear, o patinete para*.
+- **After switching a feature off, name the scooter.** *até saber como ele se comporta* points back to the feature just turned off: write *como o patinete se comporta*.
 
 - **Trava, travar, destravar.** Everyday Brazilian for a lock, and the NAVEE guide says *trancar* once too. Not here: *travar* also means an app or a device has frozen, so *O patinete travou* could read as a crash. *Bloquear* is also Android's word (*Tela de bloqueio*).
 - **Bloqueado and Desbloqueado** differ only by *Des-*. Keep both whole, never truncate, and in sentences keep the full word so the difference stays visible.
@@ -145,9 +152,9 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Dashboard meaning the scooter's own display:** `compat_question_units_mph`, `compat_question_units_kmh`, `compat_question_range`, `dashboard_model_qa_dashboard_sound` and its `_short`, and `main_group_dashboard_sound` if it arrives first say *dashboard* but mean the scooter's own display, until D3 rewrites them. Translate what they mean, with **visor do patinete**: *O visor do patinete mostra mph?*, *Visor e som*. The `dashboard` row (*Painel*, Volt's Home screen) doesn't apply to them, because the rider would be asked to confirm the wrong thing.
 - **`rides_tile_max_speed`** (*Max speed*) is the measured value of a ride, so it's **Vel. de pico** (65dp at 12.5sp), never *Vel. máx.* No glossary row steers it.
 - **Rides vs trips:** a recorded ride is a **viagem**. *Trip* (the distance since a reset) is a **trajeto**. A path on the map is a **rota**. Never *corrida*, which reads as a race or a taxi ride.
-- **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Experimentar**, and its results and titles use **tentativa**: *Tentativa · %1$s*, *Tentativa não concluída*. A guided test is **teste**, verb **testar**: *O Volt não vai testar*. *Test scheduled charging* is a check, so it's **Verificar o carregamento programado**. A compatibility check is **verificação de compatibilidade**. An ordinary retry (*Try again*, *Try shortly*) is never *Experimentar*: use the retry phrase in Fixed words.
+- **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Experimentar**, and its results and titles use **tentativa**: *Tentativa · %1$s*, *Tentativa não concluída*. A guided test is **teste**, verb **testar**: *O Volt não vai testar*. *Test scheduled charging* is a check, so it's **Verificar o carregamento programado**. A compatibility check is **verificação de compatibilidade**. The schedule test: the action is *Verificar*, what runs and its result are **teste** (*Aguarde a conclusão do teste da programação*). An ordinary retry (*Try again*, *Try shortly*) is never *Experimentar*: use the retry phrase in Fixed words.
 - **Dashboard vs display:** Volt's Home layout is the **Painel**. The scooter's own screen is the **visor do patinete**, the NAVEE guide's word. They never swap. Stores call the scooter's screen *painel* or *display*; here it's only *visor*. A screen in the app or on the phone is a **tela**. Home is **Início**.
-- **Settings vs setup:** settings are **Configurações**, a single setting is a **configuração**. *Ajustes* is only the tile word from section 5. A one-time setup is **configuração inicial**. *Owner setup* is the named **configuração do proprietário**. Where context doesn't make it clear, say *inicial*.
+- **Settings vs setup:** settings are **Configurações**, a single setting is a **configuração**. *Ajustes* is only the tile word from section 5. A one-time setup is **configuração inicial**. *Owner setup* is the named **configuração do proprietário**; after a possessive, **de proprietário** (*Sua configuração de proprietário*), since *sua configuração do proprietário* sounds like someone else's. Where context doesn't make it clear, say *inicial*.
 - **Charge vs charging:** **carga** is the level or the amount, and **carregamento** is the act. So *Limite de carga*, *Alerta de carga*, *carga completa*, but *Carregamento programado* and *Início do carregamento*, as in NAVEE's guide. Tight rungs may use *Carga programada* and *Início da carga*. To charge is **carregar**, a charger is **carregador**. *Carregando* also means loading, so use it for a battery only where it's clearly the battery, and on a charging screen write *Aguarde…* for a load.
 - **Charge done by:** the feature is **Carga pronta até**, and its time setting **Horário limite da carga**. See section 6.
 - **Restore vs set back:** bringing back a backup is **Restaurar**. The button and verb *Set back* is **Reverter**. Where a try card's English says restore or restoration (`compat_restore_to`, `compat_note_restore_not_sent`, `compat_mark_restored`, `compat_restoration_confirmed`), use **restaurar** and **restauração**, which name the earlier value. Energy recovery is **Recuperação de energia**, unrelated to either.
@@ -157,7 +164,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Lock duration:** `compat_field_auto_lock_time` (*Auto lock time*) is **Duração do bloqueio**, how long the scooter stays locked when off. Never *bloqueio automático*, which says the scooter locks itself.
 - **Untested controls:** `more_lab_untested` is **Controles não testados** while the English says *Untested controls*. *Controles para experimentar* is only for D3's *Controls to try*.
 - **Owner key parts:** the file is the **arquivo de configuração do proprietário**, shortened to **arquivo de proprietário** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
-- **Roles:** owner is **proprietário**, shared rider is **usuário autorizado**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizado** (64dp at 12.5sp), never *Compartilhado*, which reads as a shared scooter. Evidence and privacy lines that say *Shared* for something else (`compat_evidence_shared`) do use **Compartilhado**.
+- **Roles:** owner is **proprietário**, shared rider is **usuário autorizado**. The word *role* itself is **função**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizado** (64dp at 12.5sp), never *Compartilhado*, which reads as a shared scooter. Evidence and privacy lines that say *Shared* for something else (`compat_evidence_shared`) do use **Compartilhado**.
 - **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *recuperação*: *Baixa, Média, Alta, Desativada*. Elsewhere they agree with their own noun.
 - **Kick-start speed:** **Velocidade inicial**, the NAVEE guide's phrase. Its value 0 (*Standing start*) is **Partida do zero**.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimativa Eco** is a range option, translated.
@@ -191,12 +198,19 @@ The glossary is authoritative; this explains the distinctions it can't.
 | to ride | **andar** (de patinete), noun **condução** | *pilotar*, *guiar* | *modo de condução* appears in Portuguese listings |
 | Done | **Concluído** | *Feito*, *Pronto* | Android. *Pronto* is reserved for the charge feature |
 | report | **relatório**; *Relatar um problema* | *reportar* | |
-| live | **ao vivo** | *em direto* | |
+| live | **ao vivo** only in the name *Dados ao vivo* and the status *Ao vivo*; a value is **em tempo real** (*potência em tempo real*) | *em direto* | *Ao vivo* belongs to broadcasts. The name is a debate item |
 | average | **média** | | |
 | tire | **pneu** | | |
 | computer | **computador** | | |
 
 **Debate items.** These are Claude's judgment calls, and a native reader should look at them first:
+
+- **Dados ao vivo:** *Dados em tempo real* may be more natural, but it is longer than the 90dp tile's 80dp.
+- **Diário do telefone** reads as a personal diary. *Registro do telefone* is an alternative, with care around *registro de atividades*.
+- **Telefone and *Sobre o telefone*:** a reviewer recalls Google's current pt-BR often saying *smartphone*. Unchecked; the mock Settings path strings depend on it.
+- **Espaço** for a layout slot sounds odd in *Restaurar espaço %1$s*.
+- **Subjectless hints:** this guide uses the future passive everywhere, and *Os detalhes da viagem serão abertos* can sound machine-made. A reviewer proposes the descriptive *Abre…* for non-destructive TalkBack hints; rule 2 keeps it out until the debate.
+- **Carga por indicador completo** is a stand-in: no percent sign can be used and the concept is hard to name.
 
 - **Owner key: *chave de proprietário*.** *Chave* is both a physical key and a digital one (*chave de acesso*, *chave Pix*). Portuguese has no separate word, as Spanish does with *clave*. On a scooter it could suggest an ignition key. The alternative *código de proprietário* collides with the code a rider enters on the handlebar.
 - **Top speed: *Velocidade de pico*.** Says highest and stays distinct from *Velocidade máxima*, but sounds a little technical. The alternative *Maior velocidade* is plainer and wider.
@@ -259,7 +273,23 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **conecte o patinete**, *Conecte o patinete primeiro*, *Conectar o patinete novamente*. Never *conecte-se*, which reads as going online. The button stays *Conectar*; plugging in says *conecte o carregador* |
 | set a value | one verb for setting a value on the scooter | **definir**: *Definir PIN*, *Definir %1$s*. Never *fixar* or *ajustar*. The noun stays *configuração*, never *definição*, and setting something back stays *Reverter* |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | Future passive, in dialogs and hints alike: *Esta viagem será excluída*, *O mapa será aberto*. Where a placeholder names the thing, *Isso vai excluir %1$s*, which needs no agreement. Never *Exclui…*, *Exclua…*, *Abre…* or *Abra…*, which read as commands |
-| screen and section titles | noun form or verb form, with one example | Noun form: *Detalhes da conexão*. If the title is an action with no good noun, the infinitive: *Verificar o carregamento programado*. Never the imperative |
+| screen and section titles | noun form or verb form, with one example | Noun form: *Detalhes da conexão*, *Restauração*. If the title is an action with no good noun, the infinitive: *Verificar o carregamento programado*. Never the imperative, except a blocking heading that is itself an instruction to the rider: *Conclua a limpeza primeiro* |
+| setting the clock | the clock is a value set on the scooter | **definir o relógio**, same as any set value. Natural *acertar o relógio* is a debate item |
+| prompt (a system dialog) | a request on the phone, not a warning | **solicitação**. *Aviso* is a warning. The scooter's *Som de aviso* stays |
+| time window | the period a figure covers | **período**. Never *janela*, which reads as a UI window |
+| clear (results or history) | removing saved results | Action **limpar**, result **removido**: *%1$d tentativa removida*, *Histórico removido*. Never *limpa*, which reads as "clean" |
+| fit (chart, map) | zoom to show the whole thing | Button **Enquadrar**; description *Mostrar … inteira no gráfico*. Never *ajustar* |
+| only | | **somente**, never *apenas* |
+| Location (permission or sensor) | | **Localização**, never bare *Local* |
+| Allow Nearby devices | the Android permission | **Permitir acesso a dispositivos por perto**. The step and permission name stay *Dispositivos por perto* |
+| rate (charging estimate) | how fast the battery is charging now | **ritmo**: *Ritmo atual*, *estimativa pelo ritmo*. *Taxa* only in *Taxa de autodescarga* |
+| per full gauge | energy across the whole gauge scale | **indicador completo**; in a sentence *a cada 100 por cento do indicador*. No `%` sign: these English strings have none, so a lone % fails the format check |
+| charges (counted events) | | **carregamentos**. *Cargas* only on a tight `_compact` rung |
+| (raw) tag | | Full rung **(valor bruto)**, which needs no agreement. Short rung **(bruto)** or **(bruta)**, agreeing with the noun. After a placeholder, invariable *%1$s (bruto)*, because the placeholder is the value |
+| stored, finish | | **salvo** for stored trips; **término** for a charge's finish, never *fim* |
+| hill or slope assist | | **Assistência em subidas**, on every key |
+| No X yet | | **Ainda não há X**: *Ainda não há viagens*. Not *Nenhuma viagem ainda*. Also: no trailing *em vez disso* on a label, and no transitive verb left without an object (*conecte-o*) |
+| chart name placeholder | %1$s is a capitalized name | Use a colon: *Gráfico de valores medidos: %1$s*. Never *em %1$s*, which reads as a unit |
 
 ## 10. Sources consulted
 
@@ -268,7 +298,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - [NAVEE XT5 series EU User Guide](https://wheelyshop.se/cdn/shop/files/NAVEE_XT5_series-EU-User_Guide.pdf), a NAVEE-branded multilingual PDF on a retailer's site, Portuguese parts read directly as extracted text. It's an unedited mix of European and Brazilian Portuguese (*guiador* and *guidão*, *travão* and *freio*, *aplicação* and *aplicativo*), so it isn't a style model. Used for: *aplicativo NAVEE*, *app NAVEE*, *Vincular meu dispositivo*, *Desbloqueio por código*, *Bloqueio por Bluetooth*, *desbloqueio por proximidade Bluetooth*, *carregamento programado*, *horário de carregamento*, *visor*, *velocidade inicial*, *limite de velocidade*, *preferências de condução*, *botões das setas*, *30%*, *3 km/h*. It also prints *trancar*, *trotinete* and *senha*, which this guide rejects for the reasons in sections 6 and 8. It doesn't name cruise control, energy recovery, lights, range or charge limit in Portuguese.
 - Retailer listings and search snippets, weaker evidence: [Informática Barata, GT3 (pt)](https://informaticabarata.com/pt/scooters-eletricos/patinete-eletrico-navee-gt3) (snippet only, the page returned 403: *Modos de condução*, *aplicativo NAVEE*, *velocidade máxima*); [PcComponentes, G5 (pt)](https://www.pccomponentes.pt/navee-g5-400w-trotinete-electrica) (*trotinete*, European).
 - Brazilian scooter usage, from search snippets only: [Extra](https://www.extra.com.br/patinete-eletrico-maxshot-cinza-e-vermelho-motor-350w-bateria-36v-52ah-pneu-216cm-dobravel-modelo-v7/p/1582628233), [Casas Bahia](https://www.casasbahia.com.br/patinete-eletrico-maxshot-cinza-escuro-vermelho-motor-500w-suspensao-dupla-pneu-solido-dobravel-v1spro/p/1582628185), [Magazine Luiza](https://www.magazineluiza.com.br/patinete-eletrico-xiaomi-m365/p/5541323/es/eptn/), [Mercado Livre](https://produto.mercadolivre.com.br/MLB-2697255300-patinete-eletrico-85-lindo-30kmh-ate-120kg-tipo-xiaomi-_JM) (*patinete elétrico*, *guidão*, *painel*, *display*, *controle de cruzeiro*, *piloto automático*, *freio regenerativo*, *autonomia*, *farol*). Press: [Canaltech](https://canaltech.com.br/produtos/tudo-o-que-voce-precisa-saber-para-utilizar-um-patinete-eletrico-141995/) (*um patinete*), [Olhar Digital](https://olhardigital.com.br/noticia/uber-entra-para-o-mercado-brasileiro-de-patinetes-eletricas/93859) (*patinetes elétricas*, the feminine this guide rejects).
-- Android's own Portuguese, read from AOSP through a summarizing fetch, so quotes may not be exact: [SettingsLib pt-rBR](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-pt-rBR/strings.xml) (*Depuração USB*, *Opções do desenvolvedor*, *Parear*, *Desconectado*, *Ativado*, *Desativado*); [Settings pt-rBR](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-pt-rBR/strings.xml) (*Configurações*, *Desconhecido*, *Parear novo dispositivo*, *Tela de bloqueio*, *Sempre*, *Nunca*, *Número da versão*). *Sobre o telefone* comes from third-party guides ([Tecnoblog](https://tecnoblog.net/responde/como-ativar-o-modo-desenvolvedor-no-android/), [anexplorer](https://anexplorer.io/pt/devmode/android)); its AOSP value wasn't reached.
+- Android's own Portuguese, read from AOSP through a summarizing fetch, so quotes may not be exact: [SettingsLib pt-rBR](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-pt-rBR/strings.xml) (*Depuração USB*, *Opções do desenvolvedor*, *Parear*, *Desconectado*, *Ativado*, *Desativado*); [SystemUI pt-rBR](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SystemUI/res/values-pt-rBR/strings.xml) (*Permitir a depuração USB?*, *Sempre permitir a partir deste computador*); SettingsLib also gives *Revogar autorizações de depuração USB*; [Settings pt-rBR](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-pt-rBR/strings.xml) (*Configurações*, *Desconhecido*, *Parear novo dispositivo*, *Tela de bloqueio*, *Sempre*, *Nunca*, *Número da versão*). *Sobre o telefone* comes from third-party guides ([Tecnoblog](https://tecnoblog.net/responde/como-ativar-o-modo-desenvolvedor-no-android/), [anexplorer](https://anexplorer.io/pt/devmode/android)); its AOSP value wasn't reached.
 - [Microsoft Portuguese (Brazil) style guide](https://download.microsoft.com/download/8/e/3/8e349e32-9eb9-4b63-9909-7586b94a24dd/por-bra-StyleGuide.pdf), read as extracted text: abbreviations end in a consonant and keep accents, a no-break space between number and unit, avoid gendered references, no capital after a colon. **This guide departs from it once:** Microsoft follows the source's capitals in UI options, and Volt uses sentence case, as Android does.
 - Numbers: the [Ipea editorial manual](https://www.ipea.gov.br/manualeditorial/padroes/padroes-textuais/abreviaturas.html) (no space before %, space before other units; it also writes hours without a space, and this guide keeps SI's space for *2 h 5 min*), and [Inmetro's unit table](https://www.gov.br/inmetro/pt-br/centrais-de-conteudo/publicacoes/documentos-tecnicos-em-metrologia/quadro-geral-de-unidades-de-medida-no-brasil.pdf). Both from search snippets only. No ABNT text could be read.
 - **From memory, not checked:** four-digit grouping as CLDR's pt-BR rule; `one` covering 0 and 1 is CLDR's and confirmed by `check.py`; *Luz de rodagem diurna* as the CONTRAN term; *hodômetro* in car manuals; *bateria fraca* and *Concluído* as Android's wording; the words in section 8's table not named above. No native speaker has checked any of it.

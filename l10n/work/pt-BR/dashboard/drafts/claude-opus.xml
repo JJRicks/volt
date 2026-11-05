@@ -142,14 +142,14 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Período</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Viagens necessárias</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervalo de 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Carga por 100% do indicador</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Carga por indicador completo</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Verificação de carregamento</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Cobertura</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Temp. da bateria</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Rejeitados</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Estimativa indireta: pode superestimar; não indica a saúde da bateria.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia que suas viagens consumiram a cada 100% do indicador. Não é um teste de saúde nem de capacidade da bateria.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia que suas viagens consumiram a cada 100 por cento do indicador. Não é um teste de saúde nem de capacidade da bateria.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia útil para viagens</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Exemplo · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ainda não há leituras salvas</string>

@@ -10,7 +10,7 @@
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Potência</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidade</string>
     <string name="rides_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Tensão</string>
-    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Bateria %</string>
+    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Bateria (%)</string>
     <string name="rides_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Reconectar</string>
     <string name="rides_reconnect_description" volt:src="a6308b27db97fca0f0e50b5eeeaeea6b52049c59">Conectar o patinete novamente</string>
     <string name="rides_notes" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Notas</string>

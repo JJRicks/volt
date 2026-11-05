@@ -3,7 +3,7 @@ key	english	translation	back-translation	draft	model	source_sha1	target_sha1
 readings_lock_status	Electronic lock	Bloqueio eletrônico	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	d386c705313668dc660988e68faffd2b83baaaee
 readings_lock_status_short	Electronic lock	Bloqueio eletrônico	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	d386c705313668dc660988e68faffd2b83baaaee
 readings_lock_status_compact	Lock	Bloqueio	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	2abeef86109066802fed976fd585e9ad7409ab8c
-readings_lock_push_warning	Locked movement warning (raw)	Aviso de movimento com o patinete bloqueado (bruto)	Warning of movement with the scooter locked (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	0448f663179dae51588d81e479c1e01692260d2f
+readings_lock_push_warning	Locked movement warning (raw)	Aviso de movimento com o patinete bloqueado (valor bruto)	Warning of movement with the scooter locked (raw value)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	5ff38c1c4a42eb253439ca5740c6648417c9afc8
 readings_lock_push_warning_short	Lock movement (raw)	Movimento com bloqueio (bruto)	Movement with lock (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	921028dbde5a2d97170c40c4a8f61704e63cdde7
 readings_value_unlocked	Unlocked	Desbloqueado	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	1d9a00df726365a833ec11802ca003d5e3cdda0f
 readings_value_locked	Locked	Bloqueado	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	13dc9c39fa416c50cec53429898fc7d57bb2fe0c
