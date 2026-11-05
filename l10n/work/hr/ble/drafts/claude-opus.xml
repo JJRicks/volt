@@ -69,7 +69,7 @@
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Prihvati zahtjev za Bluetooth uparivanje na telefonu.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Nije moguće pokrenuti Bluetooth uparivanje. Pokušaj ponovno.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">Bluetooth uparivanje nije dostupno.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Stanje PIN-a nije stiglo. Dodirni „Očitaj stanje PIN-a” i pokušaj ponovno.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5" volt:attempt="2">Stanje PIN-a nije stiglo. Pokušaj ponovno: dodirni „Očitaj stanje PIN-a”.</string>
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Stanje PIN-a nije dostupno na ovom firmveru.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Za postavke PIN-a potreban je vlasnički profil.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Upari ovaj telefon prije uključivanja otključavanja približavanjem</string>
@@ -84,7 +84,7 @@
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Najprije dovrši trenutačno isprobavanje</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Zapisi testova nisu dostupni</string>
     <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Najprije pregledaj nedovršeno isprobavanje</string>
-    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Nema promjene za poništavanje</string>
+    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b" volt:attempt="2">Nema ničega za poništavanje promjene</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Poništavanje promjene nije uspjelo. Ništa nije promijenjeno.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Najprije dovrši trenutačni test</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test nije pronađen</string>
@@ -99,5 +99,5 @@
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Vođeni test</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Veza je izgubljena prije promjene stanja zaključavanja</string>
     <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Romobil nije potvrdio promjenu stanja zaključavanja</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Romobil nije bio spreman za promjenu stanja zaključavanja; pokušaj ponovno</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda" volt:attempt="2">Romobil nije bio spreman za promjenu zaključavanja; pokušaj ponovno</string>
 </resources>

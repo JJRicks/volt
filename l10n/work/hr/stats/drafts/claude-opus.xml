@@ -94,8 +94,8 @@
     <string name="stats_diagnostics_refresh_description" volt:src="63951b70d5e5ce95d798fc87e41d290931cf4c42">Osvježi dijagnostička očitanja</string>
     <string name="stats_diagnostics_refreshing" volt:src="c4bd17e73e8cee648a56bc97b24173462cec6145">Osvježavanje dijagnostičkih očitanja</string>
     <string name="stats_diagnostics_export" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Izvezi</string>
-    <string name="stats_diagnostics_export_description" volt:src="8fe551f1f8097c7c7bb719d828a54cddea125fa3">Izvezi dijagnostiku kao JSON. Ne sadrži vlasničke ključeve ni PIN</string>
-    <string name="stats_diagnostics_privacy" volt:src="97c7b6a08e6433a9e035ef74717bd35e60ab8a08">Ne sadrži vlasničke ključeve ni PIN</string>
+    <string name="stats_diagnostics_export_description" volt:src="8fe551f1f8097c7c7bb719d828a54cddea125fa3" volt:attempt="2">Izvezi dijagnostiku u JSON. Izostavljeni su ključevi vlasnika i PIN</string>
+    <string name="stats_diagnostics_privacy" volt:src="97c7b6a08e6433a9e035ef74717bd35e60ab8a08" volt:attempt="2">Izostavljeni su ključevi vlasnika i PIN</string>
     <string name="stats_diagnostics_device" volt:src="c6f2a5f3f4a496fbaa7dd6f317329f7f87ce27a9">Uređaj</string>
     <string name="stats_diagnostics_events" volt:src="be8d3abf276c8a8b18d3d7f36f9418fee84f87b5">Nedavni događaji povezivanja</string>
     <string name="stats_diagnostics_payloads" volt:src="1319991bbf5982e3be3a0d91002ae118c8783599">Neobrađeni podaci očitanja</string>

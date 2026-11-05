@@ -52,7 +52,7 @@
     <string name="compat_kept_set_back" volt:src="3448d6b18de35aaa38b3d8fbb3eb1733c184fa3f">Zadržano · „Poništi promjenu” je u odjeljku „Eksperimentalne funkcije”</string>
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Zadržano</string>
     <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Vraćanje je potvrđeno</string>
-    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Vraćanje još nije potvrđeno · pregledaj u nastavku</string>
+    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b" volt:attempt="2">Poništavanje promjene čeka potvrdu · pregledaj u nastavku</string>
     <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Nedovršeno isprobavanje · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Nedovršen test · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Prije isprobavanja</string>
@@ -207,12 +207,12 @@
     <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Otkazano. Ništa nije promijenjeno.</string>
     <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef">Nije moguće spremiti zapis o testu, pa Volt nije poništio promjenu.</string>
     <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde">Promijenjeno izvan testa (sada: %1$s)</string>
-    <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2">Romobil je odbio poništavanje promjene (kod %1$d).</string>
+    <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2" volt:attempt="2">Poništavanje promjene odbijeno je na romobilu (kod %1$d).</string>
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Nije stiglo novo očitanje.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Prihvaćeno, ali nije stiglo jednoznačno očitanje.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Romobil nije odgovorio.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt nije mogao poslati naredbu za poništavanje promjene.</string>
-    <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Nije moguće dobiti novo početno očitanje. Ponovno poveži romobil i pokušaj ponovno. Ništa nije promijenjeno.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt nije mogao poslati naredbu za vraćanje vrijednosti.</string>
+    <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3" volt:attempt="2">Nije moguće dobiti novo početno očitanje. Ponovno poveži romobil i pokušaj ponovno s isprobavanjem. Ništa nije promijenjeno.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Nije moguće provjeriti postavku. Ponovno poveži romobil i pregledaj nedovršeni test.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Veza je prekinuta tijekom testa.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Tijekom testa odabran je drugi profil romobila.</string>
@@ -223,7 +223,7 @@
     <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Romobil sada prikazuje: %1$s. Ništa nije promijenjeno.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Već je postavljeno: %1$s.</string>
     <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">Trenutačno nije ponuđeno: %1$s.</string>
-    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Promjenu trenutačne vrijednosti nije moguće poništiti, pa Volt neće testirati ovu postavku.</string>
+    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2" volt:attempt="2">Nije moguće poništiti promjenu trenutačne vrijednosti, pa je Volt neće testirati.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">Povezana postavka promijenila se tijekom testa.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Romobil je prihvatio promjenu, ali i dalje prikazuje: %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Romobil sada prikazuje: %1$s.</string>

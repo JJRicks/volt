@@ -27,7 +27,7 @@
     <string name="onboarding_welcome_get_started" volt:src="2a5eb66c36cee7d42ac3c78d156c1b0adc779db2">Započni</string>
     <string name="onboarding_restore_backup" volt:src="9359623eb55635ed843d4eb26b2748b576bef8cd">Vrati sigurnosnu kopiju aplikacije Volt</string>
     <string name="onboarding_welcome_restore_description" volt:src="a13b3f16a05f987acbc589296ef491cdf215236d">Vrati sigurnosnu kopiju aplikacije Volt: romobili, vožnje, povijest, nadzorne ploče i postavke</string>
-    <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe">Već imam vlasničku datoteku</string>
+    <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe" volt:attempt="2">Već imam datoteku vlasnika</string>
     <string name="onboarding_welcome_tile_lock" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Zaključaj</string>
     <string name="onboarding_welcome_tile_lock_short" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Zaključaj</string>
     <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Postavke</string>
@@ -59,7 +59,7 @@
     <string name="onboarding_option_spoken_chip_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
     <string name="onboarding_option_spoken_chip_detail_unavailable" volt:src="7d0c75833c2bf62f3c64e46241528acdb51a0ca6">%1$s, %2$s. %3$s. Potreban je Android 11 ili noviji</string>
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Nastavi</string>
-    <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Najprije dovrši uvoz odabrane vlasničke datoteke.</string>
+    <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d" volt:attempt="2">Najprije dovrši uvoz odabrane datoteke vlasnika.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Zasad preskočiti postavljanje?</string>
     <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Romobil možeš dodati kasnije na kartici „Više”.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Nastavi postavljanje</string>
@@ -138,13 +138,13 @@
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Dohvat u pregledniku</string>
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Prijava u aplikaciju NAVEE obavljena, romobil u blizini\n•  Ostale aplikacije za romobile zatvorene\n•  Prekinuto prerano? Najprije završi čišćenje u istom pregledniku"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Postavljanje vlasničkog ključa</string>
-    <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Uvoz vlasničke datoteke</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Odaberi datoteku navee-owner-setup.json. Time se vraća samo pristup romobilu, a ne vožnje ni drugi podaci aplikacije.</string>
+    <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46" volt:attempt="2">Uvoz datoteke vlasnika</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Odaberi datoteku vlasnika navee-owner-setup.json. Vratit će se samo pristup romobilu, a ne vožnje ni drugi podaci aplikacije.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Učitavanje vlasničkog profila…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Datoteka još nije odabrana</string>
-    <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Nije vlasnička datoteka.</string>
+    <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7" volt:attempt="2">Nije datoteka vlasnika.</string>
     <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Ova datoteka otključava romobil. Čuvaj je u tajnosti.</string>
-    <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Odaberi vlasničku datoteku</string>
+    <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac" volt:attempt="2">Odaberi datoteku vlasnika</string>
     <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Umjesto toga unesi vlasnički ključ</string>
     <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Umjesto toga vrati sigurnosnu kopiju aplikacije Volt</string>
     <string name="onboarding_role_shared" volt:src="5d49485c583c28802db55e3118c072a5da721b96">uloga ovlaštenog korisnika</string>

@@ -15,7 +15,7 @@
     <string name="controls_feature_speed_limit" volt:src="eae0a786d24497605ec2abc368fb032b5599a2c3">Vlastito ograničenje brzine</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Maksimalna brzina</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Pogon na dva motora</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9">Ograničenje brzine načina Drive</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9" volt:attempt="2">Ograničenje brzine načina vožnje Drive</string>
     <string name="controls_feature_charge_limit" volt:src="69ff0b43f5632ac15b553dfeeab26e66e603e019">Ograničenje punjenja</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Zakazano punjenje</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Vrijeme početka punjenja</string>
@@ -123,13 +123,13 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Isključiti kontrolu proklizavanja? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Isključiti način slabe baterije? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Prebaciti na jedan motor? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Isključiti rekuperaciju energije? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Postaviti rekuperaciju energije na „Isključena”? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Brzina pokretanja ispod 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Iznad 32 km/h: provjeri propise tamo gdje voziš. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Isključit će se kontrola proklizavanja. Vozi oprezno po mokroj ili rastresitoj podlozi dok ne upoznaš ponašanje romobila.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Ispod 3 km/h motor može povući iz mirovanja čim upotrijebiš ručicu gasa.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Isključit će se kočenje motorom, pa će kočnice više raditi pri zaustavljanju.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Model %1$s (nepotvrđen)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Visoke performanse</string>

@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Drži zaslon uključenim</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Tijekom snimanja</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Završi vožnju kad romobil miruje</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s nakon prekida Bluetooth veze dok romobil miruje</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s od prekida Bluetooth veze nakon zaustavljanja</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Snimanje u pozadini</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Potrošnja baterije nije ograničena</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Baterija je optimizirana; duga snimanja mogu se prekinuti. Otvorit će se postavke baterije</string>
@@ -139,7 +139,7 @@
     <string name="more_pin_step_two" volt:src="3481befd9cd88f62ee8af61ce4b3dbbf44c88503">Korak 2 od 2. Ponovi PIN</string>
     <string name="more_pin_repeat_hint" volt:src="c1ddbcbb4ef91cc6816e21461705f7d9b6f308fd">Ponovi PIN, četiri znamenke</string>
     <string name="more_pin_set" volt:src="0a3a6c80e19f9cf148f87a3c1252253557e5df2a">Postavi PIN</string>
-    <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635">PIN-ovi se ne podudaraju. Pokušaj ponovno.</string>
+    <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635" volt:attempt="2">PIN-ovi se nisu podudarali. Pokušaj ponovno.</string>
     <string name="more_pin_reconnect" volt:src="b1f3abd4d0c5a219c84e3b5915358dbccaa3ef5a">Najprije ponovno poveži romobil kao vlasnik.</string>
     <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Pričekaj da se završi trenutačna promjena na romobilu.</string>
     <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">Promjena PIN-a nije pokrenuta. %1$s</string>
@@ -151,7 +151,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Uz otključavanje približavanjem: upareni telefon u blizini, stisni kočnicu. Testiraj oba načina dok je romobil u mirovanju prije nego što se osloniš na njih.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Razumijem</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Upravljač: 1 tipka žmigavca, 2 ručica kočnice, 3 tipka za uključivanje</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Funkcije za isprobavanje</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Funkcije za isprobavanje – nisu isprobane</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Pomoć u provjeri</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Nema ničega za isprobavanje</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Odgovori romobila na naredbe</string>
@@ -212,12 +212,12 @@
     <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9">Nedovršeno · pregledaj</string>
     <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69">Nedovršeno</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Još nije isprobano</string>
-    <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Neprovjereno na tvom modelu</string>
-    <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Neprovjereno ovdje</string>
-    <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23">Neprovjereno</string>
-    <string name="more_lab_status_untested" volt:src="ae2b223c0444bbeca7873c7c98c5e9e11276e514">Neisprobano na tvom modelu</string>
-    <string name="more_lab_status_untested_short" volt:src="64a3e790fa4a04842109f776f3343a17223113f5">Neisprobano ovdje</string>
-    <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b">Neisprobano</string>
+    <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a" volt:attempt="2">Nije provjereno na tvom modelu</string>
+    <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4" volt:attempt="2">Nije provjereno ovdje</string>
+    <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23" volt:attempt="2">Nije provjereno</string>
+    <string name="more_lab_status_untested" volt:src="ae2b223c0444bbeca7873c7c98c5e9e11276e514" volt:attempt="2">Nije isprobano na tvom modelu</string>
+    <string name="more_lab_status_untested_short" volt:src="64a3e790fa4a04842109f776f3343a17223113f5" volt:attempt="2">Nije isprobano ovdje</string>
+    <string name="more_lab_status_untested_compact" volt:src="c8e308906eb65e2a3e7f19b7ded53348b5004e0b" volt:attempt="2">Nije isprobano</string>
     <string name="more_lab_status_worked" volt:src="8a055ce0ed8d06d3f7f23e08ac6f9f1bdfaab79c">Ovdje je uspjelo</string>
     <string name="more_lab_status_worked_short" volt:src="b1b6fb42bc14492a931a6d52b1a8540a8274d239">Uspjelo</string>
     <string name="more_lab_status_refused" volt:src="076ccb557fae7b59ad698827bf500a0a7e40faef">Romobil je odbio</string>

@@ -5,7 +5,7 @@
     <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Svjetla</string>
     <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Postavke</string>
     <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Postavke</string>
-    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistika uživo</string>
+    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e" volt:attempt="2">Statistika</string>
     <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistika uživo</string>
     <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Vožnje</string>
     <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Vožnje</string>
@@ -13,9 +13,9 @@
     <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Vožnja</string>
     <string name="dashboard_model_qa_battery_settings" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Postavke baterije</string>
     <string name="dashboard_model_qa_battery_settings_short" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Baterija</string>
-    <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Linijska svjetla</string>
+    <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6" volt:attempt="2">Linijska</string>
     <string name="dashboard_model_qa_line_lights_short" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Linijska svjetla</string>
-    <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Zvjezdana svjetla</string>
+    <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc" volt:attempt="2">Zvjezdana</string>
     <string name="dashboard_model_qa_star_lights_short" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Zvjezdana</string>
     <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Zaslon i zvuk</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Zaslon i zvuk</string>
@@ -40,7 +40,7 @@
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Izbornici</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Stranice</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Eksperimentalne funkcije</string>
-    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Top speed</string>
+    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Top speed</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Plan punjenja</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Ažuriranje…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (naučeno)</string>
