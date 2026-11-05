@@ -25,7 +25,7 @@
 
 ## 3. Capitalization of buttons, labels and titles
 
-- **Sentence case everywhere.** Button: *Salva il backup*. Label: *Limite di carica*. Title: *Controlli sperimentali*. Never English Title Case, even where the English has it (*Walk Assist* → *Assistenza alla camminata*).
+- **Sentence case everywhere.** Button: *Salva il backup*. Label: *Limite di carica*. Title: *Comandi sperimentali*. Never English Title Case, even where the English has it (*Walk Assist* → *Assistenza alla spinta*).
 - Lower case mid-sentence for feature names, unless quoted: *attiva la ricarica programmata*.
 - Days, months and languages are lower case.
 - Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android and the drive modes WALK, ECO, DRIVE, SPORT, which stay in English: *modalità SPORT*.
@@ -55,25 +55,27 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 |---|---|---|---|
 | Battery temp. / Temp. | *Temperatura batteria* | *Temp. batteria* (83) | *Temp.* (35) |
 | Charging power / Power | *Potenza di ricarica* (106) | | *Potenza* (48) |
-| Time to %1$s / To %1$s | *Tempo a %1$s* | | *A %1$s* |
-| Time to full (est.) | *Tempo a carica completa (stim.)* | *A carica completa (stim.)* | *A pieno (stim.)* (83) |
+| Time to %1$s / To %1$s | *Tempo fino a %1$s* (105) | | *Fino a %1$s* (66 with 80%) |
+| Time to full (est.) / To full (est.) | *Tempo per la carica completa (stima)* | *Fino a carica completa (stima)* | *Fino a 100%* (70) |
 | Odometer / Odo. | *Odometro* (58) | | *Odom.* (38) |
 | Est. capacity (health) / Est. capacity | *Capacità stimata (salute)* | | *Cap. stimata* (71) |
+
+*A carica completa* means "at full charge" and *Tempo a 80%* reads as time spent at 80%, so these labels say *fino a*, until. No article before a percent placeholder (not *all'%1$s*, which breaks for *al 90%*); *To %1$s limit* is *Fino al limite di %1$s*. *Fino a 100% (stim.)* is 109 against the English's 67, too wide for the narrow card, so that rung drops the estimate mark: the value beside it already starts with ≈, and *Fino a 80%* has no mark either. Plain *Time to full* is *Fino a carica completa*, or *Fino a 100%* where it's narrow.
 
 **Approved abbreviations.** An abbreviation ends in a period, and the period counts toward the width, except *max*, *min* and *info*, which take none (NAVEE's manual: *Velocità max*).
 
 | Full | Abbreviated | Width at 12.5sp (dp) | Note |
 |---|---|---|---|
-| Velocità massima | **Velocità max**, then **Vel. max** | 101 → 74 → 49 | The setting. *Velocità max* fits the 90dp tile. Never for a measured speed |
+| Velocità massima | **Velocità max**, then **Vel. max** | 101 → 74 → 49 | The setting. *Velocità max* fits the 90dp tile. Never for a measured speed, even where the English says Max (`rides_tile_max_speed`) |
 | Velocità di punta | **Vel. di punta** | 97 → 72 | The measured value. Never *Vel. max* |
 | Velocità media | **Vel. media** | 85 → 60 | |
 | Odometro | **Odom.** | 58 → 38 | |
 | Temperatura | **Temp.** | 74 → 35 | |
 | Capacità | **Cap.**, or *Capac.* alone | 49 → 38 | |
 | Autonomia | **Auton.** | 64 | Only with another word: *Auton. stimata* (85) |
-| stimato, stimata | **stim.** | 28 | *(stim.)* after a value or name |
+| stimato, stimata | **stim.** | 28 | Prefer *(stima)* after a value or name; it costs only 4dp. *(stim.)* only where you measured that *(stima)* doesn't fit |
 | Impostazioni | **Impost.** | 75 → 43 | See below |
-| Sperimentale | **Speriment.** | 77 → 63 | Only under 64dp |
+| Sperimentale | **Sperim.** | 77 → 44 | Only under 64dp |
 | Limite di velocità | **Limite vel.** | 97 → 59 | |
 | Numero | **N.** | | |
 | informazioni | **info** | | *Info e permessi* (89) |
@@ -83,12 +85,12 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 
 - **A Quick access name has 64dp per line at 12sp, and a single word wider than that breaks mid-word.** These words don't fit, so these rungs avoid them: *Impostazioni* 71.6, *Sperimentale* 74.3, *monopattino* 71.7, *monopattini* 67.7.
 - *Settings* on a 62dp tab or 64dp button: **Impost.** On a full-width title: *Impostazioni*. **Debate item:** the full rung is also TalkBack's name, so it speaks an abbreviation here; *Opzioni* (44) is the alternative, but it isn't Android's word.
-- *My scooters*: **I miei mezzi** (68; wraps at a space). *Scooter name*: **Nome mezzo** (75). *Mezzo* is NAVEE's manual's own word (*il mezzo*), allowed only at these budgets.
+- *My scooters*: **I miei mezzi** (68; wraps at a space). *Scooter name*: **Nome mezzo** (75). *Mezzo* is NAVEE's manual's own word (*il mezzo*), allowed only on these two keys, `dashboard_model_qa_my_scooters` and `dashboard_model_qa_scooter_name`. The check accepts it everywhere and can't tell, so a judge rejects it on any other key.
 - *Battery settings*: full *Impost. batteria* (wraps), short *Batteria* (47). *Ride settings*: full and short *Impost. guida* (79).
-- *Experimental*: full **Speriment.** (60.8 at 12sp, tight), short *Sperimentale* (77).
+- *Experimental controls*: full **Sperim.** (42.4 at 12sp), short *Sperimentale* (77). *sperimentali* (69.3) doesn't fit a 64dp line, so *Comandi sperimentali* (126) can't go on these two rungs. The glossary row accepts both.
 - *Display & sound*: full *Display e suono* (wraps), short **Display/suono** (84). *Display e suono* is 91.8, over the 90dp tile.
 - *PIN & proximity*: full *PIN e prossimità* (wraps), short **PIN/prossimità** (86.5).
-- *Charge done by*: **Ricarica entro** (79.5) on every rung.
+- *Charge done by*, the on/off: **Ricarica entro** (79.5) on every rung. *Charge done by time*, the time picker beside it in the same list: **Orario limite** on both rungs (71 on the one-line tile; wraps as *Orario / limite* at 64dp). Never *ora* in this name: *Ricarica ora* reads as "charge now".
 
 **Never abbreviate:** *Blocca, Sblocca, Bloccato, Sbloccato, Blocco, Sblocco, Non verificato, Sconosciuto, Mai, Sempre, Allarme, PIN*. *Blocc.*, *Sbl.* and *Sbloc.* are not allowed. All of these fit: *Bloccato* 49, *Sbloccato* 56, *Sblocca* 44. If one doesn't fit, report it in your notes; falling back to English is the safe outcome.
 
@@ -111,7 +113,8 @@ Use exactly these words. They match `l10n/glossary/it.tsv`; don't use synonyms.
 | Always | **Sempre** | *Always on*: **Sempre accesa** for a light |
 | Alarm | **Allarme** | Never *avviso* or *sveglia*. Alert is **Avviso**, and they stay distinct |
 | Alarm sound | **Suono di allarme** | |
-| Stop (a sounding alarm) | **Interrompi** | Not *Ferma*, which also reads as "stationary" |
+| Stop (a sounding alarm, a recording, a process) | **Interrompi** | Not bare *Ferma*, which also reads as "stationary" |
+| Stop the scooter | **Ferma il monopattino** | *Interrompi* is for alarms, recordings and processes only: *Interrompi il monopattino* is nonsense. Write the phrase unbroken, because the check matches it as written: *Prima ferma il monopattino*. *At a stop* is **da fermo** |
 | PIN | **PIN** | Masculine, invariable: *il PIN*, *i PIN*. Not *codice* or *password* |
 | Handlebar PIN | **PIN del manubrio** | A backup password is **password**; keep them separate |
 | PIN unlock (held for D3) | **Sblocco con PIN** | The toggle |
@@ -131,7 +134,7 @@ Use exactly these words. They match `l10n/glossary/it.tsv`; don't use synonyms.
 - **Carica** is both the noun (charge level) and the imperative. **Scarica** means both discharged and "download": write *Batteria scarica* in full, and never bare *Scarica*.
 - **Prova** is both the button "Try" and the noun "test". Use it only for Try; a guided test is **test**.
 - **Salvo** means "except" as well as saved. **Sicuro** adds reassurance the English lacks, as does *garantito*.
-- **Fine ricarica** reads as a charge that has ended. The feature only plans a start, so the name is **Ricarica entro**.
+- **Fine ricarica** reads as a charge that has ended. The feature only plans a start, so the name is **Ricarica entro**. In a sentence it is always in «» and feminine, because bare it reads as a broken phrase: *«Ricarica entro» è disattivata*, *«Ricarica entro» non è stata impostata*. Bare *Ricarica* can read as the imperative "recharge by"; that's acceptable only for a label with its value beside it.
 - Keep every negation. The check counts *non*, *mai*, *senza* and *né*; in a safety key a prefix alone doesn't satisfy an English un-word. *Sconosciuto* is on its native list.
 
 ## 7. Scooter vocabulary
@@ -139,12 +142,12 @@ Use exactly these words. They match `l10n/glossary/it.tsv`; don't use synonyms.
 The glossary is authoritative; this explains the distinctions it can't.
 
 - **Three speeds:** the setting is **Velocità massima**. A limit below it is **Limite di velocità**. The measured value on a trip or ride is **Velocità di punta**. Never swap them.
-- **Held until the English terminology fix (D3) merges:** the rows `top-speed` and `maximum-speed` hold D3's meanings, but today's English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback. Every other key follows today's English meaning until D3 lands.
-- **Rides, trips and routes:** a recorded ride is a **corsa** (NAVEE's manual: *ogni corsa*), the screen is **Corse**. Trip, the distance since a reset, is **Parziale**, the established vehicle word. A path on the map is a **percorso**.
+- **Held until the English terminology fix (D3) merges:** the rows `top-speed` and `maximum-speed` hold D3's meanings, but today's English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback. Every other key follows today's English meaning until D3 lands. `rides_tile_max_speed` isn't held: its English says Max, but it is the measured value today and after D3, and no glossary row covers it. It is **Velocità di punta**, or **Vel. di punta** if narrow. Never *Velocità max*.
+- **Rides, trips and routes:** a recorded ride is a **corsa** (NAVEE's manual: *ogni corsa*), the screen is **Corse**. Trip has two words: the distance counter's label, since a reset, is **Parziale**, the established vehicle word; a trip as an item or a span is a **tragitto**: *%1$d tragitti*, *Durata del tragitto*, *Riepilogo tragitto*. Never *3 parziali*, *Tempo parziale* (part-time) or *Panoramica parziale* (a partial overview). A path on the map is a **percorso**.
 - **Ricarica vs carica:** the act is **ricarica** (*Tempo di ricarica*, *Ricarica programmata*, *In carica* as Android's status). The level is **carica** (*Limite di carica*, *Carica completa*).
-- **Alert vs alarm vs notification:** **avviso**, **allarme**, **notifica**. *Notify me* is **Avvisami**. *Prompt sound*, the scooter's beeps, is **Suono di avviso**.
-- **Try, test, check, verify:** Try as a verb is **Prova**, *provare*; its results use **tentativo**. A guided test is **test**, verb *esegui il test*. A check is **controllo**: *controllo di compatibilità*, *Controlla la ricarica programmata*. **Verificare** is reserved for verify, so *non verificato* keeps one meaning. Don't use the imperative *Testa*, which also reads as "head".
-- **Controlli:** the plural *Controlli sperimentali* means controls. Context separates it from *controllo*, a check. *Cruise control* stays in English, as Italian retailers and reviewers write it.
+- **Alert vs alarm vs notification:** **avviso**, **allarme**, **notifica**. *Notify me* is **Avvisami**. *Prompt sound*, the scooter's beeps, is **Segnali acustici**, singular *segnale acustico* (89.7, tight on a 90dp line). *Avviso* stays exclusive to alerts.
+- **Try, test, check, verify:** Try as a verb is **Prova**, *provare*; its results use **tentativo**. **Try again is Riprova**, Android's own word. A guided test is **test**, verb *esegui il test*. A check is **controllo**: *controllo di compatibilità*, *Controlla la ricarica programmata*. **Verificare** is reserved for verify, so *non verificato* keeps one meaning. Don't use the imperative *Testa*, which also reads as "head".
+- **Comandi, not controlli:** controls are **comandi**: *Comandi sperimentali*, *Comandi da provare*. *Controllo* is a check, and the read-only compatibility check shares a footer with the experimental section, so *Controlli sperimentali* would read as harmless "experimental checks" about controls that write to the scooter. Keep *controllo* for checks and for named functions: *Controllo della trazione*. Commands sent to the scooter are also *comandi*, which doesn't mislead. *Cruise control* stays in English, as Italian retailers and reviewers write it.
 - **Dashboard vs display:** Volt's Home layout is the **Dashboard** (feminine: *la dashboard*). The scooter's own screen is the **display del monopattino**. Never *cruscotto*: Italian riders use it for the scooter's own display. They never swap.
 - **Settings vs setup:** settings are **Impostazioni**; a one-time setup is **configurazione**.
 - **Restore vs set back:** bringing back a backup is **Ripristina**. Undoing a try is **Riporta indietro**, and with a value *Riporta a %1$s*. Energy recovery is **Recupero di energia**, unrelated to either.
@@ -154,7 +157,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Owner key parts:** the file is the **file di configurazione del proprietario**, shortened to **file del proprietario** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names stay English until the website changes, so quote them in English.
 - **Roles:** owner is **proprietario**, shared rider is **utente autorizzato**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizzato** (67.5), never *Condiviso*, which reads as a shared scooter. `compat_evidence_shared` isn't the role.
 - **Levels:** Energy recovery levels agree with *recupero*: *Basso, Medio, Alto, Disattivato*. Elsewhere they agree with their own noun.
-- **Kick-start:** the setting is **Velocità di avvio**. **Avvio da fermo** is its value 0, not another name for it.
+- **Kick-start:** the setting is **Velocità di avvio**. **Partenza da fermo** is its value 0, not another name for it.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and *Boost* stay in English. **Stima Eco** is a range option. *Eco* in `drive-mode-eco` is the scooter's name too.
 - **Lights:** the headlight is **luce anteriore**, the tail light **luce posteriore**, turn signals **indicatori di direzione** (NAVEE's manual), with **frecce** allowed at a budget. Never *lampeggianti*.
 - **Scooter:** **monopattino**, always. Never *scooter*, which in Italian is a motor scooter.
@@ -163,7 +166,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 **Android's own wording.** Quote Android's settings as Android writes them: **Debug USB**, **Opzioni sviluppatore**, **Impostazioni** (read from AOSP). **Numero build** and *Informazioni sul telefono* are from memory. Phone makers rename them, so write generally where you can: *nelle impostazioni, apri le informazioni sul telefono*.
 
-**Debate items:** *chiave del proprietario* (might read as a physical key; *codice del proprietario* is the alternative, but PIN must not be *codice*); *Corse* (also means races; *Tragitti* is the alternative); *Dashboard* (loan word); *Assistenza alla camminata* (*Assistenza alla spinta* is the e-bike word); *Riporta indietro* (*Ripristina* is more natural, but it's already Restore); *Impost.* on a TalkBack name; *Luci lineari* for Line lights, which has no source.
+**Debate items:** *chiave del proprietario* (might read as a physical key; *codice del proprietario* is the alternative, but PIN must not be *codice*); *Corse* (also means races; *Tragitti* is the alternative, but *tragitto* is now the item word for Trip); *Dashboard* (loan word); *Riporta indietro* (stiff as a bare button and reads as "take it back"; *Torna al precedente* is the alternative for the bare button, keeping *Riporta a %1$s* with a value; *Annulla* is Cancel and *Ripristina* is Restore); *Impost.* on a TalkBack name; *Luci lineari* for Line lights, which has no source; *Odom.* (stiff; *Totale*, 34 at 12sp, as the short and compact rung, paired with *Parziale*, keeping *Odometro* in full; riders' *contachilometri* is too wide at 87 and names km when the unit can be miles); *Autorizzato* on `more_role_shared` (bare, it can read as a state; the status line shows one role at a time, so *Proprietario* isn't always beside it; *Ospite*, 36 at 12sp, is the alternative for this label only); *Modalità batteria scarica* (reads as a state; *Modalità batteria bassa* is the alternative); *Velocità di punta* vs *Velocità massima* (spec sheets use them as near-synonyms; *Velocità raggiunta*, *Vel. raggiunta*, 80.5, says measured outright); *Orario limite* for the Charge done by time picker, which leaves the feature's name out; *Fino a 100%* without an estimate mark.
 
 ## 8. Sources consulted
 
@@ -175,5 +178,5 @@ The glossary is authoritative; this explains the distinctions it can't.
 - [Tecnoandroid, GT3 Pro review](https://www.tecnoandroid.it/2025/08/26/navee-gt3-pro-leggero-maneggevole-compatto-e-soprattutto-veloce-recensione-1612848/), weaker evidence: *blocco elettronico antifurto*, *regolabile su tre livelli tramite app*, *display*, and the modes *Pedonale, Standard, Sport*, which Volt doesn't use (modes stay English). Search snippets of MediaWorld listings: *Cruise Control*, *Regola il livello di recupero nell'app*.
 - Android's own Italian, read from AOSP: [SettingsLib it](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-it/strings.xml) (*Debug USB*, *Opzioni sviluppatore*, *Accoppia*, *Accoppiamento*, *Disconnesso*), [Settings it](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-it/strings.xml) (*Impostazioni*). *Numero build* wasn't in the part that could be read.
 - `manualedistruzioni.it` and MediaWorld's own pages returned 403.
-- **Judgment calls, from general knowledge and not checked by a native speaker:** quotes, spacing, percent (CLDR's Italian format, from memory), 24-hour clock, *velocità di punta*, *Parziale*, *Odometro*, *Avvio da fermo*, *Velocità di avvio*, every debate item in section 7, and all the safety wording except *blocco*. The Microsoft Italian style guide wasn't read.
+- **Judgment calls, from general knowledge and not checked by a native speaker:** quotes, spacing, percent (CLDR's Italian format, from memory), 24-hour clock, *velocità di punta*, *Parziale*, *Odometro*, *Velocità di avvio*, *Partenza da fermo*, *Assistenza alla spinta*, *tragitto*, *comandi*, *segnali acustici*, *Riprova*, every debate item in section 7, and all the safety wording except *blocco*. The Microsoft Italian style guide wasn't read.
 - Width figures: `tools/l10n/fontmetrics.py`, java.awt, `saira_medium.ttf`. Glyphs: `fontmetrics.Font.missing` on all four Saira weights.
