@@ -2,3 +2,4 @@
 id	term	definition	pos	dnt	safety	source
 scooter	patinete | patinetes	The connected e-scooter.	noun	no	-	fixture
 not-affiliated	no está afiliada a NAVEE	The disclaimer.	adjective phrase	no	disclaimer	fixture
+lock	bloquear | bloqueado | bloqueo	Lock the scooter.	verb	no	lock	fixture

@@ -3,3 +3,7 @@
 # Prompts and raw agent replies are regenerated or folded into drafts/ and backtranslation.jsonl.
 /work/*/*/prompts/
 /work/*/*/replies/
+# The safety audit keeps its record, not its prompts, replies or sidecars.
+/work/*/*/audit/*
+!/work/*/*/audit/compare.tsv
+!/work/*/*/audit/verdicts.tsv

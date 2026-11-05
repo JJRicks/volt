@@ -434,5 +434,6 @@ def write_text(path, text):
     directory = os.path.dirname(path)
     if directory:
         os.makedirs(directory, exist_ok=True)
+    data = text.encode("utf-8")  # before opening: text that cannot be encoded leaves the file as it was
     with open(path, "wb") as handle:
-        handle.write(text.encode("utf-8"))
+        handle.write(data)

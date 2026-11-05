@@ -226,13 +226,14 @@ def plural_categories(lang):
 
 
 Term = collections.namedtuple("Term", "id term definition pos dnt safety targets")
+CLAUDE_ONLY_SOURCE = "claude-only"  # how a glossary row's source starts until the council has judged it
 
 
 def _read_glossary(path):
     try:
         _, rows = l10nlib.read_tsv(l10nlib.read_text(path), GLOSSARY_HEADER)
     except ValueError as error:  # a bad header or row, or text that is not UTF-8
-        raise L10nError("%s: %s" % (path, error))
+        raise L10nError("%s: %s (council.py glossary-check lists every problem)" % (path, error))
     return [fields for _, fields in rows]
 
 
@@ -255,6 +256,163 @@ def load_glossary(paths, tag):
         terms.append(Term(term_id, term, definition, pos, dnt == "yes", safety if safety != "-" else "",
                           targets.get(term_id)))
     return terms
+
+
+def _glossary_rows(path, where):
+    """([(line, fields)], problems), reading on past a row with the wrong column count."""
+    rows, problems = [], []
+    header = None
+    try:
+        text = l10nlib.read_text(path)
+    except UnicodeDecodeError as error:
+        return [], ["%s: not UTF-8: %s" % (where, error)]
+    for number, line in enumerate(text.split("\n"), 1):
+        line = line[:-1] if line.endswith("\r") else line
+        if not line.strip() or line.startswith("#"):
+            continue
+        fields = line.split("\t")
+        if header is None:
+            header = fields
+            if tuple(fields) != GLOSSARY_HEADER:
+                return [], ["%s:%d: the header must be %s" % (where, number, " ".join(GLOSSARY_HEADER))]
+        elif len(fields) != len(GLOSSARY_HEADER):
+            problems.append("%s:%d: %d columns, a row has %d" % (where, number, len(fields), len(GLOSSARY_HEADER)))
+        else:
+            rows.append((number, fields))
+    if header is None:
+        problems.append("%s: no header" % where)
+    return rows, problems
+
+
+def _form_problems(where, term_id, column):
+    """A term column's problems: empty forms, placeholders, a second term in one row (";" or "(",
+    since each form must match as written), and U+202F, which Saira cannot draw."""
+    forms = [f.strip() for f in column.split("|")]
+    out = []
+    if not all(forms):
+        out.append("%s: %s has an empty term" % (where, term_id))
+    if ";" in column or "(" in column:
+        out.append("%s: %s: a term holds no \";\" or \"(\"; an alias gets a row or a \" | \" form of its own" % (
+            where, term_id))
+    for form in forms:
+        if gen_catalog.PLACEHOLDER.search(form):
+            out.append("%s: %s: the term %r has a placeholder" % (where, term_id, form))
+    for form in column.split("|"):  # not stripped: strip() takes a U+202F at either end of a form too
+        if "\u202f" in form:
+            out.append("%s: %s: the term %r has U+202F, which Saira has no glyph for; use U+00A0" % (
+                where, term_id, form.strip(" ")))
+    return out
+
+
+def _row_problems(where, fields):
+    """The columns every glossary row must have, whatever the language; _form_problems does the term."""
+    term_id, _, definition, pos, dnt, safety, source = fields
+    out = []
+    if not re.match(r"^[a-z][a-z0-9-]*$", term_id):
+        out.append("%s: %r is not a lower-case id" % (where, term_id))
+    for name, value in (("definition", definition), ("pos", pos), ("source", source)):
+        if not value:
+            out.append("%s: %s has an empty %s" % (where, term_id, name))
+    if ";" in pos:
+        out.append("%s: %s: one part of speech per row" % (where, term_id))
+    if dnt not in ("yes", "no"):
+        out.append("%s: %s: dnt must be yes or no" % (where, term_id))
+    if safety != "-" and safety not in gen_catalog.SAFETY:
+        out.append("%s: %s: safety %r is not - or a known value" % (where, term_id, safety))
+    return out
+
+
+def english_glossary_problems(paths):
+    """Problems of l10n/glossary/en.tsv as the glossary of every language relies on it."""
+    path = os.path.join(paths.glossary_dir(), "en.tsv")
+    if not os.path.exists(path):
+        return ["%s does not exist" % paths.rel(path)]
+    where = paths.rel(path)
+    rows, problems = _glossary_rows(path, where)
+    seen = set()
+    for line, fields in rows:
+        at = "%s:%d" % (where, line)
+        if fields[0] in seen:
+            problems.append("%s: %s appears twice" % (at, fields[0]))
+        seen.add(fields[0])
+        problems.extend(_row_problems(at, fields))
+        problems.extend(_form_problems(at, fields[0], fields[1]))
+    return problems
+
+
+def glossary_problems(paths, tag):
+    """Every problem of l10n/glossary/<tag>.tsv against en.tsv; [] when the language has no glossary yet.
+
+    load_glossary ignores a row whose id en.tsv lacks, so a mistyped id would quietly leave its term
+    without a target; this is what catches that.
+    """
+    path = os.path.join(paths.glossary_dir(), tag + ".tsv")
+    if tag == "en":
+        return english_glossary_problems(paths)
+    if not os.path.exists(path):
+        return []
+    problems = english_glossary_problems(paths)
+    en_path = os.path.join(paths.glossary_dir(), "en.tsv")
+    english = {}
+    if os.path.exists(en_path):
+        for _, fields in _glossary_rows(en_path, "en.tsv")[0]:
+            english[fields[0]] = fields
+    where = paths.rel(path)
+    rows, row_problems = _glossary_rows(path, where)
+    problems.extend(row_problems)
+    seen = set()
+    for line, fields in rows:
+        at, term_id = "%s:%d" % (where, line), fields[0]
+        if term_id in seen:
+            problems.append("%s: %s appears twice" % (at, term_id))
+        seen.add(term_id)
+        if term_id not in english:
+            problems.append("%s: %s is not an id in en.tsv" % (at, term_id))
+        elif english[term_id][4] == "yes":
+            problems.append("%s: %s is do-not-translate in en.tsv and takes no row" % (at, term_id))
+        problems.extend(_row_problems(at, fields))
+        problems.extend(_form_problems(at, term_id, fields[1]))
+    if not row_problems:
+        for term_id, fields in english.items():
+            if fields[4] != "yes" and term_id not in seen:
+                problems.append("%s: no row for %s (%s)" % (where, term_id, fields[1]))
+    return problems
+
+
+def committed_glossary_problems(paths):
+    """{file name: problems} of every l10n/glossary/*.tsv with any, for CI (test_repository_files)."""
+    out = collections.OrderedDict()
+    directory = paths.glossary_dir()
+    for name in sorted(os.listdir(directory)) if os.path.isdir(directory) else []:
+        if name.endswith(".tsv"):
+            problems = glossary_problems(paths, name[:-4])
+            if problems:
+                out[name] = problems
+    return out
+
+
+def claude_only_glossary_rows(paths, tag):
+    """The ids of l10n/glossary/<tag>.tsv rows no council judged: their source says claude-only."""
+    path = os.path.join(paths.glossary_dir(), tag + ".tsv")
+    if not os.path.exists(path):
+        return []
+    return [fields[0] for _, fields in _glossary_rows(path, path)[0] if fields[6].startswith(CLAUDE_ONLY_SOURCE)]
+
+
+def require_valid_glossary(paths, tag):
+    """Refuse to build on an invalid l10n/glossary/<tag>.tsv (one that exists)."""
+    problems = glossary_problems(paths, tag)
+    if problems:
+        raise L10nError("the %s glossary is invalid (council.py glossary-check --tag %s):\n  %s" % (
+            tag, tag, "\n  ".join(problems)))
+
+
+def glossary_orphans(paths, sources=None):
+    """[Term] of en.tsv that match no translatable English string: information, not a problem."""
+    if sources is None:
+        sources, _ = load_source(paths)
+    text = "\n".join(t for rows in sources.values() for s in rows if s.translatable for t in s.items.values())
+    return [t for t in load_glossary(paths, "en") if not term_pattern(t.term, inflects(t)).search(text)]
 
 
 def term_pattern(term, inflect=False):
