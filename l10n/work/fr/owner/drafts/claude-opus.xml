@@ -13,16 +13,16 @@
     <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Laissez Shizuku en cours d’exécution.</string>
     <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Annuler la capture</string>
     <plurals name="owner_countdown_seconds_left" volt:src="403d585757493b61548f9ec61dfc56e11f85aec9">
-        <item quantity="one">%1$d seconde restante</item>
+        <item quantity="one">%1$d seconde restante</item>
         <item quantity="many">%1$d de secondes restantes</item>
-        <item quantity="other">%1$d secondes restantes</item>
+        <item quantity="other">%1$d secondes restantes</item>
     </plurals>
     <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s restantes</string>
     <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Arrêter la configuration ?</string>
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Patientez ici jusqu’au rétablissement du journal d’activité de NAVEE.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Continuer d’attendre</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Arrêter la configuration</string>
-    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Terminer d’abord le nettoyage</string>
+    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Rétablir d’abord le journal d’activité</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Le journal d’activité de NAVEE est peut-être encore activé.</string>
     <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5" volt:attempt="2">Rétablir le journal d’activité de NAVEE</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Retour</string>
@@ -30,7 +30,7 @@
     <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Clé d’utilisateur autorisé trouvée</string>
     <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Clé de propriétaire trouvée</string>
     <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">Journal d’activité de NAVEE rétabli</string>
-    <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Importer la configuration du propriétaire</string>
+    <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Importer la configuration de propriétaire</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Supprimer</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Démarrer Shizuku</string>
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku installé</string>
@@ -49,13 +49,13 @@
     <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Vérifier la connexion à Shizuku</string>
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Vérifier si Shizuku est en cours d’exécution</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Capture depuis votre trottinette</string>
-    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Connectez d’abord votre trottinette à l’arrêt dans NAVEE.</string>
-    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">La capture redémarre NAVEE et active temporairement son journal d’activité. Laissez Shizuku en cours d’exécution jusqu’à la fin du nettoyage.</string>
-    <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Je suis propriétaire de cette trottinette ou j’ai l’autorisation.</string>
+    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Trottinette immobile : connectez-la d’abord dans NAVEE.</string>
+    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">La capture redémarre NAVEE et active temporairement son journal d’activité. Laissez Shizuku en cours d’exécution jusqu’au rétablissement du journal d’activité.</string>
+    <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Je suis propriétaire de cette trottinette ou je dispose de l’autorisation requise.</string>
     <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Démarrer la capture</string>
-    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s : fait</string>
-    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s : pas encore</string>
-    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s : pas encore. %2$s</string>
+    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, étape terminée</string>
+    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, étape pas encore atteinte</string>
+    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, étape pas encore atteinte. %2$s</string>
     <string name="owner_steps_description" volt:src="7377e94793cdc4d9aefd72d30f41b659970c914c">Étape %1$d sur 3</string>
     <string name="owner_status_access_denied" volt:src="cae25526d0f496164d3eb9244f08695bdfc797c8">Accès refusé</string>
     <string name="owner_status_not_running" volt:src="54010bfefb6d488c6e1259e53b9726e17585488b">Shizuku n’est pas en cours d’exécution</string>
@@ -63,10 +63,10 @@
     <string name="owner_status_root_unsupported" volt:src="5519e39b0d4356bae71e0c9e5da02f46b8b9e61a">Shizuku en mode root n’est pas pris en charge. Démarrez-le avec le débogage sans fil.</string>
     <string name="owner_status_allow_in_shizuku" volt:src="76697c1aaf702336da47932c8acd5fea587a1043">Autorisez Volt dans Shizuku</string>
     <string name="owner_status_shizuku_stopped" volt:src="aa45b05b1d9bcee4575d265753ae1d1dc866fdef">Shizuku s’est arrêté</string>
-    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">État du nettoyage inconnu. Utilisez la récupération sur ordinateur.</string>
+    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">État du journal d’activité inconnu. Utilisez la récupération sur ordinateur.</string>
     <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Démarrage impossible. Rien n’a changé.</string>
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">L’outil de Volt n’a pas démarré</string>
-    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Nettoyage du journal d’activité : sans confirmation</string>
+    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Rétablissement du journal d’activité non confirmé</string>
     <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Rien n’a été trouvé en 90 s</string>
     <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Plusieurs trottinettes. Connectez-en une seule.</string>
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">Une autre capture est en cours</string>

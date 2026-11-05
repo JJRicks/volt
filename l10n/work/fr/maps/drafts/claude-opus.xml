@@ -79,5 +79,5 @@
     <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Aucun relevé</string>
     <string name="maps_chart_desc_value_at" volt:src="daf8b4f7f1432906abf0067d345d75140a8944d9">" à "</string>
     <string name="maps_chart_choose_readings" volt:src="64bc73444043d9c0da8335f94aca148f34cdb760">Choisissez des relevés ci-dessus</string>
-    <string name="maps_chart_cursor_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">À %1$s</string>
+    <string name="maps_chart_cursor_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Temps : %1$s</string>
 </resources>

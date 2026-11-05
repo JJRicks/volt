@@ -31,7 +31,7 @@
     <string name="backup_estimate" volt:src="13c55e78372a7d44e5b6a608067bfc3ddc5154ef">Environ %1$s</string>
     <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Les autorisations et l’association Bluetooth ne sont pas incluses. Les préférences de la trottinette sont enregistrées dans Volt ; les restaurer ne modifie pas les réglages de la trottinette.</string>
     <string name="backup_new_password" volt:src="55ca3f080bae3e2a88947221e97fae338683f4c0">Nouveau mot de passe</string>
-    <string name="backup_repeat_password" volt:src="ccf07f10a8f56a516ab8d33646fbc3c5922151cb">Répéter le mot de passe</string>
+    <string name="backup_repeat_password" volt:src="ccf07f10a8f56a516ab8d33646fbc3c5922151cb">Confirmer le mot de passe</string>
     <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c">Le mot de passe ne peut pas être récupéré.</string>
     <string name="backup_create" volt:src="fcc5929fd0cee7267918047e7c2df70104754bf2">Créer la sauvegarde</string>
     <string name="backup_choose_what" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Choisissez les données à sauvegarder.</string>
@@ -47,7 +47,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Échec de l’enregistrement. Réessayez à un autre emplacement.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Sauvegarde enregistrée.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restauration</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Choisissez une sauvegarde Volt pour récupérer vos données enregistrées de l’application. Les anciens fichiers de configuration du propriétaire, de trajets et de disposition fonctionnent aussi ; vous verrez exactement leur contenu avant de les restaurer.</string>
+    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Choisissez une sauvegarde Volt pour récupérer vos données enregistrées de l’application. Les anciens fichiers de configuration de propriétaire, de trajets et de disposition fonctionnent aussi ; vous verrez exactement leur contenu avant de les restaurer.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Les autorisations et l’association Bluetooth ne sont pas incluses.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Choisir un fichier</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Impossible d’ouvrir un sélecteur de fichiers.</string>
@@ -61,7 +61,7 @@
     <string name="backup_choose_another" volt:src="76850a8a4a899932c82c308ad26aa02ba88daa78">Choisir un autre fichier</string>
     <string name="backup_checking_backup" volt:src="708ee633a97c4e8ead1fa469ce6b58df959d5936">Vérification de la sauvegarde…</string>
     <string name="backup_wrong_password" volt:src="2de28db853d23f5c28db7092aceb43821abe2315" volt:attempt="2">Mot de passe incorrect ou fichier invalide.</string>
-    <string name="backup_file_owner" volt:src="f1694f38a36e5e9fde3d5989183441ba4f966f17">Fichier de configuration du propriétaire · accès à la trottinette uniquement</string>
+    <string name="backup_file_owner" volt:src="f1694f38a36e5e9fde3d5989183441ba4f966f17">Fichier de configuration de propriétaire · accès à la trottinette uniquement</string>
     <string name="backup_file_layout" volt:src="5f473f29b3f78de9e0830ae7a31c30f44b663932">Fichier de disposition</string>
     <string name="backup_file_rides" volt:src="23588102943ef321f25e17c44389979ba4090f5f">Sauvegarde de trajets</string>
     <string name="backup_file_rides_from" volt:src="716a532924d2b83a7d178905398b0c06cb57cd48">Sauvegarde de trajets : %1$s</string>

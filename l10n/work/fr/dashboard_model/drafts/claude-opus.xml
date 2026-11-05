@@ -24,7 +24,7 @@
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nom</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nom</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Préf. appli</string>
-    <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Préf. appli</string>
+    <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Préférences</string>
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mes trott.</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Trottinettes</string>
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Expérim.</string>
@@ -43,7 +43,7 @@
     <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Top speed</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Prog. recharge</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Mise à jour…</string>
-    <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (appris)</string>
+    <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (apprise)</string>
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Trottinette</string>
     <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Mesure en cours</string>
     <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">Activé • %1$s</string>
@@ -67,8 +67,8 @@
     <string name="dashboard_model_type_history" volt:src="c4f859fb6feff86693b846f5eb609afd0b29356d">Graphique d’historique</string>
     <string name="dashboard_model_type_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Relevés</string>
     <string name="dashboard_model_type_trip" volt:src="22238fa2b3847217534642265c3fbf6fd0244169">Aperçu du parcours</string>
-    <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">État indiqué de la batterie</string>
-    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Énergie utilisable en conduite</string>
+    <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">État de santé indiqué</string>
+    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Énergie utilisable pour rouler</string>
     <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Recharge</string>
     <string name="dashboard_model_type_quick" volt:src="558fd0a4fa154c2e4a8eec1fb009fa472b189666">Raccourcis</string>
     <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Enregistreur de trajet</string>

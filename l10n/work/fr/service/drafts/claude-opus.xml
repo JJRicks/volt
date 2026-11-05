@@ -3,18 +3,18 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="service_wait_backup" volt:src="ad050a8c30a8cf5b578006a5884bc1ff0b909043">Attendez la fin de la sauvegarde ou de la restauration</string>
     <string name="service_stop_recording_first" volt:src="4fd630cc644ce85af927e714376db75a7a098657">Arrêtez d’abord l’enregistrement en cours</string>
-    <string name="service_wait_ride_saving" volt:src="dde7a768fd375aa9b91eed6384cbc875b9291969">Attendez que le trajet soit enregistré</string>
+    <string name="service_wait_ride_saving" volt:src="dde7a768fd375aa9b91eed6384cbc875b9291969">Attendez que le trajet soit sauvegardé</string>
     <string name="service_wait_scooter_change" volt:src="9ae1c7f912aeba28b610a96d05e83c0423c361f4">Attendez la fin de la modification en cours sur la trottinette</string>
     <string name="service_wait_schedule_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Attendez la fin du test de la recharge programmée</string>
     <string name="service_maintenance_in_progress" volt:src="3fc219f784c91d4fa96b615f737f17cb59610145">La maintenance des données de l’application est déjà en cours</string>
-    <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Attendez que l’enregistrement du téléphone soit terminé</string>
+    <string name="service_wait_phone_saving" volt:src="796239272b5d2f9f9c74b20c2e80cd5f4556fdc1">Attendez que l’enregistrement du téléphone soit sauvegardé</string>
     <string name="service_finish_charge_export" volt:src="46b275d489dbaed94949d9979418b5b86a9318d7">Terminez d’abord l’exportation en cours des enregistrements de recharge</string>
     <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Attendez la fin de la programmation de la recharge</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Attendez la fin de la mesure de « Finir la recharge à »</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Attendez la fin du nettoyage de l’historique</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Terminez d’abord la configuration du propriétaire et rétablissez le journal d’activité de NAVEE</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Terminez d’abord la configuration de propriétaire et rétablissez le journal d’activité de NAVEE</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Terminez d’abord l’exportation en cours</string>
-    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Terminez d’abord l’importation de la configuration du propriétaire</string>
+    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Terminez d’abord l’importation de la configuration de propriétaire</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Impossible de préparer les données de l’application. Rouvrez Volt.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Terminez l’enregistrement en cours avant de lancer la simulation</string>
     <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Aucun enregistrement de recharge pour l’instant</string>
@@ -63,7 +63,7 @@
     <string name="service_charge_stop_connection_failed" volt:src="63569c51f6c6eb4bd475dec9c9dafadac6e3d3e5">échec de la connexion</string>
     <string name="service_charge_stop_bluetooth_off" volt:src="30faf1fff167f6240d3f11b1de57a743c4cba9e0">Bluetooth désactivé</string>
     <string name="service_charge_stop_permission_lost" volt:src="4bcb1b8644d39b0c1566cb8977212735caae4234">autorisation perdue</string>
-    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">changement d’identité</string>
+    <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">autre trottinette détectée</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Enregistrement arrêté ; impossible de finaliser le fichier de recharge</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Attendez la détection du chargeur ou sélectionnez un chargeur</string>
     <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">« Finir la recharge à » n’a pas démarré la recharge</string>
@@ -72,24 +72,24 @@
     <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Début de recharge prévu : %1$s. La batterie est encore à %2$s %% (%3$s %% au moment du réglage). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Ouvrez Volt pour désactiver la programmation afin que la recharge démarre maintenant.</string>
     <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Début de recharge prévu : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Volt peut désactiver la programmation pour que la recharge démarre maintenant.</string>
     <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Début de recharge prévu : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Ouvrez Volt pour désactiver la programmation afin que la recharge démarre maintenant.</string>
-    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Reprise prévue par le test de la programmation : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Volt peut désactiver la programmation pour que la recharge démarre maintenant.</string>
-    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Reprise prévue par le test de la programmation : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Ouvrez Volt pour désactiver la programmation afin que la recharge démarre maintenant.</string>
+    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Reprise prévue par le test de la recharge programmée : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Volt peut désactiver la programmation pour que la recharge démarre maintenant.</string>
+    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Reprise prévue par le test de la recharge programmée : %1$s. La batterie est encore à %2$s %% (%3$s %% lors du test). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Ouvrez Volt pour désactiver la programmation afin que la recharge démarre maintenant.</string>
     <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Début de recharge défini : %1$s. La batterie est encore à %2$s %% (%3$s %% au moment du réglage). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Volt peut désactiver la programmation pour que la recharge démarre maintenant.</string>
     <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Début de recharge défini : %1$s. La batterie est encore à %2$s %% (%3$s %% au moment du réglage). Vérifiez que le chargeur est branché et que son voyant passe au rouge à l’heure de début. Ouvrez Volt pour désactiver la programmation afin que la recharge démarre maintenant.</string>
     <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Cette recharge a été mesurée. Reprise de la recharge : %1$s ; fin au plus tard : %2$s.</string>
-    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Planification pour une nouvelle recharge. Reprise de la recharge : %1$s ; fin au plus tard : %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Planifié pour une nouvelle recharge. Reprise de la recharge : %1$s ; fin au plus tard : %2$s.</string>
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">La fonction « Finir la recharge à » est désactivée.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. La fonction « Finir la recharge à » est désactivée.</string>
     <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">L’autorisation Bluetooth a été retirée pendant la mesure</string>
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt s’est fermée pendant la mesure. La fonction « Finir la recharge à » est désactivée.</string>
-    <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">La fonction « Finir la recharge à » est définie. %1$s</string>
-    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">La fonction « Finir la recharge à » n’a pas été définie. %1$s</string>
-    <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">La fonction « Finir la recharge à » est définie</string>
-    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">La fonction « Finir la recharge à » n’a pas été définie</string>
+    <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">La fonction « Finir la recharge à » est activée. %1$s</string>
+    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">La fonction « Finir la recharge à » n’a pas été activée. %1$s</string>
+    <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">La fonction « Finir la recharge à » est activée</string>
+    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">La fonction « Finir la recharge à » n’a pas été activée</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Rouvrez Volt</string>
     <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Test annulé. La recharge programmée est désactivée.</string>
-    <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Définition de la programmation…</string>
+    <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Réglage de la programmation…</string>
     <string name="service_test_pausing" volt:src="65e2bd4326b7da4fbe8b08ccaf2085b5e7dd79c1">Mise en pause de la recharge…</string>
     <string name="service_test_ending" volt:src="6a0c1f0c045938f28b1dc93e5c88015e15739990">Désactivation de la programmation…</string>
     <string name="service_test_resumes_in" volt:src="741c5a78b510347260ecfd786f024d4452b6ca21">Reprise dans %1$s:%2$s</string>
@@ -121,7 +121,7 @@
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Le test a été interrompu. Vérifiez que la recharge a repris. Si ce n’est pas le cas, désactivez la recharge programmée.</string>
     <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Le test n’a pas pu démarrer.</string>
     <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Le test n’a pas pu démarrer : %1$s.</string>
-    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt n’a pas pu confirmer si la programmation a été désactivée. Désactivez la recharge programmée pour que la recharge continue."</string>
+    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt n’a pas pu vérifier si la programmation a été désactivée. Désactivez la recharge programmée pour que la recharge continue."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Alertes de batterie</string>
     <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Alertes de batterie que vous activez dans Trottinette › Batterie : niveau de charge, batterie pleine et batterie faible</string>
@@ -129,24 +129,24 @@
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Arrêtez l’enregistrement de recharge avant de démarrer un trajet</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Quittez d’abord la simulation</string>
     <string name="service_ride_finishing" volt:src="49f9acdc3dd6b46fc28147080d08a9347246302d">Finalisation du trajet précédent…</string>
-    <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Trajet enregistré automatiquement</string>
-    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Connexion Bluetooth perdue à l’arrêt</string>
-    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Connexion Bluetooth perdue à l’arrêt</string>
+    <string name="service_ride_saved_auto" volt:src="42878a885535e9b4f60fdfcea021a21fff4b0386">Trajet sauvegardé automatiquement</string>
+    <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Connexion Bluetooth perdue, trottinette à l’arrêt</string>
+    <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Connexion Bluetooth perdue, trottinette à l’arrêt</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Connexion de la trottinette et enregistrement</string>
     <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320">Mesure de la recharge pour « Finir la recharge à »</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Test de la recharge programmée</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Enregistrement de recharge · reconnexion…</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Enregistrement de recharge actif</string>
-    <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Enregistrement du trajet…</string>
+    <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Finalisation du trajet…</string>
     <string name="service_notice_ride_active" volt:src="9ad2e30cf8a5de52dd1e49495363158fed5bc8a8">Enregistrement de trajet actif</string>
     <string name="service_notice_ride_attention" volt:src="b59463e9d015f05da66fcb7daacf51b3dcf55f85">L’enregistrement nécessite votre attention</string>
     <string name="service_notice_connected" volt:src="043ef303a7dde859a4f0661d22054c3664b40dd1">Trottinette connectée</string>
-    <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">Le programme sera défini d’ici %1$s min · laissez le chargeur branché</string>
+    <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">La programmation sera définie d’ici %1$s min · laissez le chargeur branché</string>
     <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · gardez le téléphone près de la trottinette</string>
     <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">L’enregistrement de trajet nécessite votre attention</string>
     <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Les capteurs du téléphone n’enregistrent pas</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Arrêter la surveillance</string>
-    <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Programmer</string>
+    <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Programmer maintenant</string>
     <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Annuler le test</string>
     <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Arrêter l’enregistrement de recharge</string>
     <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Arrêter l’enregistrement</string>

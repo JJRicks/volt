@@ -8,9 +8,9 @@
 
 - Use **vous**, always, formal and singular in sense: *Branchez le chargeur*, *votre trottinette*. Never tu. The owner set vous.
 - Calm, plain, direct. No exclamation marks in errors, no marketing tone, no slang.
-- **Buttons, toggles and menu actions use the infinitive:** *Enregistrer*, *Connecter*, *Verrouiller*. Android's own French does this.
+- **Buttons and menu actions use the infinitive:** *Enregistrer*, *Connecter*, *Verrouiller*. Android's own French does this. A toggle takes a noun or a complete action, never a verb that has lost its object: *Connexion automatique*, *Maintenir la connexion en arrière-plan*.
 - **Instructions in sentences use the vous imperative:** *Reconnectez la trottinette pour vérifier*, *Appuyez sur « Verrouiller »*. Don't mix the two forms in one string.
-- **Labels and titles use nouns:** *Limite de recharge*, *Durée de verrouillage*. **A process in progress is a noun plus `…`:** *Connexion…*, *Verrouillage…*, never a gerund.
+- **Labels, places and sections use nouns:** *Limite de recharge*, *Durée de verrouillage*. A title that asks the rider to act uses the infinitive (Fixed words). **A process in progress is a noun plus `…`:** *Connexion…*, *Verrouillage…*, never a gerund.
 - Tap on screen: **Appuyez sur**. Never *Cliquez*, *Tapez* or *Touchez*. A physical button: also **Appuyez sur**.
 - Use the passive or an impersonal form for what Volt or the scooter did: *Lecture impossible*, *Impossible de lire la valeur*. Past events take the passé composé: *A fonctionné*, *Signal perdu*.
 - Role labels use the generic masculine (*propriétaire*, *utilisateur autorisé*). No midpoint forms (*utilisateur·rice*): they are wide and read badly on a screen reader.
@@ -41,7 +41,7 @@
 
 - Decimal comma; a U+00A0 groups thousands: **1 234,5**. Volt's `Fmt` formats live numbers for the phone's region and locale, so never rewrite a placeholder's number or add separators around one.
 - **Percent:** U+00A0 before the sign. `fmt_percent` is `%1$s %%` (*85 %*). The same goes for literal text and for `formatted="false"` text (`100 %`).
-- **Number and unit:** U+00A0 between them: `fmt_quantity` is `%1$s %2$s`. *25 km/h*, *36 V*, *25 °C*, *2 h 5 min*. `fmt_range` is `%1$s–%2$s %3$s` (*10–20 km*). `fmt_dual` stays `%1$s / %2$s`.
+- **Number and unit:** U+00A0 between them: `fmt_quantity` is `%1$s %2$s`. *25 km/h*, *36 V*, *25 °C*, *2 h 5 min*, with U+00A0 at every space of a compound duration. A number before a unit word takes it too: *1 minute*, *%1$d heures*. `fmt_range` is `%1$s–%2$s %3$s` (*10–20 km*). `fmt_dual` stays `%1$s / %2$s`.
 - **Unit symbols stay** and take no plural or period: `km/h`, `km`, `mi`, `mph`, `V`, `A`, `W`, `Wh`, `Ah`, `°C`, `°F`, `h`, `min`, `s`. Never *Km/h* or *kmh*. Unit words are translated: *kilomètres*, *miles*, *minutes*.
 - Numbers in the English stay as digits. Don't write them out or change them.
 - **Dates and times** come from Volt's formatters; don't hard-code an order. A fixed date in prose reads *5 mars* (*1er mars* for the first). A time in prose reads *à 14 h 30*, on a chip *14:30*. Keep a placeholder's time as it comes. No *AM/PM* of your own.
@@ -67,7 +67,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Capacité | **Cap.** | *Cap. estimée* (73.7) | |
 | environ | **env.** | Before a number: *env. 25 km* | |
 | Puissance | **Puiss.** (34.4) | Only where *Puissance* (58.6) doesn't fit | |
-| Programme | **Prog.** | *Prog. recharge* (84.4) | |
+| Programmation | **Prog.** | *Prog. recharge* (84.4) | |
 | Préférences | **Préf.** | *Préf. appli* (56.7 at 12sp) | |
 | proximité | **prox.** | *PIN, prox.* (53.9 at 12sp) | |
 | trottinettes | **trott.** | Only *Mes trott.* (54.2 at 12sp) | Anywhere else |
@@ -83,7 +83,7 @@ An abbreviation ends in a period, which counts toward the width, unless the word
 | Total odometer / Odometer / Odo. | Kilométrage total (100.5) | Kilométrage (70.8) | Total (28.3) |
 | Battery voltage / same / Voltage | Tension de la batterie (124.2) | same | Tension (44.8) |
 | Battery temp. / Temp. | Température de la batterie (153.3) | Temp. batterie (83.3) | Temp. (34.6) |
-| Est. capacity (health) / Est. capacity | Capacité estimée (état) (132.6) | Cap. estimée (état) (108.0) | Cap. estimée (73.7) |
+| Est. capacity (health) / Est. capacity | Capacité estimée (santé) | Cap. estimée (santé) | Cap. estimée (73.7) |
 | Trip top speed / Top speed | Vitesse de pointe du parcours | Vit. de pointe (76.6) | Pointe (37.7) |
 | Trip avg. speed / Avg. speed | Vitesse moyenne du parcours | Vit. moy. du parcours (122.4) | Vit. moy. (51.1) |
 | Trip distance / Distance | Distance du parcours (121.1) | same | Distance |
@@ -104,6 +104,8 @@ An abbreviation ends in a period, which counts toward the width, unless the word
 - `dashboard_model_tile_*`, 90dp at 12.5sp: *Vitesse max.* 73.6, *Prog. recharge* 84.4. The `_short` rungs of `dashboard_model_qa_*` are 90dp at 12.5sp too: *Expérimental* 77.1, *Finir à* 36.0, *Heure de fin* 71.1.
 - `more_lab_badge`, 40dp at 10.5sp: *LABO* 27.4. *LABO* is for the badge keys only.
 - `owner_shizuku_install`, 48dp at 14sp: *Installer* is 52.9, over budget. Use *Install.*, measured below.
+
+**What a `_compact` rung may drop:** only what its card supplies. A Home card supplies nothing, so a firmware version keeps the word *Version* (*Version batt.*, *Version écran*, *Version compteur*). These rungs have no recorded budget, so check them on a real card. A roomier `_short` rung prefers a full word that fits over the narrow rung's abbreviation (*Préférences*, not *Préf. appli*).
 
 **Never abbreviate:** *Verrouiller, Déverrouiller, Verrouillée, Déverrouillée, Non vérifié, Inconnu, Jamais, Toujours, Alarme, PIN*. *Verr.* and *Déverr.* are not allowed. If one of these doesn't fit, write the whole word and report it in your notes rather than shortening it.
 
@@ -133,13 +135,13 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Charge limit | **Limite de recharge** | Never *Limite de charge*, which reads as a load limit in kilograms (see section 7). Never *plafond* |
 | Experimental | **Expérimental**, *expérimentale*, *expérimentaux*, *expérimentales* | The section is **Commandes expérimentales**. *Expérim.* only on the 64dp shortcut |
 | Untested | **Non testé** | *Non testée* with a feminine subject. The card title *Untested controls* is **Commandes non testées** until D3 |
-| Unconfirmed | **Sans confirmation** | Acknowledged but not kept or read back. Always a status beside its control, never "done without asking". **Debate item:** *Non maintenu*, or *Non confirmé (non relu)*; *Non confirmé* alone is taken by *Not confirmed* |
+| Unconfirmed, a try's status | **Sans confirmation** | Only a try's status chip or outcome: acknowledged but not kept or read back. Always a status beside its control, never "done without asking". Anywhere else (a model ID, current direction, logging cleanup) "unconfirmed" is **non confirmé**, agreed, naming what is unconfirmed. **Debate item:** *Non maintenu*, or *Non confirmé (non relu)*; *Non confirmé* alone is taken by *Not confirmed* |
 | Not confirmed | **Non confirmé** | Not read back |
 | not affiliated with NAVEE | **non affiliée à NAVEE** | Never soften it: no *non officielle*, *indépendante de*, *sans lien direct*. In a sentence about Volt: *Volt n’est pas affiliée à NAVEE* |
 
 **Words that look right and aren't:**
 
-- ***Toujours* also means "still".** *Toujours verrouillée* can read as "still locked" rather than "always locked". Where both readings are possible, write *en permanence* for always (*Allumé en permanence*). Write *encore* for still. Never use *toujours* for still in a state message.
+- ***Toujours* also means "still".** *Toujours verrouillée* can read as "still locked" rather than "always locked". Where both readings are possible, write *en permanence* for always (*Allumé en permanence*). Write *encore* for still. Never use *toujours* for still in a state message. This trap is for state messages: a fixed number says *fixe* (*intervalle fixe de 2 s*).
 - ***plus* means "more" and "no more".** *Plus de charge* is ambiguous. Keep the *ne* (*ne charge plus*), or write it another way.
 - ***Bloquée*** means stuck or jammed, not locked. ***Débloquée*** isn't unlocked. Use only *verrouillée* and *déverrouillée*.
 - ***Fermée*** and ***ouverte*** are not lock states. *Ouvrir* and *Annuler* next to *le verrouillage* read as removing the lock.
@@ -166,21 +168,21 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Essayer**, its result **essai**. An ordinary retry (*Try again*, *Try shortly*) is never *Essayer*: it is **Réessayez**, as a button **Réessayer** (Fixed words). A guided test is **test**, **tester**. A compatibility check is **vérification de compatibilité**. *Test scheduled charging* is **Tester la recharge programmée**.
 - **Dashboard vs display:** Volt's Home layout is the **Tableau de bord**. The scooter's own screen is the **écran de la trottinette**. They never swap, even though French calls a car's instruments a *tableau de bord*. Where an English string still says dashboard for the physical display, write *écran de la trottinette*.
 - **Settings vs setup:** settings are **Réglages**, a one-time setup is **configuration**. Android's own settings are **Paramètres** (section 9).
-- **Restore vs set back:** bringing back a backup is **Restaurer**. Undoing a try is **Rétablir**, and so is putting NAVEE's logging back as it was (Fixed words). Energy recovery is **Récupération d’énergie**, unrelated to either.
+- **Restore vs set back:** bringing back a backup or a saved layout is **Restaurer**. Undoing a try or a guided test is **Rétablir**, and so is putting NAVEE's logging back as it was (Fixed words). "Restore" in Compatibility and Experimental strings means writing a value back, so read the source note first. Energy recovery is **Récupération d’énergie**, unrelated to either.
 - **Readback:** **relecture**, a neutral word, because a readback can also fail to confirm: *Relecture différente*, *Réglage confirmé par relecture*. Never a phrase with *confirmation* inside it.
 - **Refused vs rejected:** *Refused by scooter* is **Refusé par la trottinette**, *Rejected* is **Rejeté**. Agree with the noun: *valeur rejetée*.
 - **Pair vs bind vs connect:** Bluetooth pairing is **associer**, as Android writes it. NAVEE account binding is **lier** (*lier le compte*). A live link is **connecter**.
-- **Owner key parts:** the file is the **fichier de configuration du propriétaire**, shortened to **fichier de propriétaire** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
-- **Roles:** owner is **propriétaire**, shared rider is **utilisateur autorisé**. The compact role label (`more_role_shared`, English *Shared*) is **Autorisé** (49.1), for that key only and never as a state, never *Partagé*, which reads as a shared scooter. **Debate item:** *Invité* (32.7), since bare *Autorisé* reads as "allowed". `compat_evidence_shared` and `compat_report_privacy` are not the role: they use *partagé*. A shared rider's key is **clé d’utilisateur autorisé**.
+- **Owner key parts:** the file is the **fichier de configuration de propriétaire**, shortened to **fichier de propriétaire** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
+- **Roles:** owner is **propriétaire**, shared rider is **utilisateur autorisé**. The compact role label (`more_role_shared`, English *Shared*) is **Invité** (32.7), for that key only, because bare *Autorisé* reads as "allowed" and *Partagé* as a shared scooter. **Debate item:** whether *Invité* sounds too temporary for a rider the owner has authorized. `compat_evidence_shared` and `compat_report_privacy` are not the role: they use *partagé*. A shared rider's key is **clé d’utilisateur autorisé**.
 - **Levels:** Energy recovery levels agree with *récupération*: *Désactivée, Faible, Moyenne, Élevée*. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimation Eco** is a range option, translated.
 - **Drive modes:** they stay untranslated, as the scooter shows them (`drive_mode_names` is english), in the case the English string uses in that string (section 3), even though NAVEE's store says *mode piéton*, *mode standard*, *mode sport*. A drive mode in general is a **mode de conduite**. **Walk Assist** is **Assistance à la marche**, and **Power Assist** is **Assistance motrice**.
 - **Kick-start speed vs standing start:** the setting is **Vitesse de démarrage**, and value 0 of it is **Démarrage à l’arrêt**.
-- **Parked:** the meaning is stationary, so **à l’arrêt**. Not *garée*. *À l’arrêt* can also mean switched off, so where power is in question use **immobile**: `onboarding_prepare_parked` is *Trottinette immobile et allumée*.
+- **Parked:** the meaning is stationary. Use **immobile** by default, and always when Volt is connected, since the scooter is then on: *à l’arrêt* can also mean switched off (`onboarding_prepare_parked` is *Trottinette immobile et allumée*). Use *à l’arrêt* only where power is not in question, such as a ride that ended at a standstill. Not *garée*.
 - **Readings and measuring:** telemetry values are **relevés** (*Historique des relevés*). Watching the charger is **Mesurer**, and its state is *Mesure en cours*.
 - **Parts:** *guidon* (handlebar), *phare* (headlight, NAVEE's word), *feu arrière*, *feu stop*, *clignotant*, *batterie* (never *pile* or *accu*), *pneu*, *frein*, *accélérateur* (throttle), *béquille*, *micrologiciel* (firmware, as Android writes it). The range is **autonomie**.
 - **Quick settings:** the Dashboard's shortcut row and widget (*Quick access*, *Quick settings*) are **Accès rapide**. Never *Réglages rapides*: Settings is itself one of the shortcuts.
-- **Experimental LAB badge:** **LABO**, a French word that needs no period, on the badge keys only (`more_lab_badge`, `rides_lab_badge`). D3 lets a language use its own short word. TalkBack speaks **Expérimental**. A shortcut names the section instead: **Expérimental**, or *Expérim.* at 64dp. **Debate item:** Spanish keeps LAB.
+- **Experimental LAB badge:** **LABO**, a French word that needs no period, on the badge keys only (`more_lab_badge`, `rides_lab_badge`). `compat_evidence_lab` is not a badge key: it is **Expérimental**. D3 lets a language use its own short word. TalkBack speaks **Expérimental**. A shortcut names the section instead: **Expérimental**, or *Expérim.* at 64dp. **Debate item:** Spanish keeps LAB.
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does.
 - **Odometer:** **Kilométrage total**, **Kilométrage**, **Total**. *Compteur kilométrique* is accepted in running text. Never bare *Compteur*, which riders use for the speedometer or the display unit. **Debate item:** *Kilométrage* and *Compteur kilométrique* say kilometers even when Volt shows miles. *Odomètre* (57.7) avoids that, but it reads as rare or Canadian in France.
 - **Regional words:** say *téléphone*, never *portable* or *cellulaire*; say *e-mail*, the form Android uses for France, where a Canadian reader would say *courriel*.
@@ -188,7 +190,9 @@ The glossary is authoritative; this explains the distinctions it can't.
 ## 8. Grammar traps
 
 - **Gender drives agreement, and the placeholder hides it.** *la trottinette, la batterie, l’application, la clé, la limite, la recharge, la récupération* are feminine; *le code PIN, le moteur, le feu, le phare, le tableau de bord, le parcours, le trajet* are masculine. A state alone with no noun agrees with *trottinette* where the scooter is the subject (*Verrouillée*), and otherwise with the noun on screen.
-- Prefer wording with no article before `%1$s`: *Trottinette : %1$s*, not *la %1$s*. Elision can't be predicted either, so never write *de %1$s* or *le %1$s* before a name. Use *pour : %1$s* or a colon.
+- Prefer wording with no article before `%1$s`: *Trottinette : %1$s*, not *la %1$s*. Elision can't be predicted either, so never write *de %1$s* or *le %1$s* before a name. Use a label first (*Déplacer : %1$s*) or parentheses (*L’historique de cette trottinette (%1$s) sera supprimé*). Never a colon after a preposition. For a value, name it: *Envoi de la valeur %1$s*.
+- **Status values with no noun** agree with one implied noun. If a value appears on rows of different genders (permission rows), use a form that carries its own noun: *Autorisation accordée*, not *Autorisée*.
+- French needs the object an English string drops: *Connecter la trottinette pour enregistrer*, *rebranchez le téléphone*.
 - Elide before a vowel or mute *h*: *l’alarme*, *d’énergie*, *l’écran*, *n’est pas*. A placeholder or a symbol doesn't elide.
 - Contract *à le* and *de le*: *au guidon*, *du téléphone*. *de la* and *de l’* stay.
 - The *one* item also covers 0, so write the same sentence for 0 and 1 without *un* or *une* in place of the number.
@@ -220,8 +224,8 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | English concept | Meaning | This language |
 |---|---|---|
 | Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Réessayez**; *Réessayez dans un instant*. As a button, **Réessayer**. Never *Essayez*, *Essayez à nouveau* or *Testez*, which read as testing something |
-| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **aucune donnée**, invariable: *Charge : aucune donnée*. Says only that no value came, not that anything is off or fine. Never *non signalé*, *non rapporté* or *non confirmé* |
-| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **indiqué** (agrees with its noun); verb **indiquer**: *la trottinette indique*, *État indiqué*, *Indiqué par la trottinette*. A claim, not a measurement. Never *signalé*, *rapporté* or *confirmé*. *rapport* stays the word for a document |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **aucune donnée**, invariable: *Charge : aucune donnée*. "Not reported by X" is a sentence: *Cette trottinette ne transmet aucune donnée*. Says only that no value came, not that anything is off or fine. Never *non signalé*, *non rapporté* or *non confirmé* |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **indiqué** (agrees with its noun); verb **indiquer**: *la trottinette indique*, *État de santé indiqué*, *Indiqué par la trottinette*. A claim, not a measurement. Never *signalé*, *rapporté* or *confirmé*. *rapport* stays the word for a document |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **journal d’activité de NAVEE**; *journal d’activité* once the screen has named NAVEE. Never *enregistrement* (a recording) or *inscription* (signing up), and never bare *journal*, since *Journal du téléphone* is a list of rides |
 | restore logging | turning that logging back to how it was (usually off) | **rétablir le journal d’activité**; in progress, *Rétablissement du journal d’activité de NAVEE…*. Means putting that logging back as it was, usually off, so never *réactiver*. Never *restaurer*: it brings back no file or backup |
 | Volt's helper | the small helper Volt starts inside Shizuku | **outil de Volt**; *outil* alone once the screen makes clear which. Never *assistant*, which reads as *Assistance*. The script on the computer is the different **script de capture** |
@@ -232,15 +236,31 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | current direction | which way battery current flows | **sens du courant**. Never *direction*, which reads as a route or the handlebars |
 | throughput | how much energy has passed through the battery | **énergie transférée**; for an Ah value, *capacité transférée*. An amount that passed through, not a rate, so never *débit* |
 | battery gauge | the scooter's own battery percentage reading | **jauge de batterie**; *jauge* alone where the screen is about the battery. The scooter's own figure, not a measurement |
-| raw | an unprocessed value, also used as a short tag | **brut**, *brute* with a feminine noun: *valeur brute*, *(brut)*; as a tag **BRUT**, where the English writes RAW |
+| raw | an unprocessed value, also used as a short tag | **brut**, *brute* with a feminine noun: *valeur brute*. The parenthetical tag **(brut)** is invariable, short for *valeur brute*, even after a feminine noun; as a tag **BRUT**, where the English writes RAW |
 | last seen | when Volt last had data from the scooter | **Dernier relevé**; with a value, *Dernier relevé : %1$s*. The data may be old, so never word it as current. Not *Dernier état connu*, which is the last known state |
 | add | adding a widget, scooter or item | **ajouter**: *Ajouter un widget*, *Ajoutez une autre trottinette* |
 | enter (typing) | typing a value | **saisir**: *Saisissez un nouveau code PIN*. Never *entrer*, and never *tapez*, which section 1 rules out |
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **application**, feminine: *l’application*, *l’application NAVEE*, *l’application officielle*. *appli* only on a narrow label where *application* doesn't fit (section 5), never in a sentence |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **connectez la trottinette**, *Connectez d’abord la trottinette*, *Reconnecter la trottinette*. Never *connectez-vous* or *reconnectez-vous*, which read as signing in to an account. The button stays *Connecter*; plugging in says *branchez le chargeur* |
-| set a value | one verb for setting a value on the scooter | **définir**: *Définir le code PIN*, *Définir %1$s*. Never *fixer*. The noun stays *réglage*, and setting something back stays *Rétablir* |
+| set a value | one verb for setting a value on the scooter | **définir**: *Définir le code PIN*, *Définir %1$s*. Never *fixer*. Only for a value: a feature is **activée** (*La fonction « Finir la recharge à » est activée*). The noun stays *réglage*, never *définition* (*Réglage de la programmation…*), and setting something back stays *Rétablir* |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | Future with the thing as subject, in dialogs and hints alike: *Ce trajet sera supprimé*, *La carte s’ouvrira*. Never *Supprimez…*, *Supprime…* or *Ouvrez…*, which read as commands |
-| screen and section titles | noun form or verb form, with one example | Noun form: *Sauvegarde et restauration*. If the title is an action with no good noun, the infinitive: *Tester la recharge programmée*. Never the imperative |
+| recording vs saving | recording is capturing a ride or charge; saving is finishing or keeping it | **enregistrement** is only the recording (*Enregistrement de trajet actif*). A ride being saved is **Finalisation** (*Finalisation du trajet…*); once saved it is **sauvegardé** (*Trajet sauvegardé automatiquement*). The button stays **Enregistrer**, as Android has it, and a file save may still be *enregistrement*. **Debate item:** *sauvegardé* sits close to *Sauvegarde*, the backup |
+| stop the scooter | bring a moving scooter to a halt, power staying on | **Immobilisez la trottinette**. Never *Arrêtez la trottinette* or *Éteignez*. *Arrêter* stays for alarms, recordings and tests |
+| cleanup (of a capture) | putting NAVEE's logging back after a capture; nothing is erased | **rétablissement du journal d’activité**. Never *nettoyage*, which reads as erased logs. *Nettoyage de l’historique* is a different thing and stays |
+| lock change | the scooter going from locked to unlocked or back | **changement d’état du verrouillage**. Never *changement de verrouillage*, which reads as replacing the lock |
+| fallback PIN | the handlebar PIN, when being the fallback is the reason | **code PIN du guidon**, and say the fallback: *le code PIN du guidon, qui lui sert de secours* |
+| battery health | the controller's health estimate | **état de santé**; narrow, **Santé**. Never bare *État*, which is battery status |
+| schedule | what Scheduled charging or Charge done by sets | **programmation**. Never *programme*. *Prog.* on a narrow label |
+| unfinished | a try or test that didn't complete | **non terminé**: *Essai non terminé*, *Test non terminé*. Not *inachevé*: the safety check accepts only an explicit negation here, and an unfinished try must read as a problem |
+| test record | Volt's stored record of a test | **compte rendu**: *Comptes rendus de test indisponibles* |
+| expand a chart | enlarge a chart or map | **Agrandir**. **Développer** is only for list groups |
+| Home | Volt's Home screen | **tableau de bord**: *Aller au tableau de bord* |
+| Skip | skip a step | **Passer**. Never *Ignorer*, which is *Dismiss* |
+| Location | Android's permission and setting | **Position**, Android's word. Never *localisation* |
+| ascent, descent | height gained or lost on a ride | **dénivelé positif**, **dénivelé négatif**. Never *montée* or *descente* for an amount |
+| sample | one recorded data point of a chart | **échantillon**. *Relevé* stays a telemetry value |
+| plug in a cable | a phone or charger, by cable | **brancher**. *Connecter* is for Bluetooth |
+| screen and section titles | noun form or verb form, with one example | A place or section is a noun: *Sauvegarde et restauration*. A title that asks the rider to do something is the infinitive: *Activer le débogage USB*, *Tester la recharge programmée*. Never the imperative |
 
 ## 10. Sources consulted
 
@@ -250,7 +270,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - [NAVEE press release, France, March 2025](https://media.naveetech.com/wp-content/uploads/2025/03/Press-Release-Draft-FR-.pdf), read directly, marked a draft: *trottinettes électriques*, *verrouillage/déverrouillage par proximité*, *vitesse maximale*, *autonomie*, *système de traction TCS*.
 - [NAVEE product leaflet (fr)](https://service.naveetech.com/wp-content/uploads/2025/03/Product-Leaflet-FR.pdf): seen as a search snippet only (*Déverrouillage de Proximité*); fetching it returned 404. So did the [French catalogue](https://naveetech.com/wp-content/uploads/2024/08/Product-catalogue-FR.pdf) and the [S65 EU manual](https://service.naveetech.com/wp-content/uploads/2024/07/NAVEE-S65-Instruction-Manual-EU-version.pdf).
 - NAVEE manuals on manualslib ([S65](https://manualslib.fr/manual/614015/Navee-S65.html?page=36), [S65C](https://manualslib.fr/manual/686649/Navee-S65C.html?page=8)): the pages returned had English bodies with French site navigation, so they gave nothing.
-- Android's own French, from AOSP: [SettingsLib fr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-fr/strings.xml) (*Débogage USB*, *Options pour les développeurs*, *Associer*); [Settings fr](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-fr/strings.xml) (*Paramètres*). *Numéro de build* and *À propos du téléphone* come from search snippets of Google's [Android developer docs](https://developer.android.com/studio/debug/dev-options) and [Pixel help](https://support.google.com/pixelphone/answer/6398243?hl=fr). *micrologiciel* is from memory.
+- Android's own French, from AOSP: [SettingsLib fr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-fr/strings.xml) (*Révoquer les autorisations de débogage USB*, key `clear_adb_keys`, checked 2026-11-05; *Débogage USB*, *Options pour les développeurs*, *Associer*); [Settings fr](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-fr/strings.xml) (*Paramètres*). *Numéro de build* and *À propos du téléphone* come from search snippets of Google's [Android developer docs](https://developer.android.com/studio/debug/dev-options) and [Pixel help](https://support.google.com/pixelphone/answer/6398243?hl=fr). *micrologiciel* is from memory.
 - Retailer and press usage, weaker evidence: [Wee-Bot GT3](https://www.wee-bot.com/products/trottinette-electrique-navee-gt3) (*système de contrôle de traction (TCS)*, *Temps de recharge*, *Vitesse maximale*, *Guidon*); [Journal du Geek, N65](https://www.journaldugeek.com/test/test-de-la-trottinette-electrique-navee-n65-un-poids-lourd-qui-passe-presque-partout/) (*verrouiller la trottinette*, *régulateur de vitesse*, *feu arrière*, *mode de conduite*, *mode piéton*, *un code à 4 chiffres*); [Fnac L’Éclaireur](https://leclaireur.fnac.com/test/629140-test-labo-de-la-navee-gt3maxn-une-trottinette-presque-parfaite/) (*Vitesse max mesurée*, *Clignotants*, *Feu stop*). A search on charge limits showed *charge* used for the rider's weight, which led to the *recharge* rule; that rule is a judgment call.
 - **Typography:** the U+00A0 rules follow the plan and `l10n/style/README.md`. French spacing and capitalization follow memory of the *Lexique des règles typographiques en usage à l’Imprimerie nationale*, which wasn't read here. A search found only general support ([Purnelle syllabus](https://orbi.uliege.be/bitstream/2268/298446/1/R%C3%A8glesTypographiquesSyllabus-Purnelle.pdf), [OQLF](https://vitrinelinguistique.oqlf.gouv.qc.ca/fiche-gdt/fiche/8361819/espace)). Buttons in the infinitive and *Appuyez sur* follow memory of Microsoft's French style guide and Android, also not read here.
 - **Judgment calls, with no source:** *Vitesse de pointe*, *parcours*, *tracé*, *relevés*, *relecture*, *Assistance motrice*, *Contrôle actif de survitesse*, *Commandes expérimentales*, *utilisateur autorisé*, *clé de propriétaire*, *Finir la recharge à*, *Kilométrage*, *immobile*, *Suit le phare*, the abbreviation table, the French column of Fixed words. No French term list for electric scooters was found.

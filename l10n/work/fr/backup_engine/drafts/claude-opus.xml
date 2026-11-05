@@ -111,7 +111,7 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Bloc de sauvegarde chiffrée non valide.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">La sauvegarde contient des données inattendues à la fin du fichier.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Sauvegarde déjà terminée.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Choisissez les éléments à sauvegarder.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Choisissez les données à sauvegarder.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Il y a trop de fichiers pour une seule sauvegarde.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Les métadonnées de la sauvegarde sont trop volumineuses.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Les données de l’application ont changé pendant la sauvegarde. Réessayez.</string>
@@ -133,7 +133,7 @@
     <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">L’adresse Bluetooth du fichier d’association n’est pas valide.</string>
     <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">La sauvegarde contient un groupe de préférences non pris en charge.</string>
     <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">La sauvegarde contient plusieurs fois le même enregistrement de recharge.</string>
-    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Choisissez les éléments à restaurer.</string>
+    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Choisissez les données à restaurer.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">« Tout remplacer » nécessite une sauvegarde complète avec toutes les catégories.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Choisissez la destination des données de chaque trottinette.</string>
     <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Choisissez une trottinette qui utilise cette clé de propriétaire ou ajoutez une autre trottinette.</string>

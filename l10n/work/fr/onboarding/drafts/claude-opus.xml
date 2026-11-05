@@ -17,9 +17,9 @@
     <string name="onboarding_step_state_to_do" volt:src="92ccaad79b5993f3eaff18f0729a66ab4c673225">à faire</string>
     <string name="onboarding_step_state_not_needed" volt:src="455e13c2d844fbfb3f5539c63d63cf878b25f180">non nécessaire</string>
     <string name="onboarding_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Retour</string>
-    <string name="onboarding_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Ignorer</string>
+    <string name="onboarding_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Passer</string>
     <string name="onboarding_cancel_adding" volt:src="864156bda9e37d0bfdd9afa33a88f98dd5a6ac2b">Annuler l’ajout d’une trottinette</string>
-    <string name="onboarding_skip_description" volt:src="75b7c51efec79b7400681c246deaca55724dccba">Ignorer la configuration pour l’instant</string>
+    <string name="onboarding_skip_description" volt:src="75b7c51efec79b7400681c246deaca55724dccba">Passer la configuration pour l’instant</string>
     <string name="onboarding_step_counter" volt:src="f4a4b2949cb6287694d4e3f7703ac3cbd20fed6f">%1$d/7</string>
     <string name="onboarding_progress_step" volt:src="c6d34cde4026d2716b201afaa085a17a55585b0d">Étape %1$d sur 7</string>
     <string name="onboarding_progress_choose" volt:src="64a479233e103507e8f24c1360d4157454d66a96">Configuration, choix d’une méthode</string>
@@ -46,7 +46,7 @@
     <string name="onboarding_path_capture_detail" volt:src="bc5ab66a9c15f8b762d93a54399f12fd88c7c23f">Ordinateur · 10 min</string>
     <string name="onboarding_path_shizuku" volt:src="1561f4b2129390a13ab9c431954035b813620555">Utiliser Shizuku sur ce téléphone</string>
     <string name="onboarding_path_shizuku_detail" volt:src="0c2ae59881a89238cb4b5cbd6659c6d4bf0f57af">Sans ordinateur · Android 11+</string>
-    <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Importer un fichier de configuration du propriétaire</string>
+    <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Importer un fichier de configuration de propriétaire</string>
     <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Accès à la trottinette uniquement · sans trajets ni historique</string>
     <string name="onboarding_path_identity" volt:src="2b442de99ae6494b7b328406961bdabc361c24dc">Saisir une clé de 12 caractères</string>
     <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Nécessite Android 11 ou version ultérieure</string>
@@ -60,8 +60,8 @@
     <string name="onboarding_option_spoken_chip_detail_unavailable" volt:src="7d0c75833c2bf62f3c64e46241528acdb51a0ca6">%1$s, %2$s. %3$s. Nécessite Android 11 ou version ultérieure</string>
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Continuer</string>
     <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Terminez d’abord l’importation du fichier de propriétaire sélectionné.</string>
-    <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Ignorer la configuration pour l’instant ?</string>
-    <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Vous pourrez l’ajouter plus tard dans « Plus ».</string>
+    <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Passer la configuration pour l’instant ?</string>
+    <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Vous pourrez ajouter votre trottinette depuis « Plus ».</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Continuer</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Avant de commencer</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">L’application NAVEE fonctionne</string>
@@ -71,7 +71,7 @@
     <string name="onboarding_prepare_source" volt:src="4179cdb733bc59821ab6e42c350d66c9088275bc">Le code source de Volt, décompressé</string>
     <string name="onboarding_prepare_source_detail" volt:src="1bcb470e500f04bb4ed5290e6f249b3ca1470644">Appuyez sur « Obtenir le code source » ci-dessous ; il contient setup/capture-owner.py</string>
     <string name="onboarding_prepare_cable" volt:src="07b74a5eb3de9d0d7b10ec7dcd479b64ac5a42dc">Un câble de données USB</string>
-    <string name="onboarding_prepare_cable_detail" volt:src="00813cb62dd6383ec04afa99cf834d5d5ca574c6">Pas un câble de recharge seule</string>
+    <string name="onboarding_prepare_cable_detail" volt:src="00813cb62dd6383ec04afa99cf834d5d5ca574c6">Pas un simple câble de recharge</string>
     <string name="onboarding_prepare_parked" volt:src="1e05f66a5e0927184ba4fb6de7477cc1f7e25b63">Trottinette immobile et allumée</string>
     <string name="onboarding_prepare_parked_detail" volt:src="bb7b3271538299a22cd03b586629b05fec7ba407">Fermez les autres applications de trottinette</string>
     <string name="onboarding_prepare_where_adb" volt:src="d1bade96e0535d5e5f99674546e852148175fccb">Où trouver ADB ?</string>
@@ -79,7 +79,7 @@
     <string name="onboarding_prepare_get_source" volt:src="467156dc9677e3700c3a3015249688cc7f56e0e9">Obtenir le code source</string>
     <string name="onboarding_prepare_get_source_description" volt:src="83779b92a25eeae4ced361f6e7f697448ae6b670">Obtenir le code source. L’archive du code source avec le script de capture s’ouvrira</string>
     <string name="onboarding_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Aucun navigateur trouvé</string>
-    <string name="onboarding_usb_title" volt:src="d34275339b3a95a5afe2db49261ab929c020a7ca">Activation du débogage USB</string>
+    <string name="onboarding_usb_title" volt:src="d34275339b3a95a5afe2db49261ab929c020a7ca">Activer le débogage USB</string>
     <string name="onboarding_mock_about_phone" volt:src="749f64e8c4bfab660c8f0568fb4826d53bc32739">À propos du téléphone</string>
     <string name="onboarding_mock_android_version" volt:src="3e98c63d3222ef046d0b4d934bc51054d6d9ed67">Version d’Android</string>
     <string name="onboarding_mock_build_number" volt:src="73324e75345198dba6a2f80dd2fc096feafcee4f">Numéro de build</string>
@@ -88,23 +88,23 @@
     <string name="onboarding_usb_tap_build" volt:src="1fc66d8f5eb2a6eafdb5346f4799d68d9bb17ab2">Appuyez sept fois sur **Numéro de build**</string>
     <string name="onboarding_usb_path_developer" volt:src="04aec87975f93deb8ca9a671f38ac5b77f630575">Paramètres › Système › Options pour les développeurs</string>
     <string name="onboarding_usb_turn_on" volt:src="f58af9223d65646316b91d433af6f2c10c819d5d">Activez l’option **Débogage USB**</string>
-    <string name="onboarding_usb_done" volt:src="3b659dd770197d9a37b4cb6ffd08f0e5b4654439">Je l’ai activé</string>
+    <string name="onboarding_usb_done" volt:src="3b659dd770197d9a37b4cb6ffd08f0e5b4654439">C’est activé</string>
     <string name="onboarding_open_settings" volt:src="c08f8d5af1c4dd3e3dc683ade490b52ce5eab310">Ouvrir les paramètres</string>
-    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Branchement à votre ordinateur</string>
+    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Brancher le téléphone à l’ordinateur</string>
     <string name="onboarding_mock_allow_title" volt:src="aaf1246404dc90419472e2ceb97b349667a472ab">Autoriser le débogage USB ?</string>
     <string name="onboarding_mock_fingerprint" volt:src="05e9fe6ae8530787bbad3f54bde936fdc0d214d2">Empreinte numérique de la clé RSA de l’ordinateur :\n4F:2A:…:9C</string>
     <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Toujours autoriser sur cet ordinateur</string>
     <string name="onboarding_mock_cancel" volt:src="69d69f762147c2b1cca07f8e9d8f24b109f5605e">Annuler</string>
     <string name="onboarding_mock_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Autoriser</string>
     <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3">Exemple : la demande « Autoriser le débogage USB ? » sur votre téléphone, avec la case « Toujours autoriser sur cet ordinateur » non cochée.</string>
-    <string name="onboarding_computer_connect_cable" volt:src="ee33cce91739bd084d5a40bb6bacf370fdb278a8">Connectez votre téléphone avec le câble de données</string>
+    <string name="onboarding_computer_connect_cable" volt:src="ee33cce91739bd084d5a40bb6bacf370fdb278a8">Branchez votre téléphone à l’ordinateur avec le câble de données</string>
     <string name="onboarding_computer_tap_allow" volt:src="7e4206ea7c4f010bfa7de6428ee60a5c56d3dba2">Appuyez sur **Autoriser** dans la demande ci-dessus</string>
     <string name="onboarding_computer_adb_devices" volt:src="d0f48ccf9f2b16efbf9f187fd8d852f0c9ba0eb2">`adb devices` affiche **device**</string>
     <string name="onboarding_computer_shows_device" volt:src="67e4acb64f56334869629e863fc3fa97eb3cccfb">« device » s’affiche</string>
     <string name="onboarding_computer_unauthorized" volt:src="189b278023e2a260ba2b46e0619cd9c247bc3bb5">« unauthorized » s’affiche</string>
     <string name="onboarding_computer_unauthorized_title" volt:src="c85b839c73b04ee099901d414bc99f60258a34a6">Téléphone affiché comme « unauthorized »</string>
-    <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Déverrouillez votre téléphone, débranchez le câble puis rebranchez-le.\n2  Appuyez sur « Autoriser » dans la demande « Autoriser le débogage USB ? ».\n3  Aucune demande ? Dans « Options pour les développeurs », appuyez sur « Révoquer les autorisations de débogage USB », puis reconnectez le téléphone."</string>
-    <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Lancement du script de capture</string>
+    <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Déverrouillez votre téléphone, débranchez le câble puis rebranchez-le.\n2  Appuyez sur « Autoriser » dans la demande « Autoriser le débogage USB ? ».\n3  Aucune demande ? Dans « Options pour les développeurs », appuyez sur « Révoquer les autorisations de débogage USB », puis rebranchez le téléphone."</string>
+    <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Lancer le script de capture</string>
     <string name="onboarding_helper_run_in_folder" volt:src="79f97d059844ab3e9d4569637ee4d5ef8832c306">Dans le dossier du code source décompressé sur votre ordinateur, exécutez :</string>
     <string name="onboarding_helper_command_description" volt:src="9eedae01f4f28dd44575b0d1f9b2fec35f803565">Commande : %1$s</string>
     <string name="onboarding_helper_copy" volt:src="c3f82d8b45d3d004ed0cd20e5eeb5cfa7674a438">Copier</string>
@@ -117,27 +117,27 @@
     <string name="onboarding_helper_clip_label" volt:src="16aeef0cd93ca0586a64b367fff6681673673655">Commande de capture</string>
     <string name="onboarding_helper_copied" volt:src="9b841f523afbec8ade5513dc43a8b8c65da97aad">Commande copiée.</string>
     <string name="onboarding_helper_copy_failed" volt:src="5ab3a834c36db85168617a42f574427ea91a90d4">Échec de la copie</string>
-    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Connexion via votre navigateur</string>
+    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Connecter le téléphone via le navigateur</string>
     <string name="onboarding_browser_open" volt:src="9e0f576a4bd0fd5fc28666979a1045f82f29beb7">Sur votre ordinateur, ouvrez :</string>
-    <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Connectez votre téléphone avec un câble de données USB</string>
+    <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Branchez votre téléphone à l’ordinateur avec un câble de données USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Sélectionnez votre téléphone dans Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Autorisez le débogage USB sur ce téléphone</string>
     <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Ne cochez pas **Toujours autoriser sur cet ordinateur**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Le site web est connecté</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Téléphone absent de la liste</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Connexion dans Chrome</string>
-    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Téléphone déverrouillé, débogage USB activé\n•  Un câble de données, pas un câble de recharge uniquement\n•  Android Studio, autres outils ADB et onglets de configuration fermés\n•  Chrome ou Edge, pas Safari ni Firefox"</string>
+    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Téléphone déverrouillé, débogage USB activé\n•  Un câble de données, pas un simple câble de recharge\n•  Android Studio, autres outils ADB et onglets de configuration fermés\n•  Chrome ou Edge, pas Safari ni Firefox"</string>
     <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Approuver la capture sur le site web</string>
-    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Laissez le câble branché jusqu’à la fin du nettoyage.</string>
+    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Laissez le câble branché jusqu’au rétablissement du journal d’activité de NAVEE.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Lisez l’explication de la capture, puis choisissez **Start**</string>
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Sélectionnez votre trottinette dans NAVEE et connectez-la</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Jusqu’à **90 s**</string>
-    <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Après le nettoyage, choisissez **Save to phone Downloads**</string>
+    <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Après le rétablissement du journal d’activité de NAVEE, choisissez **Save to phone Downloads**</string>
     <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Ce fichier est une clé de propriétaire. Gardez-le confidentiel.</string>
     <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Le fichier est dans Téléchargements</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Capture via le navigateur</string>
-    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Session NAVEE ouverte, trottinette à proximité\n•  Autres applications de trottinette fermées\n•  Arrêt anticipé ? Terminez d’abord le nettoyage dans le même navigateur"</string>
-    <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Votre configuration du propriétaire</string>
+    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Session NAVEE ouverte, trottinette à proximité\n•  Autres applications de trottinette fermées\n•  Arrêt anticipé ? Rétablissez d’abord le journal d’activité de NAVEE dans le même navigateur"</string>
+    <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Votre configuration de propriétaire</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importer votre fichier de propriétaire</string>
     <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Choisissez le fichier de propriétaire navee-owner-setup.json. Seul l’accès à la trottinette sera restauré : les trajets et les autres données de l’application ne le seront pas.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Chargement de votre profil de propriétaire…</string>
@@ -169,11 +169,11 @@
     <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Sauvegarde privée reconnue · rôle de propriétaire</string>
     <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Uniquement 0–9 et A–F.</string>
     <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662" volt:attempt="2">L’ancien fichier n’a pas pu être supprimé. Réessayez.</string>
-    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Autoriser les appareils à proximité</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Autoriser l’accès aux appareils à proximité</string>
     <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Bluetooth uniquement. Aucun serveur.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Autoriser</string>
     <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Ouvrir les paramètres de l’application</string>
-    <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Recherche de votre trottinette</string>
+    <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Rechercher votre trottinette</string>
     <string name="onboarding_connect_found" volt:src="18f25bd262e93dd03811223728fd8fec25929ade">Trottinette trouvée</string>
     <string name="onboarding_connect_bluetooth" volt:src="b6ef55dcb813eb1bf0c8b24acef831eb6f5b89ff">Bluetooth connecté</string>
     <string name="onboarding_connect_checking" volt:src="9c39a329fb7ae82f32d5cbc4c11a0857a23d85e3">Vérification de la clé de propriétaire</string>
@@ -187,7 +187,7 @@
     <string name="onboarding_connect_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Démarrage…</string>
     <string name="onboarding_connect_waiting_profile" volt:src="ed1a42f914f9ac6f6d550079a760fef93626223b">En attente de votre profil de propriétaire…</string>
     <string name="onboarding_connect_is_it_on" volt:src="60721fc4afe52dc10fdaea9dd7e504617ab74f1c">Trottinette allumée ? Application NAVEE fermée ?</string>
-    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Autoriser les appareils à proximité</string>
+    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Autoriser l’accès aux appareils à proximité</string>
     <string name="onboarding_done_title" volt:src="fa40aad297a79922e85dd5b2b5ee012e8f7ced84">Connexion établie</string>
     <string name="onboarding_done_ready_default" volt:src="4398b540cd7935b604522b2a91d1d567741d6be3">Votre trottinette est prête.</string>
     <string name="onboarding_done_ready" volt:src="8f159a8f58e66cadc06c55746245256fc2b0523a">Trottinette prête : %1$s.</string>
@@ -197,11 +197,11 @@
     <string name="onboarding_done_usb_off_detail" volt:src="40e19de8b1df5e9e83e20975c2557cbfb8d81f5a">Vous n’avez plus besoin de l’ordinateur</string>
     <string name="onboarding_done_revoke" volt:src="ab1135db30145dde8dbf62ea5c43015ee89026f1">Révoquer l’accès dans Shizuku</string>
     <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Révoquer l’accès dans Shizuku. Shizuku s’ouvrira pour retirer l’accès de Volt</string>
-    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Aller à l’accueil</string>
-    <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Téléphone non listé comme « device »</string>
+    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Aller au tableau de bord</string>
+    <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Le téléphone n’apparaît pas comme « device »</string>
     <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Approuvez la demande · utilisez un câble de données</string>
     <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">L’application NAVEE ne s’est pas connectée</string>
-    <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Vérifiez que l’application NAVEE se connecte seule</string>
+    <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Vérifiez que l’application NAVEE se connecte sans le script de capture</string>
     <string name="onboarding_fix_timeout" volt:src="6b10fd83995c23734b0f1bfb45e2b3578b5eb360">Délai du script de capture dépassé</string>
     <string name="onboarding_fix_timeout_detail" volt:src="2f8570402f727f679e3b0050ac736730dd37f710">Fermez les autres applications, puis relancez</string>
     <string name="onboarding_fix_exists" volt:src="04380b3a018b38e2c530ec8f246da72fa92a0732">Le fichier existe déjà</string>

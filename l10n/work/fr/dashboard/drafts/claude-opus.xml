@@ -34,7 +34,7 @@
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % sans limite</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Temps avant charge complète (estimé)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Temps avant charge complète (estimé)</string>
-    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Avant charge complète (estimé)</string>
+    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Reste (estimé)</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Courant faible</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Puissance de recharge</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Puissance</string>
@@ -120,12 +120,12 @@
     <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Dernier relevé : %1$s</string>
     <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Enregistrement · %1$s</string>
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Mesure en cours…</string>
-    <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Enregistrement du dernier trajet…</string>
+    <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Finalisation du dernier trajet…</string>
     <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Connexion…</string>
-    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Enregistrer un trajet. Enregistrement du dernier trajet</string>
+    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Enregistrer un trajet. Finalisation du dernier trajet</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Démarrer l’enregistrement</string>
     <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Enregistrer un trajet. Connexion</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Enregistrer le trajet. Connectez la trottinette</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Enregistrer un trajet. Connectez la trottinette</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Exemple</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 trajets · %1$s–%2$s %3$s</string>
@@ -141,15 +141,15 @@
     <string name="dashboard_points" volt:src="7ae1f9b220ef9f2f4aed38c665c220294b064148">Points</string>
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Période</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Trajets nécessaires</string>
-    <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Plage à 90 %</string>
+    <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervalle à 90 %</string>
     <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Charge consommée par jauge pleine</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Vérification de la recharge</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Couverture</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Température de la batterie</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Rejetés</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
-    <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Indicateur indirect : peut surestimer ; ne mesure pas l’état de la batterie.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Énergie consommée par vos trajets pour une jauge pleine. Ce n’est pas un test de l’état ou de la capacité de la batterie.</string>
+    <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Indicateur indirect : peut surestimer ; ne mesure pas l’état de santé de la batterie.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Énergie consommée par vos trajets pour une jauge pleine. Ce n’est pas un test de l’état de santé ou de la capacité de la batterie.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Énergie utilisable pour rouler</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Exemple · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Aucun relevé enregistré pour le moment</string>
@@ -189,9 +189,9 @@
     </plurals>
     <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s sur %2$s</string>
     <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
-        <item quantity="one">%1$d sur %2$d raccourci</item>
-        <item quantity="many">%1$d sur %2$d de raccourcis</item>
-        <item quantity="other">%1$d sur %2$d raccourcis</item>
+        <item quantity="one">%1$d raccourci sur %2$d</item>
+        <item quantity="many">%1$d de raccourcis sur %2$d</item>
+        <item quantity="other">%1$d raccourcis sur %2$d</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Changer le raccourci %1$s, %2$s</string>
     <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Déplacer vers l’avant : %1$s</string>
