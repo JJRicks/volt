@@ -219,6 +219,9 @@ STATE_WORDS = {
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
            "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
+    # Not "включая" (including). "подключён" starts with no state word, so it never matches.
+    "ru": ("включ(?!ая(?![^\\W_]))\\w*|вкл|активн\\w*|активирован\\w*|активировать|активируйте",
+           "выключ\\w*|выкл|отключ\\w*|неактивн\\w*|деактивир\\w*|снят\\w*|убран\\w*"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
@@ -241,6 +244,7 @@ STATE_NEGATION_GAP = {
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
     "id": {"sedang", "akan", "lagi"},
+    "ru": {"будет", "был", "была", "было", "были"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
@@ -433,8 +437,9 @@ REMOVAL_CONTEXT = {
                   "dibatalkan", _GAP_WORD, "telah|sudah|akan")),
     "ru": (_before("снять|снимите|сними|снятие|снятия|отключить|отключите|отключи|отключение|отключения|"
                    "выключить|выключите|выключи|выключение|убрать|уберите|убери|отменить|отмените|отмена|"
-                   "отмены|деактивировать|деактивируйте|деактивация|открыть|откройте|открой"),
-           _after("снят|отключен|отключён|выключен|выключён|убран|отменен|отменён|деактивирован", _GAP_WORD,
+                   "отмены|деактивировать|деактивируйте|деактивация|открыть|откройте|открой|сбросить|сбросьте|сбрось|сброс|"
+                   "сброса"),
+           _after("снят|отключен|отключён|выключен|выключён|убран|отменен|отменён|деактивирован|сброшен", _GAP_WORD,
                   "была|был|было|будет")),
     "uk": (_before("зняти|зніміть|зніми|зняття|вимкнути|вимкніть|вимкни|вимкнення|скасувати|скасуйте|"
                    "скасування|прибрати|приберіть|деактивувати|деактивуйте|відкрити|відкрийте"),

@@ -362,6 +362,9 @@ class MoreLanguagesTest(unittest.TestCase):
         # Later-wave languages, where the inflected glossary match had let these pass.
         ("ru", "Lock scooter", "Снять блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
         ("ru", "Lock scooter", "Отключить блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "Lock scooter", "Сбросить блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "Lock scooter", "Сброс блокировки", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "The lock is on", "Блокировка сброшена", ["заблокирован", "блокировка"]),
         ("uk", "Lock scooter", "Зняти блокування самоката", ["заблокувати", "блокування"]),
         ("el", "Lock scooter", "Άρση κλειδώματος πατινιού", ["κλείδωμα", "κλειδώνω"]),
         ("ja", "Lock scooter", "スクーターのロックの解除", ["ロック"]),
@@ -427,6 +430,7 @@ class MoreLanguagesTest(unittest.TestCase):
 
 # First-wave approved targets by en.tsv id, as a council-drafted l10n/glossary/<tag>.tsv would hold them.
 FIRST_WAVE_TARGETS = {
+    "ru": {"alarm-sound": "Сигнал тревоги | сигнала тревоги", "scooter": "самокат | самоката"},
     "es": {"lock": "bloquear | bloqueo", "locked": "bloqueado | bloqueada", "unlock": "desbloquear | desbloqueo",
            "unlocked": "desbloqueado | desbloqueada", "energy-recovery": "recuperación de energía",
            "energy-recovery-off": "Desactivada | Desactivado", "energy-recovery-low": "Baja | Bajo",
@@ -574,6 +578,13 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("it", "Lock: off", "Blocco: non disattivato"),
         ("id", "Alarm sound on", "Suara alarm tidak aktif"),
         ("es", "Alarm sound on", "Sonido de alarma sin activar"),
+        ("ru", "Alarm sound off", "Сигнал тревоги включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги: вкл."),
+        ("ru", "Alarm sound on", "Сигнал тревоги выключен"),
+        ("ru", "Alarm sound on", "Сигнал тревоги: выкл."),
+        ("ru", "Alarm sound on", "Сигнал тревоги отключён"),
+        ("ru", "Alarm sound on", "Сигнал тревоги не включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги не будет выключен"),
     )
     STATE_KEPT = (
         ("es", "Alarm sound on", "Sonido de alarma activado"),
@@ -601,6 +612,13 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("pt-BR", "Alarm sound off", "Som de alarme não ativado"),
         ("fr", "Alarm sound off", "Son d'alarme non activé"),
         ("fr", "Alarm sound off", "Le son d'alarme n'est pas activé"),
+        ("ru", "Alarm sound on", "Сигнал тревоги включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги выключен"),
+        ("ru", "Alarm sound off", "Сигнал тревоги: выкл."),
+        ("ru", "Alarm sound off", "Сигнал тревоги не включён"),
+        # "включая" (including) and "подключён" (connected) are no state.
+        ("ru", "Alarm sound off", "Все сигналы выключены, включая тревогу"),
+        ("ru", "Alarm sound on", "Сигнал тревоги включён, самокат подключён"),
     )
     # Locked here is the state, and the turn-off verb takes a clitic, -nya or a zu/te infinitive.
     TURN_IT_OFF = "The alarm sounds if the scooter moves while locked. Tap Stop to turn it off."

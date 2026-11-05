@@ -1359,7 +1359,7 @@ unlock written as the lock word plus the common separate word (sv "lås upp", id
 the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
 "Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"), also after a status colon,
 dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
-list; and, in a safety key of a first-wave language, an English on or off state drafted with only
+list; and, in a safety key of a first-wave language or Russian, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
 alarma activado"; `lexicon.STATE_WORDS`). A state word right after a negation word counts as the
 other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on), and so does
@@ -1423,7 +1423,7 @@ Known gaps, by language family:
   step 5. Removal word lists apply to the lock terms only (an alarm or cruise-control term keeps
   its ordinary verbs); the on/off state lists apply to every safety key. A term needs an approved
   target in the language before it is required (Unlock included). Polarity cannot see an inversion
-  made with another antonym, an on/off inversion in a later-wave language (no state list yet), nor
+  made with another antonym, an on/off inversion in a later-wave language with no state list yet, nor
   a sentence that is fluent and wrong.
 
 Later-wave languages (ru, uk, el, zh, ja, hi, bn, ar, ur, da, nb, fi, cs, sk, ro, hu, hr, tr) need

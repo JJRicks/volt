@@ -54,12 +54,12 @@ key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
 removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
 ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
-as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
+as the other in the first-wave languages and Russian (lexicon.STATE_WORDS). Known gaps: a removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
 text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
 where polarity only warns; English that itself says off or remove (the removal context is skipped);
-on or off said with a word not in STATE_WORDS, in a later-wave language (no state list), or in a
+on or off said with a word not in STATE_WORDS, in a later-wave language with no state list, or in a
 target that has both states' words; a negation further from the state word than the word right
 before it or one copula or particle between (lexicon.STATE_NEGATION_GAP: "no se encuentra activa");
 an -s or -ing lock verb inside a longer term ("Lock duration: time before locking"), where only the
