@@ -954,15 +954,15 @@ The test reads its language list against `l10n/lang/*.tsv`, requires English tex
 own rules and its loop on synthetic text and a synthetic `res/` tree before it reads the catalog.
 
 The exception is `GlyphCoverageTest.FALLBACK_SYMBOLS`, a short reviewed list of symbols that no
-Saira weight has but Android's own fallback font draws as plain text. Volt already shows each of
-them from Java literals. The owner chose this list on 2026-11-04 over two alternatives: bundling a
+Saira weight has but Android's own fallback font draws as plain text. Volt showed each of them
+from Java literals before the catalog held it. The owner chose this list on 2026-11-04 over two alternatives: bundling a
 symbol font (`Typeface.CustomFallbackBuilder` needs API 29, and Volt supports API 26) and replacing
 the marks with icons (a visible design change).
 
 | Symbol | Code point | Where Volt shows it | `emoji-data.txt` | Catalog text |
 |---|---|---|---|---|
 | ✓ | U+2713 CHECK MARK | "✓ Save" buttons; "PIN ✓", "Paired ✓" and drive-mode chips; step pills; "Unrestricted ✓" (More > App preferences > Background recording); "Direction ✓"; "Check finished ✓"; a compatibility read's "✓ N bytes"; the Rides compare row's "2 ✓" | not an emoji (U+2714 ✔ is) | `✓` |
-| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), a Java literal with U+FE0E (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
+| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), the catalog string `more_prefs_battery_value_optimized` (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
 | ☆ | U+2606 WHITE STAR | Live Stats: a reading that is not starred, "☆ Star readings to pin here" | not an emoji | `☆` |
 | ★ | U+2605 BLACK STAR | Live Stats: a starred reading | not an emoji (U+2B50 ⭐ is) | `★` |
 
@@ -972,19 +972,20 @@ the marks with icons (a visible design change).
   style"). The test requires U+FE0E directly after ⚠ and refuses it anywhere else, in every
   language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
   invisible in review.
-- **Moving ⚠ out of Java takes two pull requests.** The only ⚠ Volt shows is MoreScreen's literal
-  `"Optimized ⚠\uFE0E"`, which had no U+FE0E at first. A batch's `exact` row needs the catalog English to equal
-  that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch cannot do both.
+- **Moving ⚠ out of Java took two pull requests.** Volt's only ⚠ was MoreScreen's literal
+  `"Optimized ⚠"`, which had no U+FE0E. A batch's `exact` row needs the catalog English to equal
+  that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch could not do both.
   `l10n/english-changes.tsv` does not help: it records changes to keys already in the catalog, and
   that kind of pull request adds no ledger rows. So:
-  1. done: an ordinary pull request wrote the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
-     with this list; the English reads the same). `hardcoded_lint.py --check` passes as is: G8 has no
+  1. an ordinary pull request (S0) wrote the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
+     with this list; the English reads the same). `hardcoded_lint.py --check` passed as is: G8 had no
      baseline entry for that row;
-  2. the batch then moves it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
+  2. a batch (S1) then moved it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
      `["Optimized ⚠\ufe0e"]`.
 
   On 2026-11-04 a simulation of both steps passed `ci_gates.py` (ordinary, then batch) and this
-  test; the batch alone fails G1. ✓, ☆ and ★ need no first step: they move as they are.
+  test; the batch alone fails G1. A new ⚠ in Java needs the same two steps. ✓, ☆ and ★ need no first
+  step: they move as they are.
 - **The list stays short.** Only symbols go on it: Unicode general category Sm, Sc, Sk or So, never a
   letter, mark, digit, space or format character (so not U+FE0E or U+2060). An entry that every
   Saira weight covers fails the test (delete it). Adding a symbol is a tooling pull request with

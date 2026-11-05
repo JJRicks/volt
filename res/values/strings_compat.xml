@@ -265,6 +265,13 @@
         <item quantity="one">Too short (%1$d bytes)</item>
         <item quantity="other">Too short (%1$d bytes)</item>
     </plurals>
+    <!-- Read result: the read worked. Keep the check mark. %1$d is the reply's length in bytes; %2$s is compat_read_late when the reply came late, otherwise empty. Shown here only: the report keeps its own English. English keeps "1 bytes". -->
+    <plurals name="compat_read_supported" volt:screen="Compatibility results" volt:purpose="value" volt:english-fix="pending" volt:dnt="✓">
+        <item quantity="one">✓ %1$d bytes%2$s</item>
+        <item quantity="other">✓ %1$d bytes%2$s</item>
+    </plurals>
+    <!-- Added after a supported read's length in compat_read_supported when the reply came late; keep the space at the start. -->
+    <string name="compat_read_late" volt:screen="Compatibility results" volt:purpose="value">" (late)"</string>
     <!-- Read result: the scooter replied without data. -->
     <string name="compat_read_empty" volt:screen="Compatibility results" volt:purpose="value">Replied with no data</string>
     <!-- Read result: no reply. -->
