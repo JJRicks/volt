@@ -31,7 +31,6 @@ public final class AppDataBackup {
     public static final String SKIP = BackupArchive.SKIP;
     private AppDataBackup() {}
 
-    public static String label(String category){return BackupRegistry.label(category);}
     /** The category's label in the current language, rendered when shown. */
     public static Msg labelMsg(String category){return BackupRegistry.labelMsg(category);}
     public static final class PreparedRestore {
