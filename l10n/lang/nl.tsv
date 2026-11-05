@@ -1,0 +1,18 @@
+# Dutch (nl). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; status stays draft. See l10n/README.md for each field.
+# percent_style has no space (CLDR nl, usual Dutch practice). decimal_style is an example of the separators.
+field	value
+tag	nl
+folder	values-nl
+endonym	Nederlands
+wave	1
+status	draft
+formality	je
+plurals	one,other
+quote_style	‘…’ “…”
+percent_style	%1$s%%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english
