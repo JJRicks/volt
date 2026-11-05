@@ -31,7 +31,7 @@
 - A feature or button named in a sentence keeps its capital and goes in quotes where it could misread: *Tik op ‘Stop’*. Otherwise feature names are lower case mid-sentence: *zet gepland laden aan*.
 - Days and months are lower case. **IJ capitalizes as one letter:** *IJsblauw*, not *Ijsblauw*.
 - A word that starts with a unit or lower-case symbol keeps it: **km-stand** stays lower case at the start of a label.
-- Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android, TCS, LAB, and the drive modes WALK, ECO, DRIVE, SPORT. Do not write your own words in capitals.
+- Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android, TCS, LAB. Drive modes and their level names are not translated and keep the case the English string uses in that string (*Sport*, *ECO*, *Drive*). Do not write your own words in capitals.
 
 ## 4. Numbers, dates and units
 
@@ -40,7 +40,7 @@
 - **Number and unit:** a no-break space (U+00A0), never a plain space and never U+202F. `fmt_quantity` is `%1$s` + U+00A0 + `%2$s` (*25 km/h*, *3,7 V*, *20 °C*). `fmt_range` keeps its en dash (*10–20 km*); `fmt_dual` stays `%1$s / %2$s`.
 - **Unit symbols stay** (km/h, mph, km, mi, V, A, W, Wh, Ah, °C, °F, min). **Dutch often writes km/u, and NAVEE's site does too; Volt keeps km/h**, which is do-not-translate. Unit words are translated: *kilometers*, *mijlen*, *minuten*.
 - **Durations.** Compact: `%1$d u %2$02d min` (*1 u 05 min*), and *min* and *s* alone. The hour symbol is **u** (CLDR nl, narrow), not h. In running text: *1 uur*, *2 uur*, *5 minuten*. *Uur* and *jaar* stay singular after a number: *2 uur*, *3 jaar*; but *2 dagen*, *2 maanden*. Other compact words: *d* or *dagen*, *mnd*, *jr*.
-- **Dates and times** come from the phone's format where Volt formats them. In a template: *5 nov.*, *5 nov. 2026*, *5-11-2026*, 24-hour *14:30*. Add *uur* only in a sentence: *Laden begint om 14:30 uur.* Relative: *5 minuten geleden*. Months stay lower case. A chip's hour value: *14:00*.
+- **Dates and times** come from the phone's format where Volt formats them. In a template: *5 nov.*, *5 nov. 2026*, *5-11-2026*, 24-hour *14:30*. Add *uur* only in a sentence with a written time: *Laden begint om 14:30 uur.* A time in a placeholder takes the label form, *Starttijd: %1$s*, never *om %1$s uur*: the phone's format can be 12-hour. Relative: *5 minuten geleden*. Months stay lower case. A chip's hour value: *14:00*.
 - **Plurals:** `one` and `other`, both full phrases: *%1$d rit* / *%1$d ritten*. Keep the placeholder where the English has it. Some nouns don't change: *%1$d uur* in both.
 
 ## 5. How to shorten labels for ladder rungs
@@ -102,7 +102,7 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 
 **Compounds.** Dutch writes compounds as one word. Lines break only at spaces and real hyphens. Don't split a compound with a space: *eigenaars sleutel* and *laad limiet* are spelling errors.
 
-- **Must take a hyphen** (acronym, brand, digit, unit symbol or a vowel clash such as u-i): NAVEE-app, stuur-PIN, PIN-ontgrendeling, USB-foutopsporing, CSV-bestand, GPX-bestand, Model-ID, Volt-gegevens, Bluetooth-koppeling, 4-cijferig, km-stand, Accu-instellingen, Accu-inst., Back-up, Eco-schatting.
+- **Must take a hyphen** (acronym, brand, digit, unit symbol or a vowel clash such as u-i): NAVEE-app, stuur-PIN, PIN-ontgrendeling, USB-foutopsporing, CSV-bestand, GPX-bestand, Model-ID, Volt-gegevens, Bluetooth-koppeling, 4-cijferig, km-stand, Accu-instellingen, Accu-inst., Back-up, Eco-schatting, NAVEE-logging, Volt-hulpprogramma.
 - **May take a hyphen, in this exact spelling:** App-instellingen, App-opties, App-inst., display-eenheden, Trip-topsnelheid.
 - **Stay closed:** eigenaarssleutel (double s is correct), eigenaarsbestand, eigenaarsprofiel, eigenaarsconfiguratie, laadlimiet, laadstart, laadschema, laadopname, laadwaarschuwing, rijmodus, rijinstellingen, energieterugwinning, tractiecontrole, afdaalhulp, loophulp, topsnelheid, maximumsnelheid, snelheidslimiet, startsnelheid, kilometerstand, vergrendelstatus, vergrendelduur, vergrendelbalk, accustand, accuspanning, accutemperatuur, actieradius, compatibiliteitscontrole, compatibiliteitsrapport, dagrijlicht, achterlicht, koplamp, richtingaanwijzer, stepnaam, stepinstellingen, widgetlimiet, vergrendelwidget, back-upwachtwoord, back-upbestand, ritback-up, snellader, snellaadsessie, snellaadreferentie, telefoonlogboek, ritopname, uitleesscript, livegegevens.
 - **Don't coin a compound of more than three stems.** Split it: *snelheidslimiet per rijmodus*, not *rijmodussnelheidslimiet*; *waarschuwing bij lage accustand*, not *lageaccustandwaarschuwing*; *configuratiebestand van de eigenaar*, not *eigenaarsconfiguratiebestand*.
@@ -159,7 +159,7 @@ Other rules:
 - A two-button pair stays *Vergrendelen* and *Ontgrendelen*, never *Vergrendeling aan/uit*.
 - A sentence that says a command **may** have been applied keeps the doubt: *kan … hebben toegepast*. Do not turn it into a statement.
 - Translate speed and legal wording literally, and add no claim about what the law allows. Don't mention RDW or 25 km/h unless the English does.
-- Add no reassurance (*veilig*, *gegarandeerd*) and no warnings the English lacks.
+- Add no reassurance (*veilig*, *gegarandeerd*) and no warnings the English lacks. A warning that the English gives still says what happens: *energieterugwinning* remains braking with the motor.
 - Report content stays English (plan section 8), and the surrounding UI says so: *Het rapport is in het Engels.*
 
 ## 7. Scooter vocabulary
@@ -181,9 +181,9 @@ The glossary is authoritative; this explains what it can't. Official NAVEE wordi
 | handlebar, stem, deck, kickstand | **stuur**, **stuurpen**, **treeplank**, **standaard** | NAVEE: *stuur*. The rest are Claude's picks. |
 | brake lever, throttle, power button | **remhendel**, **gashendel**, **aan-uitknop** | NAVEE: *remhendel*. |
 | turn signal, tail light, headlight | **richtingaanwijzer**, **achterlicht**, **koplamp** | NAVEE: all three, plus *knipperlichten*. Narrow **Knipperlicht**. Sound: **Knippergeluid**. |
-| drive mode | **rijmodus**, plural **rijmodi**; compact **Modus** | NAVEE: *Rijmodi*. Names stay WALK, ECO, DRIVE, SPORT, even though NAVEE's site says *voetgangersmodus*. |
+| drive mode | **rijmodus**, plural **rijmodi**; compact **Modus** | NAVEE: *Rijmodi*. Names are not translated and keep the case of the English string (*Sport*, *ECO*, *Drive*), even though NAVEE's site says *voetgangersmodus*. |
 | Eco, Turbo, Boost | stay in English | *Eco* and *Turbo* are do-not-translate after D3. **Eco-schatting** is a range option, translated. |
-| Energy recovery levels | **Uit, Zwak, Gemiddeld, Sterk** | NAVEE's own levels. Elsewhere low, medium, high are *laag, gemiddeld, hoog*. |
+| Energy recovery levels | **Uit, Zwak, Gemiddeld, Sterk** | NAVEE's own levels, translated: they are not drive mode names. Elsewhere low, medium, high are *laag, gemiddeld, hoog*. |
 | High-speed charging | **Snelladen**; charger **snellader**; charges **snellaadsessies**; reference **snellaadreferentie** | Recordings: *laadopnamen met snellader*. Never *Sterk* or *Hoog* here. |
 | range | **actieradius**, narrow **Bereik** | NAVEE: *actieradius*. |
 | trip, ride | **Trip**, **rit**, plural **ritten** | Trip is a distance counter. Rides are recorded. Route is the path on the map. |
@@ -213,7 +213,7 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - *setup*: general is **configuratie**; owner setup is **eigenaarsconfiguratie**. The file: **configuratiebestand van de eigenaar**, on onboarding steps **eigenaarsbestand**. `navee-owner-setup.json` stays as written. Website buttons stay English until the site changes.
 - *History*: Meetgeschiedenis, Ritgeschiedenis, Foutgeschiedenis. Narrow *Historie*.
 - *Recovery*: energieterugwinning vs **herstel** (restore). Undoing a try is **terugzetten**.
-- *Test*: **proberen**, result **poging** (a try); **testen** (guided); **Gepland laden testen**; **compatibiliteitscontrole**. Never *testen* for Try.
+- *Test*: **proberen**, result **poging** (a try); **testen** (guided); **Gepland laden testen**; **compatibiliteitscontrole**. Never *testen* for Try. An ordinary retry always has *opnieuw* (see Fixed words).
 - *Readback*: **teruglezen**, neutral, because a readback can also fail: *Teruglezing wijkt af*. Nothing with *bevestiging* inside it.
 - *Rejected* and *Refused by scooter*: both **geweigerd**.
 - *Standing start*: **Start vanuit stilstand** is value 0 of **Startsnelheid**, not another name for it.
@@ -233,6 +233,51 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - *Ont-* is not a negation, and the check knows it. *On-* is: *onbekend*, *onbevestigd*.
 - Possessive: *display van de step*, not *step’s display*.
 
+## Rules every language follows
+
+These came from the independent review of the first full draft (Spanish, 2026-11-05). They override anything above that disagrees. The table at the end holds this language's fixed words; a term in it is used every time the concept appears, in every area.
+
+1. **Try versus try again.** The glossary's "try" word is only for trying a control (Experimental, Controls to try). An ordinary retry ("Try again", "Try shortly") uses the fixed retry phrase below, so it can never read as "test this".
+2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
+3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done.
+4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: "Start time: %1$s". Numbers and units after a placeholder follow this guide's spacing.
+5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder.
+6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
+7. **Drive modes and level names.** Keep the case the English string uses in that string (Sport, ECO, Drive). Don't change it, and don't translate them.
+8. **Fit.** Never swap in a different meaning, or a colloquial word, to fit a budget. Use this guide's accepted abbreviation. If none fits, write the correct word and say so in the reply's notes: an overflow is a design problem that gets fixed, a wrong word isn't noticed.
+9. **Naming things on screen.** When a sentence names a button, tab or screen, use exactly that label's translation and this guide's rule for marking it. Don't paraphrase a label.
+10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
+11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
+12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
+13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+
+### Fixed words
+
+| English concept | Meaning | This language |
+|---|---|---|
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Opnieuw proberen** (button); **Probeer het opnieuw.** and **Probeer het zo meteen opnieuw.** in a sentence. Always with *opnieuw*, the word that makes it a retry. Bare *proberen* and *poging* stay the experimental try. Not *testen*, *nog een poging*. |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **Niet gemeld**. Says only that no value came, never that the value is zero or that nothing is wrong. Not *onbekend*, *geen gegevens*, *niet gerapporteerd*. |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **gemeld**, in full **door de step gemeld**. A claim, not a measurement. Not *gerapporteerd* (a *rapport* is the document), *gemeten* or *bevestigd*. |
+| NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE-logging**, then *logging* where the screen makes it clear. Debug logging on the phone. Never *registratie* or *aanmelden*, and not *logboek*, which is the rider's *Telefoonlogboek*. |
+| restore logging | turning that logging back to how it was (usually off) | **NAVEE-logging herstellen**; running: **Bezig met herstellen van NAVEE-logging…**. It means back to how it was, usually off, and a rider could read it as turning logging on, so a sentence says so: *Zet de NAVEE-logging terug zoals die was.* Where the English says turn off, write **uitzetten**. No backup is involved. |
+| Volt's helper | the small helper Volt starts inside Shizuku | **Volt-hulpprogramma**, short **hulpprogramma**. Not the computer's **uitleesscript**, and not *helper* or *hulp*, which belong to Loophulp and Afdaalhulp. |
+| stock charger | the charger that came with the scooter | **originele oplader**. The one that came with the scooter; not a claim that another charger is fake. Not *standaardoplader*: **standaard** is also the kickstand. |
+| high-speed charger | a faster charger the rider may own | **snellader**. The rider's own faster charger. Recordings: *laadopnamen met snellader*. Never *Sterk* or *Hoog*. |
+| gap (in a recording) | a stretch of a recording with no data | **onderbreking**, plural **onderbrekingen**; Recording gaps: **Onderbrekingen in de opname**. A stretch with no data, not a pause the rider chose. |
+| elevation | height above sea level on a route | **hoogte**: *Hoogte niet gemeten*. Not *stijging* (slope) or *hoogteverschil* (height climbed). |
+| current direction | which way battery current flows | **stroomrichting**. Which way battery current flows, not the direction of riding. |
+| throughput | how much energy has passed through the battery | **doorvoer**; Lifetime throughput: **Totale doorvoer**. Not *vermogen* or *capaciteit*. |
+| battery gauge | the scooter's own battery percentage reading | **accumeter**. The scooter's own percentage reading, which can jump. Not *accustand*, the level itself. The Home widget called Gauge is a different thing. |
+| raw | an unprocessed value, also used as a short tag | **ruw**; in brackets **(ruw)**; chip **RUW**. |
+| last seen | when Volt last had data from the scooter | **laatst ontvangen**; with a value **Laatst ontvangen: %1$s**. It dates the data and does not say the scooter is connected. Not *laatst gezien*, a calque, and not *Laatst bekend*, which goes with a state (*Laatst bekend: vergrendeld*). |
+| add | adding a widget, scooter or item | **toevoegen**; button **Toevoegen**, **Widget toevoegen**; *Voeg een step toe.* |
+| enter (typing) | typing a value | **invoeren**: *Voer je stuur-PIN in.* Not *intypen* or *ingeven*. |
+| the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **app**, de. Never *applicatie* or *toepassing*. |
+| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinden met**, with the rider or Volt as subject and no object: *Verbind met de step.*, *Volt verbindt met de step.* Button: **Verbinden**. Not *Verbind de step*, which reads as plugging something in, and not *koppelen*, which is pairing. |
+| set a value | one verb for setting a value on the scooter | **instellen**: *Snelheidslimiet instellen*, *Stel de snelheidslimiet in.* Not *zetten* or *vastleggen*. *Aanzetten*, *uitzetten* and *terugzetten* keep their own meanings. |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Dit + verb in -t**: *Dit verwijdert de geschiedenis van alle steps. Ritten blijven bewaard.* *Dit vervangt alles op deze telefoon.* Never the imperative *Verwijder…* or the button's infinitive *Verwijderen…*, and not a bare *Verwijdert…*, which reads as a slip for the imperative. |
+| screen and section titles | noun form or verb form, with one example | **Noun form**: *Compatibiliteitscontrole*, *Back-up en herstel*. If the title is an action with no good noun, the infinitive: *Gepland laden testen*. Never the imperative. Buttons keep the infinitive of section 1. |
+
 ## 9. Sources consulted
 
 **Official Dutch wording: partly found, for product and feature words only.** Nothing public shows the NAVEE app's Dutch screens, so its words for charge limit, PIN, owner key and experimental features are unknown, and those are Claude's own proposals. No APK was downloaded.
@@ -244,7 +289,7 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - **Platform style:** [Microsoft Dutch Localization Style Guide](https://download.microsoft.com/download/e/8/f/e8f04dd4-591e-46e9-a076-e49a8c8c75e4/nld-nld-StyleGuide.pdf), read directly: sentence case, lower case after a colon, avoid abbreviations, single quotes, vowel-clash hyphens, hyphens after acronyms, infinitive in UI. Its advice against en dashes isn't followed for ranges, because Volt's `fmt_range` has one. It points to the Woordenlijst, which wasn't consulted entry by entry.
 - **Usage, weaker evidence:** [Androidworld.nl's S65C review](https://androidworld.nl/reviews/navee-s65c-een-elektrische-step-om-buitenlandse-steden-te-verkennen/): *step*, *ontgrendelen*, *vergrendelen*, *actieradius*, *energieterugwinning*, *stuur*, je. [Decathlon NL listings](https://www.decathlon.nl/p/mp/joyor-y8-s-abe-elektrische-step-48v-26ah-accu-en-richtingaanwijzers/6f071a45-bca2-477c-86ab-8ef63051d66f/c1), search snippet: *accu*, *richtingaanwijzers*, *elektrische step*. [Circuits Online](https://www.circuitsonline.net/forum/view/157647/1), a forum, search snippet: *gashendel*, *cruise control*.
 - **From the proposer's knowledge, not looked up:** *cruisecontrol*, *dagrijlicht*, *kilometerstand*, *km-stand*, *loophulp*, *sfeerlicht*, *treeplank*, *stuurpen*, *aan-uitknop*, *gelieerd aan*, and the abbreviation table.
-- **No source, Claude's choice; debate these first:** Loophulp against Loopondersteuning, Kilometerstand on the miles path, waarschuwing against melding for alerts, eigenaarssleutel, eigenaarsbestand, medegebruiker, stuur-PIN, laadlimiet, snelheidslimiet, Topsnelheid for the measured value, Actieve snelheidsrem, Afdaalhulp, Motorondersteuning, Spaarstand, Opgeladen vóór, Klaar vóór, Lijnverlichting, Sterverlichting, Livegegevens, Slot on the 62dp tile, the rungs of section 5 and the "not affiliated" wording.
+- **No source, Claude's choice; debate these first:** Loophulp against Loopondersteuning, Kilometerstand on the miles path, waarschuwing against melding for alerts, eigenaarssleutel, eigenaarsbestand, medegebruiker, stuur-PIN, laadlimiet, snelheidslimiet, Topsnelheid for the measured value, Actieve snelheidsrem, Afdaalhulp, Motorondersteuning, Spaarstand, Opgeladen vóór, Klaar vóór, Lijnverlichting, Sterverlichting, Livegegevens, Slot on the 62dp tile, the rungs of section 5, the "not affiliated" wording and the new picks in Fixed words (NAVEE-logging, Volt-hulpprogramma, originele oplader, onderbreking, doorvoer, accumeter, laatst ontvangen, Dit + verb).
 - **Native review:** none yet.
 
 **Choices where the sources disagree:**
