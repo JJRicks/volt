@@ -1,0 +1,16 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+readings_lock_status	Electronic lock	Elektronisk lås	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	f2a4080cd4e1250fff9a5c9ec8b8b7d6dcd6d6b4
+readings_lock_status_short	Electronic lock	Elektronisk lås	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	f2a4080cd4e1250fff9a5c9ec8b8b7d6dcd6d6b4
+readings_lock_status_compact	Lock	Lås	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	b58928b3fdbef1b14c4bae040ed7b853ce71daf3
+readings_lock_push_warning	Locked movement warning (raw)	Advarsel om bevegelse i låst tilstand (rå)	Warning about movement in locked state (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	3ba96ea48dc7619b59cde53fd5b3f144386f76b6
+readings_lock_push_warning_short	Lock movement (raw)	Låsebevegelse (rå)	Lock movement (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	998e89cda409bc614e2e28511c95e256cfb95077
+readings_value_unlocked	Unlocked	Ulåst	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	15f9e9bf951d8598496913697d2f29826962ffad
+readings_value_locked	Locked	Låst	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	7fc7e495564b8283b03e08fc82591cd4bf52e06d
+readings_chart_est_finish	Est. finish time	Ferdigtid (ca.)	Finish time (approx.)	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	8d8e04cef55a113136d452c7c2ff4ae12ec6346a
+readings_chart_est_countdown	Est. countdown time	Nedtelling (ca.)	Countdown (approx.)	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	4c23ff36a113cf960aa71bb8268f532f11904118
+readings_chart_est_finish_limit	Est. finish at limit	Ferdigtid ved ladegrensen (ca.)	Finish time at the charge limit (approx.)	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	eedf135c1e5b090915b159985c9ef53c5bc7907b
+readings_chart_est_countdown_limit	Est. countdown to limit	Nedtelling til ladegrensen (ca.)	Countdown to the charge limit (approx.)	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	b512876fab8daa7b364e3bb475a4110cc15736bc
+readings_chart_charge_limit	Charge limit	Ladegrense	Charge limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	af9a4173bb6f9b76f2b2ba3ca5167949b5ce5987
+readings_chart_observed_finish	Observed finish	Observert ferdigtid	Observed finish time	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	1c733900ab1e1d075677620d1460afa743354b5f
+readings_chart_actual_countdown	Actual countdown	Faktisk nedtelling	Actual countdown	claude-opus	claude-opus-5-5	f79949dd92e33164bc3d2fec7112b46c9c44aee1	e6a360c1c6565674e774253b61a6700f8a991ffd
