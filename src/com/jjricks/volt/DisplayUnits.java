@@ -11,15 +11,67 @@ public final class DisplayUnits {
     private DisplayUnits() {}
 
     /**
+     * Button labels: the shown km/h and mph units each kept on one line when large text wraps the label, with a word
+     * joiner after each punctuation mark, symbol or space inside the unit ("km/\u2060h" in English; "mph" has none, so
+     * it stays as it is). The units are the language's units_kmh and units_mph, so the joiner follows the wording a
+     * language shows, never a fixed English spelling. Display only: a report or log never holds a joiner.
+     * Limit: it joins only after punctuation, symbols and spaces, so a unit written in ideographs or kana can still wrap
+     * between its letters (l10n/pending/f3-followups.md).
+     */
+    public static String unbroken(String text) {
+        return unbroken(unbroken(text, T.unitsKmh()), T.unitsMph());
+    }
+
+    private static String unbroken(String text, String unit) {
+        StringBuilder joined = new StringBuilder(unit.length() + 2);
+        for (int i = 0; i < unit.length(); ) {
+            int c = unit.codePointAt(i);
+            joined.appendCodePoint(c);
+            i += Character.charCount(c);
+            if (i < unit.length() && breaksAfter(c)) joined.append(WORD_JOINER);
+        }
+        return unit.isEmpty() ? text : text.replace(unit, joined);
+    }
+
+    /** Punctuation, symbols and spaces: never a combining mark or a joiner, which belong to the letter they follow. */
+    private static boolean breaksAfter(int codePoint) {
+        switch (Character.getType(codePoint)) {
+            case Character.CONNECTOR_PUNCTUATION: case Character.DASH_PUNCTUATION: case Character.START_PUNCTUATION:
+            case Character.END_PUNCTUATION: case Character.INITIAL_QUOTE_PUNCTUATION: case Character.FINAL_QUOTE_PUNCTUATION:
+            case Character.OTHER_PUNCTUATION: case Character.MATH_SYMBOL: case Character.CURRENCY_SYMBOL:
+            case Character.MODIFIER_SYMBOL: case Character.OTHER_SYMBOL: case Character.SPACE_SEPARATOR:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    /** U+2060 WORD JOINER, built from its code point: it is not catalog text (GlyphCoverageTest: Saira has no glyph for it). */
+    private static final char WORD_JOINER = (char) 0x2060;
+
+    /**
      * The value with speeds in the rider's units, other values as their English label (feature.valueLabel): callers
-     * compare and trim this text as English (MoreScreen's labValue into CompatibilityPanel.question, MainActivity's
-     * " hours" shortening and shared-unit trim), so it stays English. Show {@link #featureValueText} instead.
+     * compare and trim this text as English (MoreScreen's labId into CompatibilityPanel.question, MainActivity's
+     * " hours" shortening), so it stays English. Show {@link #featureValueText} instead.
      */
     public static String featureValue(ScooterCommands.Feature feature, int value, String units) {
         if (!UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff())) return feature.valueLabel(value);
         String metric = T.fmtQuantity(Fmt.integer(value), T.unitsKmh());
         String imperial = T.fmtQuantity(Fmt.decimal(Locale.US, value / KM_PER_MILE, 1), T.unitsMph());
         return choose(metric, imperial, units);
+    }
+
+    /**
+     * A slider sheet's two range ends, {low, high}, built from the numbers, for display: the high end is
+     * featureValueText(max), and a speed's low end is its number alone ("0.0", "0", or "0.0 mph / 0" in dual units),
+     * because the high end beside it names the unit; an Off low end is featureValueText(min). This replaces cutting
+     * the high end's last word off the shown low end, which only worked where a language puts the unit last.
+     */
+    public static String[] sliderEnds(ScooterCommands.Feature feature, String units) {
+        String high = featureValueText(feature, feature.max, units);
+        if (!UnitCode.KMH.matches(feature.unit) || (feature.min == 0 && feature.zeroIsOff())) return new String[]{featureValueText(feature, feature.min, units), high};
+        String metric = Fmt.integer(feature.min), imperial = Fmt.decimal(Locale.US, feature.min / KM_PER_MILE, 1);
+        return new String[]{choose(metric, "dual".equals(units) ? T.fmtQuantity(imperial, T.unitsMph()) : imperial, units), high};
     }
 
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */

@@ -3059,10 +3059,10 @@ public final class MainActivity extends Activity implements ScreenHost {
         LinearLayout body=sheetContent(shortLabel(feature),explanation(feature),close);
         TextView amount=design.text(featureLabel(feature,current),28,true);amount.setPadding(design.dp(2),design.dp(4),0,design.dp(10));body.addView(amount);
         SeekBar slider=new SeekBar(this);slider.setMax((feature.max-feature.min)/feature.step);slider.setProgress(Math.max(0,(current-feature.min)/feature.step));slider.setProgressTintList(ColorStateList.valueOf(design.accent));slider.setThumbTintList(ColorStateList.valueOf(design.accent));slider.setProgressBackgroundTintList(ColorStateList.valueOf(design.outline));slider.setContentDescription(shortLabel(feature));body.addView(slider,new LinearLayout.LayoutParams(-1,design.dp(48)));
+        // Built from the numbers: the low end is a bare number where the high end names the unit (DisplayUnits.sliderEnds).
+        String[] range=DisplayUnits.sliderEnds(feature,preferences.getString("units","mi"));String low=range[0],high=range[1];
         // The range ends sit under the slider instead of a sentence about them.
         LinearLayout ends=row();ends.setPadding(design.dp(4),0,design.dp(4),design.dp(6));ends.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
-        String units=preferences.getString("units","mi"),high=DisplayUnits.featureValue(feature,feature.max,units),low=DisplayUnits.featureValue(feature,feature.min,units);
-        int unitAt=high.lastIndexOf(' ');if(unitAt>0&&low.endsWith(high.substring(unitAt)))low=low.substring(0,low.length()-(high.length()-unitAt));
         TextView lowText=design.caption(low);ends.addView(lowText,new LinearLayout.LayoutParams(0,-2,1));
         TextView highText=design.caption(high);highText.setGravity(Gravity.END);ends.addView(highText,new LinearLayout.LayoutParams(-2,-2));
         body.addView(ends,new LinearLayout.LayoutParams(-1,-2));
