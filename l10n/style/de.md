@@ -50,8 +50,9 @@ row must not be widened to let a measured word onto a setting.
   starts with a capital: "Gesperrt". The glossary lists one case; both are approved.
 - Glossary forms inflect in a sentence: "der geplanten Ladung" is wrong (see 8), "beim geplanten Laden"
   is right.
-- Keep all-caps tokens as written: WALK, ECO, DRIVE, SPORT, PIN, NAVEE, GPX, CSV. Do not write your own
-  words in capitals; Volt upper-cases some captions itself.
+- Keep all-caps tokens as written: PIN, NAVEE, GPX, CSV. Drive mode and level names keep the case the English
+  string uses in that string (Sport, ECO, Drive). Do not write your own words in capitals; Volt upper-cases
+  some captions itself.
 - `km-Zähler` starts lower case even at the start of a label, because "km" is a unit symbol.
 
 ## 4. Numbers, dates and units
@@ -69,9 +70,9 @@ row must not be widened to let a measured word onto a setting.
   text: "1 Stunde", "2 Stunden", "5 Minuten". English's "1h 05m" with no space is not German. Other
   compact words: Tage "Tg." (or the whole word "Tage" where it fits), Monate "Mon.", Jahre "J."; "Tsd." for the chart's "k"; "Pkt." for "pts".
 - **Dates and times:** from the phone's format locale. Where a template holds them: "5. Nov.", "5. Nov.
-  2026", "05.11.2026", 24-hour "14:30". Add "Uhr" only in a sentence: "Der Ladevorgang startet um 14:30
-  Uhr." Relative: "vor 5 Minuten". Do not upper-case months.
-- Hour-only values as in scheduled charging: "14 Uhr" in text, "14:00" on a chip.
+  2026", "05.11.2026", 24-hour "14:30". Add "Uhr" only in a sentence with a written-out time: "Der Ladevorgang startet um 14:30
+  Uhr." A placeholder may hold "2:30 PM", so it takes neither "um" nor "Uhr", only a label form: "Ladestart: %1$s". Relative: "vor 5 Minuten". Do not upper-case months.
+- Hour-only values as in scheduled charging: "14 Uhr" in written-out text, "14:00" on a chip. A placeholder takes the label form above.
 - **Plurals:** `one` and `other`. Keep the placeholder as the English has it. Both are full phrases: "%1$d Fahrt" / "%1$d Fahrten".
 
 ## 5. Narrow labels: the ladder
@@ -152,8 +153,8 @@ against the real word "Labor" (31.8dp at 12sp); D3 lets a language use its own s
 break.
 
 - **Must take a hyphen** (acronym, brand, digit, unit or a name):
-  NAVEE-App, Lenker-PIN, PIN-Entsperrung, USB-Debugging, Bluetooth-Kopplung, CSV-Datei, GPX-Datei, Modell-ID, Volt-Daten,
-  4-stellig, km-Zähler, Build-Nummer.
+  NAVEE-App, Lenker-PIN, PIN-Entsperrung, USB-Debugging, Bluetooth-Kopplung, CSV-Datei, GPX-Datei, Modell-ID, Volt-Daten, Volt-Hilfsprogramm,
+  NAVEE-Protokollierung, 4-stellig, km-Zähler, Build-Nummer.
 - **May take a hyphen, in this exact spelling,** because the closed form misreads or is too long to fit:
   Besitzer-Einrichtung, Besitzer-Einrichtungsdatei (closed reads like furniture), Akku-Einstellungen, Fahr-Einstellungen,
   Scooter-Display, Scooter-Name, Display-Einheiten, Telefon-Fahrtenbuch, Fahrmodus-Tempolimit, Logo-Licht,
@@ -223,7 +224,7 @@ Official NAVEE German wording comes first, where one exists (section 9).
 | handlebar, stem, deck, kickstand | **Lenker**, **Vorbau**, **Deck**, **Ständer** | Official. |
 | brake lever, throttle, power button | **Bremshebel**, **Gashebel**, **Ein-/Aus-Schalter** | Brake lever and switch are official. Gashebel is Claude's pick: the guide says both Beschleunigungshebel and Gaspedal. |
 | turn signal, tail light, headlight | **Blinker**, **Rücklicht**, **Scheinwerfer** | Official. Turn signal sound: **Blinkerton**. |
-| drive mode | **Fahrmodus**, compact **Modus** | Names stay WALK, ECO, DRIVE, SPORT. |
+| drive mode | **Fahrmodus**, compact **Modus** | Names are not translated and keep the case of the English string (Sport, ECO, Drive). |
 | range, trip, ride | **Reichweite**, **Trip**, **Fahrt** | Trip is a distance counter; Fahrten are recorded rides. |
 | pair, connect | **koppeln**, **verbinden** | Official. Keep distinct, and from account binding (**Kontobindung**). |
 | Settings, Home, More | **Einstellungen**, **Start**, **Mehr** | Start is only the tab label. In a sentence Home is **Startseite**: "Zur Startseite", "Bereits auf der Startseite". |
@@ -260,6 +261,51 @@ Android's settings keep Android's German: **USB-Debugging**, **Entwickleroptione
 
 **Regions.** One `values-de` serves Germany, Austria and Switzerland. Swiss readers see ß. Do not use regional words.
 
+## Rules every language follows
+
+These came from the independent review of the first full draft (Spanish, 2026-11-05). They override anything above that disagrees. The table at the end holds this language's fixed words; a term in it is used every time the concept appears, in every area.
+
+1. **Try versus try again.** The glossary's "try" word is only for trying a control (Experimental, Controls to try). An ordinary retry ("Try again", "Try shortly") uses the fixed retry phrase below, so it can never read as "test this".
+2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
+3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done.
+4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: "Start time: %1$s". Numbers and units after a placeholder follow this guide's spacing.
+5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder.
+6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
+7. **Drive modes and level names.** Keep the case the English string uses in that string (Sport, ECO, Drive). Don't change it, and don't translate them.
+8. **Fit.** Never swap in a different meaning, or a colloquial word, to fit a budget. Use this guide's accepted abbreviation. If none fits, write the correct word and say so in the reply's notes: an overflow is a design problem that gets fixed, a wrong word isn't noticed.
+9. **Naming things on screen.** When a sentence names a button, tab or screen, use exactly that label's translation and this guide's rule for marking it. Don't paraphrase a label.
+10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
+11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
+12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
+13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+
+### Fixed words
+
+| English concept | Meaning | This language |
+|---|---|---|
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Erneut versuchen** (button); **Versuche es erneut.** / **Versuche es gleich erneut.** in a sentence. Always with "erneut". Never ausprobieren or testen, which belong to the experimental try. |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **Nicht gemeldet**. Says only that no value came, never that the value is zero or that nothing is wrong. |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **gemeldet**, in full **vom Scooter gemeldet**. Not berichtet (Bericht is the report), not gemessen or bestätigt. |
+| NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE-Protokollierung**. Debug logging on the phone. Never Anmeldung or Registrierung. |
+| restore logging | turning that logging back to how it was (usually off) | **Protokollierung wiederherstellen**; running: **NAVEE-Protokollierung wird wiederhergestellt…**. It means the earlier state, usually off, and a rider could read it as turning logging back on, so a sentence says so: "Stelle den vorherigen Zustand der NAVEE-Protokollierung wieder her." Where the English says "turn off", write **ausschalten**. |
+| Volt's helper | the small helper Volt starts inside Shizuku | **Volt-Hilfsprogramm**, short **Hilfsprogramm**. Not the computer's Auslese-Skript and not Schiebehilfe. |
+| stock charger | the charger that came with the scooter | **Originalladegerät**. The one that came with the scooter; not a claim that another charger is fake. |
+| high-speed charger | a faster charger the rider may own | **Schnellladegerät**. The rider's own faster charger. |
+| gap (in a recording) | a stretch of a recording with no data | **Lücke**; Recording gaps: **Aufzeichnungslücken**. |
+| elevation | height above sea level on a route | **Höhe**. Not Steigung (slope) and not Höhenmeter (height climbed). |
+| current direction | which way battery current flows | **Stromrichtung**. |
+| throughput | how much energy has passed through the battery | **Durchsatz**; Lifetime throughput: **Gesamtdurchsatz**. Not Leistung and not Kapazität. |
+| battery gauge | the scooter's own battery percentage reading | **Akkuanzeige**. The scooter's own percentage reading, which can jump. Not Akkustand, the level itself. The Home widget called Gauge is a different thing. |
+| raw | an unprocessed value, also used as a short tag | **roh**; in brackets **(roh)**; chip **ROH**. |
+| last seen | when Volt last had data from the scooter | **Zuletzt**; with a value **Zuletzt: %1$s**. Not "zuletzt gesehen". It dates the data and does not say the scooter is connected. |
+| add | adding a widget, scooter or item | **hinzufügen**; button **Hinzufügen**, **Widget hinzufügen**. |
+| enter (typing) | typing a value | **eingeben**: "Gib deine Lenker-PIN ein." |
+| the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **App** (die). Never Anwendung or Applikation. |
+| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | **verbinden**, with the rider or Volt as subject: "Verbinde dich mit dem Scooter.", "Volt verbindet sich mit dem Scooter." Button: **Verbinden**. Not "Verbinde den Scooter", which reads as plugging something in. |
+| set a value | one verb for setting a value on the scooter | **einstellen**: "Tempolimit einstellen". Not setzen or festlegen. |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Dadurch wird/werden … + participle**: "Dadurch wird alles auf diesem Telefon ersetzt." Not "Entfernt…" or "Ersetzt…", which read as done or as a command to several people, and not "Entferne…". |
+| screen and section titles | noun form or verb form, with one example | **Noun form**: "Geplantes Laden", "Kompatibilitätsprüfung". Action buttons keep the infinitive of section 1. |
+
 ## 9. Sources consulted
 
 **Official German wording: found, with limits.** Nothing shows the NAVEE app's German screens. No APK was downloaded, and D3's local dump of app 2.1.9 holds English only. So menu names other than those printed below are not established.
@@ -270,7 +316,7 @@ Android's settings keep Android's German: **USB-Debugging**, **Entwickleroptione
 - **Android:** developer.android.com/studio/debug/dev-options?hl=de (search result): Entwickleroptionen, Build-Nummer, Über das Telefon, USB-Debugging.
 - **Formats:** CLDR (de: percent with no-break space, decimal comma) and DIN 5008, by secondary sources (Duden's own rules pages were not reached). Abbreviations and hyphen rules are the proposer's knowledge of Duden, not looked up rule by rule.
 - **Established terms** in the glossary's source column are the proposer's knowledge of German usage, not looked up one by one. Searches did show Tempomat and Traktionskontrolle in German e-scooter reviews (notebookcheck.com, gamestar.de) and gave nothing on Bergabfahrhilfe or Schiebehilfe beyond the review above.
-- **No source, Claude's choice:** Besitzer, Besitzerschlüssel, Mitnutzer, Lenker-PIN, Ladegrenze, Tempolimit for the rider's limits, Spitzengeschwindigkeit, Aktive Tempobremse (Tempokontrolle reads as a police speed check), Motorunterstützung, Fertig geladen bis, Sternlicht, Lichtleiste, Live-Daten, the rungs of section 5, and the "not affiliated" wording. Debate these first.
+- **No source, Claude's choice:** Besitzer, Besitzerschlüssel, Mitnutzer, Lenker-PIN, Ladegrenze, Tempolimit for the rider's limits, Spitzengeschwindigkeit, Aktive Tempobremse (Tempokontrolle reads as a police speed check), Motorunterstützung, Fertig geladen bis, Sternlicht, Lichtleiste, Live-Daten, the rungs of section 5, the "not affiliated" wording, and the fixed words table. Debate these first.
 
 **Choices where the official sources disagree:**
 
