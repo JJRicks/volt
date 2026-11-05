@@ -373,46 +373,22 @@ How `ledger_check.py` (G1) reads it:
   `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
-- **A helper argument or a choice set on an earlier line** (until round T1, "Still blocked: a helper
-  argument or a choice set on an earlier line"). A choice row may settle what its sentence's own
-  conditions do not, and each thing it uses is listed in the row's warning:
-  - `String word = ready ? "Connected" : "Off";` before the sentence: `word`, or the noun of
-    `plural(n, noun)`, reads as that choice. The local must be declared once, as one declarator, in a
-    block around the sentence and never assigned again, and its conditions must be stable (below).
-    Its strings leave only with the whole statement, and several rows may read them; while another
-    sentence still reads the local, it stays, with its strings.
-  - The `if` and `else` around the sentence: under `if (connecting) ...; else status.setText(...)`
-    `connecting` is false, when the condition is stable from that test on. An `else` counts only when
-    its `if` runs its own block or one plain statement: in `if (a) while (b) if (c) x(); else y();` the
-    `else` is the inner `if`'s, and nothing is settled; a label counts the same, `if (a) lbl: if (c) ...`.
-    A sentence inside an `if`'s own parentheses runs before that condition is known, so that `if` settles
-    nothing for it, however its parts are ordered: `if (show(sentence) && a)`.
-  - `String mode = null;` assigned only inside `if (ready && ...)`: where `ready` is false,
-    `mode != null` is false. Only conjuncts of an `if` around every assignment count, stable from the
-    declaration of `mode` on (in a loop, `ready` set again after `mode` was assigned says nothing), and
-    declared before it: a foreach variable changes each pass with no `=` to see. An assignment inside the
-    `if`'s parentheses, as in `(mode = read()) != null && ready`, is under no fact of that `if`.
-
-  A condition has conjuncts only with no `||` or `?:` beside its `&&`: `a && b || c` holds with `a`
-  false, and `a ? b : c && d` with `d` false. Each is then one fact, true or false as a whole.
-  `a && (b || c)` still gives `a`.
-
-  A stable condition reads only these, and any other name or call settles nothing: a `static final`
-  of a class around the sentence, when the file declares that name no other way (a nested class's
-  constant says nothing of a field of its name outside it); `Class.CONSTANT` (a capitalised class, an all-caps name the file never assigns; a
-  test keeps every all-caps static field in `src/` final, since G1 reads one file); parameters and
-  locals in scope where it is tested, not assigned after that, `(a) = x` included (a field is not one,
-  even with a local of its name in a closed block, or after a `>`: `n > limit;` declares nothing); and `equals` on a String: `"eco".equals(id)` or a String local or
-  constant's. A list or a builder can change through a call, so `equals` on one settles nothing.
-
-  The row's conditions must still be the head ternary's, token for token, and each branch must be
-  exactly the sentence with those facts in. Anything else stays a hole, so the branch fails and shows
-  the difference. The first check is the old one, with no facts: a row it passes never reaches this.
-  A row with conditions the sentence does not read (nothing local, around it or null) still fails.
-  BackupArchive's `what` line needs an ordinary pull request merged first, moving
-  `String.join(", ", labels)` to a local. A commit in the batch's own pull request does not do: G1
-  compares with the merge base. The join would be in two branches, and a literal repeated in a hole is
-  a new literal. With the join on a local it passes.
+- **A choice set on an earlier line is refused.** A choice row's conditions must sit in the row's own
+  expression. G1 reads nothing from a line above or from around the sentence: not a local holding a
+  ternary, not the `if` or `else` around it, not a local that stays null unless something held. Such a
+  row fails with "neither a choice of the base expression on this branch nor a test of a data id".
+  G1 tried this in round T1 and took it out: each review found a new way to pass an English change
+  through a home-grown data-flow analysis, which is the wrong thing to base this proof on.
+  BackupArchive's restore summary is the live case. `perScooter` sets
+  `String what = ... ? "layouts" : "settings";` and `recordings` sets
+  `String noun = charges ? "charge" : "ride";`, and later lines read them. These lines stay English
+  until an ordinary pull request, merged first, writes each choice in its sentence:
+  `(charges ? plural(full, "charge") : plural(full, "ride")) + " skipped · " + ...`. G1 compares with the
+  merge base, so a commit in the batch's own pull request does not do. For `what`, the same pull
+  request moves `String.join(", ", labels)` to a local, because the join would otherwise be in two
+  branches, and a literal repeated in a hole is a new literal. A choice row with plural branches
+  (below) then converts them. An ordinary change can also convert such a sentence whole, as F6 did
+  for the Dashboard header status, with `removed` rows for the whole block.
 - A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
   one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
   own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only

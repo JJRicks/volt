@@ -8,9 +8,9 @@ Every entry of the wave 2 and 3 gate-blocks list, as of round T1. Lines are at T
 - **refuse**: G1 is right to refuse this in an extraction batch, and T1 keeps that. The path is an ordinary
   pull request first, or a batch later.
 
-"Run" says how this was checked: **run** is a G1 run on the real source (`scratch/harness-t1-a3/triage.py`,
-and the real-source runs in the T1 pull request), and **rule** means no run: G1's rule that refuses it did
-not change.
+"Run" says how this was checked: **run** is a G1 run on the real source (the conversion and its row
+committed on a throwaway checkout of this round's head, then `ledger_check.py --base` that head; the T1 pull
+request reports the results), and **rule** means no run: G1's rule that refuses it did not change.
 
 | Recorded in | Block | Outcome | Run | What happens next |
 | --- | --- | --- | --- | --- |
@@ -38,7 +38,7 @@ not change.
 | B16 fix | A choice row with a checked non-Fmt `as` | refuse | rule | A choice row takes no manual note, so nothing would check what the call prints. |
 | B16 fix | Choice branches as plurals | fix now | run | A branch may be `{"one": ..., "other": ...}`. |
 | B12 fix | A manual row folding a second statement | refuse | run: "drops `;`" | T1 first allowed this, then took it out. No `src/` line needs it: the real one has an `if`, and G1 could not show what the two statements print. An ordinary pull request can merge the lines. |
-| B13 | Header status, a choice set on an earlier line | fix now | run | The local, the `else` around the sentence and the null local each settle by a checked rule. |
+| B13 | Header status, a choice set on an earlier line | moot | rule | F6 (branch `claude/l10n-f6-dashboard-followups`) converts it as an ordinary change, with whole-block rows. G1 refuses it as a choice row. |
 | B13 | A plural in place of a `String.format` line | fix now | run | A `format` row's `%d` may carry `"quantity": true`. |
 | B13 | Argument swaps beside converted text | refuse | run: "adds `+ ""`" | An ordinary pull request. |
 | B13 | Saira glyphs: "✓ Save" | moot | rule | The glyph tooling (#187) allows ✓. S1 moves it. |
@@ -47,7 +47,7 @@ not change.
 | B13 | "Scooter range" | moot | rule | As above: the title test beside it has merged. |
 | B13 | Window value, column choices, saved slot summary | fix now | run | A plural branch, or a spelled-one plural row. |
 | B13 | Charging check `%s` plural ending, capacity `%s` ternary | refuse | rule | A format's `%s` that holds a choice has no row. Move the choice out in an ordinary pull request. |
-| B13 | `windowName` unit word on the line above | refuse | rule | Only a local's choice of strings settles, and its plural ending is not one. |
+| B13 | `windowName` unit word on the line above | refuse | rule | G1 reads no choice from a line above. An ordinary pull request first. |
 | B13 | Recording button's `TextUtils.join` inside an optional part | refuse | rule | A literal repeated in a hole. A local first. |
 | B18 | Language card attached one refresh late | moot | rule | Not a gate block. No gate changes it. |
 | B13 follow-up | The `exampleSlot` test case's name | fix now | run: `tests/run.sh` | Renamed here, with the Javadoc. |
@@ -61,7 +61,7 @@ not change.
 | B14 | ". At " + time holes, RideChartView:192 and :199 | refuse | rule | A time inside a phrase is one template, so an ordinary pull request first. |
 | B14 | MapPreferences:141 local rename | refuse | rule | A rename is not an extraction. |
 | B14 | RideStore and RideAutoStopPolicy exceptions | refuse | rule | B14b: exceptions that carry a `Msg`. |
-| B11 relabel | `what` and `noun` lines in BackupArchive | fix now | run | The `what` line needs the join on a local, in an ordinary pull request merged first. |
+| B11 relabel | `what` and `noun` lines in BackupArchive | refuse | run: "neither a choice of the base expression" | A choice on an earlier line. An ordinary pull request first writes each choice in its sentence, and for `what` moves the join to a local. A batch then passes with plural branches (also run). |
 | B11 relabel | `label()` to `labelMsg()`, BackupArchive:564 | refuse | rule | An argument change, and `count()` picks its noun by category, so no helper model fits it. |
 
 ## After merging main
