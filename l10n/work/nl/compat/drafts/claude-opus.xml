@@ -208,7 +208,7 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Er is geen nieuwe meting ontvangen.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Geaccepteerd, maar er is geen doorslaggevende meting ontvangen.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Geen reactie van de step.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt kon de opdracht om terug te zetten niet verzenden.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt kon het herstel niet verzenden.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Er kon geen nieuwe beginwaarde worden opgehaald. Verbind opnieuw en probeer het opnieuw. Er is niets gewijzigd.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">De instelling kon niet worden geverifieerd. Verbind opnieuw en bekijk de onvoltooide test.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">De verbinding is tijdens de test verbroken.</string>

@@ -80,7 +80,7 @@
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 hexadecimale tekens nodig</string>
     <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Geen eigenaarssleutel in bestand</string>
     <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Eigenaarsrol niet ondersteund</string>
-    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4">Dit bestand bevat tegenstrijdige eigenaarssleutels of rollen. Lees één verbinding met een NAVEE-account uit of importeer één back-up van je privéconfiguratie.</string>
+    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Dit bestand bevat meer dan één eigenaarssleutel of rol, en die spreken elkaar tegen. Lees één verbinding met een NAVEE-account uit of importeer één private back-up van de configuratie.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Importeren mislukt. Kies het bestand opnieuw.</string>
     <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Voer een eigenaarssleutel van 12 tekens in.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Step</string>

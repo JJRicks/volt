@@ -313,7 +313,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatisch</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Origineel</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Snellader</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">‘Automatisch’ herkent UT5 MAX-opladers aan het actuele vermogen. Bij twijfel gebruikt Volt de huidige laadsnelheid; kies een oplader om dit te overschrijven.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">‘Auto’ herkent UT5 MAX-opladers aan het actuele vermogen. Als de herkenning niet zeker is, gebruikt Volt de huidige laadsnelheid; kies een oplader om dit te overschrijven.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Opgeslagen laadcurves</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Deze laadsessie opnemen</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Laadopname stoppen</string>
