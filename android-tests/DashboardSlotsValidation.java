@@ -8,9 +8,11 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Build;
 import android.os.Bundle;
 
+import com.jjricks.volt.AllWidgetsDashboard;
 import com.jjricks.volt.DashboardConfig;
 import com.jjricks.volt.DashboardEditHistory;
 import com.jjricks.volt.DashboardLayout;
+import com.jjricks.volt.Msg;
 import com.jjricks.volt.T;
 
 import org.json.JSONArray;
@@ -300,11 +302,26 @@ public final class DashboardSlotsValidation extends Instrumentation {
     }
 
     /** A duplicate of the example's widget shows its original's words in every language; its saved text stays English. */
-    private void exampleCopiesKeepTheirWords() throws Exception {
-        String problem = ExampleCopies.problem();
-        require(problem == null, String.valueOf(problem));
+    private void exampleCopiesKeepTheirWords() {
+        for (DashboardConfig.Widget widget : AllWidgetsDashboard.create()) {
+            DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(widget);
+            copy.title = widget.title;
+            copy.note = widget.note;
+            require(copy.type.equals(widget.type) && !copy.id.equals(widget.id), "A copy is the same type with its own id");
+            require(words(AllWidgetsDashboard.exampleTitle(copy)).equals(words(AllWidgetsDashboard.exampleTitle(widget)))
+                            && words(AllWidgetsDashboard.exampleNote(copy)).equals(words(AllWidgetsDashboard.exampleNote(widget))),
+                    "A copy of the example's " + widget.type + " does not show its original's words");
+        }
+        DashboardConfig.Widget mine = new DashboardConfig.Widget("note");
+        mine.note = AllWidgetsDashboard.NOTE_TEXT;
+        DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(mine);
+        copy.note = mine.note;
+        require(AllWidgetsDashboard.exampleNote(copy) == null && !AllWidgetsDashboard.isExample(copy),
+                "A copy of the owner's widget became the example's");
         checks.add("A duplicate of an example widget shows its original's words with English saved text; an owner's stays the owner's");
     }
+
+    private static String words(Msg message) { return message == null ? "" : message.english(); }
 
     private DashboardConfig withExampleFactory(String profile,
             java.util.function.Supplier<ArrayList<DashboardConfig.Widget>> factory) throws Exception {
