@@ -224,9 +224,8 @@
     <!-- %1$s is where the estimate came from ("Personal curve"), %2$s the estimator's version number. -->
     <string name="stats_charge_estimator" volt:screen="More › Charge recordings › recording" volt:purpose="detail">%1$s · Estimator %2$s</string>
     <!-- Follows the estimate's source: %1$d is how many past charges the estimate learned from. -->
-    <plurals name="stats_charge_learned" volt:screen="More › Charge recordings › recording" volt:purpose="detail"
-        volt:english-fix="pending">
-        <item quantity="one">" · %1$d learned charges"</item>
+    <plurals name="stats_charge_learned" volt:screen="More › Charge recordings › recording" volt:purpose="detail">
+        <item quantity="one">" · %1$d learned charge"</item>
         <item quantity="other">" · %1$d learned charges"</item>
     </plurals>
     <!-- Follows the estimate's source: %1$s is the charge limit, a whole percentage. -->

@@ -1,0 +1,59 @@
+# Owner-approved changes to already-extracted English (l10n/README.md, plan part D). One row per changed
+# key and plural item; old and new are the decoded English. Reverse a change by putting old back in
+# res/values and deleting its row.
+key	quantity	old	new	note
+backup_restore_intro	-	Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you’ll see exactly what they contain before restoring.	Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you'll see exactly what they contain before restoring.	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+ble_needs_pin	-	Enable a configured handlebar PIN before proximity unlock	Set up and turn on the handlebar PIN before turning on proximity unlock	owner approved all English fixes (2026-11-05); language reviews: says set up and turn on, and turning on proximity unlock
+ble_outside_domain	-	Value is outside the OEM feature domain	The official app doesn't offer this value	owner approved all English fixes (2026-11-05); language reviews: OEM feature domain was jargon; names the official app
+ble_status_setting_clock	-	Setting the scooter’s clock from this phone…	Setting the scooter's clock from this phone…	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+ble_stop_scooter_first	-	Stop the scooter first	Bring the scooter to a stop first	owner approved all English fixes (2026-11-05); language reviews: Stop the scooter read as switching it off; means halting
+charging_alert_text_time_limit	one	Volt stopped watching after %1$d hours. Open Volt to keep watching this charge.	Volt stopped watching after %1$d hour. Open Volt to keep watching this charge.	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+compat_age_minutes	one	%1$d minutes ago	%1$d minute ago	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+compat_evidence_shared	-	Shared	All models	owner approved all English fixes (2026-11-05); language reviews: Shared read as the shared-rider role; means every model
+compat_read_supported	one	✓ %1$d bytes%2$s	✓ %1$d byte%2$s	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+compat_read_too_short	one	Too short (%1$d bytes)	Too short (%1$d byte)	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+compat_review_related_changed	-	A related setting changed since the test. Volt won't set it back.	A related setting changed since the test. Volt won't set the tested setting back.	owner approved all English fixes (2026-11-05); language reviews: it was ambiguous; names the tested setting
+compat_tests_elsewhere	one	%1$d unfinished tests on other scooters. Select one to review.	%1$d unfinished test on another scooter. Select it to review.	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+controls_experimental_start_speed	-	Below 3 km/h, the motor can pull from a standstill as soon as you use the throttle.	A kick-start speed below 3 km/h lets the motor pull from a standstill as soon as you use the throttle.	owner approved all English fixes (2026-11-05); language reviews: names the setting, so it no longer reads as riding below 3 km/h
+controls_feature_acceleration_about	-	Other models’ Eco/Turbo.	Other models' Eco/Turbo.	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+controls_reason_moving	-	Stop the scooter first	Bring the scooter to a stop first	owner approved all English fixes (2026-11-05); language reviews: Stop the scooter read as switching it off; means halting (same idea as ble_stop_scooter_first)
+controls_refusal_outside_domain	-	Value is outside the OEM feature domain	The official app doesn't offer this value	owner approved all English fixes (2026-11-05); language reviews: OEM feature domain was jargon; names the official app; dnt OEM removed
+controls_refusal_pin_digits	-	PIN must contain four decimal digits	PIN must contain four numeric digits	owner approved all English fixes (2026-11-05); language reviews: decimal digits was a false friend; matches more_pin_digits
+controls_refusal_pin_owner	-	PIN access requires the authenticated owner	PIN access requires connecting as the owner	owner approved all English fixes (2026-11-05); language reviews: authenticated owner was engineer wording
+controls_refusal_proximity_owner	-	Proximity changes require the authenticated owner	Proximity changes require connecting as the owner	owner approved all English fixes (2026-11-05); language reviews: authenticated owner was engineer wording
+controls_refusal_proximity_pin	-	Enable a configured handlebar PIN before proximity unlock	Set up and turn on the handlebar PIN before turning on proximity unlock	owner approved all English fixes (2026-11-05); language reviews: says set up and turn on, and turning on proximity unlock
+dashboard_capacity_points_used	one	%1$s points used	%1$s point used	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+dashboard_capacity_rides	one	%1$s rides	%1$s ride	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+dashboard_rejected	-	Rejected	Excluded rides	owner approved all English fixes (2026-11-05); language reviews: bare Rejected; these are rides left out of the estimate
+dashboard_restore_failed	-	Couldn’t restore. Nothing changed.	Couldn't restore. Nothing changed.	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+dashboard_save_layout_failed	-	Couldn’t save the layout. Please try again.	Couldn't save the layout. Please try again.	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+dashboard_window_days	one	%1$d days	%1$d day	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+main_import_replace_body	-	Replaces %1$s’s dashboard and all 3 slots.	Replaces the dashboard for %1$s and all 3 slots.	owner approved all English fixes (2026-11-05); D1: no English possessive 's around a name
+main_report_size_bytes	one	%1$d bytes	%1$d byte	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+main_scan_found_many	one	%1$d scooters found	%1$d scooter found	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+maps_custom_error_attribution	-	Add the provider’s required attribution.	Add the provider's required attribution.	owner approved all English fixes (2026-11-05); D1: curly apostrophe to straight, as the rest of the catalog
+maps_track_fixes	one	%1$d GPS fixes	%1$d GPS fix	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+maps_track_fixes_low_quality	one	%1$s · %2$d low-quality fixes excluded	%1$s · %2$d low-quality fix excluded	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+maps_track_fixes_outliers	one	%1$s · %2$d elevation outliers excluded	%1$s · %2$d elevation outlier excluded	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+more_history_clear_one_body	-	Removes %1$s's history. Rides stay.	Removes history for %1$s. Rides stay.	owner approved all English fixes (2026-11-05); D1: no English possessive 's around a name
+more_link_disconnected	-	disconnected	not connected	owner approved all English fixes (2026-11-05); language reviews: disconnected elsewhere means the link dropped; this means not connected
+more_prefs_auto_stop_sub	-	10 s after Bluetooth drops at a stop	10 s after Bluetooth drops while parked	owner approved all English fixes (2026-11-05); language reviews: at a stop collided with the alarm term Stop; means standing still
+more_update_available_body	-	You have %1$s. Get it from the release page and install it over this version; your data stays.	You have %1$s. Get the new version from the release page and install it over this one; your data stays.	owner approved all English fixes (2026-11-05); language reviews: it had no referent (%1$s is the installed version)
+onboarding_browser_start	-	Read the capture explanation and choose **Start**	Read the capture explanation and choose **Start capture**	owner approved all English fixes (2026-11-05); D1: names the setup website's Start capture button
+onboarding_connect_connecting	-	Connecting to %1$s	Connecting to %1$s…	owner approved all English fixes (2026-11-05); language reviews: running states end with an ellipsis
+onboarding_connect_is_it_on	-	Is it on? Is NAVEE closed?	Is it on? Is the NAVEE app closed?	owner approved all English fixes (2026-11-05); Spanish review: bare NAVEE for the app
+onboarding_fix_navee_detail	-	Check NAVEE connects alone	Check NAVEE connects without the helper	owner approved all English fixes (2026-11-05); language reviews: connects alone meant without the capture helper
+onboarding_skip_message	-	Add it later in More.	Add your scooter later in More.	owner approved all English fixes (2026-11-05); language reviews: it had no referent
+owner_countdown_seconds_left	one	%1$d seconds left	%1$d second left	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+readings_value_charges	one	%1$d charges	%1$d charge	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+readings_value_unknown_format_records	one	Unknown format %1$s · %2$d records	Unknown format %1$s · %2$d record	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+rides_delete_message	-	Route and sensor data. Can't undo.	Deletes its route and sensor data. Can't undo.	owner approved all English fixes (2026-11-05); language reviews: the noun fragment did not say anything is deleted
+rides_gaps	one	%1$d gaps	%1$d gap	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+service_charge_stop_identity_changed	-	identity changed	different scooter	owner approved all English fixes (2026-11-05); language reviews: identity changed was opaque; a different scooter answered
+service_wait_charging_schedule	-	Wait for the charging schedule to finish	Wait for Volt to finish setting the charging schedule	owner approved all English fixes (2026-11-05); language reviews: means finishing setting the schedule, not the schedule running
+stats_charge_learned	one	 · %1$d learned charges	 · %1$d learned charge	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+ui_chart_description	one	Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.	Measured %1$s chart, %2$d sample. Displayed axis %3$s to %4$s. Touch to inspect readings.	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
+ui_live_stats_disconnected	-	Live Stats, disconnected	Live Stats, not connected	owner approved all English fixes (2026-11-05); language reviews: disconnected elsewhere means the link dropped; this means not connected
+# Code changes outside the catalog (D1), approved with the rest; reverse them in the code:
+# DisplayTime.recent: other days show the locale's month and day (Mar 5 · 14:02, 5 Mar · 14:02) instead of 05 MAR · 14:02.
+# BackupActivity restoreCategories and fresh: the backup's date uses DisplayTime.dateTime (Volt's 12/24-hour setting) instead of java.text.DateFormat MEDIUM/SHORT.

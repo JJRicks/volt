@@ -328,7 +328,7 @@
     <string name="dashboard_charging_check" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Charging check</string>
     <string name="dashboard_coverage" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Coverage</string>
     <string name="dashboard_pack_temp" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Pack temp</string>
-    <string name="dashboard_rejected" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Rejected</string>
+    <string name="dashboard_rejected" volt:screen="Home capacity widget" volt:purpose="label" volt:safety="experimental">Excluded rides</string>
     <!-- Charge per gauge with its range: %1$s is the value, %2$s the unit ("Ah"), %3$s and %4$s the low and high values. -->
     <string name="dashboard_ah_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:screen="Home capacity widget" volt:purpose="caveat" volt:safety="experimental">Proxy: may overstate; not health.</string>
@@ -423,9 +423,9 @@
     <string name="dashboard_window_hours" volt:screen="Widget options" volt:purpose="choice">%1$s h</string>
     <string name="dashboard_window_one_day" volt:screen="Widget options" volt:purpose="choice">1 day</string>
     <!-- A time window chip of more than one day: %1$d is the number of days (7, 30, 90 or 180); a plural so a
-         language can inflect "days" by the number. One day has its own key, so English says "days" in both items. -->
+         language can inflect "days" by the number. One day has its own key (dashboard_window_one_day). -->
     <plurals name="dashboard_window_days" volt:screen="Widget options" volt:purpose="choice">
-        <item quantity="one">%1$d days</item>
+        <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
     <string name="dashboard_window_one_year" volt:screen="Widget options" volt:purpose="choice">1 year</string>
@@ -489,13 +489,13 @@
     <string name="dashboard_replace_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Replace slot %1$s?</string>
     <string name="dashboard_save_slot_title" volt:screen="Dashboard layout slots" volt:purpose="title">Save to slot %1$s?</string>
     <string name="dashboard_replace" volt:screen="Dashboard layout slots" volt:purpose="button">Replace</string>
-    <string name="dashboard_save_layout_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t save the layout. Please try again.</string>
+    <string name="dashboard_save_layout_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn\'t save the layout. Please try again.</string>
     <!-- %1$s is the slot number. -->
     <string name="dashboard_saved_to_slot" volt:screen="Dashboard layout slots" volt:purpose="toast">Saved to slot %1$s</string>
     <!-- %1$s is the slot's name. -->
     <string name="dashboard_restore_title" volt:screen="Dashboard layout slots" volt:purpose="title">Restore “%1$s”?</string>
     <string name="dashboard_restore_message" volt:screen="Dashboard layout slots" volt:purpose="message">Replaces your layout and the column setting on all scooters.</string>
-    <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn’t restore. Nothing changed.</string>
+    <string name="dashboard_restore_failed" volt:screen="Dashboard layout slots" volt:purpose="toast">Couldn\'t restore. Nothing changed.</string>
     <!-- %1$s is the slot's name. -->
     <string name="dashboard_restored" volt:screen="Dashboard layout slots" volt:purpose="toast">Restored “%1$s”</string>
 
@@ -542,14 +542,14 @@
     <string name="dashboard_rating_value" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">%1$s %2$s%3$s</string>
     <!-- Said after the rating when it is the model's documented one rather than the owner's: keep the separator and its leading space. -->
     <string name="dashboard_rating_model" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">" · model"</string>
-    <!-- The capacity widget's summary: how many rides were used. English keeps "rides" for every number (a known bug, kept until an approved English change). -->
-    <plurals name="dashboard_capacity_rides" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental" volt:english-fix="pending">
-        <item quantity="one">%1$s rides</item>
+    <!-- The capacity widget's summary: how many rides were used. -->
+    <plurals name="dashboard_capacity_rides" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$s ride</item>
         <item quantity="other">%1$s rides</item>
     </plurals>
-    <!-- How many battery percentage points those rides used. English keeps "points" for every number. -->
-    <plurals name="dashboard_capacity_points_used" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental" volt:english-fix="pending">
-        <item quantity="one">%1$s points used</item>
+    <!-- How many battery percentage points those rides used. -->
+    <plurals name="dashboard_capacity_points_used" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">
+        <item quantity="one">%1$s point used</item>
         <item quantity="other">%1$s points used</item>
     </plurals>
     <!-- %1$s is dashboard_capacity_rides, %2$s the energy range or dashboard_capacity_points_used. -->

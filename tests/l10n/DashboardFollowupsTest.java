@@ -104,8 +104,14 @@ public final class DashboardFollowupsTest {
 
     private static void scaleSpokenStaysItsOwnKeys() {
         same("Scale maximum in km/h", T.dashboardScaleMaximumIn("km/h"));
-        same("1 rides · 2 points used", T.dashboardCapacitySummary(T.dashboardCapacityRides(1, Fmt.integer(1)),
+        same("1 ride · 2 points used", T.dashboardCapacitySummary(T.dashboardCapacityRides(1, Fmt.integer(1)),
                 T.dashboardCapacityPointsUsed(2, Fmt.decimal(Locale.US, 2, 0))));
+    }
+
+    /** The base's capacity summary with the English "one" forms the catalog now has (l10n/english-changes.tsv). */
+    private static String singular(String base, int rides, long points) {
+        String s = rides == 1 ? base.replaceFirst("^1 rides", "1 ride") : base;
+        return points == 1 ? s.replace(" 1 points used", " 1 point used") : s;
     }
 
     private static void numbers() {
@@ -121,10 +127,10 @@ public final class DashboardFollowupsTest {
             same(DashboardFollowupsEnglishTest.pointsValue(false, 0, value, 40),
                     String.format(Fmt.locale(Locale.US), "%.0f / %.0f", Math.floor(value), 40d));
             for (int rides : COUNTS) {
-                same(DashboardFollowupsEnglishTest.ridesPoints(rides, value),
+                same(singular(DashboardFollowupsEnglishTest.ridesPoints(rides, value), rides, Math.round(value)),
                         T.dashboardCapacitySummary(T.dashboardCapacityRides(rides, Fmt.integer(rides)),
                                 T.dashboardCapacityPointsUsed(Math.round(value), Fmt.decimal(Locale.US, value, 0))));
-                same(DashboardFollowupsEnglishTest.ridesRange(rides, value, value + 40.5),
+                same(singular(DashboardFollowupsEnglishTest.ridesRange(rides, value, value + 40.5), rides, -1),
                         T.dashboardCapacitySummary(T.dashboardCapacityRides(rides, Fmt.integer(rides)),
                                 T.fmtRange(Fmt.decimal(Locale.US, value, 0), Fmt.decimal(Locale.US, value + 40.5, 0), T.unitsWattHour())));
             }

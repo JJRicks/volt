@@ -67,7 +67,7 @@ public final class MoreTextTest {
             equal(MoreScreenTextTest.Base.checklistStep(done, 2), done ? T.commonDone() : T.moreStep(2), "step " + done);
         }
         for (boolean all : new boolean[]{true, false}) {
-            equal(MoreScreenTextTest.Base.clearHistory(all, "Blue"), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody("Blue"), "clear " + all);
+            equal(all ? MoreScreenTextTest.Base.clearHistory(true, "Blue") : "Removes history for Blue. Rides stay.", all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody("Blue"), "clear " + all);
         }
         for (int n = 0; n <= 25; n++) {
             equal(MoreScreenTextTest.Base.clearTries(n), n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n), "tries " + n);

@@ -276,21 +276,18 @@
         <item quantity="other">%1$d trips</item>
     </plurals>
     <!-- A ride history in a format Volt cannot read: %1$s is the format number, %2$d how many records the
-         scooter holds. English keeps "records" for 1 until an owner-approved fix. -->
-    <plurals name="readings_value_unknown_format_records" volt:screen="Live Stats › Stored trips" volt:purpose="value"
-        volt:english-fix="pending">
-        <item quantity="one">Unknown format %1$s · %2$d records</item>
+         scooter holds. -->
+    <plurals name="readings_value_unknown_format_records" volt:screen="Live Stats › Stored trips" volt:purpose="value">
+        <item quantity="one">Unknown format %1$s · %2$d record</item>
         <item quantity="other">Unknown format %1$s · %2$d records</item>
     </plurals>
     <!-- The same note when the stored text is not in the form Volt writes (an old or edited history
          backup): %1$s is whatever the note held between "format" and "records", with "; " shown as
          " · ". Rarely seen; readings_value_unknown_format_records is the usual form. -->
     <string name="readings_value_unknown_format" volt:screen="Live Stats › Stored trips" volt:purpose="value">Unknown format %1$s records</string>
-    <!-- How many charges the battery reports: %1$d is the count. English keeps "charges" for 1 until an
-         owner-approved fix. -->
-    <plurals name="readings_value_charges" volt:screen="Live Stats › Reported charges" volt:purpose="value"
-        volt:english-fix="pending">
-        <item quantity="one">%1$d charges</item>
+    <!-- How many charges the battery reports: %1$d is the count. -->
+    <plurals name="readings_value_charges" volt:screen="Live Stats › Reported charges" volt:purpose="value">
+        <item quantity="one">%1$d charge</item>
         <item quantity="other">%1$d charges</item>
     </plurals>
     <!-- A percentage reading (battery charge, reported health, charge limit): %1$s is the number. English

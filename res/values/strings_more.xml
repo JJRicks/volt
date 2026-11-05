@@ -163,7 +163,7 @@
     <!-- Switch: end a ride recording automatically after parking. -->
     <string name="more_prefs_auto_stop" volt:screen="App preferences" volt:purpose="row" volt:safety="ride">End parked rides</string>
     <!-- Under the End parked rides switch: when the recording ends. -->
-    <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">10 s after Bluetooth drops at a stop</string>
+    <string name="more_prefs_auto_stop_sub" volt:screen="App preferences" volt:purpose="caption" volt:safety="ride">10 s after Bluetooth drops while parked</string>
     <!-- Row: Android's battery setting for Volt, which decides whether long background recordings survive. -->
     <string name="more_prefs_battery" volt:screen="App preferences" volt:purpose="row">Background recording</string>
     <!-- Screen-reader text of the battery value when Android lets Volt run freely. -->
@@ -259,7 +259,7 @@
     <!-- Body of the confirmation before deleting every scooter's history. Saved rides are not deleted. -->
     <string name="more_history_clear_all_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes history for all scooters. Rides stay.</string>
     <!-- Body of the confirmation before deleting one scooter's history. %1$s is the scooter's name. Saved rides are not deleted. -->
-    <string name="more_history_clear_one_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes %1$s\'s history. Rides stay.</string>
+    <string name="more_history_clear_one_body" volt:screen="Data &amp; history" volt:purpose="dialog">Removes history for %1$s. Rides stay.</string>
     <!-- Red button: delete (history or try results). -->
     <string name="more_clear" volt:screen="Data &amp; history" volt:purpose="button">Clear</string>
     <!-- Shown after saved history was deleted. -->
@@ -622,7 +622,7 @@
     <!-- A newer release exists. %1$s is its version ("1.12.0"). -->
     <string name="more_update_available" volt:screen="Update check" volt:purpose="title" volt:dnt="Volt">Volt %1$s is available</string>
     <!-- %1$s is the installed version. -->
-    <string name="more_update_available_body" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Get it from the release page and install it over this version; your data stays.</string>
+    <string name="more_update_available_body" volt:screen="Update check" volt:purpose="dialog">You have %1$s. Get the new version from the release page and install it over this one; your data stays.</string>
     <!-- No newer release. -->
     <string name="more_update_current" volt:screen="Update check" volt:purpose="title">You\'re up to date</string>
     <!-- %1$s is the installed development version, %2$s the latest release. -->
@@ -769,7 +769,7 @@
     <!-- Connection state after the role ("Owner · connected"). Lower case on purpose. -->
     <string name="more_link_connected" volt:screen="More" volt:purpose="value">connected</string>
     <!-- Connection state after the role. Lower case on purpose. -->
-    <string name="more_link_disconnected" volt:screen="More" volt:purpose="value">disconnected</string>
+    <string name="more_link_disconnected" volt:screen="More" volt:purpose="value">not connected</string>
     <!-- Connection state after the role. Lower case on purpose. -->
     <string name="more_link_connecting" volt:screen="More" volt:purpose="value">connecting</string>
     <!-- Top card of More before any scooter is saved. -->

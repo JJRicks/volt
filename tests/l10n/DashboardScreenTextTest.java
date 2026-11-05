@@ -171,8 +171,8 @@ public final class DashboardScreenTextTest {
         for (long n : new long[]{0, 1, 2, 5, 21, 100}) {
             same("Battery " + n + " percent", T.dashboardBatteryPercent(n, n), "battery percent " + n);
             same(n + " selected", T.dashboardSelectedCount(n, n), "selected " + n);
-            // shortWindow: days == 1 keeps "1 day"; every other count says "days".
-            same(n + " days", T.dashboardWindowDays(n, n), "window days " + n);
+            // English says "1 day" and "n days" (shortWindow still has its own key for 1).
+            same(n + (n == 1 ? " day" : " days"), T.dashboardWindowDays(n, n), "window days " + n);
             for (long most : new long[]{0, 1, 4, 12})
                 same(n + " of " + most + " shortcuts", T.dashboardCountOfShortcuts(most, n, most),
                         "count of shortcuts " + n + "/" + most);

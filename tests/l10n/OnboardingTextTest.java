@@ -142,7 +142,7 @@ public final class OnboardingTextTest {
     private static void websiteWords() {
         String xml = L10nFiles.read(new File(L10nFiles.root(), "res/values/strings_onboarding.xml"));
         String[][] kept = {
-                {"onboarding_browser_start", "**Start**"},
+                {"onboarding_browser_start", "**Start capture**"},
                 {"onboarding_browser_save", "**Save to phone Downloads**"},
                 {"onboarding_computer_adb_devices", "`adb devices`|**device**"},
                 {"onboarding_computer_shows_device", "device"},

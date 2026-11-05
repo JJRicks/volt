@@ -47,8 +47,8 @@
     <string name="owner_shizuku_cancel_capture" volt:screen="Phone-only setup, capturing" volt:purpose="button">Cancel capture</string>
     <!-- Spoken description of the 90-second countdown ring: %1$d is the whole seconds left (90 to 0). -->
     <plurals name="owner_countdown_seconds_left" volt:screen="Phone-only setup, capturing"
-        volt:purpose="accessibility description" volt:english-fix="pending">
-        <item quantity="one">%1$d seconds left</item>
+        volt:purpose="accessibility description">
+        <item quantity="one">%1$d second left</item>
         <item quantity="other">%1$d seconds left</item>
     </plurals>
     <!-- Drawn in small type under the big number of seconds inside the 132dp countdown ring; "s" is the

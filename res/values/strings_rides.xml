@@ -245,7 +245,7 @@
     <string name="rides_export_all_json" volt:screen="Rides, export and delete" volt:purpose="option" volt:dnt="JSON">All (JSON)</string>
     <string name="rides_toast_export_failed" volt:screen="Rides, export and delete" volt:purpose="error">Could not export this ride.</string>
     <string name="rides_toast_export_csv_failed" volt:screen="Rides, export and delete" volt:purpose="error" volt:dnt="CSV">Could not export the ride CSV.</string>
-    <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Route and sensor data. Can\'t undo.</string>
+    <string name="rides_delete_message" volt:screen="Rides, export and delete" volt:purpose="label">Deletes its route and sensor data. Can\'t undo.</string>
     <!-- Cancels deleting the ride. -->
     <string name="rides_delete_keep" volt:screen="Rides, export and delete" volt:purpose="label">Keep ride</string>
     <!-- Confirms deleting the ride. -->
@@ -292,8 +292,8 @@
     <string name="rides_gap_one" volt:screen="Rides, live recording" volt:purpose="status">1 gap</string>
     <!-- Chip: the recording has %1$d gaps in its readings. English shows rides_gap_one for 1, so its
          one form is never shown in English; languages whose one form covers other numbers inflect it. -->
-    <plurals name="rides_gaps" volt:screen="Rides, live recording" volt:purpose="status" volt:english-fix="pending">
-        <item quantity="one">%1$d gaps</item>
+    <plurals name="rides_gaps" volt:screen="Rides, live recording" volt:purpose="status">
+        <item quantity="one">%1$d gap</item>
         <item quantity="other">%1$d gaps</item>
     </plurals>
     <!-- Caption: %1$s is the share of the ride with power readings (fmt_percent, "80%"). -->

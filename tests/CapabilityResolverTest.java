@@ -134,7 +134,7 @@ public final class CapabilityResolverTest {
         rt=parked();rt.nowMs=SEEN+7001;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.STATUS_STALE,"Stale status");
         rt.nowMs=SEEN+7000;check(decide("cruise_control",ut5,s,rt).available(),"7000 ms is still fresh");
         rt=parked();rt.busy=true;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.BUSY,"Busy");
-        rt=parked();rt.stationary=false;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.MOVING&&decide("cruise_control",ut5,s,rt).reasonText().equals("Stop the scooter first"),"Moving");
+        rt=parked();rt.stationary=false;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.MOVING&&decide("cruise_control",ut5,s,rt).reasonText().equals("Bring the scooter to a stop first"),"Moving");
         check(decide("headlight",ut5,s,rt).available(),"Non-parked controls stay available while moving");
         rt.motionSeen=false;check(decide("cruise_control",ut5,s,rt).reason==CapabilityResolver.Reason.NO_MOTION_REPORT,"No motion report");
         rt=parked();rt.discovery=true;check(decide("display_units",ut5,s,rt).reason==CapabilityResolver.Reason.DISCOVERY_ACTIVE,"Discovery");
