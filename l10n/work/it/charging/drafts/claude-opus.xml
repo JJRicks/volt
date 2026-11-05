@@ -2,7 +2,7 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="charging_alert_level_full" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Carica completa</string>
-    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Ricarica fino a carica completa</string>
+    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Ricarica fino alla carica completa</string>
     <string name="charging_alert_watch_title" volt:src="f5a8a98dee559c956440570b99faee4a54c3b681">Ricarica fino a %1$s%%</string>
     <string name="charging_alert_title_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Carica completa</string>
     <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Batteria scarica</string>
@@ -11,7 +11,7 @@
     <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">Volt ha perso la connessione con %1$s. Apri Volt per continuare a monitorare questa ricarica.</string>
     <plurals name="charging_alert_text_time_limit" volt:src="5169df0edfed2dda16e37a24f58c081c7a92fb95">
         <item quantity="one">Volt ha interrotto il monitoraggio dopo %1$d ora. Apri Volt per continuare a monitorare questa ricarica.</item>
-        <item quantity="many">Volt ha interrotto il monitoraggio dopo %1$d ore. Apri Volt per continuare a monitorare questa ricarica.</item>
+        <item quantity="many">Volt ha interrotto il monitoraggio dopo %1$d di ore. Apri Volt per continuare a monitorare questa ricarica.</item>
         <item quantity="other">Volt ha interrotto il monitoraggio dopo %1$d ore. Apri Volt per continuare a monitorare questa ricarica.</item>
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: %2$s%% di batteria.</string>
@@ -22,12 +22,12 @@
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Capacità sconosciuta</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">In attesa della % di batteria</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Nessuna stima</string>
-    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Ritmo attuale</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Ritmo di ricarica attuale</string>
     <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Riferimento caricabatterie rapido</string>
     <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Riferimento caricabatterie originale</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
         <item quantity="one">Da %1$d ricarica precedente</item>
-        <item quantity="many">Da %1$d ricariche precedenti</item>
+        <item quantity="many">Da %1$d di ricariche precedenti</item>
         <item quantity="other">Da %1$d ricariche precedenti</item>
     </plurals>
     <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Caricabatterie diverso · stima dal ritmo attuale</string>
@@ -41,7 +41,7 @@
     <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Interruzioni nella registrazione</string>
     <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Verso della corrente cambiato</string>
     <string name="charging_capacity_reason_short" volt:src="6720813ef194da35220a213f19c55b064d3c9c92">Meno di 1 minuto</string>
-    <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Batteria iniziale/finale mancante</string>
+    <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Letture iniziali/finali della batteria mancanti</string>
     <string name="charging_capacity_reason_drop" volt:src="23d901ac85e7f40738f439d9825f174a6a467477">Calo inferiore al 5%</string>
     <string name="charging_capacity_reason_coverage" volt:src="d1a240e2b0ab5ceed1763a8e91579d20ecda9f7c">Copertura inferiore al 95%</string>
     <string name="charging_capacity_reason_movement" volt:src="d4fbb0b84c836e661c1bfdce10f478adfa427453">Movimento insufficiente</string>
@@ -61,5 +61,5 @@
     <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Scegli prima «Inizio ricarica»</string>
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Scegli un inizio ricarica entro 48 ore</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25" volt:attempt="2">Scegli un orario a ora intera entro 48 ore</string>
-    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Attendi la fine del test della programmazione</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Attendi il termine del test della ricarica programmata</string>
 </resources>

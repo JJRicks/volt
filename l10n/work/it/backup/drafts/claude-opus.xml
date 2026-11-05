@@ -25,7 +25,7 @@
     <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6">Backup completo · tutti i dati salvati dell\'app, compreso l\'accesso al monopattino.</string>
     <plurals name="backup_scope_selected" volt:src="1e5b5f778deba54ed05cfe54310e60709177d9f9">
         <item quantity="one">Solo dati selezionati · %1$d categoria esclusa.</item>
-        <item quantity="many">Solo dati selezionati · %1$d categorie escluse.</item>
+        <item quantity="many">Solo dati selezionati · %1$d di categorie escluse.</item>
         <item quantity="other">Solo dati selezionati · %1$d categorie escluse.</item>
     </plurals>
     <string name="backup_estimate" volt:src="13c55e78372a7d44e5b6a608067bfc3ddc5154ef">Ca. %1$s</string>

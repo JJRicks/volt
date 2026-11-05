@@ -3,7 +3,7 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="owner_shizuku_title" volt:src="c9636c7ede7b9610b58963cfa0273a8dce007b72">Configurazione solo da telefono</string>
     <string name="owner_shizuku_main_profile_only" volt:src="9feb5a68b8740f95681154ac1466983a644abad1">Solo profilo Android principale.</string>
-    <string name="owner_shizuku_import_backup" volt:src="381afce9a36947119565397388392c20ade240ba">Importa backup</string>
+    <string name="owner_shizuku_import_backup" volt:src="381afce9a36947119565397388392c20ade240ba">Importa il backup</string>
     <string name="owner_shizuku_back_to_choices" volt:src="200b9443aac4cec42a3fc8bd4193fa205aedfde7">Torna alle opzioni di configurazione</string>
     <string name="owner_shizuku_needs_android_11" volt:src="6390dbd9379a6b9f580799e0783b64c74fcafea1">Richiede Android 11 o versioni successive.</string>
     <string name="owner_shizuku_connecting_title" volt:src="5d006cefe48f252748471b8b59a1109c5824a525">Connetti il monopattino in NAVEE</string>
@@ -11,14 +11,14 @@
     <string name="owner_shizuku_preparing_title" volt:src="23b6b5501196b942d4a2f7834a868c4a8a2a173f">Preparazione dell\'acquisizione…</string>
     <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Connetti il monopattino in NAVEE, poi torna qui.</string>
     <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Mantieni Shizuku in esecuzione.</string>
-    <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Annulla acquisizione</string>
+    <string name="owner_shizuku_cancel_capture" volt:src="bab2ad6aa227c514868811bf53f2196ec1947505">Annulla l\'acquisizione</string>
     <plurals name="owner_countdown_seconds_left" volt:src="403d585757493b61548f9ec61dfc56e11f85aec9">
         <item quantity="one">%1$d secondo rimanente</item>
-        <item quantity="many">%1$d secondi rimanenti</item>
+        <item quantity="many">%1$d di secondi rimanenti</item>
         <item quantity="other">%1$d secondi rimanenti</item>
     </plurals>
     <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s rimanenti</string>
-    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Interrompere la configurazione?</string>
+    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Vuoi interrompere la configurazione?</string>
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Attendi qui fino al ripristino di NAVEE.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Continua ad attendere</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Interrompi la configurazione</string>
@@ -49,13 +49,13 @@
     <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Controlla la connessione a Shizuku</string>
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Controlla se Shizuku è in esecuzione</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Acquisizione dal tuo monopattino</string>
-    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Connetti prima il tuo monopattino fermo in NAVEE.</string>
+    <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Prima connetti in NAVEE il tuo monopattino fermo.</string>
     <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">L\'acquisizione riavvia NAVEE e attiva temporaneamente il registro attività di NAVEE. Mantieni Shizuku in esecuzione fino al termine della pulizia.</string>
     <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Questo monopattino è mio o ho l\'autorizzazione.</string>
-    <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Avvia acquisizione</string>
-    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, fatto</string>
-    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, non ancora</string>
-    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, non ancora. %2$s</string>
+    <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Avvia l\'acquisizione</string>
+    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, passaggio completato</string>
+    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, passaggio non ancora completato</string>
+    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, passaggio non ancora completato. %2$s</string>
     <string name="owner_steps_description" volt:src="7377e94793cdc4d9aefd72d30f41b659970c914c">Passaggio %1$d di 3</string>
     <string name="owner_status_access_denied" volt:src="cae25526d0f496164d3eb9244f08695bdfc797c8">Accesso negato</string>
     <string name="owner_status_not_running" volt:src="54010bfefb6d488c6e1259e53b9726e17585488b">Shizuku non è in esecuzione</string>

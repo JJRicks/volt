@@ -4,17 +4,17 @@
     <string name="maps_track_no_fixes" volt:src="c96f7977cd44d70f62166a13431905fd5b605455">Nessuna posizione GPS utilizzabile registrata</string>
     <plurals name="maps_track_fixes" volt:src="a38c4d8085459c95a918745e2adef25b32b5fb46">
         <item quantity="one">%1$d posizione GPS</item>
-        <item quantity="many">%1$d posizioni GPS</item>
+        <item quantity="many">%1$d di posizioni GPS</item>
         <item quantity="other">%1$d posizioni GPS</item>
     </plurals>
     <plurals name="maps_track_fixes_low_quality" volt:src="2dc86546f80ff6b4627cb91526c191d0dd0f371e">
         <item quantity="one">%1$s · %2$d posizione di bassa qualità esclusa</item>
-        <item quantity="many">%1$s · %2$d posizioni di bassa qualità escluse</item>
+        <item quantity="many">%1$s · %2$d di posizioni di bassa qualità escluse</item>
         <item quantity="other">%1$s · %2$d posizioni di bassa qualità escluse</item>
     </plurals>
     <plurals name="maps_track_fixes_outliers" volt:src="f3a8030b94fba20b0b5de355eb56f1ecffd59cf1">
         <item quantity="one">%1$s · %2$d valore anomalo di altitudine escluso</item>
-        <item quantity="many">%1$s · %2$d valori anomali di altitudine esclusi</item>
+        <item quantity="many">%1$s · %2$d di valori anomali di altitudine esclusi</item>
         <item quantity="other">%1$s · %2$d valori anomali di altitudine esclusi</item>
     </plurals>
     <string name="maps_source_usgs" volt:src="b0d4b8d1c6bfaeafb732278134df58516a76132f">USGS Topo · Stati Uniti</string>
@@ -23,7 +23,7 @@
     <string name="maps_source_custom" volt:src="cbe88dad0b6a7e79e1ef484fc2704d2b39709d95">Mappa personalizzata</string>
     <string name="maps_source_provider_fallback" volt:src="192685dbfb774ae069bdc4016c687754c075f7f4">Fornitore della mappa</string>
     <string name="maps_basemap" volt:src="8f7de53fbe2c14e7b08b43e94bfce7c4c0de4e3d">Mappa di base</string>
-    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Mostrare la mappa online?</string>
+    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Vuoi mostrare la mappa online?</string>
     <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">Il fornitore vede il tuo IP e l\'area della mappa. Le corse restano sul telefono.</string>
     <string name="maps_consent_enable" volt:src="bb9ac0845ace7f8b7f2e08bf11f66831ce335172">Attiva la mappa di base</string>
     <string name="maps_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Mappa online</string>
@@ -68,8 +68,8 @@
     <string name="maps_chart_fit_ride" volt:src="b77c503c54be648b7df6a02be88206ec789e2829">Mostra tutta la corsa</string>
     <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Grafico della registrazione</string>
     <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Mostra tutta la registrazione</string>
-    <string name="maps_chart_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Ingrandisci</string>
-    <string name="maps_chart_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Riduci</string>
+    <string name="maps_chart_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Aumenta lo zoom</string>
+    <string name="maps_chart_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Riduci lo zoom</string>
     <string name="maps_chart_previous_sample" volt:src="e783b197e8874c0ea7622c1e59d00e5185e27fd1">Campione registrato precedente</string>
     <string name="maps_chart_next_sample" volt:src="7593a5058b5fb5b99d4a431aba2c34fc731dfe20">Campione registrato successivo</string>
     <string name="maps_chart_desc_no_readings" volt:src="f36c0bec23825703ba296889175fd0f93e4cc1d2">. Nessuna lettura selezionata</string>

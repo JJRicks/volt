@@ -4,26 +4,26 @@
     <string name="ble_status_not_connected" volt:src="188490eaa6ecd6b05fd354c8aa752241f6ae6a82">Non connesso</string>
     <string name="ble_status_searching" volt:src="843972942cebb292d9f98d72b7f665e780316706">Ricerca in corso…</string>
     <string name="ble_status_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Connessione…</string>
-    <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Controllo del proprietario…</string>
+    <string name="ble_status_checking_owner" volt:src="d45b8605bd13654353a1a28a50012cc4a9d6db7a">Controllo della chiave del proprietario…</string>
     <string name="ble_status_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Connesso</string>
     <string name="ble_status_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Disconnesso</string>
     <string name="ble_status_paused" volt:src="1c8e31fe8678fa854df7fdfd9b602b38219a9454">In pausa in background</string>
-    <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Controllo di compatibilità…</string>
+    <string name="ble_status_checking_compatibility" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Controllo di compatibilità in corso…</string>
     <string name="ble_status_setting_clock" volt:src="94ef95e2c55c05d529641f6bf2e6f3b7a4b7e1b3">Impostazione dell\'orologio del monopattino da questo telefono…</string>
     <string name="ble_reading" volt:src="728cf773a5c57a15f19c5c603f34929b6502bb7f">%1$s: lettura…</string>
-    <string name="ble_applying" volt:src="d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c">%1$s: applicazione…</string>
+    <string name="ble_applying" volt:src="d3076f3cb9e59dd0a385b3cfce19ce9f55b9f31c">%1$s: modifica in corso…</string>
     <string name="ble_nearby_needed" volt:src="10e5b8a15b88d14605d7da48fd1332c7e6881f15">Serve l\'autorizzazione «Dispositivi nelle vicinanze»</string>
     <string name="ble_bluetooth_off" volt:src="4debe331fb38bcc98e9858d56866deca5ce1f911">Bluetooth disattivato</string>
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Nessun monopattino trovato</string>
     <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Chiave del proprietario rifiutata</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">Comandi limitati su questo modello</string>
-    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Scegli un\'ora intera entro 48 ore</string>
+    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Scegli un orario a ora intera entro 48 ore</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">Connessione non riuscita</string>
     <string name="ble_failed_timed_out" volt:src="8c282885c8815225c681e23c7106459d5c4bdd97">Tempo scaduto</string>
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Connessione persa</string>
     <string name="ble_failed_unsupported_scooter" volt:src="d86a2ec5c2df20c4dd8b14d5443d04d295c13269">Monopattino non supportato</string>
     <string name="ble_failed_send" volt:src="a63f34d9ba366500decec000ed5b673e242397ff">Invio non riuscito</string>
-    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Controllo del proprietario non riuscito</string>
+    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Controllo della chiave del proprietario non riuscito</string>
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Firmware non supportato</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Monopattino non riconosciuto</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Non è il monopattino salvato</string>
@@ -31,7 +31,7 @@
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Segnale perso</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Modifica non confermata</string>
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · riconnessione in corso</string>
-    <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · modifica interrotta</string>
+    <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · modifica annullata</string>
     <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · modifica non confermata</string>
     <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · riconnessione per confermare</string>
     <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Il monopattino potrebbe aver riavviato il Bluetooth · riconnessione per confermare</string>
@@ -54,7 +54,7 @@
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Risolvi l\'avvertenza %1$d del monopattino prima di bloccarlo.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Prima ferma il monopattino</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Non disponibile ora</string>
-    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Il valore non è tra quelli consentiti dall\'app ufficiale</string>
+    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Il valore non rientra tra quelli previsti dall\'OEM per questa funzione</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: valore già impostato.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Modifica rifiutata</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">Un\'impostazione è cambiata durante l\'attesa. Riprova.</string>
@@ -73,10 +73,10 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Lo stato del PIN non è disponibile su questo firmware.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Le impostazioni del PIN richiedono il profilo del proprietario.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Accoppia questo telefono prima di attivare lo sblocco di prossimità</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Prima dello sblocco di prossimità, attiva un PIN del manubrio configurato</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Prima di attivare lo sblocco di prossimità, imposta e attiva il PIN del manubrio</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Leggi lo stato del PIN, poi applica lo sblocco di prossimità.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Connetti il monopattino come proprietario per leggere le impostazioni del PIN.</string>
-    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Disattiva lo sblocco di prossimità prima di disattivare il suo PIN del manubrio.</string>
+    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Disattiva lo sblocco di prossimità prima di disattivare il PIN del manubrio.</string>
     <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Leggi prima lo stato attuale del PIN.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Prima termina il test guidato</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Controllo di compatibilità interrotto</string>
@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Non è stato possibile riportare indietro il valore. Non è stato modificato nulla.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Prima termina il test in corso</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test non trovato</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Non è stato possibile avviare il ripristino. Non è stato modificato nulla.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Non è stato possibile avviare il ritorno al valore precedente. Non è stato modificato nulla.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Confermato</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Impostazione confermata dalla rilettura; luce emessa non misurata</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Accettato; nessuna rilettura dell\'orologio disponibile</string>

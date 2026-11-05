@@ -23,7 +23,7 @@
     <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Ancora nessun dato misurato</string>
     <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
         <item quantity="one">Grafico dei valori misurati in %1$s, %2$d campione. Asse visualizzato: minimo %3$s, massimo %4$s. Tocca per esaminare le letture.</item>
-        <item quantity="many">Grafico dei valori misurati in %1$s, %2$d campioni. Asse visualizzato: minimo %3$s, massimo %4$s. Tocca per esaminare le letture.</item>
+        <item quantity="many">Grafico dei valori misurati in %1$s, %2$d di campioni. Asse visualizzato: minimo %3$s, massimo %4$s. Tocca per esaminare le letture.</item>
         <item quantity="other">Grafico dei valori misurati in %1$s, %2$d campioni. Asse visualizzato: minimo %3$s, massimo %4$s. Tocca per esaminare le letture.</item>
     </plurals>
     <string name="ui_chart_tooltip" volt:src="19e2f801b756022087ce6c171d4f9cc395f299b7">"%1$s %2$s  ·  %3$s"</string>

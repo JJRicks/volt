@@ -71,7 +71,7 @@
     <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Calo batteria</string>
     <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Per distanza</string>
     <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Energia transitata</string>
-    <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Copertura dati di potenza</string>
+    <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Copertura della potenza</string>
     <string name="rides_route_finishing" volt:src="cfed97e5a40f26b62cbc4c33d66487ae0f9060fd">Completamento dei file dei sensori</string>
     <string name="rides_route_loading" volt:src="e5ee923441491f076bb108ed763a050df2d9f5c4">Caricamento del percorso</string>
     <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Percorso non disponibile</string>
@@ -95,10 +95,10 @@
     <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Verso della corrente non confermato per l\'intera corsa · valori assoluti di energia transitata</string>
     <string name="rides_draw_short" volt:src="c14d7827ed8152cbec42ccd4357e84c0b3c3e01d">Prelievo</string>
     <string name="rides_draw" volt:src="157e4062a6580d8571728fd66d3971f3fe44e7f4">Prelievo dalla batteria</string>
-    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Ingresso</string>
-    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Ingresso in batteria / ricarica</string>
+    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Immissione</string>
+    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Immissione nella batteria / ricarica</string>
     <string name="rides_draw_partial" volt:src="d4c1c10d28c4a97edfd36d3ed750bc5c334020cd">Prelievo dalla batteria, solo intervalli confermati</string>
-    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Ingresso in batteria o ricarica, solo intervalli confermati</string>
+    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Immissione nella batteria o ricarica, solo intervalli confermati</string>
     <string name="rides_net_energy" volt:src="c485e22ba72d6e26dce9679deebc9a11f53cccd6">Energia netta misurata</string>
     <string name="rides_throughput_per_distance" volt:src="7ffc7192f9e336f862ed6bf775981032c7376149">Energia transitata per distanza</string>
     <string name="rides_net_per_distance" volt:src="08ed3b0daf54c1f0d0302fec975527160e09da60">Energia netta per distanza</string>
@@ -109,7 +109,7 @@
     <string name="rides_moving_stationary" volt:src="869f1a4cf4a088eee18d95ceab397aff489c4148">In movimento / da fermo</string>
     <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Energia transitata in movimento</string>
     <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Energia transitata da fermo</string>
-    <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Movimento sconosciuto</string>
+    <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Stato di movimento sconosciuto</string>
     <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Tensione min / max</string>
     <string name="rides_peak_power" volt:src="ba2c25e35603a64aba9071d8cb253c0aabc1c63e">Potenza di picco</string>
     <string name="rides_temperature" volt:src="f15eba24737081c7101a88db3658b99a0bd52861">Temperatura</string>
@@ -132,7 +132,7 @@
     <string name="rides_gps_route" volt:src="bdd2ed9be744786f90642d0b92f5fcc8cefadd78">Percorso GPS</string>
     <string name="rides_gps_route_sub" volt:src="1fe8990a94c16dc5f360ff58d78bbd707fe5348e">Solo durante la registrazione</string>
     <string name="rides_barometer" volt:src="bfed743c0e5590ab6bf672ebf54f25e35b57fa6c">Altitudine dal barometro</string>
-    <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
+    <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatico</string>
     <string name="rides_barometer_gps" volt:src="37769f8228e7f6c822e91abf1b56a49cd1dce43a">Altitudine GPS</string>
     <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Sensori di movimento</string>
     <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Posizione del telefono</string>
@@ -187,10 +187,10 @@
     <string name="rides_export_all_json" volt:src="d591c3ad2a9ac82a4d446003594007fff087aee0">Tutto (JSON)</string>
     <string name="rides_toast_export_failed" volt:src="aaa225c9739810f61b99b35a0b8b53c36d6870ed">Non è stato possibile esportare questa corsa.</string>
     <string name="rides_toast_export_csv_failed" volt:src="48d4ac38add95f760e03cd66b350736f1068401f">Non è stato possibile esportare il CSV della corsa.</string>
-    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Dati del percorso e dei sensori. Non si può annullare.</string>
+    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Verranno eliminati i dati del percorso e dei sensori. L\'operazione non si può annullare.</string>
     <string name="rides_delete_keep" volt:src="4d20ae693afdbf19356702263c029117d66d8cbc">Conserva la corsa</string>
     <string name="rides_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Elimina</string>
-    <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Salvataggio in corso… riprova</string>
+    <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Salvataggio in corso… riprova tra poco</string>
     <string name="rides_toast_deleted" volt:src="9c5b61dadc62d3982483ba8f192e391b9e0cd0d3">Registrazione eliminata.</string>
     <string name="rides_toast_delete_failed" volt:src="1fc6690281c2993706c97afbac0b4a7cdfd59910">Non è stato possibile eliminare questa registrazione.</string>
     <string name="rides_toast_select_two" volt:src="ce134f33d022481a58606227d02d9d2b3680b56e">Seleziona due registrazioni disponibili.</string>
@@ -209,17 +209,17 @@
     <string name="rides_notes_title_unnamed" volt:src="4ac65f86f2d55cfee9c26c477a3c1bc503704f1c">Note per questa corsa</string>
     <string name="rides_notes_title" volt:src="60009fe4c40fa36d24029c386bc5445b90a5f32a">Note per %1$s</string>
     <plurals name="rides_sensors_on_count" volt:src="225faab4efcfbd90f75e27cf2ef4c1d1ac10e82a">
-        <item quantity="one">%1$d attivato</item>
-        <item quantity="many">%1$d attivati</item>
-        <item quantity="other">%1$d attivati</item>
+        <item quantity="one">%1$d attivo</item>
+        <item quantity="many">%1$d attivi</item>
+        <item quantity="other">%1$d attivi</item>
     </plurals>
-    <string name="rides_live_title" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Registrazione in corso · %1$s</string>
+    <string name="rides_live_title" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Registrazione · %1$s</string>
     <string name="rides_live_title_attention" volt:src="ddb3e602cdb20c062cb128b14f2671224643e13b">La registrazione richiede attenzione · %1$s</string>
     <string name="rides_elapsed_description" volt:src="30184002ffb4f49f13f9d807303a7b0ef1b5c0b7">Tempo trascorso: %1$s</string>
     <string name="rides_gap_one" volt:src="a7eb56fd187ab8e4968d308f1afc084988247c0d">1 interruzione</string>
     <plurals name="rides_gaps" volt:src="26b01d84ddac3fbd76a20c39ee9b6ed20eafa39b">
         <item quantity="one">%1$d interruzione</item>
-        <item quantity="many">%1$d interruzioni</item>
+        <item quantity="many">%1$d di interruzioni</item>
         <item quantity="other">%1$d interruzioni</item>
     </plurals>
     <string name="rides_coverage" volt:src="753c1f5f4e7a47aa8181ae4d5a7f1a7d89b9a93c">Copertura: %1$s</string>
@@ -227,7 +227,7 @@
     <string name="rides_history_none" volt:src="b61b1b2cb582a7f025202093ca2d2470291655b2">Nessuna corsa salvata</string>
     <plurals name="rides_history_count" volt:src="478462d261178706c40ba2b0ca244c16ab78038d">
         <item quantity="one">%1$d corsa</item>
-        <item quantity="many">%1$d corse</item>
+        <item quantity="many">%1$d di corse</item>
         <item quantity="other">%1$d corse</item>
     </plurals>
     <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. I dettagli verranno mostrati accanto all\'elenco.</string>
@@ -255,11 +255,11 @@
     <string name="rides_acceleration_with_g" volt:src="cb4b801e05dc95e4bc026037f02f1c9c10c2f449">%1$s %2$s (%3$s %4$s)</string>
     <string name="rides_delete_title_unnamed" volt:src="2afeeedfba2d62fe0c87309f72502567106336fa">Vuoi eliminare questa corsa?</string>
     <string name="rides_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">Vuoi eliminare %1$s?</string>
-    <string name="rides_view_route_of" volt:src="56a2c0579756be5e142c2660ef8f6905d9467a45">Visualizza percorso: %1$s</string>
+    <string name="rides_view_route_of" volt:src="56a2c0579756be5e142c2660ef8f6905d9467a45">Mostra il percorso di %1$s</string>
     <string name="rides_compare_line_description" volt:src="f03f72e436ea627c53c7e94f8d50e69d5d4ad20a">%1$s: prima corsa %2$s, seconda corsa %3$s</string>
-    <string name="rides_compare_reason_second" volt:src="1d4db2513d9fca105e252d3b8ac841df280bec26">Seconda: %1$s</string>
-    <string name="rides_compare_reason_first" volt:src="9c034476c713f0a538f5e842179d0d0146a0ffda">Prima: %1$s</string>
-    <string name="rides_compare_reason_both" volt:src="ffb08c74a22526a1d6fb0e0a48f0f93a54295142">Prima: %1$s · Seconda: %2$s</string>
+    <string name="rides_compare_reason_second" volt:src="1d4db2513d9fca105e252d3b8ac841df280bec26">Seconda corsa: %1$s</string>
+    <string name="rides_compare_reason_first" volt:src="9c034476c713f0a538f5e842179d0d0146a0ffda">Prima corsa: %1$s</string>
+    <string name="rides_compare_reason_both" volt:src="ffb08c74a22526a1d6fb0e0a48f0f93a54295142">Prima corsa: %1$s · Seconda corsa: %2$s</string>
     <string name="rides_efficiency_throughput" volt:src="cd986f5555eb12c161fbf8ac5bf0b3f1476ea315">%1$s · energia transitata</string>
     <string name="rides_efficiency_net" volt:src="250dfc5aa6a4cc723d5cd7714eecc0439d77ccac">%1$s · energia netta</string>
     <string name="rides_sensor_status_storage" volt:src="4462e74a3b02b334235783394a973c661d9fa152">Archiviazione dei sensori del telefono non disponibile</string>
@@ -270,7 +270,7 @@
     <string name="rides_sensor_status_location_off" volt:src="10a74ad888dad8f93ebb019dd191cee751a5f2e1">Posizione disattivata</string>
     <string name="rides_sensor_status_gps_unavailable" volt:src="62af34112baf119bbe633c2f6048f0c17731cc6e">GPS non disponibile</string>
     <string name="rides_sensor_status_permission_unavailable" volt:src="f402690f9c2f70bd5939b47553b6cf6bfa4122ec">Autorizzazione GPS non disponibile</string>
-    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Autorizzazione alla posizione non concessa</string>
+    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Autorizzazione di accesso alla posizione non concessa</string>
     <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">Registrazione GPS in corso</string>
     <string name="rides_sensor_status_signal_lost" volt:src="e2bde72be6f83b3e70f8b79a3756132492ab8268">GPS: segnale perso</string>
     <string name="rides_sensor_status_signal_unavailable" volt:src="05f1bf581ffd97ab18638daae52e2b61bb4dcade">GPS: segnale non disponibile</string>

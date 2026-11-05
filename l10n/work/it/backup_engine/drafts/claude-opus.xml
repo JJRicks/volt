@@ -13,36 +13,36 @@
     <string name="backup_engine_plan_scooters" volt:src="eb15ccd27f523e9ca84e41294b320674e622968b">Monopattini: da aggiungere %1$d · già presenti %2$d</string>
     <plurals name="backup_engine_plan_scooters_skipped" volt:src="553dda243a5e013b4eea7526c95cedba2e508ec6">
         <item quantity="one">%1$d monopattino saltato · non ripristinato</item>
-        <item quantity="many">%1$d monopattini saltati · non ripristinati</item>
+        <item quantity="many">%1$d di monopattini saltati · non ripristinati</item>
         <item quantity="other">%1$d monopattini saltati · non ripristinati</item>
     </plurals>
     <string name="backup_engine_plan_kept" volt:src="e465c6015aa9b38a7c1075a5b117316a257f1ab8">%1$s: nessuna modifica per %2$s · destinazione di due monopattini</string>
     <plurals name="backup_engine_plan_category_skipped" volt:src="52bc05bf997eb28dcc73b1e91d76622dce6c1a3b">
         <item quantity="one">%1$s: %2$d monopattino saltato · non ripristinato</item>
-        <item quantity="many">%1$s: %2$d monopattini saltati · non ripristinati</item>
+        <item quantity="many">%1$s: %2$d di monopattini saltati · non ripristinati</item>
         <item quantity="other">%1$s: %2$d monopattini saltati · non ripristinati</item>
     </plurals>
     <plurals name="backup_engine_plan_preferences" volt:src="42f76202eb5d61bcc9268f7d20c6cf620ccdbc0a">
         <item quantity="one">Preferenze dell\'app: verrà sostituita %1$d impostazione</item>
-        <item quantity="many">Preferenze dell\'app: verranno sostituite %1$d impostazioni</item>
+        <item quantity="many">Preferenze dell\'app: verranno sostituite %1$d di impostazioni</item>
         <item quantity="other">Preferenze dell\'app: verranno sostituite %1$d impostazioni</item>
     </plurals>
     <string name="backup_engine_plan_rides" volt:src="c449f5fa84a407dfc967b4955b93a95cf137c00f">Corse: nuove %1$d · già presenti %2$d · mantenute qui %3$d</string>
     <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Ricariche: nuove %1$d · già presenti %2$d · mantenute qui %3$d</string>
     <plurals name="backup_engine_plan_phone_files_skipped" volt:src="a156c873d0ab30ceffaa8ecb2ab83e856a38f6f0">
         <item quantity="one">%1$d file del telefono saltato · nessuna corsa</item>
-        <item quantity="many">%1$d file del telefono saltati · nessuna corsa</item>
+        <item quantity="many">%1$d di file del telefono saltati · nessuna corsa</item>
         <item quantity="other">%1$d file del telefono saltati · nessuna corsa</item>
     </plurals>
     <string name="backup_engine_plan_history_nothing" volt:src="57e06d0c138808b51c87815c46f137064a25f60b">Cronologia letture: nulla da aggiungere</string>
     <plurals name="backup_engine_plan_history_adds" volt:src="f63b6dafb8363034444c698d0a29b702c0f5d35b">
         <item quantity="one">Cronologia letture: verrà aggiunta a %1$d monopattino</item>
-        <item quantity="many">Cronologia letture: verrà aggiunta a %1$d monopattini</item>
+        <item quantity="many">Cronologia letture: verrà aggiunta a %1$d di monopattini</item>
         <item quantity="other">Cronologia letture: verrà aggiunta a %1$d monopattini</item>
     </plurals>
     <plurals name="backup_engine_plan_history_skipped" volt:src="40e580956630bb7460d5d50edf7f38c44a4dc2f6">
         <item quantity="one">Letture di %1$d monopattino saltate · non ripristinate</item>
-        <item quantity="many">Letture di %1$d monopattini saltate · non ripristinate</item>
+        <item quantity="many">Letture di %1$d di monopattini saltate · non ripristinate</item>
         <item quantity="other">Letture di %1$d monopattini saltate · non ripristinate</item>
     </plurals>
     <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Mappa online: attivata</string>

@@ -77,7 +77,7 @@
     <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Orario impostato: %1$s. Carica della batteria: ancora %2$s%% (%3$s%% al momento dell\'impostazione). Controlla che il caricabatterie sia collegato e che la sua spia diventi rossa all\'orario di avvio. Volt può disattivare la programmazione per avviare subito la ricarica.</string>
     <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Orario impostato: %1$s. Carica della batteria: ancora %2$s%% (%3$s%% al momento dell\'impostazione). Controlla che il caricabatterie sia collegato e che la sua spia diventi rossa all\'orario di avvio. Apri Volt per disattivare la programmazione e avviare subito la ricarica.</string>
     <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Questa ricarica è stata misurata. Ripresa della ricarica: %1$s. Completamento entro: %2$s.</string>
-    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Pianificata come nuova ricarica. Ripresa della ricarica: %1$s. Completamento entro: %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Pianificazione per una nuova ricarica. Ripresa della ricarica: %1$s. Completamento entro: %2$s.</string>
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">«Ricarica entro» è disattivata.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. «Ricarica entro» è disattivata.</string>
@@ -101,7 +101,7 @@
     <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72">La ricarica non è ripresa</string>
     <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Test della ricarica programmata interrotto</string>
     <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Test annullato</string>
-    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Test non completato</string>
+    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Test non terminato</string>
     <string name="service_test_passed_on_time" volt:src="0dafb048ea96a47f02073efff7fb1a02dea7cffc">L\'orologio e la programmazione del monopattino funzionano. La ricarica è ripresa all\'orario di avvio.</string>
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">L\'orologio e la programmazione del monopattino funzionano. La ricarica è ripresa %1$s secondo prima dell\'orario di avvio.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">L\'orologio e la programmazione del monopattino funzionano. La ricarica è ripresa %1$s secondo dopo l\'orario di avvio.</string>
@@ -109,7 +109,7 @@
     <string name="service_test_passed_seconds_after" volt:src="a0f28fe24378fc351189cc8162ba4ad71dc20e6e">L\'orologio e la programmazione del monopattino funzionano. La ricarica è ripresa %1$s secondi dopo l\'orario di avvio.</string>
     <plurals name="service_test_about" volt:src="82f8d8952a6ae793796a83046f53537d10117ab0">
         <item quantity="one">ca. %1$d minuto</item>
-        <item quantity="many">ca. %1$d minuti</item>
+        <item quantity="many">ca. %1$d di minuti</item>
         <item quantity="other">ca. %1$d minuti</item>
     </plurals>
     <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">La ricarica è ripresa %1$s prima dell\'orario di avvio, quindi l\'orologio del monopattino potrebbe essere avanti di %2$s.%3$s</string>
@@ -147,9 +147,9 @@
     <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">I dati dei sensori del telefono non vengono salvati</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Interrompi il monitoraggio</string>
     <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Programma ora</string>
-    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Annulla test</string>
-    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi registrazione di ricarica</string>
-    <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Interrompi registrazione</string>
+    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Annulla il test</string>
+    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi la registrazione di ricarica</string>
+    <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Interrompi la registrazione</string>
     <string name="service_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Disconnetti</string>
     <string name="service_notice_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Monopattino</string>
     <string name="service_notice_scooter_battery" volt:src="7a50ce085dfe20bbc1b8d76de540dd3cf63e5e02">%1$s · %2$s%%</string>

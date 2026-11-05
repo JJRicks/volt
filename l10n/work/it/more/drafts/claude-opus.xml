@@ -12,14 +12,14 @@
     <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN e prossimità</string>
     <string name="more_section_lab" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Comandi sperimentali</string>
     <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dati e cronologia</string>
-    <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e permessi</string>
+    <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e autorizzazioni</string>
     <string name="more_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
     <string name="more_lab_badge_description" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Sperimentale</string>
     <string name="more_footer" volt:src="d06f0aac50d58b82772eddce809be84213e31e5a">Volt %1$s · non affiliata a NAVEE</string>
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Segnala un problema</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Unità di misura</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Compatibilità</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Test non completato</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Test non terminato</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, stato: nessun dato</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Passaggio %1$d</string>
@@ -34,7 +34,7 @@
     <string name="more_scooters_add" volt:src="72a1a6c08f258e294cc394b845b6f46750b533db">Aggiungi un monopattino</string>
     <string name="more_scooters_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Attuale</string>
     <string name="more_scooters_use" volt:src="d8a6e8cf76bd0de4a97e971538e638aea00d3159">Usa questo monopattino</string>
-    <string name="more_scooters_edit" volt:src="b95d7568d998990cafa2fbe972fea5a23a0a7a00">Modifica monopattino</string>
+    <string name="more_scooters_edit" volt:src="b95d7568d998990cafa2fbe972fea5a23a0a7a00">Modifica il monopattino</string>
     <string name="more_scooters_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nome del monopattino</string>
     <string name="more_scooters_owner_answer" volt:src="ad6a60be79eeb0c077b259454e74b7a3f440e712">La tua risposta: %1$s</string>
     <string name="more_scooters_which_model" volt:src="907f67494fa980f6baa71e4cb4f99c88e4f4e023">Che modello è?</string>
@@ -49,7 +49,7 @@
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Dimentica</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Aspetto</string>
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Scuro</string>
-    <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Segui il sistema</string>
+    <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Come il sistema</string>
     <string name="more_prefs_light" volt:src="ab8b01e708e760e34850dc49dcaee340eb0e699e">Chiaro</string>
     <string name="more_prefs_stats_detail" volt:src="8b2cc4fad856392fb0696186d7131f5281c7792b">Dettaglio di «Dati in tempo reale»</string>
     <string name="more_prefs_comfortable" volt:src="37c2a8e6cc1ca772445d9b009b9e276d95074dd6">Comodo</string>
@@ -57,7 +57,7 @@
     <string name="more_prefs_units" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Unità di misura</string>
     <string name="more_prefs_text_size" volt:src="c6d46f83cea14930d22576d41d4fafb5448f293f">Dimensioni del testo</string>
     <string name="more_prefs_haptics" volt:src="db2486eae87574709b76ab2bebd0a2dc244a52b2">Feedback aptico</string>
-    <string name="more_prefs_map" volt:src="ef02bba94248d90f01e5e9e252d0709686928b0c">Impostazioni mappa</string>
+    <string name="more_prefs_map" volt:src="ef02bba94248d90f01e5e9e252d0709686928b0c">Impostazioni della mappa</string>
     <string name="more_prefs_connection" volt:src="f42b4c4fce972aae1366c6c3b63948017bb0063b">Connessione e registrazione</string>
     <string name="more_prefs_refresh" volt:src="0237acedb15c6856a6c80ef14c5f1dca7ce2880f">Aggiornamento telemetria</string>
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
@@ -113,7 +113,7 @@
     <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">La cronologia di %1$s verrà cancellata. Le corse restano.</string>
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Cancella</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Cronologia cancellata</string>
-    <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Facile da leggere, da chiuso o da aperto</string>
+    <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Facile da leggere, con il telefono chiuso o aperto</string>
     <string name="more_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Applica</string>
     <string name="more_refresh_rides" volt:src="a72e7410c6798b20d8572b19dd84249d58abd819">Corse: sempre 2 s</string>
     <string name="more_refresh_2" volt:src="4b2331e3b37d92258100abc191947c641e6e76b4">2 secondi</string>
@@ -129,7 +129,7 @@
     <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">In attesa di conferma dal monopattino</string>
     <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Connetti il monopattino come proprietario prima di cambiarne il PIN.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Imposta il PIN del manubrio</string>
-    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Il tuo PIN di riserva senza telefono. Conservalo con cura. Le cifre non vengono mai mostrate né esportate.</string>
+    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Il PIN ti permette di sbloccare il monopattino senza telefono. Conservalo con cura. Le cifre non vengono mai mostrate né esportate.</string>
     <string name="more_pin_enter" volt:src="ffff0f603c55d92f365fe9ef9bc221f1f7b257f7">Inserisci un nuovo PIN</string>
     <string name="more_pin_enter_hint" volt:src="58a2d06177d3c38fa672247dc4416e5d08db4faf">Inserisci un nuovo PIN, quattro cifre</string>
     <string name="more_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Avanti</string>
@@ -161,7 +161,7 @@
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Nessun tentativo concluso da cancellare</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">%1$d tentativo cancellato</item>
-        <item quantity="many">%1$d tentativi cancellati</item>
+        <item quantity="many">%1$d di tentativi cancellati</item>
         <item quantity="other">%1$d tentativi cancellati</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" I risultati dei tentativi restano su questo telefono finché un report di compatibilità che invii non li include o finché non li cancelli."</string>
@@ -170,7 +170,7 @@
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt non modifica mai il firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Connessione…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Prova su questo monopattino</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">L\'app ufficiale li offre per il tuo modello, ma Volt non li ha provati su questo modello. Il tuo tentativo e la tua risposta finiranno nel prossimo report di compatibilità.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">L\'app ufficiale offre questi comandi per il tuo modello, ma Volt non li ha provati su di esso. Il tuo tentativo e la tua risposta verranno inclusi nel prossimo report di compatibilità.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Nessun dato da questo monopattino</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt non può rileggerli, quindi non li offre.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt non invia comandi per monopattini a questo prodotto.</string>
@@ -204,7 +204,7 @@
     <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Interrompi la registrazione per provarli.</string>
     <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">In attesa della tua risposta</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">La tua risposta</string>
-    <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai visto la modifica?</string>
+    <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai notato la modifica?</string>
     <string name="more_lab_status_ask_short" volt:src="13e4f0fab3a2205c790a4e25e386173d5bf8e5a8">Rispondi</string>
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Ritorno al valore precedente…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Modifica simulata</string>
@@ -225,29 +225,29 @@
     <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Letto un altro valore</string>
     <string name="more_lab_status_other_value_short" volt:src="38723630e69bf18d7ac54a45f3a0b090e1009de1">Altro valore</string>
     <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Non inviato</string>
-    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nessuna modifica vista</string>
+    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nessuna modifica notata</string>
     <string name="more_lab_status_no_change_short" volt:src="c886b0ef61f47d6864568f13677e7d5060ea3c10">Nessuna modifica</string>
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Non confermato · riconnetti il monopattino per controllare</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Non confermato</string>
-    <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Controllo…</string>
-    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">L\'app ufficiale lo offre per il tuo modello, ma Volt non l\'ha provato su questo modello. Il tuo tentativo e la tua risposta finiranno nel prossimo report di compatibilità.</string>
+    <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Controllo in corso…</string>
+    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">L\'app ufficiale offre questo comando per il tuo modello, ma Volt non l\'ha provato su di esso. Il tuo tentativo e la tua risposta verranno inclusi nel prossimo report di compatibilità.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Attuale</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Ultimo tentativo</string>
     <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12">L\'ultima volta il tuo monopattino lo ha rifiutato: ha risposto con un errore, quindi molto probabilmente non supporta questa impostazione. Riprovando, di solito si ottiene la stessa risposta.</string>
     <string name="more_lab_your_answer" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">La tua risposta</string>
-    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Guarda il monopattino mentre è fermo. La tua risposta finirà nel prossimo report di compatibilità, insieme alla rilettura del monopattino.</string>
+    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Guarda il monopattino mentre è fermo. La tua risposta verrà inclusa nel prossimo report di compatibilità, insieme alla rilettura del monopattino.</string>
     <string name="more_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Sì</string>
     <string name="more_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">No</string>
     <string name="more_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Salta</string>
     <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b">Questo tentativo non si è concluso, quindi il monopattino potrebbe essere ancora sul valore provato. Rivedilo per riportare indietro il valore o mantenerlo.</string>
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Scegli un limite</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Scegli un valore</string>
-    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt invia una modifica mentre il monopattino è fermo e sbloccato, la rilegge, poi ti chiede cosa hai visto. Il valore resta finché non lo riporti indietro. Se la connessione cade, Volt non scrive mai di nuovo da sola: il tentativo attende che tu lo riveda.</string>
+    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt invia una modifica mentre il monopattino è fermo e sbloccato, la rilegge, poi ti chiede cosa hai visto. Il valore resta finché non lo riporti indietro. Se la connessione cade, Volt non invia mai altre modifiche da sola: il tentativo attende che tu lo riveda.</string>
     <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che il valore non sia cambiato…</string>
-    <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ritorno a %1$s…</string>
+    <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ritorno al valore %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Lettura del valore attuale…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Invio di %1$s e rilettura…</string>
-    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai visto il cambiamento?</string>
+    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai notato la modifica?</string>
     <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Già %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Riprova: %1$s</string>
     <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Prova %1$s</string>
@@ -255,7 +255,7 @@
     <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Riporta a %1$s</string>
     <plurals name="more_lab_why_offered" volt:src="ebce9d2283a1b0db0c26b1dae4fc9165aecbd5ea">
         <item quantity="one">L\'app ufficiale offre questa funzione su %1$d altro modello, ma non sul tuo. Qui potrebbe non avere alcun effetto o funzionare in modo diverso.</item>
-        <item quantity="many">L\'app ufficiale offre questa funzione su %1$d altri modelli, ma non sul tuo. Qui potrebbe non avere alcun effetto o funzionare in modo diverso.</item>
+        <item quantity="many">L\'app ufficiale offre questa funzione su %1$d di altri modelli, ma non sul tuo. Qui potrebbe non avere alcun effetto o funzionare in modo diverso.</item>
         <item quantity="other">L\'app ufficiale offre questa funzione su %1$d altri modelli, ma non sul tuo. Qui potrebbe non avere alcun effetto o funzionare in modo diverso.</item>
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">L\'app ufficiale non offre questa funzione sul tuo modello. Qui potrebbe non avere alcun effetto o funzionare in modo diverso.</string>
@@ -301,7 +301,7 @@
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Opzioni sviluppatore attivate.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
         <item quantity="one">Ancora %1$d tocco per attivare le opzioni sviluppatore.</item>
-        <item quantity="many">Ancora %1$d tocchi per attivare le opzioni sviluppatore.</item>
+        <item quantity="many">Ancora %1$d di tocchi per attivare le opzioni sviluppatore.</item>
         <item quantity="other">Ancora %1$d tocchi per attivare le opzioni sviluppatore.</item>
     </plurals>
     <string name="more_report_no_email" volt:src="5eeeb7ecce599a88354042513cd2ee9c5949e343">Nessuna app di posta può aprire la segnalazione.</string>
@@ -316,7 +316,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatico</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Originale</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Auto» riconosce i caricabatterie UT5 MAX dalla potenza in tempo reale. Se il riconoscimento non è certo, Volt usa la velocità di ricarica attuale; scegli un caricabatterie per ignorare il riconoscimento.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Automatico» riconosce i caricabatterie UT5 MAX dalla potenza in tempo reale. Se il riconoscimento non è certo, Volt usa il ritmo di ricarica attuale; scegli un caricabatterie per ignorare il riconoscimento.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curve di ricarica salvate</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Registra questa ricarica</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi la registrazione di ricarica</string>
@@ -389,8 +389,8 @@
     <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2">PIN non attivato</string>
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telefono accoppiato</string>
     <string name="more_chip_not_paired" volt:src="ad157a23d84cb9e78e6ecda65dc3f292f246b5be">Telefono non accoppiato</string>
-    <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Solo il proprietario di UT5 MAX</string>
-    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Solo il proprietario</string>
+    <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Solo per il proprietario dell\'UT5 MAX</string>
+    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Solo per il proprietario</string>
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Connetti prima il monopattino</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">In attesa del monopattino</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Nessun dato dal firmware</string>
@@ -398,5 +398,5 @@
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Accoppia prima questo telefono</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Accoppiato</string>
-    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Esegui il test a monopattino fermo. Dopo l\'attivazione dello sblocco di prossimità potrebbe esserci una breve disconnessione del monopattino; Volt si riconnette e conferma la modifica.</string>
+    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Esegui il test a monopattino fermo. Dopo l\'attivazione dello sblocco di prossimità, il monopattino potrebbe disconnettersi per un momento; Volt si riconnette e conferma la modifica.</string>
 </resources>

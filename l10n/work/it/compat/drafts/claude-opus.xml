@@ -1,12 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
-    <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Il servizio locale del monopattino è in fase di avvio.</string>
+    <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Il servizio locale del tuo monopattino si sta avviando.</string>
     <string name="compat_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Connetti</string>
     <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Nessun test non terminato.</string>
     <string name="compat_run_check" volt:src="8908fbf7457a4fe529bb9649e73cecde12a253d4">Esegui il controllo</string>
     <string name="compat_run_again" volt:src="0358856e402abdc06315d4f38abf2f9ded72208e">Esegui di nuovo</string>
-    <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">Invia email a Volt</string>
+    <string name="compat_email" volt:src="6ceb02a9c8ea06a3c276cdef5d61651e7d1a7089">Invia un\'email a Volt</string>
     <string name="compat_preview_report" volt:src="d10343655f76329222f53dfc96063dee8802e970">Anteprima del report</string>
     <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Ancora nessun controllo terminato</string>
     <string name="compat_footer" volt:src="86d3d6fcbcee53279410f8c97de4654f969c217a">Il controllo si limita a leggere. I tentativi sono in «Altro › Comandi sperimentali» e il report ne include i risultati. Il firmware non viene mai modificato.</string>
@@ -19,7 +19,7 @@
     <string name="compat_model_id_serial" volt:src="26f512564d85a5361891f94be048d34deb3f07bd">Dal numero di serie (non confermato)</string>
     <string name="compat_model_id_not_captured" volt:src="e31583dc8db0da8cbf437e06956dcf2e97e466f7">Non acquisito</string>
     <string name="compat_check" volt:src="4a099424278cfcbddd43a46b5b6ec044ddf711c0">Controllo</string>
-    <string name="compat_model_id_mismatch" volt:src="2904aa42b6766ceb2503149c959398208e70fcb0">ID modello non corrispondenti</string>
+    <string name="compat_model_id_mismatch" volt:src="2904aa42b6766ceb2503149c959398208e70fcb0">ID modello non corrispondente</string>
     <string name="compat_region" volt:src="cdf965bd1ba36fe08e9ed3a3b92549629d3e4bd8">Regione</string>
     <string name="compat_region_unknown" volt:src="2f5ed55044f5c0206951f1fe3b940de489213461">Sconosciuta</string>
     <string name="compat_region_from_serial" volt:src="63a90596405aa8be36a800a5b74768d431dbc847">%1$s (dal numero di serie)</string>
@@ -36,7 +36,7 @@
     <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 test non terminato su un altro monopattino. Selezionalo per esaminarlo.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
         <item quantity="one">%1$d test non terminato su un altro monopattino. Selezionalo per esaminarlo.</item>
-        <item quantity="many">%1$d test non terminati su altri monopattini. Selezionane uno per esaminarlo.</item>
+        <item quantity="many">%1$d di test non terminati su altri monopattini. Selezionane uno per esaminarlo.</item>
         <item quantity="other">%1$d test non terminati su altri monopattini. Selezionane uno per esaminarlo.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Dati dei test non disponibili. Il valore di un test precedente potrebbe non essere stato riportato indietro; controlla le impostazioni del monopattino.</string>
@@ -44,15 +44,15 @@
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Lettura del valore attuale…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Passaggio al valore %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che non sia cambiato…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che il valore non sia cambiato…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ritorno al valore %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Sì</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">No</string>
     <string name="compat_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Salta</string>
     <string name="compat_kept_set_back" volt:src="3448d6b18de35aaa38b3d8fbb3eb1733c184fa3f">Mantenuto · «Riporta indietro» è in «Comandi sperimentali»</string>
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Mantenuto</string>
-    <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Ripristino confermato</string>
-    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Ripristino in sospeso · controlla qui sotto</string>
+    <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Valore riportato indietro e confermato</string>
+    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Valore da riportare indietro · controlla qui sotto</string>
     <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Tentativo non terminato · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Test non terminato · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Prima del tentativo</string>
@@ -62,13 +62,13 @@
     <string name="compat_parked" volt:src="affd4fdaffbaf3af094ff27267aa162d101a2d40">Il monopattino è fermo</string>
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Ancora nessun dato sul movimento in questa connessione.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Continua comunque</string>
-    <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Segna come ripristinato</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Ripristina %1$s</string>
+    <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Segna come riportato indietro</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Riporta a %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Mantieni %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Imposta %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Chiudi · lascia così</string>
-    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Chiudi il tentativo non terminato (%1$s) senza ripristinare il valore</string>
-    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Chiudi il test non terminato (%1$s) senza ripristinare il valore</string>
+    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Chiudi il tentativo non terminato (%1$s) senza riportare indietro il valore</string>
+    <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Chiudi il test non terminato (%1$s) senza riportare indietro il valore</string>
     <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef">Il suo monopattino è stato rimosso, quindi Volt non può controllare questa impostazione né riportarla indietro. Controllala direttamente sul monopattino.</string>
     <string name="compat_dismiss" volt:src="2f05b359cebb7fdbdd7e576511561f1de4f382a7">Chiudi</string>
     <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Chiudi il test non terminato (%1$s) di un monopattino rimosso</string>
@@ -84,7 +84,7 @@
     <string name="compat_question_auto_lights_off" volt:src="9ade8ff6ac5abee6746daff90e32fa8a12534f9c">Le luci automatiche sono disattivate?</string>
     <string name="compat_question_auto_lights" volt:src="dbdbb16b1d09b025c154ba879981f2e5549ea097">Luci automatiche: %1$s?</string>
     <string name="compat_question_range" volt:src="29869335b8d009a1dffff67f95517d4d613411f9">La stima dell\'autonomia sul display del monopattino è cambiata?</string>
-    <string name="compat_question_default" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai visto il cambiamento?</string>
+    <string name="compat_question_default" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Hai notato la modifica?</string>
     <string name="compat_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Interrompi</string>
     <string name="compat_listening" volt:src="7dfd8290394db694f09ee2c5a4254f728b582eed">In ascolto dei dati inviati dal monopattino…</string>
     <string name="compat_reading_progress" volt:src="249b306ba159ce3668c3b9808cd392134126a43f">Lettura %1$s di %2$s…</string>
@@ -110,7 +110,7 @@
     <string name="compat_age_one_minute" volt:src="2b33394bbc532edef05f479918c9f034fd3be9a7">1 minuto fa</string>
     <plurals name="compat_age_minutes" volt:src="04c68635288b4ff7ac52d811482951865469b377">
         <item quantity="one">%1$d minuto fa</item>
-        <item quantity="many">%1$d minuti fa</item>
+        <item quantity="many">%1$d di minuti fa</item>
         <item quantity="other">%1$d minuti fa</item>
     </plurals>
     <string name="compat_read_serial" volt:src="7d547d4dd8974e78db3b20c64b64c1ef7a4a4c6a">Controllo del numero di serie</string>
@@ -125,7 +125,7 @@
     <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Rifiutato %1$d</string>
     <plurals name="compat_read_too_short" volt:src="7745dc0659fdff73d44a35ee36a86959b4ba2ef2">
         <item quantity="one">Troppo breve (%1$d byte)</item>
-        <item quantity="many">Troppo breve (%1$d byte)</item>
+        <item quantity="many">Troppo breve (%1$d di byte)</item>
         <item quantity="other">Troppo breve (%1$d byte)</item>
     </plurals>
     <string name="compat_read_empty" volt:src="066be29aabac929b37d432819752ddea416f3c28">Risposta senza dati</string>
@@ -133,22 +133,22 @@
     <string name="compat_read_interrupted" volt:src="baaf0ab097ce42ca98ff2e40e4189494b53ceab4">Interrotto</string>
     <string name="compat_read_waiting" volt:src="4409bbb1386ef72e4c2145cc33396977580cb2c8">In attesa</string>
     <string name="compat_evidence_volt_verified" volt:src="2dc01b8b913a74a120c986f6d55b205bdd9a533a">Verificato da Volt</string>
-    <string name="compat_evidence_lab" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Laboratorio</string>
-    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">Mappato da OEM</string>
+    <string name="compat_evidence_lab" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Sperimentale</string>
+    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">Mappatura OEM</string>
     <string name="compat_evidence_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Comune</string>
-    <string name="compat_evidence_local" volt:src="db02f60d181f66a04d5e67faf611150d2ce61980">Testato qui</string>
+    <string name="compat_evidence_local" volt:src="db02f60d181f66a04d5e67faf611150d2ce61980">Provato qui</string>
     <string name="compat_evidence_none" volt:src="26dbf44f9724742daed1fe5c637a87579cbf5641">Nessun riscontro</string>
     <string name="compat_row_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
     <string name="compat_report_preview" volt:src="0cc4db042719c4320cd2966f248972d5086af082">Anteprima del report</string>
     <string name="compat_report_privacy" volt:src="0e5660150229ae4da9cd823542fc94c579a191c2">Viene condiviso solo ciò che vedi qui. Non vengono condivisi numero di serie, MAC, chiave del proprietario, PIN, nomi o percorsi.</string>
     <string name="compat_report_in_english" volt:src="028721f7050523a2c4447d2054d9c48b9285b75d">Il report è in inglese.</string>
-    <string name="compat_show_summary" volt:src="7e08c327c3fd7b8d65700542353bac996ffbe514">Mostra riepilogo</string>
-    <string name="compat_show_json" volt:src="0176008cd9c077f7c88fc1395cbf74cc19abd260">Mostra JSON</string>
+    <string name="compat_show_summary" volt:src="7e08c327c3fd7b8d65700542353bac996ffbe514">Mostra il riepilogo</string>
+    <string name="compat_show_json" volt:src="0176008cd9c077f7c88fc1395cbf74cc19abd260">Mostra il JSON</string>
     <string name="compat_show_summary_description" volt:src="2fe6e5888b1703fe4e086ec41949f54fdbd75ab1">Mostra il riepilogo del report</string>
     <string name="compat_show_json_description" volt:src="08a80b98727723335f02bb4cb85a55eea8b65519">Mostra il JSON del report</string>
     <string name="compat_share" volt:src="002283751299ca6715a43a00353e0485b4a889e3">Condividi</string>
     <string name="compat_save_file" volt:src="1603d9327393c31fa977dd0af27e8f650fca5394">Salva il file</string>
-    <string name="compat_close_preview" volt:src="86e5835353fc29c7468f112ed9798659f0da8dc1">Chiudi anteprima</string>
+    <string name="compat_close_preview" volt:src="86e5835353fc29c7468f112ed9798659f0da8dc1">Chiudi l\'anteprima</string>
     <string name="compat_share_chooser" volt:src="38837226b739ea6d4921fb38c355016713b2274d">Condividi il report di compatibilità</string>
     <string name="compat_share_none" volt:src="6bed8b6fe25cccaf7dacd70463a895049cb6a882">Nessuna app può condividere questo report</string>
     <string name="compat_field_binding_status" volt:src="44da727d9bcff9e30863edc34f8069983d68e65c">Stato di associazione</string>
@@ -179,14 +179,14 @@
     <string name="compat_field_maximum_speed_setting" volt:src="2ca9795c0e0aed9b105f45e8b2328f7162b6b90b">Velocità massima (impostazione)</string>
     <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Modalità di guida (impostazione)</string>
     <string name="compat_field_charge_limit_percent" volt:src="3fb2ccac0699d8546fc4a9934efba0aa96fa47fa">Limite di carica (percentuale)</string>
-    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Bassa potenza</string>
+    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Modalità batteria scarica</string>
     <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Ricarica programmata</string>
-    <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Tempo di blocco automatico</string>
+    <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Durata del blocco</string>
     <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Idoneità al limite di velocità</string>
     <string name="compat_field_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Meteo</string>
-    <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Assistenza in pendenza</string>
+    <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Assistenza in salita</string>
     <string name="compat_field_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modalità a lunga autonomia</string>
-    <string name="compat_field_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Controllo della velocità eccessiva</string>
+    <string name="compat_field_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Controllo sovravelocità</string>
     <string name="compat_field_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Limite di velocità Drive</string>
     <string name="compat_field_lighting_byte" volt:src="06ce2a818c8506cd9f1252d5101ef27182dd50d2">Byte di illuminazione %1$d (grezzo)</string>
     <string name="compat_field_osa_flag" volt:src="a8c63a17cda5b5a245b36b12949fb5ee4297731e">Flag OSA (non mappato)</string>
@@ -211,9 +211,9 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Non è arrivata nessuna lettura aggiornata.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Accettato, ma non è arrivata nessuna lettura conclusiva.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Nessuna risposta dal monopattino.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt non è riuscita a inviare il ripristino.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt non è riuscita a inviare il comando per riportare indietro il valore.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Non è stato possibile ottenere un nuovo valore di riferimento. Riconnetti il monopattino e riprova. Non è stato modificato nulla.</string>
-    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Non è stato possibile verificare l\'impostazione. Riconnetti il monopattino e controlla il test non completato.</string>
+    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Non è stato possibile verificare l\'impostazione. Riconnetti il monopattino e controlla il test non terminato.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">La connessione si è interrotta durante il test.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Durante il test è stato selezionato un altro profilo di monopattino.</string>
     <string name="compat_note_restarted" volt:src="cb6020286262dba4b68518e42aa35c280840d9b3">Volt si è riavviata durante il test.</string>
@@ -231,7 +231,7 @@
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Il monopattino mostra il valore del test, %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Interrotto prima di qualsiasi modifica. Non è stato modificato nulla.</string>
     <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Riportato indietro e confermato, ma non è stato possibile salvare i dati.</string>
-    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Mantenuto, ma non è stato possibile salvare i dati. Il test risulterà non completato.</string>
+    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Mantenuto, ma non è stato possibile salvare i dati. Il test risulterà non terminato.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Connetti questo monopattino per controllare il test.</string>
     <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">L\'ID modello è diverso da quello del test. Volt non modificherà l\'impostazione.</string>
     <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c">Le regole di Volt per questa impostazione sono cambiate. Volt non la modificherà.</string>

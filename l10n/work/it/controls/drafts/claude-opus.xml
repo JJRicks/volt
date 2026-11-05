@@ -74,7 +74,7 @@
     <string name="controls_option_rainbow" volt:src="f6bbe38baec46d899930c7dc52cffdbaf07efb81">Arcobaleno</string>
     <plurals name="controls_option_hours" volt:src="dcb23e9ed589a28b8b24a392b2244c3d03eae876">
         <item quantity="one">%1$s ora</item>
-        <item quantity="many">%1$s ore</item>
+        <item quantity="many">%1$s di ore</item>
         <item quantity="other">%1$s ore</item>
     </plurals>
     <string name="controls_option_sound" volt:src="63f8faf3e69940e5b48ffe61def32228ddeb9f84">Suono %1$s</string>
@@ -87,7 +87,7 @@
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Attendi la modifica in corso</string>
     <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Prima ferma il monopattino</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Ancora nessun dato sul movimento</string>
-    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Risolvi prima l\'avviso del monopattino</string>
+    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Risolvi prima l\'avvertenza del monopattino</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Sblocca prima il monopattino</string>
     <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Solo per il proprietario</string>
     <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Accoppia prima questo telefono</string>
@@ -103,7 +103,7 @@
     <string name="controls_reason_discovery_active" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Controllo di compatibilità in corso…</string>
     <string name="controls_reason_test_active" volt:src="b1ca7a968c456a2ff239e608bfbda2d6338e7b4a">Test in corso</string>
     <string name="controls_reason_not_testable" volt:src="1cd5e7c5fff48b1a556f7c0e730546a768daf5f4">Non offerto come test</string>
-    <string name="controls_reason_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Interrompi prima la registrazione</string>
+    <string name="controls_reason_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Prima interrompi la registrazione</string>
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Serve un monopattino reale</string>
     <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Conferma che il monopattino è fermo</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Nessun test in corso</string>
@@ -112,7 +112,7 @@
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Disattivato o 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Non disponibile ora</string>
     <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">L\'accesso al PIN è riservato al proprietario autenticato</string>
-    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">Il PIN deve contenere quattro cifre decimali</string>
+    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">Il PIN deve contenere quattro cifre numeriche</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">Prima di attivarlo devi impostare un PIN</string>
     <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Le modifiche allo sblocco di prossimità sono riservate al proprietario autenticato</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Accoppia questo telefono prima di attivare lo sblocco di prossimità</string>
@@ -123,7 +123,7 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Vuoi disattivare il controllo della trazione? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Vuoi disattivare la modalità batteria scarica? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Vuoi passare al motore singolo? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Vuoi impostare il recupero di energia su «Disattivato»? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Vuoi disattivare il recupero di energia? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Velocità di avvio sotto 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Oltre 32 km/h: controlla le norme del luogo in cui circoli. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Il controllo della trazione verrà disattivato. Guida con prudenza su fondo bagnato o instabile finché non sai come si comporta il monopattino.</string>
@@ -162,6 +162,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Tutto corretto</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Il monopattino indica la modalità %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Nomi assegnati: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Non saprei</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Non lo so</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>
