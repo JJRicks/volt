@@ -524,62 +524,14 @@ public final class Ui {
         pressFeedback(item);
         return item;
     }
-    /** A compact section picker that keeps every destination visible on narrow screens. */
-    public View sectionTabs(String[] labels, String selected, Consumer<String> onSelect) {
-        final class Tabs extends ViewGroup {
-            String current = selected;
-            Tabs() { super(context); setPadding(0, dp(2), 0, dp(12)); }
-            void style() {
-                for (int i = 0; i < getChildCount(); i++) {
-                    TextView button = (TextView) getChildAt(i);
-                    boolean active = button.getText().toString().equals(current);
-                    button.setSelected(active); button.setTextColor(active ? onAccent : muted);
-                    button.setTypeface(active ? SEMIBOLD : REGULAR);
-                    button.setBackground(new RippleDrawable(ColorStateList.valueOf(withAlpha(accent, 30)),
-                            shape(active ? accent : surface, 12, 0), null));
-                    if (Build.VERSION.SDK_INT >= 30) button.setStateDescription(active ? T.commonSelected() : "");
-                }
-            }
-            @Override protected void onMeasure(int widthSpec, int heightSpec) {
-                int width = MeasureSpec.getSize(widthSpec), available = Math.max(1, width - getPaddingLeft() - getPaddingRight());
-                int x = 0, y = getPaddingTop(), rowHeight = 0;
-                for (int i = 0; i < getChildCount(); i++) {
-                    View child = getChildAt(i);
-                    child.measure(MeasureSpec.makeMeasureSpec(available, MeasureSpec.AT_MOST),
-                            MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                    if (x > 0 && x + child.getMeasuredWidth() > available) { y += rowHeight + dp(6); x = 0; rowHeight = 0; }
-                    x += child.getMeasuredWidth() + dp(6); rowHeight = Math.max(rowHeight, child.getMeasuredHeight());
-                }
-                setMeasuredDimension(resolveSize(width, widthSpec), resolveSize(y + rowHeight + getPaddingBottom(), heightSpec));
-            }
-            @Override protected void onLayout(boolean changed, int l, int t, int r, int b) {
-                int available = getWidth() - getPaddingLeft() - getPaddingRight(), x = 0, y = getPaddingTop(), rowHeight = 0;
-                for (int i = 0; i < getChildCount(); i++) {
-                    View child = getChildAt(i); int w = child.getMeasuredWidth(), h = child.getMeasuredHeight();
-                    if (x > 0 && x + w > available) { y += rowHeight + dp(6); x = 0; rowHeight = 0; }
-                    child.layout(getPaddingLeft() + x, y, getPaddingLeft() + x + w, y + h);
-                    x += w + dp(6); rowHeight = Math.max(rowHeight, h);
-                }
-            }
-        }
-        Tabs tabs = new Tabs();
-        for (String label : labels) {
-            TextView button = text(label, 12, false); button.setTypeface(MEDIUM);
-            button.setGravity(Gravity.CENTER); button.setMinHeight(dp(48)); button.setMinWidth(dp(48));
-            button.setPadding(dp(12), dp(8), dp(12), dp(8)); button.setFocusable(true); button.setContentDescription(label);
-            button.setOnClickListener(v -> {
-                tabs.current = label; tabs.style(); if (onSelect != null) onSelect.accept(label);
-            });
-            tabs.addView(button, new ViewGroup.LayoutParams(-2, -2));
-        }
-        tabs.style(); return tabs;
-    }
     /** Draws one of the shared line icons centred at (cx, cy), for custom-drawn controls. */
     public void drawIcon(Canvas canvas, String key, int color, float cx, float cy, float size) {
         Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
         canvas.save(); canvas.translate(cx - size / 2, cy - size / 2); canvas.scale(size / 24f, size / 24f);
         drawSymbol(canvas, key, color, paint); canvas.restore();
     }
+    /** The icon id of a row with no icon, for callers that name it rather than leave it to {@link #labelIcon}. */
+    public static final String NO_ICON = "";
     /**
      * Floating tab bar: a rounded pill with a raised red button for the centre destination.
      * The selected side tab shows white with a small red dot; the selected centre button gains a ring.
