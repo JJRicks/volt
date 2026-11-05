@@ -986,7 +986,7 @@ public final class OnboardingScreen implements AppScreen {
         }
         boolean applied = mode.equals("applied");
         ScooterProfiles.Profile p = applied ? find(profiles(), prefs.getString(KEY_PROFILE, "")) : null;
-        String[] summary = applied && p != null ? new String[] {p.displayName(), p.role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()} : pendingSummary();
+        String[] summary = applied && p != null ? new String[] {p.name, p.role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()} : pendingSummary();
         // One success card: the lock glyph says it is held privately on this phone.
         LinearLayout found = row(); found.setGravity(Gravity.CENTER_VERTICAL);
         found.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
@@ -998,7 +998,7 @@ public final class OnboardingScreen implements AppScreen {
         found.addView(lock, new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)));
         LinearLayout words = column();
         words.addView(ui.text(T.onboardingImportFound(), 15.5f, true));
-        TextView detail = ui.caption(T.onboardingImportSummary(summary[0], summary[1]));
+        TextView detail = ui.caption(T.onboardingImportSummary(applied && p != null ? p.displayName() : summary[0], summary[1]));
         detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale); detail.setPadding(0, ui.dp(3), 0, 0);
         words.addView(detail);
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(12);

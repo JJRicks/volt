@@ -18,7 +18,7 @@ import java.util.Locale;
  *  - the PIN builders' refusals, which setPin and enablePin catch as plain text, still show translated;
  *  - the default scooter name goes through Profile.displayName() on the My scooters card, the menu
  *    index, the clear history confirmation, the setup sentences and the import summary, while the rename
- *    field keeps the stored name;
+ *    field and setup's import name field keep the stored name, so an untouched field saves nothing;
  *  - the lab's two count sentences are plurals that print the base English at every quantity;
  *  - BackupSelectAll: Select all mirrors the enabled boxes exactly as base did, and keeps what it shows
  *    while createBackup has frozen the list (B11 review item 1);
@@ -241,8 +241,15 @@ public final class FollowupsTest {
         String setup = FollowupsEnglishTest.read("src/com/jjricks/volt/OnboardingScreen.java");
         check(setup.contains("T.onboardingConnectConnecting(active.displayName())") && !setup.contains("T.onboardingConnectConnecting(active.name)"),
                 "the connecting sentence names displayName()");
-        check(setup.contains("new String[] {p.displayName(), p.role == 1") && !setup.contains("new String[] {p.name,"),
+        check(setup.contains("T.onboardingImportSummary(applied && p != null ? p.displayName() : summary[0], summary[1])"),
                 "the import summary names displayName()");
+        // Save and continue writes the field when it differs from the stored name, so the field must never start from displayName().
+        check(setup.contains("new String[] {p.name, p.role == 1") && !setup.contains("new String[] {p.displayName(),"),
+                "the summary array that fills the import name field holds the stored name");
+        check(setup.contains("nameField = nameInput(prefs.getString(KEY_PENDING_NAME, summary[0]));"),
+                "the import name field starts from the pending or stored name");
+        check(setup.contains("if (!name.isEmpty() && !name.equals(target.name)) {"),
+                "an untouched import name field saves nothing");
         check(setup.contains("T.onboardingDoneReady(p.displayName())") && !setup.contains("T.onboardingDoneReady(p.name)"),
                 "the done sentence names displayName()");
 
