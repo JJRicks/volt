@@ -123,21 +123,50 @@ else
         record "G4 frozen test statements" PASS "$detail"
     fi
 fi
+# The active entries of the tests/l10n/*.sources lists in the tree $1, read as tests/run.sh reads them:
+# everything from "#" on is a comment, the rest is trimmed, and blank lines are skipped. tests/run.sh runs
+# only these, so a characterization test counts as listed only when one of them is exactly its path.
+active_sources() {
+    local list line
+    for list in "$1"/tests/l10n/*.sources; do
+        [[ -f "$list" ]] || continue
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            line="${line%%#*}"; line="${line#"${line%%[![:space:]]*}"}"; line="${line%"${line##*[![:space:]]}"}"
+            [[ -n "$line" ]] && printf '%s\n' "$line"
+        done < "$list"
+    done
+    return 0
+}
 gate "G5 characterization first" "$WORK/g5.log" python3 tools/l10n/char_first.py --base "$BASE"
 FIRST="$(python3 tools/l10n/char_first.py --base "$BASE" --print-first 2>/dev/null || true)"
-if [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
+if [[ -n "$FIRST" && "$KIND" == english-change ]]; then
+    # An owner-approved English change rewrites its characterization tests to pin the new English, which the
+    # base code does not print yet, so they cannot pass at the first commit. Their order is still G5's (above),
+    # and G6 runs them at head, where they must pass. G6 runs only what a tests/l10n/*.sources list names, so
+    # each one must be listed at head, or it would never run (checked with or without --skip-tests).
+    unwired=(); active="$(active_sources .)"
+    while IFS= read -r test_file; do
+        [[ -n "$test_file" ]] || continue
+        grep -qxF -- "$test_file" <<<"$active" || unwired+=("$test_file")
+    done < <(git diff --name-only --diff-filter=d "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
+    if (( ${#unwired[@]} )); then
+        record "G5 tests pass at the first commit" FAIL "not an active entry of any tests/l10n/*.sources list at head, so tests/run.sh never runs them: ${unwired[*]}"
+    else
+        record "G5 tests pass at the first commit" "n/a" "an English change's characterization tests pin the new English, which the base code does not print; G5 checks their order, and each is an active entry of a tests/l10n/*.sources list at head, so G6 runs them there"
+    fi
+elif [[ -n "$FIRST" && "$SKIP_TESTS" == 0 ]]; then
     tree="$WORK/first"
     if git worktree add --detach "$tree" "$FIRST" >/dev/null 2>&1; then
         WORKTREES+=("$tree")
         log="$WORK/g5-first.log"
         # The characterization tests must be compiled by tests/run.sh (a tests/l10n/*.sources list, B0b on).
-        unwired=()
+        unwired=(); active="$(active_sources "$tree")"
         while IFS= read -r test_file; do
             [[ -n "$test_file" ]] || continue
-            grep -qsF "$test_file" "$tree"/tests/l10n/*.sources || unwired+=("$test_file")
+            grep -qxF -- "$test_file" <<<"$active" || unwired+=("$test_file")
         done < <(git -C "$tree" diff --name-only "$FIRST^" "$FIRST" -- tests/l10n/characterization | grep '\.java$')
         if (( ${#unwired[@]} )); then
-            record "G5 tests pass at the first commit" FAIL "not in any tests/l10n/*.sources, so tests/run.sh never runs them: ${unwired[*]}"
+            record "G5 tests pass at the first commit" FAIL "not an active entry of any tests/l10n/*.sources list, so tests/run.sh never runs them: ${unwired[*]}"
         elif (cd "$tree" && NAVEE_BUILD_DIR="$WORK/first-build" bash tests/run.sh && \
                 { [[ ! -f tests/l10n/golden.sh ]] || NAVEE_BUILD_DIR="$WORK/first-build" bash tests/l10n/golden.sh; }) >"$log" 2>&1; then
             record "G5 tests pass at the first commit" PASS "tests/run.sh and tests/l10n/golden.sh at $(git rev-parse --short=12 "$FIRST") (base code plus the new tests)"
