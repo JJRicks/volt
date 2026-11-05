@@ -152,6 +152,7 @@ class GenerateTest(Base):
     def test_writes_nothing_outside_workdir_and_out(self):
         self.draft()
         before = tree_state(self.root)
+        temporary = tempfile.tempdir
         with WriteWatch() as watch:
             code, output = self.run_tool("--tags", "es")
         self.assertEqual(code, 0, output)
@@ -170,7 +171,7 @@ class GenerateTest(Base):
         self.assertEqual(os.listdir(self.workdir), [])
         self.assertEqual(sorted(os.listdir(self.out)), ["report-keys.tsv", "report.tsv"])
         self.assertFalse(os.path.exists(self.paths.res("values-es")))
-        self.assertIs(tempfile.tempdir, None)
+        self.assertEqual(tempfile.tempdir, temporary)
 
     def test_the_copy_ships_the_language(self):
         self.draft()
