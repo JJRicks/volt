@@ -78,6 +78,37 @@ class ArrayTableTest(GrammarCase):
         problems = self.check([removed(CHARTS, 4, "All")])[0]
         self.assertTrue(problems)
 
+    def test_a_table_after_a_declarator_with_a_call_keeps_its_semicolon(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static final String Z = compute(), LABELS[] = {"All"};
+    static String compute() { return ""; }"""))
+        self.base = self.repo.commit("base with a call in the header")
+        self.edit(CHARTS, '    static final String Z = compute(), LABELS[] = {"All"};\n', "")
+        problems = self.check([removed(CHARTS, 4, "All")])[0]
+        self.assertTrue(any("drops `;`" in p for p in problems), problems)
+
+    def test_an_assignment_in_a_table_keeps_its_semicolon(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static String s;
+    static final String[] LABELS = {"All", s = "x"};"""))
+        self.base = self.repo.commit("base with an assignment")
+        self.edit(CHARTS, '    static final String[] LABELS = {"All", s = "x"};\n', "")
+        problems = self.check([removed(CHARTS, 5, "All"), removed(CHARTS, 5, "x")])[0]
+        self.assertTrue(any("drops `;`" in p for p in problems), problems)
+
+    def test_a_step_in_a_table_keeps_its_semicolon(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static int i;
+    static final String[] LABELS = {"All" + i++};"""))
+        self.base = self.repo.commit("base with a step")
+        self.edit(CHARTS, '    static final String[] LABELS = {"All" + i++};\n', "")
+        self.assertTrue(self.check([removed(CHARTS, 5, "All")])[0])
+
+    def test_names_and_numbers_in_a_table_can_go(self):
+        self.repo.write(CHARTS, java_class("Charts", """    static final String OTHER = "o";
+    static final Object[] LABELS = {"All", OTHER, Charts.OTHER, 7};
+    static int size() { return OTHER.length(); }"""))
+        self.base = self.repo.commit("base with names")
+        self.edit(CHARTS, """    static final Object[] LABELS = {"All", OTHER, Charts.OTHER, 7};\n""", "")
+        self.assertEqual(self.check([removed(CHARTS, 5, "All")])[0], [])
+
     def test_an_anonymous_class_keeps_its_semicolon(self):
         self.repo.write(CHARTS, java_class("Charts", """    static final Runnable R = new Runnable() { public void run() { lock("Engage now"); } };
     static void lock(String w) { }"""))
@@ -93,7 +124,8 @@ class ArrayTableTest(GrammarCase):
 
 
 class ManualSecondStatementTest(GrammarCase):
-    """Item 3: a manual row folds `state += " • " + t;` into the one template of the sentence."""
+    """A manual row covers one statement. Folding `state += " • " + t;` into the sentence's template stays refused: no
+    real line needs it (QuickAccessGrid's append has an `if`), and G1 cannot show what the two statements print."""
     FILES = {GRID: java_class("Grid", """    static String tile(String t) {
         String state = "On";
         state += " • " + t;
@@ -115,11 +147,10 @@ class ManualSecondStatementTest(GrammarCase):
         self.edit(GRID, 'String state = "On";\n        state += " • " + t;',
                   "String state = %s;" % call)
 
-    def test_the_fold_passes_and_is_listed(self):
+    def test_the_fold_is_refused(self):
         self.fold()
-        problems, warnings, _ = self.check([self.row()])
-        self.assertEqual(problems, [])
-        self.assertTrue(any('deletes the whole statement `state += " • " + t ;`' in w for w in warnings), warnings)
+        problems, _, _ = self.check([self.row()])
+        self.assertTrue(any("drops `;`" in p for p in problems), problems)
 
     def test_a_statement_with_no_literal_cannot_go_along(self):
         self.fold()
@@ -634,6 +665,10 @@ class ShapeCase(PluralFlagCase):
 
     def attempt(self, body, edits, rows, strings):
         self.repo.write(GRID, java_class("Grid", body))
+        # A test may build several bases: nothing of the last head's text or rows stays in this one.
+        self.repo.write("res/values/strings_test.xml", "<resources></resources>\n")
+        if os.path.exists(self.repo.path("l10n/ledger/b9.tsv")):
+            os.remove(self.repo.path("l10n/ledger/b9.tsv"))
         self.base = self.repo.commit("base")
         self.repo.write("res/values/strings_test.xml", strings)
         for old, new in edits:
@@ -646,36 +681,32 @@ class ShapeCase(PluralFlagCase):
 
 
 class FoldShapesTest(ShapeCase):
-    """Item 3: a manual row folds only an unconditional append to the local its sentence just set, with operands
-    that are the row's own. Whatever else it would delete is refused, whichever tokens the aligner kept."""
+    """A manual row deletes no second statement, whichever tokens the aligner kept."""
     STRINGS_AT = strings_xml(s_on_at="On • %1$s", s_on_late="On later %1$s", s_on_chain="On later • %1$s")
 
     def fold(self, body, old, call, pieces, key="s_on_at"):
         row = "%s:%d\t%s\t%s\ttemplate\t%s" % (GRID, self.line_of(body, '"On"'), json.dumps(pieces, ensure_ascii=False), key, TAG)
         return self.attempt(body, [(old, call)], [row], self.STRINGS_AT)
 
-    def test_a_call_in_the_append_passes(self):
+    def test_a_call_in_the_append_is_refused(self):
         body = """    static String tile(String t) {
         String state = "On";
         state += " • " + fmt(t);
         return state;
     }
     static String fmt(String t) { return t; }"""
-        problems, warnings, _ = self.fold(body, 'String state = "On";\n        state += " • " + fmt(t);', "String state = T.sOnAt(fmt(t));",
-                                          ["On", " • ", hole("fmt(t)", 1)])
-        self.assertEqual(problems, [])
-        self.assertTrue(any("deletes the whole statement" in w for w in warnings), warnings)
+        self.assertRefused(body, 'String state = "On";\n        state += " • " + fmt(t);', "String state = T.sOnAt(fmt(t));",
+                           ["On", " • ", hole("fmt(t)", 1)])
 
-    def test_the_b12_argument_passes(self):
+    def test_the_b12_argument_is_refused(self):
         clock = "DisplayTime.clock(host.activity(), preferences, charge.startWallMs)"
         body = """    static String tile(Host host, Prefs preferences, Charge charge) {
         String state = "On";
         state += " • " + %s;
         return state;
     }""" % clock
-        problems = self.fold(body, 'String state = "On";\n        state += " • " + %s;' % clock, "String state = T.sOnAt(%s);" % clock,
-                             ["On", " • ", hole(clock, 1)])[0]
-        self.assertEqual(problems, [])
+        self.assertRefused(body, 'String state = "On";\n        state += " • " + %s;' % clock, "String state = T.sOnAt(%s);" % clock,
+                           ["On", " • ", hole(clock, 1)])
 
     def assertRefused(self, body, old, call, pieces, key="s_on_at"):
         problems = self.fold(body, old, call, pieces, key)[0]
@@ -778,6 +809,21 @@ class FoldShapesTest(ShapeCase):
         return state;
     }""", 'String state = "On";\n        state += t + " • ";', "String state = T.sOnAt(t);", ["On", " • ", hole("t", 1)])
 
+    def test_an_operand_reading_the_local_is_refused(self):
+        self.assertRefused("""    static String tile(String t) {
+        String state = t;
+        state = "On";
+        state += state + " x";
+        return state;
+    }""", 'state = "On";\n        state += state + " x";', "state = T.sOnAt(state);", ["On", hole("state", 1), " x"])
+
+    def test_a_number_sum_is_refused(self):
+        self.assertRefused("""    static String tile(int n) {
+        String state = "On";
+        state += n + 1 + " x";
+        return state;
+    }""", 'String state = "On";\n        state += n + 1 + " x";', "String state = T.sOnAt(n, 1);", ["On", hole("n", 1), hole("1", 2), " x"])
+
     def test_a_field_is_refused(self):
         self.assertRefused("""    static String state;
     static String tile(String t) {
@@ -865,6 +911,135 @@ class ContextFactsTest(ShapeCase):
     }
     static void use(boolean b) { }
     static void refresh() { live = false; }""", "live")
+
+    def test_a_conjunct_beside_a_lower_or_is_no_fact(self):
+        # a && b || c holds with a false.
+        self.assertRefused(self.guarded("boolean a, boolean b, boolean c", "a && b || c"), "a")
+        self.assertRefused(self.guarded("boolean a, boolean b, boolean c", "c || a && b"), "a")
+
+    def test_a_conjunct_beside_a_ternary_is_no_fact(self):
+        self.assertRefused(self.guarded("boolean a, boolean b, boolean c, boolean d", "a ? b : c && d"), "d")
+
+    def test_a_grouped_or_is_still_a_conjunct(self):
+        self.assertEqual(self.settle(self.guarded("boolean a, boolean b, boolean c", "a && (b || c)"), "a"), [])
+
+    def test_a_grouped_and_under_an_or_settles_only_as_a_whole(self):
+        self.assertRefused(self.guarded("boolean a, boolean b, boolean c", "(a && b) || c"), "a")
+
+    def test_a_false_ternary_says_nothing_of_its_tail(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean b, boolean c, boolean d) {
+        if (a ? b : c || d) { return ""; } else { return @; }
+    }""", "d", "B")
+
+    def test_a_sentence_in_its_own_ifs_condition_is_not_under_it(self):
+        self.assertRefused("""    static boolean show(String s) { return true; }
+    static String f(boolean x, boolean a) {
+        if (show(@) && a) return "1";
+        return "";
+    }""", "a")
+        self.assertRefused("""    static boolean show(String s) { return true; }
+    static String f(boolean x, boolean a) {
+        if (a && show(@)) return "1";
+        return "";
+    }""", "a")
+
+    def test_a_sentence_in_an_inner_ifs_condition_keeps_the_outer_fact(self):
+        self.assertEqual(self.settle("""    static boolean show(String s) { return true; }
+    static String f(boolean x, boolean a) {
+        if (a) { if (show(@)) return "1"; }
+        return "";
+    }""", "a"), [])
+
+    def test_a_conjunct_settles_when_the_sentence_is_in_the_body(self):
+        self.assertEqual(self.settle(self.guarded("boolean a, boolean b", "b && a"), "a"), [])
+
+    def test_a_field_after_a_greater_than_is_not_declared(self):
+        fields = "    static int limit = 5;\n    static void bump() { limit = 0; }"
+        for before in ("boolean over = n > limit;", "if (n > limit) { }", "boolean o = f(n < 1, n > limit);"):
+            self.assertRefused("""    static boolean f(boolean a, boolean b) { return a; }
+    static String g(int n, boolean x) {
+        %s
+        if (limit > 3) {
+            bump();
+            return @;
+        }
+        return "";
+    }
+%s""" % (before, fields), "limit > 3")
+
+    def test_a_field_in_an_if_header_that_compares_it(self):
+        self.assertRefused("""    static int limit = 5;
+    static void bump() { limit = 0; }
+    static String f(int n, boolean x) {
+        if (n > limit) {
+            if (limit > 3) {
+                bump();
+                return @;
+            }
+        }
+        return "";
+    }""", "limit > 3")
+
+    def test_a_nested_classes_constant_is_not_the_field_outside_it(self):
+        self.assertRefused("""    static final class Cfg { static final boolean active = true; }
+    static boolean active = true;
+    static void off() { active = false; }
+    static String f(boolean x) {
+        if (active) {
+            off();
+            return @;
+        }
+        return "";
+    }""", "active")
+
+    def test_a_constant_named_in_a_class_not_around_it_is_refused(self):
+        self.assertRefused("""    static final class Cfg { static final boolean active = true; }
+    static String f(boolean x) {
+        if (active) {
+            return @;
+        }
+        return "";
+    }""", "active")
+
+    def test_a_later_mutable_declarator_of_the_name_is_refused(self):
+        self.assertRefused("""    static final class Cfg { static final boolean active = true;
+        static boolean other, active2;
+        static String f(boolean x) {
+            if (active2) { return @; }
+            return "";
+        }
+    }""", "active2")
+
+    def test_a_constant_read_in_a_compare_elsewhere_still_settles(self):
+        self.assertEqual(self.settle("""    static final int LIMIT = 3;
+    static String f(int n, boolean x) {
+        boolean over = n > LIMIT;
+        if (LIMIT > 1) {
+            return @;
+        }
+        return "";
+    }""", "LIMIT > 1"), [])
+
+    def test_a_parenthesized_assignment_is_seen(self):
+        self.assertRefused(self.guarded("boolean a", "a", "(a) = false;"), "a")
+        self.assertRefused(self.guarded("boolean a", "a", "((a)) = false;"), "a")
+        self.assertRefused(self.guarded("int a, boolean b", "a > 1", "(a)++;"), "a > 1")
+        self.assertRefused(self.guarded("int a, boolean b", "a > 1", "--(a);"), "a > 1")
+        self.assertRefused(self.guarded("int u", "Cfg.ON", "(Cfg.ON) = false;"), "Cfg.ON")
+
+    def test_an_else_through_a_label(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean c) {
+        String out = "";
+        if (a) lbl: if (c) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
+
+    def test_an_else_through_two_labels(self):
+        self.assertRefused("""    static String f(boolean x, boolean a, boolean c) {
+        String out = "";
+        if (a) one: two: if (c) out = "z"; else out = @;
+        return out;
+    }""", "a", "B")
 
     def test_an_else_through_a_while(self):
         self.assertRefused("""    static String f(boolean x, boolean a, boolean b, boolean c) {
@@ -1000,6 +1175,74 @@ class NullImplicationShapesTest(ShapeCase):
         if (ready) { } else { mode = m; }
         return %s;
     }""" % self.SENTENCE))
+
+    def test_a_conjunct_beside_a_lower_or_does_not_hold(self):
+        self.assertTrue(self.problems("""    static String s(boolean ready, boolean b, boolean c) {
+        String mode = null;
+        if (ready && b || c) mode = "m";
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_conjunct_beside_a_ternary_does_not_hold(self):
+        self.assertTrue(self.problems("""    static String s(boolean ready, boolean b, boolean c) {
+        String mode = null;
+        if (b ? c : c && ready) mode = "m";
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_whole_or_guard_settles_when_it_is_false(self):
+        # (ready || b) is what held, and the sentence does not know it false: nothing settles.
+        self.assertTrue(self.problems("""    static String s(boolean ready, boolean b) {
+        String mode = null;
+        if (ready || b) mode = "m";
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_an_assignment_in_the_condition_before_the_conjunct_does_not_hold(self):
+        self.assertTrue(self.problems("""    static String read() { return "z"; }
+    static String s(boolean ready) {
+        String mode = null;
+        if ((mode = read()) != null && ready) { }
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_an_assignment_in_the_condition_after_the_conjunct_does_not_hold(self):
+        self.assertTrue(self.problems("""    static String read() { return "z"; }
+    static String s(boolean ready) {
+        String mode = null;
+        if (ready && (mode = read()) != null) { }
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_parenthesized_assignment_outside_the_guard_is_seen(self):
+        self.assertTrue(self.problems("""    static String s(boolean ready) {
+        String mode = null;
+        if (ready) mode = "a";
+        (mode) = "b";
+        return %s;
+    }""" % self.SENTENCE))
+
+    def test_a_foreach_guard_changes_each_pass(self):
+        self.assertTrue(self.problems("""    static String s(boolean[] all) {
+        String mode = null;
+        String out = "";
+        for (boolean ready : all) {
+            if (ready) mode = "m";
+            out += %s;
+        }
+        return out;
+    }""" % self.SENTENCE))
+
+    def test_a_foreach_guard_over_a_null_of_its_own_pass_settles(self):
+        self.assertEqual(self.problems("""    static String s(boolean[] all) {
+        String out = "";
+        for (boolean ready : all) {
+            String mode = null;
+            if (ready) mode = "m";
+            out += %s;
+        }
+        return out;
+    }""" % self.SENTENCE), [])
 
     def test_a_local_null_in_a_closed_block_says_nothing_of_a_field(self):
         self.assertTrue(self.problems("""    static String mode = "z";
@@ -1140,6 +1383,25 @@ class ScopeTest(unittest.TestCase):
         self.assertFalse(self.scope("class C { void m(boolean a) throws E { } void n() { MARK(); } }", "a"))
         self.assertFalse(self.scope("class C { void m(boolean a) { } void n() { MARK(); } }", "a"))
 
+    def test_a_generic_type_declares(self):
+        for source in ("class C { void m(List<String> a) { MARK(); } }",
+                       "class C { void m(int n, Map<String, Integer> a) throws E { MARK(); } }",
+                       "class C { void m() { List<String> a = x(); MARK(); } }",
+                       "class C { void m() { final java.util.List<String> a = x(); MARK(); } }",
+                       "class C { void m(List<List<String>> all) { for (List<String> a : all) { MARK(); } } }",
+                       "class C { void m() { run((List<String> a) -> { MARK(); }); } }"):
+            self.assertTrue(self.scope(source, "a"), source)
+
+    def test_a_greater_than_does_not_declare(self):
+        for source in ("class C { void m(int n) { boolean o = n > a; MARK(); } }",
+                       "class C { void m(int n) { if (n > a) { MARK(); } } }",
+                       "class C { void m(int n) { o(n < 1, n > a); MARK(); } }",
+                       "class C { void m(int n) { if (o(n < 1, n > a)) { MARK(); } } }",
+                       "class C { void m(int n) { if (n < 1 && n > a) { MARK(); } } }",
+                       "class C { void m(int n) { new D(n < 1, n > a); MARK(); } }",
+                       "class C { void m(int n) { x = n > 0 ? n > a : b; MARK(); } }"):
+            self.assertFalse(self.scope(source, "a"), source)
+
     def test_no_declaration_at_all(self):
         self.assertFalse(self.scope("class C { void m() { a = true; MARK(); } }", "a"))
         self.assertFalse(self.scope("class C { void m() { outer: while (x) { continue a; MARK(); } } }", "a"))
@@ -1153,6 +1415,28 @@ class NoFactFromAFieldTest(unittest.TestCase):
         region = ledger_check._method_region(tokens, first)
         self.assertFalse(ledger_check._stable_condition(tokens, first, first, region, first))
         self.assertTrue(ledger_check._stable_condition(tokens, first + 2, first + 2, region, first + 2))
+
+    def test_a_ternary_or_a_bit_operator_is_one_fact(self):
+        lex = ledger_check.l10nlib.lex_java
+        facts = {}
+        ledger_check.assert_fact(lex("a ? b : c || d"), False, facts)
+        self.assertIs(ledger_check.evaluate_condition(lex("d"), facts, {}), None)
+        self.assertIs(ledger_check.evaluate_condition(lex("a ? b : c || d"), facts, {}), False)
+        facts = {}
+        ledger_check.assert_fact(lex("a ? b : c && d"), True, facts)
+        self.assertIs(ledger_check.evaluate_condition(lex("d"), facts, {}), None)
+        self.assertIs(ledger_check.evaluate_condition(lex("a ? b : c || d"), {("d",): True}, {}), None)
+        # (a != b) & c being false says nothing of (a == b) & c.
+        facts = {}
+        ledger_check.assert_fact(lex("a != b & c"), False, facts)
+        self.assertIs(ledger_check.evaluate_condition(lex("a == b & c"), facts, {}), None)
+
+    def test_conjuncts(self):
+        lex = ledger_check.l10nlib.lex_java
+        raw = lambda parts: [[t.raw for t in p] for p in parts]
+        self.assertEqual(raw(ledger_check._conjuncts(lex("a && (b || c) && d"))), [["a"], ["(", "b", "||", "c", ")"], ["d"]])
+        self.assertEqual(len(ledger_check._conjuncts(lex("a && b || c"))), 1)
+        self.assertEqual(len(ledger_check._conjuncts(lex("a ? b : c && d"))), 1)
 
     def test_the_facts_combine_as_java_does(self):
         lex = ledger_check.l10nlib.lex_java

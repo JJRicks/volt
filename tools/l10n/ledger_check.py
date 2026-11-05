@@ -1667,11 +1667,15 @@ def deleted_scope(diff, first, last):
         frame.update(range(head_first, opener + 1))
         frame.add(close)
         first, last = head_first, close
-        # An array table ends in ; after its }: `String[] NAMES = {...};` goes whole, with no call inside it to
-        # run or code that an anonymous class would hold. The aligner may keep this ; and drop the one before the
-        # statement instead (deleted_whole).
+        # An array table ends in ; after its }: `String[] NAMES = {...};` goes whole. One declarator, and nothing
+        # between the braces that can run: a call, an assignment or code that an anonymous class would hold. The
+        # aligner may keep this ; and drop the one before the statement instead (deleted_whole).
         if opener > 0 and tokens[opener - 1].kind == "op" and tokens[opener - 1].value == "=" and \
-                not any(tokens[j].kind == "op" and tokens[j].value == "(" for j in range(opener, close)) and \
+                all(tokens[j].kind == "ident" or (tokens[j].kind == "op" and tokens[j].value in ("[", "]", "."))
+                    for j in range(head_first, opener - 1)) and \
+                all(tokens[j].kind == "ident" or tokens[j].kind == "number" or tokens[j].kind in expressions.LITERALS or
+                    (tokens[j].kind == "op" and tokens[j].value in (",", "."))
+                    for j in range(opener + 1, close)) and \
                 close + 1 < len(tokens) and tokens[close + 1].kind == "op" and tokens[close + 1].value == ";" and \
                 (close + 1 in deleted or (head_first > 0 and head_first - 1 in deleted)):
             frame.add(close + 1)
@@ -3399,9 +3403,18 @@ def _strip_group(tokens):
     return tokens
 
 
+def _conjuncts(tokens):
+    """The parts that are each true when the condition is. `&&` binds tighter than `||` and `?:`, so
+    `a && b || c` and `a ? b : c && d` hold no conjunct but themselves."""
+    if len(_split_top(tokens, "||")) > 1 or len(_split_top(tokens, "?")) > 1:
+        return [tokens]
+    return _split_top(tokens, "&&")
+
+
 def _fact_key(tokens):
-    """(key, negated): a != b is the opposite of a == b, so both settle by one fact."""
-    if len(_split_top(tokens, "&&")) > 1 or len(_split_top(tokens, "||")) > 1 or len(_split_top(tokens, "?")) > 1:
+    """(key, negated): a != b is the opposite of a == b, so both settle by one fact. Only a lone comparison: anything
+    binding looser than == would leave the sign holding part of the condition."""
+    if any(len(_split_top(tokens, op)) > 1 for op in ("&&", "||", "?", "&", "|", "^")):
         return tuple(t.raw for t in tokens), False
     for sign, negated in (("==", False), ("!=", True)):
         sides = _split_top(tokens, sign)
@@ -3417,6 +3430,8 @@ def assert_fact(tokens, truth, facts):
         return
     key, negated = _fact_key(tokens)
     facts[key] = truth != negated
+    if len(_split_top(tokens, "?")) > 1:  # `a ? b : c || d` is one fact: its parts say nothing alone
+        return
     both, either = _split_top(tokens, "&&"), _split_top(tokens, "||")
     if len(either) > 1:
         if not truth:
@@ -3436,6 +3451,8 @@ def evaluate_condition(tokens, facts, implied):
     key, negated = _fact_key(tokens)
     if key in facts:
         return facts[key] != negated
+    if len(_split_top(tokens, "?")) > 1:
+        return None
     either = _split_top(tokens, "||")
     if len(either) > 1:
         values = [evaluate_condition(part, facts, implied) for part in either]
@@ -3546,8 +3563,8 @@ def _else_conditions(tokens, else_at, out):
         return False
     if opener is not None and close + 1 != opener:
         return False
-    if opener is None and _is_word(tokens, close + 1, *NESTS_A_STATEMENT):
-        return False
+    if opener is None and any(_is_word(tokens, j, *NESTS_A_STATEMENT) for j in range(close + 1, before)):
+        return False  # a label can stand first: `if (a) lbl: if (c) x; else`
     out.append((start + 2, close - 1, False))
     return True
 
@@ -3564,6 +3581,8 @@ def _prefix_conditions(tokens, first, limit, out):
         close = expressions.match_forward(tokens, j + 1)
         if close is None:
             return False
+        if close >= limit:  # what runs inside the condition runs before it is known
+            return True
         out.append((j + 2, close - 1, True))
         j = close + 1
     return True
@@ -3586,13 +3605,21 @@ def _guards(tokens, k, stop):
             return out
 
 
+def _assignment_at(tokens, first, last):
+    """True when the name at tokens first..last is what an assignment or step writes: `(a) = x` counts."""
+    before, after = first - 1, last + 1
+    while _op(tokens, before, "(") and _op(tokens, after, ")"):
+        before, after = before - 1, after + 1
+    return (after < len(tokens) and tokens[after].kind == "op" and tokens[after].value in ASSIGNMENTS) or \
+        _op(tokens, before, "++", "--")
+
+
 def _assigned(tokens, name, first, last):
     """True when name is assigned (or stepped) anywhere in first..last, its own declaration included."""
     for j in range(first, last + 1):
-        if tokens[j].kind == "ident" and tokens[j].value == name and not _op(tokens, j - 1, "."):
-            if (j + 1 <= last and tokens[j + 1].kind == "op" and tokens[j + 1].value in ASSIGNMENTS) or \
-                    (j > 0 and _op(tokens, j - 1, "++", "--")):
-                return True
+        if tokens[j].kind == "ident" and tokens[j].value == name and not _op(tokens, j - 1, ".") and \
+                _assignment_at(tokens, j, j):
+            return True
     return False
 
 
@@ -3630,25 +3657,84 @@ def _in_scope(tokens, decl, before):
     return True
 
 
+def _closes_declared_generic(tokens, close):
+    """True when the > at close ends the type of a declaration: `List<String> x;`, a parameter or a header's variable.
+    `n > limit;` and `f(a < b, c > limit)` read alike token by token, so the type must open the statement or a
+    list that really declares: a method's or lambda's parameters, for, catch or try."""
+    depth, j = 0, close
+    while j >= 0:
+        if _op(tokens, j, ">"):
+            depth += 1
+        elif _op(tokens, j, "<"):
+            depth -= 1
+            if depth == 0:
+                break
+        elif tokens[j].kind != "ident" and not _op(tokens, j, ",", ".", "?", "[", "]", "&"):
+            return False
+        j -= 1
+    j -= 1
+    if j < 0 or tokens[j].kind != "ident" or tokens[j].value in NOT_A_TYPE:
+        return False
+    while _op(tokens, j - 1, ".") and j >= 2 and tokens[j - 2].kind == "ident":
+        j -= 2
+    j -= 1
+    while _is_word(tokens, j, "final"):
+        j -= 1
+    if _op(tokens, j, ";", "{", "}"):
+        return True
+    depth = 0
+    while depth > 0 or not _op(tokens, j, "("):
+        if j < 0 or _op(tokens, j, ";", "{", "}"):
+            return False
+        depth += 1 if _op(tokens, j, ")") else -1 if _op(tokens, j, "(") else 0
+        j -= 1
+    if _is_word(tokens, j - 1, "for", "catch", "try"):
+        return True
+    end = expressions.match_forward(tokens, j)
+    if end is None or not (_op(tokens, end + 1, "{", "->") or _is_word(tokens, end + 1, "throws")):
+        return False
+    return _op(tokens, end + 1, "->") or (tokens[j - 1].kind == "ident" and tokens[j - 1].value not in NOT_METHOD_NAMES)
+
+
+def _declares(tokens, j):
+    """True when the name at token j reads as a declared name by what stands around it."""
+    if not _op(tokens, j + 1, "=", ",", ")", ";", ":"):
+        return False
+    if tokens[j - 1].kind == "ident":
+        return tokens[j - 1].value not in NOT_A_TYPE
+    return _op(tokens, j - 1, "]") or (_op(tokens, j - 1, ">") and _closes_declared_generic(tokens, j - 1))
+
+
 def _declaration(tokens, name, first, before):
     """Token index of the parameter or local name in scope at token before, declared in first..before, or None."""
     for j in range(before - 1, first, -1):
-        if tokens[j].kind == "ident" and tokens[j].value == name and _op(tokens, j + 1, "=", ",", ")", ";", ":") and \
-                ((tokens[j - 1].kind == "ident" and tokens[j - 1].value not in NOT_A_TYPE) or _op(tokens, j - 1, ">", "]")) \
-                and _in_scope(tokens, j, before):
+        if tokens[j].kind == "ident" and tokens[j].value == name and _declares(tokens, j) and _in_scope(tokens, j, before):
             return j
     return None
 
 
-def _constant_type(tokens, name):
-    """The declared type's last token of `static final Type name = ...` in this file, or None."""
+def _constant_type(tokens, name, at):
+    """The declared type's last token of `static final Type name = ...` in a class around token at, or None, also when
+    this file declares name in any other way: a nested class's constant says nothing of a same-named field outside it."""
+    found = None
     for j in range(1, len(tokens) - 1):
-        if tokens[j].kind == "ident" and tokens[j].value == name and _op(tokens, j + 1, "="):
-            header = tokens[_statement_first(tokens, j):j]
-            words = [t.value for t in header if t.kind == "ident"]
-            if "static" in words and "final" in words and tokens[j - 1].kind == "ident":
-                return tokens[j - 1].value
-    return None
+        if not (tokens[j].kind == "ident" and tokens[j].value == name and not _op(tokens, j - 1, ".")):
+            continue
+        words = [t.value for t in tokens[_statement_first(tokens, j):j] if t.kind == "ident"]
+        constant = "static" in words and "final" in words
+        if _op(tokens, j - 1, ",") and _op(tokens, j + 1, "=", ";", ","):  # a later declarator
+            if not constant and "(" not in [t.value for t in tokens[_statement_first(tokens, j):j] if t.kind == "op"]:
+                return None
+            continue
+        if not _declares(tokens, j):
+            continue
+        if not (constant and _op(tokens, j + 1, "=") and tokens[j - 1].kind == "ident"):
+            return None
+        opener = _enclosing_open(tokens, j)
+        close = expressions.match_brace(tokens, opener) if opener is not None else None
+        if close is not None and opener < at < close:
+            found = tokens[j - 1].value
+    return found
 
 
 def _class_constant(tokens, j, last):
@@ -3662,16 +3748,17 @@ def _class_constant(tokens, j, last):
     owner, member = tokens[j].value, tokens[j + 2].value
     for i in range(len(tokens) - 2):
         if tokens[i].value == owner and _op(tokens, i + 1, ".") and tokens[i + 2].value == member and \
-                ((tokens[i + 3].kind == "op" and tokens[i + 3].value in ASSIGNMENTS) or _op(tokens, i - 1, "++", "--")):
+                _assignment_at(tokens, i, i + 2):
             return False
     return True
 
 
-def _stable_condition(tokens, first, last, region, after):
+def _stable_condition(tokens, first, last, region, after, declared_before=None):
     """True when condition first..last means at the sentence what it meant where it was tested: it reads only
     constants (`static final` in this file, or Class.CONSTANT), and parameters or locals in scope and not assigned
     after token after. The one call allowed is equals on a String, a literal or a String local or constant: nothing
-    can change one, while a list or a builder held in a local can change through a call."""
+    can change one, while a list or a builder held in a local can change through a call. With declared_before, a
+    local must be declared before that token: a foreach variable changes each pass with no `=` to see."""
     j = first
     while j <= last:
         t = tokens[j]
@@ -3684,10 +3771,11 @@ def _stable_condition(tokens, first, last, region, after):
             j += 1
         elif t.kind == "ident":
             decl = _declaration(tokens, t.value, region[0], first)
-            if decl is not None and _assigned(tokens, t.value, after, region[1]):
+            if decl is not None and (_assigned(tokens, t.value, after, region[1]) or
+                                     (declared_before is not None and decl >= declared_before)):
                 return False
             if equals:
-                declared = tokens[decl - 1].value if decl is not None else _constant_type(tokens, t.value)
+                declared = tokens[decl - 1].value if decl is not None else _constant_type(tokens, t.value, j)
                 if declared != "String":
                     return False
                 j += 4
@@ -3695,7 +3783,7 @@ def _stable_condition(tokens, first, last, region, after):
                 if decl is not None or not _class_constant(tokens, j, last):
                     return False
                 j += 3
-            elif _op(tokens, j + 1, "(") or (decl is None and _constant_type(tokens, t.value) is None):
+            elif _op(tokens, j + 1, "(") or (decl is None and _constant_type(tokens, t.value, j) is None):
                 return False
             else:
                 j += 1
@@ -3716,16 +3804,16 @@ def _null_implications(tokens, region, before):
         name, common = tokens[j].value, None
         for a in range(j + 4, region[1] + 1):
             if not (tokens[a].kind == "ident" and tokens[a].value == name and not _op(tokens, a - 1, ".") and
-                    _assigned(tokens, name, a, a + 1)):
+                    _assignment_at(tokens, a, a)):
                 continue
             held = set()
             for first, last, truth in _guards(tokens, a, j):
                 if not truth:
                     continue
-                for part in _split_top(tokens[first:last + 1], "&&"):
+                for part in _conjuncts(tokens[first:last + 1]):
                     start = first + _token_offset(tokens[first:last + 1], part)
                     # From the declaration on: in a loop the guard can change after name was assigned under it.
-                    if _stable_condition(tokens, start, start + len(part) - 1, region, j):
+                    if _stable_condition(tokens, start, start + len(part) - 1, region, j, declared_before=j):
                         held.add(" ".join(t.raw for t in part))
             common = held if common is None else common & held
         if common:
@@ -3801,36 +3889,6 @@ def _names_stable(tokens, condition, region, decl, end):
     return False
 
 
-def folded_append(diff, k, row):
-    """True when base literal k is in `name += <operands>;` right after the statement that sets the String local name
-    with no condition, and the two statements' operands are, in order, the row's pieces. So the head call prints the same thing, whichever tokens the aligner kept against it (an argument's
-    `. ( )` may line up with the call's). An if, a return or a call the row does not pass is no such append."""
-    tokens = diff.base.tokens
-    first, _, terminator = statement_of(diff, k)
-    if terminator is None or not _op(tokens, terminator, ";") or tokens[first].kind != "ident" or \
-            not _op(tokens, first + 1, "+=") or not _op(tokens, first - 1, ";"):
-        return False
-    deleted = diff.changed_tokens()[0]
-    if first + 1 not in deleted or not (terminator in deleted or first - 1 in deleted):
-        return False
-    name = tokens[first].value
-    region = _method_region(tokens, first)
-    decl = _declaration(tokens, name, region[0], first) if region else None
-    if decl is None or tokens[decl - 1].value != "String":
-        return False
-    before = _statement_first(tokens, first - 1)
-    start = before + 1 if _is_word(tokens, before, "final") else before
-    start = start + 1 if _is_word(tokens, start, "String") else start
-    if not _is_word(tokens, start, name) or not _op(tokens, start + 1, "="):
-        return False
-    parts = [tokens[start + 2:first - 1], tokens[first + 2:terminator]]
-    wanted = [("s", part[0].value) if len(part) == 1 and part[0].kind == "string"
-              else ("h", expressions.source_key(" ".join(t.raw for t in part)))
-              for body in parts for part in _split_top(body, "+")]
-    return any([("s", p) if isinstance(p, str) else ("h", expressions.source_key(p["hole"])) if "hole" in p else None
-                for p in sequence] == wanted for sequence in sequences(row.pieces))
-
-
 def _with_noun(source, name, value):
     """A helper call's source with the local name replaced by the string value."""
     return " ".join(l10nlib.json_string(value) if t.kind == "ident" and t.value == name else t.raw
@@ -3902,7 +3960,7 @@ def choice_context(index, span, items, helpers):
     words = condition_words(resolved)
     facts = {}
     for first, last, truth in _guards(tokens, span[0], region[0]):
-        parts = _split_top(tokens[first:last + 1], "&&") if truth else [tokens[first:last + 1]]
+        parts = _conjuncts(tokens[first:last + 1]) if truth else [tokens[first:last + 1]]
         for part in parts:
             start = first + _token_offset(tokens[first:last + 1], part)
             if words.intersection(t.raw for t in part if t.kind == "ident") and \
@@ -4197,18 +4255,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 first, last = format_span
                 span = range(first, last + 1)
             elif row.kind in CATALOG_KINDS and is_manual:
-                first, last, terminator = statement_of(diff, k)
-                # A manual row may fold the one append that follows its sentence into its call (folded_append);
-                # that statement's ; goes too. Each one is listed.
-                if folded_append(diff, k, row):
-                    gone_statement = _excerpt(diff.base.tokens[first:terminator + 1], None)
-                    if terminator in diff.changed_tokens()[0]:
-                        last = terminator
-                    else:  # the aligner kept this ; and dropped the one before the statement
-                        first -= 1
-                    warnings.append("%s: manual row at %s:%d deletes the whole statement `%s`; check by hand that its "
-                                    "call prints what that statement added" % (
-                                        where, row.path, row.base_line, gone_statement))
+                first, last, _ = statement_of(diff, k)
                 span = range(first, last + 1)
             elif row.kind in CATALOG_KINDS:
                 first, last = diff.base.expression_of(k).span
