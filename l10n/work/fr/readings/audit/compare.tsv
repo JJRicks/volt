@@ -9,7 +9,7 @@ readings_value_unlocked	Unlocked	Déverrouillée	Unlocked	claude-opus	claude-opu
 readings_value_locked	Locked	Verrouillée	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	87dbfdaf23d30a191607ba7d97968c4a66d5b16a
 readings_chart_est_finish	Est. finish time	Heure de fin estimée	Estimated end time	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	7bf8bc9f82884042843ee4e2a158dced3f617a21
 readings_chart_est_countdown	Est. countdown time	Temps restant estimé	Estimated time remaining	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	2ab99da252841b4b7b48c16fc14942b7fb324816
-readings_chart_est_finish_limit	Est. finish at limit	Heure estimée à la limite	Estimated time at the limit	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	89a28598166682f90d93596f81f5f8a081698862
+readings_chart_est_finish_limit	Est. finish at limit	Heure de fin estimée (limite)	Estimated end time (limit)	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	c62739527cdbe7cb72bc06511cebaa59eeb87639
 readings_chart_est_countdown_limit	Est. countdown to limit	Temps estimé jusqu’à la limite	Estimated time until the limit	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	e1002d0f313cab53bfd11b23a382a17aa7897a6c
 readings_chart_charge_limit	Charge limit	Limite de recharge	Charging limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	956d9b5f0041e76a9bd278bc709041692d0bba37
 readings_chart_observed_finish	Observed finish	Fin observée	Observed end	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	c9913ccd36364bcc3d7456a7723695159734f2a0
