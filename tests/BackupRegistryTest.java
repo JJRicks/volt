@@ -33,6 +33,8 @@ public final class BackupRegistryTest {
         check(problems.isEmpty(),"every preference key, namespace and storage root is classified; "+String.join("; ",problems));
         // A registered key the current source never writes (another branch's key) is not a failure.
         check(BackupRegistry.rule("app_settings","ride_auto_stop")!=null&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings","ride_auto_stop")),"ride_auto_stop is registered with App preferences");
+        for(String key:new String[]{"ride_auto_export_route_csv","ride_auto_export_json"})check(BackupRegistry.rule("app_settings",key)!=null&&BackupRegistry.rule("app_settings",key).type==Boolean.class&&BackupRegistry.PREFERENCES.equals(BackupRegistry.category("app_settings",key)),key+" is registered with App preferences");
+        for(String key:new String[]{"ride_auto_export_folder","ride_auto_export_pending","ride_auto_export_problem"})check(BackupRegistry.rule("app_settings",key)!=null&&BackupRegistry.rule("app_settings",key).excluded(),key+" never leaves this phone");
         Map<String,String> planted=new TreeMap<>(files);
         planted.put("Planted.java","class Planted{void x(android.content.SharedPreferences p){p.edit().putString(\"brand_new_key\",\"x\").putBoolean(NEW_FLAG,true).apply();p.getInt(\"fresh_prefix_\"+3,0);}static final String NEW_FLAG = \"another_new_flag\";android.content.SharedPreferences q(android.content.Context c){return c.getSharedPreferences(\"new_namespace\",0);}java.io.File r(android.content.Context c){return new java.io.File(c.getFilesDir(),\"new-folder\");}}");
         List<String> found=scan(planted);

@@ -42,6 +42,10 @@
         <activity android:name=".BackupActivity" android:exported="false" android:resizeableActivity="true"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
+        <!-- The folder picker for automatic ride copies (RideAutoExport); no views of its own. -->
+        <activity android:name=".RideAutoExportPickerActivity" android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:configChanges="orientation|screenSize|smallestScreenSize|screenLayout|keyboardHidden|locale|layoutDirection" />
         <uses-library android:name="androidx.window.extensions" android:required="false" />
         <service android:name=".ScooterService" android:exported="false" android:stopWithTask="false"
             android:foregroundServiceType="connectedDevice|location" />

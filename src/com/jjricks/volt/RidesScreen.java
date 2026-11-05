@@ -1451,7 +1451,7 @@ public final class RidesScreen implements AppScreen {
                     host.saveFile(prefix + (which == 2 ? "-phone.csv" : "-motion.csv"), "text/csv", file);
                 } else {
                     RideStore.Summary summary = service.rides.get(track.id);
-                    host.saveText(prefix + "-combined.json", "application/json", "{\"scooter\":" + (summary == null ? "null" : summary.toJson()) + ",\"phone\":" + track.toJson() + "}");
+                    host.saveText(prefix + "-combined.json", "application/json", RideAutoExport.combinedJson(summary, track));
                 }
             } catch (IOException e) { host.toast(T.ridesToastExportFailed()); }
         }).setNegativeButton(T.commonCancel(), null).create(), DIALOG, null);

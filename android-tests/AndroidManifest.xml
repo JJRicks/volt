@@ -36,6 +36,7 @@
   <instrumentation android:name="com.jjricks.volt.tests.LearnedRangeValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated learned range validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RideBackupValidation" android:targetPackage="com.jjricks.volt" android:label="Disposable emulator ride archive and restore UI validation" />
   <instrumentation android:name="com.jjricks.volt.tests.RideAutoStopValidation" android:targetPackage="com.jjricks.volt" android:label="Isolated automatic ride end presentation validation" />
+  <instrumentation android:name="com.jjricks.volt.tests.RideAutoExportValidation" android:targetPackage="com.jjricks.volt" android:label="Automatic ride copies to a chosen folder, end to end on a disposable emulator" />
   <instrumentation android:name="com.jjricks.volt.tests.ReportInviteValidation" android:targetPackage="com.jjricks.volt" android:label="Compatibility report invite on the simulator" />
   <instrumentation android:name="com.jjricks.volt.tests.UpdateCheckValidation" android:targetPackage="com.jjricks.volt" android:label="Check for updates with GitHub stubbed" />
   <instrumentation android:name="com.jjricks.volt.tests.OwnerModelValidation" android:targetPackage="com.jjricks.volt" android:label="The owner's model answer names and pictures a scooter" />
