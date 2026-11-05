@@ -569,6 +569,42 @@ class BackupNounTest(PluralFlagCase):
         self.assertTrue(any("choice row at" in p for p in problems), problems)
 
 
+class ReplacesWhatTest(GrammarCase):
+    """Item 6: BackupArchive's what, a local read inside a branch of the sentence."""
+    FILES = {ARCHIVE: java_class("Archive", """    static String line(String category, String label, boolean empty, String names) {
+        String what = category.equals(BackupRegistry.DASHBOARDS) ? "layouts" : "settings";
+        return label + ": " + (empty ? "nothing to replace" : "replaces " + what + " for " + names);
+    }""")}
+    STRINGS = """<resources>
+<string name="s_nothing">%1$s: nothing to replace</string>
+<string name="s_layouts">%1$s: replaces layouts for %2$s</string>
+<string name="s_settings">%1$s: replaces settings for %2$s</string>
+</resources>
+"""
+    HEAD = ("empty ? T.sNothing(label) : category.equals(BackupRegistry.DASHBOARDS) ? T.sLayouts(label, names) "
+            ": T.sSettings(label, names)")
+
+    def row(self, then="layouts"):
+        return choice_row(6, {"if": "empty", "then": [hole("label", 1), ": ", "nothing to replace"],
+                              "else": {"if": "category.equals(BackupRegistry.DASHBOARDS)",
+                                       "then": [hole("label", 1), ": ", "replaces ", then, " for ", hole("names", 2)],
+                                       "else": [hole("label", 1), ": ", "replaces ", "settings", " for ", hole("names", 2)]}},
+                          ("s_nothing", "s_layouts", "s_settings"), ARCHIVE)
+
+    def convert(self):
+        self.edit(ARCHIVE, 'label + ": " + (empty ? "nothing to replace" : "replaces " + what + " for " + names)', self.HEAD)
+        self.edit(ARCHIVE, '        String what = category.equals(BackupRegistry.DASHBOARDS) ? "layouts" : "settings";\n', "")
+
+    def test_each_sentence_passes(self):
+        self.convert()
+        self.assertEqual(self.check([self.row()])[0], [])
+
+    def test_the_words_swapped_fail(self):
+        self.convert()
+        problems = self.check([self.row("settings")])[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+
 class NoFactFromAFieldTest(unittest.TestCase):
     def test_a_field_is_not_stable(self):
         tokens = ledger_check.l10nlib.lex_java("class C { void m(boolean a) { if (f && a) { x(); } } }")

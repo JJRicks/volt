@@ -287,6 +287,30 @@ def qualified_text_problems(entries, allow_pseudo=False):
     return problems
 
 
+def pseudo_quirks(entries):
+    """Lines naming the en-XA text aapt's pseudo-localizer left without its closing bracket.
+
+    aapt --pseudo-localize reads a % that opens no format specifier as if one ran to the end of the text, so
+    "Battery %" (formatted="false", or a key with no placeholders) compiles to "[βåţţéŕý »%": it pads before the %
+    and never writes the closing ]. Only the en-rXA configuration has this; the default English is compared above
+    and ar-rXB wraps its text another way. A layout check that sees the missing bracket is looking at this, not at a
+    string cut short by the screen, so the build names each key.
+    """
+    lines = []
+    for entry in entries:
+        if entry.config != "en-rXA" or entry.type_name not in ("string", "plurals"):
+            continue
+        values = [("", entry.value)] if entry.type_name == "string" else sorted((entry.bag or {}).items())
+        for quantity, value in values:
+            text = value.text if value is not None else None
+            if text and text.startswith("[") and "]" not in text:
+                cause = "aapt reads its bare % as a format specifier and drops the closing ]" if "%" in text else \
+                    "not aapt's known bare % case: look at this key"
+                lines.append("%s/%s%s en-XA is %r: %s; en-XA only" % (
+                    entry.type_name, entry.name, "[%s]" % quantity if quantity else "", text, cause))
+    return lines
+
+
 def compiled_english(entries):
     """({(kind, name, quantity): Value}, problems) for default-configuration strings and plurals."""
     result, problems = {}, []
@@ -418,6 +442,8 @@ def main(argv=None):
             return 0
         compiled, problems = compiled_english(entries)
         problems += qualified_text_problems(entries, args.allow_pseudo)
+        for line in pseudo_quirks(entries) if args.allow_pseudo else ():
+            print("roundtrip: note: " + line)
         if args.guard:
             for problem in problems:
                 print("roundtrip: " + problem, file=sys.stderr)

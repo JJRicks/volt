@@ -6,6 +6,7 @@ import os
 import shutil
 import sys
 import tempfile
+import types
 import unittest
 import zipfile
 
@@ -28,6 +29,15 @@ def qualified_bytes(name):
 def fixture_bytes(name):
     with open(os.path.join(AAPT, name), "rb") as handle:
         return handle.read()
+
+
+
+def mock_value(text):
+    return types.SimpleNamespace(text=text)
+
+
+def mock_entry(type_name, config, name, value=None, bag=None):
+    return types.SimpleNamespace(type_name=type_name, config=config, name=name, value=value, bag=bag)
 
 
 class FixtureTest(unittest.TestCase):
@@ -121,6 +131,23 @@ class FixtureTest(unittest.TestCase):
                          "pseudo-localization leaves the default English alone")
         xa = [e for e in pseudo if e.config == "en-rXA" and e.name == "ok_plain"][0]
         self.assertNotEqual(xa.value.text, "Lock scooter")
+
+    def test_pseudo_quirks_name_the_key_and_the_cause(self):
+        value = mock_value
+        entries = [mock_entry("string", "en-rXA", "battery", value=value("[βåţţéŕý »%")),
+                   mock_entry("string", "en-rXA", "fine", value=value("[ƒîñé öñé]")),
+                   mock_entry("string", "en-rXA", "fine_percent", value=value("[%1$s ƒîñé öñé]")),
+                   mock_entry("string", "en-rXA", "cut", value=value("[çûţ")),
+                   mock_entry("string", "ar-rXB", "battery", value=value("Battery %")),
+                   mock_entry("string", "default", "battery", value=value("Battery %")),
+                   mock_entry("plurals", "en-rXA", "n", bag={"one": value("[%1$d öñé]"), "other": value("[%1$d »%")})]
+        lines = roundtrip.pseudo_quirks(entries)
+        self.assertEqual(len(lines), 3, lines)
+        self.assertIn("string/battery en-XA", lines[0])
+        self.assertIn("reads its bare %", lines[0])
+        self.assertIn("string/cut en-XA", lines[1])
+        self.assertIn("not aapt's known bare % case", lines[1])
+        self.assertIn("plurals/n[other] en-XA", lines[2])
 
     def test_cli_with_apk(self):
         work = tempfile.mkdtemp(prefix="l10n-roundtrip-")

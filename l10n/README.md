@@ -373,23 +373,39 @@ How `ledger_check.py` (G1) reads it:
   `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
-- **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
-  summary picks words in a local and uses it later. For a merge, `perScooter` sets
-  `String what = ... ? "layouts" : "settings";` then adds the Dashboards and Scooter preferences
-  lines, `label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + ...)`
-  (BackupArchive.java lines 667-668 since B10, 656-657 before), and `recordings` sets
-  `String noun = charges ? "charge" : "ride";` then adds the rides and charges lines for what is
-  skipped: `plural(full, noun) + " skipped · " + ...`,
-  `plural(notRestored, noun) + " skipped · scooter not restored"` and
-  `plural(unreadable, noun) + " skipped · unreadable"` (lines 721-725 since B10, 710-714 before).
-  The Review page (B11) shows these lines in English. A choice row's condition must sit in the
-  row's expression, and a helper's text argument is a literal or a hole, so a hole for `noun`
-  renders a fragment, not a sentence: the whole-sentence conversion
-  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
-  the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
-  piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence
-  still has no row form. These lines stay English until a tooling pull request both models a local
-  whose initializer is a ternary of literals and lets a choice row's branches be plural rows.
+- **A helper argument or a choice set on an earlier line** (until round T1, "Still blocked: a helper
+  argument or a choice set on an earlier line"). A choice row may settle what its sentence's own
+  conditions do not, and each thing it uses is listed in the row's warning:
+  - `String word = ready ? "Connected" : "Off";` before the sentence: `word`, or the noun of
+    `plural(n, noun)`, reads as that choice. The local must be declared once, as one declarator, in a
+    block around the sentence and never assigned again, and its conditions may read only constants and
+    parameters or locals that never change after it (`x.equals(y)` is the one call). Its strings
+    leave only with the whole statement, and several rows may read them; while another sentence still
+    reads the local, it stays, with its strings.
+  - The `if` and `else` around the sentence: under `if (connecting) ...; else status.setText(...)`
+    `connecting` is false, when its names are locals not assigned after that test.
+  - `String mode = null;` assigned only inside `if (ready && ...)`: where `ready` is false,
+    `mode != null` is false. Only conjuncts of an `if` around every assignment count.
+
+  The row's conditions must still be the head ternary's, token for token, and each branch must be
+  exactly the sentence with those facts in. Anything else stays a hole, so the branch fails and shows
+  the difference. The first check is the old one, with no facts: a row it passes never reaches this.
+  A row with conditions the sentence does not read (nothing local, around it or null) still fails.
+- A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
+  one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
+  own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
+  branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
+  "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
+- A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
+  count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
+  a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
+- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
+  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
+  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A manual row or `removed` row takes the `;` of a statement it deletes whole: an array table
+  (`String[] LABELS = {...};`, every string with a `removed` row) or a second statement a manual row
+  folds into its template (`state += " • " + t;`, listed as "deletes the whole statement"). Other
+  statements beside them stay outside the row.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -822,7 +838,13 @@ worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 bracketed, longer) and ar-XB (right-to-left). The build checks that the resource ids are unchanged
 and that both configurations are present. Every build runs a release guard on `dist/volt.apk`:
 `aapt dump configurations` must not list en-XA or ar-XB, and no text may sit in an English or
-non-locale configuration. Known aapt1 quirk: a trailing `%` is mangled (`75%` becomes `[75»%`).
+non-locale configuration.
+
+Known aapt quirk, en-XA only: the pseudo-localizer reads a `%` that opens no format specifier as if
+one ran to the end of the text, so `Battery %` compiles to `[βåţţéŕý »%` with no closing `]` (seven
+keys, `rides_chart_battery` among them; the default English and ar-XB are not touched). It is the
+compiler's output, with no flag to change it, so the pseudo build names each key as a
+`roundtrip: note:` line with this cause, and any bracket lost for another reason as its own note.
 
 ## Census format (G7)
 
