@@ -1,0 +1,5 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+maps_consent_title	Show online map?	Tampilkan peta online?	Show online map?	claude-opus	claude-opus-5-5	9d5d38d3390d33f87884334bad629831625fab66	1b0f379a3a61a3f589a6f1b3e5c8802ff01aa8a6
+maps_consent_message	Provider sees your IP and map area. Rides stay on phone.	Penyedia melihat alamat IP dan area peta Anda. Perjalanan tetap di ponsel.	The provider sees your IP address and map area. Rides stay on the phone.	claude-opus	claude-opus-5-5	b826270566cbba2f841d30cf31ced27900e91af0	da3a6261995a15cb0c29b6d02d292b69bc792824
+maps_consent_enable	Enable basemap	Aktifkan peta dasar	Activate base map	claude-opus	claude-opus-5-5	bb9ac0845ace7f8b7f2e08bf11f66831ce335172	fdf6dd792b5a5daf0acd8f75463ba09ac539f50f

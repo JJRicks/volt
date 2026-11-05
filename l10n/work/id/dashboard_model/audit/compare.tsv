@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN & jarak dekat	PIN & close distance	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	caee94323a61817cf301b0af33496a143cb2e91a
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN & jarak dekat	PIN & close distance	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	caee94323a61817cf301b0af33496a143cb2e91a
+dashboard_model_qa_experimental	Experimental controls	Kontrol eksperimental	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	d783cbd9fb3c80a08881eaea6a2bee755bbd94ad
+dashboard_model_qa_experimental_short	Experimental controls	Kontrol eksperimental	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	d783cbd9fb3c80a08881eaea6a2bee755bbd94ad
+dashboard_model_qa_charge_done_by	Charge done by	Target selesai isi daya	Target finish charging	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	2ca736634382dda2232c02a2f30baddaa3a9d3dc
+dashboard_model_qa_charge_done_by_short	Charge done by	Target selesai	Target finished	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	efa5947e8032404fbfcb9df439a854fa35b64e58
+dashboard_model_qa_charge_done_time	Charge done by time	Waktu target selesai isi daya	Target time finish charging	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	79ef2621d5a0c9a082c0895124e86abf5c17825a
+dashboard_model_qa_charge_done_time_short	Charge done by time	Waktu target selesai	Target finish time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	b6b1ba37b30f2466d0248d9c7b41e8aa7d11fa97
+dashboard_model_qa_group_experimental	Experimental controls	Kontrol eksperimental	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	d783cbd9fb3c80a08881eaea6a2bee755bbd94ad
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Jadwal isi daya	Charging schedule	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	7c628e060745cdd6c55535bf7508b2bbde1c6768
+dashboard_model_tile_measuring	Measuring	Mengukur	Measuring	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	89f7a60894590677441e92ba6b52dedf0be433cc
+dashboard_model_tile_on_at	On • %1$s	Aktif • %1$s	Active • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	832d7e08fecc73b114c603796af5740de0dde766
+dashboard_model_tile_not_scheduled	Not scheduled	Tidak dijadwalkan	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	b2d358335a790bf80f1c23fce1ae3ab816024193
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Pilih skuter terlebih dahulu	Select scooter first	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	131a12cadfebd9cdb932b9540864a8522569c2e2
+dashboard_model_tile_connect_scooter	Connect your scooter first	Hubungkan skuter terlebih dahulu	Connect scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	324262e2d6d72408e5c5aae5a902bda7ef0de2e2
+dashboard_model_type_lock	Lock & connection	Kunci & koneksi	Lock & connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	eb6bceceaeaca0cfb6beac1ec88fcb06f642c8ee
+dashboard_model_type_charging	Charging	Pengisian daya	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	bc799b501b41436f2d5a0a2a3d4586eebd454ac2
+dashboard_model_type_lockbar	Lock bar	Baris kunci	Lock row	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	d9705fa8a86c262198ff91fc202c7131f72aa265
