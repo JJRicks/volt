@@ -94,21 +94,21 @@
     <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Batteri %1$s procent, %2$s</string>
     <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Batteri %1$s procent, %2$s, senast avläst: %3$s</string>
     <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Batteri: ingen uppgift, laddar</string>
-    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Batteri: ingen uppgift, laddar, senast avlästa värdet</string>
+    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Batteri: ingen uppgift, laddar, senast avläst värde</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Batteri: ingen uppgift</string>
-    <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Batteri: ingen uppgift, senast avlästa värdet</string>
+    <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Batteri: ingen uppgift, senast avläst värde</string>
     <string name="dashboard_cell_not_reported_line_charging" volt:src="b818a95b97127508541752d12c55c336683f0534">Batteri: ingen uppgift, %1$s, laddar</string>
-    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Batteri: ingen uppgift, %1$s, laddar, senast avlästa värdet</string>
+    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Batteri: ingen uppgift, %1$s, laddar, senast avläst värde</string>
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Batteri: ingen uppgift, %1$s</string>
-    <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Batteri: ingen uppgift, %1$s, senast avlästa värdet</string>
+    <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Batteri: ingen uppgift, %1$s, senast avläst värde</string>
     <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Batteri %1$s procent, laddar</string>
-    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Batteri %1$s procent, laddar, senast avlästa värdet</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Batteri %1$s procent, laddar, senast avläst värde</string>
     <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Batteri %1$s procent</string>
-    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Batteri %1$s procent, senast avlästa värdet</string>
+    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Batteri %1$s procent, senast avläst värde</string>
     <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Batteri %1$s procent, %2$s, laddar</string>
-    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Batteri %1$s procent, %2$s, laddar, senast avlästa värdet</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Batteri %1$s procent, %2$s, laddar, senast avläst värde</string>
     <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Batteri %1$s procent, %2$s</string>
-    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Batteri %1$s procent, %2$s, senast avlästa värdet</string>
+    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Batteri %1$s procent, %2$s, senast avläst värde</string>
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, senast avläst: %3$s</string>
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -124,15 +124,15 @@
     <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Spela in tur. Sparar den senaste turen</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Starta inspelning</string>
     <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Spela in tur. Ansluter</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Spela in en tur. Anslut till elsparkcykeln</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Spela in tur. Anslut till elsparkcykeln</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Exempel</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 turer · %1$s–%2$s %3$s</string>
     <string name="dashboard_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Ingen elsparkcykel konfigurerad</string>
     <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Uppdaterar inspelade turer…</string>
-    <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Senaste uppskattning · kan inte uppdateras</string>
-    <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Uppskattning inte tillgänglig</string>
-    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Inte tillräckligt med data från turer</string>
+    <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Senaste beräkning · kan inte uppdateras</string>
+    <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Beräkning inte tillgänglig</string>
+    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Inte tillräckligt med turdata</string>
     <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">Turer: %1$s · %2$s–%3$s %4$s</string>
     <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">Turer: %1$s · använda procentenheter: %2$s</string>
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s %% av %2$s %3$s</string>
@@ -141,17 +141,17 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Period</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Turer som behövs</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervall (90 %)</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ah per full batterimätare</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ah per 100 % på batterimätaren</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Laddningskontroll</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Täckning</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Batteritemperatur</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Avvisade</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Indirekt mått: kan ge för högt värde; inte batterihälsa.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi som dina turer förbrukade per full batterimätare. Inte ett test av batterihälsa eller kapacitet.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Användbar energi för turer</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi som dina turer förbrukade per 100 % på batterimätaren. Inte ett test av batterihälsa eller kapacitet.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Användbar körenergi</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Exempel · %1$s</string>
-    <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Inga sparade mätvärden än</string>
+    <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Inga sparade mätvärden ännu</string>
     <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Elsparkcykelns beräknade återstående räckvidd</string>
     <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Lägg till %1$s</string>
     <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Lägg till %1$s, experimentell</string>
@@ -170,7 +170,7 @@
     <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Uppgiven kapacitet</string>
     <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Skalans minimum</string>
     <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Skalans maximum</string>
-    <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Period för data från turer</string>
+    <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Period för turdata</string>
     <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Tidsperiod</string>
     <string name="dashboard_y_axis" volt:src="6f9667133aab1ca864bef89670c9226eead24efa">Y-axel</string>
     <string name="dashboard_relative" volt:src="0f8072d7f37218550c680263ed85186346eca1f9">Relativ</string>
@@ -187,7 +187,7 @@
     </plurals>
     <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s av %2$s</string>
     <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
-        <item quantity="one">%1$d av %2$d genväg</item>
+        <item quantity="one">%1$d av %2$d genvägar</item>
         <item quantity="other">%1$d av %2$d genvägar</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Ändra genväg %1$s, %2$s</string>
@@ -217,7 +217,7 @@
     <string name="dashboard_set_comparison" volt:src="8f2ce90b3077f4e92315c71c9dcdfbde07024b34">Ställ in jämförelsevärde</string>
     <string name="dashboard_capacity_hint" volt:src="25459a0f7901eb1174287e90b1c178cecc4f112e">716 Wh · UT5 MAX</string>
     <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Uppgiven kapacitet i wattimmar</string>
-    <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Använd modellens märkkapacitet</string>
+    <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Använd modellens nominella kapacitet</string>
     <string name="dashboard_capacity_limit" volt:src="e950ce1d44324dbddf531e00ddfb58ba4b0603f5">0–10 000 Wh</string>
     <string name="dashboard_search_parameters" volt:src="a0d40f931c452fcc977d655b79ae45ec2e945478">Sök parametrar</string>
     <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Välj parameter</string>
@@ -257,13 +257,13 @@
     <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Återställ plats %1$s, %2$s</string>
     <string name="dashboard_layout_name" volt:src="1511f633afa568e0f73e0bb2de30e3e26f2ad48f">Namn på layout</string>
     <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Namn på sparad layout</string>
-    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Ersätt plats %1$s?</string>
-    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Spara på plats %1$s?</string>
+    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Vill du ersätta plats %1$s?</string>
+    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Vill du spara på plats %1$s?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Ersätt</string>
     <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Det gick inte att spara layouten. Försök igen.</string>
     <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Sparad på plats %1$s</string>
-    <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Återställ ”%1$s”?</string>
-    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Din layout och inställningen för kolumner ersätts på alla elsparkcyklar.</string>
+    <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Vill du återställa ”%1$s”?</string>
+    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Din layout och kolumninställningen ersätts på alla elsparkcyklar.</string>
     <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Det gick inte att återställa. Inget har ändrats.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">”%1$s” återställdes</string>
 </resources>

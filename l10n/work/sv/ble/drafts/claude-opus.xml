@@ -27,11 +27,11 @@
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Firmwaren stöds inte</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Elsparkcykeln känns inte igen</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Inte den sparade elsparkcykeln</string>
-    <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Det här är %1$s. Välj den under Mina elsparkar, eller sök efter din nya elsparkcykel.</string>
+    <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Det här är %1$s. Välj den under Mina elsparkcyklar, eller sök efter din nya elsparkcykel.</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Signalen bröts</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Ändringen bekräftades inte</string>
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · försöker igen</string>
-    <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · ändringen avbröts</string>
+    <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · Volt slutade vänta på ändringen</string>
     <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · ändringen bekräftades inte</string>
     <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · ansluter igen för att bekräfta</string>
     <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Elsparkcykeln kan ha startat om Bluetooth · ansluter igen för att bekräfta</string>
@@ -47,7 +47,7 @@
     <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">Modell-ID hämtat</string>
     <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID inte hämtat</string>
     <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Stoppa inspelningen först</string>
-    <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Vänta tills den aktuella ändringen är klar.</string>
+    <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Vänta tills den pågående ändringen är klar.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Stoppa kompatibilitetskontrollen först</string>
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Anslut till elsparkcykeln först</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Vänta på en ny anslutning till elsparkcykeln.</string>
@@ -62,7 +62,7 @@
     <string name="ble_charge_start_confirmed" volt:src="fedbcf711b90e26341bc2f742f7b85c7abdfefe2">Starttiden för laddning bekräftades.</string>
     <string name="ble_setting_confirmed" volt:src="3e509dc08ecbe51d4effef6fb4ba219cd323d95a">Inställningen %1$s bekräftades.</string>
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s bekräftades.</string>
-    <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Klockan skickades (inte verifierad)</string>
+    <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Tiden skickades (inte verifierad)</string>
     <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Läs PIN-status och parkoppla sedan den här telefonen.</string>
     <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Ställ in och slå på PIN-koden på styret innan du parkopplar för närhetsupplåsning.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Den här telefonen är redan parkopplad med din elsparkcykel.</string>
@@ -81,12 +81,12 @@
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Slutför det guidade testet först</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Kompatibilitetskontrollen stoppades</string>
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Kompatibilitetskontrollen är klar</string>
-    <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Slutför först det du provar just nu</string>
+    <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Slutför det pågående försöket först</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testuppgifterna är inte tillgängliga</string>
-    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Granska först det du provade utan att slutföra</string>
+    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Granska det oavslutade försöket först</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Inget att ställa tillbaka</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Det gick inte att ställa tillbaka. Inget ändrades.</string>
-    <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Slutför det aktuella testet först</string>
+    <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Slutför det pågående testet först</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Testet hittades inte</string>
     <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Det gick inte att börja ställa tillbaka värdet. Inget ändrades.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Bekräftad</string>

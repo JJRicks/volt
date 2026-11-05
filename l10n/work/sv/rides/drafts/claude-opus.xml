@@ -5,7 +5,7 @@
     <string name="rides_live_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Frånkopplad</string>
     <string name="rides_live_power_now" volt:src="9afa9d3c1e3f7ceba6c4539bcfc4697d7282adba">W nu</string>
     <string name="rides_live_battery" volt:src="f837028fb81f56db8fce1193c854d72fff524222">batteri</string>
-    <string name="rides_recovered_gap" volt:src="04ee1464bede6d1cd631c4262e63efc9143ba461">Återhämtad · luckan inte medräknad</string>
+    <string name="rides_recovered_gap" volt:src="04ee1464bede6d1cd631c4262e63efc9143ba461">Återupptagen · luckan inte medräknad</string>
     <string name="rides_live_chart_title" volt:src="484564a71bc8b63d78393b7d4bf14457d3a3dc78">Diagram över pågående inspelning</string>
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Effekt</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Hastighet</string>
@@ -46,7 +46,7 @@
     <string name="rides_not_measured" volt:src="fe4f5c08c3f5bbd09d619f5f92877a61a198700a">Inte uppmätt</string>
     <string name="rides_storage_unavailable" volt:src="174d1b257014b09dbccf3aefdb54f6b30d1d0eca">Lagringen för turer är inte tillgänglig</string>
     <string name="rides_show_more" volt:src="92997935cc07211589521ca0fd4e90e08418cb28">Visa fler inspelningar</string>
-    <string name="rides_no_rides_yet" volt:src="baddce1cfb732fa0b4903ce739fcbe19a136cbfc">Inga turer än</string>
+    <string name="rides_no_rides_yet" volt:src="baddce1cfb732fa0b4903ce739fcbe19a136cbfc">Inga turer ännu</string>
     <string name="rides_history_unreadable" volt:src="bcf3000514915f3e10197d95080678471ab36ada">Det gick inte att läsa sparade turer</string>
     <string name="rides_compare_two_selected" volt:src="98613115f1c523bc7cede0c0bf60d3145806bf34">Jämför två turer, 2 turer valda</string>
     <string name="rides_toast_compare_needs_two" volt:src="037abcb59e7daef3ab37b93571ed3312d127037f">Spara två turer för att jämföra dem.</string>
@@ -60,15 +60,15 @@
     <string name="rides_rename_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Spara</string>
     <string name="rides_rename_empty" volt:src="3d7328db52cc5b0b00f7050421fa824c8bd9a873">Ange ett namn</string>
     <string name="rides_toast_rename_failed" volt:src="0cb515d165bbf605ae755c55d6bc7b7b5ea7ffa7">Det gick inte att byta namn på den här turen.</string>
-    <string name="rides_journey" volt:src="6dbf0d7baed8b711fa2af624e772a43931b4a287">Färd</string>
+    <string name="rides_journey" volt:src="6dbf0d7baed8b711fa2af624e772a43931b4a287">Turen</string>
     <string name="rides_tile_distance" volt:src="8bc308e584d95cb7b04f508d75f91e3992f19705">Sträcka</string>
     <string name="rides_tile_duration" volt:src="1746de74250a7b81835e2d91c032e099fca5d223">Tid</string>
     <string name="rides_tile_avg_speed" volt:src="f5318811729e6b04a5d4ef166cf9a1b7342d6e03">Medelhastighet</string>
     <string name="rides_tile_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Toppfart</string>
     <string name="rides_reason_odometer_reset" volt:src="d0627952bee838eaf46325575b5a50830674b41f">Vägmätare nollställd</string>
     <string name="rides_battery_energy" volt:src="212c96ac43105bc54ba5d9f1e4c48ae8c60f9722">Batteri och energi</string>
-    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Batteriökning</string>
-    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Batteriminskning</string>
+    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Ökad batterinivå</string>
+    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Minskad batterinivå</string>
     <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Per körd sträcka</string>
     <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Omsatt energi</string>
     <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Täckning av effektdata</string>
@@ -77,8 +77,8 @@
     <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Rutten är inte tillgänglig</string>
     <string name="rides_readings_title" volt:src="4e02ae3baa7de7657a0a92544870bd9dd4bdd990">Mätvärden för turen</string>
     <string name="rides_loading" volt:src="d34759349252de47e5944d7abac2e2dec226cdd7">Läser in…</string>
-    <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Expandera</string>
-    <string name="rides_chart_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Anpassa</string>
+    <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Fäll ut</string>
+    <string name="rides_chart_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Visa allt</string>
     <string name="rides_chart_zoom_out" volt:src="1ab878a130ac7f96258d81121954840b6dcea335">Zooma ut diagrammet för turen</string>
     <string name="rides_chart_fit_description" volt:src="23f9cf032c2ca0d2a429c7dcd33f06c5a6c73ba6">Visa hela turen i diagrammet</string>
     <string name="rides_chart_zoom_in" volt:src="c2573617bb451efe6809ef5e762ebaed8c3612ae">Zooma in diagrammet för turen</string>
@@ -107,7 +107,7 @@
     <string name="rides_unobserved_power" volt:src="7e432ce9712eb77e8e857793b41d864a840b3724">Tid utan effektdata</string>
     <string name="rides_samples_gaps" volt:src="b589694e116ed9cdca7b77ac7452ba9ae2011746">Mätpunkter / luckor</string>
     <string name="rides_moving_stationary" volt:src="869f1a4cf4a088eee18d95ceab397aff489c4148">I rörelse / stillastående</string>
-    <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Omsatt energi i rörelse</string>
+    <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Omsatt energi under körning</string>
     <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Omsatt energi vid stillastående</string>
     <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Rörelse okänd</string>
     <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Spänning min / max</string>
@@ -124,7 +124,7 @@
     <string name="rides_reason_no_odometer" volt:src="d3f039e9f5a1e9deb5f3016da541a4c4e1f48622">Ingen sträcka från vägmätaren</string>
     <string name="rides_reason_too_short" volt:src="2d1cab3cec98af1473368e4b9024e7f52af96406">För kort</string>
     <string name="rides_reason_low_coverage" volt:src="356a228db1b025cf3ee84525e9f6f329304e68af">Täckning &lt;80 %</string>
-    <string name="rides_empty_none" volt:src="3495431c51d8cc68e545a2cfc2c76ff758d9f28f">Ingen tur att visa än</string>
+    <string name="rides_empty_none" volt:src="3495431c51d8cc68e545a2cfc2c76ff758d9f28f">Ingen tur att visa ännu</string>
     <string name="rides_empty_unreadable" volt:src="2dd3c4216cd450e9fb62091dcc08631184423522">Det gick inte att läsa sparade turer</string>
     <string name="rides_phone_files" volt:src="5858480413917411f54b1e8e5ab5e5cb3f143954">Datafiler från telefonen</string>
     <string name="rides_phone_files_description" volt:src="649ddb071fa0b74ff87a51456a657cd49415095e">Exportera telefonens ursprungliga datafiler</string>
@@ -143,13 +143,13 @@
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Ändringarna gäller från nästa tur</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Ingen webbläsare tillgänglig.</string>
     <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Exportera råfiler</string>
-    <string name="rides_export_phone_journal" volt:src="3b542151a42402437727af6eab7139fb0c617406">Telefonens körjournal (CSV)</string>
+    <string name="rides_export_phone_journal" volt:src="3b542151a42402437727af6eab7139fb0c617406">Telefonens turlogg (CSV)</string>
     <string name="rides_export_motion_csv" volt:src="f02bca6d002344576307241dcafef54b0c6daddb">Rörelsedata (CSV)</string>
-    <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">Inga data från telefonen spelades in för den här turen.</string>
+    <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">Ingen data från telefonen spelades in för den här turen.</string>
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Rutt</string>
     <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Telefon och rutt</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">GPS-sträcka</string>
-    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Stigning / nedstigning</string>
+    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Uppför / nedför</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Acceleration</string>
     <string name="rides_gps_speed_change" volt:src="a15e78f916dd0aff03e2124b76da4f735b3a4a34">Hastighetsändring enligt GPS · min / max</string>
     <string name="rides_scooter_speed_change" volt:src="28ea9845136590f144c491f3926ec406ec0040a0">Hastighetsändring enligt elsparkcykeln · min / max</string>
@@ -178,7 +178,7 @@
     <string name="rides_point_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
     <string name="rides_point_grade" volt:src="e54e37f023694e37242ae6f32c3d858abb02a52f">Lutning</string>
     <string name="rides_point_gps_accel" volt:src="cc9b4c3f4669f66e012964018832a0fc140dd12b">GPS-acceleration</string>
-    <string name="rides_point_scooter_accel" volt:src="4e8c17c8d3f450c486eec52cfb206abf21f9f701">Elsparkens acceleration</string>
+    <string name="rides_point_scooter_accel" volt:src="4e8c17c8d3f450c486eec52cfb206abf21f9f701">Elsparkcykelns acceleration</string>
     <string name="rides_point_not_measured" volt:src="32d8810cda3b35b00fbd339cda619742b45377cd">inte uppmätt</string>
     <string name="rides_export_route_csv" volt:src="beec17fdc1fe1446e3888762337cfee92896b858">Rutt (CSV)</string>
     <string name="rides_export_gpx" volt:src="b22dd3b2c7f3f9586f3d38170d49539dd3c1ee76">GPX</string>
@@ -199,10 +199,10 @@
     <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Energi per sträcka</string>
     <string name="rides_compare_gaps" volt:src="046c47c2e084ac901e847c73a699bb7eb64d8de2">Luckor i inspelningen</string>
     <string name="rides_compare_min_voltage" volt:src="069f69e2489b3f52cbc3595ab0146fed40883493">Lägsta spänning</string>
-    <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Visa första</string>
-    <string name="rides_view_second" volt:src="f3e3a70a83012feab4bd6608ce2fa7d0e2e0a39c">Visa andra</string>
-    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Beräknad stigning</string>
-    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Beräknad nedstigning</string>
+    <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Visa första turen</string>
+    <string name="rides_view_second" volt:src="f3e3a70a83012feab4bd6608ce2fa7d0e2e0a39c">Visa andra turen</string>
+    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Beräknat uppför</string>
+    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Beräknat nedför</string>
     <string name="rides_compare_sheet_rides" volt:src="26106ee114c596e0e682c5f1a7dfa91a4d672c2e">2 turer</string>
     <string name="rides_compare_sheet_title" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Jämförelse</string>
     <string name="rides_toast_compare_failed" volt:src="f9fb418132d1fa99069ebb891968cf46e539dade">Det gick inte att jämföra inspelningarna.</string>
@@ -234,8 +234,8 @@
     <string name="rides_unit_megabyte" volt:src="524c413d2ca2775c5d77a297c2cc28b406e14022">MB</string>
     <string name="rides_compare_two_saved" volt:src="b3e7e0eb46a4aebaad05254b195a312a2ec1a68c">Jämför två turer, sparade turer: %1$d av 2</string>
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">Valda turer: %1$d av 2</string>
-    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Batteriökning, procentenheter: %1$d</string>
-    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Batteriminskning, procentenheter: %1$d</string>
+    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Ökad batterinivå, procentenheter: %1$d</string>
+    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Minskad batterinivå, procentenheter: %1$d</string>
     <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Bekräftad: %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Obekräftad: %1$s</string>
     <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Strömriktning bekräftad i %1$s, obekräftad i %2$s</string>
@@ -250,8 +250,8 @@
     <string name="rides_unit_acceleration" volt:src="ef30a3ceccd5d9f55c39f08e8b804ca8783bfa49">m/s²</string>
     <string name="rides_unit_gravity" volt:src="72ce2c42a1c526e33440051e5991667418bc201c">g</string>
     <string name="rides_acceleration_with_g" volt:src="cb4b801e05dc95e4bc026037f02f1c9c10c2f449">%1$s %2$s (%3$s %4$s)</string>
-    <string name="rides_delete_title_unnamed" volt:src="2afeeedfba2d62fe0c87309f72502567106336fa">Ta bort den här turen?</string>
-    <string name="rides_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">Ta bort %1$s?</string>
+    <string name="rides_delete_title_unnamed" volt:src="2afeeedfba2d62fe0c87309f72502567106336fa">Vill du ta bort den här turen?</string>
+    <string name="rides_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">Vill du ta bort %1$s?</string>
     <string name="rides_view_route_of" volt:src="56a2c0579756be5e142c2660ef8f6905d9467a45">Visa rutten för %1$s</string>
     <string name="rides_compare_line_description" volt:src="f03f72e436ea627c53c7e94f8d50e69d5d4ad20a">%1$s: första turen %2$s, andra turen %3$s</string>
     <string name="rides_compare_reason_second" volt:src="1d4db2513d9fca105e252d3b8ac841df280bec26">Andra turen: %1$s</string>
@@ -264,12 +264,12 @@
     <string name="rides_sensor_status_gps_off" volt:src="75c04e35b2d89eca3bde37036b307fa4dadfefd2">GPS av</string>
     <string name="rides_sensor_status_gps_starting" volt:src="a346418a13d57f9b346ab0465863f9a5f673057e">Startar telefonens sensorer</string>
     <string name="rides_sensor_status_gps_waiting" volt:src="e3903e7d2d36005e33470097c914331d78fff983">Väntar på GPS</string>
-    <string name="rides_sensor_status_location_off" volt:src="10a74ad888dad8f93ebb019dd191cee751a5f2e1">Plats är av</string>
+    <string name="rides_sensor_status_location_off" volt:src="10a74ad888dad8f93ebb019dd191cee751a5f2e1">Platstjänster är avstängda</string>
     <string name="rides_sensor_status_gps_unavailable" volt:src="62af34112baf119bbe633c2f6048f0c17731cc6e">GPS är inte tillgänglig</string>
     <string name="rides_sensor_status_permission_unavailable" volt:src="f402690f9c2f70bd5939b47553b6cf6bfa4122ec">GPS-behörighet är inte tillgänglig</string>
-    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Behörighet för plats har inte beviljats</string>
-    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">GPS spelar in</string>
-    <string name="rides_sensor_status_signal_lost" volt:src="e2bde72be6f83b3e70f8b79a3756132492ab8268">GPS-signalen förlorades</string>
+    <string name="rides_sensor_status_no_permission" volt:src="d11bad383919c7142d60ecfb5177808560d06975">Platsbehörighet saknas</string>
+    <string name="rides_sensor_status_gps_recording" volt:src="f6b3cb878b2b42086025e024d21068a57bc76e82">GPS-inspelning pågår</string>
+    <string name="rides_sensor_status_signal_lost" volt:src="e2bde72be6f83b3e70f8b79a3756132492ab8268">GPS-signalen bröts</string>
     <string name="rides_sensor_status_signal_unavailable" volt:src="05f1bf581ffd97ab18638daae52e2b61bb4dcade">GPS-signalen är inte tillgänglig</string>
     <string name="rides_sensor_status_barometer" volt:src="2957566839bc1b3438a1f9ee177477ee70a00315">%1$s · barometer</string>
     <string name="rides_sensor_status_motion_experimental" volt:src="f1ba68b255978fee94ca1c84bd47c1084bf2b617">%1$s · experimentell rörelsesensor</string>
@@ -278,11 +278,11 @@
     <string name="rides_chart_chip_from_mph" volt:src="181819373c90e229f70a724588b6ceeb87ad1050">" · ≥2 mph"</string>
     <string name="rides_chart_chip_from_kmh" volt:src="2709d6f867db56f2b247afc593fe6e1aa9084b5b">" · ≥3 km/h"</string>
     <string name="rides_chart_chip_no_data" volt:src="3dce5678e5b62e5571a565a115faa1814bf74dc8">" · ingen data"</string>
-    <string name="rides_chart_series_only_at_mph" volt:src="0f1d963f528e1da144ff2f1d15050501262b8550">%1$s, endast vid minst 2 mph</string>
-    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, endast vid minst 2 mph, inga värden inspelade</string>
-    <string name="rides_chart_series_only_at_kmh" volt:src="033e6164abc0053676b6f2fab6c5381a634bcc7e">%1$s, endast vid minst 3 km/h</string>
-    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, endast vid minst 3 km/h, inga värden inspelade</string>
+    <string name="rides_chart_series_only_at_mph" volt:src="0f1d963f528e1da144ff2f1d15050501262b8550">%1$s, bara vid minst 2 mph</string>
+    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, bara vid minst 2 mph, inga inspelade mätpunkter</string>
+    <string name="rides_chart_series_only_at_kmh" volt:src="033e6164abc0053676b6f2fab6c5381a634bcc7e">%1$s, bara vid minst 3 km/h</string>
+    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, bara vid minst 3 km/h, inga inspelade mätpunkter</string>
     <string name="rides_chart_series" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
-    <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, inga värden inspelade</string>
+    <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, inga inspelade mätpunkter</string>
     <string name="rides_chart_cell_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
 </resources>

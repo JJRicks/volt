@@ -17,7 +17,7 @@
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Slutför importen av ägarkonfigurationen först</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Det gick inte att förbereda appens data. Öppna Volt igen.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Slutför den pågående inspelningen innan du startar en simulering</string>
-    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ingen laddningsinspelning än</string>
+    <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Ingen laddningsinspelning ännu</string>
     <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">Lagringen för laddningsinspelningar är inte tillgänglig</string>
     <string name="service_charge_enable_developer" volt:src="552c52b2aed3c9588b58961a1b1d9ad75cd3e3ce">Slå på Utvecklaralternativ först</string>
     <string name="service_charge_simulation" volt:src="b63356916c8097380dd002e1090a9d182085cbf0">Stäng av simuleringen om du vill spela in en riktig laddning</string>
@@ -34,10 +34,10 @@
     <string name="service_charge_reconnecting" volt:src="e9d9e07e4ba154a2e05d56356ecf75f00b41778b">Ansluter igen · %1$ss</string>
     <string name="service_charge_stock_charger_paused" volt:src="d97701fc03e967aa2d061407eee1c0ff16bb738f">Originalladdare · laddaren har stoppat · väntar på att den ska fortsätta</string>
     <string name="service_charge_stock_schedule_paused" volt:src="3c3ff5c388524b1bcb16507447b3565f22e387eb">Originalladdare · pausad till den schemalagda starten</string>
-    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Originalladdare · lokala mätvärden: %1$s</string>
+    <string name="service_charge_stock_samples" volt:src="2f56964137f3e5a7a83aa273c314d4600e0663a5">Originalladdare · lokala mätpunkter: %1$s</string>
     <string name="service_charge_fast_charger_paused" volt:src="4170458bc7162d2e1fcefef43fdf824372c5ea29">Snabbladdare · laddaren har stoppat · väntar på att den ska fortsätta</string>
     <string name="service_charge_fast_schedule_paused" volt:src="971e72a63f0e7ce7d25e3d08379b296b07750725">Snabbladdare · pausad till den schemalagda starten</string>
-    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Snabbladdare · lokala mätvärden: %1$s</string>
+    <string name="service_charge_fast_samples" volt:src="24259947be9c6e9c4bf8aa9c5c71fce0ebe0d213">Snabbladdare · lokala mätpunkter: %1$s</string>
     <string name="service_charge_learning_unknown" volt:src="c8cd3c204b864bcda99d2cc0152ec1ee8466a5f7">Används inte förrän laddaren är känd · sparade inspelningar: %1$s</string>
     <string name="service_charge_learning_fast_one" volt:src="1e041ebace402e98b486f15dddc2347aa372f16d">%1$s kvalificerad snabbladdning · sparade inspelningar: %2$s</string>
     <string name="service_charge_learning_fast_other" volt:src="a7305b3cca9e1a3e21b3cd1cda17902b7ea4d38c">%1$s kvalificerade snabbladdningar · sparade inspelningar: %2$s</string>

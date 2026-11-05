@@ -8,7 +8,7 @@ id	term	definition	pos	dnt	safety	source
 not-affiliated	inte knuten till NAVEE | är inte knuten till NAVEE | ingen koppling till NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	claude-only claude-opus-5-5; proposal; nothing official found
 official-app	officiella appen | officiell app | officiella appens	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	claude-only claude-opus-5-5; established sv usage
 navee-app	NAVEE-appen | NAVEE-app | NAVEE-appens	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	claude-only claude-opus-5-5; M3 Navee-appen; capital form proposal
-scooter	elsparkcykel | elsparkcykeln | elsparkcykelns | elsparkcykels | elsparkcyklar | elsparkcyklarna | elsparkcyklars | elspark | elsparken | elsparkens | elsparkar | elsparkarna | elsparkcykelmodell | elsparkcykelmodeller | elsparkcykelinställningar | elsparkcykelsidan | elsparkcykelinfo	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	claude-only claude-opus-5-5; M3, Transportstyrelsen elsparkcykel; Inet elscooter; REVIEW first in the debate
+scooter	elsparkcykel | elsparkcykeln | elsparkcykelns | elsparkcykels | elsparkcyklar | elsparkcyklarna | elsparkcyklars | elspark | elsparken | elsparkens | elsparkar | elsparkarna | elsparkcykelmodell | elsparkcykelmodeller | elsparkcykelinställningar | elsparkcykelsidan | elsparkcykelinfo | elsparknamn	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	claude-only claude-opus-5-5; M3, Transportstyrelsen elsparkcykel; Inet elscooter; REVIEW first in the debate
 owner	ägare | ägaren | ägarens | ägarna | ägarroll | ägarrollen	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	claude-only claude-opus-5-5; proposal; nothing official found
 owner-profile	ägarprofil | ägarprofilen | ägarprofilens	The saved profile of the owner role.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal; nothing official found
 owner-role	ägare | ägaren | ägarroll | ägarrollen	D3 retired the English 'owner role' (owner is the role word). Use the term shown.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal
@@ -46,7 +46,7 @@ connection-details	anslutningsinformation | anslutningsinformationen | anslutnin
 signal-lost	signal förlorad | signalen förlorades | signalen bröts | tappad signal | tappade signalen	The Bluetooth link dropped.	clause	no	-	claude-only claude-opus-5-5; proposal
 parked	parkerad | parkerat | parkerade	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5; established sv usage
 model-id	modell-ID	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
-firmware	firmware | firmwaren	The scooter's software. Volt never changes it.	noun	no	-	claude-only claude-opus-5-5; established sv tech usage
+firmware	firmware | firmwaren | firmwareversioner | firmwareversionerna	The scooter's software. Volt never changes it.	noun	no	-	claude-only claude-opus-5-5; established sv tech usage
 compatibility-check	kompatibilitetskontroll | kompatibilitetskontrollen	A read-only check of what this scooter supports.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 compatibility-checker	kompatibilitetsverktyg | kompatibilitetsverktyget	The screen that runs the compatibility check.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 compatibility-report	kompatibilitetsrapport | kompatibilitetsrapporten	The emailed result of the compatibility check. The UI is translated; the report content stays English.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
@@ -55,7 +55,7 @@ diagnostics	diagnostik | diagnostiken | diagnostikdata	The section that collects
 diagnostics-file	diagnostikfil | diagnostikfilen	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5; proposal
 experimental-controls	experimentella reglage | experimentella reglagen | experimentella | experiment	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; proposal; kontroller means checks
 untested-controls	reglage att prova	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; proposal; D3 title
-try	prova | provar | provat | provade | försök igen	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; established sv usage
+try	prova | provar | provat | provade | försök | försöket | försöken | provresultat | provresultaten | försök igen	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; established sv usage
 set-back	ställ tillbaka | ställa tillbaka | ställer tillbaka | ställdes tillbaka | ställts tillbaka | ställas tillbaka | ställs tillbaka	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; proposal
 help-verify	hjälp till att verifiera	Ask the rider to confirm what a try did.	verb phrase	no	experimental	claude-only claude-opus-5-5; proposal
 unverified	inte verifierad | inte verifierat | inte verifierade | ej verifierad | ej verifierat | ej verifierade	Volt has not confirmed the control on this model.	adjective	no	experimental	claude-only claude-opus-5-5; proposal
@@ -86,7 +86,7 @@ single-motor	enmotorsdrift | enmotorsdriften | en motor	Only one motor drives.	n
 kick-start-speed	sparkstartshastighet | sparkstartshastigheten | sparkstart	The speed before the motor engages from a push.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
 standing-start	start från stillastående | stående start	The value 0 of Kick-start speed: the motor engages from a standstill. Not another name for the setting.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
 custom-speed-cap	egen hastighetsgräns | egna hastighetsgränser	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
-drive-mode-speed-cap	hastighetsgräns för körläge | hastighetsgränser för körlägen | körlägets hastighetsgräns	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
+drive-mode-speed-cap	hastighetsgräns för körläge | hastighetsgräns för Drive-läge | hastighetsgränser för körlägen | körlägets hastighetsgräns	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
 maximum-speed	maxhastighet | maxhastigheten | maxhast.	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	claude-only claude-opus-5-5; M3, Inet maxhastighet
 top-speed	toppfart | toppfarten	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
 walk-assist	gångassistans | gångassistansen	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
@@ -114,7 +114,7 @@ kilometers	kilometer | kilometern	A display unit choice.	noun	no	-	claude-only c
 dashboard	översikt | översikten | översiktens | översikter | översikterna | översiktslayout	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	claude-only claude-opus-5-5; proposal
 widget	widget | widgeten | widgetens | widgetar | widgetarna | widgettitel | widgetstorlek | widgetalternativ | låswidget	A tile on the Dashboard.	noun	no	-	claude-only claude-opus-5-5; established Android usage
 quick-access	snabbåtkomst | snabbåtkomsten	The row of shortcut actions on the Dashboard. D3 expects to drop this row; it matches no shown string.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
-live-stats	livestatistik | livestatistiken	The telemetry pages.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
+live-stats	livestatistik | livestatistiken | statistik	The telemetry pages.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 readings	mätvärden | mätvärdena | mätvärde | mätvärdet	Telemetry values the scooter reports.	noun	no	-	claude-only claude-opus-5-5; proposal
 readings-history	mätvärdeshistorik | mätvärdeshistoriken	Stored telemetry.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 odometer	vägmätare | vägmätaren | vägmätarställning	Total distance. The narrow-label ladder is full, then abbreviated, then icon, with no mid-word breaks.	noun	no	-	claude-only claude-opus-5-5; established car word
@@ -139,21 +139,21 @@ charge-alert	laddningsavisering | laddningsaviseringen | laddningsaviseringar	An
 low-battery-alert	varning för låg batterinivå | varningen för låg batterinivå	An alert when the battery falls to a level.	noun phrase	no	alarm	claude-only claude-opus-5-5; test_check_languages
 notify-me	meddela mig	Choose a notification for an alert.	verb phrase	no	alarm	claude-only claude-opus-5-5; established sv usage
 alarm-sound	larmljud | larmljudet	Choose a sounding alarm for an alert.	noun phrase	no	alarm	claude-only claude-opus-5-5; proposal
-stop	stoppa | stoppar | stanna elsparkcykeln | avbryt konfigurationen	Silence a sounding alarm.	verb	no	alarm	claude-only claude-opus-5-5; established sv usage
+stop	stoppa | stoppar | stanna elsparkcykeln | avbryt konfigurationen | avbryta konfigurationen	Silence a sounding alarm.	verb	no	alarm	claude-only claude-opus-5-5; established sv usage
 stop-watching	sluta bevaka | slutar bevaka	End an alert's watch.	verb phrase	no	alarm	claude-only claude-opus-5-5; proposal
 charge-recording	laddningsinspelning | laddningsinspelningen | laddningsinspelningar	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5; proposal
 charger-profile	laddarprofil | laddarprofilen	What Volt has learned about a charger, for estimates. D3 expects to drop this row; it matches no shown string.	noun phrase	no	charge	claude-only claude-opus-5-5; proposal
 time-to-full	tid till fulladdat | tid till full laddning | fulladdad om | fulladdat om	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5; proposal
-rides	turer | tur | turen | turerna | turens	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5; proposal
+rides	turer | tur | turen | turerna | turens | turdata	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5; proposal
 ride-recording	turinspelning | turinspelningen | inspelning av tur	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
-phone-journal	telefonens körjournal | körjournal från telefonen | telefonens turlogg	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
+phone-journal	telefonens turlogg | turlogg från telefonen | turlogg | turloggen	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 motion	rörelse | rörelsen | rörelser | rörelsesensor | rörelsesensorer | rörelsedata | rörelserapport	Movement data of a ride.	noun	no	-	claude-only claude-opus-5-5; established sv usage
 route	rutt | rutten | ruttens | rutter | ruttfärg | ruttkarta	The path of a ride on the map.	noun	no	-	claude-only claude-opus-5-5; established sv usage
 backup	säkerhetskopia | säkerhetskopian | säkerhetskopians | säkerhetskopior | säkerhetskopiorna | säkerhetskopiera | säkerhetskopiering | säkerhetskopieringen | säkerhetskopiefil | säkerhetskopiefilen | säkerhetskopieformat | säkerhetskopieformatet	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; established Android usage
 full-backup	fullständig säkerhetskopia | fullständiga säkerhetskopian	A backup of everything.	noun phrase	no	privacy	claude-only claude-opus-5-5; established sv usage
-selected-data	valda data | utvalda data | vald data	A backup of the chosen parts.	noun phrase	no	privacy	claude-only claude-opus-5-5; proposal
+selected-data	vald data | valda data | utvald data	A backup of the chosen parts.	noun phrase	no	privacy	claude-only claude-opus-5-5; proposal
 restore	återställ | återställa | återställer | återställning | återställningen | återställas | återställs | ställ tillbaka | ställa tillbaka	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; established sv usage
 replace-everything	ersätt allt | ersätter allt	A restore that replaces all of Volt's data.	verb phrase	no	privacy	claude-only claude-opus-5-5; established sv usage
-owner-setup-file-scooter-access	ägarkonfigurationsfil · endast åtkomst till elsparkcykeln	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal
+owner-setup-file-scooter-access	ägarkonfigurationsfil · bara åtkomst till elsparkcykeln	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal
 simulated-scooter	simulerad elsparkcykel | simulerade elsparkcykeln	Demo mode with no real scooter.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
 simulation	simulering | simuleringen	The demo mode itself.	noun	no	-	claude-only claude-opus-5-5; established sv usage

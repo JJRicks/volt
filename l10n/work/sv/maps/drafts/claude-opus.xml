@@ -20,7 +20,7 @@
     <string name="maps_source_custom" volt:src="cbe88dad0b6a7e79e1ef484fc2704d2b39709d95">Egen karta</string>
     <string name="maps_source_provider_fallback" volt:src="192685dbfb774ae069bdc4016c687754c075f7f4">Kartleverantör</string>
     <string name="maps_basemap" volt:src="8f7de53fbe2c14e7b08b43e94bfce7c4c0de4e3d">Baskarta</string>
-    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Visa onlinekarta?</string>
+    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Vill du visa onlinekartan?</string>
     <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">Leverantören ser din IP-adress och ditt kartområde. Turerna stannar på telefonen.</string>
     <string name="maps_consent_enable" volt:src="bb9ac0845ace7f8b7f2e08bf11f66831ce335172">Slå på baskarta</string>
     <string name="maps_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Onlinekarta</string>

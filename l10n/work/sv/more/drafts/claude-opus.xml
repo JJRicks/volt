@@ -9,7 +9,7 @@
     <string name="more_section_developer" volt:src="092b0b0546b617b3c6cddc597520c4a15e370baa">Utvecklaralternativ</string>
     <string name="more_section_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mina elsparkcyklar</string>
     <string name="more_section_security" volt:src="c37d69a4cc528cb88ba0d4abbee25e2fae4411fe">PIN-kod och närhetsupplåsning</string>
-    <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN-kod och närhet</string>
+    <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN-kod och närhetsupplåsning</string>
     <string name="more_section_lab" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimentella reglage</string>
     <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data och historik</string>
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om appen och behörigheter</string>
@@ -19,7 +19,7 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Rapportera ett problem</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Enheter</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Kompatibilitet</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Test som inte slutfördes</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Oavslutat test</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, ingen uppgift</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Steg %1$d</string>
@@ -44,7 +44,7 @@
     <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Glöm %1$s</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Ange ett namn på elsparkcykeln</string>
     <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">Vill du glömma %1$s?</string>
-    <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Konfigurationen för anslutningen tas bort från den här telefonen. Sparade turer och inspelade laddningar finns kvar.</string>
+    <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Konfigurationen för anslutningen tas bort från den här telefonen. Sparade turer och laddningsinspelningar finns kvar.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Spara säkerhetskopia först</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Glöm</string>
     <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Utseende</string>
@@ -62,16 +62,16 @@
     <string name="more_prefs_refresh" volt:src="0237acedb15c6856a6c80ef14c5f1dca7ce2880f">Uppdatering av telemetri</string>
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Anslut automatiskt</string>
-    <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Förbli ansluten i bakgrunden</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Inspelningar förblir alltid anslutna</string>
+    <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Behåll anslutningen i bakgrunden</string>
+    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Anslutningen behålls alltid under inspelning</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Håll skärmen tänd</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Under inspelning</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Avsluta turen när du har parkerat</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s efter att Bluetooth-anslutningen bryts när du stoppar</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s efter att Bluetooth-anslutningen bryts när du har stannat</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Inspelning i bakgrunden</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Obegränsad batterianvändning</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batterianvändning optimerad; Android kan stoppa långa inspelningar. Batteriinställningarna öppnas</string>
-    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Anpassad</string>
+    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Egen</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Välj Volt för att hantera appens Android-inställningar</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Öppna Volts inställningar i Android</string>
     <string name="more_units_distance" volt:src="1f80f00b9165f3a5a5a178d4cbd7eacd1cbabacf">Sträcka och hastighet</string>
@@ -82,21 +82,21 @@
     <string name="more_units_celsius" volt:src="a047d988f8fd19c922ec9f5a71a859597140ada1">Celsius · °C</string>
     <string name="more_units_fahrenheit" volt:src="56ac53595d9d4bd77dfa993e19d94cc80f241262">Fahrenheit · °F</string>
     <string name="more_units_time" volt:src="10d2b736781d716f1ecc7e423310c83f89fa5acd">Tidsformat</string>
-    <string name="more_units_12_hour" volt:src="c6c6116826d69696618a49f2485e7adcc23141df">12-timmars</string>
-    <string name="more_units_24_hour" volt:src="a05c7d687aa2168cf96b33c5b2783e119859b91c">24-timmars</string>
+    <string name="more_units_12_hour" volt:src="c6c6116826d69696618a49f2485e7adcc23141df">12-timmarsformat</string>
+    <string name="more_units_24_hour" volt:src="a05c7d687aa2168cf96b33c5b2783e119859b91c">24-timmarsformat</string>
     <string name="more_language_title" volt:src="b155569de0718d1c0573f5653cac2a43defdac41">Språk</string>
-    <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Systemstandard (%1$s)</string>
+    <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Systemets språk (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Beta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Beta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Översättningar i beta görs med AI och kontrolleras automatiskt. Rapporter och diagnostik förblir på engelska. Om du ser en felaktig formulering, använd ”Rapportera ett problem”.</string>
+    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Betaöversättningarna är gjorda med AI och kontrolleras automatiskt. Rapporter och diagnostik är alltid på engelska. Använd ”Rapportera ett problem” om du hittar en felaktig formulering.</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">Du kan också ändra det här i Android under Inställningar › Appar › Volt › Språk.</string>
-    <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Historik under anslutning</string>
-    <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Spara historik under anslutning</string>
+    <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Mätvärdeshistorik</string>
+    <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Spara mätvärdeshistorik</string>
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">När Volt är ansluten</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Av · senaste mätvärdena finns kvar</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Lokal lagring</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Kontrollerar…</string>
-    <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Detaljerade mätvärden</string>
+    <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Detaljerade mätpunkter</string>
     <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 dagar</string>
     <string name="more_history_minutes" volt:src="a17d36db4244427d82653f7a939817820661613c">Sammanfattningar per minut</string>
     <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 dagar</string>
@@ -104,7 +104,7 @@
     <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 år</string>
     <string name="more_history_up_to" volt:src="10cda5c46f5a36c0a0491e2e19f9e09a824c2373">upp till %1$s</string>
     <string name="more_history_clear_scooter" volt:src="c8d4b5a4d55716b2bd7e7bf73acdf3707223028c">Rensa den här elsparkcykelns historik</string>
-    <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Rensa all historik under anslutning</string>
+    <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Rensa all mätvärdeshistorik</string>
     <string name="more_unit_mib" volt:src="37b1b983a4924a010a635cc89ae29918eda8fd4b">MiB</string>
     <string name="more_history_used" volt:src="05f1554066a0dd490b41c2613a13422f35959676">%1$s av %2$s %3$s</string>
     <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Välj en elsparkcykel först.</string>
@@ -114,14 +114,14 @@
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Rensa</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Historiken har rensats</string>
     <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Lätt att läsa, hopfälld eller utfälld</string>
-    <string name="more_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Verkställ</string>
+    <string name="more_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Tillämpa</string>
     <string name="more_refresh_rides" volt:src="a72e7410c6798b20d8572b19dd84249d58abd819">Turer: alltid 2 s</string>
     <string name="more_refresh_2" volt:src="4b2331e3b37d92258100abc191947c641e6e76b4">2 sekunder</string>
     <string name="more_refresh_5" volt:src="0e6a045ae2f37c0178ed90ba852ba1ffd14469e7">5 sekunder</string>
     <string name="more_refresh_10" volt:src="3c632cab41da6766399180c27e4dc485caa1f963">10 sekunder</string>
     <string name="more_pin_handlebar" volt:src="9ebceaa07ef3bbec8add681acdb6a2a6a780f643">PIN-kod på styret</string>
     <string name="more_pin_fallback" volt:src="fe1fc79cac5fc4007fa1b76ca3d5832bc336f2d9">PIN-kod på styret</string>
-    <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">Läs status för PIN-koden</string>
+    <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">Läs PIN-status</string>
     <string name="more_pin_set_row" volt:src="603eff531215e4206165cd40552c3fbc3521366d">Ställ in eller ändra PIN-kod</string>
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Närhetsupplåsning</string>
     <string name="more_proximity_pair" volt:src="14a611adba760ec799d776213f86a9936c8c6661">Parkoppla telefonen med elsparkcykeln</string>
@@ -155,27 +155,27 @@
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Hjälp till att verifiera</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Inget att prova</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Svar på kommandon</string>
-    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Rensa resultat av det du provat</string>
-    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Rensa resultat av det du provat?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glömmer vad dina försök på den här elsparkcykeln visade, så de försvinner från din nästa rapport och från ”Ställ tillbaka”. Inställningarna förblir som de är. Försök som inte slutfördes finns kvar tills du har granskat dem.</string>
+    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Rensa provresultat</string>
+    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Vill du rensa provresultaten?</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glömmer vad dina försök på den här elsparkcykeln visade, så de försvinner från nästa rapport och från ”Ställ tillbaka”. Inställningarna förblir som de är. Oavslutade försök finns kvar tills du har granskat dem.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Inga avslutade försök att rensa</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
-        <item quantity="one">Rensade %1$d resultat av det du provat</item>
-        <item quantity="other">Rensade %1$d resultat av det du provat</item>
+        <item quantity="one">Rensade %1$d provresultat</item>
+        <item quantity="other">Rensade %1$d provresultat</item>
     </plurals>
-    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Resultaten av det du provat finns kvar på den här telefonen tills en kompatibilitetsrapport du skickar innehåller dem, eller tills du rensar dem."</string>
+    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Provresultaten finns kvar på den här telefonen tills du skickar dem i en kompatibilitetsrapport eller rensar dem."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Reglage som den officiella appen erbjuder för din modell finns kvar under elsparkcykelinställningar. Hastighetsgränser, laddning, låset, PIN-kod, närhetsupplåsning och klockan läggs aldrig till här. Volt ändrar aldrig firmwaren.</string>
     <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Reglage som den officiella appen erbjuder för din modell finns kvar under elsparkcykelinställningar. Volt ändrar aldrig firmwaren.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt ändrar aldrig firmwaren.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Ansluter…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Prova på den här elsparkcykeln</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Den officiella appen erbjuder dessa för din modell, men Volt har inte testat dem på den. Det du provat och ditt svar tas med i din nästa kompatibilitetsrapport.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Den officiella appen erbjuder de här reglagen för din modell, men Volt har inte testat dem på den. Ditt försök och ditt svar tas med i nästa kompatibilitetsrapport.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Ingen uppgift från den här elsparkcykeln</string>
-    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kan inte läsa tillbaka dessa, så de erbjuds inte.</string>
+    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kan inte läsa tillbaka de här reglagen, så de erbjuds inte.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt skickar inga kommandon för elsparkcyklar till den här produkten.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Inget att prova på UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">Den här elsparkcykelns modell-ID stämmer inte med dess serienummer, så Volt erbjuder inget att prova.</string>
-    <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Den officiella appen listar inte den här modellen, så Volt kan inte avgöra vilka reglage den saknar. Inget att prova än.</string>
+    <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Den officiella appen listar inte den här modellen, så Volt kan inte avgöra vilka reglage den saknar. Inget att prova ännu.</string>
     <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Identifiera din modell på elsparkcykelsidan först. Volt listar sedan vad du kan prova.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Anslut till din elsparkcykel för att se vad du kan prova.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Start från stillastående</string>
@@ -186,21 +186,21 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Granska</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Ställ tillbaka</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Granska %1$s, som du provade men som inte slutfördes</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Granska det oavslutade försöket med %1$s</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">Ställ tillbaka %1$s till %2$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Prova %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Anslut till elsparkcykeln för att prova dessa.</string>
+    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Anslut till elsparkcykeln för att prova reglagen.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Väntar på aktuell status från elsparkcykeln.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Stanna elsparkcykeln för att prova dessa.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Stanna elsparkcykeln för att prova reglagen.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Väntar på att elsparkcykeln anger att den är parkerad.</string>
-    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Åtgärda elsparkcykelns varning för att prova dessa.</string>
-    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Lås upp elsparkcykeln för att prova dessa.</string>
-    <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Bara ägarens profil kan prova dessa.</string>
+    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Åtgärda elsparkcykelns varning för att prova reglagen.</string>
+    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Lås upp elsparkcykeln för att prova reglagen.</string>
+    <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Bara ägarens profil kan prova reglagen.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Vänta tills kompatibilitetskontrollen är klar.</string>
-    <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Slutför det du provar först.</string>
-    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Stoppa inspelningen för att prova dessa.</string>
+    <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Slutför det pågående försöket först.</string>
+    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Stoppa inspelningen för att prova reglagen.</string>
     <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Väntar på ditt svar</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Ditt svar</string>
     <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Såg du någon ändring?</string>
@@ -208,9 +208,9 @@
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Ställer tillbaka…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Simulerad ändring</string>
     <string name="more_lab_status_simulated_short" volt:src="781634cc580bebb6c14e20c88e6af911eb783f83">Simulerad</string>
-    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Inte slutfört · granska</string>
-    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Ej slutfört</string>
-    <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Inte provat än</string>
+    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Oavslutat · granska</string>
+    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Oavslutat</string>
+    <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Inte provat ännu</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Inte verifierat på din modell</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Ej verifierat här</string>
     <string name="more_lab_status_unverified_compact" volt:src="3141ab9accebd394bfdfd0e0814a573646f66d23">Ej verifierat</string>
@@ -224,25 +224,25 @@
     <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Annat värde vid återläsning</string>
     <string name="more_lab_status_other_value_short" volt:src="38723630e69bf18d7ac54a45f3a0b090e1009de1">Annat värde</string>
     <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Inte skickat</string>
-    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Ingen ändring sågs</string>
+    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Ingen synlig ändring</string>
     <string name="more_lab_status_no_change_short" volt:src="c886b0ef61f47d6864568f13677e7d5060ea3c10">Ingen ändring</string>
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Obekräftat · anslut igen för att kontrollera</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Obekräftat</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Kontrollerar…</string>
-    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Den officiella appen erbjuder detta för din modell, men Volt har inte testat det på den. Det du provat och ditt svar tas med i din nästa kompatibilitetsrapport.</string>
+    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Den officiella appen erbjuder det här för din modell, men Volt har inte testat det på den. Ditt försök och ditt svar tas med i nästa kompatibilitetsrapport.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Nu</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Senast provat</string>
     <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12">Din elsparkcykel nekade detta förra gången: den svarade med ett fel, så den stöder troligen inte den här inställningen. Ett nytt försök ger oftast samma svar.</string>
     <string name="more_lab_your_answer" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Ditt svar</string>
-    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Titta på elsparkcykeln medan den är parkerad. Ditt svar tas med i din nästa kompatibilitetsrapport tillsammans med återläsningen från elsparkcykeln.</string>
+    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Titta på elsparkcykeln medan den är parkerad. Ditt svar tas med i nästa kompatibilitetsrapport tillsammans med återläsningen från elsparkcykeln.</string>
     <string name="more_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="more_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
     <string name="more_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Hoppa över</string>
     <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b">Det här försöket slutfördes inte, så elsparkcykeln kan fortfarande ha värdet du provade. Granska försöket för att ställa tillbaka värdet eller behålla det.</string>
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Välj en gräns</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Välj ett värde</string>
-    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt skickar en ändring medan elsparkcykeln är parkerad och upplåst, läser tillbaka den och frågar sedan vad du såg. Värdet ligger kvar tills du ställer tillbaka det. Om anslutningen bryts skriver Volt aldrig igen på egen hand: det du provade väntar på din granskning.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att det inte har ändrats…</string>
+    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt skickar en ändring medan elsparkcykeln är parkerad och upplåst, läser tillbaka den och frågar sedan vad du såg. Värdet ligger kvar tills du ställer tillbaka det. Om anslutningen bryts skickar Volt aldrig något mer på egen hand: försöket väntar tills du har granskat det.</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att värdet inte har ändrats…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser av det aktuella värdet…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Skickar %1$s och läser tillbaka värdet…</string>
@@ -258,43 +258,43 @@
     </plurals>
     <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Den officiella appen erbjuder inte det här på din modell. Det kanske inte har någon effekt här, eller så fungerar det annorlunda.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN-kod och autentiseringsdata är dolda</string>
-    <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Inga ändringar än</string>
+    <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Inga ändringar ännu</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Lokal klocksynkronisering\n%1$s</string>
     <string name="more_lab_evidence_line" volt:src="f1e1172cfc1d0ac09f8cc6a24cb1ce797a398eff">%1$s\n%2$s</string>
     <string name="more_lab_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Anslutningsaktivitet</string>
-    <string name="more_lab_no_activity" volt:src="462dec70513dd381151e68249466416956b886a4">Ingen anslutningsaktivitet än.</string>
+    <string name="more_lab_no_activity" volt:src="462dec70513dd381151e68249466416956b886a4">Ingen anslutningsaktivitet ännu.</string>
     <string name="more_about_version" volt:src="c9e02c9cf70aa51cd2bd641033c56dfe4b24f66b">Volt %1$s</string>
-    <string name="more_about_tagline" volt:src="8c7e6a976a5463b2e998c6aeb25cba786ebee12a">Endast Bluetooth · inget konto</string>
+    <string name="more_about_tagline" volt:src="8c7e6a976a5463b2e998c6aeb25cba786ebee12a">Bara Bluetooth · inget konto</string>
     <string name="more_about_check_updates" volt:src="707493b7bd7351c922e9498d70301d0735e6ac4e">Sök efter uppdateringar</string>
     <string name="more_about_permissions" volt:src="f6f5293d8c597ed9c0df6c66c8fbf5200c5a1838">Behörigheter</string>
     <string name="more_about_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Enheter i närheten</string>
-    <string name="more_about_nearby_sub" volt:src="2309be1a695dde12de5e77b0fc0ba1eb772fa306">Ansluter till din elsparkcykel</string>
+    <string name="more_about_nearby_sub" volt:src="2309be1a695dde12de5e77b0fc0ba1eb772fa306">Används för att ansluta till din elsparkcykel</string>
     <string name="more_about_location" volt:src="d3a22be0d35dedce303b85aeda4bbb7d6b26c7c5">Plats</string>
     <string name="more_about_location_old" volt:src="adf5c2503955b21c30af975601aa9770b75193a7">Turens rutt · behövs också för Bluetooth</string>
     <string name="more_about_location_sub" volt:src="8ce1366efda75b99ed438795e6ca5894298a6619">Turens rutt, bara under inspelning</string>
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Aviseringar</string>
-    <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Avisering under inspelning med Stoppa</string>
-    <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Dina data</string>
+    <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Avisering med ”Stoppa” under inspelning</string>
+    <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Din data</string>
     <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">All data stannar på den här telefonen. Säkerhetskopiering och återställning finns under Mer.</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Onlinekarta</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Anslutningsaktivitet</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licenser och upphovsangivelser</string>
     <string name="more_about_connect" volt:src="abd864e29cbef410bdc078552ce25130279e1592">Anslut till vald elsparkcykel</string>
-    <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Söka efter uppdateringar på GitHub?</string>
-    <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">Volt frågar GitHub efter sin senaste utgåva. GitHub ser din IP-adress och din Volt-version; inget annat skickas. Volt hämtar eller installerar aldrig något själv.</string>
+    <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Vill du söka efter uppdateringar på GitHub?</string>
+    <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">Volt frågar GitHub efter sin senaste version. GitHub ser din IP-adress och din Volt-version; inget annat skickas. Volt hämtar eller installerar aldrig något själv.</string>
     <string name="more_update_check" volt:src="4a099424278cfcbddd43a46b5b6ec044ddf711c0">Sök</string>
     <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Söker efter uppdateringar</string>
-    <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Frågar GitHub efter den senaste utgåvan…</string>
+    <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Frågar GitHub efter den senaste versionen…</string>
     <string name="more_update_available" volt:src="7ffd9079e0f2563ea01c2ee25b063cb771a7be94">Volt %1$s är tillgänglig</string>
-    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Du har %1$s. Hämta den nya utgåvan från utgåvans sida och installera den över den här versionen; dina data finns kvar.</string>
+    <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Du har %1$s. Hämta den nya versionen från versionssidan och installera den över den här versionen; din data finns kvar.</string>
     <string name="more_update_current" volt:src="0735317844597e79fefa950a5cf4011e9a40a532">Du har den senaste versionen</string>
-    <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s är en utvecklingsversion. Den senaste utgåvan är %2$s.</string>
-    <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s är den senaste utgåvan.</string>
+    <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s är en utvecklingsversion. Den senaste utgivna versionen är %2$s.</string>
+    <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s är den senaste versionen.</string>
     <string name="more_update_failed" volt:src="841ba55d76f8a09530691c3c36367d258b287db7">Det gick inte att söka efter uppdateringar</string>
-    <string name="more_update_no_answer" volt:src="e9d440be6236bce382694acec8a4f32b5d799bb6">GitHub svarade inte. Kontrollera din anslutning och försök igen.</string>
-    <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Volt kunde inte läsa svaret från GitHub. Försök igen senare eller gå till sidan med utgåvor i webbläsaren.</string>
-    <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Öppna utgåvans sida</string>
-    <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Ingen webbläsare kunde öppna utgåvans sida</string>
+    <string name="more_update_no_answer" volt:src="e9d440be6236bce382694acec8a4f32b5d799bb6">GitHub svarade inte. Kontrollera anslutningen och försök igen.</string>
+    <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Volt kunde inte läsa svaret från GitHub. Försök igen senare eller gå till versionssidan i webbläsaren.</string>
+    <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Öppna versionssidan</string>
+    <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Ingen webbläsare kunde öppna versionssidan</string>
     <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">Utvecklaralternativ är redan aktiverade.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Utvecklaralternativ har aktiverats.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
@@ -304,7 +304,7 @@
     <string name="more_report_no_email" volt:src="5eeeb7ecce599a88354042513cd2ee9c5949e343">Ingen e-postapp kunde öppna rapporten.</string>
     <string name="more_dev_compat" volt:src="8492f43b2160210b468a69dd049171a6e0b9a4a3">Kompatibilitetsverktyg</string>
     <string name="more_dev_compat_sub" volt:src="054fa580d38ad30a2d90471fa68958c3be7e3945">Modellkontroll och rapport</string>
-    <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Simulera elsparkcykel som ansluten</string>
+    <string name="more_dev_simulate" volt:src="fe409850f6ebe2460c2e88676d950005d9d13d3c">Simulera ansluten elsparkcykel</string>
     <string name="more_dev_simulated_model" volt:src="d1f71ab8da3622272a8550620b16eb90a8c0f5fd">Simulerad modell</string>
     <string name="more_dev_simulation_active" volt:src="ed80e02a47fa789ebb1ae0bd9a9d48b73e9e4650">Simulering aktiv · exempeldata</string>
     <string name="more_dev_simulating" volt:src="7ba690e370878c8a9dd9152ce3649c1a56544346">Simulerar</string>
@@ -313,7 +313,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Snabb</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto känner igen laddare till UT5 MAX utifrån aktuell effekt. Om det inte går att avgöra använder Volt den aktuella takten; välj en laddare om du vill åsidosätta det.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto känner igen laddare till UT5 MAX utifrån aktuell effekt. Om det inte går att avgöra använder Volt den aktuella takten; välj en laddare om du vill bestämma själv.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Sparade laddningskurvor</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Spela in den här laddningen</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stoppa laddningsinspelning</string>
@@ -323,13 +323,13 @@
     <string name="more_dev_export_sub" volt:src="840c1220c0041af8286a225e143bc057cdfe612b">JSON · den här elsparkcykeln</string>
     <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Stoppa laddningsinspelningen innan du exporterar eller vänta på den pågående exporten</string>
     <string name="more_dev_clear_charges" volt:src="7f66e11839703ee0dfa9d363eeced693a403947f">Rensa den här elsparkcykelns laddningsinspelningar</string>
-    <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Rensa laddningsinspelningar?</string>
+    <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Vill du rensa laddningsinspelningarna?</string>
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Laddningar och inlärda kurvor tas bort. Turer finns kvar.</string>
     <string name="more_dev_clear_recordings" volt:src="4dd7d1113be57287eaa4014ec0fb40e7c877bb44">Rensa inspelningar</string>
     <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Testlayouter</string>
     <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Läs in Alla widgetar på plats 3</string>
-    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Ersätta plats 3?</string>
-    <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Endast plats 3 skrivs över.</string>
+    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Vill du ersätta plats 3?</string>
+    <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Bara plats 3 skrivs över.</string>
     <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Ersätt plats 3</string>
     <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Alla widgetar har sparats på plats 3.</string>
     <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">Det gick inte att spara plats 3.</string>
@@ -339,8 +339,8 @@
     <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Anslut till elsparkcykeln först</string>
     <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Sparas på telefonen · stoppar vid 100 % · de senaste 20 behålls</string>
     <string name="more_dev_which_charger" volt:src="7b52501fb200660f62b9170ec96b9318ade02e6a">Vilken laddare är ansluten?</string>
-    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Spela in med originalladdare?</string>
-    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Spela in med snabbladdare?</string>
+    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Vill du spela in med originalladdare?</string>
+    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Vill du spela in med snabbladdare?</string>
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Ansluten laddare</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Starta inspelning</string>
     <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Elsparkcykeln har bytts · öppna igen</string>
@@ -360,10 +360,10 @@
     <string name="more_link_connected" volt:src="43f7dc24331e69f3eb9ca04bced857fb2bdf8ba8">ansluten</string>
     <string name="more_link_disconnected" volt:src="91c349c9e877abb95b82a9bbc0826fd2066ba4b6">frånkopplad</string>
     <string name="more_link_connecting" volt:src="5a5b94b0e4c2fb14ab6b33014c8140d82d82ddaa">ansluter</string>
-    <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Ingen elsparkcykel än</string>
+    <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Ingen elsparkcykel ännu</string>
     <string name="more_index_add" volt:src="a57928c50bc55109a2723d8b20876d74073feeac">Lägg till en elsparkcykel för att börja</string>
     <string name="more_index_status" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="more_index_description" volt:src="f81669b9dde0aa7e99f3900e8f80916390656531">%1$s, %2$s. Öppna Mina elsparkar</string>
+    <string name="more_index_description" volt:src="f81669b9dde0aa7e99f3900e8f80916390656531">%1$s, %2$s. Öppna Mina elsparkcyklar</string>
     <string name="more_scooters_empty" volt:src="a2bc3ab4e707d5b537d842d62066c615e5099580">Dina sparade elsparkcyklar visas här.</string>
     <string name="more_scooters_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Ansluten</string>
     <string name="more_scooters_offline" volt:src="4f2fe96a65ce1006ebf27bee78efd89117a9a408">Offline</string>
@@ -373,11 +373,11 @@
     <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Redigera %1$s</string>
     <string name="more_scooters_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Koppla från</string>
     <string name="more_scooters_action_named" volt:src="2d3dacf52b2e03498713ce8ccea2f6833184ac4e">%1$s %2$s</string>
-    <string name="more_scooters_use_named" volt:src="e0c555963cb7c36a33b69480be2226d587632a3f">Använd %1$s. Visa sparade data utan att ansluta</string>
+    <string name="more_scooters_use_named" volt:src="e0c555963cb7c36a33b69480be2226d587632a3f">Använd %1$s. Visa sparad data utan att ansluta</string>
     <string name="more_permission_allowed" volt:src="ae8b411f528d25a893bf701e8797c5430da27a8e">Tillåten</string>
     <string name="more_permission_not_allowed" volt:src="5d9e1e5a17373c3c4ab45e14a5c7f4585e022446">Inte tillåten</string>
     <string name="more_permission_approximate" volt:src="56e4a378af5c8974821105ae5d24de20fd9ef934">Ungefärlig</string>
-    <string name="more_pin_not_read" volt:src="5f09f0c7557469533b6b0a57ff74636ce28a2421">Inte läst</string>
+    <string name="more_pin_not_read" volt:src="5f09f0c7557469533b6b0a57ff74636ce28a2421">Inte avläst</string>
     <string name="more_pin_rejected" volt:src="4c145cb0761526ad2b04e889e812bfd698cd5ec9">Avvisad av elsparkcykeln</string>
     <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Inte inställd</string>
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Inaktiverad</string>
@@ -386,8 +386,8 @@
     <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2">PIN-kod inte aktiverad</string>
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telefonen parkopplad</string>
     <string name="more_chip_not_paired" volt:src="ad157a23d84cb9e78e6ecda65dc3f292f246b5be">Telefonen inte parkopplad</string>
-    <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Endast ägaren av UT5 MAX</string>
-    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Endast ägaren</string>
+    <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Bara ägaren av UT5 MAX</string>
+    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Bara ägaren</string>
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Anslut till elsparkcykeln först</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Väntar på elsparkcykeln</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Ingen uppgift från firmwaren</string>
@@ -395,5 +395,5 @@
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Parkoppla den här telefonen först</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Parkopplad</string>
-    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testa när elsparkcykeln är parkerad. När närhetsupplåsningen har slagits på kan elsparkcykeln koppla från en kort stund; Volt ansluter igen och bekräftar ändringen.</string>
+    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testa när elsparkcykeln är parkerad. När närhetsupplåsningen har slagits på kan anslutningen brytas en kort stund; Volt ansluter igen och bekräftar ändringen.</string>
 </resources>

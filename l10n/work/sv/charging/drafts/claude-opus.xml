@@ -2,7 +2,7 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="charging_alert_level_full" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Fulladdad</string>
-    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Laddar till fullt</string>
+    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Laddar tills batteriet är fullt</string>
     <string name="charging_alert_watch_title" volt:src="f5a8a98dee559c956440570b99faee4a54c3b681">Laddar till %1$s %%</string>
     <string name="charging_alert_title_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Fulladdad</string>
     <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Låg batterinivå</string>

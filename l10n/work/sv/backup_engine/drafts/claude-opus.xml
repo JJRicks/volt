@@ -41,13 +41,13 @@
     </plurals>
     <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Onlinekarta: på</string>
     <string name="backup_engine_restore_could_not_be_prepared" volt:src="a635201a3310fea6dff495449cf249c0438147fa">Det gick inte att förbereda återställningen.</string>
-    <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Det gick inte att slutföra återställningen. Dina data behölls.</string>
+    <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Det gick inte att slutföra återställningen. Din data behölls.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Appens data ändrades under säkerhetskopieringen. Försök igen med inspelningarna stoppade.</string>
-    <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">Det gick inte att ta bort tillfälliga data för den krypterade säkerhetskopian.</string>
+    <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">Det gick inte att ta bort tillfällig data för den krypterade säkerhetskopian.</string>
     <string name="backup_engine_backup_could_not_opened" volt:src="cd3018aee5f19dde0d1cdf8462e735f8531610c7">Det gick inte att öppna säkerhetskopian.</string>
     <string name="backup_engine_not_supported_volt_app" volt:src="52c6c3b3d0d13b7ca3cfb9f4fddb7967de1ae1cf">Det här är inte en säkerhetskopia av Volt-appen som stöds.</string>
     <string name="backup_engine_unsupported_backup_format" volt:src="087dd7cdf91b2d9f65842a453ab409f0186c4fe4">Säkerhetskopieformatet stöds inte.</string>
-    <string name="backup_engine_backup_needs_compatible_newer" volt:src="cc9d0bb0dd15cfb6f9ec19e767b19f7ac085838f">Säkerhetskopian kräver en kompatibel eller nyare appversion, eller så har den ogiltiga metadata.</string>
+    <string name="backup_engine_backup_needs_compatible_newer" volt:src="cc9d0bb0dd15cfb6f9ec19e767b19f7ac085838f">Säkerhetskopian kräver en kompatibel eller nyare appversion, eller så har den ogiltig metadata.</string>
     <string name="backup_engine_backup_contains_unsupported_duplicate" volt:src="2852376fa3df0eec807087e866a61b6d9dcea797">Säkerhetskopian innehåller en dubblettpost eller en post som inte stöds.</string>
     <string name="backup_engine_backup_contains_too_many" volt:src="eb0bd1e4defa36e486611068a157230cacf929c0">Säkerhetskopian innehåller för många filer.</string>
     <string name="backup_engine_backup_incomplete_inconsistent_contents" volt:src="d3dd0d01040f02c476bc11f2cee0dac2af005108">Säkerhetskopian är ofullständig eller har motstridigt innehåll.</string>
@@ -75,8 +75,8 @@
     <string name="backup_engine_there_too_many_recording" volt:src="f24a312e4d327232482aca050f9502570954998b">Det finns för många inspelningsfiler för det här säkerhetskopieformatet.</string>
     <string name="backup_engine_invalid_archive_path" volt:src="ebd553e7005b9739201ac16007c37b6978e32610">Ogiltig arkivsökväg.</string>
     <string name="backup_engine_restore_file_unavailable" volt:src="35e9951f59b4a6cdd18f727d6358825ac16cc9b5">En återställningsfil är inte tillgänglig.</string>
-    <string name="backup_engine_could_not_remove_temporary_data" volt:src="da4a8742e7da1a90a47b1a60862d91c37f67aaf9">Det gick inte att ta bort tillfälliga data.</string>
-    <string name="backup_engine_could_not_read_temporary" volt:src="822c6a19932d9a0fb2767d633fe0268fffc2543c">Det gick inte att läsa tillfälliga data.</string>
+    <string name="backup_engine_could_not_remove_temporary_data" volt:src="da4a8742e7da1a90a47b1a60862d91c37f67aaf9">Det gick inte att ta bort tillfällig data.</string>
+    <string name="backup_engine_could_not_read_temporary" volt:src="822c6a19932d9a0fb2767d633fe0268fffc2543c">Det gick inte att läsa tillfällig data.</string>
     <string name="backup_engine_there_not_enough_available" volt:src="6f4a758fecb083e7858a382178df1f6220cd8777">Det finns inte tillräckligt med ledigt lagringsutrymme för appen.</string>
     <string name="backup_engine_unexpected_storage_link" volt:src="764208daf192e543d8d5ac6a178c93419e771445">Oväntad lagringslänk.</string>
     <string name="backup_engine_backup_exceeds_supported_storage" volt:src="f4511addb858e6bc8f6c517c3a48786082d4a495">Säkerhetskopian överskrider lagringsgränsen som stöds.</string>
@@ -103,17 +103,17 @@
     <string name="backup_engine_backup_encryption_unavailable_device" volt:src="e8b0c99e17d1182da29168cbb170e630cb1fab14">Kryptering av säkerhetskopior är inte tillgänglig på den här enheten.</string>
     <string name="backup_engine_choose_volt_encrypted_app" volt:src="30da3d2438b9264a1b660eb0fb5020bdda7baa3a">Välj en krypterad säkerhetskopia av Volt-appen.</string>
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Ogiltig post i den krypterade säkerhetskopian.</string>
-    <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Säkerhetskopian har oväntade data i slutet.</string>
+    <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Säkerhetskopian har oväntad data i slutet.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Säkerhetskopieringen är redan slutförd.</string>
     <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Välj vad som ska säkerhetskopieras.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Det finns för många filer för en säkerhetskopia.</string>
-    <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Säkerhetskopians metadata är för stora.</string>
+    <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Säkerhetskopians metadata är för stor.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Appens data ändrades under säkerhetskopieringen. Försök igen.</string>
     <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">En inspelning är för stor för en säkerhetskopia.</string>
     <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Välj en säkerhetskopiefil från Volt.</string>
-    <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Det gick inte att ta bort tillfälliga data för säkerhetskopian.</string>
-    <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Säkerhetskopian kräver en nyare appversion, eller så har den ogiltiga metadata.</string>
-    <string name="backup_engine_backup_invalid_metadata" volt:src="6f68482f72856b4a69891f453da13733a639915a">Säkerhetskopian har ogiltiga metadata.</string>
+    <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Det gick inte att ta bort tillfällig data för säkerhetskopian.</string>
+    <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Säkerhetskopian kräver en nyare appversion, eller så har den ogiltig metadata.</string>
+    <string name="backup_engine_backup_invalid_metadata" volt:src="6f68482f72856b4a69891f453da13733a639915a">Säkerhetskopian har ogiltig metadata.</string>
     <string name="backup_engine_backup_invalid_categories" volt:src="3fce1ffce7fb2ab553fa975253ba2235248fef9a">Säkerhetskopian har ogiltiga kategorier.</string>
     <string name="backup_engine_backup_invalid_scooters" volt:src="f63a249f2fcbdbcbc550240fd67c82b15a9aa657">Säkerhetskopian har ogiltiga elsparkcyklar.</string>
     <string name="backup_engine_backup_contains_unsupported_entry" volt:src="65f50d7583395adf34f7ed0544270519fcde4287">Säkerhetskopian innehåller en post som inte stöds.</string>
@@ -161,7 +161,7 @@
     <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">Säkerhetskopian har en inkompatibel typ av appinställning.</string>
     <string name="backup_engine_backup_invalid_display_text" volt:src="194fd5048e934d2fa854e7e693f332706da65c69">Säkerhetskopian har en ogiltig textskala för skärmen.</string>
     <string name="backup_engine_review_backup_first" volt:src="1dde6c2a50a1278db6941d64547da7196557199d">Granska säkerhetskopian först.</string>
-    <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Sparade data har ändrats. Granska igen.</string>
+    <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Sparad data har ändrats. Granska igen.</string>
     <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Inte tillräckligt med ledigt lagringsutrymme</string>
     <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Det gick inte att förbereda återställningen.</string>
     <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Lagringen för inspelningar ändrades under återställningen.</string>
@@ -185,20 +185,20 @@
     <string name="backup_engine_invalid_scooter_list" volt:src="4633c292e7a5c4807185f1688f8cc13fbde2c6a1">Ogiltig lista över elsparkcyklar.</string>
     <string name="backup_engine_ride_backup_too_large" volt:src="c25da53a175f0f2367c219d8c569e41ced2d5fd1">Säkerhetskopian med turer är för stor eller tom.</string>
     <string name="backup_engine_invalid_duplicate_recording_path" volt:src="043fba05788e3ec8ff483f6dc3be8e66fdc7e5ba">Ogiltig eller duplicerad sökväg till inspelning.</string>
-    <string name="backup_engine_unexpected_backup_metadata" volt:src="c3d35b4d5f84e31d3dba714536ed9e964457da1b">Oväntade metadata i säkerhetskopian.</string>
+    <string name="backup_engine_unexpected_backup_metadata" volt:src="c3d35b4d5f84e31d3dba714536ed9e964457da1b">Oväntad metadata i säkerhetskopian.</string>
     <string name="backup_engine_unexpected_duplicate_recording_file" volt:src="d954cbaeea199e679edaa694214550eb55cfa690">Oväntad eller duplicerad inspelningsfil.</string>
     <string name="backup_engine_backup_incomplete_damaged" volt:src="7e46da3c18be9b99e94a03fc28b643bd97668283">Säkerhetskopian är ofullständig eller skadad.</string>
     <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">Inspelningsfiler saknas i säkerhetskopian.</string>
     <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Koppling till elsparkcykel saknas.</string>
     <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">Listan över turer är inkonsekvent.</string>
-    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Mätningar från telefonen saknar sin tur.</string>
+    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Mätpunkter från telefonen saknar sin tur.</string>
     <string name="backup_engine_choose_destination_every_scooter" volt:src="9d0e8e7d2b492149ede88066de128fd38afc3b58">Välj ett mål för varje elsparkcykel.</string>
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Sparade turer har ändrats. Granska säkerhetskopian igen.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Det gick inte att förbereda återställningen av turer.</string>
     <string name="backup_engine_restore_interrupted_reopen_volt" volt:src="b0d7118e39c2abebc697c5bd7f9d589e2a52b766">Återställningen avbröts. Öppna Volt igen – rensa inte lagringsutrymmet.</string>
     <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Återhämtningen efter återställning av turer behöver åtgärdas. Låt appens lagringsutrymme vara orört.</string>
     <string name="backup_engine_ride_restore_storage_unavailable" volt:src="df81a76f4eb20ac8ad9dc094ce5553679048e3c1">Lagringen för återställning av turer är inte tillgänglig.</string>
-    <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Oväntade återhämtningsdata för återställning av turer.</string>
+    <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Oväntad återhämtningsdata för återställning av turer.</string>
     <string name="backup_engine_invalid_ride_recovery_list" volt:src="11f84a914e3636306f31de4a66b81bca505374a1">Ogiltig återhämtningslista för turer.</string>
     <string name="backup_engine_invalid_ride_recovery_path" volt:src="d1c808d3e4ee2818cc3ab833b882fa7d2e05d3dd">Ogiltig återhämtningssökväg för turer.</string>
     <string name="backup_engine_could_not_roll_back_interrupted_ride" volt:src="fcd91f15c3010658c11974c837fbea1118fef8df">Det gick inte att rulla tillbaka en avbruten återställning av turer.</string>
@@ -208,7 +208,7 @@
     <string name="backup_engine_invalid_ride_path" volt:src="24f318c33e90e9a2aeec3c0c1431b0d6cef844a9">Ogiltig sökväg för en tur.</string>
     <string name="backup_engine_unexpected_ride_storage_link" volt:src="299b93725ebe941afbd0c28cf486743ca720f79d">Oväntad lagringslänk för turer.</string>
     <string name="backup_engine_ride_record_too_large" volt:src="93a7d93c531a64a62fa68baf6daface912ce4887">En turpost är för stor.</string>
-    <string name="backup_engine_unsupported_ride_journal_format" volt:src="7e22a8fde27b3e6c090d56071e482e755826c4be">Formatet på turjournalen stöds inte.</string>
+    <string name="backup_engine_unsupported_ride_journal_format" volt:src="7e22a8fde27b3e6c090d56071e482e755826c4be">Formatet på turloggen stöds inte.</string>
     <string name="backup_engine_incomplete_ride_record_was" volt:src="59cff835f0d7f0b66ccf132bf18c5da66b7f0a63">En ofullständig turpost hittades.</string>
     <string name="backup_engine_phone_sensor_record_invalid" volt:src="1079c5bf5005009fcd5e3dd7e89e222ab35f30e7">En post från telefonens sensorer är ogiltig.</string>
     <string name="backup_engine_ride_backup_exceeds_size" volt:src="c628fece13322d1ab371ce92a147a1f301cbdae0">Säkerhetskopian med turer överskrider storleksgränsen.</string>

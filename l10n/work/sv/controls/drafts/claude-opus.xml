@@ -15,7 +15,7 @@
     <string name="controls_feature_speed_limit" volt:src="eae0a786d24497605ec2abc368fb032b5599a2c3">Egen hastighetsgräns</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Maxhastighet</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Tvåmotorsdrift</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9" volt:attempt="2">Hastighetsgräns för körläge Drive</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9" volt:attempt="2">Hastighetsgräns för Drive-läge</string>
     <string name="controls_feature_charge_limit" volt:src="69ff0b43f5632ac15b553dfeeab26e66e603e019">Laddningsgräns</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Schemalagd laddning</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Starttid för laddning</string>
@@ -39,12 +39,12 @@
     <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s: Boost-färg</string>
     <string name="controls_feature_acceleration_about" volt:src="6ff0ecbed4c6617cdf05fd33be56868ab6c7f0e9">Eco/Turbo på andra modeller.</string>
     <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Strömknappen pausar till nästa omstart.</string>
-    <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Ändrar bara beräkningen.</string>
+    <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Bara beräkningen ändras.</string>
     <string name="controls_feature_maximum_speed_about" volt:src="2e9ec9d25e4fbb0fb06e1c25c85ee3a430b9216f">Bara i Sport-läge.</string>
-    <string name="controls_feature_lock_expiry_about" volt:src="92b40c2c0835027491598b62764bcb3401fe9437">Låst även när den är avstängd; kom ihåg PIN-koden.</string>
-    <string name="controls_feature_hill_start_assist_about" volt:src="b50f5ba146949f86b40b28db9b276c166048bca5">Följer när du skjuter på; bromsen stoppar.</string>
+    <string name="controls_feature_lock_expiry_about" volt:src="92b40c2c0835027491598b62764bcb3401fe9437">Elsparkcykeln förblir låst när den är avstängd; kom ihåg PIN-koden.</string>
+    <string name="controls_feature_hill_start_assist_about" volt:src="b50f5ba146949f86b40b28db9b276c166048bca5">Motorn följer när du skjuter på; bromsen stoppar.</string>
     <string name="controls_feature_parking_assist_about" volt:src="0ef3a49ead3d5a49cc6baca2fe06d569b5eab810">Sport: Boost + full gas i uppförsbacke.</string>
-    <string name="controls_feature_hill_descent_control_about" volt:src="76ffa7946cf61ab85aa4868883a9b3f5ad5ab32b">Begränsar hastigheten i nedförsbacke.</string>
+    <string name="controls_feature_hill_descent_control_about" volt:src="76ffa7946cf61ab85aa4868883a9b3f5ad5ab32b">Hastigheten begränsas i nedförsbacke.</string>
     <string name="controls_group_security" volt:src="a9905461a8baa2eee5b317e9e1a0a9ef23839363">Säkerhet</string>
     <string name="controls_group_ride" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Körning</string>
     <string name="controls_group_lights" volt:src="a48efba2810bbcf557c4964418697545dd84949a">Ljus och ljud</string>
@@ -81,14 +81,14 @@
     <string name="controls_option_percent_spaced" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s %%</string>
     <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Anslut till elsparkcykeln först</string>
     <string name="controls_reason_status_stale" volt:src="be8bfcd081f6255bcda3377d532b6e19e86d5a99">Väntar på aktuell status</string>
-    <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Okänt värde · kan inte ändras säkert</string>
+    <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Okänt värde · kan inte ändras på ett säkert sätt</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Ingen uppgift om val</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Vänta på den pågående ändringen</string>
     <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Stanna elsparkcykeln först</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Ingen uppgift om rörelse ännu</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Åtgärda elsparkcykelns varning först</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Lås upp först</string>
-    <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Endast för ägaren</string>
+    <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Bara ägaren</string>
     <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Parkoppla den här telefonen först</string>
     <string name="controls_reason_needs_pin" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Slå på PIN-koden på styret först</string>
     <string name="controls_reason_firmware_unknown" volt:src="dc3ecf1b86340e6787b58edd8057d65da19a092a">Firmware har inte lästs ännu</string>
@@ -106,7 +106,7 @@
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Kräver en riktig elsparkcykel</string>
     <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Bekräfta att elsparkcykeln är parkerad</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Inget test pågår</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Värdet ligger utanför OEM-funktionens tillåtna område</string>
+    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Värdet ligger utanför det den officiella appen tillåter</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Av eller 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Av eller 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Inte tillgängligt just nu</string>
@@ -116,13 +116,13 @@
     <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Ändringar av närhetsupplåsning kräver en autentiserad ägare</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Parkoppla den här telefonen innan du slår på närhetsupplåsning</string>
     <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Slå på en inställd PIN-kod på styret innan du slår på närhetsupplåsning</string>
-    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Den officiella appen frågar före den här ändringen. Volt har inte testat det på den här modellen.</string>
+    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Den officiella appen frågar innan den här ändringen görs. Volt har inte testat den på den här modellen.</string>
     <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt har inte testat det på den här modellen.</string>
-    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Den officiella appen uppmanar till försiktighet inför den här ändringen. Volt har inte testat det på den här modellen.</string>
-    <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Stänga av antispinn? %1$s</string>
-    <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Stänga av batterisparläget? %1$s</string>
-    <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Byta till en motor? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Stänga av energiåtervinningen? %1$s</string>
+    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Den officiella appen uppmanar till försiktighet inför den här ändringen. Volt har inte testat den på den här modellen.</string>
+    <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Vill du stänga av antispinn? %1$s</string>
+    <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Vill du stänga av batterisparläget? %1$s</string>
+    <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Vill du byta till en motor? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Vill du stänga av energiåtervinningen? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Sparkstartshastighet under 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Över 32 km/h: Kontrollera vilka regler som gäller där du kör. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Antispinn stängs av. Kör försiktigt på vått eller löst underlag tills du vet hur elsparkcykeln beter sig.</string>
@@ -161,6 +161,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Det stämmer</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Elsparkcykeln anger läge %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Namngivna lägen: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Inte säker</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Vet inte</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

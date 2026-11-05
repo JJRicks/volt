@@ -11,7 +11,7 @@
     <string name="compat_no_finished_check" volt:src="7393e79b1d7b7004e922147bbd058fb347783333">Ingen slutförd kontroll ännu</string>
     <string name="compat_footer" volt:src="86d3d6fcbcee53279410f8c97de4654f969c217a">Kontrollen läser bara. Reglage provar du under Mer › Experimentella reglage, och rapporten innehåller resultaten. Firmwaren ändras aldrig.</string>
     <string name="compat_connect_to_check" volt:src="465b99a776e3987ff95e10fad6eac713fc821b6e">Anslut för att kontrollera den här elsparkcykeln.</string>
-    <string name="compat_model_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID hämtades inte</string>
+    <string name="compat_model_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID inte hämtat</string>
     <string name="compat_simulated" volt:src="78fcc0abfc67eab0d7214bfe073d6a24afb2bb84">Simulerad elsparkcykel</string>
     <string name="compat_identity_line" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="compat_model_id" volt:src="cb81a2bf6ce7d7bcc43810d511dcc4408f1cdcde">Modell-ID</string>
@@ -24,7 +24,7 @@
     <string name="compat_region_unknown" volt:src="2f5ed55044f5c0206951f1fe3b940de489213461">Okänd</string>
     <string name="compat_region_from_serial" volt:src="63a90596405aa8be36a800a5b74768d431dbc847">%1$s (från serienummer)</string>
     <string name="compat_firmware" volt:src="51abb1cc463a0097897e04b3e43330e63f22033b">Firmware</string>
-    <string name="compat_firmware_not_read" volt:src="64323971e235c20c3e1a1a3df937f11f81e86b19">Inte läst ännu</string>
+    <string name="compat_firmware_not_read" volt:src="64323971e235c20c3e1a1a3df937f11f81e86b19">Inte avläst ännu</string>
     <string name="compat_rules" volt:src="b7cd5c56ff4c4c32c3aa4362266b3256789f9531">Regler</string>
     <string name="compat_your_answer" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Ditt svar</string>
     <string name="compat_identify_note" volt:src="066141e940194974d5668d4dbab073c50336764e">”Identifiera” läser modell-ID:t från elsparkcykelns utsändning. Inget kommando skickas.</string>
@@ -33,15 +33,15 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-mappade (otestade)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås och mätvärden</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Stöds inte</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 test som inte är avslutat på en annan elsparkcykel. Välj den för att granska testet.</string>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 oavslutat test på en annan elsparkcykel. Välj den för att granska testet.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
-        <item quantity="one">%1$d test som inte är avslutat på en annan elsparkcykel. Välj den för att granska testet.</item>
-        <item quantity="other">%1$d test som inte är avslutade på andra elsparkcyklar. Välj en för att granska testet.</item>
+        <item quantity="one">%1$d oavslutat test på en annan elsparkcykel. Välj den för att granska testet.</item>
+        <item quantity="other">%1$d oavslutade test på andra elsparkcyklar. Välj en för att granska testet.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testuppgifterna är inte tillgängliga. Ett tidigare test kanske inte har ställts tillbaka; kontrollera elsparkcykelns inställningar.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Prova · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
-    <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser det aktuella värdet…</string>
+    <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser av det aktuella värdet…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Ändrar till %1$s…</string>
     <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att värdet inte har ändrats…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
@@ -52,21 +52,21 @@
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Värdet behölls</string>
     <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Tillbakaställd och bekräftad</string>
     <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Tillbakaställning återstår · granska nedan</string>
-    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Provat, inte avslutat · %1$s</string>
+    <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Oavslutat försök · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Oavslutat test · %1$s</string>
-    <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Innan du provade</string>
+    <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Före försöket</string>
     <string name="compat_before_test" volt:src="0013c71b6f6ca92eac22436c874f139fe599f39d">Före testet</string>
     <string name="compat_value_tried" volt:src="eaeb926168edaad2a5f6b927a46f8d47104b3e24">Provat värde</string>
     <string name="compat_test_value" volt:src="93dfa48d7dcf0a7377b3e6383453b059484b9dee">Testvärde</string>
     <string name="compat_parked" volt:src="affd4fdaffbaf3af094ff27267aa162d101a2d40">Elsparkcykeln är parkerad</string>
-    <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Ingen rörelserapport ännu på den här anslutningen.</string>
+    <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Ingen uppgift om rörelse ännu på den här anslutningen.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Fortsätt ändå</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Markera som tillbakaställd</string>
     <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Ställ tillbaka till %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Behåll %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Ställ in %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Stäng · lämna oförändrat</string>
-    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Stäng ”Provat, inte avslutat” för %1$s utan att ställa tillbaka värdet</string>
+    <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Stäng det oavslutade försöket med %1$s utan att ställa tillbaka värdet</string>
     <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Stäng det oavslutade testet av %1$s utan att ställa tillbaka värdet</string>
     <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef">Elsparkcykeln har glömts, så Volt kan inte kontrollera den här inställningen eller ställa tillbaka den. Kontrollera inställningen på själva elsparkcykeln.</string>
     <string name="compat_dismiss" volt:src="2f05b359cebb7fdbdd7e576511561f1de4f382a7">Stäng</string>
@@ -79,13 +79,13 @@
     <string name="compat_question_turn_sound_on" volt:src="21dfb23b3079ca0a26f7759adeeb0fe01e2fcb19">Är ljudet på när blinkersen är på?</string>
     <string name="compat_question_turn_sound_off" volt:src="962e3a6ef7285efd32cca8afd56efce2ceab0d4b">Är ljudet av när blinkersen är på?</string>
     <string name="compat_question_turn_sound" volt:src="148d8c47ea80f5c4c5dfb86f8d5bbb907701d925">Är ljudet inställt på %1$s när blinkersen är på?</string>
-    <string name="compat_question_auto_lights_on" volt:src="fcf9aa81b7bd0f338236a8ecadbc18fd115af508">Är automatisk belysning på?</string>
-    <string name="compat_question_auto_lights_off" volt:src="9ade8ff6ac5abee6746daff90e32fa8a12534f9c">Är automatisk belysning av?</string>
-    <string name="compat_question_auto_lights" volt:src="dbdbb16b1d09b025c154ba879981f2e5549ea097">Är automatisk belysning inställd på %1$s?</string>
+    <string name="compat_question_auto_lights_on" volt:src="fcf9aa81b7bd0f338236a8ecadbc18fd115af508">Är den automatiska belysningen på?</string>
+    <string name="compat_question_auto_lights_off" volt:src="9ade8ff6ac5abee6746daff90e32fa8a12534f9c">Är den automatiska belysningen av?</string>
+    <string name="compat_question_auto_lights" volt:src="dbdbb16b1d09b025c154ba879981f2e5549ea097">Är den automatiska belysningen inställd på %1$s?</string>
     <string name="compat_question_range" volt:src="29869335b8d009a1dffff67f95517d4d613411f9">Ändrades den beräknade räckvidden på elsparkcykelns display?</string>
     <string name="compat_question_default" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Såg du någon ändring?</string>
     <string name="compat_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Stoppa</string>
-    <string name="compat_listening" volt:src="7dfd8290394db694f09ee2c5a4254f728b582eed">Lyssnar efter rapporter från elsparkcykeln…</string>
+    <string name="compat_listening" volt:src="7dfd8290394db694f09ee2c5a4254f728b582eed">Lyssnar efter uppgifter från elsparkcykeln…</string>
     <string name="compat_reading_progress" volt:src="249b306ba159ce3668c3b9808cd392134126a43f">Läser %1$s av %2$s…</string>
     <string name="compat_check_interrupted" volt:src="8d1e997e4bf67d6d57139a0b8107674c606c28ca">Kontrollen avbröts. Resultat hittills:</string>
     <string name="compat_group_reads" volt:src="67f90ed41332607cec165b58c3827cd57592b789">Läsningar</string>
@@ -93,14 +93,14 @@
     <string name="compat_group_controls" volt:src="714af1542502b8436642bb9864aefbb459956777">Reglage</string>
     <string name="compat_group_hide" volt:src="403079455c996b2e03c488ed53b3897f5d941537">Dölj</string>
     <string name="compat_group_show" volt:src="155587b9630b340750348adf922b5518805e84b2">Visa</string>
-    <string name="compat_group_expanded" volt:src="4dff305b3c6e01de7fca48db5a218dd7d21509a0">%1$s, visas</string>
-    <string name="compat_group_collapsed" volt:src="839f7d9bb3b4341ed56c88269fb8eaae4e3b62bb">%1$s, döljs</string>
+    <string name="compat_group_expanded" volt:src="4dff305b3c6e01de7fca48db5a218dd7d21509a0">%1$s, utfällda</string>
+    <string name="compat_group_collapsed" volt:src="839f7d9bb3b4341ed56c88269fb8eaae4e3b62bb">%1$s, hopfällda</string>
     <string name="compat_read_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="compat_reports" volt:src="1c9af93ad84c7bcdb1536ad2b9dd1b6712508929">Rapporter från elsparkcykeln</string>
+    <string name="compat_reports" volt:src="1c9af93ad84c7bcdb1536ad2b9dd1b6712508929">Uppgifter från elsparkcykeln</string>
     <string name="compat_reports_none" volt:src="5b551da1ec37022b302edb57b026314e2d5e679f">Inga har setts (de kanske bara kommer under körning)</string>
     <string name="compat_read_status" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Status</string>
     <string name="compat_status_not_received" volt:src="3ccfafc47b737582bcafa5f35a0e61120a8a8a73">Inte mottagen</string>
-    <string name="compat_status_read" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Läst</string>
+    <string name="compat_status_read" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Avläst</string>
     <string name="compat_control_clock" volt:src="d146a494aa72d5293f9795b3f72cfba5fd963b7a">Klocka</string>
     <string name="compat_control_available" volt:src="ed6c8af3f472d653fbf30b41c0ec48494e78f7b5">Tillgängligt · %1$s</string>
     <string name="compat_control_unavailable" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
@@ -118,7 +118,7 @@
     <string name="compat_read_fault_history" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Felhistorik</string>
     <string name="compat_read_driving" volt:src="61cf18ac32b684052b3979d0da94c7401b89c32d">Körning (avsökning)</string>
     <string name="compat_read_battery_id" volt:src="190ae1c24e429def9ad49db06004030f2de1bebc">Batteri-ID (avsökning)</string>
-    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Batteritecken (avsökning)</string>
+    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Batteriets förtecken (avsökning)</string>
     <string name="compat_read_other" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Läsning</string>
     <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Avvisad %1$d</string>
     <plurals name="compat_read_too_short" volt:src="7745dc0659fdff73d44a35ee36a86959b4ba2ef2">
@@ -131,9 +131,9 @@
     <string name="compat_read_waiting" volt:src="4409bbb1386ef72e4c2145cc33396977580cb2c8">Väntar</string>
     <string name="compat_evidence_volt_verified" volt:src="2dc01b8b913a74a120c986f6d55b205bdd9a533a">Verifierat av Volt</string>
     <string name="compat_evidence_lab" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Labb</string>
-    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">OEM-mappad</string>
-    <string name="compat_evidence_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Gemensam</string>
-    <string name="compat_evidence_local" volt:src="db02f60d181f66a04d5e67faf611150d2ce61980">Testad här</string>
+    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">OEM-mappat</string>
+    <string name="compat_evidence_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Gemensamt</string>
+    <string name="compat_evidence_local" volt:src="db02f60d181f66a04d5e67faf611150d2ce61980">Testat här</string>
     <string name="compat_evidence_none" volt:src="26dbf44f9724742daed1fe5c637a87579cbf5641">Inget underlag</string>
     <string name="compat_row_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
     <string name="compat_report_preview" volt:src="0cc4db042719c4320cd2966f248972d5086af082">Förhandsgranskning av rapport</string>
@@ -167,19 +167,19 @@
     <string name="compat_field_eco_light" volt:src="3066e79d0d3f7118e64fe8a4019eb5323b5c5faa">Eco-ljus</string>
     <string name="compat_field_drive_light" volt:src="de0652ef8b0b9312856460b60a076459beca0ba4">Drive-ljus</string>
     <string name="compat_field_sport_light" volt:src="445dbbe174ab00af363c531e87d646b02d931db3">Sport-ljus</string>
-    <string name="compat_field_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Starthastighet</string>
+    <string name="compat_field_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Sparkstartshastighet</string>
     <string name="compat_field_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Hastighetsgräns</string>
     <string name="compat_field_volume" volt:src="caea7e83ed3ad8e36236a8fbe532819f12d5db10">Volym</string>
     <string name="compat_field_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Röstspråk</string>
     <string name="compat_field_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Logoljus</string>
     <string name="compat_field_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Varselljus</string>
     <string name="compat_field_maximum_speed_setting" volt:src="2ca9795c0e0aed9b105f45e8b2328f7162b6b90b">Inställning för maxhastighet</string>
-    <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Inställning för Drive-läge</string>
+    <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Inställning för körläge</string>
     <string name="compat_field_charge_limit_percent" volt:src="3fb2ccac0699d8546fc4a9934efba0aa96fa47fa">Laddningsgräns i procent</string>
-    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Låg effekt</string>
+    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Batterisparläge</string>
     <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Schemalagd laddning</string>
     <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Tid för automatisk låsning</string>
-    <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Villkor för hastighetsgräns</string>
+    <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Flagga för om hastighetsgräns kan användas</string>
     <string name="compat_field_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Väder</string>
     <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Backassistans</string>
     <string name="compat_field_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Långdistansläge</string>
@@ -194,7 +194,7 @@
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Avvisad, kod %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kvitterad, obekräftad</string>
     <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Återläsningen visar ingen ändring, värde %1$d</string>
-    <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Återläsning avviker, värde %1$d</string>
+    <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Återläsningen avviker, värde %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Inställning bekräftad</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Ändring observerad</string>
     <string name="compat_outcome_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Tillbakaställd och bekräftad</string>
@@ -230,7 +230,7 @@
     <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Ställdes tillbaka och bekräftades, men det gick inte att spara posten.</string>
     <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Behölls, men det gick inte att spara posten. Den kommer att visas som oavslutad.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Anslut till den här elsparkcykeln för att granska.</string>
-    <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">Modell-ID skiljer sig från testet. Volt ändrar inte inställningen.</string>
+    <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">Modell-ID:t skiljer sig från det i testet. Volt ändrar inte inställningen.</string>
     <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c">Volts regler för den här inställningen har ändrats. Volt ändrar den inte.</string>
     <string name="compat_review_firmware_changed" volt:src="5e66c29434a4e9902874eb847c4eaa47eb8aa3fe">Firmwaren har ändrats sedan testet.</string>
     <string name="compat_review_firmware_not_read" volt:src="d360bc2777b2388b2269e08774878cc8070fb382">Firmwaren har inte lästs sedan testet.</string>

@@ -2,7 +2,7 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="backup_close_volt" volt:src="c0ad161fb8ec54a27ca4ce9df676f7d1fb71f941">Stäng Volt</string>
-    <string name="backup_close_title" volt:src="73628852adb47d88c5db1d6c7fc8cd7a44166d88">Stäng Volt?</string>
+    <string name="backup_close_title" volt:src="73628852adb47d88c5db1d6c7fc8cd7a44166d88">Vill du stänga Volt?</string>
     <string name="backup_close_nothing_changed" volt:src="56942a9a477fabbd956cbc5b0bd165de36f6ccb1">Inget har ändrats.</string>
     <string name="backup_stay_here" volt:src="ae4b9f9384c9e1c118cfa20a2426c2d33300f480">Stanna kvar</string>
     <string name="backup_category_spoken" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -24,8 +24,8 @@
     <string name="backup_inventory_unreadable" volt:src="bd1e085ffe74e8205a40047b7688e6bfecf7de84">Det går inte att läsa appdata. Öppna Volt igen.</string>
     <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6">Fullständig säkerhetskopia · all sparad appdata, inklusive åtkomst till elsparkcykeln.</string>
     <plurals name="backup_scope_selected" volt:src="1e5b5f778deba54ed05cfe54310e60709177d9f9">
-        <item quantity="one">Endast vald data · %1$d kategori utesluten.</item>
-        <item quantity="other">Endast vald data · %1$d kategorier uteslutna.</item>
+        <item quantity="one">Bara vald data · %1$d kategori utesluten.</item>
+        <item quantity="other">Bara vald data · %1$d kategorier uteslutna.</item>
     </plurals>
     <string name="backup_estimate" volt:src="13c55e78372a7d44e5b6a608067bfc3ddc5154ef">Ca %1$s</string>
     <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Behörigheter och Bluetooth-parkoppling ingår inte. Elsparkcykelinställningar sparas i Volt; om du återställer dem ändras inga inställningar på elsparkcykeln.</string>
@@ -60,7 +60,7 @@
     <string name="backup_choose_another" volt:src="76850a8a4a899932c82c308ad26aa02ba88daa78">Välj en annan fil</string>
     <string name="backup_checking_backup" volt:src="708ee633a97c4e8ead1fa469ce6b58df959d5936">Kontrollerar säkerhetskopian…</string>
     <string name="backup_wrong_password" volt:src="2de28db853d23f5c28db7092aceb43821abe2315">Fel lösenord eller skadad fil.</string>
-    <string name="backup_file_owner" volt:src="f1694f38a36e5e9fde3d5989183441ba4f966f17">Ägarkonfigurationsfil · endast åtkomst till elsparkcykeln</string>
+    <string name="backup_file_owner" volt:src="f1694f38a36e5e9fde3d5989183441ba4f966f17">Ägarkonfigurationsfil · bara åtkomst till elsparkcykeln</string>
     <string name="backup_file_layout" volt:src="5f473f29b3f78de9e0830ae7a31c30f44b663932">Layoutfil</string>
     <string name="backup_file_rides" volt:src="23588102943ef321f25e17c44389979ba4090f5f">Säkerhetskopia av turer</string>
     <string name="backup_file_rides_from" volt:src="716a532924d2b83a7d178905398b0c06cb57cd48">Säkerhetskopia av turer från %1$s</string>
@@ -69,7 +69,7 @@
     <string name="backup_file_selected" volt:src="7116f9c4fdc74e6f2777716770403ea1642c1ff2">Säkerhetskopia av vald data</string>
     <string name="backup_file_selected_from" volt:src="11fb85d0567cba743ca7411ea81ed5c24f078b5f">Säkerhetskopia av vald data från %1$s</string>
     <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Den här filen innehåller inga turer eller laddningar, ingen historik och inga översikter eller appinställningar. Den återställer bara åtkomst till elsparkcykeln. Din befintliga data stannar kvar på den här telefonen.</string>
-    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Den här filen innehåller bara kategorierna som listas nedan. Annan appdata stannar kvar på den här telefonen.</string>
+    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Den här filen innehåller bara de kategorier som listas nedan. Annan appdata stannar kvar på den här telefonen.</string>
     <string name="backup_replace_all" volt:src="5397909cf23d8ef5468811e7091c69fbf3b9d6a2">Ersätt allt på den här telefonen</string>
     <string name="backup_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Nästa</string>
     <string name="backup_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Välj vad som ska återställas.</string>
@@ -85,7 +85,7 @@
     <string name="backup_dont_restore" volt:src="aa72834ea3aa7fb1eb0d9430fd62719953d299d7">Återställ inte</string>
     <string name="backup_destination_for" volt:src="768ae7cc3567bffc3fa26010330561376907b92b">Mål för %1$s</string>
     <string name="backup_destination_for_choice" volt:src="0763317957e339ab8499f8430c6de785990b7c45">Mål för %1$s: %2$s</string>
-    <string name="backup_scooter_first" volt:src="4d52bdd7c1acd30938813eda6d1d7b59d1aa3e62">Inkludera Elsparkcyklar eller konfigurera en elsparkcykel först.</string>
+    <string name="backup_scooter_first" volt:src="4d52bdd7c1acd30938813eda6d1d7b59d1aa3e62">Inkludera ”Elsparkcyklar” eller konfigurera en elsparkcykel först.</string>
     <string name="backup_review_button" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Granska</string>
     <string name="backup_choose_scooter_first" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Välj en elsparkcykel först.</string>
     <string name="backup_comparing" volt:src="c99386fa2fa77aa2c4d6b57ab978f34da0c05a1a">Jämför med den här telefonen…</string>

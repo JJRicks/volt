@@ -2,7 +2,7 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="owner_shizuku_title" volt:src="c9636c7ede7b9610b58963cfa0273a8dce007b72">Konfiguration med bara telefonen</string>
-    <string name="owner_shizuku_main_profile_only" volt:src="9feb5a68b8740f95681154ac1466983a644abad1">Endast Androids huvudprofil.</string>
+    <string name="owner_shizuku_main_profile_only" volt:src="9feb5a68b8740f95681154ac1466983a644abad1">Bara Androids huvudprofil.</string>
     <string name="owner_shizuku_import_backup" volt:src="381afce9a36947119565397388392c20ade240ba">Importera säkerhetskopia</string>
     <string name="owner_shizuku_back_to_choices" volt:src="200b9443aac4cec42a3fc8bd4193fa205aedfde7">Tillbaka till val av konfiguration</string>
     <string name="owner_shizuku_needs_android_11" volt:src="6390dbd9379a6b9f580799e0783b64c74fcafea1">Kräver Android 11 eller senare.</string>
@@ -17,17 +17,17 @@
         <item quantity="other">%1$d sekunder kvar</item>
     </plurals>
     <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s kvar</string>
-    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Avbryt konfigurationen?</string>
+    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Vill du avbryta konfigurationen?</string>
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Vänta här tills NAVEE-loggningen har återställts.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Fortsätt vänta</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Avbryt konfigurationen</string>
-    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Slutför rensningen först</string>
+    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Slutför återställningen av loggningen först</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">NAVEE-loggningen kan fortfarande vara på.</string>
     <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">Återställ NAVEE-loggningen</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Tillbaka</string>
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Redo att importera</string>
-    <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Identitet för inbjuden förare hittad</string>
-    <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Ägarnyckel hittad</string>
+    <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Identiteten för den inbjudna föraren hittades</string>
+    <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Ägarnyckeln hittades</string>
     <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">NAVEE-loggningen återställd</string>
     <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Importera ägarkonfiguration</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Kassera</string>
@@ -49,12 +49,12 @@
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Kontrollera om Shizuku körs</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Hämtning från din elsparkcykel</string>
     <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Anslut först till din parkerade elsparkcykel i NAVEE-appen.</string>
-    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Hämtningen startar om NAVEE-appen och slår tillfälligt på loggning. Låt Shizuku vara igång tills rensningen är klar.</string>
+    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Hämtningen startar om NAVEE-appen och slår tillfälligt på NAVEE-loggningen. Låt Shizuku vara igång tills loggningen har återställts.</string>
     <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Jag äger den här elsparkcykeln eller har tillstånd.</string>
     <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Starta hämtning</string>
     <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, klart</string>
-    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, inte än</string>
-    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, inte än. %2$s</string>
+    <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, inte ännu</string>
+    <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, inte ännu. %2$s</string>
     <string name="owner_steps_description" volt:src="7377e94793cdc4d9aefd72d30f41b659970c914c">Steg %1$d av 3</string>
     <string name="owner_status_access_denied" volt:src="cae25526d0f496164d3eb9244f08695bdfc797c8">Åtkomst nekad</string>
     <string name="owner_status_not_running" volt:src="54010bfefb6d488c6e1259e53b9726e17585488b">Shizuku körs inte</string>
@@ -62,10 +62,10 @@
     <string name="owner_status_root_unsupported" volt:src="5519e39b0d4356bae71e0c9e5da02f46b8b9e61a">Shizuku med root stöds inte. Starta Shizuku med trådlös felsökning.</string>
     <string name="owner_status_allow_in_shizuku" volt:src="76697c1aaf702336da47932c8acd5fea587a1043">Tillåt Volt i Shizuku</string>
     <string name="owner_status_shizuku_stopped" volt:src="aa45b05b1d9bcee4575d265753ae1d1dc866fdef">Shizuku slutade svara</string>
-    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Status för rensningen okänd. Använd återställning via dator.</string>
+    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Okänt om loggningen återställdes. Använd återställning via dator.</string>
     <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Det gick inte att starta. Inget ändrades.</string>
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Volts hjälpprogram startade inte</string>
-    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Rensning av loggningen obekräftad</string>
+    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Återställning av loggningen obekräftad</string>
     <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Inget hittades på 90 s</string>
     <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Flera elsparkcyklar. Anslut till en.</string>
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">En annan hämtning pågår</string>
@@ -80,7 +80,7 @@
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 hexadecimala tecken krävs</string>
     <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Ingen ägarnyckel i filen</string>
     <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Ägarroll som inte stöds</string>
-    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Den här filen innehåller motstridiga ägarnycklar eller roller för ägaren. Hämta en enda anslutning till ett NAVEE-konto eller importera en enda privat säkerhetskopia av konfigurationen.</string>
+    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Den här filen innehåller motstridiga ägarnycklar eller roller. Gör en hämtning från en enda anslutning till ett NAVEE-konto eller importera en enda privat säkerhetskopia av konfigurationen.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Importen misslyckades. Välj filen igen.</string>
     <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Ange en ägarnyckel på 12 tecken.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Elsparkcykel</string>
