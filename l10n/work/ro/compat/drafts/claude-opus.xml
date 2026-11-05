@@ -33,11 +33,11 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">Mapate OEM (netestate)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Blocare și citiri</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Nu este acceptat</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 test neterminat pe altă trotinetă. Selectează trotineta respectivă ca să îl examinezi.</string>
-    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
-        <item quantity="one">%1$d test neterminat pe altă trotinetă. Selectează trotineta respectivă ca să îl examinezi.</item>
-        <item quantity="few">%1$d teste neterminate pe alte trotinete. Selectează una ca să le examinezi.</item>
-        <item quantity="other">%1$d de teste neterminate pe alte trotinete. Selectează una ca să le examinezi.</item>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 test nu este terminat pe altă trotinetă. Selectează trotineta ca să verifici testul.</string>
+    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
+        <item quantity="one">%1$d test nu este terminat pe altă trotinetă. Selectează trotineta ca să verifici testul.</item>
+        <item quantity="few">%1$d teste nu sunt terminate pe alte trotinete. Selectează o trotinetă ca să verifici testele de pe ea.</item>
+        <item quantity="other">%1$d de teste nu sunt terminate pe alte trotinete. Selectează o trotinetă ca să verifici testele de pe ea.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Evidența testelor nu este disponibilă. Este posibil ca revenirea după un test anterior să nu se fi făcut; verifică setările trotinetei.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Încercare · %1$s</string>
@@ -63,7 +63,7 @@
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Trotineta nu a transmis încă date despre mișcare pe această conexiune.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Continuă oricum</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Marchează revenirea</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Revino la %1$s</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Restaurează la %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Păstrează %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Setează %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Închide · lasă cum este</string>
@@ -211,7 +211,7 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Nu a sosit nicio citire nouă.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Acceptat, dar nu a sosit nicio citire concludentă.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Niciun răspuns de la trotinetă.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt nu a putut trimite comanda de revenire.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt nu a putut trimite restaurarea.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Nu s-a putut obține o valoare de referință nouă. Reconectează trotineta și încearcă din nou. Nu s-a modificat nimic.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Nu s-a putut verifica setarea. Reconectează trotineta și revizuiește testul care nu s-a încheiat.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Conexiunea s-a întrerupt în timpul testului.</string>

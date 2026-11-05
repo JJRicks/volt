@@ -94,8 +94,8 @@
     <string name="stats_diagnostics_refresh_description" volt:src="63951b70d5e5ce95d798fc87e41d290931cf4c42">Actualizează citirile de diagnosticare</string>
     <string name="stats_diagnostics_refreshing" volt:src="c4bd17e73e8cee648a56bc97b24173462cec6145">Se actualizează citirile de diagnosticare</string>
     <string name="stats_diagnostics_export" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Exportă</string>
-    <string name="stats_diagnostics_export_description" volt:src="8fe551f1f8097c7c7bb719d828a54cddea125fa3">Exportă date de diagnosticare în format JSON. Nu include cheile de proprietar sau PIN-ul</string>
-    <string name="stats_diagnostics_privacy" volt:src="97c7b6a08e6433a9e035ef74717bd35e60ab8a08">Nu include cheile de proprietar sau PIN-ul</string>
+    <string name="stats_diagnostics_export_description" volt:src="8fe551f1f8097c7c7bb719d828a54cddea125fa3" volt:attempt="2">Exportă datele de diagnosticare în format JSON. Cheile de proprietar și PIN-ul sunt excluse</string>
+    <string name="stats_diagnostics_privacy" volt:src="97c7b6a08e6433a9e035ef74717bd35e60ab8a08" volt:attempt="2">Cheile de proprietar și PIN-ul sunt excluse</string>
     <string name="stats_diagnostics_device" volt:src="c6f2a5f3f4a496fbaa7dd6f317329f7f87ce27a9">Dispozitiv</string>
     <string name="stats_diagnostics_events" volt:src="be8d3abf276c8a8b18d3d7f36f9418fee84f87b5">Evenimente recente de conexiune</string>
     <string name="stats_diagnostics_payloads" volt:src="1319991bbf5982e3be3a0d91002ae118c8783599">Date brute citite</string>

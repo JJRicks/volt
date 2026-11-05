@@ -1,0 +1,16 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+readings_lock_status	Electronic lock	Blocare electronică	Electronic locking	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	2556d339123a00b7f11e6708e213210b4fc00503
+readings_lock_status_short	Electronic lock	Blocare electronică	Electronic locking	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	2556d339123a00b7f11e6708e213210b4fc00503
+readings_lock_status_compact	Lock	Blocare	Locking	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	b69b917fd1bb2b9fc4534f3ed29d4fd3fff2a985
+readings_lock_push_warning	Locked movement warning (raw)	Avertizare mișcare cu trotineta blocată (brută)	Warning of movement with the scooter locked (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	5df5242cdc90c6fc5f49d096d6bc7f9f81f51ede
+readings_lock_push_warning_short	Lock movement (raw)	Mișcare în timpul blocării (brută)	Movement during locking (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	854bf2f0e6aaf144380a862da1dd2d9bad265db5
+readings_value_unlocked	Unlocked	Deblocată	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	bd39d1119f662d0f187a2c5534cb56b8015a0a1e
+readings_value_locked	Locked	Blocată	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	2643098dd7d3dd9b1582b5469c7937d8b2ad3004
+readings_chart_est_finish	Est. finish time	Oră estimată de finalizare	Estimated hour of completion	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	d911be8cebdb1fb80ba84e581d2693e0de6ad48f
+readings_chart_est_countdown	Est. countdown time	Timp rămas estimat	Estimated remaining time	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	9bc2fb8fd1bb415f1572fb31fddf164f861fe515
+readings_chart_est_finish_limit	Est. finish at limit	Oră estimată la limită	Estimated hour at limit	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	7a658a76c0efcfaf6385629514d51327c9dc8a7c
+readings_chart_est_countdown_limit	Est. countdown to limit	Timp estimat până la limită	Estimated time until limit	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	e3d299b9da3fba98f11197c60f23c280191dcf41
+readings_chart_charge_limit	Charge limit	Limită de încărcare	Charging limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	1d184e30fbbb3628ff261c9e886f0c708e30028e
+readings_chart_observed_finish	Observed finish	Finalizare observată	Observed completion	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	831911d6909beaf599eda6d09d629f5b5250f173
+readings_chart_actual_countdown	Actual countdown	Timp rămas real	Real remaining time	claude-opus	claude-opus-5-5	f79949dd92e33164bc3d2fec7112b46c9c44aee1	93153aab5a8d1bf7be0314dc17b8d7a2d3c003eb

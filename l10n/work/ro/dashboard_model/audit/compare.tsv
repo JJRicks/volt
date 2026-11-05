@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN și apropiere	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	cddab749d71ba3325ad8f09ce58e7c79c6e2e6f1
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN și apropiere	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	cddab749d71ba3325ad8f09ce58e7c79c6e2e6f1
+dashboard_model_qa_experimental	Experimental controls	Comenzi experimentale	Experimental commands	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	87eeaa9888facec0ef2446232c545a6033feb2a5
+dashboard_model_qa_experimental_short	Experimental controls	Comenzi experimentale	Experimental commands	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	87eeaa9888facec0ef2446232c545a6033feb2a5
+dashboard_model_qa_charge_done_by	Charge done by	Termen încărcare	Charging deadline	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	29c1084409fbcff11e5cf722971cf87187923633
+dashboard_model_qa_charge_done_by_short	Charge done by	Termen încărcare	Charging deadline	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	29c1084409fbcff11e5cf722971cf87187923633
+dashboard_model_qa_charge_done_time	Charge done by time	Ora-limită încărcare	Charging deadline hour	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	e790fd359f25695004f76f58196e753015d76f48
+dashboard_model_qa_charge_done_time_short	Charge done by time	Ora-limită încărcare	Charging deadline hour	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	e790fd359f25695004f76f58196e753015d76f48
+dashboard_model_qa_group_experimental	Experimental controls	Comenzi experimentale	Experimental commands	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	87eeaa9888facec0ef2446232c545a6033feb2a5
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Încărcare programată	Scheduled charging	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	13d8f005deab95e12909bb5fd35e2dccadbd0092
+dashboard_model_tile_measuring	Measuring	Se măsoară	Is being measured	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	6106ec8af42217ae0635e51912d8a53f62c209ab
+dashboard_model_tile_on_at	On • %1$s	Activat • %1$s	Activated • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	977638e73c37f0525dc6839d40b462218bd49714
+dashboard_model_tile_not_scheduled	Not scheduled	Fără programare	Without scheduling	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	2c5d3008a414d3224bfcdd6462dbd15ca9fd9f06
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Selectează mai întâi o trotinetă	Select a scooter first	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	75a04a52abb0754a59b8ffdcc2ff97814b6b1eb5
+dashboard_model_tile_connect_scooter	Connect your scooter first	Conectează mai întâi trotineta	Connect the scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	4c4ed066403579dd1ea3b65959f57b368281a703
+dashboard_model_type_lock	Lock & connection	Blocare și conexiune	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	95e36604deb7a8d96885994040402eb0afb78f57
+dashboard_model_type_charging	Charging	Încărcare	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	b3af315a390ccf626f98d603059b7616451c8fa1
+dashboard_model_type_lockbar	Lock bar	Bară de blocare	Locking bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	e18523e16490c2abbe21b31de5cf69dcc2ef8fea

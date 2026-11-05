@@ -24,7 +24,7 @@
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Pasul %1$d</string>
     <string name="more_onboarding_title" volt:src="481273709dc4b3396f6168624d997dccac537c64">Trotineta ta. Datele tale.</string>
-    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Importă configurarea mea de proprietar</string>
+    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c" volt:attempt="2">Importă configurarea de proprietar</string>
     <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Permite „Dispozitive din apropiere”</string>
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectează</string>
     <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Importă mai întâi configurarea de proprietar</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Menține ecranul pornit</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">În timpul înregistrării</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Încheie cursele când trotineta este parcată</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s după pierderea conexiunii Bluetooth, cu trotineta staționată</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s după pierderea conexiunii Bluetooth la oprire</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Înregistrare în fundal</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Utilizarea bateriei: fără restricții</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Utilizarea bateriei: optimizată; înregistrările lungi se pot opri. Se vor deschide setările bateriei</string>
@@ -157,7 +157,7 @@
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Dovezi pentru comenzi</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Șterge rezultatele încercărilor</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Ștergi rezultatele încercărilor?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt uită ce au arătat încercările tale pe această trotinetă, așa că ele dispar din următorul tău raport și din „Revino”. Setările rămân așa cum sunt. Încercările neterminate rămân până când le analizezi.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt uită ce au arătat încercările tale pe această trotinetă, așa că ele dispar din următorul raport și din „Revino”. Setările rămân așa cum sunt. Încercările care nu s-au terminat rămân până când le verifici.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Nicio încercare terminată de șters</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">S-a șters %1$d încercare</item>
@@ -187,7 +187,7 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Analizează</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Revino</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84">Analizează încercarea neterminată pentru %1$s</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Verifică încercarea care nu s-a terminat: %1$s</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">Revino la %2$s pentru %1$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Încearcă %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -209,8 +209,8 @@
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Se revine…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Modificare simulată</string>
     <string name="more_lab_status_simulated_short" volt:src="781634cc580bebb6c14e20c88e6af911eb783f83">Simulată</string>
-    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9">Neterminată · analizează</string>
-    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69">Neterminată</string>
+    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Nu s-a terminat · verifică</string>
+    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Nu s-a terminat</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Nu s-a încercat încă</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Neverificat pe modelul tău</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Neverificat aici</string>
@@ -243,7 +243,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Alege o limită</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Alege o valoare</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt trimite o singură modificare cât timp trotineta este parcată și deblocată, o recitește, apoi te întreabă ce ai văzut. Valoarea rămâne până când revii la cea anterioară. Dacă se întrerupe conexiunea, Volt nu mai trimite niciodată nimic de la sine: încercarea așteaptă să o analizezi.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Se verifică dacă setarea a rămas neschimbată…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Se verifică dacă setarea nu s-a schimbat…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Se revine la %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Se citește valoarea actuală…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Se trimite %1$s și se recitește…</string>
@@ -316,7 +316,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapid</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">„Auto” recunoaște încărcătoarele UT5 MAX după puterea live. Dacă recunoașterea este nesigură, Volt folosește ritmul actual; alege un încărcător ca să o înlocuiești.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">„Auto” recunoaște încărcătoarele UT5 MAX după puterea live. Dacă recunoașterea nu este sigură, Volt folosește rata actuală; alege un încărcător ca să înlocuiești alegerea automată.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curbe de încărcare salvate</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Înregistrează această încărcare</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Oprește înregistrarea încărcării</string>
