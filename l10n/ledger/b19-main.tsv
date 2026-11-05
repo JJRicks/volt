@@ -55,13 +55,13 @@ src/com/jjricks/volt/MainActivity.java:898	["Locked"]	main_lock_locked	exact
 src/com/jjricks/volt/MainActivity.java:898	["Unlocked"]	main_lock_unlocked	exact	
 src/com/jjricks/volt/MainActivity.java:908	["Lock state unknown"]	main_lock_state_unknown	exact	
 src/com/jjricks/volt/MainActivity.java:908	["Lock state unverified"]	main_lock_state_unverified	exact	
-src/com/jjricks/volt/MainActivity.java:909	["Locked"]	main_lock_locked	exact	
-src/com/jjricks/volt/MainActivity.java:909	["Unlocked"]	main_lock_unlocked	exact	
+src/com/jjricks/volt/MainActivity.java:909	["Locked"]	main_lock_locked	id-kept	known stays the state id, which the last known sentences test; the title shows main_lock_locked or main_lock_unlocked, the same English word, in a statement of its own after line 910
+src/com/jjricks/volt/MainActivity.java:909	["Unlocked"]	main_lock_unlocked	id-kept	known stays the state id, which the last known sentences test; the title shows main_lock_locked or main_lock_unlocked, the same English word, in a statement of its own after line 910
 src/com/jjricks/volt/MainActivity.java:910	["Connecting…"]	ble_status_connecting	exact	
 src/com/jjricks/volt/MainActivity.java:910	["Connecting"]	main_lock_connecting	exact	
-src/com/jjricks/volt/MainActivity.java:912	["Last known lock state: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s", "as": "lowerInEnglish(known)"}, ". Reconnect to verify."]	main_lock_last_known_full	template	manual: the word is lower-cased only in English (lowerInEnglish, same value there); other languages show it as translated, after the colon of a whole sentence
+src/com/jjricks/volt/MainActivity.java:912	{"if": "\"Locked\".equals(known)", "then": ["Last known lock state: ", "locked", ". Reconnect to verify."], "else": {"if": "\"Unlocked\".equals(known)", "then": ["Last known lock state: ", "unlocked", ". Reconnect to verify."], "else": ["Last known lock state: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}, ". Reconnect to verify."]}}	main_lock_last_known_full_locked,main_lock_last_known_full_unlocked,main_lock_last_known_full	choice	the lower-cased state word becomes a whole sentence per state, so a language can inflect it and no display word sits in a hole; the last branch cannot run, since known holds only these two ids
 src/com/jjricks/volt/MainActivity.java:913	["Connecting to ", {"hole": "scooterName", "arg": 1, "type": "s"}, ". ", {"hole": "description", "arg": 2, "type": "s"}]	main_lock_connecting_to	template	
-src/com/jjricks/volt/MainActivity.java:917	["Last known: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s", "as": "lowerInEnglish(known)"}]	main_lock_last_known_word	template	manual: as main_lock_last_known_full
+src/com/jjricks/volt/MainActivity.java:917	{"if": "\"Locked\".equals(known)", "then": ["Last known: ", "locked"], "else": {"if": "\"Unlocked\".equals(known)", "then": ["Last known: ", "unlocked"], "else": ["Last known: ", {"hole": "known.toLowerCase(java.util.Locale.ROOT)", "arg": 1, "type": "s"}]}}	main_lock_last_known_word_locked,main_lock_last_known_word_unlocked,main_lock_last_known_word	choice	as main_lock_last_known_full_locked
 src/com/jjricks/volt/MainActivity.java:917	["Last known"]	main_lock_last_known	exact	
 src/com/jjricks/volt/MainActivity.java:924	["Connected"]	ble_status_connected	exact	
 src/com/jjricks/volt/MainActivity.java:924	["Connecting"]	main_lock_connecting	exact	
@@ -113,11 +113,11 @@ src/com/jjricks/volt/MainActivity.java:1238	[{"hole": "name", "arg": 1, "type": 
 src/com/jjricks/volt/MainActivity.java:1238	[", your scooter"]	main_scan_state_yours	exact	
 src/com/jjricks/volt/MainActivity.java:1238	[", saved scooter in My scooters"]	main_scan_state_saved	exact	
 src/com/jjricks/volt/MainActivity.java:1239	["Selected"]	common_selected	exact	
-src/com/jjricks/volt/MainActivity.java:1246	["—"]	-	removed	whole block: number() lost its callers (the rows now use DisplayUnits and templates); deleted with its literals, with distance()
+src/com/jjricks/volt/MainActivity.java:1246	["—"]	-	removed	whole block: number() was already dead at the base (only distance() called it, and nothing called distance()); deleted with its literals, with distance()
 src/com/jjricks/volt/MainActivity.java:1246	["%.", {"hole": "digits", "arg": 1, "type": "s"}, "f"]	-	removed	whole block: number(), as above
 src/com/jjricks/volt/MainActivity.java:1246	[""]	-	removed	whole block: number(), as above
 src/com/jjricks/volt/MainActivity.java:1246	[" ", {"hole": "unit", "arg": 1, "type": "s"}]	-	removed	whole block: number(), as above
-src/com/jjricks/volt/MainActivity.java:1247	["—"]	-	removed	whole block: distance() lost its callers; deleted with its literals
+src/com/jjricks/volt/MainActivity.java:1247	["—"]	-	removed	whole block: distance() was already dead at the base (nothing called it); deleted with its literals
 src/com/jjricks/volt/MainActivity.java:1247	["units"]	-	removed	whole block: distance(), as above
 src/com/jjricks/volt/MainActivity.java:1247	["dual"]	-	removed	whole block: distance(), as above
 src/com/jjricks/volt/MainActivity.java:1247	["mi"]	-	removed	whole block: distance(), as above

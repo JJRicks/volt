@@ -917,15 +917,17 @@ public final class MainActivity extends Activity implements ScreenHost {
                 // The scooter name is already in the Home header; repeating it can fill
                 // a narrow card and push Cancel out of view at larger system font sizes.
                 String unknown=compactLock?T.mainLockStateUnknown():T.mainLockStateUnverified();
-                String known=shownLock==null?null:shownLock?T.mainLockLocked():T.mainLockUnlocked();
+                String known=shownLock==null?null:shownLock?"Locked":"Unlocked";
                 offlineTitle.setText(connecting?(compactLock?T.bleStatusConnecting():T.mainLockConnecting()):known==null?unknown:known);
                 offlineTitle.setTextColor(design.muted);
-                String description=known==null?unknown:T.mainLockLastKnownFull(lowerInEnglish(known));
+                // known is the state id; the title shows it as a word, in the same pass, so the id is never drawn.
+                if(!connecting&&known!=null)offlineTitle.setText(shownLock?T.mainLockLocked():T.mainLockUnlocked());
+                String description=known==null?unknown:"Locked".equals(known)?T.mainLockLastKnownFullLocked():"Unlocked".equals(known)?T.mainLockLastKnownFullUnlocked():T.mainLockLastKnownFull(known.toLowerCase(java.util.Locale.ROOT));
                 offlineTitle.setContentDescription(connecting?T.mainLockConnectingTo(scooterName,description):description);
                 // The feature cache contains scooter readbacks, never a requested lock change.
                 // Keep its stale label visible even during reconnect; it does not enable the switch.
                 // A past connection alone cannot verify the lock; its age is already in the header.
-                String detail=known==null?"":connecting?T.mainLockLastKnownWord(lowerInEnglish(known)):T.mainLockLastKnown();
+                String detail=known==null?"":connecting?"Locked".equals(known)?T.mainLockLastKnownWordLocked():"Unlocked".equals(known)?T.mainLockLastKnownWordUnlocked():T.mainLockLastKnownWord(known.toLowerCase(java.util.Locale.ROOT)):T.mainLockLastKnown();
                 offlineDetail.setText(detail);offlineDetail.setVisibility(detail.isEmpty()?View.GONE:View.VISIBLE);
             }
         }

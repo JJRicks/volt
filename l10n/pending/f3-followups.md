@@ -35,8 +35,11 @@ these itself if it prefers; otherwise they are the first follow-up after it merg
    this. It waits because the sweep marked it low priority, non-Latin languages are deferred, and one
    of the three sites is in an open pull request.
 
-## MainActivity, owner: B19
+## DashboardScreen's and MoreScreen's labels, owner: an ordinary follow-up after B13 merges
+
+B19 closed the MainActivity items; this one stays because B19 may not edit those screens.
 
 7. **The label-only `toggleRow`/`settingRow` overloads, `Ui.labelIcon` and the String `styleDriveMode`**
    stay while DashboardScreen calls them. UiToolkitTest's legacy count holds them until then.
-   `MoreScreen`'s lower-casing of `row.feature.label` into `T.moreLabSetBackRow` is B19/F4 label work.
+   `MoreScreen`'s lower-casing of `row.feature.label` into `T.moreLabSetBackRow` still reads the English
+   label.

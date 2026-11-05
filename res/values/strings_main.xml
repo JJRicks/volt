@@ -33,13 +33,17 @@
     <string name="main_lock_state_unknown" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unknown</string>
     <string name="main_lock_state_unverified" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Lock state unverified</string>
     <string name="main_lock_connecting" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Connecting</string>
-    <!-- %1$s is main_lock_locked or main_lock_unlocked. -->
+    <string name="main_lock_last_known_full_locked" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: locked. Reconnect to verify.</string>
+    <string name="main_lock_last_known_full_unlocked" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: unlocked. Reconnect to verify.</string>
+    <!-- Never shown: the state is always locked or unlocked, and G1 needs a branch for any other word. %1$s is that word, in English. -->
     <string name="main_lock_last_known_full" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Last known lock state: %1$s. Reconnect to verify.</string>
     <!-- %1$s is the scooter name or main_lock_your_scooter, %2$s a whole sentence about the lock state. -->
     <string name="main_lock_connecting_to" volt:screen="Home lock row" volt:purpose="screen reader" volt:safety="lock">Connecting to %1$s. %2$s</string>
     <!-- Fills main_lock_connecting_to when no scooter is set up. -->
     <string name="main_lock_your_scooter" volt:screen="Home lock row" volt:purpose="name in a sentence">your scooter</string>
-    <!-- %1$s is main_lock_locked or main_lock_unlocked. -->
+    <string name="main_lock_last_known_word_locked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: locked</string>
+    <string name="main_lock_last_known_word_unlocked" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: unlocked</string>
+    <!-- Never shown, as main_lock_last_known_full. %1$s is the word, in English. -->
     <string name="main_lock_last_known_word" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known: %1$s</string>
     <!-- Under the last known lock state word. -->
     <string name="main_lock_last_known" volt:screen="Home lock row" volt:purpose="status" volt:safety="lock">Last known</string>

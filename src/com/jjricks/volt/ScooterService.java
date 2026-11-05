@@ -757,7 +757,7 @@ public final class ScooterService extends Service {
             chargeMeasure.finish();
             chargeDoneNotice(armed,armed?(measured?T.serviceMeasureMeasured(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs))
                     :T.serviceMeasurePlanned(DisplayTime.clock(this,settings,plan.startWallMs),DisplayTime.clock(this,settings,plan.doneByWallMs)))
-                    :result==null?T.serviceMeasureOff():T.serviceMeasureResult(result));
+                    :result==null?T.serviceMeasureOff():T.serviceMeasureResult(ChargeScheduleText.shown(result)));
             endChargeMeasureWork();
         });
     }

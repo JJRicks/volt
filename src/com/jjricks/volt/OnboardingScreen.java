@@ -355,7 +355,10 @@ public final class OnboardingScreen implements AppScreen {
 
     private File pendingOwnerFile() { return new File(host.activity().getFilesDir(), PENDING_OWNER_FILE); }
 
-    /** Reads only the display name and role of the staged file; the identity is not kept. */
+    /**
+     * Reads only the stored name and the shown role of the staged file; the identity is not kept. The name stays
+     * as stored: it also starts the editable field, and a field that started translated would be saved as the name.
+     */
     private String[] pendingSummary() {
         String name = MainActivity.IMPORTED_NAME; int role = 0;
         try (InputStream in = new FileInputStream(pendingOwnerFile())) {
@@ -365,7 +368,7 @@ public final class OnboardingScreen implements AppScreen {
             name = json.optString("name", name).trim(); role = json.optInt("role", 0);
             if (name.isEmpty()) name = MainActivity.IMPORTED_NAME;
         } catch (Exception ignored) { }
-        return new String[] {ScooterProfiles.nameText(name), role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()};
+        return new String[] {name, role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()};
     }
 
     private String importMode() {
@@ -998,7 +1001,7 @@ public final class OnboardingScreen implements AppScreen {
         found.addView(lock, new LinearLayout.LayoutParams(ui.dp(34), ui.dp(34)));
         LinearLayout words = column();
         words.addView(ui.text(T.onboardingImportFound(), 15.5f, true));
-        TextView detail = ui.caption(T.onboardingImportSummary(summary[0], summary[1]));
+        TextView detail = ui.caption(T.onboardingImportSummary(applied && p != null ? p.shownName() : ScooterProfiles.nameText(summary[0]), summary[1]));
         detail.setTextSize(TypedValue.COMPLEX_UNIT_SP, 12.5f * ui.textScale); detail.setPadding(0, ui.dp(3), 0, 0);
         words.addView(detail);
         LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(0, -2, 1); wp.leftMargin = ui.dp(12);

@@ -81,9 +81,9 @@ public final class MainTextTest {
         equal(MainActivityTextTest.Base.topSpeed(null, "km", true), T.mainSpeedNotReported(), "not reported");
         equal(MainActivityTextTest.Base.topSpeed(null, "km", false), T.mainSpeedNotReportedSeen(), "not reported, seen");
         for (String known : new String[]{null, "Locked", "Unlocked"}) {
-            equal(MainActivityTextTest.Base.lockDescription(known), known == null ? T.mainLockStateUnknown() : T.mainLockLastKnownFull(known.toLowerCase(Locale.ROOT)), "lock " + known);
+            equal(MainActivityTextTest.Base.lockDescription(known), known == null ? T.mainLockStateUnknown() : "Locked".equals(known) ? T.mainLockLastKnownFullLocked() : T.mainLockLastKnownFullUnlocked(), "lock " + known);
             for (boolean connecting : new boolean[]{false, true}) {
-                equal(MainActivityTextTest.Base.lastKnown(known, connecting), known == null ? "" : connecting ? T.mainLockLastKnownWord(known.toLowerCase(Locale.ROOT)) : T.mainLockLastKnown(), "last " + known);
+                equal(MainActivityTextTest.Base.lastKnown(known, connecting), known == null ? "" : connecting ? "Locked".equals(known) ? T.mainLockLastKnownWordLocked() : T.mainLockLastKnownWordUnlocked() : T.mainLockLastKnown(), "last " + known);
             }
         }
         equal(MainActivityTextTest.Base.connectingTo("Ann", "Locked"), T.mainLockConnectingTo("Ann", "Locked"), "connecting");
@@ -224,6 +224,8 @@ public final class MainTextTest {
                 {T.mainLabelValue("a", "b"), "main_label_value"}, {T.mainLabelValueDetail("a", "b", "c"), "main_label_value_detail"},
                 {T.mainLabelValueDetails("a", "b", "c", "d"), "main_label_value_details"}, {T.mainLabelValueState("a", "b", "c"), "main_label_value_state"},
                 {T.mainScanOption("a", "b", "c", "d"), "main_scan_option"}, {T.mainScanStateYours(), "main_scan_state_yours"}, {T.mainScanStateSaved(), "main_scan_state_saved"},
+                {T.mainLockLastKnownFullLocked(), "main_lock_last_known_full_locked"}, {T.mainLockLastKnownFullUnlocked(), "main_lock_last_known_full_unlocked"},
+                {T.mainLockLastKnownWordLocked(), "main_lock_last_known_word_locked"}, {T.mainLockLastKnownWordUnlocked(), "main_lock_last_known_word_unlocked"},
                 {T.mainLockSwitchLocked(), "main_lock_switch_locked"}, {T.mainLockSwitchUnlocked(), "main_lock_switch_unlocked"},
                 {T.mainValueHoursShort("6"), "main_value_hours_short"}, {T.mainScheduleTestRowBoth("a", "b"), "main_schedule_test_row_both"},
                 {T.mainRangeStateRetry(), "main_range_state_retry"}, {T.mainSearchResults(2, 2), "main_search_results"},
@@ -234,11 +236,30 @@ public final class MainTextTest {
         check(ChargeScheduleText.shown(M.commonConnectChargerFirst().english()).startsWith("⟦common_connect_charger_first⟧"), "a known reason follows the source");
         equal("typed", ChargeScheduleText.shown("typed"), "an unknown reason passes through");
         controllerSentences();
+        pendingImportName();
         // Once another language ships, its layouts measure (Fmt.legacy() is true until then, whatever the source says).
         if (!Fmt.legacy()) {
             check(TextFit.over(1, 10, 5.12, 600f, 100f), "wide by width");
             check(!TextFit.over(99, 10, 5.12, 100f, 100f), "narrow by width");
         }
+    }
+
+    /**
+     * Setup's import summary may show a default name in the current language, but the editable field starts from the
+     * stored name: Save and continue keeps what the field holds, and applyPendingName overwrites Profile.name and clears
+     * nameDefault whenever that differs from the stored name. OnboardingScreen needs Android, so this reads its source.
+     */
+    private static void pendingImportName() {
+        String setup = source("src/com/jjricks/volt/OnboardingScreen.java");
+        int start = setup.indexOf("private String[] pendingSummary()"), end = setup.indexOf("private String importMode()");
+        check(start >= 0 && end > start, "pendingSummary was found");
+        check(!setup.substring(start, end).contains("nameText"), "pendingSummary returns the stored name");
+        check(setup.contains("nameInput(prefs.getString(KEY_PENDING_NAME, summary[0]))"), "the name field starts from pendingSummary's stored name");
+        check(setup.contains("T.onboardingImportSummary(applied && p != null ? p.shownName() : ScooterProfiles.nameText(summary[0]), summary[1])"), "only the sentence shows the name in the current language");
+        check(setup.contains("!name.trim().equals(p.name)"), "an untouched field equal to the stored name writes nothing");
+        // The same comparison under this translated source: the stored name passes, the shown name would not.
+        check(T.mainNameImported().startsWith("⟦main_name_imported⟧"), "the summary sentence follows the source");
+        check(!T.mainNameImported().equals(M.mainNameImported().english()), "the shown name differs from the stored one, so the field must not start from it");
     }
 
     /**
@@ -258,6 +279,7 @@ public final class MainTextTest {
         String service = source("src/com/jjricks/volt/ScooterService.java");
         check(service.contains("T.serviceTestNotStartedReason(ChargeScheduleText.shown(r.failure))"), "the test's failure reason is shown through ChargeScheduleText");
         check(service.contains("T.serviceTestCleanup(ChargeScheduleText.shown(r.cleanup))"), "the test's cleanup is shown through ChargeScheduleText");
+        check(service.contains("T.serviceMeasureResult(ChargeScheduleText.shown(result))"), "the measured arming's failure is shown through ChargeScheduleText");
     }
 
     private static String source(String path) {
