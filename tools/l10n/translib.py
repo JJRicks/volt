@@ -232,7 +232,7 @@ CLAUDE_ONLY_SOURCE = "claude-only"  # how a glossary row's source starts until t
 def _read_glossary(path):
     try:
         _, rows = l10nlib.read_tsv(l10nlib.read_text(path), GLOSSARY_HEADER)
-    except ValueError as error:
+    except ValueError as error:  # a bad header or row, or text that is not UTF-8
         raise L10nError("%s: %s (council.py glossary-check lists every problem)" % (path, error))
     return [fields for _, fields in rows]
 
