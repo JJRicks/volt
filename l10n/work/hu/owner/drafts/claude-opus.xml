@@ -35,7 +35,7 @@
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku telepítve</string>
     <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1">Telepít</string>
     <string name="owner_shizuku_running" volt:src="95edb635c6a1e52241514201596f24fdbfee39e8">Shizuku fut</string>
-    <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e">Megnyit</string>
+    <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e" volt:attempt="2">Megnyit</string>
     <string name="owner_shizuku_setup_guide" volt:src="a7d9140e980c3ea35d0172716f309744b04d6448">Shizuku beállítási útmutató</string>
     <string name="owner_shizuku_install_shizuku" volt:src="a2db2fcdc51a887f9971593d7640c055a52e6e4b">Shizuku telepítése</string>
     <string name="owner_shizuku_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Shizuku megnyitása</string>

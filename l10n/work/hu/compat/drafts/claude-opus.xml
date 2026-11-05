@@ -33,10 +33,10 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-leképezés (nincs kipróbálva)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lezárás és adatok</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Nem támogatott</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 félbemaradt teszt egy másik rolleren. Válaszd ki a rollert az áttekintéshez.</string>
-    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
-        <item quantity="one">%1$d félbemaradt teszt más rollereken. Válassz ki egyet az áttekintéshez.</item>
-        <item quantity="other">%1$d félbemaradt teszt más rollereken. Válassz ki egyet az áttekintéshez.</item>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 nem befejezett teszt egy másik rolleren. Válaszd ki az áttekintéshez.</string>
+    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
+        <item quantity="one">%1$d nem befejezett teszt egy másik rolleren. Válaszd ki az áttekintéshez.</item>
+        <item quantity="other">%1$d nem befejezett teszt más rollereken. Válassz ki egyet az áttekintéshez.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">A tesztek nyilvántartása nem érhető el. Lehet, hogy egy korábbi teszt értéke nincs visszaállítva; ellenőrizd a roller beállításait.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Kipróbálás · %1$s</string>
@@ -150,7 +150,7 @@
     <string name="compat_share_none" volt:src="6bed8b6fe25cccaf7dacd70463a895049cb6a882">Nincs olyan alkalmazás, amellyel megosztható ez a jelentés</string>
     <string name="compat_field_binding_status" volt:src="44da727d9bcff9e30863edc34f8069983d68e65c">Társítás állapota</string>
     <string name="compat_field_driving_mode" volt:src="2111e4b942a6daf799ec4cea9c1f0c80d7f0cd26">Menetmód</string>
-    <string name="compat_field_lock_status" volt:src="f16962b0731f9264d6905c0e6b91618783edcb37">Zár állapota</string>
+    <string name="compat_field_lock_status" volt:src="f16962b0731f9264d6905c0e6b91618783edcb37" volt:attempt="2">Lezárás állapota</string>
     <string name="compat_field_cruise_control" volt:src="55d5ad4d42f35a8380452ba88c11f2c8cb818411">Tempomat</string>
     <string name="compat_field_tail_light" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Hátsó lámpa</string>
     <string name="compat_field_energy_recovery" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Energia-visszanyerés</string>

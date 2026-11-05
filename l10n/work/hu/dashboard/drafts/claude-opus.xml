@@ -34,7 +34,7 @@
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100% korlát nélkül</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Idő a teljes töltésig (becs.)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Idő a teljes töltésig (becs.)</string>
-    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">100%-ig (becs.)</string>
+    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0" volt:attempt="2">Feltöltésig (becs.)</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Kis áram</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Töltési teljesítmény</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Teljesítmény</string>

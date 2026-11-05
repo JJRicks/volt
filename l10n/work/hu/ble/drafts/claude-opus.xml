@@ -52,7 +52,7 @@
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Először csatlakozz</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Várd meg, amíg új kapcsolat jön létre a rollerrel.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Lezárás előtt hárítsd el a roller figyelmeztetését (kód: %1$d).</string>
-    <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Először állj meg a rollerrel</string>
+    <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a" volt:attempt="2">Előbb állítsd le a rollert</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Most nem érhető el</string>
     <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Az érték kívül esik a hivatalos alkalmazásban engedélyezett tartományon</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: már be van állítva.</string>
@@ -69,7 +69,7 @@
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Fogadd el a Bluetooth-párosítási kérést a telefonon.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">A Bluetooth-párosítás nem tudott elindulni. Próbáld újra.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">A Bluetooth-párosítás nem érhető el.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">A PIN-állapot nem érkezett meg. Az újrapróbáláshoz koppints a „PIN-állapot kiolvasása” gombra.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5" volt:attempt="2">Nem érkezett meg a PIN-kód állapota. Próbáld újra: koppints a „PIN-állapot olvasása” gombra.</string>
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">A PIN-állapot nem érhető el ezen a firmware-en.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">A PIN-beállításokhoz tulajdonosi profil szükséges.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">A közelségi feloldás bekapcsolása előtt párosítsd ezt a telefont</string>
@@ -83,7 +83,7 @@
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Kompatibilitás-ellenőrzés befejezve</string>
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Először fejezd be a jelenlegi kipróbálást</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">A tesztfeljegyzések nem érhetők el</string>
-    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Először nézd át a félbemaradt kipróbálást</string>
+    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34" volt:attempt="2">Előbb nézd át a be nem fejezett kipróbálást</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Nincs mit visszaállítani</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Nem sikerült visszaállítani. Semmi nem változott.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Először fejezd be a jelenlegi tesztet</string>
@@ -97,7 +97,7 @@
     <string name="ble_result_rejected" volt:src="3909a6b37661b392ed8c7b99dff3f45cbb7fff43">Elutasítva (%1$s)</string>
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Küldés előtt megszakítva</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Irányított teszt</string>
-    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Megszakadt a kapcsolat, mielőtt megváltozott volna a zár állapota</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">A roller nem erősítette meg a zár állapotának módosítását</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">A roller nem állt készen a zár állapotának módosítására; próbáld újra</string>
+    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658" volt:attempt="2">Megszakadt a kapcsolat, mielőtt a lezárás állapota megváltozott</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097" volt:attempt="2">A roller nem erősítette meg, hogy megváltozott-e a lezárás állapota</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda" volt:attempt="2">A roller nem állt készen a lezárás állapotának módosítására; próbáld újra</string>
 </resources>

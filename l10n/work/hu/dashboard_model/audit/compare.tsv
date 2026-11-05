@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN	PIN	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	6b6394e0fad5630706be177ec0b458e0e7306dcc
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN, közelség	PIN, proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	90938f0e13fb4042718c4ae8f72da74ed319afef
+dashboard_model_qa_experimental	Experimental controls	Kísérleti	Experimental	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	8a6ddf865203921aceed770ddaee48f15062b756
+dashboard_model_qa_experimental_short	Experimental controls	Kísérleti	Experimental	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	8a6ddf865203921aceed770ddaee48f15062b756
+dashboard_model_qa_charge_done_by	Charge done by	Legyen kész	Let it be ready	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	c86846e655653ddacb6fdc1a4c90db67e70e28e0
+dashboard_model_qa_charge_done_by_short	Charge done by	Legyen kész	Let it be ready	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	c86846e655653ddacb6fdc1a4c90db67e70e28e0
+dashboard_model_qa_charge_done_time	Charge done by time	Célidő	Target time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	5ab8391e67aac56aa04be74f26f520e032852f2a
+dashboard_model_qa_charge_done_time_short	Charge done by time	Befejezési idő	Finish time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	7046fb2d9b1822464dddff3c5b83ece93ae94d06
+dashboard_model_qa_group_experimental	Experimental controls	Kísérleti funkciók	Experimental features	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	5fbf4b4df3564e3c718fdade61e36f33b9770ba7
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Ütemezés	Scheduling	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	b4525c9a441415fa56a66de2e8a31078f9314a04
+dashboard_model_tile_measuring	Measuring	Mérés…	Measuring…	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	5896d99960fc53b8c104d91965b5d3768adb925c
+dashboard_model_tile_on_at	On • %1$s	Be • %1$s	On • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	923200a3b21a017b4e8df4045d40be6a9b6f944e
+dashboard_model_tile_not_scheduled	Not scheduled	Nincs ütemezve	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	095911c35fa384f1be07cea726966f41e0acbcf4
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Először válassz rollert	First choose a scooter	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	658b1a91d5e9d78da9fddcc72e5714682ce32955
+dashboard_model_tile_connect_scooter	Connect your scooter first	Először csatlakozz a rollerhez	First connect to the scooter	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	1668fe8d8b2f4a6da7d73a07f638748b59b98325
+dashboard_model_type_lock	Lock & connection	Lezárás és csatlakozás	Locking and connecting	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	3481a9b7904e7b7686662daa90462deda849fbe0
+dashboard_model_type_charging	Charging	Töltés	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	d311df7ceb80492e37e25504f8ad58f369e8e24e
+dashboard_model_type_lockbar	Lock bar	Lezárási sáv	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	40592861d386fa8bd878651f6118f7ba3d92397e

@@ -19,7 +19,7 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Probléma jelentése</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Mértékegységek</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Kompatibilitás</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Félbemaradt teszt</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Nem befejezett teszt</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, állapot: nincs adat</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">%1$d. lépés</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Képernyő ébren tartása</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Rögzítés közben</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Utak befejezése álló helyzetben</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s elteltével a Bluetooth megszakadása után, ha áll a roller</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s után leállítja a rögzítést, ha álló helyzetben megszakad a Bluetooth</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Háttérrögzítés</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Akkuhasználat: korlátlan</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Akkuhasználat optimalizálva; a hosszú rögzítések leállhatnak. Megnyitja az akkubeállításokat.</string>
@@ -151,7 +151,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Közelségi feloldással: a párosított telefon legyen a közelben, és húzd meg a fékkart. Álló helyzetben teszteld mindkettőt, mielőtt rájuk hagyatkoznál.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Értem</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Kormány: 1 irányjelző gomb, 2 fékkar, 3 bekapcsoló gomb</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Kipróbálásra váró funkciók</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Kipróbálásra váró funkciók</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Segíts az ellenőrzésben</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Nincs mit kipróbálni</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Válaszok a parancsokra</string>
@@ -193,7 +193,7 @@
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Ezek kipróbálásához csatlakozz a rollerhez.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Várakozás a roller friss állapotára.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Ezek kipróbálásához állj meg a rollerrel.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Állítsd le a rollert, és kipróbálhatod ezeket.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Várakozás arra, hogy a roller jelezze: álló helyzetben van.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Ezek kipróbálásához hárítsd el a roller figyelmeztetésének okát.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Ezek kipróbálásához oldd fel a rollert.</string>
@@ -313,15 +313,15 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatikus</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Gyári</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Gyors</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Az „Automatikus” beállítás az élő teljesítményből felismeri az UT5 MAX töltőket. Bizonytalan esetben a Volt a pillanatnyi töltési ütemet használja; ha felül akarod írni, válassz töltőt.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Az „Automatikus” beállítás az élő teljesítmény alapján felismeri az UT5 MAX töltőket. Ha nem biztos a felismerés, a Volt a jelenlegi töltési sebességet használja; a felülbíráláshoz válassz töltőt.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Mentett töltési görbék</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Ennek a töltésnek a rögzítése</string>
-    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Töltés rögzítésének leállítása</string>
+    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15" volt:attempt="2">Töltés rögzítése: leállítás</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Rögzített töltések</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Mentett becslések és befejezési idők</string>
     <string name="more_dev_export" volt:src="b0060df221c4dc4a3e20f885ced9326da40f3c81">Rögzített töltések exportálása</string>
     <string name="more_dev_export_sub" volt:src="840c1220c0041af8286a225e143bc057cdfe612b">JSON · ez a roller</string>
-    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Exportálás előtt állítsd le a töltés rögzítését, vagy várd meg a folyamatban lévő exportálást</string>
+    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b" volt:attempt="2">Ha fut a töltés rögzítése, exportálás előtt állítsd le, vagy várd meg a folyamatban lévő exportálást.</string>
     <string name="more_dev_clear_charges" volt:src="7f66e11839703ee0dfa9d363eeced693a403947f">E roller rögzített töltéseinek törlése</string>
     <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Rögzített töltések törlése?</string>
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Ez törli a töltéseket és a tanult görbéket. Az utak megmaradnak.</string>
@@ -334,7 +334,7 @@
     <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Minden modul elmentve a 3. helyre.</string>
     <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">A 3. helyet nem sikerült menteni.</string>
     <string name="more_dev_hide" volt:src="92902df2d159f4552d6023b4e30919987c1e2226">Fejlesztői beállítások elrejtése</string>
-    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">A fejlesztői beállítások elrejtése előtt állítsd le a töltés rögzítését</string>
+    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df" volt:attempt="2">Fut a töltés rögzítése: a fejlesztői beállítások elrejtése előtt állítsd le.</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Előbb fejezd be vagy szakítsd meg a tesztet</string>
     <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Előbb csatlakozz a rollerhez</string>
     <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Telefonra mentve · leállás: 100% · az utolsó 20 megmarad</string>

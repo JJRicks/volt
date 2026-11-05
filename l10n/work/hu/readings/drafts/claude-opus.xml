@@ -86,7 +86,7 @@
     <string name="readings_driving_mode_compact" volt:src="9c3a4a5f47c4f9aa1b6f55959d4f37be79c597a1">Mód</string>
     <string name="readings_lock_status" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Elektronikus zár</string>
     <string name="readings_lock_status_short" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Elektronikus zár</string>
-    <string name="readings_lock_status_compact" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Zár</string>
+    <string name="readings_lock_status_compact" volt:src="7044b2710ffbc209d1839555476d7926bb179106" volt:attempt="2">Lezárás</string>
     <string name="readings_cruise_control" volt:src="8b578c5ddfc1d5b18e54c314262241084e516636">Tempomat (nyers)</string>
     <string name="readings_cruise_control_short" volt:src="0973cc51c7bc8503f04b8931b476b6bdc7aaa1ce">Tempomat (nyers)</string>
     <string name="readings_tail_light" volt:src="d4418691acaabc73c387e5ebe1e5e26370bbc131">Hátsó lámpa beállítása (nyers)</string>
@@ -185,7 +185,7 @@
     <string name="readings_warning_code_short" volt:src="92fb7eb6ac49b53d8ddc28b1490fbd4947deb0ea">Figyelmeztetési kód</string>
     <string name="readings_warning_code_compact" volt:src="63647a656653eda2f9ed432b853672b34a5d0ac4">Figyelmeztetés</string>
     <string name="readings_lock_push_warning" volt:src="239a62b4d4ac8ddf6bd51480f3d161228b260b01">Figyelmeztetés lezárt roller mozgatására (nyers)</string>
-    <string name="readings_lock_push_warning_short" volt:src="b392996949fa4bb67e39ba9912e65604622c1c5a">Mozgatás lezárt állapotban (nyers)</string>
+    <string name="readings_lock_push_warning_short" volt:src="b392996949fa4bb67e39ba9912e65604622c1c5a" volt:attempt="2">Lezárás: mozgás (nyers)</string>
     <string name="readings_hide_e9" volt:src="ecf2a3aa4b8b5842c7b276a54095ebc674902f96">E9-kijelzés jelzője (nyers)</string>
     <string name="readings_hide_e9_short" volt:src="40a54d78e0f827f43dd4386f508a3ec4cc88fe3e">E9-jelző (nyers)</string>
     <string name="readings_ride_report_format" volt:src="978644e29f908b2e6e869c51eafd8661b56f42ae">Útjelentés formátuma</string>
