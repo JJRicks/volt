@@ -33,17 +33,17 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-määritys (ei testattu)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lukitus ja lukemat</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Ei tuettu</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 keskeneräinen testi toisessa potkulaudassa. Valitse se, niin voit käydä testin läpi.</string>
-    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
-        <item quantity="one">%1$d keskeneräinen testi toisessa potkulaudassa. Valitse se, niin voit käydä testin läpi.</item>
-        <item quantity="other">%1$d keskeneräistä testiä muissa potkulaudoissa. Valitse niistä yksi, niin voit käydä testin läpi.</item>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">Toisessa potkulaudassa on 1 testi, jota ei ole viety loppuun. Valitse potkulauta, niin voit tarkistaa testin.</string>
+    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
+        <item quantity="one">Muissa potkulaudoissa on %1$d testi, jota ei ole viety loppuun. Valitse yksi potkulauta, niin voit tarkistaa sen testin.</item>
+        <item quantity="other">Muissa potkulaudoissa on %1$d testiä, joita ei ole viety loppuun. Valitse yksi potkulauta, niin voit tarkistaa sen testin.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testitiedot eivät ole käytettävissä. Aiemman testin muutosta ei ehkä ole peruttu; tarkista potkulaudan asetukset.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a" volt:attempt="2">Testitietoja ei ole saatavilla. Aiemman testin muutoksen peruminen ei ehkä toteutunut; tarkista potkulaudan asetukset.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Kokeilu · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Testi · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Luetaan nykyistä arvoa…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Vaihdetaan arvoon %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Tarkistetaan, ettei arvo ole muuttunut…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Tarkistetaan, että asetus ei ole muuttunut…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Muutos perutaan, arvoksi %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Kyllä</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Ei</string>
@@ -62,7 +62,7 @@
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Potkulauta ei ole vielä ilmoittanut liiketietoja tämän yhteyden aikana.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Jatka silti</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Merkitse muutos perutuksi</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Peru muutos: %1$s</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Palauta arvo %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Säilytä: %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Aseta: %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Sulje · jätä ennalleen</string>
@@ -193,7 +193,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Luku tuettu</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Hylätty, koodi %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kuitattu, ei vahvistettu</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Takaisinluku ennallaan, arvo %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Takaisinluku ei muuttunut, arvo %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Takaisinluku poikkeaa, arvo %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Asetus vahvistettu</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Vaikutus havaittu</string>
@@ -208,8 +208,8 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Uutta lukemaa ei saatu.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Hyväksytty, mutta ratkaisevaa lukemaa ei saatu.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Potkulauta ei vastannut.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt ei voinut lähettää muutoksen perumista.</string>
-    <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Uutta lähtöarvoa ei saatu. Yhdistä uudelleen ja yritä uudelleen. Mitään ei muutettu.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt ei voinut lähettää arvon palautusta.</string>
+    <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3" volt:attempt="2">Kokeilun tuoretta lähtöarvoa ei saatu. Yhdistä uudelleen ja yritä uudelleen. Mitään ei muutettu.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Asetusta ei voitu varmistaa. Yhdistä uudelleen ja tarkista keskeneräinen testi.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Yhteys katkesi testin aikana.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Testin aikana valittiin toinen potkulautaprofiili.</string>
@@ -220,14 +220,14 @@
     <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Potkulauta näyttää nyt arvon %1$s. Mitään ei muutettu.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Arvo on jo %1$s.</string>
     <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">%1$s ei ole nyt tarjolla.</string>
-    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Muutosta ei voisi perua takaisin nykyiseen arvoon, joten Volt ei testaa sitä.</string>
+    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2" volt:attempt="2">Nykyisen arvon muutoksen peruminen ei ole mahdollista, joten Volt ei testaa sitä.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">Asiaan liittyvä asetus muuttui testin aikana.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Potkulauta hyväksyi sen, mutta näyttää yhä arvon %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Potkulauta näyttää nyt arvon %1$s.</string>
     <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Näkyvissä on yhä arvo %1$s.</string>
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Näkyvissä on testiarvo %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Lopetettu ennen muutoksia. Mitään ei muutettu.</string>
-    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Muutos peruttu ja vahvistettu, mutta merkintää ei voitu tallentaa.</string>
+    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab" volt:attempt="2">Muutoksen peruminen vahvistettu, mutta testitietoja ei voitu tallentaa.</string>
     <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Säilytetty, mutta merkintää ei voitu tallentaa. Se näkyy keskeneräisenä.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Yhdistä tähän potkulautaan, niin voit tarkistaa testin.</string>
     <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">Mallitunnus poikkeaa testistä. Volt ei muuta sitä.</string>

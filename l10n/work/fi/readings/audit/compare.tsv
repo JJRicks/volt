@@ -1,0 +1,16 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+readings_lock_status	Electronic lock	Elektroninen lukitus	Electronic locking	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	145ba08b6d1c5c0a6a207ebf8f7095e91f0091ae
+readings_lock_status_short	Electronic lock	Elektroninen lukitus	Electronic locking	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	145ba08b6d1c5c0a6a207ebf8f7095e91f0091ae
+readings_lock_status_compact	Lock	Lukitus	Locking	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	d3039fbfae6fa5619796a8e220279bb0238adc0b
+readings_lock_push_warning	Locked movement warning (raw)	Liikevaroitus lukittuna (raaka-arvo)	Movement warning when locked (raw value)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	75747c7f2d24563a01f84224b45890f6d7b54b01
+readings_lock_push_warning_short	Lock movement (raw)	Liike lukituksen aikana (raaka)	Movement during locking (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	3eba65d46752fed995b9cc6de2483a7eb915f76d
+readings_value_unlocked	Unlocked	Lukitus avattu	Lock opened	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	2193b5890f02167751ea6ba83deb346789cdb26b
+readings_value_locked	Locked	Lukittu	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	5ffd5f88492057ad04cf27509475c2744b580550
+readings_chart_est_finish	Est. finish time	Arvioitu valmistumisaika	Estimated completion time	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	355e79b78734666bc4023d761890951179db0097
+readings_chart_est_countdown	Est. countdown time	Arvioitu jäljellä oleva aika	Estimated remaining time	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	7d989452893dcaecac61bc77c57684eec11cce9a
+readings_chart_est_finish_limit	Est. finish at limit	Arvioitu valmistumisaika latausrajalle	Estimated completion time for the charge limit	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	44dc1820df31ffd01f4ede30c380473741d63170
+readings_chart_est_countdown_limit	Est. countdown to limit	Arvioitu jäljellä oleva aika latausrajalle	Estimated remaining time for the charge limit	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	7c254ace652cab53dfaab3d5a3ea94800d817ba7
+readings_chart_charge_limit	Charge limit	Latausraja	Charge limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	94fe46901f32120dd3c69d6f679b13e76d3dd114
+readings_chart_observed_finish	Observed finish	Toteutunut valmistumisaika	Actual completion time	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	89aa212f63fc0e8ba36dbc73709cd79f53cf40d1
+readings_chart_actual_countdown	Actual countdown	Todellinen jäljellä ollut aika	Actual time that was remaining	claude-opus	claude-opus-5-5	f79949dd92e33164bc3d2fec7112b46c9c44aee1	71969a3c93984c46056078710bce63b2e5b563f7

@@ -99,7 +99,7 @@
     <string name="backup_engine_app_preference_too_large" volt:src="348e4acea71c3dbaa8602c3f64ffa80e1f4d7722">Voltin asetus on liian suuri.</string>
     <string name="backup_engine_invalid_preference_string" volt:src="76da887c794d343389c7f81c8db5f2eba3ea2475">Asetuksen merkkijono on virheellinen.</string>
     <string name="backup_engine_invalid_preference_text" volt:src="d373f43c9d2b463cfba899e548a09cb2a5645794">Asetuksen teksti on virheellinen.</string>
-    <string name="backup_engine_use_backup_password_characters" volt:src="a70cc0889611db525c9484688ca3731905b99840">Käytä varmuuskopiolle salasanaa, jossa on 8–1024 merkkiä.</string>
+    <string name="backup_engine_use_backup_password_characters" volt:src="a70cc0889611db525c9484688ca3731905b99840" volt:attempt="2">Käytä varmuuskopion salasanaa, jossa on 8–1 024 merkkiä.</string>
     <string name="backup_engine_backup_encryption_unavailable_device" volt:src="e8b0c99e17d1182da29168cbb170e630cb1fab14">Varmuuskopion salaus ei ole käytettävissä tässä laitteessa.</string>
     <string name="backup_engine_choose_volt_encrypted_app" volt:src="30da3d2438b9264a1b660eb0fb5020bdda7baa3a">Valitse Voltin salattu varmuuskopio.</string>
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Salatun varmuuskopion tietue on virheellinen.</string>

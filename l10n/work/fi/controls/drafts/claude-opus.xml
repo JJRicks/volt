@@ -84,7 +84,7 @@
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Tuntematon arvo · ei voi muuttaa turvallisesti</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Ei tietoa valinnoista</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Odota nykyisen muutoksen valmistumista</string>
-    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Pysäytä potkulauta ensin</string>
+    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a" volt:attempt="2">Lopeta ajo ja pysäytä potkulauta ensin</string>
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Ei vielä tietoa liikkeestä</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Selvitä potkulaudan varoitus ensin</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Avaa ensin lukitus</string>
@@ -122,13 +122,13 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Haluatko poistaa luistoneston käytöstä? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Haluatko poistaa virransäästötilan käytöstä? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Haluatko vaihtaa yhden moottorin käyttöön? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Haluatko poistaa energian talteenoton käytöstä? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Haluatko kytkeä energian talteenoton pois päältä? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Käynnistysnopeus alle 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Yli 32 km/h: tarkista säännöt alueella, jolla ajat. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Luistonesto poistetaan käytöstä. Aja varovasti märällä tai irtonaisella alustalla, kunnes tiedät, miten potkulauta käyttäytyy.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Kun arvo on alle 3 km/h, moottori voi alkaa vetää paikaltaan heti, kun käytät kaasua.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Energian talteenotto eli moottorijarrutus poistetaan käytöstä, joten jarrusi joutuvat tekemään suuremman osan pysäyttämisestä.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Malli %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Malli %1$s (ei vahvistettu)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Korkea suorituskyky</string>
