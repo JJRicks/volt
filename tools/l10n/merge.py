@@ -8,13 +8,14 @@
 
 For each key whose decision is translated (agreed, judged or safety-agreed) and whose source_sha1
 still matches the English, it writes the string with a <!-- src:<sha1> --> comment (translib's
-source hash). Keys that fall back, or whose English changed since the decision, are left out, so
-Android shows English. The area that holds the default l10n_tag also gets
+source hash). Keys that fall back, whose English changed since the decision, or whose text is blank,
+the wrong shape or missing a plural form (translib.why_english) are left out, so Android shows
+English, and the beta bar counts them as falling back. The area that holds the default l10n_tag also gets
 <string name="l10n_tag"><tag></string>. Only merge.py writes res/values-<qual>/.
 
 Then it validates the whole folder (the CatalogCheckTest rules): every key exists in the default
 with the same kind and is translatable; placeholders match; every plural category the language
-needs is present; every sha comment matches the current English; ladders are complete; l10n_tag
+needs is present; no text is blank unless the English is; every sha comment matches the current English; ladders are complete; l10n_tag
 names the language; the folder is listed in l10n/lang/; and aapt stores every text exactly as
 written (when the SDK's aapt is available; --aapt off skips it, --aapt required fails without it).
 """
@@ -35,7 +36,6 @@ import l10nlib  # noqa: E402
 import roundtrip  # noqa: E402
 import translib  # noqa: E402
 
-TRANSLATED = ("agreed", "judged", "safety-agreed")
 AAPT_VERSION = "36.1.0"
 ANDROID_PLATFORM = "android-36"
 SRC_COMMENT = re.compile(r"^src:([0-9a-f]{40})$")
@@ -56,31 +56,18 @@ def render_file(tag, area, lang, sources, decisions, tag_area):
         d = decisions.get(s.key)
         if not s.translatable:
             continue
-        if d is None:
-            skipped.append((s.key, "no decision"))
-            continue
-        if d.get("outcome") not in TRANSLATED:
-            skipped.append((s.key, "falls back to English"))
+        why = translib.why_english(s, d, categories)
+        if why:
+            skipped.append((s.key, why))
             continue
         sha = translib.source_sha1(s.kind, s.items)
-        if d.get("source_sha1") != sha:
-            skipped.append((s.key, "the English changed since the decision"))
-            continue
         items = translib.items_of(s.kind, d.get("text"))
-        if items is None:
-            skipped.append((s.key, "the decision's text has the wrong shape"))
-            continue
         formatted = "" if s.formatted else ' formatted="false"'
         lines.append("    <!-- src:%s -->" % sha)
         if s.kind == "string":
             lines.append('    <string name="%s"%s>%s</string>' % (
                 s.key, formatted, translib.xml_text(translib.encode_resource_text(items["other"]))))
         else:
-            missing = [q for q in categories if q not in items]
-            if missing:
-                lines.pop()
-                skipped.append((s.key, "missing plural forms %s" % ", ".join(missing)))
-                continue
             lines.append('    <plurals name="%s"%s>' % (s.key, formatted))
             for quantity in categories:
                 lines.append('        <item quantity="%s">%s</item>' % (
@@ -228,6 +215,8 @@ def validate_folder(paths, tag, aapt="auto", shipped=False):
                 if missing:
                     problems.append("%s: missing plural forms %s" % (where, ", ".join(missing)))
             for quantity, item in e.items.items():
+                if not item.text.strip() and s.items.get(quantity, s.items["other"]).strip():
+                    problems.append("%s[%s]: blank, and the English is not" % (where, quantity))
                 if s.formatted:
                     specs = set(_specs(item.text))
                     if e.kind == "string" and specs != set(_specs(s.items["other"])):
@@ -328,7 +317,7 @@ def main(argv=None):
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--area")
     group.add_argument("--all", action="store_true")
-    group.add_argument("--check", action="store_true", help="validate only")
+    group.add_argument("--check", action="store_true", help="validate and compare with the decisions; write nothing")
     parser.add_argument("--aapt", choices=("auto", "off", "required"), default="auto")
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)

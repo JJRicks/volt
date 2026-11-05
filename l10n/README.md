@@ -719,8 +719,8 @@ Known limits:
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
-runs them, `gen_catalog.py --check` and `tests/l10n/golden.sh` on every push and pull request, then
-`ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
+runs them, `gen_catalog.py --check`, `ship_check.py` and `tests/l10n/golden.sh` on every push and pull
+request, then `ci_gates.py`. CI runs the pull request's own copy of these tools; the batch rule above (no tooling
 changes in a batch) and review are what keep a batch from weakening them.
 
 **G2.** `LedgerTest` renders every `exact`, `template` and `plural` row through `EnglishText` with
@@ -1185,7 +1185,9 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    36.1.0 when the SDK is installed, comparing what aapt stored with the decisions' text.
 7. **The beta bar** (owner, 2026-11-02): a language may ship as `beta` only when at most **2%** of
    its keys fall back to English and **no lock or alarm** key falls back. `council.py beta` checks
-   it across every area (a key whose English changed after its decision counts as a fallback).
+   it across every area. It counts what `merge.py` writes, so a key whose English changed after its
+   decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
+   or alarm key must also be `safety-agreed`, which Claude's drafts alone never reach.
    Releases still need the owner's explicit authorization.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
@@ -1194,12 +1196,14 @@ decisions (and merge again), never straight into `res/values-<qual>/`.
 
 ### What CI checks
 
-The localization gates job runs `python3 tools/l10n/ship_check.py` on every push and pull request.
+The `core-tests` job's "Localization proof gates" step runs `python3 tools/l10n/ship_check.py` on every
+push and pull request.
 It looks only at committed files and never needs a key or the network; the beta bar comes from the
 recorded decisions. It fails when:
 
 - a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
-- that text fails `merge.py`'s validation (above), including a stale `src` hash or a missing `l10n_tag`;
+- that text fails `merge.py`'s validation (above), including a stale `src` hash, a blank text or a
+  missing `l10n_tag`;
 - that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
   a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
 - that language is under the beta bar (`council.py beta`);
@@ -1214,9 +1218,9 @@ A language at `draft` or `held` is not read, so it can't fail the step unless it
 
 An English change therefore fails CI for every shipped language that translates that key. Run
 `merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
-the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). A folder CI would
-refuse is also refused by `CatalogCheckTest` (in `tests/run.sh`), which keeps the same folder rules
-for the real tree.
+the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). `CatalogCheckTest`
+(in `tests/run.sh`) keeps the same folder rules for the real tree's `strings*.xml` files; `ship_check.py`
+also reads a language folder's other XML files.
 
 What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
 providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local

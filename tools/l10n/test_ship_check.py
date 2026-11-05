@@ -53,18 +53,34 @@ class Base(unittest.TestCase):
         texts = dict(cf.SPANISH, **BLE)
         for area, rows in sources.items():
             out = []
+            safety = translib.effective_safety(rows)
             for s in rows:
                 if s.translatable:
+                    blocking = set(safety[s.key]) & set(translib.SAFETY_BLOCKING)
                     out.append({"key": s.key, "kind": s.kind, "source_sha1": translib.source_sha1(s.kind, s.items),
-                                "outcome": "fallback-english" if s.key in fallback else "agreed",
+                                "outcome": ("fallback-english" if s.key in fallback else
+                                            "safety-agreed" if blocking else "agreed"),
                                 "text": None if s.key in fallback else texts[s.key]})
             translib.write_jsonl(self.paths.decisions(tag, area), out)
+
+    def edit_decision(self, area, key, **fields):
+        """Change one recorded decision, as a hand edit would, and merge again: the file then agrees with it."""
+        path = self.paths.decisions("es", area)
+        rows = translib.read_jsonl(path)
+        for row in rows:
+            if row["key"] == key:
+                row.update(fields)
+        translib.write_jsonl(path, rows)
+        self.merge_all()
+
+    def merge_all(self):
+        for area in merge.decided_areas(self.paths, "es"):
+            merge.merge_area(self.paths, "es", area)
 
     def ship_spanish(self, fallback=(), status="beta"):
         """A language that passes every rule, through the real merge."""
         self.decide(fallback=fallback)
-        for area in merge.decided_areas(self.paths, "es"):
-            merge.merge_area(self.paths, "es", area)
+        self.merge_all()
         self.set_status("es", status)
         self.repo.write("res/xml/locales_config.xml", locales_config("en", "es"))
         self.repo.write("AndroidManifest.xml", MANIFEST % NAMED)
@@ -177,6 +193,66 @@ class ShippedLanguageTest(Base):
     def test_a_lock_key_falling_back(self):
         self.ship_spanish(fallback=("ble_unlock",))
         self.assert_fails("lock or alarm keys falling back", "ble_unlock (lock)")
+
+    def assert_left_to_english(self, key, why, problem="lock or alarm keys falling back"):
+        """A translated decision merge.py refuses: not in the folder, counted by the bar, and named."""
+        self.assertNotIn('name="%s"' % key, "".join(
+            self.repo.read(os.path.join("res/values-es", f)) for f in os.listdir(self.repo.path("res/values-es"))))
+        self.assert_fails("1 of 13 keys fall back", problem, "translated decisions merge.py leaves to English",
+                          "%s (%s)" % (key, why))
+
+    def test_a_lock_key_merge_refuses_to_write(self):
+        self.ship_spanish()
+        for text in (None, {"other": "Desbloquear"}, 7):
+            self.edit_decision("ble", "ble_unlock", text=text)
+            self.assert_left_to_english("ble_unlock", "the decision's text has the wrong shape")
+
+    def test_a_blank_lock_key(self):
+        self.ship_spanish()
+        for text in ("", "   ", "\u00a0\n"):
+            self.edit_decision("ble", "ble_unlock", text=text)
+            self.assert_left_to_english("ble_unlock", "the decision's text is blank")
+
+    def test_a_blank_ordinary_key_falls_back_and_counts(self):
+        self.ship_spanish()
+        self.edit_decision("common", "common_cancel", text=" ")
+        self.assert_left_to_english("common_cancel", "the decision's text is blank", "es is under the beta bar")
+
+    def test_a_plural_with_a_form_missing(self):
+        self.ship_spanish()
+        self.edit_decision("common", "common_scooters_skipped", text={"other": "%1$d patinetes omitidos"})
+        self.assert_left_to_english("common_scooters_skipped", "missing plural forms one, many",
+                                    "es is under the beta bar")
+
+    def test_a_plural_with_a_blank_form(self):
+        self.ship_spanish()
+        self.edit_decision("common", "common_scooters_skipped", text={
+            "one": "", "many": "%1$d de patinetes omitidos", "other": "%1$d patinetes omitidos"})
+        self.assert_left_to_english("common_scooters_skipped", "the decision's text is blank",
+                                    "es is under the beta bar")
+
+    def test_a_plural_category_added_after_the_decisions(self):
+        """No decision is edited: the language simply needs a form it does not have."""
+        self.ship_spanish()
+        self.repo.write("l10n/lang/es.tsv", re.sub(r"(?m)^plurals\t.*$", "plurals\tone,few,many,other",
+                                                   self.repo.read("l10n/lang/es.tsv")))
+        self.merge_all()
+        self.assert_left_to_english("common_scooters_skipped", "missing plural forms few", "es is under the beta bar")
+
+    def test_a_blank_string_written_by_hand(self):
+        self.ship_spanish()
+        self.repo.write(SHIPPED_FILE, self.repo.read(SHIPPED_FILE).replace(">Cancelar<", "><"))
+        self.assert_fails("common_cancel[other]: blank, and the English is not")
+
+    def test_a_lock_or_alarm_key_only_ships_safety_agreed(self):
+        """decide() gives these no other translated outcome; Claude's drafts alone leave them falling back."""
+        self.ship_spanish()
+        for outcome in ("agreed", "judged"):
+            self.edit_decision("ble", "ble_unlock", outcome=outcome)
+            out = self.assert_fails("not safety-agreed", "ble_unlock (lock)", "0 of 13 keys fall back")
+            self.assertNotIn("falling back", out)
+        self.edit_decision("ble", "ble_unlock", outcome="safety-agreed")
+        self.assertEqual(self.run_tool()[0], 0)
 
     def test_the_bar_reads_only_recorded_decisions(self):
         """No decisions at all is a language under the bar, not a request for keys."""

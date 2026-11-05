@@ -84,7 +84,7 @@ SAFETY_CONFIRMATIONS = (
     "disclaimer_not_softened",           # "not affiliated with NAVEE" is not softened
 )
 VERDICTS = ("pick", "merge", "confirm", "fallback")
-TRANSLATED = ("agreed", "judged", "safety-agreed")
+TRANSLATED = translib.TRANSLATED
 DECISION_FORMAT = "volt-l10n-decision-v1"
 STYLES = {
     "standard": "Translate each string with its context in mind.",
@@ -1072,11 +1072,16 @@ BETA_MAX_FALLBACK = 0.02
 
 
 def beta_report(paths, tag):
-    """(passes, lines). Fallback counts every translatable key without a current translated decision."""
+    """(passes, lines). Fallback counts every translatable key merge.py would leave to English.
+
+    A lock or alarm key must also be safety-agreed, the only translated outcome decide() gives one: all
+    three providers, a back-translation and the judge's confirmation. Claude's drafts alone never reach it.
+    """
     lang = translib.load_language(paths, tag)
+    categories = translib.plural_categories(lang)
     sources, _ = translib.load_source(paths)
     total = fallback = 0
-    blocking, lines = [], []
+    blocking, unconfirmed, refused, lines = [], [], [], []
     for area, rows in sources.items():
         decided = dict((r.get("key"), r) for r in translib.read_jsonl(paths.decisions(tag, area)))
         area_total = area_fallback = 0
@@ -1085,23 +1090,32 @@ def beta_report(paths, tag):
             if not s.translatable:
                 continue
             area_total += 1
-            sha = translib.source_sha1(s.kind, s.items)
             d = decided.get(s.key)
-            if d and d.get("outcome") in TRANSLATED and d.get("source_sha1") == sha:
+            why = translib.why_english(s, d, categories)
+            hit = [x for x in safety[s.key] if x in translib.SAFETY_BLOCKING]
+            if not why:
+                if hit and d.get("outcome") != "safety-agreed":
+                    unconfirmed.append("%s (%s)" % (s.key, ", ".join(hit)))
                 continue
             area_fallback += 1
-            hit = [x for x in safety[s.key] if x in translib.SAFETY_BLOCKING]
+            if d and d.get("outcome") in TRANSLATED and d.get("source_sha1") == translib.source_sha1(s.kind, s.items):
+                refused.append("%s (%s)" % (s.key, why))
             if hit:
                 blocking.append("%s (%s)" % (s.key, ", ".join(hit)))
         total += area_total
         fallback += area_fallback
         lines.append("  %-16s %4d keys, %4d English fallback" % (area, area_total, area_fallback))
     ratio = float(fallback) / total if total else 0.0
-    passes = total > 0 and ratio <= BETA_MAX_FALLBACK and not blocking
+    passes = total > 0 and ratio <= BETA_MAX_FALLBACK and not blocking and not unconfirmed
     lines.insert(0, "%s (%s): %d of %d keys fall back to English (%.2f%%; the bar is %.0f%%)" % (
         tag, lang.folder, fallback, total, 100 * ratio, 100 * BETA_MAX_FALLBACK))
     if blocking:
         lines.append("lock or alarm keys falling back (each blocks the beta): %s" % ", ".join(blocking))
+    if unconfirmed:
+        lines.append("lock or alarm keys translated but not safety-agreed (each blocks the beta): %s" %
+                     ", ".join(unconfirmed))
+    if refused:
+        lines.append("translated decisions merge.py leaves to English: %s" % ", ".join(refused))
     lines.append("beta bar: %s" % ("PASS" if passes else "FAIL"))
     return passes, lines
 

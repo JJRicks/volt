@@ -6,7 +6,8 @@
 Every language with status beta or stable must have:
   - res/<folder>/ text that passes merge.py's validation (keys, placeholders, plural forms, current
     src hashes, ladders, l10n_tag) and equals, byte for byte, what merge.py writes from its decisions;
-  - the owner's beta bar (council.py beta), read from the committed decisions;
+  - the owner's beta bar (council.py beta): the committed decisions, counted by what merge.py writes
+    from them, with every lock and alarm key safety-agreed;
   - a line in res/xml/locales_config.xml, and android:localeConfig in the manifest.
 In the other direction, every res/values-* folder with text must belong to such a language, and
 locales_config.xml lists nothing else. This mirrors CatalogCheckTest's localesConfig(), which needs a
