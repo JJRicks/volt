@@ -15,7 +15,7 @@
     <string name="controls_feature_speed_limit" volt:src="eae0a786d24497605ec2abc368fb032b5599a2c3">Egen hastighetsgräns</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Maxhastighet</string>
     <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Tvåmotorsdrift</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9">Hastighetsgräns för Drive-läge</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="7c7e9c7a5e2df2681ef99c4cd9d65ceb5c3f7eb9" volt:attempt="2">Hastighetsgräns för körläge Drive</string>
     <string name="controls_feature_charge_limit" volt:src="69ff0b43f5632ac15b553dfeeab26e66e603e019">Laddningsgräns</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Schemalagd laddning</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Starttid för laddning</string>
@@ -128,7 +128,7 @@
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Antispinn stängs av. Kör försiktigt på vått eller löst underlag tills du vet hur elsparkcykeln beter sig.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Under 3 km/h kan motorn börja dra från stillastående så snart du använder gasreglaget.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Energiåtervinningen stängs av. Motorn bromsar då inte, så dina bromsar får göra mer av inbromsningen.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modell %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Modell %1$s (obekräftad)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Hög prestanda</string>

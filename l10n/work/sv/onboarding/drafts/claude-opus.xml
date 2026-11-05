@@ -27,10 +27,10 @@
     <string name="onboarding_welcome_get_started" volt:src="2a5eb66c36cee7d42ac3c78d156c1b0adc779db2">Kom igång</string>
     <string name="onboarding_restore_backup" volt:src="9359623eb55635ed843d4eb26b2748b576bef8cd">Återställ Volt-säkerhetskopia</string>
     <string name="onboarding_welcome_restore_description" volt:src="a13b3f16a05f987acbc589296ef491cdf215236d">Återställ Volt-säkerhetskopia: elsparkcyklar, turer, historik, översikter och inställningar</string>
-    <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe">Jag har redan en ägarfil</string>
+    <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe" volt:attempt="2">Jag har redan en fil för ägare</string>
     <string name="onboarding_welcome_tile_lock" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Lås</string>
     <string name="onboarding_welcome_tile_lock_short" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Lås</string>
-    <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Inställningar</string>
+    <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e" volt:attempt="2">Inställn.</string>
     <string name="onboarding_welcome_tile_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Inställn.</string>
     <string name="onboarding_welcome_tile_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
     <string name="onboarding_welcome_tile_battery_short" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
@@ -59,7 +59,7 @@
     <string name="onboarding_option_spoken_chip_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
     <string name="onboarding_option_spoken_chip_detail_unavailable" volt:src="7d0c75833c2bf62f3c64e46241528acdb51a0ca6">%1$s, %2$s. %3$s. Kräver Android 11 eller senare</string>
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Fortsätt</string>
-    <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Slutför importen av den valda ägarfilen först.</string>
+    <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d" volt:attempt="2">Slutför först importen av din valda fil för ägare.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Hoppa över konfigurationen för tillfället?</string>
     <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Lägg till elsparkcykeln senare under Mer.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Fortsätt konfigurera</string>
@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Anslut telefonen med en USB-datakabel</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Välj din telefon i Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Godkänn USB-felsökning på den här telefonen</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lämna **Tillåt alltid från den här datorn** omarkerad</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Markera inte **Tillåt alltid från den här datorn**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Webbplatsen är ansluten</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Telefonen finns inte i listan</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Anslutning i Chrome</string>
@@ -138,13 +138,13 @@
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Hämtning i webbläsaren</string>
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Inloggad i NAVEE-appen, elsparkcykeln i närheten\n•  Andra appar för elsparkcyklar stängda\n•  Stoppades hämtningen i förtid? Slutför rensningen i samma webbläsare först"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Din ägarkonfiguration</string>
-    <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importera din ägarfil</string>
-    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Välj navee-owner-setup.json. Bara åtkomsten till elsparkcykeln återställs, inte turer eller annan data i appen.</string>
+    <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46" volt:attempt="2">Import av din fil för ägare</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Välj navee-owner-setup.json. Det här återställer bara ägarens åtkomst till elsparkcykeln, inte turer eller annan appdata.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Läser in din ägarprofil…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Ingen fil vald än</string>
-    <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Inte en ägarfil.</string>
+    <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7" volt:attempt="2">Inte en fil för ägare.</string>
     <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Den här filen låser upp din elsparkcykel. Håll den hemlig.</string>
-    <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Välj ägarfil</string>
+    <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac" volt:attempt="2">Välj fil för ägare</string>
     <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Ange ägarnyckeln i stället</string>
     <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Återställ Volt-säkerhetskopia i stället</string>
     <string name="onboarding_role_shared" volt:src="5d49485c583c28802db55e3118c072a5da721b96">delad åtkomst</string>

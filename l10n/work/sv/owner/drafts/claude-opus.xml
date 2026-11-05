@@ -33,7 +33,7 @@
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Kassera</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Starta Shizuku</string>
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku installerad</string>
-    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1">Installera</string>
+    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1" volt:attempt="2">Hämta</string>
     <string name="owner_shizuku_running" volt:src="95edb635c6a1e52241514201596f24fdbfee39e8">Shizuku körs</string>
     <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e">Öppna</string>
     <string name="owner_shizuku_setup_guide" volt:src="a7d9140e980c3ea35d0172716f309744b04d6448">Guide för konfiguration av Shizuku</string>
@@ -80,7 +80,7 @@
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">12 hexadecimala tecken krävs</string>
     <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Ingen ägarnyckel i filen</string>
     <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Ägarroll som inte stöds</string>
-    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4">Den här filen innehåller motstridiga ägarnycklar eller roller. Hämta från en enda anslutning med ett NAVEE-konto eller importera en enda privat säkerhetskopia av konfigurationen.</string>
+    <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4" volt:attempt="2">Den här filen innehåller motstridiga ägarnycklar eller roller för ägaren. Hämta en enda anslutning till ett NAVEE-konto eller importera en enda privat säkerhetskopia av konfigurationen.</string>
     <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Importen misslyckades. Välj filen igen.</string>
     <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Ange en ägarnyckel på 12 tecken.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Elsparkcykel</string>

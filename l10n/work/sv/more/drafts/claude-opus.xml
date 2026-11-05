@@ -19,7 +19,7 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Rapportera ett problem</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Enheter</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Kompatibilitet</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Oavslutat test</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1" volt:attempt="2">Test som inte slutfördes</string>
     <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, ingen uppgift</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Steg %1$d</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Håll skärmen tänd</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Under inspelning</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Avsluta turen när du har parkerat</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s efter att Bluetooth-anslutningen bryts när du står stilla</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s efter att Bluetooth-anslutningen bryts när du stoppar</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Inspelning i bakgrunden</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Obegränsad batterianvändning</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batterianvändning optimerad; Android kan stoppa långa inspelningar. Batteriinställningarna öppnas</string>
@@ -151,13 +151,13 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Med närhetsupplåsning: ha den parkopplade telefonen nära och dra i bromsen. Testa båda när elsparkcykeln är parkerad innan du litar på dem.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Uppfattat</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Styret: 1 knapp för blinkers, 2 bromshandtag, 3 strömknapp</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Reglage att prova</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Reglage att prova</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Hjälp till att verifiera</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Inget att prova</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Svar på kommandon</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Rensa resultat av det du provat</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Rensa resultat av det du provat?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt glömmer vad dina försök på den här elsparkcykeln visade, så de tas bort från din nästa rapport och från ”Ställ tillbaka”. Inställningarna förblir som de är. Oavslutade försök finns kvar tills du har granskat dem.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glömmer vad dina försök på den här elsparkcykeln visade, så de försvinner från din nästa rapport och från ”Ställ tillbaka”. Inställningarna förblir som de är. Försök som inte slutfördes finns kvar tills du har granskat dem.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Inga avslutade försök att rensa</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">Rensade %1$d resultat av det du provat</item>
@@ -186,7 +186,7 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Granska</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Ställ tillbaka</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84">Granska det oavslutade försöket att prova %1$s</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Granska %1$s, som du provade men som inte slutfördes</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">Ställ tillbaka %1$s till %2$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Prova %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -208,8 +208,8 @@
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Ställer tillbaka…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Simulerad ändring</string>
     <string name="more_lab_status_simulated_short" volt:src="781634cc580bebb6c14e20c88e6af911eb783f83">Simulerad</string>
-    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9">Oavslutat · granska</string>
-    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69">Oavslutat</string>
+    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Inte slutfört · granska</string>
+    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Ej slutfört</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Inte provat än</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Inte verifierat på din modell</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Ej verifierat här</string>
@@ -242,7 +242,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Välj en gräns</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Välj ett värde</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt skickar en ändring medan elsparkcykeln är parkerad och upplåst, läser tillbaka den och frågar sedan vad du såg. Värdet ligger kvar tills du ställer tillbaka det. Om anslutningen bryts skriver Volt aldrig igen på egen hand: det du provade väntar på din granskning.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Kontrollerar att värdet är oförändrat…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att det inte har ändrats…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser av det aktuella värdet…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Skickar %1$s och läser tillbaka värdet…</string>
@@ -313,7 +313,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Snabb</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">Auto känner igen UT5 MAX-laddare från effekten i realtid. Vid osäkerhet använder Volt den aktuella takten; välj en laddare om du vill åsidosätta det.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto känner igen laddare till UT5 MAX utifrån aktuell effekt. Om det inte går att avgöra använder Volt den aktuella takten; välj en laddare om du vill åsidosätta det.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Sparade laddningskurvor</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Spela in den här laddningen</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stoppa laddningsinspelning</string>

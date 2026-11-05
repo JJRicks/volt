@@ -33,17 +33,17 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-mappade (otestade)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås och mätvärden</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Stöds inte</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285">1 oavslutat test på en annan elsparkcykel. Välj den för att granska.</string>
-    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415">
-        <item quantity="one">%1$d oavslutat test på en annan elsparkcykel. Välj den för att granska.</item>
-        <item quantity="other">%1$d oavslutade tester på andra elsparkcyklar. Välj en av dem för att granska.</item>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 test som inte är avslutat på en annan elsparkcykel. Välj den för att granska testet.</string>
+    <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
+        <item quantity="one">%1$d test som inte är avslutat på en annan elsparkcykel. Välj den för att granska testet.</item>
+        <item quantity="other">%1$d test som inte är avslutade på andra elsparkcyklar. Välj en för att granska testet.</item>
     </plurals>
     <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testuppgifterna är inte tillgängliga. Ett tidigare test kanske inte har ställts tillbaka; kontrollera elsparkcykelns inställningar.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Prova · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Läser det aktuella värdet…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Ändrar till %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Kontrollerar att värdet är oförändrat…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Kontrollerar att värdet inte har ändrats…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ställer tillbaka till %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
@@ -193,7 +193,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Läsning stöds</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Avvisad, kod %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Kvitterad, obekräftad</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Återläsning oförändrad, värde %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Återläsningen visar ingen ändring, värde %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Återläsning avviker, värde %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Inställning bekräftad</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Ändring observerad</string>
