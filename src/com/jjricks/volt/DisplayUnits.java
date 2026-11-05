@@ -40,6 +40,19 @@ public final class DisplayUnits {
         return choose(metric, imperial, units);
     }
 
+    /**
+     * A slider sheet's two range ends, {low, high}, built from the numbers, for display: the high end is
+     * featureValueText(max), and a speed's low end is its number alone ("0.0", "0", or "0.0 mph / 0" in dual units),
+     * because the high end beside it names the unit; an Off low end is featureValueText(min). This replaces cutting
+     * the high end's last word off the shown low end, which only worked where a language puts the unit last.
+     */
+    public static String[] sliderEnds(ScooterCommands.Feature feature, String units) {
+        String high = featureValueText(feature, feature.max, units);
+        if (!UnitCode.KMH.matches(feature.unit) || (feature.min == 0 && feature.zeroIsOff())) return new String[]{featureValueText(feature, feature.min, units), high};
+        String metric = Fmt.integer(feature.min), imperial = Fmt.decimal(Locale.US, feature.min / KM_PER_MILE, 1);
+        return new String[]{choose(metric, "dual".equals(units) ? T.fmtQuantity(imperial, T.unitsMph()) : imperial, units), high};
+    }
+
     /** featureValue in the shown language: a value that is not a speed is feature.valueText(value). Display only. */
     public static String featureValueText(ScooterCommands.Feature feature, int value, String units) {
         return !UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff()) ? feature.valueText(value).toString() : featureValue(feature, value, units);

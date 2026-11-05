@@ -4,3 +4,5 @@
 # drive-mode cue and the Live Stats row-name fallback print, pinned before the batch. It reuses
 # ControlsEnglishTest's variant list (tests/l10n/b4.sources).
 tests/l10n/characterization/TextLogicEnglishTest.java
+# F3 head test: DisplayUnits.sliderEnds and DisplayUnits.unbroken print the base English (reuses TextLogicEnglishTest).
+tests/l10n/TextLogicTest.java
