@@ -9,8 +9,10 @@
 
   Stored values stay English: a widget's saved title and note, a saved slot's name, an export and an
   import keep the English text. The title, note and slot name editors start at the text as shown;
-  saved unchanged, they keep what was saved. Widget type names, default titles and slot names come
-  from strings_dashboard_model.xml.
+  saved unchanged, they keep what was saved. A slot name of Volt's is kept only where the save
+  leaves it Volt's (the example's name needs the example's own widgets); otherwise the field's text
+  is saved, the name as it was shown (DashboardConfig.slotNameToSave). Widget type names, default
+  titles and slot names come from strings_dashboard_model.xml.
 
   What this screen still shows or speaks in English, and why (DashboardScreen.java lines):
   - the header status line and its spoken form ("Connected · Sport", "Disconnected · last seen
@@ -19,14 +21,17 @@
     blocked"); see the comment at :787;
   - text with a mark the Saira font has no glyph for: GlyphCoverageTest refuses it in the catalog,
     and keeping the mark in Java beside a key would be a new literal, which G1 refuses. It waits for
-    the font check, not for the G1 tooling round: a reviewed glyph exemption list or an icon (as
-    B16's star and B18's battery row do):
-    - the three "✓ Save" buttons (U+2713): widget options :5295, quick settings :5382, Choose
-      readings :6035. The widget options and Choose readings buttons have translated spoken names
-      (dashboard_save_widget_options, dashboard_save_readings); the quick settings one is read as
-      shown;
+    the font check, not for the G1 tooling round. The owner chose a reviewed GlyphCoverageTest
+    allow-list, not icons; the glyph tooling branch (claude/l10n-glyph-symbols) allows U+2713,
+    U+26A0 with U+FE0E, U+2606 and U+2605, as B16's star and B18's battery row need:
+    - the three "✓ Save" buttons (U+2713, on that list): widget options :5295, quick settings
+      :5382, Choose readings :6035. The widget options and Choose readings buttons have translated
+      spoken names (dashboard_save_widget_options, dashboard_save_readings); the quick settings one
+      is read as shown;
     - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in
-      U+FFFC, the place of the inline spinner;
+      U+FFFC, the place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is
+      not on that list, so the allow-list does not move it: it waits for a change that keeps only
+      "Connecting…" in the catalog and appends the placeholder in code where the span is set;
   - count phrases whose plural ending shares an expression with a choice: a choice row's branches
     cannot be plural rows, and a choice of fixed whole templates would keep English's two forms in
     every language:
@@ -62,13 +67,24 @@
     its English there (:5216), and the quick settings search, which matches English shortcut names
     and groups only (:5432): each statement holds text, and around text an extraction batch may
     only replace a ledger row's expression (G1), so these wait for an ordinary change;
-  - text other files still build in English, shown as it is: ChargingEstimate.Result.status in the
-    charging hero's spoken time (:1729); BatteryCapacityEstimate.Result's label and rejection reason
-    (the capacity widget's chip, summary and bar description, the details caveat and the Rejected
-    value, :3704-3719, :3807-3809); ScooterService's unavailable reason (:3673, and the details
-    caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE, SPORT) on the drive
-    mode card and in the header; DisplayTime.recent's English month ("03 NOV · 14:05") in the
-    header's last seen time and a saved slot's summary; and reading values from format()
+  - two big percents that put the sign after the digits in Java, as English does, with US digits:
+    the charging hero's (:1716, number + "%") and the Overview widget's (:2916, amount + "%"). A
+    language's percent order (Fmt.percent) does not reach them yet; the battery cell's does
+    (36e1eb6), and these wait for the same change, which also places the sign's smaller span;
+  - text other files still build in English, shown as it is wherever the screen shows or speaks it:
+    ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
+    (:1729-1735) and in the Charging and Battery widgets' time cell, spoken and as the tile's
+    tooltip (describeCharging, :3400-3402, :3420); BatteryCapacityEstimate.Result's label and
+    rejection reason (the capacity widget's chip, summary and bar description, the details caveat
+    and the Rejected value, :3704-3719, :3807-3809); ScooterService's unavailable reason (:3673,
+    and the details caveat); the drive mode word (Telemetry.drivingModeLabel: WALK, ECO, DRIVE,
+    SPORT) wherever a reading shows it, e.g. the drive mode card, the header, and the reading tiles
+    of the Scooter and Overview cards, which have driving_mode among their default readings
+    (DashboardConfig.Widget); DisplayTime.recent's English month ("03 NOV · 14:05") wherever a last
+    seen time shows, through when() (:871) or directly: the header's last seen time (:800), the
+    card footers' "Last seen" description and tooltip (:3517-3518), the spoken last seen of the
+    reading cells and the gauge (:3452, :3466, :3469, :4232), the Overview's spoken text
+    (:2930-2934) and a saved slot's summary (:6561); and reading values from format()
     (DisplayUnits.metricText's canonical English: US digits and Telemetry's unit symbols), which
     withUnit and Gauge.set split at the last space (:923).
   Translated with a limit: dashboard_rides_range and dashboard_rides_points are not plurals (a
