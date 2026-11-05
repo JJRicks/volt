@@ -1,0 +1,6 @@
+# F3, text logic that reads shown text back (l10n/README.md). tests/run.sh compiles every path listed in
+# tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English the slider ends, the observation question's fallback value, the word-joined unit, the
+# drive-mode cue and the Live Stats row-name fallback print, pinned before the batch. It reuses
+# ControlsEnglishTest's variant list (tests/l10n/b4.sources).
+tests/l10n/characterization/TextLogicEnglishTest.java
