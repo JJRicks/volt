@@ -493,7 +493,8 @@ public final class StatsScreen implements AppScreen {
             row.layout.setContentDescription(T.statsRowDescription(row.label, spokenValue(reading), age));
             if (isKnownDriveMode(reading.key)) {
                 row.amount.setContentDescription(T.statsDriveModeDescription(display(reading), age));
-                ui.styleDriveMode(row.amount, display(reading), reading.live);
+                Ui.DriveMode mode = driveMode(reading);
+                ui.styleDriveMode(row.amount, mode, reading.live);
             }
         }
         updateRefreshButton();
@@ -703,7 +704,8 @@ public final class StatsScreen implements AppScreen {
         row.layout.setContentDescription(T.statsRowDescription(row.name.getText(), reading == null ? shown : spokenValue(reading), age));
         if (reading != null && isKnownDriveMode(key)) {
             row.amount.setContentDescription(T.statsDriveModeDescription(shown, age));
-            ui.styleDriveMode(row.amount, shown, reading.live);
+            Ui.DriveMode mode = driveMode(reading);
+            ui.styleDriveMode(row.amount, mode, reading.live);
         }
     }
     /** Bounded vector glyphs keep the filter and disclosure clear at any text size. */
@@ -763,6 +765,14 @@ public final class StatsScreen implements AppScreen {
         ScooterProfiles.Profile profile = service.profiles.active();
         return ModelRegistry.driveModeLabelProduct(profile == null ? null : profile.savedDescriptor());
     }
+    /**
+     * A known drive-mode reading's mode for its colour cue, decoded from its code as display() names it (Telemetry's
+     * English label, an id), never matched against the shown text, which a language may word differently.
+     */
+    private Ui.DriveMode driveMode(TelemetryHistory.Reading metric) {
+        if (metric.value == null) return Ui.DriveMode.OTHER;
+        return Ui.DriveMode.of(metric.number != null ? Telemetry.drivingModeLabel(driveModeProduct(), metric.number) : metric.value);
+    }
     /** Short shared reading name (as on Home); a known UT5 MAX mode is plainly "Drive mode". */
     private String readingLabel(TelemetryHistory.Reading metric) {
         // Readings and their favourites expose the scooter report, independent of the
@@ -770,6 +780,11 @@ public final class StatsScreen implements AppScreen {
         // this raw observation is Volt's learned estimate.
         if (metric.key.equals("remaining_range_km")) return T.statsScooterRange();
         return isKnownDriveMode(metric.key) ? T.statsDriveMode() : ScooterReadingLabels.label(metric.key, metric.label);
+    }
+    /** readingLabel with fallback for a reading the catalogue does not name (Telemetry's English label otherwise). */
+    private String readingLabel(TelemetryHistory.Reading metric, String fallback) {
+        if (metric.key.equals("remaining_range_km")) return T.statsScooterRange();
+        return isKnownDriveMode(metric.key) ? T.statsDriveMode() : ScooterReadingLabels.label(metric.key, fallback);
     }
     /**
      * Row name: "raw" is said once, by the chip beside a supplied value, so the name drops it.
@@ -779,7 +794,7 @@ public final class StatsScreen implements AppScreen {
         // Each raw-named reading has its own row name, so a language need not spell "(raw)" one way.
         String row = StatsLabels.row(metric.key);
         if (row != null) return row;
-        return readingLabel(metric).replace(" (raw)", "");
+        return readingLabel(metric, metric.label == null ? null : metric.label.replace(StatsLabels.RAW_MARK, ""));
     }
     private boolean raw(TelemetryHistory.Reading metric) {
         if (metric.value == null) return false;
