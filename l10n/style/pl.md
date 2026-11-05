@@ -32,15 +32,15 @@ The owner's rule: **ty, with impersonal phrasing for instructions.** Never `Pan/
 
 ## Capitalization
 
-Sentence case for buttons, labels, titles and tabs: first word only (`Ustawienia jazdy`, `Limit ładowania`, `Kopia zapasowa`), never title case. Days and months are lower case. All capitals only where the English has them (`WALK`, `ECO`, `LAB`, `PID`). Names stay as written: Volt, NAVEE, Shizuku, ADB, GPX, CSV, Bluetooth, USB.
+Sentence case for buttons, labels, titles and tabs: first word only (`Ustawienia jazdy`, `Limit ładowania`, `Kopia zapasowa`), never title case. Days and months are lower case. All capitals only where the English has them (`LAB`, `PID`). Drive-mode and level names keep the case of the English string they are in: `Sport` where it writes Sport, `WALK` or `ECO` where it writes capitals. Names stay as written: Volt, NAVEE, Shizuku, ADB, GPX, CSV, Bluetooth, USB.
 
 ## Names that can't decline
 
 `check.py` looks for protected tokens as written, and Polish wants to decline them. Put a noun before the name and decline the noun.
 
 - `aplikacja Volt`, `w aplikacji Volt` (not `w Volcie`, `Volta`); `w aplikacji NAVEE` (the manual's own wording); `aplikacja Shizuku`.
-- `tryb SPORT`, `w trybie ECO`; `profil Eco`, `profil Turbo`; `plik GPX`, `plik CSV`.
-- Translate the names of the drive modes only if the owner decides to. The manual's Polish is in the vocabulary table below.
+- `tryb Sport`, `w trybie Sport`, `w trybie ECO`, `tryb Boost`, each in the case its English string uses; `profil Eco`, `profil Turbo`; `plik GPX`, `plik CSV`.
+- Don't translate the names of the drive modes or levels. The manual's Polish, under the vocabulary table below, is for reference only.
 
 ## Placeholders and case
 
@@ -79,15 +79,16 @@ More: `minuta, minuty, minut, minuty`; `przejazd, przejazdy, przejazdów, przeja
 - Percent has no space: `80%`, and `fmt_percent` stays `%1$s%%`.
 - Unit symbols stay and take a space, through `fmt_quantity`: `25 km/h`, `36 V`, `5 A`, `350 W`, `25 °C`, `mph`, `Wh`, `Ah`. `min` has no full stop. Unit words are translated: `kilometry`, `mile`, `minuty`.
 - Hours as a word: `godz.` with the full stop (`2 godz. 15 min`). Where the English shows the symbol `h`, keep `h`.
-- 24-hour time from the system (`7:00`); `o 7:00` in a sentence, `do 7:00` for a deadline. Dates come from the system; written out, the month is genitive and lower case (`5 listopada 2026`).
+- 24-hour time from the system (`7:00`). Fixed text may say `o 7:00` in a sentence or `do 7:00` for a deadline, but a time in `%1$s` takes the label form: `Start ładowania: %1$s`. Dates come from the system; written out, the month is genitive and lower case (`5 listopada 2026`).
 
 ## Shortening labels
 
 Fit is measured, so use a shorter rung only as far as the budget needs. In order:
 
 1. Say less: drop the word the context supplies (`Temperatura baterii`, then `Temp. baterii`, then `Temp.`).
-2. Use a shorter natural word: `Opcje` for `Ustawienia` in a 62 dp tile (`Ustawienia` measures 65 dp).
+2. Use a shorter natural word with the same meaning: `Opcje` for `Ustawienia` in a 62 dp tile (`Ustawienia` measures 65 dp).
 3. Use only an abbreviation from the list below.
+4. If nothing fits, write the correct word and say so in the reply's notes. Never swap in another meaning or a colloquial word.
 
 Never break a word, never hyphenate to fit, never shrink text. An abbreviation that keeps the word's last letter has no full stop (`nr`); one that cuts the word has one (`maks.`).
 
@@ -157,7 +158,7 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 | Untested | **nieprzetestowana** | Feminine with `funkcja`. No one has tried it on this model. |
 | Unverified | **niezweryfikowana** | Volt hasn't confirmed it on this model. |
 | Unconfirmed | **niepotwierdzona** | The scooter acknowledged it, but the value wasn't kept or read back. |
-| Not confirmed | **Nie potwierdzono** | Two words, so the negation stands. |
+| Not confirmed | **Nie potwierdzono** | Two words, so the negation stands. A clause after it takes `czy`, not `że`, so nothing is presupposed: `Nie potwierdzono, czy zaplanowane ładowanie zostało wyłączone`. |
 | Confirmed | **potwierdzona**, **Potwierdzono** | Only when the scooter read the value back. |
 | not affiliated with NAVEE | **nie jest powiązany z NAVEE** | `Volt %1$s · nie jest powiązany z NAVEE`; the subject is Volt. Not `niezależny`, `nieoficjalny` or `niepowiązany` (a prefix alone fails the check). |
 
@@ -221,6 +222,51 @@ The manual calls the scooter's display `Deska rozdzielcza` as well as `wyświetl
 - Energy recovery `odzysk energii` / restoring data `przywracanie`.
 
 **Matching, for `check.py`:** a form inflects only if it ends in a vowel and its stem has five letters or more, so `hulajnóg`, `hulajnodze`, `tras` and `prób` must be listed. They are. Polish lock words are the exception: `zablokowanie` inflects only as a verbal noun and `zablokowana` only as a participle. Word order matters in a multi-word term, so `limit ładowania` is not found in `ładowania limit`.
+
+## Rules every language follows
+
+These came from the independent review of the first full draft (Spanish, 2026-11-05). They override anything above that disagrees. The table at the end holds this language's fixed words; a term in it is used every time the concept appears, in every area.
+
+1. **Try versus try again.** The glossary's "try" word is only for trying a control (Experimental, Controls to try). An ordinary retry ("Try again", "Try shortly") uses the fixed retry phrase below, so it can never read as "test this".
+2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
+3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done.
+4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: "Start time: %1$s". Numbers and units after a placeholder follow this guide's spacing.
+5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder.
+6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
+7. **Drive modes and level names.** Keep the case the English string uses in that string (Sport, ECO, Drive). Don't change it, and don't translate them.
+8. **Fit.** Never swap in a different meaning, or a colloquial word, to fit a budget. Use this guide's accepted abbreviation. If none fits, write the correct word and say so in the reply's notes: an overflow is a design problem that gets fixed, a wrong word isn't noticed.
+9. **Naming things on screen.** When a sentence names a button, tab or screen, use exactly that label's translation and this guide's rule for marking it. Don't paraphrase a label.
+10. **Same concept, same word.** The same English on different screens gets the same translation unless the screen really changes the meaning. Readings appear under several keys (`readings_*`, `stats_row_*`, `compat_field_*`, `dashboard_*`): the name doesn't change between them.
+11. **Opaque English.** If a word-for-word rendering would be unclear ("Connected history", "Charge per gauge", "Battery-side power"), translate the meaning given by the screen and note. Don't copy the shape of the English. "Reported" and "not reported" are never word-for-word calques: use the table.
+12. **Retired English terms.** Don't render owner identity, setup key or scooter key as their literal words: they are all the owner key. Don't render "speed cap" literally.
+13. **"Dashboard" in the English.** Until the English fix lands, some strings say "dashboard" for the scooter's own screen. Volt's Home is one thing and the scooter's display another: translate what the string means, using the glossary's scooter-display word when the note or screen shows it is the physical display.
+
+### Fixed words
+
+| English concept | Meaning | Polish |
+|---|---|---|
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Spróbuj ponownie**, **Spróbuj za chwilę**. Never `Wypróbuj`, which means testing a control. |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **brak danych**, with the name as a label: `Bateria: brak danych`. Not `nie zgłoszono`, not `niezgłoszone`. |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **podawane przez hulajnogę** (`sterownik` for the controller; verb `podaje`), agreeing with its noun. The scooter's figure, so never `zmierzone` or `potwierdzone`, and not `raportowane`. |
+| NAVEE logging | debug logging on the phone (activity log), never account registration | **zapisywanie dziennika NAVEE**. Never `logowanie` (reads as signing in) or `rejestracja`, `rejestrowanie` (reads as creating an account). |
+| restore logging | turning that logging back to how it was (usually off) | **Przywróć ustawienie dziennika NAVEE**. Says it goes back to how it was; `Przywróć zapisywanie` would read as turning logging on. |
+| Volt's helper | the small helper Volt starts inside Shizuku | **program pomocniczy Volt**. Not `pomocnik` (a person). The computer's capture helper stays `program przechwytujący`. |
+| stock charger | the charger that came with the scooter | **standardowa ładowarka**. Not `oryginalna`, which would imply a faster charger isn't genuine. |
+| high-speed charger | a faster charger the rider may own | **szybka ładowarka**; alone as an option: `Szybka`. |
+| gap (in a recording) | a stretch of a recording with no data | **przerwa w zapisie**, plural `przerwy w zapisie`. Matches the glossary's `zapis`. Not `luka`. |
+| elevation | height above sea level on a route | **wysokość n.p.m.**; narrow: `Wysokość`. Not `wzniesienie` (a hill) or `przewyższenie` (height gained). |
+| current direction | which way battery current flows | **kierunek prądu**. `Current` is the electric one; never `aktualny kierunek`. |
+| throughput | how much energy has passed through the battery | **przepływ energii**; narrow: `Przepływ`; lifetime: `łączny przepływ`. An amount that has passed, not a rate, and never `przepustowość`. |
+| battery gauge | the scooter's own battery percentage reading | **wskazanie baterii**; narrow: `wskazanie`. The scooter's own percentage, not a measured level. Not `wskaźnik`, the device. |
+| raw | an unprocessed value, also used as a short tag | **surowa wartość**; as a tag, agreeing with its noun: `(surowy)`, `(surowe)`. Alone `surowy` can read as "strict", so use it only beside a noun. |
+| last seen | when Volt last had data from the scooter | **ostatni odczyt**, as a label: `Ostatni odczyt: %1$s`. Never `ostatnio widziana`, which reads as a person sighted and carries gender. |
+| add | adding a widget, scooter or item | **Dodaj**; infinitive `dodać`. |
+| enter (typing) | typing a value | **Wpisz** on a field prompt (`Wpisz nowy PIN`), `należy wpisać` in a how-to step. Not `Wprowadź`, and not `Podaj`, which is the scooter's verb above. |
+| the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **aplikacja**, always; Polish has no shorter neutral word and no second one. Never `apka` or `program`. Before a name: `aplikacja Volt`. |
+| connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | Reflexive, with the scooter in the instrumental: **połączyć się z hulajnogą** (`należy połączyć się z hulajnogą`). Button: `Połącz`. Event: `Połączono`. Never `połączyć hulajnogę`, which reads as joining it to something; a charger takes `podłącz`. |
+| set a value | one verb for setting a value on the scooter | **Ustaw**, infinitive `ustawić` (`Ustaw limit ładowania`). `Zmień` only where the English says change. |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Spowoduje to** + verbal noun: `Spowoduje to usunięcie konfiguracji połączenia z tego telefonu.` Never `Usuń…`, a command. In a summary line, the bare noun: `Ustawienia aplikacji: zastąpienie 3 ustawień`. A hint that opens something: `Otwiera ustawienia baterii`. |
+| screen and section titles | noun form or verb form, with one example | Noun form: `Ustawienia jazdy`, `Przywracanie kopii zapasowej`. The button on that screen stays imperative: `Przywróć`. |
 
 ## Sources consulted
 
