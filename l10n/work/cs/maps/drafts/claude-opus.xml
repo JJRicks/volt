@@ -46,11 +46,11 @@
     <string name="maps_custom_error_link" volt:src="561a6f76123adc88efc2b11c1d84eb08edd487e4">Použijte odkaz HTTPS na licenci nebo autorská práva.</string>
     <string name="maps_tiles_blocked" volt:src="d57f3f6b0125c264465bf0f9c9db3a470e02c366">Poskytovatel mapy zablokoval přístup</string>
     <string name="maps_tiles_rate_limited" volt:src="247a775a587a7c163f22dd0f99261d5ad06bd42e">Limit požadavků poskytovatele mapy · zkuste to později</string>
-    <string name="maps_tiles_http" volt:src="526d5906312da3d49194cf15bf319168d516afb8">Mapové dlaždice nejsou dostupné (HTTP %1$d)</string>
+    <string name="maps_tiles_http" volt:src="526d5906312da3d49194cf15bf319168d516afb8">Mapové dlaždice nejsou k dispozici (HTTP %1$d)</string>
     <string name="maps_tiles_invalid_response" volt:src="3189fc3ff90ff9fee47ddf779fa0774439c48cd5">Poskytovatel mapy vrátil neplatnou odpověď</string>
-    <string name="maps_tiles_offline" volt:src="762ec8b48ce22a2daaa0bd5c53c08d08278e4414">Mapové dlaždice nejsou dostupné · zkontrolujte připojení</string>
-    <string name="maps_tiles_unavailable" volt:src="58f4a41b93cd22198b917d40bbe8585ce58ba43e">Mapové dlaždice nejsou dostupné</string>
-    <string name="maps_tiles_paused" volt:src="0b97c5429ae9e746d8202b2931345b7b58f798ea">Mapové dlaždice dočasně nejsou dostupné</string>
+    <string name="maps_tiles_offline" volt:src="762ec8b48ce22a2daaa0bd5c53c08d08278e4414">Mapové dlaždice nejsou k dispozici · zkontrolujte připojení</string>
+    <string name="maps_tiles_unavailable" volt:src="58f4a41b93cd22198b917d40bbe8585ce58ba43e">Mapové dlaždice nejsou k dispozici</string>
+    <string name="maps_tiles_paused" volt:src="0b97c5429ae9e746d8202b2931345b7b58f798ea">Mapové dlaždice dočasně nejsou k dispozici</string>
     <string name="maps_route_description" volt:src="057f8f6689002a30a5a9eb3e3f279008c9956e21">Mapa trasy jízdy</string>
     <string name="maps_route_marker_start" volt:src="cd0cf01eb6fc18ae7c71961c181d4c18f31436ac">S</string>
     <string name="maps_route_marker_end" volt:src="2adbdbc935090c1a163d5373840fdb69158424ae">C</string>
@@ -79,7 +79,7 @@
     <string name="maps_chart_desc_no_samples" volt:src="7fac670c0e67eec8669b3c727bdf846ac5b2a8e3">. Žádné zaznamenané vzorky</string>
     <string name="maps_chart_desc_at" volt:src="646089d99917cd3c32be5a81b3816280358ba7ff">". Čas: "</string>
     <string name="maps_chart_desc_reading" volt:src="804194e35d2e99f249b6becc436f1a5180226d46">". %1$s: "</string>
-    <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Bez údaje</string>
+    <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Bez údajů</string>
     <string name="maps_chart_desc_value_at" volt:src="daf8b4f7f1432906abf0067d345d75140a8944d9">" v čase "</string>
     <string name="maps_chart_choose_readings" volt:src="64bc73444043d9c0da8335f94aca148f34cdb760">Vyberte údaje výše</string>
     <string name="maps_chart_cursor_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Čas: %1$s</string>

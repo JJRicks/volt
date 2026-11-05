@@ -16,24 +16,24 @@
     <string name="readings_temperature_c" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Teplota baterie</string>
     <string name="readings_temperature_c_short" volt:src="e68f5298e5286a32cad9d8c53df8ee0b406dd579">Tepl. baterie</string>
     <string name="readings_temperature_c_compact" volt:src="6466124ef309e594c4990f3858070a0f9ae82feb">Teplota</string>
-    <string name="readings_battery_health_percent" volt:src="854e3cdeda1b79543a194b3013165051d4a0d703">Hlášený stav baterie</string>
-    <string name="readings_battery_health_percent_short" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Hlášený stav</string>
+    <string name="readings_battery_health_percent" volt:src="854e3cdeda1b79543a194b3013165051d4a0d703">Hlášená kondice baterie</string>
+    <string name="readings_battery_health_percent_short" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Hlášená kondice</string>
     <string name="readings_battery_health_percent_compact" volt:src="07838c34a7766624fad21b3556b59b9418982226">Kondice</string>
     <string name="readings_battery_status" volt:src="ba5fd149ed56f6838dc85175b4276c7a68344f61">Stav baterie</string>
     <string name="readings_battery_status_short" volt:src="ba5fd149ed56f6838dc85175b4276c7a68344f61">Stav baterie</string>
     <string name="readings_battery_status_compact" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Stav</string>
     <string name="readings_charging_state" volt:src="905e2ecbdf52368d2e89a7e8c7ed403db5db0eca">Stav nabíjení (surové)</string>
     <string name="readings_charging_state_short" volt:src="342f0864c9a33dbf6664b5b6371f9c8810738462">Nabíjení (surové)</string>
-    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Nabíjení (surové)</string>
+    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Nabíjení RAW</string>
     <string name="readings_charge_cycles" volt:src="9f3a5527fd4191292f97400b43ec5145617c8679">Hlášený počet nabití</string>
     <string name="readings_charge_cycles_short" volt:src="9ab3830434d1aad6b87e3828e013cf244cfaf846">Hlášená nabití</string>
     <string name="readings_charge_cycles_compact" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Počet nabití</string>
     <string name="readings_energy_throughput_wh" volt:src="d70bc33e5a2a2af0d1a75d28304dd0d68ff6dd5b">Počítadlo energie (neověřeno)</string>
     <string name="readings_energy_throughput_wh_short" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energie (neověřeno)</string>
     <string name="readings_energy_throughput_wh_compact" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energie (neověřeno)</string>
-    <string name="readings_capacity_throughput_ah" volt:src="e574c5b326c449e488c8b1669a43bf0be046f37c">Celková prošlá energie (kapacita)</string>
-    <string name="readings_capacity_throughput_ah_short" volt:src="38d80f95e53409e5289c559356b5ed7f56302636">Prošlá energie celkem</string>
-    <string name="readings_capacity_throughput_ah_compact" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Prošlá energie</string>
+    <string name="readings_capacity_throughput_ah" volt:src="e574c5b326c449e488c8b1669a43bf0be046f37c">Celkový přenesený náboj</string>
+    <string name="readings_capacity_throughput_ah_short" volt:src="38d80f95e53409e5289c559356b5ed7f56302636">Přenesený náboj celkem</string>
+    <string name="readings_capacity_throughput_ah_compact" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Přenesený náboj</string>
     <string name="readings_deep_discharge" volt:src="6f355a919d6fd64e8b811e2db50ff6a27ed0e533">Počítadlo hlubokých vybití</string>
     <string name="readings_deep_discharge_short" volt:src="7fd29e819cc5d0da579dd62760f95b67d97d6969">Hluboká vybití</string>
     <string name="readings_self_discharge_raw" volt:src="abf23b95e832d6a6c56e36e9d6aa6585318db818">Rychlost samovybíjení (surové; jednotka neznámá)</string>
@@ -41,8 +41,8 @@
     <string name="readings_rated_capacity_ah" volt:src="11887b709989d0e21ceb72a5edfd3f21fb010e89">Jmenovitá kapacita baterie</string>
     <string name="readings_rated_capacity_ah_short" volt:src="8b10397093cf754e5092bdcc274e29dc3e1a4208">Jmenovitá kapacita</string>
     <string name="readings_rated_capacity_ah_compact" volt:src="3ecc5dc03df20e34eccef78532116b30a687bf24">Kapacita</string>
-    <string name="readings_health_adjusted_capacity_ah" volt:src="20e385d8fed3ac585148ae721066447e3f86a19e">Odhad kapacity z hlášeného stavu</string>
-    <string name="readings_health_adjusted_capacity_ah_short" volt:src="bee90e1c5769318cfdb42e1429593ffa0dc50a00">Kapacita (odhad ze stavu)</string>
+    <string name="readings_health_adjusted_capacity_ah" volt:src="20e385d8fed3ac585148ae721066447e3f86a19e">Odhad kapacity z hlášené kondice</string>
+    <string name="readings_health_adjusted_capacity_ah_short" volt:src="bee90e1c5769318cfdb42e1429593ffa0dc50a00">Kapacita (odhad z kondice)</string>
     <string name="readings_health_adjusted_capacity_ah_compact" volt:src="c6878acd6d040bfcb701c4910bcb2b47c6be75f9">Kapacita (odhad)</string>
     <string name="readings_battery_manufactured" volt:src="7555e85f574b560bdffbb6ea9aedb1dcf9b223f8">Datum výroby baterie</string>
     <string name="readings_battery_manufactured_short" volt:src="dac5cb9c0b4cf1d3da1cc59a209c0eaa0f9534d6">Výroba baterie</string>
@@ -77,8 +77,8 @@
     <string name="readings_odometer_km_compact" volt:src="31adf29d5b21915924c4aa05d92e9631f043c10e">Nájezd</string>
     <string name="readings_driving_status" volt:src="146fe630a90cf0bf2081606b8216f5e137c1206b">Stav jízdy (surové)</string>
     <string name="readings_driving_status_short" volt:src="c4179fc50d153cdd72a836df995bb8051089e067">Stav jízdy (surové)</string>
-    <string name="readings_stored_trips" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Uložené úseky</string>
-    <string name="readings_stored_trips_short" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Uložené úseky</string>
+    <string name="readings_stored_trips" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Uložené jízdy</string>
+    <string name="readings_stored_trips_short" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Uložené jízdy</string>
     <string name="readings_binding_status" volt:src="6c90b7671b5ce0e94a76cfe5f126e48cbbac052c">Stav propojení účtu (surové)</string>
     <string name="readings_binding_status_short" volt:src="3a4e51df835923335c24e719576b49007a758d02">Propojení účtu (surové)</string>
     <string name="readings_driving_mode" volt:src="ce23ac80c0f84789320240bed6278ccba250f18e">Jízdní režim (surové)</string>
@@ -98,26 +98,26 @@
     <string name="readings_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Jednotky na displeji koloběžky</string>
     <string name="readings_display_units_short" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Jednotky na displeji</string>
     <string name="readings_auto_sensor" volt:src="397f36851ccf78fed42e79f1c6b2d4226013dd70">Automatický senzor světla (surové)</string>
-    <string name="readings_auto_sensor_short" volt:src="5b88021d0c34cefd301bacfc35c045388f3ab6e4">Senzor světla (surové)</string>
+    <string name="readings_auto_sensor_short" volt:src="5b88021d0c34cefd301bacfc35c045388f3ab6e4">Automatické světlo (surové)</string>
     <string name="readings_tyre_reminder" volt:src="6efcf5e102d378459a0be196be0801f0eae1fdc7">Připomenutí pneumatik (surové)</string>
     <string name="readings_tyre_reminder_short" volt:src="6efcf5e102d378459a0be196be0801f0eae1fdc7">Připomenutí pneumatik (surové)</string>
     <string name="readings_ambient_light" volt:src="3a74e29b17173c128fb34168be290c66009ebcd0">Stav / vzor liniového osvětlení (surové)</string>
     <string name="readings_ambient_light_short" volt:src="39797ac03d0e80759f5eff830ece7b8e7052a72c">Vzor linie (surové)</string>
     <string name="readings_traction_control" volt:src="b0bbb439869a4eed7c74ba5e08af3a0a83b48ba7">Kontrola trakce (surové)</string>
     <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Trakce (surové)</string>
-    <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Zvuk směrovky (surové)</string>
-    <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Zvuk směrovky (surové)</string>
+    <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Zvuk směrovek (surové)</string>
+    <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Zvuk směrovek (surové)</string>
     <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Nastavení klíče přiblížení (surové)</string>
     <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Klíč přiblížení (surové)</string>
     <string name="readings_night_mode" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Noční režim (surové)</string>
     <string name="readings_night_mode_short" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Noční režim (surové)</string>
     <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Režim algoritmu dojezdu (surové)</string>
     <string name="readings_range_algorithm_mode_short" volt:src="3fdec013655b8c21f8b6da012adeb3e259ad0730">Režim dojezdu (surové)</string>
-    <string name="readings_eco_light" volt:src="a31b53e7c8895431826926ef893c28e1a0cb295d">Barvy linie: normální / Boost (sloučené surové)</string>
+    <string name="readings_eco_light" volt:src="a31b53e7c8895431826926ef893c28e1a0cb295d">Barvy linie: normální / Boost (surové, sloučené)</string>
     <string name="readings_eco_light_short" volt:src="cf72bc48c0ef9b243989bef457ed30ac900d6c55">Barvy linie (sloučené)</string>
     <string name="readings_drive_light" volt:src="effffda37fb56bf29b39e5eeb28c2e1237891834">Stav / vzor hvězdného osvětlení (surové)</string>
     <string name="readings_drive_light_short" volt:src="ab80a96d36b2fca142b32430ba1b239a97d1631f">Vzor hvězdy (surové)</string>
-    <string name="readings_sport_light" volt:src="743b08f0040fe6f50530cc057d3f0c2faeb70225">Barvy hvězdy: normální / Boost (sloučené surové)</string>
+    <string name="readings_sport_light" volt:src="743b08f0040fe6f50530cc057d3f0c2faeb70225">Barvy hvězdy: normální / Boost (surové, sloučené)</string>
     <string name="readings_sport_light_short" volt:src="e10c6914bf6d4c7590d66600821fc1b15e4b9fb8">Barvy hvězdy (sloučené)</string>
     <string name="readings_start_speed" volt:src="934a539e2064d1442ae040ad25d913e990c1d60d">Nastavení rychlosti pro rozjezd (surové)</string>
     <string name="readings_start_speed_short" volt:src="3f7f61cb61dc8055f67c4819c19f274b0fae6f44">Rychlost pro rozjezd (surové)</string>
@@ -178,7 +178,7 @@
     <string name="readings_uwb_version_short" volt:src="0aa048e2ec4b4b8ee7c3621f41bd21ad1f830914">Firmware přiblížení</string>
     <string name="readings_uwb_version_compact" volt:src="2e011bb8ea2fdea95c1677a7df8b47edb1a71cb6">FW přiblížení</string>
     <string name="readings_scooter_serial" volt:src="bb7af5a44ba75bd1c2e4a6ce599979656dcff6ae">Sériové číslo koloběžky</string>
-    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">Sériové číslo koloběžky</string>
+    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">Sériové číslo</string>
     <string name="readings_battery_serial_raw" volt:src="c2fa7c6ec826cbb85b9c04e2310ffb0fe2bb0c37">Odpověď se sériovým číslem baterie (surové)</string>
     <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">Sériové číslo baterie (surové)</string>
     <string name="readings_warning_code" volt:src="6f0188bab92e86b0766dcf7b1f95ede2c64346ce">Kód aktivní výstrahy</string>
@@ -208,8 +208,8 @@
     <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">Sériové číslo baterie · 75</string>
     <string name="readings_response_76" volt:src="b4dd985788daee847907d9f97b5349e148d70062">Čtení historie jízd (0x76)</string>
     <string name="readings_response_76_short" volt:src="550b657b98a151bd2976bb37625b0062eb9c6ed4">Historie jízd · 76</string>
-    <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Čtení stavů příznaků baterie (0x79)</string>
-    <string name="readings_response_79_short" volt:src="b17ab34f9e3f56f436e556b1c73e5cb63820db45">Příznaky baterie · 79</string>
+    <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Čtení stavů znamének baterie (0x79)</string>
+    <string name="readings_response_79_short" volt:src="b17ab34f9e3f56f436e556b1c73e5cb63820db45">Znaménka baterie · 79</string>
     <string name="readings_response_7b" volt:src="7dde086eb3513f7f30f8c32639db0682d99d2980">Čtení historie poruch (0x7B)</string>
     <string name="readings_response_7b_short" volt:src="e8a707db737dfe2098949d2f5663c218b775d9a8">Historie poruch · 7B</string>
     <string name="readings_response_90" volt:src="29466a70acfe276e29d2c0dbbaf48cc23457741e">Zpráva telemetrie přehledu (0x90)</string>
@@ -260,7 +260,7 @@
     <string name="readings_chart_wheel_speed" volt:src="ad073d8d3918f6d671481a6568ce083dfbc744f9">Rychlost kola</string>
     <string name="readings_chart_gps_speed" volt:src="120edfd555ab87141e957658095e48f6e967efc3">Rychlost podle GPS</string>
     <string name="readings_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Napětí</string>
-    <string name="readings_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Baterie %</string>
+    <string name="readings_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Baterie (%)</string>
     <string name="readings_chart_elevation" volt:src="43284f542b28a9aa8621fcbd297b8c18910c1602">Nadmořská výška</string>
     <string name="readings_chart_gps_acceleration" volt:src="c415bb6299c3269b5bed4e1c1a4c3ba44b429d95">Zrychlení podle GPS</string>
     <string name="readings_chart_energy_distance" volt:src="5e03198574edc59e86a254a341205f8e62a6aa92">Energie / vzdálenost</string>
@@ -275,9 +275,9 @@
     <string name="readings_chart_actual_countdown" volt:src="f79949dd92e33164bc3d2fec7112b46c9c44aee1">Skutečný zbývající čas</string>
     <string name="readings_unit_time" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Čas</string>
     <string name="readings_history_stored" volt:src="f904c41099cf86356680b817abe2ecfdc95541f9">Uloženo v tomto telefonu</string>
-    <string name="readings_history_unavailable" volt:src="9b90a579d0021f6a132b0e6b92f3a6ec5262df1e">Úložiště historie je nedostupné</string>
-    <string name="readings_history_unavailable_live" volt:src="54d55bd8ba6bbc777f762059f072568b1c2ed670">Úložiště historie je nedostupné; aktuální údaje fungují dál</string>
+    <string name="readings_history_unavailable" volt:src="9b90a579d0021f6a132b0e6b92f3a6ec5262df1e">Úložiště historie není k dispozici</string>
+    <string name="readings_history_unavailable_live" volt:src="54d55bd8ba6bbc777f762059f072568b1c2ed670">Úložiště historie není k dispozici; aktuální údaje fungují dál</string>
     <string name="readings_history_read_failed" volt:src="7818911998b28c3c2eab0247cd4b165ecd8eade1">Historii se nepodařilo přečíst</string>
-    <string name="readings_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Historie byla vymazána</string>
+    <string name="readings_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Historie vymazána</string>
     <string name="readings_history_clear_failed" volt:src="156100e7d2a86dba729aa79416b40575a53993eb">Historii se nepodařilo vymazat</string>
 </resources>

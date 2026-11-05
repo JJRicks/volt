@@ -127,23 +127,23 @@
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Telefon není v seznamu</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Připojení v prohlížeči Chrome</string>
     <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telefon odemčený, ladění přes USB zapnuté\n•  Datový kabel, ne jen nabíjecí\n•  Android Studio, další nástroje ADB a karty s úvodním nastavením zavřené\n•  Chrome nebo Edge, ne Safari ani Firefox"</string>
-    <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Schvalte zachycení na webu</string>
-    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Nechte kabel připojený, dokud neskončí úklid.</string>
+    <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Schválení zachycení na webu</string>
+    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Nechte kabel připojený, dokud neskončí vyčištění.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Přečtěte si vysvětlení zachycení a zvolte **Start**</string>
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">V aplikaci NAVEE vyberte svou koloběžku a připojte ji</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Až **90 s**</string>
-    <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Po úklidu zvolte **Save to phone Downloads**</string>
-    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Tento soubor je klíč vlastníka. Uchovejte ho v soukromí.</string>
-    <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Soubor je ve složce Stažené soubory</string>
+    <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Po vyčištění zvolte **Save to phone Downloads**</string>
+    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Tento soubor obsahuje klíč vlastníka. S nikým ho nesdílejte.</string>
+    <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Soubor je ve složce „Stažené soubory“</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Zachycení v prohlížeči</string>
-    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Aplikace NAVEE s přihlášeným účtem, koloběžka poblíž\n•  Ostatní aplikace pro koloběžky zavřené\n•  Předčasné zastavení? Nejprve dokončete úklid ve stejném prohlížeči"</string>
+    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Aplikace NAVEE s přihlášeným účtem, koloběžka poblíž\n•  Ostatní aplikace pro koloběžky zavřené\n•  Předčasné zastavení? Nejprve dokončete vyčištění ve stejném prohlížeči"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Vaše nastavení vlastníka</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Import souboru vlastníka</string>
     <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Vyberte soubor vlastníka navee-owner-setup.json. Obnoví se jen přístup ke koloběžce, ne jízdy ani jiná data aplikace.</string>
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Načítání profilu vlastníka…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Zatím není vybrán žádný soubor</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7" volt:attempt="2">Toto není soubor vlastníka.</string>
-    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Tento soubor odemyká vaši koloběžku. Uchovejte ho v soukromí.</string>
+    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Tento soubor odemyká vaši koloběžku. S nikým ho nesdílejte.</string>
     <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Vybrat soubor vlastníka</string>
     <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Místo toho zadat klíč vlastníka</string>
     <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Místo toho obnovit zálohu aplikace Volt</string>
@@ -151,16 +151,16 @@
     <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">role vlastníka</string>
     <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Klíč vlastníka nalezen</string>
     <string name="onboarding_import_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Klíč vlastníka nalezen, uložen soukromě v tomto telefonu. %1$s</string>
-    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Uloženo soukromě. Nyní v aplikaci Shizuku odeberte přístup aplikace Volt.</string>
-    <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Smazat kopii ve složce Stažené soubory</string>
-    <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Kopie ve složce Stažené soubory byla smazána</string>
+    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Klíč vlastníka nalezen a uložen v soukromém úložišti aplikace v tomto telefonu. %1$s</string>
+    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Uloženo v soukromém úložišti aplikace. Nyní v aplikaci Shizuku odeberte přístup aplikace Volt.</string>
+    <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Smazat kopii ve složce „Stažené soubory“</string>
+    <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Kopie ve složce „Stažené soubory“ byla smazána</string>
     <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778" volt:attempt="2">Kopii se nepodařilo smazat · odstraňte ji v aplikaci Soubory</string>
     <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Uložit a pokračovat</string>
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Otevřít Shizuku</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Vybrat jiný soubor</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Aplikace Shizuku není nainstalována</string>
-    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Nejprve zastavte záznam jízdy</string>
+    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Nejprve zastavte záznam</string>
     <string name="onboarding_identity_title" volt:src="ee790f0844a58cef70f579865ca639c7018a05cb">Zadání klíče vlastníka</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af" volt:attempt="2">Není to heslo.</string>
     <string name="onboarding_identity_hint" volt:src="b5dacf843a815045d5bf9afdcf3806edccaf35ef">Klíč vlastníka (12 znaků) nebo soukromá záloha</string>
@@ -169,7 +169,7 @@
     <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Soukromá záloha rozpoznána · role vlastníka</string>
     <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Pouze 0–9 a A–F.</string>
     <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662" volt:attempt="2">Starý soubor se nepodařilo odstranit. Zkuste to znovu.</string>
-    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Povolit „Zařízení v okolí“</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Oprávnění „Zařízení v okolí“</string>
     <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Jen Bluetooth. Žádné servery.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Povolit</string>
     <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Otevřít nastavení aplikace</string>
@@ -180,7 +180,7 @@
     <string name="onboarding_connect_saving" volt:src="ba18784d31ce7f3d566d76baab9d7247270f778b">Ukládání této koloběžky</string>
     <string name="onboarding_connect_button" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Připojit</string>
     <string name="onboarding_connect_connecting" volt:src="3b178abc1bf308531bda58ad8d0ab6bcb601a039">Připojování ke koloběžce: %1$s</string>
-    <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Hledá se koloběžka</string>
+    <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Hledání koloběžky</string>
     <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, hotovo</string>
     <string name="onboarding_connect_row_in_progress" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, probíhá</string>
     <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, zatím ne</string>

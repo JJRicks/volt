@@ -8,7 +8,7 @@
     <string name="controls_feature_headlight" volt:src="632a9e5e7f963924206336e0422b05c2dcf14b04">Zadní světlo</string>
     <string name="controls_feature_auto_sensor" volt:src="cb07d62156abcb45a74caa94986b7c241ebf6e48">Automatická světla</string>
     <string name="controls_feature_traction_control" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Kontrola trakce</string>
-    <string name="controls_feature_turn_sound" volt:src="19860ddd145bce9bd14f3e4eb17684670f0d812e">Zvuk směrovky</string>
+    <string name="controls_feature_turn_sound" volt:src="19860ddd145bce9bd14f3e4eb17684670f0d812e">Zvuk směrovek</string>
     <string name="controls_feature_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Jednotky na displeji koloběžky</string>
     <string name="controls_feature_range_algorithm" volt:src="5e8878e318a80c02005de3c926acef4dbfb7c600">Odhad dojezdu</string>
     <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Rychlost pro rozjezd</string>
@@ -38,11 +38,11 @@
     <string name="controls_feature_light_color" volt:src="b8c5d740f7f6d2100d197f849fac96450d6e85ed">%1$s: barva</string>
     <string name="controls_feature_light_boost_color" volt:src="a722d2d4550f5971df1209fd7fac79cd07005231">%1$s: barva v režimu Boost</string>
     <string name="controls_feature_acceleration_about" volt:src="6ff0ecbed4c6617cdf05fd33be56868ab6c7f0e9">Na jiných modelech Eco/Turbo.</string>
-    <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Tlačítko napájení je vypne do restartu.</string>
+    <string name="controls_feature_auto_sensor_about" volt:src="ed71743e10ca86edf4e2741d3f8aadf8a62292ab">Tlačítkem napájení se pozastaví do restartu.</string>
     <string name="controls_feature_range_algorithm_about" volt:src="ebe7e20f220552bc48d9897e36a4ada1454ddbe9">Změní se jen odhad.</string>
     <string name="controls_feature_maximum_speed_about" volt:src="2e9ec9d25e4fbb0fb06e1c25c85ee3a430b9216f">Jen v režimu Sport.</string>
     <string name="controls_feature_lock_expiry_about" volt:src="92b40c2c0835027491598b62764bcb3401fe9437">Po vypnutí zůstane zamčená; musíte znát PIN.</string>
-    <string name="controls_feature_hill_start_assist_about" volt:src="b50f5ba146949f86b40b28db9b276c166048bca5">Řídí se vaším tlačením; brzda ji zastaví.</string>
+    <string name="controls_feature_hill_start_assist_about" volt:src="b50f5ba146949f86b40b28db9b276c166048bca5">Řídí se vaším tlačením; brzda ho zastaví.</string>
     <string name="controls_feature_parking_assist_about" volt:src="0ef3a49ead3d5a49cc6baca2fe06d569b5eab810">Sport: Boost + plný plyn do kopce.</string>
     <string name="controls_feature_hill_descent_control_about" volt:src="76ffa7946cf61ab85aa4868883a9b3f5ad5ab32b">Omezuje rychlost při jízdě z kopce.</string>
     <string name="controls_group_security" volt:src="a9905461a8baa2eee5b317e9e1a0a9ef23839363">Zabezpečení</string>
@@ -82,7 +82,7 @@
     <string name="controls_option_default" volt:src="ebeb141d35c02da50e51267dfda58697ff18cb57">Výchozí (%1$s)</string>
     <string name="controls_option_percent_spaced" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s %%</string>
     <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Nejprve připojte koloběžku</string>
-    <string name="controls_reason_status_stale" volt:src="be8bfcd081f6255bcda3377d532b6e19e86d5a99">Čeká se na aktuální stav</string>
+    <string name="controls_reason_status_stale" volt:src="be8bfcd081f6255bcda3377d532b6e19e86d5a99">Čekání na aktuální stav</string>
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Neznámá hodnota · nelze bezpečně změnit</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Koloběžka nehlásí žádné možnosti</string>
     <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Počkejte na dokončení aktuální změny</string>
@@ -108,10 +108,10 @@
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Vyžaduje skutečnou koloběžku</string>
     <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Potvrďte, že je koloběžka zaparkovaná</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Neprobíhá žádný test</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Hodnota je mimo rozsah této funkce stanovený OEM</string>
+    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Hodnota je mimo rozsah funkce stanovený výrobcem (OEM)</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Vypnuto nebo 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Vypnuto nebo 5–20 km/h</string>
-    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Momentálně není k dispozici</string>
+    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Teď není k dispozici</string>
     <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">Přístup ke kódu PIN vyžaduje ověřeného vlastníka</string>
     <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">PIN musí obsahovat čtyři číslice (0–9)</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">Před zapnutím je nutné nastavit PIN</string>
@@ -163,6 +163,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Je to správně</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Koloběžka hlásí režim %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Pojmenováno: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Nevím</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Nevím jistě</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

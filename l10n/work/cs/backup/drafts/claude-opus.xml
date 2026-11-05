@@ -12,7 +12,7 @@
     <string name="backup_session_interrupted_title" volt:src="07551e29494f9343c5e7f2d19d655a995f9bb94d">Relace zálohování byla přerušena</string>
     <string name="backup_finishing_previous" volt:src="eda30632ff52e35c492cd4676da8f2583e01c80d">Dokončuje se předchozí operace. Nechte aplikaci Volt otevřenou.</string>
     <string name="backup_close_and_reopen" volt:src="5275db152f023bb44bb47ca54950c96e78f6a338">Zavřete aplikaci Volt a znovu ji otevřete.</string>
-    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Obnova vašich dat aplikace</string>
+    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Obnovování vašich dat aplikace</string>
     <string name="backup_recovering_keep_open" volt:src="64e43360685c1d1feb1b2dcc8cbef110b0f0f1fd">Nechte aplikaci Volt otevřenou, dokud se předchozí obnovení nevrátí zpět.</string>
     <string name="backup_recovered" volt:src="c44e9ee1ae8c6bfa5b1f4a8a1f45803ac9751488">Vaše předchozí data aplikace byla obnovena. Zavřete aplikaci Volt a znovu ji otevřete.</string>
     <string name="backup_recovery_failed" volt:src="d868a70268395b7b44cf69d85f6bc1e13374dc5d">Obnova se nezdařila. Uvolněte místo a aplikaci znovu otevřete. Nemažte úložiště.</string>
@@ -95,6 +95,6 @@
     <string name="backup_closes_when_done" volt:src="90a201cf1b6059bb96536b896daea951015d87c1">Po dokončení obnovení se aplikace Volt zavře.</string>
     <string name="backup_replace_everything" volt:src="cdd433f04b87566a39c0204c13c38cf979c48105">Nahradit vše</string>
     <string name="backup_restore_button" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Obnovit</string>
-    <string name="backup_restoring" volt:src="85942b331a9789eb9474e531a6eebafda8315d87">Obnova vašich dat…</string>
+    <string name="backup_restoring" volt:src="85942b331a9789eb9474e531a6eebafda8315d87">Obnovování vašich dat…</string>
     <string name="backup_restored" volt:src="7f3417fcaf95f2fbf8052dcad9ad627bb10a60de">Obnoveno. Znovu otevřete aplikaci Volt.</string>
 </resources>

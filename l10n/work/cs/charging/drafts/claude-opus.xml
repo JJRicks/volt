@@ -5,7 +5,7 @@
     <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Nabíjení do plna</string>
     <string name="charging_alert_watch_title" volt:src="f5a8a98dee559c956440570b99faee4a54c3b681">Nabíjení do %1$s %%</string>
     <string name="charging_alert_title_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Plně nabito</string>
-    <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Nízký stav baterie</string>
+    <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Slabá baterie</string>
     <string name="charging_alert_title_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">Nabito na %1$s %%</string>
     <string name="charging_alert_title_paused" volt:src="c0f5087cc1f2f76881eb4df511f993c66f34f372">Upozornění na nabití pozastaveno</string>
     <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">Volt ztratil spojení s koloběžkou: %1$s. Chcete-li dál sledovat toto nabíjení, otevřete aplikaci Volt.</string>
@@ -15,7 +15,7 @@
         <item quantity="many">Volt přestal sledovat nabíjení po %1$d hodiny. Chcete-li dál sledovat toto nabíjení, otevřete aplikaci Volt.</item>
         <item quantity="other">Volt přestal sledovat nabíjení po %1$d hodinách. Chcete-li dál sledovat toto nabíjení, otevřete aplikaci Volt.</item>
     </plurals>
-    <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: baterie na %2$s %%.</string>
+    <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: baterie má %2$s %%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Čekání na data</string>
     <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792" volt:attempt="2">Nenabíjí se</string>
     <string name="charging_estimate_waiting_readings" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Čekání na údaje</string>
@@ -23,7 +23,7 @@
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapacita neznámá</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Čekání na procenta baterie</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Bez odhadu</string>
-    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Podle aktuálního proudu</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Aktuální rychlost nabíjení</string>
     <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Reference pro rychlonabíječku</string>
     <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Reference pro původní nabíječku</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
@@ -32,8 +32,8 @@
         <item quantity="many">Podle %1$d minulého nabíjení</item>
         <item quantity="other">Podle %1$d minulých nabíjení</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Nabíječka neodpovídá · odhad podle proudu</string>
-    <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Odhad podle proudu</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Nabíječka neodpovídá · odhad podle rychlosti nabíjení</string>
+    <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Odhad podle rychlosti nabíjení</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Vybraná koloběžka se během měření změnila</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Hodiny telefonu se během měření změnily</string>
     <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">Nabíjení se zastavilo před nastavením plánu</string>
@@ -48,7 +48,7 @@
     <string name="charging_capacity_reason_coverage" volt:src="d1a240e2b0ab5ceed1763a8e91579d20ecda9f7c">Pokrytí pod 95 %</string>
     <string name="charging_capacity_reason_movement" volt:src="d4fbb0b84c836e661c1bfdce10f478adfa427453">Příliš málo pohybu</string>
     <string name="charging_capacity_reason_no_energy" volt:src="512a3262c7036d3e7cf2ff6e33bd5fcae331f5a7">Bez údajů o energii</string>
-    <string name="charging_capacity_reason_no_net_energy" volt:src="ef0483fe5d928b460a5092bfe963e372aa6bf2d4">Bez čisté spotřeby energie</string>
+    <string name="charging_capacity_reason_no_net_energy" volt:src="ef0483fe5d928b460a5092bfe963e372aa6bf2d4">Bez energie netto</string>
     <string name="charging_capacity_reason_end_readings" volt:src="f95863adde9e0d788b6874054296ddbcac3f023e">Chybí krajní údaje</string>
     <string name="charging_capacity_reason_misaligned" volt:src="dcb8700adaaaa918466fb8c6a6d375e2f6a2465a">Krajní údaje se neshodují</string>
     <string name="charging_capacity_reason_gauge_rose" volt:src="600f0521edf7bda1b8cdee018569debfe94fb977">Ukazatel baterie stoupl</string>
@@ -60,8 +60,8 @@
     <string name="charging_schedule_wait_estimate" volt:src="7859255353edf8f843e51bdf85160a78ffdc05cb">Počkejte na odhad doby nabíjení</string>
     <string name="charging_schedule_outside_range" volt:src="56cf564bb7aded708bbeecb06b25382d1e9f3363">Doba nabíjení je mimo použitelný rozsah</string>
     <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137" volt:attempt="2">Nabíjí se nyní – do času dokončení nezbývá dost času na čekání</string>
-    <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Nejprve zvolte „Začátek nabíjení“</string>
-    <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Zvolte začátek nabíjení do 48 hodin</string>
-    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Zvolte celou hodinu do 48 hodin</string>
-    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Počkejte na dokončení testu plánu</string>
+    <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Nejprve zvolte „Čas začátku nabíjení“</string>
+    <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Vyberte začátek nabíjení v příštích 48 hodinách</string>
+    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Vyberte celou hodinu v příštích 48 hodinách</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Počkejte na dokončení testu plánovaného nabíjení</string>
 </resources>

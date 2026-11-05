@@ -7,7 +7,7 @@
     <string name="owner_shizuku_back_to_choices" volt:src="200b9443aac4cec42a3fc8bd4193fa205aedfde7">Zpět na možnosti nastavení</string>
     <string name="owner_shizuku_needs_android_11" volt:src="6390dbd9379a6b9f580799e0783b64c74fcafea1">Vyžaduje Android 11 nebo novější.</string>
     <string name="owner_shizuku_connecting_title" volt:src="5d006cefe48f252748471b8b59a1109c5824a525">Připojení koloběžky v aplikaci NAVEE</string>
-    <string name="owner_shizuku_restoring_title" volt:src="22742f70b1986bdde7a6317edf9d0f59bde30380">Vrácení protokolování aktivity NAVEE zpět…</string>
+    <string name="owner_shizuku_restoring_title" volt:src="22742f70b1986bdde7a6317edf9d0f59bde30380">Vracení protokolování aktivity NAVEE zpět…</string>
     <string name="owner_shizuku_preparing_title" volt:src="23b6b5501196b942d4a2f7834a868c4a8a2a173f">Příprava zachycení…</string>
     <string name="owner_shizuku_connecting_hint" volt:src="b5daaefe584791b4ae716c6df2467721b1248a55">Připojte koloběžku v aplikaci NAVEE a pak se vraťte.</string>
     <string name="owner_shizuku_keep_running" volt:src="c4b3d12f65d12da0905e8a0f713398a1fabddb1e">Nechte Shizuku běžet.</string>
@@ -23,13 +23,13 @@
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Počkejte tady, dokud se protokolování aktivity NAVEE nevrátí zpět.</string>
     <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Čekat dál</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Zastavit nastavení</string>
-    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Nejprve dokončit úklid</string>
+    <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Nejprve dokončit vyčištění</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Protokolování aktivity NAVEE může být stále zapnuté.</string>
     <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">Vrátit protokolování aktivity NAVEE zpět</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Zpět</string>
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Připraveno k importu</string>
-    <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Nalezen klíč spoluuživatele</string>
-    <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Nalezen klíč vlastníka</string>
+    <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Klíč spoluuživatele nalezen</string>
+    <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Klíč vlastníka nalezen</string>
     <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">Protokolování aktivity NAVEE vráceno zpět</string>
     <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Importovat nastavení vlastníka</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Zahodit</string>
@@ -51,7 +51,7 @@
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Zkontrolovat, zda Shizuku běží</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Zachycení z vaší koloběžky</string>
     <string name="owner_shizuku_capture_parked" volt:src="ef763107d0dc745fa43856ad6c86ad59fb1e1f6b">Nejprve v aplikaci NAVEE připojte zaparkovanou koloběžku.</string>
-    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Zachycení restartuje aplikaci NAVEE a dočasně zapne protokolování aktivity. Nechte Shizuku běžet, dokud úklid neskončí.</string>
+    <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Zachycení restartuje aplikaci NAVEE a dočasně zapne protokolování aktivity. Nechte Shizuku běžet, dokud vyčištění neskončí.</string>
     <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Tuto koloběžku vlastním nebo mám povolení.</string>
     <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Spustit zachycení</string>
     <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, hotovo</string>
@@ -64,10 +64,10 @@
     <string name="owner_status_root_unsupported" volt:src="5519e39b0d4356bae71e0c9e5da02f46b8b9e61a">Shizuku spuštěné jako root není podporováno. Spusťte ho pomocí bezdrátového ladění.</string>
     <string name="owner_status_allow_in_shizuku" volt:src="76697c1aaf702336da47932c8acd5fea587a1043">Povolte aplikaci Volt v Shizuku</string>
     <string name="owner_status_shizuku_stopped" volt:src="aa45b05b1d9bcee4575d265753ae1d1dc866fdef">Shizuku se zastavilo</string>
-    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Stav úklidu neznámý. Použijte nápravu přes počítač.</string>
+    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Stav vyčištění neznámý. Proveďte opravu přes počítač.</string>
     <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Nepodařilo se spustit. Nic se nezměnilo.</string>
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Pomocná služba Volt se nespustila</string>
-    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Úklid protokolování: nepotvrzeno</string>
+    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Vyčištění po protokolování: nepotvrzeno</string>
     <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Za 90 s se nic nenašlo</string>
     <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Více koloběžek. Připojte jednu.</string>
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">Běží jiné zachycení</string>
@@ -75,7 +75,7 @@
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Zastaveno</string>
     <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Zachycení se nezdařilo</string>
     <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Znovu vraťte protokolování zpět</string>
-    <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Vrácení protokolování aktivity NAVEE zpět…</string>
+    <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Vracení protokolování aktivity NAVEE zpět…</string>
     <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Spojení se Shizuku ztraceno. Vraťte protokolování zpět.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Nebyl nalezen žádný prohlížeč</string>
     <string name="owner_setup_empty_or_large" volt:src="4a200d2bd2318934b72355920a208152c5182530">Soubor nastavení vlastníka je prázdný nebo příliš velký.</string>

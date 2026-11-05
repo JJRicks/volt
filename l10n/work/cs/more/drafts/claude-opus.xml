@@ -15,7 +15,7 @@
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">O aplikaci a oprávnění</string>
     <string name="more_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
     <string name="more_lab_badge_description" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Experimentální</string>
-    <string name="more_footer" volt:src="d06f0aac50d58b82772eddce809be84213e31e5a" volt:attempt="2">Volt %1$s · nepřidružený k NAVEE</string>
+    <string name="more_footer" volt:src="d06f0aac50d58b82772eddce809be84213e31e5a" volt:attempt="2">Volt %1$s · není přidružen k NAVEE</string>
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Nahlásit problém</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Jednotky</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Kompatibilita</string>
@@ -41,9 +41,9 @@
     <string name="more_scooters_change_model" volt:src="d4b2582b7cb710631b0254bd88447f0c92fdb900">Změnit model</string>
     <string name="more_scooters_save_name" volt:src="44a2f79d166043c73ea7e045017866ef15cd4103">Uložit název</string>
     <string name="more_scooters_forget" volt:src="7fff3d4a9e3ea5f2863d17d00361b1a14ebb964d">Zapomenout tuto koloběžku</string>
-    <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Zapomenout: %1$s</string>
+    <string name="more_scooters_forget_named" volt:src="214e6ed679b82875242979b8390e8d1dfe73ad56">Zapomenout koloběžku %1$s</string>
     <string name="more_scooters_enter_name" volt:src="9db47f71b6bc98710f775f02e4c80221edbf86dc">Zadejte název koloběžky</string>
-    <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">Zapomenout: %1$s?</string>
+    <string name="more_scooters_forget_title" volt:src="7926521c882a2e7ca90abae823f2a69fa8e33152">Zapomenout koloběžku %1$s?</string>
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Z tohoto telefonu se odstraní nastavení připojení této koloběžky. Uložené jízdy a záznamy nabíjení zůstanou.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Nejprve uložit zálohu</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Zapomenout</string>
@@ -51,7 +51,7 @@
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Tmavý</string>
     <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Podle systému</string>
     <string name="more_prefs_light" volt:src="ab8b01e708e760e34850dc49dcaee340eb0e699e">Světlý</string>
-    <string name="more_prefs_stats_detail" volt:src="8b2cc4fad856392fb0696186d7131f5281c7792b">Podrobnost živých statistik</string>
+    <string name="more_prefs_stats_detail" volt:src="8b2cc4fad856392fb0696186d7131f5281c7792b">Zobrazení živých statistik</string>
     <string name="more_prefs_comfortable" volt:src="37c2a8e6cc1ca772445d9b009b9e276d95074dd6">Prostorné</string>
     <string name="more_prefs_dense" volt:src="e7aa72595489137132e40ec4403f8472ad0685a6">Kompaktní</string>
     <string name="more_prefs_units" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Jednotky</string>
@@ -61,13 +61,13 @@
     <string name="more_prefs_connection" volt:src="f42b4c4fce972aae1366c6c3b63948017bb0063b">Připojení a záznam</string>
     <string name="more_prefs_refresh" volt:src="0237acedb15c6856a6c80ef14c5f1dca7ce2880f">Aktualizace telemetrie</string>
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">s</string>
-    <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Připojit automaticky</string>
+    <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Připojovat automaticky</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Udržovat připojení na pozadí</string>
     <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Během záznamu zůstane připojení vždy zachováno</string>
-    <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Nechat obrazovku zapnutou</string>
+    <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Nevypínat obrazovku</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Během záznamu</string>
-    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Ukončit jízdu, když koloběžka stojí</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s po ztrátě spojení Bluetooth při zastavení</string>
+    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Ukončovat jízdu, když koloběžka stojí</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">Po zastavení: 10 s po ztrátě připojení Bluetooth</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Záznam na pozadí</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Využití baterie: neomezeno</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Využití baterie: optimalizováno; dlouhé záznamy se mohou zastavit. Otevře se nastavení baterie</string>
@@ -88,20 +88,20 @@
     <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Výchozí nastavení systému (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Beta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Beta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Překlady ve verzi beta vznikají pomocí AI a kontrolují se automaticky. Zprávy a diagnostika zůstávají v angličtině. Chcete-li nahlásit problém se zněním, použijte „Nahlásit problém“.</string>
+    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Překlady ve verzi beta vznikají pomocí AI a kontrolují se automaticky. Zprávy a diagnostika zůstávají v angličtině. Chcete-li nahlásit chybu v překladu, použijte „Nahlásit problém“.</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">Můžete to změnit také v nastavení Androidu: Nastavení › Aplikace › Volt › Jazyk.</string>
     <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Historie údajů během připojení</string>
     <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Ukládat historii údajů během připojení</string>
     <string name="more_history_while_connected" volt:src="43f52453f26ec982834dfe5c5dbccacc061d9e83">Během připojení</string>
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Vypnuto · poslední údaje zůstávají</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Místní úložiště</string>
-    <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Kontroluje se…</string>
+    <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Kontrola…</string>
     <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Podrobné vzorky</string>
-    <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 dnů</string>
+    <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 dní</string>
     <string name="more_history_minutes" volt:src="a17d36db4244427d82653f7a939817820661613c">Minutové souhrny</string>
-    <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 dnů</string>
+    <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 dní</string>
     <string name="more_history_daily" volt:src="8208c21754c5a7001fc677b498e6515799a59db2">Denní souhrny</string>
-    <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 let</string>
+    <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 roky</string>
     <string name="more_history_up_to" volt:src="10cda5c46f5a36c0a0491e2e19f9e09a824c2373">do %1$s</string>
     <string name="more_history_clear_scooter" volt:src="c8d4b5a4d55716b2bd7e7bf73acdf3707223028c">Vymazat historii této koloběžky</string>
     <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Vymazat celou historii údajů během připojení</string>
@@ -126,7 +126,7 @@
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Odemknutí při přiblížení</string>
     <string name="more_proximity_pair" volt:src="14a611adba760ec799d776213f86a9936c8c6661">Spárovat tento telefon s koloběžkou</string>
     <string name="more_pin_guide_row" volt:src="01f6163f19b5ab5a2b3c7e1eb878edf25b4cdab4">Odemknutí bez telefonu</string>
-    <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">Čeká se na potvrzení od koloběžky</string>
+    <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">Čekání na potvrzení od koloběžky</string>
     <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Před změnou kódu PIN připojte koloběžku jako vlastník.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Nastavení kódu PIN na řídítkách</string>
     <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Váš záložní způsob odemknutí bez telefonu. Uchovejte PIN v bezpečí. Číslice se nikdy nezobrazují ani neexportují.</string>
@@ -139,7 +139,7 @@
     <string name="more_pin_step_two" volt:src="3481befd9cd88f62ee8af61ce4b3dbbf44c88503">Krok 2 ze 2. Zopakujte PIN</string>
     <string name="more_pin_repeat_hint" volt:src="c1ddbcbb4ef91cc6816e21461705f7d9b6f308fd">Zopakujte PIN, čtyři číslice</string>
     <string name="more_pin_set" volt:src="0a3a6c80e19f9cf148f87a3c1252253557e5df2a">Nastavit PIN</string>
-    <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635" volt:attempt="2">Kódy PIN se neshodovaly. Zkuste to znovu.</string>
+    <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635" volt:attempt="2">Kódy PIN se neshodují. Zkuste to znovu.</string>
     <string name="more_pin_reconnect" volt:src="b1f3abd4d0c5a219c84e3b5915358dbccaa3ef5a">Nejprve znovu připojte koloběžku jako vlastník.</string>
     <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Počkejte na dokončení aktuální změny na koloběžce.</string>
     <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715" volt:attempt="2">Změna kódu PIN se nespustila. %1$s</string>
@@ -165,20 +165,20 @@
         <item quantity="many">Vymazáno pokusů: %1$d</item>
         <item quantity="other">Vymazáno pokusů: %1$d</item>
     </plurals>
-    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Výsledky pokusů zůstanou v tomto telefonu, dokud je nebude obsahovat zpráva o kompatibilitě, kterou odešlete, nebo dokud je nevymažete."</string>
+    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Výsledky pokusů zůstanou v tomto telefonu, dokud je neodešlete ve zprávě o kompatibilitě nebo nevymažete."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Funkce, které oficiální aplikace nabízí pro váš model, zůstávají v „Nastavení koloběžky“. Limity rychlosti, nabíjení, zámek, PIN, odemknutí při přiblížení a hodiny se sem nikdy nepřidávají. Volt nikdy nemění firmware.</string>
     <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Funkce, které oficiální aplikace nabízí pro váš model, zůstávají v „Nastavení koloběžky“. Volt nikdy nemění firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt nikdy nemění firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Připojování…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Vyzkoušet na této koloběžce</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b" volt:attempt="2">Oficiální aplikace tyto funkce pro váš model nabízí, ale Volt je na něm neotestoval. Váš pokus a odpověď se přidají do příští zprávy o kompatibilitě.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b" volt:attempt="2">Oficiální aplikace tyto funkce pro váš model nabízí, ale Volt je na něm zatím nevyzkoušel. Váš pokus a odpověď se přidají do příští zprávy o kompatibilitě.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Bez údajů z této koloběžky</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87" volt:attempt="2">Volt je nedokáže zpětně načíst, a proto je nenabízí.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt tomuto produktu neposílá žádné příkazy pro koloběžky.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9" volt:attempt="2">Na modelu UT5 MAX není nic k vyzkoušení.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">ID modelu této koloběžky neodpovídá jejímu sériovému číslu, proto Volt nenabízí nic k vyzkoušení.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e" volt:attempt="2">Oficiální aplikace tento model neuvádí, takže Volt nedokáže určit, které funkce mu chybějí. Zatím není nic k vyzkoušení.</string>
-    <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Nejprve určete svůj model na stránce „Koloběžka“. Volt pak zobrazí, co můžete vyzkoušet.</string>
+    <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Nejprve určete svůj model na kartě „Koloběžka“. Volt pak zobrazí, co můžete vyzkoušet.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Připojte koloběžku a uvidíte, co můžete vyzkoušet.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Rozjezd z místa</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, bez údajů z této koloběžky</string>
@@ -203,9 +203,9 @@
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Počkejte na dokončení kontroly kompatibility.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Nejprve dokončete aktuální pokus.</string>
     <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Pro vyzkoušení zastavte záznam.</string>
-    <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Čeká se na vaši odpověď</string>
+    <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Čekání na vaši odpověď</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Vaše odpověď</string>
-    <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Byla vidět změna?</string>
+    <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Byla změna vidět?</string>
     <string name="more_lab_status_ask_short" volt:src="13e4f0fab3a2205c790a4e25e386173d5bf8e5a8">Odpověď</string>
     <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Vracení zpět…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Simulovaná změna</string>
@@ -231,7 +231,7 @@
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Nepotvrzeno · pro kontrolu znovu připojte koloběžku</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Nepotvrzeno</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Kontrola…</string>
-    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418" volt:attempt="2">Oficiální aplikace tuto funkci pro váš model nabízí, ale Volt ji na něm neotestoval. Váš pokus a odpověď se přidají do příští zprávy o kompatibilitě.</string>
+    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418" volt:attempt="2">Oficiální aplikace tuto funkci pro váš model nabízí, ale Volt ji na něm zatím nevyzkoušel. Váš pokus a odpověď se přidají do příští zprávy o kompatibilitě.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Nyní</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Poslední pokus</string>
     <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12" volt:attempt="2">Vaše koloběžka to minule odmítla: odpověděla chybou, takže toto nastavení pravděpodobně nepodporuje. Další pokus obvykle skončí stejnou odpovědí.</string>
@@ -249,11 +249,11 @@
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Načítání aktuální hodnoty…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Odesílání hodnoty %1$s a její zpětné načtení…</string>
     <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Byla změna vidět?</string>
-    <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Již nastaveno: %1$s</string>
+    <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Už nastaveno: %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Zkusit znovu: %1$s</string>
-    <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Vyzkoušet %1$s</string>
+    <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Vyzkoušet: %1$s</string>
     <string name="more_lab_cant_set_back" volt:src="c94e159a7371b9f61d6f3a973106863a495b45b7" volt:attempt="2">Volt pak nedokáže vrátit zpět hodnotu %1$s: oficiální aplikace ji zde nenabízí.</string>
-    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Vrátit zpět: %1$s</string>
+    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Vrátit zpět na hodnotu %1$s</string>
     <plurals name="more_lab_why_offered" volt:src="ebce9d2283a1b0db0c26b1dae4fc9165aecbd5ea">
         <item quantity="one">Oficiální aplikace tuto funkci nabízí na %1$d dalším modelu, ale ne na vašem. Zde nemusí mít žádný účinek nebo může fungovat jinak.</item>
         <item quantity="few">Oficiální aplikace tuto funkci nabízí na %1$d dalších modelech, ale ne na vašem. Zde nemusí mít žádný účinek nebo může fungovat jinak.</item>
@@ -279,7 +279,7 @@
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Oznámení</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Oznámení o záznamu s tlačítkem „Zastavit“</string>
     <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Vaše data</string>
-    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Všechna data zůstávají v tomto telefonu. Položka „Záloha a obnovení“ je na obrazovce „Více“.</string>
+    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Všechna data zůstávají v tomto telefonu. Položka „Záloha a obnovení“ je na kartě „Více“.</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Online mapa</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Aktivita připojení</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licence a uvedení autorů</string>
@@ -330,10 +330,10 @@
     <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Před exportem zastavte záznam nabíjení nebo počkejte na dokončení aktuálního exportu</string>
     <string name="more_dev_clear_charges" volt:src="7f66e11839703ee0dfa9d363eeced693a403947f">Vymazat záznamy nabíjení této koloběžky</string>
     <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Vymazat záznamy nabíjení?</string>
-    <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Odstraní se nabíjení a naučené křivky. Jízdy zůstanou.</string>
+    <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Odstraní se záznamy nabíjení a naučené křivky. Jízdy zůstanou.</string>
     <string name="more_dev_clear_recordings" volt:src="4dd7d1113be57287eaa4014ec0fb40e7c877bb44">Vymazat záznamy</string>
-    <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Testovací rozvržení</string>
-    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Načíst rozvržení „Všechny widgety“ do pozice 3</string>
+    <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Testovací rozložení</string>
+    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Načíst rozložení „Všechny widgety“ do pozice 3</string>
     <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Nahradit pozici 3?</string>
     <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Přepíše se pouze pozice 3.</string>
     <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Nahradit pozici 3</string>
@@ -350,14 +350,14 @@
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Připojená nabíječka</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Spustit záznam</string>
     <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Koloběžka se změnila · otevřete znovu</string>
-    <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44" volt:attempt="2">Nepoužito, dokud nebude nabíječka známá</string>
+    <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44" volt:attempt="2">Nepoužije se, dokud nebude nabíječka známá</string>
     <string name="more_dev_stock_charges" volt:src="3a1cfbf877af68f1759ff9cd471d6698f2a062cd">Nabíjení původní nabíječkou</string>
     <string name="more_dev_fast_charges" volt:src="07b69a3f4666f8a8fc6f4f4de713e3316e3f660b">Nabíjení rychlonabíječkou</string>
     <string name="more_dev_curves_loading" volt:src="576937d4d10377578822798a5c60432647b98bac">Načítání uložených křivek nabíjení</string>
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0" volt:attempt="2">Uložené křivky nabíjení se nepoužijí, dokud nebude nabíječka známá</string>
-    <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Způsobilé záznamy nabíjení původní nabíječkou: %1$s</string>
-    <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Způsobilé záznamy nabíjení rychlonabíječkou: %1$s</string>
-    <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Dokončené nabíjení může zpřesnit svůj závěrečný rozsah. Ostatní rozsahy potřebují dva odpovídající záznamy. Odhady závisí na pokrytí a aktuálním výkonu; odhady pro původní nabíječku a rychlonabíječku UT5 MAX fungují i bez záznamů.</string>
+    <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Použitelné záznamy nabíjení původní nabíječkou: %1$s</string>
+    <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Použitelné záznamy nabíjení rychlonabíječkou: %1$s</string>
+    <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">Dokončené nabíjení může zpřesnit závěrečnou část křivky. Ostatní části potřebují dva odpovídající záznamy. Odhady závisí na pokrytí a aktuálním výkonu; odhady pro původní nabíječku a rychlonabíječku UT5 MAX fungují i bez záznamů.</string>
     <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Zobrazit úplné licenční texty</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Úplné licenční texty</string>
     <string name="more_notices_unreadable" volt:src="5f65b6a856c7646ae7452808d89371f67149989d">Licenční texty se nepodařilo přečíst.</string>
@@ -369,7 +369,7 @@
     <string name="more_index_no_scooter" volt:src="65df44c1e08fb53c5b885d6b68d28f2be2366e59">Zatím žádná koloběžka</string>
     <string name="more_index_add" volt:src="a57928c50bc55109a2723d8b20876d74073feeac">Začněte přidáním koloběžky</string>
     <string name="more_index_status" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="more_index_description" volt:src="f81669b9dde0aa7e99f3900e8f80916390656531">%1$s, %2$s. Otevřít „Moje koloběžky“</string>
+    <string name="more_index_description" volt:src="f81669b9dde0aa7e99f3900e8f80916390656531">%1$s, %2$s. Otevřít „Vaše koloběžky“</string>
     <string name="more_scooters_empty" volt:src="a2bc3ab4e707d5b537d842d62066c615e5099580">Zde se zobrazí vaše uložené koloběžky.</string>
     <string name="more_scooters_connected" volt:src="daa6b5a566e7e8f18cb4d6d6bfefdd9ea3345f9e">Připojeno</string>
     <string name="more_scooters_offline" volt:src="4f2fe96a65ce1006ebf27bee78efd89117a9a408">Offline</string>
@@ -389,17 +389,17 @@
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Vypnuto</string>
     <string name="more_pin_enabled" volt:src="d5a5252181dc44fe1192e2b23c52a00e573a8166">Zapnuto</string>
     <string name="more_chip_pin_on" volt:src="abed827991a4a0db764ea439d3b4bad3439a1f29">PIN je zapnutý</string>
-    <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2" volt:attempt="2">PIN nezapnut</string>
+    <string name="more_chip_pin_off" volt:src="dfe8b5aee1af3ae17299fc60f543e66d7ba61cb2" volt:attempt="2">PIN není zapnutý</string>
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telefon je spárovaný</string>
-    <string name="more_chip_not_paired" volt:src="ad157a23d84cb9e78e6ecda65dc3f292f246b5be" volt:attempt="2">Telefon nespárován</string>
+    <string name="more_chip_not_paired" volt:src="ad157a23d84cb9e78e6ecda65dc3f292f246b5be" volt:attempt="2">Telefon není spárovaný</string>
     <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Pouze vlastník UT5 MAX</string>
     <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Pouze vlastník</string>
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Nejprve připojte koloběžku</string>
-    <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Čeká se na koloběžku</string>
+    <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Čekání na koloběžku</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Bez údajů z firmwaru</string>
     <string name="more_proximity_pin_first" volt:src="3f37e82484a6312eaf20b336cbbf6cdb1d805997">Nejprve zapněte PIN na řídítkách</string>
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Nejprve spárujte tento telefon</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Spárováno</string>
-    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testujte, když koloběžka stojí. Po zapnutí odemknutí při přiblížení se koloběžka může na chvíli odpojit; Volt se znovu připojí a změnu potvrdí.</string>
+    <string name="more_security_notice" volt:src="3068c3e0ae9f2abb9ae3ed2527e82538eb6cc207">Testujte na zaparkované koloběžce. Po zapnutí odemknutí při přiblížení se koloběžka může na chvíli odpojit; Volt se znovu připojí a změnu potvrdí.</string>
 </resources>

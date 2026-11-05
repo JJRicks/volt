@@ -6,7 +6,7 @@
 
 - Use **vy**, always, with a lower-case *vy* and *váš*: *Připojte nabíječku*, *vaše koloběžka*. Never *ty* forms (*připoj*, *tvoje*), and never capital *Vy* or *Váš*, which belongs in letters, not in an app.
 - Calm, plain, direct. No exclamation marks in errors, no marketing tone, no slang.
-- **Buttons, toggles and menu actions use the infinitive:** *Uložit*, *Připojit*, *Zamknout*. **Instructions in sentences use the vy imperative:** *Znovu připojte koloběžku*. Never the *ty* imperative on a button (*Zamkni*). Don't mix the two forms in one string.
+- **Buttons, toggles and menu actions use the infinitive:** *Uložit*, *Připojit*, *Zamknout*. **Aspect:** a one-shot action takes the perfective (*Uložit*, *Připojit*); a toggle for standing behaviour takes the imperfective (*Připojovat automaticky*, *Ukládat historii*), and Android-style negatives are fine (*Nevypínat obrazovku*). **Instructions in sentences use the vy imperative:** *Znovu připojte koloběžku*. Never the *ty* imperative on a button (*Zamkni*). Don't mix the two forms in one string.
 - **Never make the rider's gender visible.** Past participles and short adjectives agree in *vy* (*jste připojil*, *jste připojena*), so rewrite: *Koloběžka je připojena*, *Nastavení se uložilo*, *Zadejte PIN*.
 - What Volt or the scooter did: use the scooter as subject (*Koloběžka odmítla hodnotu*) or a reflexive (*Nepodařilo se přečíst*). Volt never speaks in the first person: no *já*, no *moje*. A choice the rider is making may keep it (*Upozornit mě*), but drop *my* where you can: *Import my owner setup* is *Importovat nastavení vlastníka*.
 - **Volt** as a subject is masculine (*Volt není přidružen*). In other cases don't decline it: write *aplikace Volt*, *v aplikaci Volt*, never *Voltu* or *Voltem*, which also read as the unit. **NAVEE** never declines: *aplikace NAVEE*, *společnosti NAVEE*.
@@ -18,6 +18,9 @@
 - A period closes outside the quote after a quoted word or phrase, as in the examples above.
 - Czech commas are compulsory before subordinate clauses (*že*, *když*, *protože*, *který*, *pokud*, *aby*): *Zkontrolujte, zda je koloběžka zapnutá.* English has no comma there, so add it. No comma before a plain *a*, *i* or *nebo*.
 - Keep the English's `·` separators and `…` as written. A process in progress keeps `…` right after the word: *Připojování…*
+- **In-progress status uses the imperfective -ní noun:** *Připojování…*, *Vracení zpět…*, *Obnovování…*, *Čekání na údaje*, *Hledání koloběžky*, not reflexive *Hledá se…* in a status row. Never the perfective noun (*Vrácení…*, *Obnovení…*): it names the finished act, and a privacy clean-up that reads as done is a false assurance. Whole sentences may keep *Čeká se…*.
+- **A result or state reads noun + short participle:** *Změna nepotvrzena*, *Změna odmítnuta*, *Klíč vlastníka odmítnut*, *Test nedokončen*. Not adjective + noun (*Nepotvrzená změna*), which names a category and presupposes the event. Status chips that come in a pair use *je/není* with the long form in both: *PIN je zapnutý* / *PIN není zapnutý*.
+- **A quoted label is copied from its key**, never retyped or paraphrased: *„Načíst stav kódu PIN“* (`more_pin_read`), *„Čas začátku nabíjení“* (`controls_feature_charge_start`), *„Vaše koloběžky“* (`more_section_scooters`). A tab is **na kartě**: *na kartě „Více“*. Android's Downloads folder is always quoted: *ve složce „Stažené soubory“*.
 - A colon has no space before it, one space after, and lower case after unless a name follows: *Poslední známý stav zámku: zamčeno*.
 - Dash in a sentence: `–` with spaces. A range: `–` with no spaces (*10–20 km*). No em dash.
 - Don't add no-break spaces after one-letter prepositions (*k, s, v, z, o, u, a, i*). It is a print rule, and it costs line breaks in narrow labels. Judgment call.
@@ -66,7 +69,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 |---|---|---|---|
 | Maximální rychlost | **Max. rychlost** | 110 → 78 | The setting. Fits the 90dp tile. `Max.` is only for the setting |
 | Nejvyšší dosažená rychlost | **Nejv. dosažená** | → 88 | The measured value. Fits 90dp. Never *Max.*, never *Nejvyšší rychlost* |
-| Experimentální funkce | **Experim. funkce** | 130 → 93 | Wraps at the space. *Experim.* is 49dp at 12sp, and *Experimentální* (84dp at 12sp) is wider than the 64dp Quick access line, so use the abbreviation on the 64dp full rung. On the 90dp `_short` rung *Experimentální* (88dp) fits alone |
+| Experimentální funkce | **Experim. funkce** | 130 → 93 | 64dp rung only, where it wraps at the space. *Experim.* is 49dp at 12sp, and *Experimentální* (84dp at 12sp) is wider than the 64dp Quick access line, so use the abbreviation on the 64dp full rung. On the 90dp `_short` rung *Experimentální* (88dp) fits alone |
 | Teplota baterie | **Tepl. baterie** | → 71 | Then *Teplota* (43) alone. *Teplota* needs no cut |
 | průměrná rychlost | **prům. rychlost** | → 84 | |
 | celkový, celkem | **celk.** | | *Celk. nájezd* 69 |
@@ -89,7 +92,9 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 
 Measured words that fit as they are: *Zámek* 39, *Nastavení* 58, *Baterie* 42, *Jízdy* 29 (all under the 62dp tab budget); *Spoluuživatel* 79; *koloběžky* 57, *oprávnění* 56, *statistiky* 53, *přiblížení* 51 at 12sp, all under the 64dp shortcut line. *Plán nabíjení* 75 fits the 90dp tile. *Plánované nabíjení* is 110, so it wraps at the space. *Nabít včas* is 58 at 12sp, so it fits the 64dp line whole.
 
-An abbreviation ends in a period, and the period counts toward the width. A two-word label may wrap at a space where the English also wraps.
+An abbreviation ends in a period, and the period counts toward the width.
+
+**Which rungs wrap.** The 64dp Quick access rung (full `dashboard_model_qa_*`) has no line limit, so a two-word label wraps at a space: *Liniová / světla*. `check.py` flags those whose English fits one line (`dashboard_model_qa_live_stats`, `_line_lights`, `_star_lights`) even though they fit on two; that is accepted, because no correct shorter word exists. The 90dp Setting tile rung (`dashboard_model_qa_*_short`, `dashboard_model_tile_*`) is **one line, ellipsized** (`QuickAccessGrid.java:225`), so it must fit whole: drop words as in step 1 (*Předvolby*, *Baterie*, *O aplikaci*, *Koloběžky*, *Čas dokončení*, *Experimentální*). A `_compact` rung must be narrower than its `_short`; there the raw tag is **RAW**, not *(surové)*: *Nabíjení RAW*.
 
 **Never abbreviate:** *Zamknout, Odemknout, Zamčeno, Odemčeno, Neověřeno, Neznámé, Nikdy, Vždy, Alarm, PIN*. If one of these doesn't fit, write the whole word and report it in your notes.
 
@@ -136,7 +141,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 - On and off: settings and lights both use **Zapnuto** and **Vypnuto**. Agree in gender only where a noun is in the same phrase (*vypnutá rekuperace*).
 - Don't add reassurance the English lacks (*bezpečně*, *zaručeně*), and don't add warnings it doesn't have.
 
-**Known check false alarm.** `check.py` finds an English *not* or *no* through the whole words `ne`, `nikdy`, `žádný`, `žádná`, `žádné`, `bez`, `nic`, and through a *ne-* or *bez-* word only when more than three letters follow the prefix. So *Nepotvrzeno*, *Nepodařilo*, *neznámý* and *neověřeno* count, but short words such as *nelze*, *není*, *nebyl*, *nemá*, *nesmí* and *nejde* (also caught by the ordinary-word *nej-*) report "no negation word", and in a safety key that is an error. `more_footer`'s *není přidružen* is one such case. Write the correct Czech anyway and say so in your notes. Don't bend a sentence around *bez* or *žádný* to pass. This has been reported to the owner as a tooling gap.
+**Known check false alarm.** For an English *not*, *no* or *n't*, `check.py` accepts only the whole words `ne`, `nikdy`, `žádný`, `žádná`, `žádné`, `bez`, `nic`. A joined *ne-* word counts only for an English *un-* word. So every *nepodařilo*, *nevyzkoušel*, *nepotvrzena*, *není*, *nelze* in a safety key reports "no negation word" as an error, though Czech negation is joined by nature. All of these on 2026-11-05 are this false alarm; `more_footer`'s *není přidružen* is one. Write the correct Czech anyway and say so in your notes. Don't bend a sentence around *bez* or *žádný* to pass. This has been reported to the owner as a tooling gap.
 
 **Not machine-checked in Czech.** The tool has no on/off state words and no opposite or removal lists for `cs`, so a swapped *Zapnuto*/*Vypnuto* and *Zrušit zámek* pass it. Only the back-translation and the judges catch them, so check these yourself.
 
@@ -147,7 +152,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Three speeds:** the setting is **Maximální rychlost**. A limit below it is **limit rychlosti**. The measured value on a trip or ride is **Nejvyšší dosažená rychlost**. Never swap them. *Nejvyšší rychlost* alone is forbidden, because Czech readers take it as a synonym of *maximální*; *dosažená* is what says measured.
 - **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Today's English keeps that old meaning, and those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until D3 lands. The `top-speed` and `maximum-speed` glossary rows already hold D3's meaning, so don't apply them to these keys now. Flag them in your notes; a judge answers fallback. Every other key with these terms except `rides_tile_max_speed` already matches D3.
 - **`rides_tile_max_speed`** says Max speed for the speed measured on a ride, and D3 only renames it to Top speed. The meaning doesn't change, so translate it now as **Nejv. dosažená**, never *Max. rychlost*. No glossary row covers "Max speed", so `check.py` stays silent on this swap.
-- **Rides, trips, routes:** a recorded ride is a **jízda**. *Trip* (the distance since a reset) is **úsek**, never the loan *trip*. A path on the map is a **trasa**.
+- **Rides, trips, routes:** a recorded ride is a **jízda**. *Trip* (the distance since a reset) is **úsek**, never the loan *trip*. A path on the map is a **trasa**. *Stored trips* (`readings_stored_trips`, `readings_value_trips`) are entries in the scooter's ride history, so they are **jízdy**, not *úseky*; the `trip` glossary row doesn't apply to them.
 - **Try, retry, test:** Trying a control (Experimental, Controls to try) is **Vyzkoušet**, noun **vyzkoušení** for the act. One attempt, counted or listed, is **pokus**: *Vymazáno pokusů: %1$d*, *Nedokončené pokusy*, *Před pokusem*. An ordinary retry is never *Vyzkoušet*: use the retry phrase in Fixed words. The `try` glossary row also lists the retry forms, because the matcher sees "Try" in "try again"; that doesn't make them a word for trying a control. A guided test is **test**, verb **otestovat**; *Test scheduled charging* is **Otestovat plánované nabíjení**. A compatibility check is **kontrola kompatibility**.
 - **Controls:** the Experimental card's controls are **funkce**, which doesn't change between singular and plural in the nominative. *Ovládací prvky* is too long for any tile. *Traction control* is **Kontrola trakce**; *Cruise control* is **Tempomat**.
 - **Overspeed:** *Overspeed active control* brakes the motor above the speed limit, so it is **Aktivní brzdění při překročení rychlosti**, and *Overspeed control* (`compat_field_*`, `readings_*`, `stats_row_*`) is **Brzdění při překročení rychlosti**, short form *Brzdění při překročení*. Never *kontrola*, which reads as checking or monitoring and hides that the motor brakes (rule 5). *Overspeed alert* stays **Upozornění na překročení rychlosti**.
@@ -162,7 +167,7 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Roles:** owner is **vlastník**, shared rider is **spoluuživatel**. The compact role label (`more_role_shared`, English *Shared*) is **Spoluuživatel** (79dp), never *Sdílený*, which reads as a shared scooter.
 - **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *rekuperace*: *Nízká, Střední, Vysoká*; off is *Vypnuto*.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them, with *Boost* declining only in a sentence (*Boostu*, *Boostem*). **Odhad Eco** is a range option, translated.
-- **Charge done by:** the feature name is **Nabít včas**, on every rung, and its time setting **Čas dokončení nabití**. The feature only plans a start, so never word it as finished (*Nabito*). Never *Nabít do*: next to a percentage, *do* means "up to" (*do 80 %*), which reads as the charge limit. In a sentence, quote the name: *„Nabít včas“ je vypnuto*.
+- **Charge done by:** the feature name is **Nabít včas**, on every rung, and its time setting **Čas dokončení nabití**, on the one-line tile **Čas dokončení**. The feature only plans a start, so never word it as finished (*Nabito*). Never *Nabít do*: next to a percentage, *do* means "up to" (*do 80 %*), which reads as the charge limit. In a sentence, quote the name: *„Nabít včas“ je vypnuto*.
 - **Time to full:** **Do plného nabití**, or *Čas do plného nabití* where there is room. Keep *plného*: on a model with a charge limit, *Čas do nabití* could read as until the limit. *Time to full (est.)* is *Do plného nabití (odhad)*, and the compact *To full (est.)* is *Do plného (odhad)*.
 - **Charge schedule tile:** *Plán nabíjení*.
 - **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Rychlý přístup**. Never *Rychlé nastavení*, which is Android's pull-down panel.
@@ -198,7 +203,9 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 
 **Rule 3 in Czech.** After *check* or *could not confirm*, use *zda* or a noun, never *že* with a past tense, which reads as if it happened: *Zkontrolujte, zda se nabíjení obnovilo*, *Zkontrolujte, zda je nabíječka připojena*, *Nepodařilo se potvrdit vypnutí plánu* (*ověřit* where the English says verify). Not *Nepodařilo se potvrdit, že se plán vypnul*.
 
-**Rule 4 in Czech.** The prepositions *v/ve*, *k/ke*, *s/se*, *z/ze* change with the next sound, so *v %1$s* is wrong at some hours (*v 8:00*, but *ve 2:00*). Case is the same trap: a scooter name or a value can't be declined after a preposition. Use a label form: *Začátek: %1$s*, *Koloběžka: %1$s*.
+**Rule 4 in Czech.** The prepositions *v/ve*, *k/ke*, *s/se*, *z/ze* change with the next sound, so *v %1$s* is wrong at some hours (*v 8:00*, but *ve 2:00*). Case is the same trap: a scooter name or a value can't be declined after a preposition, and that includes prepositions that never change form: *na %1$s* forces the accusative on a nominative label (*Změna na Zapnuto*, *Vrátit zpět na Nízká*). Use a label form, or give the placeholder a noun of its own: *Začátek: %1$s*, *Koloběžka: %1$s*, *Toto je koloběžka: %1$s*, *Vrátit zpět na hodnotu %1$s*, *Zapomenout koloběžku %1$s*. **Carve-out:** digit counters *%1$s z %2$s* and *%1$d ze 3* are standard Android Czech and stay, since a fixed number is visible and the count is not prose. Prose such as *naučeno z %1$d* stays banned; write *naučená nabíjení: %1$d*. A pronoun after a free-form name needs its own noun for the gender: *Toto je koloběžka: %1$s. Vyberte ji*.
+
+**Percent in spoken strings.** Where the English spells out *percent* with a `%1$s` placeholder, plural agreement isn't possible and `check.py` refuses a `%%` the English lacks, so the wording stays *Baterie v procentech: %1$s*. It is stiff; see the debate notes.
 
 ### Fixed words
 
@@ -206,7 +213,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 |---|---|---|
 | Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Zkuste to znovu**; *Zkuste to za chvíli*. As a button, **Zkusit znovu**. Never *Vyzkoušet* or *Vyzkoušejte znovu*, which read as testing something |
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **bez údajů**. Says only that no value came, not that anything is off or fine. Never *nehlášeno* or *neuvedeno* |
-| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **hlášený** (agrees with its noun); verb **hlásit**: *koloběžka hlásí*, *Hlášený stav baterie*. A claim, not a measurement. Never *potvrzený*. A document is a **zpráva** |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **hlášený** (agrees with its noun); verb **hlásit**: *koloběžka hlásí*, *Hlášená kondice baterie*. A claim, not a measurement. Never *potvrzený*. A document is a **zpráva** |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **protokolování aktivity NAVEE**. Never *registrace*, and never *přihlášení* |
 | restore logging | turning that logging back to how it was (usually off) | **vrátit protokolování zpět**. Means putting that logging back as it was, usually off. It brings back no file or backup, so never *obnovit* |
 | Volt's helper | the small helper Volt starts inside Shizuku | **pomocná služba Volt**; *pomocná služba* alone once the screen makes clear which. Never *asistent*, which is Walk Assist's word. The script on the computer is the different **nástroj pro zachycení** |
@@ -215,7 +222,21 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | gap (in a recording) | a stretch of a recording with no data | **výpadek záznamu**; *výpadek* once the screen is about the recording. Means no data was recorded, not that power or the ride was cut. Never *mezera* |
 | elevation | height above sea level on a route | **nadmořská výška** |
 | current direction | which way battery current flows | **směr proudu**. Never *směr* alone, which reads as a route |
-| throughput | how much energy has passed through the battery | **prošlá energie**. An amount that passed through, not a rate, so never *průtok* or *propustnost* |
+| throughput | how much energy has passed through the battery | **přenesená energie**; the Ah reading is **přenesený náboj**. An amount that passed through, not a rate, so never *průtok* or *propustnost*. Never *prošlá*, which reads as expired |
+| net (energy) | energy after subtracting what went back in | **netto**, after its noun: *Energie netto*, *Naměřená energie netto*. Never *čistá energie*, which means clean or green energy |
+| battery health | the controller's estimate of how worn the battery is | **kondice baterie**; alone, *Kondice*: *Hlášená kondice baterie*. Never *stav baterie*, which is the normal/abnormal status (`readings_battery_status`) |
+| battery charge level, battery gain or drop | how full the battery is | **nabití**: *Nabití baterie*, *Nárůst nabití*, *Pokles nabití*, *Změna nabití*. Not *stav baterie* |
+| low battery | the alert and the mode | **slabá baterie**: *Slabá baterie*, *Režim slabé baterie*. Never *nízký stav baterie*, *nízká baterie* or *nízký výkon*, which reads as low motor power |
+| lock change | the lock state changing either way | **změna stavu zámku**. Never *změna zámku*, which reads as swapping the lock hardware |
+| cleanup (after a capture) | turning logging back off and removing temporary files | **vyčištění**; *Vyčištění po protokolování*. Never *úklid*, which reads as housecleaning |
+| OEM feature domain | the range the official app allows | **rozsah funkce stanovený výrobcem (OEM)**. *OEM* is a do-not-translate token here, so it stays, with *výrobcem* in front of it to explain it |
+| sensor, layout, remove | one word each | **senzor** (never *snímač*), **rozložení** (never *rozvržení*), **odstranit** (*odebrat* only for favourites and permissions) |
+| unavailable | a thing that can't be used now | **není k dispozici**, *nejsou k dispozici*. *Nedostupné* only as a bare status word, and in a safety key, where `check.py` wants the *ne-* form for English *unavailable* |
+| time window | a chart or data range | **časové okno**, never *období* |
+| keep private, stored privately | calques in Czech | *Keep it private*: **S nikým ho nesdílejte**. *Stored privately*: **uloženo v soukromém úložišti aplikace** |
+| report an issue with diagnostics | "with" here means attach | **Nahlaste problém a přiložte diagnostiku**, never *problém s diagnostikou* |
+| further below (a limit) | false friend | **výrazněji pod limitem**, never *dál pod limitem*, which reads as still below |
+| proximity key, line and star pattern, tyre reminder, hill assist, forget | one reading, one name across `readings_*`, `stats_row_*`, `compat_field_*` | **Klíč přiblížení**; **Vzor linie**, **Vzor hvězdy**; **Připomenutí pneumatik**; **Asistent do kopce**; **zapomenout** (*Zapomenout koloběžku %1$s*) |
 | battery gauge | the scooter's own battery percentage reading | **ukazatel baterie**; *ukazatel* alone where the screen is about the battery. The scooter's own figure, not a measurement |
 | raw | an unprocessed value, also used as a short tag | **surová hodnota**; in parentheses *(surové)*; as a tag **RAW**, where the English writes RAW, known from cameras. Judgment call |
 | last seen | when Volt last had data from the scooter | **Poslední údaj**; with a value, *Poslední údaj: %1$s*. The data may be old, so never word it as current. Not *Naposledy viděno*, a calque, and not *poslední známý stav*, which is the last known state |

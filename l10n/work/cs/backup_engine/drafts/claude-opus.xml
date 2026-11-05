@@ -67,8 +67,8 @@
     <string name="backup_engine_could_not_prepare_restore_transaction" volt:src="238bb18e5eade22e631ca2b9261d8ad2b3684e1e">Nepodařilo se připravit transakci obnovení.</string>
     <string name="backup_engine_restore_was_interrupted_reopen" volt:src="8e6776bc26ce5d2cde4d088c3b2b552d223d606e">Obnovení bylo přerušeno. Znovu otevřete aplikaci Volt, aby se obnovila předchozí data; nemažte úložiště aplikace.</string>
     <string name="backup_engine_restore_failed_previous_data" volt:src="015ae00cc99691167709a5a01f886612ac3e8a93">Obnovení se nezdařilo; předchozí data zůstala zachována.</string>
-    <string name="backup_engine_restore_recovery_folder_unavailable" volt:src="582e72c7a8e9aba68fd1a2f511f3068949f380de">Složka pro zotavení po obnovení je nedostupná. Úložiště aplikace ponechte beze změny.</string>
-    <string name="backup_engine_restore_recovery_record_unavailable" volt:src="fd0950104316ecb4e033d1a3c0826c4f239db746">Záznam pro zotavení po obnovení je nedostupný. Úložiště aplikace ponechte beze změny.</string>
+    <string name="backup_engine_restore_recovery_folder_unavailable" volt:src="582e72c7a8e9aba68fd1a2f511f3068949f380de">Složka pro zotavení po obnovení není k dispozici. Úložiště aplikace ponechte beze změny.</string>
+    <string name="backup_engine_restore_recovery_record_unavailable" volt:src="fd0950104316ecb4e033d1a3c0826c4f239db746">Záznam pro zotavení po obnovení není k dispozici. Úložiště aplikace ponechte beze změny.</string>
     <string name="backup_engine_restore_recovery_record_needs_app" volt:src="17233b55271ef59c18c86ca464be57f18d7f55a4">Záznam pro zotavení po obnovení vyžaduje zotavení touto verzí aplikace. Úložiště aplikace ponechte beze změny.</string>
     <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:src="acc1ed3e42ebf704e453a5c619e482c4a5733452">Záznam pro zotavení po obnovení je nečitelný. Úložiště aplikace ponechte beze změny.</string>
     <string name="backup_engine_restore_recovery_folder_cannot_read" volt:src="eb724e900bb942d4ac4c18c46699a8b82e4dea0d">Složku pro zotavení po obnovení se nepodařilo přečíst. Úložiště aplikace ponechte beze změny.</string>
@@ -86,7 +86,7 @@
     <string name="backup_engine_history_storage_not_supported" volt:src="739b8c35e5a603e4a475f1618a1072f849fb1ef7">Úložiště historie není podporovaná databáze.</string>
     <string name="backup_engine_there_too_many_recording" volt:src="f24a312e4d327232482aca050f9502570954998b">Pro tento formát zálohy je příliš mnoho souborů se záznamy.</string>
     <string name="backup_engine_invalid_archive_path" volt:src="ebd553e7005b9739201ac16007c37b6978e32610">Neplatná cesta v archivu.</string>
-    <string name="backup_engine_restore_file_unavailable" volt:src="35e9951f59b4a6cdd18f727d6358825ac16cc9b5">Soubor pro obnovení je nedostupný.</string>
+    <string name="backup_engine_restore_file_unavailable" volt:src="35e9951f59b4a6cdd18f727d6358825ac16cc9b5">Soubor pro obnovení není k dispozici.</string>
     <string name="backup_engine_could_not_remove_temporary_data" volt:src="da4a8742e7da1a90a47b1a60862d91c37f67aaf9">Nepodařilo se odstranit dočasná data.</string>
     <string name="backup_engine_could_not_read_temporary" volt:src="822c6a19932d9a0fb2767d633fe0268fffc2543c">Nepodařilo se přečíst dočasná data.</string>
     <string name="backup_engine_there_not_enough_available" volt:src="6f4a758fecb083e7858a382178df1f6220cd8777">V úložišti aplikace není dostatek volného místa.</string>
@@ -117,7 +117,7 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Neplatný záznam šifrované zálohy.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Záloha obsahuje neočekávaná data na konci.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Záloha již byla dokončena.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Vyberte, co se má zálohovat.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Vyberte, co chcete zálohovat.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Na jednu zálohu je příliš mnoho souborů.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Metadata zálohy jsou příliš velká.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Data aplikace se během zálohování změnila. Zkuste to znovu.</string>
@@ -139,7 +139,7 @@
     <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">Soubor nastavení vlastníka má neplatnou adresu Bluetooth.</string>
     <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">Záloha obsahuje nepodporovanou skupinu předvoleb.</string>
     <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Záloha obsahuje opakovaně stejný záznam nabíjení.</string>
-    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Vyberte, co se má obnovit.</string>
+    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Vyberte, co chcete obnovit.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">„Nahradit vše“ vyžaduje úplnou zálohu se všemi kategoriemi.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Vyberte, kam se mají uložit data jednotlivých koloběžek.</string>
     <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Vyberte koloběžku, která používá tento klíč vlastníka, nebo přidejte další koloběžku.</string>

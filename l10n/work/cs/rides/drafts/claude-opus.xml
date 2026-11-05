@@ -10,7 +10,7 @@
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Výkon</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Rychlost</string>
     <string name="rides_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Napětí</string>
-    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Baterie %</string>
+    <string name="rides_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Baterie (%)</string>
     <string name="rides_reconnect" volt:src="7405213e2d5feb7533a817dbf9530cea921c280d">Znovu připojit</string>
     <string name="rides_reconnect_description" volt:src="a6308b27db97fca0f0e50b5eeeaeea6b52049c59">Znovu připojit koloběžku</string>
     <string name="rides_notes" volt:src="81082471638cb3bcdc725cf78f413d511f182eaa">Poznámky</string>
@@ -30,7 +30,7 @@
     <string name="rides_toast_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Nejprve ukončete simulaci</string>
     <string name="rides_toast_could_not_stop" volt:src="9bdba88e4808d891f709eb14db2484b10c7a814b">Nepodařilo se zastavit · záznam stále běží</string>
     <string name="rides_toast_finishing_previous" volt:src="19068315ac5ee3b46b95b3edd398a137793d4a01">Dokončování předchozí jízdy…</string>
-    <string name="rides_toast_storage_unavailable" volt:src="e0bea38ae0c3d0887c06c1662491e1866f04c0a1">Úložiště jízd není dostupné.</string>
+    <string name="rides_toast_storage_unavailable" volt:src="e0bea38ae0c3d0887c06c1662491e1866f04c0a1">Úložiště jízd není k dispozici.</string>
     <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Nejprve připojte koloběžku</string>
     <string name="rides_notes_hint" volt:src="5b182063520bc5c1cad81d3a9cdf7bc8b1fadc8a">Režim, trasa, zatížení…</string>
     <string name="rides_notes_save" volt:src="4c22e443c2ace74760f89991e6a526078de026a7">Uložit poznámky</string>
@@ -42,9 +42,9 @@
     <string name="rides_sensors_scooter_only" volt:src="c995c2e80c723bb3522386476e47215bd0f91c06">Pouze údaje z koloběžky</string>
     <string name="rides_default_name" volt:src="6640722465af5d836e628164e3b8b0d667cf2537">Jízda</string>
     <string name="rides_toast_chart_failed" volt:src="45807feb2eba11bd10992e9de0ced9675663ec4e">Graf jízdy se nepodařilo přečíst.</string>
-    <string name="rides_chart_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Čeká se na údaje</string>
+    <string name="rides_chart_waiting" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Čekání na údaje</string>
     <string name="rides_not_measured" volt:src="fe4f5c08c3f5bbd09d619f5f92877a61a198700a">Neměřeno</string>
-    <string name="rides_storage_unavailable" volt:src="174d1b257014b09dbccf3aefdb54f6b30d1d0eca">Úložiště jízd není dostupné</string>
+    <string name="rides_storage_unavailable" volt:src="174d1b257014b09dbccf3aefdb54f6b30d1d0eca">Úložiště jízd není k dispozici</string>
     <string name="rides_show_more" volt:src="92997935cc07211589521ca0fd4e90e08418cb28">Zobrazit další záznamy</string>
     <string name="rides_no_rides_yet" volt:src="baddce1cfb732fa0b4903ce739fcbe19a136cbfc">Zatím žádné jízdy</string>
     <string name="rides_history_unreadable" volt:src="bcf3000514915f3e10197d95080678471ab36ada">Uložené jízdy se nepodařilo přečíst</string>
@@ -53,7 +53,7 @@
     <string name="rides_compare_title" volt:src="0df381d5eb5cd0760c64ea4b8efa882388dc7b9b">Porovnání jízd</string>
     <string name="rides_compare_action" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Porovnat</string>
     <string name="rides_toast_saved_unreadable" volt:src="5be843407a8e7e6efedba3d282c47766afe4dfd7">Uložené jízdy se nepodařilo přečíst.</string>
-    <string name="rides_toast_recording_unavailable" volt:src="77e257acc8ebd4e0ee12ee136578d4db82bcae2f">Tento záznam není dostupný.</string>
+    <string name="rides_toast_recording_unavailable" volt:src="77e257acc8ebd4e0ee12ee136578d4db82bcae2f">Tento záznam není k dispozici.</string>
     <string name="rides_toast_recording_unreadable" volt:src="22a8d8dd40861a773c235b056112bf2c0bee4e21">Tento záznam se nepodařilo přečíst.</string>
     <string name="rides_rename" volt:src="3fb7329a941b0f7c39d6471159b120e4bb3a857f">Přejmenovat jízdu</string>
     <string name="rides_rename_hint" volt:src="8bdeac0fdb38f7004e3cbb8bc0dd8b6f826f64ef">Název jízdy</string>
@@ -67,14 +67,14 @@
     <string name="rides_tile_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Nejv. dosažená</string>
     <string name="rides_reason_odometer_reset" volt:src="d0627952bee838eaf46325575b5a50830674b41f">Vynulování celkového nájezdu</string>
     <string name="rides_battery_energy" volt:src="212c96ac43105bc54ba5d9f1e4c48ae8c60f9722">Baterie a energie</string>
-    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Nárůst baterie</string>
-    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Pokles baterie</string>
-    <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Energie na vzdálenost</string>
-    <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Prošlá energie</string>
+    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Nárůst nabití</string>
+    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Pokles nabití</string>
+    <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Měrná spotřeba</string>
+    <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Přenesená energie</string>
     <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Pokrytí údaji o výkonu</string>
     <string name="rides_route_finishing" volt:src="cfed97e5a40f26b62cbc4c33d66487ae0f9060fd">Dokončování souborů senzorů</string>
     <string name="rides_route_loading" volt:src="e5ee923441491f076bb108ed763a050df2d9f5c4">Načítání trasy</string>
-    <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Trasa není dostupná</string>
+    <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Trasa není k dispozici</string>
     <string name="rides_readings_title" volt:src="4e02ae3baa7de7657a0a92544870bd9dd4bdd990">Údaje o jízdě</string>
     <string name="rides_loading" volt:src="d34759349252de47e5944d7abac2e2dec226cdd7">Načítání…</string>
     <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Zvětšit</string>
@@ -92,23 +92,23 @@
     <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Pouze náhled. Zkusit znovu načíst všechny zaznamenané vzorky grafu</string>
     <string name="rides_electrical_energy" volt:src="c25cbe0cc36ce2c248cbfc7818933e13e17add77">Elektrická energie</string>
     <string name="rides_direction_confirmed" volt:src="3517b661574c4c41efd4351cc06b903953465adc">Směr proudu: potvrzeno</string>
-    <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Směr proudu: nepotvrzeno pro celou jízdu · hodnoty jsou absolutní prošlá energie</string>
+    <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Směr proudu: nepotvrzeno pro celou jízdu · hodnoty jsou absolutní přenesená energie</string>
     <string name="rides_draw_short" volt:src="c14d7827ed8152cbec42ccd4357e84c0b3c3e01d">Odběr</string>
     <string name="rides_draw" volt:src="157e4062a6580d8571728fd66d3971f3fe44e7f4">Odběr z baterie</string>
-    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Příjem</string>
-    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Příjem do baterie / nabíjení</string>
+    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Dodáno</string>
+    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Dodáno do baterie / nabíjení</string>
     <string name="rides_draw_partial" volt:src="d4c1c10d28c4a97edfd36d3ed750bc5c334020cd">Odběr z baterie, pouze potvrzené intervaly</string>
-    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Příjem do baterie nebo nabíjení, pouze potvrzené intervaly</string>
-    <string name="rides_net_energy" volt:src="c485e22ba72d6e26dce9679deebc9a11f53cccd6">Čistá naměřená energie</string>
-    <string name="rides_throughput_per_distance" volt:src="7ffc7192f9e336f862ed6bf775981032c7376149">Prošlá energie na vzdálenost</string>
-    <string name="rides_net_per_distance" volt:src="08ed3b0daf54c1f0d0302fec975527160e09da60">Čistá energie na vzdálenost</string>
+    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Dodáno do baterie nebo nabíjení, pouze potvrzené intervaly</string>
+    <string name="rides_net_energy" volt:src="c485e22ba72d6e26dce9679deebc9a11f53cccd6">Naměřená energie netto</string>
+    <string name="rides_throughput_per_distance" volt:src="7ffc7192f9e336f862ed6bf775981032c7376149">Přenesená energie na vzdálenost</string>
+    <string name="rides_net_per_distance" volt:src="08ed3b0daf54c1f0d0302fec975527160e09da60">Energie netto na vzdálenost</string>
     <string name="rides_measurement_quality" volt:src="bd0d651d0fd7877b9f4f0cf6e11d5a7d4ba104d6">Kvalita měření</string>
-    <string name="rides_observed_recorded" volt:src="7385027330c4173e11e1e956599de8741762e28c">Sledováno / zaznamenáno</string>
+    <string name="rides_observed_recorded" volt:src="7385027330c4173e11e1e956599de8741762e28c">S údaji o výkonu / celkem</string>
     <string name="rides_unobserved_power" volt:src="7e432ce9712eb77e8e857793b41d864a840b3724">Bez údajů o výkonu</string>
     <string name="rides_samples_gaps" volt:src="b589694e116ed9cdca7b77ac7452ba9ae2011746">Vzorky / výpadky</string>
     <string name="rides_moving_stationary" volt:src="869f1a4cf4a088eee18d95ceab397aff489c4148">V pohybu / v klidu</string>
-    <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Prošlá energie v pohybu</string>
-    <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Prošlá energie v klidu</string>
+    <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Přenesená energie v pohybu</string>
+    <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Přenesená energie v klidu</string>
     <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Neznámý stav pohybu</string>
     <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Napětí min. / max.</string>
     <string name="rides_peak_power" volt:src="ba2c25e35603a64aba9071d8cb253c0aabc1c63e">Špičkový výkon</string>
@@ -121,20 +121,20 @@
     <string name="rides_export_json" volt:src="782c3f0f4a26c5cfc777a87550276e88022a3940">Exportovat JSON</string>
     <string name="rides_export_json_description" volt:src="bb1027bd9d54d872e004a096f0081f569c2fb996">Exportovat analýzu jízdy ve formátu JSON</string>
     <string name="rides_delete_ride" volt:src="751d2b3a49d9b5b28452341742e96f8841ccbdaf">Smazat jízdu</string>
-    <string name="rides_reason_no_odometer" volt:src="d3f039e9f5a1e9deb5f3016da541a4c4e1f48622">Bez vzdálenosti z nájezdu</string>
+    <string name="rides_reason_no_odometer" volt:src="d3f039e9f5a1e9deb5f3016da541a4c4e1f48622">Bez údaje o nájezdu</string>
     <string name="rides_reason_too_short" volt:src="2d1cab3cec98af1473368e4b9024e7f52af96406">Příliš krátká jízda</string>
     <string name="rides_reason_low_coverage" volt:src="356a228db1b025cf3ee84525e9f6f329304e68af">Pokrytí &lt;80 %</string>
     <string name="rides_empty_none" volt:src="3495431c51d8cc68e545a2cfc2c76ff758d9f28f">Zatím žádná jízda k zobrazení</string>
     <string name="rides_empty_unreadable" volt:src="2dd3c4216cd450e9fb62091dcc08631184423522">Uložené jízdy se nepodařilo přečíst</string>
-    <string name="rides_phone_files" volt:src="5858480413917411f54b1e8e5ab5e5cb3f143954">Datové soubory telefonu</string>
-    <string name="rides_phone_files_description" volt:src="649ddb071fa0b74ff87a51456a657cd49415095e">Exportovat původní datové soubory telefonu</string>
+    <string name="rides_phone_files" volt:src="5858480413917411f54b1e8e5ab5e5cb3f143954">Soubory s daty z telefonu</string>
+    <string name="rides_phone_files_description" volt:src="649ddb071fa0b74ff87a51456a657cd49415095e">Exportovat původní soubory s daty z telefonu</string>
     <string name="rides_next_ride" volt:src="3d61cff56c377248dff08b74739a3cf39389dbdc">Příští jízda</string>
     <string name="rides_gps_route" volt:src="bdd2ed9be744786f90642d0b92f5fcc8cefadd78">Trasa z GPS</string>
     <string name="rides_gps_route_sub" volt:src="1fe8990a94c16dc5f360ff58d78bbd707fe5348e">Jen během záznamu</string>
     <string name="rides_barometer" volt:src="bfed743c0e5590ab6bf672ebf54f25e35b57fa6c">Nadmořská výška z barometru</string>
     <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automaticky</string>
     <string name="rides_barometer_gps" volt:src="37769f8228e7f6c822e91abf1b56a49cd1dce43a">Nadmořská výška z GPS</string>
-    <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Snímače pohybu</string>
+    <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Senzory pohybu</string>
     <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Umístění telefonu</string>
     <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">Na řídítkách</string>
     <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">V kapse</string>
@@ -142,7 +142,7 @@
     <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Experimentální</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Změny se projeví při příští jízdě</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Není k dispozici žádný prohlížeč.</string>
-    <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Exportovat surové soubory</string>
+    <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Exportovat surová data</string>
     <string name="rides_export_phone_journal" volt:src="3b542151a42402437727af6eab7139fb0c617406">Deník jízd z telefonu (CSV)</string>
     <string name="rides_export_motion_csv" volt:src="f02bca6d002344576307241dcafef54b0c6daddb">Pohyb (CSV)</string>
     <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">Pro tuto jízdu nejsou zaznamenána žádná data z telefonu.</string>
@@ -187,16 +187,16 @@
     <string name="rides_export_all_json" volt:src="d591c3ad2a9ac82a4d446003594007fff087aee0">Vše (JSON)</string>
     <string name="rides_toast_export_failed" volt:src="aaa225c9739810f61b99b35a0b8b53c36d6870ed">Tuto jízdu se nepodařilo exportovat.</string>
     <string name="rides_toast_export_csv_failed" volt:src="48d4ac38add95f760e03cd66b350736f1068401f">Soubor CSV jízdy se nepodařilo exportovat.</string>
-    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Smaže se trasa a data ze snímačů. Nelze vrátit zpět.</string>
+    <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Smaže se trasa a data ze senzorů. Nelze vrátit zpět.</string>
     <string name="rides_delete_keep" volt:src="4d20ae693afdbf19356702263c029117d66d8cbc">Ponechat jízdu</string>
     <string name="rides_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Smazat</string>
     <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Ukládání… zkuste to znovu</string>
     <string name="rides_toast_deleted" volt:src="9c5b61dadc62d3982483ba8f192e391b9e0cd0d3">Záznam byl smazán.</string>
     <string name="rides_toast_delete_failed" volt:src="1fc6690281c2993706c97afbac0b4a7cdfd59910">Tento záznam se nepodařilo smazat.</string>
     <string name="rides_toast_select_two" volt:src="ce134f33d022481a58606227d02d9d2b3680b56e">Vyberte dva dostupné záznamy.</string>
-    <string name="rides_compare_battery_change" volt:src="7f6a47ec11acd5f485a4f273f62b389db73b9da0">Změna stavu baterie</string>
-    <string name="rides_compare_measured_throughput" volt:src="d6a0827c998b167e7d3a95377af171af53a3c63f">Naměřená prošlá energie</string>
-    <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Energie na jednotku vzdálenosti</string>
+    <string name="rides_compare_battery_change" volt:src="7f6a47ec11acd5f485a4f273f62b389db73b9da0">Změna nabití</string>
+    <string name="rides_compare_measured_throughput" volt:src="d6a0827c998b167e7d3a95377af171af53a3c63f">Naměřená přenesená energie</string>
+    <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Měrná spotřeba</string>
     <string name="rides_compare_gaps" volt:src="046c47c2e084ac901e847c73a699bb7eb64d8de2">Výpadky záznamu</string>
     <string name="rides_compare_min_voltage" volt:src="069f69e2489b3f52cbc3595ab0146fed40883493">Minimální napětí</string>
     <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Zobrazit první</string>
@@ -240,15 +240,15 @@
     <string name="rides_unit_megabyte" volt:src="524c413d2ca2775c5d77a297c2cc28b406e14022">MB</string>
     <string name="rides_compare_two_saved" volt:src="b3e7e0eb46a4aebaad05254b195a312a2ec1a68c">Porovnat dvě jízdy, uložené jízdy: %1$d ze 2</string>
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">Vybrané jízdy: %1$d ze 2</string>
-    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Nárůst stavu baterie, procentní body: %1$d</string>
-    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Pokles stavu baterie, procentní body: %1$d</string>
+    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Nárůst nabití, procentní body: %1$d</string>
+    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Pokles nabití, procentní body: %1$d</string>
     <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Potvrzeno: %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Nepotvrzeno: %1$s</string>
     <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Směr proudu – potvrzeno: %1$s, nepotvrzeno: %2$s</string>
     <string name="rides_switch_experimental" volt:src="550602e28c6658e848285df423a96bb5370f3597">%1$s, experimentální</string>
     <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">Na řídítkách · vzorky: %1$s</string>
     <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">V kapse · vzorky: %1$s</string>
-    <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Velikost výkonu · modrá 0 → žlutá %1$s · šedá: chybí</string>
+    <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Výkon (absolutní hodnota) · modrá 0 → žlutá %1$s · šedá: chybí</string>
     <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Relativní výška · modrá %1$s → žlutá %2$s · šedá: chybí</string>
     <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Rychlost koloběžky · modrá 0 → žlutá %1$s nebo rychleji · šedá čárkovaná: chybí</string>
     <string name="rides_legend_speed_gps" volt:src="38605ba4ce2a9ff511fe6dcf1809e3e7e625c8e3">Rychlost z GPS · modrá 0 → žlutá %1$s nebo rychleji · šedá čárkovaná: chybí</string>
@@ -263,7 +263,7 @@
     <string name="rides_compare_reason_second" volt:src="1d4db2513d9fca105e252d3b8ac841df280bec26">Druhá: %1$s</string>
     <string name="rides_compare_reason_first" volt:src="9c034476c713f0a538f5e842179d0d0146a0ffda">První: %1$s</string>
     <string name="rides_compare_reason_both" volt:src="ffb08c74a22526a1d6fb0e0a48f0f93a54295142">První: %1$s · Druhá: %2$s</string>
-    <string name="rides_efficiency_throughput" volt:src="cd986f5555eb12c161fbf8ac5bf0b3f1476ea315">%1$s · prošlá energie</string>
+    <string name="rides_efficiency_throughput" volt:src="cd986f5555eb12c161fbf8ac5bf0b3f1476ea315">%1$s · přenesená energie</string>
     <string name="rides_efficiency_net" volt:src="250dfc5aa6a4cc723d5cd7714eecc0439d77ccac">%1$s · netto</string>
     <string name="rides_sensor_status_storage" volt:src="4462e74a3b02b334235783394a973c661d9fa152">Úložiště dat ze senzorů telefonu není k dispozici</string>
     <string name="rides_sensor_status_idle" volt:src="1ec0b6dab3cd9ae4351dbff57fd902a288a28335">Senzory telefonu jsou nečinné</string>
