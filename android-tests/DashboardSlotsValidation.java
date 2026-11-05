@@ -1423,8 +1423,9 @@ public final class DashboardSlotsValidation extends Instrumentation {
 
     /**
      * B12: titles, notes and slot names Volt gave show through the catalogue, in English exactly as
-     * saved except the example note's tyre/tire spelling, and an owner's own text shows as saved. (A marked language needs a T.Source type, which an
-     * existing test may not declare; DashboardModelTextTest checks the keys against this English.)
+     * saved except the example note's tyre/tire spelling, and an owner's own text shows as saved. (A
+     * marked language needs a T.Source type, which an existing test may not declare;
+     * DashboardModelTextTest checks the keys against this English.)
      */
     private void displayNames() throws Exception {
         T.Source saved = T.source();
