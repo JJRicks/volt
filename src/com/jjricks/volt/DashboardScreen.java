@@ -6600,8 +6600,8 @@ public final class DashboardScreen implements AppScreen {
         });
         name.setText(saved == null ? T.dashboardModelSlotDefault(Fmt.integer(index + 1)) : saved.name);
         name.setSelectAllOnFocus(true);
-        // A saved slot's name edits as shown (Volt's names in the current language); saved unchanged, the
-        // slot keeps the name it saved (DashboardConfig.slotNameToSave), and a typed name saves as typed.
+        // A saved slot's name edits as shown (Volt's names in the current language). DashboardConfig's
+        // slotNameToSave keeps a name of Volt's the save leaves Volt's; other saves store the field's text.
         String shown = saved == null ? DashboardConfig.defaultSlotName(index) : DashboardConfig.displaySlotName(saved, index);
         if (saved != null) name.setText(shown);
         content.addView(name, new LinearLayout.LayoutParams(-1, -2));
@@ -6617,7 +6617,7 @@ public final class DashboardScreen implements AppScreen {
         created.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             if (closed || !editing) return;
             grid.finishGesture(false);
-            boolean stored = config.saveSlot(index, DashboardConfig.slotNameToSave(name.getText().toString(), shown, saved, index),
+            boolean stored = config.saveSlot(index, config.slotNameToSave(name.getText().toString(), shown, saved, index),
                     preferences.getInt("dashboard_columns", 0));
             if (!stored) {
                 host.toast(T.dashboardSaveLayoutFailed());

@@ -5,3 +5,6 @@ tests/l10n/characterization/DashboardScreenEnglishTest.java
 # B13's own suite: the whole templates a ternary picks, plurals, format templates, the charge time
 # ladder and the shortcut names the screen shows.
 tests/l10n/DashboardScreenTextTest.java
+# The save-slot dialog's slot 3 rule asks DashboardExampleIds (pure Java; b12.sources lists it too, and
+# tests/run.sh compiles a path once).
+src/com/jjricks/volt/DashboardExampleIds.java

@@ -31,7 +31,11 @@ import java.util.Locale;
  *    preference, under five phone locales.
  *  - The save-slot dialog: an empty slot's name is B12's default slot name, "Slot N" in English, and
  *    the dialog's source starts a saved slot at its shown name and saves through
- *    DashboardConfig.slotNameToSave (DashboardSlotsValidation runs that on an emulator).
+ *    DashboardConfig.slotNameToSave (DashboardSlotsValidation runs that on an emulator), which keeps
+ *    the example's English name only when the save leaves slot 3 the example's: the example's own
+ *    widgets saved back do (DashboardExampleIds.exampleSlot, as savesExample asks it), the owner's
+ *    own layout (DefaultDashboard's widgets, random ids) or the example with a widget of theirs does
+ *    not, so the field's text is saved there.
  */
 public final class DashboardScreenTextTest {
     private static int checks;
@@ -244,12 +248,53 @@ public final class DashboardScreenTextTest {
                         && screen.contains("String shown = saved == null ? DashboardConfig.defaultSlotName(index) : DashboardConfig.displaySlotName(saved, index);")
                         && screen.contains("if (saved != null) name.setText(shown);"),
                 "the save dialog starts at the slot's shown name");
-        check(screen.contains("config.saveSlot(index, DashboardConfig.slotNameToSave(name.getText().toString(), shown, saved, index),")
+        check(screen.contains("config.saveSlot(index, config.slotNameToSave(name.getText().toString(), shown, saved, index),")
                         && !screen.contains("config.saveSlot(index, name.getText().toString(),"),
                 "the save dialog saves through DashboardConfig.slotNameToSave");
         String config = read("src/com/jjricks/volt/DashboardConfig.java");
-        check(config.contains("return slotName(typed, index).equals(slotName(shown, index)) ? saved == null ? null : saved.name : typed;"),
-                "slotNameToSave keeps the saved name for the name the dialog showed");
+        check(config.contains("public String slotNameToSave(String typed, String shown, SavedSlot saved, int index) {\n"
+                        + "        if (!slotName(typed, index).equals(slotName(shown, index))) return typed;\n"
+                        + "        if (saved == null) return null;\n"
+                        + "        return saved.example && !savesExample(index) ? typed : saved.name;\n    }"),
+                "slotNameToSave keeps the saved name for the name the dialog showed, the example's only when the save keeps it");
+        // savesExample asks exampleSlot about the stored form of the widgets saveSlot(index, name, columns) saves.
+        check(config.contains("return exampleSlot(index, EXAMPLE_SLOT_NAME, writeWidgets(widgets));")
+                        && config.contains("return saveSlot(index, name, columns, widgets);")
+                        && config.contains("snapshot.put(\"widgets\", writeWidgets(definitions));")
+                        && config.contains("o.put(\"id\", w.id);") && config.contains("o.put(\"type\", w.type);"),
+                "savesExample does not check the widgets the dialog's save writes");
+        // What savesExample decides for slot 3. The example's own widgets saved back (as restoring the
+        // example and saving it unchanged does) keep it the example's, so its English name is saved. The
+        // owner's own layout, as a new dashboard starts (DefaultDashboard: new Widget(type), a random id
+        // each), or the example with one widget of the owner's does not, so the field's text is saved.
+        String example = read("src/com/jjricks/volt/AllWidgetsDashboard.java");
+        String own = read("src/com/jjricks/volt/DefaultDashboard.java");
+        check(example.contains("new DashboardConfig.Widget(DashboardExampleIds.create(), type);")
+                        && own.contains("DashboardConfig.Widget widget = new DashboardConfig.Widget(type);")
+                        && config.contains("this(UUID.randomUUID().toString(), type);"),
+                "the example's and a new dashboard's widget ids are not made as this check makes them");
+        String[] exampleTypes = madeTypes(example, "add\\(result, \"([a-z]+)\"\\)");
+        String[] ownTypes = madeTypes(own, "add\\(result, \"([a-z]+)\",");
+        check(exampleTypes.length > 10 && ownTypes.length >= 5, "widget types read: " + exampleTypes.length + ", " + ownTypes.length);
+        String[] exampleIds = new String[exampleTypes.length], ownIds = new String[ownTypes.length];
+        for (int i = 0; i < exampleIds.length; i++) exampleIds[i] = DashboardExampleIds.create();
+        for (int i = 0; i < ownIds.length; i++) ownIds[i] = java.util.UUID.randomUUID().toString();
+        check(DashboardExampleIds.exampleSlot(2, true, exampleIds, exampleTypes),
+                "the example's own widgets saved back to slot 3 do not keep its name");
+        check(!DashboardExampleIds.exampleSlot(2, true, ownIds, ownTypes),
+                "the owner's own layout saved to slot 3 keeps the example's name");
+        String[] mixedIds = java.util.Arrays.copyOf(exampleIds, exampleIds.length), mixedTypes = exampleTypes.clone();
+        mixedIds[0] = java.util.UUID.randomUUID().toString();
+        check(!DashboardExampleIds.exampleSlot(2, true, mixedIds, mixedTypes),
+                "the example with an owner's widget saved to slot 3 keeps the example's name");
+    }
+
+    /** The widget types a factory's add(result, "type"...) calls make, in order. */
+    private static String[] madeTypes(String source, String call) {
+        java.util.List<String> types = new java.util.ArrayList<>();
+        java.util.regex.Matcher m = java.util.regex.Pattern.compile(call).matcher(source);
+        while (m.find()) types.add(m.group(1));
+        return types.toArray(new String[0]);
     }
 
     private static String read(String path) {
