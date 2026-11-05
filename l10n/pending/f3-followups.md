@@ -37,9 +37,6 @@ these itself if it prefers; otherwise they are the first follow-up after it merg
 
 ## MainActivity, owner: B19
 
-6. **`lock_expiry`'s `label.replace(" hours", " h")`** (:1762) reads `featureLabel`'s English id, so it
-   works today; it becomes a read-back when B19 makes that label display text. Fix: a catalog short-hours
-   form built from the option value.
 7. **The label-only `toggleRow`/`settingRow` overloads, `Ui.labelIcon` and the String `styleDriveMode`**
    stay while DashboardScreen calls them. UiToolkitTest's legacy count holds them until then.
    `MoreScreen`'s lower-casing of `row.feature.label` into `T.moreLabSetBackRow` is B19/F4 label work.

@@ -107,10 +107,8 @@
     <string name="main_scan_yours" volt:screen="Scanner" volt:purpose="chip">Yours</string>
     <string name="main_scan_saved" volt:screen="Scanner" volt:purpose="chip">Saved</string>
     <!-- Count of nearby scooters. -->
-    <plurals name="main_scan_found" volt:screen="Scanner" volt:purpose="status">
-        <item quantity="one">%1$d scooter found</item>
-        <item quantity="other">%1$d scooters found</item>
-    </plurals>
+    <string name="main_scan_found_one" volt:screen="Scanner" volt:purpose="status">1 scooter found</string>
+    <string name="main_scan_found_many" volt:screen="Scanner" volt:purpose="status">%1$d scooters found</string>
     <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>
 
     <!-- ===== Scooter tab: groups, banners and search ===== -->
@@ -205,11 +203,11 @@
     <!-- %1$s is the control's name. -->
     <string name="main_test_try" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished try · %1$s</string>
     <!-- %1$s is the control's name, %2$d how many more wait. -->
-    <string name="main_test_try_more" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished try · %1$s +%2$d</string>
+    <string name="main_test_try_more" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished try · %1$s +%2$s</string>
     <!-- %1$s is the control's name. -->
     <string name="main_test_test" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished test · %1$s</string>
     <!-- %1$s is the control's name, %2$d how many more wait. -->
-    <string name="main_test_test_more" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished test · %1$s +%2$d</string>
+    <string name="main_test_test_more" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished test · %1$s +%2$s</string>
     <string name="main_test_removed" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished test · removed scooter</string>
     <string name="main_test_another" volt:screen="Scooter tab" volt:purpose="banner" volt:safety="experimental">Unfinished test · another scooter</string>
     <!-- %1$s is the control's name; English lower-cases it, other languages show it as the control row does. -->

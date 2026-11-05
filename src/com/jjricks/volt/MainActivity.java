@@ -78,6 +78,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final String[] names={"Home","Live Stats","Scooter","Rides","More"};
     /** The tab names as shown; names above are ids, in the same order. */
     private String[] navNames(){return new String[]{T.mainNavHome(),T.mainNavStats(),T.mainNavScooter(),T.mainNavRides(),T.mainNavMore()};}
+    private String shownPageName(String id){int at=java.util.Arrays.asList(names).indexOf(id);return at<0?id:navNames()[at];}
     private LiveStatsTitle liveStatsTitle;
     private static final String STATS_AWAY_AT="stats_away_elapsed", STATS_AWAY_BOOT="stats_away_boot";
     private static final long STATS_RETENTION_MS=10000L;
@@ -796,7 +797,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(selectedPage.equals("stats")){
             liveStatsTitle=new LiveStatsTitle(design);header.addView(liveStatsTitle);
         }else{
-            TextView title=design.text(navNames()[java.util.Arrays.asList(names).indexOf(pageName)],24,true);title.setPadding(0,design.dp(2),0,0);
+            TextView title=design.text(shownPageName(pageName),24,true);title.setPadding(0,design.dp(2),0,0);
             if(Build.VERSION.SDK_INT>=28)title.setAccessibilityHeading(true);header.addView(title);
         }
         profileTitle=null;
@@ -1214,7 +1215,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         boolean present=false;for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected))present=true;
         // The profile's own scooter starts selected; other scooters need a deliberate tap before Connect.
         if(!present){scanSelected=null;for(ScanResult result:scanResults)if(!mine.isEmpty()&&result.getDevice().getAddress().equalsIgnoreCase(mine))scanSelected=result.getDevice().getAddress();}
-        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():T.mainScanFound(scanResults.size(),scanResults.size()));
+        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():scanResults.size()==1?T.mainScanFoundOne():T.mainScanFoundMany(scanResults.size()));
         scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
         StringBuilder signature=new StringBuilder(String.valueOf(scanSelected)).append(':').append(profile==null?"":profile.id);
         for(ScanResult result:scanResults){String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,result.getDevice().getAddress(),null);signature.append('|').append(result.getDevice().getAddress()).append(':').append(signalRank(result.getRssi())).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}
@@ -1424,7 +1425,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             lightsBody.addView(headlightRow,0);extras.put(headlightRow,new String[]{"Lights","headlight front lamp power button"});
             SettingLine zones=new SettingLine("star",T.mainRowZones(),null);zones.chevron(this::showLights);zonesValue=zones.value;zonesRow=zones.card;
             addRow("Lights",zonesRow);extras.put(zonesRow,new String[]{"Lights","line star lights zones ambient pattern color boost"});
-            clockLine=new SettingLine("history",T.mainRowClock(),null);
+            clockLine=new SettingLine("history",M.mainRowClock(),null);
             clockSpinner=new Spinner();clockSpinner.setVisibility(View.GONE);clockLine.line.addView(clockSpinner,rowSpinnerSize());
             clockButton=pill(T.mainRowSync(),()->{if(scooterService!=null){scooterService.ble.syncClock();redraw();}});clockButton.setContentDescription(T.mainRowSyncDescription());
             LinearLayout.LayoutParams clockParams=new LinearLayout.LayoutParams(-2,-2);clockParams.leftMargin=design.dp(10);clockLine.line.addView(clockButton,clockParams);
@@ -1432,7 +1433,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             shownExtras.put(clockLine.card,new String[]{T.mainSearchClock(),T.mainRowClock()});
             scheduleTest=new ScheduleTestRow();addRow("Battery",scheduleTest.row.card);
             extras.put(scheduleTest.row.card,new String[]{"Battery","test scheduled charging check scooter clock schedule resume"});
-            chargerLine=new SettingLine("battery",T.mainRowCharger(),null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
+            chargerLine=new SettingLine("battery",M.mainRowCharger(),null);chargerLine.chevron(MainActivity.this::showChargerEstimateChoice);
             chargerLine.line.setTag("estimate-charger-setting");chargerLine.value.setTag("estimate-charger-value");
             addRow("Battery",chargerLine.card);extras.put(chargerLine.card,new String[]{"Battery","charger for estimates automatic auto stock high speed charging time remaining"});
             shownExtras.put(chargerLine.card,new String[]{T.mainSearchCharger(),T.mainRowCharger()});
@@ -1556,8 +1557,8 @@ public final class MainActivity extends Activity implements ScreenHost {
             if(reviewNeeded){
                 String text=recordsLost?T.mainTestRecordsUnavailable()
                         :!unfinished.isEmpty()?(unfinished.get(0).isTry()
-                                ?(unfinished.size()>1?T.mainTestTryMore(ScooterCommands.find(unfinished.get(0).feature).label(),unfinished.size()-1):T.mainTestTry(ScooterCommands.find(unfinished.get(0).feature).label()))
-                                :(unfinished.size()>1?T.mainTestTestMore(ScooterCommands.find(unfinished.get(0).feature).label(),unfinished.size()-1):T.mainTestTest(ScooterCommands.find(unfinished.get(0).feature).label())))
+                                ?(unfinished.size()>1?T.mainTestTryMore(ScooterCommands.find(unfinished.get(0).feature).label(),Fmt.integer(unfinished.size()-1)):T.mainTestTry(ScooterCommands.find(unfinished.get(0).feature).label()))
+                                :(unfinished.size()>1?T.mainTestTestMore(ScooterCommands.find(unfinished.get(0).feature).label(),Fmt.integer(unfinished.size()-1)):T.mainTestTest(ScooterCommands.find(unfinished.get(0).feature).label())))
                         :orphaned>0?T.mainTestRemoved()
                         :elsewhere>0?T.mainTestAnother()
                         :ble.guidedTest()!=null&&ble.guidedTest().keeps()?T.mainTestTrying(inSentence(ScooterCommands.find(ble.guidedTest().feature))):T.mainTestInProgress();
@@ -1707,7 +1708,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             for (String id : new String[]{"section:Security", "section:Profile", "more:App"}) {
                 QuickAccessActions.Entry shortcut = QuickAccessActions.find(id);
                 design.divider(settings);
-                SettingLine row = new SettingLine(shortcut.icon, shortcut.label, null);
+                SettingLine row = new SettingLine(shortcut.icon, shortcut.label(), null);
                 row.chevron(() -> quickAction(id)); settings.addView(row.card);
             }
         }
@@ -1802,8 +1803,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         return label;
     }
     /** Lock duration's hours for an option value (the same table on every model), or 0 for a value that has none. */
-    static int lockHours(ScooterCommands.Feature feature,int value){return feature.key.equals("lock_expiry")?lockHours(value):0;}
-    static int lockHours(int value){return value==1?6:value==2?12:value==3?24:0;}
+    private static int lockHours(ScooterCommands.Feature feature,int value){return feature.key.equals("lock_expiry")?DisplayUnits.lockHours(value):0;}
     private android.graphics.drawable.RippleDrawable rowRipple(){
         return new android.graphics.drawable.RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(design.accent,26)),null,design.shape(android.graphics.Color.WHITE,10,0));
     }
@@ -1825,7 +1825,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final class SettingLine {
         final LinearLayout card=column(),line=row(),words=column();
         final TextView name,sub,value;
-        SettingLine(String icon,String label,String detail){
+        SettingLine(String icon,CharSequence label,CharSequence detail){
             line.setGravity(Gravity.CENTER_VERTICAL);line.setBaselineAligned(false);line.setMinimumHeight(design.dp(60));line.setPadding(0,design.dp(8),0,design.dp(8));
             name=design.text(label,15,false);name.setMaxLines(2);design.decorate(name,icon);
             value=design.text("",14,false);value.setTextColor(design.muted);value.setGravity(Gravity.END);value.setMaxLines(1);
@@ -1876,7 +1876,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final class ChargeAlertRow {
         final SettingLine row;final boolean low;
         ChargeAlertRow(boolean low){
-            this.low=low;row=new SettingLine(low?"battery":"bolt",low?T.mainAlertLow():T.mainAlertCharge(),null);
+            this.low=low;row=new SettingLine(low?"battery":"bolt",low?M.mainAlertLow():M.mainAlertCharge(),null);
             row.card.setTag("charge-alert");row.line.setTag(low?"charge-alert-low-row":"charge-alert-charge-row");row.value.setTag(low?"charge-alert-low-value":"charge-alert-charge-value");
             row.chevron(MainActivity.this::showChargeAlerts);
         }
@@ -1916,18 +1916,18 @@ public final class MainActivity extends Activity implements ScreenHost {
                     ()->{if(self[0]!=null)self[0].dismiss();});
             body.setTag("charge-alert-sheet");
             LinearLayout levels=design.groupCard();body.addView(levels,new LinearLayout.LayoutParams(-1,-2));
-            chargeLine=new SettingLine("bolt",T.mainAlertCharge(),null);charge=sheetSwitch(levels,chargeLine,"charge-alert-charge");
+            chargeLine=new SettingLine("bolt",M.mainAlertCharge(),null);charge=sheetSwitch(levels,chargeLine,"charge-alert-charge");
             chargeLevel=levelSlider((ChargeAlertPolicy.CHARGE_MAX-ChargeAlertPolicy.CHARGE_MIN)/ChargeAlertPolicy.STEP,T.mainAlertChargeLevel(),"charge-alert-charge-level");
             chargeLevels=levelRow(levels,chargeLevel,T.fmtPercent(Fmt.integer(ChargeAlertPolicy.CHARGE_MIN)),T.mainAlertFull());
             design.divider(levels);
-            lowLine=new SettingLine("battery",T.mainAlertLow(),null);low=sheetSwitch(levels,lowLine,"charge-alert-low");
+            lowLine=new SettingLine("battery",M.mainAlertLow(),null);low=sheetSwitch(levels,lowLine,"charge-alert-low");
             lowLevel=levelSlider((ChargeAlertPolicy.LOW_MAX-ChargeAlertPolicy.LOW_MIN)/ChargeAlertPolicy.STEP,T.mainAlertLowLevel(),"charge-alert-low-level");
             lowLevels=levelRow(levels,lowLevel,T.fmtPercent(Fmt.integer(ChargeAlertPolicy.LOW_MIN)),T.fmtPercent(Fmt.integer(ChargeAlertPolicy.LOW_MAX)));
             body.addView(design.sectionLabel(T.mainAlertWith()));
             LinearLayout delivery=design.groupCard();body.addView(delivery,new LinearLayout.LayoutParams(-1,-2));
-            notifyLine=new SettingLine("screen",T.mainAlertNotify(),null);notify=sheetSwitch(delivery,notifyLine,"charge-alert-notify");
+            notifyLine=new SettingLine("screen",M.mainAlertNotify(),null);notify=sheetSwitch(delivery,notifyLine,"charge-alert-notify");
             design.divider(delivery);
-            alarmLine=new SettingLine("sound",T.mainAlertAlarm(),T.mainAlertAlarmDetail());alarm=sheetSwitch(delivery,alarmLine,"charge-alert-alarm");
+            alarmLine=new SettingLine("sound",M.mainAlertAlarm(),M.mainAlertAlarmDetail());alarm=sheetSwitch(delivery,alarmLine,"charge-alert-alarm");
             deliveryNote=design.caption(T.mainAlertNeedDelivery());deliveryNote.setTextColor(design.danger);deliveryNote.setTag("charge-alert-delivery-note");
             deliveryNote.setPadding(design.dp(4),design.dp(8),design.dp(4),0);body.addView(deliveryNote);
             // Notifications off: say what that means and take the owner to the one place that fixes it.
@@ -2144,7 +2144,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     }
     /** UT5 MAX: shows a running test's progress, else the last result; a blocked row says why, as other rows do. */
     private final class ScheduleTestRow {
-        final SettingLine row=new SettingLine("clock",T.mainScheduleTestRow(),null);final View spinner=new Spinner();
+        final SettingLine row=new SettingLine("clock",M.mainScheduleTestRow(),null);final View spinner=new Spinner();
         ScheduleTestRow(){
             row.card.setTag("schedule-test");row.line.setTag("schedule-test-row");
             spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());row.chevron(MainActivity.this::scheduleTestAction);
@@ -2192,7 +2192,7 @@ public final class MainActivity extends Activity implements ScreenHost {
     private final class ChargeDoneRow {
         final SettingLine row;final Switch toggle;final boolean time;final View spinner;
         ChargeDoneRow(boolean time){
-            this.time=time;row=new SettingLine("clock",T.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
+            this.time=time;row=new SettingLine("clock",M.mainScheduleDoneBy(),null);row.card.setTag("charge-done-by");
             row.line.setTag(time?"charge-done-time":"charge-done-toggle");
             spinner=new Spinner();spinner.setVisibility(View.GONE);row.line.addView(spinner,rowSpinnerSize());
             if(time){toggle=null;row.chevron(MainActivity.this::showChargeDoneTime);}
@@ -3361,7 +3361,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         if(enteringMaintenance||destroyed)return;
         if(binding&&!bound){toast(T.mainImportStillOpening());return;}
         if(!preparingExports.isEmpty()||documents.contains("path")||applyingOwnerImport||pendingOwnerFile().exists()||new File(getFilesDir(),"pending-owner-import.tmp").exists()){
-            toast(T.mainImportFinishFirst());return;
+            toast(M.mainImportFinishFirst());return;
         }
         ShizukuCaptureClient capture=ShizukuCaptureClient.get(this);
         if(capture.busy||capture.pendingCleanup()){toast(T.mainImportFinishShizuku());return;}
@@ -3518,7 +3518,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             // During first-run setup the flow connects at its own step, after Nearby devices.
             if(onboarding!=null){onboarding.onOwnerImported(true);pending.delete();importWaitNotified=false;return;}
             pending.delete();importWaitNotified=false;
-            selectedPage=PAGE_HOME;scrollPositions.put(PAGE_HOME,0);scrollPage=PAGE_HOME;if(scroll!=null)scroll.scrollTo(0,0);rebuild();toast(T.mainImportImportedOwner());scooterService.ble.connectLast();if(match.mac.isEmpty())showScanner(false);
+            selectedPage=PAGE_HOME;scrollPositions.put(PAGE_HOME,0);scrollPage=PAGE_HOME;if(scroll!=null)scroll.scrollTo(0,0);rebuild();toast(M.mainImportImportedOwner());scooterService.ble.connectLast();if(match.mac.isEmpty())showScanner(false);
         }catch(IllegalArgumentException e){pending.delete();if(onboarding==null)toast(SetupException.shown(e));else onboarding.onOwnerImported(false);}
         catch(Exception e){if(!importWaitNotified){toast(T.mainImportPaused());importWaitNotified=true;}}
         finally{applyingOwnerImport=false;}

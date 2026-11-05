@@ -98,7 +98,8 @@ src/com/jjricks/volt/MainActivity.java:1164	["This phone does not support Blueto
 src/com/jjricks/volt/MainActivity.java:1169	["Choose your scooter"]	main_scan_title	exact	
 src/com/jjricks/volt/MainActivity.java:1177	["Scan again"]	main_scan_again	exact	
 src/com/jjricks/volt/MainActivity.java:1178	["Connect"]	main_action_connect	exact	
-src/com/jjricks/volt/MainActivity.java:1199	{"one": ["1 scooter found"], "other": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooters found"]}	main_scan_found	plural	manual: scanResults.size()==1?"1 scooter found":scanResults.size()+" scooters found" became T.mainScanFound(size,size); English is the same, a whole sentence per form
+src/com/jjricks/volt/MainActivity.java:1199	["1 scooter found"]	main_scan_found_one	exact	
+src/com/jjricks/volt/MainActivity.java:1199	[{"hole": "scanResults.size()", "arg": 1, "type": "d"}, " scooters found"]	main_scan_found_many	template	
 src/com/jjricks/volt/MainActivity.java:1199	["Searching…"]	ble_status_searching	exact	
 src/com/jjricks/volt/MainActivity.java:1199	["No scooter found. Is it on?"]	main_scan_none	exact	
 src/com/jjricks/volt/MainActivity.java:1214	["Navee scooter"]	main_scan_navee	exact	
@@ -171,7 +172,7 @@ src/com/jjricks/volt/MainActivity.java:1516	["Connecting…"]	ble_status_connect
 src/com/jjricks/volt/MainActivity.java:1516	["Last seen (disconnected)"]	main_controls_last_seen	exact	
 src/com/jjricks/volt/MainActivity.java:1526	["Test records unavailable"]	main_test_records_unavailable	exact	
 src/com/jjricks/volt/MainActivity.java:1527	["Unfinished try · ", {"hole": "ScooterCommands.find(unfinished.get(0).feature).label", "arg": 1, "type": "s", "as": "ScooterCommands.find(unfinished.get(0).feature).label()"}, ""]	main_test_try	template	manual: a ternary picks a whole template; label() is the feature's catalog name, the same English. Its other branches are pinned in MainTextTest
-src/com/jjricks/volt/MainActivity.java:1527	["Unfinished test · ", {"hole": "ScooterCommands.find(unfinished.get(0).feature).label", "arg": 1, "type": "s", "as": "ScooterCommands.find(unfinished.get(0).feature).label()"}, " +", {"hole": "(unfinished.size()-1)", "arg": 2, "type": "d", "as": "unfinished.size()-1"}]	main_test_test_more	template	manual: as main_test_try
+src/com/jjricks/volt/MainActivity.java:1527	["Unfinished test · ", {"hole": "ScooterCommands.find(unfinished.get(0).feature).label", "arg": 1, "type": "s", "as": "ScooterCommands.find(unfinished.get(0).feature).label()"}, " +", {"hole": "(unfinished.size()-1)", "arg": 2, "type": "s", "as": "Fmt.integer(unfinished.size()-1)"}]	main_test_test_more	template	manual: as main_test_try
 src/com/jjricks/volt/MainActivity.java:1528	["Unfinished test · removed scooter"]	main_test_removed	exact	
 src/com/jjricks/volt/MainActivity.java:1529	["Unfinished test · another scooter"]	main_test_another	exact	
 src/com/jjricks/volt/MainActivity.java:1530	["Trying ", {"hole": "ScooterCommands.find(ble.guidedTest().feature).label.toLowerCase(Locale.ROOT)", "arg": 1, "type": "s", "as": "inSentence(ScooterCommands.find(ble.guidedTest().feature))"}, "…"]	main_test_trying	template	manual: lower-cased in English only, as inSentence says, the same value there
