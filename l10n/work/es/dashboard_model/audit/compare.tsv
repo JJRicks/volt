@@ -16,7 +16,7 @@ dashboard_model_tile_on_at	On • %1$s	Activado • %1$s	Activated • %1$s	clau
 dashboard_model_tile_not_scheduled	Not scheduled	Sin programar	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	21efd96a9fb788c644f6b54cecf4b24d89da2502
 dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
 dashboard_model_tile_select_scooter	Select a scooter first	Primero selecciona un patinete	First select a scooter	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	c7f76c3e7d1c6c2636257c047fb9ee29009d20a7
-dashboard_model_tile_connect_scooter	Connect your scooter first	Primero conecta tu patinete	First connect your scooter	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	19d70170bc89230321f19cd4c47ee5cf5e62a420
+dashboard_model_tile_connect_scooter	Connect your scooter first	Conecta tu patinete primero	Connect your scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	f8a84c35e78056aaab2ba115828ca6b3e9d4bc26
 dashboard_model_type_lock	Lock & connection	Bloqueo y conexión	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	f85d794fc5d6049b3c8470d2762d1c0f62bae418
 dashboard_model_type_charging	Charging	Carga	Charge	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	d650cb4be16dcda1afe5791e441be2311ed78a42
 dashboard_model_type_lockbar	Lock bar	Barra de bloqueo	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	211634d96e35c2cd9230fa6bf040be068cf4725f
