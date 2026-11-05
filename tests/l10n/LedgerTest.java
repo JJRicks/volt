@@ -137,8 +137,10 @@ public final class LedgerTest {
                 "a one item with other words than the spelled form fails");
         check(!comparePlural("t", true, "Cleared %1$d try", "Cleared %1$d tries", spelled, false, false, none).isEmpty(),
                 "only a manual row may differ from the \"other\" pieces at 1");
-        check(!comparePlural("t", true, "Cleared %2$d try", "Cleared %1$d tries", spelled, true, false, none).isEmpty(),
-                "a placeholder that is not the quantity keeps the text sentinel, so a number conversion there still fails");
+        boolean thrown = false;
+        try { comparePlural("t", true, "Cleared %2$d try", "Cleared %1$d tries", spelled, true, false, none); }
+        catch (java.util.IllegalFormatException expected) { thrown = true; }
+        check(thrown, "a placeholder that is not the quantity keeps the text sentinel, so a number conversion there still fails");
     }
 
     /** Plurals of res/values: key -> {quantities the entry has, "pending" when tagged volt:english-fix="pending"}. */
