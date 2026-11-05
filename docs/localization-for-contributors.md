@@ -86,7 +86,7 @@ Placeholders are positional and numbered from 1 with no gaps:
 </plurals>
 ```
 
-The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
+The quantity comes first, then the arguments: `T.serviceTestAbout(minutes, minutes)`. Pass the count as a local, a parameter or a field, not a method call: the batch check refuses `T.sRides(rides.size(), …)`, because it can't tell that the call returns the same number twice. Set the count on a local in an ordinary pull request first. A whole count stays `%1$d`, which prints the same digits as `Fmt.integer` today. English holds only `one` and `other`. `<string-array>` is banned. Don't build counts with helpers such as `BackupArchive.plural`.
 
 ### Spelling
 
@@ -290,6 +290,7 @@ Commit first, because the gates read `HEAD`. Run `git fetch origin` so `origin/m
 python3 tools/l10n/gen_catalog.py --check
 python3 tools/l10n/hardcoded_lint.py --check
 python3 tools/l10n/ci_gates.py --base origin/main --pr-head "$(git rev-parse HEAD)"
+python3 tools/l10n/ship_check.py
 bash tests/l10n/golden.sh
 bash tests/run.sh
 python3 -m unittest discover -s tools/l10n
