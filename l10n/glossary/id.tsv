@@ -2,7 +2,7 @@
 # Same columns as en.tsv: term holds the Indonesian, forms separated by " | ". Indonesian has no gender or number, and the matcher does not inflect it, so affixed and pe(N)-...-an forms are listed. Definitions are D3's where D3 changed them.
 # Rows D3 retires stay, mapped to the chosen term, until D3 merges and en.tsv drops them. acceleration-eco and acceleration-turbo become do-not-translate at D3 and lose their rows then. D3's new rows and renamed ids wait in l10n/pending/glossary-d3/id.tsv.
 # HOLD until D3 merges: en.tsv and the strings still use Top speed and Maximum speed in their old senses, while the top-speed and maximum-speed rows below already use D3's. Following those rows now would call the setting Kecepatan tertinggi and the measured value Kecepatan maksimum, the swap section 7 of the style guide forbids.
-# So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3.
+# So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), rides_tile_max_speed (English Max speed, a measured value that D3 renames Top speed; no row catches it), and main_speed_* if they arrive first. Also more_lab_untested: its English still says Untested while the row below already gives D3's Controls to try, so no draft can pass before D3. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. The other keys with Maximum speed, Top speed or Untested controls were checked against D3's string list and already match it.
 id	term	definition	pos	dnt	safety	source
 not-affiliated	tidak berafiliasi dengan NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	claude-only claude-opus-5-5; MoreScreen.java:184, 2360
 official-app	aplikasi resmi	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	claude-only claude-opus-5-5; ModelRegistry.java:834; MoreScreen.java:1547
@@ -30,20 +30,20 @@ lock	Kunci | mengunci | menguncinya | dikunci | penguncian	The action that locks
 locked	Terkunci | dikunci	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
 unlock	Buka kunci | membuka kunci | buka kuncinya | membuka kuncinya | dibuka kuncinya | pembukaan kunci	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
 unlocked	Tidak terkunci | tidak dikunci	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
-lock-bar	Bilah kunci	The lock row on Home.	noun phrase	no	lock	claude-only claude-opus-5-5; DashboardConfig.java:58
+lock-bar	Baris kunci	The lock row on Home.	noun phrase	no	lock	claude-only claude-opus-5-5; DashboardConfig.java:58
 lock-state-unverified	Status kunci belum diverifikasi	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
 lock-state-unknown	Status kunci tidak diketahui	Same meaning as Lock state unverified. Must never read as confirmed.	noun phrase	no	lock	claude-only claude-opus-5-5; MainActivity.java:448-1114
-lock-duration	Durasi kunci	How long the scooter stays locked when off.	noun phrase	no	lock	claude-only claude-opus-5-5; ScooterCommands.java:136
+lock-duration	Durasi penguncian	How long the scooter stays locked when off.	noun phrase	no	lock	claude-only claude-opus-5-5; ScooterCommands.java:136
 handlebar-pin	PIN setang	The 4-digit code entered on the handlebar. It is the rider's phone-free way to unlock. Keep distinct from a backup password.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
 fallback-pin	PIN setang	D3 retired the English 'fallback PIN' (handlebar PIN chosen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
 dashboard-pin	PIN setang	D3 retired the English 'dashboard PIN' (handlebar PIN chosen; dashboard means Volt's screen). Use the term shown.	noun phrase	no	pin	claude-only claude-opus-5-5; MoreScreen.java:1213, 1215; BleController.java:286
 proximity-unlock	buka kunci jarak dekat | pembukaan kunci jarak dekat	Unlocking when the paired phone is near.	noun phrase	no	pin	claude-only claude-opus-5-5; ScooterCommands.java:153
-pair	pasangkan | memasangkan | dipasangkan | berpasangan | pemasangan	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	claude-only claude-opus-5-5; BleController.java:559
+pair	pasangkan | memasangkan | dipasangkan | berpasangan	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	claude-only claude-opus-5-5; BleController.java:559
 connect	Hubungkan | menghubungkan | terhubung | dihubungkan | koneksi | sambungan	Start the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
-disconnect	Putuskan | memutuskan | terputus | diputuskan | pemutusan	End the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
+disconnect	Putuskan koneksi | memutuskan koneksi | memutuskan | terputus | diputuskan | pemutusan	End the Bluetooth link to the scooter.	verb	no	-	claude-only claude-opus-5-5; MainActivity.java:969
 connection-details	Detail koneksi	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	claude-only claude-opus-5-5; MainActivity.java:969
 signal-lost	Sinyal hilang	The Bluetooth link dropped.	clause	no	-	claude-only claude-opus-5-5; MainActivity.java:969
-parked	berhenti | diparkir	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5; CapabilityResolver.java:312
+parked	diparkir | parkir | terparkir	Stationary; some changes require it.	adjective	no	ride	claude-only claude-opus-5-5; CapabilityResolver.java:312
 model-id	ID model	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	claude-only claude-opus-5-5; ReportInvite.java:32
 firmware	firmware	The scooter's software. Volt never changes it.	noun	no	-	claude-only claude-opus-5-5; MoreScreen.java:1552
 compatibility-check	pemeriksaan kompatibilitas	A read-only check of what this scooter supports.	noun phrase	no	-	claude-only claude-opus-5-5; MoreScreen.java:2150; CompatibilityPanel.java
@@ -54,8 +54,8 @@ diagnostics	Diagnostik	The section that collects the information a report sends.
 diagnostics-file	file diagnostik	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5; MainActivity.java:2719
 experimental-controls	Kontrol eksperimental	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
 untested-controls	Kontrol untuk dicoba	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:72-75, 1546
-try	Coba | mencoba | dicoba | percobaan | cobalah	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
-set-back	Kembalikan | mengembalikan | dikembalikan | pengembalian	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+try	Coba | mencoba | dicoba | percobaan | cobalah | mencobanya	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
+set-back	Kembalikan | mengembalikan | dikembalikan | pengembalian | kembalikannya | mengembalikannya	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 help-verify	Bantu verifikasi | membantu verifikasi	Ask the rider to confirm what a try did.	verb phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 unverified	Belum diverifikasi	Volt has not confirmed the control on this model.	adjective	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 untested	Belum diuji	No one has tried the control on this model yet.	adjective	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
@@ -63,9 +63,9 @@ unconfirmed	Belum dikonfirmasi	The scooter acknowledged a try, but the value was
 refused-by-scooter	Ditolak skuter | ditolak oleh skuter	The scooter rejected the try.	adjective phrase	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 worked-here	Berhasil di sini	The try worked on this scooter.	clause	no	experimental	claude-only claude-opus-5-5; MoreScreen.java:1666-1728
 readback	pembacaan ulang | baca ulang	Whether the scooter reported the new value back. Neutral on purpose: the result says whether it confirmed anything.	noun	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
-confirmed	dikonfirmasi | terkonfirmasi	The scooter read the new value back.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+confirmed	dikonfirmasi | terkonfirmasi | mengonfirmasi | mengonfirmasinya	The scooter read the new value back.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
 not-confirmed	Tidak dikonfirmasi	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
-rejected	Ditolak	The scooter refused the value.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
+rejected	Ditolak | menolak | menolaknya	The scooter refused the value.	adjective	no	experimental	claude-only claude-opus-5-5; MainActivity.java:1717-1722
 acceleration-profile	Profil akselerasi	How hard the motor accelerates.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
 acceleration-eco	Eco	The gentle acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
 acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own name, shown as Volt shows it (ScooterCommands.shown), so it stays in English like the drive mode names.	noun	yes	ride	claude-only claude-opus-5-5; ScooterCommands.java:108
@@ -78,7 +78,7 @@ energy-recovery-medium	Sedang	An Energy recovery level.	adjective	no	ride	claude
 energy-recovery-high	Tinggi	An Energy recovery level.	adjective	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:106; ModelRegistry.java:861
 cruise-control	Cruise control	Holds the current speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
 traction-control	Kontrol traksi	Limits wheel spin.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
-overspeed-active-control	Kontrol aktif kelebihan kecepatan	Brakes the motor above the speed limit.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
+overspeed-active-control	Kontrol aktif kecepatan berlebih | Kontrol kecepatan berlebih	Brakes the motor above the speed limit.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
 hill-descent-control	Kontrol turun bukit	Holds a steady speed downhill.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
 dual-motor-drive	Motor ganda	Both motors drive.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
 single-motor	Motor tunggal	Only one motor drives.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:105-148
@@ -88,11 +88,11 @@ custom-speed-cap	Batas kecepatan kustom	A rider-set speed limit below Maximum sp
 drive-mode-speed-cap	Batas kecepatan mode	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
 maximum-speed	Kecepatan maksimum | Kec. maks.	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
 top-speed	Kecepatan tertinggi | Kec. tertinggi	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:122-128; ModelRegistry.java:862
-walk-assist	Bantuan berjalan	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
+walk-assist	Bantuan jalan kaki	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
 power-assist	Bantuan daya	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
 boost	Boost	Extra power in Sport mode. The scooter's own name, like the drive mode names, so it stays in English.	noun	no	ride	claude-only claude-opus-5-5; ScooterCommands.java:142-144
 low-battery-mode	Mode baterai lemah	A battery toggle that limits power to save charge.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:138-140
-long-range-mode	Mode jarak jauh	A battery toggle that trades speed for distance.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:138-140
+long-range-mode	Mode jarak tempuh jauh | Jarak tempuh jauh	A battery toggle that trades speed for distance.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:138-140
 tail-light	Lampu belakang	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
 automatic-lights	Lampu otomatis	Lights that switch on by themselves.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
 line-lights	Lampu garis | Garis	A light strip on the scooter.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:112
@@ -122,7 +122,7 @@ trip	Trip	Distance since the last reset.	noun	no	-	claude-only claude-opus-5-5; 
 range-estimate	Perkiraan jarak tempuh | Est. jarak tempuh | Est. jarak	Remaining-distance estimate.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
 learned-range	jarak tempuh hasil pembelajaran	D3 retired the English 'learned range' (The UI says Volt (learned) and learned curves; the phrase never appears. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
 theoretical	Teoretis	A range basis: the maker's figure.	adjective	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
-actual-riding	Berkendara nyata	A range basis: how this scooter has really been ridden.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
+actual-riding	Pemakaian nyata	A range basis: how this scooter has really been ridden.	noun phrase	no	-	claude-only claude-opus-5-5; ScooterCommands.java:118; LearnedRangeEstimate.java
 charge-limit	Batas pengisian daya | Batas isi daya	The maximum charge percentage.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
 charge-ceiling	Batas pengisian daya | Batas isi daya	D3 retired the English 'charge ceiling' (charge limit chosen; ceiling stays only as a search keyword). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:130; MainActivity.java:1734
 scheduled-charging	Pengisian terjadwal | pengisian daya terjadwal	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	claude-only claude-opus-5-5; ScooterCommands.java:132-134; MainActivity.java:3251
@@ -148,10 +148,10 @@ ride-recording	perekaman perjalanan | rekaman perjalanan	Recording a ride.	noun 
 phone-journal	Jurnal ponsel	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
 motion	Gerakan	Movement data of a ride.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
 route	Rute	The path of a ride on the map.	noun	no	-	claude-only claude-opus-5-5; RidesScreen.java:1218, 1422
-backup	Cadangan | pencadangan | cadangkan | mencadangkan	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+backup	Cadangan | pencadangan | cadangkan | mencadangkan | dicadangkan	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
 full-backup	Cadangan lengkap	A backup of everything.	noun phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
 selected-data	Data terpilih	A backup of the chosen parts.	noun phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
-restore	Pulihkan | memulihkan | dipulihkan | pemulihan	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
+restore	Pulihkan | memulihkan | dipulihkan | pemulihan | memulihkannya	Put a backup's data back.	verb	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
 replace-everything	Ganti semua | mengganti semua	A restore that replaces all of Volt's data.	verb phrase	no	privacy	claude-only claude-opus-5-5; BackupActivity.java:176-414
 owner-setup-file-scooter-access	File penyiapan pemilik · hanya akses skuter	A backup choice that holds only the owner key.	noun phrase	no	owner-key	claude-only claude-opus-5-5; BackupActivity.java:176-414
 simulated-scooter	Skuter simulasi	Demo mode with no real scooter.	noun phrase	no	-	claude-only claude-opus-5-5; CompatibilityReport.java:246; IssueReport.java:18
