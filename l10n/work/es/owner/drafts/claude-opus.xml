@@ -34,7 +34,7 @@
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Descartar</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Iniciar Shizuku</string>
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku instalado</string>
-    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1">Instalar</string>
+    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1" volt:attempt="2">Bajar</string>
     <string name="owner_shizuku_running" volt:src="95edb635c6a1e52241514201596f24fdbfee39e8">Shizuku en ejecución</string>
     <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e">Abrir</string>
     <string name="owner_shizuku_setup_guide" volt:src="a7d9140e980c3ea35d0172716f309744b04d6448">Guía de configuración de Shizuku</string>
