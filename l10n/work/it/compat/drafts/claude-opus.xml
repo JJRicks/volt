@@ -44,7 +44,7 @@
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Lettura del valore attuale…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Passaggio al valore %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Controllo che il valore sia invariato…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che non sia cambiato…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ritorno al valore %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Sì</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">No</string>
@@ -196,7 +196,7 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Lettura supportata</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Rifiutato, codice %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Ricevuto, non confermato</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Rilettura invariata, valore %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Rilettura non cambiata, valore %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Rilettura diversa, valore %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Impostazione confermata</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Effetto osservato</string>
@@ -211,7 +211,7 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Non è arrivata nessuna lettura aggiornata.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Accettato, ma non è arrivata nessuna lettura conclusiva.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Nessuna risposta dal monopattino.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt non è riuscita a inviare il comando per riportare indietro il valore.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt non è riuscita a inviare il ripristino.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Non è stato possibile ottenere un nuovo valore di riferimento. Riconnetti il monopattino e riprova. Non è stato modificato nulla.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Non è stato possibile verificare l\'impostazione. Riconnetti il monopattino e controlla il test non completato.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">La connessione si è interrotta durante il test.</string>

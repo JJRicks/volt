@@ -60,6 +60,6 @@
     <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137">Ricarica in corso — non c\'è abbastanza tempo per attendere prima dell\'orario limite</string>
     <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Scegli prima «Inizio ricarica»</string>
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Scegli un inizio ricarica entro 48 ore</string>
-    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Scegli un\'ora esatta (senza minuti) entro 48 ore</string>
+    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25" volt:attempt="2">Scegli un orario a ora intera entro 48 ore</string>
     <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Attendi la fine del test della programmazione</string>
 </resources>

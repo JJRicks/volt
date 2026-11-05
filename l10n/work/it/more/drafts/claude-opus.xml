@@ -151,7 +151,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Con lo sblocco di prossimità: telefono accoppiato vicino, aziona il freno. Esegui il test di entrambi con il monopattino fermo prima di farci affidamento.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Ho capito</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Manubrio: 1 pulsante dell\'indicatore di direzione, 2 leva del freno, 3 pulsante di accensione</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Comandi da provare</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Comandi da provare</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Aiuta a verificare</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Niente da provare</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Risposte ai comandi</string>
@@ -243,7 +243,7 @@
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Scegli un limite</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Scegli un valore</string>
     <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt invia una modifica mentre il monopattino è fermo e sbloccato, la rilegge, poi ti chiede cosa hai visto. Il valore resta finché non lo riporti indietro. Se la connessione cade, Volt non scrive mai di nuovo da sola: il tentativo attende che tu lo riveda.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Controllo che il valore sia invariato…</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Controllo che il valore non sia cambiato…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Ritorno a %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Lettura del valore attuale…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Invio di %1$s e rilettura…</string>
@@ -316,7 +316,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automatico</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Originale</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rapido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">«Automatico» riconosce i caricabatterie UT5 MAX dalla potenza in tempo reale. In caso di incertezza, Volt usa il ritmo di ricarica attuale; scegli un caricabatterie per sostituire il riconoscimento automatico.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Auto» riconosce i caricabatterie UT5 MAX dalla potenza in tempo reale. Se il riconoscimento non è certo, Volt usa la velocità di ricarica attuale; scegli un caricabatterie per ignorare il riconoscimento.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curve di ricarica salvate</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Registra questa ricarica</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Interrompi la registrazione di ricarica</string>
