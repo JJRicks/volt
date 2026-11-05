@@ -151,7 +151,7 @@
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Przy odblokowaniu zbliżeniowym: gdy sparowany telefon jest w pobliżu, należy nacisnąć dźwignię hamulca. Oba sposoby należy przetestować na postoju, zanim zacznie się na nich polegać.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Rozumiem</string>
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Kierownica: 1 przycisk kierunkowskazu, 2 dźwignia hamulca, 3 przycisk zasilania</string>
-    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Funkcje do wypróbowania</string>
+    <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662" volt:attempt="2">Funkcje do wypróbowania</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Pomoc w weryfikacji</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Brak funkcji do wypróbowania</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Odpowiedzi na polecenia</string>

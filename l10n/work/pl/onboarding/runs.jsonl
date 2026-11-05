@@ -1,1 +1,3 @@
 {"chunks":2,"draft":"claude-opus","keys":216,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"ec3019c6f204","stage":"import-chunks","when":"2026-11-05T09:38:50Z"}
+{"draft":"claude-opus","keys":52,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"79778277de20","stage":"audit-compare","when":"2026-11-05T09:42:55Z"}
+{"draft":"claude-opus","flagged":0,"keys":52,"reader":"claude-opus-5-5","stage":"audit-record","when":"2026-11-05T09:44:01Z"}

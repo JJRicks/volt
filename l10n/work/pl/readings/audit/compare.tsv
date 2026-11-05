@@ -1,0 +1,16 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+readings_lock_status	Electronic lock	Blokada elektroniczna	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	81271279fe859351cb43ea9821744e3c73ea038f
+readings_lock_status_short	Electronic lock	Blokada elektroniczna	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	81271279fe859351cb43ea9821744e3c73ea038f
+readings_lock_status_compact	Lock	Blokada	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	addd566ede8a8804641a0184dec285a65c9e2d45
+readings_lock_push_warning	Locked movement warning (raw)	Ostrzeżenie o ruchu zablokowanej hulajnogi (surowe)	Warning about movement of a locked scooter (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	64c5cadedbeda7801318a12eac0dfd8c9a08ee27
+readings_lock_push_warning_short	Lock movement (raw)	Ruch po zablokowaniu (surowy)	Movement after locking (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	1b3b41ec4e6eac2dc990ec35ace1202a5c8a818f
+readings_value_unlocked	Unlocked	Odblokowana	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	6e805905dd235d9ada12ce49e6d1489bbd2a8837
+readings_value_locked	Locked	Zablokowana	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	83fc1e3f3578b47e06dc3f94558498573304777b
+readings_chart_est_finish	Est. finish time	Szac. godzina zakończenia	Est. hour of finishing	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	9681db669a26fb21f93314f728b8eb828b29b68b
+readings_chart_est_countdown	Est. countdown time	Szac. czas do zakończenia	Est. time until finishing	claude-opus	claude-opus-5-5	14031bfeb3be34cbf79c3c63ca28dd159ab444da	c9b4ea1258f60eac56f5eba5329d4524040da6e8
+readings_chart_est_finish_limit	Est. finish at limit	Szac. godzina osiągnięcia limitu	Est. hour of reaching the limit	claude-opus	claude-opus-5-5	8d7bc97525fcb928d3ec9fc95a8cb1a64b5d3580	8bd3a1db46ec01a10bc2c2768ef7d8901583ca9c
+readings_chart_est_countdown_limit	Est. countdown to limit	Szac. czas do osiągnięcia limitu	Est. time until reaching the limit	claude-opus	claude-opus-5-5	023a8f6ff05ac3277d387d1104d4f62ecfa6537e	3edee7a064712e998191b9897ffc389b7f7a1ef6
+readings_chart_charge_limit	Charge limit	Limit ładowania	Charging limit	claude-opus	claude-opus-5-5	7a09777ec3485391cc54adc948dc7f767d7c55e8	cf0f434eafbfa424aa875bfccdca1e7a0d24f2e3
+readings_chart_observed_finish	Observed finish	Rzeczywista godzina zakończenia	Actual hour of finishing	claude-opus	claude-opus-5-5	937952344600dd6d80c0982160d37adf6d277e3f	7da2c9d4a43723c073c4c1e012a6f7af0fc8db8b
+readings_chart_actual_countdown	Actual countdown	Rzeczywisty czas do zakończenia	Actual time until finishing	claude-opus	claude-opus-5-5	f79949dd92e33164bc3d2fec7112b46c9c44aee1	1e153ef6479a1143f6317c6e04b033d690b313fe

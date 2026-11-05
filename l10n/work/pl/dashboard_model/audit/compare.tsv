@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN i zbliż.	PIN and approach (abbrev.)	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	634ca76f1ec713bf68b9dc4f88a86e6c2e29e8a7
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN i zbliżenie	PIN and approach/proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	0afd88a16b650a27418876be8ea68d37fe59551f
+dashboard_model_qa_experimental	Experimental controls	Funkcje eksperymentalne	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	3646e444b8b2af3099f83bd951280749151c7846
+dashboard_model_qa_experimental_short	Experimental controls	Funkcje eksperymentalne	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	3646e444b8b2af3099f83bd951280749151c7846
+dashboard_model_qa_charge_done_by	Charge done by	Koniec ład.	End of charg. (abbrev.)	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	6e0cb5d2d125518591dac79691c7424f15161207
+dashboard_model_qa_charge_done_by_short	Charge done by	Termin końca ładowania	Deadline of the end of charging	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	00db0a7a11385b7e90273b0b42f65d55b0843102
+dashboard_model_qa_charge_done_time	Charge done by time	Termin końca ładowania: godzina	Deadline of the end of charging: hour	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	249ecf11a2e2d740669a6f81ebdfc7302b231fbd
+dashboard_model_qa_charge_done_time_short	Charge done by time	Koniec ład.: godz.	End of charg.: hr. (abbrev.)	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	ad0b1f5ea5e54262b4f6053c58ab1b6ddc92d7f4
+dashboard_model_qa_group_experimental	Experimental controls	Funkcje eksperymentalne	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	3646e444b8b2af3099f83bd951280749151c7846
+dashboard_model_tile_top_speed	Top speed	Maks. prędkość	Max. speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	e655827ee65bb8006c7b589c81aa799f5c2ae494
+dashboard_model_tile_charge_schedule	Charge schedule	Harmonogram ładowania	Charging schedule	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	65c9f97533ff85751dbb193fbc2e8d4bccb76a1e
+dashboard_model_tile_measuring	Measuring	Trwa pomiar	Measurement in progress	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	5d49faebf76bcac2f4c395fd9935ecdd9728c24e
+dashboard_model_tile_on_at	On • %1$s	Wł. • %1$s	On (abbrev.) • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	4685c04c403b1d36bbeedf957bdb2a152f7e567e
+dashboard_model_tile_not_scheduled	Not scheduled	Nie zaplanowano	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	38b8c4bb650428e6f6a920dcc0fd8338888db206
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Najpierw wybierz hulajnogę	First select the scooter	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	94f9d67b22ea04bf79433ed73aa7693d178f95cd
+dashboard_model_tile_connect_scooter	Connect your scooter first	Najpierw połącz się z hulajnogą	First connect to the scooter	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	2dd315413e4d947b1efbbecb09495b92fe88f9b8
+dashboard_model_type_lock	Lock & connection	Blokada i połączenie	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	84498b7c43b72fd8ccd405a959d743719375705b
+dashboard_model_type_charging	Charging	Ładowanie	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	afe3cea3ee432177c9ef66562933b9f7d952ce46
+dashboard_model_type_lockbar	Lock bar	Pasek blokady	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	c01464bf76084542a55bdad151a5d95c13e44cdb
