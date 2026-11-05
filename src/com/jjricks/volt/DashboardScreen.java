@@ -2976,7 +2976,7 @@ public final class DashboardScreen implements AppScreen {
             final ArrayList<LinearLayout> heads = new ArrayList<>();
             final ArrayList<FittedValue> values = new ArrayList<>();
             final ArrayList<String> keys = new ArrayList<>();
-            int budget, columns = 1, rowHeight, mode = -1, fittedWidth = -1, fittedBudget = -1, fittedColumns = -1;
+            int budget, columns = 1, rowHeight, tileWidth = 1, mode = -1, fittedWidth = -1, fittedBudget = -1, fittedColumns = -1;
 
             ReadingTiles(List<String> readings) {
                 super(host.activity());
@@ -3046,12 +3046,6 @@ public final class DashboardScreen implements AppScreen {
                 // a one-row card keeps every tile on one row and drops icons and labels instead.
                 int minimum = ui.dp(88 * textFactor());
                 int maxRows = budget > 0 ? Math.max(1, (budget + gap) / (ui.dp(44 * textFactor()) + gap)) : count;
-                columns = count;
-                while (columns > 1 && (width - (columns - 1) * gap) / columns < minimum) {
-                    int next = columns == 4 ? 2 : columns - 1;
-                    if ((count + next - 1) / next > maxRows) break;
-                    columns = next;
-                }
                 // Height may force values-only cells, but must never force a numeric token
                 // into fewer pixels than it needs at the readable floor. Allow another row
                 // (and normal card scrolling) rather than clipping digits or hiding readings.
@@ -3063,10 +3057,12 @@ public final class DashboardScreen implements AppScreen {
                         required = Math.max(required, probe.measureText(token));
                 }
                 required += ui.dp(12);
-                while (columns > 1 && (width - (columns - 1) * gap) / columns < required)
-                    columns = columns == 4 ? 2 : columns - 1;
-                int rows = (count + columns - 1) / columns;
-                int cellWidth = Math.max(1, (width - (columns - 1) * gap) / columns);
+                columns = ReadingTileGrid.columns(count, width, gap, minimum, maxRows, required);
+                int rows = ReadingTileGrid.rows(count, columns);
+                // Label mode, padding and value floors follow one column's width for every tile, so a
+                // stretched last tile (3 readings in 2 columns) matches its neighbours, only wider.
+                int cellWidth = ReadingTileGrid.cellWidth(width, columns, gap);
+                tileWidth = cellWidth;
                 boolean cramped = cellWidth < minimum;
                 int horizontal = Math.min(ui.dp(cramped ? 6 : 14),
                         Math.max(0, (cellWidth - (int)Math.ceil(required - ui.dp(12))) / 2));
@@ -3089,16 +3085,19 @@ public final class DashboardScreen implements AppScreen {
                     }
                 }
                 rowHeight = perRow != Integer.MAX_VALUE && perRow >= natural ? perRow : natural;
-                for (LinearLayout cell : cells)
-                    cell.measure(MeasureSpec.makeMeasureSpec(cellWidth, MeasureSpec.EXACTLY),
+                for (int i = 0; i < count; i++)
+                    cells.get(i).measure(MeasureSpec.makeMeasureSpec(
+                                    ReadingTileGrid.width(i, count, columns, cellWidth, gap), MeasureSpec.EXACTLY),
                             MeasureSpec.makeMeasureSpec(rowHeight, MeasureSpec.EXACTLY));
                 setMeasuredDimension(width, rows * rowHeight + (rows - 1) * gap);
             }
 
             /** Tallest tile at this mode, letting each value shrink toward its floor to fit the row. */
-            private int measureCells(int cellWidth, int perRow) {
-                int tallest = 0;
-                for (int i = 0; i < cells.size(); i++) {
+            private int measureCells(int columnWidth, int perRow) {
+                int tallest = 0, count = cells.size();
+                for (int i = 0; i < count; i++) {
+                    // A stretched last tile is measured at its real width, so its label and value use the room.
+                    int cellWidth = ReadingTileGrid.width(i, count, columns, columnWidth, ui.dp(10));
                     LinearLayout cell = cells.get(i);
                     LinearLayout head = heads.get(i);
                     int other = cell.getPaddingTop() + cell.getPaddingBottom() + ui.dp(2);
@@ -3125,7 +3124,9 @@ public final class DashboardScreen implements AppScreen {
                 for (int i = 0; i < cells.size(); i++) {
                     View cell = cells.get(i);
                     int w = cell.getMeasuredWidth();
-                    int x = (i % columns) * (w + gap), y = (i / columns) * (rowHeight + gap);
+                    // Step by the column width, not this tile's own: a stretched last tile is wider.
+                    int x = ReadingTileGrid.start(i, columns, tileWidth, gap);
+                    int y = ReadingTileGrid.top(i, columns, rowHeight, gap);
                     if (rtl) x = getWidth() - x - w;
                     cell.layout(x, y, x + w, y + rowHeight);
                 }
