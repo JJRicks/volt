@@ -822,7 +822,12 @@ worktrees and requires byte-identical `classes.dex` and `resources.arsc`.
 bracketed, longer) and ar-XB (right-to-left). The build checks that the resource ids are unchanged
 and that both configurations are present. Every build runs a release guard on `dist/volt.apk`:
 `aapt dump configurations` must not list en-XA or ar-XB, and no text may sit in an English or
-non-locale configuration. Known aapt1 quirk: a trailing `%` is mangled (`75%` becomes `[75»%`).
+non-locale configuration. aapt1 cuts en-XA text at a `%` with no letter after it (`Battery %`,
+`Battery charge (%)`, only possible with `formatted="false"`): `[βåţţéŕý »%` and NUL characters, no
+closing bracket. aapt refuses a `values-en-rXA` folder next to `--pseudo-localize`, so the pseudo
+build runs `tools/l10n/pseudo_fix.py` on its output, which rewrites those strings in place as the
+text aapt meant (`[βåţţéŕý % one two]`) and fails if any text still holds a NUL. A letter soon after
+the `%` is not cut, only marked: `90% range` becomes `[90»% ra«ñĝé one]`, which the repair leaves alone.
 
 ## Census format (G7)
 

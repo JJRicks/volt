@@ -2,7 +2,8 @@
 # Recapture the round-trip fixtures from the local aapt (build-tools 36.1.0, the build's pinned version).
 # Writes resources.arsc (aapt's compiled table), dump.txt (aapt dump --values resources) and
 # resources-pseudo.arsc (the same package step with --pseudo-localize) here, and
-# ../aapt-qualified/resources.arsc (text in values-en, values-v31, values-night and two translations).
+# ../aapt-qualified/resources.arsc (text in values-en, values-v31, values-night and two translations) and
+# ../aapt-pseudo-percent/resources-pseudo.arsc (aapt's NUL-mangled en-XA text, which pseudo_fix.py repairs).
 set -euo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
@@ -22,5 +23,9 @@ QUALIFIED="$HERE/../aapt-qualified"
 (cd "$WORK" && mkdir qualified && cd qualified && unzip -q -o ../qualified.apk resources.arsc)
 cp "$WORK/qualified/resources.arsc" "$QUALIFIED/resources.arsc"
 "$AAPT" dump --values resources "$WORK/qualified.apk" > "$QUALIFIED/dump.txt"
+PERCENT="$HERE/../aapt-pseudo-percent"
+"$AAPT" package -f --pseudo-localize -M "$PERCENT/AndroidManifest.xml" -S "$PERCENT/res" -I "$ANDROID_JAR" -F "$WORK/percent.apk"
+(cd "$WORK" && mkdir percent && cd percent && unzip -q -o ../percent.apk resources.arsc)
+cp "$WORK/percent/resources.arsc" "$PERCENT/resources-pseudo.arsc"
 "$AAPT" version > "$HERE/aapt-version.txt"
 echo "Captured $HERE/resources.arsc and dump.txt with $(cat "$HERE/aapt-version.txt")"
