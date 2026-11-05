@@ -265,6 +265,10 @@ public final class RideAutoExportValidation extends Instrumentation {
             if (n.getId() == id) return n.getNotification();
         return null;
     }
+    /** Closes Volt's screen and ends its service, as swiping Volt away with nothing recording does. */
+    private void closeVolt() { main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); }); }
+    /** Removes one of Volt's notifications, as swiping it away does. */
+    private void dismissNotice(int id) { getTargetContext().getSystemService(NotificationManager.class).cancel(id); }
     /** The recording notification's Stop, sent as tapping it does (its PendingIntent); queueFirst as stopFor. */
     private void stopFromNotification(boolean queueFirst) {
         String id = activity.service().rides.activeId(); check(id != null, "A ride is recording");
@@ -391,7 +395,7 @@ public final class RideAutoExportValidation extends Instrumentation {
         String f = recordRide("Retried at app start", true); stopFor(null); awaitPassDone();
         check(settings.getString(PENDING, "").equals(f), "Waiting after the failure");
         shell("mkdir -p " + FOLDER_PATH); SystemClock.sleep(500);
-        main(() -> { activity.finish(); ScooterService.setUiVisible(false); getTargetContext().stopService(new Intent(getTargetContext(), ScooterService.class)); });
+        closeVolt();
         await(() -> method(ScooterService.class, null, "currentForMaintenance") == null, 15000, "Service ended");
         check(settings.getString(PENDING, "").equals(f), "Still waiting while Volt is closed");
         launch();
