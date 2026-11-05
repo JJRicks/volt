@@ -27,9 +27,11 @@ final class ConnectionText {
             if (dropped != null) return dropped;
         }
         // Reasons that reach a notice as text: the shared ids (BleController.BLUETOOTH_OFF, ...), and pump()'s refused
-        // write, which still passes "Send failed" as text (tests/ProximityFollowUpTest reads that line).
+        // write, which still passes "Send failed" as text (tests/ProximityFollowUpTest reads that line), and the PIN
+        // builders' refusals, which setPin and enablePin catch as e.getMessage() (a Refused's getMessage is its Msg's English).
         for (Msg id : new Msg[]{M.bleNearbyNeeded(), M.bleBluetoothOff(), M.commonNoScooter(), M.bleNothingFound(),
-                M.bleOwnerRejected(), M.bleWholeHour(), M.bleFailedSend()}) {
+                M.bleOwnerRejected(), M.bleWholeHour(), M.bleFailedSend(), M.controlsRefusalPinOwner(),
+                M.controlsRefusalPinDigits(), M.controlsRefusalPinNotConfigured()}) {
             Msg shown = drop(id, english);
             if (shown != null) return shown;
         }
