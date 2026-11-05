@@ -122,13 +122,13 @@
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Να απενεργοποιηθεί ο έλεγχος πρόσφυσης; %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Να απενεργοποιηθεί η λειτουργία χαμηλής μπαταρίας; %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Μετάβαση σε έναν κινητήρα; %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Να απενεργοποιηθεί η ανάκτηση ενέργειας; %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Να οριστεί η ανάκτηση ενέργειας σε «Ανενεργή»; %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Ταχύτητα εκκίνησης με ώθηση κάτω από 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Πάνω από 32 km/h: έλεγξε τους κανόνες εκεί όπου κυκλοφορείς. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Θα απενεργοποιηθεί ο έλεγχος πρόσφυσης. Οδήγησε ήπια σε βρεγμένο ή χαλαρό έδαφος μέχρι να μάθεις πώς συμπεριφέρεται.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Κάτω από 3 km/h, το μοτέρ μπορεί να ξεκινήσει από στάση μόλις πατήσεις το γκάζι.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Θα απενεργοποιηθεί η ανάκτηση ενέργειας, το φρενάρισμα με το μοτέρ, οπότε τα φρένα σου θα κάνουν μεγαλύτερο μέρος του φρεναρίσματος.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Περιορίζει την ταχύτητά σου όσο οδηγείς, κάτω από την τιμή της ρύθμισης «Υψηλότερη ταχύτητα». Με την «Αναίρεση» επιστρέφει η προηγούμενη ρύθμισή σου.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Μοντέλο %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Μοντέλο %1$s (μη επιβεβαιωμένο)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Υψηλές επιδόσεις</string>

@@ -62,7 +62,7 @@
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Δεν υπάρχουν ακόμα δεδομένα κίνησης σε αυτή τη σύνδεση.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Συνέχεια ούτως ή άλλως</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Σήμανση αναίρεσης</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Αναίρεση σε %1$s</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Επαναφορά: %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Διατήρηση: %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Ορισμός: %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Παράβλεψη · ως έχει</string>
@@ -208,7 +208,7 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Δεν ήρθε νέα ανάγνωση.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Έγινε αποδεκτό, αλλά δεν ήρθε καμία οριστική ανάγνωση.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Καμία απάντηση από το πατίνι.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Το Volt δεν μπόρεσε να στείλει την αναίρεση.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Το Volt δεν μπόρεσε να στείλει την εντολή επαναφοράς.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Δεν ήταν δυνατή η λήψη νέας αρχικής τιμής. Σύνδεσε ξανά το πατίνι και προσπάθησε ξανά. Δεν άλλαξε τίποτα.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Δεν ήταν δυνατή η επαλήθευση της ρύθμισης. Σύνδεσε ξανά το πατίνι και έλεγξε το ημιτελές τεστ.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Η σύνδεση τερματίστηκε κατά τη διάρκεια του τεστ.</string>

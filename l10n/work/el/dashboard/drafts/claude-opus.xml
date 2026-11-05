@@ -24,8 +24,8 @@
     <string name="dashboard_estimated_range" volt:src="3cd0b7394ad38905d5bf8719e641c402a80f584c">Εκτιμώμενη υπολειπόμενη αυτονομία</string>
     <string name="dashboard_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Λειτουργία οδήγησης</string>
     <string name="dashboard_at_target" volt:src="bfe77cb8f5f6b49d12a329434929b912ff092d08">Στον στόχο</string>
-    <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60">≈ %1$s h %2$s min</string>
-    <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1">≈ %1$s min</string>
+    <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60" volt:attempt="2">≈ %1$s h %2$s m</string>
+    <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1" volt:attempt="2">≈ %1$s m</string>
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Έως το όριο %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Χρόνος έως %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Έως %1$s</string>
@@ -33,7 +33,7 @@
     <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Έως 100% χωρίς όριο</string>
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100% χωρίς όριο</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Χρόνος έως την πλήρη φόρτιση (εκτιμ.)</string>
-    <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Χρόνος έως πλήρη (εκτιμ.)</string>
+    <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea" volt:attempt="2">Χρόνος έως την πλήρη φόρτιση (εκτιμ.)</string>
     <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Έως πλήρη (εκτιμ.)</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Χαμηλό ρεύμα</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Ισχύς φόρτισης</string>

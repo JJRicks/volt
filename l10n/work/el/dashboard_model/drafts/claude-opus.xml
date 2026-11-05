@@ -40,7 +40,7 @@
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Μενού</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Σελίδες</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Πειραματικά στοιχεία ελέγχου</string>
-    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Top speed</string>
+    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545" volt:attempt="2">Top speed</string>
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Προγραμματισμένη φόρτιση</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Ενημέρωση…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (εκμάθηση)</string>
