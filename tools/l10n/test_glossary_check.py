@@ -135,5 +135,65 @@ class GlossaryCheckTest(unittest.TestCase):
         self.assertFalse(os.path.exists(self.paths.work("es", "common", "prompts", "claude-x.md")))
 
 
+class StyleGuideRequiredTest(unittest.TestCase):
+    def setUp(self):
+        self.repo = cf.FixtureRepo()
+        self.addCleanup(self.repo.close)
+        self.paths = self.repo.paths
+
+    def build(self):
+        pack.write_pack(self.paths, pack.build_pack(self.paths, "es", "common",
+                                                    fontmetrics.Measurer(self.paths.font(), use_java=False)))
+
+    def prompt(self, *args):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = council.main(["--root", self.repo.root, "--no-java", "prompt", "--tag", "es", "--area", "common"] +
+                                list(args))
+        return code, err.getvalue()
+
+    def test_a_missing_guide_refuses_unless_waived(self):
+        os.remove(self.paths.style("es"))
+        self.build()
+        code, err = self.prompt("--name", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("l10n/style/es.md does not exist", err)
+        self.assertIn("--no-style-guide", err)
+        self.assertFalse(os.path.exists(self.paths.work("es", "common", "prompts", "claude-x.md")))
+        self.assertEqual(self.prompt("--name", "x", "--no-style-guide")[0], 0)
+        # The prompt does not point at a guide it does not have.
+        text = self.repo.read("l10n/work/es/common/prompts/claude-x.md")
+        self.assertNotIn("style guide", text)
+        self.assertIn("Abbreviate rather than overflow", text)
+
+    def test_with_a_guide_the_rules_are_unchanged(self):
+        self.build()
+        self.assertEqual(self.prompt("--name", "x")[0], 0)
+        text = self.repo.read("l10n/work/es/common/prompts/claude-x.md")
+        self.assertIn("Abbreviate per the style guide rather than overflow", text)
+        self.assertIn("Bloq.", text)
+
+    def test_a_guide_newer_than_the_pack_refuses(self):
+        self.build()
+        self.repo.write("l10n/style/es.md", "A new rule.\n")
+        code, err = self.prompt("--name", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("changed after the pack was built", err)
+
+    def test_the_judge_needs_it_and_the_back_translator_does_not(self):
+        os.remove(self.paths.style("es"))
+        self.build()
+        self.assertEqual(self.prompt("--role", "judge")[0], 2)
+        self.assertEqual(self.prompt("--role", "judge", "--no-style-guide")[0], 0)
+        self.assertEqual(self.prompt("--role", "backtranslate")[0], 0)
+
+    def test_the_readme_names_the_required_sections(self):
+        text = translib.l10nlib.read_text(os.path.join(translib.REPO_ROOT, "l10n", "style", "README.md"))
+        for section in ("Register and form of address", "Punctuation and quotes",
+                        "Capitalization of buttons, labels and titles", "Numbers, dates and units",
+                        "How to shorten labels for ladder rungs", "Safety wording", "Sources consulted"):
+            self.assertIn("## " + section, text)
+
+
 if __name__ == "__main__":
     unittest.main()
