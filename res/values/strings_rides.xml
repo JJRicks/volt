@@ -322,10 +322,20 @@
     <string name="rides_compare_two_saved" volt:screen="Rides, history" volt:purpose="accessibility description">Compare two rides, %1$d of 2 saved rides</string>
     <!-- Spoken count in the compare picker: %1$d of the two rides are chosen (0 to 2). -->
     <string name="rides_compare_chosen" volt:screen="Rides, compare" volt:purpose="accessibility description">%1$d of 2 rides chosen</string>
-    <!-- Spoken for the battery tile: the battery gained %1$d percentage points. English says "points" for 1. -->
+    <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_gain_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery gain, %1$d percentage points</string>
-    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points. English says "points" for 1. -->
+    <!-- Spoken for the battery tile: the battery gained %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
+    <plurals name="rides_battery_gain_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
+        <item quantity="one">Battery gain, %1$d percentage points</item>
+        <item quantity="other">Battery gain, %1$d percentage points</item>
+    </plurals>
+    <!-- Unused since the fixed-count plurals: kept for B15's ledger row, no need to translate. -->
     <string name="rides_battery_drop_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">Battery drop, %1$d percentage points</string>
+    <!-- Spoken for the battery tile: the battery dropped %1$d percentage points; the number picks the plural form. English still says "points" for 1. -->
+    <plurals name="rides_battery_drop_description_count" volt:screen="Rides, ride details" volt:purpose="accessibility description" volt:english-fix="pending">
+        <item quantity="one">Battery drop, %1$d percentage points</item>
+        <item quantity="other">Battery drop, %1$d percentage points</item>
+    </plurals>
     <!-- Under the direction bar: the current direction was confirmed for %1$s ("12m 05s"). -->
     <string name="rides_direction_confirmed_for" volt:screen="Rides, ride details" volt:purpose="caption">Confirmed %1$s</string>
     <!-- Under the direction bar: the current direction was not confirmed for %1$s. -->
