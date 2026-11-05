@@ -87,6 +87,25 @@ class GlossaryCheckTest(unittest.TestCase):
         self.assertFalse(font.covers(" "))
         self.assertTrue(font.covers(" "))
 
+    def test_blank_columns_and_shapes_ci_would_refuse(self):
+        for row, message in (
+                ("scooter\tpatinete\t\tnoun\tno\t-\tfixture\n", "scooter has an empty definition"),
+                ("scooter\tpatinete\tX.\t\tno\t-\tfixture\n", "scooter has an empty pos"),
+                ("scooter\tpatinete\tX.\tnoun\tno\t-\t\n", "scooter has an empty source"),
+                ("scooter\tpatinete\tX.\tnoun; verb\tno\t-\tfixture\n", "one part of speech"),
+                ("scooter\tpatinete\tX.\tnoun\tmaybe\t-\tfixture\n", "dnt must be yes or no"),
+                ("scooter\tpatinete\tX.\tnoun\tno\tscary\tfixture\n", "'scary' is not - or a known value"),
+                ("scooter\tpatinete (m)\tX.\tnoun\tno\t-\tfixture\n", "a term holds no"),
+                ("scooter\tpatinete; moto\tX.\tnoun\tno\t-\tfixture\n", "a term holds no")):
+            self.assert_invalid(HEAD + row + AFFILIATED + LOCK, message)
+
+    def test_every_committed_glossary_is_checked(self):
+        self.assertEqual(translib.committed_glossary_problems(self.paths), {})
+        self.repo.write("l10n/glossary/fr.tsv", HEAD + "not-a-real-id\tx\tX.\tnoun\tno\t-\tfixture\n")
+        problems = translib.committed_glossary_problems(self.paths)
+        self.assertEqual(list(problems), ["fr.tsv"])
+        self.assertIn("not-a-real-id is not an id in en.tsv", "\n".join(problems["fr.tsv"]))
+
     def test_duplicate_id(self):
         self.assert_invalid(VALID + LOCK, "lock appears twice")
 
@@ -172,6 +191,25 @@ class StyleGuideRequiredTest(unittest.TestCase):
         text = self.repo.read("l10n/work/es/common/prompts/claude-x.md")
         self.assertIn("Abbreviate per the style guide rather than overflow", text)
         self.assertIn("Bloq.", text)
+
+    def test_an_empty_guide_is_no_guide(self):
+        self.repo.write("l10n/style/es.md", " \n")
+        self.build()
+        code, err = self.prompt("--name", "x")
+        self.assertEqual(code, 2)
+        self.assertIn("l10n/style/es.md is empty", err)
+        self.assertEqual(self.prompt("--name", "x", "--no-style-guide")[0], 0)
+        self.assertNotIn("style guide", self.repo.read("l10n/work/es/common/prompts/claude-x.md"))
+
+    def test_a_waiver_refuses_a_pack_that_quotes_a_deleted_guide(self):
+        self.build()
+        os.remove(self.paths.style("es"))
+        code, err = self.prompt("--name", "x", "--no-style-guide")
+        self.assertEqual(code, 2)
+        self.assertIn("changed after the pack was built", err)
+        self.assertFalse(os.path.exists(self.paths.work("es", "common", "prompts", "claude-x.md")))
+        self.build()
+        self.assertEqual(self.prompt("--name", "x", "--no-style-guide")[0], 0)
 
     def test_a_guide_newer_than_the_pack_refuses(self):
         self.build()

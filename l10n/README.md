@@ -1070,8 +1070,11 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
    exits non-zero on an id en.tsv lacks (`load_glossary` ignores such a row, so the term would
    quietly have no target), a missing row for a term that is not do-not-translate, a row for one
    that is, a repeated id, a wrong column count, an empty term or form, a term with a placeholder,
-   and U+202F in a form (Saira has no glyph for it, so French writes U+00A0). `pack.py` and `prompt`
-   refuse the same problems when the file exists; with no file they go on without targets.
+   `;` or `(`, U+202F in a form (Saira has no glyph for it, so French writes U+00A0), an empty
+   definition, part of speech or source, and a bad id, `dnt` or `safety`. `pack.py` and `prompt`
+   refuse the same problems when the file exists; with no file they go on without targets. CI runs
+   the same check on every committed glossary (`test_repository_files.py`), so a glossary goes in
+   whole, and a pull request that adds a term to `en.tsv` adds its row to each language's glossary.
    `glossary-check --english` validates `en.tsv` the same way, and lists the rows no English string
    matches as information, which does not fail it.
 
@@ -1201,11 +1204,16 @@ decisions (and merge again), never straight into `res/values-<qual>/`.
 ### Drafting a whole language with Claude alone
 
 Until the OpenAI and Google keys arrive, a language can be drafted by Claude agents alone. **Such a
-draft stays a draft:** `l10n/lang/<tag>.tsv` keeps status `draft`, nothing here writes `res/`, and
-no key can pass the safety rule, since step 5 needs drafts from all three providers. The file is an
-ordinary `drafts/claude-<name>.xml` with `volt:provider="claude"` and the agent's exact model id.
-When the keys arrive, `draft openai|google` adds the other two drafts beside it, and the council
-runs from step 3 with this draft as Claude's. It is not redone or relabelled.
+draft stays a draft:** `l10n/lang/<tag>.tsv` keeps status `draft`, none of the commands in this
+section writes `res/`, and no safety key can pass, since step 5 needs drafts from all three providers.
+The file is an ordinary `drafts/claude-<name>.xml` with `volt:provider="claude"` and the agent's
+exact model id. When the keys arrive, `draft openai|google` adds the other two drafts beside it, and
+the council runs from step 3 with this draft as Claude's. It is not redone or relabelled.
+
+**Keep one Claude draft per area, and do not run `decide` or `merge.py` until the debate.** Two
+`claude-*` drafts that agree on a key that is not a safety key are enough for `decide` to write
+`agreed`, and `merge.py` would then write that text to `res/values-<qual>/`, whatever the language's
+status. `tests/run.sh` fails on the result (`CatalogCheckTest`), but nothing before that stops it.
 
 ```sh
 T=fr A=more
@@ -1227,33 +1235,40 @@ rules as a single prompt, and says where its reply goes and the exact import com
 errors. The `notes` are not stored, as in the single-file flow.
 
 - **The sidecar** `prompts/claude-<name>.chunks.<set>.json` records each chunk's keys and the source
-  hash of the English it showed. `<set>` is a hash of all that, so the same prompts get the same
-  set. `prompts/claude-<name>.chunks.current` names the latest set. The prompt refuses a pack
-  older than the English or the glossary.
+  hash of the English it showed. `<set>` is a hash of that, the text of the prompts (rules, style
+  guide, glossary hits, findings) and the draft file as it stood. So rerunning the same command keeps
+  the same set and the replies so far, but anything that changes a prompt, or any import since, makes a
+  new set. `prompts/claude-<name>.chunks.current` names the latest set. The prompt refuses a pack
+  older than the English, the `volt:safety` marks, `l10n/lang/<tag>.tsv` or the glossary.
 - **Replies** go to `replies/claude-<name>.<set>/chunk-<i>-of-<n>.json`. The folder keeps a later
-  set's chunk 1 from adopting an earlier set's reply. New prompts delete the earlier set's prompt
-  files, but not its sidecar or replies: `--set <set>` still imports them.
+  set from adopting an earlier set's replies, which were written under other rules, or are already
+  filed and would undo a redraft. New prompts delete the earlier set's prompt files, but not its
+  sidecar or replies: `--set <set>` still imports them, deliberately.
 - **`import-claude --from-chunks`** takes each `volt:src` from the sidecar, whatever a reply says.
   It compares that with `res/values/`, not with a pack, and a key whose English changed since its
   prompt is reported and left out, so it can't be filed against the new English. A chunk with no
   usable reply (none, not JSON, no `strings`) refuses the whole import with nothing written, unless
   `--partial`. A key missing from a reply, in the wrong shape or changed exits 1, and the rest is still
-  written.
+  written; so does `--partial` while any chunk has no usable reply, even with no draft to write.
 - **It merges**: keys the set covers are replaced, the rest stay, including stale ones (`check` and
   `drafts-status` show those), and the same import run twice writes the same file. A key no longer
   in the English is dropped and reported. It refuses a model id that does not start with `claude`,
-  and a model other than the one the draft names, since a draft names one model; use another `--name`.
+  and a model other than the one the draft names, since a draft names one model. Another `--name`
+takes another model, but read the warning above first.
 - **Top-ups and redrafts.** `--top-up` prompts only the keys the draft lacks or has stale, with the
   rest of their ladders, which is how a `--partial` import or an English change is finished. `--redraft`
-  prompts the keys `checks.jsonl` lists as failed first attempts and marks them `volt:attempt="2"`.
-  A redraft set must be imported with `--redraft` and only a redraft set may be. Without
+  prompts the keys `checks.jsonl` lists as failed first attempts and marks them `volt:attempt="2"`,
+  which a later top-up of the same English keeps, so a key gets one redraft. A redraft set must be
+  imported with `--redraft` and only a redraft set may be. Without
   `--style`, both use the style the draft records.
 
 **Status.** `drafts-status --tag <tag> [--name N] [--json]` prints, per area and in total: `total`
 keys, `drafted` (a `claude-*` draft has a text of the current English), `stale` (only of other
 English), `missing` (none, and no current translation in `res/`), `failing` (a current text fails
 `check.py`'s errors, recomputed rather than read from `checks.jsonl`), `safety` keys, `audited` and
-`flagged`. It writes nothing. Several `claude-*` drafts count together unless `--name` picks one.
+`flagged`. It writes nothing. Several `claude-*` drafts count together unless `--name` picks one. An
+area it can't read (a malformed draft, say) is named with the error and left out of the total, the
+other areas still print, and it exits 1.
 
 **Safety audit.** A Claude-only draft has no council back-translation, so an audit records what each
 safety key's text really says. It is a **QA record only**: it never counts as step 5's back-translation.
@@ -1272,17 +1287,23 @@ python3 tools/l10n/council.py audit-record --tag $T --area $A --name opus --from
   (its ladder's, or else the area). There is no English, and keys appear under opaque ids, since a
   name like `ble_lock_waiting` says what the English means. A safety key the draft lacks or has
   stale is reported and not audited. `--top-up` lists only keys without a `compare.tsv` row of the
-  current text.
+  current text. It refuses a stale pack, as `prompt --chunk-keys` does. The set's hash covers the
+  shown texts and this draft's `compare.tsv` rows: rerunning before anything is filed keeps the set
+  and its replies, and once something is filed a new `audit-prompt` gets a new reply folder.
 - `audit-compare` writes `audit/compare.tsv`: `key`, `english`, `translation`, `back-translation`,
   then `draft`, `model` and the two hashes. A key whose English or draft text changed since its prompt
   is reported and left out. A back-translation by the model that drafted the text is noted, not
   refused, and the `model` column shows it; a fresh session is the minimum, another model is
-  better. Tabs, line breaks and backslashes in a cell are escaped, and a plural is compact JSON.
+  better. One set is filed under one model: another `--model` on the same replies refuses, and a new
+  reader starts from a new `audit-prompt`. `--partial` exits 1 while a part has no usable reply.
+  Tabs, line breaks and backslashes in a cell are escaped, and a plural is compact JSON.
 - `audit-record --from <json>` takes `{"verdicts": [{"key", "ok", "problem"}, ...]}` and stores
-  `audit/verdicts.tsv`: those, then `draft`, `reader` and the row's two hashes. An unknown key, a
+  `audit/verdicts.tsv`: those, then `draft`, `reader`, the row's two hashes and `back_sha1`, the
+  hash of the back-translation judged. An unknown key, a
   repeated one, a non-boolean `ok`, or `ok: false` with no `problem` refuses the file whole.
   Optional `compare_sha1`, which `audit-compare` prints, refuses verdicts on an older `compare.tsv`.
-  A verdict stops counting in `audited` and `flagged` once the English or the draft's text changes.
+  A verdict stops counting in `audited` and `flagged` once the English, the draft's text or the
+  back-translation changes, and `audit-compare` says so.
 
 **What git keeps:** `drafts/`, `audit/compare.tsv`, `audit/verdicts.tsv`, `checks.jsonl` and
 `runs.jsonl`. Prompts, replies and sidecars stay ignored, under `prompts/`, `replies/` and `audit/`

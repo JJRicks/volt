@@ -55,6 +55,13 @@ def sample_text(text, formatted=True):
     return "".join(out)
 
 
+def language_settings(lang):
+    """The language's settings as a pack shows them."""
+    language = collections.OrderedDict((f, getattr(lang, f)) for f in LANGUAGE_FIELDS)
+    language["plurals"] = translib.plural_categories(lang)
+    return language
+
+
 def read_current(paths, lang, area):
     """{key: (kind, {quantity: text}, src_sha1 or None)} from res/<folder>/strings_<area>.xml, if any."""
     path = paths.res(lang.folder, "strings_%s.xml" % area)
@@ -141,8 +148,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
 
     style_path = paths.style(tag)
     style = l10nlib.read_text(style_path) if os.path.exists(style_path) else None
-    language = collections.OrderedDict((f, getattr(lang, f)) for f in LANGUAGE_FIELDS)
-    language["plurals"] = translib.plural_categories(lang)
+    language = language_settings(lang)
     pack = collections.OrderedDict([
         ("format", FORMAT), ("tag", tag), ("area", area), ("folder", lang.folder),
         ("source_file", "res/values/strings_%s.xml" % area), ("language", language),

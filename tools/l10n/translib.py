@@ -280,17 +280,39 @@ def _glossary_rows(path, where):
 
 
 def _form_problems(where, term_id, column):
-    """A term column's problems: empty forms, placeholders, and U+202F, which Saira cannot draw."""
+    """A term column's problems: empty forms, placeholders, a second term in one row (";" or "(",
+    since each form must match as written), and U+202F, which Saira cannot draw."""
     forms = [f.strip() for f in column.split("|")]
     out = []
     if not all(forms):
         out.append("%s: %s has an empty term" % (where, term_id))
+    if ";" in column or "(" in column:
+        out.append("%s: %s: a term holds no \";\" or \"(\"; an alias gets a row or a \" | \" form of its own" % (
+            where, term_id))
     for form in forms:
         if gen_catalog.PLACEHOLDER.search(form):
             out.append("%s: %s: the term %r has a placeholder" % (where, term_id, form))
         if "\u202f" in form:
             out.append("%s: %s: the term %r has U+202F, which Saira has no glyph for; use U+00A0" % (
                 where, term_id, form))
+    return out
+
+
+def _row_problems(where, fields):
+    """The columns every glossary row must have, whatever the language; _form_problems does the term."""
+    term_id, _, definition, pos, dnt, safety, source = fields
+    out = []
+    if not re.match(r"^[a-z][a-z0-9-]*$", term_id):
+        out.append("%s: %r is not a lower-case id" % (where, term_id))
+    for name, value in (("definition", definition), ("pos", pos), ("source", source)):
+        if not value:
+            out.append("%s: %s has an empty %s" % (where, term_id, name))
+    if ";" in pos:
+        out.append("%s: %s: one part of speech per row" % (where, term_id))
+    if dnt not in ("yes", "no"):
+        out.append("%s: %s: dnt must be yes or no" % (where, term_id))
+    if safety != "-" and safety not in gen_catalog.SAFETY:
+        out.append("%s: %s: safety %r is not - or a known value" % (where, term_id, safety))
     return out
 
 
@@ -307,8 +329,7 @@ def english_glossary_problems(paths):
         if fields[0] in seen:
             problems.append("%s: %s appears twice" % (at, fields[0]))
         seen.add(fields[0])
-        if fields[4] not in ("yes", "no"):
-            problems.append("%s: %s: dnt must be yes or no" % (at, fields[0]))
+        problems.extend(_row_problems(at, fields))
         problems.extend(_form_problems(at, fields[0], fields[1]))
     return problems
 
@@ -343,12 +364,25 @@ def glossary_problems(paths, tag):
             problems.append("%s: %s is not an id in en.tsv" % (at, term_id))
         elif english[term_id][4] == "yes":
             problems.append("%s: %s is do-not-translate in en.tsv and takes no row" % (at, term_id))
+        problems.extend(_row_problems(at, fields))
         problems.extend(_form_problems(at, term_id, fields[1]))
     if not row_problems:
         for term_id, fields in english.items():
             if fields[4] != "yes" and term_id not in seen:
                 problems.append("%s: no row for %s (%s)" % (where, term_id, fields[1]))
     return problems
+
+
+def committed_glossary_problems(paths):
+    """{file name: problems} of every l10n/glossary/*.tsv with any, for CI (test_repository_files)."""
+    out = collections.OrderedDict()
+    directory = paths.glossary_dir()
+    for name in sorted(os.listdir(directory)) if os.path.isdir(directory) else []:
+        if name.endswith(".tsv"):
+            problems = glossary_problems(paths, name[:-4])
+            if problems:
+                out[name] = problems
+    return out
 
 
 def require_valid_glossary(paths, tag):

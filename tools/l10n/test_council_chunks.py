@@ -9,6 +9,7 @@ import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import council  # noqa: E402
 import council_fixture as cf  # noqa: E402
 import pack  # noqa: E402
 import test_council  # noqa: E402
@@ -124,6 +125,17 @@ class ChunkPromptTest(ChunkBase):
         self.prompts(code=2)
         self.assertIn("the glossary changed: scooter", self.err.getvalue())
 
+    def test_refuses_a_pack_older_than_the_language_settings(self):
+        path = "l10n/lang/es.tsv"
+        self.repo.write(path, self.repo.read(path).replace("one,many,other", "one,other"))
+        self.prompts(code=2)
+        self.assertIn("the language settings changed: plurals", self.err.getvalue())
+        self.repack()
+        self.assertTrue(self.prompts())
+        self.repo.write(path, self.repo.read(path).replace("formality\ttú", "formality\tusted"))
+        self.prompts(code=2)
+        self.assertIn("the language settings changed: formality", self.err.getvalue())
+
     def test_nothing_to_draft(self):
         self.answer_all(self.prompts())
         self.assertEqual(self.do_import(), 0)
@@ -136,6 +148,120 @@ class ChunkPromptTest(ChunkBase):
         self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--name", "x", "--chunk-keys", "4",
                                    "--top-up", "--redraft"), 2)
         self.assertEqual(self.main("prompt", "--tag", "es", "--area", "common", "--role", "judge", "--chunk-keys", "4"), 2)
+
+
+class ChunkSetIdentityTest(ChunkBase):
+    """A set's replies answer that set's prompts, against the draft as it then was."""
+
+    def set_id(self):
+        return self.repo.read("l10n/work/es/common/prompts/claude-opus.chunks.current").strip()
+
+    def test_the_same_prompts_keep_the_set_and_its_replies(self):
+        paths = self.prompts()
+        first = self.set_id()
+        self.answer(paths[0])
+        self.prompts()
+        self.assertEqual(self.set_id(), first)
+        self.assertEqual(self.do_import(), 2)
+        self.assertEqual(self.err.getvalue().count("no reply"), len(paths) - 1)
+
+    def test_a_guide_change_is_a_new_set(self):
+        self.answer_all(self.prompts())
+        first = self.set_id()
+        self.repo.write("l10n/style/es.md", self.repo.read("l10n/style/es.md") + "\nNEW RULE\n")
+        self.repack()
+        paths = self.prompts()
+        self.assertNotEqual(self.set_id(), first)
+        self.assertIn("NEW RULE", self.body(paths[0])[0])
+        # The replies to the old rules are not filed as answers to the new ones.
+        self.answer(paths[0])
+        self.assertEqual(self.do_import(), 2)
+        self.assertIn("no reply", self.err.getvalue())
+        self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "claude-opus.xml")))
+        self.assertEqual(self.do_import("--partial"), 1)
+        self.assertIn("belongs to an earlier prompt set", self.out.getvalue())
+        # Adopting them stays possible, by name.
+        self.assertEqual(self.do_import("--set", first), 0)
+
+    def test_a_glossary_change_is_a_new_set(self):
+        self.answer_all(self.prompts())
+        first = self.set_id()
+        self.repo.write("l10n/glossary/es.tsv", self.repo.read("l10n/glossary/es.tsv").replace("patinete |", "monopatin |"))
+        self.repack()
+        self.prompts()
+        self.assertNotEqual(self.set_id(), first)
+        self.assertEqual(self.do_import(), 2)
+
+    def test_a_new_tool_rule_is_a_new_set(self):
+        self.prompts()
+        first = self.set_id()
+        original = council.instructions
+        self.addCleanup(setattr, council, "instructions", original)
+        council.instructions = lambda pack, style="standard": original(pack, style) + "\n- One more rule."
+        self.prompts()
+        self.assertNotEqual(self.set_id(), first)
+
+    def test_other_findings_are_a_new_set(self):
+        self.answer_all(self.prompts(keys="100"), overrides={"common_not_reported": "Informado %1$s"})
+        self.assertEqual(self.do_import(), 0)
+        self.main("check", "--tag", "es", "--area", "common")
+        self.prompts("--redraft")
+        first = self.set_id()
+        self.prompts("--redraft")
+        self.assertEqual(self.set_id(), first)
+        check = self.paths.work("es", "common", "checks.jsonl")
+        rows = translib.read_jsonl(check)
+        for row in rows:
+            if row["key"] == "common_not_reported":
+                row["findings"] = [{"severity": "error", "message": "Another finding."}]
+        self.repo.write(os.path.relpath(check, self.repo.root), "".join(translib.dump_json_line(r) + "\n" for r in rows))
+        self.prompts("--redraft")
+        self.assertNotEqual(self.set_id(), first)
+
+    def test_prompting_again_after_a_redraft_does_not_undo_it(self):
+        self.answer_all(self.prompts(), overrides={"common_cancel": "Cancelar %1$s"})
+        first = self.set_id()
+        self.assertEqual(self.do_import(), 0)
+        self.main("check", "--tag", "es", "--area", "common")
+        self.answer_all(self.prompts("--redraft"))
+        self.assertEqual(self.do_import("--redraft"), 0)
+        before = self.repo.read("l10n/work/es/common/drafts/claude-opus.xml")
+        self.assertEqual(self.draft().entries["common_cancel"].attempt, 2)
+        self.prompts()
+        self.assertNotEqual(self.set_id(), first)
+        self.assertEqual(self.do_import(), 2)
+        self.assertIn("no reply", self.err.getvalue())
+        self.assertEqual(self.repo.read("l10n/work/es/common/drafts/claude-opus.xml"), before)
+
+    def test_a_top_up_keeps_a_redrafted_keys_attempt(self):
+        self.answer_all(self.prompts(keys="50"), overrides={"common_lock_waiting": "Esperando %1$s"})
+        self.assertEqual(self.do_import(), 0)
+        self.main("check", "--tag", "es", "--area", "common")
+        self.answer_all(self.prompts("--redraft", keys="50"))
+        self.assertEqual(self.do_import("--redraft"), 0)
+        self.assertEqual(self.draft().entries["common_lock_waiting"].attempt, 2)
+        path = "l10n/work/es/common/drafts/claude-opus.xml"
+        self.repo.write(path, re.sub(r'    <string name="common_lock_waiting_short".*\n', "", self.repo.read(path)))
+        paths = self.prompts("--top-up", keys="50")
+        self.assertEqual(sorted(e["key"] for e in self.body(paths[0])[1]),
+                         ["common_lock_waiting", "common_lock_waiting_short"])
+        self.answer_all(paths)
+        self.assertEqual(self.do_import(), 0)
+        entries = self.draft().entries
+        self.assertEqual((entries["common_lock_waiting"].attempt, entries["common_lock_waiting_short"].attempt), (2, 1))
+        # New English is a new first attempt.
+        self.change_english(">Waiting for the scooter<", ">Waiting for your scooter<")
+        self.repack()
+        self.answer_all(self.prompts("--top-up", keys="50"))
+        self.assertEqual(self.do_import(), 0)
+        self.assertEqual(self.draft().entries["common_lock_waiting"].attempt, 1)
+
+    def test_partial_with_no_reply_at_all_is_a_failure(self):
+        self.prompts()
+        self.assertEqual(self.do_import("--partial"), 1)
+        self.assertIn("0 keys from 0 of", self.out.getvalue())
+        self.assertIn("no draft written", self.out.getvalue())
+        self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "claude-opus.xml")))
 
 
 class ChunkImportTest(ChunkBase):
@@ -165,7 +291,7 @@ class ChunkImportTest(ChunkBase):
         self.assertIn("nothing was written", self.err.getvalue())
         self.assertIn("chunk 2 of", self.err.getvalue())
         self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "claude-opus.xml")))
-        self.assertEqual(self.do_import("--partial"), 0)
+        self.assertEqual(self.do_import("--partial"), 1)  # written, and not complete
         self.assertIn("chunk 2 of", self.out.getvalue())
         self.assertEqual(sorted(self.draft().entries), sorted(e["key"] for e in self.body(paths[0])[1]))
 
@@ -244,7 +370,7 @@ class ChunkImportTest(ChunkBase):
     def test_top_up_after_a_partial_import(self):
         paths = self.prompts()
         self.answer(paths[0])
-        self.assertEqual(self.do_import("--partial"), 0)
+        self.assertEqual(self.do_import("--partial"), 1)
         done = set(self.draft().entries)
         paths = self.prompts("--top-up", keys="100")
         self.assertEqual(sorted(e["key"] for e in self.body(paths[0])[1]), sorted(set(self.sha()) - done))
@@ -284,7 +410,7 @@ class ChunkImportTest(ChunkBase):
         self.prompts(keys="100")
         self.assertEqual(self.do_import(), 2)
         self.assertIn("no reply", self.err.getvalue())
-        self.assertEqual(self.do_import("--partial"), 0)
+        self.assertEqual(self.do_import("--partial"), 1)
         self.assertIn("belongs to an earlier prompt set", self.out.getvalue())
         self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "claude-opus.xml")))
         # The earlier set can be imported by name; its stale key is left out.

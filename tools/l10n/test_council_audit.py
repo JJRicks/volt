@@ -47,6 +47,8 @@ class AuditBase(chunks.ChunkBase):
 
     def audit_prompts(self, *extra, code=0):
         self.assertEqual(self.main("audit-prompt", *(self.AREA + extra)), code, self.err.getvalue())
+        if code:
+            return []
         directory = self.paths.work("es", "common", "audit", "prompts")
         return sorted(os.path.join(directory, f) for f in os.listdir(directory) if f.endswith(".md"))
 
@@ -61,7 +63,7 @@ class AuditBase(chunks.ChunkBase):
         items = self.sidecar()["items"]
         strings = dict((e["id"], (overrides or {}).get(items[e["id"]]["key"], BACKS[items[e["id"]]["key"]])) for e in body)
         reply = re.search(r"Write the JSON object to `([^`]+)`", text).group(1)
-        self.repo.write(reply, json.dumps({"strings": strings}, ensure_ascii=False))
+        self.repo.write(reply, json.dumps({"strings": strings}))
         return reply
 
     def compare(self, *extra, model="claude-opus-5-5"):
@@ -121,7 +123,7 @@ class AuditTest(AuditBase):
         self.assertEqual(self.main("audit-compare", *(self.AREA + ("--from-chunks", "--model", READER))), 2)
         self.assertIn("nothing was written", self.err.getvalue())
         self.back(paths[0])
-        self.assertEqual(self.compare("--partial"), 0)
+        self.assertEqual(self.compare("--partial"), 1)  # filed, and not complete
         self.assertLess(len(self.compared()), 4)
         self.assertGreater(len(self.compared()), 0)
 
@@ -167,6 +169,7 @@ class AuditTest(AuditBase):
     def test_a_stale_or_missing_key_is_not_audited(self):
         self.drafted()
         self.change_english(">Alarm on<", ">Alarm enabled<")
+        self.repack()
         self.audit_prompts()
         self.assertIn("common_alarm_on: the draft's text is of other English", self.out.getvalue())
 
@@ -229,9 +232,99 @@ class AuditTest(AuditBase):
         self.assertEqual(self.record({"key": "x"}), 2)
         self.assertEqual(self.record({"verdicts": [good], "compare_sha1": "0" * 40}), 2)
         self.assertIn("compare.tsv changed", self.err.getvalue())
-        sha = council.compare_sha1(self.paths.work("es", "common", "audit", "compare.tsv"))
+        sha = council.file_sha1(self.paths.work("es", "common", "audit", "compare.tsv"))
         self.assertEqual(self.record({"verdicts": [good], "compare_sha1": sha}), 0)
         self.assertEqual(self.record([good]), 0)  # a bare list works too
+
+    def test_a_stale_pack_refuses(self):
+        self.drafted()
+        self.change_english('name="common_cancel"', 'name="common_cancel" volt:safety="alarm"')
+        self.audit_prompts(code=2)
+        self.assertIn("the safety marks changed: common_cancel", self.err.getvalue())
+        self.repack()
+        self.audit_prompts()
+        self.assertIn("common_cancel", [i["key"] for i in self.sidecar()["items"].values()])
+
+    def test_a_new_reader_never_gets_the_last_readers_reply(self):
+        self.drafted()
+        self.audited()
+        first = self.sidecar()["id"]
+        rows = self.repo.read("l10n/work/es/common/audit/compare.tsv")
+        # The same set under another model: refused.
+        self.assertEqual(self.compare(model="gpt-5.1"), 2)
+        self.assertIn("filed only under the model that wrote it", self.err.getvalue())
+        # A new audit-prompt has its own reply folder, so nothing is there to adopt.
+        paths = self.audit_prompts()
+        self.assertNotEqual(self.sidecar()["id"], first)
+        self.assertEqual(self.compare(model="gpt-5.1"), 2)
+        self.assertIn("no usable reply", self.err.getvalue())
+        self.assertEqual(self.repo.read("l10n/work/es/common/audit/compare.tsv"), rows)
+        self.back(paths[0], {"common_alarm_on": "Alarm on, says the second reader"})
+        self.assertEqual(self.compare(model="gpt-5.1"), 0)
+        row = self.compared()[("claude-opus", "common_alarm_on")]
+        self.assertEqual((row["model"], row["back-translation"]), ("gpt-5.1", "Alarm on, says the second reader"))
+
+    def test_rewriting_an_unanswered_audit_prompt_keeps_the_set(self):
+        self.drafted()
+        paths = self.audit_prompts()
+        first = self.sidecar()["id"]
+        self.back(paths[0])
+        self.audit_prompts()
+        self.assertEqual(self.sidecar()["id"], first)
+        self.assertEqual(self.compare(), 0)
+
+    def test_another_drafts_rows_do_not_change_the_set(self):
+        self.drafted()
+        self.audit_prompts()
+        first = self.sidecar()["id"]
+        rows = self.compared()
+        rows[("claude-other", "common_alarm_on")] = dict.fromkeys(council.AUDIT_COMPARE_HEADER, "x")
+        rows[("claude-other", "common_alarm_on")].update(key="common_alarm_on", draft="claude-other")
+        council.write_audit_table(self.paths.work("es", "common", "audit", "compare.tsv"),
+                                  council.AUDIT_COMPARE_HEADER, rows, ["common_alarm_on"])
+        self.audit_prompts()
+        self.assertEqual(self.sidecar()["id"], first)
+
+    def test_the_run_log_does_not_call_another_vendor_claude(self):
+        self.drafted()
+        for path in self.audit_prompts():
+            self.back(path)
+        self.assertEqual(self.compare(model="gpt-5.1"), 0)
+        last = translib.read_jsonl(self.paths.work("es", "common", "runs.jsonl"))[-1]
+        self.assertEqual((last["stage"], last["provider"], last["model"]), ("audit-compare", "other", "gpt-5.1"))
+
+    def test_a_lone_surrogate_leaves_the_record_whole(self):
+        self.drafted()
+        self.audited()
+        self.back(self.audit_prompts()[0], {"common_alarm_on": "bad\ud83d"})
+        self.assertEqual(self.compare(), 1)
+        self.assertIn("common_alarm_on (s", self.out.getvalue())
+        self.assertIn("a lone surrogate", self.out.getvalue())
+        rows = self.compared()
+        self.assertEqual(sorted(k for _, k in rows), SAFETY)
+        self.assertEqual(rows[("claude-opus", "common_alarm_on")]["back-translation"], BACKS["common_alarm_on"])
+
+    def test_write_text_leaves_the_file_when_it_cannot_encode(self):
+        path = self.repo.path("record.txt")
+        translib.l10nlib.write_text(path, "whole\n")
+        with self.assertRaises(UnicodeEncodeError):
+            translib.l10nlib.write_text(path, "bad\ud83d")
+        self.assertEqual(translib.l10nlib.read_text(path), "whole\n")
+
+    def test_a_verdict_is_on_one_back_translation(self):
+        self.drafted()
+        self.audited()
+        self.assertEqual(self.record({"verdicts": [{"key": k, "ok": True} for k in SAFETY]}), 0)
+        self.assertEqual(self.status()["areas"]["common"]["audited"], 4)
+        paths = self.audit_prompts()
+        self.back(paths[0], {"common_alarm_on": "OPPOSITE MEANING"})
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.assertEqual(self.compare(model=READER), 0)
+        self.assertIn("1 verdicts judged another back-translation", self.out.getvalue())
+        self.assertIn("common_alarm_on", self.out.getvalue())
+        status = self.status()["areas"]["common"]
+        self.assertEqual((status["audited"], status["flagged"]), (3, 0))
 
     def test_never_the_councils_back_translation(self):
         self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})
@@ -323,6 +416,24 @@ class DraftsStatusTest(AuditBase):
         self.assertEqual(tree(self.repo.root), before)
         self.assertRegex(self.out.getvalue(), r"common\s+11\s+11\s+0\s+0\s+0\s+4\s+0\s+0")
         self.assertRegex(self.out.getvalue(), r"total\s+\d+")
+
+    def test_one_unreadable_draft_hides_no_other_area(self):
+        self.drafted()
+        self.repo.write("l10n/work/es/ble/drafts/claude-x.xml", "<resources")
+        self.assertEqual(self.main("drafts-status", "--tag", "es"), 1)
+        output = self.out.getvalue()
+        self.assertRegex(output, r"common\s+11\s+\d+")
+        self.assertRegex(output, r"ble\s+unreadable")
+        self.assertIn("l10n/work/es/ble/drafts/claude-x.xml", output)
+        self.assertIn("line 1", output)
+        self.assertNotIn("[redacted]", output)
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.assertEqual(self.main("drafts-status", "--tag", "es", "--json"), 1)
+        value = json.loads(self.out.getvalue())
+        self.assertEqual(sorted(value["errors"]), ["ble"])
+        self.assertEqual(value["areas"]["common"]["total"], 11)
+        self.assertEqual(value["totals"]["total"], 11)
 
     def test_an_invalid_glossary_is_shown_not_fatal(self):
         self.repo.write("l10n/glossary/es.tsv", self.repo.read("l10n/glossary/es.tsv") + "typo\tx\tX.\tnoun\tno\t-\tf\n")

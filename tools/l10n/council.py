@@ -136,6 +136,7 @@ def log_run(paths, tag, area, row):
 
 def instructions(pack, style="standard"):
     lang = pack["language"]
+    guide = (pack.get("style_guide") or "").strip()
     rules = [
         "You are one translator on a council translating Volt, an independent Android app for NAVEE electric "
         "scooters, from English into %s (%s). Other translators work independently; a judge compares the drafts. "
@@ -152,7 +153,7 @@ def instructions(pack, style="standard"):
         "- Keys ending in _short and _compact are shorter rungs of the same label (\"ladder_group\"). Draft every "
         "rung. A string with budget_dp must fit that width at budget_sp in the Saira typeface; english_width_dp "
         "is the English width. %s rather than overflow; never break a word." % (
-            "Abbreviate per the style guide" if pack.get("style_guide") else "Abbreviate"),
+            "Abbreviate per the style guide" if guide else "Abbreviate"),
         "- Never change the meaning: locked and unlocked stay distinct; on/off and never/always are never "
         "inverted; \"unverified\" or \"unknown\" never reads as confirmed; numbers, units and the named action "
         "stay the same; \"not affiliated with NAVEE\" is never softened. Keep every negation.",
@@ -163,8 +164,8 @@ def instructions(pack, style="standard"):
         "Answer with one JSON object only: {\"strings\": {\"<key>\": \"<text>\" or {\"<category>\": \"<text>\", ...}}, "
         "\"notes\": {\"<key>\": \"<optional short note for the judge>\"}}. Include every key you were given.",
     ]
-    if pack.get("style_guide"):
-        rules.append("Style guide for %s:\n%s" % (lang["tag"], pack["style_guide"].strip()))
+    if guide:
+        rules.append("Style guide for %s:\n%s" % (lang["tag"], guide))
     return "\n".join(rules)
 
 
@@ -373,17 +374,21 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
 def prompt_gate(paths, tag, area, no_style_guide=False):
     """What a translator's prompt needs: a valid glossary, and a style guide unless waived.
 
-    The pack holds the guide the prompt quotes, so a guide written or changed after pack.py also
-    refuses: the prompt would tell the translator about a guide it does not show.
+    The pack holds the guide the prompt quotes, so a guide written, changed or deleted after pack.py
+    also refuses: the prompt would tell the translator about a guide it does not show, or quote one
+    that is gone. A blank file is no guide.
     """
     translib.require_valid_glossary(paths, tag)
     path = paths.style(tag)
-    if not os.path.exists(path):
-        if no_style_guide:
-            return
-        raise translib.L10nError("%s does not exist: write it first (l10n/style/README.md), or pass "
-                                 "--no-style-guide to draft without one" % paths.rel(path))
-    if packlib.load_pack(paths, tag, area).get("style_guide") != l10nlib.read_text(path):
+    guide = l10nlib.read_text(path) if os.path.exists(path) else None
+    if guide is None or not guide.strip():
+        if not no_style_guide:
+            raise translib.L10nError("%s %s: write it first (l10n/style/README.md), or pass --no-style-guide to "
+                                     "draft without one" % (paths.rel(path), "is empty" if guide is not None
+                                                            else "does not exist"))
+        guide = None
+    shown = packlib.load_pack(paths, tag, area).get("style_guide")
+    if guide != (shown if shown and shown.strip() else None):
         raise translib.L10nError("%s changed after the pack was built; run tools/l10n/pack.py --tag %s --area %s "
                                  "again" % (paths.rel(path), tag, area))
 
@@ -503,12 +508,21 @@ def current_english(paths, area):
 
 
 def pack_out_of_date(paths, pack):
-    """Why a pack no longer shows the current English or glossary, or None."""
+    """Why a pack no longer shows the current English, safety marks, language settings or glossary, or None."""
     english = dict((k, v[1]) for k, v in current_english(paths, pack["area"]).items())
     shown = dict((e["key"], e["source_sha1"]) for e in pack["entries"])
     if english != shown:
         return "the English changed: %s" % ", ".join(sorted(k for k in set(english) | set(shown)
                                                             if english.get(k) != shown.get(k))[:5])
+    sources, _ = translib.load_source(paths)
+    safety = translib.effective_safety([s for s in sources[pack["area"]] if s.translatable])
+    marked = sorted(e["key"] for e in pack["entries"] if safety.get(e["key"]) != e["safety"])
+    if marked:
+        return "the safety marks changed: %s" % ", ".join(marked[:5])
+    settings = packlib.language_settings(translib.load_language(paths, pack["tag"]))
+    changed = sorted(f for f in settings if settings[f] != pack["language"].get(f))
+    if changed:
+        return "the language settings changed: %s" % ", ".join(changed)
     targets = dict((t.id, t.targets) for t in translib.load_glossary(paths, pack["tag"]))
     changed = sorted(set(g["id"] for e in pack["entries"] for g in e["glossary"]
                          if targets.get(g["id"]) != g.get("target")))
@@ -530,9 +544,20 @@ def lacking_entries(pack, entries, draft):
     return [e for e in pack["entries"] if e["key"] in lacking]
 
 
+def file_sha1(path):
+    return hashlib.sha1(l10nlib.read_text(path).encode("utf-8")).hexdigest()
+
+
 def chunk_set_id(fields):
-    """The id of a prompt set: the hash of what it showed, so the same prompts get the same id."""
-    shown = dict((f, fields[f]) for f in ("format", "tag", "area", "draft", "style", "redraft", "chunks"))
+    """The id of a prompt set: the hash of what it showed and of the draft it was written against.
+
+    Other rules, another guide or glossary, or other findings are other prompts, whose replies are
+    not these. A draft that changed since (an import, a redraft) makes a rewrite a new set too: its
+    replies are already filed, and adopting them again would undo the later work. Until then the
+    same command keeps the same set and the replies so far.
+    """
+    shown = dict((f, fields.get(f)) for f in ("format", "tag", "area", "draft", "style", "redraft", "chunks",
+                                              "prompts_sha1", "draft_sha1"))
     return hashlib.sha1(translib.dump_json_line(shown).encode("utf-8")).hexdigest()[:12]
 
 
@@ -587,10 +612,15 @@ def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, to
     parts = chunks(pack, entries, chunk_keys)
     if not parts:
         return None, []
+    rules = instructions(pack, style)
+    bodies = [user_prompt(pack, part, dict((k, findings[k]) for k in findings if k in set(e["key"] for e in part)))
+              for part in parts]
     fields = collections.OrderedDict([
         ("format", CHUNK_SET_FORMAT), ("tag", tag), ("area", area), ("draft", draft_name), ("style", style),
         ("redraft", bool(redraft)),
-        ("chunks", [collections.OrderedDict((e["key"], e["source_sha1"]) for e in part) for part in parts])])
+        ("chunks", [collections.OrderedDict((e["key"], e["source_sha1"]) for e in part) for part in parts]),
+        ("prompts_sha1", hashlib.sha1(translib.dump_json_line([rules] + bodies).encode("utf-8")).hexdigest()),
+        ("draft_sha1", file_sha1(path) if draft else None)])
     set_id = chunk_set_id(fields)
     fields["id"] = set_id
     translib.write_json(chunk_sidecar_path(paths, tag, area, draft_name, set_id), fields)
@@ -600,7 +630,7 @@ def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, to
     command = "python3 tools/l10n/council.py import-claude --tag %s --area %s --name %s --model <your exact model id> " \
               "--from-chunks%s" % (tag, area, name, " --redraft" if redraft else "")
     written = []
-    for index, part in enumerate(parts, 1):
+    for index, body in enumerate(bodies, 1):
         reply = chunk_reply_path(paths, tag, area, draft_name, set_id, index, len(parts))
         os.makedirs(os.path.dirname(reply), exist_ok=True)
         text = "\n\n".join([
@@ -608,14 +638,13 @@ def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, to
                 tag, area, draft_name, index, len(parts), set_id),
             "Work alone: do not open other chunks, drafts, judge files or decisions under l10n/work/ or "
             "l10n/decisions/.",
-            instructions(pack, style),
+            rules,
             "Your object holds only `strings` and `notes`, with no hashes: the tools recorded which English this "
             "chunk shows.",
             "When done, write the JSON object to `%s`. Once every chunk of this set has its reply, this imports them "
             "into `%s` (it refuses while a chunk is missing; --partial imports the ones that are there):\n\n    %s" % (
                 paths.rel(reply), paths.rel(path), command),
-            "## Strings\n\n" + user_prompt(pack, part, dict((k, findings[k]) for k in findings
-                                                            if k in set(e["key"] for e in part))),
+            "## Strings\n\n" + body,
         ])
         prompt = os.path.join(directory, "%s.chunk-%d-of-%d.md" % (draft_name, index, len(parts)))
         l10nlib.write_text(prompt, text + "\n")
@@ -682,7 +711,9 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
     Each key's src is the one the sidecar recorded when its prompt was written, whatever a reply
     says. A key whose English changed since then is reported and left out, so it can never be filed
     against the new English. Keys the set does not cover stay as they are, and a second run of the
-    same set writes the same file.
+    same set writes the same file. A key that had its redraft keeps volt:attempt="2" for as long as
+    its English stands, so a top-up of its ladder does not buy it another. The count is keys left
+    out plus chunks with no usable reply, so an incomplete --partial import is not a success.
     """
     out = out or sys.stdout
     if not name or not model:
@@ -713,6 +744,7 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
         out.write("  note: replies/%s belongs to an earlier prompt set and was not read (--set)\n" % other)
     english = current_english(paths, area)
     collected, problems = {}, []
+    merged = existing_draft_entries(path) if previous is not None else collections.OrderedDict()
     for index, strings in sorted(replies.items()):
         shown = fields["chunks"][index - 1]
         for key in strings:
@@ -732,8 +764,9 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
                     problems.append("%s: expected %s" % (key, "a string" if english[key][0] == "string" else
                                                          "an object of plural categories"))
                 else:
-                    collected[key] = (key, english[key][0], items, MAX_ATTEMPTS if redraft else 1, src)
-    merged = existing_draft_entries(path) if previous is not None else collections.OrderedDict()
+                    before = merged.get(key)
+                    attempt = MAX_ATTEMPTS if redraft or (before and before[4] == src and before[3] >= MAX_ATTEMPTS) else 1
+                    collected[key] = (key, english[key][0], items, attempt, src)
     for key in merged:
         if key not in english:
             problems.append("%s: no longer in the English; dropped from the draft" % key)
@@ -744,13 +777,13 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
         translib.write_draft(path, draft_name, model, [merged[k] for k in english if k in merged], reported, prompt)
     for problem in problems:
         out.write("  %s\n" % problem)
-    out.write("%s (%s): %d keys from %d of %d chunks, %d keys in the draft%s; run check\n" % (
+    out.write("%s (%s): %d keys from %d of %d chunks, %d keys in the draft%s; %s\n" % (
         paths.rel(path), model, len(collected), len(replies), count, sum(1 for k in merged if k in english),
-        ", %d problems" % len(problems) if problems else ""))
+        ", %d problems" % len(problems) if problems else "", "run check" if merged else "no draft written"))
     log_run(paths, tag, area, collections.OrderedDict([
         ("stage", "import-chunks"), ("draft", draft_name), ("provider", "claude"), ("model", model),
         ("set", fields["id"]), ("chunks", len(replies)), ("keys", len(collected)), ("problems", len(problems))]))
-    return len(problems)
+    return len(problems) + len(missing)
 
 
 # ---------------------------------------------------------------------------
@@ -764,7 +797,7 @@ AUDIT_SET_FORMAT = "volt-l10n-audit-set-v1"
 AUDIT_NOTE = "# Safety audit of a Claude-only draft: a QA record, not the council's back-translation."
 AUDIT_COMPARE_HEADER = ("key", "english", "translation", "back-translation", "draft", "model", "source_sha1",
                         "target_sha1")
-AUDIT_VERDICT_HEADER = ("key", "ok", "problem", "draft", "reader", "source_sha1", "target_sha1")
+AUDIT_VERDICT_HEADER = ("key", "ok", "problem", "draft", "reader", "source_sha1", "target_sha1", "back_sha1")
 
 
 def tsv_cell(value):
@@ -806,8 +839,24 @@ def audit_row_is_current(row, entry, draft_entry):
             and row["target_sha1"] == text_sha1(entry["kind"], draft_entry.items))
 
 
+def back_sha1(compare_row):
+    """The hash of the back-translation a compare.tsv row shows, which a verdict is a verdict on."""
+    return hashlib.sha1(compare_row["back-translation"].encode("utf-8")).hexdigest()
+
+
+def compared_sha1(compared, draft_name):
+    """The hash of one draft's compare.tsv rows."""
+    rows = [compared[k] for k in sorted(compared) if k[0] == draft_name]
+    return hashlib.sha1(translib.dump_json_line(rows).encode("utf-8")).hexdigest()
+
+
 def audit_set_id(fields):
-    shown = dict((f, fields[f]) for f in ("format", "tag", "area", "draft", "items", "chunks"))
+    """The id of an audit set: what it showed, and the draft's compare.tsv rows when it was written.
+
+    Once a set's replies are filed, a new audit-prompt is a new reading with its own reply folder, so
+    one reader's back-translation can't be filed under the next reader's --model.
+    """
+    shown = dict((f, fields.get(f)) for f in ("format", "tag", "area", "draft", "items", "chunks", "compared_sha1"))
     return hashlib.sha1(translib.dump_json_line(shown).encode("utf-8")).hexdigest()[:12]
 
 
@@ -815,6 +864,11 @@ def audit_paths(paths, tag, area, draft_name, set_id):
     base = paths.work(tag, area, "audit")
     return (os.path.join(base, "prompts"), os.path.join(base, "prompts", "%s.%s.json" % (draft_name, set_id)),
             os.path.join(base, "prompts", "%s.current" % draft_name), os.path.join(base, "replies"))
+
+
+def audit_reader_path(paths, tag, area, draft_name, set_id):
+    """Names the model a set's replies were filed under."""
+    return os.path.join(audit_paths(paths, tag, area, draft_name, set_id)[0], "%s.%s.reader" % (draft_name, set_id))
 
 
 def audit_screen(entry, by_key, area):
@@ -831,6 +885,10 @@ def audit_prompt(paths, tag, area, name, chunk_keys=None, top_up=False, out=None
     """
     out = out or sys.stdout
     pack = packlib.load_pack(paths, tag, area)
+    stale = pack_out_of_date(paths, pack)
+    if stale:
+        raise translib.L10nError("the pack is out of date (%s); run tools/l10n/pack.py --tag %s --area %s" % (
+            stale, tag, area))
     draft_name = "claude-" + name
     path = draft_file(paths, tag, area, draft_name)
     if not os.path.exists(path):
@@ -868,7 +926,8 @@ def audit_prompt(paths, tag, area, name, chunk_keys=None, top_up=False, out=None
                 ("target_sha1", text_sha1(entry["kind"], draft.entries[entry["key"]].items))])
         ordered.append(ids)
     fields = collections.OrderedDict([("format", AUDIT_SET_FORMAT), ("tag", tag), ("area", area), ("draft", draft_name),
-                                      ("items", items), ("chunks", ordered)])
+                                      ("items", items), ("chunks", ordered),
+                                      ("compared_sha1", compared_sha1(compared, draft_name))])
     set_id = audit_set_id(fields)
     fields["id"] = set_id
     directory, sidecar, pointer, replies = audit_paths(paths, tag, area, draft_name, set_id)
@@ -919,19 +978,22 @@ def load_audit_set(paths, tag, area, draft_name):
     return fields
 
 
-def compare_sha1(path):
-    return hashlib.sha1(l10nlib.read_text(path).encode("utf-8")).hexdigest()
-
-
 def audit_compare(paths, tag, area, name, model, partial=False, out=None):
     """Join each back-translation with the English into audit/compare.tsv; returns the keys left out.
 
     A row is written only while the English and the draft's text are still the ones the prompt
     showed, so a back-translation is never set beside a text it did not read. Rows of other keys stay.
+    A set's replies are filed under one model: a new reader starts from a new audit-prompt.
     """
     out = out or sys.stdout
     draft_name = "claude-" + name
     fields = load_audit_set(paths, tag, area, draft_name)
+    reader_path = audit_reader_path(paths, tag, area, draft_name, fields["id"])
+    filed_under = l10nlib.read_text(reader_path).strip() if os.path.exists(reader_path) else None
+    if filed_under not in (None, model):
+        raise translib.L10nError("audit set %s was filed under %s, and a back-translation is filed only under the "
+                                 "model that wrote it; for another reader, run audit-prompt and answer its prompts" % (
+                                     fields["id"], filed_under))
     count = len(fields["chunks"])
     replies, missing = read_chunk_replies(paths, os.path.join(
         audit_paths(paths, tag, area, draft_name, fields["id"])[3], "%s.%s" % (draft_name, fields["id"])), count)
@@ -949,6 +1011,7 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
     english = dict((s.key, s) for s in sources.get(area, []) if s.translatable)
     path = paths.work(tag, area, "audit", "compare.tsv")
     table = read_audit_table(path, AUDIT_COMPARE_HEADER)
+    verdicts = read_audit_table(paths.work(tag, area, "audit", "verdicts.tsv"), AUDIT_VERDICT_HEADER)
     problems, stored = [], 0
     for index, strings in sorted(replies.items()):
         ids = fields["chunks"][index - 1]
@@ -965,6 +1028,8 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
             elif back is None:
                 problems.append("%s (%s): expected %s" % (key, item_id, "a string" if item["kind"] == "string" else
                                                           "an object of plural categories"))
+            elif any(0xD800 <= ord(ch) <= 0xDFFF for text in back.values() for ch in text):
+                problems.append("%s (%s): a lone surrogate in the reply; left out" % (key, item_id))
             elif source is None or translib.source_sha1(source.kind, source.items) != item["source_sha1"]:
                 problems.append("%s: the English changed since the prompt; left out" % key)
             elif have is None or text_sha1(item["kind"], have.items) != item["target_sha1"]:
@@ -977,24 +1042,32 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
                 stored += 1
     if table:
         write_audit_table(path, AUDIT_COMPARE_HEADER, table, list(english))
+    if stored:
+        l10nlib.write_text(reader_path, model + "\n")
+    outdated = sorted(k for (d, k), v in verdicts.items() if d == draft_name and (d, k) in table
+                      and v["back_sha1"] != back_sha1(table[(d, k)]))
+    if outdated:
+        out.write("  note: %d verdicts judged another back-translation and no longer count; the reader must judge "
+                  "these again: %s\n" % (len(outdated), ", ".join(outdated[:5])))
     for problem in problems:
         out.write("  %s\n" % problem)
     out.write("%s: %d rows from %d of %d parts%s\n" % (
         paths.rel(path), stored, len(replies), count, ", %d problems" % len(problems) if problems else ""))
     if table:
-        out.write("compare_sha1: %s\n" % compare_sha1(path))
+        out.write("compare_sha1: %s\n" % file_sha1(path))
     log_run(paths, tag, area, collections.OrderedDict([
-        ("stage", "audit-compare"), ("draft", draft_name), ("provider", "claude"), ("model", model),
+        ("stage", "audit-compare"), ("draft", draft_name),
+        ("provider", "claude" if model.startswith("claude") else "other"), ("model", model),
         ("set", fields["id"]), ("keys", stored), ("problems", len(problems))]))
-    return len(problems)
+    return len(problems) + len(missing)
 
 
 def audit_record(paths, tag, area, name, source, reader=None, out=None):
     """Store an independent reader's verdicts in audit/verdicts.tsv; refuses a bad file whole.
 
     The reply is {"verdicts": [{"key", "ok", "problem"}, ...]}, optionally with "compare_sha1" (what
-    audit-compare printed) and "model". Each verdict takes the English and text hashes of its
-    compare.tsv row, so drafts-status stops counting it once either changes.
+    audit-compare printed) and "model". Each verdict takes the English, text and back-translation
+    hashes of its compare.tsv row, so drafts-status stops counting it once any of them changes.
     """
     out = out or sys.stdout
     draft_name = "claude-" + name
@@ -1005,7 +1078,7 @@ def audit_record(paths, tag, area, name, source, reader=None, out=None):
     compare_path = paths.work(tag, area, "audit", "compare.tsv")
     compared = read_audit_table(compare_path, AUDIT_COMPARE_HEADER)
     copied = value.get("compare_sha1") if isinstance(value, dict) else None
-    if copied is not None and (not compared or copied != compare_sha1(compare_path)):
+    if copied is not None and (not compared or copied != file_sha1(compare_path)):
         raise translib.L10nError("compare.tsv changed since the reader read it (compare_sha1); nothing was stored")
     problems, seen = [], set()
     for verdict in verdicts:
@@ -1031,7 +1104,8 @@ def audit_record(paths, tag, area, name, source, reader=None, out=None):
         row = compared[(draft_name, verdict["key"])]
         table[(draft_name, verdict["key"])] = {
             "key": verdict["key"], "ok": "yes" if verdict["ok"] else "no", "problem": verdict.get("problem") or "",
-            "draft": draft_name, "reader": reader, "source_sha1": row["source_sha1"], "target_sha1": row["target_sha1"]}
+            "draft": draft_name, "reader": reader, "source_sha1": row["source_sha1"], "target_sha1": row["target_sha1"],
+            "back_sha1": back_sha1(row)}
     write_audit_table(path, AUDIT_VERDICT_HEADER, table, list(current_english(paths, area)))
     flagged = sum(1 for v in verdicts if not v["ok"])
     out.write("%s: %d verdicts, %d flagged\n" % (paths.rel(path), len(verdicts), flagged))
@@ -1054,7 +1128,7 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
     A key is drafted when a draft has a text of the current English, stale when it has only texts of
     other English, missing when it has none and no current translation, and failing when a current
     text fails check.py (recomputed, so checks.jsonl need not be up to date). audited and flagged
-    count safety keys with a verdict on the draft's current text.
+    count safety keys with a verdict on the draft's current text and its current back-translation.
     """
     directory = paths.drafts(tag, area)
     wanted = ["claude-%s.xml" % n for n in names] if names else [
@@ -1064,6 +1138,7 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
               if os.path.exists(os.path.join(directory, f))]
     pack = packlib.build_pack(paths, tag, area, measurer if drafts else approx, sources)
     failing, verdicts = set(), read_audit_table(paths.work(tag, area, "audit", "verdicts.tsv"), AUDIT_VERDICT_HEADER)
+    compared = read_audit_table(paths.work(tag, area, "audit", "compare.tsv"), AUDIT_COMPARE_HEADER)
     for draft in drafts:
         results = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
         failing.update(k for k, findings in results.items() if not checklib.is_ok(findings))
@@ -1083,7 +1158,9 @@ def area_status(paths, tag, area, sources, names, font, measurer, approx):
             row["missing"] += 1
         if entry.get("safety"):
             judged = [verdicts[(d.name, key)] for d in current
-                      if audit_row_is_current(verdicts.get((d.name, key)), entry, d.entries[key])]
+                      if audit_row_is_current(verdicts.get((d.name, key)), entry, d.entries[key])
+                      and (d.name, key) in compared
+                      and verdicts[(d.name, key)]["back_sha1"] == back_sha1(compared[(d.name, key)])]
             row["audited"] += 1 if judged else 0
             row["flagged"] += 1 if any(v["ok"] != "yes" for v in judged) else 0
     return row
@@ -1095,11 +1172,16 @@ def drafts_status(paths, tag, names=None, use_java=True):
     font = fontmetrics.Font(paths.font())
     measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
     approx = fontmetrics.Measurer(paths.font(), use_java=False)
-    areas = collections.OrderedDict((a, area_status(paths, tag, a, sources, names, font, measurer, approx))
-                                    for a in sources)
+    areas, errors = collections.OrderedDict(), collections.OrderedDict()
+    for area in sources:  # one unreadable area hides no other's progress
+        try:
+            areas[area] = area_status(paths, tag, area, sources, names, font, measurer, approx)
+        except (translib.L10nError, gen_catalog.CatalogError) as error:
+            areas[area] = collections.OrderedDict((c, 0) for c in STATUS_COUNTS)
+            errors[area] = providers.redact(error)
     totals = collections.OrderedDict((c, sum(r[c] for r in areas.values())) for c in STATUS_COUNTS)
     return collections.OrderedDict([("tag", tag), ("names", list(names or [])), ("areas", areas), ("totals", totals),
-                                    ("glossary_problems", translib.glossary_problems(paths, tag))])
+                                    ("errors", errors), ("glossary_problems", translib.glossary_problems(paths, tag))])
 
 
 def print_drafts_status(status, out=None):
@@ -1108,7 +1190,11 @@ def print_drafts_status(status, out=None):
     head = " ".join("%7s" % c for c in STATUS_COUNTS)
     out.write("%-*s %s\n" % (width, "area", head))
     for area, row in list(status["areas"].items()) + [("total", status["totals"])]:
-        out.write("%-*s %s\n" % (width, area, " ".join("%7d" % row[c] for c in STATUS_COUNTS)))
+        counts = "unreadable, left out of the total" if area in status["errors"] else \
+            " ".join("%7d" % row[c] for c in STATUS_COUNTS)
+        out.write("%-*s %s\n" % (width, area, counts))
+    for area, error in status["errors"].items():
+        out.write("%s: %s\n" % (area, error))
     if status["glossary_problems"]:
         out.write("glossary: %d problems (glossary-check --tag %s)\n" % (len(status["glossary_problems"]), status["tag"]))
 
@@ -1979,7 +2065,7 @@ def main(argv=None):
                 print(json.dumps(status, ensure_ascii=False, indent=1))
             else:
                 print_drafts_status(status)
-            return 0
+            return 1 if status["errors"] else 0
         if args.command == "glossary-check":
             return glossary_check(paths, "en" if args.english else args.tag)
     except providers.ProviderError as error:
