@@ -531,12 +531,8 @@ def _script(language, english, entry, text, q):
     return out
 
 
-def _glossary(language, entry, reference, text, safety, q):
-    """Approved targets used: whole words in spaced scripts, anywhere (but not as part of the
-    opposite term) in scripts without word spaces; see lexicon.term_found."""
-    out = []
-    primary = language["tag"].split("-")[0]
-    script = language.get("script") or "Latn"
+def _terms_in(entry, reference):
+    """The entry's glossary hits this English needs translated, in order."""
     hits = entry.get("glossary") or []
     names = [h["term"] for h in hits]
     for hit in hits:
@@ -544,6 +540,31 @@ def _glossary(language, entry, reference, text, safety, q):
             continue
         if translib.nested_in_longer(hit["term"], names, reference):
             continue  # "Lock" in "Lock duration": the longer term's translation is required
+        yield hit
+
+
+def safety_terms_without_target(entry):
+    """Safety terms of a safety key with no approved target, for which _glossary can check nothing.
+
+    The council has a judge behind that gap. A caller with no judge must not trust such a text.
+    """
+    if not entry.get("safety"):
+        return []
+    found = []
+    for reference in _items(entry["kind"], entry["english"]).values():
+        for hit in _terms_in(entry, reference):
+            if hit.get("safety") and not hit.get("target") and hit["term"] not in found:
+                found.append(hit["term"])
+    return found
+
+
+def _glossary(language, entry, reference, text, safety, q):
+    """Approved targets used: whole words in spaced scripts, anywhere (but not as part of the
+    opposite term) in scripts without word spaces; see lexicon.term_found."""
+    out = []
+    primary = language["tag"].split("-")[0]
+    script = language.get("script") or "Latn"
+    for hit in _terms_in(entry, reference):
         targets = hit.get("target")
         if not targets:
             continue

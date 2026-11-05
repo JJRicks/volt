@@ -20,10 +20,16 @@ The APK goes to <out>/volt-draft-languages.apk, signed with a key made for that 
 it, so it cannot update an installed Volt: uninstall Volt first. Nothing is ever written to res/ or
 dist/ of the repository, or anywhere else outside --workdir and --out.
 
+A safety key whose safety term has no approved target in l10n/glossary/<tag>.tsv also shows English
+(state unchecked): there is no judge here, and without the target nothing would notice "Unlocked"
+written for "Locked". A language none of whose draft text can be shown fails the run.
+
 <out>/report.tsv has one row per language and area, and a TOTAL row per language; english_fallback is
-every key shown in English, of which failing and stale are the drafted keys that were refused, and
-unknown counts draft keys the English no longer has. <out>/report-keys.tsv says why for each refused
-key. The drafts stay exactly as they are: this tool never edits or relabels them.
+every key shown in English, of which failing, stale and unchecked are the drafted keys that were
+refused; unknown counts draft keys the English no longer has, warned counts written keys with check.py
+warnings, and commit is the HEAD that was built. <out>/report-keys.tsv says why for each of those keys.
+A run removes the APK and reports of an earlier one first, and a run that fails leaves no APK.
+The drafts stay exactly as they are: this tool never edits or relabels them.
 """
 
 import sys
@@ -49,13 +55,16 @@ import pack as packlib  # noqa: E402
 import translib  # noqa: E402
 
 APK_NAME = "volt-draft-languages.apk"
+IDSIG_NAME = APK_NAME + ".idsig"  # apksigner's v4 signature, beside the APK
 REPORT_NAME = "report.tsv"
 KEYS_NAME = "report-keys.tsv"
 VERSION_SUFFIX = "-draft-languages"
 REFUSED_NAMES = ("res", "dist")
-REPORT_COLUMNS = ("language", "area", "total", "translated", "english_fallback", "failing", "stale", "unknown",
-                  "safety_total", "safety_translated", "safety_fallback",
-                  "lock_alarm_total", "lock_alarm_translated", "lock_alarm_fallback")
+COUNT_COLUMNS = ("total", "translated", "english_fallback", "failing", "stale", "unchecked", "unknown", "warned",
+                 "safety_total", "safety_translated", "safety_fallback",
+                 "lock_alarm_total", "lock_alarm_translated", "lock_alarm_fallback")
+REPORT_COLUMNS = ("language", "area") + COUNT_COLUMNS + ("commit",)
+REFUSED_STATES = ("failing", "stale", "unchecked")
 JAVA_CHECKS = ("CatalogCheckTest", "GlyphCoverageTest")
 # build.sh ends with these lines; the copy's override goes right before them.
 BUILD_ENTRY = '\nnavee_load_config\nif [[ "${BASH_SOURCE[0]}" == "$0" ]]; then\n'
@@ -98,10 +107,12 @@ def check_target(option, value, root):
         raise DraftApkError("%s %s is inside the worktree %s; use a scratch directory outside it" % (option, value, root))
     if any(part in REFUSED_NAMES for part in path.split(os.sep)):
         raise DraftApkError("%s %s is a res/ or dist/ path; a draft build never writes there" % (option, value))
-    top = _git(_existing_ancestor(path), "rev-parse", "--show-toplevel")
-    if top is not None:
+    ancestor = _existing_ancestor(path)
+    # --git-dir too: inside a .git directory there is no top level, but it is a checkout's all the same.
+    if _git(ancestor, "rev-parse", "--git-dir") is not None:
+        top = _git(ancestor, "rev-parse", "--show-toplevel")
         raise DraftApkError("%s %s is inside the git checkout %s; use a scratch directory outside it" % (
-            option, value, top.strip()))
+            option, value, top.strip() if top else ancestor))
     return path
 
 
@@ -109,11 +120,11 @@ def check_root(root):
     top = _git(root, "rev-parse", "--show-toplevel")
     if top is None or os.path.realpath(top.strip()) != root:
         raise DraftApkError("%s is not the top of a git checkout" % root)
-    dirty = _git(root, "status", "--porcelain", "--", "res", "dist")
+    dirty = _git(root, "status", "--porcelain", "--", "res")
     if dirty is None:
         raise DraftApkError("git status failed in %s" % root)
     if dirty.strip():
-        raise DraftApkError("res/ or dist/ has uncommitted changes, and the build uses HEAD only; "
+        raise DraftApkError("res/ has uncommitted changes, and the build uses HEAD only; "
                             "commit or stash them first:\n%s" % dirty.rstrip())
 
 
@@ -190,15 +201,16 @@ def bring_language_files(drafts_paths, copy_paths, tag):
 
 
 def classify_area(pack, draft, font, measurer):
-    """{key: (state, reason)} for every key of the pack, state being translated, missing, failing or stale.
+    """{key: (state, reason)} for every key of the pack, state being translated, missing, failing, stale or unchecked.
 
-    Also returns the draft's keys the English does not have. A ladder that is not whole falls whole,
-    since merge.py and CatalogCheckTest refuse a partly translated one.
+    Also returns the draft's keys the English does not have, and {key: warnings} of the keys that stay
+    translated. A ladder that is not whole falls whole, since merge.py and CatalogCheckTest refuse a
+    partly translated one.
     """
     entries = collections.OrderedDict((e["key"], e) for e in pack["entries"])
     states = collections.OrderedDict((k, ("missing", "no draft")) for k in entries)
     if draft is None:
-        return states, []
+        return states, [], {}
     unknown = [k for k in draft.entries if k not in entries]
     results = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
     for key, entry in entries.items():
@@ -210,8 +222,12 @@ def classify_area(pack, draft, font, measurer):
             states[key] = ("stale", stale)
             continue
         errors = [f for f in results.get(key, []) if f["severity"] == checklib.ERROR]
+        unchecked = checklib.safety_terms_without_target(entry)
         if errors:
             states[key] = ("failing", "; ".join("%s: %s" % (f["check"], f["message"]) for f in errors))
+        elif unchecked:
+            states[key] = ("unchecked", "glossary: no approved target for %s, so its meaning cannot be checked" %
+                           ", ".join(repr(t) for t in unchecked))
         else:
             states[key] = ("translated", "")
     for entry in entries.values():
@@ -221,7 +237,12 @@ def classify_area(pack, draft, font, measurer):
             for key in group:
                 if states[key][0] == "translated":
                     states[key] = ("failing", "ladder: %s is %s" % (broken[0], states[broken[0]][0]))
-    return states, unknown
+    warned = collections.OrderedDict()
+    for key, findings in results.items():
+        messages = ["%s: %s" % (f["check"], f["message"]) for f in findings if f["severity"] == checklib.WARN]
+        if messages and states.get(key, ("",))[0] == "translated":
+            warned[key] = "; ".join(messages)
+    return states, unknown, warned
 
 
 def write_language_file(paths, tag, area, lang, sources, tag_area, draft, states):
@@ -245,10 +266,16 @@ def write_language_file(paths, tag, area, lang, sources, tag_area, draft, states
 # The report
 # ---------------------------------------------------------------------------
 
-def area_row(tag, area, pack, states, unknown):
-    row = collections.OrderedDict((c, 0) for c in REPORT_COLUMNS)
+def blank_row(tag, area):
+    row = collections.OrderedDict((c, 0) for c in COUNT_COLUMNS)
     row["language"], row["area"] = tag, area
+    return row
+
+
+def area_row(tag, area, pack, states, unknown, warned):
+    row = blank_row(tag, area)
     row["unknown"] = len(unknown)
+    row["warned"] = len(warned)
     for entry in pack["entries"]:
         state = states[entry["key"]][0]
         translated = state == "translated"
@@ -257,6 +284,7 @@ def area_row(tag, area, pack, states, unknown):
         row["english_fallback"] += not translated
         row["failing"] += state == "failing"
         row["stale"] += state == "stale"
+        row["unchecked"] += state == "unchecked"
         if entry["safety"]:
             row["safety_total"] += 1
             row["safety_translated"] += translated
@@ -269,18 +297,36 @@ def area_row(tag, area, pack, states, unknown):
 
 
 def total_row(tag, rows):
-    total = collections.OrderedDict((c, sum(r[c] for r in rows)) for c in REPORT_COLUMNS[2:])
-    return collections.OrderedDict([("language", tag), ("area", "TOTAL")] + list(total.items()))
+    row = blank_row(tag, "TOTAL")
+    row.update((c, sum(r[c] for r in rows)) for c in COUNT_COLUMNS)
+    return row
 
 
 def tsv_lines(columns, rows):
     return "\n".join(["\t".join(columns)] + ["\t".join(str(r[c]) for c in columns) for r in rows]) + "\n"
 
 
-def write_report(out, rows, key_rows):
-    l10nlib.write_text(os.path.join(out, REPORT_NAME), tsv_lines(REPORT_COLUMNS, rows))
+def write_report(out, rows, key_rows, commit):
+    text = tsv_lines(REPORT_COLUMNS, [dict(r, commit=commit) for r in rows])
+    l10nlib.write_text(os.path.join(out, REPORT_NAME), text)
     l10nlib.write_text(os.path.join(out, KEYS_NAME), tsv_lines(("language", "area", "key", "state", "reason"), key_rows))
-    sys.stdout.write(tsv_lines(REPORT_COLUMNS, rows))
+    sys.stdout.write(text)
+
+
+def remove_apk(out):
+    for name in (APK_NAME, IDSIG_NAME):
+        path = os.path.join(out, name)
+        if os.path.exists(path):
+            os.remove(path)
+
+
+def clear_earlier_run(out):
+    """Nothing of an earlier run may sit beside this run's results and seem to describe them."""
+    remove_apk(out)
+    for name in (REPORT_NAME, KEYS_NAME):
+        path = os.path.join(out, name)
+        if os.path.exists(path):
+            os.remove(path)
 
 
 # ---------------------------------------------------------------------------
@@ -314,11 +360,17 @@ def add_locale_config(root):
     l10nlib.write_text(path, text.replace("<application\n", '<application\n        android:localeConfig="@xml/locales_config"\n'))
 
 
-def draft_version_name(root, commit):
+def draft_version_name(root):
+    """"1.11.1-dev-draft-languages", with no commit (the report has it).
+
+    CommandLog.APP_VERSION allows three suffix parts. A fourth, as in -dev+abc1234-draft-languages,
+    would make the app's diagnostics and journal say "unknown" and lose the draft marker. VersionName.dev
+    accepts -dev- too, so the journal still stores "1.11.1-dev".
+    """
     match = re.search(r'android:versionName="([0-9.]+)"', l10nlib.read_text(os.path.join(root, "AndroidManifest.xml")))
     if not match:
         raise DraftApkError("AndroidManifest.xml has no numeric versionName")
-    return "%s-dev+%s%s" % (match.group(1), commit, VERSION_SUFFIX)
+    return "%s-dev%s" % (match.group(1), VERSION_SUFFIX)
 
 
 def patch_build_script(root, version_name):
@@ -415,13 +467,21 @@ def prove_release_refused(copy, env):
 
 
 def build_apk(copy, env, apk_path):
-    if os.path.exists(apk_path):
-        os.remove(apk_path)
     result = subprocess.run(["bash", "build.sh"], cwd=copy, env=env, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     output = result.stdout.decode("utf-8", "replace")
     if result.returncode != 0 or not os.path.exists(apk_path):
         return ["build.sh failed:\n%s" % output]
     return []
+
+
+def missing_configurations(dumped, tags, lang_folders):
+    """The languages' resource configurations that aapt dump configurations does not list.
+
+    Whole names: "no" is not in nodpi-v4, nor "an" in anydpi-v26.
+    """
+    configurations = dumped.split()
+    wanted = [lang_folders[tag][len("values-"):] for tag in tags]
+    return [c for c in wanted if c not in configurations]
 
 
 def inspect_apk(apk_path, tags, lang_folders):
@@ -440,11 +500,8 @@ def inspect_apk(apk_path, tags, lang_folders):
     print("apk versionName: %s" % version)
     if not version.endswith(VERSION_SUFFIX):
         problems.append("the APK's versionName %r does not end in %s" % (version, VERSION_SUFFIX))
-    configurations = dump("configurations").split()
-    for tag in tags:
-        wanted = lang_folders[tag][len("values-"):]
-        if not any(wanted in c for c in configurations):
-            problems.append("the APK has no %s configuration" % wanted)
+    for wanted in missing_configurations(dump("configurations"), tags, lang_folders):
+        problems.append("the APK has no %s configuration" % wanted)
     tree = subprocess.run([aapt, "dump", "xmltree", apk_path, "AndroidManifest.xml"],
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     kept = "localeConfig" in tree.stdout.decode("utf-8", "replace")
@@ -464,21 +521,33 @@ def generate_language(copy_paths, drafts_paths, tag, name, sources, tag_area, fo
     if os.path.isdir(copy_paths.res(lang.folder)):
         raise DraftApkError("HEAD already has res/%s" % lang.folder)
     chosen = choose_drafts(drafts_paths, tag, name)
+    if not os.path.exists(os.path.join(copy_paths.glossary_dir(), tag + ".tsv")):
+        print("warning: %s has no l10n/glossary/%s.tsv, so its safety terms cannot be checked and those keys show English"
+              % (tag, tag))
     rows, key_rows = [], []
-    for area in chosen:
+    for area, path in chosen.items():
         if area not in sources:
             print("warning: %s: %s has no res/values/strings_%s.xml; its draft is ignored" % (tag, area, area))
+            lost = list(translib.read_draft(path).entries)
+            row = blank_row(tag, area)
+            row["unknown"] = len(lost)
+            rows.append(row)
+            key_rows.extend({"language": tag, "area": area, "key": key, "state": "unknown",
+                             "reason": "the English has no such area"} for key in lost)
     for area, area_sources in sources.items():
         pack = packlib.build_pack(copy_paths, tag, area, measurer, sources)
         draft = translib.read_draft(chosen[area]) if area in chosen else None
-        states, unknown = classify_area(pack, draft, font, measurer)
+        states, unknown, warned = classify_area(pack, draft, font, measurer)
         _written, skipped = write_language_file(copy_paths, tag, area, lang, area_sources, tag_area, draft, states)
         for key, why in skipped:
             states[key] = ("failing", why)
-        rows.append(area_row(tag, area, pack, states, unknown))
+        warned = collections.OrderedDict((k, why) for k, why in warned.items() if states[k][0] == "translated")
+        rows.append(area_row(tag, area, pack, states, unknown, warned))
         for key, (state, reason) in states.items():
-            if state in ("failing", "stale"):
+            if state in REFUSED_STATES:
                 key_rows.append({"language": tag, "area": area, "key": key, "state": state, "reason": reason})
+        for key, reason in warned.items():
+            key_rows.append({"language": tag, "area": area, "key": key, "state": "warned", "reason": reason})
         for key in unknown:
             key_rows.append({"language": tag, "area": area, "key": key, "state": "unknown",
                              "reason": "not a translatable key of the English"})
@@ -501,13 +570,18 @@ def run(args):
         choose_drafts(drafts_paths, tag, args.name)  # before anything is exported
     os.makedirs(workdir, exist_ok=True)
     os.makedirs(out, exist_ok=True)
+    clear_earlier_run(out)
     run_dir = tempfile.mkdtemp(prefix="volt-draft-", dir=workdir)
     copy = os.path.join(run_dir, "tree")
     os.makedirs(os.path.join(run_dir, "tmp"))
+    code = None
     try:
         with temporary_files_in(os.path.join(run_dir, "tmp")):
-            return run_in_copy(args, root, out, tags, drafts_paths, run_dir, copy)
+            code = run_in_copy(args, root, out, tags, drafts_paths, run_dir, copy)
+        return code
     finally:
+        if code != 0:
+            remove_apk(out)  # however it failed, even a release build that should have refused
         if args.keep:
             print("kept the copy: %s" % copy)
         else:
@@ -527,20 +601,33 @@ def run_in_copy(args, root, out, tags, drafts_paths, run_dir, copy):
         tag_rows, tag_keys = generate_language(paths, drafts_paths, tag, args.name, sources, tag_area, font, measurer)
         rows.extend(tag_rows)
         key_rows.extend(tag_keys)
-    write_report(out, rows, key_rows)
+    if measurer.java_problem:
+        print("note: widths use the hmtx approximation: %s" % measurer.java_problem)
+    commit = (_git(root, "rev-parse", "--short=7", "HEAD") or "unknown").strip()
+    write_report(out, rows, key_rows, commit)
+    problems = []
     for row in rows:
-        if row["area"] == "TOTAL" and row["lock_alarm_fallback"]:
+        if row["area"] != "TOTAL":
+            continue
+        if row["lock_alarm_fallback"]:
             print("%s: %d lock or alarm keys show English" % (row["language"], row["lock_alarm_fallback"]))
+        if row["unchecked"]:
+            print("%s: %d drafted safety keys show English: no approved glossary target (state unchecked)" % (
+                row["language"], row["unchecked"]))
+        if row["warned"]:
+            print("%s: %d written keys have check.py warnings: see %s" % (row["language"], row["warned"], KEYS_NAME))
+        if not row["translated"]:
+            problems.append("%s: none of its draft text can be shown, so it would be all English" % row["language"])
 
     for tag in tags:
         set_beta(paths, tag)
     add_locales(paths, tags)
     add_locale_config(copy)
-    commit = (_git(root, "rev-parse", "--short=7", "HEAD") or "").strip()
-    patch_build_script(copy, draft_version_name(copy, commit))
+    patch_build_script(copy, draft_version_name(copy))
 
     catalog_dir = os.path.join(run_dir, "catalog")
-    problems, notes = check_copy(paths, tags, args.aapt, catalog_dir)
+    copy_problems, notes = check_copy(paths, tags, args.aapt, catalog_dir)
+    problems.extend(copy_problems)
     for note in notes:
         print("note: %s" % note)
     apk_path = os.path.join(out, APK_NAME)
@@ -558,13 +645,12 @@ def run_in_copy(args, root, out, tags, drafts_paths, run_dir, copy):
         print("problem: %s" % problem)
     if problems:
         print("draft_apk: FAILED; no usable APK")
-        if os.path.exists(apk_path):
-            os.remove(apk_path)
         return 1
     if args.no_build:
         print("draft_apk: checks passed; --no-build, so no APK. Report: %s" % os.path.join(out, REPORT_NAME))
     else:
-        print("draft_apk: %s (draft text, never release it). Report: %s" % (apk_path, os.path.join(out, REPORT_NAME)))
+        print("draft_apk: %s from commit %s (draft text, never release it). Report: %s" % (
+            apk_path, commit, os.path.join(out, REPORT_NAME)))
     return 0
 
 

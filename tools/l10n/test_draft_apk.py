@@ -2,15 +2,18 @@ import contextlib
 import hashlib
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
+import unittest.mock
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import council_fixture as cf  # noqa: E402
 import draft_apk  # noqa: E402
+import fontmetrics  # noqa: E402
 import gen_catalog  # noqa: E402
 import translib  # noqa: E402
 
@@ -249,7 +252,142 @@ class GenerateTest(Base):
         code, output = self.run_tool("--tags", "es", "--keep")
         self.assertEqual(code, 0, output)
         self.assertEqual(read_report(os.path.join(self.out, "report.tsv"))[("es", "common")]["unknown"], "1")
+        self.assertIn("common_gone\tunknown\t", read_file(os.path.join(self.out, "report-keys.tsv")))
         self.assertNotIn("common_gone", read_file(self.kept_copy(output).res("values-es", "strings_common.xml")))
+
+    def test_a_draft_area_the_english_lost_is_counted(self):
+        self.draft()
+        os.makedirs(self.paths.drafts("es", "renamed"))
+        shutil.copy(self.paths.drafts("es", "common") + "/claude-opus.xml", self.paths.drafts("es", "renamed"))
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        self.assertIn("its draft is ignored", output)
+        report = read_report(os.path.join(self.out, "report.tsv"))
+        self.assertEqual(report[("es", "renamed")]["unknown"], str(len(cf.SPANISH)))
+        self.assertEqual(report[("es", "renamed")]["total"], "0")
+        self.assertEqual(report[("es", "TOTAL")]["unknown"], str(len(cf.SPANISH)))
+        self.assertIn("es\trenamed\tcommon_cancel\tunknown\t", read_file(os.path.join(self.out, "report-keys.tsv")))
+
+    def assert_nothing_to_show(self):
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 1, output)
+        self.assertIn("es: none of its draft text can be shown", output)
+        self.assertIn("FAILED", output)
+        self.assertTrue(os.path.exists(os.path.join(self.out, "report.tsv")))
+
+    def test_a_language_whose_only_draft_area_is_lost_fails(self):
+        self.draft(texts={"common_cancel": "Cancelar"})
+        os.rename(self.paths.work("es", "common"), self.paths.work("es", "renamed"))
+        self.assert_nothing_to_show()
+
+    def test_a_language_whose_only_key_fails_fails(self):
+        self.draft(texts={"common_move_widget": "Mover a la posición"})
+        self.assert_nothing_to_show()
+
+    def test_no_glossary_keeps_safety_keys_english(self):
+        self.draft()
+        self.git("rm", "-q", "l10n/glossary/es.tsv")
+        self.git("-c", "user.name=T", "-c", "user.email=t@example.invalid", "-c", "commit.gpgsign=false",
+                 "-c", "core.hooksPath=" + os.devnull, "commit", "-q", "-m", "no glossary")
+        code, output = self.run_tool("--tags", "es", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertIn("es has no l10n/glossary/es.tsv", output)
+        text = read_file(self.kept_copy(output).res("values-es", "strings_common.xml"))
+        self.assertNotIn('name="common_disclaimer"', text)
+        self.assertIn('name="common_cancel"', text)
+        report = read_report(os.path.join(self.out, "report.tsv"))
+        self.assertEqual(report[("es", "common")]["unchecked"], "1")
+        self.assertIn("1 drafted safety keys show English", output)
+        keys = read_file(os.path.join(self.out, "report-keys.tsv"))
+        self.assertIn("common_disclaimer\tunchecked\tglossary: no approved target for 'not affiliated with NAVEE'", keys)
+
+    def test_a_glossary_missing_one_safety_term_keeps_that_key_english(self):
+        self.draft()
+        path = self.paths.glossary_dir() + "/es.tsv"
+        self.repo.write(self.paths.rel(path), "".join(
+            line + "\n" for line in read_file(path).splitlines() if not line.startswith("not-affiliated")))
+        code, output = self.run_tool("--tags", "es", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertNotIn("has no l10n/glossary", output)
+        self.assertEqual(read_report(os.path.join(self.out, "report.tsv"))[("es", "common")]["unchecked"], "1")
+        self.assertNotIn('name="common_disclaimer"',
+                         read_file(self.kept_copy(output).res("values-es", "strings_common.xml")))
+
+    def test_with_the_target_the_safety_key_is_written(self):
+        self.draft()
+        code, output = self.run_tool("--tags", "es", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(read_report(os.path.join(self.out, "report.tsv"))[("es", "common")]["unchecked"], "0")
+        self.assertIn('name="common_disclaimer"', read_file(self.kept_copy(output).res("values-es", "strings_common.xml")))
+
+    def test_warnings_reach_the_report(self):
+        self.draft(texts=dict(cf.SPANISH, common_not_reported="Not reported"))
+        code, output = self.run_tool("--tags", "es", "--keep")
+        self.assertEqual(code, 0, output)
+        self.assertIn('name="common_not_reported"', read_file(self.kept_copy(output).res("values-es", "strings_common.xml")))
+        keys = read_file(os.path.join(self.out, "report-keys.tsv"))
+        self.assertRegex(keys, r"common_not_reported\twarned\t.*untranslated: the target is the English text")
+        warned = keys.count("\twarned\t")
+        self.assertEqual(read_report(os.path.join(self.out, "report.tsv"))[("es", "TOTAL")]["warned"], str(warned))
+        self.assertIn("es: %d written keys have check.py warnings" % warned, output)
+
+    def test_a_silent_width_fallback_is_printed(self):
+        self.draft()
+        with unittest.mock.patch.object(fontmetrics, "java_command", return_value=None):
+            code, output = run_tool("--root", self.root, "--workdir", self.workdir, "--out", self.out, "--aapt", "off",
+                                    "--no-build", "--tags", "es")
+        self.assertEqual(code, 0, output)
+        self.assertIn("note: widths use the hmtx approximation: no Java runtime", output)
+
+    def test_the_report_names_the_commit(self):
+        self.draft()
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        commit = subprocess.run(["git", "rev-parse", "--short=7", "HEAD"], cwd=self.root, stdout=subprocess.PIPE,
+                                universal_newlines=True).stdout.strip()
+        report = read_report(os.path.join(self.out, "report.tsv"))
+        self.assertEqual(report[("es", "common")]["commit"], commit)
+        self.assertEqual(report[("es", "TOTAL")]["commit"], commit)
+
+    def earlier_run(self):
+        os.makedirs(self.out, exist_ok=True)
+        for name in (draft_apk.APK_NAME, draft_apk.IDSIG_NAME, "report.tsv", "report-keys.tsv"):
+            with open(os.path.join(self.out, name), "w", encoding="utf-8") as handle:
+                handle.write("from an earlier run\n")
+        with open(os.path.join(self.out, "owner-notes.txt"), "w", encoding="utf-8") as handle:
+            handle.write("not ours\n")
+
+    def test_no_build_removes_an_earlier_apk(self):
+        self.draft()
+        self.earlier_run()
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 0, output)
+        self.assertEqual(sorted(os.listdir(self.out)), ["owner-notes.txt", "report-keys.tsv", "report.tsv"])
+        self.assertNotIn("from an earlier run", read_file(os.path.join(self.out, "report.tsv")))
+
+    def test_a_malformed_draft_leaves_nothing_of_an_earlier_run(self):
+        self.draft()
+        self.repo.write(self.paths.rel(self.paths.drafts("es", "common") + "/claude-opus.xml"), "<string")
+        self.earlier_run()
+        code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 2, output)
+        self.assertEqual(os.listdir(self.out), ["owner-notes.txt"])
+
+    def test_a_failure_after_the_build_started_removes_the_apk(self):
+        self.draft()
+        self.earlier_run()
+
+        def fails_after_a_build(*_args):
+            with open(os.path.join(self.out, draft_apk.APK_NAME), "w", encoding="utf-8") as handle:
+                handle.write("a release build that should have refused\n")
+            with open(os.path.join(self.out, draft_apk.IDSIG_NAME), "w", encoding="utf-8") as handle:
+                handle.write("its signature\n")
+            raise draft_apk.DraftApkError("a VOLT_RELEASE build of the copy did not refuse")
+
+        with unittest.mock.patch.object(draft_apk, "write_report", side_effect=fails_after_a_build):
+            code, output = self.run_tool("--tags", "es")
+        self.assertEqual(code, 2, output)
+        self.assertEqual(os.listdir(self.out), ["owner-notes.txt"])
 
     def test_two_languages_and_drafts_from_another_root(self):
         self.draft(tag="de", texts={"common_cancel": "Abbrechen"})
@@ -344,6 +482,23 @@ class RefusalTest(Base):
         self.assertEqual(code, 2, output)
         self.assertIn("inside the git checkout", output)
 
+    def test_inside_a_git_directory(self):
+        other = os.path.join(self.scratch, "other")
+        subprocess.run(["git", "init", "-q", other], check=True)
+        code, output = self.tool(other + "/.git/x", self.out)
+        self.assertEqual(code, 2, output)
+        self.assertIn("inside the git checkout", output)
+        self.assertFalse(os.path.exists(other + "/.git/x"))
+
+    def test_inside_the_main_git_directory_from_a_linked_worktree(self):
+        linked = os.path.join(self.scratch, "linked")
+        self.git("worktree", "add", "-q", "--detach", linked)
+        linked = os.path.realpath(linked)
+        for path in (self.root + "/.git/zz", self.root + "/.git"):
+            with self.assertRaises(draft_apk.DraftApkError) as caught:
+                draft_apk.check_target("--workdir", path, linked)
+            self.assertIn("inside the git checkout", str(caught.exception))
+
     def test_dirty_res(self):
         self.repo.write("res/values/strings_common.xml", self.repo.read("res/values/strings_common.xml") + "\n")
         code, output = self.tool(self.workdir, self.out)
@@ -372,7 +527,7 @@ class ReleaseRefusalTest(unittest.TestCase):
         shutil.copy(REAL_BUILD, self.root)
         with open(os.path.join(self.root, "AndroidManifest.xml"), "w", encoding="utf-8") as handle:
             handle.write(MANIFEST)
-        draft_apk.patch_build_script(self.root, draft_apk.draft_version_name(self.root, "abc1234"))
+        draft_apk.patch_build_script(self.root, draft_apk.draft_version_name(self.root))
 
     def tearDown(self):
         shutil.rmtree(self.root, ignore_errors=True)
@@ -386,8 +541,17 @@ class ReleaseRefusalTest(unittest.TestCase):
     def test_version_has_the_suffix(self):
         result = self.version()
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertEqual(result.stdout.strip(), "1.2.3-dev+abc1234-draft-languages")
-        self.assertEqual(self.version(VOLT_RELEASE="0").stdout.strip(), "1.2.3-dev+abc1234-draft-languages")
+        self.assertEqual(result.stdout.strip(), "1.2.3-dev-draft-languages")
+        self.assertEqual(self.version(VOLT_RELEASE="0").stdout.strip(), "1.2.3-dev-draft-languages")
+
+    def test_version_survives_the_apps_own_pattern(self):
+        """Diagnostics and the journal turn a versionName outside this pattern into "unknown"."""
+        source = read_file(os.path.join(translib.REPO_ROOT, "src", "com", "jjricks", "volt", "CommandLog.java"))
+        pattern = re.search(r'String APP_VERSION = "(.*)";', source).group(1).replace("\\\\", "\\")
+        self.assertRegex(self.version().stdout.strip(), "^(%s)$" % pattern)
+        self.assertNotRegex("1.2.3-dev+abc1234-draft-languages", "^(%s)$" % pattern)
+        version_name = read_file(os.path.join(translib.REPO_ROOT, "src", "com", "jjricks", "volt", "VersionName.java"))
+        self.assertIn('rest.startsWith("-dev-")', version_name)  # so the journal stores it as a dev build
 
     def test_a_release_build_refuses(self):
         for value in ("1", "yes"):
@@ -427,6 +591,14 @@ class ReleaseRefusalTest(unittest.TestCase):
         self.assertEqual(env["NAVEE_BUILD_DIR"], "/run/tree/.local/build")
 
 
+class InspectTest(unittest.TestCase):
+    def test_configurations_compare_whole_names(self):
+        dumped = "\nanydpi-v26\nanydpi-v33\nnodpi-v4\nes\npt-rBR\n"
+        folders = {"no": "values-no", "an": "values-an", "es": "values-es", "pt-BR": "values-pt-rBR", "pt": "values-pt"}
+        self.assertEqual(draft_apk.missing_configurations(dumped, ["es", "pt-BR"], folders), [])
+        self.assertEqual(draft_apk.missing_configurations(dumped, ["no", "an", "pt"], folders), ["no", "an", "pt"])
+
+
 class RealTreeTest(unittest.TestCase):
     """The tool against this checkout's own HEAD and English, with drafts from a temporary folder."""
 
@@ -442,7 +614,7 @@ class RealTreeTest(unittest.TestCase):
                 found.add(name)
         return found, shipped
 
-    def test_the_tree_holds_no_draft_language_after_a_run(self):
+    def setUp(self):
         paths = translib.Paths()
         inside = subprocess.run(["git", "-C", paths.root, "rev-parse", "--show-toplevel"], stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL)
@@ -452,33 +624,73 @@ class RealTreeTest(unittest.TestCase):
                                stdout=subprocess.PIPE).stdout
         if dirty.strip():
             self.skipTest("res/ has uncommitted changes, which the tool rightly refuses")
-        scratch = os.path.realpath(tempfile.mkdtemp(prefix="l10n-draft-apk-real-"))
-        self.addCleanup(shutil.rmtree, scratch, ignore_errors=True)
+        self.scratch = os.path.realpath(tempfile.mkdtemp(prefix="l10n-draft-apk-real-"))
+        self.addCleanup(shutil.rmtree, self.scratch, ignore_errors=True)
+        # A language the tree does not ship yet: its own pilot will add res/values-es, and the tool refuses that.
+        self.tag = next(t for t in ("es", "de", "fr", "it", "nl", "pl", "sv", "da", "fi", "cs", "hu", "ro")
+                        if not os.path.exists(paths.res("values-" + t)))
+        self.drafts = translib.Paths(os.path.join(self.scratch, "drafts"))
+        text = read_file(os.path.join(cf.FIXTURE, "l10n", "lang", "es.tsv"))
+        text = text.replace("tag\tes\n", "tag\t%s\n" % self.tag).replace("folder\tvalues-es\n", "folder\tvalues-%s\n" % self.tag)
+        os.makedirs(self.drafts.lang_dir())
+        with open(os.path.join(self.drafts.lang_dir(), self.tag + ".tsv"), "w", encoding="utf-8") as target:
+            target.write(text)
+
+    def tool(self):
+        return run_tool("--tags", self.tag, "--workdir", os.path.join(self.scratch, "w"),
+                        "--out", os.path.join(self.scratch, "o"), "--drafts", self.drafts.root,
+                        "--no-build", "--no-java", "--aapt", "off")
+
+    def test_the_tree_holds_no_draft_language_after_a_run(self):
+        paths = translib.Paths()
         before = self.language_folders()
         self.assertLessEqual(before[0], before[1], "a res/values-xx folder of a language that does not ship")
-        drafts = translib.Paths(os.path.join(scratch, "drafts"))
-        with open(os.path.join(cf.FIXTURE, "l10n", "lang", "es.tsv"), encoding="utf-8") as handle:
-            os.makedirs(drafts.lang_dir())
-            with open(os.path.join(drafts.lang_dir(), "es.tsv"), "w", encoding="utf-8") as target:
-                target.write(handle.read())
         sources, tag_area = translib.load_source(paths)
         source = next(s for s in sources[tag_area] if s.kind == "string" and s.translatable
                       and not s.meta.get("ladder") and "%" not in s.items["other"]
                       and s.key + "_short" not in [o.key for o in sources[tag_area]]
                       and not s.meta.get("safety") and not s.meta.get("max"))
-        translib.write_draft(os.path.join(drafts.drafts("es", tag_area), "claude-test.xml"), "claude-test", "test",
+        translib.write_draft(os.path.join(self.drafts.drafts(self.tag, tag_area), "claude-test.xml"), "claude-test", "test",
                              [(source.key, "string", {"other": source.items["other"]}, 1,
                                translib.source_sha1(source.kind, source.items))])
         lang_listing = sorted(os.listdir(paths.lang_dir()))
-        code, output = run_tool("--tags", "es", "--workdir", os.path.join(scratch, "w"), "--out", os.path.join(scratch, "o"),
-                                "--drafts", drafts.root, "--no-build", "--no-java", "--aapt", "off")
+        code, output = self.tool()
         self.assertEqual(code, 0, output)
         self.assertEqual(self.language_folders(), before)
-        self.assertFalse(os.path.exists(paths.res("values-es")) and "es" not in lang_listing)
+        self.assertFalse(os.path.exists(paths.res("values-" + self.tag)))
         self.assertEqual(sorted(os.listdir(paths.lang_dir())), lang_listing)
-        report = read_report(os.path.join(scratch, "o", "report.tsv"))
-        self.assertEqual(report[("es", "TOTAL")]["translated"], "1")
-        self.assertEqual(os.listdir(os.path.join(scratch, "w")), [])
+        report = read_report(os.path.join(self.scratch, "o", "report.tsv"))
+        self.assertEqual(report[(self.tag, "TOTAL")]["translated"], "1")
+        self.assertEqual(os.listdir(os.path.join(self.scratch, "w")), [])
+
+    def test_an_inverted_lock_text_needs_the_glossary_to_be_caught(self):
+        """The real English's "Locked", drafted as "Unlocked": never written, with or without the glossary."""
+        paths = translib.Paths()
+        sources, _ = translib.load_source(paths)
+        area = next(a for a, items in sources.items() if any(s.key == "readings_value_locked" for s in items))
+        source = next(s for s in sources[area] if s.key == "readings_value_locked")
+        harmless = next(s for s in sources[area] if s.kind == "string" and s.translatable and not s.meta.get("ladder")
+                        and "%" not in s.items["other"] and s.key + "_short" not in [o.key for o in sources[area]]
+                        and not s.meta.get("safety") and not s.meta.get("max"))
+        rows = [(s.key, "string", {"other": text}, 1, translib.source_sha1(s.kind, s.items))
+                for s, text in ((source, "Desbloqueado"), (harmless, harmless.items["other"]))]
+        translib.write_draft(os.path.join(self.drafts.drafts(self.tag, area), "claude-test.xml"), "claude-test", "test", rows)
+        code, output = self.tool()
+        self.assertEqual(code, 0, output)
+        keys = read_file(os.path.join(self.scratch, "o", "report-keys.tsv"))
+        self.assertIn("readings_value_locked\tunchecked\tglossary: no approved target for 'Locked'", keys)
+        report = read_report(os.path.join(self.scratch, "o", "report.tsv"))
+        self.assertEqual(report[(self.tag, area)]["translated"], "1")
+        # With the target, the same text is plainly wrong, and the check says so.
+        os.makedirs(self.drafts.glossary_dir())
+        with open(os.path.join(self.drafts.glossary_dir(), self.tag + ".tsv"), "w", encoding="utf-8") as handle:
+            handle.write("id\tterm\tdefinition\tpos\tdnt\tsafety\tsource\n"
+                         "locked\tBloqueado\tLocked.\tadjective\tno\tlock\ttest\n")
+        code, output = self.tool()
+        self.assertEqual(code, 0, output)
+        keys = read_file(os.path.join(self.scratch, "o", "report-keys.tsv"))
+        self.assertIn("readings_value_locked\tfailing\t", keys)
+        self.assertIn("'Locked' should be 'Bloqueado'", keys)
 
 
 if __name__ == "__main__":

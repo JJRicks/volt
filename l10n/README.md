@@ -1201,24 +1201,33 @@ council.
 - **Where it works.** It exports HEAD into a fresh copy under `--workdir`, deleted at the end unless
   `--keep`. Only that copy gets `res/values-<qual>/`, status `beta`, `locales_config.xml` and
   `android:localeConfig`. Nothing else is written outside `--workdir` and `--out`, and it refuses
-  either path inside the worktree or another git checkout, any `res/` or `dist/` path, and a checkout
-  whose `res/` has uncommitted changes (the build would not include them).
+  either path inside the worktree or another git checkout (its `.git` directory included), any `res/`
+  or `dist/` path, and a checkout whose `res/` has uncommitted changes (the build would not include
+  them). `--root` exports another checkout than the one the tool is in.
 - **Which text.** `l10n/work/<tag>/<area>/drafts/claude-<config>.xml`, chosen with `--name` (default:
   the only one). `--drafts <root>` reads the drafts and the language's `l10n/` files from another
   folder. Only keys whose `volt:src` still matches and that pass `check.py` are written, with
   `merge.py`'s writer; every other key shows English, and a ladder goes whole or not at all. A language
-  with no drafts is an error.
+  with no drafts is an error, and so is one none of whose draft text can be shown.
+- **Safety terms.** No judge stands behind this tool, so a safety key whose safety term has no approved
+  target in `l10n/glossary/<tag>.tsv` shows English (state `unchecked`), since `check.py` could not
+  notice "Unlocked" written for "Locked". A language with no glossary file gets a warning and every
+  such key in English; add the glossary to see them translated.
 - **Checks.** `merge.py`'s validation, the catalog generator, `CatalogCheckTest` and
   `GlyphCoverageTest` run on the copy. A failure means no APK. `--no-build` stops after the Python
-  checks and writes the report.
-- **Not a release.** The versionName ends in `-draft-languages` (`1.11.1-dev+abc1234-draft-languages`),
-  and the copy's `build.sh` refuses `VOLT_RELEASE`. The APK is signed with a key made for that copy
+  checks and writes the report. Every run first removes the APK, its `.idsig` and the reports of an
+  earlier run from `--out`.
+- **Not a release.** The versionName ends in `-draft-languages` (`1.11.1-dev-draft-languages`: the
+  app's version pattern has room for three suffix parts, so the commit is in the report instead), and
+  the copy's `build.sh` refuses `VOLT_RELEASE`. The APK is signed with a key made for that copy
   and deleted with it, and the caller's `NAVEE_*` and `VOLT_*` settings are dropped. So it cannot update
   an installed Volt: uninstall Volt first, which removes its data.
 - **Report.** `<out>/report.tsv` has one row per language and area and a `TOTAL` row: `translated`,
-  `english_fallback` (every key shown in English), `failing` and `stale` (drafted keys refused, also
-  counted in `english_fallback`), `unknown` (draft keys the English no longer has) and the safety and
-  lock or alarm counts. `<out>/report-keys.tsv` gives the reason for each refused key.
+  `english_fallback` (every key shown in English), `failing`, `stale` and `unchecked` (drafted keys
+  refused, also counted in `english_fallback`), `unknown` (draft keys the English no longer has, also
+  in an area it no longer has), `warned` (written keys with `check.py` warnings, for a person to read,
+  since no judge does), the safety and lock or alarm counts, and `commit`. `<out>/report-keys.tsv` gives
+  the reason for each refused, unknown or warned key.
 
 The app's own Language row appears (More > App preferences), since the copy's language is `beta`.
 Text still in Java, such as the bottom bar's labels, stays English whatever the draft says.
