@@ -1134,12 +1134,10 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
    words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
-   the U+FE0E after ⚠, exactly as the English has them. `check.py` and `council.py` do not know that
-   list yet. `check.py` reports each of those symbols, and U+FE0E itself (category Mn, so not the
-   warning it gives spaces and format characters), as a missing-glyph ERROR. The drafting prompt's
-   "Keep unchanged" rule names neither the symbols nor the invisible U+FE0E, which a drafter may
-   drop. Both need the list, in a tooling pull request, before a language translates a key that has
-   one. Glossary terms match as whole words ("bloquear" is not found
+   the U+FE0E after ⚠, exactly as the English has them: `check.py` (`FALLBACK_SYMBOLS`, which a test
+   keeps equal to the Java list) lets those symbols past Saira's cmap and fails a draft that changes
+   their count, drops the U+FE0E or puts one anywhere else, and the drafting prompt's "Keep
+   unchanged" rule names them. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a

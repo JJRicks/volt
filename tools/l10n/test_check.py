@@ -1,12 +1,15 @@
 import collections
 import contextlib
+import copy
 import io
 import os
+import re
 import sys
 import unittest
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import check  # noqa: E402
+import council  # noqa: E402
 import council_fixture  # noqa: E402
 import fontmetrics  # noqa: E402
 import pack  # noqa: E402
@@ -141,6 +144,49 @@ class CheckTest(unittest.TestCase):
         self.assertIn("glyphs", self.checks(self.run_check("common_battery_percent", "%1$s\u202f%%"), check.WARN))
         # System-font languages are not checked against Saira.
         self.assertEqual(self.checks(self.run_check("common_cancel", "Отмена", tag="ru")), [])
+
+    def english_mark(self, english, draft, tag="es"):
+        """check_targets for a copy of common_cancel whose English holds a mark."""
+        p = copy.deepcopy(self.packs[tag])
+        entry = [e for e in p["entries"] if e["key"] == "common_cancel"][0]
+        entry["english"] = english
+        p["entries"] = [entry]
+        targets = collections.OrderedDict(common_cancel=("string", {"other": draft}, []))
+        return check.check_targets(p, targets, self.font, self.measurer)["common_cancel"]
+
+    def test_fallback_symbols_follow_glyph_coverage_test(self):
+        # The same list as the Java test, which is what reviews an entry; a change to one must change the other.
+        path = os.path.join(translib.REPO_ROOT, "tests", "l10n", "GlyphCoverageTest.java")
+        with open(path, encoding="utf-8") as handle:
+            block = re.search(r"FALLBACK_SYMBOLS = (.*?)\)\)\s*;", handle.read(), re.S).group(1)
+        listed = re.findall(r"new Fallback\(0x([0-9A-Fa-f]+), (true|false),", block)
+        self.assertEqual({chr(int(code, 16)): emoji == "true" for code, emoji in listed}, check.FALLBACK_SYMBOLS)
+
+    def test_fallback_symbols_pass_in_saira_languages(self):
+        for english, draft in (("Sin límite \u2713", "Sin límite \u2713"), ("\u2606 Fijar", "\u2606 Fijar"),
+                               ("\u2605 Fijo", "\u2605 Fijo"), ("Ojo \u26a0\ufe0e", "Ojo \u26a0\ufe0e")):
+            self.assertEqual([f for f in self.english_mark(english, draft) if f["check"] == "glyphs"], [], english)
+
+    def test_fallback_symbol_near_misses_fail(self):
+        for english, draft, needle in (
+                ("Ojo \u26a0\ufe0e", "Ojo \u26a0", "needs U+FE0E"),  # dropped the invisible selector
+                ("Ojo \u26a0\ufe0e", "Ojo", "keep each mark"),  # dropped the mark
+                ("Cancel", "Cancelar \u2713", "keep each mark"),  # added a mark
+                ("Listo \u2713", "Listo \u2713\ufe0e", "U+FE0E belongs only"),  # a selector on another symbol
+                ("Listo", "Li\ufe0esto", "U+FE0E belongs only"),
+                ("Listo", "Listo \u2714", "no glyph"),  # the emoji check mark is not on the list
+                ("Listo", "Listo \u25be", "no glyph")):
+            found = [f for f in self.english_mark(english, draft) if f["check"] == "glyphs" and f["severity"] == check.ERROR]
+            self.assertTrue(any(needle in f["message"] for f in found), (draft, found))
+        # U+FE0E's rules bind a system-font language too.
+        found = self.english_mark("Ojo \u26a0\ufe0e", "Ojo \u26a0", tag="ru")
+        self.assertTrue(any("needs U+FE0E" in f["message"] for f in found), found)
+
+    def test_drafting_prompt_names_the_marks(self):
+        prompt = council.instructions(self.packs["es"])
+        prompt = prompt if isinstance(prompt, str) else "\n".join(prompt)
+        for mark in ("\u2713", "\u26a0\ufe0e", "\u2606", "\u2605", "U+FE0E"):
+            self.assertIn(mark, prompt)
 
     def test_ladder_and_width(self):
         p = self.packs["es"]

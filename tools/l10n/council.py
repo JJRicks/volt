@@ -127,7 +127,9 @@ def instructions(pack, style="standard"):
         "- Keep every placeholder (%1$s, %2$d, %1$.1f) exactly as written; reorder them if the grammar needs it. "
         "Keep %% (a percent sign) as %%. The percent style is " + lang["percent_style"] + ".",
         "- Keep unchanged: the \"dnt\" tokens of each string, glossary terms marked dnt, file names, command-line "
-        "flags, URLs, `code spans`, ** marks, {z}/{x}/{y} and the \ufffc character.",
+        "flags, URLs, `code spans`, ** marks, {z}/{x}/{y}, the \ufffc character and the marks " +
+        " ".join(sorted(ch + checklib.TEXT_STYLE if emoji else ch for ch, emoji in checklib.FALLBACK_SYMBOLS.items())) +
+        " (with the invisible U+FE0E directly after the warning sign, exactly as the English has it).",
         "- Use each glossary term's approved translation (\"target\") when one is given.",
         "- Plurals: give every one of these categories: %s." % ", ".join(lang["plurals"]),
         "- Keys ending in _short and _compact are shorter rungs of the same label (\"ladder_group\"). Draft every "

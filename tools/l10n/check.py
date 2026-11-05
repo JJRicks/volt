@@ -372,8 +372,14 @@ def check_key(entry, language, kind, items, raw_problems=(), font=None):
             out.append(finding("whitespace", WARN, "%d line breaks in the English, %d in the target" % (
                 reference.count("\n"), text.count("\n")), q))
         # glyphs
+        for problem in fallback_symbol_problems(text):
+            out.append(finding("glyphs", ERROR, problem, q))
+        for ch in sorted(FALLBACK_ALLOWED):
+            if text.count(ch) != reference.count(ch):
+                out.append(finding("glyphs", ERROR, "%d of %s in the English, %d in the target; keep each mark as the "
+                                   "English has it" % (reference.count(ch), _chars([ch]), text.count(ch)), q))
         if language.get("font") == "saira" and font is not None:
-            missing = [ch for ch in font.missing(text) if ch != "\ufffc"]
+            missing = [ch for ch in font.missing(text) if ch != "\ufffc" and ch not in FALLBACK_ALLOWED]
             spaces = [ch for ch in missing if unicodedata.category(ch) in ("Zs", "Cf")]
             hard = [ch for ch in missing if ch not in spaces]
             if hard:
@@ -405,6 +411,28 @@ def _formatted(entry):
 def _list(values):
     values = sorted(values)
     return ", ".join(values) if values else "none"
+
+
+# tests/l10n/GlyphCoverageTest.FALLBACK_SYMBOLS, the reviewed list of symbols no Saira weight has that
+# Android's fallback font draws as plain text (l10n/README, "Glyph coverage"); test_check.py keeps the two
+# lists equal. True marks an emoji-capable symbol, which U+FE0E must follow directly.
+FALLBACK_SYMBOLS = {"\u2713": False, "\u26a0": True, "\u2606": False, "\u2605": False}
+TEXT_STYLE = "\ufe0e"
+FALLBACK_ALLOWED = frozenset(FALLBACK_SYMBOLS) | {TEXT_STYLE}
+
+
+def fallback_symbol_problems(text):
+    """The rules GlyphCoverageTest holds the catalog to, in every language, for one draft: an emoji-capable
+    fallback symbol needs U+FE0E directly after it, and U+FE0E goes nowhere else."""
+    problems = []
+    for i, ch in enumerate(text):
+        following = text[i + 1] if i + 1 < len(text) else ""
+        if FALLBACK_SYMBOLS.get(ch) and following != TEXT_STYLE:
+            problems.append("%s needs U+FE0E directly after it, or a phone may draw it as a colour emoji" % _chars([ch]))
+        elif ch == TEXT_STYLE and not (i > 0 and FALLBACK_SYMBOLS.get(text[i - 1])):
+            problems.append("U+FE0E belongs only directly after an emoji-capable symbol (%s)" % _chars(
+                [c for c, emoji in FALLBACK_SYMBOLS.items() if emoji]))
+    return problems
 
 
 def _chars(chars):
