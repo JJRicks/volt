@@ -4,3 +4,6 @@
 # "Not measured" forms, the sensors summary, battery changes, legend titles, spoken point readings, the
 # sensor icon colours, the storage size), copied from the merge base and pinned before the batch.
 tests/l10n/characterization/RidesFollowupsEnglishTest.java
+# F5's own suite and the plain-Java code it runs for real.
+src/com/jjricks/volt/RideText.java
+tests/l10n/RidesFollowupsTest.java

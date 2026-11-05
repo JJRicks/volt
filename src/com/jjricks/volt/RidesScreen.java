@@ -862,7 +862,7 @@ public final class RidesScreen implements AppScreen {
             for (RideChartData.Series s : selected) {
                 RideChartData.Value value = s.sampleAt(time);
                 LinearLayout cell = vertical(); cell.setMinimumWidth(ui.dp(124)); cell.setPadding(ui.dp(10), ui.dp(6), ui.dp(10), ui.dp(6));
-                TextView label = ui.text((s.index % 3 == 0 ? "━ " : s.index % 3 == 1 ? "┄ " : "⋯ ") + s.label, 12, false);
+                TextView label = ui.text((s.index % 3 == 0 ? MARK_SOLID : s.index % 3 == 1 ? MARK_DASH : MARK_DOT) + s.displayLabel(), 12, false);
                 label.setSingleLine(true); cell.addView(label);
                 TextView reading = ui.text(RideChartView.sampleValue(s, value), 17, true); reading.setSingleLine(true); cell.addView(reading);
                 boolean available = value != null && value.value != null && Double.isFinite(value.value);
@@ -882,9 +882,9 @@ public final class RidesScreen implements AppScreen {
                 CheckBox toggle = new CheckBox(host.activity()); toggle.setButtonDrawable(null); toggle.setMinHeight(ui.dp(48));
                 // Energy / distance exists only above walking pace; the chip says where, and the chart hatches the rest.
                 String limit = "wh_per_distance".equals(series.key) ? (miles() ? T.ridesChartChipFromMph() : T.ridesChartChipFromKmh()) : "";
-                toggle.setText((series.index % 3 == 0 ? "━ " : series.index % 3 == 1 ? "┄ " : "⋯ ") + series.label + limit + (series.available() ? "" : T.ridesChartChipNoData()));
+                toggle.setText((series.index % 3 == 0 ? MARK_SOLID : series.index % 3 == 1 ? MARK_DASH : MARK_DOT) + series.displayLabel() + limit + (series.available() ? "" : T.ridesChartChipNoData()));
                 toggle.setTextSize(12 * ui.textScale); toggle.setTypeface(ui.semibold()); toggle.setPadding(ui.dp(10), ui.dp(8), ui.dp(10), ui.dp(8));
-                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription("wh_per_distance".equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.label) : T.ridesChartSeriesOnlyAtMphNoSamples(series.label)) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.label) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.label))) : (series.available() ? T.ridesChartSeries(series.label) : T.ridesChartSeriesNoSamples(series.label)));
+                toggle.setChecked(chosen.contains(series.key)); toggle.setContentDescription(WH_PER_DISTANCE.equals(series.key) ? (miles() ? (series.available() ? T.ridesChartSeriesOnlyAtMph(series.displayLabel()) : T.ridesChartSeriesOnlyAtMphNoSamples(series.displayLabel())) : (series.available() ? T.ridesChartSeriesOnlyAtKmh(series.displayLabel()) : T.ridesChartSeriesOnlyAtKmhNoSamples(series.displayLabel()))) : (series.available() ? T.ridesChartSeries(series.displayLabel()) : T.ridesChartSeriesNoSamples(series.displayLabel())));
                 Runnable style = () -> { toggle.setTextColor(toggle.isChecked() ? ui.text : ui.muted); toggle.setBackground(ui.shape(toggle.isChecked() ? Ui.withAlpha(series.color, 50) : ui.raised, 12, toggle.isChecked() ? series.color : ui.outline)); };
                 style.run(); toggle.setOnCheckedChangeListener((button, checked) -> {
                     if (checked) chosen.add(series.key); else chosen.remove(series.key);
@@ -2088,6 +2088,7 @@ public final class RidesScreen implements AppScreen {
     /** The ride dates' patterns, which English and every unshipped language keep (Fmt.datePattern). */
     private static final String RIDE_DATE = "MMM d", RIDE_DAY_DATE = "EEE, MMM d";
     /** A ride date pattern: the legacy pattern while Volt is English, else the display language's best pattern for its fields. */
+    // Deferred (l10n/pending/f5-followups.md): the pattern here and Fmt.locale at each date read the language apart.
     private static String datePattern(String legacy) {
         return Fmt.datePattern(legacy, skeleton(legacy), android.text.format.DateFormat::getBestDateTimePattern);
     }
@@ -2144,7 +2145,7 @@ public final class RidesScreen implements AppScreen {
         Formatted parts = efficiencyParts(s);
         return parts == null ? "—" : parts.toString();
     }
-    /** The ascent / descent tile's value, when both were measured; PhoneRideStore sets both or neither. */
+    /** The ascent / descent tile's value, when ascent was measured; deferred: its " / " at the tile is not fmt_dual yet (l10n/pending/f5-followups.md). */
     private Formatted ascentParts(Double ascent, Double descent) {
         return ascent == null ? null : RideText.approximate(T.fmtDual(approx(ascent), height(descent)), Fmt.decimal(Locale.US, preferences.getString("units", "mi").equals("km") ? ascent : ascent * 3.280839895, 0));
     }
@@ -2219,6 +2220,9 @@ public final class RidesScreen implements AppScreen {
         for (int i = 0; i < value.length(); i++) if (Character.isDigit(value.charAt(i))) return true;
         return false;
     }
+    /** A chart series' line pattern, so colour is never the only difference. */
+    private static final String MARK_SOLID = "━ ", MARK_DASH = "┄ ", MARK_DOT = "⋯ ";
+    private static final String WH_PER_DISTANCE = "wh_per_distance";
     private void show(AlertDialog dialog, int style, Runnable onDismiss) {
         dialogs.add(dialog); dialog.setOnDismissListener(d -> { dialogs.remove(dialog); if (onDismiss != null) onDismiss.run(); });
         Window window = dialog.getWindow();
