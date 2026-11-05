@@ -47,18 +47,27 @@ NEGATION = {
     "sv": ({"inte", "ej", "ingen", "inget", "inga", "aldrig", "utan", "icke"}, ("o",)),
     "da": ({"ikke", "ingen", "intet", "aldrig", "uden"}, ("u",)),
     "nb": ({"ikke", "ingen", "intet", "aldri", "uten"}, ("u",)),
-    "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "bez", "ani", "nic"}, ("nie", "bez")),
+    "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "żadnego", "żadnej", "żadnym", "żadną", "bez", "ani",
+            "nic", "niczego", "nikt", "nikogo", "nigdzie", "brak", "braku", "brakuje"}, ("nie", "bez")),
     "id": ({"tidak", "tak", "bukan", "jangan", "belum", "tanpa"}, ()),
-    "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman", "koskaan"}, ("epä",)),
-    "cs": ({"ne", "nikdy", "žádný", "žádná", "žádné", "bez", "nic"}, ("ne", "bez")),
-    "sk": ({"nie", "nikdy", "žiadny", "žiadna", "žiadne", "bez", "nič"}, ("ne", "bez")),
+    "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman"}, ("epä",)),
+    # cs and sk join "ne" to the verb (JOINED_VERB_NEGATION). The short or "nej-" verbs that
+    # NATIVE_PREFIXES cannot reach are listed whole: "nej-" is also the superlative ("nejlepší").
+    "cs": ({"ne", "nikdy", "žádný", "žádná", "žádné", "bez", "nic", "není", "nejsou", "nejsem", "nejsi", "nejsme",
+            "nejste", "nejde", "nejdou", "nelze", "nemá", "nebyl", "neví", "nešlo"}, ("ne", "bez")),
+    "sk": ({"nie", "nikdy", "žiadny", "žiadna", "žiadne", "bez", "nič", "nejde", "nemá", "nebol", "nevie", "nešlo"},
+           ("ne", "bez")),
     "ro": ({"nu", "niciodată", "fără", "niciun", "nicio", "nimic"}, ("ne",)),
     "hu": ({"nem", "ne", "soha", "nincs", "sincs", "nélkül", "semmi"}, ()),
-    "hr": ({"ne", "nije", "nikad", "nikada", "bez", "nema", "ništa"}, ("ne", "bez")),
-    "tr": ({"değil", "yok", "asla", "hiç", "olmadan", "hayır"}, ()),
+    "hr": ({"ne", "nije", "nisu", "nisam", "nisi", "nismo", "niste", "neću", "nećeš", "neće", "nećemo", "nećete",
+            "nemoj", "nemojmo", "nemojte", "nemam", "nemaš", "nema", "nemamo", "nemate", "nemaju", "ni", "niti", "nikad",
+            "nikada", "nikako", "nigdje", "nitko", "nikoga", "ništa", "ničega", "nikakav", "nikakva", "nikakvo", "nikakvi",
+            "nikakve", "nikakvih", "nijedan", "nijedna", "nijedno", "bez"}, ("ne", "bez")),
+    "tr": ({"değil", "değildir", "değildi", "değilse", "yok", "yoktur", "asla", "hiç", "hiçbir", "olmadan", "hayır"}, ()),
     "ru": ({"не", "нет", "никогда", "без", "ни", "ничего", "нельзя"}, ("не", "без")),
     "uk": ({"не", "ні", "немає", "ніколи", "без", "нічого", "неможна"}, ("не", "без")),
-    "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα"}, ("μη", "α")),
+    "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα", "κανένας", "κανέναν", "καμία", "καμιά"},
+           ("μη",)),
     "hi": ({"नहीं", "न", "मत", "कभी", "बिना"}, ("अ",)),
     "bn": ({"না", "নয়", "নেই", "কখনো", "ছাড়া"}, ("অ",)),
     # Arabic negates with separate words; "غير" and "عدم" also make the un- and non- words
@@ -72,7 +81,15 @@ NEGATION = dict((k, (_nfc(words), _nfc(prefixes))) for k, (words, prefixes) in N
 
 # Negation written as a word ending: Bengali negates the past and perfect with -নি ("হয়নি", "যায়নি",
 # "পারেনি", "দেয়নি"). Only the verb endings are listed; "তিনি" (he) and "পানি" (water) end in নি too.
-NEGATION_SUFFIXES = {"bn": ("য়নি", "েনি", "ইনি")}
+# Turkish negates with a verb ending ("doğrulanamadı", "okunamıyor", "silinmeyecek", "dokunmayın"). Left
+# out: bare -ma/-me, also a noun ("kilitleme", locking); -madan/-meden, which also says before
+# ("kilitlemeden önce"); and -madığı/-mediği, which also asks whether ("kapanıp kapanmadığı").
+NEGATION_SUFFIXES = {
+    "bn": ("য়নি", "েনি", "ইনি"),
+    "tr": ("madı", "medi", "mamış", "memiş", "mıyor", "miyor", "muyor", "müyor", "maz", "mez",
+           "madıysa", "mediyse", "mıyorsa", "miyorsa", "muyorsa", "müyorsa", "mazsa", "mezse",
+           "mazsınız", "mezsiniz", "mayacak", "meyecek", "mayın", "meyin", "mayan", "meyen"),
+}
 NEGATION_SUFFIXES = dict((k, _nfc(v)) for k, v in NEGATION_SUFFIXES.items())
 
 # Phrases that contain a negation word but negate nothing (Italian "non appena", as soon as). They
@@ -88,17 +105,22 @@ NATIVE_PREFIXES = {
     "pl": (("nie", "bez"), ("niektór", "niebiesk", "niech", "niezbędn", "niemal", "niemiec", "niemc", "niedziel",
                            "niezwłoczn", "nieco", "niebo", "niedawn", "niewielk", "niedług", "bezpiecz", "bezpośredn",
                            "bezprzewod")),
-    "cs": (("ne", "bez"), ("nej", "nebo", "než", "neděl", "nemoc", "nechť", "němec", "nedávn", "neprodl", "nezbytn",
-                          "bezpeč", "bezdrát")),
-    "sk": (("ne", "bez"), ("nej", "nebo", "než", "nedeľ", "nech", "nedávn", "nevyhnut", "bezpeč", "bezdrôt")),
+    "cs": (("ne", "bez"), ("nej", "nebo", "než", "neděl", "nemoc", "nech", "němec", "neutr", "nervo", "neon",
+                          "nedávn", "neprodl", "nezbytn", "bezpeč", "bezdrát")),
+    "sk": (("ne", "bez"), ("nej", "nebo", "než", "nedeľ", "nech", "neutr", "nervo", "neon", "nedávn", "nevyhnut",
+                          "bezpeč", "bezdrôt")),
     "hr": (("ne", "bez"), ("nego", "nešto", "netko", "nekol", "neki", "neka", "neke", "neko", "nedjelj", "nedavn",
-                          "neposredn", "bežič")),
+                          "neposredn", "bežič", "negdje", "negativ", "neutral", "bezbroj", "bezbjed")),
     "de": (("un",), ("unter", "und", "uns", "unser", "unbedingt", "ungefähr", "unten", "union", "univers",
                      "unmittelbar", "unix", "unfall")),
     "nl": (("on",), ("onder", "ons", "onze", "ont", "ongeveer", "onmiddellijk", "online", "ongeacht", "onlangs")),
     "fi": (("epä",), ("epäil",)),
 }
 NATIVE_PREFIXES = dict((k, (_nfc(p), _nfc(x))) for k, (p, x) in NATIVE_PREFIXES.items())
+# Languages that write a verb's negation joined to it (cs "nepotvrdila", "nedorazil"; sk "nepotvrdil"):
+# there a native negated word (NATIVE_PREFIXES) also keeps an English "not", "no" or "n't". Elsewhere
+# only a separate negation word does, and "nie" or "не" stand alone before the verb.
+JOINED_VERB_NEGATION = {"cs", "sk"}
 
 # Negated words (stems, matched at the start of a word) where the prefix alone is ambiguous.
 NATIVE_STEMS = {
@@ -108,12 +130,12 @@ NATIVE_STEMS = {
     "pt": ("impossív", "desconhec", "inválid", "invalid", "incorret", "inativ", "indisponív", "inacessív", "incomplet", "inesperad", "instáv", "insuficient", "incompatív", "insegur",
            "ilegív", "irreversív", "ilimitad", "desnecessári", "incapaz"),
     "fr": ("impossib", "inconnu", "invalid", "incorrect", "inactif", "inactiv", "indisponib", "inaccessib", "incomplet", "inattendu", "instab", "insuffis", "incompatib", "illisib",
-           "irréversib", "illimit", "inutile", "incapab"),
+           "irréversib", "illimit", "inutile", "incapab", "inachev"),
     "it": ("impossib", "sconosciut", "invalid", "incorrett", "inattiv", "indisponib",
            "inaccessib", "incomplet", "inaspettat", "imprevist", "instabil", "insufficient", "incompatib", "illeggib",
            "irreversib", "illimitat", "inutil", "incapac"),
     "sv": ("okänd", "ogiltig", "omöjlig", "oväntad", "ofullständig", "otillräcklig", "inkompatib", "inaktiv",
-           "oförmögen", "overifier", "obekräft"),
+           "oförmögen", "overifier", "obekräft", "oavslut"),
     "da": ("ukendt", "ugyldig", "umulig", "uventet", "ufuldstændig", "utilstrækkelig", "inkompatib", "inaktiv"),
     "nb": ("ukjent", "ugyldig", "umulig", "uventet", "ufullstendig", "utilstrekkelig", "inkompatib", "inaktiv"),
     "el": ("άγνωστ", "αδύνατ", "αδυναμ", "άκυρ", "ανενεργ", "ασύμβατ", "ανεπαρκ", "ανεπιβεβαίωτ"),
@@ -121,13 +143,16 @@ NATIVE_STEMS = {
            "insuficient", "incompatibil", "neconectat", "nereușit"),
     "hu": ("ismeretlen", "lehetetlen", "érvénytelen", "váratlan", "hiányos", "elégtelen", "inaktív",
            "sikertelen"),
-    "fi": ("tuntemat", "mahdot", "kelvot", "odottamat", "riittämät", "yhteensopimat"),
+    "fi": ("tuntemat", "mahdot", "kelvot", "odottamat", "riittämät", "yhteensopimat", "vahvistamat",
+           "varmistamat", "testaamat"),
     "tr": ("bilinmeyen", "bilinmiyor", "geçersiz", "imkansız", "imkânsız", "olanaksız", "başarısız", "beklenmeyen",
            "desteklenmeyen", "yetersiz", "uyumsuz"),
     "hi": ("अज्ञात", "असंभव", "अमान्य", "अनुपलब्ध", "असमर्थ", "अपूर्ण", "निष्क्रिय", "असंगत", "असत्यापित"),
     # Arabic "unable" and "unknown" are often single words with no negation particle.
     "ar": ("تعذر", "يتعذر", "مستحيل", "مجهول"),
     "bn": ("অজানা", "অসম্ভব", "অবৈধ", "অনুপলব্ধ", "অক্ষম", "অসম্পূর্ণ", "নিষ্ক্রিয়", "অসঙ্গত", "অযাচাই"),
+    # Croatian "neko" (some) is an ordinary-word prefix, and these negated words start with it.
+    "hr": ("nekompatib", "nekontrolir", "nekorišt"),
 }
 NATIVE_STEMS = dict((k, _nfc(v)) for k, v in NATIVE_STEMS.items())
 # The deactivate, disconnect and disable verbs (es "desactivar", fr "déconnecter", el "απενεργοποίηση")
@@ -164,17 +189,24 @@ SUFFIXING = {"tr", "fi", "hu", "et", "ko", "az", "kk", "uz"}
 INFLECTING = {"es", "pt", "fr", "it", "ro", "ca", "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bs",
               "bg", "mk", "el"}
 _ENDING_LETTERS = "aeiouyáéíóúàèìòùâêîôûãõăаеёиоуыэюяьйъіїєαεηιουωάέήίόύώ"
+# Target words that match only as written. Their stem is too short to inflect safely: Croatian
+# "zaključa" (locks) would otherwise also match "zaključi" (conclude) and "zaključak" (conclusion).
+# "zaključaju" would match the vi imperative "zaključajte", which a ti language does not approve.
+EXACT_WORDS = {"hr": {"zaključa", "zaključao", "zaključaju", "otključa", "otključao", "otključaju"}}
+EXACT_WORDS = dict((k, _nfc(v)) for k, v in EXACT_WORDS.items())
 # Languages that write a noun phrase as one compound word ("Sperrdauer", "Vergrendelstatus",
 # "Låstid"), with the endings dropped from a lock target before it joins one (longest first). Only
 # the lock terms match this way, and only at the start of a word, so the unlock words (ent-, ont-,
 # upp-) never match; other terms list their compound forms in the glossary.
-COMPOUNDING = {"de": ("ung", "en", "e"), "nl": ("ing", "en", "e"), "sv": ("ning", "a", "e")}
+COMPOUNDING = {"de": ("ung", "en", "e"), "nl": ("ing", "en", "e"), "sv": ("ning", "a", "e"), "nb": ("ing", "e")}
 # The rest of a compound that removes or opens the lock ("Sperraufhebung", "Vergrendelingsopheffing",
 # "Låsupplåsning"): the compound is then not the lock term.
 COMPOUND_OPPOSITE = {
     "de": re.compile("aufheb|aufgehob|lös|freigab|freigeb|entfern|deaktiv|ausschalt|abschalt|öffn|beend"),
     "nl": re.compile("opheff|opgehev|uitschakel|uitgeschakel|uitzet|verwijder|deactiv|gedeactiv|open|vrijgeg|vrijgev"),
     "sv": re.compile("upp|häv|borttag|inaktiv|avaktiv|deaktiv|öppn|avstäng"),
+    # Not a bare "opp": "Låseoppsett" (lock setup) is still the lock.
+    "nb": re.compile("^e?opp$|opplås|opphev|fjern|deaktiv|åpn|frakobl"),
 }
 
 # On and off state words, for a safety key whose English says one and not the other ("Lock: on",
@@ -206,19 +238,41 @@ STATE_WORDS = {
            "aan\\s+te\\s+zetten|in\\s+te\\s+schakelen|geactiveerd\\w*|activeren|actief|actieve",
            "uit\\s+te\\s+(?:zetten|schakelen)|uit" + _STATE_END + "|uitgeschakeld\\w*|uitschakelen|uitgezet|uitzetten|gedeactiveerd\\w*|"
            "deactiveren|inactief|inactieve|opgeheven"),
-    "pl": ("włączon\\w*|włącz|włączyć|włączcie|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
-           "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|zdjęt\\w*|"
-           "usunięt\\w*"),
+    "pl": ("włączon\\w*|włącz|włączyć|włączcie|wł(?=\\.)|aktywn\\w*|aktywowan\\w*|aktywuj\\w*",
+           "wyłączon\\w*|wyłącz|wyłączyć|wyłączcie|wył(?=\\.)|nieaktywn\\w*|dezaktywowan\\w*|dezaktywuj\\w*|"
+           "zdjęt\\w*|usunięt\\w*"),
     "sv": ("på" + _STATE_END + "|sl[åa]r?\\s+på|sätt\\s+på|påslag\\w*|aktiverad\\w*|aktiverat|aktivera|aktiv|"
            "aktivt|aktiva",
            "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
            "inaktiverad\\w*|inaktiverat|inaktivera|avaktiverad\\w*|avaktiverat|avaktivera|inaktiv|inaktivt|"
            "hävd|hävt"),
+    "nb": ("på" + _STATE_END + "|sl[åa]r?\\s+på|slått\\s+på|skru\\w*\\s+på|aktivert\\w*|aktivere\\w*|aktiver|aktiv|"
+           "aktivt|aktive",
+           "av" + _STATE_END + "|sl[åa]r?\\s+av|slått\\s+av|skru\\w*\\s+av|avslått\\w*|"
+           "deaktivert\\w*|deaktivere\\w*|deaktiver|inaktiv|inaktivt|inaktive|opphevet"),
+    # A split verb keeps its state word after the verb ("kapcsold be") or before "van" ("ki van kapcsolva").
+    # The power button ("bekapcsoló gomb") is no state. Bare "be" and "ki" count only at the end of a phrase.
+    "hu": ("be" + _STATE_END + "|bekapcsol(?!ó\\s+gomb)\\w*|be\\s+(?:van|volt|lesz|lett)\\s+kapcsolva|"
+           "kapcsol(?:d|od|ja|ta|tad|ni|ható|hatod|hatja)?\\s+be|engedélyez\\w*|aktív\\w*|aktivál\\w*",
+           "ki" + _STATE_END + "|kikapcsol\\w*|ki\\s+(?:van|volt|lesz|lett)\\s+kapcsolva|"
+           "kapcsol(?:d|od|ja|ta|tad|ni|ható|hatod|hatja)?\\s+ki|letilt\\w*|tiltva|inaktív\\w*|deaktivál\\w*"),
     "id": ("aktif|diaktifkan|aktifkan(?:nya)?|mengaktifkan(?:nya)?|menyala|nyala|nyalakan(?:nya)?|"
            "menyalakan(?:nya)?|dinyalakan|hidup|dihidupkan|hidupkan(?:nya)?",
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
            "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
+    # "activitate" is the logging word (jurnalul de activitate), not a state. "oprește" stays off
+    # even in "Oprește-te cu trotineta": a key that also says on has both states, so it is left alone.
+    "ro": ("activ(?!it)\\w*|pornit\\w*|pornește|pornești|porni|aprins\\w*|aprinde\\w*|aprinzi",
+           "dezactiv\\w*|neactiv\\w*|inactiv\\w*|oprit\\w*|oprește|oprești|opri|stins\\w*|stinge\\w*|stingi"),
+    # Explicit verb forms: "uključujući" (including) and "isključivo" (exclusively) are not states.
+    "hr": ("uključen\\w*|uključi|uključiti|uključit|uključuje|uključivanj\\w*|aktivn\\w*|aktiviran\\w*|aktiviraj|aktivirati",
+           "isključen\\w*|isključi|isključiti|isključit|isključuje|isključivanj\\w*|neaktivn\\w*|deaktiviran\\w*|deaktiviraj|"
+           "deaktivirati|uklonjen\\w*"),
+    "tr": ("açık|açın|aç|açıl\\w*|etkin|etkinleştir\\w*", "kapalı|kapat\\w*|kapan\\w*|devre\\s+dışı\\w*"),
+    # Not "включая" (including). "подключён" starts with no state word, so it never matches.
+    "ru": ("включ(?!ая(?![^\\W_]))\\w*|вкл|активн\\w*|активирован\\w*|активировать|активируйте",
+           "выключ\\w*|выкл|отключ\\w*|неактивн\\w*|деактивир\\w*|снят\\w*|убран\\w*"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
@@ -240,9 +294,20 @@ STATE_NEGATION_GAP = {
     "nl": {"is", "wordt", "zijn", "worden", "meer", "langer"},
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
+    "nb": {"er", "blir", "lenger"},
+    "hu": {"van", "volt", "lesz", "lett"},
     "id": {"sedang", "akan", "lagi"},
+    "ro": {"este", "e", "va", "sunt", "se", "mai", "a"},
+    "hr": {"je", "su", "će", "se", "biti", "bit", "bi", "više"},
+    "ru": {"будет", "был", "была", "было", "были"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
+# English "never": (words the target must have, words that invert it unless the English says always
+# too). Any other negation word ("bez telefonu") would otherwise satisfy the polarity check for
+# "Digits are never shown" drafted as "Cyfry są zawsze pokazywane". Unlisted languages rely on the judge.
+NEVER_WORDS = {"pl": ({"nigdy", "nie"}, {"zawsze"})}
+# Turkish puts the negation after the word ("açık değil", "kapalı değil").
+NEGATED_AFTER = {"tr": re.compile("^\\s+değil(?:dir|di|se)?(?![^\\W_])")}
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
 # "que" before a real second part (pas, plus, jamais...) negates nothing. "ne ... plus" (no longer)
 # negates: "plus" counts as a negation word after a "ne" in the same clause.
@@ -268,6 +333,9 @@ def _negation_word(primary, word, before, after):
 
 def _negated(primary, head, tail=""):
     """Whether a state word, with the text head before it and tail after it, is negated."""
+    after_word = NEGATED_AFTER.get(primary)
+    if after_word and after_word.search(tail):
+        return True
     for phrase in NON_NEGATING_PHRASES.get(primary, ()):
         # "non appena attivato" (as soon as): the phrase ends a clause of its own.
         head = re.sub(r"(?<![^\W_])" + r"\s+".join(map(re.escape, phrase.split())) + r"(?![^\W_])", ".", head)
@@ -287,8 +355,8 @@ def _negated(primary, head, tail=""):
 
 def state_words(primary, text):
     """(on words, off words) found in a target text, for the languages in STATE_WORDS. A state word
-    a negation word negates ("nicht aktiv", "no desactivado", "no está activada"; see _negated)
-    counts as the other state."""
+    a negation word negates ("nicht aktiv", "no desactivado", "no está activada"; see _negated), or
+    one with a negating ending ("kapatılmadı"), counts as the other state."""
     patterns = STATE_WORDS.get(primary)
     if not patterns:
         return None
@@ -296,7 +364,8 @@ def state_words(primary, text):
     found = ([], [])
     for side, p in enumerate(patterns):
         for m in p.finditer(text):
-            found[1 - side if _negated(primary, text[:m.start()], text[m.end():]) else side].append(m.group(0))
+            negated = _negated(primary, text[:m.start()], text[m.end():]) or suffix_negated(primary, m.group(0))
+            found[1 - side if negated else side].append(m.group(0))
     return found
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
@@ -321,14 +390,34 @@ OPPOSITE_CONTEXT = {
     "ja": ("(?:解|アン)\\s*$", "^\\s*(?:を|が|は|も|の)?\\s*(?:解除|解錠|解い|解く|解け|解か|外す|外し|外れ|外さ|はず|開け|あけ)"),
     "ko": ("", "^(?:을|를|이|가|은|는|도)?\\s*(?:해제|풀(?:기|어|려|리|고|면|다|린|릴)|열(?:기|어|려|리|고|면|다|린|릴))"),
     "sv": ("", "^[^\\W\\d_]*\\s+upp(?![^\\W_])"),
-    "nb": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
+    # Up to two object words may come before opp ("Lås den opp", "for å låse sparkesykkelen opp"), but
+    # not across a word that starts a new step ("Lås og ta opp").
+    "nb": ("", "^[^\\W\\d_]*(?:\\s+(?!(?:og|eller|men|før|når|hvis|mens|så|etter|for)(?![^\\W_]))[^\\W\\d_]+){0,2}"
+               "\\s+opp(?![^\\W_])"),
     "nn": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "da": ("", "^[^\\W\\d_]*\\s+op(?![^\\W_])"),
+    # "Avaa (ensin) lukitus", "Pura lukitus"; "Lukitsematon" (-mat- after the lock verb), "Lukitus avattu",
+    # "Lukituksen avaus", "Lukitusta ei voitu avata". The one gap word stops at ja and tai: "Avaa ja lukitse".
+    "fi": ("(?<![^\\W_])(?:avaa|avaat|avata|avataan|avaamaan|avaamalla|pura|purkaa|puretaan|purkamaan|purkamalla)\\s+"
+           "(?:(?!(?:ja|tai)\\s)[^\\W\\d_]+\\s+)?$",
+           "^(?:mat|[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:on\\s+|ei\\s+voitu\\s+|ei\\s+voi\\s+|voi\\s+)?"
+           "(?:avat|avaa|avau|auki|avoin|pure|purk))"),
+    # Unlock as the lock word plus "release" after it: "A lezárás feloldása" ("release of the lock"),
+    # "Lezárás: feloldva", "A lezárás fel van oldva", "A lezárást oldd fel", "lezárásfeloldás", and the
+    # same with nem or nincs. Not "Lezárva feloldásig" or "Lezárás feloldás nélkül". The verb before the
+    # lock word ("Oldd fel a lezárást") is in OPPOSITE_AROUND.
+    "hu": ("", "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)?(?:(?:nem|nincs|sincs)\\s+)?"
+               "(?:felold(?!ásig|ásra|ásnál|ás\\s+(?:előtt|után|nélkül|helyett))|"
+               "fel\\s+(?:van|volt|lesz|lett|kell|lehet)\\s+old|"
+               "old(?:d|od|ja|otta|ottad|ható|hatod|hatja)\\s+fel|kiold|kinyit|nyit(?:ás|va|ott|d|ni))"),
     "id": ("(?<![^\\W_])(?:buka|bukalah|membuka|dibuka|terbuka|pembukaan)\\s+$", ""),
     "ar": ("(?<![^\\W_])[وف]?[لب]?(?:ال)?(?:فتح|افتح|يفتح|تفتح|فك|يفك|إلغاء|الغاء)\\s+$", ""),
     "ur": ("(?<![^\\W_])ان\\s*$", "^\\S*\\s+(?:کھول|کھل)"),
     "hi": ("", "^\\S*\\s+(?:खोल|खुल)"),
     "bn": ("", "^\\S*\\s+(?:খুল|খোল)"),
+    # Turkish: "Kilit açık" (unlocked), "Kilit: açık", "Kilit açma" (unlocking), "Kilitleri aç", and
+    # "Kilitsiz" (having no lock). "Kilit açıklaması" (a description of the lock) is not one.
+    "tr": ("", "^(?:siz|[^\\W\\d_]{0,4}(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)aç(?!ıkla))"),
 }
 
 
@@ -354,10 +443,11 @@ def _after(participles, gap="", aux="", tail=""):
 
 
 # Lock removed: unlock said as "remove / lift / release / turn off the lock" ("Quitar el bloqueo",
-# "Zdejmij blokadę", "Sperre aufheben", "Снять блокировку", "ロックをオフにする", "关闭滑板车锁定"), and
-# the lock said to be removed ("Bloqueo desactivado", "Blokada wyłączona"). Same shape as
-# OPPOSITE_CONTEXT, but skipped when the English itself says off, remove, disable and the like
-# (check.EN_REMOVAL: "Turn off the lock" is rightly "Desactivar el bloqueo"). These words are a first
+# "Zdejmij blokadę", "Odblokuj blokadę", "Sperre aufheben", "Снять блокировку", "ロックをオフにする",
+# "关闭滑板车锁定"), and the lock said to be removed ("Bloqueo desactivado", "Blokada wyłączona",
+# "Blokada odblokowana"). Same shape as OPPOSITE_CONTEXT, but skipped when the English itself says
+# off, remove, disable, unlock and the like (check.EN_REMOVAL: "Turn off the lock" is rightly
+# "Desactivar el bloqueo", "Unlock the locked scooter" "Odblokuj zablokowaną hulajnogę"). These words are a first
 # filter: a phrasing missing here still has to pass every drafter, the back-translation and the judge.
 _NOT_A_GAP = "(?!(?:y|e|o|u|ni|et|ou|ni|ed|od|i|oraz|lub|albo|a|gdy|kiedy|jeśli|po|przy|und|oder|en|of|"\
     "och|eller|dan|atau|saat|jika|ketika|setelah|lalu|и|или|а|когда|при|если|после|і|або|коли|якщо|"\
@@ -413,19 +503,25 @@ REMOVAL_CONTEXT = {
                    "uitzetten|annuleer|annuleren|opheffing|verwijdering|deactivering|uitschakeling|opening|"
                    "vrijgeven|geef", "de|het|een|je|uw|jouw|zijn|haar"),
            _after("opheffen|opgeheven|uitschakelen|uitgeschakeld|uitzetten|uitgezet|verwijderen|verwijderd|"
-                  "deactiveren|gedeactiveerd|openen|geopend|annuleren|geannuleerd|vrijgeven|vrijgegeven",
-                  "\\s+van\\s+(?:de|het|je|uw)\\s+[^\\W\\d_]+", "is|wordt|werd", "uit|op|eraf|af|open")),
+                  "deactiveren|gedeactiveerd|openen|geopend|annuleren|geannuleerd|vrijgeven|vrijgegeven|"
+                  "(?:is|wordt|werd|staat)\\s+open(?![^\\W_])",
+                  "\\s+van\\s+(?:de|het|je|uw)\\s+[^\\W\\d_]+", "is|wordt|werd|staat", "uit|op|eraf|af|open")),
     "pl": (_before("zdejmij|zdejmijcie|zdjąć|zdejmowanie|zdjęcie|wyłącz|wyłączcie|wyłączyć|wyłączenie|"
                    "wyłączanie|usuń|usuńcie|usunąć|usunięcie|usuwanie|zwolnij|zwolnić|zwolnienie|znieś|znieść|"
                    "zniesienie|otwórz|otworzyć|otwarcie|dezaktywuj|dezaktywować|dezaktywacja|dezaktywacji|"
-                   "anuluj|anulować|anulowanie"),
-           _after("wyłączon|zdjęt|usunięt|zniesion|zwolnion|otwart|dezaktywowan|anulowan", _GAP_WORD,
+                   "anuluj|anulować|anulowanie|odblok\\w*"),
+           _after("wyłączon|wył\\.|zdjęt|usunięt|zniesion|zwolnion|otwart|dezaktywowan|anulowan|odblokowan", _GAP_WORD,
                   "została|zostanie|zostało|został|zostały|jest|są")),
     "sv": (_before("ta\\s+bort|tar\\s+bort|inaktivera|avaktivera|deaktivera|stäng\\s+av|stänger\\s+av|"
                    "slå\\s+av|öppna|frigör|häv|upphäv|borttagning\\s+av|avaktivering\\s+av|"
                    "inaktivering\\s+av|hävning\\s+av", "det|den|ditt|din"),
            _after("inaktiver|avaktiver|deaktiver|borttag|hävt|hävd|hävs|öppnat|öppnad|frigjor|avstängt|"
                   "avstängd|bort(?![^\\W_])", "", "är|har\\s+tagits|har\\s+hävts|blev|har\\s+blivit", "av")),
+    "nb": (_before("fjern|fjerne|fjerner|fjernes|fjerning\\s+av|ta\\s+bort|tar\\s+bort|slå\\s+av|slår\\s+av|skru\\s+av|"
+                   "skrur\\s+av|deaktiver|deaktivere|deaktiverer|deaktivering\\s+av|opphev|oppheve|opphever|"
+                   "oppheving\\s+av|åpne|åpner|frigjør", "den|det|din|ditt|en|et"),
+           _after("deaktiver|fjernet|fjernes|tatt\\s+bort|opphevet|oppheves|åpnet|åpnes|åpen|åpent|slått\\s+av|avslått|"
+                  "av\\s*[.!?)]?\\s*$", "", "er|ble|blir|har\\s+blitt", "av")),
     "id": (_before("lepas|lepaskan|melepas|melepaskan|nonaktifkan|menonaktifkan|matikan|mematikan|hapus|"
                    "hapuskan|menghapus|copot|mencopot|cabut|mencabut|batalkan|membatalkan|pelepasan|"
                    "penonaktifan|penghapusan|pembatalan"),
@@ -433,8 +529,9 @@ REMOVAL_CONTEXT = {
                   "dibatalkan", _GAP_WORD, "telah|sudah|akan")),
     "ru": (_before("снять|снимите|сними|снятие|снятия|отключить|отключите|отключи|отключение|отключения|"
                    "выключить|выключите|выключи|выключение|убрать|уберите|убери|отменить|отмените|отмена|"
-                   "отмены|деактивировать|деактивируйте|деактивация|открыть|откройте|открой"),
-           _after("снят|отключен|отключён|выключен|выключён|убран|отменен|отменён|деактивирован", _GAP_WORD,
+                   "отмены|деактивировать|деактивируйте|деактивация|открыть|откройте|открой|сбросить|сбросьте|сбрось|сброс|"
+                   "сброса"),
+           _after("снят|отключен|отключён|выключен|выключён|убран|отменен|отменён|деактивирован|сброшен", _GAP_WORD,
                   "была|был|было|будет")),
     "uk": (_before("зняти|зніміть|зніми|зняття|вимкнути|вимкніть|вимкни|вимкнення|скасувати|скасуйте|"
                    "скасування|прибрати|приберіть|деактивувати|деактивуйте|відкрити|відкрийте"),
@@ -445,19 +542,55 @@ REMOVAL_CONTEXT = {
                    "του|της|το|την|τα|των|τον|η|ο"),
            _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
                   "εχει|ειναι|θα")),
+    # "Poista lukitus", "Vapauta potkulaudan lukitus"; "Lukitus pois", "Lukitus poistettu", "Lukitus ei käytössä".
+    "fi": ("(?<![^\\W_])(?:poista|poistaa|poistetaan|poistamaan|poistamalla|vapauta|vapauttaa|vapautetaan)\\s+"
+           "(?:(?!(?:ja|tai)\\s)[^\\W\\d_]+\\s+)?$",
+           "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:on\\s+)?(?:pois|vapaut|ei\\s+käytössä)"),
+    # The gap is the scooter's genitive only: "Blochează trotineta oprită" keeps its lock term.
+    "ro": (_before("elimină|elimini|elimina|eliminați|eliminare|eliminarea|scoate|scoți|scoateți|scoaterea|șterge|ștergi|"
+                   "ștergeți|ștergerea|dezactivează|dezactivezi|dezactiva|dezactivați|dezactivare|dezactivarea|"
+                   "anulează|anulezi|anula|anulați|anulare|anularea|ridică|ridici|ridica|ridicați|ridicare|ridicarea|"
+                   "oprește|oprești|opri|oprire|oprirea|deschide|deschizi|deschideți|deschiderea", "de"),
+           _after("dezactivat|eliminat|scos|scoas|șters|ștear|anulat|ridicat|oprit|deschis", "\\s+trotinetei",
+                  "este|e|a\\s+fost|va\\s+fi|s-a")),
+    # "A lezárás kikapcsolása", "Lezárás: ki", "A lezárás ki van kapcsolva", "A lezárás megszüntetése". Nouns and
+    # participles only: "A lezárás törli…" and "A lezárás kikapcsolja a lámpát" say what locking does.
+    "hu": ("", "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:(?:nem|nincs|sincs)\\s+)?"
+               "(?:kikapcsol(?:ás|va|t(?![^\\W_]))|ki\\s+(?:van|volt|lesz|lett)\\s+kapcsol|"
+               "kapcsol(?:d|od|ja|ta|ható|hatod|hatja)\\s+ki|megszüntet(?:és|ve)|megszűn|szüntesd\\s+meg|"
+               "törlés|törölve|töröld|eltávolít(?:ás|va)|távolítsd\\s+el|ki\\s*[.!?)]?\\s*$)"),
+    "hr": (_before("ukloni|ukloniti|uklanjanje|uklanjanja|uklanjanjem|isključi|isključiti|isključivanje|"
+                   "isključivanja|deaktiviraj|deaktivirati|deaktivacija|deaktivaciju|poništi|poništiti|poništavanje|"
+                   "poništavanja|skini|skinuti|skidanje|skidanja", "to|ovo|svoje"),
+           _after("isključen|uklonjen|deaktiviran|poništen|skinut", _GAP_WORD, "je|su|će\\s+biti|bit\\s+će|bi")),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
+    # Turkish puts the verb last: "Kilit kaldırıldı", "Kilit: kapalı", "Kilit devre dışı".
+    "tr": ("", "^[^\\W\\d_]{0,4}%s(?:kaldır|kapat|kapan|kapalı|devre\\s+dışı)" % _SEP),
 }
 
 # Pairs where both must hold to make the target its opposite: zh "打开滑板车的锁" (open the scooter's
 # lock) and "关闭滑板车锁定" (turn off the scooter lock) only when the target ends the clause, so
 # "打开应用的锁定页面" (open the app's lock page) keeps its lock term. The removal pairs follow
 # REMOVAL_CONTEXT's English rule.
+# hu: a verb before the lock word, "Oldd fel a (roller) lezárását", "Kapcsold ki a lezárást". Only when
+# the lock word itself is the object, so it runs on into its ending or ends the text: "Feloldja a lezárt
+# rollert" and "Feloldhatod lezárás után" keep the lock term. The one word between is a possessor, so it
+# isn't another object (-t) or a word that starts a new step ("Oldd fel a rollert és zárd le").
+_HU_OBJECT = ("\\s+(?:az?\\s+)?(?:(?!(?:és|vagy|majd|hogy|ha|mert|de|ami|amikor|aztán|mielőtt|után|előtt)\\s)"
+              "[^\\W\\d_]*[^\\W\\d_t]\\s+)?$")
+_HU_OBJECT_END = "^(?:[^\\W\\d_]|\\s*$)"
 OPPOSITE_AROUND = {
     "zh": (("(?:打开|打開)(?:%s的)?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+    "hu": (("(?<![^\\W_])(?:old(?:d|od|ja|otta|ottad|ható|hatod|hatja)\\s+fel|fel\\s+(?:kell|tudod|tudja)\\s+oldani|"
+            "felold(?:od|ja|otta|ani|hatod|hatja|ható)|nyisd\\s+ki|kinyit(?:od|ja|ni)|oldd\\s+ki|kiold(?:od|ja|ani))"
+            + _HU_OBJECT, _HU_OBJECT_END),),
 }
 REMOVAL_AROUND = {
     "zh": (("(?:关闭|關閉|停用|禁用)%s的?\\s*$" % _ZH_GAP, _ZH_CLAUSE_END),),
+    "hu": (("(?<![^\\W_])(?:kapcsol(?:d|od|ja|ta|ható|hatod|hatja)\\s+ki|kikapcsol(?:od|ja|ta|ni|hatod|hatja|ható)|"
+            "szüntesd\\s+meg|szünteti\\s+meg|megszüntet(?:i|ni|heted|heti)|töröld|törli|távolítsd\\s+el|"
+            "eltávolít(?:od|ja|ani))" + _HU_OBJECT, _HU_OBJECT_END),),
 }
 
 
@@ -466,12 +599,26 @@ def _compiled(table):
                 for k, v in table.items())
 
 
+# Wording that holds a lock target and never means Lock, whatever the English says: Dutch "tot slot"
+# (finally), "op slot" (the style guide forbids it), "van het slot" (off the lock) and compounds
+# of "slot" ("Slotstand"). "Slot" is approved for one narrow tile only.
+NOT_A_LOCK_TERM = {
+    "nl": re.compile("(?<![^\\W_])(?:(?:tot|op|van(?:\\s+(?:het|je))?)\\s+slot(?![^\\W_])|slot[^\\W\\d_]+)"),
+}
+
 OPPOSITE_CONTEXT = _compiled(OPPOSITE_CONTEXT)
 REMOVAL_CONTEXT = _compiled(REMOVAL_CONTEXT)
 OPPOSITE_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p)) for p in pair) for pair in v))
                        for k, v in OPPOSITE_AROUND.items())
 REMOVAL_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p)) for p in pair) for pair in v))
                       for k, v in REMOVAL_AROUND.items())
+
+# The lock word with a bare open or closed in a lock key: a trap of its own. Turkish "Kilit açık" says
+# unlocked whatever the English says, and "Kilit: kapalı" reads as locked or as off, so a lock setting
+# says "etkin" and "devre dışı", and unlocked is "Kilidi açık", which has no "kilit" in it.
+LOCK_STATE_TRAP = {
+    "tr": re.compile("(?<![^\\W_])kilit[^\\W\\d_]*(?:\\s+[^\\W\\d_]+)?%s(?:açık|kapalı)(?![^\\W_])" % _SEP),
+}
 
 # Script codes a language's "script" value allows (Japanese mixes kanji and kana).
 SCRIPT_SETS = {"Hans": {"Hani"}, "Hant": {"Hani"}, "Jpan": {"Hani", "Kana"}, "Kore": {"Hang", "Hani"}}
@@ -571,10 +718,33 @@ def _strip_accents(text):
                                                 if not unicodedata.combining(c)))
 
 
+# Polish lock words share one stem between the verbal noun (zablokowanie, the action) and the
+# participle (zablokowana, the state), so a free ending would let a Lock button say "Zablokowana"
+# (already locked). Each form inflects only within its own family.
+_PL_LOCK_WORD = re.compile("^((?:za|od)?blokowan|odblokowywan)(.+)$")
+_PL_VERBAL_NOUN_ENDINGS = "i(?:e|a|u|em|om|ami|ach)"
+_PL_PARTICIPLE_ENDINGS = "(?:a|y|e|o|ą|ej|ego|emu|ym|ych|ymi)"
+
+
 def _inflected(primary, word):
     """A pattern for one word of a target: the word, or in an inflecting language its stem plus
-    any ending of up to four letters."""
-    if primary in INFLECTING:
+    any ending of up to four letters (Polish lock words: only their own family's endings; words in
+    EXACT_WORDS: only as written).
+
+    Greek (accents already stripped): a noun in -ωμα takes only its own endings, and a passive in
+    -θει matches only itself. The open ending would count the state "κλειδωμένο" and the report
+    "κλειδώθηκε" as the action "κλείδωμα", "κλειδωθεί". Other passive forms are listed in the row."""
+    if primary == "pl":
+        lock_word = _PL_LOCK_WORD.match(word)
+        if lock_word:
+            verbal = lock_word.group(2).startswith("i")
+            return re.escape(lock_word.group(1)) + (_PL_VERBAL_NOUN_ENDINGS if verbal else _PL_PARTICIPLE_ENDINGS)
+    if primary == "el":
+        if word.endswith("ωμα"):
+            return re.escape(word[:-1]) + "(?:α|ατος|ατα|ατων)"
+        if word.endswith("θει"):
+            return re.escape(word)
+    if primary in INFLECTING and word not in EXACT_WORDS.get(primary, ()):
         stem = word.rstrip(_ENDING_LETTERS)
         if stem != word and len(stem) >= 5:
             return re.escape(stem) + r"[^\W\d_]{0,4}"
@@ -650,7 +820,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
     (OPPOSITE_CONTEXT, OPPOSITE_AROUND) does not count; with removal as well, nor does one next to
     words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND). A lock term in a
     compounding language (COMPOUNDING) may start a compound, unless the rest of the compound
-    removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung").
+    removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung"). Wording in NOT_A_LOCK_TERM never counts
+    for a lock term.
     With loose (the English has only an -s or -ing form of a lock verb: "Locking…"), each word of
     the target matches in any form that starts like it (_loose), still at the start of a word and
     still subject to the contexts above; in Indonesian its first word may also take its pe(N)-...-an
@@ -661,6 +832,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
         text, term = _strip_accents(text), _strip_accents(term)
     if not term.split():
         return False
+    if opposite and primary in NOT_A_LOCK_TERM:
+        text = NOT_A_LOCK_TERM[primary].sub(" ", text)
     compound = opposite and primary in COMPOUNDING and script not in UNSPACED_SCRIPTS
     if script in UNSPACED_SCRIPTS:
         body = r"\s*".join(r"\s*".join(re.escape(c) for c in p) for p in term.split())

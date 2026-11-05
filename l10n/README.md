@@ -1432,13 +1432,14 @@ also match their English -s and -ing forms ("before locking", "This file unlocks
 inside the opposite term. In Indonesian the target's first word may also take its pe(N)-...-an
 noun ("Penguncian gagal" for "Locking failed", "Pembukaan kunci gagal" for "Unlocking failed").
 
-Two rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
+Three rules keep correct drafts from failing. A term found only inside a longer one ("Lock" in "Lock
 duration", "Low" in "Low battery alert") is not required on its own. A one-word adjective whose id
 is another term's id plus a suffix (`energy-recovery-off`) is that setting's value, required only
 where the text is the value alone or names the setting, so "Turn off charge alerts" does not need
-the Energy recovery level "Desactivada". In German, Dutch and Swedish a lock target may start a
-compound ("Sperrdauer", "Vergrendelstatus", "Låstid"), never after ent-, ont- or upp- and not when
-the rest of the compound removes the lock ("Sperraufhebung").
+the Energy recovery level "Desactivada". An ordinary "try again" is not the experimental Try term
+(`check.NOT_THE_TERM`), so a retry hint needs no Try target. In German, Dutch and Swedish a lock
+target may start a compound ("Sperrdauer", "Vergrendelstatus", "Låstid"), never after ent-, ont-
+or upp- and not when the rest of the compound removes the lock ("Sperraufhebung").
 
 Known gaps, by language family:
 
@@ -1454,7 +1455,9 @@ Known gaps, by language family:
   ("Hebe die Sperre auf"). A prefix like "des-" or "dé-" is only a guess for polarity.
 - **Slavic (pl, ru, uk, cs, sk, hr)**: inflected glossary targets match any ending of up to four
   letters after a stem of five or more letters, so a short stem must be listed in every form.
-  The removal lists cover pl, ru and uk only; cs, sk and hr have none yet.
+  The removal lists cover pl, ru, uk and hr; cs and sk have none yet. cs and sk join "ne" to the
+  verb ("nepotvrdila"), so there a native ne- word keeps an English "not"
+  (`lexicon.JOINED_VERB_NEGATION`); a ne- word the English lacks only warns.
 - **Greek**: matched without accents; the removal list is short.
 - **Indonesian and Malay**: word order is free and affixes are many; only the listed buka-,
   lepas-, nonaktif- and di- forms are caught.
@@ -1465,8 +1468,9 @@ Known gaps, by language family:
   word boundaries; an ordinary word that contains a negation character and is not in the list
   reads as a negation (fails closed), and a context word in another role can hide or reject the
   lock term. zh 打开…的锁 and 关闭…锁定 count as unlock only when the lock word ends the clause.
-- **Languages with no list yet** (fi, hu, ro, tr and others in the later waves): negation and
-  removal are not checked at all; polarity only warns, and the judge decides.
+- **Languages with no list yet** (the later waves without a `lexicon.NEGATION` or
+  `REMOVAL_CONTEXT` row): negation and removal are not checked at all; polarity only warns, and
+  the judge decides.
 - **Negated states**: a negation further from the state word than the allowed distance (the word
   right before it, or one listed copula or particle between) is not read, so the state counts as written ("no se encuentra activa", "non sarà più attivo" are
   read as on); the lists of words allowed between are short (`lexicon.STATE_NEGATION_GAP`).
@@ -1486,6 +1490,16 @@ Known gaps, by language family:
 
 Later-wave languages (ru, uk, el, zh, ja, hi, bn, ar, ur, da, nb, fi, cs, sk, ro, hu, hr, tr) need
 their lists reviewed before their wave starts.
+
+**When a safety key is flagged.** Read the finding against the English first: most are real (a
+lost "not", the lock word inside the unlock word, "on" drafted as off). Fix those in the text. If
+the text is right and the check is wrong, reword to a form the lists know where that reads as
+well (a separate negation word, the glossary's own target), and leave a note in the language's
+review notes. If no natural wording passes, the key falls back to English for now; the fix is a
+tooling pull request that adds the word to `lexicon.py` with a test in
+`test_check_languages.py` showing both the correct wording passing and the inverted one still
+failing. Never add a glossary target or an allow-list entry only to silence a finding, and never
+change a check inside a language or batch pull request.
 
 ### Formats
 

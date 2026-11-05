@@ -117,6 +117,63 @@ class LanguageChecksTest(unittest.TestCase):
         self.assertFalse(lexicon.term_found("es", "Latn", "bloquear", "desbloquear"))
         self.assertTrue(lexicon.term_found("ar", "Arab", "قفل", "والقفل"))
 
+    # Turkish: negation is a verb ending, and the lock word has opposites written beside it.
+
+    TR = {"tag": "tr"}
+
+    def tr_polarity(self, english, text, *safety):
+        return [f["severity"] for f in check._polarity(self.TR, english, text, True, "other", {"safety": list(safety) or ["experimental"]})]
+
+    def test_tr_negation_inside_the_verb(self):
+        for english, text in (("Unverified", "Doğrulanmadı"), ("Unverified", "Doğrulanamadı"),
+                              ("Untested", "Denenmedi"), ("Unconfirmed", "Onaylanmadı"),
+                              ("Change not confirmed", "Değişiklik onaylanmadı"),
+                              ("Can't read the lock state", "Kilit durumu okunamıyor"),
+                              ("Not yet tried", "Henüz denenmedi"), ("This can't be undone", "Bu geri alınamaz"),
+                              ("Volt won't delete it", "Volt bunu silmeyecek"), ("Don't lock it", "Kilitlemeyin"),
+                              ("Volt isn't affiliated", "Volt ilişkili değildir"), ("Never", "Hiçbir zaman")):
+            self.assertEqual(self.tr_polarity(english, text), [], text)
+        # Added and dropped negation are still errors.
+        self.assertEqual(self.tr_polarity("Confirmed", "Onaylanmadı"), ["error"])
+        self.assertEqual(self.tr_polarity("Not confirmed", "Onaylandı"), ["error"])
+        # Ordinary words that end like a bare -ma, and "before" written with -meden, add no negation.
+        self.assertEqual(self.tr_polarity("Lock duration", "Kilitleme süresi"), [])
+        self.assertEqual(self.tr_polarity("Stop before locking", "Kilitlemeden önce durun"), [])
+
+    def test_tr_lock_opposites(self):
+        for text in ("Kilit açık", "Kilit: açık", "Kilit açma", "Kilitsiz", "Kilitli: açık", "Kilitleri aç",
+                     "Kilit kaldırıldı", "Kilit: kapalı", "Kilit devre dışı"):
+            self.assertFalse(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        for text in ("Scooter’ı kilitle", "Kilit durumu", "Kilit süresi", "Kilitli", "Kilit açıklaması", "Kilitli kalır"):
+            self.assertTrue(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        # An English that itself says off or remove may say so of the lock.
+        self.assertTrue(lexicon.term_found("tr", "Latn", "kilit", "Kilit kaldırıldı", True, False))
+        self.assertFalse(lexicon.term_found("tr", "Latn", "kilit", "Kilit açık", True, False))
+
+    def test_tr_on_and_off(self):
+        self.assertIn("error", self.tr_polarity("Alarm sound off", "Alarm sesi açık"))
+        self.assertEqual(self.tr_polarity("Alarm sound on", "Alarm sesi kapalı"), ["error"])
+        self.assertEqual(self.tr_polarity("Alarm sound on", "Alarm sesi açık"), [])
+        self.assertEqual(self.tr_polarity("Alarm sound off", "Alarm sesi kapalı"), [])
+        self.assertEqual(self.tr_polarity("Turn off the alarm", "Alarmı devre dışı bırak"), [])
+        # A negation after the word, or in its ending, makes it the other state.
+        self.assertEqual(lexicon.state_words("tr", "Alarm açık değil"), ([], ["açık"]))
+        self.assertEqual(lexicon.state_words("tr", "Alarm kapalı değildir"), (["kapalı"], []))
+        self.assertEqual(lexicon.state_words("tr", "Alarm kapatılmadı"), (["kapatılmadı"], []))
+        # The activity log is not "active".
+        self.assertEqual(lexicon.state_words("tr", "NAVEE etkinlik günlüğü"), ([], []))
+
+    def test_tr_lock_state_trap(self):
+        for english, text in (("Lock: on", "Kilit: açık"), ("Lock: off", "Kilit: kapalı"),
+                              ("Auto-lock: on", "Otomatik kilit açık"), ("Lock state: off", "Kilit durumu: kapalı")):
+            self.assertIn("error", self.tr_polarity(english, text, "lock"), text)
+        for english, text in (("Lock: on", "Kilit: etkin"), ("Lock: off", "Kilit: devre dışı"),
+                              ("Unlocked", "Kilidi açık")):
+            self.assertEqual(self.tr_polarity(english, text, "lock"), [], text)
+        # Only a lock key.
+        self.assertEqual(self.tr_polarity("Lock: on", "Kilit: açık", "alarm"), [])
+        self.assertEqual(self.tr_polarity("Lock: on", "Kilit: açık", "ride", "lock"), ["error"])
+
     # Polarity: word-level negation for zh and ja.
 
     def test_zh_negation_is_word_level(self):
@@ -256,6 +313,108 @@ def _errors(*args, **kwargs):
     return sorted(set(f["check"] for f in _key_findings(*args, **kwargs) if f["severity"] == check.ERROR))
 
 
+class PolishWordingTest(unittest.TestCase):
+    """Polish wording the setup review found: action against state, negation words, never."""
+
+    LOCK = ["zablokuj", "zablokować", "zablokuje", "zablokowanie", "blokuj", "blokować", "blokowanie", "blokada"]
+    LOCKED = ["zablokowana", "zablokowany", "zablokowane", "zablokowano"]
+    UNLOCK = ["odblokuj", "odblokować", "odblokuje", "odblokowanie", "odblokowuj", "odblokowywać", "odblokowywanie"]
+    UNLOCKED = ["odblokowana", "odblokowany", "odblokowane", "odblokowano"]
+
+    def test_lock_action_and_state_do_not_cross(self):
+        for english, text, targets in (("Lock", "Zablokowana", self.LOCK),
+                                       ("Locked", "Zablokowanie", self.LOCKED),
+                                       ("Unlocked", "Odblokowanie", self.UNLOCKED),
+                                       ("Unlock", "Odblokowana", self.UNLOCK),
+                                       ("Unlock first", "Najpierw odblokowana", self.UNLOCK)):
+            self.assertIn("glossary", _errors("pl", english, text, targets, term=english.split()[0]), (english, text))
+
+    def test_lock_families_still_inflect(self):
+        for english, text, targets in (("Lock", "Zablokowanie", self.LOCK),
+                                       ("Lock", "Po zablokowaniu", self.LOCK),
+                                       ("Locked", "Zablokowana", self.LOCKED),
+                                       ("Locked", "Zablokowanych", self.LOCKED),
+                                       ("Locked", "Zablokowano", self.LOCKED),
+                                       ("Unlock", "Odblokowania", self.UNLOCK),
+                                       ("Unlocked", "Odblokowanej", self.UNLOCKED)):
+            self.assertEqual(_errors("pl", english, text, targets, term=english), [], (english, text))
+
+    def test_other_polish_words_keep_free_endings(self):
+        self.assertTrue(lexicon.term_found("pl", "Latn", "hulajnoga", "hulajnogi", False))
+        self.assertTrue(lexicon.term_found("pl", "Latn", "sparowana", "sparowanie", False))
+
+    def test_negation_words(self):
+        for english, text in (("No motion report yet", "Brak jeszcze raportu o ruchu"),
+                              ("Nothing to try", "Brak funkcji do wypróbowania"),
+                              ("Nothing was changed", "Niczego nie zmieniono"),
+                              ("No permission", "Brakuje uprawnienia"),
+                              ("Nobody connected", "Nikt nie jest połączony"),
+                              ("No alerts", "Żadnej nowej wiadomości")):
+            self.assertEqual(_errors("pl", english, text), [], (english, text))
+        # A negation the English lacks is still an error; "missing" leaves it to the judge.
+        self.assertEqual(_errors("pl", "Motion report ready", "Brak raportu o ruchu"), ["polarity"])
+        self.assertEqual(_errors("pl", "Missing motion report", "Brak raportu o ruchu"), [])
+
+    def test_never_needs_its_own_negation(self):
+        for text in ("Twój sposób bez telefonu. Cyfry są zawsze pokazywane.",
+                     "Twój sposób bez telefonu. Cyfry są pokazywane."):
+            self.assertEqual(_errors("pl", "Your fallback. Digits are never shown.", text), ["polarity"], text)
+        self.assertEqual(_errors("pl", "Digits are never shown.", "Cyfry nigdy nie są pokazywane."), [])
+        self.assertEqual(_errors("pl", "Never shown, always kept.", "Nigdy nie pokazywane, zawsze przechowywane."), [])
+
+    def test_abbreviated_states(self):
+        self.assertEqual(_errors("pl", "Alarm sound off", "Dźwięk alarmu: wł."), ["polarity"])
+        self.assertEqual(_errors("pl", "Alarm sound on", "Dźwięk alarmu: wył."), ["polarity"])
+        self.assertEqual(_errors("pl", "Alarm sound off", "Dźwięk alarmu: wył."), [])
+        self.assertEqual(_errors("pl", "Alarm sound on", "Dźwięk alarmu: wł."), [])
+
+
+class NorwegianTest(unittest.TestCase):
+    """nb: the lock and on or off checks, on the wordings its style guide allows and forbids."""
+    LOCK = ["lås", "låse", "låst", "låsen"]
+
+    def test_lock_inverted_is_not_the_lock_term(self):
+        for text in ("Lås opp sparkesykkelen", "Lås den opp", "for å låse den opp", "Lås sparkesykkelen opp",
+                     "Lås den igjen opp", "Slå av låsen", "Fjern låsen", "Åpne låsen", "Ta bort låsen",
+                     "Lås: av", "Låsen er av", "Låsen er deaktivert", "Låsen ble fjernet", "Låseopphevelse",
+                     "Ulåst"):
+            self.assertFalse(any(lexicon.term_found("nb", "Latn", t, text) for t in self.LOCK), text)
+
+    def test_lock_wording_kept(self):
+        for text in ("Lås sparkesykkelen", "Lås", "Lås og ta opp", "Låsetid", "Låsebevegelse (rå)",
+                     "Én låsemodul per dashbord", "Låsestatus ukjent", "Låseoppsett", "Låsen er på",
+                     "Når sparkesykkelen er koblet til, kan du låse den.",
+                     "Slå av lyset og lås sparkesykkelen"):
+            self.assertTrue(any(lexicon.term_found("nb", "Latn", t, text) for t in self.LOCK), text)
+
+    def test_english_removal_lets_the_wording_stand(self):
+        self.assertTrue(lexicon.term_found("nb", "Latn", "låsen", "Slå av låsen", True, False))
+
+    def test_state_words(self):
+        for text, want in (("Alarmlyd på", "on"), ("Slå på alarmlyden", "on"), ("Alarmlyden er aktivert", "on"),
+                           ("Alarmlyd av", "off"), ("Slå av alarmlyden", "off"), ("Alarmlyden er slått av", "off"),
+                           ("Alarmlyd ikke aktiv", "off"), ("Alarmlyden er ikke lenger aktiv", "off"),
+                           ("Alarmlyden er ikke slått av", "on")):
+            on, off = lexicon.state_words("nb", text)
+            self.assertEqual((bool(on), bool(off)), (want == "on", want == "off"), text)
+        # "på" and "av" as prepositions are no state.
+        self.assertEqual(lexicon.state_words("nb", "Alarm på telefonen av sparkesykkelen"), ([], []))
+
+    def test_state_inverted_is_an_error(self):
+        self.assertIn("polarity", _key_errors_state("Alarm sound off", "Alarmlyd på"))
+        self.assertIn("polarity", _key_errors_state("Lock: on", "Lås: av"))
+        self.assertNotIn("polarity", _key_errors_state("Alarm sound off", "Alarmlyd av"))
+        self.assertNotIn("polarity", _key_errors_state("Alarm sound on", "Alarmlyd på"))
+
+
+def _key_errors_state(english, text):
+    entry = {"key": "k", "kind": "string", "english": english, "safety": "alarm", "dnt": [], "formatted": True,
+             "glossary": []}
+    language = {"tag": "nb", "plurals": ["one", "other"], "script": "Latn", "font": "system"}
+    return sorted(set(f["check"] for f in check.check_key(entry, language, "string", {"other": text})
+                      if f["severity"] == check.ERROR))
+
+
 class MoreLanguagesTest(unittest.TestCase):
     """Safety keys checked directly for languages the fixture repository does not set up."""
 
@@ -281,6 +440,24 @@ class MoreLanguagesTest(unittest.TestCase):
         # A short stem does not stretch to another word ("verrou" is not in "verre").
         self.assertFalse(lexicon.term_found("fr", "Latn", "verrou", "verre"))
         self.assertTrue(lexicon.term_found("el", "Grek", "κλείδωμα", "Αποτυχία κλειδώματος"))
+
+    def test_greek_lock_action_and_state_stay_apart(self):
+        lock = ["Κλείδωμα", "κλειδώματος", "κλειδώματα", "κλείδωσε", "κλειδώνω", "κλειδώνει", "κλειδώσει", "κλειδωθεί"]
+        unlock = ["Ξεκλείδωμα", "ξεκλειδώματος", "ξεκλειδώματα", "ξεκλείδωσε", "ξεκλειδώνω", "ξεκλειδωθεί"]
+        for english, targets, text in (("Lock", lock, "Κλείδωμα"), ("Lock", lock, "Αποτυχία κλειδώματος"),
+                                       ("Lock the scooter", lock, "Κλείδωσε το πατίνι"),
+                                       ("Unlock first", unlock, "Απαιτείται ξεκλείδωμα")):
+            self.assertEqual(_errors("el", english, text, targets, term=english.split()[0]), [], text)
+        for english, targets, text in (("Lock", lock, "Κλειδωμένο"), ("Unlock", unlock, "Ξεκλειδωμένο"),
+                                       ("Lock the scooter", lock, "Το πατίνι κλειδώθηκε")):
+            self.assertEqual(_errors("el", english, text, targets, term=english.split()[0]), ["glossary"], text)
+
+    def test_greek_negation_words(self):
+        self.assertEqual(_errors("el", "No rides yet", "Καμία διαδρομή ακόμη"), [])
+        self.assertEqual(_errors("el", "Never", "Ποτέ"), [])
+        self.assertEqual(_errors("el", "Never", "Πότε"), ["polarity"])
+        # An ordinary word in α- is no longer a possible negation.
+        self.assertEqual(check.target_negation("el", "Αποθήκευση")[1], [])
 
     def test_natural_negations_pass(self):
         cases = (("bn", "The scooter did not respond", "স্কুটার সাড়া দেয়নি"),
@@ -348,11 +525,24 @@ class MoreLanguagesTest(unittest.TestCase):
         ("nl", "Lock scooter", "Schakel de vergrendeling uit", ["vergrendelen", "vergrendeling"]),
         ("nl", "Lock scooter", "Verwijder de vergrendeling", ["vergrendelen", "vergrendeling"]),
         ("nl", "The lock is on", "Vergrendeling uitgeschakeld", ["vergrendeld", "vergrendeling"]),
+        ("nl", "The lock is on", "De vergrendeling is open", ["vergrendeld", "vergrendeling"]),
+        ("nl", "The lock is on", "De vergrendeling staat open", ["vergrendeld", "vergrendeling"]),
+        ("nl", "Lock", "Van het slot halen", ["vergrendelen", "slot"]),
+        ("nl", "Lock", "Tot slot: tik hier", ["vergrendelen", "slot"]),
+        ("nl", "Lock", "Zet de step op slot", ["vergrendelen", "slot"]),
+        ("nl", "Lock", "Slotstand", ["vergrendelen", "slot"]),
         ("pl", "Lock scooter", "Zdejmij blokadę hulajnogi", ["zablokuj", "blokada"]),
         ("pl", "Lock scooter", "Wyłącz blokadę hulajnogi", ["zablokuj", "blokada"]),
         ("pl", "Lock scooter", "Usuń blokadę", ["zablokuj", "blokada"]),
         ("pl", "The lock is on", "Blokada hulajnogi wyłączona", ["zablokowana", "blokada"]),
         ("pl", "The lock is on", "Blokada została zdjęta", ["zablokowana", "blokada"]),
+        ("pl", "Lock", "Odblokuj blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Lock", "Odblokowanie blokady", ["zablokuj", "blokada"]),
+        ("pl", "Lock", "Odblokowano blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Electronic lock", "Odblokuj blokadę elektroniczną", ["blokada elektroniczna"]),
+        ("pl", "Electronic lock", "Blokada elektroniczna odblokowana", ["blokada elektroniczna"]),
+        ("pl", "The lock is on", "Blokada została odblokowana", ["zablokowana", "blokada"]),
+        ("pl", "Lock: on", "Blokada: wył.", ["zablokowana", "blokada"]),
         ("sv", "Lock scooter", "Ta bort låset", ["lås", "låset"]),
         ("sv", "Lock scooter", "Inaktivera låset", ["lås", "låset"]),
         ("sv", "The lock is on", "Låset inaktiverat", ["låst", "låset"]),
@@ -362,6 +552,9 @@ class MoreLanguagesTest(unittest.TestCase):
         # Later-wave languages, where the inflected glossary match had let these pass.
         ("ru", "Lock scooter", "Снять блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
         ("ru", "Lock scooter", "Отключить блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "Lock scooter", "Сбросить блокировку самоката", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "Lock scooter", "Сброс блокировки", ["заблокировать", "блокировка", "блокировки"]),
+        ("ru", "The lock is on", "Блокировка сброшена", ["заблокирован", "блокировка"]),
         ("uk", "Lock scooter", "Зняти блокування самоката", ["заблокувати", "блокування"]),
         ("el", "Lock scooter", "Άρση κλειδώματος πατινιού", ["κλείδωμα", "κλειδώνω"]),
         ("ja", "Lock scooter", "スクーターのロックの解除", ["ロック"]),
@@ -378,6 +571,8 @@ class MoreLanguagesTest(unittest.TestCase):
         ("fr", "Lock and switch off the lights", "Verrouiller et éteindre les feux", ["verrouiller"]),
         ("it", "Lock and turn off", "Blocca e spegni", ["blocca"]),
         ("de", "Lock remotely", "Sperren aus der Ferne", ["sperren"]),
+        ("nl", "Lock", "Slot", ["vergrendelen", "slot"]),
+        ("nl", "Lock", "Tot slot: vergrendel de step", ["vergrendelen", "vergrendel", "slot"]),
         ("de", "Lock and switch off the lights", "Roller sperren und Licht ausschalten", ["sperren"]),
         ("nl", "Lock remotely", "Op afstand vergrendelen", ["vergrendelen"]),
         ("nl", "Lock and switch off", "Vergrendelen en uitschakelen", ["vergrendelen"]),
@@ -392,8 +587,40 @@ class MoreLanguagesTest(unittest.TestCase):
         # The English itself turns the lock off: the removal words are the right translation.
         ("es", "Turn off the lock", "Desactivar el bloqueo", ["bloquear", "bloqueo"]),
         ("pl", "Remove the lock", "Zdejmij blokadę", ["zablokuj", "blokada"]),
+        ("pl", "Lock or unlock", "Zablokuj lub odblokuj", ["zablokuj"]),
+        ("pl", "Locked. Slide to unlock.", "Zablokowana. Przesuń, aby odblokować.", ["zablokowana"]),
+        # An unlock key that mentions the lock: the English says unlock, so the wording may too.
+        ("pl", "Unlock the locked scooter", "Odblokuj zablokowaną hulajnogę", ["zablokowana"]),
+        ("pl", "Unlock the lock", "Odblokuj blokadę", ["blokada"]),
         ("de", "Disable the lock", "Sperre deaktivieren", ["sperren", "Sperre"]),
     )
+    RO_LOCK = ["Blochează", "Blocare", "blocarea", "bloca"]
+    RO_LOCK_REMOVED = (
+        ("Lock scooter", "Elimină blocarea"),
+        ("Lock scooter", "Scoate blocarea"),
+        ("Lock scooter", "Șterge blocarea"),
+        ("Lock scooter", "Dezactivează blocarea"),
+        ("Lock scooter", "Anulează blocarea"),
+        ("Lock scooter", "Ridică blocarea"),
+        ("The lock is on", "Blocare dezactivată"),
+        ("The lock is on", "Blocare: dezactivată"),
+        ("The lock is on", "Blocarea a fost anulată"),
+        ("The lock is on", "Blocarea trotinetei este dezactivată"),
+    )
+    RO_LOCK_KEPT = (
+        ("Lock scooter", "Blochează trotineta"),
+        ("Lock scooter", "Oprește alarma și blochează trotineta"),
+        ("Lock scooter", "Deschide „Blocare”"),
+        ("Lock the scooter when it is stopped", "Blochează trotineta oprită"),
+        # The English itself says turn off, so the context is skipped.
+        ("Turn off the lock", "Dezactivează blocarea"),
+    )
+
+    def test_romanian_lock_removed(self):
+        for english, text in self.RO_LOCK_REMOVED:
+            self.assertIn("glossary", _errors("ro", english, text, self.RO_LOCK), text)
+        for english, text in self.RO_LOCK_KEPT:
+            self.assertNotIn("glossary", _errors("ro", english, text, self.RO_LOCK), text)
 
     def test_lock_removed_is_not_the_lock_term(self):
         for tag, english, text, targets in self.LOCK_REMOVED:
@@ -427,6 +654,7 @@ class MoreLanguagesTest(unittest.TestCase):
 
 # First-wave approved targets by en.tsv id, as a council-drafted l10n/glossary/<tag>.tsv would hold them.
 FIRST_WAVE_TARGETS = {
+    "ru": {"alarm-sound": "Сигнал тревоги | сигнала тревоги", "scooter": "самокат | самоката"},
     "es": {"lock": "bloquear | bloqueo", "locked": "bloqueado | bloqueada", "unlock": "desbloquear | desbloqueo",
            "unlocked": "desbloqueado | desbloqueada", "energy-recovery": "recuperación de energía",
            "energy-recovery-off": "Desactivada | Desactivado", "energy-recovery-low": "Baja | Bajo",
@@ -452,6 +680,9 @@ FIRST_WAVE_TARGETS = {
            "low-battery-alert": "varning för låg batterinivå"},
     "id": {"lock": "kunci | mengunci", "unlock": "buka kunci | membuka kunci", "scooter": "skuter",
            "low-battery-alert": "peringatan baterai lemah"},
+    "ro": {"lock": "Blochează | Blocare | blocarea | a bloca", "unlock": "Deblochează | Deblocare | deblocarea",
+           "scooter": "trotinetă | trotineta", "low-battery-alert": "Alertă de baterie scăzută",
+           "alarm-sound": "Sunet de alarmă"},
 }
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -558,6 +789,13 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("nl", "Low battery alert enabled", "Waarschuwing bij lage batterij uitgeschakeld"),
         ("sv", "Low battery alert enabled", "Varning för låg batterinivå avstängd"),
         ("id", "Low battery alert enabled", "Peringatan baterai lemah dinonaktifkan"),
+        ("ro", "Alarm on", "Alarmă dezactivată"),
+        ("ro", "Lock: on", "Blocare: dezactivată"),
+        ("ro", "On", "Dezactivat"),
+        ("ro", "Off", "Activat"),
+        ("ro", "Alarm sound off", "Sunet de alarmă aprins"),
+        ("ro", "Turn on the alarm", "Oprește alarma"),
+        ("ro", "Alarm sound off", "Sunetul de alarmă nu este dezactivat"),
         ("es", "Lock: on", "Bloqueo: desactivado"),
         ("de", "Lock: on", "Sperre: aus"),
         ("de", "Lock: on", "Sperre: deaktiviert"),
@@ -574,8 +812,23 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("it", "Lock: off", "Blocco: non disattivato"),
         ("id", "Alarm sound on", "Suara alarm tidak aktif"),
         ("es", "Alarm sound on", "Sonido de alarma sin activar"),
+        ("ru", "Alarm sound off", "Сигнал тревоги включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги: вкл."),
+        ("ru", "Alarm sound on", "Сигнал тревоги выключен"),
+        ("ru", "Alarm sound on", "Сигнал тревоги: выкл."),
+        ("ru", "Alarm sound on", "Сигнал тревоги отключён"),
+        ("ru", "Alarm sound on", "Сигнал тревоги не включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги не будет выключен"),
     )
     STATE_KEPT = (
+        ("ro", "Alarm on", "Alarmă activată"),
+        ("ro", "Lock: on", "Blocare: activată"),
+        ("ro", "Off", "Dezactivat"),
+        ("ro", "Alarm sound off", "Sunetul de alarmă nu este activat"),
+        ("ro", "Turn off NAVEE logging", "Oprește jurnalul de activitate NAVEE"),
+        # "activitate" is the logging word, not an on state.
+        ("ro", "NAVEE logging off", "Jurnalul de activitate NAVEE: oprit"),
+        ("ro", "NAVEE logging off", "Jurnalul de activitate NAVEE"),
         ("es", "Alarm sound on", "Sonido de alarma activado"),
         ("es", "Alarm sound off", "Sonido de alarma desactivado"),
         ("fr", "Low battery alert disabled", "Alerte de batterie faible désactivée"),
@@ -601,6 +854,13 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
         ("pt-BR", "Alarm sound off", "Som de alarme não ativado"),
         ("fr", "Alarm sound off", "Son d'alarme non activé"),
         ("fr", "Alarm sound off", "Le son d'alarme n'est pas activé"),
+        ("ru", "Alarm sound on", "Сигнал тревоги включён"),
+        ("ru", "Alarm sound off", "Сигнал тревоги выключен"),
+        ("ru", "Alarm sound off", "Сигнал тревоги: выкл."),
+        ("ru", "Alarm sound off", "Сигнал тревоги не включён"),
+        # "включая" (including) and "подключён" (connected) are no state.
+        ("ru", "Alarm sound off", "Все сигналы выключены, включая тревогу"),
+        ("ru", "Alarm sound on", "Сигнал тревоги включён, самокат подключён"),
     )
     # Locked here is the state, and the turn-off verb takes a clitic, -nya or a zu/te infinitive.
     TURN_IT_OFF = "The alarm sounds if the scooter moves while locked. Tap Stop to turn it off."
@@ -747,6 +1007,241 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
                                   ("it", "Bloccato: motore spento", "bloccato"),
                                   ("es", "Bloqueo: activado", "bloqueo")):
             self.assertTrue(lexicon.term_found(tag, "Latn", target, text), (tag, text))
+
+class FinnishChecksTest(unittest.TestCase):
+    """Finnish opposite-term, removal and negation checks, with the shape of the real glossary rows."""
+
+    LOCK = ["lukitse", "lukita", "lukitaan", "lukitus", "lukituksen", "lukitusta"]
+
+    def test_unlock_and_removal_are_not_the_lock_term(self):
+        for text in ("Avaa lukitus", "Lukitus avattu", "Lukituksen avaus", "Poista lukitus", "Lukitsematon",
+                     "Avaa ensin lukitus", "Avaa potkulaudan lukitus", "Lukitusta ei voitu avata",
+                     "Lukitus on auki", "Lukitus: avattu", "Pura lukitus", "Lukitus pois päältä",
+                     "Lukitus poistettu", "Poista potkulaudan lukitus", "Voit avata lukituksen"):
+            self.assertIn("glossary", _errors("fi", "Lock scooter", text, self.LOCK), text)
+
+    def test_lock_wording_keeps_the_lock_term(self):
+        for text in ("Lukitse potkulauta", "Lukitus", "Lukitse ja sammuta valot", "Avaa ja lukitse",
+                     "Poista ajo ja lukitse", "Lukitaan…", "Lukitse, kun yhteys avataan"):
+            self.assertEqual(_errors("fi", "Lock scooter", text, self.LOCK), [], text)
+
+    def test_removal_words_are_right_when_the_english_removes(self):
+        self.assertEqual(_errors("fi", "Remove the lock", "Poista lukitus", self.LOCK), [])
+
+    def test_unlock_targets_survive_the_contexts(self):
+        targets = ["avaa lukitus", "avaa ensin lukitus", "lukituksen avaus", "lukitus avattu"]
+        for text in ("Avaa lukitus", "Avaa ensin lukitus", "Lukituksen avaus", "Lukitus avattu"):
+            self.assertTrue(any(lexicon.term_found("fi", "Latn", t, text) for t in targets), text)
+
+    def test_koskaan_alone_is_not_a_negation(self):
+        self.assertIn("polarity", _errors("fi", "Never lock", "Koskaan lukitse", self.LOCK))
+        self.assertNotIn("polarity", _errors("fi", "Never lock", "Älä koskaan lukitse", self.LOCK))
+
+    def test_negative_participles_count_as_negated(self):
+        for text in ("Vahvistamaton", "Varmistamaton", "Testaamaton", "Ei vahvistettu"):
+            self.assertEqual(_errors("fi", "Unconfirmed", text), [], text)
+        self.assertIn("polarity", _errors("fi", "Unconfirmed", "Vahvistettu"))
+
+
+class HungarianChecksTest(unittest.TestCase):
+    """hu: the lock and on or off checks, on the wordings its style guide allows and forbids."""
+    LOCK = ["Lezárás", "zárd le", "lezárod", "lezárja", "zárja le", "lezárni", "lezárhatod", "lezárható",
+            "zárta le", "lezárta", "zárható le", "le kell zárni"]
+    LOCKED = ["Lezárva", "lezárt", "le van zárva"]
+
+    def test_lock_inverted_is_not_the_lock_term(self):
+        for text in ("A lezárás feloldása", "Lezárás feloldása", "Lezárás: feloldva", "A lezárás fel van oldva",
+                     "A lezárást oldd fel", "Oldd fel a lezárást", "Oldd fel a roller lezárását",
+                     "A Volt feloldja a lezárást", "lezárásfeloldás", "Lezárás-feloldás", "Lezárás kioldása",
+                     "A lezárás nem oldható fel", "A lezárás kikapcsolása", "Lezárás megszüntetése", "Lezárás: ki",
+                     "Lezárás: kikapcsolva", "A lezárás ki van kapcsolva", "Kapcsold ki a lezárást",
+                     "Szüntesd meg a lezárást", "Lezárás törlése", "Lezárás eltávolítása"):
+            self.assertFalse(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCK), text)
+        self.assertFalse(any(lexicon.term_found("hu", "Latn", t, "Lezárva: feloldva") for t in self.LOCKED))
+
+    def test_lock_wording_keeps_the_lock_term(self):
+        for text in ("Lezárás", "Lezárás…", "A roller lezárásához", "Zárd le a rollert", "Lezárás és feloldás",
+                     "Lezárás vagy feloldás", "Nem zárta le a rollert", "A roller nem zárható le",
+                     "Le kell zárni a rollert", "Oldd fel, majd zárd le", "Oldd fel a rollert és zárd le",
+                     "A Volt nem tudja feloldani vagy lezárni", "Feloldhatod lezárás után", "A lezárás sikertelen",
+                     "Kapcsold ki a lámpát lezárás előtt", "A lezárás törli a szakaszt",
+                     "A lezárás kikapcsolja a lámpát", "Lezárás feloldás nélkül"):
+            self.assertTrue(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCK), text)
+        for text in ("Lezárva", "Lezárva feloldásig", "A roller le van zárva", "Feloldja a lezárt rollert",
+                     "Kapcsold ki a lezárt rollert"):
+            self.assertTrue(any(lexicon.term_found("hu", "Latn", t, text) for t in self.LOCKED), text)
+
+    def test_removal_words_are_right_when_the_english_removes(self):
+        self.assertEqual(_errors("hu", "Turn off the lock", "Kapcsold ki a lezárást", ["Lezárás"]), [])
+        self.assertIn("glossary", _errors("hu", "Lock scooter", "Kapcsold ki a lezárást", ["Lezárás"]))
+        self.assertIn("glossary", _errors("hu", "Lock scooter", "A lezárás feloldása", ["Lezárás"]))
+
+    def test_on_off_state_inversion_fails_a_safety_key(self):
+        for english, text in (("Lock: on", "Lezárás: Ki"), ("Lock: on", "Lezárás: kikapcsolva"),
+                              ("Alarm sound off", "Riasztási hang bekapcsolva"), ("Alarm sound off", "Riasztási hang: Be"),
+                              ("Lock: on", "A lezárás nincs bekapcsolva"), ("Alarm off", "A riasztás be van kapcsolva")):
+            self.assertIn("polarity", _errors("hu", english, text), text)
+        for english, text in (("Alarm sound off", "Riasztási hang kikapcsolva"), ("Alarm sound off", "Riasztási hang: Ki"),
+                              ("Alarm on", "Mindig bekapcsolva"),
+                              ("Alarm off", "Kapcsold ki a riasztást"), ("Alarm on", "Kapcsold be a riasztást")):
+            self.assertNotIn("polarity", _errors("hu", english, text), text)
+
+    def test_a_negated_state_counts_as_the_other(self):
+        self.assertEqual(lexicon.state_words("hu", "A riasztás nincs kikapcsolva"), (["kikapcsolva"], []))
+        self.assertEqual(lexicon.state_words("hu", "Nem volt bekapcsolva"), ([], ["bekapcsolva"]))
+
+    def test_power_button_is_no_state(self):
+        self.assertEqual(lexicon.state_words("hu", "Nyomd meg a bekapcsoló gombot"), ([], []))
+        self.assertEqual(lexicon.state_words("hu", "Kipróbálás"), ([], []))
+
+
+class CroatianWordListTest(unittest.TestCase):
+    """hr negation, state and removal lists, and the lock forms that must not match "conclude"."""
+
+    LOCK = "zaključaj | zaključati | zaključan | zaključani | zaključano"
+
+    @staticmethod
+    def _errors(english, text, term, target):
+        entry = {"key": "k", "kind": "string", "english": english, "safety": "lock", "dnt": [], "formatted": True,
+                 "glossary": [{"id": "t", "term": term, "dnt": False, "safety": "lock",
+                               "target": [t.strip() for t in target.split("|")]}]}
+        language = {"tag": "hr", "plurals": ["one", "few", "other"], "script": "Latn", "font": "system"}
+        return sorted(set(f["check"] for f in check.check_key(entry, language, "string", {"other": text})
+                          if f["severity"] == check.ERROR))
+
+    def test_added_negation_on_a_positive_key_fails(self):
+        for text in ("Romobili nisu zaključani", "Neće se zaključati", "Nemoj zaključati romobil",
+                     "Nitko nije zaključan", "Romobil nikako zaključati"):
+            self.assertIn("polarity", self._errors("The scooters are locked", text, "Locked", self.LOCK), text)
+        self.assertNotIn("polarity", self._errors("The scooters are locked", "Romobili su zaključani", "Locked", self.LOCK))
+
+    def test_kept_negation_on_a_negative_key_passes(self):
+        target = "nije potvrđeno | nije potvrđen | nije potvrđena | nisu potvrđene"
+        self.assertNotIn("polarity", self._errors("Values not confirmed", "Vrijednosti nisu potvrđene", "not confirmed", target))
+        self.assertIn("polarity", self._errors("Values not confirmed", "Vrijednosti su potvrđene", "not confirmed", "potvrđene"))
+
+    def test_every_common_negation_word_counts(self):
+        for word in ("nisu", "nisam", "nisi", "nismo", "niste", "neće", "nećeš", "nećemo", "nemoj", "nemojte", "nemam",
+                     "nemaš", "nemaju", "ni", "niti", "nitko", "nikakav", "nikakva", "nikakvo", "nikako", "nigdje"):
+            self.assertEqual(check.target_negation("hr", word)[0], [word])
+
+    def test_ordinary_words_are_not_native_negation(self):
+        for word in ("negdje", "negativan", "neutralan", "neto", "nekad", "bezbroj", "bezbjedan"):
+            self.assertEqual(check.target_negation("hr", word)[2], [], word)
+        for word in ("neprovjereno", "nepoznato", "netočno", "nekompatibilan", "nekorišten"):
+            self.assertEqual(check.target_negation("hr", word)[2], [word])
+
+    def test_on_and_off_inversion_fails(self):
+        for english, text in (("Alarm sound on", "Zvuk alarma: isključeno"), ("Alarm sound off", "Zvuk alarma: uključeno"),
+                              ("Alarm sound on", "Zvuk alarma nije uključen"),
+                              ("Alarm stays on", "Alarm više neće biti uključen")):
+            self.assertIn("polarity", self._errors(english, text, "Alarm", "alarm"), text)
+        for english, text in (("Alarm sound on", "Zvuk alarma: uključeno"), ("Alarm sound off", "Zvuk alarma: isključeno"),
+                              ("Alarm sound off", "Zvuk alarma nije uključen")):
+            self.assertNotIn("polarity", self._errors(english, text, "Alarm", "alarm"), text)
+        # "including" and "exclusively" are not states.
+        self.assertEqual(lexicon.state_words("hr", "uključujući romobil, isključivo ovdje"), ([], []))
+
+    def test_removing_the_lock_is_not_the_lock_term(self):
+        for text in ("Ukloni zaključavanje", "Isključi zaključavanje", "Uklanjanje zaključavanja",
+                     "Poništi zaključavanje", "Zaključavanje je isključeno", "Zaključavanje romobila je uklonjeno"):
+            self.assertFalse(lexicon.term_found("hr", "Latn", "zaključavanje", text), text)
+        self.assertTrue(lexicon.term_found("hr", "Latn", "zaključavanje", "Zaključavanje romobila"))
+        self.assertTrue(lexicon.term_found("hr", "Latn", "zaključavanje", "Isključi zaključavanje", removal=False))
+
+    def test_lock_forms_match_but_conclude_does_not(self):
+        for target, text in (("zaključa", "Romobil se zaključa"), ("zaključao", "Romobil se nije zaključao"),
+                             ("zaključaš", "prije nego što zaključaš"), ("otključa", "Romobil se otključa"),
+                             ("otključao", "Romobil se nije otključao"), ("zaključala", "nije se zaključala")):
+            self.assertTrue(lexicon.term_found("hr", "Latn", target, text), text)
+        for target in ("zaključa", "zaključao", "zaključaj", "zaključaju", "zaključala", "zaključalo", "zaključaš"):
+            for text in ("Zaključi romobil", "Zaključak", "Zaključuje", "Zaključio", "Zaključajte romobil"):
+                self.assertFalse(lexicon.term_found("hr", "Latn", target, text), (target, text))
+
+
+class JoinedVerbNegationTest(unittest.TestCase):
+    """cs and sk write a verb's "not" joined to it ("nepotvrdila"), and that keeps the English negation."""
+
+    def test_joined_ne_keeps_the_english_not(self):
+        for tag, english, text in (("cs", "Change not confirmed", "Změna nepotvrzena"),
+                                   ("cs", "The scooter didn't confirm the lock change", "Koloběžka nepotvrdila změnu"),
+                                   ("cs", "PIN status did not arrive. Tap Read PIN status to try again.",
+                                    "Stav kódu PIN nedorazil. Zkuste to znovu."),
+                                   ("cs", "Not connected", "Nejsou připojeny"),
+                                   ("cs", "Can't lock while riding", "Za jízdy nelze"),
+                                   ("sk", "Change not confirmed", "Zmena nepotvrdená"),
+                                   ("sk", "The scooter didn't answer", "Kolobežka neodpovedala")):
+            self.assertEqual(_errors(tag, english, text), [], (tag, text))
+
+    def test_a_lost_not_still_fails(self):
+        for tag, english, text in (("cs", "Change not confirmed", "Změna potvrzena"),
+                                   ("cs", "PIN status did not arrive.", "Stav kódu PIN dorazil."),
+                                   ("sk", "Change not confirmed", "Zmena potvrdená")):
+            self.assertEqual(_errors(tag, english, text), ["polarity"], (tag, text))
+
+    def test_ordinary_ne_words_are_no_negation(self):
+        # "Nechte" (leave), "neutrální" (neutral), "nejlepší" (best) only look negated.
+        for text in ("Nechte koloběžku zapnutou", "Neutrální režim", "Nejlepší rychlost"):
+            self.assertEqual(_errors("cs", "Do not ride yet", text), ["polarity"], text)
+
+    def test_the_opposite_term_is_no_negation(self):
+        # "neodemčeno" is ne- plus the approved unlock target: not a negation of the sentence.
+        self.assertFalse(lexicon.native_negated("cs", "neodemčeno", ("odemčeno",)))
+
+    def test_an_added_ne_word_only_warns_and_other_languages_are_unchanged(self):
+        findings = _key_findings("cs", "Wrong password or bad file.", "Nesprávné heslo nebo neplatný soubor.")
+        self.assertEqual([f["severity"] for f in findings if f["check"] == "polarity"], [check.WARN])
+        self.assertEqual(_errors("cs", "Change confirmed", "Změna není potvrzena"), ["polarity"])
+        # Polish writes "nie" apart from the verb, so only a separate negation word keeps "not" there.
+        self.assertEqual(_errors("pl", "The scooter didn't answer", "Hulajnoga nieodpowiedziała"), ["polarity"])
+
+
+class TermInAnotherSenseTest(unittest.TestCase):
+    """An ordinary "try again" is not the experimental Try term (check.NOT_THE_TERM)."""
+
+    @staticmethod
+    def _glossary_errors(english, text, safety="lock"):
+        entry = {"key": "k", "kind": "string", "english": english, "safety": safety, "dnt": [], "formatted": True,
+                 "glossary": [{"term": "Try", "target": ["Essayer", "essayez"], "safety": "experimental",
+                               "dnt": False}]}
+        language = {"tag": "fr", "plurals": ["one", "other"], "script": "Latn", "font": "system"}
+        return [f for f in check.check_key(entry, language, "string", {"other": text})
+                if f["check"] == "glossary" and f["severity"] == check.ERROR]
+
+    def test_try_again_needs_no_try_term(self):
+        for english in ("The scooter wasn't ready; try again", "Tap Read PIN status to try again.",
+                        "Trying again in 5 s"):
+            self.assertEqual(self._glossary_errors(english, "La trottinette n'était pas prête ; réessayez"), [],
+                             english)
+            entry = {"kind": "string", "english": english, "safety": "lock",
+                     "glossary": [{"term": "Try", "target": ["Essayer"], "safety": "experimental"}]}
+            self.assertEqual(list(check._terms_in(entry, english)), [], english)
+
+    def test_the_experimental_try_still_needs_its_term(self):
+        self.assertTrue(self._glossary_errors("Try this control", "Tester cette commande", "experimental"))
+        # One ordinary "try again" does not excuse the experimental Try beside it.
+        self.assertTrue(self._glossary_errors("Try failed. Try again or try another control.",
+                                              "Échec. Réessayez ou testez une autre commande.", "experimental"))
+
+
+class NegatedAdjectiveTest(unittest.TestCase):
+    """fr "inachevé" and sv "oavslutat" are the languages' own word for unfinished."""
+
+    def test_unfinished_as_a_native_negated_word(self):
+        self.assertEqual(_errors("fr", "Unfinished test", "Test inachevé"), [])
+        self.assertEqual(_errors("fr", "2 unfinished tests", "2 tests inachevés"), [])
+        self.assertEqual(_errors("sv", "Unfinished test", "Oavslutat test"), [])
+        self.assertEqual(_errors("sv", "Unfinished tests", "Oavslutade tester"), [])
+
+    def test_the_un_word_dropped_still_fails(self):
+        self.assertEqual(_errors("fr", "Unfinished test", "Test achevé"), ["polarity"])
+        self.assertEqual(_errors("sv", "Unfinished test", "Avslutat test"), ["polarity"])
+
+    def test_added_where_the_english_is_positive_only_warns(self):
+        for tag, english, text in (("fr", "Test finished", "Test inachevé"), ("sv", "Test finished", "Oavslutat test")):
+            polarity = [f["severity"] for f in _key_findings(tag, english, text) if f["check"] == "polarity"]
+            self.assertEqual(polarity, [check.WARN], text)
+
 
 if __name__ == "__main__":
     unittest.main()
