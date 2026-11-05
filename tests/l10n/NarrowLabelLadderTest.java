@@ -108,7 +108,7 @@ public final class NarrowLabelLadderTest {
         check(nav.contains("item.setContentDescription(label);"), "the rail tab is still read by its full name");
         String content = body(quick, "void measureContent(int width, boolean compact)");
         check(!content.contains("10 * ui.textScale"), "Quick access labels no longer shrink to 10 sp");
-        check(content.contains("wholeLines(full, label, room, 2) ? full : wholeLines(brief, label, room, 2) ? brief : null"),
+        check(content.contains("StatusRungs.wholeLines(full, label, room, 2) ? full : StatusRungs.wholeLines(brief, label, room, 2) ? brief : null"),
                 "Quick access labels fall from the name to its short rung, then the icon alone");
         String measure = body(caption, "protected void onMeasure(int widthSpec, int heightSpec)");
         check(measure.contains("oneLine && fallbackIcon == null && !iconBeside ? shortLabel : null"),
