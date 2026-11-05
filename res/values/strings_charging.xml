@@ -164,4 +164,54 @@
         volt:safety="charge">Choose a whole hour within 48 hours</string>
     <string name="charging_schedule_wait_test" volt:screen="Charge schedule" volt:purpose="reason"
         volt:safety="charge">Wait for the schedule test to finish</string>
+
+    <!-- Why a charging control is blocked now (ChargeScheduleController.reasonText): the toast, or read out after a
+         Setting tile's name. -->
+    <!-- Charge done by is on, so the Scheduled charging control waits for it to be off. -->
+    <string name="charging_schedule_disable_done_by" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Disable Charge done by first</string>
+    <string name="charging_schedule_choose_scooter" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Choose a scooter first</string>
+    <string name="charging_schedule_connect_scooter" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Connect the scooter first</string>
+    <!-- The schedule test needs a model that takes a start to the minute. -->
+    <string name="charging_schedule_not_on_model" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Not available on this model</string>
+    <!-- The schedule test will not run over Charge done by. -->
+    <string name="charging_schedule_turn_off_done_by" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Turn off Charge done by first</string>
+    <!-- The schedule test will not run over a schedule that is on. -->
+    <string name="charging_schedule_turn_off_scheduled" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Turn off Scheduled charging first</string>
+    <string name="charging_schedule_wait_readings" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Wait for fresh charging readings</string>
+
+    <!-- What a schedule change answers when it did not finish (ChargeScheduleController): a toast, a notification or the
+         test result. No final full stop, because some of those add one. -->
+    <string name="charging_schedule_cancel_not_confirmed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Schedule cancellation was not confirmed; reconnect and try again</string>
+    <string name="charging_schedule_clock_failed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Could not set the scooter clock; schedule unchanged</string>
+    <string name="charging_schedule_battery_changed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Battery level changed; a fresh charging estimate is needed</string>
+    <string name="charging_schedule_start_not_confirmed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charge start was not confirmed; check the scooter schedule</string>
+    <string name="charging_schedule_limit_changed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charge limit changed; check the schedule and try again</string>
+    <string name="charging_schedule_start_changed_estimate" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charge start changed, but a fresh charging estimate is needed</string>
+    <string name="charging_schedule_start_passed" volt:screen="Charge schedule" volt:purpose="status"
+        volt:safety="charge">Charging now — the calculated start time has passed</string>
+    <string name="charging_schedule_passed_not_cancelled" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Start time passed, but schedule cancellation was not confirmed</string>
+    <string name="charging_schedule_limit_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status"
+        volt:safety="charge">Charge limit changed; the charge start is saved without a finish estimate</string>
+    <string name="charging_schedule_battery_saved_no_estimate" volt:screen="Charge schedule" volt:purpose="status"
+        volt:safety="charge">Battery level changed; the charge start is saved without a finish estimate</string>
+    <string name="charging_schedule_enable_not_confirmed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Charge start changed, but enabling the schedule was not confirmed</string>
+    <string name="charging_schedule_connection_changed" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge">Connection changed; check the scooter schedule before trying again</string>
+    <string name="charging_schedule_stopped_before_finish" volt:screen="Charge schedule" volt:purpose="reason"
+        volt:safety="charge" volt:dnt="Volt">Volt stopped before it finished; check that Scheduled charging is off</string>
 </resources>
