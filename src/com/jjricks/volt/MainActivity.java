@@ -1214,7 +1214,7 @@ public final class MainActivity extends Activity implements ScreenHost {
         boolean present=false;for(ScanResult result:scanResults)if(result.getDevice().getAddress().equals(scanSelected))present=true;
         // The profile's own scooter starts selected; other scooters need a deliberate tap before Connect.
         if(!present){scanSelected=null;for(ScanResult result:scanResults)if(!mine.isEmpty()&&result.getDevice().getAddress().equalsIgnoreCase(mine))scanSelected=result.getDevice().getAddress();}
-        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():T.mainScanFound(scanResults.size(),scanResults.size()));
+        scanStatus.setText(scanning?T.bleStatusSearching():scanResults.isEmpty()?T.mainScanNone():scanResults.size()==1?T.mainScanFoundOne():T.mainScanFoundMany(scanResults.size(),scanResults.size()));
         scanSpinner.setVisibility(scanning?View.VISIBLE:View.GONE);
         StringBuilder signature=new StringBuilder(String.valueOf(scanSelected)).append(':').append(profile==null?"":profile.id);
         for(ScanResult result:scanResults){String name=result.getScanRecord()==null?null:result.getScanRecord().getDeviceName();ScooterProfiles.Profile saved=scooterService.profiles.hardwareMatch(null,result.getDevice().getAddress(),null);signature.append('|').append(result.getDevice().getAddress()).append(':').append(signalRank(result.getRssi())).append(':').append(name).append(':').append(saved==null?"":saved.id+":"+saved.name);}

@@ -68,7 +68,7 @@ public final class MainTextTest {
                     equal(MainActivityTextTest.Base.topSpeed(n, units, ready), ready ? T.mainSpeedValue(v) : T.mainSpeedValueSeen(v), "top " + n);
                 }
             }
-            equal(MainActivityTextTest.Base.scanStatus(false, n), n == 0 ? T.mainScanNone() : T.mainScanFound(n, n), "scan " + n);
+            equal(MainActivityTextTest.Base.scanStatus(false, n), n == 0 ? T.mainScanNone() : n == 1 ? T.mainScanFoundOne() : T.mainScanFoundMany(n, n), "scan " + n);
             equal(MainActivityTextTest.Base.results(n), T.mainSearchResults(n, n), "results " + n);
             for (boolean isTry : new boolean[]{false, true}) {
                 String want = MainActivityTextTest.Base.banner(isTry, "Lights", n);
