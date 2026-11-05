@@ -126,7 +126,7 @@
     <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Nagraj przejazd. Zapisywanie ostatniego przejazdu</string>
     <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Rozpocznij nagrywanie</string>
     <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Nagraj przejazd. Łączenie</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Zapisz przejazd. Połącz się z hulajnogą</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Nagraj przejazd. Połącz się z hulajnogą</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Przykład</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 przejazdów · %1$s–%2$s %3$s</string>
@@ -134,7 +134,7 @@
     <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Aktualizowanie zapisanych przejazdów…</string>
     <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Ostatnie oszacowanie · odświeżanie niedostępne</string>
     <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Oszacowanie niedostępne</string>
-    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Nie ma dość danych o przejazdach</string>
+    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Nie ma wystarczających danych o przejazdach</string>
     <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">Przejazdy: %1$s · %2$s–%3$s %4$s</string>
     <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">Przejazdy: %1$s · użyte punkty: %2$s</string>
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s%% wartości %2$s %3$s</string>
@@ -143,17 +143,17 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Przedział</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Potrzebne przejazdy</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Zakres 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ładunek na pełne wskazanie</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Ładunek na 100 procent wskazania</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Sprawdzenie ładowania</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Pokrycie</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Temperatura baterii</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Odrzucono</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Wskaźnik pośredni: może być zawyżony; to nie jest kondycja baterii.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia pobrana przez Twoje przejazdy na pełne wskazanie baterii. To nie jest test kondycji ani pojemności baterii.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Użyteczna energia przejazdów</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energia pobrana podczas Twoich przejazdów na 100 procent wskazania baterii. To nie jest test kondycji ani pojemności baterii.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia użyteczna z przejazdów</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Przykład · %1$s</string>
-    <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Brak jeszcze zapisanych odczytów</string>
+    <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Nie ma jeszcze zapisanych odczytów</string>
     <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Szacowany pozostały zasięg podawany przez hulajnogę</string>
     <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Dodaj widżet: %1$s</string>
     <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Dodaj widżet: %1$s, eksperymentalny</string>
@@ -173,7 +173,7 @@
     <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Minimum skali</string>
     <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Maksimum skali</string>
     <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Przedział danych o przejazdach</string>
-    <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Przedział czasu</string>
+    <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Okno czasowe</string>
     <string name="dashboard_y_axis" volt:src="6f9667133aab1ca864bef89670c9226eead24efa">Oś Y</string>
     <string name="dashboard_relative" volt:src="0f8072d7f37218550c680263ed85186346eca1f9">Względna</string>
     <string name="dashboard_absolute" volt:src="0af4a2c574275b365db0859acdb2b7551b42606e">Bezwzględna</string>
@@ -259,19 +259,19 @@
     <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Zamknij układ pulpitu</string>
     <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Przywrócono ustawienia domyślne</string>
     <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Zapisz bieżący pulpit w slocie nr %1$s</string>
+    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Zapisz bieżący pulpit w miejscu %1$s</string>
     <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Przywróć</string>
     <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Przywróć z miejsca %1$s</string>
     <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Przywróć z miejsca %1$s, %2$s</string>
     <string name="dashboard_layout_name" volt:src="1511f633afa568e0f73e0bb2de30e3e26f2ad48f">Nazwa układu</string>
     <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Nazwa zapisanego układu</string>
-    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Zastąpić miejsce %1$s?</string>
+    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Zastąpić układ w miejscu %1$s?</string>
     <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Zapisać w miejscu %1$s?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Zastąp</string>
     <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Nie udało się zapisać układu. Spróbuj ponownie.</string>
     <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Zapisano w miejscu %1$s</string>
     <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Przywrócić „%1$s”?</string>
-    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Spowoduje to zastąpienie Twojego układu i ustawienia kolumn na wszystkich hulajnogach.</string>
+    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Spowoduje to zastąpienie układu i ustawienia kolumn dla wszystkich hulajnóg.</string>
     <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Nie udało się przywrócić. Niczego nie zmieniono.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">Przywrócono „%1$s”</string>
 </resources>

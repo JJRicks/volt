@@ -20,6 +20,7 @@ The owner's rule: **ty, with impersonal phrasing for instructions.** Never `Pan/
 - Use `należy` for safety and setup steps, `trzeba` only when `należy` reads stiff in a one-line hint. Don't mix `należy` and an imperative inside one sentence.
 - **Keep the rider's gender out of it.** Second-person past tense and predicative adjectives are gendered: not `zapomniałeś`, `jesteś pewien`, `połączyłeś`. Write `Na pewno usunąć?`, `Połączono`, `Czy chcesz…`. Rider nouns are avoided by rephrasing; `właściciel` and `współużytkownik` are role names and stay as they are.
 - Capitalize `Twój, Twoja, Twoje, Twoim…` in UI text (Google's Polish UI habit).
+- Use the possessive only when ownership is the point (`Twoja hulajnoga. Twoje dane.`, `dla Twojego modelu`, `Twój adres IP`). English puts "your" everywhere; Polish drops it: `Znaleziono hulajnogę`, `Łączenie z hulajnogą`, `Tutaj pojawią się zapisane hulajnogi`.
 
 ## Punctuation and quotes
 
@@ -105,6 +106,8 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | `Poj.` | pojemność | `Eksperym.` | eksperymentalne |
 | `Niezweryf.` | niezweryfikowana | `Nieprzetest.` | nieprzetestowana |
 | `godz.` | godzina | `nr` | numer |
+| `wg` | według, only for a reported figure (`Kondycja wg hulajnogi`); never the bare participle `Podawana kondycja` | `FW` | firmware, in the narrowest rung (`FW baterii`), always with a genitive noun |
+| `jedn.` | jednostka, only in `na jedn. dystansu` when a tile is narrow | | |
 
 **Refused:** `Św.` for światła (it reads as "święty"; use `Liniowe`, `Gwiezdne`), `Bat.` (it reads as `bat`, a whip; write `baterii` or drop the word), `Hulajn.`, `Ustaw.` (reads as the imperative "Ustaw"), `Min.` for minimum (clashes with `min`), and any shortening of a lock word (`Zablok.`, `Odblok.`, `Blok.`): only the prefix tells locked from unlocked, so both words stay whole. Drop other words first.
 
@@ -125,15 +128,16 @@ Never break a word, never hyphenate to fit, never shrink text. An abbreviation t
 | Ride settings, 64 dp tile | Jazda | 31 of 64 dp at 12 sp |
 | Battery settings, 64 dp tile | Bateria | 41 of 64 dp at 12 sp |
 | Charge done by / tile | Termin końca ładowania / Koniec ład. | 141 of 90 dp at 12.5 sp, which wraps as the English does / 60.5 of 64 dp at 12 sp |
+| Charge done by time | Koniec ład.: godz. | two lines; `Koniec ład.:` 63.5 of 64 dp at 12 sp, 66 of 90 dp at 12.5 sp |
 | Live Stats, 64 dp tile | Na żywo | 49 of 64 dp at 12 sp |
 | My scooters, 64 dp tile | Hulajnogi | 53 of 64 dp at 12 sp |
-| Experimental controls, 64 dp tile | Eksperym. | 59 of 64 dp at 12 sp |
+| Experimental controls, 64 dp tile / 90 dp tile | Eksperym. / Funkcje eksperym. | 59 of 64 dp at 12 sp / two lines, 45 and 61 of 90 dp at 12.5 sp |
 | PIN & proximity, 64 dp tile | PIN i zbliż. | 58 of 64 dp at 12 sp |
 | Line lights, 64 dp tile | Liniowe | fits |
 
-These are examples of the method, not approved strings. `Zbliż.` is allowed only in this one label.
+These are examples of the method, not approved strings. `Zbliż.` is allowed only in this one label. Bare `zbliżenie` is never allowed: it means a close-up or intimacy. The 90 dp rung is `PIN i klucz zbliżeniowy`; a title with room says `PIN i odblokowanie zbliżeniowe`. A narrower rung must never hold a longer text than a wider one, and check the longest single word against the budget before keeping a rung.
 
-**Top speed rule:** `Maks. prędkość` (the setting) and `Najw. prędkość` (the measured value) are near synonyms in Polish, so a rider can't tell them apart alone. Use `najwyższa osiągnięta prędkość` where there is room. In a narrow label, keep the trip or ride in it (`Najw. na trasie`), and don't write `Najw. prędkość` with no trip or ride context beside it.
+**Top speed rule:** `Maks. prędkość` (the setting) and `Najw. prędkość` (the measured value) are near synonyms in Polish, so a rider can't tell them apart alone. A measured value takes `najwyższa` even when the English says "maximum speed" (`Current trip maximum speed`). Use `najwyższa osiągnięta prędkość` where there is room. In a narrow label, keep the trip or ride in it (`Najw. na trasie`), and don't write `Najw. prędkość` with no trip or ride context beside it.
 
 ## Safety wording
 
@@ -173,7 +177,7 @@ Use exactly these. The glossary's safety rows carry the same words with their in
 **Negation rules**
 
 - **English `not X` in a safety key takes a separate `nie` with a verb:** `Telefon nie jest sparowany`, `Nie potwierdzono`. A prefix alone fails the check (`Telefon niesparowany`, `Zmiana niepotwierdzona`), although Polish spelling favours it. English `un-` words keep the prefix form, as in the table above.
-- **`Brak` is the standard "No X":** `Brak jeszcze raportu o ruchu`, `Brak funkcji do wypróbowania`. `Nie ma…` is fine too. For English `Missing`, which has no negation word, `Brak` gets a warning for the judge; that is expected.
+- **`Brak` is the standard "No X":** `Brak funkcji do wypróbowania`, `Brak danych`. **"No X yet" takes `Nie ma jeszcze X`** (`Nie ma jeszcze danych o ruchu`, `Nie ma jeszcze przejazdów`), never `Brak jeszcze`. For English `Missing`, which has no negation word, `Brak` gets a warning for the judge; that is expected.
 - **Never:** the check wants `nigdy` or `nie` and refuses `zawsze`, unless the English also says always. It can't tell which verb a `nie` belongs to, so judges read every safety key with `never` or `nigdy` by hand: `Cyfry nigdy nie są pokazywane`.
 
 ## Scooter vocabulary
@@ -229,7 +233,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 
 1. **Try versus try again.** The glossary's "try" word is only for trying a control (Experimental, Controls to try). An ordinary retry ("Try again", "Try shortly") uses the fixed retry phrase below, so it can never read as "test this".
 2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
-3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done.
+3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened. An unconfirmed state never reads as done. A bare status such as "Logging cleanup unconfirmed" must say what is in doubt, so read the comment for the state: `Czyszczenie niepotwierdzone: zapisywanie dziennika może być nadal włączone`.
 4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: "Start time: %1$s". Numbers and units after a placeholder follow this guide's spacing.
 5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder.
 6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
@@ -246,8 +250,8 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | English concept | Meaning | Polish |
 |---|---|---|
 | Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Spróbuj ponownie**, **Spróbuj za chwilę**. Never `Wypróbuj`, which means testing a control. |
-| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **brak danych**, with the name as a label: `Bateria: brak danych`. Not `nie zgłoszono`, not `niezgłoszone`. |
-| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **podawane przez hulajnogę** (`sterownik` for the controller; verb `podaje`), agreeing with its noun. The scooter's figure, so never `zmierzone` or `potwierdzone`, and not `raportowane`. |
+| not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **brak danych**, with the name as a label: `Bateria: brak danych`. "No motion report" is `danych o ruchu`, never `raportu o ruchu`: `raport` is the emailed compatibility report. Not `nie zgłoszono`, not `niezgłoszone`. |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **podawane przez hulajnogę** (`sterownik` for the controller; verb `podaje`), agreeing with its noun; short form `wg hulajnogi`, never a bare `podawana`. The scooter's figure, so never `zmierzone` or `potwierdzone`, and not `raportowane`. |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **zapisywanie dziennika NAVEE**. Never `logowanie` (reads as signing in) or `rejestracja`, `rejestrowanie` (reads as creating an account). |
 | restore logging | turning that logging back to how it was (usually off) | **Przywróć ustawienie dziennika NAVEE**. Says it goes back to how it was; `Przywróć zapisywanie` would read as turning logging on. |
 | Volt's helper | the small helper Volt starts inside Shizuku | **program pomocniczy Volt**. Not `pomocnik` (a person). The computer's capture helper stays `program przechwytujący`. |
@@ -258,7 +262,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | current direction | which way battery current flows | **kierunek prądu**. `Current` is the electric one; never `aktualny kierunek`. |
 | throughput | how much energy has passed through the battery | **przepływ energii**; narrow: `Przepływ`; lifetime: `łączny przepływ`. An amount that has passed, not a rate, and never `przepustowość`. |
 | battery gauge | the scooter's own battery percentage reading | **wskazanie baterii**; narrow: `wskazanie`. The scooter's own percentage, not a measured level. Not `wskaźnik`, the device. |
-| raw | an unprocessed value, also used as a short tag | **surowa wartość**; as a tag, agreeing with its noun: `(surowy)`, `(surowe)`. Alone `surowy` can read as "strict", so use it only beside a noun. |
+| raw | an unprocessed value, also used as a short tag | **surowa wartość**; on a `_short` rung, as a tag agreeing with its noun: `(surowy)`, `(surowe)`. Alone `surowy` can read as "strict", so use it only beside a noun. See the row below for placeholders. |
 | last seen | when Volt last had data from the scooter | **ostatni odczyt**, as a label: `Ostatni odczyt: %1$s`. Never `ostatnio widziana`, which reads as a person sighted and carries gender. |
 | add | adding a widget, scooter or item | **Dodaj**; infinitive `dodać`. |
 | enter (typing) | typing a value | **Wpisz** on a field prompt (`Wpisz nowy PIN`), `należy wpisać` in a how-to step. Not `Wprowadź`, and not `Podaj`, which is the scooter's verb above. |
@@ -267,6 +271,24 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | set a value | one verb for setting a value on the scooter | **Ustaw**, infinitive `ustawić` (`Ustaw limit ładowania`). `Zmień` only where the English says change. |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **Spowoduje to** + verbal noun: `Spowoduje to usunięcie konfiguracji połączenia z tego telefonu.` Never `Usuń…`, a command. In a summary line, the bare noun: `Ustawienia aplikacji: zastąpienie 3 ustawień`. A hint that opens something: `Otwiera ustawienia baterii`. |
 | screen and section titles | noun form or verb form, with one example | Noun form: `Ustawienia jazdy`, `Przywracanie kopii zapasowej`. The button on that screen stays imperative: `Przywróć`. |
+| a "first" prerequisite or refusal reason | requirement form, one per English | **Najpierw należy** + infinitive (`Najpierw należy zatrzymać hulajnogę`, `Najpierw należy połączyć się z hulajnogą`), in `controls_*`, `ble_*`, `service_*`, toasts and tiles alike. Not `Najpierw zatrzymaj`, not `Najpierw trzeba`. |
+| resolve a warning | deal with its cause | **usunąć przyczynę ostrzeżenia**. Never bare `usuń ostrzeżenie`, which reads as dismissing the message. |
+| wait | an instruction to wait | **poczekać** (`Należy poczekać na…`). Not `zaczekać`. |
+| watch a charge | Volt following a charge for alerts | **monitorować**, matching the button `Zakończ monitorowanie`. Not `śledzić`. |
+| naming Charge done by in a sentence | the feature name | **funkcja „Termin końca ładowania”**. Not `opcja`. |
+| configure a PIN | giving the PIN a value | **ustawić PIN**; prerequisite: `należy ustawić i włączyć PIN na kierownicy`. Not `skonfigurować`. |
+| recording a ride | the action, the state and the saved file | Action **Nagraj przejazd**; state **Nagrywanie**, `Podczas nagrywania`; the saved thing **nagranie**. Not `zapis`, because `Zapisz` is Save on the same screens (`Zapisz przejazd` would say save the ride). A charge recording stays **zapis ładowania**, a developer log, and a gap stays `przerwa w zapisie`. |
+| slot (saved layouts) | a place holding a layout | **miejsce**, naming the layout when it is what changes: `Zastąpić układ w miejscu 3?`. Not `slot`. |
+| estimate (noun) | a computed figure | **oszacowanie**, plural `oszacowania`. Not `szacunek`, which also means respect. The adjective `szacowany` and the abbreviation `Szac.` stay. |
+| storage (ride, history, charge) | where saved data lives | Name the data: `Zapisane przejazdy niedostępne`, `Zapisana historia niedostępna`. Not `Pamięć przejazdów`, which gives rides a memory. `Pamięć lokalna` for the phone's own storage is fine. |
+| prompt (a system dialog) | the dialog on the phone | **komunikat**. Not `monit`, not `pytanie`. |
+| More as a place | the screen | **sekcja „Więcej”**. Not `karta`. |
+| offered for a model / state on a model | which preposition | Offered **dla modelu** (`dla Twojego modelu`); a state or test **w modelu** (`w tym modelu`, `nie przetestowała tej zmiany w tym modelu`). Not `na modelu`. |
+| a shared rider's credential | the 12-character value for the shared role | **klucz współużytkownika**. Proposed; the debate decides it. Never `klucz właściciela` for this one. |
+| raw after a placeholder or on a full rung | a fixed form, since `%1$s` has an unseen gender | **(surowa wartość)** on every full rung and after any placeholder. The agreeing tags `(surowy)`, `(surowe)`, `(surowa)` only on `_short` rungs with a fixed noun. The `surowa` chip stands for `wartość`. |
+| battery sign states | plus or minus | **znak**, `Znaki baterii`. Not `oznaki` (symptoms) or `oznaczenia` (markings). |
+| timed charging | the reading of scheduled charging | **zaplanowane ładowanie**, the same as the setting. Not `ładowanie czasowe`, which reads as temporary. |
+| voice language | the setting | **język komunikatów głosowych**. Not `język głosu`. |
 
 ## Sources consulted
 

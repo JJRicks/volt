@@ -20,22 +20,22 @@
     <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Wyśw. i dźwięk</string>
     <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Wyświetlacz i dźwięk</string>
     <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN i zbliż.</string>
-    <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN i zbliżenie</string>
+    <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN i klucz zbliżeniowy</string>
     <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nazwa</string>
     <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac" volt:attempt="2">Nazwa</string>
     <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Aplikacja</string>
     <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Ust. aplikacji</string>
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Hulajnogi</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Moje hulajnogi</string>
-    <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Funkcje eksperymentalne</string>
-    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Funkcje eksperymentalne</string>
+    <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Eksperym.</string>
+    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Funkcje eksperym.</string>
     <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dane</string>
     <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dane i historia</string>
     <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">O aplikacji</string>
-    <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">O aplikacji i uprawnieniach</string>
+    <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Informacje i uprawnienia</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Koniec ład.</string>
     <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Termin końca ładowania</string>
-    <string name="dashboard_model_qa_charge_done_time" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b" volt:attempt="2">Termin końca ładowania: godzina</string>
+    <string name="dashboard_model_qa_charge_done_time" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b" volt:attempt="2">Koniec ład.: godz.</string>
     <string name="dashboard_model_qa_charge_done_time_short" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b" volt:attempt="2">Koniec ład.: godz.</string>
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menu</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Strony</string>
@@ -49,8 +49,8 @@
     <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">Wł. • %1$s</string>
     <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Nie zaplanowano</string>
     <string name="dashboard_model_tile_at_time" volt:src="bf2c1d9211787ac67f4d9a7a67895abba193869e">" • %1$s"</string>
-    <string name="dashboard_model_tile_select_scooter" volt:src="0bdc879ede74c25ac4b6035f02786961ef730f91">Najpierw wybierz hulajnogę</string>
-    <string name="dashboard_model_tile_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Najpierw połącz się z hulajnogą</string>
+    <string name="dashboard_model_tile_select_scooter" volt:src="0bdc879ede74c25ac4b6035f02786961ef730f91">Najpierw należy wybrać hulajnogę</string>
+    <string name="dashboard_model_tile_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Najpierw należy połączyć się z hulajnogą</string>
     <string name="dashboard_model_tile_desc_part" volt:src="98a40beb85ba42cd1ed30f7e82c4632955333fff">, %1$s</string>
     <string name="dashboard_model_tile_desc_region" volt:src="2fd82cd81007d8bf033ebf243b5aa421434722b9">, opcja niedostępna w tym regionie</string>
     <string name="dashboard_model_tile_desc_model" volt:src="51e225830430897715101c40266bde3626d54162">, brak w tym modelu</string>
@@ -68,7 +68,7 @@
     <string name="dashboard_model_type_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Odczyty</string>
     <string name="dashboard_model_type_trip" volt:src="22238fa2b3847217534642265c3fbf6fd0244169">Podsumowanie trasy</string>
     <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Kondycja podawana przez hulajnogę</string>
-    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia dostępna do jazdy</string>
+    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia użyteczna z przejazdów</string>
     <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Ładowanie</string>
     <string name="dashboard_model_type_quick" volt:src="558fd0a4fa154c2e4a8eec1fb009fa472b189666">Skróty</string>
     <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Rejestrator przejazdów</string>

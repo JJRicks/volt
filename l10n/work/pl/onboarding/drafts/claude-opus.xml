@@ -61,11 +61,11 @@
     <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Dalej</string>
     <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Najpierw należy dokończyć importowanie wybranego pliku konfiguracji właściciela.</string>
     <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Pominąć na razie konfigurację?</string>
-    <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Hulajnogę można dodać później na karcie „Więcej”.</string>
+    <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Hulajnogę można dodać później w sekcji „Więcej”.</string>
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Kontynuuj</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Zanim zaczniesz</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">Aplikacja NAVEE działa</string>
-    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Konto zalogowane, aplikacja łączy się z hulajnogą</string>
+    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Zalogowano, aplikacja łączy się z hulajnogą</string>
     <string name="onboarding_prepare_browser_computer" volt:src="4f9a15f2cc462561fc149d65cfcbe11918e2d845">Komputer z przeglądarką Chrome lub Edge</string>
     <string name="onboarding_prepare_adb_computer" volt:src="e39ebd8f0a7415518494a60aff0a75d9afea24c1">Komputer z narzędziem ADB i środowiskiem Python 3</string>
     <string name="onboarding_prepare_source" volt:src="4179cdb733bc59821ab6e42c350d66c9088275bc">Rozpakowany kod źródłowy aplikacji Volt</string>
@@ -96,7 +96,7 @@
     <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Zawsze zezwalaj z tego komputera</string>
     <string name="onboarding_mock_cancel" volt:src="69d69f762147c2b1cca07f8e9d8f24b109f5605e">Anuluj</string>
     <string name="onboarding_mock_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Zezwól</string>
-    <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3">Przykład: pytanie „Zezwolić na debugowanie USB?” na Twoim telefonie z niezaznaczoną opcją „Zawsze zezwalaj z tego komputera”.</string>
+    <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3">Przykład: komunikat „Zezwolić na debugowanie USB?” na telefonie z niezaznaczoną opcją „Zawsze zezwalaj z tego komputera”.</string>
     <string name="onboarding_computer_connect_cable" volt:src="ee33cce91739bd084d5a40bb6bacf370fdb278a8">Należy połączyć telefon z komputerem kablem do transmisji danych</string>
     <string name="onboarding_computer_tap_allow" volt:src="7e4206ea7c4f010bfa7de6428ee60a5c56d3dba2">Należy dotknąć **Zezwól** w komunikacie powyżej</string>
     <string name="onboarding_computer_adb_devices" volt:src="d0f48ccf9f2b16efbf9f187fd8d852f0c9ba0eb2">`adb devices` pokazuje **device**</string>
@@ -128,7 +128,7 @@
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Łączenie w przeglądarce Chrome</string>
     <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telefon odblokowany, debugowanie USB włączone\n•  Kabel do transmisji danych, nie tylko do ładowania\n•  Android Studio, inne narzędzia ADB i karty konfiguracji zamknięte\n•  Chrome lub Edge, nie Safari ani Firefox"</string>
     <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Zatwierdzanie przechwytywania na stronie internetowej</string>
-    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Należy pozostawić kabel podłączony do zakończenia czyszczenia.</string>
+    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Nie należy odłączać kabla, dopóki czyszczenie się nie zakończy.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Należy przeczytać wyjaśnienie dotyczące przechwytywania i wybrać **Start**</string>
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Należy wybrać swoją hulajnogę w aplikacji NAVEE i połączyć się z nią</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Może potrwać do **90 s**</string>
@@ -136,7 +136,7 @@
     <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Ten plik to klucz właściciela. Należy zachować go w tajemnicy.</string>
     <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Plik jest w folderze Pobrane</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Przechwytywanie w przeglądarce</string>
-    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Zalogowano w aplikacji NAVEE, hulajnoga w pobliżu\n•  Inne aplikacje do hulajnóg zamknięte\n•  Zatrzymano przedwcześnie? Najpierw należy dokończyć czyszczenie w tej samej przeglądarce"</string>
+    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Zalogowano w aplikacji NAVEE, hulajnoga w pobliżu\n•  Inne aplikacje do obsługi hulajnóg zamknięte\n•  Zatrzymano przedwcześnie? Najpierw należy dokończyć czyszczenie w tej samej przeglądarce"</string>
     <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Twoja konfiguracja właściciela</string>
     <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Importowanie pliku właściciela</string>
     <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d">Należy wybrać plik właściciela navee-owner-setup.json. Przywraca on tylko dostęp do hulajnogi, a nie przejazdy ani inne dane aplikacji.</string>
@@ -151,8 +151,8 @@
     <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">rola właściciela</string>
     <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Znaleziono klucz właściciela</string>
     <string name="onboarding_import_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Znaleziono klucz właściciela, zapisany prywatnie na tym telefonie. %1$s</string>
-    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Zapisano prywatnie. Teraz należy cofnąć dostęp w aplikacji Shizuku.</string>
+    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Znaleziono klucz właściciela. Zapisano go w prywatnej pamięci aplikacji na tym telefonie. %1$s</string>
+    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Zapisano w prywatnej pamięci aplikacji. Teraz należy cofnąć dostęp w aplikacji Shizuku.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Usuń kopię z folderu Pobrane</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Usunięto kopię z folderu Pobrane</string>
     <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Nie udało się usunąć · należy usunąć ją w aplikacji Pliki</string>
@@ -160,8 +160,8 @@
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Otwórz aplikację Shizuku</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Wybierz inny plik</string>
     <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Aplikacja Shizuku nie jest zainstalowana</string>
-    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw zatrzymaj zapis przejazdu</string>
-    <string name="onboarding_identity_title" volt:src="ee790f0844a58cef70f579865ca639c7018a05cb">Wpisz klucz właściciela</string>
+    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw należy zatrzymać nagrywanie</string>
+    <string name="onboarding_identity_title" volt:src="ee790f0844a58cef70f579865ca639c7018a05cb">Wpisywanie klucza właściciela</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">To nie jest hasło.</string>
     <string name="onboarding_identity_hint" volt:src="b5dacf843a815045d5bf9afdcf3806edccaf35ef">Klucz właściciela (12 znaków) lub prywatna kopia zapasowa</string>
     <string name="onboarding_save_continue_starting" volt:src="2990341f0b730f8068bd24583800fdac67f4801f">Zapisz i kontynuuj, trwa uruchamianie</string>
@@ -169,27 +169,27 @@
     <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Rozpoznano prywatną kopię zapasową · rola właściciela</string>
     <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Tylko 0–9 i A–F.</string>
     <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662">Nie udało się usunąć starego pliku. Spróbuj ponownie.</string>
-    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Zezwól na „Urządzenia w pobliżu”</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Uprawnienie „Urządzenia w pobliżu”</string>
     <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Tylko Bluetooth. Bez serwerów.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Zezwól</string>
     <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Otwórz ustawienia aplikacji</string>
     <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Wyszukiwanie hulajnogi</string>
-    <string name="onboarding_connect_found" volt:src="18f25bd262e93dd03811223728fd8fec25929ade">Znaleziono Twoją hulajnogę</string>
+    <string name="onboarding_connect_found" volt:src="18f25bd262e93dd03811223728fd8fec25929ade">Znaleziono hulajnogę</string>
     <string name="onboarding_connect_bluetooth" volt:src="b6ef55dcb813eb1bf0c8b24acef831eb6f5b89ff">Połączono przez Bluetooth</string>
     <string name="onboarding_connect_checking" volt:src="9c39a329fb7ae82f32d5cbc4c11a0857a23d85e3">Sprawdzanie klucza właściciela</string>
     <string name="onboarding_connect_saving" volt:src="ba18784d31ce7f3d566d76baab9d7247270f778b">Zapisywanie tej hulajnogi</string>
     <string name="onboarding_connect_button" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Połącz</string>
     <string name="onboarding_connect_connecting" volt:src="3b178abc1bf308531bda58ad8d0ab6bcb601a039">Łączenie z hulajnogą: %1$s</string>
-    <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Wyszukiwanie Twojej hulajnogi</string>
+    <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Wyszukiwanie hulajnogi</string>
     <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, ukończono</string>
     <string name="onboarding_connect_row_in_progress" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, w toku</string>
     <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, jeszcze nie</string>
     <string name="onboarding_connect_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Uruchamianie…</string>
     <string name="onboarding_connect_waiting_profile" volt:src="ed1a42f914f9ac6f6d550079a760fef93626223b">Oczekiwanie na profil właściciela…</string>
     <string name="onboarding_connect_is_it_on" volt:src="60721fc4afe52dc10fdaea9dd7e504617ab74f1c">Czy hulajnoga jest włączona? Czy aplikacja NAVEE jest zamknięta?</string>
-    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Zezwól na „Urządzenia w pobliżu”</string>
+    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Przyznaj uprawnienie „Urządzenia w pobliżu”</string>
     <string name="onboarding_done_title" volt:src="fa40aad297a79922e85dd5b2b5ee012e8f7ced84">Połączono</string>
-    <string name="onboarding_done_ready_default" volt:src="4398b540cd7935b604522b2a91d1d567741d6be3">Twoja hulajnoga jest gotowa.</string>
+    <string name="onboarding_done_ready_default" volt:src="4398b540cd7935b604522b2a91d1d567741d6be3">Hulajnoga jest gotowa.</string>
     <string name="onboarding_done_ready" volt:src="8f159a8f58e66cadc06c55746245256fc2b0523a">Hulajnoga %1$s jest gotowa.</string>
     <string name="onboarding_done_backup" volt:src="98781c091fd9394d14ef35a8dd55e1955e50d5c9">Utwórz kopię zapasową aplikacji Volt</string>
     <string name="onboarding_done_backup_description" volt:src="b6bea354996ef7bec615ba212d78eda10e5f9279">Utwórz kopię zapasową aplikacji Volt: dostęp do hulajnogi i wszystkie zapisane dane aplikacji</string>
@@ -199,7 +199,7 @@
     <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Cofnij dostęp w aplikacji Shizuku. Otwiera aplikację Shizuku, aby usunąć dostęp aplikacji Volt</string>
     <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Przejdź do pulpitu</string>
     <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Telefon nie jest na liście jako device</string>
-    <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Należy zatwierdzić monit · użyć kabla do transmisji danych</string>
+    <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Należy zatwierdzić komunikat i użyć kabla do transmisji danych</string>
     <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">Aplikacja NAVEE nie połączyła się z hulajnogą</string>
     <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Należy sprawdzić, czy aplikacja NAVEE łączy się samodzielnie</string>
     <string name="onboarding_fix_timeout" volt:src="6b10fd83995c23734b0f1bfb45e2b3578b5eb360">Upłynął limit czasu programu przechwytującego</string>

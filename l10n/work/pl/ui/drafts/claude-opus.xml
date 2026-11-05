@@ -21,7 +21,7 @@
     </plurals>
     <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Ładowanie</string>
     <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Ładowanie · %1$s</string>
-    <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Brak jeszcze zmierzonych danych</string>
+    <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Nie ma jeszcze zmierzonych danych</string>
     <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
         <item quantity="one">Wykres zmierzonych wartości, jednostka: %1$s, %2$d próbka. Wyświetlany zakres osi: od %3$s do %4$s. Dotknij, aby sprawdzić odczyty.</item>
         <item quantity="few">Wykres zmierzonych wartości, jednostka: %1$s, %2$d próbki. Wyświetlany zakres osi: od %3$s do %4$s. Dotknij, aby sprawdzić odczyty.</item>

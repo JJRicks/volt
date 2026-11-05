@@ -81,54 +81,54 @@
     <string name="controls_option_sound" volt:src="63f8faf3e69940e5b48ffe61def32228ddeb9f84">Dźwięk %1$s</string>
     <string name="controls_option_default" volt:src="ebeb141d35c02da50e51267dfda58697ff18cb57">Domyślny (%1$s)</string>
     <string name="controls_option_percent_spaced" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s%%</string>
-    <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Najpierw połącz się z hulajnogą</string>
+    <string name="controls_reason_not_connected" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Najpierw należy połączyć się z hulajnogą</string>
     <string name="controls_reason_status_stale" volt:src="be8bfcd081f6255bcda3377d532b6e19e86d5a99">Oczekiwanie na aktualny stan</string>
     <string name="controls_reason_value_unknown" volt:src="652376cfa838a5422c523dbac86052fe7544046b">Nieznana wartość · nie można bezpiecznie zmienić</string>
     <string name="controls_reason_no_choices" volt:src="a176f61e3e5621eb61a188c3eff707d31cef236c">Opcje: brak danych</string>
-    <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Poczekaj na zakończenie bieżącej zmiany</string>
-    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Najpierw zatrzymaj hulajnogę</string>
-    <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Brak jeszcze raportu o ruchu</string>
-    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Najpierw usuń ostrzeżenie hulajnogi</string>
-    <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Najpierw odblokuj hulajnogę</string>
+    <string name="controls_reason_busy" volt:src="1db5de4c19ecc9b8d764c0e1d2078327ec4ee875">Należy poczekać na zakończenie bieżącej zmiany</string>
+    <string name="controls_reason_moving" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Najpierw należy zatrzymać hulajnogę</string>
+    <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Nie ma jeszcze danych o ruchu</string>
+    <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Najpierw należy usunąć przyczynę ostrzeżenia hulajnogi</string>
+    <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Najpierw należy odblokować hulajnogę</string>
     <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Tylko właściciel</string>
-    <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Najpierw sparuj ten telefon</string>
-    <string name="controls_reason_needs_pin" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Najpierw włącz PIN na kierownicy</string>
+    <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Najpierw należy sparować ten telefon</string>
+    <string name="controls_reason_needs_pin" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Najpierw należy włączyć PIN na kierownicy</string>
     <string name="controls_reason_firmware_unknown" volt:src="dc3ecf1b86340e6787b58edd8057d65da19a092a">Nie odczytano jeszcze oprogramowania sprzętowego</string>
     <string name="controls_reason_firmware_old" volt:src="5a5a8975d892b475c6b5a54f55b07f7a5c3b46aa">Wymaga nowszego oprogramowania sprzętowego hulajnogi</string>
-    <string name="controls_reason_identify_model" volt:src="7a80acff0a99bbd1c09c3d21b8720607dd0bb9d2">Najpierw zidentyfikuj model</string>
+    <string name="controls_reason_identify_model" volt:src="7a80acff0a99bbd1c09c3d21b8720607dd0bb9d2">Najpierw należy zidentyfikować model</string>
     <string name="controls_reason_identity_conflict" volt:src="2904aa42b6766ceb2503149c959398208e70fcb0">Niezgodność Model ID</string>
     <string name="controls_reason_model_not_mapped" volt:src="c0ed1ee42af9a732b347dfcf225ba7b78e1f4631">Nieznane dla tego modelu</string>
     <string name="controls_reason_model_excluded" volt:src="d2efb35e4d1e8531706467ddde6ed369b8bdb783">Brak w tym modelu</string>
     <string name="controls_reason_region_rule" volt:src="c68f2b262d41f6109e11ab41c9fe6ef618800d44">Nie jest oferowane w tym regionie</string>
-    <string name="controls_reason_unsupported" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Nieobsługiwane</string>
+    <string name="controls_reason_unsupported" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Brak obsługi</string>
     <string name="controls_reason_discovery_active" volt:src="f5e401d398f0a530f7e0506eaf3ff83526736a77">Sprawdzanie zgodności…</string>
     <string name="controls_reason_test_active" volt:src="b1ca7a968c456a2ff239e608bfbda2d6338e7b4a">Trwa test</string>
     <string name="controls_reason_not_testable" volt:src="1cd5e7c5fff48b1a556f7c0e730546a768daf5f4">Nie jest oferowane jako test</string>
-    <string name="controls_reason_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw zatrzymaj zapis</string>
+    <string name="controls_reason_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw należy zatrzymać nagrywanie</string>
     <string name="controls_reason_needs_real_scooter" volt:src="890f49a574c56fa6cc0d814270a0ca6d45708dd2">Wymaga prawdziwej hulajnogi</string>
-    <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Potwierdź, że hulajnoga jest zaparkowana</string>
+    <string name="controls_reason_parked_unconfirmed" volt:src="e79289c44451bedb6b192c21de1b2784c9b2ad0b">Należy potwierdzić, że hulajnoga jest zaparkowana</string>
     <string name="controls_reason_no_test" volt:src="f536a7338f41b12c411c7bd2d61a3063b1862fa5">Nie trwa żaden test</string>
-    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Wartość jest poza zakresem funkcji OEM</string>
+    <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Wartość jest poza zakresem dozwolonym w oficjalnej aplikacji (OEM)</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Wyłączony lub 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Wyłączony lub 5–20 km/h</string>
     <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Obecnie niedostępne</string>
     <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">Dostęp do PIN-u wymaga uwierzytelnienia właściciela</string>
-    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">PIN musi składać się z czterech cyfr dziesiętnych</string>
+    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">PIN musi składać się z czterech cyfr (0–9)</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">Przed włączeniem należy ustawić PIN</string>
-    <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Zmiany odblokowania zbliżeniowego wymagają uwierzytelnienia właściciela</string>
+    <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Zmiana ustawień odblokowania zbliżeniowego wymaga uwierzytelnienia właściciela</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Przed włączeniem odblokowania zbliżeniowego należy sparować ten telefon</string>
     <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Przed włączeniem odblokowania zbliżeniowego należy ustawić i włączyć PIN na kierownicy</string>
-    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Oficjalna aplikacja pyta przed wprowadzeniem tej zmiany. Aplikacja Volt nie przetestowała tego na tym modelu.</string>
-    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Aplikacja Volt nie przetestowała tego na tym modelu.</string>
-    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Oficjalna aplikacja wyświetla ostrzeżenie przed tą zmianą. Aplikacja Volt nie przetestowała tego na tym modelu.</string>
+    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Oficjalna aplikacja pyta przed wprowadzeniem tej zmiany. Aplikacja Volt nie przetestowała tej zmiany w tym modelu.</string>
+    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Aplikacja Volt nie przetestowała tej zmiany w tym modelu.</string>
+    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Oficjalna aplikacja wyświetla ostrzeżenie przed tą zmianą. Aplikacja Volt nie przetestowała tej zmiany w tym modelu.</string>
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Wyłączyć kontrolę trakcji? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Wyłączyć tryb niskiego poziomu baterii? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Przełączyć na jeden silnik? %1$s</string>
     <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7">Wyłączyć odzysk energii? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Prędkość startowa poniżej 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Powyżej 32 km/h: należy sprawdzić przepisy obowiązujące w miejscu jazdy. %1$s</string>
-    <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Spowoduje to wyłączenie kontroli trakcji. Na mokrym lub sypkim podłożu należy jechać łagodnie, dopóki nie poznasz zachowania hulajnogi.</string>
-    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Poniżej 3 km/h silnik może ruszyć z miejsca, gdy tylko użyjesz manetki.</string>
+    <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Spowoduje to wyłączenie kontroli trakcji. Na mokrym lub sypkim podłożu należy jechać łagodnie do czasu poznania zachowania hulajnogi.</string>
+    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Przy ustawieniu poniżej 3 km/h hulajnoga może ruszyć z miejsca napędzana silnikiem, gdy tylko użyjesz manetki.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Spowoduje to wyłączenie odzysku energii (hamowania silnikiem), więc hamulce będą musiały wykonać więcej pracy przy zatrzymywaniu.</string>
     <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Spowoduje to ograniczenie prędkości podczas jazdy do wartości niższej niż ustawienie „Najwyższa prędkość”. Przycisk „Cofnij zmianę” przywraca poprzednie ustawienie.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
@@ -163,6 +163,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Zgadza się</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Hulajnoga podaje tryb: %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Nazwane: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Nie wiem</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Nie mam pewności</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

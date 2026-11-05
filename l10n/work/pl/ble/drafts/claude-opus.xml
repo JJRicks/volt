@@ -17,7 +17,7 @@
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Nie znaleziono hulajnogi</string>
     <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Odrzucono klucz właściciela</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">Ograniczone funkcje w tym modelu</string>
-    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Należy wybrać pełną godzinę w ciągu 48 godzin</string>
+    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Należy wybrać pełną godzinę w ciągu najbliższych 48 godzin</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">Nie udało się połączyć</string>
     <string name="ble_failed_timed_out" volt:src="8c282885c8815225c681e23c7106459d5c4bdd97">Przekroczono limit czasu</string>
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Utracono połączenie</string>
@@ -46,10 +46,10 @@
     <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Trwa inna operacja. Spróbuj za chwilę.</string>
     <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">Przechwycono Model ID</string>
     <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Nie przechwycono Model ID</string>
-    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw należy zatrzymać zapis</string>
+    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Najpierw należy zatrzymać nagrywanie</string>
     <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Należy poczekać na zakończenie bieżącej zmiany.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Najpierw należy zatrzymać sprawdzanie zgodności</string>
-    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Najpierw należy się połączyć</string>
+    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Najpierw należy połączyć się z hulajnogą</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Należy poczekać na nowe połączenie z hulajnogą.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Przed zablokowaniem należy usunąć przyczynę ostrzeżenia hulajnogi (nr %1$d).</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Najpierw należy zatrzymać hulajnogę</string>
@@ -64,8 +64,8 @@
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s: potwierdzono.</string>
     <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Wysłano ustawienie zegara (niezweryfikowane)</string>
     <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Należy odczytać stan PIN-u, a następnie sparować ten telefon.</string>
-    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Przed parowaniem na potrzeby odblokowania zbliżeniowego należy skonfigurować i włączyć PIN na kierownicy.</string>
-    <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Ten telefon jest już sparowany z Twoją hulajnogą.</string>
+    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Przed parowaniem na potrzeby odblokowania zbliżeniowego należy ustawić i włączyć PIN na kierownicy.</string>
+    <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Ten telefon jest już sparowany z hulajnogą.</string>
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Należy zatwierdzić prośbę o parowanie Bluetooth w telefonie.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Nie udało się rozpocząć parowania Bluetooth. Spróbuj ponownie.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">Parowanie Bluetooth jest niedostępne.</string>
@@ -73,7 +73,7 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Stan PIN-u jest niedostępny w tym oprogramowaniu sprzętowym.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Ustawienia PIN-u wymagają profilu właściciela.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Przed włączeniem odblokowania zbliżeniowego należy sparować ten telefon</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Przed włączeniem odblokowania zbliżeniowego należy włączyć skonfigurowany PIN na kierownicy</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Przed włączeniem odblokowania zbliżeniowego należy ustawić i włączyć PIN na kierownicy</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Należy odczytać stan PIN-u, a następnie zastosować odblokowanie zbliżeniowe.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Aby odczytać ustawienia PIN-u, należy połączyć się jako właściciel hulajnogi.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Przed wyłączeniem PIN-u na kierownicy należy wyłączyć odblokowanie zbliżeniowe.</string>
