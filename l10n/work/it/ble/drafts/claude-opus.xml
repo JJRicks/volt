@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Non è stato possibile riportare indietro il valore. Non è stato modificato nulla.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Prima termina il test in corso</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test non trovato</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Non è stato possibile avviare il ritorno al valore precedente. Non è stato modificato nulla.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Non è stato possibile avviare l\'operazione per riportare indietro il valore. Non è stato modificato nulla.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Confermato</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Impostazione confermata dalla rilettura; luce emessa non misurata</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Accettato; nessuna rilettura dell\'orologio disponibile</string>

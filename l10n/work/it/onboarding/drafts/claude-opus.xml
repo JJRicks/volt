@@ -122,7 +122,7 @@
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Collega il telefono con un cavo dati USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Scegli il telefono in Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Approva il debug USB su questo telefono</string>
-    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Lascia deselezionata l\'opzione **Consenti sempre da questo computer**</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Non selezionare l\'opzione **Consenti sempre da questo computer**</string>
     <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Il sito web si è connesso</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Il telefono non è nell\'elenco</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Connessione in Chrome</string>
@@ -133,7 +133,7 @@
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Seleziona il tuo monopattino nell\'app NAVEE e connettilo</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Fino a **90 s**</string>
     <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Dopo la pulizia, scegli **Save to phone Downloads**</string>
-    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Questo file contiene la chiave del proprietario. Non condividerlo.</string>
+    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Questo file contiene la chiave del proprietario. Mantienilo riservato.</string>
     <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Il file è nella cartella Download</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Acquisizione dal browser</string>
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  Accesso effettuato nell\'app NAVEE, monopattino vicino\n•  Altre app per monopattini chiuse\n•  Interrotta prima della fine? Completa prima la pulizia nello stesso browser"</string>
@@ -143,7 +143,7 @@
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Caricamento del profilo del proprietario…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Ancora nessun file scelto</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Non è un file del proprietario.</string>
-    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Questo file sblocca il tuo monopattino. Non condividerlo.</string>
+    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Questo file sblocca il tuo monopattino. Mantienilo riservato.</string>
     <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Scegli il file del proprietario</string>
     <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Inserisci invece la chiave del proprietario</string>
     <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Ripristina invece un backup di Volt</string>

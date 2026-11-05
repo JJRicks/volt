@@ -2,3 +2,5 @@
 {"chunks":1,"draft":"claude-opus","keys":3,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"045ce40344c5","stage":"import-chunks","when":"2026-11-05T09:44:48Z"}
 {"draft":"claude-opus","keys":198,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"2cdef8160819","stage":"audit-compare","when":"2026-11-05T09:46:21Z"}
 {"draft":"claude-opus","flagged":0,"keys":198,"reader":"claude-opus-5-5","stage":"audit-record","when":"2026-11-05T09:47:33Z"}
+{"draft":"claude-opus","keys":17,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"e3e69e96af05","stage":"audit-compare","when":"2026-11-05T10:02:59Z"}
+{"draft":"claude-opus","flagged":1,"keys":198,"reader":"claude-opus-5-5","stage":"audit-record","when":"2026-11-05T10:04:14Z"}

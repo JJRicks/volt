@@ -3,8 +3,8 @@ key	english	translation	back-translation	draft	model	source_sha1	target_sha1
 readings_lock_status	Electronic lock	Blocco elettronico	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	8d2c89b19c10596b9cb9357a801fb5223933226f
 readings_lock_status_short	Electronic lock	Blocco elettronico	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	8d2c89b19c10596b9cb9357a801fb5223933226f
 readings_lock_status_compact	Lock	Blocco	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	f60887f43b96037030faefee0d845546d29080ae
-readings_lock_push_warning	Locked movement warning (raw)	Avvertenza movimento a monopattino bloccato (grezzo)	Movement warning with scooter locked (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	f2a1cef53c7994df84d5eba437ce1498c67a16f0
-readings_lock_push_warning_short	Lock movement (raw)	Movimento con blocco (grezzo)	Movement with lock (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	ea88f217a2202f8a708db286be36ddcbee0c7b03
+readings_lock_push_warning	Locked movement warning (raw)	Avvertenza movimento a monopattino bloccato (grezza)	Warning movement with scooter locked (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	d4b91a22165e9ffb047005adca2f90aad1c98eb0
+readings_lock_push_warning_short	Lock movement (raw)	Movimento durante il blocco (grezzo)	Movement during the lock (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	8e6a5cdf5a1deb9b86b2a7e4112b743636fe4b47
 readings_value_unlocked	Unlocked	Sbloccato	Unlocked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	762f38929bba82c7159f480aa797ae6b87538e9d
 readings_value_locked	Locked	Bloccato	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	87f9ac21de184f4de884d2b23fcb2a9fbf97a973
 readings_chart_est_finish	Est. finish time	Ora di fine (stima)	End time (estimate)	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	97bef149ab33989c84b2738d74b563f9c0dbc779

@@ -34,7 +34,7 @@
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100% senza limite</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Tempo per la carica completa (stima)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Fino alla carica completa (stima)</string>
-    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0" volt:attempt="2">Fino al 100%</string>
+    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0" volt:attempt="2">Fino al pieno</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Corrente bassa</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Potenza di ricarica</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Potenza</string>
@@ -142,14 +142,14 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Periodo</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Corse necessarie</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervallo al 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Carica per 100% dell\'indicatore</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Carica per l\'intero indicatore</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Controllo della ricarica</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Copertura</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Temperatura batteria</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Scartate</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Stima indiretta: può sovrastimare; non misura la salute.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07" volt:attempt="2">Energia consumata dalle tue corse per ogni 100% dell\'indicatore della batteria. Non è un test della salute o della capacità della batteria.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07" volt:attempt="2">Energia consumata dalle tue corse per l\'intero indicatore della batteria. Non è un test della salute o della capacità della batteria.</string>
     <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia utilizzabile nelle corse</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Esempio · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ancora nessuna lettura salvata</string>
