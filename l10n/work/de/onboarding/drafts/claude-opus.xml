@@ -214,7 +214,7 @@
     <string name="onboarding_name_label" volt:src="e437008525b0f7caf2d2fe238aa27434e8c80cf4">Gib deinem Scooter einen Namen</string>
     <string name="onboarding_name_hint" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Scooter-Name</string>
     <string name="onboarding_open_settings_app" volt:src="1405527c103cd5a89426bb2d2735790cd76c15ad">Öffne die App „Einstellungen“ deines Telefons, um fortzufahren.</string>
-    <string name="onboarding_hero_model_connected" volt:src="30c1bb75b7c5eca26bb01d8ba60f75a349978f6e">NAVEE-Scooter %1$s, verbunden</string>
-    <string name="onboarding_hero_connected" volt:src="e363383fb5ec83c798976b7fd228d7f82d9b5927">NAVEE-Scooter UT5 MAX, verbunden</string>
-    <string name="onboarding_hero" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">NAVEE-Scooter UT5 MAX</string>
+    <string name="onboarding_hero_model_connected" volt:src="30c1bb75b7c5eca26bb01d8ba60f75a349978f6e">Scooter NAVEE %1$s, verbunden</string>
+    <string name="onboarding_hero_connected" volt:src="e363383fb5ec83c798976b7fd228d7f82d9b5927">Scooter NAVEE UT5 MAX, verbunden</string>
+    <string name="onboarding_hero" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Scooter NAVEE UT5 MAX</string>
 </resources>

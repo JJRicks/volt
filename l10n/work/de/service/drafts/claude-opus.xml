@@ -132,7 +132,7 @@
     <string name="service_ride_bluetooth_lost" volt:src="aa852eb147eb440eca154793d2f774fbeb67dc29">Bluetooth-Verbindung im geparkten Zustand verloren</string>
     <string name="service_ride_bluetooth_lost_label" volt:src="aef77d5dde9f19a81db8c764165e13e9087952fd">%1$s · Bluetooth-Verbindung im geparkten Zustand verloren</string>
     <string name="service_channel_scooter" volt:src="9ed28b69df55d6e7d17c2f360e1fa332c7f0b660">Verbindung zum Scooter &amp; Aufzeichnung</string>
-    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Ladevorgang wird für „Fertig geladen bis“ gemessen</string>
+    <string name="service_notice_measuring" volt:src="fa4c47ae71901acf07ed6478fe95b0e9674b1320" volt:attempt="2">Messung des Ladevorgangs für „Fertig geladen bis“</string>
     <string name="service_notice_testing" volt:src="1f98e62d63da19bfae15d2aeef40ed62403c5dcf">Geplantes Laden wird getestet</string>
     <string name="service_notice_charge_reconnecting" volt:src="dc2ffdaa2073074cd7070e673878f57505a61cae">Ladeaufzeichnung · Verbindung wird neu aufgebaut</string>
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Ladeaufzeichnung läuft</string>

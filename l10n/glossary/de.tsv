@@ -71,7 +71,7 @@ acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own n
 energy-recovery	Energierückgewinnung | Rückgewinnung	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	official: naveetech.de
 regen	Energierückgewinnung | Rückgewinnung	D3 retires this English term (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Same German as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun	no	ride	official: naveetech.de
 motor-braking	Energierückgewinnung | Rückgewinnung	D3 retires this English term (energy recovery chosen). Same German as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun phrase	no	ride	official: naveetech.de
-energy-recovery-off	Aus	An Energy recovery level.	adjective	no	ride	established de usage
+energy-recovery-off	Aus | ausschalten | ausgeschaltet	An Energy recovery level.	adjective	no	ride	established de usage
 energy-recovery-low	Niedrig	An Energy recovery level.	adjective	no	ride	established de usage
 energy-recovery-medium	Mittel	An Energy recovery level.	adjective	no	ride	established de usage
 energy-recovery-high	Hoch	An Energy recovery level.	adjective	no	ride	established de usage

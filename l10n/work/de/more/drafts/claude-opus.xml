@@ -97,11 +97,11 @@
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Lokaler Speicher</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Wird geprüft…</string>
     <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Detaillierte Messpunkte</string>
-    <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 Tage</string>
+    <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 Tage</string>
     <string name="more_history_minutes" volt:src="a17d36db4244427d82653f7a939817820661613c">Zusammenfassungen pro Minute</string>
-    <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 Tage</string>
+    <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 Tage</string>
     <string name="more_history_daily" volt:src="8208c21754c5a7001fc677b498e6515799a59db2">Zusammenfassungen pro Tag</string>
-    <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 Jahre</string>
+    <string name="more_history_2_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 Jahre</string>
     <string name="more_history_up_to" volt:src="10cda5c46f5a36c0a0491e2e19f9e09a824c2373">bis zu %1$s</string>
     <string name="more_history_clear_scooter" volt:src="c8d4b5a4d55716b2bd7e7bf73acdf3707223028c">Messwertverlauf dieses Scooters löschen</string>
     <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Gesamten Messwertverlauf löschen</string>

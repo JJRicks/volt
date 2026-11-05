@@ -160,7 +160,7 @@ break.
 - **May take a hyphen, in this exact spelling,** because the closed form misreads or is too long to fit:
   Besitzer-Einrichtung, Besitzer-Einrichtungsdatei (closed reads like furniture), Akku-Einstellungen, Fahr-Einstellungen,
   Scooter-Display, Scooter-Name, Display-Einheiten, Telefon-Fahrtenbuch, Fahrmodus-Tempolimit, Logo-Licht,
-  Live-Daten, Trip-Strecke, Trip-Zeit, Mitnutzer-Schlüssel, Auslese-Skript, Eco-Schätzung, D-Modus-Schätzung, Online-Karte,
+  Live-Daten, Trip-Strecke, Trip-Zeit, Mitnutzer-Schlüssel, Auslese-Skript, Eco-Schätzung, D-mode-Schätzung (the check holds "D-mode" as written), Online-Karte,
   Akku-Übersicht, Akku-Vorzeichen, Akku-Messpunkte, Akku-Seriennummer, Fahrten-Backups.
 - **Ordinary hyphen compounds with a loanword or proper first element are allowed** without listing: Scooter-, Widget-, Dashboard-, Layout-, GPS-, NAVEE-, Trip- (Scooter-Modelle, Scooter-Profil, Dashboard-Layout, Widget-Größe). Write them one way: always hyphenated.
 - **A label prefers a compound over "X des Y"** where the compound stays at three stems or fewer: Telefonposition, not "Position des Telefons". The genitive stays in sentences and long descriptions.
@@ -330,7 +330,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | review (a test or try) | look at it and decide | **überprüfen**. |
 | test record | the saved record of a test | **Testprotokoll**. Not Testdaten or Testaufzeichnung. |
 | chart window | the time span a chart shows | **Zeitfenster**. Not Zeitraum. |
-| the NAVEE app | the official app, named in a sentence | **NAVEE-App**, never bare NAVEE for the app. Bare NAVEE is for the company ("steht in keiner Verbindung zu NAVEE"). A photo description: **NAVEE-Scooter UT5 MAX**. |
+| the NAVEE app | the official app, named in a sentence | **NAVEE-App**, never bare NAVEE for the app. Bare NAVEE is for the company ("steht in keiner Verbindung zu NAVEE"). A photo description stays **Scooter NAVEE UT5 MAX**, because the check holds "NAVEE UT5 MAX" as written. |
 | X setting (raw) | a raw reading of a setting | **Einstellung für X (roh)**. Bytes stay uninflected after a number: "5 Byte". Spoken units take U+00A0 too: "1 Stunde". |
 | or newer | an Android version floor | **oder höher**. |
 | screen name in a sentence | a screen or feature named after a preposition | In quotes like a button: unter „Experimentelle Funktionen“. |

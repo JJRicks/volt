@@ -2,3 +2,4 @@
 {"chunks":1,"draft":"claude-opus","keys":2,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"8d1512f25a58","stage":"import-chunks","when":"2026-11-05T09:41:16Z"}
 {"draft":"claude-opus","keys":58,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"2ba3e1a5efd3","stage":"audit-compare","when":"2026-11-05T09:42:49Z"}
 {"draft":"claude-opus","flagged":0,"keys":58,"reader":"claude-opus-5-5","stage":"audit-record","when":"2026-11-05T09:44:00Z"}
+{"draft":"claude-opus","keys":8,"model":"claude-opus-5-5","problems":0,"provider":"claude","set":"727e845f87d5","stage":"audit-compare","when":"2026-11-05T09:59:17Z"}

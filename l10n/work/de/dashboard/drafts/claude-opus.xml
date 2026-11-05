@@ -41,7 +41,7 @@
     <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Restladezeit</string>
     <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Akku lädt</string>
     <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Akku lädt · Ladegrenze %1$s %%</string>
-    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">NAVEE-Scooter UT5 MAX</string>
+    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Scooter NAVEE UT5 MAX</string>
     <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Akkustand nicht gemeldet</string>
     <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
         <item quantity="one">Akkustand %1$d Prozent</item>

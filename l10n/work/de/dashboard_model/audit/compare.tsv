@@ -10,7 +10,7 @@ dashboard_model_qa_charge_done_time	Charge done by time	Fertig bis	Finished by	c
 dashboard_model_qa_charge_done_time_short	Charge done by time	Fertig bis: Zeit	Finished by: time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	938e001b67d4bb6e729f6b8b0a3ed279a4c9da68
 dashboard_model_qa_group_experimental	Experimental controls	Experimentelle Funktionen	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	659f7c1ff12b52886398cc52eb636778e5e6717b
 dashboard_model_tile_top_speed	Top speed	Max. Tempo	Max. speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	d275b4280c0abb576fd1ee2df3b578d129073f52
-dashboard_model_tile_charge_schedule	Charge schedule	Geplantes Laden	Scheduled charging	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	2c3e9fa5c02762c85261c1dccfae110688b85e9e
+dashboard_model_tile_charge_schedule	Charge schedule	Ladezeitplan	Charging schedule	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	c38ca27f0f65232c93b2e48c0be8aab199b9040c
 dashboard_model_tile_measuring	Measuring	Messung läuft	Measurement in progress	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	2cfc5d8cc502ce65c8cde09d8a39782bf44765af
 dashboard_model_tile_on_at	On • %1$s	An • %1$s	On • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	ff452173861081364dde6c4a783c7d0dfa1a9d08
 dashboard_model_tile_not_scheduled	Not scheduled	Nicht geplant	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	c0faf303330fdb6fdaec0edc3bf9572ff9475cfe
