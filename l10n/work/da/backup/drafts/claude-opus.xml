@@ -28,7 +28,7 @@
         <item quantity="other">Kun valgte data · %1$d kategorier udeladt.</item>
     </plurals>
     <string name="backup_estimate" volt:src="13c55e78372a7d44e5b6a608067bfc3ddc5154ef">Ca. %1$s</string>
-    <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Tilladelser og Bluetooth-parring er ikke inkluderet. Præferencer for løbehjul gemmes i Volt; når du gendanner dem, ændres indstillingerne på løbehjulet ikke.</string>
+    <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Tilladelser og Bluetooth-parring er ikke inkluderet. Indstillinger for løbehjul gemmes i Volt; når du gendanner dem, ændres indstillingerne på løbehjulet ikke.</string>
     <string name="backup_new_password" volt:src="55ca3f080bae3e2a88947221e97fae338683f4c0">Ny adgangskode</string>
     <string name="backup_repeat_password" volt:src="ccf07f10a8f56a516ab8d33646fbc3c5922151cb">Gentag adgangskode</string>
     <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c">Adgangskoden kan ikke genoprettes.</string>
@@ -85,12 +85,12 @@
     <string name="backup_dont_restore" volt:src="aa72834ea3aa7fb1eb0d9430fd62719953d299d7">Gendan ikke</string>
     <string name="backup_destination_for" volt:src="768ae7cc3567bffc3fa26010330561376907b92b">Destination for %1$s</string>
     <string name="backup_destination_for_choice" volt:src="0763317957e339ab8499f8430c6de785990b7c45">Destination for %1$s: %2$s</string>
-    <string name="backup_scooter_first" volt:src="4d52bdd7c1acd30938813eda6d1d7b59d1aa3e62">Medtag Løbehjul, eller opsæt et løbehjul først.</string>
-    <string name="backup_review_button" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Gennemse</string>
+    <string name="backup_scooter_first" volt:src="4d52bdd7c1acd30938813eda6d1d7b59d1aa3e62">Medtag ”Løbehjul”, eller opsæt et løbehjul først.</string>
+    <string name="backup_review_button" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Gennemgå</string>
     <string name="backup_choose_scooter_first" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Vælg et løbehjul først.</string>
     <string name="backup_comparing" volt:src="c99386fa2fa77aa2c4d6b57ab978f34da0c05a1a">Sammenligner med denne telefon…</string>
     <string name="backup_review_title" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Gennemgang</string>
-    <string name="backup_closes_when_done" volt:src="90a201cf1b6059bb96536b896daea951015d87c1">Volt lukker, når gendannelsen er færdig.</string>
+    <string name="backup_closes_when_done" volt:src="90a201cf1b6059bb96536b896daea951015d87c1">Volt lukkes, når gendannelsen er færdig.</string>
     <string name="backup_replace_everything" volt:src="cdd433f04b87566a39c0204c13c38cf979c48105">Erstat alt</string>
     <string name="backup_restore_button" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Gendan</string>
     <string name="backup_restoring" volt:src="85942b331a9789eb9474e531a6eebafda8315d87">Gendanner dine data…</string>

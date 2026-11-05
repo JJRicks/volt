@@ -17,9 +17,9 @@
         <item quantity="other">%1$d sekunder tilbage</item>
     </plurals>
     <string name="owner_countdown_seconds_left_short" volt:src="6cc9d7a05771ade42d35a0eb4d6238186795cafd">s tilbage</string>
-    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Afbryd opsætningen?</string>
+    <string name="owner_shizuku_stop_title" volt:src="c2e221ceb44d03dd42b25c247595373dadb60de4">Vil du afbryde opsætningen?</string>
     <string name="owner_shizuku_stop_message" volt:src="aa0856e5e0936ac732388142e7861c7e99ef5ca1">Vent her, indtil logindstillingen for NAVEE er gendannet.</string>
-    <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Vent videre</string>
+    <string name="owner_shizuku_keep_waiting" volt:src="3ce41a829553f91388cc20251417764af8658894">Fortsæt med at vente</string>
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Afbryd opsætningen</string>
     <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Afslut oprydningen først</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">NAVEE-aktivitetsloggen kan stadig være slået til.</string>
@@ -40,11 +40,11 @@
     <string name="owner_shizuku_install_shizuku" volt:src="a2db2fcdc51a887f9971593d7640c055a52e6e4b">Installér Shizuku</string>
     <string name="owner_shizuku_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Åbn Shizuku</string>
     <string name="owner_shizuku_allow_title" volt:src="c00593b9bca561d4085d06dea7aa4c4d6199c8ce">Tillad midlertidig adgang</string>
-    <string name="owner_shizuku_allow_warning" volt:src="20d3857731639b5a4a00b50f6a7df0a8a5821e27">Giver bred adgang til fejlretning. Bruges kun her. Intet bliver uploadet.</string>
+    <string name="owner_shizuku_allow_warning" volt:src="20d3857731639b5a4a00b50f6a7df0a8a5821e27">Giver bred fejlretningsadgang til telefonen. Bruges kun her. Intet bliver uploadet.</string>
     <string name="owner_shizuku_open_shizuku_description" volt:src="b53379f5934b58dddb10b4ba9fa0765656d0e5a1">Åbn Shizuku for at tillade Volt</string>
     <string name="owner_shizuku_help" volt:src="f1bdb02d6ec6dd8b8ab16ef3a60fc1537313f6b3">Hjælp til Shizuku</string>
     <string name="owner_shizuku_allow_access" volt:src="eb0418c06e6a6d9058b66457924a77e08cab566a">Tillad Shizuku-adgang</string>
-    <string name="owner_shizuku_allow_access_description" volt:src="2e88ad03a09b6fd7198a9230da461005cc510e9f">Anmod Shizuku om bred adgang til fejlretning; starter ikke aflæsningen</string>
+    <string name="owner_shizuku_allow_access_description" volt:src="2e88ad03a09b6fd7198a9230da461005cc510e9f">Anmod Shizuku om bred fejlretningsadgang til telefonen; starter ikke aflæsningen</string>
     <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Tjek forbindelsen til Shizuku</string>
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Tjek, om Shizuku kører</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Aflæsning fra dit løbehjul</string>
@@ -52,7 +52,7 @@
     <string name="owner_shizuku_capture_warning" volt:src="7ffcd9ab73e20370ffb63a7d0cae1abaa017ef49">Aflæsningen genstarter NAVEE og slår NAVEE-aktivitetsloggen midlertidigt til. Lad Shizuku køre, indtil oprydningen er færdig.</string>
     <string name="owner_shizuku_consent" volt:src="2066c0efae2b1dfa7fe29b0c3507eaa6c2aceaa0">Jeg ejer dette løbehjul eller har tilladelse.</string>
     <string name="owner_shizuku_start_capture" volt:src="2788e85eff14464cb82db9d5ff154b0e2236b6e6">Start aflæsning</string>
-    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, færdig</string>
+    <string name="owner_step_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, udført</string>
     <string name="owner_step_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, ikke endnu</string>
     <string name="owner_step_not_yet_problem" volt:src="ecc0154b8c8519fb371d95587b49c942dacd4712">%1$s, ikke endnu. %2$s</string>
     <string name="owner_steps_description" volt:src="7377e94793cdc4d9aefd72d30f41b659970c914c">Trin %1$d af 3</string>
@@ -62,7 +62,7 @@
     <string name="owner_status_root_unsupported" volt:src="5519e39b0d4356bae71e0c9e5da02f46b8b9e61a">Shizuku med root understøttes ikke. Start Shizuku med trådløs fejlretning.</string>
     <string name="owner_status_allow_in_shizuku" volt:src="76697c1aaf702336da47932c8acd5fea587a1043">Tillad Volt i Shizuku</string>
     <string name="owner_status_shizuku_stopped" volt:src="aa45b05b1d9bcee4575d265753ae1d1dc866fdef">Shizuku er stoppet</string>
-    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Status for oprydningen er ukendt. Brug gendannelse via computer.</string>
+    <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Status for oprydningen er ukendt. Gendan logindstillingen via en computer.</string>
     <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Kunne ikke starte. Intet blev ændret.</string>
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Volts hjælpeprogram startede ikke</string>
     <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Oprydning af logning ikke bekræftet</string>
@@ -71,7 +71,7 @@
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">En anden aflæsning er i gang</string>
     <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Volt kunne ikke læse NAVEE-aktivitetsloggen</string>
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Stoppet</string>
-    <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Aflæsningen mislykkedes</string>
+    <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Kunne ikke aflæse</string>
     <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Gendan logindstillingen igen</string>
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Gendanner logindstillingen for NAVEE…</string>
     <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Mistede forbindelsen til Shizuku. Gendan logindstillingen.</string>
@@ -81,7 +81,7 @@
     <string name="owner_setup_no_identity" volt:src="9bf9c7694125daf53a3a2d8a0d530b4bf3b66a0b">Ingen ejernøgle i filen</string>
     <string name="owner_setup_unsupported_role" volt:src="278d05f0b3222e2bbf5145390f61d494b5543f8e">Ejerrollen understøttes ikke</string>
     <string name="owner_setup_conflicting" volt:src="8b4fae49092194ef443c52ac2215aac1db98ecb4">Denne fil indeholder ejernøgler eller roller, der er i konflikt med hinanden. Aflæs én forbindelse til en NAVEE-konto, eller importér én privat sikkerhedskopi af opsætningen.</string>
-    <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Importen mislykkedes. Vælg filen igen.</string>
+    <string name="owner_setup_import_failed" volt:src="de372ebdb1f8dffddd5685b1c49a49a7002808bd">Kunne ikke importere. Vælg filen igen.</string>
     <string name="owner_setup_enter_identity" volt:src="22c0ff1f45499a9615846f58472ff54ce8b6327d">Indtast en ejernøgle på 12 tegn.</string>
     <string name="owner_profile_default_name" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Løbehjul</string>
 </resources>

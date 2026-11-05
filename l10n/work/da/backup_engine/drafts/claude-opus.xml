@@ -41,7 +41,7 @@
     </plurals>
     <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Onlinekort: til</string>
     <string name="backup_engine_restore_could_not_be_prepared" volt:src="a635201a3310fea6dff495449cf249c0438147fa">Gendannelsen kunne ikke forberedes.</string>
-    <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Gendannelsen mislykkedes; dine data blev bevaret.</string>
+    <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Kunne ikke gendanne; dine data blev bevaret.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Appdata blev ændret under sikkerhedskopieringen. Prøv igen, når optagelserne er stoppet.</string>
     <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">Kunne ikke fjerne det midlertidige indhold af den krypterede sikkerhedskopi.</string>
     <string name="backup_engine_backup_could_not_opened" volt:src="cd3018aee5f19dde0d1cdf8462e735f8531610c7">Sikkerhedskopien kunne ikke åbnes.</string>
@@ -54,14 +54,14 @@
     <string name="backup_engine_choose_backup_again_before" volt:src="43f8f95b380e5cc1653f6e6a74d6aad0d3e219d0">Vælg sikkerhedskopien igen, før du gendanner.</string>
     <string name="backup_engine_could_not_prepare_restore_transaction" volt:src="238bb18e5eade22e631ca2b9261d8ad2b3684e1e">Kunne ikke forberede transaktionen for gendannelsen.</string>
     <string name="backup_engine_restore_was_interrupted_reopen" volt:src="8e6776bc26ce5d2cde4d088c3b2b552d223d606e">Gendannelsen blev afbrudt. Åbn Volt igen for at gendanne de tidligere data. Ryd ikke appens lagerplads.</string>
-    <string name="backup_engine_restore_failed_previous_data" volt:src="015ae00cc99691167709a5a01f886612ac3e8a93">Gendannelsen mislykkedes; de tidligere data blev bevaret.</string>
+    <string name="backup_engine_restore_failed_previous_data" volt:src="015ae00cc99691167709a5a01f886612ac3e8a93">Kunne ikke gendanne; de tidligere data blev bevaret.</string>
     <string name="backup_engine_restore_recovery_folder_unavailable" volt:src="582e72c7a8e9aba68fd1a2f511f3068949f380de">Mappen til genopretning af gendannelsen er ikke tilgængelig. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_restore_recovery_record_unavailable" volt:src="fd0950104316ecb4e033d1a3c0826c4f239db746">Posten til genopretning af gendannelsen er ikke tilgængelig. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_restore_recovery_record_needs_app" volt:src="17233b55271ef59c18c86ca464be57f18d7f55a4">Posten til genopretning af gendannelsen kræver genopretning med denne version af appen. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:src="acc1ed3e42ebf704e453a5c619e482c4a5733452">Posten til genopretning af gendannelsen kan ikke læses. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_restore_recovery_folder_cannot_read" volt:src="eb724e900bb942d4ac4c18c46699a8b82e4dea0d">Mappen til genopretning af gendannelsen kan ikke læses. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_unexpected_restore_recovery_file" volt:src="aa538362e404ce4932430d11546aebb390f6da45">En uventet fil til genopretning af gendannelsen kræver opmærksomhed. Lad appens lagerplads være urørt.</string>
-    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">Historikken er stadig åben. Luk optagelserne, og prøv igen at sikkerhedskopiere.</string>
+    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">Historikken er stadig åben. Luk optagelserne, og prøv at sikkerhedskopiere igen.</string>
     <string name="backup_engine_reopen_volt_finish_recovering" volt:src="f9ea29e6786f3594a2c96a576755a0b93d68dea3">Åbn Volt igen for først at afslutte genopretningen af den tidligere gendannelse.</string>
     <string name="backup_engine_could_not_save_restore" volt:src="3722a96664425428100fe50f4973a5fecfe12a06">Kunne ikke gemme status for genopretning af gendannelsen.</string>
     <string name="backup_engine_restore_storage_cannot_synchronized" volt:src="c576c13b5707dc4679409361f2088b9488ea3949">Lageret til gendannelsen kan ikke synkroniseres.</string>
@@ -90,10 +90,10 @@
     <string name="backup_engine_app_preferences_exceed_backup" volt:src="40035f52fbd6009b7f193f9a9f8b1447a2ceb632">Appindstillingerne overskrider grænsen for sikkerhedskopien.</string>
     <string name="backup_engine_unsupported_app_preference_inventory" volt:src="c52cc694b4543ea8e630d4c0b454ca48d15f2ff4">Listen over appindstillinger understøttes ikke.</string>
     <string name="backup_engine_invalid_preference_count" volt:src="d8be0c104dc93615e2f69625aaada6eb4a4e6c18">Ugyldigt antal indstillinger.</string>
-    <string name="backup_engine_invalid_duplicate_preference_key" volt:src="034724a5fd8816268a01ae2ef4074fdc533661c3">Ugyldig eller duplikeret indstillingsnøgle.</string>
+    <string name="backup_engine_invalid_duplicate_preference_key" volt:src="034724a5fd8816268a01ae2ef4074fdc533661c3">Ugyldig eller dubleret indstillingsnøgle.</string>
     <string name="backup_engine_invalid_preference_boolean" volt:src="4314549544465b982cc1120e6cf3704de81127b3">Ugyldig boolesk værdi for indstilling.</string>
     <string name="backup_engine_invalid_preference_set_size" volt:src="f4db9f18172be2e825a88ddba8874b8eb498a0c3">Ugyldig størrelse på sæt af indstillinger.</string>
-    <string name="backup_engine_duplicate_preference_set_item" volt:src="022b4db3a85237bd8c1196a743518f5b1a12b036">Duplikeret element i sæt af indstillinger.</string>
+    <string name="backup_engine_duplicate_preference_set_item" volt:src="022b4db3a85237bd8c1196a743518f5b1a12b036">Dubleret element i sæt af indstillinger.</string>
     <string name="backup_engine_unsupported_preference_type" volt:src="8440e73b61839ce3ffc6e52912e5ee580ad5e71c">Indstillingstypen understøttes ikke.</string>
     <string name="backup_engine_unexpected_preference_payload" volt:src="73417eb406e3a9df7a342c9061617ebd2eba79a6">Uventet indhold i indstilling.</string>
     <string name="backup_engine_app_preference_too_large" volt:src="348e4acea71c3dbaa8602c3f64ffa80e1f4d7722">Appindstillingen er for stor.</string>
@@ -105,12 +105,12 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Ugyldig post i den krypterede sikkerhedskopi.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Sikkerhedskopien har uventede data til sidst.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Sikkerhedskopieringen er allerede fuldført.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Vælg, hvad der skal sikkerhedskopieres.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Vælg, hvad du vil sikkerhedskopiere.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Der er for mange filer til én sikkerhedskopi.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Metadata for sikkerhedskopien er for store.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Appdata blev ændret under sikkerhedskopieringen. Prøv igen.</string>
     <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">En optagelse er for stor til en sikkerhedskopi.</string>
-    <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Vælg en fil med sikkerhedskopi fra Volt.</string>
+    <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Vælg en fil med en Volt-sikkerhedskopi.</string>
     <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Kunne ikke fjerne det midlertidige indhold af sikkerhedskopien.</string>
     <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Sikkerhedskopien kræver en nyere appversion, eller den har ugyldige metadata.</string>
     <string name="backup_engine_backup_invalid_metadata" volt:src="6f68482f72856b4a69891f453da13733a639915a">Sikkerhedskopien har ugyldige metadata.</string>
@@ -127,7 +127,7 @@
     <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">Parringsfilen har en ugyldig Bluetooth-adresse.</string>
     <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">Sikkerhedskopien har en gruppe af indstillinger, der ikke understøttes.</string>
     <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Sikkerhedskopien gentager en optagelse af opladning.</string>
-    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Vælg, hvad der skal gendannes.</string>
+    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Vælg, hvad du vil gendanne.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">”Erstat alt” kræver en fuldstændig sikkerhedskopi med alle kategorier.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Vælg, hvor data fra hvert løbehjul skal hen.</string>
     <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Vælg et løbehjul, der bruger denne ejernøgle, eller tilføj et andet løbehjul.</string>
@@ -165,11 +165,11 @@
     <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Ikke nok ledig lagerplads</string>
     <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Kunne ikke forberede gendannelsen.</string>
     <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Lageret til optagelser blev ændret under gendannelsen.</string>
-    <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Optegnelsen til genopretning af gendannelsen kan ikke læses.</string>
+    <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Posten til genopretning af gendannelsen kan ikke læses.</string>
     <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Ugyldig liste til genopretning af gendannelsen.</string>
     <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Ugyldig sti til genopretning af gendannelsen.</string>
     <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:src="15228d6e90ee9f7bc024b957c52ec93c70c20218">Kunne ikke rulle en afbrudt gendannelse tilbage.</string>
-    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Øjebliksbilledet til gendannelsen er ufuldstændigt. Lad appens lager forblive urørt.</string>
+    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Øjebliksbilledet til gendannelsen er ufuldstændigt. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_ride_storage_cannot_read" volt:src="0ede1a82e6831be351b54891fc112668141e0d8c">Lageret til ture kan ikke læses.</string>
     <string name="backup_engine_unsupported_ride_file" volt:src="b660f7cdb17159f2687838bd710010e444f8662a">Turfilen understøttes ikke.</string>
     <string name="backup_engine_too_many_rides_one" volt:src="de8abfaaeda3958bde310f5911f556efdcc5e134">For mange ture til én sikkerhedskopi.</string>
@@ -191,12 +191,12 @@
     <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">Sikkerhedskopien mangler optagelsesfiler.</string>
     <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Manglende tilknytning til løbehjul.</string>
     <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">Listen over ture er inkonsistent.</string>
-    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Målinger fra telefonen mangler deres tur.</string>
+    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Målepunkter fra telefonen mangler deres tur.</string>
     <string name="backup_engine_choose_destination_every_scooter" volt:src="9d0e8e7d2b492149ede88066de128fd38afc3b58">Vælg en destination for hvert løbehjul.</string>
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">De gemte ture er blevet ændret. Gennemgå sikkerhedskopien igen.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Kunne ikke forberede gendannelsen af ture.</string>
     <string name="backup_engine_restore_interrupted_reopen_volt" volt:src="b0d7118e39c2abebc697c5bd7f9d589e2a52b766">Gendannelsen blev afbrudt. Åbn Volt igen, og ryd ikke lageret.</string>
-    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Genopretning af gendannelsen af ture kræver opmærksomhed. Lad appens lager forblive urørt.</string>
+    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Genopretning af gendannelsen af ture kræver opmærksomhed. Lad appens lagerplads være urørt.</string>
     <string name="backup_engine_ride_restore_storage_unavailable" volt:src="df81a76f4eb20ac8ad9dc094ce5553679048e3c1">Lageret til gendannelse af ture er ikke tilgængeligt.</string>
     <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Uventede data til genopretning af gendannelsen af ture.</string>
     <string name="backup_engine_invalid_ride_recovery_list" volt:src="11f84a914e3636306f31de4a66b81bca505374a1">Ugyldig liste til genopretning af ture.</string>

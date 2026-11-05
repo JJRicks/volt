@@ -21,7 +21,7 @@
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapacitet ukendt</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Venter på batteriprocent</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Intet estimat</string>
-    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Aktuel ladehastighed</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Aktuelt ladetempo</string>
     <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Reference for hurtigoplader</string>
     <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Reference for original oplader</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
@@ -29,12 +29,12 @@
         <item quantity="other">Ud fra %1$d tidligere opladninger</item>
     </plurals>
     <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Opladeren afviger · estimat ud fra ladetempo</string>
-    <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimat ud fra ladehastighed</string>
-    <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Det valgte løbehjul blev skiftet med måling i gang</string>
-    <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Telefonens ur blev ændret med måling i gang</string>
+    <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimat ud fra ladetempo</string>
+    <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Det valgte løbehjul blev skiftet under målingen</string>
+    <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Telefonens ur blev ændret under målingen</string>
     <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">Opladningen stoppede, før planen blev indstillet</string>
-    <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Måleværdier for opladningen udeblev med måling i gang</string>
-    <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">Forbindelsen til løbehjulet blev afbrudt med måling i gang</string>
+    <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Måleværdier for opladningen udeblev under målingen</string>
+    <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">Forbindelsen til løbehjulet blev afbrudt under målingen</string>
     <string name="charging_capacity_reason_clock" volt:src="bd0cbe1e6a34024c382e0a173b62a0a590da83ed">Uret blev ændret</string>
     <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Huller i optagelsen</string>
     <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Strømretningen skiftede</string>

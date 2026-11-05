@@ -20,7 +20,7 @@
     <string name="maps_source_custom" volt:src="cbe88dad0b6a7e79e1ef484fc2704d2b39709d95">Eget kort</string>
     <string name="maps_source_provider_fallback" volt:src="192685dbfb774ae069bdc4016c687754c075f7f4">Kortudbyder</string>
     <string name="maps_basemap" volt:src="8f7de53fbe2c14e7b08b43e94bfce7c4c0de4e3d">Baggrundskort</string>
-    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Vis onlinekort?</string>
+    <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Vil du vise onlinekort?</string>
     <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">Udbyderen ser din IP-adresse og kortområdet. Dine ture bliver på telefonen.</string>
     <string name="maps_consent_enable" volt:src="bb9ac0845ace7f8b7f2e08bf11f66831ce335172">Aktivér baggrundskort</string>
     <string name="maps_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Onlinekort</string>
@@ -61,16 +61,16 @@
     <string name="maps_route_elevation_not_measured" volt:src="86964745a1285a51d07b3fa1ee00dbbc8b00ebfc">Højde ikke målt</string>
     <string name="maps_route_accel_not_measured" volt:src="31d22e05407c937d7fb5587c96b6a81fb8227970">GPS-acceleration ikke målt</string>
     <string name="maps_route_power_not_measured" volt:src="528749ecef0162ba9996ea389dbd583dad8411bb">Effekt ikke målt</string>
-    <string name="maps_chart_ride" volt:src="80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a">Diagram over turen</string>
+    <string name="maps_chart_ride" volt:src="80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a">Graf over turen</string>
     <string name="maps_chart_fit_ride" volt:src="b77c503c54be648b7df6a02be88206ec789e2829">Vis hele turen</string>
-    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Diagram over optagelsen</string>
+    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Graf over optagelsen</string>
     <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Vis hele optagelsen</string>
     <string name="maps_chart_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Zoom ind</string>
     <string name="maps_chart_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Zoom ud</string>
-    <string name="maps_chart_previous_sample" volt:src="e783b197e8874c0ea7622c1e59d00e5185e27fd1">Forrige optagne datapunkt</string>
-    <string name="maps_chart_next_sample" volt:src="7593a5058b5fb5b99d4a431aba2c34fc731dfe20">Næste optagne datapunkt</string>
+    <string name="maps_chart_previous_sample" volt:src="e783b197e8874c0ea7622c1e59d00e5185e27fd1">Forrige optagne målepunkt</string>
+    <string name="maps_chart_next_sample" volt:src="7593a5058b5fb5b99d4a431aba2c34fc731dfe20">Næste optagne målepunkt</string>
     <string name="maps_chart_desc_no_readings" volt:src="f36c0bec23825703ba296889175fd0f93e4cc1d2">. Ingen måleværdier valgt</string>
-    <string name="maps_chart_desc_no_samples" volt:src="7fac670c0e67eec8669b3c727bdf846ac5b2a8e3">. Ingen optagne datapunkter</string>
+    <string name="maps_chart_desc_no_samples" volt:src="7fac670c0e67eec8669b3c727bdf846ac5b2a8e3">. Ingen optagne målepunkter</string>
     <string name="maps_chart_desc_at" volt:src="646089d99917cd3c32be5a81b3816280358ba7ff">". Ved "</string>
     <string name="maps_chart_desc_reading" volt:src="804194e35d2e99f249b6becc436f1a5180226d46">". %1$s: "</string>
     <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Ingen måleværdi</string>

@@ -15,6 +15,6 @@
     <string name="units_minute" volt:src="0524b09c10e93e2c7bfa145cddc2ee2b7b893bf9">min</string>
     <string name="units_route_speed_title" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Hastighed</string>
     <string name="units_route_speed_title_source" volt:src="e0e5d65c3d2acc813a8c87b196832d50cf603688">Hastighed · %1$s</string>
-    <string name="units_route_source_scooter" volt:src="9d37d4169ea9c724e1c91df5b4afcaa6c89c0e93">løbehjul</string>
+    <string name="units_route_source_scooter" volt:src="9d37d4169ea9c724e1c91df5b4afcaa6c89c0e93">løbehjulet</string>
     <string name="units_route_source_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
 </resources>

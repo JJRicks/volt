@@ -16,9 +16,9 @@
     <string name="readings_temperature_c" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Batteritemperatur</string>
     <string name="readings_temperature_c_short" volt:src="e68f5298e5286a32cad9d8c53df8ee0b406dd579">Batteritemp.</string>
     <string name="readings_temperature_c_compact" volt:src="6466124ef309e594c4990f3858070a0f9ae82feb">Temp.</string>
-    <string name="readings_battery_health_percent" volt:src="854e3cdeda1b79543a194b3013165051d4a0d703">Batterisundhed (angivet)</string>
-    <string name="readings_battery_health_percent_short" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Sundhed (angivet)</string>
-    <string name="readings_battery_health_percent_compact" volt:src="07838c34a7766624fad21b3556b59b9418982226">Sundhed</string>
+    <string name="readings_battery_health_percent" volt:src="854e3cdeda1b79543a194b3013165051d4a0d703">Angivet batteritilstand</string>
+    <string name="readings_battery_health_percent_short" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Angivet batteritilstand</string>
+    <string name="readings_battery_health_percent_compact" volt:src="07838c34a7766624fad21b3556b59b9418982226">Batteritilstand</string>
     <string name="readings_battery_status" volt:src="ba5fd149ed56f6838dc85175b4276c7a68344f61">Batteristatus</string>
     <string name="readings_battery_status_short" volt:src="ba5fd149ed56f6838dc85175b4276c7a68344f61">Batteristatus</string>
     <string name="readings_battery_status_compact" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Status</string>
@@ -27,7 +27,7 @@
     <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Ladning (rå)</string>
     <string name="readings_charge_cycles" volt:src="9f3a5527fd4191292f97400b43ec5145617c8679">Angivet antal opladninger</string>
     <string name="readings_charge_cycles_short" volt:src="9ab3830434d1aad6b87e3828e013cf244cfaf846">Angivne opladninger</string>
-    <string name="readings_charge_cycles_compact" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Opladninger</string>
+    <string name="readings_charge_cycles_compact" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Ladninger</string>
     <string name="readings_energy_throughput_wh" volt:src="d70bc33e5a2a2af0d1a75d28304dd0d68ff6dd5b">Energitæller (ikke verificeret)</string>
     <string name="readings_energy_throughput_wh_short" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energi (ikke verificeret)</string>
     <string name="readings_energy_throughput_wh_compact" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energi (ikke verificeret)</string>
@@ -41,11 +41,11 @@
     <string name="readings_rated_capacity_ah" volt:src="11887b709989d0e21ceb72a5edfd3f21fb010e89">Nominel batterikapacitet</string>
     <string name="readings_rated_capacity_ah_short" volt:src="8b10397093cf754e5092bdcc274e29dc3e1a4208">Nominel kapacitet</string>
     <string name="readings_rated_capacity_ah_compact" volt:src="3ecc5dc03df20e34eccef78532116b30a687bf24">Kapacitet</string>
-    <string name="readings_health_adjusted_capacity_ah" volt:src="20e385d8fed3ac585148ae721066447e3f86a19e">Anslået kapacitet ud fra den angivne sundhed</string>
-    <string name="readings_health_adjusted_capacity_ah_short" volt:src="bee90e1c5769318cfdb42e1429593ffa0dc50a00">Ansl. kapacitet (sundhed)</string>
+    <string name="readings_health_adjusted_capacity_ah" volt:src="20e385d8fed3ac585148ae721066447e3f86a19e">Anslået kapacitet ud fra den angivne batteritilstand</string>
+    <string name="readings_health_adjusted_capacity_ah_short" volt:src="bee90e1c5769318cfdb42e1429593ffa0dc50a00">Ansl. kapacitet (batteritilstand)</string>
     <string name="readings_health_adjusted_capacity_ah_compact" volt:src="c6878acd6d040bfcb701c4910bcb2b47c6be75f9">Ansl. kapacitet</string>
     <string name="readings_battery_manufactured" volt:src="7555e85f574b560bdffbb6ea9aedb1dcf9b223f8">Batteriets produktionsdato</string>
-    <string name="readings_battery_manufactured_short" volt:src="dac5cb9c0b4cf1d3da1cc59a209c0eaa0f9534d6">Batteri produceret</string>
+    <string name="readings_battery_manufactured_short" volt:src="dac5cb9c0b4cf1d3da1cc59a209c0eaa0f9534d6">Produktionsdato</string>
     <string name="readings_high_temperature_duration" volt:src="20d2ad2e31f0ab7c4bf2b7b632d3f8ba792f5e2b">Tid ved høj temperatur</string>
     <string name="readings_high_temperature_duration_short" volt:src="fc07b30fdf16d9e53f4781a4596ff0194a1ba8c0">Tid ved høj temp.</string>
     <string name="readings_extreme_temperature_charge_raw" volt:src="980e577c5189fcbfe7c002dfd6f7f509fab39620">Opladningstid ved ekstrem temperatur (rå; enhed ukendt)</string>
@@ -69,7 +69,7 @@
     <string name="readings_maximum_speed_kmh" volt:src="33b4bdf2459659c914e2e99032ad48e8a1088c10">Current trip maximum speed</string>
     <string name="readings_maximum_speed_kmh_short" volt:src="b32c219506a82df18171f269b241a95055523dd0">Trip top speed</string>
     <string name="readings_maximum_speed_kmh_compact" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Top speed</string>
-    <string name="readings_average_speed_kmh" volt:src="475f4a3043351f56010ea35afe879a4bfce68294">Gennemsnitshastighed på aktuel trip</string>
+    <string name="readings_average_speed_kmh" volt:src="475f4a3043351f56010ea35afe879a4bfce68294">Gennemsnitshastighed på den aktuelle trip</string>
     <string name="readings_average_speed_kmh_short" volt:src="9ce635ccc269f0d6a75890baa90f11dddc03d421">Gns. hast. på trip</string>
     <string name="readings_average_speed_kmh_compact" volt:src="93c2d63a2f9dfc29f9bced985292aafb358e1e9f">Gns. hast.</string>
     <string name="readings_odometer_km" volt:src="9b51943cfe775f6e1df4a4a52895bb3d4d10211d">Samlet kilometertæller</string>
@@ -107,8 +107,8 @@
     <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Antispin (rå)</string>
     <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Blinklyd (rå)</string>
     <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Blinklyd (rå)</string>
-    <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Indstilling for nærhedsnøgle (rå)</string>
-    <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Nærhedsnøgle (rå)</string>
+    <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Indstilling for nærhedsoplåsning (rå)</string>
+    <string name="readings_proximity_key_short" volt:src="eaa6bc9c5c9fb7e1656da4fd8bc7e30407db1bdd">Nærhedsoplåsning (rå)</string>
     <string name="readings_night_mode" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nattilstand (rå)</string>
     <string name="readings_night_mode_short" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Nattilstand (rå)</string>
     <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Tilstand for rækkeviddealgoritme (rå)</string>
@@ -132,7 +132,7 @@
     <string name="readings_daytime_light" volt:src="f42ad3192ac2c21b909bebb5ef354820ec1c35d8">Kørelys (rå)</string>
     <string name="readings_daytime_light_short" volt:src="780e780466b7433b0f0cae506cf099befee29fd7">Kørelys (rå)</string>
     <string name="readings_maximum_speed_setting" volt:src="5e1db6b21b7a3199ead2909b55603cb0def396c5">Indstilling for maksimal hastighed (rå)</string>
-    <string name="readings_maximum_speed_setting_short" volt:src="5757843f58547d6b2780be3c4b9f925b0e62e608">Indstilling for maks. hastighed (rå)</string>
+    <string name="readings_maximum_speed_setting_short" volt:src="5757843f58547d6b2780be3c4b9f925b0e62e608">Maks. hastighed (rå)</string>
     <string name="readings_drive_mode_setting" volt:src="f0b1997834a67f7251bc93e23c9ebedbb1c9144f">Indstilling for køretilstand (rå)</string>
     <string name="readings_drive_mode_setting_short" volt:src="c2508aeebb40c5c40478bb777798931983e7d3b7">Indstilling for tilstand (rå)</string>
     <string name="readings_settings_mode_raw" volt:src="01f4009576a97db73500126d8ef5530989f62c2d">Tilstandsbyte fra læsning af indstillinger (rå)</string>
@@ -149,7 +149,7 @@
     <string name="readings_auto_lock_time" volt:src="e51795b4cca6806e194b5fd04e42452e7d9dc79c">Indstilling for låsevarighed (rå)</string>
     <string name="readings_auto_lock_time_short" volt:src="75991588a8e054b4dea4bb029c14de82c57280f4">Låsevarighed (rå)</string>
     <string name="readings_speed_limit_eligibility" volt:src="0837e1828a5133506f19fbd8005781156aad3678">Berettigelsesflag for hastighedsgrænse (rå)</string>
-    <string name="readings_speed_limit_eligibility_short" volt:src="9b8d35f1cc589b86f56893d4c451af5826970450">Hastighedsberettigelse (rå)</string>
+    <string name="readings_speed_limit_eligibility_short" volt:src="9b8d35f1cc589b86f56893d4c451af5826970450">Berettigelse til hastighedsgrænse (rå)</string>
     <string name="readings_weather" volt:src="8fb4725abf7700363b9432cf7e49e1b523027692">Indstilling for vejr (rå)</string>
     <string name="readings_weather_short" volt:src="e02e117eef631d0cfb727c38bf388bee8bcc4392">Vejr (rå)</string>
     <string name="readings_slope_assist" volt:src="1bd7ac69fc33fb7acf518ec0594ae99b5a723b09">Indstilling for bakkehjælp (rå)</string>
@@ -158,10 +158,10 @@
     <string name="readings_long_range_mode_short" volt:src="40189fb5c01dddf3c278f523edfb7a811afa6ec2">Lang rækkevidde (rå)</string>
     <string name="readings_overspeed_control" volt:src="6cea63cae1d62672d0a980aa1a36dda0b669ba85">Indstilling for overhastighedsbremsning (rå)</string>
     <string name="readings_overspeed_control_short" volt:src="e9b69c7d0fb01ead4885b3e71326cc556d35018c">Overhastighedsbremsning (rå)</string>
-    <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Indstilling for overhastighedsadvarsel (rå)</string>
-    <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Overhastighedsadvarsel (rå)</string>
-    <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Indstilling for hastighedsgrænse i Drive (rå)</string>
-    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Hastighedsgrænse i Drive (rå)</string>
+    <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Indstilling for advarsel om overhastighed (rå)</string>
+    <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Advarsel om overhastighed (rå)</string>
+    <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Indstilling for hastighedsgrænse for Drive (rå)</string>
+    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Hastighedsgrænse for Drive (rå)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware til måler</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware til måler</string>
     <string name="readings_meter_version_compact" volt:src="3af54421c2b7f705dd57e0bcd6b26cb01806f0c9">Måler-FW</string>
@@ -195,21 +195,21 @@
     <string name="readings_fault_history_raw" volt:src="99f612a6248158fd29bbae28a923a58813c26355">Svar med fejlhistorik (rå)</string>
     <string name="readings_fault_history_raw_short" volt:src="209e9c78f5ba6c396b6747ab6f7f64662eccbc0d">Fejlhistorik (rå)</string>
     <string name="readings_response_70" volt:src="ea32386e1c77781ebc54f06b8446d0c7c83bf861">Læsning af løbehjulets indstillinger (0x70)</string>
-    <string name="readings_response_70_short" volt:src="cce1fa786a374d1da793d7b3ffb436af2c7d09c5">Læsning af indstillinger · 70</string>
+    <string name="readings_response_70_short" volt:src="cce1fa786a374d1da793d7b3ffb436af2c7d09c5">Indstillinger · 70</string>
     <string name="readings_response_71" volt:src="d32f3977c30934df7f917edfa96f94c98b856b77">Læsning af ture (0x71)</string>
-    <string name="readings_response_71_short" volt:src="e4a453158ecb5f10ee95272311236aa2e8095773">Læsning af ture · 71</string>
+    <string name="readings_response_71_short" volt:src="e4a453158ecb5f10ee95272311236aa2e8095773">Ture · 71</string>
     <string name="readings_response_72" volt:src="670f21357aaf278b97d1f65e54b8ef005d1ea8b8">Læsning af batteriets diagnosticering (0x72)</string>
-    <string name="readings_response_72_short" volt:src="e79b334d2480cda236a3d76c905ab746905e6d7a">Læsning af batteri · 72</string>
-    <string name="readings_response_73" volt:src="59d1f5db6acefe8255fe466065e9083a478c33b8">Læsning af versioner af firmware (0x73)</string>
-    <string name="readings_response_73_short" volt:src="1ac244f54b1854da36f11a10588ba49ff9828abe">Læsning af firmware · 73</string>
+    <string name="readings_response_72_short" volt:src="e79b334d2480cda236a3d76c905ab746905e6d7a">Batteri · 72</string>
+    <string name="readings_response_73" volt:src="59d1f5db6acefe8255fe466065e9083a478c33b8">Læsning af firmwareversioner (0x73)</string>
+    <string name="readings_response_73_short" volt:src="1ac244f54b1854da36f11a10588ba49ff9828abe">Firmware · 73</string>
     <string name="readings_response_74" volt:src="4bc5db62231d20c0075ccb23c636b4ff41577bdb">Læsning af løbehjulets serienummer (0x74)</string>
     <string name="readings_response_74_short" volt:src="30b55c83bca1fbd526abf77c6e7145778123e370">Løbehjulets serienr. · 74</string>
     <string name="readings_response_75" volt:src="54f53c0ccdf697b9483e93e55dd08613ed41ca2c">Læsning af batteriets serienummer (0x75)</string>
     <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">Batteriets serienr. · 75</string>
     <string name="readings_response_76" volt:src="b4dd985788daee847907d9f97b5349e148d70062">Læsning af turhistorik (0x76)</string>
     <string name="readings_response_76_short" volt:src="550b657b98a151bd2976bb37625b0062eb9c6ed4">Turhistorik · 76</string>
-    <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Læsning af batteriets tegnstatus (0x79)</string>
-    <string name="readings_response_79_short" volt:src="b17ab34f9e3f56f436e556b1c73e5cb63820db45">Batteritegn · 79</string>
+    <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Læsning af batteriets fortegnsstatus (0x79)</string>
+    <string name="readings_response_79_short" volt:src="b17ab34f9e3f56f436e556b1c73e5cb63820db45">Batterifortegn · 79</string>
     <string name="readings_response_7b" volt:src="7dde086eb3513f7f30f8c32639db0682d99d2980">Læsning af fejlhistorik (0x7B)</string>
     <string name="readings_response_7b_short" volt:src="e8a707db737dfe2098949d2f5663c218b775d9a8">Fejlhistorik · 7B</string>
     <string name="readings_response_90" volt:src="29466a70acfe276e29d2c0dbbaf48cc23457741e">Telemetrirapport for Oversigt (0x90)</string>

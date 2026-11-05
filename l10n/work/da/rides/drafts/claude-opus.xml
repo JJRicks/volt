@@ -26,7 +26,7 @@
     <string name="rides_simulating_exit" volt:src="c962eddbfea604de450573056e16bbee3607ec99">Simulerer · Afslut</string>
     <string name="rides_saving_sensors_button" volt:src="e2ccc0ad8dc14a4a8f6551e5e29258fd38335aef">Gemmer telefonens sensordata…</string>
     <string name="rides_simulating_exit_description" volt:src="c97242ae84cf7bb0f32575d58f3d44aa8b20031a">Simulerer. Afslut simulering</string>
-    <string name="rides_retry_save" volt:src="dc2a6e9b081239a00b33596f06af6a8467061f12">Prøv igen at gemme</string>
+    <string name="rides_retry_save" volt:src="dc2a6e9b081239a00b33596f06af6a8467061f12">Prøv at gemme igen</string>
     <string name="rides_toast_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Afslut simuleringen først</string>
     <string name="rides_toast_could_not_stop" volt:src="9bdba88e4808d891f709eb14db2484b10c7a814b">Kunne ikke stoppe · optager stadig</string>
     <string name="rides_toast_finishing_previous" volt:src="19068315ac5ee3b46b95b3edd398a137793d4a01">Afslutter den forrige tur…</string>
@@ -67,11 +67,11 @@
     <string name="rides_tile_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Topfart</string>
     <string name="rides_reason_odometer_reset" volt:src="d0627952bee838eaf46325575b5a50830674b41f">Kilometertæller nulstillet</string>
     <string name="rides_battery_energy" volt:src="212c96ac43105bc54ba5d9f1e4c48ae8c60f9722">Batteri og energi</string>
-    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Batteristigning</string>
-    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Batterifald</string>
+    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Stigning i batteriniveau</string>
+    <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Fald i batteriniveau</string>
     <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Pr. distance</string>
     <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Energigennemløb</string>
-    <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Effektdækning</string>
+    <string name="rides_power_coverage" volt:src="7ed5c6fa8f1f2604ab958f95a9f1385d18990902">Dækning af effektdata</string>
     <string name="rides_route_finishing" volt:src="cfed97e5a40f26b62cbc4c33d66487ae0f9060fd">Afslutter sensorfilerne</string>
     <string name="rides_route_loading" volt:src="e5ee923441491f076bb108ed763a050df2d9f5c4">Indlæser ruten</string>
     <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Ruten er ikke tilgængelig</string>
@@ -86,10 +86,10 @@
     <string name="rides_saving" volt:src="acfaabb6b957209ceff3be3a430f95cd70bb2922">Gemmer…</string>
     <string name="rides_saving_sensors" volt:src="cc1fa8e0c50c21f675c4f51c453f2bbcb73bf285">Gemmer telefonens sensordata</string>
     <string name="rides_all_samples" volt:src="d079405497641703fc671780f0cd03086fda4b66">Alle målepunkter</string>
-    <string name="rides_all_samples_description" volt:src="1f613a0c01bd48658728229e641f504e50fd5908">Alle optagede målepunkter i grafen er indlæst</string>
+    <string name="rides_all_samples_description" volt:src="1f613a0c01bd48658728229e641f504e50fd5908">Alle optagne målepunkter i grafen er indlæst</string>
     <string name="rides_toast_low_memory" volt:src="07bacb681055fedc9a4f6a6b12632628ad27800b">Lav hukommelse · kun forhåndsvisning</string>
     <string name="rides_preview_retry" volt:src="ddbae7b02681c69703fc19822070815540c039d7">Forhåndsvisning · Prøv igen</string>
-    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Kun forhåndsvisning. Prøv igen at indlæse alle optagede målepunkter i grafen</string>
+    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Kun forhåndsvisning. Prøv at indlæse alle optagne målepunkter i grafen igen</string>
     <string name="rides_electrical_energy" volt:src="c25cbe0cc36ce2c248cbfc7818933e13e17add77">Elektrisk energi</string>
     <string name="rides_direction_confirmed" volt:src="3517b661574c4c41efd4351cc06b903953465adc">Strømretning bekræftet</string>
     <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Strømretning ikke bekræftet for hele turen · værdierne er absolut energigennemløb</string>
@@ -134,12 +134,12 @@
     <string name="rides_barometer" volt:src="bfed743c0e5590ab6bf672ebf54f25e35b57fa6c">Højde fra barometer</string>
     <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="rides_barometer_gps" volt:src="37769f8228e7f6c822e91abf1b56a49cd1dce43a">GPS-højde</string>
-    <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Sensorer til bevægelse</string>
+    <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Bevægelsessensorer</string>
     <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Telefonens placering</string>
     <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">Monteret</string>
     <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">I lommen</string>
     <string name="rides_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Lab, eksperimentel</string>
+    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Eksperimentel</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Ændringer gælder fra næste tur</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Ingen browser tilgængelig.</string>
     <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Eksportér rå filer</string>
@@ -149,7 +149,7 @@
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Rute</string>
     <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Telefon og rute</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">GPS-distance</string>
-    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Stigning / nedkørsel</string>
+    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Højdemeter op / ned</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Acceleration</string>
     <string name="rides_gps_speed_change" volt:src="a15e78f916dd0aff03e2124b76da4f735b3a4a34">Ændring i GPS-hastighed · min. / maks.</string>
     <string name="rides_scooter_speed_change" volt:src="28ea9845136590f144c491f3926ec406ec0040a0">Ændring i løbehjulets hastighed · min. / maks.</string>
@@ -199,10 +199,10 @@
     <string name="rides_compare_energy_per_distance" volt:src="383055aa6391d3a60967019a37e54397ae6f2559">Energi pr. distance</string>
     <string name="rides_compare_gaps" volt:src="046c47c2e084ac901e847c73a699bb7eb64d8de2">Huller</string>
     <string name="rides_compare_min_voltage" volt:src="069f69e2489b3f52cbc3595ab0146fed40883493">Minimumsspænding</string>
-    <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Vis første</string>
-    <string name="rides_view_second" volt:src="f3e3a70a83012feab4bd6608ce2fa7d0e2e0a39c">Vis anden</string>
-    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Anslået stigning</string>
-    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Anslået nedkørsel</string>
+    <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Vis første tur</string>
+    <string name="rides_view_second" volt:src="f3e3a70a83012feab4bd6608ce2fa7d0e2e0a39c">Vis anden tur</string>
+    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Anslåede højdemeter op</string>
+    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Anslåede højdemeter ned</string>
     <string name="rides_compare_sheet_rides" volt:src="26106ee114c596e0e682c5f1a7dfa91a4d672c2e">2 ture</string>
     <string name="rides_compare_sheet_title" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Sammenligning</string>
     <string name="rides_toast_compare_failed" volt:src="f9fb418132d1fa99069ebb891968cf46e539dade">Kunne ikke sammenligne optagelserne.</string>
@@ -227,21 +227,21 @@
         <item quantity="one">%1$d tur</item>
         <item quantity="other">%1$d ture</item>
     </plurals>
-    <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. Detaljerne bliver vist ved siden af listen.</string>
-    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Turens detaljer bliver åbnet.</string>
+    <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. Viser detaljerne ved siden af listen.</string>
+    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Åbner turens detaljer.</string>
     <string name="rides_showing" volt:src="3b155b2ef7a92fd6a06dabf28667e75a6f6aff11">Viser %1$s</string>
     <string name="rides_unit_kilobyte" volt:src="45886c037746f5b96600e1d46c002f20df5f5c9b">KB</string>
     <string name="rides_unit_megabyte" volt:src="524c413d2ca2775c5d77a297c2cc28b406e14022">MB</string>
     <string name="rides_compare_two_saved" volt:src="b3e7e0eb46a4aebaad05254b195a312a2ec1a68c">Sammenlign to ture, %1$d af 2 gemte ture</string>
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">%1$d af 2 ture valgt</string>
-    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Batteristigning, %1$d procentpoint</string>
-    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Batterifald, %1$d procentpoint</string>
+    <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Stigning i batteriniveau, %1$d procentpoint</string>
+    <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Fald i batteriniveau, %1$d procentpoint</string>
     <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Bekræftet: %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Ikke bekræftet: %1$s</string>
     <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Strømretning bekræftet i %1$s, ikke bekræftet i %2$s</string>
     <string name="rides_switch_experimental" volt:src="550602e28c6658e848285df423a96bb5370f3597">%1$s, eksperimentel funktion</string>
-    <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">Monteret · målinger: %1$s</string>
-    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">I lommen · målinger: %1$s</string>
+    <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">Monteret · målepunkter: %1$s</string>
+    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">I lommen · målepunkter: %1$s</string>
     <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Effektstørrelse · blå 0 → gul %1$s · grå: mangler</string>
     <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Relativ højde · blå %1$s → gul %2$s · grå: mangler</string>
     <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Løbehjulets hastighed · blå 0 → gul %1$s eller hurtigere · grå stiplet: mangler</string>
@@ -250,8 +250,8 @@
     <string name="rides_unit_acceleration" volt:src="ef30a3ceccd5d9f55c39f08e8b804ca8783bfa49">m/s²</string>
     <string name="rides_unit_gravity" volt:src="72ce2c42a1c526e33440051e5991667418bc201c">g</string>
     <string name="rides_acceleration_with_g" volt:src="cb4b801e05dc95e4bc026037f02f1c9c10c2f449">%1$s %2$s (%3$s %4$s)</string>
-    <string name="rides_delete_title_unnamed" volt:src="2afeeedfba2d62fe0c87309f72502567106336fa">Slet denne tur?</string>
-    <string name="rides_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">Slet %1$s?</string>
+    <string name="rides_delete_title_unnamed" volt:src="2afeeedfba2d62fe0c87309f72502567106336fa">Vil du slette denne tur?</string>
+    <string name="rides_delete_title" volt:src="e20effa2bf28e9c92e79d299ceffe4f378072e15">Vil du slette %1$s?</string>
     <string name="rides_view_route_of" volt:src="56a2c0579756be5e142c2660ef8f6905d9467a45">Vis ruten for %1$s</string>
     <string name="rides_compare_line_description" volt:src="f03f72e436ea627c53c7e94f8d50e69d5d4ad20a">%1$s: første tur %2$s, anden tur %3$s</string>
     <string name="rides_compare_reason_second" volt:src="1d4db2513d9fca105e252d3b8ac841df280bec26">Anden tur: %1$s</string>
@@ -274,7 +274,7 @@
     <string name="rides_sensor_status_barometer" volt:src="2957566839bc1b3438a1f9ee177477ee70a00315">%1$s · barometer</string>
     <string name="rides_sensor_status_motion_experimental" volt:src="f1ba68b255978fee94ca1c84bd47c1084bf2b617">%1$s · eksperimentelle bevægelsesdata</string>
     <string name="rides_sensor_status_motion_raw" volt:src="1c5e03f6bbd5f2391f9d37ef744895e4da28d564">%1$s · rå bevægelsesdata</string>
-    <string name="rides_sensor_status_motion_unavailable" volt:src="8ca1f87e12f25c1ba84fe8902b2a26e21b5fc853">%1$s · sensor til bevægelse ikke tilgængelig</string>
+    <string name="rides_sensor_status_motion_unavailable" volt:src="8ca1f87e12f25c1ba84fe8902b2a26e21b5fc853">%1$s · bevægelsessensor ikke tilgængelig</string>
     <string name="rides_chart_chip_from_mph" volt:src="181819373c90e229f70a724588b6ceeb87ad1050">" · ≥2 mph"</string>
     <string name="rides_chart_chip_from_kmh" volt:src="2709d6f867db56f2b247afc593fe6e1aa9084b5b">" · ≥3 km/h"</string>
     <string name="rides_chart_chip_no_data" volt:src="3dce5678e5b62e5571a565a115faa1814bf74dc8">" · ingen data"</string>

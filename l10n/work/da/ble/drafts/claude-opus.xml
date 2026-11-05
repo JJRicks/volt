@@ -23,7 +23,7 @@
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Forbindelsen blev mistet</string>
     <string name="ble_failed_unsupported_scooter" volt:src="d86a2ec5c2df20c4dd8b14d5443d04d295c13269">Løbehjulet understøttes ikke</string>
     <string name="ble_failed_send" volt:src="a63f34d9ba366500decec000ed5b673e242397ff">Kunne ikke sende</string>
-    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Tjek af ejer mislykkedes</string>
+    <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Kunne ikke tjekke ejeren</string>
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Firmwaren understøttes ikke</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Løbehjulet blev ikke genkendt</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Ikke det gemte løbehjul</string>
@@ -51,44 +51,44 @@
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Stop kompatibilitetstjekket først</string>
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Opret forbindelse først</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Vent på en ny forbindelse til løbehjulet.</string>
-    <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Løs løbehjulets advarsel %1$d, før du låser.</string>
+    <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Afhjælp advarsel %1$d fra løbehjulet, før du låser.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Stop løbehjulet først</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Ikke tilgængelig lige nu</string>
     <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Værdien er uden for det område, den officielle app tillader</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: allerede indstillet.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Ændring afvist</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">Indstillingen blev ændret under ventetiden. Prøv igen.</string>
-    <string name="ble_pin_confirmed" volt:src="bd9e10962ab7cfbed73b75b2219b3387ddd2dc8c">Indstillinger for pinkode bekræftet.</string>
+    <string name="ble_pin_confirmed" volt:src="bd9e10962ab7cfbed73b75b2219b3387ddd2dc8c">Indstillingerne for pinkoden er bekræftet.</string>
     <string name="ble_charge_start_confirmed" volt:src="fedbcf711b90e26341bc2f742f7b85c7abdfefe2">Starttid for opladning bekræftet.</string>
     <string name="ble_setting_confirmed" volt:src="3e509dc08ecbe51d4effef6fb4ba219cd323d95a">Indstillingen for %1$s blev bekræftet.</string>
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s blev bekræftet.</string>
     <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Klokkeslæt sendt (ikke verificeret)</string>
-    <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Læs status for pinkode, og par så denne telefon.</string>
-    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Indstil og aktivér pinkoden på styret, før du parrer til nærhedsoplåsning.</string>
+    <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Læs status for pinkoden, og par så denne telefon.</string>
+    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Indstil og aktivér pinkoden på styret, før du parrer telefonen til nærhedsoplåsning.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Denne telefon er allerede parret med dit løbehjul.</string>
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Godkend anmodningen om Bluetooth-parring på din telefon.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Bluetooth-parring kunne ikke starte. Prøv igen.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">Bluetooth-parring er ikke tilgængelig.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Status for pinkode kom ikke frem. Tryk på ”Læs status for pinkode” for at prøve igen.</string>
-    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Status for pinkode er ikke tilgængelig på denne firmware.</string>
-    <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Indstillinger for pinkode kræver ejerprofilen.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Status for pinkoden kom ikke frem. Tryk på ”Læs status for pinkoden” for at prøve igen.</string>
+    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Status for pinkoden er ikke tilgængelig på denne firmware.</string>
+    <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Indstillingerne for pinkoden kræver ejerprofilen.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Par denne telefon, før du slår nærhedsoplåsning til</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Aktivér en indstillet pinkode på styret før nærhedsoplåsning</string>
-    <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Læs status for pinkode, og anvend så nærhedsoplåsning.</string>
-    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Opret forbindelse som løbehjulets ejer for at læse indstillinger for pinkode.</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Aktivér en indstillet pinkode på styret, før du slår nærhedsoplåsning til</string>
+    <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Læs status for pinkoden, og slå så nærhedsoplåsning til.</string>
+    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Opret forbindelse som løbehjulets ejer for at læse indstillingerne for pinkoden.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Slå nærhedsoplåsning fra, før du deaktiverer pinkoden på styret.</string>
-    <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Læs den aktuelle status for pinkode først.</string>
+    <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Læs den aktuelle status for pinkoden først.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Afslut den guidede test først</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Kompatibilitetstjek stoppet</string>
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Kompatibilitetstjek afsluttet</string>
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Afslut det aktuelle forsøg først</string>
-    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testhistorik er ikke tilgængelig</string>
-    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34" volt:attempt="2">Gennemgå først det forsøg, der ikke blev afsluttet</string>
+    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testregistreringer er ikke tilgængelige</string>
+    <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34" volt:attempt="2">Gennemgå først det uafsluttede forsøg</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Intet at sætte tilbage</string>
-    <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Kunne ikke sætte tilbage. Intet blev ændret.</string>
+    <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Kunne ikke sætte værdien tilbage. Intet blev ændret.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Afslut den aktuelle test først</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test ikke fundet</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Kunne ikke begynde at sætte tilbage. Intet blev ændret.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Kunne ikke begynde at sætte værdien tilbage. Intet blev ændret.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Bekræftet</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Indstilling bekræftet ved tilbagelæsning; selve lyset ikke målt</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Accepteret; ingen tilbagelæsning af uret tilgængelig</string>
@@ -97,7 +97,7 @@
     <string name="ble_result_rejected" volt:src="3909a6b37661b392ed8c7b99dff3f45cbb7fff43">Afvist (%1$s)</string>
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Annulleret før afsendelse</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Guidet test</string>
-    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Forbindelsen blev mistet, før låsen blev ændret</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Løbehjulet bekræftede ikke ændringen af låsen</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Løbehjulet var ikke klar til at ændre låsen; prøv igen</string>
+    <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Forbindelsen blev mistet, før låsestatus blev ændret</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Løbehjulet bekræftede ikke, om låsestatus blev ændret</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Løbehjulet var ikke klar til at ændre låsestatus; prøv igen</string>
 </resources>

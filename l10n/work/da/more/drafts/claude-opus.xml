@@ -9,7 +9,7 @@
     <string name="more_section_developer" volt:src="092b0b0546b617b3c6cddc597520c4a15e370baa">Indstillinger for udviklere</string>
     <string name="more_section_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mine løbehjul</string>
     <string name="more_section_security" volt:src="c37d69a4cc528cb88ba0d4abbee25e2fae4411fe">Pinkode og nærhedsoplåsning</string>
-    <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN og nærhed</string>
+    <string name="more_section_security_title" volt:src="e609bc77142913722bef73d1892af098967f960d">Pinkode og nærhed</string>
     <string name="more_section_lab" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Eksperimentelle funktioner</string>
     <string name="more_section_data" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data og historik</string>
     <string name="more_section_about" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om appen og tilladelser</string>
@@ -19,13 +19,13 @@
     <string name="more_report_issue" volt:src="4407d1cf2c12f4df91144265e3e2e1deae342f72">Rapportér et problem</string>
     <string name="more_units_title" volt:src="f4c77f041d241a3afccc7febed7e5eb1843c093a">Enheder</string>
     <string name="more_compatibility_title" volt:src="acabb7666e990ae903824fab6cf43b3f7167b3c9">Kompatibilitet</string>
-    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Ikke afsluttet test</string>
-    <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, ingen data om tilstand</string>
+    <string name="more_unfinished_test_title" volt:src="d652782cf5839a767a0f62a85d4a316a3da674b1">Uafsluttet test</string>
+    <string name="more_toggle_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, tilstand: ingen data</string>
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Trin %1$d</string>
     <string name="more_onboarding_title" volt:src="481273709dc4b3396f6168624d997dccac537c64">Dit løbehjul. Dine data.</string>
     <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Importér min ejeropsætning</string>
-    <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Tillad Enheder i nærheden</string>
+    <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Tillad adgang til Enheder i nærheden</string>
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Forbind</string>
     <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Importér din ejeropsætning først</string>
     <string name="more_onboarding_guide" volt:src="0d1d7161e799e8b1bf44f6126c1efd07a13fd81b">Vejledning til ejeropsætning</string>
@@ -66,12 +66,12 @@
     <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Optagelser bevarer altid forbindelsen</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Hold skærmen tændt</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Under optagelse</string>
-    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Afslut parkerede ture</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s efter, at Bluetooth-forbindelsen mistes ved et stop</string>
+    <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Afslut ture ved parkering</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">10 s efter at Bluetooth-forbindelsen er mistet ved et stop</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Optagelse i baggrunden</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Ubegrænset batteriforbrug</string>
-    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batteriforbrug optimeret; lange optagelser kan stoppe. Batteriindstillingerne bliver åbnet</string>
-    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Tilpasset</string>
+    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Batteriforbrug optimeret; lange optagelser kan stoppe. Åbner batteriindstillingerne</string>
+    <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Eget</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Vælg Volt for at administrere appens Android-indstillinger</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Åbn indstillingerne for Volt i Android</string>
     <string name="more_units_distance" volt:src="1f80f00b9165f3a5a5a178d4cbd7eacd1cbabacf">Afstand og hastighed</string>
@@ -88,7 +88,7 @@
     <string name="more_language_system" volt:src="db007d42e06bc432af9febe078eaa93dd21b7886">Systemstandard (%1$s)</string>
     <string name="more_language_beta" volt:src="7c6e652730717f8efc021ac5d5b536b14d01b151">Beta</string>
     <string name="more_language_value_beta" volt:src="e60432a8df2ea691307cce9e8ea19bc6160dedfd">%1$s · Beta</string>
-    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Betaoversættelser er lavet med AI og tjekket automatisk. Rapporter og diagnosticeringsdata forbliver på engelsk. Hvis du vil rapportere et problem med en formulering, skal du bruge ”Rapportér et problem”.</string>
+    <string name="more_language_note" volt:src="9c28b700ea0c2b121458230c950ca4455b00fdad">Betaoversættelser er lavet med AI og tjekket automatisk. Rapporter og diagnosticeringsdata er altid på engelsk. Hvis du vil rapportere et problem med en formulering, skal du bruge ”Rapportér et problem”.</string>
     <string name="more_language_android_settings" volt:src="75f037b4f554fc87835abcfefdee2ebad470fcd6">Du kan også ændre dette i Android under Indstillinger › Apps › Volt › Sprog.</string>
     <string name="more_history_connected" volt:src="01bd17c51fe5fb4866273a807118085030e36b48">Historik fra løbehjulet</string>
     <string name="more_history_save" volt:src="bab79089c98de7cd82fdad7c7f9e2c921c28fd30">Gem historik fra løbehjulet</string>
@@ -96,7 +96,7 @@
     <string name="more_history_off_kept" volt:src="46c9be67fb117972d7212eeea2e93155c0e9d689">Fra · seneste måleværdier bevares</string>
     <string name="more_history_local_storage" volt:src="a19bdd89e8778774501d0b272b5818a315cbdd65">Lokal lagerplads</string>
     <string name="more_history_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Tjekker…</string>
-    <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Detaljerede måleværdier</string>
+    <string name="more_history_detailed" volt:src="9172779446971e52b202f324b5a4cf9a7ddc3d48">Detaljerede målepunkter</string>
     <string name="more_history_7_days" volt:src="5c208d1318cc069b92f8c27e86e176d433070e10">7 dage</string>
     <string name="more_history_minutes" volt:src="a17d36db4244427d82653f7a939817820661613c">Opsummeringer pr. minut</string>
     <string name="more_history_30_days" volt:src="f9b0001cfd0c2ede3825d6dde57e83023f23a0f4">30 dage</string>
@@ -121,7 +121,7 @@
     <string name="more_refresh_10" volt:src="3c632cab41da6766399180c27e4dc485caa1f963">10 sekunder</string>
     <string name="more_pin_handlebar" volt:src="9ebceaa07ef3bbec8add681acdb6a2a6a780f643">Pinkode på styret</string>
     <string name="more_pin_fallback" volt:src="fe1fc79cac5fc4007fa1b76ca3d5832bc336f2d9">Pinkode på styret</string>
-    <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">Læs status for pinkode</string>
+    <string name="more_pin_read" volt:src="1fcf4312178cd6cd98cde6674bb416fa317063cf">Læs status for pinkoden</string>
     <string name="more_pin_set_row" volt:src="603eff531215e4206165cd40552c3fbc3521366d">Indstil eller skift pinkode</string>
     <string name="more_proximity_label" volt:src="292206d743077769324ab3de968fcbd627c6bc24">Nærhedsoplåsning</string>
     <string name="more_proximity_pair" volt:src="14a611adba760ec799d776213f86a9936c8c6661">Par denne telefon med løbehjulet</string>
@@ -142,37 +142,37 @@
     <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635">Pinkoderne var ikke ens. Prøv igen.</string>
     <string name="more_pin_reconnect" volt:src="b1f3abd4d0c5a219c84e3b5915358dbccaa3ef5a">Opret forbindelse igen som løbehjulets ejer først.</string>
     <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Vent, til den igangværende ændring af løbehjulet er færdig.</string>
-    <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">Skift af pinkode blev ikke startet. %1$s</string>
+    <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">Skift af pinkoden blev ikke startet. %1$s</string>
     <string name="more_pin_guide_body" volt:src="56841e50454a5f70cf1a90d94a32d93d0f66553e">Løbehjulet er parkeret og låst.</string>
-    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Tryk på blinklyset</string>
+    <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Tryk på blinklysknappen</string>
     <string name="more_pin_guide_digit" volt:src="4e357338627ffe8aaa390f8636d59b477628ef94">Indstil cifferet, klem om bremsen</string>
-    <string name="more_pin_guide_power" volt:src="6803ccbe9cf35fc27acc31be5f7ab9d921b2f83a">Tryk på tænd/sluk</string>
+    <string name="more_pin_guide_power" volt:src="6803ccbe9cf35fc27acc31be5f7ab9d921b2f83a">Tryk på tænd/sluk-knappen</string>
     <string name="more_pin_guide_step" volt:src="274e8fee2e123191dfaa434b0f0898951ec84362">Trin %1$d, %2$s</string>
     <string name="more_pin_guide_note" volt:src="f32a526209fd8cd168c085af548ac8392d19c489">Med nærhedsoplåsning: parret telefon tæt på, klem om bremsen. Test begge dele, mens løbehjulet er parkeret, før du stoler på dem.</string>
     <string name="more_got_it" volt:src="5dc9f47df05386a945a24438ead6f800a2136a15">Forstået</string>
-    <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Styr: 1 knap til blinklys, 2 bremsegreb, 3 tænd/sluk-knap</string>
+    <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Styr: 1 blinklysknap, 2 bremsegreb, 3 tænd/sluk-knap</string>
     <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Ikke testede funktioner</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Hjælp med at verificere</string>
     <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Intet at afprøve</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Kommandosvar</string>
-    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Ryd resultater af forsøg</string>
-    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Ryd resultater af forsøg?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glemmer, hvad dine forsøg på dette løbehjul viste, så de forsvinder fra din næste rapport og fra ”Sæt tilbage”. Indstillingerne forbliver, som de er. Forsøg, der ikke blev færdige, bliver stående, indtil du gennemgår dem.</string>
+    <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Ryd forsøgsresultater</string>
+    <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Vil du rydde forsøgsresultaterne?</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109" volt:attempt="2">Volt glemmer, hvad dine forsøg på dette løbehjul viste, så de forsvinder fra din næste rapport og fra ”Sæt tilbage”. Indstillingerne ændres ikke. Uafsluttede forsøg bliver stående, indtil du gennemgår dem.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Ingen afsluttede forsøg at rydde</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="one">%1$d forsøg ryddet</item>
         <item quantity="other">%1$d forsøg ryddet</item>
     </plurals>
-    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Resultater af forsøg bliver på denne telefon, indtil en kompatibilitetsrapport, du sender, indeholder dem, eller indtil du rydder dem."</string>
-    <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Funktioner, som den officielle app tilbyder til din model, forbliver under Indstillinger for løbehjulet. Hastighedsgrænser, opladning, låsen, pinkoden, nærhedsoplåsning og uret bliver aldrig tilføjet her. Volt ændrer aldrig firmware.</string>
-    <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Funktioner, som den officielle app tilbyder til din model, forbliver under Indstillinger for løbehjulet. Volt ændrer aldrig firmware.</string>
+    <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Forsøgsresultater bliver på denne telefon, indtil du sender dem med en kompatibilitetsrapport eller rydder dem."</string>
+    <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Funktioner, som den officielle app tilbyder til din model, ligger stadig under Indstillinger for løbehjulet. Hastighedsgrænser, opladning, låsen, pinkoden, nærhedsoplåsning og uret bliver aldrig tilføjet her. Volt ændrer aldrig firmware.</string>
+    <string name="more_lab_foot_elsewhere" volt:src="1868e868e0eaa49d1febb61622c913ae00a783bc">Funktioner, som den officielle app tilbyder til din model, ligger stadig under Indstillinger for løbehjulet. Volt ændrer aldrig firmware.</string>
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt ændrer aldrig firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Forbinder…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Afprøv på dette løbehjul</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Den officielle app tilbyder disse til din model, men Volt har ikke testet dem på den. Dit forsøg og dit svar kommer med i din næste kompatibilitetsrapport.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Den officielle app tilbyder disse funktioner til din model, men Volt har ikke testet dem på den. Dit forsøg og dit svar kommer med i din næste kompatibilitetsrapport.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Ingen data fra dette løbehjul</string>
-    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kan ikke læse disse tilbage, så Volt tilbyder dem ikke.</string>
-    <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt sender ingen kommandoer for løbehjul til dette produkt.</string>
+    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt kan ikke læse dem tilbage, så Volt tilbyder dem ikke.</string>
+    <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt sender ingen løbehjulskommandoer til dette produkt.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Intet at afprøve på UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">Dette løbehjuls model-id passer ikke til dets serienummer, så Volt tilbyder intet at afprøve.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Den officielle app har ikke denne model på listen, så Volt kan ikke se, hvilke funktioner den mangler. Intet at afprøve endnu.</string>
@@ -186,30 +186,30 @@
     <string name="more_lab_value_reason" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
     <string name="more_lab_review" volt:src="3e30d82633f78b913bc67cff1197932813b3e9a4">Gennemgå</string>
     <string name="more_lab_set_back" volt:src="c6720801925d102509b9eca5edc72f8b23024589">Sæt tilbage</string>
-    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Gennemgå forsøget med %1$s, der ikke blev færdigt</string>
+    <string name="more_lab_review_row" volt:src="0c421211196cb70677326f1ecc751f6cd2845b84" volt:attempt="2">Gennemgå det uafsluttede forsøg med %1$s</string>
     <string name="more_lab_set_back_row" volt:src="76c83e0daee6cf7b3cf847ba149bd410e18a30e4">%1$s: sæt tilbage til %2$s</string>
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Afprøv %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Opret forbindelse for at afprøve disse.</string>
+    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Opret forbindelse for at afprøve funktionerne.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Venter på ny status fra løbehjulet.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Stop løbehjulet for at afprøve disse.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Stop løbehjulet for at afprøve funktionerne.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Venter på, at løbehjulet angiver, at det er parkeret.</string>
-    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Afhjælp løbehjulets advarsel for at afprøve disse.</string>
-    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Lås op for løbehjulet for at afprøve disse.</string>
+    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Afhjælp løbehjulets advarsel for at afprøve funktionerne.</string>
+    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Lås op for løbehjulet for at afprøve funktionerne.</string>
     <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Kun ejerens profil kan afprøve disse.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Vent, til kompatibilitetstjekket er færdigt.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Afslut det igangværende forsøg først.</string>
-    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Stop optagelsen for at afprøve disse.</string>
+    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Stop optagelsen for at afprøve funktionerne.</string>
     <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Venter på dit svar</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Dit svar</string>
     <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Så du en ændring?</string>
     <string name="more_lab_status_ask_short" volt:src="13e4f0fab3a2205c790a4e25e386173d5bf8e5a8">Svar</string>
-    <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Sætter tilbage…</string>
+    <string name="more_lab_status_setting_back" volt:src="bc31c0640297d362469b1857510428362a6c7390">Sætter værdien tilbage…</string>
     <string name="more_lab_status_simulated" volt:src="91bb4ed4c138b56dc1058336901d2650697a9a90">Simuleret ændring</string>
     <string name="more_lab_status_simulated_short" volt:src="781634cc580bebb6c14e20c88e6af911eb783f83">Simuleret</string>
-    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Ikke færdigt · gennemgå</string>
-    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Ikke færdigt</string>
+    <string name="more_lab_status_unfinished" volt:src="3a4281e8f25cb2da9e1c879a97f04a3de3afe9a9" volt:attempt="2">Uafsluttet · gennemgå</string>
+    <string name="more_lab_status_unfinished_short" volt:src="2c60f8e6bf1234c4b5515ed80faa562f2c42cd69" volt:attempt="2">Uafsluttet</string>
     <string name="more_lab_status_not_tried" volt:src="f1514f8c8838e6251befb786b99e058456331ff2">Ikke afprøvet endnu</string>
     <string name="more_lab_status_unverified" volt:src="a94b0634c41fd88835795652cea91381b9004c7a">Ikke verificeret på din model</string>
     <string name="more_lab_status_unverified_short" volt:src="1e956029f1544e2359a928549a085516de057ec4">Ikke verificeret her</string>
@@ -221,7 +221,7 @@
     <string name="more_lab_status_worked_short" volt:src="b1b6fb42bc14492a931a6d52b1a8540a8274d239">Virkede</string>
     <string name="more_lab_status_refused" volt:src="076ccb557fae7b59ad698827bf500a0a7e40faef">Afvist af løbehjulet</string>
     <string name="more_lab_status_refused_short" volt:src="00eb4358f726bcc7f3a16489e785ca52501e0af0">Afvist</string>
-    <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Anden værdi aflæst</string>
+    <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Anden værdi læst</string>
     <string name="more_lab_status_other_value_short" volt:src="38723630e69bf18d7ac54a45f3a0b090e1009de1">Anden værdi</string>
     <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Ikke sendt</string>
     <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Ingen ændring set</string>
@@ -238,25 +238,25 @@
     <string name="more_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="more_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nej</string>
     <string name="more_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Spring over</string>
-    <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b">Dette forsøg blev ikke afsluttet, så løbehjulet har muligvis stadig den afprøvede værdi. Gennemgå forsøget for at sætte tilbage eller beholde værdien.</string>
+    <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b">Dette forsøg blev ikke afsluttet, så løbehjulet har muligvis stadig den afprøvede værdi. Gennemgå forsøget for at sætte værdien tilbage eller beholde den.</string>
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Vælg en grænse</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Vælg en værdi</string>
-    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt sender én ændring, mens løbehjulet er parkeret og oplåst, læser den tilbage og spørger derefter, hvad du så. Værdien forbliver, indtil du sætter tilbage. Hvis forbindelsen afbrydes, skriver Volt aldrig igen af sig selv: Forsøget venter på din gennemgang.</string>
+    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt sender én ændring, mens løbehjulet er parkeret og oplåst, læser den tilbage og spørger derefter, hvad du så. Værdien bliver, indtil du sætter den tilbage. Hvis forbindelsen afbrydes, skriver Volt aldrig igen af sig selv: Forsøget venter på din gennemgang.</string>
     <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Tjekker, at værdien ikke er ændret…</string>
-    <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Sætter tilbage til %1$s…</string>
+    <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Sætter værdien tilbage til %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Læser den aktuelle værdi…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Sender %1$s og læser værdien tilbage…</string>
     <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Så du en ændring?</string>
     <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Allerede %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Afprøv igen: %1$s</string>
     <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Afprøv %1$s</string>
-    <string name="more_lab_cant_set_back" volt:src="c94e159a7371b9f61d6f3a973106863a495b45b7">Volt kan ikke sætte tilbage til %1$s bagefter: den officielle app tilbyder det ikke her.</string>
-    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Sæt tilbage til %1$s</string>
+    <string name="more_lab_cant_set_back" volt:src="c94e159a7371b9f61d6f3a973106863a495b45b7">Volt kan ikke sætte værdien tilbage til %1$s bagefter: Den officielle app tilbyder det ikke her.</string>
+    <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Sæt værdien tilbage til %1$s</string>
     <plurals name="more_lab_why_offered" volt:src="ebce9d2283a1b0db0c26b1dae4fc9165aecbd5ea">
-        <item quantity="one">Den officielle app tilbyder dette på %1$d anden model, men ikke på din. Det gør måske ingenting her eller virker anderledes.</item>
-        <item quantity="other">Den officielle app tilbyder dette på %1$d andre modeller, men ikke på din. Det gør måske ingenting her eller virker anderledes.</item>
+        <item quantity="one">Den officielle app tilbyder dette til %1$d anden model, men ikke til din. Det gør måske ingenting her eller virker anderledes.</item>
+        <item quantity="other">Den officielle app tilbyder dette til %1$d andre modeller, men ikke til din. Det gør måske ingenting her eller virker anderledes.</item>
     </plurals>
-    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Den officielle app tilbyder ikke dette på din model. Det gør måske ingenting her eller virker anderledes.</string>
+    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Den officielle app tilbyder ikke dette til din model. Det gør måske ingenting her eller virker anderledes.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">Pinkode og godkendelsesbytes er skjult</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Ingen ændringer endnu</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Synkronisering af lokalt ur\n%1$s</string>
@@ -265,7 +265,7 @@
     <string name="more_lab_no_activity" volt:src="462dec70513dd381151e68249466416956b886a4">Ingen forbindelsesaktivitet endnu.</string>
     <string name="more_about_version" volt:src="c9e02c9cf70aa51cd2bd641033c56dfe4b24f66b">Volt %1$s</string>
     <string name="more_about_tagline" volt:src="8c7e6a976a5463b2e998c6aeb25cba786ebee12a">Kun Bluetooth · ingen konto</string>
-    <string name="more_about_check_updates" volt:src="707493b7bd7351c922e9498d70301d0735e6ac4e">Tjek for opdateringer</string>
+    <string name="more_about_check_updates" volt:src="707493b7bd7351c922e9498d70301d0735e6ac4e">Søg efter opdateringer</string>
     <string name="more_about_permissions" volt:src="f6f5293d8c597ed9c0df6c66c8fbf5200c5a1838">Tilladelser</string>
     <string name="more_about_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Enheder i nærheden</string>
     <string name="more_about_nearby_sub" volt:src="2309be1a695dde12de5e77b0fc0ba1eb772fa306">Opretter forbindelse til dit løbehjul</string>
@@ -275,22 +275,22 @@
     <string name="more_about_notifications" volt:src="f7df4f501e4e6c25d07985148517548fdce7dd7c">Notifikationer</string>
     <string name="more_about_notifications_sub" volt:src="36f8391676abec4bb5403225e3ac7b1c665041bf">Notifikation under optagelse med Stop</string>
     <string name="more_about_your_data" volt:src="bff068be8607335f2e381f25fe22f5632c537e5e">Dine data</string>
-    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Alle data forbliver på denne telefon. Sikkerhedskopiering og gendannelse findes under Mere.</string>
+    <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Alle data bliver på denne telefon. Sikkerhedskopiering og gendannelse findes under Mere.</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Onlinekort</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Forbindelsesaktivitet</string>
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licenser og kreditering</string>
     <string name="more_about_connect" volt:src="abd864e29cbef410bdc078552ce25130279e1592">Opret forbindelse til det valgte løbehjul</string>
-    <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Tjek GitHub for opdateringer?</string>
+    <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Vil du søge efter opdateringer på GitHub?</string>
     <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">Volt spørger GitHub om den seneste udgivelse. GitHub ser din IP-adresse og din Volt-version; intet andet bliver sendt. Volt downloader eller installerer aldrig selv noget.</string>
-    <string name="more_update_check" volt:src="4a099424278cfcbddd43a46b5b6ec044ddf711c0">Tjek</string>
-    <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Tjekker for opdateringer</string>
+    <string name="more_update_check" volt:src="4a099424278cfcbddd43a46b5b6ec044ddf711c0">Søg</string>
+    <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Søger efter opdateringer</string>
     <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Spørger GitHub om den seneste udgivelse…</string>
     <string name="more_update_available" volt:src="7ffd9079e0f2563ea01c2ee25b063cb771a7be94">Volt %1$s er tilgængelig</string>
     <string name="more_update_available_body" volt:src="1653ea01112466bdd665da147e33855aeb491b23">Du har %1$s. Hent den på udgivelsessiden, og installér den oven på denne version; dine data bevares.</string>
     <string name="more_update_current" volt:src="0735317844597e79fefa950a5cf4011e9a40a532">Du har den nyeste version</string>
     <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s er en udviklingsversion. Den seneste udgivelse er %2$s.</string>
     <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s er den seneste udgivelse.</string>
-    <string name="more_update_failed" volt:src="841ba55d76f8a09530691c3c36367d258b287db7">Kunne ikke tjekke for opdateringer</string>
+    <string name="more_update_failed" volt:src="841ba55d76f8a09530691c3c36367d258b287db7">Kunne ikke søge efter opdateringer</string>
     <string name="more_update_no_answer" volt:src="e9d440be6236bce382694acec8a4f32b5d799bb6">GitHub svarede ikke. Tjek din forbindelse, og prøv igen.</string>
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Volt kunne ikke læse svaret fra GitHub. Prøv igen senere, eller se udgivelsessiden i din browser.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Åbn udgivelsessiden</string>
@@ -313,34 +313,34 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Hurtig</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto genkender UT5 MAX-opladere ud fra effekten i realtid. Hvis Auto ikke er sikker, bruger Volt den aktuelle opladningshastighed; vælg en oplader for at tilsidesætte det.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">Auto genkender UT5 MAX-opladere ud fra effekten i realtid. Hvis Auto ikke er sikker, bruger Volt det aktuelle ladetempo; vælg en oplader for at tilsidesætte det.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Gemte opladningskurver</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Optag denne opladning</string>
-    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stop optagelse af opladning</string>
+    <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Stop opladningsoptagelse</string>
     <string name="more_dev_recordings" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Opladningsoptagelser</string>
     <string name="more_dev_recordings_sub" volt:src="74f12c275268df7067294652b52ba23190fcd1a8">Gemte estimater og sluttider</string>
     <string name="more_dev_export" volt:src="b0060df221c4dc4a3e20f885ced9326da40f3c81">Eksportér opladningsoptagelser</string>
     <string name="more_dev_export_sub" volt:src="840c1220c0041af8286a225e143bc057cdfe612b">JSON · dette løbehjul</string>
-    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Stop optagelse af opladning før eksport, eller vent på den aktuelle eksport</string>
+    <string name="more_dev_export_busy" volt:src="28ebfd401f63431406d21fa2be78efc03760ce1b">Stop opladningsoptagelsen før eksport, eller vent på den aktuelle eksport</string>
     <string name="more_dev_clear_charges" volt:src="7f66e11839703ee0dfa9d363eeced693a403947f">Ryd dette løbehjuls opladningsoptagelser</string>
-    <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Ryd opladningsoptagelser?</string>
+    <string name="more_dev_clear_charges_title" volt:src="f2244da3c2a3b8818ec61be3ed5bcc0c3a9583ca">Vil du rydde opladningsoptagelserne?</string>
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Opladninger og indlærte kurver bliver fjernet. Ture bevares.</string>
     <string name="more_dev_clear_recordings" volt:src="4dd7d1113be57287eaa4014ec0fb40e7c877bb44">Ryd optagelser</string>
     <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Testlayouts</string>
     <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Indlæs alle widgets på plads 3</string>
-    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Erstat plads 3?</string>
+    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Vil du erstatte plads 3?</string>
     <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Kun plads 3 bliver overskrevet.</string>
     <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Erstat plads 3</string>
     <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Alle widgets er gemt på plads 3.</string>
     <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">Plads 3 kunne ikke gemmes.</string>
     <string name="more_dev_hide" volt:src="92902df2d159f4552d6023b4e30919987c1e2226">Skjul indstillinger for udviklere</string>
-    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Stop optagelse af opladning, før du skjuler indstillinger for udviklere</string>
+    <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Stop opladningsoptagelsen, før du skjuler indstillinger for udviklere</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Afslut eller annuller testen først</string>
-    <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Opret forbindelse til dit løbehjul først</string>
+    <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Opret forbindelse til løbehjulet først</string>
     <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Gemmes på telefonen · stopper ved 100 % · beholder de seneste 20</string>
     <string name="more_dev_which_charger" volt:src="7b52501fb200660f62b9170ec96b9318ade02e6a">Hvilken oplader er tilsluttet?</string>
-    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Optag med original oplader?</string>
-    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Optag med hurtigoplader?</string>
+    <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Vil du optage med den originale oplader?</string>
+    <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Vil du optage med hurtigoplader?</string>
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Tilsluttet oplader</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Start optagelse</string>
     <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Løbehjulet er skiftet · åbn igen</string>
@@ -352,7 +352,7 @@
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">Kvalificerede opladningsoptagelser med original oplader: %1$s</string>
     <string name="more_dev_curves_fast" volt:src="0d7a4aa0f29fe2db8568d6e099ff2b6b84c7d8fc">Kvalificerede opladningsoptagelser med hurtigoplader: %1$s</string>
     <string name="more_dev_curves_tooltip" volt:src="ab5533f954f9e3a683236701ad0d9c1ed1fdb2f8">En gennemført opladning kan forfine det afsluttende interval. Andre intervaller kræver to matchende optagelser. Estimater afhænger af dækning og aktuel effekt; estimater for UT5 MAX med original oplader og hurtigoplader virker også uden optagelser.</string>
-    <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Vis fulde licenstekster</string>
+    <string name="more_notices_view" volt:src="1de6c31331adab8a77537e9baa9a179cd8de467b">Vis de fulde licenstekster</string>
     <string name="more_notices_full" volt:src="2e896e1976f3db8e29fcca0001f123e6f44fe1ac">Fulde licenstekster</string>
     <string name="more_notices_unreadable" volt:src="5f65b6a856c7646ae7452808d89371f67149989d">Licensteksterne kunne ikke læses.</string>
     <string name="more_role_owner" volt:src="6a359e0c42ce31107b4e661ff169adf288b94a3d">Ejer</string>
@@ -370,7 +370,7 @@
     <string name="more_scooters_model_unknown" volt:src="6fedbc5bb2d906c46447405f68ddba4baeefbaee">Model ikke identificeret</string>
     <string name="more_scooters_shared_suffix" volt:src="649dfaf5acdfa3d19bf15761d0232b27af8f1712">" · Delt adgang"</string>
     <string name="more_scooters_last_connected" volt:src="efdfc14b5d1d610e5756c3e8a2d6b81afad5bbb5">Sidst forbundet %1$s</string>
-    <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Redigér %1$s</string>
+    <string name="more_scooters_edit_named" volt:src="eb8635a62680125e3ec67d4e4b2228ef57440bc2">Rediger %1$s</string>
     <string name="more_scooters_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Afbryd</string>
     <string name="more_scooters_action_named" volt:src="2d3dacf52b2e03498713ce8ccea2f6833184ac4e">%1$s %2$s</string>
     <string name="more_scooters_use_named" volt:src="e0c555963cb7c36a33b69480be2226d587632a3f">Brug %1$s. Se gemte data uden at oprette forbindelse</string>
@@ -391,7 +391,7 @@
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Opret forbindelse først</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">Venter på løbehjulet</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Ingen data fra firmwaren</string>
-    <string name="more_proximity_pin_first" volt:src="3f37e82484a6312eaf20b336cbbf6cdb1d805997">Slå pinkoden på styret til først</string>
+    <string name="more_proximity_pin_first" volt:src="3f37e82484a6312eaf20b336cbbf6cdb1d805997">Slå først pinkoden på styret til</string>
     <string name="more_proximity_pair_first" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Par denne telefon først</string>
     <string name="more_proximity_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_paired" volt:src="4005c572c487feea107aaf6272fa8f4ce933f282">Parret</string>

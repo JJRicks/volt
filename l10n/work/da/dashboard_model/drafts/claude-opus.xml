@@ -31,7 +31,7 @@
     <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Eksperimentel</string>
     <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data og historik</string>
     <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data &amp; historik</string>
-    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om og tilladelser</string>
+    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om appen</string>
     <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om appen</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Færdig senest</string>
     <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Færdig senest</string>
@@ -45,7 +45,7 @@
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Opdaterer…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (lært)</string>
     <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Løbehjulet</string>
-    <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Måler</string>
+    <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Måler…</string>
     <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">Til • %1$s</string>
     <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Ikke planlagt</string>
     <string name="dashboard_model_tile_at_time" volt:src="bf2c1d9211787ac67f4d9a7a67895abba193869e">" • %1$s"</string>
