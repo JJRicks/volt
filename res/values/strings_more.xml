@@ -30,19 +30,21 @@
     <string name="more_back_to" volt:screen="More" volt:purpose="accessibility">Back to %1$s</string>
     <!-- Menu row: back up all of Volt's data to a file, or restore from one. -->
     <string name="more_backup_restore" volt:screen="More" volt:purpose="menu row">Back up &amp; restore</string>
-    <!-- Menu row for the app's own settings page, and the back link to it from Units. -->
+    <!-- Menu row for the app's own settings page, its title, and the back link to it from Units. -->
     <string name="more_section_app" volt:screen="More" volt:purpose="navigation">App preferences</string>
-    <!-- Menu row for the hidden testing tools page, and the back link to it from Compatibility. -->
+    <!-- Menu row for the hidden testing tools page, its title, and the back link to it from Compatibility. -->
     <string name="more_section_developer" volt:screen="More" volt:purpose="navigation">Developer options</string>
-    <!-- Menu row: the scooters Volt knows and their settings. -->
+    <!-- Menu row, and its submenu's title: the scooters Volt knows and their settings. -->
     <string name="more_section_scooters" volt:screen="More" volt:purpose="menu row">My scooters</string>
     <!-- Menu row: the scooter's handlebar PIN and unlocking when the phone comes near. -->
     <string name="more_section_security" volt:screen="More" volt:purpose="menu row" volt:safety="pin">PIN &amp; proximity unlock</string>
-    <!-- Menu row: controls the official app may not offer on this model, to try with care. -->
+    <!-- Title at the top of the PIN & proximity unlock submenu (shorter than its menu row). The other submenus show their menu row's text as the title. -->
+    <string name="more_section_security_title" volt:screen="PIN &amp; proximity" volt:purpose="title" volt:safety="pin">PIN &amp; proximity</string>
+    <!-- Menu row, and its submenu's title: controls the official app may not offer on this model, to try with care. -->
     <string name="more_section_lab" volt:screen="More" volt:purpose="menu row" volt:safety="experimental">Experimental controls</string>
-    <!-- Menu row: ride and telemetry history stored on the phone. -->
+    <!-- Menu row, and its submenu's title: ride and telemetry history stored on the phone. -->
     <string name="more_section_data" volt:screen="More" volt:purpose="menu row">Data &amp; history</string>
-    <!-- Menu row: version, licences, disclaimers and Android permissions. -->
+    <!-- Menu row, and its submenu's title: version, licences, disclaimers and Android permissions. -->
     <string name="more_section_about" volt:screen="More" volt:purpose="menu row">About &amp; permissions</string>
     <!-- Small orange badge on the Experimental controls row. Upper case on purpose; keep it very short. -->
     <string name="more_lab_badge" volt:screen="More" volt:purpose="badge" volt:max="40dp@10.5sp">LAB</string>

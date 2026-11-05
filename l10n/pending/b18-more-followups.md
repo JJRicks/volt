@@ -1,7 +1,8 @@
 # B18 follow-ups: More screen text that stays English after the batch
 
 B18 (MoreScreen, LanguageSheet) leaves these shown strings in English. Each one is either blocked by
-G1 in an extraction batch, blocked by GlyphCoverageTest (item 7), or kept English on purpose. Each
+G1 in an extraction batch, blocked by GlyphCoverageTest (item 7), or kept English on purpose. F4 did
+items 1-3 (the submenu titles, the PIN, pairing and proximity toasts, and the scooter names). Each
 blocked item needs an ordinary (non-extraction) follow-up pull request, or a tooling pull request
 where noted. The B4 consumer reads that stay are in
 `l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an entry when it is done.
@@ -11,24 +12,6 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
 
 ## Blocked by G1
 
-1. **Submenu titles** (`SECTION_TITLES`, used in `showSection`: `sectionTitle.setText(SECTION_TITLES[i])`).
-   The menu rows themselves are translated (`SECTION_LABEL_IDS`). The title line sits in one changed
-   region with the Units and Compatibility title lines, which B18 converted, so changing it to
-   `T.render(...)` fails: "this change adds `T . render ( SECTION_TITLE_IDS )` and drops
-   `SECTION_TITLES`; around text, an extraction batch only replaces a ledger row's expression with
-   the call that serves it". Follow-up: add keys (`more_section_*` already exist for the rows; "PIN &
-   proximity" needs `more_section_security_title`) and a `SECTION_TITLE_IDS` table.
-2. **PIN, pairing and proximity toasts** (four `host.toast(service().ble.message())`: enable PIN,
-   bond, proximity switch, set PIN). They show B7's English id, not `ble.displayMessage()`. Each
-   sits in a statement with converted text: "this change adds `displayMessage ( ) . toString` and
-   drops `message`; around text, ...". Follow-up: switch all four to
-   `ble.displayMessage().toString()` (safety text: check every BleController message the
-   enable/bond/set paths can leave).
-3. **Scooter names** on the My scooters card (`card.name.setText(item.name)`) and the menu index
-   (`String name = p == null ? T.moreIndexNoScooter() : p.name;`). They skip B6's
-   `displayName()`, so a default-named scooter shows "Scooter" in English while its TalkBack labels
-   (which use `displayName()`) are translated. G1: "adds `displayName ( )`" around text. Follow-up:
-   use `displayName()` for display only; `name` stays the stored value (rename dialog, backups).
 4. **"Other model(s)" in the try sheet** (`more_lab_why_one`, `more_lab_why_many`). This should be a
    `<plurals>` (Arabic needs the dual form, and Polish, Russian and Ukrainian need few/many). The base
    sentence is a choice with a shared tail (`(n > 0 ? ... : ...) + " It may do nothing here..."`),
@@ -48,7 +31,24 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
    (a quantity sentinel for a `one` form that wrote the 1 out), then the plural.
 6. **Units summary** row value (`unitsSummary()`: "mi + km · °C · 24h"). Its separators and
    "mi + km" sit beside the unit ids it tests, which stay data. Follow-up: whole template with unit
-   keys.
+   keys (`more_prefs_units_summary` "%1$s · %2$s · %3$s", `more_prefs_units_dual` "%1$s + %2$s" over
+   `units_mi`/`units_km`, `units_celsius`/`units_fahrenheit`, and `more_prefs_units_24h`/`_12h`).
+   F4 (an ordinary follow-up on 811d1c9) found it still blocked: the template's first own literal
+   (`" · "`) comes after the first hole, whose literals (`"km"`, `"mi + km"`, `"mi"`) become calls
+   inside the template's arguments, and G1 checks the calls of a line's rows in the base order of
+   their first literal, so the template's call, which comes first at head, fails: "the call of
+   morePrefsUnitsSummary in head lines 1055-1056 of src/com/jjricks/volt/MoreScreen.java is already
+   used by another row, or comes before the call of an earlier row; each converted site needs its
+   own call, in the base order". A `format` row refuses the holes' `as` ("a format row's "as" must be
+   Fmt.<method>(...)"), and a `choice` row would need twelve whole sentences. Follow-up: a tooling PR
+   that orders a template row by its expression's start (or lets a template hole's `as` hold the
+   calls of its own exact rows), then the template. Repro on 811d1c9: return
+   `T.morePrefsUnitsSummary("km".equals(units) ? T.unitsKm() : "dual".equals(units) ?
+   T.morePrefsUnitsDual(T.unitsMi(), T.unitsKm()) : T.unitsMi(), "f".equals(temperature) ?
+   T.unitsFahrenheit() : T.unitsCelsius(), hours24 ? T.morePrefsUnits24h() : T.morePrefsUnits12h())`,
+   add the four keys, a `manual:` template row whose three holes carry those ternaries as `as`, a
+   `manual:` exact row for each unit literal and a `format` row for "mi + km", then run
+   `ledger_check.py --base 811d1c9 --head WORKTREE --ledger l10n/ledger/f4.tsv`.
 
 ## Blocked by GlyphCoverageTest
 
