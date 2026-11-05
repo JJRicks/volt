@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="dashboard_model_qa_lights" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luzes</string>
+    <string name="dashboard_model_qa_lights_short" volt:src="1f17401c574aee23f88aed47fc2e41b97fd9e219">Luzes</string>
+    <string name="dashboard_model_qa_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Ajustes</string>
+    <string name="dashboard_model_qa_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Configurações</string>
+    <string name="dashboard_model_qa_live_stats" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Dados ao vivo</string>
+    <string name="dashboard_model_qa_live_stats_short" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Dados ao vivo</string>
+    <string name="dashboard_model_qa_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viagens</string>
+    <string name="dashboard_model_qa_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viagens</string>
+    <string name="dashboard_model_qa_ride_settings" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Condução</string>
+    <string name="dashboard_model_qa_ride_settings_short" volt:src="62eb05f68298949e863331467bf0c4cd671014be">Condução</string>
+    <string name="dashboard_model_qa_battery_settings" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Bateria</string>
+    <string name="dashboard_model_qa_battery_settings_short" volt:src="5e6e9117b09bd12362ff6b58fa84a08718799806">Bateria</string>
+    <string name="dashboard_model_qa_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luzes de linha</string>
+    <string name="dashboard_model_qa_line_lights_short" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luzes de linha</string>
+    <string name="dashboard_model_qa_star_lights" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Luzes de estrela</string>
+    <string name="dashboard_model_qa_star_lights_short" volt:src="76add0d6c63acdfb438b01ba6d86361967b765cc">Luzes de estrela</string>
+    <string name="dashboard_model_qa_dashboard_sound" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Visor e som</string>
+    <string name="dashboard_model_qa_dashboard_sound_short" volt:src="68215b4d7c2a68e6ee50e513ef519782322bcc3d">Visor e som</string>
+    <string name="dashboard_model_qa_pin_proximity" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN e proximidade</string>
+    <string name="dashboard_model_qa_pin_proximity_short" volt:src="e609bc77142913722bef73d1892af098967f960d">PIN e proximidade</string>
+    <string name="dashboard_model_qa_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nome do patinete</string>
+    <string name="dashboard_model_qa_scooter_name_short" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nome do patinete</string>
+    <string name="dashboard_model_qa_app_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Preferências do app</string>
+    <string name="dashboard_model_qa_app_preferences_short" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Preferências do app</string>
+    <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Meus patinetes</string>
+    <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Meus patinetes</string>
+    <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimental</string>
+    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Experimental</string>
+    <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dados e histórico</string>
+    <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Dados e histórico</string>
+    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e permissões</string>
+    <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Info e permissões</string>
+    <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Pronta até</string>
+    <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Carga pronta até</string>
+    <string name="dashboard_model_qa_charge_done_time" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Horário limite da carga</string>
+    <string name="dashboard_model_qa_charge_done_time_short" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Horário limite da carga</string>
+    <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menus</string>
+    <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Páginas</string>
+    <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Controles experimentais</string>
+    <string name="dashboard_model_tile_top_speed" volt:src="bd5454ada3dd47ff513fe2425116d98bcc142545">Top speed</string>
+    <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Programação</string>
+    <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Atualizando…</string>
+    <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (aprendido)</string>
+    <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Patinete</string>
+    <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Medindo…</string>
+    <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">Ativado • %1$s</string>
+    <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Não programado</string>
+    <string name="dashboard_model_tile_at_time" volt:src="bf2c1d9211787ac67f4d9a7a67895abba193869e">" • %1$s"</string>
+    <string name="dashboard_model_tile_select_scooter" volt:src="0bdc879ede74c25ac4b6035f02786961ef730f91">Selecione um patinete primeiro</string>
+    <string name="dashboard_model_tile_connect_scooter" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Conecte o patinete primeiro</string>
+    <string name="dashboard_model_tile_desc_part" volt:src="98a40beb85ba42cd1ed30f7e82c4632955333fff">, %1$s</string>
+    <string name="dashboard_model_tile_desc_region" volt:src="2fd82cd81007d8bf033ebf243b5aa421434722b9">, não disponível nesta região</string>
+    <string name="dashboard_model_tile_desc_model" volt:src="51e225830430897715101c40266bde3626d54162">, não existe neste modelo</string>
+    <string name="dashboard_model_tile_desc_unreadable" volt:src="5cd1d7c81ba123a58726f1ba80f5da108635e4fb">, valor ilegível</string>
+    <string name="dashboard_model_tile_desc_last_seen" volt:src="aef78e6eb321d9a16e6cc49539ab0e9d8d90378a">, última leitura</string>
+    <string name="dashboard_model_tile_desc_toggle" volt:src="1cf72c14bf0d560b4eaab726bc18466b286ac97b">, alternar</string>
+    <string name="dashboard_model_tile_desc_open" volt:src="d15196074cd770409167ffb0947503be92be30a5">, abrir</string>
+    <string name="dashboard_model_type_lock" volt:src="82a0196a396baea9ea97de4d9f644f07770d41a9">Bloqueio e conexão</string>
+    <string name="dashboard_model_type_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">Seu patinete</string>
+    <string name="dashboard_model_type_battery" volt:src="d13a864d0e7b3a0e22bf742edbe9279b62770794">Visão geral da bateria</string>
+    <string name="dashboard_model_type_metric" volt:src="0b439eb438e50b802e90a213d377bb188e1c4b46">Leitura única</string>
+    <string name="dashboard_model_type_gauge" volt:src="c01b9c12acf940b5558e24cf251dc96b3c9fd490">Medidor</string>
+    <string name="dashboard_model_type_live" volt:src="c7464659b572ef8fabb68421a8d20ff788de9c72">Tendência ao vivo</string>
+    <string name="dashboard_model_type_history" volt:src="c4f859fb6feff86693b846f5eb609afd0b29356d">Gráfico de histórico</string>
+    <string name="dashboard_model_type_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Leituras</string>
+    <string name="dashboard_model_type_trip" volt:src="22238fa2b3847217534642265c3fbf6fd0244169">Visão geral do trajeto</string>
+    <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Saúde da bateria informada</string>
+    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia útil para condução</string>
+    <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Carregamento</string>
+    <string name="dashboard_model_type_quick" volt:src="558fd0a4fa154c2e4a8eec1fb009fa472b189666">Atalhos</string>
+    <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Gravador de viagens</string>
+    <string name="dashboard_model_type_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Nota</string>
+    <string name="dashboard_model_type_lockbar" volt:src="02d2f80d03759b90639b3d316a491d5d2d53477a">Barra de bloqueio</string>
+    <string name="dashboard_model_type_overview" volt:src="9d6911af641123c82fada2174893c2d4a14caec0">Visão geral do patinete</string>
+    <string name="dashboard_model_type_tiles" volt:src="d9db99e8db5b3eb139a4cf1685c6035e37aa2593">Blocos de leituras</string>
+    <string name="dashboard_model_type_shortcuts" volt:src="5f8ddee2b0a42b4c2b5f7a0bb9a05a2d5f25edbc">Blocos de configurações</string>
+    <string name="dashboard_model_example_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidade</string>
+    <string name="dashboard_model_example_battery_charge" volt:src="b0d858ec349ad16f9864f07a805b2cfe61ebc35c">Carga da bateria</string>
+    <string name="dashboard_model_example_electrical" volt:src="f66ec4436c5bfbb62fc0c6be45b855c504823083">Leituras elétricas</string>
+    <string name="dashboard_model_example_battery_power" volt:src="4cf2ca4c83ab84b80bb85a0b328be5c34e0b4f9b">Potência da bateria</string>
+    <string name="dashboard_model_example_charge_history" volt:src="49e4226b880f838ef8bcfcd1dfa7d282a5c3adb3">Histórico de carga</string>
+    <string name="dashboard_model_example_note" volt:src="0348b8f6a81497ac28d044e5fef53009c1222dde">Verifique a pressão dos pneus</string>
+    <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Espaço %1$s</string>
+    <string name="dashboard_model_slot_example" volt:src="0740b63c52f763156abb78cc674a59a536f7eb7e">Todos os widgets</string>
+</resources>
