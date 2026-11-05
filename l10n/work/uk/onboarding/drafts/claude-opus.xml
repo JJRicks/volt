@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="onboarding_step_prepare" volt:src="18e32aef04a1ae13d6acd8c27405cb79b0ac0891">Підготовка</string>
+    <string name="onboarding_step_usb_debugging" volt:src="901fecbb087f60e29eea461e6cc68777ce662bcc">Налагодження USB</string>
+    <string name="onboarding_step_connect_computer" volt:src="175bb44b827d189cfa780350e89658ee98784af6">Підключення комп’ютера</string>
+    <string name="onboarding_step_run_helper" volt:src="156f834730eeac180c962741e3f0828ee4daafb8">Запуск скрипта</string>
+    <string name="onboarding_step_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Імпорт</string>
+    <string name="onboarding_step_nearby" volt:src="7b4b991b39abcc06a1ca302148bcf8c2f024c2e5">Пристрої поблизу</string>
+    <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Підключення самоката</string>
+    <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Початкове налаштування: крок %1$d з 7</string>
+    <string name="onboarding_pane_setup" volt:src="02b4f3d379774aeaef1823fcdaf67355120a211c">Початкове налаштування</string>
+    <string name="onboarding_side_title" volt:src="d9305cb9836e674521c30f828cd3339b11529e6d">Початкове налаштування самоката</string>
+    <string name="onboarding_step_row" volt:src="cd8eb7a1637c085185a81b4ae8b95acb69460847">Крок %1$d, %2$s, %3$s</string>
+    <string name="onboarding_step_state_current" volt:src="93f80a0515e2ae5df356339775f3c61f9f7dfecd">поточний</string>
+    <string name="onboarding_step_state_done" volt:src="1a91bf1d2af860af1624cd81bee326071abfdd43">виконано</string>
+    <string name="onboarding_step_state_to_do" volt:src="92ccaad79b5993f3eaff18f0729a66ab4c673225">попереду</string>
+    <string name="onboarding_step_state_not_needed" volt:src="455e13c2d844fbfb3f5539c63d63cf878b25f180">не потрібен</string>
+    <string name="onboarding_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Назад</string>
+    <string name="onboarding_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Пропустити</string>
+    <string name="onboarding_cancel_adding" volt:src="864156bda9e37d0bfdd9afa33a88f98dd5a6ac2b">Скасувати додавання самоката</string>
+    <string name="onboarding_skip_description" volt:src="75b7c51efec79b7400681c246deaca55724dccba">Поки що пропустити початкове налаштування</string>
+    <string name="onboarding_step_counter" volt:src="f4a4b2949cb6287694d4e3f7703ac3cbd20fed6f">%1$d/7</string>
+    <string name="onboarding_progress_step" volt:src="c6d34cde4026d2716b201afaa085a17a55585b0d">Крок %1$d з 7</string>
+    <string name="onboarding_progress_choose" volt:src="64a479233e103507e8f24c1360d4157454d66a96">Початкове налаштування, вибір способу</string>
+    <string name="onboarding_welcome_title" volt:src="ae7a1bc3d0ecf96143545f9d98857ff737ae0711">Ваш самокат без хмари</string>
+    <string name="onboarding_welcome_get_started" volt:src="2a5eb66c36cee7d42ac3c78d156c1b0adc779db2">Почати</string>
+    <string name="onboarding_restore_backup" volt:src="9359623eb55635ed843d4eb26b2748b576bef8cd">Відновити резервну копію Volt</string>
+    <string name="onboarding_welcome_restore_description" volt:src="a13b3f16a05f987acbc589296ef491cdf215236d">Відновити резервну копію Volt: самокати, поїздки, історія, панелі й налаштування</string>
+    <string name="onboarding_welcome_have_owner_file" volt:src="f4e0d12b388d4b9c4f8c98f526ecff1d1669b6fe">У мене вже є файл власника</string>
+    <string name="onboarding_welcome_tile_lock" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Блокування</string>
+    <string name="onboarding_welcome_tile_lock_short" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Блокування</string>
+    <string name="onboarding_welcome_tile_settings" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Налаштування</string>
+    <string name="onboarding_welcome_tile_settings_short" volt:src="e86b6584388de41a9aafcdb81bbeab808696221e">Налашт.</string>
+    <string name="onboarding_welcome_tile_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Акумулятор</string>
+    <string name="onboarding_welcome_tile_battery_short" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Батарея</string>
+    <string name="onboarding_welcome_tile_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Поїздки</string>
+    <string name="onboarding_welcome_tile_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Поїздки</string>
+    <string name="onboarding_welcome_tiles_description" volt:src="ae456634e6e6d086c13e292dbec6ac4f70b02cf2">Блокування, налаштування, акумулятор і поїздки через Bluetooth</string>
+    <string name="onboarding_path_title" volt:src="c285d492168167fc5c9df82b4937964c27c261df">Як ви хочете налаштувати?</string>
+    <string name="onboarding_path_webadb" volt:src="6f5d43152851a007d526196862d4e9e501b80a63" volt:attempt="2">Використати Chrome і кабель USB</string>
+    <string name="onboarding_path_webadb_detail" volt:src="53de51e2ea250ea3f74c7c50f9d096429f8dd174">Комп’ютер · кілька хвилин</string>
+    <string name="onboarding_path_recommended" volt:src="42ebf007789f744dead0eaedfffe93d7bcb556f6">Рекомендовано</string>
+    <string name="onboarding_path_restore_detail" volt:src="f1dd2bc5c1f8b52f0b5892dd59b30eaa6b4f8979">Самокати, поїздки, панелі й налаштування</string>
+    <string name="onboarding_path_capture" volt:src="ebdadb5778da9a9a0e909b62fa5a9ca0c4f8d95b">Отримати ключ із додатка NAVEE</string>
+    <string name="onboarding_path_capture_detail" volt:src="bc5ab66a9c15f8b762d93a54399f12fd88c7c23f">Комп’ютер · 10 min</string>
+    <string name="onboarding_path_shizuku" volt:src="1561f4b2129390a13ab9c431954035b813620555">Через Shizuku на цьому телефоні</string>
+    <string name="onboarding_path_shizuku_detail" volt:src="0c2ae59881a89238cb4b5cbd6659c6d4bf0f57af">Без комп’ютера · Android 11+</string>
+    <string name="onboarding_path_owner_file" volt:src="79692aa0b86b928f5f2268eb227d1afb4c653268">Імпортувати файл налаштування власника</string>
+    <string name="onboarding_path_owner_file_detail" volt:src="50b4c6490efa1043fa735ea9d507e66cefced471">Лише доступ до самоката · без поїздок та історії</string>
+    <string name="onboarding_path_identity" volt:src="2b442de99ae6494b7b328406961bdabc361c24dc">Ввести ключ власника з 12 символів</string>
+    <string name="onboarding_needs_android_11" volt:src="8ca9fb2e39e9b3b68213423499cec931491b43a8">Потрібен Android 11 або новіший</string>
+    <string name="onboarding_option_spoken" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
+    <string name="onboarding_option_spoken_unavailable" volt:src="0a172ebf279559e7b844609f2b60160949c2f800">%1$s. Потрібен Android 11 або новіший</string>
+    <string name="onboarding_option_spoken_detail" volt:src="7de70eaff3962a1ffb6faac108e77ec4797ce542">%1$s. %2$s</string>
+    <string name="onboarding_option_spoken_detail_unavailable" volt:src="8612d8bd3ba9a50f0e36e494903bbe3fa95ac84f">%1$s. %2$s. Потрібен Android 11 або новіший</string>
+    <string name="onboarding_option_spoken_chip" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="onboarding_option_spoken_chip_unavailable" volt:src="2cd59672cb14484118ee47ec6254b96dbc25ef63">%1$s, %2$s. Потрібен Android 11 або новіший</string>
+    <string name="onboarding_option_spoken_chip_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
+    <string name="onboarding_option_spoken_chip_detail_unavailable" volt:src="7d0c75833c2bf62f3c64e46241528acdb51a0ca6">%1$s, %2$s. %3$s. Потрібен Android 11 або новіший</string>
+    <string name="onboarding_continue" volt:src="81e96abc711d4ffc78145006f825d49a54dab519">Продовжити</string>
+    <string name="onboarding_finish_import_first" volt:src="5ed6a1b53763d3be21e22cf4895c3d73885dcd3d">Спочатку завершіть імпорт вибраного файлу власника.</string>
+    <string name="onboarding_skip_title" volt:src="a0e1b8855a5a0586cbf31d9ca0589ca93c83c695">Поки що пропустити налаштування?</string>
+    <string name="onboarding_skip_message" volt:src="41d1d3781ac0ca9bfba4cda23d292d97cb773d47">Самокат можна додати пізніше на вкладці «Більше».</string>
+    <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Продовжити налаштування</string>
+    <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Перш ніж почати</string>
+    <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">Додаток NAVEE працює</string>
+    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Вхід виконано, самокат підключається</string>
+    <string name="onboarding_prepare_browser_computer" volt:src="4f9a15f2cc462561fc149d65cfcbe11918e2d845">Комп’ютер із Chrome або Edge</string>
+    <string name="onboarding_prepare_adb_computer" volt:src="e39ebd8f0a7415518494a60aff0a75d9afea24c1">Комп’ютер з ADB і Python 3</string>
+    <string name="onboarding_prepare_source" volt:src="4179cdb733bc59821ab6e42c350d66c9088275bc">Розпакований вихідний код Volt</string>
+    <string name="onboarding_prepare_source_detail" volt:src="1bcb470e500f04bb4ed5290e6f249b3ca1470644">Натисніть «Отримати код» нижче; у коді є setup/capture-owner.py</string>
+    <string name="onboarding_prepare_cable" volt:src="07b74a5eb3de9d0d7b10ec7dcd479b64ac5a42dc" volt:attempt="2">Кабель USB для передавання даних</string>
+    <string name="onboarding_prepare_cable_detail" volt:src="00813cb62dd6383ec04afa99cf834d5d5ca574c6">Не лише для заряджання</string>
+    <string name="onboarding_prepare_parked" volt:src="1e05f66a5e0927184ba4fb6de7477cc1f7e25b63">Самокат припарковано й увімкнено</string>
+    <string name="onboarding_prepare_parked_detail" volt:src="bb7b3271538299a22cd03b586629b05fec7ba407">Закрийте інші додатки для самокатів</string>
+    <string name="onboarding_prepare_where_adb" volt:src="d1bade96e0535d5e5f99674546e852148175fccb">Де взяти ADB?</string>
+    <string name="onboarding_prepare_where_adb_description" volt:src="8c08cba72e1c84ce3a3120f1aae8d887dd681ab4">Де взяти ADB? Буде відкрито сторінку завантаження Platform-Tools</string>
+    <string name="onboarding_prepare_get_source" volt:src="467156dc9677e3700c3a3015249688cc7f56e0e9">Отримати код</string>
+    <string name="onboarding_prepare_get_source_description" volt:src="83779b92a25eeae4ced361f6e7f697448ae6b670">Отримати код. Буде відкрито архів вихідного коду зі скриптом отримання ключа</string>
+    <string name="onboarding_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Браузер не знайдено</string>
+    <string name="onboarding_usb_title" volt:src="d34275339b3a95a5afe2db49261ab929c020a7ca">Увімкнути налагодження USB</string>
+    <string name="onboarding_mock_about_phone" volt:src="749f64e8c4bfab660c8f0568fb4826d53bc32739">Про телефон</string>
+    <string name="onboarding_mock_android_version" volt:src="3e98c63d3222ef046d0b4d934bc51054d6d9ed67">Версія Android</string>
+    <string name="onboarding_mock_build_number" volt:src="73324e75345198dba6a2f80dd2fc096feafcee4f">Номер складання</string>
+    <string name="onboarding_usb_example_description" volt:src="ca1d3b2c9d81975e2ef6a3586130cd04223eac8f">Приклад: «Налаштування», «Про телефон». Натисніть «Номер складання» 7 разів.</string>
+    <string name="onboarding_usb_path_about" volt:src="f8e1fac081d731c1ea51ca2c1748d552087b2c19">Налаштування › Про телефон</string>
+    <string name="onboarding_usb_tap_build" volt:src="1fc66d8f5eb2a6eafdb5346f4799d68d9bb17ab2">Натисніть **Номер складання** 7 разів</string>
+    <string name="onboarding_usb_path_developer" volt:src="04aec87975f93deb8ca9a671f38ac5b77f630575">Налаштування › Система › Параметри розробника</string>
+    <string name="onboarding_usb_turn_on" volt:src="f58af9223d65646316b91d433af6f2c10c819d5d">Увімкніть **Налагодження USB**</string>
+    <string name="onboarding_usb_done" volt:src="3b659dd770197d9a37b4cb6ffd08f0e5b4654439">Готово, увімкнено</string>
+    <string name="onboarding_open_settings" volt:src="c08f8d5af1c4dd3e3dc683ade490b52ce5eab310">Відкрити налаштування</string>
+    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Підключення до комп’ютера</string>
+    <string name="onboarding_mock_allow_title" volt:src="aaf1246404dc90419472e2ceb97b349667a472ab">Дозволити налагодження USB?</string>
+    <string name="onboarding_mock_fingerprint" volt:src="05e9fe6ae8530787bbad3f54bde936fdc0d214d2">Цифровий відбиток ключа RSA комп’ютера:\n4F:2A:…:9C</string>
+    <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Завжди дозволяти з цього комп’ютера</string>
+    <string name="onboarding_mock_cancel" volt:src="69d69f762147c2b1cca07f8e9d8f24b109f5605e">Скасувати</string>
+    <string name="onboarding_mock_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Дозволити</string>
+    <string name="onboarding_computer_example_description" volt:src="d0a131cba0741635279ab58b16912bccaec6afb3">Приклад: запит «Дозволити налагодження USB?» на вашому телефоні, прапорець «Завжди дозволяти з цього комп’ютера» не позначено.</string>
+    <string name="onboarding_computer_connect_cable" volt:src="ee33cce91739bd084d5a40bb6bacf370fdb278a8">Підключіть телефон кабелем для передачі даних</string>
+    <string name="onboarding_computer_tap_allow" volt:src="7e4206ea7c4f010bfa7de6428ee60a5c56d3dba2">Натисніть **Дозволити** в запиті вище</string>
+    <string name="onboarding_computer_adb_devices" volt:src="d0f48ccf9f2b16efbf9f187fd8d852f0c9ba0eb2">`adb devices` показує **device**</string>
+    <string name="onboarding_computer_shows_device" volt:src="67e4acb64f56334869629e863fc3fa97eb3cccfb">Показує «device»</string>
+    <string name="onboarding_computer_unauthorized" volt:src="189b278023e2a260ba2b46e0619cd9c247bc3bb5">Показує unauthorized</string>
+    <string name="onboarding_computer_unauthorized_title" volt:src="c85b839c73b04ee099901d414bc99f60258a34a6">Стан телефона: unauthorized</string>
+    <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Розблокуйте телефон, від’єднайте кабель і підключіть його знову.\n2  Натисніть «Дозволити» в запиті «Дозволити налагодження USB?».\n3  Запиту немає? У параметрах розробника натисніть «Скасувати авторизацію для налагодження USB», а потім підключіть кабель знову."</string>
+    <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Запустити скрипт отримання ключа</string>
+    <string name="onboarding_helper_run_in_folder" volt:src="79f97d059844ab3e9d4569637ee4d5ef8832c306">У розпакованій папці з вихідним кодом на комп’ютері виконайте:</string>
+    <string name="onboarding_helper_command_description" volt:src="9eedae01f4f28dd44575b0d1f9b2fec35f803565">Команда: %1$s</string>
+    <string name="onboarding_helper_copy" volt:src="c3f82d8b45d3d004ed0cd20e5eeb5cfa7674a438">Копіювати</string>
+    <string name="onboarding_helper_copy_description" volt:src="3fcb60e3d603244cb59aa69847efbc4f2d05688d">Копіювати команду</string>
+    <string name="onboarding_helper_connect_navee" volt:src="67f37cc41e71ae510ede26f6f4757b8369446e5e">Підключіть самокат у додатку NAVEE</string>
+    <string name="onboarding_helper_wait" volt:src="b2d6f64970529b8f0b7c40ec460e6b884ba0b107">Зачекайте до 90 s</string>
+    <string name="onboarding_helper_file_saves" volt:src="e2525ffddf6519c95e1f355cf58f211c31cf9e68">Файл буде збережено в папці «Завантаження»</string>
+    <string name="onboarding_helper_finished" volt:src="163eab29e0348f3366908ced0582d628a753f283">Скрипт завершив роботу</string>
+    <string name="onboarding_capture_failed" volt:src="2fa5c7ed73aa32610ea587dff490f4385da613b6">Не вдалося отримати ключ</string>
+    <string name="onboarding_helper_clip_label" volt:src="16aeef0cd93ca0586a64b367fff6681673673655">Команда отримання ключа</string>
+    <string name="onboarding_helper_copied" volt:src="9b841f523afbec8ade5513dc43a8b8c65da97aad">Команду скопійовано.</string>
+    <string name="onboarding_helper_copy_failed" volt:src="5ab3a834c36db85168617a42f574427ea91a90d4">Не вдалося скопіювати</string>
+    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Підключення через браузер</string>
+    <string name="onboarding_browser_open" volt:src="9e0f576a4bd0fd5fc28666979a1045f82f29beb7">На комп’ютері відкрийте:</string>
+    <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479" volt:attempt="2">Підключіть телефон кабелем USB для передавання даних</string>
+    <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Виберіть свій телефон у Chrome</string>
+    <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Дозвольте налагодження USB на цьому телефоні</string>
+    <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085">Не ставте прапорець **Завжди дозволяти з цього комп’ютера**</string>
+    <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">Вебсайт підключився</string>
+    <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Телефона немає в списку</string>
+    <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Підключення в Chrome</string>
+    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Телефон розблоковано, налагодження USB увімкнено\n•  Кабель для передачі даних, а не лише для заряджання\n•  Android Studio, інші інструменти ADB і вкладки налаштування закрито\n•  Chrome або Edge, а не Safari чи Firefox"</string>
+    <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Підтвердьте отримання ключа на вебсайті</string>
+    <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Не від’єднуйте кабель, доки сайт не поверне журнал налагодження як було.</string>
+    <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Прочитайте пояснення щодо отримання ключа й натисніть **Start**</string>
+    <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Виберіть свій самокат у додатку NAVEE і підключіть його</string>
+    <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">До **90 s**</string>
+    <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Коли сайт поверне журнал налагодження як було, натисніть **Save to phone Downloads**</string>
+    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Цей файл – ключ власника самоката. Зберігайте його в таємниці.</string>
+    <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">Файл у папці «Завантаження»</string>
+    <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Отримання ключа в браузері</string>
+    <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  У додатку NAVEE виконано вхід, самокат поруч\n•  Інші додатки для самокатів закрито\n•  Процес перервано? Спершу поверніть журнал налагодження як було в тому самому браузері"</string>
+    <string name="onboarding_import_shizuku_title" volt:src="19f2f27e992853e1f505a10489cb9316e321b1fd">Ваше початкове налаштування власника</string>
+    <string name="onboarding_import_title" volt:src="7513acee20fc65f00d740412d41449fdcdadfd46">Імпорт файлу власника</string>
+    <string name="onboarding_import_pick" volt:src="69f6fac418999ce24c708ae2c4e4fb5b261f667d" volt:attempt="2">Виберіть файл власника navee-owner-setup.json. Буде відновлено лише доступ до самоката, а не поїздки чи інші дані додатка.</string>
+    <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">Завантаження профілю власника…</string>
+    <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Файл ще не вибрано</string>
+    <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Це не файл власника.</string>
+    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Цей файл розблоковує ваш самокат. Зберігайте його в таємниці.</string>
+    <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Вибрати файл власника</string>
+    <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Натомість ввести ключ власника</string>
+    <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Натомість відновити резервну копію Volt</string>
+    <string name="onboarding_role_shared" volt:src="5d49485c583c28802db55e3118c072a5da721b96">запрошений користувач</string>
+    <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">власник</string>
+    <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Знайдено ключ власника</string>
+    <string name="onboarding_import_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Знайдено ключ власника, збережено приватно на цьому телефоні. %1$s</string>
+    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Збережено приватно. Тепер відкличте доступ у Shizuku.</string>
+    <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Видалити копію в папці «Завантаження»</string>
+    <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Копію в папці «Завантаження» видалено</string>
+    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Не вдалося видалити · видаліть її в додатку «Файли»</string>
+    <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Зберегти й продовжити</string>
+    <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Відкрити Shizuku</string>
+    <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Вибрати інший файл</string>
+    <string name="onboarding_shizuku_missing" volt:src="9f505e64a99bed340f60365febf9480b3f112b88">Shizuku не встановлено</string>
+    <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Спершу зупиніть запис поїздки</string>
+    <string name="onboarding_identity_title" volt:src="ee790f0844a58cef70f579865ca639c7018a05cb">Введення ключа власника</string>
+    <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">Це не пароль.</string>
+    <string name="onboarding_identity_hint" volt:src="b5dacf843a815045d5bf9afdcf3806edccaf35ef">Ключ власника (12 символів) або приватна резервна копія</string>
+    <string name="onboarding_save_continue_starting" volt:src="2990341f0b730f8068bd24583800fdac67f4801f">Зберегти й продовжити, триває запуск</string>
+    <string name="onboarding_identity_backup_shared" volt:src="5a4f288e08b3be239113ec47662843224a58c85c">Приватну резервну копію розпізнано · запрошений користувач</string>
+    <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Приватну резервну копію розпізнано · власник</string>
+    <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Лише 0–9 і A–F.</string>
+    <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662">Не вдалося видалити старий файл. Повторіть спробу.</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Дозвіл «Пристрої поблизу»</string>
+    <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0" volt:attempt="2">Лише Bluetooth. Без серверів.</string>
+    <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Дозволити</string>
+    <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Відкрити налаштування додатка</string>
+    <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Пошук самоката</string>
+    <string name="onboarding_connect_found" volt:src="18f25bd262e93dd03811223728fd8fec25929ade">Самокат знайдено</string>
+    <string name="onboarding_connect_bluetooth" volt:src="b6ef55dcb813eb1bf0c8b24acef831eb6f5b89ff">Bluetooth підключено</string>
+    <string name="onboarding_connect_checking" volt:src="9c39a329fb7ae82f32d5cbc4c11a0857a23d85e3">Перевірка ключа власника</string>
+    <string name="onboarding_connect_saving" volt:src="ba18784d31ce7f3d566d76baab9d7247270f778b">Збереження самоката</string>
+    <string name="onboarding_connect_button" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Підключити</string>
+    <string name="onboarding_connect_connecting" volt:src="3b178abc1bf308531bda58ad8d0ab6bcb601a039">Підключення: %1$s</string>
+    <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Пошук вашого самоката</string>
+    <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, готово</string>
+    <string name="onboarding_connect_row_in_progress" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, виконується</string>
+    <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, ще не виконано</string>
+    <string name="onboarding_connect_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Запуск…</string>
+    <string name="onboarding_connect_waiting_profile" volt:src="ed1a42f914f9ac6f6d550079a760fef93626223b">Очікування профілю власника…</string>
+    <string name="onboarding_connect_is_it_on" volt:src="60721fc4afe52dc10fdaea9dd7e504617ab74f1c">Самокат увімкнено? Додаток NAVEE закрито?</string>
+    <string name="onboarding_connect_allow_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Дозволити «Пристрої поблизу»</string>
+    <string name="onboarding_done_title" volt:src="fa40aad297a79922e85dd5b2b5ee012e8f7ced84">Підключено</string>
+    <string name="onboarding_done_ready_default" volt:src="4398b540cd7935b604522b2a91d1d567741d6be3">Ваш самокат готовий.</string>
+    <string name="onboarding_done_ready" volt:src="8f159a8f58e66cadc06c55746245256fc2b0523a">Самокат %1$s готовий.</string>
+    <string name="onboarding_done_backup" volt:src="98781c091fd9394d14ef35a8dd55e1955e50d5c9">Створити резервну копію Volt</string>
+    <string name="onboarding_done_backup_description" volt:src="b6bea354996ef7bec615ba212d78eda10e5f9279">Створити резервну копію Volt: доступ до самоката й усі збережені дані додатка</string>
+    <string name="onboarding_done_usb_off" volt:src="78e06f698ed3eba8ca05cf4af87f18b755f2b59f">Вимкніть налагодження USB</string>
+    <string name="onboarding_done_usb_off_detail" volt:src="40e19de8b1df5e9e83e20975c2557cbfb8d81f5a">Комп’ютер більше не потрібен</string>
+    <string name="onboarding_done_revoke" volt:src="ab1135db30145dde8dbf62ea5c43015ee89026f1">Відкликати доступ у Shizuku</string>
+    <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Відкликати доступ у Shizuku. Буде відкрито Shizuku, щоб прибрати доступ Volt</string>
+    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Відкрити вкладку «Головна»</string>
+    <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Телефон не має стану device</string>
+    <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Підтвердьте запит · використайте кабель для даних</string>
+    <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">Додаток NAVEE не підключився</string>
+    <string name="onboarding_fix_navee_detail" volt:src="802e3714b63741dab30a6ac93720bea2c301a51a">Перевірте, чи додаток NAVEE підключається сам</string>
+    <string name="onboarding_fix_timeout" volt:src="6b10fd83995c23734b0f1bfb45e2b3578b5eb360">Час очікування скрипта вичерпано</string>
+    <string name="onboarding_fix_timeout_detail" volt:src="2f8570402f727f679e3b0050ac736730dd37f710">Закрийте інші додатки, запустіть знову</string>
+    <string name="onboarding_fix_exists" volt:src="04380b3a018b38e2c530ec8f246da72fa92a0732">Файл уже існує</string>
+    <string name="onboarding_fix_exists_detail" volt:src="163ad67eaa22bf8a9f3507b063c3f3db626d8a39">Додайте --output newname</string>
+    <string name="onboarding_heading_detail" volt:src="7de70eaff3962a1ffb6faac108e77ec4797ce542">%1$s. %2$s</string>
+    <string name="onboarding_tick_checked" volt:src="496fe4fd16ab0fc0d245b93da2ea5b650006ea4a">Позначено</string>
+    <string name="onboarding_tick_not_checked" volt:src="b0f17beb951229a4e4b9385e6bd34372da7e4c7e">Не позначено</string>
+    <string name="onboarding_numbered_spoken" volt:src="7ab7bf58964b11c901ad6cf9e5995fcf87599c2d">Крок %1$d. %2$s%3$s</string>
+    <string name="onboarding_numbered_detail" volt:src="ed1c463918a54bc9463edaaec9719b7afbe0629b">. %1$s</string>
+    <string name="onboarding_name_label" volt:src="e437008525b0f7caf2d2fe238aa27434e8c80cf4">Дайте назву самокату</string>
+    <string name="onboarding_name_hint" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Назва самоката</string>
+    <string name="onboarding_open_settings_app" volt:src="1405527c103cd5a89426bb2d2735790cd76c15ad">Щоб продовжити, відкрийте на телефоні додаток «Налаштування».</string>
+    <string name="onboarding_hero_model_connected" volt:src="30c1bb75b7c5eca26bb01d8ba60f75a349978f6e">Самокат NAVEE %1$s, підключено</string>
+    <string name="onboarding_hero_connected" volt:src="e363383fb5ec83c798976b7fd228d7f82d9b5927">Самокат NAVEE UT5 MAX, підключено</string>
+    <string name="onboarding_hero" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Самокат NAVEE UT5 MAX</string>
+</resources>
