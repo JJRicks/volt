@@ -53,8 +53,8 @@ common meaning faults by word lists: a missing glossary term (Unlock has its own
 key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
 removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
-ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
-as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
+ja, zh, tr), negation dropped or added where the language has a list, and an on or off state drafted
+as the other in the first-wave languages and tr (lexicon.STATE_WORDS). Known gaps: a removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the
 text (de, nl); Slavic stems under five letters; Arabic text without vowel marks (غير); zh, ja and
 ko, where a word list stands in for word boundaries; languages with no negation or removal list,
@@ -413,7 +413,21 @@ def _chars(chars):
 
 def _polarity(language, reference, text, safety, q, entry=None):
     """Negation kept or not added (_negation), and an on or off state not inverted (_state)."""
-    return _negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q)
+    return (_negation(language, reference, text, safety, q, entry) + _state(language, reference, text, safety, q) +
+            _lock_state_trap(language, text, q, entry))
+
+
+def _lock_state_trap(language, text, q, entry):
+    """The lock word next to a bare open or closed in a lock key (lexicon.LOCK_STATE_TRAP): "Kilit: açık"
+    reads as unlocked whatever the English says, so it is an error also when the English says "on"."""
+    trap = lexicon.LOCK_STATE_TRAP.get(language["tag"].split("-")[0])
+    if not trap or "lock" not in ((entry or {}).get("safety") or []):
+        return []
+    m = trap.search(lexicon.normalize(text))
+    if not m:
+        return []
+    return [finding("polarity", ERROR, "%r says the lock is open or closed, not that a setting is on or off" %
+                    m.group(0), q)]
 
 
 def _state(language, reference, text, safety, q):

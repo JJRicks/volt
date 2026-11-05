@@ -55,7 +55,7 @@ NEGATION = {
     "ro": ({"nu", "niciodată", "fără", "niciun", "nicio", "nimic"}, ("ne",)),
     "hu": ({"nem", "ne", "soha", "nincs", "sincs", "nélkül", "semmi"}, ()),
     "hr": ({"ne", "nije", "nikad", "nikada", "bez", "nema", "ništa"}, ("ne", "bez")),
-    "tr": ({"değil", "yok", "asla", "hiç", "olmadan", "hayır"}, ()),
+    "tr": ({"değil", "değildir", "değildi", "değilse", "yok", "yoktur", "asla", "hiç", "hiçbir", "olmadan", "hayır"}, ()),
     "ru": ({"не", "нет", "никогда", "без", "ни", "ничего", "нельзя"}, ("не", "без")),
     "uk": ({"не", "ні", "немає", "ніколи", "без", "нічого", "неможна"}, ("не", "без")),
     "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα"}, ("μη", "α")),
@@ -72,7 +72,15 @@ NEGATION = dict((k, (_nfc(words), _nfc(prefixes))) for k, (words, prefixes) in N
 
 # Negation written as a word ending: Bengali negates the past and perfect with -নি ("হয়নি", "যায়নি",
 # "পারেনি", "দেয়নি"). Only the verb endings are listed; "তিনি" (he) and "পানি" (water) end in নি too.
-NEGATION_SUFFIXES = {"bn": ("য়নি", "েনি", "ইনি")}
+# Turkish negates with a verb ending ("doğrulanamadı", "okunamıyor", "silinmeyecek", "dokunmayın"). Left
+# out: bare -ma/-me, also a noun ("kilitleme", locking); -madan/-meden, which also says before
+# ("kilitlemeden önce"); and -madığı/-mediği, which also asks whether ("kapanıp kapanmadığı").
+NEGATION_SUFFIXES = {
+    "bn": ("য়নি", "েনি", "ইনি"),
+    "tr": ("madı", "medi", "mamış", "memiş", "mıyor", "miyor", "muyor", "müyor", "maz", "mez",
+           "madıysa", "mediyse", "mıyorsa", "miyorsa", "muyorsa", "müyorsa", "mazsa", "mezse",
+           "mazsınız", "mezsiniz", "mayacak", "meyecek", "mayın", "meyin", "mayan", "meyen"),
+}
 NEGATION_SUFFIXES = dict((k, _nfc(v)) for k, v in NEGATION_SUFFIXES.items())
 
 # Phrases that contain a negation word but negate nothing (Italian "non appena", as soon as). They
@@ -219,6 +227,7 @@ STATE_WORDS = {
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
            "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
+    "tr": ("açık|açın|aç|açıl\\w*|etkin|etkinleştir\\w*", "kapalı|kapat\\w*|kapan\\w*|devre\\s+dışı\\w*"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
@@ -243,6 +252,8 @@ STATE_NEGATION_GAP = {
     "id": {"sedang", "akan", "lagi"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
+# Turkish puts the negation after the word ("açık değil", "kapalı değil").
+NEGATED_AFTER = {"tr": re.compile("^\\s+değil(?:dir|di|se)?(?![^\\W_])")}
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
 # "que" before a real second part (pas, plus, jamais...) negates nothing. "ne ... plus" (no longer)
 # negates: "plus" counts as a negation word after a "ne" in the same clause.
@@ -268,6 +279,9 @@ def _negation_word(primary, word, before, after):
 
 def _negated(primary, head, tail=""):
     """Whether a state word, with the text head before it and tail after it, is negated."""
+    after_word = NEGATED_AFTER.get(primary)
+    if after_word and after_word.search(tail):
+        return True
     for phrase in NON_NEGATING_PHRASES.get(primary, ()):
         # "non appena attivato" (as soon as): the phrase ends a clause of its own.
         head = re.sub(r"(?<![^\W_])" + r"\s+".join(map(re.escape, phrase.split())) + r"(?![^\W_])", ".", head)
@@ -287,8 +301,8 @@ def _negated(primary, head, tail=""):
 
 def state_words(primary, text):
     """(on words, off words) found in a target text, for the languages in STATE_WORDS. A state word
-    a negation word negates ("nicht aktiv", "no desactivado", "no está activada"; see _negated)
-    counts as the other state."""
+    a negation word negates ("nicht aktiv", "no desactivado", "no está activada"; see _negated), or
+    one with a negating ending ("kapatılmadı"), counts as the other state."""
     patterns = STATE_WORDS.get(primary)
     if not patterns:
         return None
@@ -296,7 +310,8 @@ def state_words(primary, text):
     found = ([], [])
     for side, p in enumerate(patterns):
         for m in p.finditer(text):
-            found[1 - side if _negated(primary, text[:m.start()], text[m.end():]) else side].append(m.group(0))
+            negated = _negated(primary, text[:m.start()], text[m.end():]) or suffix_negated(primary, m.group(0))
+            found[1 - side if negated else side].append(m.group(0))
     return found
 # Clitics written joined to the next word: a glossary term may follow them ("القفل", "والقفل", and
 # "للقفل", where لِ plus the article is written لل).
@@ -329,6 +344,9 @@ OPPOSITE_CONTEXT = {
     "ur": ("(?<![^\\W_])ان\\s*$", "^\\S*\\s+(?:کھول|کھل)"),
     "hi": ("", "^\\S*\\s+(?:खोल|खुल)"),
     "bn": ("", "^\\S*\\s+(?:খুল|খোল)"),
+    # Turkish: "Kilit açık" (unlocked), "Kilit: açık", "Kilit açma" (unlocking), "Kilitleri aç", and
+    # "Kilitsiz" (having no lock). "Kilit açıklaması" (a description of the lock) is not one.
+    "tr": ("", "^(?:siz|[^\\W\\d_]{0,4}(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)aç(?!ıkla))"),
 }
 
 
@@ -447,6 +465,8 @@ REMOVAL_CONTEXT = {
                   "εχει|ειναι|θα")),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
+    # Turkish puts the verb last: "Kilit kaldırıldı", "Kilit: kapalı", "Kilit devre dışı".
+    "tr": ("", "^[^\\W\\d_]{0,4}%s(?:kaldır|kapat|kapan|kapalı|devre\\s+dışı)" % _SEP),
 }
 
 # Pairs where both must hold to make the target its opposite: zh "打开滑板车的锁" (open the scooter's
@@ -472,6 +492,13 @@ OPPOSITE_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p
                        for k, v in OPPOSITE_AROUND.items())
 REMOVAL_AROUND = dict((k, tuple(tuple(re.compile(unicodedata.normalize("NFC", p)) for p in pair) for pair in v))
                       for k, v in REMOVAL_AROUND.items())
+
+# The lock word with a bare open or closed in a lock key: a trap of its own. Turkish "Kilit açık" says
+# unlocked whatever the English says, and "Kilit: kapalı" reads as locked or as off, so a lock setting
+# says "etkin" and "devre dışı", and unlocked is "Kilidi açık", which has no "kilit" in it.
+LOCK_STATE_TRAP = {
+    "tr": re.compile("(?<![^\\W_])kilit[^\\W\\d_]*(?:\\s+[^\\W\\d_]+)?%s(?:açık|kapalı)(?![^\\W_])" % _SEP),
+}
 
 # Script codes a language's "script" value allows (Japanese mixes kanji and kana).
 SCRIPT_SETS = {"Hans": {"Hani"}, "Hant": {"Hani"}, "Jpan": {"Hani", "Kana"}, "Kore": {"Hang", "Hani"}}

@@ -117,6 +117,63 @@ class LanguageChecksTest(unittest.TestCase):
         self.assertFalse(lexicon.term_found("es", "Latn", "bloquear", "desbloquear"))
         self.assertTrue(lexicon.term_found("ar", "Arab", "قفل", "والقفل"))
 
+    # Turkish: negation is a verb ending, and the lock word has opposites written beside it.
+
+    TR = {"tag": "tr"}
+
+    def tr_polarity(self, english, text, *safety):
+        return [f["severity"] for f in check._polarity(self.TR, english, text, True, "other", {"safety": list(safety) or ["experimental"]})]
+
+    def test_tr_negation_inside_the_verb(self):
+        for english, text in (("Unverified", "Doğrulanmadı"), ("Unverified", "Doğrulanamadı"),
+                              ("Untested", "Denenmedi"), ("Unconfirmed", "Onaylanmadı"),
+                              ("Change not confirmed", "Değişiklik onaylanmadı"),
+                              ("Can't read the lock state", "Kilit durumu okunamıyor"),
+                              ("Not yet tried", "Henüz denenmedi"), ("This can't be undone", "Bu geri alınamaz"),
+                              ("Volt won't delete it", "Volt bunu silmeyecek"), ("Don't lock it", "Kilitlemeyin"),
+                              ("Volt isn't affiliated", "Volt ilişkili değildir"), ("Never", "Hiçbir zaman")):
+            self.assertEqual(self.tr_polarity(english, text), [], text)
+        # Added and dropped negation are still errors.
+        self.assertEqual(self.tr_polarity("Confirmed", "Onaylanmadı"), ["error"])
+        self.assertEqual(self.tr_polarity("Not confirmed", "Onaylandı"), ["error"])
+        # Ordinary words that end like a bare -ma, and "before" written with -meden, add no negation.
+        self.assertEqual(self.tr_polarity("Lock duration", "Kilitleme süresi"), [])
+        self.assertEqual(self.tr_polarity("Stop before locking", "Kilitlemeden önce durun"), [])
+
+    def test_tr_lock_opposites(self):
+        for text in ("Kilit açık", "Kilit: açık", "Kilit açma", "Kilitsiz", "Kilitli: açık", "Kilitleri aç",
+                     "Kilit kaldırıldı", "Kilit: kapalı", "Kilit devre dışı"):
+            self.assertFalse(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        for text in ("Scooter’ı kilitle", "Kilit durumu", "Kilit süresi", "Kilitli", "Kilit açıklaması", "Kilitli kalır"):
+            self.assertTrue(lexicon.term_found("tr", "Latn", "kilit", text, True, True), text)
+        # An English that itself says off or remove may say so of the lock.
+        self.assertTrue(lexicon.term_found("tr", "Latn", "kilit", "Kilit kaldırıldı", True, False))
+        self.assertFalse(lexicon.term_found("tr", "Latn", "kilit", "Kilit açık", True, False))
+
+    def test_tr_on_and_off(self):
+        self.assertIn("error", self.tr_polarity("Alarm sound off", "Alarm sesi açık"))
+        self.assertEqual(self.tr_polarity("Alarm sound on", "Alarm sesi kapalı"), ["error"])
+        self.assertEqual(self.tr_polarity("Alarm sound on", "Alarm sesi açık"), [])
+        self.assertEqual(self.tr_polarity("Alarm sound off", "Alarm sesi kapalı"), [])
+        self.assertEqual(self.tr_polarity("Turn off the alarm", "Alarmı devre dışı bırak"), [])
+        # A negation after the word, or in its ending, makes it the other state.
+        self.assertEqual(lexicon.state_words("tr", "Alarm açık değil"), ([], ["açık"]))
+        self.assertEqual(lexicon.state_words("tr", "Alarm kapalı değildir"), (["kapalı"], []))
+        self.assertEqual(lexicon.state_words("tr", "Alarm kapatılmadı"), (["kapatılmadı"], []))
+        # The activity log is not "active".
+        self.assertEqual(lexicon.state_words("tr", "NAVEE etkinlik günlüğü"), ([], []))
+
+    def test_tr_lock_state_trap(self):
+        for english, text in (("Lock: on", "Kilit: açık"), ("Lock: off", "Kilit: kapalı"),
+                              ("Auto-lock: on", "Otomatik kilit açık"), ("Lock state: off", "Kilit durumu: kapalı")):
+            self.assertIn("error", self.tr_polarity(english, text, "lock"), text)
+        for english, text in (("Lock: on", "Kilit: etkin"), ("Lock: off", "Kilit: devre dışı"),
+                              ("Unlocked", "Kilidi açık")):
+            self.assertEqual(self.tr_polarity(english, text, "lock"), [], text)
+        # Only a lock key.
+        self.assertEqual(self.tr_polarity("Lock: on", "Kilit: açık", "alarm"), [])
+        self.assertEqual(self.tr_polarity("Lock: on", "Kilit: açık", "ride", "lock"), ["error"])
+
     # Polarity: word-level negation for zh and ja.
 
     def test_zh_negation_is_word_level(self):

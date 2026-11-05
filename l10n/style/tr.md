@@ -29,7 +29,7 @@ Three things go wrong in Turkish and in no other Volt language, so read them fir
 
 ## 3. Capitalization of buttons, labels and titles
 
-- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Şarj sınırı*, *Deneysel kontroller*, *Düşük pil modu*. Never English Title Case, even when the English has it (*Walk Assist* → *Yürüme desteği*).
+- **Sentence case everywhere:** buttons, labels, titles, section headers. Only the first word and names take a capital: *Şarj sınırı*, *Deneysel özellikler*, *Düşük pil modu*. Never English Title Case, even when the English has it (*Walk Assist* → *Yürüme desteği*).
 - Feature names are lower case mid-sentence: *zamanlanmış şarjı açın*. After a colon, see section 2.
 - Keep capitals on Volt, NAVEE, PIN, USB, GPS, Bluetooth, Android. Drive modes and level names are never translated and keep the case the English string uses in that string (*Sport*, *ECO*, *Drive*): *Sport modunda*.
 - Months and days take a capital only as part of a full date (*5 Mart*); otherwise lower case. Language names are capitalized (*Türkçe*).
@@ -50,7 +50,7 @@ Turkish has two different letters, and each keeps its own dot through a case cha
 - **English names with a lower-case i break in capitals.** Under Turkish rules, *Drive* becomes *DRİVE* and *Shizuku* becomes *SHİZUKU*. Where a string goes to an upper-cased label, keep such names out of it if the sentence allows; otherwise leave them and say so in your notes. Never write them in capitals yourself.
 - **The reverse goes wrong too:** lower-cased under Turkish rules, *PIN* would become *pın*. Volt's templates don't lower-case text, so write acronyms as they are. If a string's note says it gets lower-cased, flag it in your notes.
 
-**Saira coverage, checked 2026-11-05** with `tools/l10n/fontmetrics.py` on all four weights: ı İ ş Ş ğ Ğ ç Ç ö Ö ü Ü â Â î Î û Û, U+00A0, “ ” ‘ ’ … · – % ° are all present; nothing is missing. Saira also has a Turkish `locl` feature that swaps i for a glyph that won't join *f* into a dotless-looking *ﬁ* ligature, which matters for *şifre*, *profil*, *sınıf*. That needs the text to be tagged Turkish; check it on a device.
+**Saira coverage, checked 2026-11-05** with `tools/l10n/fontmetrics.py` on all four weights: ı İ ş Ş ğ Ğ ç Ç ö Ö ü Ü â Â î Î û Û, U+00A0, “ ” ‘ ’ … · – % ° are all present; nothing is missing. Saira also has a Turkish `locl` feature that swaps i for a glyph that won't join *f* into a dotless-looking *ﬁ* ligature, which matters for *profil* and *filtre*. That needs the text to be tagged Turkish; check it on a device.
 
 ## 4. Numbers, dates and units
 
@@ -78,10 +78,10 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Maksimum hız | **Maks. hız** | 84.1 → 54.6 | The setting. The full form fits the 90dp tile |
 | En yüksek hız | no abbreviation | 79.9 | The measured value. Fits 90dp. Never *Maks. hız* |
 | Ortalama hız | **Ort. hız** | 73.9 → 41.6 | |
-| Kilometre sayacı | **Km sayacı** | 96.4 → 59.3 | The *Odo.* of this language. *Odometre* (57.7) is known but less everyday |
-| Sıcaklık | **Sıc.** | 43.8 → 20.0 | |
+| Kilometre sayacı | **Km sayacı** | 96.4 → 59.3 | The *Odo.* of this language. **Debate item:** Volt also offers miles, and *Km sayacı* over a value in miles names the wrong unit; *Odometre* (57.7) is unit-neutral but less everyday |
+| Sıcaklık | **Sıc.** | 43.8 → 20.0 | Weak alone. Where the ladder has an icon, prefer it. **Debate item** |
 | Pil sıcaklığı | **Pil sıc.**, then **Sıc.** | 63.8 → 36.1 → 20.0 | A real three-rung ladder |
-| Tahmini | **Tah.** | | |
+| Tahmini | no abbreviation | 46.8 | Write *Tahmini*, or `≈` where the English allows it |
 | Yaklaşık | **Yakl.** | | |
 | maksimum, minimum | **maks.**, **min.** | | |
 
@@ -91,7 +91,7 @@ Real ladders, widths at the given size:
 |---|---|---|---|
 | Battery temperature | *Pil sıcaklığı* | *Pil sıc.* | *Sıc.* |
 | Ride settings | *Sürüş ayarı* (63.7 at 12sp, under 64) | *Sürüş ayarları* (81.5 at 12.5sp, under 90) | |
-| Experimental controls | *Deneysel* (51.8 at 12sp) | *Deneysel kontroller* (112.7, so wrap at the space on the 90dp tile) or *Deneysel* (53.9) | |
+| Experimental controls | *Deneysel* (51.8 at 12sp) | *Deneysel özellikler* (109.3, so wrap at the space on the 90dp tile) or *Deneysel* (53.9) | |
 | Charge done by | *Bitiş hedefi* (63.3 at 12sp) | *Şarj bitiş hedefi* (90.7, so wrap at a space) or *Bitiş hedefi* (65.9) | |
 | App preferences | *Tercihler* (47.5 at 12sp) | *Tercihler* (49.5); *Uygulama tercihleri* (113.6) only wrapped | |
 
@@ -99,7 +99,9 @@ Measured words that fit as they are: *Kilit* 23.0, *Ayarlar* 43.0, *Pil* 14.7, *
 
 An abbreviation ends in a period, and the period counts toward the width. A two-word label may wrap at a space where the English also wraps.
 
-**Never abbreviate:** *Kilitle, Kilit, Kilitli, Kilidi aç, Kilidi açık, Doğrulanmış değil, Bilinmiyor, Asla, Her zaman, Alarm, PIN*. *Kil.* is not allowed. If one of these doesn't fit, write the whole word and report it in your notes.
+**No positive word plus *değil* on a one-line label or a ladder rung.** A one-line view can show the first word and lose the second, so *Doğrulanmış değil* can appear as *Doğrulanmış* (verified) and *Bağlı değil* as *Bağlı* (connected). `MoreScreen.LadderPill` is one such view. Keep the negation inside the word, or use a noun that stays neutral when cut: *Doğrulanmadı* (75.4 at 11.5sp semibold), *Denenmedi* (60.6), *Onaylanmadı* (71.2), *Bağlantı yok*. The pill is tighter than the English (*Unverified* is 56.1), so report an overflow in your notes rather than cutting the word.
+
+**Never abbreviate:** *Kilitle, Kilit, Kilitli, Kilidi aç, Kilidi açık, Doğrulanmadı, Denenmedi, Onaylanmadı, Bilinmiyor, Hiçbir zaman, Asla, Her zaman, Alarm, PIN*. *Kil.* is not allowed. If one of these doesn't fit, write the whole word and report it in your notes.
 
 ## 6. Safety wording
 
@@ -112,11 +114,11 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Locked | **Kilitli** | |
 | Unlock (action) | **Kilidi aç** | In a sentence: *Kilidi açın*, *Scooter’ın kilidini açın*. Noun, only inside a compound: **kilit açma** |
 | Unlocked | **Kilidi açık** | Never *Açık* alone, *Kilitsiz* or *serbest* |
-| Lock state unverified | **Kilit durumu doğrulanmış değil** | Must never read as confirmed |
+| Lock state unverified | **Kilit durumu doğrulanmadı** | Must never read as confirmed |
 | Lock state unknown | **Kilit durumu bilinmiyor** | Must never read as confirmed |
 | Unknown (alone) | **Bilinmiyor** | As an adjective: *bilinmeyen* |
-| Unverified | **Doğrulanmış değil** | Short rung *Burada doğrulanmış değil*. Don't drop *değil* |
-| Never | **Asla** | Also in sentences: *Volt aygıt yazılımını asla değiştirmez*. Not *Hiçbir zaman*, which the checks can't read |
+| Unverified | **Doğrulanmadı** | Short rung *Burada doğrulanmadı*. As an adjective: *doğrulanmamış*. *Could not be verified* is *doğrulanamadı* |
+| Never | **Hiçbir zaman** | The standalone option, Android's own word. In a sentence: *Volt aygıt yazılımını asla değiştirmez*. Where a one-word rung is needed: **Asla** (25.1 at 12.5sp, against 75.5) |
 | Always | **Her zaman** | *Always on* for a light: **Her zaman açık** |
 | Alarm | **Alarm** | Never *uyarı*: alert is **Uyarı**, and they stay distinct |
 | Alarm sound | **Alarm sesi** | |
@@ -125,25 +127,25 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Handlebar PIN | **gidon PIN’i** | *Gidon PIN’ini girin*. A password is **şifre**; keep them separate |
 | Owner key | **sahip anahtarı** | A secret. *Anahtar* also means a physical key in Turkish, as it does in English. "Not a password" is *Şifre değil* |
 | Charge limit | **Şarj sınırı** | Never *tavan*. *Limit* is not used. Check the ı: *sınır*, never *sinir* |
-| Experimental | **Deneysel** | *Deneysel kontroller* |
-| Untested | **Denenmiş değil** | |
-| Unconfirmed, Not confirmed | **Onaylanmış değil** | |
+| Experimental | **Deneysel** | *Deneysel özellikler*. In Turkish *kontrol* first means a check, so *Deneysel kontroller* reads as "experimental checks". *Kontrol* stays in established feature names (*Çekiş kontrolü*, *Yokuş iniş kontrolü*) and for checks. **Debate item,** if a word closer to "controls" is wanted |
+| Untested | **Denenmedi** | As an adjective: *denenmemiş* |
+| Unconfirmed, Not confirmed | **Onaylanmadı** | As an adjective: *onaylanmamış*. *Could not be confirmed* is *onaylanamadı* |
 | not affiliated with NAVEE | **NAVEE ile ilişkili değil** | In a sentence: *Volt, NAVEE ile ilişkili değil*. Never soften it: no *gayriresmî*, *resmî değil*, *doğrudan ilişkili değil* |
 
 **Words that look right and mean the opposite or something else:**
 
-- **"Lock: on" is never *Kilit: açık*.** *Kilit açık* says the lock is open, which is **unlocked**. And *Kapalı* beside a lock reads as closed, which is locked, while on a setting it means off. So on any lock-related setting use **Etkin** and **Devre dışı** for on and off, and never *Açık* or *Kapalı*: *Otomatik kilit: Etkin*.
+- **"Lock: on" is never *Kilit: açık*.** *Kilit açık* says the lock is open, which is **unlocked**. And *Kapalı* beside a lock reads as closed, which is locked, while on a setting it means off. So on any lock-related setting use **Etkin** and **Devre dışı** for on and off, and never *Açık* or *Kapalı*: *Otomatik kilit: etkin*. In a lock key `check.py` reports *kilit* next to *açık* or *kapalı* as an error; the approved *Kilidi açık* isn't affected.
 - **-me/-ma nouns are also negative commands.** *Kilitleme* is both "locking" and "don't lock". *Kilidi açma* is "don't unlock". *Durdurma* is "don't stop". *Silme* is "don't delete". So a button or standalone label is never a -me/-ma word: use the stem (*Kilitle*, *Durdur*, *Sil*) or put a noun after it (*Kilitleme süresi*, *kilit açma* with the unmarked *kilit*, *silme işlemi*). *Yedekleme* and *geri yükleme* are fine as titles only because nobody commands "don't back up" there; on a button use *Yedekle*, *Geri yükle*.
 - **"Not connected" is not "not affiliated".** *NAVEE ile bağlantılı değil* and *bağlı değil* read like a Bluetooth status in this app. That is why the disclaimer says *ilişkili*. **Debate item:** *bağlantılı değil* is common in legal notices elsewhere.
 - *Kilitsiz* means having no lock at all. Don't use it for Unlocked.
-- *Bilinmiyor* and *Doğrulanmış değil* differ from *Doğrulandı* and *Onaylandı* only at the end, so never let a budget cut that end.
+- *Doğrulanmadı* and *Onaylanmadı* differ from *Doğrulandı* and *Onaylandı* only by the letters *-ma-*, so check them letter by letter, and never let a budget cut the end of *Bilinmiyor* or any negated word.
 
 **Other rules:**
 
-- *kilit* softens to *kilidi* before a vowel. **Use *kilidi* only in the unlock phrases.** For the locked side write *kilit* plus a noun (*kilit durumu*, *kilit çubuğu*) or the verb *kilitle*. Otherwise the term check can't tell the two sides apart.
+- *kilit* softens to *kilidi* before a vowel. **Use *kilidi* only in the unlock phrases.** For the locked side write *kilit* plus a noun (*kilit durumu*, *kilit çubuğu*) or the verb *kilitle*. Otherwise the term check can't tell the two sides apart. So where English *electronic lock* would take an ending, write *elektronik kilit özelliği* or *elektronik kilit ayarı*, not *elektronik kilidi*.
 - Don't describe an unlock as removing the lock (*Kilidi kaldır*); say *Kilidi aç*.
 - **On and off:** elsewhere, settings and lights use **Açık** and **Kapalı**. Never *Evet/Hayır* in their place.
-- **Keep every negation, and in safety keys write it so the checks can see it.** Turkish negates with a verb ending (*doğrulanmadı*), but `check.py` reads only the words *değil, yok, asla, hiç, olmadan, hayır* and the negated words *bilinmiyor, bilinmeyen, geçersiz, başarısız, uyumsuz, yetersiz, beklenmeyen, desteklenmeyen, imkânsız, olanaksız*. In a safety key a negative verb ending alone fails, and so does *değildir* or *hiçbir*. So write *Onaylanmış değil*, *Okuma başarısız*, *Veri yok*, *Şifre değil*. If only a verb ending reads correctly, write it and say so in your notes; correctness comes first, and a failed key falls back to English safely. Outside safety keys it only warns: use the natural form.
+- **Keep every negation. Use the natural negated verb, and on a narrow label keep the negation inside the word** (section 5). `check.py` reads the negated verb endings (*doğrulanamadı, denenmedi, okunamıyor, kilitlenmez, silinmeyecek, dokunmayın*) and the words *değil, değildir, yok, asla, hiç, hiçbir, olmadan, hayır*. It doesn't count the bare -me/-ma form, which is banned above anyway, *-madan/-meden*, which also says "before" (*kilitlemeden önce*), or a *-mediği* clause. If one of those is the correct wording, write it and say so in your notes; a failed safety key falls back to English safely.
 - Don't add reassurance the English lacks (*güvenli*, *garantili*), and don't add warnings it doesn't have.
 
 ## 7. Scooter vocabulary
@@ -152,9 +154,11 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 - **The word for scooter is *scooter*,** matching NAVEE's manual heading and Turkish retail. *Skuter*, the word in the regulation (*Elektrikli Skuter Yönetmeliği*), has simpler suffixes and is the **debate item**. Fixed forms: *scooter’ı, scooter’a, scooter’ın, scooter’da, scooter’dan, scooter’ınız, scooter’ınızı*; plural without an apostrophe: *scooterlar, Scooterlarım*.
 - **Three speeds:** the setting is **Maksimum hız**. A limit below it is **Hız sınırı**. The measured value on a trip or ride is **En yüksek hız**. Never swap them.
+- **`rides_tile_max_speed` is the measured value:** **En yüksek hız**, never *Maks. hız*, although the English says *Max speed* today. Draft it now: D3 only moves the English to *Top speed*.
 - **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
-- **Also waiting for D3:** `more_lab_untested` still says *Untested controls* in English, and D3 makes it *Controls to try*. Draft it as **Denenecek kontroller**; `check.py` reports a polarity error until the English changes, so note that rather than rewording it.
+- **Also waiting for D3:** `more_lab_untested` still says *Untested controls* in English, and D3 makes it *Controls to try*. Draft it as **Denenecek özellikler**; `check.py` reports a polarity error until the English changes, so note that rather than rewording it.
 - **Rides vs trips:** a recorded ride is a **sürüş**. *Trip* (the distance since a reset) is **yolculuk**. A path on the map is a **rota**.
+- **Battery is *pil*,** Android's word and much narrower (*Pil* 14.7, *Batarya* 46.6 at 12.5sp), and the glossary's. Riders and sellers mostly say *batarya* for a scooter, so this is a **debate item**. Where the phone's battery could also be meant, name it: *telefonun pili*.
 - **Range is *menzil*,** the word NAVEE's Turkish retail listings use. *Menzil tahmini*. Never *aralık*.
 - **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Dene**; its results use **deneme**. An ordinary retry uses the phrase in Fixed words. A guided test is **test** (*Testi scooter dururken yapın*). *Test scheduled charging* is a check: **Zamanlanmış şarjı kontrol et**. A compatibility check is **uyumluluk kontrolü**.
 - **Dashboard vs display:** Volt's Home layout is the **Gösterge paneli**, *panel* once clear. The scooter's own screen is the **scooter ekranı**. They never swap. Not *Pano*, which means the clipboard in Turkish software.
@@ -231,6 +235,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | English concept | Meaning | This language |
 |---|---|---|
 | Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Yeniden deneyin**; *Birazdan yeniden deneyin*. As a button, **Yeniden dene**. Never bare *Dene* or *Test et* |
+| unconfirmed clause | after a negated confirm or verify (rule 3); never presupposes the event | **-ip -mediği:** *Zamanlamanın kapanıp kapanmadığı doğrulanamadı*, or a separate noun: *Zamanlama durumu doğrulanamadı*. Never bare *-dığı/-diği* before a negated *doğrula-* or *onayla-*: *kapandığı doğrulanamadı* says it did turn off |
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **veri yok**. Says only that no value came, not that anything is off or fine. Never *rapor edilmedi* |
 | reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **bildirilen**; verb **bildirir**: *Scooter bildiriyor*, *Scooter’ın bildirdiği*. A claim, not a measurement. Never *raporlanan* or *onaylanan*. *rapor* stays the word for a document |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE etkinlik günlüğü**. Never *kayıt* alone, which reads as signing up |
@@ -262,7 +267,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - [Elektrikli Skuter Yönetmeliği](https://www.alomaliye.com/2021/04/14/elektrikli-skuter-yonetmeligi/) (Resmî Gazete, 14 April 2021), for *skuter*; press uses both *skuter* and *scooter*.
 - Xiaomi's Turkish pages, search summary only ([Mi Elektrikli Scooter 3](https://www.mi.com/tr/product/mi-electric-scooter-3/), [4 Pro 2nd Gen](https://www.mi.com/tr/product/xiaomi-electric-scooter-4-pro-2nd-gen/)): *Elektrikli Scooter*, energy recovery wording, *km/sa*. A competitor, used for established terms.
 - [Microsoft Turkish localization style guide](https://download.microsoft.com/download/c/7/e/c7e1f405-1a5a-418d-a56d-3a8c183cabd9/tur-tur-StyleGuide.pdf), read in full text for these points: siz; "Percentage sign always leads the number" (`%%%d`); no suffixes on placeholders; singular noun after `%d`; acronym suffixes (*SMTP’ye*, *API’si*); no automatic case change for i and ı; *dk.*; no em dash. It asks for straight quotes, which this guide doesn't follow.
-- Android's own Turkish, read from AOSP: [SettingsLib values-tr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-tr/strings.xml) (*USB hata ayıklama*, *Geliştirici seçenekleri*, *Bilinmiyor*, *Her zaman*, *Bağlanıyor…*). *Derleme numarası* and *Telefon hakkında* are from memory, unverified. Its word for Never was not found.
+- Android's own Turkish, read from AOSP: [SettingsLib values-tr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-tr/strings.xml) (*USB hata ayıklama*, *Geliştirici seçenekleri*, *Bilinmiyor*, *Her zaman*, *Bağlanıyor…*, and *Hiçbir zaman* as a standalone option, `zen_mode_settings_summary_off`). `core/res` values-tr has *Asla İzin Verme*. *Derleme numarası* and *Telefon hakkında* are from memory, unverified.
 - [Dotted and dotless I in computing](https://en.wikipedia.org/wiki/Dotted_and_dotless_I_in_computing), background on case mapping.
 - **TDK could not be consulted directly.** The rules on quotes, apostrophes and *dk./sa./sn.* come from memory of the *Yazım Kılavuzu*, and the word pairs in section 3 and every term not cited above (*gidon, hız sabitleyici, çekiş kontrolü, kilidi açık, sahip anahtarı, ortak kullanıcı*) are general knowledge and judgment, not checked by a native speaker.
 - Width figures: measured with `tools/l10n/fontmetrics.py`, java.awt, `saira_medium.ttf`. Case handling: read in `Ui.sectionLabel` and in B19's `MainActivity`.
