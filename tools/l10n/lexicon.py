@@ -58,7 +58,8 @@ NEGATION = {
     "tr": ({"değil", "yok", "asla", "hiç", "olmadan", "hayır"}, ()),
     "ru": ({"не", "нет", "никогда", "без", "ни", "ничего", "нельзя"}, ("не", "без")),
     "uk": ({"не", "ні", "немає", "ніколи", "без", "нічого", "неможна"}, ("не", "без")),
-    "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα"}, ("μη", "α")),
+    "el": ({"δεν", "μη", "μην", "ποτέ", "χωρίς", "όχι", "κανένα", "κανένας", "κανέναν", "καμία", "καμιά"},
+           ("μη",)),
     "hi": ({"नहीं", "न", "मत", "कभी", "बिना"}, ("अ",)),
     "bn": ({"না", "নয়", "নেই", "কখনো", "ছাড়া"}, ("অ",)),
     # Arabic negates with separate words; "غير" and "عدم" also make the un- and non- words
@@ -573,7 +574,16 @@ def _strip_accents(text):
 
 def _inflected(primary, word):
     """A pattern for one word of a target: the word, or in an inflecting language its stem plus
-    any ending of up to four letters."""
+    any ending of up to four letters.
+
+    Greek (accents already stripped): a noun in -ωμα takes only its own endings, and a passive in
+    -θει matches only itself. The open ending would count the state "κλειδωμένο" and the report
+    "κλειδώθηκε" as the action "κλείδωμα", "κλειδωθεί". Other passive forms are listed in the row."""
+    if primary == "el":
+        if word.endswith("ωμα"):
+            return re.escape(word[:-1]) + "(?:α|ατος|ατα|ατων)"
+        if word.endswith("θει"):
+            return re.escape(word)
     if primary in INFLECTING:
         stem = word.rstrip(_ENDING_LETTERS)
         if stem != word and len(stem) >= 5:

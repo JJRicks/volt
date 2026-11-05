@@ -1397,7 +1397,9 @@ Known gaps, by language family:
 - **Slavic (pl, ru, uk, cs, sk, hr)**: inflected glossary targets match any ending of up to four
   letters after a stem of five or more letters, so a short stem must be listed in every form.
   The removal lists cover pl, ru and uk only; cs, sk and hr have none yet.
-- **Greek**: matched without accents; the removal list is short.
+- **Greek**: matched without accents; the removal list is short. A lock action and its state are
+  kept apart in the exact match, not in the loose -ing match. The imperative *Κλείδωσε* is spelled
+  like the past tense, so only a judge can tell "lock it" from "it locked".
 - **Indonesian and Malay**: word order is free and affixes are many; only the listed buka-,
   lepas-, nonaktif- and di- forms are caught.
 - **Arabic and Urdu**: written without short vowels, so غيّر (change) and غير (not) can be the same

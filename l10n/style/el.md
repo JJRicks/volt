@@ -6,11 +6,11 @@
 
 ## 1. Register and address
 
-- Use **εσύ**, singular, in every sentence: *Σύνδεσε τον φορτιστή*, *το πατίνι σου*. Never the plural εσείς forms (*Συνδέστε*, *σας*). **Debate item:** Android's and Microsoft's Greek use the polite plural (*Πατήστε*), so Volt will read friendlier than the phone around it. εσύ is the plan's proposal (7.4), awaiting the owner's confirmation.
+- Use **εσύ**, singular, in every sentence: *Σύνδεσε τον φορτιστή*, *το πατίνι σου*. Never the plural εσείς forms (*Συνδέστε*, *σας*). **Debate item:** Android's and Microsoft's Greek use the polite plural (*Πατήστε*), so Volt will read friendlier than the phone around it. The owner chose εσύ (plan 7.4, decided 2026-11-02); Android's plural remains a possible debate point.
 - Calm, plain, direct. No exclamation marks in errors, no marketing tone, no slang.
-- **Buttons, toggles and menu actions use the verbal noun, as Android's Greek does:** *Σύνδεση*, *Αποθήκευση*, *Κλείδωμα*, *Ακύρωση*. They carry no person, so they never clash with εσύ. **Instructions in sentences use the singular imperative:** *Σύνδεσε ξανά για να το επαληθεύσεις*. Don't mix the two in one string.
-- Prefer the perfective imperative for one action: *Πάτησε*, *Κλείδωσε*, *Όρισε*. Use *Πάτησε* for tap, never *Πατήστε* or *Κάνε κλικ*.
-- A negative instruction uses *μην*: *Μην κλείσεις την εφαρμογή*. Keep the final ν of *δεν* and *μην* before every letter (Microsoft's convention).
+- **Buttons, toggles and menu actions use the verbal noun, as Android's Greek does:** *Σύνδεση*, *Αποθήκευση*, *Κλείδωμα*, *Ακύρωση*. They carry no person, so they never clash with εσύ. **Instructions in sentences use the singular imperative:** *Σύνδεσε ξανά το πατίνι για να το επαληθεύσεις*. Don't mix the two in one string.
+- Prefer the perfective imperative for one action: *Πάτησε*, *Κλείδωσε το πατίνι*, *Όρισε*. Some of these are also past tense, so they name their object: see section 6. Use *Πάτησε* for tap, never *Πατήστε* or *Κάνε κλικ*.
+- A negative instruction uses *μην*: *Μην κλείσεις την εφαρμογή*. Keep the final ν of *δεν* and *μην* before every letter (Microsoft's convention). *μην* is only for a verb (*Μην κλείσεις*). Before an adjective or participle it is always *μη*: *Μη επαληθευμένο*, *Μη δοκιμασμένο*.
 - Use the passive or the state itself for what Volt or the scooter did: *Δεν ήταν δυνατή η ανάγνωση*.
 - Generic masculine for roles (*ιδιοκτήτης*), and rewrite to avoid gendering the rider where that is easy.
 - Volt is neuter when an article is needed: *το Volt*, *του Volt*. NAVEE is feminine, for the company: *η NAVEE*, *τη NAVEE*, *της NAVEE*. Both names never decline.
@@ -22,7 +22,7 @@
 - A sentence that names a button, tab or screen puts its exact label in «…»: *Πάτησε «Επιτρέπεται»*, *άνοιξε «Αντίγραφο ασφαλείας και επαναφορά»*. A feature mentioned in passing stays unquoted, with lower case.
 - A sentence-final period goes outside closing quotes and parentheses when the quote is a label: *Πάτησε «Σύνδεση».* Microsoft's guide puts it inside (*«ΟΚ.»*), but that changes the label; a judgment call.
 - Commas: no comma before *και* or *ή* in a simple list.
-- Keep the English's `·` separators and `…` as written (U+2026, not three periods). A verb in progress is the noun plus `…`: *Σύνδεση…*, *Κλείδωμα…*.
+- Keep the English's `·` separators and `…` as written (U+2026, not three periods). `·` is also the Greek ano teleia, but here it is only a spaced separator as in the English, never a pause. Where you add a dash, use a spaced en dash ( – ). Keep an em dash (—) where the English has one. A verb in progress is the noun plus `…`: *Σύνδεση…*, *Κλείδωμα…*.
 - A colon in a label is followed by lower case unless a name follows: *Τελευταία γνωστή: κλειδωμένο*.
 - Keep placeholders, `**` marks, backticks, file names and commands unchanged.
 - **The article's final ν:** *τον* and *έναν* always keep it. *την* drops it before β, γ, δ, ζ, θ, λ, μ, ν, ρ, σ, φ, χ: *τη NAVEE*, *τη φόρτιση*. Keep it before every vowel and stop, and μπ, ντ, γκ count as stops: *την μπαταρία*.
@@ -43,7 +43,7 @@
 - Decimal comma and thousands period in text you write: *3,5*, *1.234,5*. Volt's `Fmt` formats live numbers; never rewrite a placeholder's number or add separators around one.
 - **Percent takes no space:** `%1$s%%` gives *85%*, as Microsoft's Greek writes *12%*. The rule covers `formatted="false"` text too, whose literal is `100%`.
 - Numbers in the English stay in the Greek as digits, Latin digits only. Don't write them out or change them.
-- Unit symbols stay in Latin and take a no-break space (U+00A0) after a number or placeholder: *25 km/h*, *36 V*, *2 h 5 min*, *25 °C*. Never U+202F. Symbols take no plural and no period: `km`, `mi`, `mph`, `h`, `min`, `s`, `V`, `A`, `W`, `Wh`, `Ah`. **Don't use the Greek *χλμ.* or *χλμ/ώρα***, however common: the project keeps SI symbols. Unit words are translated: *χιλιόμετρα*, *μίλια*.
+- Unit symbols stay in Latin and take a no-break space (U+00A0) after a number or placeholder: *25 km/h*, *36 V*, *2 h 5 min*, *25 °C*. Never U+202F. Symbols take no plural and no period: `km`, `mi`, `mph`, `h`, `min`, `s`, `V`, `A`, `W`, `Wh`, `Ah`. **Don't use the Greek *χλμ.* or *χλμ/ώρα***, however common: the project keeps SI symbols. Unit words are translated: *χιλιόμετρα*, *μίλια*.
 - Dates and times come from Volt's formatters; don't hard-code an order. A fixed date in prose is day, then the month in the genitive: *5 Μαρτίου*. Don't write *π.μ./μ.μ.* yourself.
 - Plurals: `one` covers exactly 1, `other` everything else: *1 διαδρομή*, *%1$d διαδρομές*. A plural is real grammar in both forms, and the noun changes: *1 πατίνι*, *%1$d πατίνια*. Don't use the numerals *ένα*, *μία* in place of the digit the English shows.
 
@@ -60,12 +60,13 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 |---|---|---|---|
 | Οδόμετρο | **Οδόμ.** | | The accent stays. Never *Χλμ.*, which reads as the unit |
 | Μέγιστη ταχύτητα | **Μέγ. ταχύτητα** | **Μέγ. ταχ.** | The setting. Never for the measured value |
-| Υψηλότερη ταχύτητα | **Υψηλ. ταχύτητα** | **Υψηλ. ταχ.** | The measured value. Never *Μέγ.* |
+| Υψηλότερη ταχύτητα | **Υψηλότερη** | **Υψηλότερη** | The measured value; the tile's km/h supplies the rest. Never *Μέγ.*, and never *Υψηλ.*, which reads as *Υψηλή*, high speed |
 | Μέση ταχύτητα | **Μέση ταχ.** | | *Μέση* stays whole |
 | Θερμοκρασία | **Θερμ.** | | |
 | Χωρητικότητα | **Χωρητ.** | | |
 | Αυτονομία | **Αυτον.** | | *Εκτίμηση αυτον.* |
 | Μπαταρία | **Μπατ.** | | Only where *Μπαταρία* doesn't fit |
+| Εξουσιοδοτημένος | **Εξουσιοδ.** | | The role label, only if the device pass shows the whole word doesn't fit |
 | Ρυθμίσεις | **Ρυθμ.** | | |
 | Πληροφορίες | **Πληροφ.** | | |
 | ελάχιστο, μέγιστο | **ελάχ.**, **μέγ.** | | |
@@ -106,7 +107,7 @@ Use exactly these words. They match the glossary; don't use synonyms. State word
 | PIN | **PIN** | Neuter, never declines: *το PIN*, *του PIN*, *τα PIN*. Not *κωδικός* |
 | Handlebar PIN | **PIN τιμονιού** | A password is **κωδικός πρόσβασης**; keep them separate |
 | PIN unlock | **Ξεκλείδωμα με PIN** | The toggle |
-| Owner key | **κλειδί ιδιοκτήτη** | A secret, and always digital. "Not a password" is *Δεν είναι κωδικός πρόσβασης*. Never *κωδικός ιδιοκτήτη* |
+| Owner key | **κλειδί ιδιοκτήτη** | A name: never insert *του* (*κλειδί του ιδιοκτήτη*). A secret, and always digital. "Not a password" is *Δεν είναι κωδικός πρόσβασης*. Never *κωδικός ιδιοκτήτη* |
 | Charge limit | **Όριο φόρτισης** | Never *ανώτατο σημείο* or *ταβάνι* |
 | Experimental | **Πειραματικό**, agreeing: *πειραματική*, *πειραματικά* | |
 | Untested | **Μη δοκιμασμένο** | Agrees. *Χωρίς δοκιμή* where gender can't be known |
@@ -115,15 +116,16 @@ Use exactly these words. They match the glossary; don't use synonyms. State word
 
 **Words that look right and mean the opposite, or blur a state:**
 
+- ***Κλείδωσε* and *Ξεκλείδωσε* are also past tense:** "it locked", "it unlocked". An instruction always names its object, and never stands bare: *Ξεκλείδωσε το πατίνι για να τα δοκιμάσεις*, *Ξεκλείδωσέ το*. A completed event always uses the passive: *Το πατίνι κλειδώθηκε*, *Το πατίνι ξεκλειδώθηκε*. Never the active *Το πατίνι κλείδωσε*. *πατίνι* looks the same as subject and object, so a very short string uses the noun instead: `controls_reason_locked` (*Unlock first*) is **Απαιτείται ξεκλείδωμα**. A failed lock also takes the noun, *Αποτυχία κλειδώματος*, because `check.py` doesn't count *κλειδώθηκε* as the action. The same object rule applies to *Σύνδεσε* and *Δοκίμασε*. `check.py` can't see the difference in tense; a judge checks it.
 - ***Ποτέ* (never) and *πότε* (when) differ only by where the accent falls.** Never drop or move that accent. In all-caps they are the same word, *ΠΟΤΕ*: if a string that says never lands on an upper-cased heading, rewrite the heading or report it.
 - *Κλείσιμο*, *Κλειστό* and *Άνοιγμα*, *Ανοιχτό* talk about closing and opening, often about power. Don't use them for lock or unlock: *Ανοιχτό* next to a scooter reads as powered on or as unlocked.
 - *Τέλος* is Android's *Done*. Bare *Τέλος φόρτισης* reads as a charge that has ended, which is why the feature name always keeps its *έως* (section 7).
 - *Φόρτιση* (charging) is not *Φορτισμένο* (charged).
 - *Άρση κλειδώματος* and *Απενεργοποίηση κλειδώματος* remove a lock. Say *Ξεκλείδωμα*. Use *Απενεργοποίηση* only where the English itself says turn off.
 - *Κλειδωμένο* and *Ξεκλειδωμένο* differ only by *Ξε-*. Keep both whole.
-- *Ενεργό* and *Ανενεργό* differ only by *Αν-*. Settings use **Ενεργό** and **Ανενεργό**; lights and motors use **Αναμμένο** and **Σβηστό**. Agree in gender with the thing named. Never invert them, never use *Ναι/Όχι* in their place. A bare *Ενεργοποίηση* is an action, not a state: don't use it as a state label.
+- *Ενεργό* and *Ανενεργό* differ only by *Αν-*. Settings use **Ενεργό** and **Ανενεργό**, and the shared `common_on` and `common_off` are always these neuter forms. Lights use **Αναμμένο** and **Σβηστό**. Motors use **Ενεργός** and **Ανενεργός**. Otherwise agree in gender with the thing named. Never invert them, never use *Ναι/Όχι* in their place. A bare *Ενεργοποίηση* is an action, not a state: don't use it as a state label.
 - *η* and *ή*: **ή** with a tonos means "or", and *η* is the article. *πού/πώς* keep their accent when asking where or how.
-- Keep every negation. *δεν*, *μη*, *μην*, *χωρίς*, *όχι* and *κανένα* count as negation words for the checks, and a prefix alone only counts for listed native words such as *άγνωστο*, *ανενεργό*.
+- Keep every negation. *δεν*, *μη*, *μην*, *χωρίς*, *όχι*, *κανένα*, *κανένας*, *κανέναν*, *καμία* and *καμιά* count as negation words for the checks, and a prefix alone only counts for listed native words such as *άγνωστο*, *ανενεργό*.
 - Don't add reassurance the English lacks (*ασφαλές*, *εγγυημένο*), and don't add warnings it doesn't have.
 
 ## 7. Scooter vocabulary
@@ -132,11 +134,12 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 - **Scooter:** **πατίνι**, neuter, plural *πατίνια*, genitive *πατινιού*. Never *σκούτερ*, which reads as a motor scooter; *ηλεκτρικό πατίνι* only where the English says electric.
 - **Three speeds:** the setting is **Μέγιστη ταχύτητα**. A limit below it is **Όριο ταχύτητας**. The measured value on a trip or ride is **Υψηλότερη ταχύτητα**. Never swap them. *Τελική ταχύτητα* is what car specs say for a design top speed, so it's not used.
-- **Held until the English terminology fix (D3) merges:** the rows `top-speed` and `maximum-speed` hold D3's meanings, but today's English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
-- **Rides, trips and routes:** a recorded ride is a **διαδρομή**, the screen is **Διαδρομές**. *Trip*, the distance since a reset, is **ταξίδι**, the word of a vehicle's trip computer: *Απόσταση ταξιδιού*. A path on the map is a **πορεία**. Never call that path *διαδρομή*, though Maps does.
+- **Held until the English terminology fix (D3) merges:** the rows `top-speed` and `maximum-speed` hold D3's meanings, but today's English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. So do `rides_tile_max_speed`, whose *Max speed* is the value measured on a ride and becomes *Top speed*, and `more_lab_untested`, whose *Untested controls* becomes *Controls to try*: *Στοιχεία ελέγχου για δοκιμή* drops today's warning word. If that title must ship before D3, it is **Μη δοκιμασμένα στοιχεία ελέγχου**. Flag them in your notes; a judge answers fallback.
+- **Rides, trips and routes:** a recorded ride is a **διαδρομή**, the screen is **Διαδρομές**. *Trip*, the distance since a reset, is **ταξίδι**, the word of a vehicle's trip computer: *Απόσταση ταξιδιού*. **Debate item:** *ταξίδι* is odd for a short ride, and riders also know *μερικά χιλιόμετρα*; the option is *Μερική απόσταση*, which would need the *Μέση ταχ. ταξιδιού* ladder reworded. *ταξίδι* is understood, so this blocks nothing. A path on the map is a **πορεία**. Never call that path *διαδρομή*, though Maps does.
+- **Phone journal:** **Καταγραφές τηλεφώνου**, consistent with *καταγραφή διαδρομής*. Never *Ημερολόγιο*: on a Greek phone that is the Calendar app, so Rides would seem to read or write the calendar.
 - **Try vs retry vs test:** Trying a control (Experimental, Controls to try) is **Δοκιμή**, verb *δοκιμάζω*: *Δοκίμασέ το*. Its results use **προσπάθεια**. An ordinary retry never uses *δοκιμ-*: see Fixed words. A guided test is **τεστ**, indeclinable: *Κάνε το τεστ με το πατίνι σταματημένο*. *Test scheduled charging* is a check, so it's **Έλεγχος προγραμματισμένης φόρτισης**. A compatibility check is **έλεγχος συμβατότητας**.
 - **Dashboard vs display:** Volt's Home layout is the **Πίνακας ελέγχου**, or *Πίνακας* on a narrow rung. The scooter's own screen is the **οθόνη πατινιού**. They never swap. *ταμπλό* is not used.
-- **Settings vs setup:** settings are **Ρυθμίσεις**, plural. One-time setup is **ρύθμιση**, singular: *ρύθμιση ιδιοκτήτη*. As Android's Greek does; don't let the number slip.
+- **Settings vs setup:** settings are **Ρυθμίσεις**, and one setting is *η ρύθμιση*. One-time setup is never bare, so number can't be what separates them: *ρύθμιση ιδιοκτήτη*, *αρχική ρύθμιση*.
 - **Restore vs set back:** bringing back a backup, or NAVEE logging as Fixed words says, is **Επαναφορά**. Undoing a try is **Αναίρεση**, and so is putting back a test's earlier value even when the English says restore. Energy recovery is **Ανάκτηση ενέργειας**, unrelated to either.
 - **Readback:** **επανανάγνωση**, a neutral word, because a readback can also fail to confirm: *Διαφορετική επανανάγνωση*, *Επιβεβαιωμένο με επανανάγνωση*. Never a phrase with *επιβεβαίωση* inside it.
 - **Rejected:** both *Rejected* and *Refused by scooter* use **Απορρίφθηκε**; add *από το πατίνι* where the English names it.
@@ -144,10 +147,10 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Owner key parts:** the file is the **αρχείο ρύθμισης ιδιοκτήτη**, shortened to **αρχείο ιδιοκτήτη** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English. Reading the key from the NAVEE app is **λήψη κλειδιού**; **κλειδί** always means the owner key, and never a physical key or a Bluetooth pairing code.
 - **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *ανάκτηση*: *Ανενεργή, Χαμηλή, Μεσαία, Υψηλή*. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Εκτίμηση Eco** is a range option, translated.
-- **Roles:** owner is **ιδιοκτήτης**, shared rider is **εξουσιοδοτημένος αναβάτης**. The compact role label (`more_role_shared`, English *Shared*) is **Κοινή χρήση**. Never *αναβάτης με άδεια*, which reads as a licensed rider, and never *συνεπιβάτης*, a passenger.
+- **Roles:** owner is **ιδιοκτήτης**, shared rider is **εξουσιοδοτημένος αναβάτης**. The compact role label (`more_role_shared`, English *Shared*) is **Εξουσιοδοτημένος**, or **Εξουσιοδ.** if the device pass shows it doesn't fit. Never *Κοινή χρήση*, which is Android's Share action and not a role. Never *αναβάτης με άδεια*, which reads as a licensed rider, and never *συνεπιβάτης*, a passenger.
 - **Rider:** *αναβάτης* only in that role name. Everywhere else, address the rider directly.
 - **Parked:** the meaning is stationary, so **σταματημένο**, or *σε στάση* with no gender. Not *παρκαρισμένο*.
-- **Charge done by:** the feature name is **Τέλος φόρτισης έως**, and its time setting **Ώρα τέλους φόρτισης**. The feature only plans a start, so never word it as a charge that has finished, and never drop *έως*. *Φόρτιση έως* would read as the charge limit (*Φόρτιση έως 80%*). In a sentence, quote the name: *το «Τέλος φόρτισης έως» είναι ανενεργό*.
+- **Charge done by:** the feature name is **Τέλος φόρτισης έως**, and its time setting **Ώρα τέλους φόρτισης**. The feature only plans a start, so never word it as a charge that has finished, and never drop *έως*. The time setting is the one exception: *Ώρα* already makes it a setting. *Φόρτιση έως* would read as the charge limit (*Φόρτιση έως 80%*). In a sentence, quote the name: *το «Τέλος φόρτισης έως» είναι ανενεργό*.
 - **Cruise control:** **Διατήρηση ταχύτητας**, what it does. **Debate item:** Greek riders also say *cruise control* in Latin.
 - **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Γρήγορη πρόσβαση**. Never *Γρήγορες ρυθμίσεις*: that is Android's pull-down panel.
 - **Turn signal:** **Φλας**, indeclinable, in Greek letters.
@@ -180,18 +183,18 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 
 | English concept | Meaning | This language |
 |---|---|---|
-| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Προσπάθησε ξανά**; *Προσπάθησε ξανά σε λίγο*. As a button, **Επανάληψη**. Never *Δοκίμασε ξανά*, which reads as testing something |
+| Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Προσπάθησε ξανά**; *Προσπάθησε ξανά σε λίγο*. As a button, **Επανάληψη**, which gets a glossary warning that's expected on `common_try_again`. Never *Δοκίμασε ξανά*, which reads as testing something. `check.py` can't tell these apart: the ban is manual, so a judge checks it. Repeating an experimental try isn't a retry: `more_lab_try_again_value` is *Νέα δοκιμή: %1$s* |
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **χωρίς δεδομένα**. Says only that no value came, not that anything is off or fine. Never *δεν αναφέρθηκε* |
-| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **δηλωμένο** (agrees with its noun); verb **δηλώνει**: *το πατίνι δηλώνει*, *Δηλωμένη υγεία*. A claim, not a measurement. Never *αναφερόμενο* or *επιβεβαιωμένο*. *αναφορά* stays the word for a document |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **δηλωμένο** (agrees with its noun); verb **δηλώνει**: *το πατίνι δηλώνει*, *Δηλωμένη υγεία*. A claim, not a measurement. **Debate item:** *δηλωμένο* is also a maker's declared figure, so *Δηλωμένη υγεία* slightly suggests a spec; `stats_detail_health_note` keeps its explanation intact. Never *αναφερόμενο* or *επιβεβαιωμένο*. *αναφορά* stays the word for a document |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **καταγραφή δραστηριότητας NAVEE**. Never *εγγραφή*, which reads as signing up for an account |
 | restore logging | turning that logging back to how it was (usually off) | **επαναφορά καταγραφής δραστηριότητας**. Means putting that logging back as it was, usually off. It brings back no file or backup |
 | Volt's helper | the small helper Volt starts inside Shizuku | **βοηθητικό πρόγραμμα του Volt**; *βοηθητικό πρόγραμμα* alone once the screen makes clear which. Never *βοηθός*. The script on the computer is the different **βοηθητικό πρόγραμμα λήψης** |
-| stock charger | the charger that came with the scooter | **αρχικός φορτιστής**. Never *τυπικός* |
+| stock charger | the charger that came with the scooter | **εργοστασιακός φορτιστής**. Never *τυπικός*, and never *αρχικός*, which reads as the first charger |
 | high-speed charger | a faster charger the rider may own | **γρήγορος φορτιστής**; alone, *Γρήγορος*. Never *υψηλής ταχύτητας*: this is about charging, not riding speed |
 | gap (in a recording) | a stretch of a recording with no data | **κενό**. Means no data was recorded, not that power or the ride was cut |
 | elevation | height above sea level on a route | **υψόμετρο** |
 | current direction | which way battery current flows | **φορά ρεύματος**. Never *κατεύθυνση*, which reads as a route |
-| throughput | how much energy has passed through the battery | **ροή ενέργειας**; *ροή* once the screen has said energy. An amount of energy that passed through, not a rate |
+| throughput | how much energy has passed through the battery | **διερχόμενη ενέργεια**. An amount of energy that passed through, not a rate, so never *ροή* |
 | battery gauge | the scooter's own battery percentage reading | **ένδειξη μπαταρίας**; *ένδειξη* alone where the screen is about the battery. The scooter's own figure, not a measurement |
 | raw | an unprocessed value, also used as a short tag | **ακατέργαστη τιμή**; as a tag or in `(raw)`, **RAW**, in Latin as the English writes it. Greek has no short accepted word. **Debate item** |
 | last seen | when Volt last had data from the scooter | **Τελευταία ανάγνωση**; with a value, *Τελευταία ανάγνωση: %1$s*. The data may be old, so never word it as current. Not *τελευταία γνωστή*, which is the last known state |
@@ -199,10 +202,11 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | enter (typing) | typing a value | **πληκτρολόγησε**: *Πληκτρολόγησε νέο PIN*. Never *Εισαγωγή* or *εισάγω*, which also mean import |
 | the app | one word for "app" used everywhere | **εφαρμογή**, feminine: *η εφαρμογή NAVEE*, *η επίσημη εφαρμογή*. Never *app* or *αππ* |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **σύνδεσε το πατίνι**, *Σύνδεσε πρώτα το πατίνι*. Never *συνδέσου*, which reads as signing in. The button stays *Σύνδεση*; plugging in says *σύνδεσε τον φορτιστή* |
-| set a value | one verb for setting a value on the scooter | **ορίζω**: *Ορισμός PIN*, *Όρισε %1$s*. The noun stays *ρύθμιση*, and setting something back stays *Αναίρεση* |
+| set a value | one verb for setting a value on the scooter | **ορίζω**: *Ορισμός PIN*, *Όρισε %1$s*. One setting is *η ρύθμιση*, and setting something back stays *Αναίρεση* |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | Future with *θα*, in dialogs and hints alike: *Θα διαγραφεί αυτή η διαδρομή*, *Θα ανοίξει ο χάρτης*. Never *Διάγραψε…* or *Άνοιξε…*, which read as commands |
 | screen and section titles | noun form or verb form, with one example | Noun form: *Αντίγραφο ασφαλείας και επαναφορά*, *Έλεγχος προγραμματισμένης φόρτισης*. Never the imperative |
-| at a time | a time placeholder | Label form: *Ώρα έναρξης: %1$s*. Never *στις %1$s*: Greek says *στη 1:00* but *στις 2:00*, so the article changes with the hour |
+| at a time | a time placeholder | Label form: *Ώρα έναρξης: %1$s*. No article, or preposition plus article, before a time placeholder: never *στις*, *έως τις*, *από τις* or *μετά τις %1$s*. Greek says *στη 1:00* but *στις 2:00*, so the article changes with the hour. Use bare *έως %1$s* or a label form |
+| a name placeholder | a label or setting name filled in at run time | A name placeholder is in the nominative, so it follows a colon: *Ανάγνωση: %1$s…*, *Ορισμός: %1$s…*. Never *Ανάγνωση %1$s…*. Not *Εφαρμογή: %1$s…* for Applying: *εφαρμογή* here means the app |
 
 ## 9. Sources consulted
 
@@ -211,5 +215,5 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - Android's own Greek, read from AOSP: [SettingsLib values-el](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-el/strings.xml) and [Settings values-el](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-el/strings.xml): *Εντοπισμός σφαλμάτων USB*, *Επιλογές για προγραμματιστές*, *Αριθμός έκδοσης*, *Σύζευξη*, *Σύνδεση*, *Αποσύνδεση*, *Ρυθμίσεις*, *Κλείδωμα*, *Ξεκλείδωμα*, *Επανάληψη*, *Τέλος*, *ΟΚ*, the backup wording *Δημιουργία αντιγράφου ασφαλείας και επαναφορά*, the verbal-noun button pattern, and the polite plural *πατήστε*. *ΣΥΖΕΥΞΗ* (`bluetooth_pairing_accept_all_caps`) confirms capitals without a tonos.
 - [Microsoft Greek Localization Style Guide](https://download.microsoft.com/download/3/9/6/3963b5d8-7e0d-49c7-868e-ad4b03a7eee5/ell-grc-StyleGuide.pdf), text extracted locally: abbreviation shapes and common abbreviations, sentence case in UI, capitals on days, months and languages, the *έως* use, the final-ν rules, *12%* and *3,5*, chevron quotes as usual Greek, and *Κλείσιμο…* for an action in progress. Volt departs from it on εσύ (it uses the polite plural), on quotes (it uses straight ones for its products) and on the period after a label.
 - Xiaomi's Greek pages, known only from search listings, because their fetch returned 403: titled [Ηλεκτρικό πατίνι](https://www.mi.com/gr/product/mi-electric-scooter-3/). A summarised search answer also showed *ανάκτηση ενέργειας* and *cruise control* in Greek coverage of [Xiaomi's](https://www.mi.com/gr/product/xiaomi-electric-scooter-5-max/) and Segway's scooters. That's thin evidence: the summary may have translated. [Skroutz](https://www.skroutz.cy/s/65853352/xiaomi-electric-scooter-6-ultra-bhr08ktgl-ilektriko-patini-me-25km-h-max-tachytita-kai-75km-aytonomia-se-kitrino-chroma.html) lists scooters as *ηλεκτρικό πατίνι*.
-- Greek orthography on all-caps text, the dialytika, the final sigma and the question mark: from general knowledge, with only *ΣΥΖΕΥΞΗ* above as a fresh check. That Android's `toUpperCase` and `setAllCaps` drop the tonos under an `el` locale is from memory of the platform and **needs the device pass**.
-- Judgment calls, unverified by a native speaker: *ταξίδι*, *πορεία*, *Οδόμετρο*, *κλειδί ιδιοκτήτη*, *εξουσιοδοτημένος αναβάτης*, *δέσμευση λογαριασμού*, *Υψηλότερη ταχύτητα*, *Διατήρηση ταχύτητας*, *Τέλος φόρτισης έως*, *χωρίς σχέση με τη NAVEE*, and all abbreviations in section 5 beyond Microsoft's list.
+- Greek orthography on all-caps text, the dialytika, the final sigma and the question mark: from general knowledge, with only *ΣΥΖΕΥΞΗ* above as a fresh check. That Android's `toUpperCase` and `setAllCaps` drop the tonos under an `el` locale is from memory of the platform and **needs the device pass**. The device pass must also check that `MainActivity:1468` moved to `Fmt.locale` when it was cataloged: it upper-cases literal English *Lights* and *Headlights* with `Locale.ROOT`, which once translated would give the wrong *ΦΏΤΑ*.
+- Judgment calls, unverified by a native speaker: *ταξίδι*, *πορεία*, *Οδόμετρο*, *κλειδί ιδιοκτήτη*, *εξουσιοδοτημένος αναβάτης*, *δέσμευση λογαριασμού*, *Υψηλότερη ταχύτητα*, *Διατήρηση ταχύτητας*, *Τέλος φόρτισης έως*, *χωρίς σχέση με τη NAVEE*, *Εξουσιοδοτημένος* as the role label, *Καταγραφές τηλεφώνου*, *Φωτεινή γραμμή*, *Αστρικά φώτα*, *διερχόμενη ενέργεια*, *εργοστασιακός φορτιστής*, and all abbreviations in section 5 beyond Microsoft's list.

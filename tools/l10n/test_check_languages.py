@@ -282,6 +282,24 @@ class MoreLanguagesTest(unittest.TestCase):
         self.assertFalse(lexicon.term_found("fr", "Latn", "verrou", "verre"))
         self.assertTrue(lexicon.term_found("el", "Grek", "κλείδωμα", "Αποτυχία κλειδώματος"))
 
+    def test_greek_lock_action_and_state_stay_apart(self):
+        lock = ["Κλείδωμα", "κλειδώματος", "κλειδώματα", "κλείδωσε", "κλειδώνω", "κλειδώνει", "κλειδώσει", "κλειδωθεί"]
+        unlock = ["Ξεκλείδωμα", "ξεκλειδώματος", "ξεκλειδώματα", "ξεκλείδωσε", "ξεκλειδώνω", "ξεκλειδωθεί"]
+        for english, targets, text in (("Lock", lock, "Κλείδωμα"), ("Lock", lock, "Αποτυχία κλειδώματος"),
+                                       ("Lock the scooter", lock, "Κλείδωσε το πατίνι"),
+                                       ("Unlock first", unlock, "Απαιτείται ξεκλείδωμα")):
+            self.assertEqual(_errors("el", english, text, targets, term=english.split()[0]), [], text)
+        for english, targets, text in (("Lock", lock, "Κλειδωμένο"), ("Unlock", unlock, "Ξεκλειδωμένο"),
+                                       ("Lock the scooter", lock, "Το πατίνι κλειδώθηκε")):
+            self.assertEqual(_errors("el", english, text, targets, term=english.split()[0]), ["glossary"], text)
+
+    def test_greek_negation_words(self):
+        self.assertEqual(_errors("el", "No rides yet", "Καμία διαδρομή ακόμη"), [])
+        self.assertEqual(_errors("el", "Never", "Ποτέ"), [])
+        self.assertEqual(_errors("el", "Never", "Πότε"), ["polarity"])
+        # An ordinary word in α- is no longer a possible negation.
+        self.assertEqual(check.target_negation("el", "Αποθήκευση")[1], [])
+
     def test_natural_negations_pass(self):
         cases = (("bn", "The scooter did not respond", "স্কুটার সাড়া দেয়নি"),
                  ("bn", "Lock was not confirmed", "লক নিশ্চিত হয়নি"),
