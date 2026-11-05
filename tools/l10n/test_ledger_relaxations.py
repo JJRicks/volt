@@ -353,5 +353,242 @@ class FormatPluralTest(PluralFlagCase):
         self.assertEqual(self.check([self.row("s_two", split, 5)])[0], [])
 
 
+HEADER_BASE = """    static void refresh(boolean ready, boolean connecting, long seen, String recent, Reading drive) {
+        String mode = null;
+        if (ready && drive != null && drive.live) {
+            String value = format(drive);
+            if (value.matches("[A-Z]+")) mode = value;
+        }
+        String word = ready ? "Connected" : connecting ? "Connecting" : "Disconnected";
+        if (connecting) status.setText(label());
+        else status.setText(word + (mode != null ? " · " + mode : "") + (!ready && seen > 0 ? " · last seen " + recent : ""));
+        status.setContentDescription(word + (mode != null ? ", " + mode + " mode" : "")
+                + (!ready && !connecting && seen > 0 ? ", last seen " + recent : "") + ". Details");
+    }"""
+SENTENCE = """word + (mode != null ? " · " + mode : "") + (!ready && seen > 0 ? " · last seen " + recent : "")"""
+SPOKEN = ('word + (mode != null ? ", " + mode + " mode" : "")\n'
+          '                + (!ready && !connecting && seen > 0 ? ", last seen " + recent : "") + ". Details"')
+WORD = """        String word = ready ? "Connected" : connecting ? "Connecting" : "Disconnected";\n"""
+STATUS_HEAD = "ready ? (mode != null ? T.sMode(mode) : T.sOn()) : seen > 0 ? T.sSeen(recent) : T.sOff()"
+SPOKEN_HEAD = ("ready ? (mode != null ? T.pMode(mode) : T.pOn()) : connecting ? T.pGoing() : "
+               "seen > 0 ? T.pSeen(recent) : T.pOff()")
+HEADER_STRINGS = """<resources>
+<string name="s_mode">Connected · %1$s</string>
+<string name="s_on">Connected</string>
+<string name="s_seen">Disconnected · last seen %1$s</string>
+<string name="s_off">Disconnected</string>
+<string name="p_mode">Connected, %1$s mode. Details</string>
+<string name="p_on">Connected. Details</string>
+<string name="p_going">Connecting. Details</string>
+<string name="p_seen">Disconnected, last seen %1$s. Details</string>
+<string name="p_off">Disconnected. Details</string>
+<string name="s_linked">Linked</string>
+</resources>
+"""
+STATUS_KEYS = ("s_mode", "s_on", "s_seen", "s_off")
+SPOKEN_KEYS = ("p_mode", "p_on", "p_going", "p_seen", "p_off")
+STATUS_PIECES = {"if": "ready", "then": {"if": "mode != null", "then": ["Connected", " · ", hole("mode", 1)], "else": ["Connected"]},
+                 "else": {"if": "seen > 0", "then": ["Disconnected", " · last seen ", hole("recent", 1)], "else": ["Disconnected"]}}
+SPOKEN_PIECES = {"if": "ready", "then": {"if": "mode != null", "then": ["Connected", ", ", hole("mode", 1), " mode", ". Details"],
+                                         "else": ["Connected", ". Details"]},
+                 "else": {"if": "connecting", "then": ["Connecting", ". Details"],
+                          "else": {"if": "seen > 0", "then": ["Disconnected", ", last seen ", hole("recent", 1), ". Details"],
+                                   "else": ["Disconnected", ". Details"]}}}
+
+
+class HeaderStatusTest(GrammarCase):
+    """Item 6: the Dashboard header status: a word picked on the line above, an else around the sentence, and a
+    mode that stays null unless ready held."""
+    FILES = {GRID: java_class("Grid", HEADER_BASE)}
+    STRINGS = HEADER_STRINGS
+
+    def rows(self, status=STATUS_PIECES, spoken=SPOKEN_PIECES, keys=STATUS_KEYS):
+        return [choice_row(12, status, keys, GRID), choice_row(13, spoken, SPOKEN_KEYS, GRID)]
+
+    def convert(self, status=STATUS_HEAD, spoken=SPOKEN_HEAD, word_gone=True):
+        self.edit(GRID, SENTENCE, status)
+        self.edit(GRID, SPOKEN, spoken)
+        if word_gone:
+            self.edit(GRID, WORD, "")
+
+    def test_both_sentences_pass_with_the_word_gone(self):
+        self.convert()
+        problems, warnings, _ = self.check(self.rows())
+        self.assertEqual(problems, [])
+        self.assertTrue(any("the local word is" in w and "`connecting` is false around it" in w for w in warnings), warnings)
+        self.assertTrue(any("mode stays null unless drive != null and ready" in w for w in warnings), warnings)
+
+    def test_a_word_the_local_did_not_hold_fails(self):
+        self.edit(GRID, SENTENCE, STATUS_HEAD.replace("T.sOn()", "T.sLinked()"))
+        self.edit(GRID, SPOKEN, SPOKEN_HEAD)
+        self.edit(GRID, WORD, "")
+        status = json.loads(json.dumps(STATUS_PIECES))
+        status["then"]["else"] = ["Linked"]
+        problems = self.check(self.rows(status, keys=("s_mode", "s_linked", "s_seen", "s_off")))[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+    def test_the_local_kept_when_the_other_sentence_still_reads_it_is_fine(self):
+        self.edit(GRID, SENTENCE, STATUS_HEAD)
+        problems = self.check(self.rows()[:1])[0]
+        self.assertEqual(problems, [])
+
+    def test_the_local_half_gone_leaves_its_strings_with_no_row(self):
+        self.edit(GRID, SENTENCE, STATUS_HEAD)
+        self.edit(GRID, SPOKEN, SPOKEN_HEAD)
+        self.edit(GRID, '"Connecting" : "Disconnected"', '"Going" : "Disconnected"')
+        problems = self.check(self.rows())[0]
+        self.assertTrue(problems)
+
+    def test_a_status_change_on_the_connecting_path_fails(self):
+        # Without the else around it the status prints "Connecting", which no branch here holds.
+        self.edit(GRID, 'if (connecting) status.setText(label());\n        else status.setText', "status.setText")
+        self.edit(GRID, SENTENCE, STATUS_HEAD)
+        self.assertTrue(self.check(self.rows()[:1])[0])
+
+    def test_a_dropped_mode_fails(self):
+        self.convert()
+        status = json.loads(json.dumps(STATUS_PIECES))
+        status["then"]["then"] = ["Connected"]
+        problems = self.check(self.rows(status))[0]
+        self.assertTrue(problems)
+
+    def test_a_branch_merged_away_fails(self):
+        status = {"if": "ready", "then": {"if": "mode != null", "then": ["Connected", " · ", hole("mode", 1)], "else": ["Connected"]},
+                  "else": ["Disconnected"]}
+        self.convert(status="ready ? (mode != null ? T.sMode(mode) : T.sOn()) : T.sOff()")
+        problems = self.check(self.rows(status, keys=("s_mode", "s_on", "s_off")))[0]
+        self.assertTrue(any("still holds the choice" in p or "choice row at" in p for p in problems), problems)
+
+    def test_a_flipped_head_condition_fails(self):
+        self.convert(status=STATUS_HEAD.replace("ready ?", "!ready ?"))
+        self.assertTrue(self.check(self.rows())[0])
+
+
+def header_variant(old, new):
+    base = HEADER_BASE
+    assert old in base, old
+    return {GRID: java_class("Grid", base.replace(old, new))}
+
+
+class HeaderNearMissCase(GrammarCase):
+    STRINGS = HEADER_STRINGS
+
+    def assertRefused(self):
+        self.edit(GRID, SENTENCE, STATUS_HEAD)
+        problems = self.check([choice_row(self.LINE, STATUS_PIECES, STATUS_KEYS, GRID)])[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+
+class LocalReassignedTest(HeaderNearMissCase):
+    FILES = header_variant('        if (connecting) status', '        word = "Other";\n        if (connecting) status')
+    LINE = 13
+
+    def test_refused(self):
+        self.assertRefused()
+
+
+class LocalConditionChangesTest(HeaderNearMissCase):
+    FILES = header_variant('        if (connecting) status', '        ready = !ready;\n        if (connecting) status')
+    LINE = 13
+
+    def test_refused(self):
+        self.assertRefused()
+
+
+class LocalConditionOnACallTest(HeaderNearMissCase):
+    FILES = header_variant('String word = ready ?', 'String word = isReady() ?')
+    LINE = 12
+
+    def test_refused(self):
+        self.assertRefused()
+
+
+class GuardVariableChangesTest(HeaderNearMissCase):
+    FILES = {GRID: java_class("Grid", HEADER_BASE.replace(
+        '        else status.setText(' + SENTENCE + ');',
+        '        else { connecting = probe(); status.setText(' + SENTENCE + '); }'))}
+    LINE = 12
+
+    def test_refused(self):
+        self.assertRefused()
+
+
+class ModeAssignedOutsideTheGuardTest(HeaderNearMissCase):
+    FILES = header_variant('        String word =', '        mode = "Sport";\n        String word =')
+    LINE = 13
+
+    def test_refused(self):
+        self.assertRefused()
+
+
+class BackupNounTest(PluralFlagCase):
+    """Item 6 with item 4: the noun of plural(n, noun), distributed into each sentence's branches."""
+    FILES = {ARCHIVE: java_class("Archive", """    static void plan(java.util.List<String> lines, boolean charges, int full, int lost) {
+        String noun = charges ? "charge" : "ride";
+        if (full > 0) lines.add(plural(full, noun) + " skipped");
+        if (lost > 0) lines.add(plural(lost, noun) + " lost");
+    }
+    """ + HELPER_BODY)}
+    STRINGS = """<resources>
+<plurals name="c_full"><item quantity="one">%1$d charge skipped</item><item quantity="other">%1$d charges skipped</item></plurals>
+<plurals name="r_full"><item quantity="one">%1$d ride skipped</item><item quantity="other">%1$d rides skipped</item></plurals>
+<plurals name="c_lost"><item quantity="one">%1$d charge lost</item><item quantity="other">%1$d charges lost</item></plurals>
+<plurals name="r_lost"><item quantity="one">%1$d ride lost</item><item quantity="other">%1$d rides lost</item></plurals>
+</resources>
+"""
+
+    @staticmethod
+    def form(source, noun, tail):
+        piece = [{"helper": "plural", "model": "count_noun", "args": [count(source), noun]}, tail]
+        return {"one": piece, "other": piece}
+
+    def row(self, line, source, tail, keys, then="charge"):
+        return choice_row(line, {"if": "charges", "then": self.form(source, then, tail),
+                                 "else": self.form(source, "ride", tail)}, keys, ARCHIVE)
+
+    def rows(self):
+        return [self.row(6, "full", " skipped", ("c_full", "r_full")), self.row(7, "lost", " lost", ("c_lost", "r_lost"))]
+
+    def convert(self):
+        self.edit(ARCHIVE, 'plural(full, noun) + " skipped"', "charges ? T.cFull(full, full) : T.rFull(full, full)")
+        self.edit(ARCHIVE, 'plural(lost, noun) + " lost"', "charges ? T.cLost(lost, lost) : T.rLost(lost, lost)")
+
+    def test_both_sentences_pass_with_the_noun_gone(self):
+        self.convert()
+        self.edit(ARCHIVE, '        String noun = charges ? "charge" : "ride";\n', "")
+        self.assertEqual(self.check(self.rows())[0], [])
+
+    def test_one_sentence_converts_while_the_other_keeps_the_noun(self):
+        self.edit(ARCHIVE, 'plural(full, noun) + " skipped"', "charges ? T.cFull(full, full) : T.rFull(full, full)")
+        self.assertEqual(self.check(self.rows()[:1])[0], [])
+
+    def test_the_wrong_noun_in_a_branch_fails(self):
+        self.convert()
+        self.edit(ARCHIVE, '        String noun = charges ? "charge" : "ride";\n', "")
+        problems = self.check([self.row(6, "full", " skipped", ("c_full", "r_full"), then="ride"), self.rows()[1]])[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+
+class NoFactFromAFieldTest(unittest.TestCase):
+    def test_a_field_is_not_stable(self):
+        tokens = ledger_check.l10nlib.lex_java("class C { void m(boolean a) { if (f && a) { x(); } } }")
+        first = [t.value for t in tokens].index("f")
+        region = ledger_check._method_region(tokens, first)
+        self.assertFalse(ledger_check._stable_condition(tokens, first, first, region, first))
+        self.assertTrue(ledger_check._stable_condition(tokens, first + 2, first + 2, region, first + 2))
+
+    def test_the_facts_combine_as_java_does(self):
+        lex = ledger_check.l10nlib.lex_java
+        facts = {}
+        ledger_check.assert_fact(lex("!a || b"), False, facts)
+        self.assertIs(ledger_check.evaluate_condition(lex("a"), facts, {}), True)
+        self.assertIs(ledger_check.evaluate_condition(lex("b"), facts, {}), False)
+        self.assertIs(ledger_check.evaluate_condition(lex("b && c"), facts, {}), False)
+        self.assertIs(ledger_check.evaluate_condition(lex("b || c"), facts, {}), None)
+        self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("c", "==", "null"): True}, {}), False)
+        self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("a",): False}, {"c": ["a"]}), False)
+        self.assertIs(ledger_check.evaluate_condition(lex("c != null"), {("a",): True}, {"c": ["a"]}), None)
+
+
 if __name__ == "__main__":
     unittest.main()

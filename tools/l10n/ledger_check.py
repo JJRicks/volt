@@ -3341,18 +3341,452 @@ def force_count(items, count, is_one):
     return out
 
 
-def check_choice_branches(row, items, ids):
-    """Problems when the row's branches are not the base expression with each condition forced. ids
-    collects the (literal, variable) of every id test."""
-    problems = []
+# ---------------------------------------------------------------------------
+# A choice held on an earlier line: facts a sentence's conditions can be settled by
+# ---------------------------------------------------------------------------
 
-    def walk(node, current, path):
+Context = collections.namedtuple("Context", "items shared facts implied notes")
+ASSIGNMENTS = frozenset(("=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<=", ">>=", ">>>=", "++", "--"))
+NOT_A_TYPE = frozenset(("return", "new", "else", "throw", "case", "instanceof", "yield", "assert", "do"))
+CONDITION_OPS = frozenset(("&&", "||", "!", "==", "!=", "<", ">", "<=", ">=", "(", ")"))
+WORD_VALUES = frozenset(("true", "false", "null"))
+
+
+def _split_top(tokens, op):
+    parts, depth, start = [], 0, 0
+    for j, t in enumerate(tokens):
+        if t.kind == "op" and t.value in ("(", "["):
+            depth += 1
+        elif t.kind == "op" and t.value in (")", "]"):
+            depth -= 1
+        elif depth == 0 and t.kind == "op" and t.value == op:
+            parts.append(tokens[start:j])
+            start = j + 1
+    parts.append(tokens[start:])
+    return parts
+
+
+def _strip_group(tokens):
+    while len(tokens) >= 2 and _op(tokens, 0, "(") and expressions.match_forward(tokens, 0) == len(tokens) - 1:
+        tokens = tokens[1:-1]
+    return tokens
+
+
+def _fact_key(tokens):
+    """(key, negated): a != b is the opposite of a == b, so both settle by one fact."""
+    for sign, negated in (("==", False), ("!=", True)):
+        sides = _split_top(tokens, sign)
+        if len(sides) == 2 and sides[0] and sides[1]:
+            return tuple(t.raw for t in sides[0]) + ("==",) + tuple(t.raw for t in sides[1]), negated
+    return tuple(t.raw for t in tokens), False
+
+
+def assert_fact(tokens, truth, facts):
+    """Record in facts what the condition's being truth says about its parts."""
+    tokens = _strip_group(tokens)
+    if not tokens:
+        return
+    key, negated = _fact_key(tokens)
+    facts[key] = truth != negated
+    both, either = _split_top(tokens, "&&"), _split_top(tokens, "||")
+    if len(either) > 1:
+        if not truth:
+            for part in either:
+                assert_fact(part, False, facts)
+    elif len(both) > 1:
+        if truth:
+            for part in both:
+                assert_fact(part, True, facts)
+    elif _op(tokens, 0, "!"):
+        assert_fact(tokens[1:], not truth, facts)
+
+
+def evaluate_condition(tokens, facts, implied):
+    """True, False or None (not settled) for a condition under facts. Only && || ! and ( ) combine facts."""
+    tokens = _strip_group(tokens)
+    key, negated = _fact_key(tokens)
+    if key in facts:
+        return facts[key] != negated
+    either = _split_top(tokens, "||")
+    if len(either) > 1:
+        values = [evaluate_condition(part, facts, implied) for part in either]
+        return True if True in values else False if all(v is False for v in values) else None
+    both = _split_top(tokens, "&&")
+    if len(both) > 1:
+        values = [evaluate_condition(part, facts, implied) for part in both]
+        return False if False in values else True if all(v is True for v in values) else None
+    if _op(tokens, 0, "!"):
+        value = evaluate_condition(tokens[1:], facts, implied)
+        return None if value is None else not value
+    if len(key) == 3 and key[1:] == ("==", "null") and key[0] in implied:
+        for guard in implied[key[0]]:
+            if evaluate_condition(l10nlib.lex_java(guard), facts, implied) is False:
+                return not negated  # never assigned, so still null
+    return None
+
+
+def settle(items, facts, implied):
+    """items with every choice the facts settle replaced by its branch."""
+    out = []
+    for item in items:
+        if item[0] != "t":
+            out.append(item)
+            continue
+        value = evaluate_condition(l10nlib.lex_java(item[2]), facts, implied)
+        if value is None:
+            out.append(("t", item[1], item[2], settle(item[3], facts, implied), settle(item[4], facts, implied)))
+        else:
+            out.extend(settle(item[3] if value else item[4], facts, implied))
+    return out
+
+
+def _statement_first(tokens, k):
+    while k > 0 and not _op(tokens, k - 1, ";", "{", "}"):
+        k -= 1
+    return k
+
+
+def _enclosing_open(tokens, k):
+    depth = 0
+    for i in range(k - 1, -1, -1):
+        if _op(tokens, i, "}"):
+            depth += 1
+        elif _op(tokens, i, "{"):
+            if depth == 0:
+                return i
+            depth -= 1
+    return None
+
+
+def _match_brace_back(tokens, k):
+    depth = 0
+    for i in range(k, -1, -1):
+        if _op(tokens, i, "}"):
+            depth += 1
+        elif _op(tokens, i, "{"):
+            depth -= 1
+            if depth == 0:
+                return i
+    return None
+
+
+def _is_word(tokens, k, *words):
+    return 0 <= k < len(tokens) and tokens[k].kind == "ident" and tokens[k].value in words
+
+
+def _method_region(tokens, k):
+    """(first, last) of the method or lambda body scope holding token k, header included."""
+    opener = _enclosing_open(tokens, k)
+    while opener is not None:
+        first = _statement_first(tokens, opener)
+        if not tokens[first:opener] or tokens[first].value in NOT_METHOD_HEADERS or tokens[first].value == "}":
+            outer = _enclosing_open(tokens, opener)
+            if outer is None:
+                break
+            opener = outer
+            continue
+        return first, expressions.match_brace(tokens, opener)
+    return None
+
+
+def _else_conditions(tokens, else_at, out):
+    """Add (condition token span, False) for each if the else at else_at follows. False when it cannot tell."""
+    before = else_at - 1
+    if _op(tokens, before, "}"):
+        opener = _match_brace_back(tokens, before)
+        first = _statement_first(tokens, opener) if opener is not None else None
+    elif _op(tokens, before, ";"):
+        first = _statement_first(tokens, before)
+    else:
+        return False
+    if first is None:
+        return False
+    if _is_word(tokens, first, "else") and not _else_conditions(tokens, first, out):
+        return False
+    start = first + 1 if _is_word(tokens, first, "else") else first
+    if not (_is_word(tokens, start, "if") and _op(tokens, start + 1, "(")):
+        return False
+    close = expressions.match_forward(tokens, start + 1)
+    if close is None or _is_word(tokens, close + 1, "if"):  # a dangling else belongs to the inner if
+        return False
+    out.append((start + 2, close - 1, False))
+    return True
+
+
+def _prefix_conditions(tokens, first, limit, out):
+    """Add the conditions an if/else prefix at first puts on what follows it, up to token limit. False at
+    anything else that could run it other than once (a loop, try, switch, method)."""
+    j = first
+    if _is_word(tokens, j, "else"):
+        if not _else_conditions(tokens, j, out):
+            return False
+        j += 1
+    while j < limit and _is_word(tokens, j, "if") and _op(tokens, j + 1, "("):
+        close = expressions.match_forward(tokens, j + 1)
+        if close is None:
+            return False
+        out.append((j + 2, close - 1, True))
+        j = close + 1
+    return True
+
+
+def _guards(tokens, k, stop):
+    """[(first, last, truth)] of the if and else conditions that hold at token k, out to token stop."""
+    out = []
+    first = _statement_first(tokens, k)
+    if not _prefix_conditions(tokens, first, k, out):
+        return out
+    while True:
+        opener = _enclosing_open(tokens, first)
+        if opener is None or opener <= stop:
+            return out
+        first = _statement_first(tokens, opener)
+        if first == opener:  # a plain block
+            continue
+        if not (_is_word(tokens, first, "if", "else")) or not _prefix_conditions(tokens, first, opener, out):
+            return out
+
+
+def _assigned(tokens, name, first, last):
+    """True when name is assigned (or stepped) anywhere in first..last, its own declaration included."""
+    for j in range(first, last + 1):
+        if tokens[j].kind == "ident" and tokens[j].value == name and not _op(tokens, j - 1, "."):
+            if (j + 1 <= last and tokens[j + 1].kind == "op" and tokens[j + 1].value in ASSIGNMENTS) or \
+                    (j > 0 and _op(tokens, j - 1, "++", "--")):
+                return True
+    return False
+
+
+def _is_local(tokens, name, first, before):
+    """True when name is declared as a parameter or local in first..before."""
+    for j in range(first + 1, before):
+        if tokens[j].kind == "ident" and tokens[j].value == name and _op(tokens, j + 1, "=", ",", ")", ";", ":") and \
+                ((tokens[j - 1].kind == "ident" and tokens[j - 1].value not in NOT_A_TYPE) or _op(tokens, j - 1, ">", "]")):
+            return True
+    return False
+
+
+def _stable_condition(tokens, first, last, region, after):
+    """True when condition first..last reads only constants and parameters or locals (x.equals(y) is the one call
+    allowed), none assigned after token after: it means at the sentence what it meant where it was tested."""
+    j = first
+    while j <= last:
+        t = tokens[j]
+        if t.kind in expressions.LITERALS or t.kind == "number" or (t.kind == "op" and t.value in CONDITION_OPS):
+            j += 1
+        elif t.kind == "ident" and t.value in WORD_VALUES:
+            j += 1
+        elif t.kind == "ident":
+            dotted = _op(tokens, j + 1, ".")
+            if dotted and j + 3 <= last and tokens[j + 2].value == "equals" and _op(tokens, j + 3, "("):
+                step = 4
+            elif dotted and j + 2 <= last and tokens[j + 2].value.isupper():
+                j += 3  # a constant
+                continue
+            elif dotted or _op(tokens, j + 1, "("):
+                return False
+            else:
+                step = 1
+            if t.value.isupper() and step == 1:
+                j += 1
+                continue
+            if not _is_local(tokens, t.value, region[0], first) or _assigned(tokens, t.value, after, region[1]):
+                return False
+            j += step
+        else:
+            return False
+    return True
+
+
+def _null_implications(tokens, region, before):
+    """{name: [condition]}: `T name = null;` that is only ever assigned where each condition held, so a false
+    condition means name is still null."""
+    implied = {}
+    for j in range(region[0], before):
+        if not (tokens[j].kind == "ident" and _op(tokens, j + 1, "=") and _is_word(tokens, j + 2, "null") and
+                _op(tokens, j + 3, ";") and tokens[j - 1].kind == "ident" and tokens[j - 1].value not in NOT_A_TYPE):
+            continue
+        name, common = tokens[j].value, None
+        for a in range(j + 4, region[1] + 1):
+            if not (tokens[a].kind == "ident" and tokens[a].value == name and not _op(tokens, a - 1, ".") and
+                    _assigned(tokens, name, a, a + 1)):
+                continue
+            held = set()
+            for first, last, truth in _guards(tokens, a, j):
+                if not truth:
+                    continue
+                for part in _split_top(tokens[first:last + 1], "&&"):
+                    start = first + _token_offset(tokens[first:last + 1], part)
+                    if _stable_condition(tokens, start, start + len(part) - 1, region, first):
+                        held.add(" ".join(t.raw for t in part))
+            common = held if common is None else common & held
+        if common:
+            implied[name] = sorted(common)
+    return implied
+
+
+def _token_offset(tokens, part):
+    for j, t in enumerate(tokens):
+        if t is part[0]:
+            return j
+    return 0
+
+
+def _local_choice(index, name, before, region, helpers):
+    """(items, statement first, terminator, literal tokens) of `[final] String name = <ternary of strings>;`,
+    declared once before token before in a block holding it, never assigned again, whose conditions cannot have
+    changed by the sentence. None for anything else."""
+    tokens = index.tokens
+    decl = None
+    for j in range(before - 1, region[0], -1):
+        if tokens[j].kind == "ident" and tokens[j].value == name and _op(tokens, j + 1, "=") and \
+                _is_word(tokens, j - 1, "String"):
+            decl = j
+            break
+    if decl is None or not (_op(tokens, decl - 2, ";", "{", "}") or _is_word(tokens, decl - 2, "final")):
+        return None
+    depth = 0
+    for j in range(decl, before):
+        depth += 1 if _op(tokens, j, "{") else -1 if _op(tokens, j, "}") else 0
+        if depth < 0:
+            return None
+    first = _statement_first(tokens, decl)
+    end = decl + 2
+    while end < len(tokens) and not _op(tokens, end, ";"):
+        end += 1
+    if end >= len(tokens) or any(_op(tokens, j, ",") for j in _top_level(tokens, decl + 2, end - 1)):
+        return None
+    if _assigned(tokens, name, decl + 2, region[1]):
+        return None
+    literals, conditions = set(), set()
+    try:
+        items = parse_choice(index, decl + 2, end - 1, literals, conditions, helpers)
+    except LedgerError:
+        return None
+
+    def strings_only(group):
+        return all(i[0] == "s" or (i[0] == "t" and strings_only(i[3]) and strings_only(i[4])) for i in group)
+
+    if not any(i[0] == "t" for i in items) or not strings_only(items):
+        return None
+
+    def conditions_stable(group):
+        for item in group:
+            if item[0] != "t":
+                continue
+            lexed = l10nlib.lex_java(item[2])
+            if not _names_stable(tokens, lexed, region, decl, end) or not conditions_stable(item[3]) or \
+                    not conditions_stable(item[4]):
+                return False
+        return True
+
+    if not conditions_stable(items):
+        return None
+    return items, first, end, sorted(literals)
+
+
+def _names_stable(tokens, condition, region, decl, end):
+    # The condition's own tokens stand in for those of the declaration, which hold the same names.
+    for j in range(decl, end):
+        if tokens[j].raw == condition[0].raw and [t.raw for t in tokens[j:j + len(condition)]] == [t.raw for t in condition]:
+            return _stable_condition(tokens, j, j + len(condition) - 1, region, end)
+    return False
+
+
+def _with_noun(source, name, value):
+    """A helper call's source with the local name replaced by the string value."""
+    return " ".join(l10nlib.json_string(value) if t.kind == "ident" and t.value == name else t.raw
+                    for t in l10nlib.lex_java(source))
+
+
+def _spread(items, source, name):
+    """The local's choice with each string put into a helper call: plural(n, noun) over charge and ride."""
+    out = []
+    for item in items:
+        if item[0] == "t":
+            out.append(("t", item[1], item[2], _spread(item[3], source, name), _spread(item[4], source, name)))
+        else:
+            out.append(("h", _with_noun(source, name, item[1])))
+    return out
+
+
+def _resolve_locals(index, items, before, region, helpers, shared, notes):
+    out = []
+    for item in items:
+        if item[0] == "t":
+            out.append(("t", item[1], item[2], _resolve_locals(index, item[3], before, region, helpers, shared, notes),
+                        _resolve_locals(index, item[4], before, region, helpers, shared, notes)))
+            continue
+        if item[0] != "h":
+            out.append(item)
+            continue
+        try:
+            lexed = l10nlib.lex_java(item[1])
+        except l10nlib.LexError:
+            out.append(item)
+            continue
+        name = None
+        if len(lexed) == 1 and lexed[0].kind == "ident":
+            name = lexed[0].value
+        elif lexed and lexed[0].value in helpers and _op(lexed, 1, "(") and _op(lexed, len(lexed) - 1, ")"):
+            args = [a for a in _split_top(lexed[2:-1], ",")]
+            if len(args) >= 2 and len(args[-1]) == 1 and args[-1][0].kind == "ident":
+                name = args[-1][0].value
+        local = _local_choice(index, name, before, region, helpers) if name else None
+        if local is None:
+            out.append(item)
+            continue
+        shared.append((name, local[1], local[2], local[3]))
+        notes.append("the local %s is `%s`" % (name, _excerpt(index.tokens[local[1]:local[2] + 1], None)))
+        out.extend(local[0] if len(lexed) == 1 else _spread(local[0], item[1], name))
+    return out
+
+
+def choice_context(index, span, items, helpers):
+    """What a sentence's conditions can be settled by, past the ternaries in the sentence: its locals' choices,
+    the if and else around it, and a local that stays null unless a condition held. None outside a method."""
+    tokens = index.tokens
+    region = _method_region(tokens, span[0])
+    if region is None:
+        return None
+    shared, notes = [], []
+    resolved = _resolve_locals(index, items, span[0], region, helpers, shared, notes)
+    facts = {}
+    for first, last, truth in _guards(tokens, span[0], region[0]):
+        parts = _split_top(tokens[first:last + 1], "&&") if truth else [tokens[first:last + 1]]
+        for part in parts:
+            start = first + _token_offset(tokens[first:last + 1], part)
+            if _stable_condition(tokens, start, start + len(part) - 1, region, start):
+                assert_fact(part, truth, facts)
+                notes.append("`%s` is %s around it" % (" ".join(t.raw for t in part), "true" if truth else "false"))
+    implied = _null_implications(tokens, region, span[0])
+    for name, held in sorted(implied.items()):
+        notes.append("%s stays null unless %s" % (name, " and ".join(held)))
+    return Context(resolved, shared, facts, implied, notes)
+
+
+def check_choice_branches(row, items, ids, context=None):
+    """Problems when the row's branches are not the base expression with each condition forced. ids
+    collects the (literal, variable) of every id test. With a context, the base's other conditions may be
+    settled by the row's own, by the if and else around the sentence and by a local's null."""
+    problems = []
+    implied = context.implied if context else {}
+
+    def facts_with(facts, condition, truth):
+        grown = dict(facts)
+        assert_fact(l10nlib.lex_java(condition), truth, grown)
+        return grown
+
+    def walk(node, current, path, facts=None):
+        if context is not None and facts is None:
+            facts = context.facts
+            current = settle(context.items, facts, implied)
         if isinstance(node, dict) and "if" not in node:
             # A plural branch: each English item must print the base at the counts English serves it for.
             count = expressions.source_key(next(h["hole"] for h in holes(node) if h.get("quantity")))
             for quantity, sequence in sorted(node.items()):
                 for is_one in ((True,) if quantity == "one" else (False, True) if "one" not in node else (False,)):
-                    walk(sequence, force_count(current, count, is_one), path + ["[%s]" % quantity])
+                    walk(sequence, force_count(current, count, is_one), path + ["[%s]" % quantity], facts)
             return
         if isinstance(node, list):
             if any(i[0] == "t" for i in current):
@@ -3369,16 +3803,42 @@ def check_choice_branches(row, items, ids):
         test = id_test(condition)
         then, hit = force_choice(current, condition, True)
         other, _ = force_choice(current, condition, False)
+        then_facts, other_facts = facts, facts
+        if context is not None:
+            then_facts, other_facts = facts_with(facts, condition, True), facts_with(facts, condition, False)
+            settled_then, settled_other = settle(then, then_facts, implied), settle(other, other_facts, implied)
+            hit = hit or settled_then != then or settled_other != other
+            then, other = settled_then, settled_other
         if not hit and test is None:
             problems.append("the condition %s is neither a choice of the base expression on this branch nor a test of "
                             "a data id (\"On\".equals(value))" % condition)
             return
         if test is not None:
             ids.add(test)
-        walk(node["then"], then, path + [condition])
-        walk(node["else"], other, path + ["!(%s)" % condition])
+        walk(node["then"], then, path + [condition], then_facts)
+        walk(node["else"], other, path + ["!(%s)" % condition], other_facts)
     walk(row.pieces, items, [])
     return problems
+
+
+def choose_choice(row, diff, candidates):
+    """(literals, span, items, ids, context, problems) of the located chain that a row's branches match: first as
+    the sentence stands, then with what its context settles."""
+    first_problems, helpers = None, frozenset(p["helper"] for p in helper_pieces(row.pieces))
+    for literals, span, items in candidates:
+        ids = set()
+        problems = check_choice_branches(row, items, ids)
+        if not problems:
+            return literals, span, items, ids, None, []
+        context = choice_context(diff.base, span, items, helpers)
+        if context is not None:
+            ids = set()
+            settled = check_choice_branches(row, items, ids, context)
+            if not settled:
+                return literals, span, context.items, ids, context, []
+        if first_problems is None or len(literals) > len(candidates[0][0]):
+            first_problems = problems
+    return None, None, None, None, None, first_problems or []
 
 
 def locate_choice(row, diff):
@@ -3515,20 +3975,11 @@ def run(base, head, explicit_ledgers=None, cwd=None):
             continue
         if row.kind == CHOICE:
             candidates, problem = locate_choice(row, diff)
-            chosen, first_problems = None, None
-            for literals, span, items in candidates:
-                ids = set()
-                branch_problems = check_choice_branches(row, items, ids)
-                if not branch_problems:
-                    chosen = (literals, span, items, ids)
-                    break
-                if first_problems is None or len(literals) > len(candidates[0][0]):
-                    first_problems = branch_problems
-            if chosen is None:
+            literals, span, items, ids, context, branch_problems = choose_choice(row, diff, candidates)
+            if literals is None:
                 problems.extend("%s: choice row at %s:%d: %s" % (where, row.path, row.base_line, p)
-                                for p in (first_problems or [problem]))
+                                for p in (branch_problems or [problem]))
                 continue
-            literals, span, items, ids = chosen
             helpers = helper_pieces(row.pieces)
             for piece in helpers:
                 helper_trouble = helper_problem(piece, diff.base)
@@ -3550,7 +4001,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                     problems.append("%s: the row says %s (line %d) left, but it is still there at head" % (
                         where, l10nlib.json_string(tok.value), tok.line))
             hunks = sorted(set(diff.gone[k] for k in literals if k in diff.gone))
-            choices.append((row, where, row.path, span, items, ids, [diff.hunks[h][2:] for h in hunks]))
+            # A local's strings leave with it, whichever of the sentences that read it comes first. A local that
+            # stays keeps its strings, and one half gone leaves them with no row.
+            for name, first, terminator, shared in (context.shared if context else ()):
+                if all(k in diff.gone for k in shared):
+                    for j in range(first, terminator + 1):
+                        allowed_base[row.path].setdefault(j, id(row))
+                    if first > 0 and terminator not in diff.changed_tokens()[0]:
+                        allowed_base[row.path].setdefault(first - 1, id(row))
+                    for k in shared:
+                        claimed.setdefault((row.path, k), row)
+            notes = "; ".join(context.notes) if context else ""
+            choices.append((row, where, row.path, span, items, ids, [diff.hunks[h][2:] for h in hunks], notes))
             continue
         tokens, is_manual, problem = locate(row, diff, claimed)
         if problem:
@@ -3784,7 +4246,7 @@ def run(base, head, explicit_ledgers=None, cwd=None):
 
     tested_ids = set()  # (path, head token) of the data ids a choice row's conditions compare
     base_literals = None
-    for row, where, path, span, items, ids, ranges in choices:
+    for row, where, path, span, items, ids, ranges, context_notes in choices:
         index = diffs[path].head
         tokens = index.tokens
         found = None
@@ -3837,11 +4299,12 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 tested.append("%s (%s at the merge base)" % (l10nlib.json_string(literal), base_literals[literal]))
         branches = ["%s: %s" % (key, json.dumps(leaf, ensure_ascii=False))
                     for key, leaf in zip(row.key.split(","), choice_leaves(row.pieces))]
-        warnings.append("%s: choice row at %s:%d: `%s` becomes `%s`; branches %s%s; the conditions now run before the "
+        warnings.append("%s: choice row at %s:%d: `%s` becomes `%s`; branches %s%s%s; the conditions now run before the "
                         "holes, so check by hand that no hole has a side effect the condition reads" % (
                             where, path, row.base_line, base_code, _excerpt(tokens[pos:end + 1], None),
                             "; ".join(branches),
-                            "; data id(s) tested: " + ", ".join(tested) if tested else ""))
+                            "; data id(s) tested: " + ", ".join(tested) if tested else "",
+                            "; settled by what surrounds it: " + context_notes if context_notes else ""))
 
     arrivals = []  # [path, hunk, token, used] for every literal added to a changed src file
     for path in sorted(diffs):
