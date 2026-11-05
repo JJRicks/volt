@@ -31,7 +31,7 @@ public final class DisplayTime {
                 + (mode == null || mode.isEmpty() ? "" : " - " + mode);
     }
 
-    /** Today needs only a clock; other local calendar days use a compact month and day prefix (Mar 5, 5 Mar). */
+    /** Today needs only a clock; other local calendar days use a compact 05 MAR prefix. */
     public static String recent(Context context, SharedPreferences settings, long wall, long now) {
         if (wall <= 0) return "";
         Calendar then = Calendar.getInstance(), today = Calendar.getInstance();
@@ -39,7 +39,9 @@ public final class DisplayTime {
         boolean sameYear = then.get(Calendar.YEAR) == today.get(Calendar.YEAR);
         if (sameYear && then.get(Calendar.DAY_OF_YEAR) == today.get(Calendar.DAY_OF_YEAR))
             return clock(context, settings, wall);
-        return format("MMMd", wall) + " · " + clock(context, settings, wall);
+        String date = new SimpleDateFormat("dd MMM", Locale.ENGLISH)
+                .format(new Date(wall)).toUpperCase(Locale.ENGLISH);
+        return date + " · " + clock(context, settings, wall);
     }
 
     private static String format(String skeleton, long wall) {
