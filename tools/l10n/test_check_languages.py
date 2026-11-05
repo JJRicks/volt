@@ -256,6 +256,52 @@ def _errors(*args, **kwargs):
     return sorted(set(f["check"] for f in _key_findings(*args, **kwargs) if f["severity"] == check.ERROR))
 
 
+class NorwegianTest(unittest.TestCase):
+    """nb: the lock and on or off checks, on the wordings its style guide allows and forbids."""
+    LOCK = ["lås", "låse", "låst", "låsen"]
+
+    def test_lock_inverted_is_not_the_lock_term(self):
+        for text in ("Lås opp sparkesykkelen", "Lås den opp", "for å låse den opp", "Lås sparkesykkelen opp",
+                     "Lås den igjen opp", "Slå av låsen", "Fjern låsen", "Åpne låsen", "Ta bort låsen",
+                     "Lås: av", "Låsen er av", "Låsen er deaktivert", "Låsen ble fjernet", "Låseopphevelse",
+                     "Ulåst"):
+            self.assertFalse(any(lexicon.term_found("nb", "Latn", t, text) for t in self.LOCK), text)
+
+    def test_lock_wording_kept(self):
+        for text in ("Lås sparkesykkelen", "Lås", "Lås og ta opp", "Låsetid", "Låsebevegelse (rå)",
+                     "Én låsemodul per dashbord", "Låsestatus ukjent", "Låseoppsett", "Låsen er på",
+                     "Når sparkesykkelen er koblet til, kan du låse den.",
+                     "Slå av lyset og lås sparkesykkelen"):
+            self.assertTrue(any(lexicon.term_found("nb", "Latn", t, text) for t in self.LOCK), text)
+
+    def test_english_removal_lets_the_wording_stand(self):
+        self.assertTrue(lexicon.term_found("nb", "Latn", "låsen", "Slå av låsen", True, False))
+
+    def test_state_words(self):
+        for text, want in (("Alarmlyd på", "on"), ("Slå på alarmlyden", "on"), ("Alarmlyden er aktivert", "on"),
+                           ("Alarmlyd av", "off"), ("Slå av alarmlyden", "off"), ("Alarmlyden er slått av", "off"),
+                           ("Alarmlyd ikke aktiv", "off"), ("Alarmlyden er ikke lenger aktiv", "off"),
+                           ("Alarmlyden er ikke slått av", "on")):
+            on, off = lexicon.state_words("nb", text)
+            self.assertEqual((bool(on), bool(off)), (want == "on", want == "off"), text)
+        # "på" and "av" as prepositions are no state.
+        self.assertEqual(lexicon.state_words("nb", "Alarm på telefonen av sparkesykkelen"), ([], []))
+
+    def test_state_inverted_is_an_error(self):
+        self.assertIn("polarity", _key_errors_state("Alarm sound off", "Alarmlyd på"))
+        self.assertIn("polarity", _key_errors_state("Lock: on", "Lås: av"))
+        self.assertNotIn("polarity", _key_errors_state("Alarm sound off", "Alarmlyd av"))
+        self.assertNotIn("polarity", _key_errors_state("Alarm sound on", "Alarmlyd på"))
+
+
+def _key_errors_state(english, text):
+    entry = {"key": "k", "kind": "string", "english": english, "safety": "alarm", "dnt": [], "formatted": True,
+             "glossary": []}
+    language = {"tag": "nb", "plurals": ["one", "other"], "script": "Latn", "font": "system"}
+    return sorted(set(f["check"] for f in check.check_key(entry, language, "string", {"other": text})
+                      if f["severity"] == check.ERROR))
+
+
 class MoreLanguagesTest(unittest.TestCase):
     """Safety keys checked directly for languages the fixture repository does not set up."""
 

@@ -168,13 +168,15 @@ _ENDING_LETTERS = "aeiouyáéíóúàèìòùâêîôûãõăаеёиоуыэю�
 # "Låstid"), with the endings dropped from a lock target before it joins one (longest first). Only
 # the lock terms match this way, and only at the start of a word, so the unlock words (ent-, ont-,
 # upp-) never match; other terms list their compound forms in the glossary.
-COMPOUNDING = {"de": ("ung", "en", "e"), "nl": ("ing", "en", "e"), "sv": ("ning", "a", "e")}
+COMPOUNDING = {"de": ("ung", "en", "e"), "nl": ("ing", "en", "e"), "sv": ("ning", "a", "e"), "nb": ("ing", "e")}
 # The rest of a compound that removes or opens the lock ("Sperraufhebung", "Vergrendelingsopheffing",
 # "Låsupplåsning"): the compound is then not the lock term.
 COMPOUND_OPPOSITE = {
     "de": re.compile("aufheb|aufgehob|lös|freigab|freigeb|entfern|deaktiv|ausschalt|abschalt|öffn|beend"),
     "nl": re.compile("opheff|opgehev|uitschakel|uitgeschakel|uitzet|verwijder|deactiv|gedeactiv|open|vrijgeg|vrijgev"),
     "sv": re.compile("upp|häv|borttag|inaktiv|avaktiv|deaktiv|öppn|avstäng"),
+    # Not a bare "opp": "Låseoppsett" (lock setup) is still the lock.
+    "nb": re.compile("^e?opp$|opplås|opphev|fjern|deaktiv|åpn|frakobl"),
 }
 
 # On and off state words, for a safety key whose English says one and not the other ("Lock: on",
@@ -214,6 +216,10 @@ STATE_WORDS = {
            "av" + _STATE_END + "|sl[åa]r?\\s+av|stäng\\w*\\s+av|avstängd\\w*|avstängt|avslag\\w*|"
            "inaktiverad\\w*|inaktiverat|inaktivera|avaktiverad\\w*|avaktiverat|avaktivera|inaktiv|inaktivt|"
            "hävd|hävt"),
+    "nb": ("på" + _STATE_END + "|sl[åa]r?\\s+på|slått\\s+på|skru\\w*\\s+på|aktivert\\w*|aktivere\\w*|aktiver|aktiv|"
+           "aktivt|aktive",
+           "av" + _STATE_END + "|sl[åa]r?\\s+av|slått\\s+av|skru\\w*\\s+av|avslått\\w*|"
+           "deaktivert\\w*|deaktivere\\w*|deaktiver|inaktiv|inaktivt|inaktive|opphevet"),
     "id": ("aktif|diaktifkan|aktifkan(?:nya)?|mengaktifkan(?:nya)?|menyala|nyala|nyalakan(?:nya)?|"
            "menyalakan(?:nya)?|dinyalakan|hidup|dihidupkan|hidupkan(?:nya)?",
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
@@ -240,6 +246,7 @@ STATE_NEGATION_GAP = {
     "nl": {"is", "wordt", "zijn", "worden", "meer", "langer"},
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
+    "nb": {"er", "blir", "lenger"},
     "id": {"sedang", "akan", "lagi"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
@@ -321,7 +328,10 @@ OPPOSITE_CONTEXT = {
     "ja": ("(?:解|アン)\\s*$", "^\\s*(?:を|が|は|も|の)?\\s*(?:解除|解錠|解い|解く|解け|解か|外す|外し|外れ|外さ|はず|開け|あけ)"),
     "ko": ("", "^(?:을|를|이|가|은|는|도)?\\s*(?:해제|풀(?:기|어|려|리|고|면|다|린|릴)|열(?:기|어|려|리|고|면|다|린|릴))"),
     "sv": ("", "^[^\\W\\d_]*\\s+upp(?![^\\W_])"),
-    "nb": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
+    # Up to two object words may come before opp ("Lås den opp", "for å låse sparkesykkelen opp"), but
+    # not across a word that starts a new step ("Lås og ta opp").
+    "nb": ("", "^[^\\W\\d_]*(?:\\s+(?!(?:og|eller|men|før|når|hvis|mens|så|etter|for)(?![^\\W_]))[^\\W\\d_]+){0,2}"
+               "\\s+opp(?![^\\W_])"),
     "nn": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "da": ("", "^[^\\W\\d_]*\\s+op(?![^\\W_])"),
     "id": ("(?<![^\\W_])(?:buka|bukalah|membuka|dibuka|terbuka|pembukaan)\\s+$", ""),
@@ -426,6 +436,11 @@ REMOVAL_CONTEXT = {
                    "inaktivering\\s+av|hävning\\s+av", "det|den|ditt|din"),
            _after("inaktiver|avaktiver|deaktiver|borttag|hävt|hävd|hävs|öppnat|öppnad|frigjor|avstängt|"
                   "avstängd|bort(?![^\\W_])", "", "är|har\\s+tagits|har\\s+hävts|blev|har\\s+blivit", "av")),
+    "nb": (_before("fjern|fjerne|fjerner|fjernes|fjerning\\s+av|ta\\s+bort|tar\\s+bort|slå\\s+av|slår\\s+av|skru\\s+av|"
+                   "skrur\\s+av|deaktiver|deaktivere|deaktiverer|deaktivering\\s+av|opphev|oppheve|opphever|"
+                   "oppheving\\s+av|åpne|åpner|frigjør", "den|det|din|ditt|en|et"),
+           _after("deaktiver|fjernet|fjernes|tatt\\s+bort|opphevet|oppheves|åpnet|åpnes|åpen|åpent|slått\\s+av|avslått|"
+                  "av\\s*[.!?)]?\\s*$", "", "er|ble|blir|har\\s+blitt", "av")),
     "id": (_before("lepas|lepaskan|melepas|melepaskan|nonaktifkan|menonaktifkan|matikan|mematikan|hapus|"
                    "hapuskan|menghapus|copot|mencopot|cabut|mencabut|batalkan|membatalkan|pelepasan|"
                    "penonaktifan|penghapusan|pembatalan"),

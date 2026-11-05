@@ -1356,10 +1356,10 @@ protected tokens, glyphs and widths, which are mechanical; a glossary term that 
 разблокировать, 解锁, ロック解除);
 unlock written as the lock word plus the common separate word (sv "lås upp", id "buka kunci", ar
 "فتح القفل", zh 解除锁定, ja ロックを解除, ko 잠금 해제); the lock said to be removed or turned off in
-the first-wave languages and ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
+the first-wave languages and nb, ru, uk, el, ja and zh ("Quitar el bloqueo", "Zdejmij blokadę",
 "Sperre aufheben", "Vergrendeling uitgeschakeld", "Снять блокировку"), also after a status colon,
 dash or parenthesis ("Sperre: aus"); a negation dropped or added where the language has a negation
-list; and, in a safety key of a first-wave language, an English on or off state drafted with only
+list; and, in a safety key of a first-wave language or nb, an English on or off state drafted with only
 the other state's words ("Lock: on" as "Bloqueo: desactivado", "Alarm sound off" as "Sonido de
 alarma activado"; `lexicon.STATE_WORDS`). A state word right after a negation word counts as the
 other state ("nicht aktiv" and "tidak aktif" are off, "nicht ausgeschaltet" is on), and so does
