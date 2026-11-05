@@ -4,7 +4,7 @@ readings_lock_status	Electronic lock	Kunci elektronik	Electronic lock	claude-opu
 readings_lock_status_short	Electronic lock	Kunci elektronik	Electronic lock	claude-opus	claude-opus-5-5	8f8525e4a0f6699513581880c6a0fe05239feb75	0f89c82ff587bfa928d12072a1dbd9343d7e2820
 readings_lock_status_compact	Lock	Kunci	Lock	claude-opus	claude-opus-5-5	7044b2710ffbc209d1839555476d7926bb179106	59525e4c461bb85afd54a02dad54208875da402b
 readings_lock_push_warning	Locked movement warning (raw)	Peringatan gerakan saat terkunci (mentah)	Movement warning while locked (raw)	claude-opus	claude-opus-5-5	239a62b4d4ac8ddf6bd51480f3d161228b260b01	4ed36e1e53395c8ca0cd18c1aba517fd3486d597
-readings_lock_push_warning_short	Lock movement (raw)	Gerakan saat dikunci (mentah)	Movement while locked (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	b848ebfecc1b90d729d37b3ed8811d80f40b7bfa
+readings_lock_push_warning_short	Lock movement (raw)	Gerakan saat terkunci (mentah)	Movement while locked (raw)	claude-opus	claude-opus-5-5	b392996949fa4bb67e39ba9912e65604622c1c5a	5907114c969ecfdb2441a408bd70808982365106
 readings_value_unlocked	Unlocked	Tidak terkunci	Not locked	claude-opus	claude-opus-5-5	2b5c62e79ca9b79c8b8d286daecedcbb25d1a409	db9ee8379b776e47986f61076be743311f5ad4a6
 readings_value_locked	Locked	Terkunci	Locked	claude-opus	claude-opus-5-5	ef86a799d35017977069c35386ac0e45e68a5f2d	be6604ec6ac8723563e4aa67d2fea3f01b29fded
 readings_chart_est_finish	Est. finish time	Est. waktu selesai	Est. finish time	claude-opus	claude-opus-5-5	025a56ff0a8058a86a507ab29885d9d88f2141f1	1ffeb231d3ccd4cb0fd5b3308d16dc76621aaa09
