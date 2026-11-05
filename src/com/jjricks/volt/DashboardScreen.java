@@ -1738,8 +1738,8 @@ public final class DashboardScreen implements AppScreen {
             power.setTextColor(watts == null ? ui.muted : ui.ok);
             stage.setContentDescription(
                     Double.isNaN(level)
-                            ? (hasLimit ? T.dashboardHeroChargeNotReportedLimit(Fmt.integer(Math.round(limit))) : T.dashboardHeroChargeNotReported())
-                            : (hasLimit ? T.dashboardHeroChargeLimit(Fmt.integer(Math.round(level)), Fmt.integer(Math.round(limit))) : T.dashboardHeroCharge(Fmt.integer(Math.round(level)))));
+                            ? (hasLimit ? T.dashboardHeroChargeNotReportedLimitCount(Math.round(limit), Fmt.integer(Math.round(limit))) : T.dashboardHeroChargeNotReported())
+                            : (hasLimit ? T.dashboardHeroChargeLimitCount(Math.round(level), Fmt.integer(Math.round(level)), T.dashboardHeroLimitPercent(Math.round(limit), Fmt.integer(Math.round(limit)))) : T.dashboardHeroChargeCount(Math.round(level), Fmt.integer(Math.round(level)))));
             stage.invalidate();
             showAnimated(true);
         }
@@ -2929,8 +2929,8 @@ public final class DashboardScreen implements AppScreen {
                                 ? (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedSeen(when(charge.capturedWallMs)) : M.dashboardOverviewNotReported())
                                 : (charge != null && charge.value != null && !live ? M.dashboardOverviewNotReportedLineSeen(line, when(charge.capturedWallMs)) : M.dashboardOverviewNotReportedLine(line)))
                         : (line.isEmpty()
-                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeen(amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercent(amount))
-                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeen(amount, line, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLine(amount, line)));
+                                ? (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentSeenCount(Math.round(level), amount, when(charge.capturedWallMs)) : M.dashboardOverviewPercentCount(Math.round(level), amount))
+                                : (charge != null && charge.value != null && !live ? M.dashboardOverviewPercentLineSeenCount(Math.round(level), amount, line, when(charge.capturedWallMs)) : M.dashboardOverviewPercentLineCount(Math.round(level), amount, line)));
                 speak();
                 boolean allowed = ScooterPhotos.show(picture, activeModel(), 2);
                 if (allowed != photoAllowed) { photoAllowed = allowed; requestLayout(); }
@@ -4027,18 +4027,18 @@ public final class DashboardScreen implements AppScreen {
                     : (detail.isEmpty()
                         ? (charging
                             ? (live
-                                ? T.dashboardCellPercentCharging(Fmt.integer(Math.round(percent)))
-                                : T.dashboardCellPercentChargingStale(Fmt.integer(Math.round(percent))))
+                                ? T.dashboardCellPercentChargingCount(Math.round(percent), Fmt.integer(Math.round(percent)))
+                                : T.dashboardCellPercentChargingStaleCount(Math.round(percent), Fmt.integer(Math.round(percent))))
                             : (live
-                                ? T.dashboardCellPercent(Fmt.integer(Math.round(percent)))
-                                : T.dashboardCellPercentStale(Fmt.integer(Math.round(percent)))))
+                                ? T.dashboardCellPercentCount(Math.round(percent), Fmt.integer(Math.round(percent)))
+                                : T.dashboardCellPercentStaleCount(Math.round(percent), Fmt.integer(Math.round(percent)))))
                         : (charging
                             ? (live
-                                ? T.dashboardCellPercentLineCharging(Fmt.integer(Math.round(percent)), detail)
-                                : T.dashboardCellPercentLineChargingStale(Fmt.integer(Math.round(percent)), detail))
+                                ? T.dashboardCellPercentLineChargingCount(Math.round(percent), Fmt.integer(Math.round(percent)), detail)
+                                : T.dashboardCellPercentLineChargingStaleCount(Math.round(percent), Fmt.integer(Math.round(percent)), detail))
                             : (live
-                                ? T.dashboardCellPercentLine(Fmt.integer(Math.round(percent)), detail)
-                                : T.dashboardCellPercentLineStale(Fmt.integer(Math.round(percent)), detail)))));
+                                ? T.dashboardCellPercentLineCount(Math.round(percent), Fmt.integer(Math.round(percent)), detail)
+                                : T.dashboardCellPercentLineStaleCount(Math.round(percent), Fmt.integer(Math.round(percent)), detail)))));
         }
 
         @Override
