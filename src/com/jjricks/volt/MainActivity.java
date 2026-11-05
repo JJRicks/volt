@@ -1863,6 +1863,7 @@ public final class MainActivity extends Activity implements ScreenHost {
             line.setClickable(true);line.setFocusable(true);line.setBackground(rowRipple());line.setOnClickListener(v->action.run());
         }
         void setSub(String text){sub.setText(text==null?"":text);sub.setVisibility(text==null||text.isEmpty()?View.GONE:View.VISIBLE);}
+        void setSub(CharSequence text){setSub(text==null?null:text.toString());}
     }
     private boolean chargeAlertsOffered(){return scooterService!=null&&scooterService.chargeAlertsOffered();}
     /** Why an alert can't reach the owner now, or null; shared by the rows and the sheet. */
