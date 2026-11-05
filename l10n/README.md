@@ -961,7 +961,7 @@ the marks with icons (a visible design change).
 | Symbol | Code point | Where Volt shows it | `emoji-data.txt` | Catalog text |
 |---|---|---|---|---|
 | ✓ | U+2713 CHECK MARK | "✓ Save" buttons; "PIN ✓", "Paired ✓" and drive-mode chips; step pills; "Unrestricted ✓" (More > App preferences > Background recording); "Direction ✓"; "Check finished ✓"; a compatibility read's "✓ N bytes"; the Rides compare row's "2 ✓" | not an emoji (U+2714 ✔ is) | `✓` |
-| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), a Java literal without U+FE0E (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
+| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording), a Java literal with U+FE0E (below) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
 | ☆ | U+2606 WHITE STAR | Live Stats: a reading that is not starred, "☆ Star readings to pin here" | not an emoji | `☆` |
 | ★ | U+2605 BLACK STAR | Live Stats: a starred reading | not an emoji (U+2B50 ⭐ is) | `★` |
 
@@ -972,11 +972,11 @@ the marks with icons (a visible design change).
   language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
   invisible in review.
 - **Moving ⚠ out of Java takes two pull requests.** The only ⚠ Volt shows is MoreScreen's literal
-  `"Optimized ⚠"`, which has no U+FE0E. A batch's `exact` row needs the catalog English to equal
+  `"Optimized ⚠\uFE0E"`, which had no U+FE0E at first. A batch's `exact` row needs the catalog English to equal
   that literal byte for byte (G1), and this test needs `⚠\uFE0E`, so one batch cannot do both.
   `l10n/english-changes.tsv` does not help: it records changes to keys already in the catalog, and
   that kind of pull request adds no ledger rows. So:
-  1. an ordinary pull request writes the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
+  1. done: an ordinary pull request wrote the literal as `"Optimized ⚠\uFE0E"` (the precaution chosen
      with this list; the English reads the same). `hardcoded_lint.py --check` passes as is: G8 has no
      baseline entry for that row;
   2. the batch then moves it byte for byte: catalog text `Optimized ⚠\uFE0E`, ledger pieces
