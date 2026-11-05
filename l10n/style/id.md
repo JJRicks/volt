@@ -12,7 +12,9 @@
 - **Volt or the scooter as the subject uses the meN- form:** *Volt mengirim satu perubahan.* **What happened to a thing uses di-:** *Perubahan dikirim*, *Nilai ditolak*.
 - **Indonesian has no tense, so add a time word only where the English needs it:** *akan* for will, *sudah* for already, *sedang* for in progress. A status that is simply true takes none: *Terhubung*.
 - *Saya* is acceptable only where the English speaks as the rider: *Beri tahu saya*, *Skuter saya*.
-- **Tidak versus belum:** *tidak* says no; *belum* says not yet. Keep them apart. Use *belum* only where this guide lists it or where the English says not yet. A firm English negative takes *tidak*: *Not supported* is *Tidak didukung*, never *Belum didukung*.
+- **Tidak versus belum:** *tidak* says no; *belum* says not yet. Keep them apart. Use *belum* where this guide lists it, where the English says not yet, and for anything the rider can still do: *Belum ada skuter yang disiapkan*, *PIN belum disetel*. A firm English negative takes *tidak*: *Not supported* is *Tidak didukung*, never *Belum didukung*.
+- **Di- versus ter-:** the di- form is what happens to a thing. Use ter- for a failure or something nobody chose: *catatan tidak tersimpan*, *rekaman mungkin terhenti*.
+- **One *Anda* per sentence:** don't repeat it. *Percobaan dan jawaban Anda akan masuk ke laporan kompatibilitas berikutnya.*
 
 ### Plurals
 
@@ -62,6 +64,8 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 2. Use the shorter natural word pair: *pengisian daya* → *isi daya*; *dan* → *&*. Drop *yang*, *dari*, *oleh* and the object words. *Ditolak oleh skuter* → *Ditolak skuter*.
 3. Use an abbreviation from this table. Nothing else.
 
+**Pick the rung that fits.** If an approved shorter form, or the key's own `_short`, fits a budget or comes closer than the full name, use it on the full rung too, even when the English is also over budget. *Preferensi aplikasi* in a 64dp slot becomes *Preferensi*.
+
 | Full | Short | Width at 12.5sp (dp) | Note |
 |---|---|---|---|
 | Kecepatan maksimum | **Kec. maks.** | 127.7 → 60.9 | The setting. Fits the 90dp tile. *Kecepatan maks.* at 98.2 does not |
@@ -72,6 +76,8 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | Perkiraan, estimasi | **Est.**, **est.** | 29 at most | From *estimasi*, a standard word. *Est. jarak*, chip `est.` Not *perk.* |
 | maksimum, minimum | **maks.**, **min.** | | *min.* with a period is minimum. The minute unit is `mnt` (section 4), so the two can't be confused |
 | informasi | **info** | | No period: *Info & izin* 58.8 |
+| firmware | **FW** | | As the English writes it: *FW meter*, compact firmware rungs only |
+| ribu | **rb** | | The chart's thousands suffix (`ui_chart_thousands_suffix`) |
 
 *Kec.* normally abbreviates *kecamatan*, a district, so use it only directly before a speed word as above.
 
@@ -79,7 +85,7 @@ Real ladders:
 
 | Rung | `readings_remaining_range_km` | `readings_lock_status` | `readings_battery_health_percent` | `dashboard_model_qa_ride_settings` |
 |---|---|---|---|---|
-| Full | Perkiraan sisa jarak tempuh skuter | Kunci elektronik | Kesehatan baterai menurut skuter | Setelan berkendara (the English is over this 64dp budget too, so the check only warns) |
+| Full | Perkiraan sisa jarak tempuh skuter | Kunci elektronik | Kesehatan baterai menurut skuter | Berkendara (64.3 at 12sp, 0.3 over; report it) |
 | Short | Est. jarak tempuh | Kunci elektronik | Kesehatan menurut skuter | Berkendara (67.0, under 90) |
 | Compact | Jarak tempuh | Kunci | Kesehatan | |
 
@@ -90,6 +96,9 @@ Other measured fits: *Kunci* 31.9, *Setelan* 44.2, *Baterai* 42.1 (all under the
 - `onboarding_welcome_tile_rides` and its `_short`, 62dp at 12.5sp: *Perjalanan* is 62.6, so it fails by 0.6dp. Write *Perjalanan* anyway and say so in your notes; *Riwayat* would fit but means history. `dashboard_model_qa_rides` (60.1 at 12sp, budget 64) keeps *Perjalanan* too.
 - `dashboard_model_qa_live_stats`, 64dp at 12sp: *Statistik langsung* is too wide. Use **Statistik** (46.2) there and on the 90dp tile (*Statistik langsung* is 104.8).
 - `dashboard_model_qa_line_lights` and `dashboard_model_qa_star_lights`, 64dp at 12sp: *Lampu garis* (68.4) and *Lampu bintang* (83.6) are too wide. Use **Garis** and **Bintang** there, and the full names on the 90dp tiles (71.3 and 87.1).
+- `dashboard_model_qa_experimental`, 64dp at 12sp: **Eksperimental** is 79.8 and no shorter correct word exists, so it overflows. Report it. The 90dp tile fits.
+- `dashboard_model_qa_charge_done_by` and `_time`, 64dp at 12sp: **Target selesai** and **Waktu target** are the closest correct names. Both are over; the `_time` 90dp tile fits *Waktu target*.
+- `dashboard_model_qa_pin_proximity` and its `_short`: *PIN & jarak dekat* is over both budgets, as the English is over 64dp, and no approved shorter form exists. Report it: a design issue, not a wording one.
 - Compact `more_role_shared`: **Bersama** (51.5). Never *Dibagikan*, which reads as a shared scooter.
 
 **Never use** SMS-style cuts (*yg*, *dgn*, *utk*, *tdk*, *blm*, *sdh*, *rata2*) or invented cuts (*Perj.*, *Eksp.*, *Peng.*, *Bat.*, *Pengis.*). *Tdk* and *blm* would also hide a negation. *Pengisi* and *Pengisian* are different words (section 7), so neither may stand as a cut of the other.
@@ -152,6 +161,8 @@ Keep every negation. The checks count *tidak, tak, bukan, jangan, belum, tanpa*.
 - **Disconnected.** The state keys `ble_status_disconnected`, `rides_live_disconnected`, `more_link_disconnected`, `service_charge_stop_disconnected`, `ui_live_stats_disconnected`, `ble_simulation_disconnected` and `controls_drive_mode_disconnected` must read *tidak terhubung*. A bare *Terhubung* passes clean and is a full inversion. The two event keys, `charging_measure_disconnected` and `compat_note_disconnected`, may say *terputus*.
 - **Charger and charging.** Every such key gets the one-letter check: *pengisi daya* is the charger, *pengisian daya* is charging. Swapped, both pass, because `en.tsv` has no row for either word.
 - **Alarm off.** *Alarm berbunyi* for an alarm that is off only warns. It must read off.
+- **Ride warnings.** `controls_experimental_traction_control` and `controls_experimental_start_speed` must keep the surfaces and the motion. *Ground* includes paved road, so *permukaan*, never *tanah*. *Pull from a standstill* must say the scooter moves. A word list can't catch this narrowing.
+- **Fallback.** A PIN is never *cadangan*, which is the Backup word.
 
 ## 7. Scooter vocabulary
 
@@ -159,12 +170,12 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 - **Three speeds:** the setting is **Kecepatan maksimum**, narrow **Kec. maks.** A limit below it is **Batas kecepatan**. The measured value on a trip or ride is **Kecepatan tertinggi**, narrow **Kec. tertinggi**. Never swap them, and don't call a limit *maksimum*.
 - **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. The glossary rows `top-speed` and `maximum-speed` already follow D3, so those words have the opposite meaning here. `rides_tile_max_speed` says Max speed for a measured value, which D3 renames Top speed, and no glossary row catches it: *Kec. maks.* there would be the swap. `more_lab_untested` still says Untested controls while its row gives D3's Controls to try, so no draft can pass the check. These keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
-- **Rides vs trips:** a recorded ride is a **perjalanan**. *Trip*, the distance since a reset, stays **Trip**, as on Indonesian motorcycle clusters. A path on the map is a **rute**. To ride is **berkendara**, and a rider is **pengendara**.
+- **Rides vs trips:** a recorded ride is a **perjalanan**. *Trip*, the distance since a reset, stays as the loan word, as on Indonesian motorcycle clusters. It follows sentence case: **Trip** first in a label, **trip** after that: *Trip tersimpan*, *Jarak trip*, *%1$d trip*. A path on the map is a **rute**. To ride is **berkendara**, and a rider is **pengendara**.
 - **Range:** the remaining distance is **jarak tempuh**, and its estimate **Perkiraan jarak tempuh**. NAVEE's Indonesian press says *jarak tempuh* too.
 - **Try vs test:** *Try* is **Coba**, noun **percobaan**. An ordinary retry is *Coba lagi*, as the fixed-words table says. A guided test is **uji**, noun **pengujian**: *Uji pengisian terjadwal*. A compatibility check is **pemeriksaan kompatibilitas**.
 - **Dashboard vs display:** Volt's Home layout is the **Dasbor**. The scooter's own screen is the **layar skuter**. They never swap. *Display & sound* is **Layar & suara**.
 - **Settings vs setup:** settings are **Setelan**, Android's word. A one-time setup is **penyiapan**. Never *pengaturan* for either: it is common elsewhere but would add a third word.
-- **Restore vs set back:** bringing back a backup is **Pulihkan**. Undoing a try is **Kembalikan**. **Pemulihan energi** is unrelated, so always write *energi* with it.
+- **Restore vs set back:** bringing back a backup or saved data is **Pulihkan**. Undoing a try is **Kembalikan**, also where the English says Restore on the try screens: *Kembalikan ke %1$s*, *pengembalian nilai*, *perintah pengembalian*. Logging takes the fixed phrase below. **Pemulihan energi** is unrelated, so always write *energi* with it.
 - **Readback:** **pembacaan ulang**, neutral, because a readback can also fail to confirm. Telemetry readings are **pembacaan**.
 - **Pair vs bind vs connect:** Bluetooth pairing is **pasangkan**. NAVEE account binding is **tautkan**. A live link is **hubungkan**, and its state **Terhubung** or **Tidak terhubung**. To end the link is **Putuskan koneksi**. *Pemasangan* means installation or mounting, so don't use it for pairing; for the noun, use a verb form such as *saat memasangkan*. Android's own menu says *Sambungkan perangkat baru* for pairing; quote that only when pointing at it, because *sambungkan* sits too close to *hubungkan*.
 - **Owner key parts:** the file is the **file penyiapan pemilik**, shortened to **file pemilik** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
@@ -224,14 +235,33 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | throughput | how much energy has passed through the battery | **aliran energi**. An amount of energy that passed through, not a rate; *total aliran energi* where a sentence has room |
 | battery gauge | the scooter's own battery percentage reading | **indikator baterai**; *indikator* alone where the screen is about the battery. The scooter's own figure, not a measurement |
 | raw | an unprocessed value, also used as a short tag | **mentah**: *%1$s (mentah)*. As the tag where the English writes RAW, **Mentah**, sentence case: 35.8dp at 10sp, under the tag's 40dp budget; *MENTAH* is 41.7 and would not fit |
-| last seen | when Volt last had data from the scooter | **Data terakhir**; with a value, *Data terakhir: %1$s*. The data may be old, so never word it as current. Never *Terakhir dilihat*, which reads as someone seeing it |
+| last seen | when Volt last had data from the scooter | **Data terakhir**; with a value, *Data terakhir: %1$s*. The data may be old, so never word it as current. Never *Terakhir dilihat*, which reads as someone seeing it. After *tidak ada data*, write *pembacaan terakhir*, so it doesn't say data twice. The age value *now* is *baru saja* |
 | add | adding a widget, scooter or item | **tambahkan**: *Tambahkan widget*, *Tambahkan skuter lain*. Other forms *menambahkan*, *ditambahkan* |
 | enter (typing) | typing a value | **masukkan**: *Masukkan PIN baru*. Other forms *memasukkan*, *dimasukkan*. Never *isi*, which sits too close to charging (*isi daya*) |
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **aplikasi**, always: *aplikasi NAVEE*, *aplikasi resmi*. Never *app* or *apl.* |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **hubungkan skuter**, *Hubungkan skuter terlebih dahulu*, *Hubungkan ulang skuter*. Never a reflexive form or *sambungkan*. The button stays *Hubungkan*; plugging in says *Hubungkan pengisi daya* |
 | set a value | one verb for setting a value on the scooter | **setel**: *Setel PIN*, *Setel %1$s*. Other forms *menyetel*, *disetel*. Never *atur* or *tetapkan*. The noun stays *Setelan*, and setting something back stays *Kembalikan* |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | *akan* with the di- form, in dialogs and hints alike: *Perjalanan ini akan dihapus*, *Peta akan dibuka*. Never *Hapus…* or *Buka…*, which read as commands, or *Menghapus…*, which reads as in progress |
-| screen and section titles | noun form or verb form, with one example | Noun form: *Pencadangan & pemulihan*. A glossary name stays as it is: *Uji pengisian terjadwal*. Never the bare imperative or the meN- form as a title |
+| screen and section titles | noun form or verb form, with one example | A destination or section takes the noun form: *Pencadangan & pemulihan*. A glossary name stays as it is: *Uji pengisian terjadwal*. A task title, setup step or picker sheet tells the rider what to do, so it takes the bare imperative, as Android does: *Aktifkan proses debug USB*, *Pilih pintasan*. Never *Pemilihan…*, *Pengaktifan…*. A title for something in progress takes meN-: *Memulihkan data aplikasi Anda* |
+| Home | Volt's Home screen and tab | **Dasbor**, capitalized when naming the screen: *Buka Dasbor*, *Di Dasbor*. Never *Beranda*, which would add a second name |
+| private | stored only on this phone; a backup that holds the owner key | **pribadi**: *cadangan pribadi*, *disimpan secara pribadi*. Never *privat* |
+| state of charge | the battery's percentage | **Baterai** with the number, **Level baterai** as a name: *Baterai %1$s persen*. *Level* alone on a narrow card. Never *Daya baterai* for this, because *Daya* is power, or *Muatan* alone, which reads as cargo |
+| charging resumes at | the time a paused charge starts again | **Waktu pengisian daya dilanjutkan: %1$s**. Never *waktu lanjut* |
+| battery input, battery draw | energy flowing into and out of the battery | **energi masuk ke baterai**, short *Masuk*; **pemakaian baterai**, short *Pemakaian*. Never *masukan*, which means feedback |
+| ascent, descent | height gained and lost on a ride | **kenaikan ketinggian**, **penurunan ketinggian**; on a tile *Naik / turun*. Never *tanjakan*, *turunan*, which are the slopes |
+| advertised capacity | the maker's rated figure for this model | **kapasitas menurut spesifikasi**. Never *diiklankan* |
+| data points | samples behind an estimate | **titik data**. Never *poin* |
+| write to the scooter | sending a value | **mengirim**. Never *menulis* |
+| override | the rider choosing instead of Volt | Say it plainly: *untuk menentukannya sendiri*. Never *mengesampingkan* |
+| instead | an alternative action on a link | **Atau …**: *Atau masukkan kode pemilik*. Never *sebagai gantinya* |
+| fallback (the PIN) | the way to unlock without a phone | **PIN setang**, or *cara membuka kunci tanpa ponsel*. Never *cadangan* |
+| expand, collapse | opening a chart or a group | **Luaskan**, **Ciutkan**; *diluaskan*, *diciutkan*. From memory of Android; check AOSP at the debate. Never *Perluas* |
+| fit to view | the chart button | **Paskan**. Never *Sesuaikan*, which reads as customize |
+| interrupted | something stopped before it finished, for any reason | **Terhenti**. Never *terputus*, the disconnect word |
+| flag, probe, test value | raw-reading terms | **penanda**; **(pemeriksaan)**, never *penjajakan*; **nilai uji** |
+| start speed | the reading and the setting | **Kecepatan start dorong**, everywhere |
+| reopen Volt | closing and opening the app again | **Buka kembali Volt** |
+| caution (official app) | a warning the official app shows before a change | **peringatan**, in a sentence that names the official app. It is not Volt's alert and not a scooter warning, so never a bare label |
 
 ## 9. Sources consulted
 
@@ -248,4 +278,4 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - [Microsoft's language resources page](https://learn.microsoft.com/en-us/globalization/reference/microsoft-language-resources) was read, but its Indonesian style guide was not, so nothing here cites it.
 - Width and glyph figures: measured with `tools/l10n/fontmetrics.py`, java.awt, `res/font/saira_medium.ttf`. Saira has every mark this guide uses, and lacks U+202F. Wording checks: probes through `check.check_key`.
 
-**Debate items, all judgment calls:** every choice in the fixed-words table, which are Claude's proposals with no source behind them; *Coba lagi*, which shares its stem with the experimental *Coba* (*Ulangi* would keep them apart, but today's check rejects it on safety keys such as `ble_lock_not_ready`, whose English hits the `try` row); *menurut skuter* and *Tidak ada data* over the calques *dilaporkan* and *Tidak dilaporkan*; *kode pemilik* versus *kunci pemilik*; *Tidak terkunci* as the Unlocked word; *pengendara bersama* (it can read as riding together, and compact *Bersama* means together; the independent review prefers *pengguna bersama*, with the chip *Pengguna bersama* if it fits); *kode pemilik* can also blur with the handlebar PIN's "code" and doesn't signal a secret, so import prompts should say 12 characters where the English does; *Trip* left as a loan; *Pemulihan energi*; *Cruise control*; *pasangkan* versus Android's *sambungkan*; *Kecepatan start dorong*; *Kec.* for speed; `j`, `mnt`, `dtk` over the SI `h`, `min`, `s`, which the owner's default doesn't name; *Mode jarak tempuh jauh* (*jarak jauh* alone reads as remote); *Pemakaian nyata*; *Kontrol aktif kecepatan berlebih*; *Bantuan jalan kaki*; *Baris kunci*; *Durasi penguncian*; the proposals in section 7's "Other words".
+**Debate items, all judgment calls:** every choice in the fixed-words table, which are Claude's proposals with no source behind them; *Coba lagi*, which shares its stem with the experimental *Coba* (*Ulangi* would keep them apart, but today's check rejects it on safety keys such as `ble_lock_not_ready`, whose English hits the `try` row); *menurut skuter* and *Tidak ada data* over the calques *dilaporkan* and *Tidak dilaporkan*; *kode pemilik* versus *kunci pemilik*; *Tidak terkunci* as the Unlocked word; *pengendara bersama* (it can read as riding together, and compact *Bersama* means together; the independent review prefers *pengguna bersama*, with the chip *Pengguna bersama* if it fits); *kode pemilik* can also blur with the handlebar PIN's "code" and doesn't signal a secret, so import prompts should say 12 characters where the English does; *Trip* left as a loan; *Pemulihan energi*; *Cruise control*; *pasangkan* versus Android's *sambungkan*; *Kecepatan start dorong*; *Kec.* for speed; *aliran energi* (it reads as a rate, while the value is an amount; test *total energi*); bare *pengambilan* (fetching, withdrawal; titles may need *pengambilan kode pemilik*); *Dasbor* over *Beranda* for Home; *km/h* against the everyday *km/jam*, the string a native reader will notice most, and the owner's call; *Luaskan* over *Perluas*; `j`, `mnt`, `dtk` over the SI `h`, `min`, `s`, which the owner's default doesn't name; *Mode jarak tempuh jauh* (*jarak jauh* alone reads as remote); *Pemakaian nyata*; *Kontrol aktif kecepatan berlebih*; *Bantuan jalan kaki*; *Baris kunci*; *Durasi penguncian*; the proposals in section 7's "Other words".

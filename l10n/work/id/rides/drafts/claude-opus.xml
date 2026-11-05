@@ -34,7 +34,7 @@
     <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Hubungkan skuter terlebih dahulu</string>
     <string name="rides_notes_hint" volt:src="5b182063520bc5c1cad81d3a9cdf7bc8b1fadc8a">Mode, rute, beban…</string>
     <string name="rides_notes_save" volt:src="4c22e443c2ace74760f89991e6a526078de026a7">Simpan catatan</string>
-    <string name="rides_toast_notes_not_saved" volt:src="40a3e37d436e3a7b9f8a7003b4ed6a787e435299">Perjalanan berakhir · catatan tidak disimpan</string>
+    <string name="rides_toast_notes_not_saved" volt:src="40a3e37d436e3a7b9f8a7003b4ed6a787e435299">Perjalanan berakhir · catatan tidak tersimpan</string>
     <string name="rides_toast_notes_failed" volt:src="b1fdba5d6a2ee631683e770bc167717f4350fcad">Tidak dapat menyimpan catatan.</string>
     <string name="rides_sensors_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
     <string name="rides_sensors_elevation" volt:src="347570bcee9cb79462389b2d9c840afc80a9b0db">ketinggian</string>
@@ -77,7 +77,7 @@
     <string name="rides_route_unavailable" volt:src="b9200fb871ecd8f314b8a3ed637eb5de4a568df1">Rute tidak tersedia</string>
     <string name="rides_readings_title" volt:src="4e02ae3baa7de7657a0a92544870bd9dd4bdd990">Pembacaan perjalanan</string>
     <string name="rides_loading" volt:src="d34759349252de47e5944d7abac2e2dec226cdd7">Memuat…</string>
-    <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Perluas</string>
+    <string name="rides_expand" volt:src="ecca4754ce4d1f56406a0a4fddde5174752dc5f1">Luaskan</string>
     <string name="rides_chart_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Paskan</string>
     <string name="rides_chart_zoom_out" volt:src="1ab878a130ac7f96258d81121954840b6dcea335">Perkecil grafik perjalanan</string>
     <string name="rides_chart_fit_description" volt:src="23f9cf032c2ca0d2a429c7dcd33f06c5a6c73ba6">Paskan seluruh perjalanan di grafik</string>
@@ -89,16 +89,16 @@
     <string name="rides_all_samples_description" volt:src="1f613a0c01bd48658728229e641f504e50fd5908">Semua sampel grafik yang terekam telah dimuat</string>
     <string name="rides_toast_low_memory" volt:src="07bacb681055fedc9a4f6a6b12632628ad27800b">Memori rendah · hanya pratinjau</string>
     <string name="rides_preview_retry" volt:src="ddbae7b02681c69703fc19822070815540c039d7">Pratinjau · Coba lagi</string>
-    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Hanya pratinjau. Coba lagi memuat semua sampel grafik yang terekam</string>
+    <string name="rides_preview_retry_description" volt:src="88be3e3d8e0abeb813601bc3d31a8502631d2b83">Hanya pratinjau. Coba muat lagi semua sampel grafik yang terekam</string>
     <string name="rides_electrical_energy" volt:src="c25cbe0cc36ce2c248cbfc7818933e13e17add77">Energi listrik</string>
     <string name="rides_direction_confirmed" volt:src="3517b661574c4c41efd4351cc06b903953465adc">Arah arus dikonfirmasi</string>
-    <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Arah arus tidak dikonfirmasi untuk seluruh perjalanan · nilai adalah aliran energi absolut</string>
+    <string name="rides_direction_unconfirmed" volt:src="bc347bc7cf7e3986e160931c4893847997c540d1">Arah arus tidak dikonfirmasi untuk seluruh perjalanan · nilai berupa aliran energi absolut</string>
     <string name="rides_draw_short" volt:src="c14d7827ed8152cbec42ccd4357e84c0b3c3e01d">Pemakaian</string>
     <string name="rides_draw" volt:src="157e4062a6580d8571728fd66d3971f3fe44e7f4">Pemakaian baterai</string>
-    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Masukan</string>
-    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Masukan baterai / pengisian daya</string>
+    <string name="rides_input_short" volt:src="8d7ff0661c0ca45cd01190c8e1c9ea538f1cf791">Masuk</string>
+    <string name="rides_input" volt:src="48663fd74d7b0f1fccdfd66483ae471356650566">Energi masuk ke baterai / pengisian daya</string>
     <string name="rides_draw_partial" volt:src="d4c1c10d28c4a97edfd36d3ed750bc5c334020cd">Pemakaian baterai, hanya interval yang dikonfirmasi</string>
-    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Masukan baterai atau pengisian daya, hanya interval yang dikonfirmasi</string>
+    <string name="rides_input_partial" volt:src="bef8e2f15a4d1e93da7ffa724838b4625be756ca">Energi masuk ke baterai atau pengisian daya, hanya interval yang dikonfirmasi</string>
     <string name="rides_net_energy" volt:src="c485e22ba72d6e26dce9679deebc9a11f53cccd6">Energi bersih terukur</string>
     <string name="rides_throughput_per_distance" volt:src="7ffc7192f9e336f862ed6bf775981032c7376149">Aliran energi per jarak</string>
     <string name="rides_net_per_distance" volt:src="08ed3b0daf54c1f0d0302fec975527160e09da60">Energi bersih per jarak</string>
@@ -139,7 +139,7 @@
     <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">Di setang</string>
     <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">Di saku</string>
     <string name="rides_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Lab, eksperimental</string>
+    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Eksperimental</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Perubahan berlaku pada perjalanan berikutnya</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">Tidak ada browser yang tersedia.</string>
     <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Ekspor file mentah</string>
@@ -149,7 +149,7 @@
     <string name="rides_route" volt:src="e50c80a20ac9c7133002b12f3cbe3cab058f2fa2">Rute</string>
     <string name="rides_phone_route" volt:src="0a0f5fe10482e3cadd9646f815e91738bf4afab2">Ponsel &amp; rute</string>
     <string name="rides_tile_gps_distance" volt:src="223d805773db84cf33b85903488bda3471aace74">Jarak GPS</string>
-    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Tanjakan / turunan</string>
+    <string name="rides_tile_ascent_descent" volt:src="94a90cb58cb78abf1b4a4341edbda52048cbade0">Naik / turun</string>
     <string name="rides_acceleration" volt:src="698e6ba4cfef83cc36e197154706cb78257f84b6">Akselerasi</string>
     <string name="rides_gps_speed_change" volt:src="a15e78f916dd0aff03e2124b76da4f735b3a4a34">Perubahan kecepatan GPS · min. / maks.</string>
     <string name="rides_scooter_speed_change" volt:src="28ea9845136590f144c491f3926ec406ec0040a0">Perubahan kecepatan skuter · min. / maks.</string>
@@ -165,12 +165,12 @@
     <string name="rides_map_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Perbesar</string>
     <string name="rides_map_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Perkecil</string>
     <string name="rides_map_fit" volt:src="2cb98030a1da8b08df854e194f0a893bd85bdf25">Paskan rute</string>
-    <string name="rides_map_expand" volt:src="bf370be18e383b67a9ecbabefe37165e625419a8">Perluas peta rute</string>
-    <string name="rides_legend_grade" volt:src="9027dd2b5e2c313c54fc75506ab5fd596db2c0f1">Kemiringan · biru −12% → abu-abu 0% → oranye +12% · abu-abu putus-putus: tidak ada data</string>
-    <string name="rides_legend_accel" volt:src="61f530cee8ffaf8c006f91d262d27429294caef7">Akselerasi GPS · biru −2 → abu-abu 0 → oranye +2 m/s² · abu-abu putus-putus: tidak ada data</string>
+    <string name="rides_map_expand" volt:src="bf370be18e383b67a9ecbabefe37165e625419a8">Luaskan peta rute</string>
+    <string name="rides_legend_grade" volt:src="9027dd2b5e2c313c54fc75506ab5fd596db2c0f1">Kemiringan · biru −12% → abu-abu 0% → oranye +12% · garis putus-putus abu-abu: tidak ada data</string>
+    <string name="rides_legend_accel" volt:src="61f530cee8ffaf8c006f91d262d27429294caef7">Akselerasi GPS · biru −2 → abu-abu 0 → oranye +2 m/s² · garis putus-putus abu-abu: tidak ada data</string>
     <string name="rides_map_controls_description" volt:src="a88a7bf4507c48065d26c5e9c80e00471b165363">Pembacaan dan warna peta rute</string>
-    <string name="rides_map_close_expanded" volt:src="8073836ff01a7dc0278b940a7e24922fabab561c">Tutup peta rute yang diperluas</string>
-    <string name="rides_legend_speed_none" volt:src="725f7222e1bd583a348ec060099801233e771b60">Kecepatan tidak direkam · abu-abu putus-putus: tidak ada data</string>
+    <string name="rides_map_close_expanded" volt:src="8073836ff01a7dc0278b940a7e24922fabab561c">Tutup peta rute yang diluaskan</string>
+    <string name="rides_legend_speed_none" volt:src="725f7222e1bd583a348ec060099801233e771b60">Kecepatan tidak direkam · garis putus-putus abu-abu: tidak ada data</string>
     <string name="rides_point_time" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Waktu</string>
     <string name="rides_point_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
     <string name="rides_point_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Skuter</string>
@@ -201,8 +201,8 @@
     <string name="rides_compare_min_voltage" volt:src="069f69e2489b3f52cbc3595ab0146fed40883493">Tegangan minimum</string>
     <string name="rides_view_first" volt:src="5bcd2429b4f1c221aa87f148e897034e9b0b73b2">Lihat yang pertama</string>
     <string name="rides_view_second" volt:src="f3e3a70a83012feab4bd6608ce2fa7d0e2e0a39c">Lihat yang kedua</string>
-    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Perkiraan tanjakan</string>
-    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Perkiraan turunan</string>
+    <string name="rides_compare_ascent" volt:src="3e937ebea12426d743921780562d5c874f84278b">Perkiraan kenaikan ketinggian</string>
+    <string name="rides_compare_descent" volt:src="00fc4abcca0922370e04fe4bce622e504cf8b954">Perkiraan penurunan ketinggian</string>
     <string name="rides_compare_sheet_rides" volt:src="26106ee114c596e0e682c5f1a7dfa91a4d672c2e">2 perjalanan</string>
     <string name="rides_compare_sheet_title" volt:src="65b68af8a4746ff0f2450bdf537647f7a7d96fbc">Perbandingan</string>
     <string name="rides_toast_compare_failed" volt:src="f9fb418132d1fa99069ebb891968cf46e539dade">Tidak dapat membandingkan rekaman.</string>
@@ -212,14 +212,14 @@
         <item quantity="other">%1$d aktif</item>
     </plurals>
     <string name="rides_live_title" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Merekam · %1$s</string>
-    <string name="rides_live_title_attention" volt:src="ddb3e602cdb20c062cb128b14f2671224643e13b">Rekaman perlu perhatian · %1$s</string>
+    <string name="rides_live_title_attention" volt:src="ddb3e602cdb20c062cb128b14f2671224643e13b">Perekaman perlu perhatian · %1$s</string>
     <string name="rides_elapsed_description" volt:src="30184002ffb4f49f13f9d807303a7b0ef1b5c0b7">Waktu berlalu %1$s</string>
     <string name="rides_gap_one" volt:src="a7eb56fd187ab8e4968d308f1afc084988247c0d">1 celah data</string>
     <plurals name="rides_gaps" volt:src="26b01d84ddac3fbd76a20c39ee9b6ed20eafa39b">
         <item quantity="other">%1$d celah data</item>
     </plurals>
     <string name="rides_coverage" volt:src="753c1f5f4e7a47aa8181ae4d5a7f1a7d89b9a93c">Cakupan %1$s</string>
-    <string name="rides_coverage_description" volt:src="3490808f3c32a9cd8c1666717ad0a078c3ca4d9f">Cakupan daya %1$s, teramati %2$s dari %3$s</string>
+    <string name="rides_coverage_description" volt:src="3490808f3c32a9cd8c1666717ad0a078c3ca4d9f">Cakupan data daya %1$s, teramati %2$s dari %3$s</string>
     <string name="rides_history_none" volt:src="b61b1b2cb582a7f025202093ca2d2470291655b2">Tidak ada perjalanan tersimpan</string>
     <plurals name="rides_history_count" volt:src="478462d261178706c40ba2b0ca244c16ab78038d">
         <item quantity="other">%1$d perjalanan</item>
@@ -241,8 +241,8 @@
     <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">Di saku · %1$s sampel</string>
     <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Besaran daya · biru 0 → kuning %1$s · abu-abu: tidak ada data</string>
     <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Ketinggian relatif · biru %1$s → kuning %2$s · abu-abu: tidak ada data</string>
-    <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Kecepatan skuter · biru 0 → kuning %1$s atau lebih cepat · abu-abu putus-putus: tidak ada data</string>
-    <string name="rides_legend_speed_gps" volt:src="38605ba4ce2a9ff511fe6dcf1809e3e7e625c8e3">Kecepatan GPS · biru 0 → kuning %1$s atau lebih cepat · abu-abu putus-putus: tidak ada data</string>
+    <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Kecepatan skuter · biru 0 → kuning %1$s atau lebih cepat · garis putus-putus abu-abu: tidak ada data</string>
+    <string name="rides_legend_speed_gps" volt:src="38605ba4ce2a9ff511fe6dcf1809e3e7e625c8e3">Kecepatan GPS · biru 0 → kuning %1$s atau lebih cepat · garis putus-putus abu-abu: tidak ada data</string>
     <string name="rides_point_accuracy" volt:src="863066dc5335929907c89fbf677fbff9e51eee0e">, akurasi ±%1$s</string>
     <string name="rides_unit_acceleration" volt:src="ef30a3ceccd5d9f55c39f08e8b804ca8783bfa49">m/s²</string>
     <string name="rides_unit_gravity" volt:src="72ce2c42a1c526e33440051e5991667418bc201c">g</string>
@@ -275,10 +275,10 @@
     <string name="rides_chart_chip_from_mph" volt:src="181819373c90e229f70a724588b6ceeb87ad1050">" · ≥2 mph"</string>
     <string name="rides_chart_chip_from_kmh" volt:src="2709d6f867db56f2b247afc593fe6e1aa9084b5b">" · ≥3 km/h"</string>
     <string name="rides_chart_chip_no_data" volt:src="3dce5678e5b62e5571a565a115faa1814bf74dc8">" · tidak ada data"</string>
-    <string name="rides_chart_series_only_at_mph" volt:src="0f1d963f528e1da144ff2f1d15050501262b8550">%1$s, hanya pada 2 mph atau lebih cepat</string>
-    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, hanya pada 2 mph atau lebih cepat, tidak ada sampel yang terekam</string>
-    <string name="rides_chart_series_only_at_kmh" volt:src="033e6164abc0053676b6f2fab6c5381a634bcc7e">%1$s, hanya pada 3 km/h atau lebih cepat</string>
-    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, hanya pada 3 km/h atau lebih cepat, tidak ada sampel yang terekam</string>
+    <string name="rides_chart_series_only_at_mph" volt:src="0f1d963f528e1da144ff2f1d15050501262b8550">%1$s, hanya pada kecepatan 2 mph atau lebih</string>
+    <string name="rides_chart_series_only_at_mph_no_samples" volt:src="20a907b44600b5bbae85a7a98990b8dda3124bb3">%1$s, hanya pada kecepatan 2 mph atau lebih, tidak ada sampel yang terekam</string>
+    <string name="rides_chart_series_only_at_kmh" volt:src="033e6164abc0053676b6f2fab6c5381a634bcc7e">%1$s, hanya pada kecepatan 3 km/h atau lebih</string>
+    <string name="rides_chart_series_only_at_kmh_no_samples" volt:src="a4b2681acbd87c13c63931569cb22984e37938ad">%1$s, hanya pada kecepatan 3 km/h atau lebih, tidak ada sampel yang terekam</string>
     <string name="rides_chart_series" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="rides_chart_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, tidak ada sampel yang terekam</string>
     <string name="rides_chart_cell_description" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>

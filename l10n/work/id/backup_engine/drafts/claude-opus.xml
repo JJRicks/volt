@@ -159,9 +159,9 @@
     <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Ruang penyimpanan kosong tidak cukup</string>
     <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Tidak dapat menyiapkan pemulihan.</string>
     <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Penyimpanan rekaman berubah selama pemulihan.</string>
-    <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Catatan perbaikan pemulihan tidak dapat dibaca.</string>
-    <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Daftar perbaikan pemulihan tidak valid.</string>
-    <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Jalur perbaikan pemulihan tidak valid.</string>
+    <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Catatan pemulihan tidak dapat dibaca.</string>
+    <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Daftar pemulihan tidak valid.</string>
+    <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Jalur pemulihan tidak valid.</string>
     <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:src="15228d6e90ee9f7bc024b957c52ec93c70c20218">Tidak dapat mengembalikan perubahan dari pemulihan yang terganggu.</string>
     <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Cuplikan pemulihan tidak lengkap. Biarkan penyimpanan aplikasi tetap utuh.</string>
     <string name="backup_engine_ride_storage_cannot_read" volt:src="0ede1a82e6831be351b54891fc112668141e0d8c">Penyimpanan perjalanan tidak dapat dibaca.</string>

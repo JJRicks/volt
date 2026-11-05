@@ -34,7 +34,7 @@
     <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · perubahan dibatalkan</string>
     <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · perubahan tidak dikonfirmasi</string>
     <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · menghubungkan ulang untuk mengonfirmasi</string>
-    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Skuter mungkin memulai ulang Bluetooth · menghubungkan ulang untuk mengonfirmasi</string>
+    <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Skuter mungkin sudah memulai ulang Bluetooth · menghubungkan ulang untuk mengonfirmasi</string>
     <string name="ble_simulation_on" volt:src="9a071404250fdeb0dc8b004b7dddf5ca3007f4a6">Simulasi aktif</string>
     <string name="ble_simulation_off" volt:src="b3b027cf8fec2759dbb726557304098b6251a539">Simulasi nonaktif</string>
     <string name="ble_simulated_connection" volt:src="30ec556a62e2fafa48ac2dcbf14d67e7368d0eec">Koneksi simulasi</string>
@@ -73,10 +73,10 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Status PIN tidak tersedia pada firmware ini.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Setelan PIN memerlukan profil pemilik.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Pasangkan ponsel ini sebelum mengaktifkan buka kunci jarak dekat</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Aktifkan PIN setang yang sudah disetel sebelum menggunakan buka kunci jarak dekat</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Aktifkan PIN setang yang sudah disetel sebelum mengaktifkan buka kunci jarak dekat</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Baca status PIN, lalu terapkan buka kunci jarak dekat.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Hubungkan skuter sebagai pemilik untuk membaca setelan PIN.</string>
-    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Nonaktifkan buka kunci jarak dekat sebelum menonaktifkan PIN setang yang menjadi cadangannya.</string>
+    <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Nonaktifkan buka kunci jarak dekat sebelum menonaktifkan PIN setang.</string>
     <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Baca status PIN saat ini terlebih dahulu.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Selesaikan uji terpandu terlebih dahulu</string>
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Pemeriksaan kompatibilitas dihentikan</string>
@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Tidak dapat mengembalikannya. Tidak ada yang diubah.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Selesaikan pengujian saat ini terlebih dahulu</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Pengujian tidak ditemukan</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Tidak dapat memulai pemulihan nilai. Tidak ada yang diubah.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Tidak dapat memulai pengembalian nilai. Tidak ada yang diubah.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Dikonfirmasi</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Setelan dikonfirmasi lewat pembacaan ulang; keluaran lampu tidak diukur</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Diterima; pembacaan ulang jam tidak tersedia</string>
@@ -98,6 +98,6 @@
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Dibatalkan sebelum dikirim</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Uji terpandu</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Koneksi terputus sebelum status kunci berubah</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Skuter tidak mengonfirmasi perubahan status kunci</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Skuter tidak mengonfirmasi apakah status kunci berubah</string>
     <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Skuter tidak siap mengubah status kunci; coba lagi</string>
 </resources>

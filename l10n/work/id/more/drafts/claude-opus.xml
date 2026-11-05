@@ -63,14 +63,14 @@
     <string name="more_unit_second" volt:src="e99872762cf4ffec3b380f2d04a2332c43ceaee5">dtk</string>
     <string name="more_prefs_auto_connect" volt:src="991dc81043ebcda63a8de71bc1039913fad72e2a">Hubungkan otomatis</string>
     <string name="more_prefs_background" volt:src="25db798ecebafd57fab23d35bbbbcc1fd3d0dd0a">Tetap terhubung di latar belakang</string>
-    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Perekaman selalu tetap terhubung</string>
+    <string name="more_prefs_background_sub" volt:src="5ca7fc47f600cdbf58fdace126eae295fa294226">Selalu terhubung selama perekaman</string>
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Biarkan layar tetap menyala</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Saat merekam</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Akhiri perjalanan saat diparkir</string>
     <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">Volt menghentikan perekaman 10 dtk setelah Bluetooth terputus saat skuter berhenti</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Perekaman di latar belakang</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Penggunaan baterai tidak dibatasi</string>
-    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Baterai dioptimalkan; rekaman panjang mungkin dihentikan. Setelan baterai akan dibuka</string>
+    <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Baterai dioptimalkan; rekaman panjang mungkin terhenti. Setelan baterai akan dibuka</string>
     <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Kustom</string>
     <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Pilih Volt untuk mengelola setelan Android-nya</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Buka setelan Volt di Android</string>
@@ -109,8 +109,8 @@
     <string name="more_history_used" volt:src="05f1554066a0dd490b41c2613a13422f35959676">%1$s dari %2$s %3$s</string>
     <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Pilih skuter terlebih dahulu.</string>
     <string name="more_history_clear_title" volt:src="f3612e8159bace4f4e64bd69737306998f67567e">Hapus riwayat?</string>
-    <string name="more_history_clear_all_body" volt:src="b12ff163ffb1ab6b5064c3b54a0a413a08e1f3d0">Riwayat semua skuter akan dihapus. Perjalanan tetap disimpan.</string>
-    <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">Riwayat %1$s akan dihapus. Perjalanan tetap disimpan.</string>
+    <string name="more_history_clear_all_body" volt:src="b12ff163ffb1ab6b5064c3b54a0a413a08e1f3d0">Riwayat semua skuter akan dihapus. Perjalanan tetap ada.</string>
+    <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">Riwayat %1$s akan dihapus. Perjalanan tetap ada.</string>
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Hapus</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Riwayat dihapus</string>
     <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Mudah dibaca, saat dilipat atau dibuka</string>
@@ -129,7 +129,7 @@
     <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">Menunggu konfirmasi skuter</string>
     <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Hubungkan skuter sebagai pemilik sebelum mengubah PIN-nya.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Setel PIN setang</string>
-    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Cadangan tanpa ponsel untuk Anda. Simpan dengan aman. Digit tidak pernah ditampilkan atau diekspor.</string>
+    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">Cara membuka kunci tanpa ponsel. Simpan dengan aman. Digit tidak pernah ditampilkan atau diekspor.</string>
     <string name="more_pin_enter" volt:src="ffff0f603c55d92f365fe9ef9bc221f1f7b257f7">Masukkan PIN baru</string>
     <string name="more_pin_enter_hint" volt:src="58a2d06177d3c38fa672247dc4416e5d08db4faf">Masukkan PIN baru, empat digit</string>
     <string name="more_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Berikutnya</string>
@@ -141,7 +141,7 @@
     <string name="more_pin_set" volt:src="0a3a6c80e19f9cf148f87a3c1252253557e5df2a">Setel PIN</string>
     <string name="more_pin_mismatch" volt:src="3e17d13c094cbf79e9751f292457c3098d201635">PIN tidak cocok. Coba lagi.</string>
     <string name="more_pin_reconnect" volt:src="b1f3abd4d0c5a219c84e3b5915358dbccaa3ef5a">Hubungkan ulang skuter sebagai pemilik terlebih dahulu.</string>
-    <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Tunggu hingga perubahan skuter saat ini selesai.</string>
+    <string name="more_pin_wait" volt:src="e3f7940dad904eea51378481e0a9e16bd87485fb">Tunggu hingga perubahan setelan skuter saat ini selesai.</string>
     <string name="more_pin_not_started" volt:src="1287600c6b87b8df06b86cbb4c733865b34f9715">Perubahan PIN tidak dimulai. %1$s</string>
     <string name="more_pin_guide_body" volt:src="56841e50454a5f70cf1a90d94a32d93d0f66553e">Skuter diparkir dan terkunci.</string>
     <string name="more_pin_guide_signal" volt:src="3e959bb25e58323deebd5f524397f29e324eb9b2">Tekan tombol lampu sein</string>
@@ -157,7 +157,7 @@
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Bukti perintah</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Hapus hasil percobaan</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Hapus hasil percobaan?</string>
-    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt akan melupakan apa yang ditunjukkan percobaan Anda pada skuter ini, sehingga hasilnya dihapus dari laporan Anda berikutnya dan dari “Kembalikan”. Setelan tetap seperti sekarang. Percobaan yang belum selesai tetap ada hingga Anda meninjaunya.</string>
+    <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">Volt akan melupakan apa yang ditunjukkan percobaan Anda pada skuter ini, sehingga hasilnya dihapus dari laporan berikutnya dan dari “Kembalikan”. Setelan tetap seperti sekarang. Percobaan yang belum selesai tetap ada hingga Anda meninjaunya.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Tidak ada percobaan selesai untuk dihapus</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
         <item quantity="other">%1$d percobaan dihapus</item>
@@ -168,7 +168,7 @@
     <string name="more_lab_foot" volt:src="9a5be7e6efcfd479bf592775b2ed74d28f73ed10">Volt tidak pernah mengubah firmware.</string>
     <string name="more_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Menghubungkan…</string>
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Coba pada skuter ini</string>
-    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Aplikasi resmi menawarkan ini untuk model Anda, tetapi Volt belum mengujinya pada model tersebut. Percobaan dan jawaban Anda akan masuk ke laporan kompatibilitas Anda berikutnya.</string>
+    <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">Aplikasi resmi menawarkan ini untuk model Anda, tetapi Volt belum mengujinya pada model tersebut. Percobaan dan jawaban Anda akan masuk ke laporan kompatibilitas berikutnya.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Tidak ada data dari skuter ini</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt tidak dapat membaca ulang ini, jadi Volt tidak menawarkannya.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt tidak mengirim perintah skuter ke produk ini.</string>
@@ -176,7 +176,7 @@
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">ID model skuter ini tidak cocok dengan nomor serinya, jadi Volt tidak menawarkan apa pun untuk dicoba.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Aplikasi resmi tidak mencantumkan model ini, jadi Volt tidak dapat mengetahui kontrol mana yang tidak dimilikinya. Belum ada yang dapat dicoba.</string>
     <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Identifikasi model Anda di halaman “Skuter” terlebih dahulu. Setelah itu, Volt akan mencantumkan apa yang dapat Anda coba.</string>
-    <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Hubungkan skuter Anda untuk melihat apa yang dapat Anda coba.</string>
+    <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Hubungkan skuter untuk melihat apa yang dapat Anda coba.</string>
     <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Start dari diam</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, tidak ada data dari skuter ini</string>
     <string name="more_lab_try" volt:src="80f658bce3e5bb3db938f0ebe5bb4cc333de3c60">Coba</string>
@@ -193,7 +193,7 @@
     <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Hubungkan skuter untuk mencoba kontrol ini.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Menunggu status skuter terbaru.</string>
     <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Hentikan skuter untuk mencoba kontrol ini.</string>
-    <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Menunggu skuter menunjukkan statusnya diparkir.</string>
+    <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Menunggu status parkir dari skuter.</string>
     <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Atasi peringatan skuter untuk mencoba kontrol ini.</string>
     <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Buka kunci skuter untuk mencoba kontrol ini.</string>
     <string name="more_lab_held_owner" volt:src="30ab3d392673a1a675009ad03155b2399aada307">Hanya profil pemilik yang dapat mencoba kontrol ini.</string>
@@ -228,33 +228,33 @@
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Belum dikonfirmasi · hubungkan ulang untuk memeriksa</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Belum dikonfirmasi</string>
     <string name="more_lab_status_checking" volt:src="a2548776624e291a39bccc7703069caa47d707c4">Memeriksa…</string>
-    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Aplikasi resmi menawarkan ini untuk model Anda, tetapi Volt belum mengujinya pada model tersebut. Percobaan dan jawaban Anda akan masuk ke laporan kompatibilitas Anda berikutnya.</string>
+    <string name="more_lab_verify_why" volt:src="a0a4b014ace085a4cf5d3cb5d2d6933186f80418">Aplikasi resmi menawarkan ini untuk model Anda, tetapi Volt belum mengujinya pada model tersebut. Percobaan dan jawaban Anda akan masuk ke laporan kompatibilitas berikutnya.</string>
     <string name="more_lab_now_label" volt:src="3d0b03a6e53bb490b7e5568ecf8987a35b67d66f">Sekarang</string>
     <string name="more_lab_last_try" volt:src="0ec0e7188e9b7beb7f4bf9e14d523a3e8b0daf44">Percobaan terakhir</string>
-    <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12">Skuter Anda menolak ini terakhir kali: skuter menjawab dengan kesalahan, jadi kemungkinan besar skuter tidak mendukung setelan ini. Mencoba lagi biasanya menghasilkan jawaban yang sama.</string>
+    <string name="more_lab_refused_note" volt:src="a47cf8ff0992a9dfee52bdb182c229ab7a33ae12">Skuter Anda menolak ini terakhir kali dan membalas dengan pesan kesalahan, jadi kemungkinan besar setelan ini tidak didukung. Jika dicoba lagi, hasilnya biasanya sama.</string>
     <string name="more_lab_your_answer" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Jawaban Anda</string>
-    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Lihat skuter saat diparkir. Jawaban Anda akan masuk ke laporan kompatibilitas Anda berikutnya bersama hasil pembacaan ulang skuter.</string>
+    <string name="more_lab_look_hint" volt:src="79024b39c2dcd29d8f86feba44389adea3be78f4">Perhatikan skuter saat diparkir. Jawaban Anda akan masuk ke laporan kompatibilitas berikutnya bersama hasil pembacaan ulang skuter.</string>
     <string name="more_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ya</string>
     <string name="more_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Tidak</string>
     <string name="more_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Lewati</string>
     <string name="more_lab_unfinished_text" volt:src="3f7d76de963f0f5e6ea219bd25d4b4d0baf5095b">Percobaan ini tidak selesai, jadi skuter mungkin masih memakai nilai yang dicoba. Tinjau untuk mengembalikan atau mempertahankannya.</string>
     <string name="more_lab_choose_limit" volt:src="ceb56d1e251d056dab24ccc3bcd100cd15d88076">Pilih batas</string>
     <string name="more_lab_choose_value" volt:src="d746d9f5503ace432800a3481812d688cdeb639e">Pilih nilai</string>
-    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt mengirim satu perubahan saat skuter diparkir dan tidak terkunci, membacanya ulang, lalu menanyakan apa yang Anda lihat. Nilai tetap berlaku hingga Anda mengembalikannya. Jika koneksi terputus, Volt tidak pernah menulis lagi dengan sendirinya: percobaan menunggu tinjauan Anda.</string>
-    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Memeriksa bahwa nilai tidak berubah…</string>
+    <string name="more_lab_sheet_note" volt:src="980ba2eee56050a87bc87ee3efec9ce52b27ce8e">Volt mengirim satu perubahan saat skuter diparkir dan tidak terkunci, membacanya ulang, lalu menanyakan apa yang Anda lihat. Nilai tetap berlaku hingga Anda mengembalikannya. Jika koneksi terputus, Volt tidak pernah mengirim perubahan lagi dengan sendirinya: percobaan menunggu tinjauan Anda.</string>
+    <string name="more_lab_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Memastikan nilai tidak berubah…</string>
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Mengembalikan ke %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Membaca nilai saat ini…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">Mengirim %1$s dan membacanya ulang…</string>
-    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Apakah Anda melihatnya berubah?</string>
+    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Apakah Anda melihat perubahannya?</string>
     <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Sudah %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Coba lagi: %1$s</string>
     <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Coba %1$s</string>
     <string name="more_lab_cant_set_back" volt:src="c94e159a7371b9f61d6f3a973106863a495b45b7">Volt tidak dapat mengembalikannya ke %1$s setelahnya: aplikasi resmi tidak menawarkan nilai itu di sini.</string>
     <string name="more_lab_set_back_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Kembalikan ke %1$s</string>
     <plurals name="more_lab_why_offered" volt:src="ebce9d2283a1b0db0c26b1dae4fc9165aecbd5ea">
-        <item quantity="other">Aplikasi resmi menawarkan ini pada %1$d model lain, tetapi tidak pada model Anda. Kontrol ini mungkin tidak berpengaruh di sini, atau bekerja secara berbeda.</item>
+        <item quantity="other">Aplikasi resmi menawarkan ini pada %1$d model lain, tetapi tidak pada model Anda. Kontrol ini mungkin tidak berpengaruh di sini, atau cara kerjanya berbeda.</item>
     </plurals>
-    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Aplikasi resmi tidak menawarkan ini pada model Anda. Kontrol ini mungkin tidak berpengaruh di sini, atau bekerja secara berbeda.</string>
+    <string name="more_lab_why_none" volt:src="028d3ac84d04ce1ececb5d17074dc18148fe0904">Aplikasi resmi tidak menawarkan ini pada model Anda. Kontrol ini mungkin tidak berpengaruh di sini, atau cara kerjanya berbeda.</string>
     <string name="more_lab_evidence_hidden" volt:src="1a5674cdb893b30ce56b5fb9fe030d5e724bb22c">PIN dan byte autentikasi disembunyikan</string>
     <string name="more_lab_no_changes" volt:src="450eeb2c0d3c353c662bf1c38c29875f7c71310f">Belum ada perubahan</string>
     <string name="more_lab_evidence_clock" volt:src="12d0d81d1be7226f96ed66c1220f1dbe71163997">Sinkronisasi jam lokal\n%1$s</string>
@@ -279,7 +279,7 @@
     <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Lisensi &amp; atribusi</string>
     <string name="more_about_connect" volt:src="abd864e29cbef410bdc078552ce25130279e1592">Hubungkan skuter terpilih</string>
     <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Periksa pembaruan di GitHub?</string>
-    <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">Volt menanyakan rilis terbarunya ke GitHub. GitHub melihat alamat IP dan versi Volt Anda; tidak ada hal lain yang dikirim. Volt tidak pernah mengunduh atau menginstal apa pun sendiri.</string>
+    <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">Volt menanyakan rilis terbarunya ke GitHub. GitHub melihat alamat IP dan versi Volt Anda; tidak ada data lain yang dikirim. Volt tidak pernah mengunduh atau menginstal apa pun sendiri.</string>
     <string name="more_update_check" volt:src="4a099424278cfcbddd43a46b5b6ec044ddf711c0">Periksa</string>
     <string name="more_update_checking" volt:src="a8af87e6e4276b18346c63d852d2d5378cb24882">Memeriksa pembaruan</string>
     <string name="more_update_asking" volt:src="af4f5a8773531622ecd8cfdcaac4cda44aa70950">Menanyakan rilis terbaru ke GitHub…</string>
@@ -289,7 +289,7 @@
     <string name="more_update_dev" volt:src="412e57b88037756fd86b1f1e4f127d78e0d7e6a9">Volt %1$s adalah build pengembangan. Rilis terbaru: %2$s.</string>
     <string name="more_update_latest" volt:src="baab383828f454f77bfcb698ebdcf6ca21c971a5">Volt %1$s adalah rilis terbaru.</string>
     <string name="more_update_failed" volt:src="841ba55d76f8a09530691c3c36367d258b287db7">Tidak dapat memeriksa pembaruan</string>
-    <string name="more_update_no_answer" volt:src="e9d440be6236bce382694acec8a4f32b5d799bb6">GitHub tidak menjawab. Periksa koneksi Anda, lalu coba lagi.</string>
+    <string name="more_update_no_answer" volt:src="e9d440be6236bce382694acec8a4f32b5d799bb6">GitHub tidak merespons. Periksa koneksi Anda, lalu coba lagi.</string>
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">Balasan GitHub tidak dapat dibaca oleh Volt. Coba lagi nanti, atau lihat halaman rilis di browser Anda.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Buka halaman rilis</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Tidak ada browser yang dapat membuka halaman rilis</string>
@@ -310,7 +310,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Otomatis</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Bawaan</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Cepat</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">“Otomatis” mengenali pengisi daya UT5 MAX dari daya saat ini. Jika tidak pasti, Volt memakai laju pengisian saat ini; pilih pengisi daya untuk mengesampingkannya.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a">“Otomatis” mengenali pengisi daya UT5 MAX dari daya saat ini. Jika Volt tidak yakin, laju pengisian saat ini yang dipakai; untuk menentukannya sendiri, pilih pengisi daya.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Kurva pengisian daya tersimpan</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Rekam pengisian daya ini</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Hentikan rekaman pengisian daya</string>
@@ -333,17 +333,17 @@
     <string name="more_dev_hide" volt:src="92902df2d159f4552d6023b4e30919987c1e2226">Sembunyikan opsi developer</string>
     <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Hentikan rekaman pengisian daya sebelum menyembunyikan opsi developer</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Selesaikan atau batalkan pengujian terlebih dahulu</string>
-    <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Hubungkan skuter Anda terlebih dahulu</string>
+    <string name="more_dev_connect_first" volt:src="fbc9bb6baff246c2834f064cbd71cbe77243f7c0">Hubungkan skuter terlebih dahulu</string>
     <string name="more_dev_record_body" volt:src="636ce54288d4caccb2117da1b33f05bc9a00279b">Disimpan di ponsel · berhenti pada 100% · menyimpan 20 terakhir</string>
     <string name="more_dev_which_charger" volt:src="7b52501fb200660f62b9170ec96b9318ade02e6a">Pengisi daya mana yang terpasang?</string>
     <string name="more_dev_record_stock" volt:src="4164decc547d00c1731dec7b88050f253a9d7171">Rekam dengan pengisi daya bawaan?</string>
     <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Rekam dengan pengisi daya cepat?</string>
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Pengisi daya terpasang</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Mulai merekam</string>
-    <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Skuter diganti · buka ulang</string>
+    <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Skuter diganti · buka kembali</string>
     <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44">Tidak diterapkan sampai pengisi daya diketahui</string>
-    <string name="more_dev_stock_charges" volt:src="3a1cfbf877af68f1759ff9cd471d6698f2a062cd">Pengisian daya dengan pengisi daya bawaan</string>
-    <string name="more_dev_fast_charges" volt:src="07b69a3f4666f8a8fc6f4f4de713e3316e3f660b">Pengisian daya dengan pengisi daya cepat</string>
+    <string name="more_dev_stock_charges" volt:src="3a1cfbf877af68f1759ff9cd471d6698f2a062cd">Pengisian dengan pengisi daya bawaan</string>
+    <string name="more_dev_fast_charges" volt:src="07b69a3f4666f8a8fc6f4f4de713e3316e3f660b">Pengisian dengan pengisi daya cepat</string>
     <string name="more_dev_curves_loading" volt:src="576937d4d10377578822798a5c60432647b98bac">Memuat kurva pengisian daya tersimpan</string>
     <string name="more_dev_curves_not_applied" volt:src="16afef79328d0dda7748c51c99f27e10cfbc6eb0">Kurva pengisian daya tersimpan tidak diterapkan sampai pengisi daya diketahui</string>
     <string name="more_dev_curves_stock" volt:src="e8b4555af3ef5b52d9d7d20060e0f8731f4efbfe">%1$s rekaman pengisi daya bawaan yang memenuhi syarat</string>
@@ -375,8 +375,8 @@
     <string name="more_permission_not_allowed" volt:src="5d9e1e5a17373c3c4ab45e14a5c7f4585e022446">Tidak diizinkan</string>
     <string name="more_permission_approximate" volt:src="56e4a378af5c8974821105ae5d24de20fd9ef934">Perkiraan</string>
     <string name="more_pin_not_read" volt:src="5f09f0c7557469533b6b0a57ff74636ce28a2421">Belum dibaca</string>
-    <string name="more_pin_rejected" volt:src="4c145cb0761526ad2b04e889e812bfd698cd5ec9">Ditolak oleh skuter</string>
-    <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Tidak disetel</string>
+    <string name="more_pin_rejected" volt:src="4c145cb0761526ad2b04e889e812bfd698cd5ec9">Ditolak skuter</string>
+    <string name="more_pin_not_set" volt:src="5db35554141cd139a50444a53302730aa3187676">Belum disetel</string>
     <string name="more_pin_disabled" volt:src="ab9253c5fc22b2270df751a5bb3732877e9c2304">Nonaktif</string>
     <string name="more_pin_enabled" volt:src="d5a5252181dc44fe1192e2b23c52a00e573a8166">Aktif</string>
     <string name="more_chip_pin_on" volt:src="abed827991a4a0db764ea439d3b4bad3439a1f29">PIN aktif</string>

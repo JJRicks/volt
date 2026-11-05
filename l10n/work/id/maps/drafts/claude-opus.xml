@@ -68,10 +68,10 @@
     <string name="maps_chart_next_sample" volt:src="7593a5058b5fb5b99d4a431aba2c34fc731dfe20">Sampel terekam berikutnya</string>
     <string name="maps_chart_desc_no_readings" volt:src="f36c0bec23825703ba296889175fd0f93e4cc1d2">. Tidak ada pembacaan yang dipilih</string>
     <string name="maps_chart_desc_no_samples" volt:src="7fac670c0e67eec8669b3c727bdf846ac5b2a8e3">. Tidak ada sampel yang terekam</string>
-    <string name="maps_chart_desc_at" volt:src="646089d99917cd3c32be5a81b3816280358ba7ff">". Pada "</string>
+    <string name="maps_chart_desc_at" volt:src="646089d99917cd3c32be5a81b3816280358ba7ff">". Waktu: "</string>
     <string name="maps_chart_desc_reading" volt:src="804194e35d2e99f249b6becc436f1a5180226d46">". %1$s: "</string>
-    <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Tidak ada pembacaan</string>
+    <string name="maps_chart_desc_no_reading" volt:src="852208b0984373abf1b607540d6c01d5b98374d4">Tidak ada data</string>
     <string name="maps_chart_desc_value_at" volt:src="daf8b4f7f1432906abf0067d345d75140a8944d9">" pada "</string>
     <string name="maps_chart_choose_readings" volt:src="64bc73444043d9c0da8335f94aca148f34cdb760">Pilih pembacaan di atas</string>
-    <string name="maps_chart_cursor_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Pada %1$s</string>
+    <string name="maps_chart_cursor_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Waktu: %1$s</string>
 </resources>

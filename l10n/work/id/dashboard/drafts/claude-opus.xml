@@ -16,7 +16,7 @@
     <string name="dashboard_add_widget_limit" volt:src="0fd21782cc33d5c25a803f6aac5ff1d1f3f5b625">Tambahkan widget, %1$s</string>
     <string name="dashboard_one_lock_widget" volt:src="f3470f7c64029e92524b62d16308b8b874deb7be">Satu widget kunci per dasbor</string>
     <string name="dashboard_duplicate_widget" volt:src="deb8350dab1d4a4ccd54c5f64ff2da02cbc35dd4">Gandakan widget</string>
-    <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">sekarang</string>
+    <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">baru saja</string>
     <string name="dashboard_age_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s mnt</string>
     <string name="dashboard_age_hours" volt:src="3708457c3189d22c84d3b9ea33b4e3a05a66e6fc">%1$s j</string>
     <string name="dashboard_age_days" volt:src="5c236b8f4ed35dad7fca64ecc28210f8c71429f7">%1$s hari</string>
@@ -50,12 +50,12 @@
     <string name="dashboard_hero_time_tag" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="dashboard_hero_time_status" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
     <string name="dashboard_hero_time_tag_status" volt:src="f5f890cf656f55df359eda425e26bd0923b1b81f">%1$s, %2$s, %3$s. %4$s</string>
-    <string name="dashboard_hero_charge_not_reported" volt:src="bae5d367b7ef5a1b6b72b1e9a82d78879e77350a">Daya baterai: tidak ada data</string>
-    <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17">Daya baterai: tidak ada data, batas pengisian daya %1$s persen</string>
-    <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Daya baterai %1$s persen</string>
-    <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Daya baterai %1$s persen, batas pengisian daya %2$s persen</string>
+    <string name="dashboard_hero_charge_not_reported" volt:src="bae5d367b7ef5a1b6b72b1e9a82d78879e77350a">Baterai: tidak ada data</string>
+    <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17">Baterai: tidak ada data, batas pengisian daya %1$s persen</string>
+    <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Baterai %1$s persen</string>
+    <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Baterai %1$s persen, batas pengisian daya %2$s persen</string>
     <string name="dashboard_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Suhu baterai</string>
-    <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Daya di sisi baterai</string>
+    <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Daya masuk ke baterai</string>
     <string name="dashboard_charging_time_tag" volt:src="03b47181996e70bcd965c93fb77f2b1d1af5e6ac">%1$s (%2$s)</string>
     <string name="dashboard_charging_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_charging_description_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
@@ -93,13 +93,13 @@
     <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Baterai %1$s persen, %2$s</string>
     <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Baterai %1$s persen, %2$s. Data terakhir: %3$s</string>
     <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Baterai: tidak ada data, mengisi daya</string>
-    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Baterai: tidak ada data, mengisi daya, data terakhir</string>
+    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Baterai: tidak ada data, mengisi daya, pembacaan terakhir</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Baterai: tidak ada data</string>
-    <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Baterai: tidak ada data, data terakhir</string>
+    <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Baterai: tidak ada data, pembacaan terakhir</string>
     <string name="dashboard_cell_not_reported_line_charging" volt:src="b818a95b97127508541752d12c55c336683f0534">Baterai: tidak ada data, %1$s, mengisi daya</string>
-    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Baterai: tidak ada data, %1$s, mengisi daya, data terakhir</string>
+    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Baterai: tidak ada data, %1$s, mengisi daya, pembacaan terakhir</string>
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Baterai: tidak ada data, %1$s</string>
-    <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Baterai: tidak ada data, %1$s, data terakhir</string>
+    <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Baterai: tidak ada data, %1$s, pembacaan terakhir</string>
     <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Baterai %1$s persen, mengisi daya</string>
     <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Baterai %1$s persen, mengisi daya, data terakhir</string>
     <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Baterai %1$s persen</string>
@@ -113,8 +113,8 @@
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Mode berkendara, %1$s</string>
     <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Mode berkendara, %1$s. Data terakhir: %2$s</string>
-    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">%1$s pengisian daya menurut skuter</string>
-    <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">%1$s nominal</string>
+    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">%1$s kali pengisian daya menurut skuter</string>
+    <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">Nominal %1$s</string>
     <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Data terakhir: %1$s</string>
     <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Merekam · %1$s</string>
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Mengukur…</string>
@@ -127,36 +127,36 @@
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Contoh</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 perjalanan · %1$s–%2$s %3$s</string>
-    <string name="dashboard_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Tidak ada skuter yang disiapkan</string>
+    <string name="dashboard_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Belum ada skuter yang disiapkan</string>
     <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Memperbarui perjalanan yang direkam…</string>
     <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Perkiraan terakhir · pembaruan tidak tersedia</string>
     <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Perkiraan tidak tersedia</string>
     <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09">Data perjalanan tidak cukup</string>
     <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">%1$s perjalanan · %2$s–%3$s %4$s</string>
-    <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">%1$s perjalanan · %2$s poin digunakan</string>
+    <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">%1$s perjalanan · %2$s titik data digunakan</string>
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s%% dari %2$s %3$s</string>
     <string name="dashboard_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Perjalanan</string>
-    <string name="dashboard_points" volt:src="7ae1f9b220ef9f2f4aed38c665c220294b064148">Poin</string>
+    <string name="dashboard_points" volt:src="7ae1f9b220ef9f2f4aed38c665c220294b064148">Titik data</string>
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Rentang</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Perjalanan yang diperlukan</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Kisaran 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Muatan per indikator penuh</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Muatan listrik per 100 persen indikator</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Pemeriksaan pengisian daya</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Cakupan</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Suhu baterai</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Ditolak</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Perkiraan tidak langsung: mungkin terlalu tinggi; bukan kesehatan baterai.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi yang digunakan perjalanan Anda per indikator penuh. Bukan pengujian kesehatan atau kapasitas baterai.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energi perjalanan yang dapat digunakan</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi yang digunakan perjalanan Anda per 100 persen indikator. Bukan pengujian kesehatan atau kapasitas baterai.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energi berkendara yang dapat digunakan</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Contoh · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Belum ada pembacaan tersimpan</string>
     <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Perkiraan sisa jarak tempuh skuter</string>
     <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Tambahkan %1$s</string>
     <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Tambahkan %1$s, eksperimental</string>
     <string name="dashboard_experimental" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Eksperimental</string>
-    <string name="dashboard_on_home" volt:src="ee1b194505af0a3632bb3b2b1301bb5f55549589">Di Beranda</string>
-    <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Sudah ada di Beranda</string>
+    <string name="dashboard_on_home" volt:src="ee1b194505af0a3632bb3b2b1301bb5f55549589">Di Dasbor</string>
+    <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Sudah ada di Dasbor</string>
     <string name="dashboard_close_add_widget" volt:src="350ff8b2fa60c268afc3623cc84fd18212323a86">Tutup penambahan widget</string>
     <string name="dashboard_title" volt:src="f4ff3984e55c02995eed14b0a2fe7382981a7221">Judul</string>
     <string name="dashboard_widget_title" volt:src="858080416dc370b07eff049863f9cb1a2e444c68">Judul widget</string>
@@ -166,7 +166,7 @@
     <string name="dashboard_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Nama skuter</string>
     <string name="dashboard_parameter" volt:src="7e3362da027805cd737ba5112c124a578d8de639">Parameter</string>
     <string name="dashboard_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Pembacaan</string>
-    <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Kapasitas yang diiklankan</string>
+    <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Kapasitas menurut spesifikasi</string>
     <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Minimum skala</string>
     <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Maksimum skala</string>
     <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Rentang data perjalanan</string>
@@ -199,7 +199,7 @@
     <string name="dashboard_shortcut_selected" volt:src="d402d676908fb25f990be350c72f2b72a5e471e2">%1$s, %2$s, terpilih</string>
     <string name="dashboard_shortcut_toggle" volt:src="90915c6200c3a00184f2c6ab58e8d7ab70bab9f7">%1$s, %2$s, sakelar</string>
     <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Tidak ada setelan yang cocok</string>
-    <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Pemilihan pintasan</string>
+    <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Pilih pintasan</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Tutup pemilih pintasan</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Simpan</string>
     <string name="dashboard_window_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s mnt</string>
@@ -212,11 +212,11 @@
     <string name="dashboard_window_two_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 tahun</string>
     <string name="dashboard_set_comparison" volt:src="8f2ce90b3077f4e92315c71c9dcdfbde07024b34">Setel nilai pembanding</string>
     <string name="dashboard_capacity_hint" volt:src="25459a0f7901eb1174287e90b1c178cecc4f112e">716 Wh · UT5 MAX</string>
-    <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Kapasitas yang diiklankan dalam watt-jam</string>
+    <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Kapasitas menurut spesifikasi dalam watt-jam</string>
     <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Gunakan spesifikasi model</string>
     <string name="dashboard_capacity_limit" volt:src="e950ce1d44324dbddf531e00ddfb58ba4b0603f5">0–10.000 Wh</string>
     <string name="dashboard_search_parameters" volt:src="a0d40f931c452fcc977d655b79ae45ec2e945478">Telusuri parameter</string>
-    <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Pemilihan parameter</string>
+    <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Pilih parameter</string>
     <string name="dashboard_search_readings" volt:src="b2388f11c9bf3c80bfda85e216c8dea246ecbbab">Telusuri pembacaan</string>
     <string name="dashboard_count_of_selected" volt:src="3fe59a55d689fb3e35fcb68600edf1cd9fcce901">%1$s dari %2$s terpilih</string>
     <string name="dashboard_all_readings" volt:src="2eebe68cde6c67da287eb233eb159616c2629193">Semua pembacaan</string>
@@ -224,7 +224,7 @@
     <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Tidak ada pembacaan yang cocok</string>
     <string name="dashboard_choose_one_reading" volt:src="020ca0df31d814c9399faf2d946bccfb1f84e3c0">Pilih setidaknya satu pembacaan.</string>
     <string name="dashboard_save_readings" volt:src="d0e01a05386bd4feee0606f5ac2e68b046b3e1f0">Simpan pembacaan terpilih</string>
-    <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Pemilihan pembacaan</string>
+    <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Pilih pembacaan</string>
     <string name="dashboard_cancel_readings" volt:src="e4b17b6c5dbf2a6e2b9427b1bb305a019857689e">Batalkan pemilihan pembacaan</string>
     <string name="dashboard_must_be_above" volt:src="6d99e9fc95e2f47592274cf569cc19a213982c86">Harus di atas %1$s</string>
     <string name="dashboard_must_be_below" volt:src="ed308e2951f06cd71a3842bd378a89953d0fb762">Harus di bawah %1$s</string>

@@ -12,7 +12,7 @@
     <string name="backup_session_interrupted_title" volt:src="07551e29494f9343c5e7f2d19d655a995f9bb94d">Sesi pencadangan terhenti</string>
     <string name="backup_finishing_previous" volt:src="eda30632ff52e35c492cd4676da8f2583e01c80d">Menyelesaikan operasi sebelumnya. Biarkan Volt tetap terbuka.</string>
     <string name="backup_close_and_reopen" volt:src="5275db152f023bb44bb47ca54950c96e78f6a338">Tutup lalu buka kembali Volt.</string>
-    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Pemulihan data aplikasi Anda</string>
+    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Memulihkan data aplikasi Anda</string>
     <string name="backup_recovering_keep_open" volt:src="64e43360685c1d1feb1b2dcc8cbef110b0f0f1fd">Biarkan Volt tetap terbuka selama pemulihan sebelumnya dibatalkan.</string>
     <string name="backup_recovered" volt:src="c44e9ee1ae8c6bfa5b1f4a8a1f45803ac9751488">Data aplikasi Anda sebelumnya sudah dipulihkan. Tutup lalu buka kembali Volt.</string>
     <string name="backup_recovery_failed" volt:src="d868a70268395b7b44cf69d85f6bc1e13374dc5d">Pemulihan gagal. Kosongkan ruang, lalu buka kembali. Jangan hapus penyimpanan.</string>

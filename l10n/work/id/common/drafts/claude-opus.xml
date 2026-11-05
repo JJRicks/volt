@@ -13,5 +13,5 @@
     <string name="common_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Belum ada skuter yang disiapkan</string>
     <string name="common_connect_charger_first" volt:src="5b031d6cb469e6bedcd3749c53369e3bb19f9c53">Hubungkan pengisi daya terlebih dahulu</string>
     <string name="common_wait_current_change" volt:src="f265acce1f963121bdd996fc77ce76c2e07a5bb5">Tunggu hingga perubahan saat ini selesai</string>
-    <string name="common_restore_failed" volt:src="53589534b8bfe4078f5166020b002627f4e86da3">Gagal memulihkan. Buka ulang Volt. Jangan hapus penyimpanan.</string>
+    <string name="common_restore_failed" volt:src="53589534b8bfe4078f5166020b002627f4e86da3">Gagal memulihkan. Buka kembali Volt. Jangan hapus penyimpanan.</string>
 </resources>

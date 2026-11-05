@@ -42,7 +42,7 @@
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Pengujian · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Membaca nilai saat ini…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Mengubah menjadi %1$s…</string>
-    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Memeriksa bahwa nilainya tidak berubah…</string>
+    <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82">Memastikan nilai tidak berubah…</string>
     <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Mengembalikan ke %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ya</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Tidak</string>
@@ -56,12 +56,12 @@
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">Sebelum percobaan</string>
     <string name="compat_before_test" volt:src="0013c71b6f6ca92eac22436c874f139fe599f39d">Sebelum pengujian</string>
     <string name="compat_value_tried" volt:src="eaeb926168edaad2a5f6b927a46f8d47104b3e24">Nilai yang dicoba</string>
-    <string name="compat_test_value" volt:src="93dfa48d7dcf0a7377b3e6383453b059484b9dee">Nilai pengujian</string>
+    <string name="compat_test_value" volt:src="93dfa48d7dcf0a7377b3e6383453b059484b9dee">Nilai uji</string>
     <string name="compat_parked" volt:src="affd4fdaffbaf3af094ff27267aa162d101a2d40">Skuter diparkir</string>
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Belum ada data gerakan pada koneksi ini.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Tetap lanjutkan</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Tandai sudah dikembalikan</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Pulihkan ke %1$s</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Kembalikan ke %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Pertahankan %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Setel %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Tutup · biarkan apa adanya</string>
@@ -114,9 +114,9 @@
     <string name="compat_read_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Baterai</string>
     <string name="compat_read_ride_history" volt:src="18f821a9c5cac1dbbb5529fc86938618c12dd4ee">Riwayat perjalanan</string>
     <string name="compat_read_fault_history" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Riwayat gangguan</string>
-    <string name="compat_read_driving" volt:src="61cf18ac32b684052b3979d0da94c7401b89c32d">Data berkendara (penjajakan)</string>
-    <string name="compat_read_battery_id" volt:src="190ae1c24e429def9ad49db06004030f2de1bebc">ID baterai (penjajakan)</string>
-    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Tanda baterai (penjajakan)</string>
+    <string name="compat_read_driving" volt:src="61cf18ac32b684052b3979d0da94c7401b89c32d">Data berkendara (pemeriksaan)</string>
+    <string name="compat_read_battery_id" volt:src="190ae1c24e429def9ad49db06004030f2de1bebc">ID baterai (pemeriksaan)</string>
+    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Tanda baterai (pemeriksaan)</string>
     <string name="compat_read_other" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Pembacaan</string>
     <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Ditolak %1$d</string>
     <plurals name="compat_read_too_short" volt:src="7745dc0659fdff73d44a35ee36a86959b4ba2ef2">
@@ -128,7 +128,7 @@
     <string name="compat_read_waiting" volt:src="4409bbb1386ef72e4c2145cc33396977580cb2c8">Menunggu</string>
     <string name="compat_evidence_volt_verified" volt:src="2dc01b8b913a74a120c986f6d55b205bdd9a533a">Diverifikasi Volt</string>
     <string name="compat_evidence_lab" volt:src="a7986d0381071354695fb8d54d5274555cf1d389">Lab</string>
-    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">Dipetakan OEM</string>
+    <string name="compat_evidence_oem" volt:src="89f03255500bfcca2caa04845e4e0d333cdf91ad">Dipetakan dari OEM</string>
     <string name="compat_evidence_shared" volt:src="a4626b9f998eee1c46548c1c60b810c533eaec16">Dibagikan</string>
     <string name="compat_evidence_local" volt:src="db02f60d181f66a04d5e67faf611150d2ce61980">Diuji di sini</string>
     <string name="compat_evidence_none" volt:src="26dbf44f9724742daed1fe5c637a87579cbf5641">Tidak ada bukti</string>
@@ -153,7 +153,7 @@
     <string name="compat_field_energy_recovery" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Pemulihan energi</string>
     <string name="compat_field_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Algoritma jarak tempuh</string>
     <string name="compat_field_display_units" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Satuan layar</string>
-    <string name="compat_field_auto_sensor" volt:src="7e1e9cd93c53f308df6537afa3f2d470ec12b48c">Sensor otomatis</string>
+    <string name="compat_field_auto_sensor" volt:src="7e1e9cd93c53f308df6537afa3f2d470ec12b48c">Sensor cahaya otomatis</string>
     <string name="compat_field_tyre_reminder" volt:src="830d3b729d73aaae184b90a147c9f09e190d76fb">Pengingat ban</string>
     <string name="compat_field_ambient_light" volt:src="b5d7c85febfcabf7d1d5c6761e480e10236fbd3b">Lampu suasana</string>
     <string name="compat_field_traction_control" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Kontrol traksi</string>
@@ -164,7 +164,7 @@
     <string name="compat_field_eco_light" volt:src="3066e79d0d3f7118e64fe8a4019eb5323b5c5faa">Lampu Eco</string>
     <string name="compat_field_drive_light" volt:src="de0652ef8b0b9312856460b60a076459beca0ba4">Lampu Drive</string>
     <string name="compat_field_sport_light" volt:src="445dbbe174ab00af363c531e87d646b02d931db3">Lampu Sport</string>
-    <string name="compat_field_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Kecepatan start</string>
+    <string name="compat_field_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Kecepatan start dorong</string>
     <string name="compat_field_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Batas kecepatan</string>
     <string name="compat_field_volume" volt:src="caea7e83ed3ad8e36236a8fbe532819f12d5db10">Volume</string>
     <string name="compat_field_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Bahasa suara</string>
@@ -173,8 +173,8 @@
     <string name="compat_field_maximum_speed_setting" volt:src="2ca9795c0e0aed9b105f45e8b2328f7162b6b90b">Setelan kecepatan maksimum</string>
     <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Setelan mode berkendara</string>
     <string name="compat_field_charge_limit_percent" volt:src="3fb2ccac0699d8546fc4a9934efba0aa96fa47fa">Persentase batas pengisian daya</string>
-    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Daya rendah</string>
-    <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Pengisian daya terjadwal</string>
+    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Mode baterai lemah</string>
+    <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Pengisian terjadwal</string>
     <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Waktu penguncian otomatis</string>
     <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Kelayakan batas kecepatan</string>
     <string name="compat_field_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Cuaca</string>
@@ -183,7 +183,7 @@
     <string name="compat_field_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Kontrol kecepatan berlebih</string>
     <string name="compat_field_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Batas kecepatan Drive</string>
     <string name="compat_field_lighting_byte" volt:src="06ce2a818c8506cd9f1252d5101ef27182dd50d2">Byte pencahayaan %1$d (mentah)</string>
-    <string name="compat_field_osa_flag" volt:src="a8c63a17cda5b5a245b36b12949fb5ee4297731e">Flag OSA (tidak dipetakan)</string>
+    <string name="compat_field_osa_flag" volt:src="a8c63a17cda5b5a245b36b12949fb5ee4297731e">Penanda OSA (tidak dipetakan)</string>
     <string name="compat_field_byte_41" volt:src="e7691a3e7f7d2fe48c8452a0ed69afc4c9e58658">Byte 41 (tidak dibaca)</string>
     <string name="compat_fields_value_absent" volt:src="0a2839a4f079ecf77de7b92d657ee9f5595786af">Tidak ada</string>
     <string name="compat_fields_value_present" volt:src="262f47f843c3a425c64e3351be12959683d1767d">Ada</string>
@@ -195,7 +195,7 @@
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Setelan dikonfirmasi</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Efek terlihat</string>
     <string name="compat_outcome_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Pengembalian dikonfirmasi</string>
-    <string name="compat_outcome_interrupted" volt:src="4d9f8a7d9542ee7781967ffd2dcedeaef5ebd87e">Terputus/tidak ada respons</string>
+    <string name="compat_outcome_interrupted" volt:src="4d9f8a7d9542ee7781967ffd2dcedeaef5ebd87e">Terhenti/tidak ada respons</string>
     <string name="compat_outcome_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Tidak dikirim</string>
     <string name="compat_note_not_saved" volt:src="ddf7520a51a6663ee26cf5a8e4860994741ed9f2">Catatan pengujian tidak dapat disimpan. Tidak ada yang diubah.</string>
     <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Dibatalkan. Tidak ada yang diubah.</string>
@@ -205,7 +205,7 @@
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Tidak ada pembacaan baru.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Diterima, tetapi tidak ada pembacaan yang memastikannya.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Tidak ada respons dari skuter.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt tidak dapat mengirim perintah pemulihan.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt tidak dapat mengirim perintah pengembalian.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Tidak dapat memperoleh nilai awal yang baru. Hubungkan ulang skuter dan coba lagi. Tidak ada yang diubah.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Setelan tidak dapat diverifikasi. Hubungkan ulang skuter dan tinjau pengujian yang belum selesai.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Koneksi terputus selama pengujian.</string>
@@ -221,8 +221,8 @@
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">Setelan terkait berubah selama pengujian.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Skuter menerimanya, tetapi masih menunjukkan %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Skuter sekarang menunjukkan %1$s.</string>
-    <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Masih menunjukkan %1$s.</string>
-    <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Menunjukkan nilai uji, %1$s.</string>
+    <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Skuter masih menunjukkan %1$s.</string>
+    <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Skuter menunjukkan nilai uji, %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Dihentikan sebelum ada perubahan. Tidak ada yang diubah.</string>
     <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Dikembalikan dan dikonfirmasi, tetapi catatan tidak dapat disimpan.</string>
     <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Dipertahankan, tetapi catatan tidak dapat disimpan. Akan ditampilkan sebagai belum selesai.</string>
@@ -230,7 +230,7 @@
     <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">ID model berbeda dari saat pengujian. Volt tidak akan mengubahnya.</string>
     <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c">Aturan Volt untuk setelan ini berubah. Volt tidak akan mengubahnya.</string>
     <string name="compat_review_firmware_changed" volt:src="5e66c29434a4e9902874eb847c4eaa47eb8aa3fe">Firmware berubah sejak pengujian.</string>
-    <string name="compat_review_firmware_not_read" volt:src="d360bc2777b2388b2269e08774878cc8070fb382">Firmware tidak dibaca sejak pengujian.</string>
+    <string name="compat_review_firmware_not_read" volt:src="d360bc2777b2388b2269e08774878cc8070fb382">Firmware belum dibaca sejak pengujian.</string>
     <string name="compat_review_waiting" volt:src="baec425bd1ca125552d1b38f8d3ddf815f913d2a">Menunggu pembacaan baru.</string>
     <string name="compat_review_not_reported" volt:src="8b2223503abf6a6ba52fada12dd625e355ffff0f">Tidak ada data setelan ini dari skuter saat ini.</string>
     <string name="compat_review_related_not_reported" volt:src="56c764cfc48dde756cdb4c5188ccdc611c3fb356">Tidak ada data setelan terkait dari skuter saat ini.</string>

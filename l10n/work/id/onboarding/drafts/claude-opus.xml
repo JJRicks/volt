@@ -10,7 +10,7 @@
     <string name="onboarding_step_connect_scooter" volt:src="c0b161edeeceec2afc3d6edb3d932c48ce0394d1">Hubungkan skuter</string>
     <string name="onboarding_pane_step" volt:src="18846b795ae36d4d55be5ce9286b22d068d72888">Langkah penyiapan %1$d dari 7</string>
     <string name="onboarding_pane_setup" volt:src="02b4f3d379774aeaef1823fcdaf67355120a211c">Penyiapan</string>
-    <string name="onboarding_side_title" volt:src="d9305cb9836e674521c30f828cd3339b11529e6d">Penyiapan skuter Anda</string>
+    <string name="onboarding_side_title" volt:src="d9305cb9836e674521c30f828cd3339b11529e6d">Siapkan skuter Anda</string>
     <string name="onboarding_step_row" volt:src="cd8eb7a1637c085185a81b4ae8b95acb69460847">Langkah %1$d, %2$s, %3$s</string>
     <string name="onboarding_step_state_current" volt:src="93f80a0515e2ae5df356339775f3c61f9f7dfecd">saat ini</string>
     <string name="onboarding_step_state_done" volt:src="1a91bf1d2af860af1624cd81bee326071abfdd43">selesai</string>
@@ -18,7 +18,7 @@
     <string name="onboarding_step_state_not_needed" volt:src="455e13c2d844fbfb3f5539c63d63cf878b25f180">tidak diperlukan</string>
     <string name="onboarding_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Kembali</string>
     <string name="onboarding_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Lewati</string>
-    <string name="onboarding_cancel_adding" volt:src="864156bda9e37d0bfdd9afa33a88f98dd5a6ac2b">Batal menambahkan skuter</string>
+    <string name="onboarding_cancel_adding" volt:src="864156bda9e37d0bfdd9afa33a88f98dd5a6ac2b">Batalkan penambahan skuter</string>
     <string name="onboarding_skip_description" volt:src="75b7c51efec79b7400681c246deaca55724dccba">Lewati penyiapan untuk saat ini</string>
     <string name="onboarding_step_counter" volt:src="f4a4b2949cb6287694d4e3f7703ac3cbd20fed6f">%1$d/7</string>
     <string name="onboarding_progress_step" volt:src="c6d34cde4026d2716b201afaa085a17a55585b0d">Langkah %1$d dari 7</string>
@@ -37,7 +37,7 @@
     <string name="onboarding_welcome_tile_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11" volt:attempt="2">Perjalanan</string>
     <string name="onboarding_welcome_tile_rides_short" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11" volt:attempt="2">Perjalanan</string>
     <string name="onboarding_welcome_tiles_description" volt:src="ae456634e6e6d086c13e292dbec6ac4f70b02cf2">Kunci, setelan, baterai, dan perjalanan, melalui Bluetooth</string>
-    <string name="onboarding_path_title" volt:src="c285d492168167fc5c9df82b4937964c27c261df">Bagaimana Anda ingin melakukan penyiapan?</string>
+    <string name="onboarding_path_title" volt:src="c285d492168167fc5c9df82b4937964c27c261df">Pilih cara penyiapan</string>
     <string name="onboarding_path_webadb" volt:src="6f5d43152851a007d526196862d4e9e501b80a63">Gunakan Chrome dan kabel USB</string>
     <string name="onboarding_path_webadb_detail" volt:src="53de51e2ea250ea3f74c7c50f9d096429f8dd174">Komputer · beberapa menit</string>
     <string name="onboarding_path_recommended" volt:src="42ebf007789f744dead0eaedfffe93d7bcb556f6">Disarankan</string>
@@ -79,7 +79,7 @@
     <string name="onboarding_prepare_get_source" volt:src="467156dc9677e3700c3a3015249688cc7f56e0e9">Dapatkan kode sumber</string>
     <string name="onboarding_prepare_get_source_description" volt:src="83779b92a25eeae4ced361f6e7f697448ae6b670">Dapatkan kode sumber. Paket kode sumber dengan alat bantu pengambilan akan dibuka</string>
     <string name="onboarding_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Browser tidak ditemukan</string>
-    <string name="onboarding_usb_title" volt:src="d34275339b3a95a5afe2db49261ab929c020a7ca">Pengaktifan proses debug USB</string>
+    <string name="onboarding_usb_title" volt:src="d34275339b3a95a5afe2db49261ab929c020a7ca">Aktifkan proses debug USB</string>
     <string name="onboarding_mock_about_phone" volt:src="749f64e8c4bfab660c8f0568fb4826d53bc32739">Tentang ponsel</string>
     <string name="onboarding_mock_android_version" volt:src="3e98c63d3222ef046d0b4d934bc51054d6d9ed67">Versi Android</string>
     <string name="onboarding_mock_build_number" volt:src="73324e75345198dba6a2f80dd2fc096feafcee4f">Nomor build</string>
@@ -90,7 +90,7 @@
     <string name="onboarding_usb_turn_on" volt:src="f58af9223d65646316b91d433af6f2c10c819d5d">Aktifkan **Proses debug USB**</string>
     <string name="onboarding_usb_done" volt:src="3b659dd770197d9a37b4cb6ffd08f0e5b4654439">Sudah saya aktifkan</string>
     <string name="onboarding_open_settings" volt:src="c08f8d5af1c4dd3e3dc683ade490b52ce5eab310">Buka Setelan</string>
-    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Koneksi ke komputer Anda</string>
+    <string name="onboarding_computer_title" volt:src="44795d967fb71b2bc57ca55c1b424501a424c6b1">Colokkan ponsel ke komputer</string>
     <string name="onboarding_mock_allow_title" volt:src="aaf1246404dc90419472e2ceb97b349667a472ab">Izinkan proses debug USB?</string>
     <string name="onboarding_mock_fingerprint" volt:src="05e9fe6ae8530787bbad3f54bde936fdc0d214d2">Sidik jari kunci RSA komputer adalah:\n4F:2A:…:9C</string>
     <string name="onboarding_mock_always_allow" volt:src="d6c4ab6f56ec8dca515f52967b5c29ef7881e2f8">Selalu izinkan dari komputer ini</string>
@@ -104,12 +104,12 @@
     <string name="onboarding_computer_unauthorized" volt:src="189b278023e2a260ba2b46e0619cd9c247bc3bb5">Tertulis unauthorized</string>
     <string name="onboarding_computer_unauthorized_title" volt:src="c85b839c73b04ee099901d414bc99f60258a34a6">Ponsel berstatus unauthorized</string>
     <string name="onboarding_computer_unauthorized_help" volt:src="8400eef91f7b5edef5a7fdfd8203c05b85c763f7">"1  Buka kunci ponsel Anda, cabut kabel, lalu colokkan kembali.\n2  Ketuk Izinkan pada permintaan “Izinkan proses debug USB?”.\n3  Tidak ada permintaan? Di Opsi developer, ketuk Cabut otorisasi debug USB, lalu hubungkan ulang."</string>
-    <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Penggunaan alat bantu pengambilan</string>
+    <string name="onboarding_helper_title" volt:src="99c15dcc7932c0c57e7fdea54cc1639961c7afde">Jalankan alat bantu pengambilan</string>
     <string name="onboarding_helper_run_in_folder" volt:src="79f97d059844ab3e9d4569637ee4d5ef8832c306">Di folder kode sumber yang sudah diekstrak di komputer Anda, jalankan:</string>
     <string name="onboarding_helper_command_description" volt:src="9eedae01f4f28dd44575b0d1f9b2fec35f803565">Perintah: %1$s</string>
     <string name="onboarding_helper_copy" volt:src="c3f82d8b45d3d004ed0cd20e5eeb5cfa7674a438">Salin</string>
     <string name="onboarding_helper_copy_description" volt:src="3fcb60e3d603244cb59aa69847efbc4f2d05688d">Salin perintah</string>
-    <string name="onboarding_helper_connect_navee" volt:src="67f37cc41e71ae510ede26f6f4757b8369446e5e">Hubungkan skuter di NAVEE</string>
+    <string name="onboarding_helper_connect_navee" volt:src="67f37cc41e71ae510ede26f6f4757b8369446e5e">Hubungkan skuter di aplikasi NAVEE</string>
     <string name="onboarding_helper_wait" volt:src="b2d6f64970529b8f0b7c40ec460e6b884ba0b107">Tunggu hingga 90 dtk</string>
     <string name="onboarding_helper_file_saves" volt:src="e2525ffddf6519c95e1f355cf58f211c31cf9e68">File disimpan ke Download</string>
     <string name="onboarding_helper_finished" volt:src="163eab29e0348f3366908ced0582d628a753f283">Alat bantu selesai</string>
@@ -117,7 +117,7 @@
     <string name="onboarding_helper_clip_label" volt:src="16aeef0cd93ca0586a64b367fff6681673673655">Perintah pengambilan</string>
     <string name="onboarding_helper_copied" volt:src="9b841f523afbec8ade5513dc43a8b8c65da97aad">Perintah disalin.</string>
     <string name="onboarding_helper_copy_failed" volt:src="5ab3a834c36db85168617a42f574427ea91a90d4">Gagal menyalin</string>
-    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Koneksi melalui browser Anda</string>
+    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Hubungkan melalui browser Anda</string>
     <string name="onboarding_browser_open" volt:src="9e0f576a4bd0fd5fc28666979a1045f82f29beb7">Di komputer Anda, buka:</string>
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Hubungkan ponsel Anda dengan kabel data USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Pilih ponsel Anda di Chrome</string>
@@ -127,7 +127,7 @@
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">Ponsel tidak ada dalam daftar</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Koneksi di Chrome</string>
     <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Ponsel tidak terkunci, proses debug USB aktif\n•  Kabel data, bukan kabel khusus pengisian daya\n•  Android Studio, alat ADB lain, dan tab penyiapan ditutup\n•  Chrome atau Edge, bukan Safari atau Firefox"</string>
-    <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Persetujuan pengambilan di situs web</string>
+    <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Setujui pengambilan di situs web</string>
     <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Biarkan kabel tetap terhubung sampai pembersihan selesai.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Baca penjelasan pengambilan, lalu pilih **Start**</string>
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Pilih skuter Anda di aplikasi NAVEE, lalu hubungkan</string>
@@ -145,14 +145,14 @@
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Bukan file pemilik.</string>
     <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">File ini membuka kunci skuter Anda. Jaga kerahasiaannya.</string>
     <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Pilih file pemilik</string>
-    <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Masukkan kode pemilik sebagai gantinya</string>
-    <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Pulihkan cadangan Volt sebagai gantinya</string>
+    <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Atau masukkan kode pemilik</string>
+    <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Atau pulihkan cadangan Volt</string>
     <string name="onboarding_role_shared" volt:src="5d49485c583c28802db55e3118c072a5da721b96">peran pengendara bersama</string>
     <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">peran pemilik</string>
     <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Kode pemilik ditemukan</string>
     <string name="onboarding_import_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Kode pemilik ditemukan, disimpan secara privat di ponsel ini. %1$s</string>
-    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Disimpan secara privat. Cabut akses Shizuku sekarang.</string>
+    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Kode pemilik ditemukan, disimpan secara pribadi di ponsel ini. %1$s</string>
+    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Disimpan secara pribadi. Cabut akses Shizuku sekarang.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Hapus salinan di folder Download</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Salinan di folder Download dihapus</string>
     <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Tidak dapat dihapus · hapus di aplikasi File</string>
@@ -163,17 +163,17 @@
     <string name="onboarding_stop_recording" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Hentikan perekaman terlebih dahulu</string>
     <string name="onboarding_identity_title" volt:src="ee790f0844a58cef70f579865ca639c7018a05cb">Masukkan kode pemilik</string>
     <string name="onboarding_identity_not_password" volt:src="93d797cd102b7651e85c5d04d50ddf7833e030af">Bukan sandi.</string>
-    <string name="onboarding_identity_hint" volt:src="b5dacf843a815045d5bf9afdcf3806edccaf35ef">Kode pemilik, 12 karakter, atau cadangan privat</string>
+    <string name="onboarding_identity_hint" volt:src="b5dacf843a815045d5bf9afdcf3806edccaf35ef">Kode pemilik (12 karakter) atau cadangan pribadi</string>
     <string name="onboarding_save_continue_starting" volt:src="2990341f0b730f8068bd24583800fdac67f4801f">Simpan dan lanjutkan, sedang memulai</string>
-    <string name="onboarding_identity_backup_shared" volt:src="5a4f288e08b3be239113ec47662843224a58c85c">Cadangan privat dikenali · peran pengendara bersama</string>
-    <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Cadangan privat dikenali · peran pemilik</string>
+    <string name="onboarding_identity_backup_shared" volt:src="5a4f288e08b3be239113ec47662843224a58c85c">Cadangan pribadi dikenali · peran pengendara bersama</string>
+    <string name="onboarding_identity_backup_owner" volt:src="2d71cbefcfe0d1c5ea21509f4e7b86f75e18ce8f">Cadangan pribadi dikenali · peran pemilik</string>
     <string name="onboarding_identity_hex_only" volt:src="71708cbcbf93e54bba97030ede31b2d494ad133d">Hanya 0–9 dan A–F.</string>
     <string name="onboarding_identity_clear_failed" volt:src="42618408b9beb9f9169a5b17c16bea112232d662">Tidak dapat menghapus file lama. Coba lagi.</string>
-    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Izin Perangkat di sekitar</string>
+    <string name="onboarding_nearby_title" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Izinkan Perangkat di sekitar</string>
     <string name="onboarding_nearby_body" volt:src="50cc6336c87825bd394d1fbc5443c20905d961f0">Hanya Bluetooth. Tanpa server.</string>
     <string name="onboarding_nearby_allow" volt:src="1a276f6370142c73c3f3b1a5c641dcd1035d8f45">Izinkan</string>
     <string name="onboarding_nearby_app_settings" volt:src="60f8b258f08e48ac16ab28ab77215adf8d2fe13d">Buka setelan aplikasi</string>
-    <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Pencarian skuter Anda</string>
+    <string name="onboarding_connect_title" volt:src="0a6c6c365bb7cea29a8b5c302d72edf9dbfc5b7c">Cari skuter Anda</string>
     <string name="onboarding_connect_found" volt:src="18f25bd262e93dd03811223728fd8fec25929ade">Skuter Anda ditemukan</string>
     <string name="onboarding_connect_bluetooth" volt:src="b6ef55dcb813eb1bf0c8b24acef831eb6f5b89ff">Bluetooth terhubung</string>
     <string name="onboarding_connect_checking" volt:src="9c39a329fb7ae82f32d5cbc4c11a0857a23d85e3">Memeriksa kode pemilik</string>
@@ -183,7 +183,7 @@
     <string name="onboarding_connect_looking" volt:src="acd95bc828cb6586424363ee261922e827c5598c">Mencari skuter Anda</string>
     <string name="onboarding_connect_row_done" volt:src="4d96e989a7c295020523b92dd855ad19a67a1489">%1$s, selesai</string>
     <string name="onboarding_connect_row_in_progress" volt:src="97b5bf16d6fc8f34304276963a202367347f3b1e">%1$s, sedang berlangsung</string>
-    <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, belum dimulai</string>
+    <string name="onboarding_connect_row_not_yet" volt:src="0946801b72d65fc477872df9cba57d2b05317f7f">%1$s, belum selesai</string>
     <string name="onboarding_connect_starting" volt:src="4c8224522a5e6dbe2b727ae49b11e0d6dd0dd8fa">Memulai…</string>
     <string name="onboarding_connect_waiting_profile" volt:src="ed1a42f914f9ac6f6d550079a760fef93626223b">Menunggu profil pemilik Anda…</string>
     <string name="onboarding_connect_is_it_on" volt:src="60721fc4afe52dc10fdaea9dd7e504617ab74f1c">Apakah skuter menyala? Apakah aplikasi NAVEE ditutup?</string>

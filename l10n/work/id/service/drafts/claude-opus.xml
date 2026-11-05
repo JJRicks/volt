@@ -15,7 +15,7 @@
     <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Selesaikan penyiapan pemilik dan kembalikan setelan log aktivitas NAVEE terlebih dahulu</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Selesaikan ekspor saat ini terlebih dahulu</string>
     <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Selesaikan impor penyiapan pemilik terlebih dahulu</string>
-    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Tidak dapat menyiapkan data aplikasi. Buka ulang Volt.</string>
+    <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Tidak dapat menyiapkan data aplikasi. Buka kembali Volt.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Selesaikan rekaman saat ini sebelum menjalankan simulasi</string>
     <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Belum ada rekaman pengisian daya</string>
     <string name="service_charge_storage_unavailable" volt:src="790c7b787a23c896df777b82bb65b9234e651d38">Penyimpanan rekaman pengisian daya tidak tersedia</string>
@@ -72,12 +72,12 @@
     <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Waktu mulai pengisian daya yang disetel: %1$s. Baterai masih %2$s%% (%3$s%% saat Anda menyetelnya). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Buka Volt untuk menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
     <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Waktu mulai pengisian daya yang disetel: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Volt dapat menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
     <string name="service_missed_done_by_test_notice" volt:src="d112aa620ddc936e4f784445679996a61beafb1f">Waktu mulai pengisian daya yang disetel: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Buka Volt untuk menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
-    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Uji jadwal menyetel waktu lanjut pengisian daya: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Volt dapat menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
-    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Uji jadwal menyetel waktu lanjut pengisian daya: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Buka Volt untuk menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
+    <string name="service_missed_test_dialog" volt:src="a2983dedcbac2957990b27916a1e1d4fe57440b0">Uji jadwal menyetel waktu pengisian daya dilanjutkan: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Volt dapat menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
+    <string name="service_missed_test_notice" volt:src="91c88aaaaa5c1928cdfaaea6e8eefbfa04857078">Uji jadwal menyetel waktu pengisian daya dilanjutkan: %1$s. Baterai masih %2$s%% (%3$s%% saat pengujian). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Buka Volt untuk menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
     <string name="service_missed_set_dialog" volt:src="51caf0b9132229c4b22015818bb6cb6ee489c8b1">Waktu yang disetel: %1$s. Baterai masih %2$s%% (%3$s%% saat Anda menyetelnya). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Volt dapat menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
     <string name="service_missed_set_notice" volt:src="c90bba3c0efc6cc6c81b4aee6ca595b843848b7f">Waktu yang disetel: %1$s. Baterai masih %2$s%% (%3$s%% saat Anda menyetelnya). Periksa apakah pengisi daya sudah terhubung dan lampunya menjadi merah pada waktu mulai. Buka Volt untuk menonaktifkan jadwal agar pengisian daya dimulai sekarang.</string>
-    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Pengisian daya ini sudah diukur. Waktu lanjut pengisian daya: %1$s, target selesai: %2$s.</string>
-    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Direncanakan sebagai pengisian daya baru. Waktu lanjut pengisian daya: %1$s, target selesai: %2$s.</string>
+    <string name="service_measure_measured" volt:src="ad8ec7f52a957dac2b9358b2d42741b9c2cc8460">Pengisian daya ini sudah diukur. Waktu pengisian daya dilanjutkan: %1$s, target selesai: %2$s.</string>
+    <string name="service_measure_planned" volt:src="3d46b8a8d3d5bad356bdc719ad077c69fe435add">Direncanakan sebagai pengisian daya baru. Waktu pengisian daya dilanjutkan: %1$s, target selesai: %2$s.</string>
     <string name="service_measure_off" volt:src="348322630b1b7ab16d2e336677d37b5960cb3979">“Target selesai isi daya” nonaktif.</string>
     <string name="service_measure_result" volt:src="607bc3ad8a03980931d41faf892ffe9db9f03d70">%1$s.</string>
     <string name="service_measure_not_set" volt:src="26b73238aeefe9cb1e35a462c1d09d0ff33c0bbd">%1$s. “Target selesai isi daya” nonaktif.</string>
@@ -87,7 +87,7 @@
     <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">“Target selesai isi daya” tidak disetel. %1$s</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">“Target selesai isi daya” disetel</string>
     <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">“Target selesai isi daya” tidak disetel</string>
-    <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Buka ulang Volt</string>
+    <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Buka kembali Volt</string>
     <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Pengujian dibatalkan. Pengisian terjadwal nonaktif.</string>
     <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Menyetel jadwal…</string>
     <string name="service_test_pausing" volt:src="65e2bd4326b7da4fbe8b08ccaf2085b5e7dd79c1">Menjeda pengisian daya…</string>
@@ -122,7 +122,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt tidak dapat mengonfirmasi apakah jadwal sudah nonaktif. Nonaktifkan pengisian terjadwal agar pengisian daya berlanjut."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Peringatan baterai</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Peringatan baterai yang Anda aktifkan di Skuter › Baterai: level daya, baterai penuh, dan baterai lemah</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Peringatan baterai yang Anda aktifkan di Skuter › Baterai: level baterai, baterai penuh, dan baterai lemah</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Hentikan</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Hentikan rekaman pengisian daya sebelum memulai perjalanan</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Keluar dari simulasi terlebih dahulu</string>
@@ -137,16 +137,16 @@
     <string name="service_notice_charge_active" volt:src="30eb01e6a8febeee8d338ed93f4883a1f95243bc">Rekaman pengisian daya aktif</string>
     <string name="service_notice_saving_ride" volt:src="1197b53246b459a575716ffceec3152de364abaa">Menyimpan perjalanan</string>
     <string name="service_notice_ride_active" volt:src="9ad2e30cf8a5de52dd1e49495363158fed5bc8a8">Perekaman perjalanan aktif</string>
-    <string name="service_notice_ride_attention" volt:src="b59463e9d015f05da66fcb7daacf51b3dcf55f85">Perekaman perlu diperhatikan</string>
+    <string name="service_notice_ride_attention" volt:src="b59463e9d015f05da66fcb7daacf51b3dcf55f85">Perekaman perlu perhatian</string>
     <string name="service_notice_connected" volt:src="043ef303a7dde859a4f0661d22054c3664b40dd1">Skuter terhubung</string>
     <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">Jadwal akan disetel dalam %1$s mnt · biarkan pengisi daya tetap terhubung</string>
     <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · biarkan ponsel tetap di dekat skuter</string>
-    <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">Perekaman perjalanan perlu diperhatikan</string>
+    <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">Perekaman perjalanan perlu perhatian</string>
     <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Data sensor ponsel tidak tersimpan</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Berhenti memantau</string>
     <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Jadwalkan sekarang</string>
-    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Batalkan uji</string>
-    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Hentikan rekaman isi daya</string>
+    <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Batalkan pengujian</string>
+    <string name="service_action_stop_charge" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Hentikan rekaman pengisian daya</string>
     <string name="service_action_stop_recording" volt:src="13aa4b04e125bc479bb5b7c17df6716fe91c2777">Hentikan perekaman</string>
     <string name="service_action_disconnect" volt:src="de7dcea40755fb26d3681afc559283f26d6ca078">Putuskan koneksi</string>
     <string name="service_notice_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Skuter</string>

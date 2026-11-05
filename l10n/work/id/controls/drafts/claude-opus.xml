@@ -87,7 +87,7 @@
     <string name="controls_reason_no_motion_report" volt:src="7d366b04fb98f47fcd6a9cada29fe29179322594">Belum ada data gerakan</string>
     <string name="controls_reason_warning_active" volt:src="2e0006ecc188f50540cd0247a5ebe0556793e978">Atasi peringatan skuter terlebih dahulu</string>
     <string name="controls_reason_locked" volt:src="795bbc89d1d18c92e23c446213a51b3aec14efb8">Buka kunci terlebih dahulu</string>
-    <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Khusus pemilik</string>
+    <string name="controls_reason_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Hanya pemilik</string>
     <string name="controls_reason_needs_bond" volt:src="57db23c83b9407f1d9a2739166b5957c71622920">Pasangkan ponsel ini terlebih dahulu</string>
     <string name="controls_reason_needs_pin" volt:src="40691c0cce813519a79882efa90f18c29541a71b">Aktifkan PIN setang terlebih dahulu</string>
     <string name="controls_reason_firmware_unknown" volt:src="dc3ecf1b86340e6787b58edd8057d65da19a092a">Firmware belum dibaca</string>
@@ -108,7 +108,7 @@
     <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Nilai berada di luar rentang fitur OEM</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Nonaktif atau 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Nonaktif atau 5–20 km/h</string>
-    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Tidak tersedia saat ini</string>
+    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Saat ini tidak tersedia</string>
     <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">Akses PIN memerlukan pemilik yang terautentikasi</string>
     <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">PIN harus terdiri atas empat digit desimal</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">PIN harus disetel sebelum diaktifkan</string>
@@ -124,8 +124,8 @@
     <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Setel pemulihan energi ke Nonaktif? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Kecepatan start dorong di bawah 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Di atas 32 km/h: periksa aturan di tempat Anda berkendara. %1$s</string>
-    <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Kontrol traksi akan dinonaktifkan. Berkendaralah dengan hati-hati di tanah basah atau gembur sampai Anda tahu perilakunya.</string>
-    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Di bawah 3 km/h, motor dapat menarik dari keadaan diam begitu Anda menggunakan tuas gas.</string>
+    <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Kontrol traksi akan dinonaktifkan. Berkendaralah dengan hati-hati di permukaan basah atau tidak padat sampai Anda tahu perilaku skuter.</string>
+    <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Di bawah 3 km/h, motor dapat langsung menggerakkan skuter dari keadaan diam begitu Anda menggunakan tuas gas.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Pemulihan energi (pengereman oleh motor) akan dinonaktifkan, sehingga rem Anda lebih banyak bekerja untuk menghentikan skuter.</string>
     <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
@@ -141,8 +141,8 @@
     <string name="controls_series_v" volt:src="d2a13de247063892bf3c4f80b32e2d293d9416b2">Perkotaan dan ekonomis</string>
     <string name="controls_series_easy_ride" volt:src="289e89e967cea281946d6861aba09f13d19ac1d3">Kelas pemula</string>
     <string name="controls_series_k" volt:src="133ec10c4e138e61675c59e1869156e595677e61">Anak-anak</string>
-    <string name="controls_drive_mode_title" volt:src="234310002e35b3d4952bb3294a7269968edd1fbb">Penamaan mode berkendara</string>
-    <string name="controls_drive_mode_intro" volt:src="7ca0c73f856573e8f070d2449fa8653493c10c3a">Opsional, sekitar satu menit. Biarkan skuter tetap diparkir: Anda akan menekan tombol mode pada skuter Anda, dan Volt hanya memantau mode yang ditunjukkan skuter.</string>
+    <string name="controls_drive_mode_title" volt:src="234310002e35b3d4952bb3294a7269968edd1fbb">Beri nama mode berkendara</string>
+    <string name="controls_drive_mode_intro" volt:src="7ca0c73f856573e8f070d2449fa8653493c10c3a">Opsional, sekitar satu menit. Biarkan skuter tetap diparkir: Anda akan menekan tombol mode pada skuter, dan Volt hanya memantau mode yang ditunjukkan skuter.</string>
     <string name="controls_drive_mode_watching" volt:src="8daa24bfbde03ba4ecb9e64d4c08fa5737b4e8ef">Memantau skuter Anda…</string>
     <string name="controls_drive_mode_disconnected" volt:src="91388f35f11f45cc131745daa38ce2092cefcda4">Skuter tidak terhubung</string>
     <string name="controls_drive_mode_waiting" volt:src="6ff44e5c4223817f203e26d0aaee6a939cb0f4f6">Menunggu mode skuter Anda…</string>
@@ -155,7 +155,7 @@
     <string name="controls_drive_mode_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Lewati</string>
     <string name="controls_drive_mode_confirm_title" volt:src="7816bc2b2a6886c8f3e23e6c50158a5e31b69e03">Sudah benar?</string>
     <string name="controls_drive_mode_confirm_closed" volt:src="4ad608aaf61962375452614a1b24adfa869a01c2">Skuter Anda melewati mode berikut dengan urutan ini.</string>
-    <string name="controls_drive_mode_confirm_named" volt:src="9ad48423b8b89705e1524cb9ebdc95268eb6d529">Ini adalah mode yang Anda namai, sesuai urutan yang ditunjukkan skuter Anda.</string>
+    <string name="controls_drive_mode_confirm_named" volt:src="9ad48423b8b89705e1524cb9ebdc95268eb6d529">Ini adalah mode yang Anda namai, sesuai urutan yang ditunjukkan skuter.</string>
     <string name="controls_drive_mode_start_over" volt:src="df69b32426f35aa61f9bee033eb661655aa8a543">Mulai ulang</string>
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Sudah benar</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">Skuter Anda menunjukkan mode %1$s</string>
