@@ -1320,7 +1320,7 @@ those rows as information, and a row keeps the label until the council has judge
 `decide` would then send them to fallback. So:
 
 1. Step 3 runs with this file as Claude's proposal, on equal terms with the other two, and the
-   judged result replaces it, with no `claude-only` row left.
+   judged result replaces it, with no `claude-only` row left. That is the glossary round below.
 2. `pack.py` runs again for every area (prompts refuse an older pack). Claude's draft stays current,
    since `volt:src` hashes only the English, and nothing rewrites or relabels it.
 3. `check` runs. Where the judged word differs, a safety key that used the old word now fails, and
@@ -1328,6 +1328,75 @@ those rows as information, and a row keeps the label until the council has judge
 4. Those failed keys take the ordinary `prompt --redraft`: only those keys, in the same file under
    the same name and model. A key already at `volt:attempt="2"` has no redraft left and falls back
    to English in `decide`, which is safe.
+
+**The glossary round** (`tools/l10n/glossary_council.py`), one language at a time:
+
+```sh
+T=es
+python3 tools/l10n/glossary_council.py relabel --tag $T          # 1. label Claude's rows claude-only <model>
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/glossary_council.py draft openai --tag $T )
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/glossary_council.py draft google --tag $T )
+python3 tools/l10n/glossary_council.py judge-requests --tag $T   # 3. the rows to judge, and the judge's prompts
+#   give l10n/work/$T/glossary/prompts/judge.chunk-<i>-of-<n>.md to one fresh Claude Code judge agent;
+#   it writes each chunk's reply where the prompt says
+python3 tools/l10n/glossary_council.py decide --tag $T           # 4. the judged l10n/glossary/$T.tsv
+python3 tools/l10n/council.py glossary-check --tag $T
+```
+
+1. **`relabel`** writes `claude-only <model>; ` before the source of every unlabelled row when the
+   file's header says it is a Claude-only proposal (`--model`, default `claude-opus-5-5`; it must
+   start with `claude`). The glossaries written before the labelling rule need it, or the `draft
+   openai|google` guard never fires. It is idempotent, never touches a row whose source starts with
+   `council `, and refuses a file whose header does not say it is a Claude-only proposal. The round's
+   other commands refuse such a proposal while any row is unlabelled.
+2. **`draft openai|google`** sends the provider the English rows of the round (every `en.tsv` row
+   that is not do-not-translate and whose `$T.tsv` row is `claude-only` or missing: id, term,
+   definition, part of speech, `dnt`, safety, and up to 3 example texts), `l10n/lang/$T.tsv` and
+   `l10n/style/$T.md` whole, and asks for its own term per row, with the forms separated by ` | `.
+   The examples are real English texts from `res/values/` that contain the term, each with its
+   string key, so the drafter sees how the term is used: every form of a translatable string is
+   matched as `glossary_orphans` matches, and the pick is fixed (the shortest label, the shortest
+   full sentence, then the shortest other text of a new key; a text over about 200 characters only
+   when nothing shorter has the term). A term in no text goes with an empty list, and the prompt
+   says so. Drafting never sees Claude's terms, the rows of `l10n/glossary/$T.tsv`. Sending the
+   whole guide, to the vendors and to the judge, is the owner's decision of 2026-11-05: the guide is
+   Claude-written and its "Safety wording" and "Scooter vocabulary" sections name some of Claude's
+   proposed terms, which the owner accepted for the sake of context. The models are the owner's, `gpt-6.1-terra`
+   and `gemini-3.8-flash`, or `--model`; either must be in the provider's model list. About 80 rows
+   go in each call. `drafts/<provider>.json` records the exact model id, the reported one, the token
+   usage, and per row the term and `en_sha1`, the hash of the English row it was drafted from (its
+   own fields, not the examples: a string elsewhere changing its wording does not make a term
+   stale); a term `glossary-check` would refuse is left out and listed under `problems`.
+3. **`judge-requests`** needs both drafts and refuses one drafted from other English. A row whose three
+   candidates (Claude's row and the two drafts) are identical after the normalisation `council.py`
+   uses (NFC, whitespace, quote style, form by form) is agreed; every other row, and every safety row
+   even when all three agree, goes to the judge. `judge-requests.json` holds the whole round. The judge
+   sees each row's English, definition, part of speech, safety value and examples, and the distinct
+   candidates as options A to C, without names, in an order shuffled per row, with how many drafters
+   proposed each, plus the language settings and the whole guide. It picks one or writes a better
+   term, with a one-line reason. The prompts are about 80 rows each and name the `set`, a hash of
+   the requests and the prompt text; replies go to `replies/judge.<set>/chunk-<i>-of-<n>.json`.
+4. **`decide`** refuses, writing nothing, when the English or a candidate changed since
+   `judge-requests` (run it, and the judge, again), when a reply is for another set or model family, or
+   when a ruling names an id the judge was not asked about, a pick whose term is not that option's, or
+   a term `glossary-check` would refuse. Otherwise agreed rows take that term, judged rows the judge's,
+   and a row with no ruling stays `claude-only`, so `draft openai|google` keeps refusing. A decided
+   row's source becomes `council claude:<model> openai:<model> google:<model> judge:<model>` (or
+   `agreed` in place of the judge), then the old source. The new file must pass `glossary-check`, or
+   the old one stays, and so does `decisions.jsonl`. `decisions.jsonl` records each row's
+   `en_sha1`, outcome, candidates and ruling, one line per id in `en.tsv` order, and `decide`
+   merges into it by id: rows decided in earlier runs or rounds keep their records, and every row
+   of the current round gets a new record that replaces its earlier one, even when that earlier one
+   was a council decision for other English (the row is `claude-only` again, so the old record no
+   longer describes it); `runs.jsonl` and the output name each replaced id. Running `decide` again
+   changes nothing, `decisions.jsonl` included, byte for byte; a later reply for the same set
+   finishes the rows it rules. `judge-requests.json`, the prompts and the drafts hold the current
+   round only, by design: a decided row's evidence is its `decisions.jsonl` record.
+
+Files, under `l10n/work/<tag>/glossary/`: `drafts/openai.json`, `drafts/google.json`, `runs.jsonl`
+(each provider call, with its token usage), `judge-requests.json`, `prompts/judge.chunk-<i>-of-<n>.md`,
+`replies/judge.<set>/` and `decisions.jsonl`. When no `claude-only` row is left, the string debate
+starts as above: `pack.py` again for every area, `check`, and the redrafts.
 
 ```sh
 T=fr A=more
