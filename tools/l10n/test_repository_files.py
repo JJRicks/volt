@@ -70,6 +70,11 @@ class RepositoryFilesTest(unittest.TestCase):
                        'throw new AssertionError("a report read catalog text "'):
             self.assertIn(source, reports)
 
+    def test_ci_checks_the_shipped_languages(self):
+        workflow = l10nlib.read_text(os.path.join(ROOT, ".github", "workflows", "tests.yml"))
+        gates = workflow[workflow.index("Localization proof gates"):workflow.index("web-setup:")]
+        self.assertIn("python3 tools/l10n/ship_check.py\n", gates)
+
     def test_pseudo_build_repairs_aapts_text_before_the_round_trip(self):
         script = l10nlib.read_text(os.path.join(ROOT, "build.sh"))
         body = script[script.index("navee_build_pseudo() {"):script.index("Built pseudo-locale APK")]

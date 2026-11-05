@@ -21,7 +21,7 @@ the working manual.
 | `l10n/baseline/<File>.txt` | G8: the hard-coded English each unconverted source file still has |
 | `tests/l10n/characterization/` | G5: tests that pin a batch's English output, committed first |
 | `tests/l10n/GoldenReports.java`, `golden.sh`, `golden/` | G9: report outputs that must stay byte-identical |
-| `tools/l10n/` | Generator, round-trip, gates, the CI driver (`ci_gates.py`), the translation tools and their unit tests |
+| `tools/l10n/` | Generator, round-trip, gates, the CI drivers (`ci_gates.py`, `ship_check.py`), the translation tools and their unit tests |
 | `l10n/glossary/<tag>.tsv` | A language's approved glossary terms (same columns as `en.tsv`; see Running a language) |
 | `l10n/style/<tag>.md` | A language's punctuation, capitalization and abbreviation rules for ladder rungs |
 | `l10n/packs/<tag>/<area>.json` | Work packs from `pack.py` (generated, not committed) |
@@ -1191,6 +1191,36 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
+
+### What CI checks
+
+The localization gates job runs `python3 tools/l10n/ship_check.py` on every push and pull request.
+It looks only at committed files and never needs a key or the network; the beta bar comes from the
+recorded decisions. It fails when:
+
+- a language with status `beta` or `stable` has no text in its `res/values-<qual>/`;
+- that text fails `merge.py`'s validation (above), including a stale `src` hash or a missing `l10n_tag`;
+- that text is not byte for byte what `merge.py --all` writes from `l10n/decisions/` (a hand edit,
+  a deleted file, a file no decisions write). `merge.py --check` makes the same comparison;
+- that language is under the beta bar (`council.py beta`);
+- that language has no line in `res/xml/locales_config.xml`, or `AndroidManifest.xml` has no
+  `android:localeConfig`;
+- a `res/values-*` folder holds text and its language is not listed or does not have status `beta` or
+  `stable`, `locales_config.xml` lists a language that does not ship, or the manifest names
+  `localeConfig` while only English ships.
+
+A language at `draft` or `held` is not read, so it can't fail the step unless its text has reached
+`res/`. While nothing ships, the step says that it checked no translated text and passes.
+
+An English change therefore fails CI for every shipped language that translates that key. Run
+`merge.py --tag <tag> --all`, which drops the key to English, and check the language is still within
+the bar; re-run the council for the changed keys when you can (plan 7.2 step 8). A folder CI would
+refuse is also refused by `CatalogCheckTest` (in `tests/run.sh`), which keeps the same folder rules
+for the real tree.
+
+What CI does not run: `check.py` and the council's drafting or judging (they need the drafts, and the
+providers need keys), aapt (no SDK on the CI workers, so `ship_check.py` prints a note and the local
+build compiles the text), and LocaleValidation (it needs an emulator).
 
 ### Limits of the automated checks
 
