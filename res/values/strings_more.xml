@@ -12,8 +12,8 @@
   "Try ..."), each combination is a whole template here, so a language can order and inflect it. PIN,
   experimental-control and disclaimer text is whole sentences.
 
-  Text with a mark (✓, —, ⚠) keeps the mark (volt:dnt): Android's fallback font draws it, not Saira
-  (l10n/README.md, "Glyph coverage"). Its screen-reader text is separate and has no mark.
+  Text with a mark (✓, —, ⚠) keeps the mark (volt:dnt). Android's fallback font draws ✓ and ⚠, not
+  Saira (l10n/README.md, "Glyph coverage"). Its screen-reader text is separate and has no mark.
   What else stays English, and why, is in l10n/pending/b18-more-followups.md.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
