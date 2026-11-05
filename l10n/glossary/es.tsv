@@ -1,8 +1,10 @@
 # Spanish glossary. Claude-only proposal, drafted 2026-11-05 alone by Claude, pending the three-vendor debate; not final.
 # Same columns as en.tsv: term holds the Spanish, forms separated by " | ". Definitions are D3's where D3 changed them.
 # Rows D3 retires stay, mapped to the chosen term, until D3 merges and en.tsv drops them. D3's new rows (and renamed ids) are ready ahead of its merge; the loader ignores ids en.tsv lacks.
+# HOLD until D3 merges: en.tsv and the strings still use Top speed and Maximum speed in their old senses, while the top-speed and maximum-speed rows below already use D3's. Following those rows now would call the setting Velocidad punta and the measured value Velocidad máxima, the swap section 7 of the style guide forbids.
+# So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3.
 id	term	definition	pos	dnt	safety	source
-not-affiliated	sin afiliación con NAVEE | no afiliada a NAVEE | no afiliado a NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	MoreScreen.java:184, 2360
+not-affiliated	sin afiliación con NAVEE | no afiliada a NAVEE | no afiliado a NAVEE | no está afiliada a NAVEE | no está afiliado a NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	MoreScreen.java:184, 2360
 official-app	app oficial | aplicación oficial	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
 navee-app	app de NAVEE | aplicación de NAVEE | app NAVEE | aplicación NAVEE	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
 scooter	patinete | patinetes	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	throughout
@@ -24,9 +26,9 @@ usb-debugging	Depuración por USB	Android's setting. Use Android's own localized
 developer-options	Opciones para desarrolladores	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	OnboardingScreen.java
 build-number	Número de compilación	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	OnboardingScreen.java
 electronic-lock	bloqueo electrónico	Volt's lock control.	noun phrase	no	lock	MainActivity.java:448-1114
-lock	Bloquear | bloqueo | bloqueos	The action that locks the scooter.	verb	no	lock	MainActivity.java:448-1114
+lock	Bloquear | bloqueo | bloqueos | bloquea | bloquéalo | bloquéala	The action that locks the scooter.	verb	no	lock	MainActivity.java:448-1114
 locked	Bloqueado | bloqueada | bloqueados | bloqueadas	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	MainActivity.java:448-1114
-unlock	Desbloquear | desbloqueo	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	MainActivity.java:448-1114
+unlock	Desbloquear | desbloqueo | desbloquea | desbloquéalo | desbloquéala	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	MainActivity.java:448-1114
 unlocked	Desbloqueado | desbloqueada | desbloqueados | desbloqueadas	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	MainActivity.java:448-1114
 lock-bar	Barra de bloqueo	The lock row on Home.	noun phrase	no	lock	DashboardConfig.java:58
 lock-state-unverified	Estado de bloqueo sin verificar	Volt could not confirm the lock state. Must never read as confirmed.	noun phrase	no	lock	MainActivity.java:448-1114
@@ -37,8 +39,8 @@ fallback-pin	PIN del patinete	D3 retired the English 'fallback PIN' (handlebar P
 dashboard-pin	PIN del patinete	D3 retired the English 'dashboard PIN' (handlebar PIN chosen; dashboard means Volt's screen). Use the term shown.	noun phrase	no	pin	MoreScreen.java:1213, 1215; BleController.java:286
 proximity-unlock	desbloqueo por proximidad	Unlocking when the paired phone is near.	noun phrase	no	pin	ScooterCommands.java:153
 pair	emparejar | emparejamiento | emparejado | emparejada | emparejados	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	BleController.java:559
-connect	Conectar | conexión	Start the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
-disconnect	Desconectar | desconexión	End the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
+connect	Conectar | conexión | conecta | conéctate | conectado	Start the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
+disconnect	Desconectar | desconexión | desconecta | desconectado	End the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
 connection-details	Detalles de la conexión | detalles de conexión	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	MainActivity.java:969
 signal-lost	Señal perdida | se perdió la señal	The Bluetooth link dropped.	clause	no	-	MainActivity.java:969
 parked	detenido | detenida	Stationary; some changes require it.	adjective	no	ride	CapabilityResolver.java:312
@@ -51,16 +53,16 @@ report-an-issue	Informar de un problema	Send an email to Volt with an English at
 diagnostics	Diagnóstico | diagnósticos	The section that collects the information a report sends.	noun	no	privacy	MainActivity.java:2719
 diagnostics-file	archivo de diagnóstico | archivos de diagnóstico	The English attachment sent with a report.	noun phrase	no	privacy	MainActivity.java:2719
 experimental-controls	Controles experimentales | control experimental	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
-untested-controls	Controles para probar	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
-try	Probar | intento | intentos	Attempt an experimental control on this scooter.	verb	no	experimental	MoreScreen.java:1666-1728
-set-back	Revertir | reversión	Restore the value a try changed.	verb phrase	no	experimental	MoreScreen.java:1666-1728
-help-verify	Ayudar a verificar	Ask the rider to confirm what a try did.	verb phrase	no	experimental	MoreScreen.java:1666-1728
+untested-controls	Controles por probar	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
+try	Probar | intento | intentos | probarlo | probarla | probarlos | probarlas | pruébalo | pruébala	Attempt an experimental control on this scooter.	verb	no	experimental	MoreScreen.java:1666-1728
+set-back	Revertir | reversión | revierte | revertido | revertirlo	Restore the value a try changed.	verb phrase	no	experimental	MoreScreen.java:1666-1728
+help-verify	Ayudar a verificar | Ayuda a verificar	Ask the rider to confirm what a try did.	verb phrase	no	experimental	MoreScreen.java:1666-1728
 unverified	Sin verificar	Volt has not confirmed the control on this model.	adjective	no	experimental	MoreScreen.java:1666-1728
 untested	Sin probar	No one has tried the control on this model yet.	adjective	no	experimental	MoreScreen.java:1666-1728
 unconfirmed	Sin confirmar	The scooter acknowledged a try, but the value was not kept or read back.	adjective	no	experimental	MoreScreen.java:1666-1728
 refused-by-scooter	Rechazado por el patinete | rechazada por el patinete	The scooter rejected the try.	adjective phrase	no	experimental	MoreScreen.java:1666-1728
 worked-here	Funcionó aquí	The try worked on this scooter.	clause	no	experimental	MoreScreen.java:1666-1728
-readback	lectura de confirmación | lecturas de confirmación	Whether the scooter reported the new value back.	noun	no	experimental	MainActivity.java:1717-1722
+readback	relectura | relecturas	Whether the scooter reported the new value back. Neutral on purpose: the result says whether it confirmed anything.	noun	no	experimental	MainActivity.java:1717-1722
 confirmed	confirmado | confirmada | confirmados | confirmadas	The scooter read the new value back.	adjective	no	experimental	MainActivity.java:1717-1722
 not-confirmed	No confirmado | no confirmada	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	MainActivity.java:1717-1722
 rejected	Rechazado | rechazada | rechazados | rechazadas	The scooter refused the value.	adjective	no	experimental	MainActivity.java:1717-1722
@@ -86,11 +88,11 @@ custom-speed-cap	Límite de velocidad personalizado | límites de velocidad pers
 custom-speed-limit	Límite de velocidad personalizado | límites de velocidad personalizados	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
 drive-mode-speed-cap	Límite de velocidad del modo | límites de velocidad del modo	The speed limit of one drive mode.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
 drive-mode-speed-limit	Límite de velocidad del modo | límites de velocidad del modo	The speed limit of one drive mode.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
-maximum-speed	Velocidad máxima	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
+maximum-speed	Velocidad máxima | Vel. máxima | Vel. máx.	The setting for the highest speed the scooter allows (Sport mode). Not a measured speed.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
 top-speed	Velocidad punta | vel. punta	The highest speed measured on a trip or ride. Not a setting.	noun phrase	no	ride	ScooterCommands.java:122-128; ModelRegistry.java:862
 walk-assist	Asistencia al caminar	Motor help while walking the scooter. Translate from the label; its stored id, hill_start_assist, stays and is not shown.	noun phrase	no	ride	ScooterCommands.java:142-144
 power-assist	Asistencia de potencia	Extra motor help in Sport mode, using Boost and full throttle uphill. Translate from the label; its stored id, parking_assist, stays and is not shown.	noun phrase	no	ride	ScooterCommands.java:142-144
-boost	Impulso	Extra power in Sport mode.	noun	no	ride	ScooterCommands.java:142-144
+boost	Boost	Extra power in Sport mode. The scooter's own name, like the drive mode names, so it stays in English.	noun	no	ride	ScooterCommands.java:142-144
 low-battery-mode	Modo de batería baja	A battery toggle that limits power to save charge.	noun phrase	no	-	ScooterCommands.java:138-140
 long-range-mode	Modo de larga autonomía	A battery toggle that trades speed for distance.	noun phrase	no	-	ScooterCommands.java:138-140
 tail-light	Luz trasera	Translate from the label; its key, headlight, does not match it.	noun phrase	no	-	ScooterCommands.java:112
@@ -102,7 +104,7 @@ logo-light	Luz del logotipo	The lit logo on the scooter.	noun phrase	no	-	Scoote
 daytime-running-light	Luz de conducción diurna	A light that stays on while riding by day.	noun phrase	no	-	ScooterCommands.java:112
 turn-signal	Indicador de giro | indicadores de giro	The turn indicator; in Volt, the control for its sound.	noun phrase	no	-	ScooterCommands.java:112
 prompt-sound	Sonido de aviso | sonidos de aviso	The scooter's beeps.	noun phrase	no	-	ScooterCommands.java:112
-follow-headlight	Seguir al faro	A light setting that follows the headlight.	noun phrase	no	-	ScooterCommands.java:112
+follow-headlight	Igual que el faro | con el faro	A light setting that follows the headlight. A value in a list of light modes, not an instruction.	noun phrase	no	-	ScooterCommands.java:112
 always-on	Siempre encendida | siempre encendido	A light setting that never switches off.	adjective phrase	no	-	ScooterCommands.java:112
 light-red	Rojo | roja	A light colour.	adjective	no	-	ScooterCommands.java:112
 light-ice-blue	Azul hielo	A light colour.	adjective	no	-	ScooterCommands.java:112
@@ -112,7 +114,7 @@ miles	Millas | milla	A display unit choice.	noun	no	-	ScooterCommands.java:116; 
 kilometers	Kilómetros | kilómetro	A display unit choice.	noun	no	-	ScooterCommands.java:116; MainActivity.java:1736
 dashboard	Panel | paneles	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	DashboardConfig.java; QuickAccessActions.java
 widget	widget | widgets	A tile on the Dashboard.	noun	no	-	DashboardConfig.java; QuickAccessActions.java
-quick-access	Ajustes rápidos | acceso rápido	D3 retired the English 'Quick access' (The UI says Quick settings (dashboard_quick_settings). Rows for what is actually shown serve better; add quick-settings if translators need one. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	-	DashboardConfig.java; QuickAccessActions.java
+quick-access	Acceso rápido	D3 retired the English 'Quick access' (The UI says Quick settings (dashboard_quick_settings). Rows for what is actually shown serve better; add quick-settings if translators need one. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	-	DashboardConfig.java; QuickAccessActions.java
 live-stats	Datos en vivo	The telemetry pages.	noun phrase	no	-	MainActivity.java:78; BackupRegistry.java:19
 readings	lecturas | lectura	Telemetry values the scooter reports.	noun	no	-	MainActivity.java:78; BackupRegistry.java:19
 readings-history	Historial de lecturas	Stored telemetry.	noun phrase	no	-	MainActivity.java:78; BackupRegistry.java:19
@@ -129,9 +131,9 @@ scheduled-charging	Carga programada	The scooter-side delayed start (on the hour)
 charge-start	Inicio de carga	When scheduled charging begins.	noun phrase	no	charge	ScooterCommands.java:132-134; MainActivity.java:3251
 charging-start-time	Hora de inicio de carga	The setting for when scheduled charging begins.	noun phrase	no	charge	ScooterCommands.java:132-134; MainActivity.java:3251
 next-charge-start	Próximo inicio de carga	When the next scheduled charge begins.	noun phrase	no	charge	ScooterCommands.java:132-134; MainActivity.java:3251
-charge-done-by	Carga lista para	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	MainActivity.java:2149; QuickAccessActions.java:59
-test-scheduled-charging	Comprobar la carga programada	A check of the scooter's clock and schedule.	verb phrase	no	charge	MainActivity.java:2072
-measure	Medir | medición	Watch the charger for about 10 minutes before planning.	verb	no	charge	MainActivity.java:2018-2045
+charge-done-by	Fin de carga | hora de fin de carga	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere. In a sentence, quote the name: «Fin de carga». It only plans a start and never says charging has finished.	noun phrase	no	charge	MainActivity.java:2149; QuickAccessActions.java:59
+test-scheduled-charging	Comprobar la carga programada | Comprueba la carga programada	A check of the scooter's clock and schedule.	verb phrase	no	charge	MainActivity.java:2072
+measure	Medir | medición | mide	Watch the charger for about 10 minutes before planning.	verb	no	charge	MainActivity.java:2018-2045
 measuring	midiendo | medición	The state while Volt measures the charger.	verb	no	charge	MainActivity.java:2018-2045
 battery-alerts	Alertas de batería	Alerts on models without a charge limit.	noun phrase	no	alarm	MainActivity.java:1872-1990
 charge-alert	Alerta de carga | alertas de carga	An alert when charging reaches a level.	noun phrase	no	alarm	MainActivity.java:1872-1990
@@ -139,7 +141,7 @@ low-battery-alert	Alerta de batería baja | alertas de batería baja	An alert wh
 notify-me	Avisarme	Choose a notification for an alert.	verb phrase	no	alarm	MainActivity.java:1872-1990
 alarm-sound	Sonido de alarma	Choose a sounding alarm for an alert.	noun phrase	no	alarm	MainActivity.java:1872-1990
 stop	Detener | detén	Silence a sounding alarm.	verb	no	alarm	MainActivity.java:1872-1990
-stop-watching	Dejar de vigilar	End an alert's watch.	verb phrase	no	alarm	MainActivity.java:1872-1990
+stop-watching	Dejar de vigilar | Deja de vigilar	End an alert's watch.	verb phrase	no	alarm	MainActivity.java:1872-1990
 charge-recording	Grabación de carga | grabaciones de carga	A recorded charging session.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288
 charger-profile	perfil del cargador | perfiles del cargador	D3 retired the English 'charger profile' (The UI says Charger for estimates; the phrase never appears. (orphan on: main, overlay)). Use the term shown.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288
 time-to-full	Tiempo hasta la carga completa | hasta la carga completa	The estimated time until the battery is full.	noun phrase	no	charge	ScooterService.java; DashboardScreen.java:3288
@@ -151,15 +153,15 @@ route	Ruta | rutas	The path of a ride on the map.	noun	no	-	RidesScreen.java:121
 backup	Copia de seguridad | copias de seguridad	A file of Volt's data.	noun	no	privacy	BackupActivity.java:176-414
 full-backup	Copia completa | copia de seguridad completa	A backup of everything.	noun phrase	no	privacy	BackupActivity.java:176-414
 selected-data	Datos seleccionados	A backup of the chosen parts.	noun phrase	no	privacy	BackupActivity.java:176-414
-restore	Restaurar | restauración	Put a backup's data back.	verb	no	privacy	BackupActivity.java:176-414
-replace-everything	Reemplazar todo	A restore that replaces all of Volt's data.	verb phrase	no	privacy	BackupActivity.java:176-414
+restore	Restaurar | restauración | restaura | restáuralo | restáurala	Put a backup's data back.	verb	no	privacy	BackupActivity.java:176-414
+replace-everything	Reemplazar todo | Reemplaza todo	A restore that replaces all of Volt's data.	verb phrase	no	privacy	BackupActivity.java:176-414
 owner-setup-file-scooter-access	Archivo de configuración del propietario · solo acceso al patinete	A backup choice that holds only the owner key.	noun phrase	no	owner-key	BackupActivity.java:176-414
 simulated-scooter	Patinete simulado	Demo mode with no real scooter.	noun phrase	no	-	CompatibilityReport.java:246; IssueReport.java:18
 simulation	simulación	The demo mode itself.	noun	no	-	CompatibilityReport.java:246; IssueReport.java:18
-shared-rider	usuario autorizado | usuarios autorizados | usuaria autorizada	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	Official app Shared Riders; MoreScreen.java
+shared-rider	usuario autorizado | usuarios autorizados | usuaria autorizada	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters. The compact role label (more_role_shared, English Shared) is Autorizado, never Compartido.	noun phrase	no	owner-key	Official app Shared Riders; MoreScreen.java
 owner-file	archivo de propietario | archivos de propietario	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	OnboardingScreen.java; setup/web/index.html
 pin-unlock	Desbloqueo por PIN	The toggle that enables the handlebar PIN.	noun phrase	no	pin	MoreScreen.java more_pin_fallback
-controls-to-try	Controles para probar	The card of untried controls in Experimental controls.	noun phrase	no	experimental	MoreScreen.java more_lab_untested
+controls-to-try	Controles por probar	The card of untried controls in Experimental controls.	noun phrase	no	experimental	MoreScreen.java more_lab_untested
 lab-badge	LAB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	MoreScreen.java more_lab_badge; RidesScreen.java rides_lab_badge
 eco-estimate	Estimación Eco	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	ScooterCommands.java controls_option_eco_estimate
 maximum-speed-short	Vel. máxima | Vel. máx.	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	QuickAccessGrid.java; dashboard_model_tile_top_speed

@@ -33,10 +33,10 @@ Rule of thumb: pick the word understood everywhere, and if there is none, rephra
 
 ## 4. Numbers, dates and units
 
-- Decimal comma, period for thousands, in text you write: *1.234,5*. Volt's `Fmt` formats live numbers for the phone's region (Mexico and Central America get `1,234.5`), so never rewrite a placeholder's number or add separators around one.
-- Percent takes a space: `%1$s %%` gives *85 %*. Use a no-break space (U+00A0) where the English has a fixed number with %. Saira has U+00A0 and lacks U+202F, so don't use U+202F. The rule covers `formatted="false"` text too, whose literal is `100 %`.
+- Decimal comma in text you write. Four-digit numbers take no separator (*1234,5*); from five digits a period groups thousands (*12.345,6*). Volt's `Fmt` formats live numbers for the phone's region (Mexico and Central America get `1,234.5`), so its output can differ from this; never rewrite a placeholder's number or add separators around one.
+- Percent always takes a no-break space (U+00A0), never a plain space, between a number or placeholder and %: `%1$s %%` gives *85 %*. Otherwise a narrow label can wrap the sign onto its own line. Saira has U+00A0 and lacks U+202F, so don't use U+202F. The rule covers `formatted="false"` text too, whose literal is `100 %`.
 - Numbers in the English stay in the Spanish as digits. Don't write them out or change them.
-- Unit symbols stay and take a space: *25 km/h*, *36 V*, *2 h 5 min*, *25 °C*. Symbols take no plural and no period: `km`, `mi`, `mph`, `h`, `min`, `s`, `V`, `A`, `W`, `Wh`, `Ah`. Unit words are translated: *kilómetros*, *millas*.
+- Unit symbols stay and take the same no-break space (U+00A0) after a number or placeholder: *25 km/h*, *36 V*, *2 h 5 min*, *25 °C*. Symbols take no plural and no period: `km`, `mi`, `mph`, `h`, `min`, `s`, `V`, `A`, `W`, `Wh`, `Ah`. Unit words are translated: *kilómetros*, *millas*.
 - Dates and times come from Volt's formatters; don't hard-code an order. A fixed date in prose reads *5 de marzo*. Don't write *a.m./p.m.* yourself.
 - Plurals: `one` covers exactly 1. Copy `other` into `many` unless the grammar needs *de* after a bare large number: `1 millón de viajes`. A placeholder form stays the same in both.
 
@@ -61,7 +61,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | máximo, mínimo | **máx.**, **mín.** | | |
 | información | **info** | | A short word, no period: *Info y permisos* is 89.6dp, under the 90dp tile |
 
-Measured words that fit as they are: *Bloqueo* 48, *Ajustes* 43, *Batería* 42, *Viajes* 35 (all under the 62dp tab budget); *Mis patinetes* 78, *Ajustes viaje* 74 (under 90dp). *Recorridos* is 62.0dp, one reason *Viajes* was chosen. *Experimentales* is 90.3dp, so on the 90dp tile use *Experimental* (77) on one line or *Controles experimentales* wrapped at the space.
+Measured words that fit as they are: *Bloqueo* 48, *Ajustes* 43, *Batería* 42, *Viajes* 35 (all under the 62dp tab budget); *Mis patinetes* 78, *Conducción* 66 for Ride settings (under 90dp; 63.4 at 12sp, under the 64dp shortcut budget). *Ajustes de viaje* is 90.9dp, so it only fits wrapped at a space. *Recorridos* is 62.0dp, one reason *Viajes* was chosen. *Experimentales* is 90.3dp, so on the 90dp tile use *Experimental* (77) on one line or *Controles experimentales* wrapped at the space.
 
 An abbreviation ends in a period, and the period counts toward the width. A two-word label may wrap at a space where the English also wraps.
 
@@ -107,16 +107,21 @@ Use exactly these words. They match the glossary; don't use synonyms.
 The glossary is authoritative; this explains the distinctions it can't.
 
 - **Three speeds:** the setting is **Velocidad máxima**. A limit below it is **Límite de velocidad**. The measured value on a trip or ride is **Velocidad punta**. Never swap them, and don't call a limit *tope*: *tope* reads as a setting.
+- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback.
 - **Rides vs trips:** a recorded ride is a **viaje**. *Trip* (the distance since a reset) is **trayecto**. A path on the map is a **ruta**.
-- **Try vs test:** *Try* is **Probar**, its noun **intento**. A guided test is **prueba**. *Test scheduled charging* is a check, so it's **Comprobar la carga programada**. A compatibility check is **comprobación de compatibilidad**.
+- **Try vs test:** *Try* as a verb is **Probar**; its results and titles use **intento**. A guided test is the noun **prueba**, and as a verb **hacer la prueba**: *Haz la prueba con el patinete detenido*, *Volt no hará la prueba*. Never use bare *Prueba* as an imperative for Try, because it reads as that noun; write *Pruébalo* or *Puedes probar este control*. *Test scheduled charging* is a check, so it's **Comprobar la carga programada**. A compatibility check is **comprobación de compatibilidad**.
 - **Dashboard vs display:** Volt's Home layout is the **Panel**. The scooter's own screen is the **pantalla del patinete**. They never swap.
 - **Settings vs setup:** settings are **Ajustes**, a one-time setup is **configuración**.
 - **Restore vs set back:** bringing back a backup is **Restaurar**. Undoing a try is **Revertir**. Energy recovery is **Recuperación de energía**, unrelated to either.
+- **Readback:** **relectura**, a neutral word, because a readback can also fail to confirm: *Relectura diferente*, *Ajuste confirmado por relectura*, *sin relectura del reloj*. Never a phrase with *confirmación* inside it.
 - **Rejected:** both *Rejected* and *Refused by scooter* use **Rechazado**.
 - **Pair vs bind vs connect:** Bluetooth pairing is **emparejar**. NAVEE account binding is **vincular** (*vincular la cuenta*). A live link is **conectar**.
 - **Owner key parts:** the file is the **archivo de configuración del propietario**, shortened to **archivo de propietario** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
 - **Levels:** Energy recovery levels agree with *recuperación*: *Baja, Media, Alta, Desactivada*. Elsewhere they agree with their own noun.
-- **Eco:** the *Eco* and *Turbo* acceleration profiles stay in English. **Estimación Eco** is a range option, translated.
+- **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimación Eco** is a range option, translated.
+- **Roles:** owner is **propietario**, shared rider is **usuario autorizado**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizado** (64dp at 12.5sp), never *Compartido*, which reads as a shared scooter.
+- **Charge done by:** the feature name is **Fin de carga**, and its time setting **Hora de fin de carga**. The feature only plans a start, so never word it as a charge that has finished. In a sentence, quote the name: *«Fin de carga» está desactivado*, *desactiva «Fin de carga»*.
+- **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Acceso rápido**. Never *Ajustes rápidos*: that is Android's pull-down panel, and Settings is itself one of the shortcuts.
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does.
 - **Experimental LAB badge:** **LAB** stays (it also fits *laboratorio*). TalkBack speaks **Experimental**.
 
@@ -141,6 +146,8 @@ The glossary is authoritative; this explains the distinctions it can't.
 | report | **informe**; *Informar de un problema* | *reporte*, *reportar* | Understood everywhere |
 | live | **en vivo** | *en directo* | |
 | average | **media** | *promedio* | Short, understood |
+| owner key | **clave de propietario** | *código de propietario* | **Debate item:** in much of Latin America *clave* is an everyday word for a password or PIN, which sits badly with *No es una contraseña*. *código* is free, because a PIN is never *código*. Kept because it says secret |
+| top speed (measured) | **Velocidad punta**, **Vel. punta** | *Velocidad alcanzada*, *Vel. alcanzada* (83dp, fits the 90dp tile) | **Debate item:** Spain-leaning (compare *hora punta*, *hora pico*), the one choice here that may not read at once everywhere. Kept because it says highest and stays distinct from *Velocidad máxima*; *alcanzada* alone only says reached |
 | tire | **neumático** | *llanta* (a rim in Spain), *goma*, *rueda* | |
 | file | **archivo** | *fichero* | |
 

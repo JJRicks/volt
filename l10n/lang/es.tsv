@@ -1,4 +1,5 @@
 # Spanish (es). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# percent_style has a no-break space (U+00A0) between the number and the sign, so a label can't wrap them apart. decimal_style is an example of the separators; four-digit numbers take no separator in text (1234,5).
 field	value
 tag	es
 folder	values-es
@@ -8,7 +9,7 @@ status	draft
 formality	tú
 plurals	one,many,other
 quote_style	«…» “…”
-percent_style	%1$s %%
+percent_style	%1$s %%
 decimal_style	1.234,5
 script	Latn
 font	saira
