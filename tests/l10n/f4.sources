@@ -1,0 +1,5 @@
+# F4, the B18, B17 and B11 follow-ups (l10n/README.md, l10n/pending/b18-more-followups.md). tests/run.sh
+# compiles every path listed in tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
+# G5: the English F4 changes how the screens build (the Units row value, the submenu titles, the default
+# scooter name sentences and the layout destination's spoken labels), pinned before the change.
+tests/l10n/characterization/FollowupsEnglishTest.java
