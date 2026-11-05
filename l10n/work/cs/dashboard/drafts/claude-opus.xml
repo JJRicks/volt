@@ -1,0 +1,277 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="dashboard_connection_details" volt:src="eccce163502fa78ca3de68436575176d5b46f437">Podrobnosti připojení</string>
+    <string name="dashboard_your_scooter" volt:src="d29edf4406118b6d22bf304e73cac8f710e25cc7">Vaše koloběžka</string>
+    <string name="dashboard_rename_scooter" volt:src="04d970d8898d8fe14cdc52d0738a243c1d4038c0">Přejmenovat koloběžku</string>
+    <string name="dashboard_undo_edit" volt:src="2687eeb904ef71b1b6894fa98c829296d128a554">Vrátit zpět úpravu přehledu</string>
+    <string name="dashboard_redo_edit" volt:src="edab63ce2fb93ded501d602abc5f9516876a4157">Znovu provést úpravu přehledu</string>
+    <string name="dashboard_undo" volt:src="9e86661628ec947efef999d77ec524e05837f541">Vrátit zpět</string>
+    <string name="dashboard_redo" volt:src="141a013b98eaf0d7a0562ef83c5198c6e0f618b6">Znovu provést</string>
+    <string name="dashboard_add_widget" volt:src="09b973aba2c4fe9f169d93abec6e08917576aaa6">Přidat widget</string>
+    <string name="dashboard_layout" volt:src="9273b73ed0491d9ff5e81222e2dfdd889f31754b">Rozložení</string>
+    <string name="dashboard_finish_editing" volt:src="f91cc759e0df6e6f70bb7b49b30578125863008f">Dokončit úpravy přehledu</string>
+    <string name="dashboard_edit_dashboard" volt:src="44ccf5dfe5e2d4b4eb12258bf968b91d1a7c5995">Upravit přehled</string>
+    <string name="dashboard_widget_limit" volt:src="ed396a13dc6a72543b05ba0ff0f6b924070e306e">Limit 32 widgetů</string>
+    <string name="dashboard_add_widget_limit" volt:src="0fd21782cc33d5c25a803f6aac5ff1d1f3f5b625">Přidat widget, %1$s</string>
+    <string name="dashboard_one_lock_widget" volt:src="f3470f7c64029e92524b62d16308b8b874deb7be">Přehled může mít jen jeden widget zámku</string>
+    <string name="dashboard_duplicate_widget" volt:src="deb8350dab1d4a4ccd54c5f64ff2da02cbc35dd4">Duplikovat widget</string>
+    <string name="dashboard_age_now" volt:src="b288bcfc69d6e39af23779a408b1ac81f51ac054">teď</string>
+    <string name="dashboard_age_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
+    <string name="dashboard_age_hours" volt:src="3708457c3189d22c84d3b9ea33b4e3a05a66e6fc">%1$s h</string>
+    <string name="dashboard_age_days" volt:src="5c236b8f4ed35dad7fca64ecc28210f8c71429f7">%1$s d</string>
+    <string name="dashboard_about" volt:src="525ab9e5a2919b1ade7852749ca3eed310302d3b">cca %1$s</string>
+    <string name="dashboard_estimated_range" volt:src="3cd0b7394ad38905d5bf8719e641c402a80f584c">Odhadovaný zbývající dojezd</string>
+    <string name="dashboard_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Jízdní režim</string>
+    <string name="dashboard_at_target" volt:src="bfe77cb8f5f6b49d12a329434929b912ff092d08">Cíl dosažen</string>
+    <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60">≈ %1$s h %2$s min</string>
+    <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1">≈ %1$s min</string>
+    <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Do limitu %1$s</string>
+    <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Čas do %1$s</string>
+    <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Do %1$s</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Čas do 100 % bez limitu</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Do 100 % bez limitu</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % bez limitu</string>
+    <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Do plného nabití (odhad)</string>
+    <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Do plného nabití (odhad)</string>
+    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Do plného (odhad)</string>
+    <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Nízký proud</string>
+    <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Nabíjecí výkon</string>
+    <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Výkon</string>
+    <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Do plného nabití</string>
+    <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Nabíjení</string>
+    <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Nabíjení · limit %1$s %%</string>
+    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Koloběžka NAVEE UT5 MAX</string>
+    <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Baterie: bez údajů</string>
+    <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
+        <item quantity="one">Baterie %1$d procento</item>
+        <item quantity="few">Baterie %1$d procenta</item>
+        <item quantity="many">Baterie %1$d procenta</item>
+        <item quantity="other">Baterie %1$d procent</item>
+    </plurals>
+    <string name="dashboard_hero_time" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_hero_time_tag" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
+    <string name="dashboard_hero_time_status" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
+    <string name="dashboard_hero_time_tag_status" volt:src="f5f890cf656f55df359eda425e26bd0923b1b81f">%1$s, %2$s, %3$s. %4$s</string>
+    <string name="dashboard_hero_charge_not_reported" volt:src="bae5d367b7ef5a1b6b72b1e9a82d78879e77350a">Nabití: bez údajů</string>
+    <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17">Nabití: bez údajů, limit nabití %1$s %%</string>
+    <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Nabití %1$s %%</string>
+    <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Nabití %1$s %%, limit nabití %2$s %%</string>
+    <string name="dashboard_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Teplota baterie</string>
+    <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Výkon měřený na straně baterie</string>
+    <string name="dashboard_charging_time_tag" volt:src="03b47181996e70bcd965c93fb77f2b1d1af5e6ac">%1$s (%2$s)</string>
+    <string name="dashboard_charging_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_charging_description_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
+    <string name="dashboard_move_widget_named" volt:src="2b4396797f8a89a732d5c50338f5fc30d4b8854e">Přesunout widget: %1$s</string>
+    <string name="dashboard_resize_widget_named" volt:src="7eed4fdd13a1eb57bc38b31e5f87295f9320e13e">Změnit velikost widgetu: %1$s</string>
+    <string name="dashboard_options_for" volt:src="8676f785e220374eced5765f328b7411ed610bde">Možnosti widgetu: %1$s</string>
+    <string name="dashboard_duplicate_named" volt:src="f90fbe0fbdbf0a3fca6dcddf3fef17c6b469b6a6">Duplikovat widget: %1$s</string>
+    <string name="dashboard_remove_named" volt:src="f67ce2da1d8c8ecf6d5de275fc8a1cf763028fed">Odstranit widget: %1$s</string>
+    <string name="dashboard_move_widget" volt:src="1788b7b14cae66d542f72ab98257383de486dab8">Přesunout widget</string>
+    <string name="dashboard_edit_widget" volt:src="1aa0ddd1999a5769a471de7aaaadb202e679dfa7">Upravit widget</string>
+    <string name="dashboard_remove_widget" volt:src="a4a9c3c5d6453634a0544ceb9adcd091abf6aacb">Odstranit widget</string>
+    <string name="dashboard_move_or_edit_widget" volt:src="c0d22d1768a104d3d0085cf4d87962dd87b0b68d">Přesunout nebo upravit widget</string>
+    <string name="dashboard_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Koloběžka</string>
+    <string name="dashboard_controller_reported" volt:src="1c88c146651037ad20f41b3d13b788d64ea78995">Hlášeno řídicí jednotkou, není to test kapacity</string>
+    <string name="dashboard_processing" volt:src="85bc4e97f7c896f48ed0ffbc7dc83497622e88cb">Zpracování…</string>
+    <string name="dashboard_set_reference" volt:src="2b10235c7730df0326a6e64026eefe46cb3f6f55">Nastavit referenci</string>
+    <string name="dashboard_set_reference_capacity" volt:src="f8696a3af27dfe136b4ad028d598754a5ef7c62b">Nastavit referenční kapacitu</string>
+    <string name="dashboard_checking_rides" volt:src="4183a0a9f7eb80fe3ab2d3bb27f3f93edd8b80f5">Kontrola zaznamenaných jízd…</string>
+    <string name="dashboard_estimate_details" volt:src="286f8f1308f77e08d22ce6c8707038565ca4af1e">Podrobnosti odhadu</string>
+    <string name="dashboard_empty_note" volt:src="9589460b611572a3430492d405cb7cde87f77cd3">Prázdná poznámka</string>
+    <string name="dashboard_edit_note" volt:src="eb6b6c906d5b94162312606a589e8152c27ecbfe">%1$s. Upravit poznámku</string>
+    <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Prázdná poznámka. Upravit poznámku</string>
+    <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Poznámka</string>
+    <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Zaznamenat jízdu</string>
+    <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Zobrazit jízdy</string>
+    <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s: bez údajů</string>
+    <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Baterie</string>
+    <string name="dashboard_range_left" volt:src="8206a75d21118fc55fb4ff8545d2cbf4c953f973">zbývá %1$s</string>
+    <string name="dashboard_overview_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Baterie: bez údajů</string>
+    <string name="dashboard_overview_not_reported_seen" volt:src="ea0748130f30c6687f41cc741f75eca549fa43c4">Baterie: bez údajů, poslední údaj: %1$s</string>
+    <string name="dashboard_overview_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Baterie: bez údajů, %1$s</string>
+    <string name="dashboard_overview_not_reported_line_seen" volt:src="484687dbd44e137c9ede6b4a74efe5b4d634dd39">Baterie: bez údajů, %1$s, poslední údaj: %2$s</string>
+    <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Baterie %1$s %%</string>
+    <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43">Baterie %1$s %%, poslední údaj: %2$s</string>
+    <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Baterie %1$s %%, %2$s</string>
+    <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Baterie %1$s %%, %2$s, poslední údaj: %3$s</string>
+    <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Baterie: bez údajů, nabíjení</string>
+    <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Baterie: bez údajů, nabíjení, poslední údaj</string>
+    <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Baterie: bez údajů</string>
+    <string name="dashboard_cell_not_reported_stale" volt:src="48411c7856c1f07dfa5dab287f4d84a13449dc4e">Baterie: bez údajů, poslední údaj</string>
+    <string name="dashboard_cell_not_reported_line_charging" volt:src="b818a95b97127508541752d12c55c336683f0534">Baterie: bez údajů, %1$s, nabíjení</string>
+    <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Baterie: bez údajů, %1$s, nabíjení, poslední údaj</string>
+    <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Baterie: bez údajů, %1$s</string>
+    <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Baterie: bez údajů, %1$s, poslední údaj</string>
+    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Baterie %1$s %%, nabíjení</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Baterie %1$s %%, nabíjení, poslední údaj</string>
+    <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Baterie %1$s %%</string>
+    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Baterie %1$s %%, poslední údaj</string>
+    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Baterie %1$s %%, %2$s, nabíjení</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Baterie %1$s %%, %2$s, nabíjení, poslední údaj</string>
+    <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Baterie %1$s %%, %2$s</string>
+    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Baterie %1$s %%, %2$s, poslední údaj</string>
+    <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, poslední údaj: %3$s</string>
+    <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Jízdní režim, %1$s</string>
+    <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Jízdní režim, %1$s, poslední údaj: %2$s</string>
+    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Hlášený počet nabití: %1$s</string>
+    <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">Jmenovitá kapacita: %1$s</string>
+    <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Poslední údaj: %1$s</string>
+    <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Záznam · %1$s</string>
+    <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Měření…</string>
+    <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Ukládání poslední jízdy…</string>
+    <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Připojování…</string>
+    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Zaznamenat jízdu. Ukládání poslední jízdy</string>
+    <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Spustit záznam</string>
+    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Zaznamenat jízdu. Připojování</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Zaznamenat jízdu. Připojit koloběžku</string>
+    <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
+    <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Ukázka</string>
+    <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 jízd · %1$s–%2$s %3$s</string>
+    <string name="dashboard_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Není nastavena žádná koloběžka</string>
+    <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Aktualizace zaznamenaných jízd…</string>
+    <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Poslední odhad · aktualizace není k dispozici</string>
+    <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Odhad není k dispozici</string>
+    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09">Nedostatek údajů z jízd</string>
+    <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">Jízdy: %1$s · %2$s–%3$s %4$s</string>
+    <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">Jízdy: %1$s · použité body: %2$s</string>
+    <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s %% hodnoty %2$s %3$s</string>
+    <string name="dashboard_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Jízdy</string>
+    <string name="dashboard_points" volt:src="7ae1f9b220ef9f2f4aed38c665c220294b064148">Body</string>
+    <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Období</string>
+    <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Potřebný počet jízd</string>
+    <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Interval 90 %</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Náboj na plný ukazatel</string>
+    <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Kontrola podle nabíjení</string>
+    <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Pokrytí</string>
+    <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Teplota baterie</string>
+    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Odmítnuto</string>
+    <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
+    <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Nepřímý odhad: může být nadsazený; není to stav baterie.</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energie, kterou vaše jízdy odebraly na jeden plný ukazatel. Není to test stavu ani kapacity baterie.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Využitelná energie pro jízdu</string>
+    <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Ukázka · %1$s</string>
+    <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Zatím žádné uložené údaje</string>
+    <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Zbývající dojezd podle odhadu koloběžky</string>
+    <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Přidat: %1$s</string>
+    <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Přidat: %1$s, experimentální</string>
+    <string name="dashboard_experimental" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Experimentální</string>
+    <string name="dashboard_on_home" volt:src="ee1b194505af0a3632bb3b2b1301bb5f55549589">Na přehledu</string>
+    <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Už je na přehledu</string>
+    <string name="dashboard_close_add_widget" volt:src="350ff8b2fa60c268afc3623cc84fd18212323a86">Zavřít přidání widgetu</string>
+    <string name="dashboard_title" volt:src="f4ff3984e55c02995eed14b0a2fe7382981a7221">Název</string>
+    <string name="dashboard_widget_title" volt:src="858080416dc370b07eff049863f9cb1a2e444c68">Název widgetu</string>
+    <string name="dashboard_quick_settings" volt:src="f3329358b5dda50a7afa0b646cce04561401ef9b">Rychlý přístup</string>
+    <string name="dashboard_show_disconnect" volt:src="0b0d3e8ebe6d4196aaea351bd597e19dca32da48">Zobrazit tlačítko „Odpojit“</string>
+    <string name="dashboard_show_disconnect_connected" volt:src="ef982990aaa48c1b684abb9cf6e388219485e358">Zobrazit tlačítko „Odpojit“, když je koloběžka připojena</string>
+    <string name="dashboard_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Název koloběžky</string>
+    <string name="dashboard_parameter" volt:src="7e3362da027805cd737ba5112c124a578d8de639">Parametr</string>
+    <string name="dashboard_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Údaje</string>
+    <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Udávaná kapacita</string>
+    <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Minimum stupnice</string>
+    <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Maximum stupnice</string>
+    <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Období údajů z jízd</string>
+    <string name="dashboard_time_window" volt:src="63ed34ac8da81b2ad4201c8e59265aab5020201b">Časové období</string>
+    <string name="dashboard_y_axis" volt:src="6f9667133aab1ca864bef89670c9226eead24efa">Osa Y</string>
+    <string name="dashboard_relative" volt:src="0f8072d7f37218550c680263ed85186346eca1f9">Relativní</string>
+    <string name="dashboard_absolute" volt:src="0af4a2c574275b365db0859acdb2b7551b42606e">Absolutní</string>
+    <string name="dashboard_color" volt:src="3518cfef350a7118de3add9202dd558a154d91a4">Barva</string>
+    <string name="dashboard_color_red" volt:src="3f6fc46ff8c3dc9d36e6a3093c31e6788eace551">Červená</string>
+    <string name="dashboard_color_blue" volt:src="0f91ab0b686194ff7844d62d60da8bddfc7e4fc3">Modrá</string>
+    <string name="dashboard_color_amber" volt:src="11b9e6ef050ba4916efbcf698f5ec223e3e2e55d">Jantarová</string>
+    <string name="dashboard_color_rose" volt:src="3c59b2cdfaeee31f0b1d2692dff1a62d531b86f7">Růžová</string>
+    <string name="dashboard_save_widget_options" volt:src="9e0cb9cd67f08435b4528b10ac53e5ff4ec788ca">Uložit možnosti widgetu</string>
+    <plurals name="dashboard_selected_count" volt:src="e39d9259f1444c20fa9f4aacf4f146b0d34cd94e">
+        <item quantity="one">Vybráno: %1$d</item>
+        <item quantity="few">Vybráno: %1$d</item>
+        <item quantity="many">Vybráno: %1$d</item>
+        <item quantity="other">Vybráno: %1$d</item>
+    </plurals>
+    <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s/%2$s</string>
+    <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
+        <item quantity="one">Vybrané zkratky: %1$d, nejvýše %2$d</item>
+        <item quantity="few">Vybrané zkratky: %1$d, nejvýše %2$d</item>
+        <item quantity="many">Vybrané zkratky: %1$d, nejvýše %2$d</item>
+        <item quantity="other">Vybrané zkratky: %1$d, nejvýše %2$d</item>
+    </plurals>
+    <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Změnit zkratku %1$s, %2$s</string>
+    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Posunout dopředu: %1$s</string>
+    <string name="dashboard_remove_shortcut" volt:src="a0fa5dc9717f24a09c80391494fbbf46fcd9fcf6">Odebrat zkratku: %1$s</string>
+    <string name="dashboard_add_shortcut" volt:src="824ff298b4221456b34b069c13c1a5bedb1ad968">Přidat zkratku</string>
+    <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Přidat zkratku rychlého přístupu</string>
+    <string name="dashboard_close_quick_settings" volt:src="1e16a34057e43a7e9b6fae057d32a201cb9bdeb8">Zavřít rychlý přístup</string>
+    <string name="dashboard_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Hledat v nastavení</string>
+    <string name="dashboard_search_quick_settings" volt:src="e991cbd96e4f033d9294152e80b808db45e14a7f">Hledat v rychlém přístupu</string>
+    <string name="dashboard_shortcut" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="dashboard_shortcut_selected" volt:src="d402d676908fb25f990be350c72f2b72a5e471e2">%1$s, %2$s, vybráno</string>
+    <string name="dashboard_shortcut_toggle" volt:src="90915c6200c3a00184f2c6ab58e8d7ab70bab9f7">%1$s, %2$s, přepínač</string>
+    <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Žádné odpovídající nastavení</string>
+    <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Vybrat zkratku</string>
+    <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Zavřít výběr zkratek</string>
+    <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Uložit</string>
+    <string name="dashboard_window_minutes" volt:src="551e151ec56bfa58644e3232f909169e26420e9e">%1$s min</string>
+    <string name="dashboard_window_hours" volt:src="3708457c3189d22c84d3b9ea33b4e3a05a66e6fc">%1$s h</string>
+    <string name="dashboard_window_one_day" volt:src="4aafdce4b09bfe4c0bbb15c1316858e3f3068be1">1 den</string>
+    <plurals name="dashboard_window_days" volt:src="3a71b0b1ac46710055e637ab8be8330dabeceace">
+        <item quantity="one">%1$d den</item>
+        <item quantity="few">%1$d dny</item>
+        <item quantity="many">%1$d dne</item>
+        <item quantity="other">%1$d dní</item>
+    </plurals>
+    <string name="dashboard_window_one_year" volt:src="9623fd162b4b3396f13b7877161c289c65958288">1 rok</string>
+    <string name="dashboard_window_two_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 roky</string>
+    <string name="dashboard_set_comparison" volt:src="8f2ce90b3077f4e92315c71c9dcdfbde07024b34">Nastavit srovnávací hodnotu</string>
+    <string name="dashboard_capacity_hint" volt:src="25459a0f7901eb1174287e90b1c178cecc4f112e">716 Wh · UT5 MAX</string>
+    <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Udávaná kapacita ve watthodinách</string>
+    <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Použít hodnotu modelu</string>
+    <string name="dashboard_capacity_limit" volt:src="e950ce1d44324dbddf531e00ddfb58ba4b0603f5">0–10 000 Wh</string>
+    <string name="dashboard_search_parameters" volt:src="a0d40f931c452fcc977d655b79ae45ec2e945478">Hledat parametry</string>
+    <string name="dashboard_choose_parameter" volt:src="d30f59fe5563d417f763c3cc5ea33ceda06904bd">Vybrat parametr</string>
+    <string name="dashboard_search_readings" volt:src="b2388f11c9bf3c80bfda85e216c8dea246ecbbab">Hledat údaje</string>
+    <string name="dashboard_count_of_selected" volt:src="3fe59a55d689fb3e35fcb68600edf1cd9fcce901">Vybráno: %1$s/%2$s</string>
+    <string name="dashboard_all_readings" volt:src="2eebe68cde6c67da287eb233eb159616c2629193">Všechny údaje</string>
+    <string name="dashboard_reading_uncheck" volt:src="7e0530ef7a5d8f8793db0d827fb8f6a7dbb69f89">%1$s, vybráno, zrušit výběr</string>
+    <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Žádné odpovídající údaje</string>
+    <string name="dashboard_choose_one_reading" volt:src="020ca0df31d814c9399faf2d946bccfb1f84e3c0">Vyberte alespoň jeden údaj.</string>
+    <string name="dashboard_save_readings" volt:src="d0e01a05386bd4feee0606f5ac2e68b046b3e1f0">Uložit vybrané údaje</string>
+    <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Vybrat údaje</string>
+    <string name="dashboard_cancel_readings" volt:src="e4b17b6c5dbf2a6e2b9427b1bb305a019857689e">Zrušit výběr údajů</string>
+    <string name="dashboard_must_be_above" volt:src="6d99e9fc95e2f47592274cf569cc19a213982c86">Musí být vyšší než %1$s</string>
+    <string name="dashboard_must_be_below" volt:src="ed308e2951f06cd71a3842bd378a89953d0fb762">Musí být nižší než %1$s</string>
+    <string name="dashboard_columns" volt:src="6f72ece408a5c4ad7db41b0d6bc1245937250bde">Sloupce</string>
+    <string name="dashboard_rows" volt:src="e1b798d6d541d5e72ec6815b2ab4fc0c23d75ed2">Řádky</string>
+    <string name="dashboard_widget_size" volt:src="9d7a29700c4f2773063cb038353afc831c5dc055">Velikost widgetu</string>
+    <string name="dashboard_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Použít</string>
+    <string name="dashboard_column" volt:src="6bd93e63042c6232129fe3cda8d46cb8baf891b8">Sloupec</string>
+    <string name="dashboard_row" volt:src="380769e7515f5b2603bb58fe0c415781c2dac7d2">Řádek</string>
+    <string name="dashboard_move" volt:src="8198b6bd59ba9a1d74babde2a9ef812275ba7d5a">Přesunout</string>
+    <string name="dashboard_adaptive" volt:src="c04f8ecae9f434f28a04840d93d8a8a13d2a44b6">Adaptivní</string>
+    <string name="dashboard_adaptive_columns" volt:src="0cf2de71108308f0ef0412c984862a6f84cfb37e">Adaptivní sloupce</string>
+    <string name="dashboard_needs_wider_screen" volt:src="ca8c6c60ef5e5e5da34a3c83ba274a8a3279a3fc">Vyžaduje širší obrazovku</string>
+    <string name="dashboard_saved_layouts" volt:src="9f2b1d4f4259c56be28f5db94f9e58f305d6705e">Uložená rozložení</string>
+    <string name="dashboard_export" volt:src="220b02f17f3205f55ac7d264aa3d185db5b54264">Exportovat</string>
+    <string name="dashboard_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importovat</string>
+    <string name="dashboard_default_layout" volt:src="37cc2ca0602648d00bb9cd435425223696ce8d44">Výchozí rozložení</string>
+    <string name="dashboard_restore_defaults" volt:src="fba123ce491ac60a0f652ee2c74cc24cb06c25ce">Obnovit výchozí widgety</string>
+    <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Rozložení přehledu</string>
+    <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Zavřít rozložení přehledu</string>
+    <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Výchozí widgety obnoveny</string>
+    <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Uložit aktuální přehled do pozice %1$s</string>
+    <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Obnovit</string>
+    <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Obnovit pozici %1$s</string>
+    <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Obnovit pozici %1$s, %2$s</string>
+    <string name="dashboard_layout_name" volt:src="1511f633afa568e0f73e0bb2de30e3e26f2ad48f">Název rozložení</string>
+    <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Název uloženého rozložení</string>
+    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Nahradit pozici %1$s?</string>
+    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Uložit do pozice %1$s?</string>
+    <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Nahradit</string>
+    <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Rozložení se nepodařilo uložit. Zkuste to znovu.</string>
+    <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Uloženo do pozice %1$s</string>
+    <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Obnovit „%1$s“?</string>
+    <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Nahradí se vaše rozložení a nastavení sloupců na všech koloběžkách.</string>
+    <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Obnovení se nepodařilo. Nic se nezměnilo.</string>
+    <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">Obnoveno: „%1$s“</string>
+</resources>
