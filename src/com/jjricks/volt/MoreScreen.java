@@ -73,9 +73,12 @@ public final class MoreScreen implements AppScreen {
             "Experimental controls", "Data & history", "About & permissions", "Developer options"};
     private static final String[] SECTION_TITLES = {"App preferences", "My scooters", "PIN & proximity",
             "Experimental controls", "Data & history", "About & permissions", "Developer options"};
-    /** SECTION_LABELS as the menu shows them, from the catalog, by index (MoreTextTest checks the English). SECTION_TITLES stays
-     * English for now: G1 refuses changing its use beside the Units and Compatibility titles (l10n/pending/b18-more-followups.md). */
+    /** SECTION_LABELS as the menu shows them, from the catalog, by index (MoreTextTest checks the English). */
     private static final int[] SECTION_LABEL_IDS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY,
+            T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
+    /** SECTION_TITLES as the submenu title shows them, from the catalog, by the same index (FollowupsTest checks the English
+     * against SECTION_TITLES, which stays as that reference, as SECTION_LABELS does for the menu rows). */
+    private static final int[] SECTION_TITLE_IDS = {T.MORE_SECTION_APP, T.MORE_SECTION_SCOOTERS, T.MORE_SECTION_SECURITY_TITLE,
             T.MORE_SECTION_LAB, T.MORE_SECTION_DATA, T.MORE_SECTION_ABOUT, T.MORE_SECTION_DEVELOPER};
     /** The Units subpage's section id (selectSection, sections). */
     private static final String UNITS_SECTION = "Units";
@@ -324,7 +327,7 @@ public final class MoreScreen implements AppScreen {
         sectionBack.setContentDescription(T.moreBackTo(parent));
         if (units) sectionTitle.setText(T.moreUnitsTitle());
         if (compatibility) sectionTitle.setText(developerEnabled() ? T.moreCompatibilityTitle() : T.moreUnfinishedTestTitle());
-        for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(SECTION_TITLES[i]);
+        for (int i = 0; i < SECTIONS.length; i++) if (SECTIONS[i].equals(shown)) sectionTitle.setText(T.render(SECTION_TITLE_IDS[i]));
         for (Map.Entry<String,LinearLayout> section : sections.entrySet())
             section.getValue().setVisibility(section.getKey().equals(shown) ? View.VISIBLE : View.GONE);
         if (index || wide) dataIndexRow.value(historyFileSize());
@@ -733,17 +736,6 @@ public final class MoreScreen implements AppScreen {
     private void note(LinearLayout box, String value) {
         TextView text = ui.caption(value); text.setPadding(0, ui.dp(7), 0, ui.dp(7)); box.addView(text);
     }
-    private TextView button(LinearLayout box, String label, Runnable action, boolean primary) {
-        TextView view = primary ? ui.button(label, action) : ui.text(label, 15, false);
-        if (!primary) {
-            view.setTextColor(new ColorStateList(new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {}}, new int[] {ui.muted, ui.text})); view.setGravity(Gravity.CENTER_VERTICAL); view.setMinHeight(ui.dp(52));
-            view.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(10)); view.setFocusable(true);
-            view.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 24)), ui.shape(Color.TRANSPARENT, 10, 0), null));
-            view.setOnClickListener(v -> { if (action != null) action.run(); });
-            if (box.getChildCount() > 0) ui.divider(box);
-        }
-        ui.decorate(view, ui.labelIcon(label)); box.addView(view); return view;
-    }
     private TextView value(LinearLayout box, String label) {
         TextView text = ui.text(label, 15, true); text.setTextColor(ui.accent);
         text.setPadding(0, ui.dp(10), 0, ui.dp(10)); box.addView(text); return text;
@@ -1035,7 +1027,7 @@ public final class MoreScreen implements AppScreen {
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
-            background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠");
+            background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠\uFE0E");
             background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
@@ -1203,7 +1195,7 @@ public final class MoreScreen implements AppScreen {
         ScooterProfiles.Profile profile = active();
         if (!all && profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
         final String profileId = all ? null : profile.id;
-        confirm(T.moreHistoryClearTitle(), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody(profile.name),
+        confirm(T.moreHistoryClearTitle(), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody(profile.displayName()),
                 T.moreClear(), () -> {
                     if (service() == null || service().history == null) return;
                     service().clearHistory(profileId, () -> {
@@ -1257,7 +1249,7 @@ public final class MoreScreen implements AppScreen {
         label(T.morePinHandlebar());
         LinearLayout pin = group();
         pinRow = toggleRow(pin, "lock", T.morePinFallback(), null,
-                enabled -> { service().ble.enablePin(enabled); host.toast(service().ble.message()); refresh(); });
+                enabled -> { service().ble.enablePin(enabled); host.toast(service().ble.displayText()); refresh(); });
         pinRow.icon.step = "1";
         pinRefresh = rowButton(pinRow, "history", T.morePinRead(), () -> { service().ble.readPin(); refresh(); });
         pinSpinner = rowSpinner(pinRow);
@@ -1265,10 +1257,10 @@ public final class MoreScreen implements AppScreen {
         label(T.moreProximityLabel());
         LinearLayout near = group();
         bondRow = row(near, "bluetooth", T.moreProximityPair(), null,
-                () -> { service().ble.bond(); host.toast(service().ble.message()); refresh(); });
+                () -> { service().ble.bond(); host.toast(service().ble.displayText()); refresh(); });
         bondRow.icon.step = "2";
         proximityRow = toggleRow(near, "bluetooth", T.moreProximityLabel(), null,
-                enabled -> { service().ble.set("proximity_key", enabled ? 1 : 0); host.toast(service().ble.message()); refresh(); });
+                enabled -> { service().ble.set(ProximityFollowUp.KEY, enabled ? 1 : 0); host.toast(service().ble.displayText()); refresh(); });
         proximityRow.icon.step = "3";
         proximitySpinner = rowSpinner(proximityRow);
         LinearLayout chips = row(); chips.setPadding(0, ui.dp(5), 0, 0);
@@ -1444,7 +1436,7 @@ public final class MoreScreen implements AppScreen {
             if (service().ble.pending() != null) { error.setText(T.morePinWait()); return; }
             service().ble.setPin(new String(first[0]));
             if ("pin".equals(service().ble.pending())) {
-                host.toast(service().ble.message()); dialog.dismiss();
+                host.toast(service().ble.displayText()); dialog.dismiss();
             } else error.setText(T.morePinNotStarted(service().ble.displayMessage()));
             refresh();
         });
@@ -1565,7 +1557,7 @@ public final class MoreScreen implements AppScreen {
     /** The owner clears this scooter's finished tries: their results, report entries and Set back. Unfinished ones stay. */
     private void clearTries() {
         confirm(T.moreLabClearTitle(), T.moreLabClearBody(),
-                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n)); refresh(); });
+                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n)); refresh(); });
     }
     private void refreshLab(ScooterService s) {
         BleController ble = s.ble; boolean ready = ble.ready();
@@ -1649,6 +1641,11 @@ public final class MoreScreen implements AppScreen {
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         if (f.key.equals("start_speed") && value == 0) return T.moreLabStandingStart();
+        Msg oem = d.oemText(value);
+        return oem != null ? oem.toString() : DisplayUnits.featureValueText(f, value, settings().getString("units", "mi"));
+    }
+    /** labValue's English id (oemLabel, or featureValue), which CompatibilityPanel.question chooses its sentence by; never shown. */
+    private String labId(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         String oem = d.oemLabel(value);
         return oem != null ? oem : DisplayUnits.featureValue(f, value, settings().getString("units", "mi"));
     }
@@ -1998,7 +1995,7 @@ public final class MoreScreen implements AppScreen {
             if (live == null && shown != null && shown.terminal() && shown.keeps() && shown.feature.equals(feature.key) && shown.nothingWritten() && !shown.note().isEmpty()) doing = shown.noteMsg().toString();
             progress.setText(doing); progress.setVisibility(doing.isEmpty() ? View.GONE : View.VISIBLE);
             observe.setVisibility(asking ? View.VISIBLE : View.GONE);
-            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labValue(feature, d, live.target)) : T.moreLabDidYouSee());
+            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labId(feature, d, live.target), labValue(feature, d, live.target)) : T.moreLabDidYouSee());
             unfinished.setVisibility(held ? View.VISIBLE : View.GONE);
             controls.setVisibility(live == null && !held ? View.VISIBLE : View.GONE);
             if (selected == null && current != null) {
@@ -2047,7 +2044,7 @@ public final class MoreScreen implements AppScreen {
     /** Where the official app offers this control instead (OEM tables), in plain words. */
     private static String labWhy(String key, DeviceDescriptor d) {
         int[] n = ModelRegistry.offeredElsewhere(key, d);
-        return n[2] > 0 ? (n[2] == 1 ? T.moreLabWhyOne(n[2]) : T.moreLabWhyMany(n[2]))
+        return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])
                 : T.moreLabWhyNone();
     }
     private void commandEvidence() {
@@ -2458,7 +2455,7 @@ public final class MoreScreen implements AppScreen {
         BleController.State state = s.ble.state();
         String link = s.ble.ready() ? T.moreLinkConnected()
                 : state == BleController.State.DISCONNECTED ? T.moreLinkDisconnected() : T.moreLinkConnecting();
-        String name = p == null ? T.moreIndexNoScooter() : p.name;
+        String name = p == null ? T.moreIndexNoScooter() : p.displayName();
         String status = p == null ? T.moreIndexAdd() : T.moreIndexStatus(role, link);
         indexProfileName.setText(name); indexProfileState.setText(status);
         indexProfileCard.setContentDescription(T.moreIndexDescription(name, status));
@@ -2479,7 +2476,7 @@ public final class MoreScreen implements AppScreen {
             boolean selected = p != null && p.id.equals(item.id);
             boolean connected = selected && s.ble.ready();
             boolean connecting = selected && state != BleController.State.DISCONNECTED && !connected;
-            card.name.setText(item.name);
+            card.name.setText(item.displayName());
             String detail = connected ? T.moreScootersConnected() : connecting ? T.moreConnecting() : T.moreScootersOffline();
             card.stateLine.setVisibility(selected ? View.VISIBLE : View.GONE);
             card.status.setText(detail); card.status.setTextColor(ui.muted);

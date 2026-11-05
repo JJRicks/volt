@@ -55,6 +55,13 @@ def sample_text(text, formatted=True):
     return "".join(out)
 
 
+def language_settings(lang):
+    """The language's settings as a pack shows them."""
+    language = collections.OrderedDict((f, getattr(lang, f)) for f in LANGUAGE_FIELDS)
+    language["plurals"] = translib.plural_categories(lang)
+    return language
+
+
 def read_current(paths, lang, area):
     """{key: (kind, {quantity: text}, src_sha1 or None)} from res/<folder>/strings_<area>.xml, if any."""
     path = paths.res(lang.folder, "strings_%s.xml" % area)
@@ -70,6 +77,14 @@ def read_current(paths, lang, area):
         items = collections.OrderedDict((q, it.text) for q, it in entry.items.items())
         current[entry.name] = (entry.kind, items, sha)
     return current
+
+
+def glossary_hits(terms, text):
+    """The glossary terms a text uses, as a pack entry shows them."""
+    return [collections.OrderedDict([
+        ("id", term.id), ("term", term.term), ("definition", term.definition),
+        ("dnt", term.dnt), ("safety", term.safety or None), ("target", term.targets)])
+        for term in translib.glossary_hits(terms, text)]
 
 
 def build_pack(paths, tag, area, measurer=None, sources=None):
@@ -109,11 +124,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
         budget = translib.parse_max(s.meta.get("max"))
         sha = translib.source_sha1(s.kind, s.items)
         text = " ".join(s.items.values())
-        hits = []
-        for term in translib.glossary_hits(terms, text):
-            hits.append(collections.OrderedDict([
-                ("id", term.id), ("term", term.term), ("definition", term.definition),
-                ("dnt", term.dnt), ("safety", term.safety or None), ("target", term.targets)]))
+        hits = glossary_hits(terms, text)
         neighbours = []
         for other in rows[max(0, index - NEIGHBOURS):index] + rows[index + 1:index + 1 + NEIGHBOURS]:
             neighbours.append(collections.OrderedDict([
@@ -141,8 +152,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
 
     style_path = paths.style(tag)
     style = l10nlib.read_text(style_path) if os.path.exists(style_path) else None
-    language = collections.OrderedDict((f, getattr(lang, f)) for f in LANGUAGE_FIELDS)
-    language["plurals"] = translib.plural_categories(lang)
+    language = language_settings(lang)
     pack = collections.OrderedDict([
         ("format", FORMAT), ("tag", tag), ("area", area), ("folder", lang.folder),
         ("source_file", "res/values/strings_%s.xml" % area), ("language", language),
@@ -181,6 +191,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     paths = translib.Paths(args.root)
     try:
+        translib.require_valid_glossary(paths, args.tag)
         sources, _ = translib.load_source(paths)
         areas = list(sources) if args.all else [args.area]
         measurer = fontmetrics.Measurer(paths.font(), use_java=not args.no_java)
