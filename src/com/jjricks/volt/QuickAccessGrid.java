@@ -83,7 +83,7 @@ final class QuickAccessGrid extends ViewGroup {
             String state = feature == null || feature.sensitive && !unmapped ? ""
                     : unmapped ? NO_VALUE : pending ? T.dashboardModelTileUpdating() : value == null ? NO_VALUE
                     : decision != null && decision.oemText(value) != null ? decision.oemText(value).render()
-                    : DisplayUnits.featureValue(feature, value, units);
+                    : DisplayUnits.featureValueText(feature, value, units);
             if (feature != null && feature.key.equals("range_algorithm")) {
                 featureLive = service != null && service.profiles.active() != null;
                 state = featureLive && service.usesLearnedRange() ? T.dashboardModelTileRangeLearned() : T.dashboardModelTileRangeScooter();
