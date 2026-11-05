@@ -568,12 +568,11 @@
     <!-- A saved slot's summary line. -->
     <string name="dashboard_slot_unreadable" volt:screen="Dashboard layout slots" volt:purpose="status">Unreadable</string>
     <string name="dashboard_slot_empty" volt:screen="Dashboard layout slots" volt:purpose="status">Empty</string>
-    <plurals name="dashboard_slot_widgets" volt:screen="Dashboard layout slots" volt:purpose="value">
-        <item quantity="one">%1$d widget</item>
-        <item quantity="other">%1$d widgets</item>
+    <!-- A saved layout slot: how many widgets it holds, then when it was saved (%2$s). -->
+    <plurals name="dashboard_slot_summary" volt:screen="Dashboard layout slots" volt:purpose="value">
+        <item quantity="one">%1$d widget · %2$s</item>
+        <item quantity="other">%1$d widgets · %2$s</item>
     </plurals>
-    <!-- %1$s is dashboard_slot_widgets, %2$s when the slot was saved. -->
-    <string name="dashboard_slot_summary" volt:screen="Dashboard layout slots" volt:purpose="value">%1$s · %2$s</string>
     <!-- The advertised capacity row's value: %1$s the energy, %2$s the unit ("Wh"), %3$s dashboard_rating_model or nothing. -->
     <string name="dashboard_rating_value" volt:screen="Widget options" volt:purpose="value" volt:safety="experimental">%1$s %2$s%3$s</string>
     <!-- Said after the rating when it is the model's documented one rather than the owner's: keep the separator and its leading space. -->

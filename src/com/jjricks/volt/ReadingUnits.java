@@ -66,15 +66,15 @@ final class ReadingUnits {
         return new String[]{amount, unit, secondary};
     }
 
-    private static boolean space(char c) { return c == ' ' || c == ' ' || c == ' '; }
-
+    /** Where a space or a no-break space (U+00A0, U+202F), which a language's fmt_quantity may use, last occurs. */
     private static int lastSpace(String text) {
-        for (int i = text.length() - 1; i >= 0; i--) if (space(text.charAt(i))) return i;
-        return -1;
+        return Math.max(text.lastIndexOf(' '), Math.max(text.lastIndexOf(0xA0), text.lastIndexOf(0x202F)));
     }
 
     private static int firstSpace(String text) {
-        for (int i = 0; i < text.length(); i++) if (space(text.charAt(i))) return i;
-        return -1;
+        int first = text.indexOf(' ');
+        for (int noBreak : new int[]{text.indexOf(0xA0), text.indexOf(0x202F)})
+            if (noBreak >= 0 && (first < 0 || noBreak < first)) first = noBreak;
+        return first;
     }
 }

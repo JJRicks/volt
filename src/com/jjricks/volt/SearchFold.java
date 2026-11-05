@@ -11,9 +11,6 @@ import java.util.Locale;
  * While Volt is English this is exactly toLowerCase(Locale.ROOT), so what a search finds does not change.
  */
 final class SearchFold {
-    /** What the shortcut search puts between a shortcut's name and its group, so a query can span both. */
-    static final String SPACE = " ";
-
     private SearchFold() {}
 
     static String fold(String text) {
@@ -34,5 +31,18 @@ final class SearchFold {
     /** True when text, folded, holds the query, which {@link #fold} already folded. */
     static boolean holds(String text, String foldedQuery) {
         return fold(text).contains(foldedQuery);
+    }
+
+    /** A name and its group, with a space between them so a query can span both. */
+    static boolean holds(String name, String group, String foldedQuery) {
+        return holds(name + " " + group, foldedQuery);
+    }
+
+    /**
+     * The same for names in the shown language, beside the English ones a search already looks in. Volt in English
+     * has only those, so this finds nothing more and what a search finds there does not change.
+     */
+    static boolean holdsShown(String name, String group, String foldedQuery) {
+        return !Fmt.legacy() && holds(name, group, foldedQuery);
     }
 }
