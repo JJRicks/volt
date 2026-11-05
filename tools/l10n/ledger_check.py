@@ -378,13 +378,17 @@ def _check_split(split, where):
         if not isinstance(item, dict):
             raise LedgerError("%s: each split item is a string or an object" % where)
         if "spec" in item:
-            if set(item) != {"spec", "arg", "value", "as"}:
+            if set(item) - {"quantity"} != {"spec", "arg", "value", "as"} or item.get("quantity", True) is not True:
                 raise LedgerError("%s: a spec item is {\"spec\": \"%%.1f\", \"arg\": n, \"value\": <base argument>, "
-                                  "\"as\": <the Fmt call head passes>}" % where)
+                                  "\"as\": <the Fmt call head passes>}, with \"quantity\": true on the %%d that picks "
+                                  "a plural's item" % where)
             m = FORMAT_SPEC.fullmatch(item["spec"]) if isinstance(item["spec"], str) else None
             if m is None or m.group(5) in ("%", "n"):
                 raise LedgerError("%s: %r is not a format specifier that takes an argument (%%%% and %%n are text)" % (
                     where, item["spec"]))
+            if "quantity" in item and item["spec"] != "%d":
+                raise LedgerError("%s: a plural's quantity is a whole number: only a plain %%d takes \"quantity\", not "
+                                  "%s" % (where, item["spec"]))
             for field in ("value", "as"):
                 if not isinstance(item[field], str) or not item[field].strip():
                     raise LedgerError("%s: a spec item's %r is Java source" % (where, field))
@@ -425,6 +429,8 @@ def _check_split(split, where):
         derived.append("".join(buffer))
     if sorted(args) != list(range(1, len(args) + 1)):
         raise LedgerError("%s: the split's args must be 1 to %d with no gaps" % (where, len(args)))
+    if sum(1 for item in split if isinstance(item, dict) and "quantity" in item) > 1:
+        raise LedgerError("%s: a format row has one plural quantity" % where)
     if not kinds & {"spec", "key"}:
         raise LedgerError("%s: a format row splits a specifier out to Fmt or text out to a key; without either "
                           "it is a template row" % where)
@@ -439,7 +445,7 @@ def _check_split(split, where):
 
 
 def choice_leaves(node):
-    """The pieces sequences of a choice row's branches, then before else, depth first."""
+    """A choice row's branches, then before else, depth first: each a pieces array or a plural's forms."""
     if isinstance(node, dict) and "if" in node:
         return choice_leaves(node["then"]) + choice_leaves(node["else"])
     return [node]
@@ -455,11 +461,23 @@ def choice_conditions(node):
 def _check_choice(node, where, depth=0):
     if isinstance(node, list):
         _check_sequence(node, where)
+        if any(isinstance(p, dict) and "helper" in p for p in node):
+            raise LedgerError("%s: a helper piece belongs only in a plural branch (its count is the plural's quantity)"
+                              % where)
+        return
+    if isinstance(node, dict) and "if" not in node and "other" in node and all(q in gen_catalog.QUANTITIES for q in node):
+        for quantity, sequence in node.items():
+            _check_sequence(sequence, "%s[%s]" % (where, quantity))
+        _check_helper_row(node, "plural", where)
+        counts = set(expressions.source_key(h["hole"]) for h in holes(node) if h.get("quantity"))
+        if len(counts) != 1:
+            raise LedgerError("%s: a plural branch has exactly one quantity source" % where)
         return
     if not isinstance(node, dict) or set(node) != {"if", "then", "else"} or not isinstance(node["if"], str) or \
             not node["if"].strip():
         raise LedgerError("%s: a choice row's pieces are {\"if\": <condition Java>, \"then\": <branch>, \"else\": "
-                          "<branch>}, each branch a pieces array or another such object" % where)
+                          "<branch>}, each branch a pieces array, a plural's {\"one\": [...], \"other\": [...]} or "
+                          "another such object" % where)
     if depth > 8:
         raise LedgerError("%s: a choice row nests at most 8 conditions" % where)
     try:
@@ -472,7 +490,7 @@ def _check_choice(node, where, depth=0):
 
 def sequences(pieces):
     if isinstance(pieces, dict) and "if" in pieces:
-        return choice_leaves(pieces)
+        return [s for leaf in choice_leaves(pieces) for s in sequences(leaf)]
     return list(pieces.values()) if isinstance(pieces, dict) else [pieces]
 
 
@@ -545,7 +563,6 @@ def parse_ledger(text, source="ledger"):
                 if note.startswith("manual:"):
                     raise LedgerError("%s: a choice row is checked whole; it takes no \"manual:\" note" % where)
                 _check_choice(pieces, where)
-                _check_helper_row(pieces, kind, where)
                 if len(choice_leaves(pieces)) != len(key.split(",")):
                     raise LedgerError("%s: a choice row has %d branch(es) and %d key(s)" % (
                         where, len(choice_leaves(pieces)), len(key.split(","))))
@@ -707,8 +724,28 @@ def render_simple(template, pieces):
     return SIMPLE_PLACEHOLDER.sub(substitute, template), original
 
 
+def _fill_literal_count(template, form, forms):
+    """A plural's one item with its quantity's placeholder filled in, when the row's one form spells the count
+    ("Cleared 1 try") and only another form holds that hole: English serves this item at exactly 1."""
+    own = set(h["arg"] for h in holes(form))
+    quantities = set(h["arg"] for h in holes(forms) if h.get("quantity"))
+
+    def substitute(m):
+        arg = int(m.group(1))
+        return "1" if arg in quantities and arg not in own else m.group(0)
+    return re.sub(r"%(\d+)\$[sd]", substitute, template)
+
+
 def split_is_format_literal(split):
     return any(isinstance(item, dict) and "spec" in item for item in split)
+
+
+def format_quantity(row):
+    """The spec item of a format row that picks a plural's item ("quantity": true), or None."""
+    for item in row.split or ():
+        if isinstance(item, dict) and item.get("quantity") is True:
+            return item
+    return None
 
 
 def check_format_catalog(row, entry, catalog, changes, where):
@@ -716,12 +753,23 @@ def check_format_catalog(row, entry, catalog, changes, where):
     filled with sentinels for the numbers and holes and with the keys' English for the text items,
     prints the original literal (or + chain) with the same sentinels."""
     problems = []
-    template = extraction_text(entry, "other", changes, problems, where)
+    if entry.kind == "plural":
+        # The base prints one sentence at every count, so every English item must print it too.
+        for quantity in sorted(entry.items):
+            problems.extend(_check_format_template(row, entry, quantity, catalog, changes, where))
+        return problems
+    return _check_format_template(row, entry, "other", catalog, changes, where)
+
+
+def _check_format_template(row, entry, quantity, catalog, changes, where):
+    problems = []
+    named = row.key if entry.kind == "string" else "%s[%s]" % (row.key, quantity)
+    template = extraction_text(entry, quantity, changes, problems, where)
     if template is None:
         return problems
     if not re.fullmatch(r"(?:[^%]|%%|%[1-9][0-9]*\$s)*", template):
         return problems + ["%s: format row: template %s is %r; a format row's template takes only %%n$s placeholders" % (
-            where, row.key, template)]
+            where, named, template)]
     literal = split_is_format_literal(row.split)
     shown = format_text if literal else (lambda raw: raw)
     values, original = {}, []
@@ -756,7 +804,7 @@ def check_format_catalog(row, entry, catalog, changes, where):
     rendered, original = SIMPLE_PLACEHOLDER.sub(substitute, template), "".join(original)
     if rendered != original:
         problems.append("%s: format row: template %s renders %r with its text keys and sentinels, the original %r" % (
-            where, row.key, rendered, original))
+            where, named, rendered, original))
     return problems
 
 
@@ -770,6 +818,11 @@ def check_against_catalog(rows, catalog, changes=None):
                 entry = catalog.get(key)
                 if entry is None:
                     problems.append("%s: key %s is not in res/values/strings*.xml" % (where, key))
+                    continue
+                if isinstance(sequence, dict):
+                    # A plural branch is a plural row of its own against the catalog.
+                    problems.extend(check_against_catalog([row._replace(kind="plural", key=key, pieces=sequence)],
+                                                          catalog, changes))
                     continue
                 if entry.kind != "string":
                     problems.append("%s: choice key %s is a %s, but each branch is one string" % (where, key, entry.kind))
@@ -789,11 +842,11 @@ def check_against_catalog(rows, catalog, changes=None):
             continue
         if row.kind == "id-kept":
             continue
-        want = "plural" if row.kind == "plural" else "string"
+        want = "plural" if row.kind == "plural" or format_quantity(row) else "string"
         if entry.kind != want:
             problems.append("%s: key %s is a %s, but the row's kind is %s" % (where, row.key, entry.kind, row.kind))
             continue
-        if row.kind == "plural" and differing_english_items(entry) and not english_plurals_follow_english_rules():
+        if want == "plural" and differing_english_items(entry) and not english_plurals_follow_english_rules():
             problems.append(
                 "%s: plural %s's English %s and other items differ (%s), but AndroidText still lets Android pick "
                 "the item by the plural rules of the phone's first locale, so where Volt ships no translation a "
@@ -838,6 +891,8 @@ def check_against_catalog(rows, catalog, changes=None):
                     problems.append("%s: plural %s has no %s item" % (where, row.key, quantity))
                     continue
                 text = extraction_text(entry, quantity, changes, problems, where)
+                if text is not None and quantity == "one":
+                    text = _fill_literal_count(text, sequence, row.pieces)
                 rendered = render_simple(text, sequence) if text is not None else None
                 if rendered is not None and rendered[0] != rendered[1]:
                     problems.append("%s: plural %s[%s] renders %r with sentinels, the original %r" % (
@@ -896,6 +951,25 @@ def _first_literal_on(index, line):
     return None
 
 
+def helper_literal_arguments(tokens, first, last, names):
+    """[token] of the string literals passed whole to a call of one of names, within first..last."""
+    found = []
+    for j in range(first, last + 1):
+        if tokens[j].kind == "string" and _op(tokens, j - 1, "(", ",") and _op(tokens, j + 1, ")", ","):
+            depth, o = 0, j - 1
+            while o >= 0:
+                if _op(tokens, o, ")"):
+                    depth += 1
+                elif _op(tokens, o, "("):
+                    if depth == 0:
+                        break
+                    depth -= 1
+                o -= 1
+            if o > 0 and tokens[o - 1].kind == "ident" and tokens[o - 1].value in names and not _op(tokens, o - 2, "."):
+                found.append(j)
+    return found
+
+
 def locate(row, diff, claimed):
     """(token indexes, manual, problem) for the base literals one src row describes."""
     index = diff.base
@@ -914,22 +988,8 @@ def locate(row, diff, claimed):
             names = set(p["helper"] for p in helper_pieces(row.pieces))
             if names:
                 # A helper call's literal arguments (plural(n, "scooter")) leave with the expression.
-                tokens = index.tokens
-                for j in range(best.span[0], best.span[1] + 1):
-                    if tokens[j].kind == "string" and j not in found and _op(tokens, j - 1, "(", ",") and \
-                            _op(tokens, j + 1, ")", ","):
-                        depth, o = 0, j - 1
-                        while o >= 0:
-                            if _op(tokens, o, ")"):
-                                depth += 1
-                            elif _op(tokens, o, "("):
-                                if depth == 0:
-                                    break
-                                depth -= 1
-                            o -= 1
-                        if o > 0 and tokens[o - 1].kind == "ident" and tokens[o - 1].value in names and \
-                                not _op(tokens, o - 2, "."):
-                            found.append(j)
+                found.extend(j for j in helper_literal_arguments(index.tokens, best.span[0], best.span[1], names)
+                             if j not in found)
             return sorted(found), False, None
     if row.kind == "format":
         on_line = [json.dumps(e.pieces, ensure_ascii=False) for e in index.expressions
@@ -1047,7 +1107,8 @@ def expected_arguments(row):
             else:
                 source = item.get("as", item["hole"])
             by_arg[item["arg"]] = expressions.source_key(source)
-        return None, [by_arg[i] for i in sorted(by_arg)]
+        counted = format_quantity(row)
+        return (expressions.source_key(counted["value"]) if counted else None), [by_arg[i] for i in sorted(by_arg)]
     by_arg, quantity = {}, None
     for hole in holes(row.pieces):
         source = expressions.source_key(hole.get("as", hole["hole"]))
@@ -1063,7 +1124,7 @@ def _passes_holes(row, actual):
         return actual in ([], None)
     if actual is None:
         return False
-    if row.kind == "plural":
+    if row.kind == "plural" or format_quantity(row):
         if not actual or (quantity is not None and actual[0] != quantity):
             return False
         actual = actual[1:]
@@ -1085,7 +1146,7 @@ def check_call_sites(row, calls, path=None, ranges=None, used=None, after=-1):
                         calls["bare"].get(constant, []), key=lambda c: (c[0], c[2]))
     passing = [c for c in candidates if _passes_holes(row, c[3])]
     quantity, args = expected_arguments(row)
-    want = ([" ".join(quantity) if quantity else "<quantity>"] if row.kind == "plural" else []) + \
+    want = ([" ".join(quantity) if quantity else "<quantity>"] if row.kind == "plural" or format_quantity(row) else []) + \
         [" ".join(a) for a in args]
     if not passing:
         found = [c for c in candidates if c[3] is not None]
@@ -1582,6 +1643,12 @@ def deleted_scope(diff, first, last):
         frame.update(range(head_first, opener + 1))
         frame.add(close)
         first, last = head_first, close
+        # An array table or anonymous class ends in ; after its }: `String[] NAMES = {...};` goes whole.
+        # The aligner may keep this ; and drop the one before the statement instead (deleted_whole).
+        if close + 1 < len(tokens) and tokens[close + 1].kind == "op" and tokens[close + 1].value == ";" and \
+                (close + 1 in deleted or (head_first > 0 and head_first - 1 in deleted)):
+            frame.add(close + 1)
+            last = close + 1
 
 
 DECLARATION_MODIFIERS = frozenset(("private", "public", "protected", "static", "final", "transient", "volatile"))
@@ -2178,11 +2245,14 @@ def format_review(row, where, diff, base_span, head_span, callers):
                 "G10 covers" % (owner, method or "<the enclosing method>"))
     else:
         site = ""
-    warning = "%s: format row at %s:%d: `%s` becomes `%s`; text %s%s%s; check by hand that each replacement prints " \
+    counted = format_quantity(row)
+    warning = "%s: format row at %s:%d: `%s` becomes `%s`; text %s%s%s%s; check by hand that each replacement prints " \
               "what its specifier did" % (
                   where, row.path, row.base_line, _excerpt(base_tokens[base_span[0]:base_span[1] + 1], None),
                   _excerpt(head_tokens[head_span[0]:head_span[1] + 1], None), ", ".join(keys) or "none",
-                  "; specifiers " + ", ".join(pairs) if pairs else "", site)
+                  "; specifiers " + ", ".join(pairs) if pairs else "",
+                  "; plural on %s, every English item printing this one sentence" % counted["value"] if counted else "",
+                  site)
     return problems, warning
 
 
@@ -3066,17 +3136,21 @@ def _has_text_literal(tokens, first, last):
     return any(tokens[j].kind in ("string", "char") for j in range(parts[1][0], parts[2][1] + 1))
 
 
-def _string_typed(tokens, first, last):
-    """True when first..last is surely a String in Java: a string literal, a + chain with a String among its
-    first two operands, or a ternary one of whose branches is (then its result is a reference and no
-    numeric promotion happens). Unknown values (names, calls) are not."""
+def _string_typed(tokens, first, last, helpers=()):
+    """True when first..last is surely a String in Java: a string literal, a call of a helper the row models
+    (G1 checks its body token for token), a + chain with a String among its first two operands, or a ternary one
+    of whose branches is (then its result is a reference and no numeric promotion happens). Unknown values
+    (names, calls) are not."""
     while _group(tokens, first, last):
         first, last = first + 1, last - 1
     if first == last:
         return tokens[first].kind == "string"
+    if tokens[first].value in helpers and _op(tokens, first + 1, "(") and \
+            expressions.match_forward(tokens, first + 1) == last:
+        return True
     parts = _ternary(tokens, first, last)
     if parts is not None:
-        return _string_typed(tokens, *parts[1]) or _string_typed(tokens, *parts[2])
+        return _string_typed(tokens, *parts[1], helpers) or _string_typed(tokens, *parts[2], helpers)
     top = _top_level(tokens, first, last)
     if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS for j in top):
         return False
@@ -3087,14 +3161,14 @@ def _string_typed(tokens, first, last):
     for j in cuts + [last + 1]:
         operands.append((start, j - 1))
         start = j + 1
-    return any(_string_typed(tokens, a, b) for a, b in operands[:2])
+    return any(_string_typed(tokens, a, b, helpers) for a, b in operands[:2])
 
 
-def parse_choice(index, first, last, literals, conditions):
+def parse_choice(index, first, last, literals, conditions, helpers=()):
     """The base expression first..last as items: ("s", text), ("c", char), ("h", source) or
     ("t", condition source key, condition source, then items, else items). literals collects the
     string and char tokens that are text (not inside a condition), conditions those in conditions.
-    Raises LedgerError for a numeric sum before the first string."""
+    helpers names the String helpers the row models. Raises LedgerError for a numeric sum before the first string."""
     tokens = index.tokens
     while _group(tokens, first, last) and not _ternary(tokens, first + 1, last - 1):
         inner = _top_level(tokens, first + 1, last - 1)
@@ -3107,13 +3181,14 @@ def parse_choice(index, first, last, literals, conditions):
         return [("h", " ".join(expressions.source_of(index.text, tokens, first, last).split()))]
     if parts is not None:
         (c1, c2), (t1, t2), (e1, e2) = parts
-        if not (_string_typed(tokens, t1, t2) or _string_typed(tokens, e1, e2)):
+        if not (_string_typed(tokens, t1, t2, helpers) or _string_typed(tokens, e1, e2, helpers)):
             raise LedgerError("`%s` chooses between char or number values (Java promotes them to one type), which a "
                               "choice row does not model" % expressions.source_of(index.text, tokens, first, last))
         conditions.update(j for j in range(c1, c2 + 1) if tokens[j].kind in expressions.LITERALS)
         source = expressions.source_of(index.text, tokens, c1, c2)
         return [("t", expressions.source_key(source), " ".join(source.split()),
-                 parse_choice(index, t1, t2, literals, conditions), parse_choice(index, e1, e2, literals, conditions))]
+                 parse_choice(index, t1, t2, literals, conditions, helpers),
+                 parse_choice(index, e1, e2, literals, conditions, helpers))]
     top = _top_level(tokens, first, last)
     if any(tokens[j].kind == "op" and tokens[j].value in LOOSER_THAN_PLUS or
            (tokens[j].kind == "ident" and tokens[j].value == "instanceof") for j in top):
@@ -3125,7 +3200,7 @@ def parse_choice(index, first, last, literals, conditions):
         start = j + 1
     items = []
     texty = [n for n, (a, b) in enumerate(operands) if (a == b and tokens[a].kind == "string") or
-             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _string_typed(tokens, a, b))]
+             (_group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _string_typed(tokens, a, b, helpers))]
     if len(operands) > 1 and (not texty or texty[0] > 1 or (texty[0] == 1 and tokens[operands[0][0]].kind == "char"
                                                             and operands[0][0] == operands[0][1])):
         if not texty:
@@ -3140,7 +3215,7 @@ def parse_choice(index, first, last, literals, conditions):
             items.append(("c", tokens[a].value))
             literals.add(a)
         elif _group(tokens, a, b) and _ternary(tokens, a + 1, b - 1) and _has_text_literal(tokens, a, b):
-            items.extend(parse_choice(index, a, b, literals, conditions))
+            items.extend(parse_choice(index, a, b, literals, conditions, helpers))
         else:
             items.append(("h", " ".join(expressions.source_of(index.text, tokens, a, b).split())))
     return items
@@ -3223,6 +3298,8 @@ def _leaf_items(sequence):
             out.append(("s", piece))
         elif "char" in piece:
             out.append(("c", piece["char"]))
+        elif "helper" in piece:
+            out.append(("h", helper_source(piece)))
         else:
             out.append(("h", piece["hole"]))
     return out
@@ -3242,12 +3319,41 @@ def _render_items(items):
     return " + ".join(shown)
 
 
+def _count_test(condition_key, count):
+    """True when the condition says count == 1, False when it says count != 1, None when it says neither."""
+    for sign, says in (("==", True), ("!=", False)):
+        if condition_key in (count + (sign, "1"), ("1", sign) + count):
+            return says
+    return None
+
+
+def force_count(items, count, is_one):
+    """items with the base's own n == 1 tests on count settled: English serves "one" only at 1."""
+    out = []
+    for item in items:
+        says = _count_test(item[1], count) if item[0] == "t" else None
+        if says is not None:
+            out.extend(force_count(item[3] if says == is_one else item[4], count, is_one))
+        elif item[0] == "t":
+            out.append(("t", item[1], item[2], force_count(item[3], count, is_one), force_count(item[4], count, is_one)))
+        else:
+            out.append(item)
+    return out
+
+
 def check_choice_branches(row, items, ids):
     """Problems when the row's branches are not the base expression with each condition forced. ids
     collects the (literal, variable) of every id test."""
     problems = []
 
     def walk(node, current, path):
+        if isinstance(node, dict) and "if" not in node:
+            # A plural branch: each English item must print the base at the counts English serves it for.
+            count = expressions.source_key(next(h["hole"] for h in holes(node) if h.get("quantity")))
+            for quantity, sequence in sorted(node.items()):
+                for is_one in ((True,) if quantity == "one" else (False, True) if "one" not in node else (False,)):
+                    walk(sequence, force_count(current, count, is_one), path + ["[%s]" % quantity])
+            return
         if isinstance(node, list):
             if any(i[0] == "t" for i in current):
                 problems.append("the branch %s still holds the choice %s of the base expression; give each of its "
@@ -3282,6 +3388,7 @@ def locate_choice(row, diff):
     index = diff.base
     tokens = index.tokens
     tried, last_problem, found = set(), None, []
+    helpers = frozenset(p["helper"] for p in helper_pieces(row.pieces))
     for k, tok in enumerate(tokens):
         if tok.kind not in expressions.LITERALS or tok.line != row.base_line:
             continue
@@ -3312,7 +3419,7 @@ def locate_choice(row, diff):
         tried.add((first, last))
         literals, conditions = set(), set()
         try:
-            items = parse_choice(index, first, last, literals, conditions)
+            items = parse_choice(index, first, last, literals, conditions, helpers)
         except LedgerError as error:
             last_problem = str(error)
             continue
@@ -3334,7 +3441,7 @@ def _leaf_call(index, pos, key, sequence):
     if pos > 0 and _op(tokens, pos - 1, "."):
         return None
     _, end = call_span(tokens, pos)
-    want = Row(None, 0, "", "", 0, sequence, key, "template", "", None)
+    want = Row(None, 0, "", "", 0, sequence, key, "plural" if isinstance(sequence, dict) else "template", "", None)
     return end if _passes_holes(want, _arguments(index, pos + 3)) else None
 
 
@@ -3342,7 +3449,7 @@ def match_choice_head(diff_head, pos, node, keys, calls):
     """The last token of a head choice at pos that mirrors node: [(] condition ? branch : branch [)],
     each leaf a call of its key passing its holes; calls collects the T/M tokens. Else None."""
     tokens = diff_head.tokens
-    if isinstance(node, list):
+    if not (isinstance(node, dict) and "if" in node):
         key = keys.pop(0)
         end = _leaf_call(diff_head, pos, key, node)
         if end is not None:
@@ -3422,6 +3529,13 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                                 for p in (first_problems or [problem]))
                 continue
             literals, span, items, ids = chosen
+            helpers = helper_pieces(row.pieces)
+            for piece in helpers:
+                helper_trouble = helper_problem(piece, diff.base)
+                if helper_trouble:
+                    problems.append("%s: %s" % (where, helper_trouble))
+            literals = sorted(set(literals).union(helper_literal_arguments(
+                diff.base.tokens, span[0], span[1], set(p["helper"] for p in helpers))))
             for j in range(span[0], span[1] + 1):
                 allowed_base[row.path].setdefault(j, id(row))
             for k in literals:
@@ -3469,7 +3583,18 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                 first, last = format_span
                 span = range(first, last + 1)
             elif row.kind in CATALOG_KINDS and is_manual:
-                first, last, _ = statement_of(diff, k)
+                first, last, terminator = statement_of(diff, k)
+                # A manual row may fold a second statement into its call: when every token of the statement
+                # holding one of its literals went, its ; went too. Each one is listed.
+                if terminator is not None and diff.base_token(terminator).value == ";" and deleted_whole(diff, k):
+                    gone_statement = _excerpt(diff.base.tokens[first:terminator + 1], None)
+                    if terminator in diff.changed_tokens()[0]:
+                        last = terminator
+                    else:  # the aligner kept this ; and dropped the one before the statement (deleted_whole)
+                        first -= 1
+                    warnings.append("%s: manual row at %s:%d deletes the whole statement `%s`; check by hand that its "
+                                    "call prints what that statement added" % (
+                                        where, row.path, row.base_line, gone_statement))
                 span = range(first, last + 1)
             elif row.kind in CATALOG_KINDS:
                 first, last = diff.base.expression_of(k).span
@@ -3649,6 +3774,8 @@ def run(base, head, explicit_ledgers=None, cwd=None):
                         _, spans = _argument_spans(head_tokens, call[2] + 3)
                     else:  # Msg.of(T.KEY, ...) or T.render(T.KEY, ...): the template's args follow the id
                         _, spans = _argument_spans(head_tokens, call[2] - 1)
+                        spans = spans[1:]
+                    if format_quantity(row):  # the call passes the quantity first
                         spans = spans[1:]
                     texts = sorted(item["arg"] for item in row.split if isinstance(item, dict) and "key" in item)
                     for arg in texts:

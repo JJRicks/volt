@@ -929,8 +929,8 @@ class NounLocalTest(GrammarCase):
         branch = {"one": [count, " charge skipped"], "other": [count, " charges skipped"]}
         choice = ARCHIVE + ":6\t%s\tcharges_not_restored,rides_not_restored\tchoice\t" % json.dumps(
             {"if": "charges", "then": branch, "else": branch})
-        with self.assertRaises(ledger_check.LedgerError):
-            ledger_check.parse_ledger(HEADER + choice + "\n")
+        # A plural branch is grammar now, but this one is not the base: the base prints plural(n, noun), a local.
+        self.assertTrue(self.check([choice])[0])
 
 
 class DeviceRulesTest(GrammarCase):
