@@ -1649,6 +1649,11 @@ public final class MoreScreen implements AppScreen {
     /** The value as the rider reads it: another model's labels, speeds in the rider's units, 0 km/h kick-start as Standing start. */
     private String labValue(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         if (f.key.equals("start_speed") && value == 0) return T.moreLabStandingStart();
+        Msg oem = d.oemText(value);
+        return oem != null ? oem.toString() : DisplayUnits.featureValueText(f, value, settings().getString("units", "mi"));
+    }
+    /** labValue's English id (oemLabel, or featureValue), which CompatibilityPanel.question chooses its sentence by; never shown. */
+    private String labId(ScooterCommands.Feature f, CapabilityResolver.Decision d, int value) {
         String oem = d.oemLabel(value);
         return oem != null ? oem : DisplayUnits.featureValue(f, value, settings().getString("units", "mi"));
     }
@@ -1998,7 +2003,7 @@ public final class MoreScreen implements AppScreen {
             if (live == null && shown != null && shown.terminal() && shown.keeps() && shown.feature.equals(feature.key) && shown.nothingWritten() && !shown.note().isEmpty()) doing = shown.noteMsg().toString();
             progress.setText(doing); progress.setVisibility(doing.isEmpty() ? View.GONE : View.VISIBLE);
             observe.setVisibility(asking ? View.VISIBLE : View.GONE);
-            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labValue(feature, d, live.target)) : T.moreLabDidYouSee());
+            if (asking) question.setText(verify ? CompatibilityPanel.question(feature.key, labId(feature, d, live.target), labValue(feature, d, live.target)) : T.moreLabDidYouSee());
             unfinished.setVisibility(held ? View.VISIBLE : View.GONE);
             controls.setVisibility(live == null && !held ? View.VISIBLE : View.GONE);
             if (selected == null && current != null) {

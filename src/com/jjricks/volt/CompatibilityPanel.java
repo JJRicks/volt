@@ -145,6 +145,21 @@ final class CompatibilityPanel {
         // An unreadable journal may hide an unfinished test, so say so whether or not a scooter is connected.
         if(!ble.testRecordsHealthy())root.addView(note(T.compatTestRecordsUnavailable()));
     }
+    /**
+     * The observation question, a whole sentence per case. value is the English id the case is chosen by (Decision.label,
+     * or MoreScreen's oemLabel/featureValue: "On"/"Off", a units label naming mph); shown is that value as the rider
+     * reads it, which the generic sentences name as it is shown.
+     */
+    static String question(String feature,String value,CharSequence shown){
+        switch(feature){
+            case "display_units": return value.contains("mph")?T.compatQuestionUnitsMph():T.compatQuestionUnitsKmh();
+            case "headlight": return "On".equals(value)?T.compatQuestionTailLightOn():"Off".equals(value)?T.compatQuestionTailLightOff():T.compatQuestionTailLight(shown);
+            case "turn_sound": return "On".equals(value)?T.compatQuestionTurnSoundOn():"Off".equals(value)?T.compatQuestionTurnSoundOff():T.compatQuestionTurnSound(shown);
+            case "auto_sensor": return "On".equals(value)?T.compatQuestionAutoLightsOn():"Off".equals(value)?T.compatQuestionAutoLightsOff():T.compatQuestionAutoLights(shown);
+            case "range_algorithm": return T.compatQuestionRange();
+            default: return T.compatQuestionDefault();
+        }
+    }
     private void liveTest(BleController ble,GuidedTest t){
         LinearLayout card=ui.card();root.addView(card);
         String label=ScooterCommands.find(t.feature).label().toString();CapabilityResolver.Decision d=decision(ble,t.keeps(),t.feature);
@@ -158,8 +173,9 @@ final class CompatibilityPanel {
             case RESTORE_PENDING: case RESTORE_AWAIT: status=muted(t.verifying()?T.compatCheckingUnchanged():T.compatSettingBack(base==null?from:d.labelText(base)));
                 status.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);card.addView(status);return;
             case OBSERVE:
-                // question() takes the English label id on purpose (B9, raw values): it compares it with "On"/"Off" and "mph".
-                card.addView(ui.text(question(t.feature,to),15,false));
+                // question() takes the English label id on purpose (B9, raw values): it compares it with "On"/"Off" and "mph",
+                // and names the value in the shown language.
+                card.addView(ui.text(question(t.feature,to,d.labelText(t.target)),15,false));
                 card.addView(ui.button(T.compatYes(),()->{ble.testEffect(true);refresh();}));
                 card.addView(ui.secondaryButton(T.compatNo(),()->{ble.testEffect(false);refresh();}));
                 card.addView(ui.secondaryButton(T.compatSkip(),()->{ble.testEffect(null);refresh();}));
@@ -218,16 +234,6 @@ final class CompatibilityPanel {
     }
     private void addRestore(LinearLayout card,BleController ble,TestJournal.Entry e,CapabilityResolver.Decision d,String text){
         TextView b=ui.button(unbroken(text),()->{ble.restoreTest(e.testId);if(!ble.testing())host.toast(ble.displayText());refresh();});b.setEnabled(d.available());card.addView(b);
-    }
-    static String question(String feature,String value){
-        switch(feature){
-            case "display_units": return value.contains("mph")?T.compatQuestionUnitsMph():T.compatQuestionUnitsKmh();
-            case "headlight": return "On".equals(value)?T.compatQuestionTailLightOn():"Off".equals(value)?T.compatQuestionTailLightOff():T.compatQuestionTailLight(value.toLowerCase(java.util.Locale.ROOT));
-            case "turn_sound": return "On".equals(value)?T.compatQuestionTurnSoundOn():"Off".equals(value)?T.compatQuestionTurnSoundOff():T.compatQuestionTurnSound(value.toLowerCase(java.util.Locale.ROOT));
-            case "auto_sensor": return "On".equals(value)?T.compatQuestionAutoLightsOn():"Off".equals(value)?T.compatQuestionAutoLightsOff():T.compatQuestionAutoLights(value.toLowerCase(java.util.Locale.ROOT));
-            case "range_algorithm": return T.compatQuestionRange();
-            default: return T.compatQuestionDefault();
-        }
     }
     /** Button labels: a word joiner keeps "km/h" on one line when large text wraps the label. */
     static String unbroken(String text){return text.replace("km/h","km/\u2060h");}
