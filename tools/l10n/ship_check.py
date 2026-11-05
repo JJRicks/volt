@@ -20,6 +20,7 @@ the SDK is installed (CI has none; the local build compiles the same text).
 
 import argparse
 import os
+import re
 import sys
 import xml.etree.ElementTree
 import xml.parsers.expat
@@ -46,11 +47,58 @@ def has_text(directory):
     return False
 
 
+SOURCE_TAG = "en"  # gen_catalog.load_languages requires en.tsv with folder values: the catalog's own language
+
+
+def tag_locale(tag):
+    """(language, script, region) of a BCP 47 tag such as es, pt-BR or zh-Hans, in folder_locale's terms, or None."""
+    parts = tag.split("-")
+    if not re.match(r"^[A-Za-z]{2,3}$", parts[0]):
+        return None
+    language, script, region = parts[0].lower(), "", ""
+    for part in parts[1:]:
+        if re.match(r"^[A-Za-z]{4}$", part) and not script and not region:
+            script = part[0].upper() + part[1:].lower()
+        elif re.match(r"^(?:[A-Za-z]{2}|\d{3})$", part) and not region:
+            region = part.upper()
+        else:
+            return None
+    return gen_catalog.MODERN_LANGUAGE.get(language, language), script, region
+
+
+def mapping_problems(languages):
+    """Problems with which folder each language names, found before anything is filtered by folder or status.
+
+    Only the source language may use res/values: any other language there would be counted as English and never
+    checked. No two languages may share a folder, and a translated language's folder must be the one its tag names
+    (the language without its region for a CLDR parent region, as pt-PT takes values-pt).
+    """
+    problems, owners = [], {}
+    for lang in languages:
+        owners.setdefault(lang.folder, []).append(lang.tag)
+        if lang.folder == "values":
+            if lang.tag != SOURCE_TAG:
+                problems.append("l10n/lang/%s.tsv: folder values belongs to the source language %s; %s needs its own "
+                                "values-<qualifier> folder" % (lang.tag, SOURCE_TAG, lang.tag))
+            continue
+        expected, named = tag_locale(lang.tag), gen_catalog.folder_locale(lang.folder)
+        if expected is not None and expected[2] in gen_catalog.PARENT_REGIONS.get(expected[0], ()):
+            # A parent region (pt-PT) takes the folder without a region (values-pt): see l10n/README.md.
+            expected = expected[:2] + ("",)
+        if expected is None or named != expected:
+            problems.append("l10n/lang/%s.tsv: folder %s does not match the tag %s" % (lang.tag, lang.folder, lang.tag))
+    for folder, tags in sorted(owners.items()):
+        if len(tags) > 1:
+            problems.append("l10n/lang: %s all name folder %s; each language needs its own folder" % (
+                ", ".join(sorted(tags)), folder))
+    return problems
+
+
 def folder_problems(paths, languages):
     """Text folders whose language does not ship. check_text_folders already refuses every unlisted folder."""
     problems = gen_catalog.check_text_folders(paths.res(), languages, paths.root)
     for lang in languages:
-        if lang.folder != "values" and lang.status not in SHIPPED_STATUS and has_text(paths.res(lang.folder)):
+        if lang.tag != SOURCE_TAG and lang.status not in SHIPPED_STATUS and has_text(paths.res(lang.folder)):
             problems.append("res/%s holds text, but %s has status %s; only beta and stable ship, so keep its "
                             "text in l10n/ until it does" % (lang.folder, lang.tag, lang.status))
     return problems
@@ -66,7 +114,7 @@ def _read_xml(path):
 def wiring_problems(paths, languages):
     """locales_config.xml lists exactly the shipped languages; the manifest names it once one besides English ships."""
     shipped = set(l.tag for l in languages if l.status in SHIPPED_STATUS)
-    translated = shipped - set(l.tag for l in languages if l.folder == "values")
+    translated = shipped - {SOURCE_TAG}
     problems = []
     config = _read_xml(paths.res("xml", "locales_config.xml"))
     if config is None:
@@ -108,7 +156,11 @@ def language_problems(paths, lang, aapt="auto"):
 def check(paths, aapt="auto"):
     """(problems, lines to print). Problems repeat across languages when a rule is shared, so they are deduplicated."""
     languages = gen_catalog.load_languages(paths.lang_dir())
-    shipped = [l for l in languages if l.status in SHIPPED_STATUS and l.folder != "values"]
+    malformed = mapping_problems(languages)
+    if malformed:
+        # Every later rule reads each language's folder, so a wrong mapping would mislead them all: stop here.
+        return malformed, ["the language list maps folders wrongly, so nothing else was checked"]
+    shipped = [l for l in languages if l.status in SHIPPED_STATUS and l.tag != SOURCE_TAG]
     problems = folder_problems(paths, languages) + wiring_problems(paths, languages)
     lines = []
     for lang in shipped:
@@ -116,7 +168,7 @@ def check(paths, aapt="auto"):
         problems += found
         lines += said
     if not shipped:
-        waiting = sorted(l.tag for l in languages if l.folder != "values")
+        waiting = sorted(l.tag for l in languages if l.tag != SOURCE_TAG)
         lines.append("no language has status beta or stable, so no translated text was checked%s; only the wiring was: "
                      "no res/values-* text, locales_config.xml and the manifest" % (
                          " (not read: %s)" % ", ".join(waiting) if waiting else ""))

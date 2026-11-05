@@ -283,5 +283,40 @@ class ShippedLanguageTest(Base):
         self.assertEqual(self.run_tool()[0], 0)
 
 
+class FolderMappingTest(Base):
+    """A wrong folder in l10n/lang fails the whole gate before any rule filters languages by folder."""
+
+    def set_folder(self, tag, folder):
+        path = "l10n/lang/%s.tsv" % tag
+        self.repo.write(path, re.sub(r"(?m)^folder\t.*$", "folder\t" + folder, self.repo.read(path)))
+
+    def test_a_beta_language_in_the_english_folder(self):
+        # Codex's fixture: no Spanish text, decisions or manifest declaration; only the mapping and locales_config.
+        self.set_status("es", "beta")
+        self.set_folder("es", "values")
+        self.repo.write("res/xml/locales_config.xml", locales_config("en", "es"))
+        out = self.assert_fails("l10n/lang/es.tsv: folder values belongs to the source language en")
+        self.assertNotIn("PASS", out)
+        self.assertNotIn("no language has status beta or stable", out)
+
+    def test_a_draft_in_the_english_folder(self):
+        self.set_folder("es", "values")
+        self.assert_fails("l10n/lang/es.tsv: folder values belongs to the source language en")
+
+    def test_two_languages_sharing_a_folder(self):
+        self.set_folder("pt-PT", "values-pt-rBR")  # pt-PT belongs in values-pt
+        self.assert_fails("l10n/lang: pt-BR, pt-PT all name folder values-pt-rBR",
+                          "l10n/lang/pt-PT.tsv: folder values-pt-rBR does not match the tag pt-PT")
+
+    def test_a_folder_that_does_not_match_the_tag(self):
+        self.ship_spanish()
+        self.set_folder("es", "values-de")
+        self.assert_fails("l10n/lang/es.tsv: folder values-de does not match the tag es")
+
+    def test_the_fixture_languages_map_cleanly(self):
+        languages = ship_check.gen_catalog.load_languages(self.paths.lang_dir())
+        self.assertEqual(ship_check.mapping_problems(languages), [])
+
+
 if __name__ == "__main__":
     unittest.main()
