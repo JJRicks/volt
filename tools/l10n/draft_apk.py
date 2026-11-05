@@ -384,10 +384,10 @@ def run_java_checks(run_dir, copy, catalog_dir, env):
     classes = os.path.join(run_dir, "check-classes")
     os.makedirs(classes)
     sources = [os.path.join(package, n + ".java") for n in ("T", "M", "EnglishText", "AppLanguages")]
-    sources.append(os.path.join(copy, "src", "com", "jjricks", "volt", "Msg.java"))
     sources.extend(os.path.join(copy, "tests", "l10n", n + ".java") for n in ("L10nFiles",) + JAVA_CHECKS)
-    script = 'source build.sh && navee_find_java && javac --release 8 -encoding UTF-8 -d "$1" "${@:2}"'
-    result = subprocess.run(["bash", "-c", script, "bash", classes] + sources, cwd=copy, env=env,
+    # -sourcepath: the plain classes these use (Msg, UserFacingException), without listing them here.
+    script = 'source build.sh && navee_find_java && javac --release 8 -encoding UTF-8 -sourcepath "$1" -d "$2" "${@:3}"'
+    result = subprocess.run(["bash", "-c", script, "bash", os.path.join(copy, "src"), classes] + sources, cwd=copy, env=env,
                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     if result.returncode != 0:
         return ["javac: %s" % result.stdout.decode("utf-8", "replace").strip()]
