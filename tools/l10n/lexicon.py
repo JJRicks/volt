@@ -413,8 +413,9 @@ REMOVAL_CONTEXT = {
                    "uitzetten|annuleer|annuleren|opheffing|verwijdering|deactivering|uitschakeling|opening|"
                    "vrijgeven|geef", "de|het|een|je|uw|jouw|zijn|haar"),
            _after("opheffen|opgeheven|uitschakelen|uitgeschakeld|uitzetten|uitgezet|verwijderen|verwijderd|"
-                  "deactiveren|gedeactiveerd|openen|geopend|annuleren|geannuleerd|vrijgeven|vrijgegeven",
-                  "\\s+van\\s+(?:de|het|je|uw)\\s+[^\\W\\d_]+", "is|wordt|werd", "uit|op|eraf|af|open")),
+                  "deactiveren|gedeactiveerd|openen|geopend|annuleren|geannuleerd|vrijgeven|vrijgegeven|"
+                  "(?:is|wordt|werd|staat)\\s+open(?![^\\W_])",
+                  "\\s+van\\s+(?:de|het|je|uw)\\s+[^\\W\\d_]+", "is|wordt|werd|staat", "uit|op|eraf|af|open")),
     "pl": (_before("zdejmij|zdejmijcie|zdjąć|zdejmowanie|zdjęcie|wyłącz|wyłączcie|wyłączyć|wyłączenie|"
                    "wyłączanie|usuń|usuńcie|usunąć|usunięcie|usuwanie|zwolnij|zwolnić|zwolnienie|znieś|znieść|"
                    "zniesienie|otwórz|otworzyć|otwarcie|dezaktywuj|dezaktywować|dezaktywacja|dezaktywacji|"
@@ -465,6 +466,13 @@ def _compiled(table):
     return dict((k, tuple(re.compile(unicodedata.normalize("NFC", p)) if p else None for p in v))
                 for k, v in table.items())
 
+
+# Wording that holds a lock target and never means Lock, whatever the English says: Dutch "tot slot"
+# (finally), "op slot" (the style guide forbids it), "van het slot" (off the lock) and compounds
+# of "slot" ("Slotstand"). "Slot" is approved for one narrow tile only.
+NOT_A_LOCK_TERM = {
+    "nl": re.compile("(?<![^\\W_])(?:(?:tot|op|van(?:\\s+(?:het|je))?)\\s+slot(?![^\\W_])|slot[^\\W\\d_]+)"),
+}
 
 OPPOSITE_CONTEXT = _compiled(OPPOSITE_CONTEXT)
 REMOVAL_CONTEXT = _compiled(REMOVAL_CONTEXT)
@@ -650,7 +658,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
     (OPPOSITE_CONTEXT, OPPOSITE_AROUND) does not count; with removal as well, nor does one next to
     words that remove or turn off the lock (REMOVAL_CONTEXT, REMOVAL_AROUND). A lock term in a
     compounding language (COMPOUNDING) may start a compound, unless the rest of the compound
-    removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung").
+    removes the lock (COMPOUND_OPPOSITE: "Sperraufhebung"). Wording in NOT_A_LOCK_TERM never counts
+    for a lock term.
     With loose (the English has only an -s or -ing form of a lock verb: "Locking…"), each word of
     the target matches in any form that starts like it (_loose), still at the start of a word and
     still subject to the contexts above; in Indonesian its first word may also take its pe(N)-...-an
@@ -661,6 +670,8 @@ def term_found(primary, script, term, text, opposite=True, removal=True, loose=F
         text, term = _strip_accents(text), _strip_accents(term)
     if not term.split():
         return False
+    if opposite and primary in NOT_A_LOCK_TERM:
+        text = NOT_A_LOCK_TERM[primary].sub(" ", text)
     compound = opposite and primary in COMPOUNDING and script not in UNSPACED_SCRIPTS
     if script in UNSPACED_SCRIPTS:
         body = r"\s*".join(r"\s*".join(re.escape(c) for c in p) for p in term.split())

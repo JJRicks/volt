@@ -9,7 +9,7 @@
 - Address the rider as **je** (owner's decision, 2026-11-02): je, jij only for stress, jou, jouw only for stress. Possessive is normally **je**: *je step*. Never u, uw or a mix. NAVEE's own Dutch product page also uses je.
 - Tone: plain and calm, like a good app. Not a legal text and not marketing. No slang and no exclamation marks in errors.
 - **Buttons, toggles and menu actions use the infinitive**, verb last: *Vergrendelen*, *Verbinden*, *Back-up maken*, *Probleem melden*. **Instructions in sentences use the imperative**, the verb's stem with no -t: *Tik op ‘Toestaan’.*, *Verbind opnieuw.*, *Voer je stuur-PIN in.* Don't mix the two in one string.
-- Status text uses a participle or noun with no subject: *Verbonden*, *Vergrendelen…*, *Bezig met meten…*. Past events use the perfect or simple past, whichever is shorter and natural: *Signaal verloren*, *Werkte hier*.
+- Status text uses a participle or noun with no subject: *Verbonden*, *Bezig met meten…*. An action still running is **Bezig met vergrendelen…**, **Bezig met ontgrendelen…**, because *Vergrendelen…* differs from the button *Vergrendelen* by one glyph. Keep the short form only on a rung with a width budget. Past events use the perfect or simple past, whichever is shorter and natural: *Signaal verloren*, *Werkte hier*.
 - Use **tik** for the screen and **druk** for a physical button. Android's own Dutch says tik.
 - Leave *alsjeblieft* out of labels. In a sentence, use it at most once, and only where a request really is polite.
 - **Gender.** Role nouns stay generic and short: *eigenaar*, *medegebruiker*. No slashes, stars or -e forms. Prefer a sentence that needs no role noun.
@@ -18,7 +18,7 @@
 
 - Quotes: **‘…’**, nested **“…”** (CLDR nl; Microsoft's Dutch guide also uses single marks). Never straight quotes or «…». When the English quotes a Volt button, quote the Dutch button's exact text. When it quotes a screen that stays English (the setup website, an adb prompt), keep the English inside the quotes: *‘Choose owner file’*. Android's own prompts appear in the phone's language, so use the Dutch text.
 - Apostrophe: **’** (U+2019), including in plurals that need it: *accu’s*, *foto’s*, *km’s*, *PIN’s*. It looks like the closing quote, which is normal.
-- A full sentence ends with a period; a label, button or title has none. Keep the English's … as the single character with no space before it: *Ontgrendelen…*
+- A full sentence ends with a period; a label, button or title has none. Keep the English's … as the single character with no space before it: *Bezig met ontgrendelen…*
 - Dash: en dash with spaces for a break ( – ), never an em dash. Ranges: en dash with no spaces (*10–20 km*). Keep the source's separators such as " · ".
 - After a colon, lower case unless a name or several sentences follow: *Laatst bekend: vergrendeld*.
 - No comma before *en* or *of* in a simple list.
@@ -82,7 +82,8 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 | Avg. speed | Gemiddelde snelheid | Gem. snelheid (81.5) | Gem. snelheid |
 | Battery voltage / Voltage | Accuspanning (81.2) | Accuspanning | Spanning (55.2) |
 | Battery temp. / Temp. | Accutemperatuur (100.3) | Accutemp. (60.5) | Temp. (34.6) |
-| Est. capacity | Geschatte capaciteit (117.0) | Gesch. cap. (64.2) | Capaciteit (57.3), only where the screen says estimate |
+| Est. capacity | Geschatte capaciteit (117.0) | Gesch. cap. (64.2) | Gesch. cap. (64.2) |
+| Rated capacity / Capacity | Nominale accucapaciteit (140.3) | Nominale capaciteit (114.2) | Capaciteit (57.3), the rated value only: never on an estimate |
 | Est. range / Range | Geschatte actieradius (124.9) | Geschat bereik (85.6) | Bereik (37.3) |
 | Energy recovery | Energieterugwinning (122.0) | Terugwinning (79.4) | icon |
 | Compatibility check | Compatibiliteitscontrole (137.9) | Compatibiliteit (84.4) | Controle (48.6) |
@@ -103,17 +104,17 @@ Use common sentence abbreviations sparingly: *bijv.*, *d.w.z.*. Never abbreviate
 
 - **Must take a hyphen** (acronym, brand, digit, unit symbol or a vowel clash such as u-i): NAVEE-app, stuur-PIN, PIN-ontgrendeling, USB-foutopsporing, CSV-bestand, GPX-bestand, Model-ID, Volt-gegevens, Bluetooth-koppeling, 4-cijferig, km-stand, Accu-instellingen, Accu-inst., Back-up, Eco-schatting.
 - **May take a hyphen, in this exact spelling:** App-instellingen, App-opties, App-inst., display-eenheden, Trip-topsnelheid.
-- **Stay closed:** eigenaarssleutel (double s is correct), eigenaarsbestand, eigenaarsprofiel, eigenaarsconfiguratie, laadlimiet, laadstart, laadschema, laadopname, laadwaarschuwing, rijmodus, rijinstellingen, energieterugwinning, tractiecontrole, afdaalhulp, loophulp, topsnelheid, maximumsnelheid, snelheidslimiet, startsnelheid, kilometerstand, vergrendelstatus, vergrendelduur, vergrendelbalk, accustand, accuspanning, accutemperatuur, actieradius, compatibiliteitscontrole, compatibiliteitsrapport, dagrijlicht, achterlicht, koplamp, richtingaanwijzer, stepnaam, telefoonlogboek, ritopname, uitleesscript, livegegevens.
+- **Stay closed:** eigenaarssleutel (double s is correct), eigenaarsbestand, eigenaarsprofiel, eigenaarsconfiguratie, laadlimiet, laadstart, laadschema, laadopname, laadwaarschuwing, rijmodus, rijinstellingen, energieterugwinning, tractiecontrole, afdaalhulp, loophulp, topsnelheid, maximumsnelheid, snelheidslimiet, startsnelheid, kilometerstand, vergrendelstatus, vergrendelduur, vergrendelbalk, accustand, accuspanning, accutemperatuur, actieradius, compatibiliteitscontrole, compatibiliteitsrapport, dagrijlicht, achterlicht, koplamp, richtingaanwijzer, stepnaam, stepinstellingen, widgetlimiet, vergrendelwidget, back-upwachtwoord, back-upbestand, ritback-up, snellader, snellaadsessie, snellaadreferentie, telefoonlogboek, ritopname, uitleesscript, livegegevens.
 - **Don't coin a compound of more than three stems.** Split it: *snelheidslimiet per rijmodus*, not *rijmodussnelheidslimiet*; *waarschuwing bij lage accustand*, not *lageaccustandwaarschuwing*; *configuratiebestand van de eigenaar*, not *eigenaarsconfiguratiebestand*.
 - Add a hyphen to a compound only if it's on these lists. Anything else goes to the judge with a note.
 
 ## 6. Safety wording
 
-Use exactly these words. In a safety key a term that isn't used fails `check.py` or the judge. Never shorten, reorder or soften them. The only narrow exceptions are the rungs named here: *Slot* on `onboarding_welcome_tile_lock`, *Exp. funct.*, *Klaar vóór*, *Lage accustand*.
+Use exactly these words. In a safety key a term that isn't used fails `check.py` or the judge. Never shorten, reorder or soften them. The only narrow exceptions are the rungs named here: *Slot* on `onboarding_welcome_tile_lock` and `onboarding_welcome_tile_lock_short`, *Exp. funct.*, *Klaar vóór*, *Lage accustand*.
 
 | English | Dutch, exact | Rules |
 |---|---|---|
-| Lock (action) | **vergrendelen**; button **Vergrendelen**, **Step vergrendelen**; imperative **vergrendel** | Noun: **de vergrendeling**. Tile only: **Slot**. Not *op slot zetten*, *afsluiten*, *blokkeren*. |
+| Lock (action) | **vergrendelen**; button **Vergrendelen**, **Step vergrendelen**; imperative **vergrendel** | Noun: **de vergrendeling**. **Slot** only on `onboarding_welcome_tile_lock` and `_short`. The glossary row can't limit it to those keys, so a judge rejects *slot* on any other key. Not *op slot zetten*, *afsluiten*, *blokkeren*. |
 | Locked | **Vergrendeld** / vergrendeld | Not *op slot*, *gesloten*, *dicht*, *geblokkeerd*. |
 | Unlock (action) | **ontgrendelen**; button **Ontgrendelen**, **Step ontgrendelen**; imperative **ontgrendel** | Noun: **de ontgrendeling**. Never *vergrendeling opheffen*, *vergrendeling uitschakelen*, *deblokkeren*, *openen*. |
 | Unlocked | **Ontgrendeld** / ontgrendeld | Not *open*, *vrij*. Never *niet vergrendeld* where the state is confirmed. |
@@ -124,10 +125,12 @@ Use exactly these words. In a safety key a term that isn't used fails `check.py`
 | Never | **nooit** | Keep every one. Not *niet* alone. |
 | Always | **altijd** | Always on: **Altijd aan**. |
 | On / Off | **Aan** / **Uit**; verbs **aanzetten** / **uitzetten** | Off level of Energy recovery: **Uit**. Never *Ja/Nee* in their place. |
+| Battery low | **Lage accustand**; in a sentence **Accu bijna leeg** | Never *zwakke accu*: that means a worn-out battery, not a low charge. *Zwak* is only an Energy recovery level. |
 | Alarm | **alarm**, het; Alarm sound: **Alarmgeluid** | The thing that sounds. Button: **Stop**. |
-| Stop | Alarm button: **Stop**; a scooter: **stilzetten** (*Zet de step eerst stil*); a recording or setup: **stoppen**, **beëindigen** | *Beëindigen* and *stilzetten* are never the alarm button. |
+| Stop | Alarm button: **Stop**; a scooter: **stilzetten** (*Zet de step eerst stil*); at a stop: **bij stilstand**; a recording or setup: **stoppen**, **beëindigen** | *Beëindigen* and *stilzetten* are never the alarm button. **Judge:** on `service_action_stop` only *Stop* is acceptable; the shared glossary row accepts the other senses and can't enforce this. |
 | Alert | **waarschuwing**; **Laadwaarschuwing**; Battery alerts: **Accuwaarschuwingen**; Low battery alert: **Waarschuwing bij lage accustand**, narrow **Lage accustand** | Never *alarm* for an alert, or the reverse. |
 | Notify me | **Stuur me een melding** | A notification is **melding**. Not *alarm*. |
+| Proximity unlock | **ontgrendelen bij nabijheid**; label **Ontgrendelen bij nabijheid**; noun **ontgrendeling bij nabijheid** | Keep *ontgrendel-* whole. Not *op nabijheid*, unless the debate prefers it. |
 | PIN | **PIN**, de; **stuur-PIN**; PIN unlock: **PIN-ontgrendeling** | 4-cijferig, handlebar code. `PIN` is do-not-translate in many keys, so never *pincode*, although Android says it. Not *code*, *wachtwoord*. A backup password stays **wachtwoord**. |
 | Owner key | **eigenaarssleutel** | A secret. "Not a password": **Geen wachtwoord**. Never *eigenaars-ID*, *eigenaarscode* or *sleutel* alone. |
 | Owner, shared rider | **eigenaar**, **medegebruiker** | Not *mederijder* or *passagier*. Never *gedeeld* for the role: *gedeeld* reads as a shared scooter. `more_role_shared` is **Medegebruiker**. |
@@ -152,7 +155,7 @@ Use exactly these words. In a safety key a term that isn't used fails `check.py`
 
 Other rules:
 
-- Lock compounds start with *vergrendel-*: *vergrendelstatus*, *vergrendelduur*, *vergrendelbalk*. The check finds a lock word only at the start of a compound, so don't write *stepvergrendeling*.
+- Lock compounds start with *vergrendel-*: *vergrendelstatus*, *vergrendelduur*, *vergrendelbalk*, *vergrendelwidget*. The check finds a lock word only at the start of a compound, so don't write *stepvergrendeling*.
 - A two-button pair stays *Vergrendelen* and *Ontgrendelen*, never *Vergrendeling aan/uit*.
 - A sentence that says a command **may** have been applied keeps the doubt: *kan … hebben toegepast*. Do not turn it into a statement.
 - Translate speed and legal wording literally, and add no claim about what the law allows. Don't mention RDW or 25 km/h unless the English does.
@@ -181,17 +184,18 @@ The glossary is authoritative; this explains what it can't. Official NAVEE wordi
 | drive mode | **rijmodus**, plural **rijmodi**; compact **Modus** | NAVEE: *Rijmodi*. Names stay WALK, ECO, DRIVE, SPORT, even though NAVEE's site says *voetgangersmodus*. |
 | Eco, Turbo, Boost | stay in English | *Eco* and *Turbo* are do-not-translate after D3. **Eco-schatting** is a range option, translated. |
 | Energy recovery levels | **Uit, Zwak, Gemiddeld, Sterk** | NAVEE's own levels. Elsewhere low, medium, high are *laag, gemiddeld, hoog*. |
+| High-speed charging | **Snelladen**; charger **snellader**; charges **snellaadsessies**; reference **snellaadreferentie** | Recordings: *laadopnamen met snellader*. Never *Sterk* or *Hoog* here. |
 | range | **actieradius**, narrow **Bereik** | NAVEE: *actieradius*. |
 | trip, ride | **Trip**, **rit**, plural **ritten** | Trip is a distance counter. Rides are recorded. Route is the path on the map. |
-| odometer | **Kilometerstand**, **km-stand** | Means the value, not *kilometerteller*, the device. |
+| odometer | **Kilometerstand**, **km-stand** | Means the value, not *kilometerteller*, the device. **Debate item:** Volt also shows miles, and *Kilometerstand* above a value in mi contradicts itself. Rare in the Netherlands and Flanders, so accepted for now; the key can't vary by unit, and *Totaal* is the unit-neutral rung. |
 | pair, connect, bind | **koppelen**, **verbinden**, **account binden** | Android's *Koppelen*. Account binding is never *koppelen*. |
 | Disconnect | **Verbinding verbreken** | Android's wording. Not *ontkoppelen*, which undoes a pairing. |
 | Settings, setup | **Instellingen**, **configuratie**; verb **instellen** | Settings is a page; setup happens once. |
-| Home, More | **Start**, **Meer** | In a sentence, Home is **startscherm**. |
+| Home, More | **startscherm**, **Meer** | *Naar startscherm*, *Op startscherm*, *Al op startscherm*; the tab `main_nav_home` is **Startscherm** (56.7dp at 10sp). Never *Start*, which collides with starting a recording or a capture. |
 | reading, raw | **meting**, **(ruw)** | Chip RAW → RUW. A value's history: **Meetgeschiedenis**. |
 | voltage, current, power, health, cycles | **spanning**, **stroom**, **vermogen**, **conditie**, **laadcycli** | |
 | Quick access, Quick settings | **Snelle toegang** | Never *Snelle instellingen*: that's Android's pull-down panel. |
-| Walk Assist, Power Assist | **Loophulp**, **Motorondersteuning** | Translate from the label. Loophulp is the e-bike word. |
+| Walk Assist, Power Assist | **Loophulp**, **Motorondersteuning** | Translate from the label. **Debate item:** *loophulp* first means a walking aid such as a rollator, and its e-bike use is from memory. Candidate: *Loopondersteuning* (112.9dp at 12.5sp, against 54.0), which pairs with Motorondersteuning. |
 | Hill descent control, Traction control | **Afdaalhulp**, **Tractiecontrole** | |
 | Overspeed active control | **Actieve snelheidsrem** | |
 | Low Battery Mode, Long range mode | **Spaarstand**, **Langeafstandsmodus** | |
@@ -213,6 +217,8 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - *Readback*: **teruglezen**, neutral, because a readback can also fail: *Teruglezing wijkt af*. Nothing with *bevestiging* inside it.
 - *Rejected* and *Refused by scooter*: both **geweigerd**.
 - *Standing start*: **Start vanuit stilstand** is value 0 of **Startsnelheid**, not another name for it.
+- *Alert* and *warning*: an alert the rider chose is **waarschuwing** (*Laadwaarschuwing*, *Accuwaarschuwingen*). A fault the scooter reports is **waarschuwing van de step**, **waarschuwingscode**. **Debate item:** *Accuwaarschuwingen* can read as a reported battery fault; the alternative is *Laadmelding*.
+- *Help verify*: **Help mee verifiëren**, a card title that invites, so not the infinitive of section 1. Not *Help verifiëren*, a calque.
 - "experimental motion" in Rides: **experimentele bewegingsgegevens**.
 
 ## 8. Grammar traps
@@ -238,7 +244,7 @@ Android's settings keep Android's Dutch: **USB-foutopsporing**, **Ontwikkelaarso
 - **Platform style:** [Microsoft Dutch Localization Style Guide](https://download.microsoft.com/download/e/8/f/e8f04dd4-591e-46e9-a076-e49a8c8c75e4/nld-nld-StyleGuide.pdf), read directly: sentence case, lower case after a colon, avoid abbreviations, single quotes, vowel-clash hyphens, hyphens after acronyms, infinitive in UI. Its advice against en dashes isn't followed for ranges, because Volt's `fmt_range` has one. It points to the Woordenlijst, which wasn't consulted entry by entry.
 - **Usage, weaker evidence:** [Androidworld.nl's S65C review](https://androidworld.nl/reviews/navee-s65c-een-elektrische-step-om-buitenlandse-steden-te-verkennen/): *step*, *ontgrendelen*, *vergrendelen*, *actieradius*, *energieterugwinning*, *stuur*, je. [Decathlon NL listings](https://www.decathlon.nl/p/mp/joyor-y8-s-abe-elektrische-step-48v-26ah-accu-en-richtingaanwijzers/6f071a45-bca2-477c-86ab-8ef63051d66f/c1), search snippet: *accu*, *richtingaanwijzers*, *elektrische step*. [Circuits Online](https://www.circuitsonline.net/forum/view/157647/1), a forum, search snippet: *gashendel*, *cruise control*.
 - **From the proposer's knowledge, not looked up:** *cruisecontrol*, *dagrijlicht*, *kilometerstand*, *km-stand*, *loophulp*, *sfeerlicht*, *treeplank*, *stuurpen*, *aan-uitknop*, *gelieerd aan*, and the abbreviation table.
-- **No source, Claude's choice; debate these first:** eigenaarssleutel, eigenaarsbestand, medegebruiker, stuur-PIN, laadlimiet, snelheidslimiet, Topsnelheid for the measured value, Actieve snelheidsrem, Afdaalhulp, Motorondersteuning, Spaarstand, Opgeladen vóór, Klaar vóór, Lijnverlichting, Sterverlichting, Livegegevens, Slot on the 62dp tile, the rungs of section 5 and the "not affiliated" wording.
+- **No source, Claude's choice; debate these first:** Loophulp against Loopondersteuning, Kilometerstand on the miles path, waarschuwing against melding for alerts, eigenaarssleutel, eigenaarsbestand, medegebruiker, stuur-PIN, laadlimiet, snelheidslimiet, Topsnelheid for the measured value, Actieve snelheidsrem, Afdaalhulp, Motorondersteuning, Spaarstand, Opgeladen vóór, Klaar vóór, Lijnverlichting, Sterverlichting, Livegegevens, Slot on the 62dp tile, the rungs of section 5 and the "not affiliated" wording.
 - **Native review:** none yet.
 
 **Choices where the sources disagree:**

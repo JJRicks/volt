@@ -8,7 +8,7 @@ id	term	definition	pos	dnt	safety	source
 not-affiliated	niet gelieerd aan NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	Claude proposal; nothing official found
 official-app	officiële app | officiële apps	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	established nl usage
 navee-app	NAVEE-app	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	official: be.naveetech.com GT3 page, nl (NAVEE APP)
-scooter	step | steps | e-step	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	official: be.naveetech.com GT3 page, nl (also scooter); see style guide 7
+scooter	step | steps | e-step | stepnaam | stepnamen | stepinstellingen	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	official: be.naveetech.com GT3 page, nl (also scooter); see style guide 7
 owner	eigenaar | eigenaars | eigenaren | eigenaarsprofiel | eigenaarssleutel | eigenaarsbestand	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	Claude proposal; nothing official found
 owner-profile	eigenaarsprofiel | eigenaarsprofielen	The saved profile of the owner role.	noun phrase	no	owner-key	Claude proposal; nothing official found
 owner-role	eigenaar | eigenaars | eigenaarsrol	D3 retires this English term (owner is the role word). Same Dutch as the chosen term. Was: Another name for owner in the source; D3 picks one term.	noun phrase	no	owner-key	Claude proposal; nothing official found
@@ -27,7 +27,7 @@ usb-debugging	USB-foutopsporing	Android's setting. Use Android's own localized w
 developer-options	Ontwikkelaarsopties	Android's settings page. Use Android's own localized wording.	noun phrase	no	-	Android nl, AOSP
 build-number	Buildnummer	Android's About phone entry. Use Android's own localized wording ("Settings › About phone").	noun phrase	no	-	Android nl, AOSP
 electronic-lock	elektronische vergrendeling	Volt's lock control.	noun phrase	no	lock	official: be.naveetech.com GT3 page, nl (vergrendelfunctie)
-lock	vergrendelen | vergrendel | vergrendelt | vergrendeling | slot	The action that locks the scooter.	verb	no	lock	official: be.naveetech.com GT3 page, nl
+lock	vergrendelen | vergrendel | vergrendelt | vergrendeling | slot	The action that locks the scooter. Slot is approved only on onboarding_welcome_tile_lock and its _short rung (62dp); the check cannot tell keys apart, so a judge rejects it on any other key.	verb	no	lock	official: be.naveetech.com GT3 page, nl
 locked	vergrendeld | vergrendelde	The locked state. Must stay clearly distinct from Unlocked.	adjective	no	lock	official: be.naveetech.com GT3 page, nl
 unlock	ontgrendelen | ontgrendel | ontgrendelt | ontgrendeling	The action that unlocks the scooter. Must stay clearly distinct from Lock.	verb	no	lock	official: be.naveetech.com GT3 page, nl
 unlocked	ontgrendeld | ontgrendelde	The unlocked state. Must stay clearly distinct from Locked.	adjective	no	lock	established nl usage
@@ -38,13 +38,13 @@ lock-duration	Vergrendelduur	How long the scooter stays locked when off.	noun ph
 handlebar-pin	stuur-PIN | PIN op het stuur	The 4-digit code entered on the handlebar. It is the rider's phone-free way to unlock. Keep distinct from a backup password.	noun phrase	no	pin	Claude proposal; nothing official found
 fallback-pin	stuur-PIN | PIN op het stuur	D3 retires this English term (handlebar PIN chosen). Same Dutch as the chosen term. Was: Another name for handlebar PIN in the source; D3 picks one term.	noun phrase	no	pin	Claude proposal; nothing official found
 dashboard-pin	stuur-PIN | PIN op het stuur	D3 retires this English term (handlebar PIN chosen; dashboard means Volt's screen). Same Dutch as the chosen term. Was: Another name for handlebar PIN in the source; D3 picks one term.	noun phrase	no	pin	Claude proposal; nothing official found
-proximity-unlock	ontgrendelen op nabijheid | ontgrendeling op nabijheid | nabijheidsontgrendeling	Unlocking when the paired phone is near.	noun phrase	no	pin	Claude proposal; nothing official found
+proximity-unlock	ontgrendelen bij nabijheid | ontgrendeling bij nabijheid | nabijheidsontgrendeling	Unlocking when the paired phone is near.	noun phrase	no	pin	Claude proposal; nothing official found
 pair	koppelen | koppel | koppelt | gekoppeld | koppeling	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	Android nl, AOSP
 connect	verbinden | verbind | verbindt | verbonden | verbinding	Start the Bluetooth link to the scooter.	verb	no	-	Android nl, AOSP
 disconnect	verbinding verbreken | verbreek | verbreken | verbroken	End the Bluetooth link to the scooter.	verb	no	-	Android nl, AOSP
 connection-details	Verbindingsdetails	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	Claude proposal; nothing official found
 signal-lost	Signaal verloren | signaal kwijt	The Bluetooth link dropped.	clause	no	-	Claude proposal; nothing official found
-parked	geparkeerd | geparkeerde | stilstaand | stilstaat	Stationary; some changes require it.	adjective	no	ride	established nl usage
+parked	geparkeerd | geparkeerde | stilstaand | stilstaat | stilstaan | stilstand	Stationary; some changes require it.	adjective	no	ride	established nl usage
 model-id	Model-ID	The numeric model code the scooter advertises. Keep the term Model ID and the number.	noun phrase	no	-	Claude proposal; nothing official found
 firmware	firmware	The scooter's software. Volt never changes it.	noun	no	-	established nl usage
 compatibility-check	compatibiliteitscontrole | compatibiliteit | controle	A read-only check of what this scooter supports.	noun phrase	no	-	Claude proposal; nothing official found
@@ -57,12 +57,12 @@ experimental-controls	Experimentele functies | experimentele functies | Experime
 untested-controls	Niet-geteste functies | Functies om te proberen	D3 retires this English term (card title becomes Controls to try). Same Dutch as the chosen term. Was: Another name for Experimental controls in the source (the card title); D3 picks one term.	noun phrase	no	experimental	Claude proposal; nothing official found
 try	proberen | probeer | probeert | geprobeerd | te proberen | poging | pogingen	Attempt an experimental control on this scooter.	verb	no	experimental	established nl usage
 set-back	terugzetten | zet terug | teruggezet | terug te zetten	Restore the value a try changed.	verb phrase	no	experimental	Claude proposal; nothing official found
-help-verify	helpen verifiëren | help verifiëren	Ask the rider to confirm what a try did.	verb phrase	no	experimental	Claude proposal; nothing official found
+help-verify	help mee verifiëren | helpen verifiëren | meehelpen verifiëren	Ask the rider to confirm what a try did.	verb phrase	no	experimental	Claude proposal; nothing official found
 unverified	niet geverifieerd | niet geverifieerde	Volt has not confirmed the control on this model.	adjective	no	experimental	Claude proposal; nothing official found
 untested	niet getest | niet geteste	No one has tried the control on this model yet.	adjective	no	experimental	Claude proposal; nothing official found
 unconfirmed	onbevestigd | onbevestigde	The scooter acknowledged a try, but the value was not kept or read back.	adjective	no	experimental	Claude proposal; nothing official found
 refused-by-scooter	geweigerd door de step | door de step geweigerd | geweigerd	The scooter rejected the try.	adjective phrase	no	experimental	Claude proposal; nothing official found
-worked-here	werkte hier | werkt hier | hier gewerkt	The try worked on this scooter.	clause	no	experimental	Claude proposal; nothing official found
+worked-here	werkte hier | hier gewerkt	The try worked on this scooter.	clause	no	experimental	Claude proposal; nothing official found
 readback	teruglezen | teruggelezen | teruglezing | terugleeswaarde	Whether the scooter reported the new value back.	noun	no	experimental	Claude proposal; nothing official found
 confirmed	bevestigd | bevestigde	The scooter read the new value back.	adjective	no	experimental	established nl usage
 not-confirmed	niet bevestigd | niet bevestigde	The scooter did not read the value back. Must never read as confirmed.	adjective phrase	no	experimental	established nl usage
@@ -73,10 +73,10 @@ acceleration-turbo	Turbo	The strongest acceleration profile. The scooter's own n
 energy-recovery	Energieterugwinning | energieterugwinning | Terugwinning	Regenerative braking strength. Regen remains a search word only.	noun phrase	no	ride	official: be.naveetech.com GT3 page, nl
 regen	Energieterugwinning | energieterugwinning | Terugwinning	D3 retires this English term (no string uses it; survives only as a search keyword in ScooterCommands.keywords(); also an orphan). Same Dutch as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun	no	ride	official: be.naveetech.com GT3 page, nl
 motor-braking	Energieterugwinning | energieterugwinning | Terugwinning	D3 retires this English term (energy recovery chosen). Same Dutch as the chosen term. Was: Another name for Energy recovery in the source; D3 picks one term.	noun phrase	no	ride	official: be.naveetech.com GT3 page, nl
-energy-recovery-off	Uit	An Energy recovery level.	adjective	no	ride	established nl usage
-energy-recovery-low	Zwak	An Energy recovery level.	adjective	no	ride	official: be.naveetech.com GT3 page, nl
+energy-recovery-off	Uit | uitzetten | uitgezet | uit te zetten | uitgeschakeld	An Energy recovery level.	adjective	no	ride	established nl usage
+energy-recovery-low	Zwak | zwakke | laag | lage | bijna leeg	An Energy recovery level. The other forms are there because en.tsv Low also matches Battery low and Low current, which are never Zwak.	adjective	no	ride	official: be.naveetech.com GT3 page, nl
 energy-recovery-medium	Gemiddeld	An Energy recovery level.	adjective	no	ride	official: be.naveetech.com GT3 page, nl
-energy-recovery-high	Sterk	An Energy recovery level.	adjective	no	ride	official: be.naveetech.com GT3 page, nl
+energy-recovery-high	Sterk | sterke | hoog | hoge | hogere | snellader | snelladers | snelladen | snellaadsessie | snellaadsessies | snellaadreferentie	An Energy recovery level. The other forms are there because en.tsv High also matches High-speed and High temperature, which are never Sterk.	adjective	no	ride	official: be.naveetech.com GT3 page, nl
 cruise-control	cruisecontrol | cruise control	Holds the current speed.	noun phrase	no	ride	established nl usage
 traction-control	Tractiecontrole | tractiecontrolesysteem	Limits wheel spin.	noun phrase	no	ride	official: be.naveetech.com GT3 page, nl
 overspeed-active-control	Actieve snelheidsrem	Brakes the motor above the speed limit.	noun phrase	no	ride	Claude proposal; nothing official found
@@ -112,7 +112,7 @@ scooter-display-units	Eenheden op het display | display-eenheden	Units on the sc
 miles	Mijlen | mijl	A display unit choice.	noun	no	-	established nl usage
 kilometers	Kilometers | kilometer	A display unit choice.	noun	no	-	established nl usage
 dashboard	Dashboard | dashboards	Volt's Home screen layout. Never the scooter's own display.	noun	no	-	established nl usage
-widget	widget | widgets	A tile on the Dashboard.	noun	no	-	established nl usage
+widget	widget | widgets | widgetlimiet | vergrendelwidget	A tile on the Dashboard.	noun	no	-	established nl usage
 quick-access	Snelle toegang	The row of shortcut actions on the Dashboard.	noun phrase	no	-	Claude proposal; nothing official found
 live-stats	Livegegevens | Livedata	The telemetry pages.	noun phrase	no	-	Claude proposal; nothing official found
 readings	metingen | meting	Telemetry values the scooter reports.	noun	no	-	Claude proposal; nothing official found
@@ -139,7 +139,7 @@ charge-alert	Laadwaarschuwing | laadwaarschuwingen	An alert when charging reache
 low-battery-alert	Waarschuwing bij lage accustand | Lage accustand	An alert when the battery falls to a level.	noun phrase	no	alarm	Claude proposal; nothing official found
 notify-me	Stuur me een melding | Melding sturen	Choose a notification for an alert.	verb phrase	no	alarm	Claude proposal; nothing official found
 alarm-sound	Alarmgeluid | alarmgeluiden	Choose a sounding alarm for an alert.	noun phrase	no	alarm	established nl usage
-stop	Stop | stoppen | stopt | beëindig | beëindigen | zet stil | stilzetten	Silence a sounding alarm.	verb	no	alarm	established nl usage
+stop	Stop | stoppen | stopt | beëindig | beëindigen | stilzetten | stil | stilstand	Silence a sounding alarm. The row also has to pass the other senses of Stop (a scooter, a recording); on service_action_stop only Stop is acceptable, and a judge rejects the rest.	verb	no	alarm	established nl usage
 stop-watching	Stoppen met bewaken | stop met bewaken	End an alert's watch.	verb phrase	no	alarm	Claude proposal; nothing official found
 charge-recording	Laadopname | laadopnamen | laadopnames	A recorded charging session.	noun phrase	no	charge	Claude proposal; nothing official found
 charger-profile	Opladerprofiel	What Volt has learned about a charger, for estimates.	noun phrase	no	charge	Claude proposal; nothing official found
@@ -149,7 +149,7 @@ ride-recording	Ritopname | ritopnamen | ritopnames | opnemen van een rit	Recordi
 phone-journal	Telefoonlogboek	Rides recorded by the phone's GPS.	noun phrase	no	-	Claude proposal; nothing official found
 motion	Beweging | bewegingsgegevens	Movement data of a ride.	noun	no	-	Claude proposal; nothing official found
 route	Route | routes	The path of a ride on the map.	noun	no	-	established nl usage
-backup	Back-up | back-ups | back-uppen	A file of Volt's data.	noun	no	privacy	established nl usage
+backup	Back-up | back-ups | back-uppen | back-upwachtwoord | back-upbestand | back-upbestanden | ritback-up | ritback-ups	A file of Volt's data.	noun	no	privacy	established nl usage
 full-backup	Volledige back-up	A backup of everything.	noun phrase	no	privacy	established nl usage
 selected-data	Geselecteerde gegevens	A backup of the chosen parts.	noun phrase	no	privacy	established nl usage
 restore	Herstellen | herstel | herstelt | hersteld	Put a backup's data back.	verb	no	privacy	established nl usage
