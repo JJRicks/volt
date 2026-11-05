@@ -55,5 +55,4 @@ stats_charge_learned	one	 · %1$d learned charges	 · %1$d learned charge	owner 
 ui_chart_description	one	Measured %1$s chart, %2$d samples. Displayed axis %3$s to %4$s. Touch to inspect readings.	Measured %1$s chart, %2$d sample. Displayed axis %3$s to %4$s. Touch to inspect readings.	owner approved all English fixes (2026-11-05); D1: the one item was a copy of the plural
 ui_live_stats_disconnected	-	Live Stats, disconnected	Live Stats, not connected	owner approved all English fixes (2026-11-05); language reviews: disconnected elsewhere means the link dropped; this means not connected
 # Code changes outside the catalog (D1), approved with the rest; reverse them in the code:
-# DisplayTime.recent: other days show the locale's month and day (Mar 5 · 14:02, 5 Mar · 14:02) instead of 05 MAR · 14:02.
 # BackupActivity restoreCategories and fresh: the backup's date uses DisplayTime.dateTime (Volt's 12/24-hour setting) instead of java.text.DateFormat MEDIUM/SHORT.
