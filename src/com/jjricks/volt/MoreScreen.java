@@ -1035,7 +1035,7 @@ public final class MoreScreen implements AppScreen {
                 () -> openAndroidSettings(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS));
         valueRefreshers.add(() -> {
             boolean unrestricted = batteryUnrestricted();
-            background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠");
+            background.value(unrestricted ? "Unrestricted ✓" : "Optimized ⚠︎");
             background.value.setTextColor(unrestricted ? ui.ok : ui.orange);
             background.value.setContentDescription(unrestricted ? T.morePrefsBatteryUnrestricted()
                     : T.morePrefsBatteryOptimized());
