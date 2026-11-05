@@ -198,7 +198,7 @@
     <!-- %1$s is a scooter's name in the backup; a list of this phone's scooters follows. -->
     <string name="backup_destination_data" volt:screen="Restore scooters" volt:purpose="question">Data from “%1$s” goes to:</string>
     <string name="backup_owner_choice" volt:screen="Restore scooters" volt:purpose="note"
-        volt:safety="owner-key">More than one scooter can use this setup file. Choose an existing scooter or add another.</string>
+        volt:safety="owner-key">More than one scooter can use this owner setup file. Choose an existing scooter or add another.</string>
     <!-- The list's first item before a scooter is chosen. -->
     <string name="backup_choose_scooter_item" volt:screen="Restore scooters" volt:purpose="list item">Choose a scooter…</string>
     <!-- List item: add the setup file's scooter as a new scooter. -->

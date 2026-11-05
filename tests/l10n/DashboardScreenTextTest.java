@@ -178,9 +178,10 @@ public final class DashboardScreenTextTest {
                         "count of shortcuts " + n + "/" + most);
         }
         // The Choose parameter and Choose readings sheets show these display names; in English they
-        // are Telemetry's label and group, which the base showed and searched.
+        // are Telemetry's label and group, which the base showed and searched, except the D3 renames
+        // (ReadingsCatalogTest.RENAMED).
         for (Telemetry.Metric m : new Telemetry().metrics()) {
-            same(m.label, ScooterReadingLabels.full(m.key, m.label), "picker name of " + m.key);
+            same(ReadingsCatalogTest.shownName(m), ScooterReadingLabels.full(m.key, m.label), "picker name of " + m.key);
             same(m.group, ScooterReadingLabels.group(m.group), "picker group of " + m.key);
         }
     }

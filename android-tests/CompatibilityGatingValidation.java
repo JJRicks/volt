@@ -300,7 +300,7 @@ public final class CompatibilityGatingValidation extends Instrumentation {
             View group = root().findViewWithTag("lab-verify");
             require((group != null && group.isShown()) == !verify.isEmpty(), label + ": Help verify group shown=" + (group != null && group.isShown()));
             String title = String.valueOf(((TextView)field(more(), "labTitle")).getText());
-            require(title.equals(pid.equals("39991") ? "Help verify" : "Untested controls"), label + ": section title \"" + title + "\"");
+            require(title.equals(pid.equals("39991") ? "Help verify" : "Controls to try"), label + ": section title \"" + title + "\"");
             require(pid.equals("39991") == listed.isEmpty(), label + ": unknown model lists no experiments, the others list their controls");
             if (pid.equals("39991")) require(verifying.equals(Arrays.asList("display_units")), "Unknown model: dashboard units to verify, as the guided tests offered " + verifying);
             if (pid.isEmpty()) require(verifying.isEmpty(), "UT5 MAX: everything is verified " + verifying);

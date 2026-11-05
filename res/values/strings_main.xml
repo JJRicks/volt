@@ -103,7 +103,7 @@
     <string name="main_scan_title" volt:screen="Scanner" volt:purpose="title">Choose your scooter</string>
     <string name="main_scan_again" volt:screen="Scanner" volt:purpose="button">Scan again</string>
     <string name="main_scan_none" volt:screen="Scanner" volt:purpose="status">No scooter found. Is it on?</string>
-    <string name="main_scan_navee" volt:screen="Scanner" volt:purpose="name" volt:dnt="Navee">Navee scooter</string>
+    <string name="main_scan_navee" volt:screen="Scanner" volt:purpose="name" volt:dnt="NAVEE">NAVEE scooter</string>
     <string name="main_scan_strong" volt:screen="Scanner" volt:purpose="signal">Strong signal</string>
     <string name="main_scan_good" volt:screen="Scanner" volt:purpose="signal">Good signal</string>
     <string name="main_scan_fair" volt:screen="Scanner" volt:purpose="signal">Fair signal</string>
@@ -155,7 +155,7 @@
     <!-- Words search matches, never shown. -->
     <string name="main_search_low_alert" volt:screen="Scooter tab" volt:purpose="search keywords">low battery alert battery alerts notify notification alarm sound</string>
     <!-- Words search matches, never shown. -->
-    <string name="main_search_security" volt:screen="Scooter tab" volt:purpose="search keywords" volt:safety="pin">pin password proximity unlock pairing bluetooth bond security</string>
+    <string name="main_search_security" volt:screen="Scooter tab" volt:purpose="search keywords" volt:safety="pin">pin passcode handlebar fallback password proximity unlock pairing bluetooth bond security</string>
     <!-- Words search matches, never shown. -->
     <string name="main_search_name" volt:screen="Scooter tab" volt:purpose="search keywords">scooter name rename profile</string>
     <plurals name="main_search_results" volt:screen="Scooter tab" volt:purpose="status">
@@ -251,7 +251,7 @@
     <!-- Lock duration in a row: %1$s is a number of hours. -->
     <string name="main_value_hours_short" volt:screen="Scooter tab" volt:purpose="row value" volt:safety="lock">%1$s h</string>
     <string name="main_value_standing_start" volt:screen="Scooter tab" volt:purpose="option" volt:safety="ride">Standing start</string>
-    <string name="main_auto_range" volt:screen="Scooter tab" volt:purpose="option">Auto (riding mode)</string>
+    <string name="main_auto_range" volt:screen="Scooter tab" volt:purpose="option">Auto (drive mode)</string>
     <string name="main_confirm_continue" volt:screen="Scooter tab" volt:purpose="button">Continue</string>
 
     <!-- ===== Battery alerts ===== -->
@@ -349,21 +349,21 @@
     <string name="main_join_note" volt:screen="Scooter tab rows" volt:purpose="caption">%1$s · %2$s</string>
 
     <!-- ===== Top speed card ===== -->
-    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Top speed · Sport</string>
-    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, not reported</string>
-    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, not reported, last seen setting</string>
+    <string name="main_speed_title" volt:screen="Top speed" volt:purpose="row name" volt:safety="ride" volt:dnt="Sport">Maximum speed · Sport</string>
+    <string name="main_speed_not_reported" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported</string>
+    <string name="main_speed_not_reported_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, not reported, last seen setting</string>
     <string name="main_speed_confirming" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Confirming</string>
     <string name="main_speed_confirming_visible" volt:screen="Top speed" volt:purpose="status" volt:safety="ride">Confirming…</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, %1$s</string>
+    <string name="main_speed_value" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Top speed, Sport mode maximum, %1$s, last seen setting</string>
+    <string name="main_speed_value_seen" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride" volt:dnt="Sport">Maximum speed, Sport mode, %1$s, last seen setting</string>
     <!-- %1$s is whole km/h. If the unit word changes with the number in your language, write the symbol km/h instead of the word. -->
-    <string name="main_speed_spoken_km" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometres per hour</string>
+    <string name="main_speed_spoken_km" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s kilometers per hour</string>
     <!-- %1$s is whole mph, %2$s the exact km/h value the scooter is sent. If the unit words change with the number in your language, write the symbols mph and km/h instead of the words. -->
-    <string name="main_speed_spoken_mi" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometres per hour</string>
+    <string name="main_speed_spoken_mi" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">%1$s miles per hour, %2$s kilometers per hour</string>
     <!-- %1$s is main_speed_spoken_km or main_speed_spoken_mi. -->
-    <string name="main_speed_set" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Set top speed to %1$s</string>
+    <string name="main_speed_set" volt:screen="Top speed" volt:purpose="screen reader" volt:safety="ride">Set maximum speed to %1$s</string>
     <!-- %1$s is the exact km/h. Keep the unit symbols. -->
     <string name="main_speed_unit_dual" volt:screen="Top speed" volt:purpose="unit" volt:dnt="mph|km/h">mph · %1$s km/h</string>
 
@@ -492,14 +492,14 @@
     <string name="main_import_finish_save" volt:screen="Import and backup" volt:purpose="toast">Finish the current save before starting another export.</string>
     <string name="main_import_retry_setup" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Import failed. Retry setup.</string>
     <string name="main_import_not_layout" volt:screen="Import and backup" volt:purpose="toast" volt:dnt="Volt">Not a Volt layout file. Nothing changed.</string>
-    <string name="main_import_setup_unreadable" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">The setup file could not be read.</string>
+    <string name="main_import_setup_unreadable" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">The owner setup file could not be read.</string>
     <string name="main_import_pick_again" volt:screen="Import and backup" volt:purpose="toast">Import failed. Pick file again.</string>
     <string name="main_import_no_longer_matches" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Saved setup no longer matches. Pick file again.</string>
     <string name="main_import_removed" volt:screen="Import and backup" volt:purpose="toast">That scooter was removed. Pick file again.</string>
     <string name="main_import_unavailable" volt:screen="Import and backup" volt:purpose="toast">Imported scooter is unavailable. Pick file again.</string>
     <string name="main_import_imported_owner" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key">Owner setup imported</string>
     <string name="main_import_paused" volt:screen="Import and backup" volt:purpose="toast">Import paused. Will retry.</string>
-    <string name="main_import_too_big" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key" volt:dnt="MiB">Setup files must be smaller than 1 MiB.</string>
+    <string name="main_import_too_big" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key" volt:dnt="MiB">Owner setup files must be smaller than 1 MiB.</string>
     <!-- %1$s is the scooter's name. -->
     <string name="main_import_replace_body" volt:screen="Import and backup" volt:purpose="explanation">Replaces the dashboard for %1$s and all 3 slots.</string>
     <!-- A scooter's default name after an import without one. Shown only; the saved name stays English. -->
