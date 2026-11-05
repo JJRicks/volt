@@ -60,11 +60,7 @@ def _covered(rows, diffs):
             continue
         if row.kind == ledger_check.CHOICE:
             candidates, _ = ledger_check.locate_choice(row, diff)
-            tokens = list(candidates[0][0]) if candidates else []
-            # The strings of a local the chosen sentence reads are covered with it.
-            context = ledger_check.choose_choice(row, diff, candidates)[4]
-            for shared in (context.shared if context else ()):
-                tokens.extend(shared[3])
+            tokens = candidates[0][0] if candidates else []
         else:
             tokens, _, problem = ledger_check.locate(row, diff, claimed)
         for k in tokens or []:

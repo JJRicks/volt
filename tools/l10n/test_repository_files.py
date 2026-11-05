@@ -1,7 +1,6 @@
 """The committed l10n/ files keep their formats: languages, glossary, ledgers and lint baselines."""
 
 import os
-import re
 import sys
 import unittest
 
@@ -17,20 +16,6 @@ GLOSSARY_HEADER = ("id", "term", "definition", "pos", "dnt", "safety", "source")
 
 
 class RepositoryFilesTest(unittest.TestCase):
-    def test_every_all_caps_static_field_in_src_is_final(self):
-        # G1 reads another class's Class.CONSTANT as a constant, and from one file it cannot see that class.
-        field = re.compile(r"^\s*(?:(?:public|protected|private|static|volatile|transient)\s+)*\bstatic\s+"
-                           r"(?:(?:public|protected|private|volatile|transient)\s+)*(?!final\b)[\w.<>\[\], ]+?\s+"
-                           r"([A-Z][A-Z0-9_]*)\s*(?:=|;)")
-        found = []
-        for folder, _, names in os.walk(os.path.join(ROOT, "src")):
-            for name in names:
-                if name.endswith(".java"):
-                    for number, line in enumerate(l10nlib.read_text(os.path.join(folder, name)).splitlines(), 1):
-                        if field.match(line) and not re.search(r"\bfinal\b", line.split("=")[0]):
-                            found.append("%s:%d" % (name, number))
-        self.assertEqual(found, [])
-
     def test_languages(self):
         languages = gen_catalog.load_languages(os.path.join(L10N, "lang"))
         english = languages[0]
