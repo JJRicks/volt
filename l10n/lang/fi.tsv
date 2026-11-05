@@ -1,12 +1,12 @@
 # Finnish (fi). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final. status stays draft. See l10n/README.md for each field.
-# percent_style and decimal_style use a no-break space (U+00A0) between the number and the sign and as the thousands separator, never U+202F, which Saira lacks. formality: the plan's proposal, not yet confirmed by the owner.
+# percent_style and decimal_style use a no-break space (U+00A0) between the number and the sign and as the thousands separator, never U+202F, which Saira lacks. formality: follows the plan's proposal, sinä or the passive. The owner approved the 7.4 table as proposed; Finnish is one of its later-wave proposals, so whether that covers it is still to confirm.
 field	value
 tag	fi
 folder	values-fi
 endonym	Suomi
 wave	2
 status	draft
-formality	sinä, or the passive for instructions
+formality	sinä (imperative); passive for what happens without the rider
 plurals	one,other
 quote_style	”…” ’…’
 percent_style	%1$s %%

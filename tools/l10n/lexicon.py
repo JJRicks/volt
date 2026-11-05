@@ -49,7 +49,7 @@ NEGATION = {
     "nb": ({"ikke", "ingen", "intet", "aldri", "uten"}, ("u",)),
     "pl": ({"nie", "nigdy", "żaden", "żadna", "żadne", "żadnych", "bez", "ani", "nic"}, ("nie", "bez")),
     "id": ({"tidak", "tak", "bukan", "jangan", "belum", "tanpa"}, ()),
-    "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman", "koskaan"}, ("epä",)),
+    "fi": ({"ei", "en", "et", "emme", "ette", "eivät", "älä", "ilman"}, ("epä",)),
     "cs": ({"ne", "nikdy", "žádný", "žádná", "žádné", "bez", "nic"}, ("ne", "bez")),
     "sk": ({"nie", "nikdy", "žiadny", "žiadna", "žiadne", "bez", "nič"}, ("ne", "bez")),
     "ro": ({"nu", "niciodată", "fără", "niciun", "nicio", "nimic"}, ("ne",)),
@@ -121,7 +121,8 @@ NATIVE_STEMS = {
            "insuficient", "incompatibil", "neconectat", "nereușit"),
     "hu": ("ismeretlen", "lehetetlen", "érvénytelen", "váratlan", "hiányos", "elégtelen", "inaktív",
            "sikertelen"),
-    "fi": ("tuntemat", "mahdot", "kelvot", "odottamat", "riittämät", "yhteensopimat"),
+    "fi": ("tuntemat", "mahdot", "kelvot", "odottamat", "riittämät", "yhteensopimat", "vahvistamat",
+           "varmistamat", "testaamat"),
     "tr": ("bilinmeyen", "bilinmiyor", "geçersiz", "imkansız", "imkânsız", "olanaksız", "başarısız", "beklenmeyen",
            "desteklenmeyen", "yetersiz", "uyumsuz"),
     "hi": ("अज्ञात", "असंभव", "अमान्य", "अनुपलब्ध", "असमर्थ", "अपूर्ण", "निष्क्रिय", "असंगत", "असत्यापित"),
@@ -324,6 +325,12 @@ OPPOSITE_CONTEXT = {
     "nb": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "nn": ("", "^[^\\W\\d_]*\\s+opp(?![^\\W_])"),
     "da": ("", "^[^\\W\\d_]*\\s+op(?![^\\W_])"),
+    # "Avaa (ensin) lukitus", "Pura lukitus"; "Lukitsematon" (-mat- after the lock verb), "Lukitus avattu",
+    # "Lukituksen avaus", "Lukitusta ei voitu avata". The one gap word stops at ja and tai: "Avaa ja lukitse".
+    "fi": ("(?<![^\\W_])(?:avaa|avaat|avata|avataan|avaamaan|avaamalla|pura|purkaa|puretaan|purkamaan|purkamalla)\\s+"
+           "(?:(?!(?:ja|tai)\\s)[^\\W\\d_]+\\s+)?$",
+           "^(?:mat|[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:on\\s+|ei\\s+voitu\\s+|ei\\s+voi\\s+|voi\\s+)?"
+           "(?:avat|avaa|avau|auki|avoin|pure|purk))"),
     "id": ("(?<![^\\W_])(?:buka|bukalah|membuka|dibuka|terbuka|pembukaan)\\s+$", ""),
     "ar": ("(?<![^\\W_])[وف]?[لب]?(?:ال)?(?:فتح|افتح|يفتح|تفتح|فك|يفك|إلغاء|الغاء)\\s+$", ""),
     "ur": ("(?<![^\\W_])ان\\s*$", "^\\S*\\s+(?:کھول|کھل)"),
@@ -445,6 +452,10 @@ REMOVAL_CONTEXT = {
                    "του|της|το|την|τα|των|τον|η|ο"),
            _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
                   "εχει|ειναι|θα")),
+    # "Poista lukitus", "Vapauta potkulaudan lukitus"; "Lukitus pois", "Lukitus poistettu", "Lukitus ei käytössä".
+    "fi": ("(?<![^\\W_])(?:poista|poistaa|poistetaan|poistamaan|poistamalla|vapauta|vapauttaa|vapautetaan)\\s+"
+           "(?:(?!(?:ja|tai)\\s)[^\\W\\d_]+\\s+)?$",
+           "^[^\\W\\d_]*(?:\\s*[:(\\-\u2013\u2014]\\s*|\\s+)(?:on\\s+)?(?:pois|vapaut|ei\\s+käytössä)"),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
 }

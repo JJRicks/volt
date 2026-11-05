@@ -52,7 +52,7 @@ Limits. These checks are a first filter, not the guarantee. They catch the mecha
 common meaning faults by word lists: a missing glossary term (Unlock has its own term, so an unlock
 key drafted with the lock word lacks it), the lock word inside its unlock word,
 unlock as the lock word plus a separate word (lexicon.OPPOSITE_CONTEXT), the lock said to be
-removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, id, ru, uk, el,
+removed or turned off (lexicon.REMOVAL_CONTEXT: es, pt, fr, it, de, nl, pl, sv, fi, id, ru, uk, el,
 ja, zh), negation dropped or added where the language has a list, and an on or off state drafted
 as the other in the first-wave languages (lexicon.STATE_WORDS). Known gaps: a removal verb
 or phrasing not in the lists, or far from the lock word; separable verbs except at the end of the

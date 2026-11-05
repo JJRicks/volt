@@ -1,6 +1,6 @@
 # Volt style guide: Finnish (fi)
 
-**Status: Claude-only proposal (2026-11-05), not final.** One model drafted this from the sources in section 10. The three-vendor debate has not seen it and no native speaker has reviewed it. "Approved" below means "the wording this proposal asks every drafter to use"; safety wording included, all of it can change. The form of address is the plan's proposal and the owner has not confirmed it yet.
+**Status: Claude-only proposal (2026-11-05), not final.** One model drafted this from the sources in section 10. The three-vendor debate has not seen it and no native speaker has reviewed it. "Approved" below means "the wording this proposal asks every drafter to use"; safety wording included, all of it can change. The form of address follows the plan's proposal. The owner approved the plan's 7.4 table as proposed, but Finnish is one of its later-wave proposals, so whether that approval covers it is still to confirm.
 
 The two things that break Finnish in an app are a case ending on a value the translator can't see, and a long compound that doesn't fit. Section 7 covers the first, section 5 the second. Read both before drafting.
 
@@ -70,7 +70,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | noin, keskimäärin, enintään, vähintään | **n.**, **keskim.**, **enint.**, **väh.** | | | Before a value: *n. 5 min*, *enint. 25 km/h* |
 | arvio, arvioitu | **arvio** | | 20.9 at 9sp | The `est.` chip. It's short already; *arv.* isn't recognised |
 
-Measured words that fit as they are: *Lukitus* 42.7, *Asetukset* 58.5, *Akku* 29.3, *Ajot* 23.7 (all under the 62dp tab budget); *Lukittu* 41.1, *Latausraja* 61.1, *Osamatka* 58.7, *Valot* 29.9, *Reaaliaika* 60.5 (58.1 at 12sp), *Pikatoiminnot* 81.3, *Lisäkäyttäjä* 71.4, *Koontinäyttö* 76.2, *Näyttö ja ääni* 81.4, *Tiedot ja luvat* 82.1, *Ajoasetukset* 76.0, *Akkuasetukset* 86.3, *Toimintamatka* 86.6 (all under the 90dp tile at 12.5sp). *Viimeisin lukema* is 86.3 at 11sp, under the 96dp budget.
+Measured words that fit as they are: *Lukitus* 42.7, *Asetukset* 58.5, *Akku* 29.3, *Ajot* 23.7 (all under the 62dp tab budget); *Lukittu* 41.1, *Latausraja* 61.1, *Osamatka* 58.7, *Valot* 29.9, *Reaaliaika* 60.5 (58.1 at 12sp), *Pikatoiminnot* 81.3, *Lisäkäyttäjä* 71.4, *Koontinäyttö* 76.2, *Näyttö ja ääni* 81.4, *Tiedot ja luvat* 82.1, *Ajoasetukset* 76.0, *Akkuasetukset* 86.3, *Toimintamatka* 86.6, *Lähiavaus* 58.8, *Lukituksen* 63.8, *läheltä* 39.7, *Toiminut* 50.6, *Hylätty* 43.7 (all under the 90dp tile at 12.5sp). *Viimeisin lukema* is 86.3 at 11sp, under the 96dp budget.
 
 **Tile ladders:** the shortcut full rung has 64dp a line at 12sp, the short rung 90dp at 12.5sp. So a full rung opens the compound and a short rung may close it. *Ride settings*: *Ajon asetukset* → *Ajoasetukset*. *Battery settings*: *Akun asetukset* → *Akkuasetukset*. *App preferences*: *Voltin asetukset* (*Sovelluksen* alone is 67dp, over budget). *Experimental controls*: *Kokeelliset toiminnot* (each word fits) → *Kokeelliset* 63.1. *Charge done by*: *Lataus valmiiksi* (92.8 on one line, so it wraps at the space). Its time: *Lataus valmiiksi klo* → *Valmiiksi klo* 71.9.
 
@@ -78,7 +78,7 @@ Measured words that fit as they are: *Lukitus* 42.7, *Asetukset* 58.5, *Akku* 29
 
 An abbreviation counts its period, takes no case ending, and belongs only in a label, never in a sentence. A two-word label may wrap at a space where the English also wraps.
 
-**Never abbreviate:** *Lukitse, Avaa lukitus, Lukittu, Lukitus avattu, Tuntematon, Ei varmistettu, Ei koskaan, Aina, Hälytys, PIN-koodi, Kokeellinen*. Never drop the *ei* from a negative to save room; *Varmistettu* is the opposite of *Ei varmistettu*. If one of these doesn't fit, write the whole word and report it rather than shortening it.
+**Never abbreviate:** *Lukitse, Avaa lukitus, Lukittu, Lukitus avattu, Tuntematon, Ei varmistettu, Ei vahvistettu, Ei koskaan, Aina, Hälytys, PIN-koodi, Kokeellinen*. Never drop the *ei* from a negative to save room; *Varmistettu* is the opposite of *Ei varmistettu*. If one of these doesn't fit, write the whole word and report it rather than shortening it.
 
 ## 6. Safety wording
 
@@ -90,12 +90,12 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Lock (noun, card title) | **Lukitus** | Never as a state: *Lukitus* alone doesn't say locked or unlocked |
 | Locked | **Lukittu** | Not *lukossa*, which is colloquial |
 | Unlock (action) | **Avaa lukitus** | Always both words. Noun **lukituksen avaus**. In progress *Avataan lukitusta…* |
-| Unlocked | **Lukitus avattu** | Never *Lukitsematon* (see below). In a sentence *lukitus on avattu*. **Auki** only where the row's lock icon or title supplies the context and *Lukitus avattu* doesn't fit |
+| Unlocked | **Lukitus avattu** | Never *Lukitsematon* (see below). In a sentence *lukitus on avattu*. Never bare *Auki* |
 | Lock state unverified | **Lukituksen tilaa ei ole varmistettu** | Must never read as confirmed. Keep *ei* |
 | Lock state unknown | **Lukituksen tila on tuntematon** | As a short status *Lukituksen tila tuntematon*. Must never read as confirmed |
 | Unknown (alone) | **Tuntematon** | Android's own word. In a sentence *ei tiedossa* is fine |
 | Unverified | **Ei varmistettu** | Agrees with nothing. *varmistamaton* before a noun |
-| Unconfirmed | **Vahvistamaton** | Also *ei vahvistettu* |
+| Unconfirmed | **Ei vahvistettu** | As a standalone status: *Kuitattu, ei vahvistettu*, *Malli %1$s (ei vahvistettu)*. *vahvistamaton* only before a noun |
 | Not confirmed | **Ei vahvistettu** | |
 | Never | **Ei koskaan** | *koskaan* alone means **ever**. In a sentence the verb carries the *ei*: *Numeroita ei koskaan näytetä* |
 | Always | **Aina** | *Always on*: **Aina päällä**. *ei aina* means "not always" |
@@ -103,6 +103,7 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Alarm sound | **Hälytysääni** | |
 | Stop (a sounding alarm) | **Lopeta** | Not *Pysäytä*, which reads as stopping the scooter |
 | PIN | **PIN-koodi** | The word is always written *PIN-koodi*, and it inflects: *PIN-koodin*, *PIN-koodia*. Not *tunnusluku* or *salasana* |
+| Proximity unlock | **Lukituksen avaus läheltä** | A label that wraps at the spaces. Short rung *Lähiavaus*, the one short form without *lukitus*, which works like *PIN-avaus* and only on that control's row. Never *Läheisyysavaus*: *läheisyys* also means intimacy |
 | Handlebar PIN | **ohjaustangon PIN-koodi** | A password is **salasana**, a separate thing. "Your phone-free fallback" is a description: *Varakeinosi ilman puhelinta* |
 | PIN unlock | **PIN-avaus** | The toggle |
 | Owner key | **omistaja-avain** | A secret. *avain* reads as a digital key here, as in *salausavain*. The hyphen stays. "Not a password" is *Ei salasana* |
@@ -112,14 +113,14 @@ Use exactly these words. They match the glossary; don't use synonyms.
 | Try (a control) | **Kokeile** | Not the retry phrase. See Fixed words |
 | not affiliated with NAVEE | **ei ole sidoksissa NAVEE-yhtiöön** | Footer: *Volt %1$s · ei ole sidoksissa NAVEE-yhtiöön*. Never soften it: no *epävirallinen*, *riippumaton*, *ei suoraan*. Its head noun carries the ending, so NAVEE stays unchanged |
 
-- **Lukittu vs Lukitus avattu** are visibly different. **Lukitsematon** is the dictionary word for unlocked, and it's banned here because it starts exactly like *Lukitse*, ends in a negative only a careful reader catches, and the checks count it as *lukitse*. So is *lukitsematta* in a state.
+- **Lukittu vs Lukitus avattu** are visibly different. **Lukitsematon** is the dictionary word for unlocked, and it's banned here because it starts exactly like *Lukitse*, and ends in a negative only a careful reader catches. So is *lukitsematta* in a state.
 - **Bare *Avaa* means Open.** Volt also opens screens and files, so an unlock never shortens to *Avaa*.
 - **Don't describe an unlock as removing or switching off the lock** (*Poista lukitus*, *Lukitus pois*). Only use *poista käytöstä* where the English itself says turn off.
 - **On and off:** settings use **Käytössä** and **Ei käytössä**, lights and motors use **Päällä** and **Pois päältä**. Never shorten *Pois päältä* to *Päältä*, which alone says nothing. Never *Kyllä/Ei* in their place.
 - **Keep every negation.** Prefer the word *ei* or *älä*, which the checks and a reader both see. A negative suffix (*-maton*, *-matta*, *-ton*) is correct Finnish but easy to miss, and `check.py` knows only a few of them, so a draft with one gets a polarity warning that a judge has to read. *epäonnistui* (failed) is fine and counts.
 - **varmistaa vs vahvistaa:** *varmistaa* is what Volt or the rider does to verify; *vahvistaa* is what a readback confirms. They look alike and aren't interchangeable here.
 - **Unconfirmed clauses** use *ei voitu vahvistaa, …-ko*, which doesn't presuppose the event: *Ei voitu vahvistaa, poistuiko aikataulu käytöstä.*
-- **`check.py` doesn't check Finnish inversion.** Finnish has no list of unlock or removal contexts yet, so *Avaa lukitus* counts as containing the lock term and passes where the English says Lock. Only you and the judge catch this. Read every lock string twice.
+- **`check.py` catches only the common Finnish inversions.** Where the English says Lock, it refuses *Avaa lukitus*, *Pura lukitus*, *Lukitus avattu*, *Lukituksen avaus*, *Lukitusta ei voitu avata*, *Poista lukitus*, *Lukitus pois* and *Lukitsematon*. An inversion with more than one word between the verb and *lukitus*, or with another verb, still passes, and no native speaker has reviewed these lists. Read every lock string twice.
 
 ## 7. Case endings and placeholders
 
@@ -155,16 +156,17 @@ The glossary is authoritative; this explains the distinctions it can't.
 
 - **Scooter:** **potkulauta** everywhere. *sähköpotkulauta*, the word Finnish shops and NAVEE's retailers use, is only for where the English says "electric scooter", because at 98.6dp it can't sit in a label and the app is only ever about electric ones. Never *skuutti* or *skootteri* (*skootteri* is a moped). **Debate item.**
 - **Three speeds:** the setting is **Enimmäisnopeus** (*Maks. nopeus* on the tile). A limit below it is **nopeusrajoitus**. The measured value on a trip or ride is **Huippunopeus**. Never swap them.
-- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. Flag them in your notes; a judge answers fallback. The `top-speed` and `maximum-speed` glossary rows already carry D3's meanings, and every other string with these terms already matches D3.
-- **Rides vs trips:** a recorded ride is an **ajo** (*Ajot* for the screen). *Trip*, the distance since a reset, is **osamatka**, as on a car's trip meter. A path on the map is a **reitti**. Don't use *matka* alone, which could be either.
+- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. So does `more_lab_untested`: D3 turns its English *Untested controls* into *Controls to try*, and *Kokeiltavat toiminnot* against today's English would drop the warning. If the owner keeps the English title, the Finnish is *Testaamattomat toiminnot*. Flag them in your notes; a judge answers fallback. The `top-speed` and `maximum-speed` glossary rows already carry D3's meanings, and every other string with these terms already matches D3.
+- **Rides vs trips:** a recorded ride is an **ajo** (*Ajot* for the screen). *Trip*, the distance since a reset, is **osamatka**, as on a car's trip meter. A path on the map is a **reitti**. Don't name a ride or a trip with *matka* alone, which could be either. **Distance** as a label or unit choice is **matka**: *Matka*, *Matka ja nopeus*. *Etäisyys* means how far apart two things are.
 - **Range:** **toimintamatka**, as Finnish shops write it. *toimintasäde* is also used; don't mix them.
 - **Try vs retry vs test:** Trying a control is **Kokeile**, and its results use **kokeilu**. An ordinary retry is **Yritä uudelleen**. A guided test is **testi**, verb **testata**. *Test scheduled charging* is a check: **Tarkista ajastettu lataus**. A compatibility check is **yhteensopivuuden tarkistus**.
 - **Dashboard vs display:** Volt's Home layout is the **Koontinäyttö**, Microsoft's Finnish word for a dashboard. The scooter's own screen is the **potkulaudan näyttö**. *Kojelauta* is banned for Volt's Home: Finnish scooter manuals use it for the scooter's own display, the very thing this distinction separates. The Home tab is **Etusivu**.
 - **Settings vs setup:** settings are **asetukset**, a one-time setup is **käyttöönotto**.
 - **Restore vs set back:** bringing back a backup, or NAVEE logging as Fixed words says, is **Palauta**. Undoing a try is **Peru muutos**, also where a test's earlier value goes back even if the English says restore. **Energy recovery is Energian talteenotto**, unrelated to either. Cancel is **Peruuta**, one letter away from *Peru*: only *Peru muutos* uses the shorter verb.
 - **Readback:** **takaisinluku**, a neutral word, because a readback can also fail to confirm: *Takaisinluku poikkeaa*, *Vahvistettu takaisinluvulla*. Never a word with *vahvistus* inside it.
-- **Rejected:** *Rejected* is **Hylätty**, and *Refused by scooter* **Potkulauta hylkäsi**.
+- **Try results:** *Rejected* is **Hylätty**. *Refused by scooter* is **Potkulauta hylkäsi kokeilun**, short rung **Hylätty**; *hylkäsi* needs its object. *Worked here* is **Toiminut tässä**, short rung **Toiminut**. Never bare *Toimi*, which reads first as the command "operate".
 - **Pair vs bind vs connect:** Bluetooth pairing is **muodosta laitepari**, as Android says, nouns **laitepari**, **paritus**. NAVEE account binding is **liitä tiliin**. A live link is **yhdistä**, and the link **yhteys**. Don't use *yhteystiedot* for connection details: that word means contact details. **Yhteyden tiedot.**
+- **Capture:** reading the owner key is **nouto**, verb **noutaa**: *Omistaja-avaimen nouto*, *Nouda se NAVEE-sovelluksesta*, *Noudetaan…*. The script on the computer is the **nouto-ohjelma**. Not *kaappaus* or *kaapata*: outside compounds such as *kuvakaappaus* they mainly mean hijacking, which is wrong for a rider handling their own key. **Debate item.**
 - **Owner key parts:** the file is **omistajan asetustiedosto**, on onboarding steps **omistajatiedosto**. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
 - **Roles:** owner is **omistaja**, shared rider is **lisäkäyttäjä**. The compact role label (`more_role_shared`, English *Shared*) is also **Lisäkäyttäjä** (71.4dp), never *Jaettu*, which reads as a shared scooter.
 - **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes: *Pois päältä, Matala, Keskitaso, Korkea*.
@@ -174,7 +176,8 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Quick settings:** the Dashboard's shortcut row and widget (*Quick access*, *Quick settings*) are **Pikatoiminnot**. Never *Pika-asetukset*: that is Android's pull-down panel.
 - **Lisää** is both *Add* and the *More* tab, as in Android. The context separates them; don't invent another word.
 - **Parts:** handlebar **ohjaustanko**, throttle **kaasu**, brake lever **jarrukahva**, power button **virtapainike**, tail light **takavalo**, headlight **ajovalo**, turn signal **suuntavilkku**, charger **laturi**, charging port **latausportti**, motor **moottori**, battery **akku**, charge level **akun varaus**.
-- **Experimental LAB badge:** **KOE** (20.7dp at 10.5sp, under the 40dp budget), as D3 allows a language its own short word, because *LAB* means nothing in Finnish. TalkBack speaks **Kokeellinen**. **Debate item.**
+- **Experimental LAB badge:** **KOE** (20.7dp at 10.5sp, under the 40dp budget), as D3 allows a language its own short word, because *LAB* means nothing in Finnish. TalkBack speaks **Kokeellinen**. *KOE* can also suggest an exam. **Debate item.**
+- **Alert words:** *Akkuvaroitukset* and *Latausvaroitus* can read as a fault warning rather than a level the rider chose. They stand for now. The debate should weigh *Akkuhälytykset* and *Latausmuistutus*, keeping hälytys, varoitus and ilmoitus distinct. **Debate item.**
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does: *Raportti on englanniksi*.
 
 ## 9. Android's own wording
@@ -208,7 +211,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **potkulaudan ilmoittama**; verb **ilmoittaa**: *potkulauta ilmoittaa*. A claim, not a measurement. Never *raportoitu*, *vahvistettu* or *mitattu*. *raportti* stays the word for a document |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **NAVEE-tapahtumaloki**. Never *rekisteröinti* or *kirjautuminen*, which read as an account |
 | restore logging | turning that logging back to how it was (usually off) | **palauta tapahtumaloki ennalleen**. It brings back no file or backup |
-| Volt's helper | the small helper Volt starts inside Shizuku | **Voltin apuohjelma**; *apuohjelma* alone once the screen makes clear which. The script on the computer is the different **kaappausohjelma** |
+| Volt's helper | the small helper Volt starts inside Shizuku | **Voltin apuohjelma**; *apuohjelma* alone once the screen makes clear which. The script on the computer is the different **nouto-ohjelma** |
 | stock charger | the charger that came with the scooter | **alkuperäinen laturi**. Not *vakiolaturi*, so that one word stays in use |
 | high-speed charger | a faster charger the rider may own | **pikalaturi**; alone, *Pika*. Never a phrase with *nopeus*: this is about charging, not riding speed |
 | gap (in a recording) | a stretch of a recording with no data | **katkos**. Means no data was recorded, not that power or the ride was cut |
@@ -236,5 +239,5 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 - **Android's Finnish:** [AOSP SettingsLib fi](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-fi/strings.xml) (*USB-vianetsintä*, *Kehittäjäasetukset*, *Muodosta laitepari*, *Yhdistetään…*, *Yhteys katkaistu*, *Tuntematon*). **From memory, not read:** *Koontiversion numero*, *Tietoja puhelimesta*, *Pika-asetukset*, *widget*, *Avaa lukitus*.
 - [Microsoft Finnish localization style guide](https://aka.ms/finnish-styleguide), read: leaving out "you", lower case after a colon, en dash rules, sparing quotes, `&` as *ja*, passive error messages, abbreviations must follow normal grammar, avoid long compounds. *Koontinäyttö* is from memory of Microsoft's Finnish products, not this guide.
 - [Kielitoimiston ohjepankki, percent sign](https://www.kielitoimistonohjepankki.fi/ohje/prosenttimerkki/), read: the space, and *11 %:n*, *9 %:a*, *9 %:iin*. **Kielitoimisto's abbreviation list wasn't read** ([link from Microsoft's guide](http://www.kielitoimistonohjepankki.fi/haku/lyhenteet/ohje/435)): *maks.*, *keskim.*, *lämp.*, *enint.*, *väh.*, *n.* and the colon rule are from memory. *Matkam.*, *Keskinop.*, *Huippunop.* and *Yhteensop.* are Claude's formations by the usual pattern, not listed abbreviations. **A native speaker should check them first.**
-- **Judgment calls with no source:** *potkulauta* over *sähköpotkulauta*, *Lukitus avattu*, *omistaja-avain*, *lisäkäyttäjä*, *läheisyysavaus*, *Koontinäyttö*, *Lataus valmiiksi*, *KOE*, *takaisinluku*, and the quoted-label rule in section 2.
+- **Judgment calls with no source:** *potkulauta* over *sähköpotkulauta*, *Lukitus avattu*, *omistaja-avain*, *lisäkäyttäjä*, *Lukituksen avaus läheltä* and *Lähiavaus*, *nouto* over *kaappaus*, *Koontinäyttö*, *Lataus valmiiksi*, *KOE*, *takaisinluku*, the alert words, and the quoted-label rule in section 2.
 - **Saira:** all four weights in `res/font/` have ä, ö, å, š, ž and their capitals, ”, ’, –, ·, …, › and U+00A0, read from the cmap with `tools/l10n/fontmetrics.py`. They lack U+202F. Widths: same tool, java.awt, `saira_medium.ttf`.

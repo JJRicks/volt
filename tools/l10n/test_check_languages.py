@@ -748,5 +748,40 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
                                   ("es", "Bloqueo: activado", "bloqueo")):
             self.assertTrue(lexicon.term_found(tag, "Latn", target, text), (tag, text))
 
+class FinnishChecksTest(unittest.TestCase):
+    """Finnish opposite-term, removal and negation checks, with the shape of the real glossary rows."""
+
+    LOCK = ["lukitse", "lukita", "lukitaan", "lukitus", "lukituksen", "lukitusta"]
+
+    def test_unlock_and_removal_are_not_the_lock_term(self):
+        for text in ("Avaa lukitus", "Lukitus avattu", "Lukituksen avaus", "Poista lukitus", "Lukitsematon",
+                     "Avaa ensin lukitus", "Avaa potkulaudan lukitus", "Lukitusta ei voitu avata",
+                     "Lukitus on auki", "Lukitus: avattu", "Pura lukitus", "Lukitus pois päältä",
+                     "Lukitus poistettu", "Poista potkulaudan lukitus", "Voit avata lukituksen"):
+            self.assertIn("glossary", _errors("fi", "Lock scooter", text, self.LOCK), text)
+
+    def test_lock_wording_keeps_the_lock_term(self):
+        for text in ("Lukitse potkulauta", "Lukitus", "Lukitse ja sammuta valot", "Avaa ja lukitse",
+                     "Poista ajo ja lukitse", "Lukitaan…", "Lukitse, kun yhteys avataan"):
+            self.assertEqual(_errors("fi", "Lock scooter", text, self.LOCK), [], text)
+
+    def test_removal_words_are_right_when_the_english_removes(self):
+        self.assertEqual(_errors("fi", "Remove the lock", "Poista lukitus", self.LOCK), [])
+
+    def test_unlock_targets_survive_the_contexts(self):
+        targets = ["avaa lukitus", "avaa ensin lukitus", "lukituksen avaus", "lukitus avattu"]
+        for text in ("Avaa lukitus", "Avaa ensin lukitus", "Lukituksen avaus", "Lukitus avattu"):
+            self.assertTrue(any(lexicon.term_found("fi", "Latn", t, text) for t in targets), text)
+
+    def test_koskaan_alone_is_not_a_negation(self):
+        self.assertIn("polarity", _errors("fi", "Never lock", "Koskaan lukitse", self.LOCK))
+        self.assertNotIn("polarity", _errors("fi", "Never lock", "Älä koskaan lukitse", self.LOCK))
+
+    def test_negative_participles_count_as_negated(self):
+        for text in ("Vahvistamaton", "Varmistamaton", "Testaamaton", "Ei vahvistettu"):
+            self.assertEqual(_errors("fi", "Unconfirmed", text), [], text)
+        self.assertIn("polarity", _errors("fi", "Unconfirmed", "Vahvistettu"))
+
+
 if __name__ == "__main__":
     unittest.main()
