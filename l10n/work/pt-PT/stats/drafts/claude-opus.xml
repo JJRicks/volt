@@ -154,7 +154,7 @@
     <string name="stats_charge_close_expanded" volt:src="76bda29b2ee863ce9684de196f548ebf74b7a295">Fechar o gráfico de carga expandido</string>
     <string name="stats_row_charging_state" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Carregamento</string>
     <string name="stats_row_self_discharge_raw" volt:src="3e4243dbbb1a14eab6aea61985725551f3872135">Autodescarga</string>
-    <string name="stats_row_extreme_temperature_charge_raw" volt:src="3dfa95806cd04ad8bba612faefb414c94fdf980b">Tempo de carregamento a quente/frio</string>
+    <string name="stats_row_extreme_temperature_charge_raw" volt:src="3dfa95806cd04ad8bba612faefb414c94fdf980b">Tempo a carregar com calor/frio</string>
     <string name="stats_row_temperature_sign_state" volt:src="4c8c9d6a369628c15ed80991a34d0295989895d3">Sinal da temp.</string>
     <string name="stats_row_current_sign_state" volt:src="a1133deb7e4bdb439b89dbbc18ed6821404aee01">Sinal da corrente</string>
     <string name="stats_row_driving_status" volt:src="f7265863ad98dbfc8648a4d125d8ae807c3c2fc7">Estado de condução</string>
@@ -165,25 +165,25 @@
     <string name="stats_row_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Algoritmo de autonomia</string>
     <string name="stats_row_auto_sensor" volt:src="5d9da02544ef2daf50ce56ae1ff0aec08451c828">Luz automática</string>
     <string name="stats_row_tyre_reminder" volt:src="830d3b729d73aaae184b90a147c9f09e190d76fb">Lembrete dos pneus</string>
-    <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Padrão de linhas</string>
+    <string name="stats_row_ambient_light" volt:src="9d42b17dfb3a2f2bb9540bf37b15752a47a66e3a">Padrão da linha</string>
     <string name="stats_row_traction_control" volt:src="05821cbe978e95762699a8e0792b1ccbce6e141a">Controlo de tração</string>
     <string name="stats_row_turn_sound" volt:src="cb472220793ecbbd5ab3c9e044deb8a692a60bb6">Som dos piscas</string>
     <string name="stats_row_proximity_key" volt:src="26c08fb26f6c8c9701f66cba1618708b452cbd1a">Chave de proximidade</string>
     <string name="stats_row_night_mode" volt:src="a9897a7a21973a1cc8d2995438da457dee70256a">Modo noturno</string>
     <string name="stats_row_range_algorithm_mode" volt:src="6fd161e587c50069b067077e5112373b3adb58c4">Modo de autonomia</string>
-    <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Padrão de estrelas</string>
+    <string name="stats_row_drive_light" volt:src="4d85a14400ea47fbbd5737872b5bfc4e7c9beb0d">Padrão da estrela</string>
     <string name="stats_row_start_speed" volt:src="279902fc82ca78f3323a344f239f321a66a1ecca">Velocidade de arranque</string>
     <string name="stats_row_speed_limit" volt:src="d808dc95cb8bd0c36e9b85d6d2bc7757ec5223a0">Limite de velocidade</string>
     <string name="stats_row_volume" volt:src="49c26a1170a87fab1c4d8970b76c3666329b250e">Áudio</string>
     <string name="stats_row_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Idioma da voz</string>
     <string name="stats_row_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Luz do logótipo</string>
     <string name="stats_row_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Luz de circulação diurna</string>
-    <string name="stats_row_maximum_speed_setting" volt:src="6c84403a8d738cc045c51c7643ef0e9abf64f46a">Definição de vel. máxima</string>
-    <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Definição de modo</string>
-    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Byte do modo de definições</string>
-    <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Horário de carregamento</string>
+    <string name="stats_row_maximum_speed_setting" volt:src="6c84403a8d738cc045c51c7643ef0e9abf64f46a">Definição da vel. máxima</string>
+    <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Definição do modo</string>
+    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Byte de modo das definições</string>
+    <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Hora de carregamento</string>
     <string name="stats_row_low_power" volt:src="0c6b1c731decb0322088608a6ed7366fb16d6e56">Modo de bateria fraca</string>
-    <string name="stats_row_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Carregamento temporizado</string>
+    <string name="stats_row_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Carregamento programado</string>
     <string name="stats_row_auto_lock_time" volt:src="e757f783669177e094c98bf1dc206399c9be61d5">Duração do bloqueio</string>
     <string name="stats_row_speed_limit_eligibility" volt:src="7ea8f13a990927f7319388066003782d95afae12">Elegibilidade de velocidade</string>
     <string name="stats_row_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Meteorologia</string>
@@ -195,6 +195,6 @@
     <string name="stats_row_battery_serial_raw" volt:src="e019db8b162ae9c1f54809c6493beed2765122ab">Número de série da bateria</string>
     <string name="stats_row_lock_push_warning" volt:src="24bfcde62ec3c5dbc262ae60c12b6374c266f477">Movimento com bloqueio</string>
     <string name="stats_row_hide_e9" volt:src="61fb804227518b96a7c4a5a058631345f44d7c61">Sinalizador E9</string>
-    <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Leitura de viagem</string>
+    <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Leitura de viagens</string>
     <string name="stats_row_fault_history_raw" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Histórico de falhas</string>
 </resources>

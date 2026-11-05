@@ -24,7 +24,7 @@
     <string name="readings_battery_status_compact" volt:src="0f367dc357f3389a51045371aa450816f8b9b7e9">Estado</string>
     <string name="readings_charging_state" volt:src="905e2ecbdf52368d2e89a7e8c7ed403db5db0eca">Estado de carregamento (em bruto)</string>
     <string name="readings_charging_state_short" volt:src="342f0864c9a33dbf6664b5b6371f9c8810738462">Carregamento (em bruto)</string>
-    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Carregamento (em bruto)</string>
+    <string name="readings_charging_state_compact" volt:src="be7cd15413d510919b045c75c9a2f2587124a28b">Estado (em bruto)</string>
     <string name="readings_charge_cycles" volt:src="9f3a5527fd4191292f97400b43ec5145617c8679">Número de cargas indicado</string>
     <string name="readings_charge_cycles_short" volt:src="9ab3830434d1aad6b87e3828e013cf244cfaf846">Cargas indicadas</string>
     <string name="readings_charge_cycles_compact" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Cargas</string>
@@ -76,9 +76,9 @@
     <string name="readings_odometer_km_short" volt:src="31e867d79b873d5caf18fe27d8c61f1abb71151c">Odómetro</string>
     <string name="readings_odometer_km_compact" volt:src="31adf29d5b21915924c4aa05d92e9631f043c10e">Odóm.</string>
     <string name="readings_driving_status" volt:src="146fe630a90cf0bf2081606b8216f5e137c1206b">Estado de condução (em bruto)</string>
-    <string name="readings_driving_status_short" volt:src="c4179fc50d153cdd72a836df995bb8051089e067">Condução (em bruto)</string>
-    <string name="readings_stored_trips" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Trajetos guardados</string>
-    <string name="readings_stored_trips_short" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Trajetos guardados</string>
+    <string name="readings_driving_status_short" volt:src="c4179fc50d153cdd72a836df995bb8051089e067">Estado de condução (em bruto)</string>
+    <string name="readings_stored_trips" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Viagens guardadas</string>
+    <string name="readings_stored_trips_short" volt:src="fb1336f32988004cf38d07a1acdcbcc5076572cd">Viagens guardadas</string>
     <string name="readings_binding_status" volt:src="6c90b7671b5ce0e94a76cfe5f126e48cbbac052c">Estado de vinculação da conta (em bruto)</string>
     <string name="readings_binding_status_short" volt:src="3a4e51df835923335c24e719576b49007a758d02">Vinculação da conta (em bruto)</string>
     <string name="readings_driving_mode" volt:src="ce23ac80c0f84789320240bed6278ccba250f18e">Modo de condução (em bruto)</string>
@@ -88,11 +88,11 @@
     <string name="readings_lock_status_short" volt:src="8f8525e4a0f6699513581880c6a0fe05239feb75">Bloqueio eletrónico</string>
     <string name="readings_lock_status_compact" volt:src="7044b2710ffbc209d1839555476d7926bb179106">Bloqueio</string>
     <string name="readings_cruise_control" volt:src="8b578c5ddfc1d5b18e54c314262241084e516636">Controlo de cruzeiro (em bruto)</string>
-    <string name="readings_cruise_control_short" volt:src="0973cc51c7bc8503f04b8931b476b6bdc7aaa1ce">Cruzeiro (em bruto)</string>
+    <string name="readings_cruise_control_short" volt:src="0973cc51c7bc8503f04b8931b476b6bdc7aaa1ce">Controlo de cruzeiro (em bruto)</string>
     <string name="readings_tail_light" volt:src="d4418691acaabc73c387e5ebe1e5e26370bbc131">Definição da luz traseira (em bruto)</string>
     <string name="readings_tail_light_short" volt:src="2c4d7eae913c11230c529a0c23d529432cc38e8d">Luz traseira (em bruto)</string>
     <string name="readings_energy_recovery" volt:src="a2f7eb53b276ee6ebb679c2a7fbdc84b6d5b153c">Definição da recuperação de energia (em bruto)</string>
-    <string name="readings_energy_recovery_short" volt:src="e4b3e9931bddb0c40e7c1c2e8eaa4c972362f13e">Recuperação (em bruto)</string>
+    <string name="readings_energy_recovery_short" volt:src="e4b3e9931bddb0c40e7c1c2e8eaa4c972362f13e">Recuperação de energia (em bruto)</string>
     <string name="readings_range_algorithm" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Algoritmo de autonomia (em bruto)</string>
     <string name="readings_range_algorithm_short" volt:src="a67bc113380104bcde1a01429999781e24a7f104">Algoritmo de autonomia (em bruto)</string>
     <string name="readings_display_units" volt:src="24f4a22614a6673ced9de89751f84b9633714a5c">Unidades do ecrã da trotinete</string>
@@ -104,7 +104,7 @@
     <string name="readings_ambient_light" volt:src="3a74e29b17173c128fb34168be290c66009ebcd0">Estado / padrão da iluminação da linha (em bruto)</string>
     <string name="readings_ambient_light_short" volt:src="39797ac03d0e80759f5eff830ece7b8e7052a72c">Padrão da linha (em bruto)</string>
     <string name="readings_traction_control" volt:src="b0bbb439869a4eed7c74ba5e08af3a0a83b48ba7">Controlo de tração (em bruto)</string>
-    <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Tração (em bruto)</string>
+    <string name="readings_traction_control_short" volt:src="88686215c6863217706b83d3b643f6abb879f884">Controlo de tração (em bruto)</string>
     <string name="readings_turn_sound" volt:src="081f0c96f67f92a121d8875337491a9bb658e16a">Som dos piscas (em bruto)</string>
     <string name="readings_turn_sound_short" volt:src="fcda1c71404bce0d0301558b30834bd2428705cb">Som dos piscas (em bruto)</string>
     <string name="readings_proximity_key" volt:src="05e8953ea2595d41120705d534a638e9ebbd6d44">Definição da chave de proximidade (em bruto)</string>
@@ -161,7 +161,7 @@
     <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Definição de alerta de excesso de velocidade (em bruto)</string>
     <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Alerta de excesso de velocidade (em bruto)</string>
     <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Definição do limite de velocidade do modo Drive (em bruto)</string>
-    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Limite de velocidade Drive (em bruto)</string>
+    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Limite de velocidade do modo Drive (em bruto)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware do medidor</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware do medidor</string>
     <string name="readings_meter_version_compact" volt:src="3af54421c2b7f705dd57e0bcd6b26cb01806f0c9">FW medidor</string>
@@ -178,9 +178,9 @@
     <string name="readings_uwb_version_short" volt:src="0aa048e2ec4b4b8ee7c3621f41bd21ad1f830914">Firmware de proximidade</string>
     <string name="readings_uwb_version_compact" volt:src="2e011bb8ea2fdea95c1677a7df8b47edb1a71cb6">FW proximidade</string>
     <string name="readings_scooter_serial" volt:src="bb7af5a44ba75bd1c2e4a6ce599979656dcff6ae">Número de série da trotinete</string>
-    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">Série da trotinete</string>
+    <string name="readings_scooter_serial_short" volt:src="7418711c1f66a31e6639954b4aee2b4a06583bfe">N.º de série da trotinete</string>
     <string name="readings_battery_serial_raw" volt:src="c2fa7c6ec826cbb85b9c04e2310ffb0fe2bb0c37">Resposta do número de série da bateria (em bruto)</string>
-    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">Série da bateria (em bruto)</string>
+    <string name="readings_battery_serial_raw_short" volt:src="707d16b3eb34850926afaccee865e83064817ee6">N.º de série da bateria (em bruto)</string>
     <string name="readings_warning_code" volt:src="6f0188bab92e86b0766dcf7b1f95ede2c64346ce">Código de aviso ativo</string>
     <string name="readings_warning_code_short" volt:src="92fb7eb6ac49b53d8ddc28b1490fbd4947deb0ea">Código de aviso</string>
     <string name="readings_warning_code_compact" volt:src="63647a656653eda2f9ed432b853672b34a5d0ac4">Aviso</string>
@@ -203,9 +203,9 @@
     <string name="readings_response_73" volt:src="59d1f5db6acefe8255fe466065e9083a478c33b8">Leitura das versões de firmware (0x73)</string>
     <string name="readings_response_73_short" volt:src="1ac244f54b1854da36f11a10588ba49ff9828abe">Leitura de firmware · 73</string>
     <string name="readings_response_74" volt:src="4bc5db62231d20c0075ccb23c636b4ff41577bdb">Leitura do número de série da trotinete (0x74)</string>
-    <string name="readings_response_74_short" volt:src="30b55c83bca1fbd526abf77c6e7145778123e370">Série da trotinete · 74</string>
+    <string name="readings_response_74_short" volt:src="30b55c83bca1fbd526abf77c6e7145778123e370">N.º de série · 74</string>
     <string name="readings_response_75" volt:src="54f53c0ccdf697b9483e93e55dd08613ed41ca2c">Leitura do número de série da bateria (0x75)</string>
-    <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">Série da bateria · 75</string>
+    <string name="readings_response_75_short" volt:src="e5e9669d74db5e77d6ab2a42bb714d04133a499c">N.º de série da bateria · 75</string>
     <string name="readings_response_76" volt:src="b4dd985788daee847907d9f97b5349e148d70062">Leitura do histórico de viagens (0x76)</string>
     <string name="readings_response_76_short" volt:src="550b657b98a151bd2976bb37625b0062eb9c6ed4">Histórico de viagens · 76</string>
     <string name="readings_response_79" volt:src="84d99f4f8a8333420790addfd6b7e0c0852d11b2">Leitura dos estados dos sinais da bateria (0x79)</string>
@@ -245,9 +245,9 @@
     </plurals>
     <string name="readings_value_unknown_format" volt:src="4fbf82bfa837313b3c11b92fd4a9d20b36f05c51">Registos de formato desconhecido %1$s</string>
     <plurals name="readings_value_charges" volt:src="e616e0b3b5111b202cec26323d8a9f6a75be123b">
-        <item quantity="one">%1$d carregamento</item>
-        <item quantity="many">%1$d de carregamentos</item>
-        <item quantity="other">%1$d carregamentos</item>
+        <item quantity="one">%1$d carga</item>
+        <item quantity="many">%1$d de cargas</item>
+        <item quantity="other">%1$d cargas</item>
     </plurals>
     <string name="readings_value_percent" volt:src="59e6cdf69b389507d59847b4da849f5a0c9acdec">%1$s%%</string>
     <string name="readings_value_empty_response" volt:src="047f4e5915f472bf49b17432f665e77ba7775756">Resposta vazia</string>

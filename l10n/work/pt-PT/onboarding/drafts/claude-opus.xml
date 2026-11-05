@@ -65,13 +65,13 @@
     <string name="onboarding_skip_keep_going" volt:src="9aaca2bfb0717a3a71384d6ef4b3ff9fe4e109a9">Continuar a configuração</string>
     <string name="onboarding_prepare_title" volt:src="ea9dc58d381ab136f8d8332bf41d32f90bd93983">Antes de começar</string>
     <string name="onboarding_prepare_navee" volt:src="a308160524cd71f0e3ab1693bc6317ba60fbcc98">A app NAVEE funciona</string>
-    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Com sessão iniciada e a conectar à trotinete</string>
+    <string name="onboarding_prepare_navee_detail" volt:src="c05404a05f0633dd00fc1e71279edc16ab78b4e4">Com sessão iniciada e capaz de conectar a trotinete</string>
     <string name="onboarding_prepare_browser_computer" volt:src="4f9a15f2cc462561fc149d65cfcbe11918e2d845">Um computador com Chrome ou Edge</string>
     <string name="onboarding_prepare_adb_computer" volt:src="e39ebd8f0a7415518494a60aff0a75d9afea24c1">Um computador com ADB e Python 3</string>
     <string name="onboarding_prepare_source" volt:src="4179cdb733bc59821ab6e42c350d66c9088275bc">O código-fonte da Volt, extraído</string>
     <string name="onboarding_prepare_source_detail" volt:src="1bcb470e500f04bb4ed5290e6f249b3ca1470644">Usa «Obter código-fonte» abaixo; contém setup/capture-owner.py</string>
     <string name="onboarding_prepare_cable" volt:src="07b74a5eb3de9d0d7b10ec7dcd479b64ac5a42dc">Um cabo de dados USB</string>
-    <string name="onboarding_prepare_cable_detail" volt:src="00813cb62dd6383ec04afa99cf834d5d5ca574c6">Não apenas de carregamento</string>
+    <string name="onboarding_prepare_cable_detail" volt:src="00813cb62dd6383ec04afa99cf834d5d5ca574c6">Que não seja só de carregamento</string>
     <string name="onboarding_prepare_parked" volt:src="1e05f66a5e0927184ba4fb6de7477cc1f7e25b63">Trotinete parada e ligada</string>
     <string name="onboarding_prepare_parked_detail" volt:src="bb7b3271538299a22cd03b586629b05fec7ba407">Fecha as outras apps de trotinetes</string>
     <string name="onboarding_prepare_where_adb" volt:src="d1bade96e0535d5e5f99674546e852148175fccb">Onde obtenho o ADB?</string>
@@ -117,23 +117,23 @@
     <string name="onboarding_helper_clip_label" volt:src="16aeef0cd93ca0586a64b367fff6681673673655">Comando de captura</string>
     <string name="onboarding_helper_copied" volt:src="9b841f523afbec8ade5513dc43a8b8c65da97aad">Comando copiado.</string>
     <string name="onboarding_helper_copy_failed" volt:src="5ab3a834c36db85168617a42f574427ea91a90d4">Não foi possível copiar</string>
-    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Conectar através do navegador</string>
+    <string name="onboarding_browser_title" volt:src="34d14e9a44e77aedb93acd5952faf6bca6e0a13f">Ligar através do navegador</string>
     <string name="onboarding_browser_open" volt:src="9e0f576a4bd0fd5fc28666979a1045f82f29beb7">No computador, abre:</string>
     <string name="onboarding_browser_connect_cable" volt:src="689467b23b8ba4a0e00f186b757e50766bf34479">Liga o telemóvel com um cabo de dados USB</string>
     <string name="onboarding_browser_pick_phone" volt:src="8649a759c03d194a2c533a5db93d63abc632da7f">Escolhe o teu telemóvel no Chrome</string>
     <string name="onboarding_browser_approve" volt:src="9eb8aae96e42a4f234329143813193c44a2fda5d">Aprova a depuração USB neste telemóvel</string>
     <string name="onboarding_browser_leave_unchecked" volt:src="d7ffb69d854e0f41f9a58d61ba3d5dfd1dc32085" volt:attempt="2">Não marques **Permitir sempre a partir deste computador**</string>
-    <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">O site conectou-se</string>
+    <string name="onboarding_browser_connected" volt:src="150150dc7d89c730b7ab7aae2e3e6872d212bc84">O site ligou-se ao telemóvel</string>
     <string name="onboarding_browser_not_listed" volt:src="963774bcb6a07818ca5c71b8b5fd02c6a1e5ac0c">O telemóvel não aparece na lista</string>
     <string name="onboarding_browser_help_title" volt:src="300d9c935170b99cf0c50f7813a74c7dabe8e638">Ligação no Chrome</string>
-    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telemóvel desbloqueado, depuração USB ativada\n•  Um cabo de dados, não só de carregamento\n•  Android Studio, outras ferramentas ADB e separadores de configuração fechados\n•  Chrome ou Edge, não Safari nem Firefox"</string>
+    <string name="onboarding_browser_help" volt:src="19ec8f39b1b235d5da9c5933deda058db0759620">"•  Telemóvel desbloqueado, depuração USB ativada\n•  Um cabo de dados, que não seja só de carregamento\n•  Android Studio, outras ferramentas ADB e separadores de configuração fechados\n•  Chrome ou Edge, não Safari nem Firefox"</string>
     <string name="onboarding_browser_capture_title" volt:src="8419097e425f65680fa4c21fdd81a20155044ec8">Aprovar a captura no site</string>
     <string name="onboarding_browser_keep_cable" volt:src="6303a73b52e8fc810848f22447171a7ee824b622">Mantém o cabo ligado até a limpeza terminar.</string>
     <string name="onboarding_browser_start" volt:src="c6e82ee59e9c917bd59bce8976a79c21afade853">Lê a explicação da captura e escolhe **Start**</string>
     <string name="onboarding_browser_select_scooter" volt:src="13e0807a602a272817349bdefca034c6de99ee27">Seleciona a tua trotinete na app NAVEE e conecta-a</string>
     <string name="onboarding_browser_up_to" volt:src="9e196736053fa85c6c4cade73d36197804927db2">Até **90 s**</string>
     <string name="onboarding_browser_save" volt:src="5e0f61f47ee98321754911c2189a843c61df0101">Depois da limpeza, escolhe **Save to phone Downloads**</string>
-    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Este ficheiro é uma chave de proprietário. Mantém-no privado.</string>
+    <string name="onboarding_browser_key_private" volt:src="d7808f15224e6e68d3770a98ee8dbf6e78a350cb">Este ficheiro é uma chave de proprietário. Não o partilhes.</string>
     <string name="onboarding_browser_in_downloads" volt:src="eeb8636ab2cab5c4a5e973f01ea02debc3ae54f2">O ficheiro está nas Transferências</string>
     <string name="onboarding_browser_capture_help_title" volt:src="9ae5000dfda719b2598cccb23ed0adac3c2b2c81">Captura no navegador</string>
     <string name="onboarding_browser_capture_help" volt:src="7f8ff3de46ba7dbd238f7a3895141514e1229b73">"•  App NAVEE com sessão iniciada, trotinete por perto\n•  Outras apps de trotinetes fechadas\n•  A captura parou antes do fim? Termina primeiro a limpeza no mesmo navegador"</string>
@@ -143,7 +143,7 @@
     <string name="onboarding_import_loading" volt:src="5684b6f9c0acf3708231b847ae44052ee8f186d0">A ler o teu perfil de proprietário…</string>
     <string name="onboarding_import_no_file" volt:src="083c2632101c923f3d2a6e3a9480a20173ed1d9c">Ainda não escolheste um ficheiro</string>
     <string name="onboarding_import_not_owner_file" volt:src="c91e7490646cd9d33419e1648b3473972a1d40d7">Não é um ficheiro de proprietário.</string>
-    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Este ficheiro desbloqueia a tua trotinete. Mantém-no privado.</string>
+    <string name="onboarding_import_keep_private" volt:src="1314ef956dabb7ecb6e57e904bd77dabaa446431">Este ficheiro desbloqueia a tua trotinete. Não o partilhes.</string>
     <string name="onboarding_import_choose" volt:src="e5194f56631a5cb6dede07c223b2133f037dd1ac">Escolher ficheiro de proprietário</string>
     <string name="onboarding_import_enter_identity" volt:src="013cf3de5f5ab7cd81f02d9237e194eaf82c4525">Em vez disso, introduzir a chave de proprietário</string>
     <string name="onboarding_import_restore_instead" volt:src="79b60d0537ba0f1c71825b3d6fb878be753e5f29">Em vez disso, restaurar uma cópia de segurança da Volt</string>
@@ -151,11 +151,11 @@
     <string name="onboarding_role_owner" volt:src="99b15df019cb0bbf41da2710e3f223931326af9c">proprietário</string>
     <string name="onboarding_import_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Chave de proprietário encontrada</string>
     <string name="onboarding_import_summary" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Chave de proprietário encontrada, guardada de forma privada neste telemóvel. %1$s</string>
-    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Guardada de forma privada. Revoga agora o acesso no Shizuku.</string>
+    <string name="onboarding_import_found_description" volt:src="b460f799fd8dff7cf9975fe7d8884772611ea0c3">Chave de proprietário encontrada, guardada em privado neste telemóvel. %1$s</string>
+    <string name="onboarding_import_revoke_shizuku" volt:src="5fdf34525b82b7d60b5a72995a9eb072fdd2fae2">Guardada em privado. Revoga agora o acesso no Shizuku.</string>
     <string name="onboarding_import_delete_copy" volt:src="c4f37ab3e255e91d8fac4d590253e6bde992cd99">Eliminar a cópia nas Transferências</string>
     <string name="onboarding_import_copy_deleted" volt:src="dedc0fc650b56ac0ecd126b70c9880442292f7ec">Cópia nas Transferências eliminada</string>
-    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Não foi possível eliminar · remove-a em «Ficheiros»</string>
+    <string name="onboarding_import_copy_not_deleted" volt:src="ac8db19df578392d7915915068836db85f35a778">Não foi possível eliminar · elimina-a em «Ficheiros»</string>
     <string name="onboarding_save_continue" volt:src="8fde458bea86e6c78cbd3061e8c0972a14fe4190">Guardar e continuar</string>
     <string name="onboarding_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Abrir o Shizuku</string>
     <string name="onboarding_import_choose_different" volt:src="a14c45585808ef412c22514c8c68ef0ab727b398">Escolher outro ficheiro</string>
@@ -197,7 +197,7 @@
     <string name="onboarding_done_usb_off_detail" volt:src="40e19de8b1df5e9e83e20975c2557cbfb8d81f5a">Já não precisas do computador</string>
     <string name="onboarding_done_revoke" volt:src="ab1135db30145dde8dbf62ea5c43015ee89026f1">Revogar acesso no Shizuku</string>
     <string name="onboarding_done_revoke_description" volt:src="d8b60db782b539d84b6c38b330ecf7aff4587d47">Revogar acesso no Shizuku. Isto vai abrir o Shizuku para remover o acesso da Volt</string>
-    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Ir para o Início</string>
+    <string name="onboarding_done_home" volt:src="3ce6e760b75fb3544bf3dfdfb2c1138fadfe311d">Ir para o painel</string>
     <string name="onboarding_fix_not_listed" volt:src="9143450ee6fff0ac2901e55d319a846be41e6d92">Telemóvel não listado como «device»</string>
     <string name="onboarding_fix_not_listed_detail" volt:src="278d58e30992d43cdb70badecba5d5dfa17ba857">Aprova o pedido · usa um cabo de dados</string>
     <string name="onboarding_fix_navee" volt:src="9d28ec58d76dde5777be800a3826dfe234c2ee50">A app NAVEE não se conectou</string>

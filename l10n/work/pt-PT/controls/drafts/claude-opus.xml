@@ -110,20 +110,20 @@
     <string name="controls_refusal_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">O valor está fora das opções OEM desta funcionalidade</string>
     <string name="controls_refusal_speed_limit_range" volt:src="380b6705fea0d9aea9b9e753e06e9f31779055dd">Desativado ou 8–32 km/h</string>
     <string name="controls_refusal_drive_speed_limit_range" volt:src="dd267e5f70255d25799240bc98af7e7aba268681">Desativado ou 5–20 km/h</string>
-    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Não disponível agora</string>
+    <string name="controls_refusal_not_available" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Não disponível de momento</string>
     <string name="controls_refusal_pin_owner" volt:src="600761a90371a8abbf75aaa3f7ff5022fc27c9e8">O acesso ao PIN requer o proprietário autenticado</string>
-    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">O PIN tem de ter quatro algarismos decimais</string>
+    <string name="controls_refusal_pin_digits" volt:src="c6642f2e26bff9a81bfb51e9ef08fc2fe537732f">O PIN tem de ter quatro dígitos</string>
     <string name="controls_refusal_pin_not_configured" volt:src="fee003e386bc07ed55319cab3788994a76997b19">É preciso definir um PIN antes de o ativar</string>
     <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">As alterações ao desbloqueio por proximidade requerem o proprietário autenticado</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Emparelha este telemóvel antes de ativar o desbloqueio por proximidade</string>
-    <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Define e ativa o PIN do guiador antes do desbloqueio por proximidade</string>
+    <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Ativa um PIN do guiador já definido antes de ativar o desbloqueio por proximidade</string>
     <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">A app oficial pede confirmação antes desta alteração. A Volt não testou isto neste modelo.</string>
     <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">A Volt não testou isto neste modelo.</string>
     <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">A app oficial mostra um aviso sobre esta alteração. A Volt não testou isto neste modelo.</string>
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Desativar o controlo de tração? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Desativar o modo de bateria fraca? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Mudar para um só motor? %1$s</string>
-    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Definir a recuperação de energia como «Desativada»? %1$s</string>
+    <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">Desativar a recuperação de energia? %1$s</string>
     <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Velocidade de arranque abaixo de 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Acima de 32 km/h: verifica as regras do local onde conduzes. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Isto vai desativar o controlo de tração. Conduz com suavidade em piso molhado ou solto até saberes como a trotinete se comporta.</string>
@@ -147,14 +147,14 @@
     <string name="controls_drive_mode_intro" volt:src="7ca0c73f856573e8f070d2449fa8653493c10c3a">Opcional, cerca de um minuto. Mantém a trotinete parada: vais premir o botão de modo da própria trotinete e a Volt apenas observa o modo que ela indica.</string>
     <string name="controls_drive_mode_watching" volt:src="8daa24bfbde03ba4ecb9e64d4c08fa5737b4e8ef">A observar a tua trotinete…</string>
     <string name="controls_drive_mode_disconnected" volt:src="91388f35f11f45cc131745daa38ce2092cefcda4">Trotinete desconectada</string>
-    <string name="controls_drive_mode_waiting" volt:src="6ff44e5c4223817f203e26d0aaee6a939cb0f4f6">À espera do modo da tua trotinete…</string>
+    <string name="controls_drive_mode_waiting" volt:src="6ff44e5c4223817f203e26d0aaee6a939cb0f4f6">A aguardar o modo da tua trotinete…</string>
     <string name="controls_drive_mode_reconnect" volt:src="c1db10680bc4eb5e44914afbe6e4e2fc2fa67a13">Volta a conectar a trotinete para continuar.</string>
     <string name="controls_drive_mode_reading" volt:src="ad9d84e04e80a0de1f22ee0c25489e8abb722758">A ler o modo da tua trotinete…</string>
     <string name="controls_drive_mode_ask_first" volt:src="09e9797f41cc14a033f43d8aad48c58b9ec64d2f">Em que modo está agora a tua trotinete?</string>
     <string name="controls_drive_mode_ask_next" volt:src="abde86e2e437d8f162222773d77c64ebf25001f5">E este modo?</string>
     <string name="controls_drive_mode_connecting" volt:src="17d6d032d788d8b81636fa3b8148ca0ad174f7cc">A conectar para ler o modo da tua trotinete…</string>
     <string name="controls_drive_mode_press_next" volt:src="57dafafc00a29bdd467aa55c85cf4e89f69cd17b">Prime o botão de modo da tua trotinete para passar ao modo seguinte.</string>
-    <string name="controls_drive_mode_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Ignorar</string>
+    <string name="controls_drive_mode_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Saltar</string>
     <string name="controls_drive_mode_confirm_title" volt:src="7816bc2b2a6886c8f3e23e6c50158a5e31b69e03">Está correto?</string>
     <string name="controls_drive_mode_confirm_closed" volt:src="4ad608aaf61962375452614a1b24adfa869a01c2">A tua trotinete passou por estes modos, por esta ordem.</string>
     <string name="controls_drive_mode_confirm_named" volt:src="9ad48423b8b89705e1524cb9ebdc95268eb6d529">Estes são os modos a que deste nome, pela ordem em que a tua trotinete os mostrou.</string>
@@ -162,6 +162,6 @@
     <string name="controls_drive_mode_looks_right" volt:src="e2bc3c57ca7529490ce4cb8ab7a42cefc8abd6a7">Está correto</string>
     <string name="controls_drive_mode_reported" volt:src="76c570458496d07919f763a65dab1edd98e04658">A tua trotinete indica o modo %1$s</string>
     <string name="controls_drive_mode_named" volt:src="331b14a50567271219beae38f8b57188798604df">Nomeados: %1$s</string>
-    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Não sei</string>
+    <string name="controls_drive_mode_unsure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Não tenho a certeza</string>
     <string name="controls_drive_mode_sequence" volt:src="e20df399f210180fa683fd8f442828e56912eca1">%1$s → %2$s</string>
 </resources>

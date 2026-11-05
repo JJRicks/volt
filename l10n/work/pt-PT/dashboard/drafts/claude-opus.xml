@@ -29,12 +29,12 @@
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">Até ao limite de %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Tempo até %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">Até %1$s</string>
-    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Tempo até 100% sem limite</string>
-    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Até 100% sem limite</string>
-    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100% sem limite</string>
+    <string name="dashboard_charge_time_uncapped" volt:src="27f71196a3f06a816384785f0fb2d2e9cf7b5f00">Tempo até 100% se não houver limite</string>
+    <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">Até 100% se não houver limite</string>
+    <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100% se sem limite</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Tempo até à carga completa (est.)</string>
     <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Até à carga completa (est.)</string>
-    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Até ao fim (est.)</string>
+    <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">Até 100% (est.)</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Corrente baixa</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Potência de carregamento</string>
     <string name="dashboard_charging_power_compact" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Potência</string>
@@ -57,7 +57,7 @@
     <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Carga a %1$s por cento</string>
     <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Carga a %1$s por cento, limite de carga de %2$s por cento</string>
     <string name="dashboard_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Temperatura da bateria</string>
-    <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Potência medida no lado da bateria</string>
+    <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Potência no lado da bateria</string>
     <string name="dashboard_charging_time_tag" volt:src="03b47181996e70bcd965c93fb77f2b1d1af5e6ac">%1$s (%2$s)</string>
     <string name="dashboard_charging_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_charging_description_detail" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
@@ -142,23 +142,23 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Período</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Viagens necessárias</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Intervalo de 90%</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Carga por indicador cheio</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Carga por 100% do indicador</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Verificação de carregamento</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Cobertura</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Temp. da bateria</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Recusados</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Medida indireta: pode sobrestimar; não é a saúde da bateria.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07" volt:attempt="2">Energia consumida nas tuas viagens por indicador cheio. Não é um teste de saúde nem de capacidade da bateria.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia útil em viagem</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07" volt:attempt="2">Energia consumida nas tuas viagens por 100% do indicador da bateria. Não é um teste de saúde nem de capacidade da bateria.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Energia útil para conduzir</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Exemplo · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ainda sem leituras guardadas</string>
     <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Autonomia restante estimada pela trotinete</string>
     <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Adicionar %1$s</string>
     <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Adicionar %1$s, experimental</string>
     <string name="dashboard_experimental" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Experimental</string>
-    <string name="dashboard_on_home" volt:src="ee1b194505af0a3632bb3b2b1301bb5f55549589">No Painel</string>
-    <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Já está no Painel</string>
+    <string name="dashboard_on_home" volt:src="ee1b194505af0a3632bb3b2b1301bb5f55549589">No painel</string>
+    <string name="dashboard_already_on_home" volt:src="81821ac967925816c5af82a4e7a64dba2513541c">Já está no painel</string>
     <string name="dashboard_close_add_widget" volt:src="350ff8b2fa60c268afc3623cc84fd18212323a86">Fechar «Adicionar widget»</string>
     <string name="dashboard_title" volt:src="f4ff3984e55c02995eed14b0a2fe7382981a7221">Título</string>
     <string name="dashboard_widget_title" volt:src="858080416dc370b07eff049863f9cb1a2e444c68">Título do widget</string>
@@ -183,9 +183,9 @@
     <string name="dashboard_color_rose" volt:src="3c59b2cdfaeee31f0b1d2692dff1a62d531b86f7">Rosa</string>
     <string name="dashboard_save_widget_options" volt:src="9e0cb9cd67f08435b4528b10ac53e5ff4ec788ca">Guardar as opções do widget</string>
     <plurals name="dashboard_selected_count" volt:src="e39d9259f1444c20fa9f4aacf4f146b0d34cd94e">
-        <item quantity="one">%1$d selecionado</item>
-        <item quantity="many">%1$d selecionados</item>
-        <item quantity="other">%1$d selecionados</item>
+        <item quantity="one">Seleção: %1$d</item>
+        <item quantity="many">Seleção: %1$d</item>
+        <item quantity="other">Seleção: %1$d</item>
     </plurals>
     <string name="dashboard_count_of" volt:src="26d7346de66947e72fcb94e1f1a8cc1c2539cf6c">%1$s de %2$s</string>
     <plurals name="dashboard_count_of_shortcuts" volt:src="834d840a7cc2fd340f4cc76805c86c8b76f33851">
@@ -194,7 +194,7 @@
         <item quantity="other">%1$d de %2$d atalhos</item>
     </plurals>
     <string name="dashboard_change_shortcut" volt:src="518c8439b50b5ff2f2c0259d5e87694fb0e0d59a">Alterar o atalho %1$s, %2$s</string>
-    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Mover %1$s para antes</string>
+    <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Mover %1$s para trás</string>
     <string name="dashboard_remove_shortcut" volt:src="a0fa5dc9717f24a09c80391494fbbf46fcd9fcf6">Remover o atalho %1$s</string>
     <string name="dashboard_add_shortcut" volt:src="824ff298b4221456b34b069c13c1a5bedb1ad968">Adicionar atalho</string>
     <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Adicionar atalho rápido</string>
@@ -251,11 +251,11 @@
     <string name="dashboard_import" volt:src="a6b482de3d161b45d9c046be02d131f0bbe97ba8">Importar</string>
     <string name="dashboard_default_layout" volt:src="37cc2ca0602648d00bb9cd435425223696ce8d44">Esquema predefinido</string>
     <string name="dashboard_restore_defaults" volt:src="fba123ce491ac60a0f652ee2c74cc24cb06c25ce">Restaurar os widgets predefinidos</string>
-    <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Esquema do Painel</string>
-    <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Fechar o esquema do Painel</string>
+    <string name="dashboard_layout_title" volt:src="73c1bf990dad1bca75624e7fbb53075889444225">Esquema do painel</string>
+    <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Fechar o esquema do painel</string>
     <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Predefinições restauradas</string>
     <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Guardar o Painel atual no espaço %1$s</string>
+    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Guardar o painel atual no espaço %1$s</string>
     <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restaurar</string>
     <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Restaurar o espaço %1$s</string>
     <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Restaurar o espaço %1$s, %2$s</string>

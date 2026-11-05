@@ -18,7 +18,7 @@
     <string name="backup_recovery_failed" volt:src="d868a70268395b7b44cf69d85f6bc1e13374dc5d">A recuperação falhou. Liberta espaço e volta a abrir. Não limpes o armazenamento.</string>
     <string name="backup_session_ended_title" volt:src="09366ee78217a9a7ff7b03da5828f57c079380ae">Sessão de cópia de segurança terminada</string>
     <string name="backup_reopen_to_continue" volt:src="439484865cde830a768daaa3f8e99af89ca86313">Volta a abrir a Volt para continuar.</string>
-    <string name="backup_paused_title" volt:src="e51e466a3d1dcb08c9fac434fccb9b8d334bc890">Os dados da app estão em pausa</string>
+    <string name="backup_paused_title" volt:src="e51e466a3d1dcb08c9fac434fccb9b8d334bc890">Dados da app em pausa</string>
     <string name="backup_back_up_title" volt:src="4fffa00134241eb7ddb58107452158016eb5f864">Cópia de segurança</string>
     <string name="backup_counting" volt:src="56a196f6a0bedbea836f908d50681817eca2d9e5">A contar os teus dados…</string>
     <string name="backup_inventory_unreadable" volt:src="bd1e085ffe74e8205a40047b7688e6bfecf7de84">Não é possível ler os dados da app. Volta a abrir a Volt.</string>

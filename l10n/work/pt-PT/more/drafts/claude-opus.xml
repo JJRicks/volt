@@ -29,7 +29,7 @@
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Conectar</string>
     <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Importa primeiro a tua configuração de proprietário</string>
     <string name="more_onboarding_guide" volt:src="0d1d7161e799e8b1bf44f6126c1efd07a13fd81b">Guia da configuração de proprietário</string>
-    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">O serviço local da tua trotinete está a iniciar.</string>
+    <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">O serviço local da tua trotinete está a iniciar-se.</string>
     <string name="more_disconnect_first" volt:src="3632a33eb6bd747af0b3f51970e9c4fa89c65365">Desconecta a trotinete primeiro</string>
     <string name="more_scooters_add" volt:src="72a1a6c08f258e294cc394b845b6f46750b533db">Adicionar uma trotinete</string>
     <string name="more_scooters_current" volt:src="7fa1e93b2f719b53589537ba2ebf4aca8618a2ac">Atual</string>
@@ -47,7 +47,7 @@
     <string name="more_scooters_forget_body" volt:src="10db2dd962e539625538bd372e811cf53e81befd">Isto vai remover deste telemóvel a configuração de ligação da trotinete. As viagens guardadas e as gravações de carregamento mantêm-se.</string>
     <string name="more_scooters_save_backup" volt:src="661525c654589eac3dc7814e3c23edcd5b8b5d2b">Guardar primeiro uma cópia de segurança</string>
     <string name="more_scooters_forget_action" volt:src="75872781b896acdf04cc53236237c84863dd2857">Esquecer</string>
-    <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Aparência</string>
+    <string name="more_prefs_appearance" volt:src="40d57941835556fe6430b2e5a7840750d8408b3f">Aspeto</string>
     <string name="more_prefs_dark" volt:src="13ef75b12132c118c49106ae3778ff9058ab58d4">Escuro</string>
     <string name="more_prefs_follow_system" volt:src="069b6896cef40b693fc21eb8c562943a33d8e330">Seguir o sistema</string>
     <string name="more_prefs_light" volt:src="ab8b01e708e760e34850dc49dcaee340eb0e699e">Claro</string>
@@ -67,12 +67,12 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Manter o ecrã ligado</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Durante a gravação</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Terminar viagens com a trotinete parada</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s depois de se perder o Bluetooth ao parar</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">10 s depois de perder o Bluetooth com a trotinete parada</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Gravação em segundo plano</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Utilização da bateria sem restrições</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Bateria otimizada; as gravações longas podem parar. Isto vai abrir as definições da bateria</string>
     <string name="more_prefs_map_custom" volt:src="3f5fcb256158db4a9289fcb2559edc1c2fad01b6">Personalizado</string>
-    <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Escolhe a Volt para gerir as respetivas definições do Android</string>
+    <string name="more_prefs_choose_volt" volt:src="959f384457cf1961921af4f7b52f35df101971eb">Escolhe a Volt para gerir as definições dela no Android</string>
     <string name="more_prefs_open_settings" volt:src="5253dd0d1afe5f9024b34f5d00ee241cc5327fed">Abre as definições da Volt no Android</string>
     <string name="more_units_distance" volt:src="1f80f00b9165f3a5a5a178d4cbd7eacd1cbabacf">Distância e velocidade</string>
     <string name="more_units_miles" volt:src="99b85a49246a9c6bdfd0299a6edb72d9ff29159f">Milhas / mph</string>
@@ -107,13 +107,13 @@
     <string name="more_history_clear_all" volt:src="b19fdd6b0587be89b7ca944f133d21862a8c12db">Limpar todo o histórico de leituras</string>
     <string name="more_unit_mib" volt:src="37b1b983a4924a010a635cc89ae29918eda8fd4b">MiB</string>
     <string name="more_history_used" volt:src="05f1554066a0dd490b41c2613a13422f35959676">%1$s de %2$s %3$s</string>
-    <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Escolhe primeiro uma trotinete.</string>
+    <string name="more_history_choose_scooter" volt:src="30b4e8f0a6ffebc1f42ce13a1449a50dedead36e">Escolhe uma trotinete primeiro.</string>
     <string name="more_history_clear_title" volt:src="f3612e8159bace4f4e64bd69737306998f67567e">Limpar o histórico?</string>
     <string name="more_history_clear_all_body" volt:src="b12ff163ffb1ab6b5064c3b54a0a413a08e1f3d0">Isto vai remover o histórico de todas as trotinetes. As viagens mantêm-se.</string>
     <string name="more_history_clear_one_body" volt:src="9f4aeb5409ac2de93f4050d63436737e5567a4b5">Isto vai remover o histórico desta trotinete: %1$s. As viagens mantêm-se.</string>
     <string name="more_clear" volt:src="9116e6716c6094aaeb79467a11734d413ee06b27">Limpar</string>
     <string name="more_history_cleared" volt:src="c746778a67220eb7c40695b75d1e5aae3a6a677a">Histórico limpo</string>
-    <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Fácil de ler, dobrado ou aberto</string>
+    <string name="more_text_size_sample" volt:src="3efd22c4010a912a33357d7b0a93723ee673a5e1">Fácil de ler, com o telemóvel dobrado ou aberto</string>
     <string name="more_apply" volt:src="1ab40a605da2bc18ed58beccb24f21c2e5d745fd">Aplicar</string>
     <string name="more_refresh_rides" volt:src="a72e7410c6798b20d8572b19dd84249d58abd819">Viagens: sempre 2 s</string>
     <string name="more_refresh_2" volt:src="4b2331e3b37d92258100abc191947c641e6e76b4">2 segundos</string>
@@ -129,12 +129,12 @@
     <string name="more_waiting_confirmation" volt:src="1d236a2fcea5733d8dd5a3c8ac923aae76cbb31e">A aguardar a confirmação da trotinete</string>
     <string name="more_pin_owner_first" volt:src="108c9617219ab986c7d7a42101cbefabf5078ea9">Conecta a trotinete como proprietário antes de alterar o PIN.</string>
     <string name="more_pin_title" volt:src="ecd36438d947b2fb9759375d886c92a144cf916e">Definir PIN do guiador</string>
-    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">O teu PIN de recurso, sem telemóvel. Guarda-o em segurança. Os dígitos nunca são mostrados nem exportados.</string>
+    <string name="more_pin_body" volt:src="377bb8e11f1a8e1e1f95a5d7793d112b1e21f7d6">A tua alternativa sem telemóvel. Guarda o PIN em segurança. Os dígitos nunca são mostrados nem exportados.</string>
     <string name="more_pin_enter" volt:src="ffff0f603c55d92f365fe9ef9bc221f1f7b257f7">Introduz um PIN novo</string>
     <string name="more_pin_enter_hint" volt:src="58a2d06177d3c38fa672247dc4416e5d08db4faf">Introduz um PIN novo, quatro dígitos</string>
     <string name="more_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Seguinte</string>
     <string name="more_pin_step_one" volt:src="5b38a4cdbff42477cc18debbfbaa141fedafa800">Passo 1 de 2. Introduz um PIN novo</string>
-    <string name="more_pin_digits" volt:src="3096f38683020fe3c380c07dcb98708a5be25da0">Introduz exatamente quatro dígitos numéricos.</string>
+    <string name="more_pin_digits" volt:src="3096f38683020fe3c380c07dcb98708a5be25da0">Introduz exatamente quatro dígitos.</string>
     <string name="more_pin_repeat" volt:src="87faba251cb3bb528e5f8d9973684402572c8e61">Repete o PIN</string>
     <string name="more_pin_step_two" volt:src="3481befd9cd88f62ee8af61ce4b3dbbf44c88503">Passo 2 de 2. Repete o PIN</string>
     <string name="more_pin_repeat_hint" volt:src="c1ddbcbb4ef91cc6816e21461705f7d9b6f308fd">Repete o PIN, quatro dígitos</string>
@@ -160,9 +160,9 @@
     <string name="more_lab_clear_body" volt:src="a8d13550250f1e246608e8a2a237a7db03b6b109">A Volt vai esquecer o que as tuas tentativas nesta trotinete mostraram, por isso deixam de constar do teu próximo relatório e de «Repor». As definições ficam como estão. As tentativas não concluídas ficam até as reveres.</string>
     <string name="more_lab_cleared_none" volt:src="062215db1cf68d7c06b96991c6b6419388b57f7b">Sem tentativas concluídas para limpar</string>
     <plurals name="more_lab_cleared" volt:src="a6c826a81caf3504dfefa92031e3572540249a7a">
-        <item quantity="one">%1$d tentativa limpa</item>
-        <item quantity="many">%1$d de tentativas limpas</item>
-        <item quantity="other">%1$d tentativas limpas</item>
+        <item quantity="one">Resultados limpos: %1$d tentativa</item>
+        <item quantity="many">Resultados limpos: %1$d de tentativas</item>
+        <item quantity="other">Resultados limpos: %1$d tentativas</item>
     </plurals>
     <string name="more_lab_kept" volt:src="3c7675e38cfd808769aaa4affa4f534fdaca4f0c">" Os resultados das tentativas ficam neste telemóvel até um relatório de compatibilidade que envies os incluir ou até os limpares."</string>
     <string name="more_lab_foot_oem" volt:src="ecff20416d3296fcf9881f1dc4bd91e1394f58cd">Os controlos que a app oficial oferece para o teu modelo ficam em «Definições da trotinete». Limites de velocidade, carregamento, o bloqueio, o PIN, o desbloqueio por proximidade e o relógio nunca são adicionados aqui. A Volt nunca altera o firmware.</string>
@@ -172,7 +172,7 @@
     <string name="more_lab_try_here" volt:src="ea8d1595cf05df83932716a119e9e1e047002ab8">Experimentar nesta trotinete</string>
     <string name="more_lab_verify_note" volt:src="c1fa16f4e2d294110f089347a64cde60192f6b3b">A app oficial oferece estes controlos para o teu modelo, mas a Volt não os testou nele. A tua tentativa e a tua resposta vão no teu próximo relatório de compatibilidade.</string>
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Sem dados desta trotinete</string>
-    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">A Volt não consegue reler estes controlos, por isso não os oferece.</string>
+    <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">A Volt não consegue reler os valores destes controlos, por isso não os oferece.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">A Volt não envia comandos de trotinete para este produto.</string>
     <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">Nada a experimentar na UT5 MAX.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">O ID do modelo desta trotinete não corresponde ao número de série, por isso a Volt não oferece nada a experimentar.</string>
@@ -225,7 +225,7 @@
     <string name="more_lab_status_other_value" volt:src="b843618ee2609f211be7096fe7a6e9408235a1f2">Outro valor lido</string>
     <string name="more_lab_status_other_value_short" volt:src="38723630e69bf18d7ac54a45f3a0b090e1009de1">Outro valor</string>
     <string name="more_lab_status_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Não enviado</string>
-    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nenhuma alteração vista</string>
+    <string name="more_lab_status_no_change" volt:src="6952ea856c9377f8bdbfcea496aed7d63e7c3ac0">Nenhuma alteração observada</string>
     <string name="more_lab_status_no_change_short" volt:src="c886b0ef61f47d6864568f13677e7d5060ea3c10">Sem alteração</string>
     <string name="more_lab_status_unconfirmed_sheet" volt:src="71e53899f84fa9def2928847ec66b6ee96e6e2df">Não confirmado · volta a conectar para verificar</string>
     <string name="more_lab_status_unconfirmed" volt:src="172c17b7aa2543cc7821450e1d0dccc1e681bba0">Não confirmado</string>
@@ -247,7 +247,7 @@
     <string name="more_lab_setting_back_to" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">A repor o valor: %1$s…</string>
     <string name="more_lab_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">A ler o valor atual…</string>
     <string name="more_lab_sending" volt:src="d4c1a8760f23ba8b8fbdc6a7569d7d0ba440390d">A enviar %1$s e a fazer a releitura…</string>
-    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Viste-o mudar?</string>
+    <string name="more_lab_did_you_see" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Viste alguma alteração?</string>
     <string name="more_lab_already" volt:src="9208bd12d9f40e4e1b316c92b45d665c42ffe510">Já em %1$s</string>
     <string name="more_lab_try_again_value" volt:src="a58d8bbdb228eb7b2220578b1a3e1f765b2033cd">Tentar novamente: %1$s</string>
     <string name="more_lab_try_value" volt:src="915569259225e0201705fe1948eb239012a3800c">Experimentar %1$s</string>
@@ -280,7 +280,7 @@
     <string name="more_about_data_note" volt:src="b7f4d703de32456d50dfa9c6ecb4e4742c4fbafc">Todos os dados ficam neste telemóvel. A opção «Cópia de segurança e restauro» está em «Mais».</string>
     <string name="more_about_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Mapa online</string>
     <string name="more_about_activity" volt:src="4bd368f28de01f04ce96ffa9ef018cace5a5190e">Atividade da ligação</string>
-    <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licenças e atribuição</string>
+    <string name="more_about_licenses" volt:src="f002815c4d16354e71ab0a1d8b263a34c05dac0e">Licenças e créditos</string>
     <string name="more_about_connect" volt:src="abd864e29cbef410bdc078552ce25130279e1592">Conectar a trotinete selecionada</string>
     <string name="more_update_ask_title" volt:src="e5b5d5772a5e0ea24d25b5cedd7810c9438d6dfb">Verificar atualizações no GitHub?</string>
     <string name="more_update_ask_body" volt:src="be184b09660476bd2794e6c1609f97e641492f9f">A Volt pergunta ao GitHub qual é a versão mais recente. O GitHub vê o teu endereço IP e a tua versão da Volt; não é enviado mais nada. A Volt nunca transfere nem instala nada por si própria.</string>
@@ -297,7 +297,7 @@
     <string name="more_update_unreadable" volt:src="f48e551519d69b7cea27ece3681cb6b9826b5674">A Volt não conseguiu ler a resposta do GitHub. Tenta novamente mais tarde ou vê a página de versões no navegador.</string>
     <string name="more_update_open" volt:src="61d071defd0b87c7672db50a772370e52654fa3e">Abrir página da versão</string>
     <string name="more_update_no_browser" volt:src="17a3b79ad2d6b7db025f9d4f5ec6c216d9f41798">Nenhum navegador conseguiu abrir a página da versão</string>
-    <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">As Opções de programador já estão ativadas.</string>
+    <string name="more_dev_already" volt:src="ba49379ee081715e1f2e1fdc2f7995a85f3754b6">As opções de programador já estão ativadas.</string>
     <string name="more_dev_enabled" volt:src="16dee565dd766ef1f25827f6cc1c731b908d0ba0">Opções de programador ativadas.</string>
     <plurals name="more_dev_taps" volt:src="0bb4b4cf920bce02297d048de3d0596ee3980694">
         <item quantity="one">Falta %1$d toque para ativar as opções de programador.</item>
@@ -316,7 +316,7 @@
     <string name="more_dev_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automático</string>
     <string name="more_dev_stock" volt:src="a0bf14a601896ef8d9a93ad3877f7c67d3043ba0">Original</string>
     <string name="more_dev_high_speed" volt:src="0bc808e79d346416840ef951622d63304be7a0c3">Rápido</string>
-    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Auto» reconhece os carregadores UT5 MAX pela potência em direto. Se não houver certeza, a Volt usa o ritmo atual; escolhe um carregador para substituir esta deteção.</string>
+    <string name="more_dev_charger_note" volt:src="8f595b472c5542919b2b32ef34bca5cc865b690a" volt:attempt="2">«Automático» reconhece os carregadores UT5 MAX pela potência em direto. Se não houver certeza, a Volt usa o ritmo atual; escolhe um carregador para substituir esta deteção.</string>
     <string name="more_dev_curves" volt:src="fe7833fa45960271ceaa6f2ddb1589a37d305b54">Curvas de carga guardadas</string>
     <string name="more_dev_record" volt:src="70c373426e0204c2cd51a21627da7ad98925637d">Gravar este carregamento</string>
     <string name="more_dev_stop_record" volt:src="31df228a56f613c6d800947252ccfbeb21adfe15">Parar a gravação de carregamento</string>
@@ -330,12 +330,12 @@
     <string name="more_dev_clear_charges_body" volt:src="a961c5e46537ee89a05dc445161e7c59462a273f">Isto vai eliminar os carregamentos e as curvas aprendidas. As viagens mantêm-se.</string>
     <string name="more_dev_clear_recordings" volt:src="4dd7d1113be57287eaa4014ec0fb40e7c877bb44">Eliminar gravações</string>
     <string name="more_dev_test_layouts" volt:src="a4afec3b3935fd8c3b09b29bb3f41d0049fab956">Esquemas de teste</string>
-    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Colocar todos os widgets na posição 3</string>
-    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Substituir a posição 3?</string>
-    <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Isto vai substituir apenas a posição 3.</string>
-    <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Substituir a posição 3</string>
-    <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Todos os widgets guardados na posição 3.</string>
-    <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">Não foi possível guardar a posição 3.</string>
+    <string name="more_dev_slot3" volt:src="d4285eb3a4a1a618d77d5cc1fbdf1e2c84b1e370">Colocar todos os widgets no espaço 3</string>
+    <string name="more_dev_slot3_title" volt:src="979b7396602e239163e1e030bce4bf0da350d4ad">Substituir o espaço 3?</string>
+    <string name="more_dev_slot3_body" volt:src="9bc1ba3f8f1ad162d047ecd880a6a13709852ef8">Isto vai substituir apenas o espaço 3.</string>
+    <string name="more_dev_slot3_action" volt:src="3259b20ed398eaa8a05b137f49d97469e58e6de0">Substituir o espaço 3</string>
+    <string name="more_dev_slot3_saved" volt:src="3bc6a2a027c2c7f2b5a36ffda4b67fd9de714f45">Todos os widgets guardados no espaço 3.</string>
+    <string name="more_dev_slot3_failed" volt:src="09ad22826af444460b5f7006fac50dcf0054d927">Não foi possível guardar o espaço 3.</string>
     <string name="more_dev_hide" volt:src="92902df2d159f4552d6023b4e30919987c1e2226">Ocultar opções de programador</string>
     <string name="more_dev_hide_recording" volt:src="572b75ad2bceb4af5896a826760a06edaaa466df">Tens de parar a gravação de carregamento antes de ocultar as opções de programador</string>
     <string name="more_dev_hide_test" volt:src="0a95bae799dd58cc2b6159d039b253c23477e6cb">Termina ou cancela o teste primeiro</string>
@@ -346,7 +346,7 @@
     <string name="more_dev_record_fast" volt:src="38bdb0f2f0ecb2c1bdcef925517d08f371d30103">Gravar com o carregador rápido?</string>
     <string name="more_dev_attached" volt:src="376dfc6c6f881293fbe6a9a3867872f525b0c7ee">Carregador ligado</string>
     <string name="more_dev_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Iniciar gravação</string>
-    <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Trotinete alterada · volta a abrir</string>
+    <string name="more_dev_scooter_changed" volt:src="0cdb65a9ad83b30b4355f05bf6962e321e4978c8">Outra trotinete selecionada · volta a abrir</string>
     <string name="more_dev_not_applied" volt:src="7106fece531d03cedbdca915e437f9cfc793af44">Não aplicadas até se saber qual é o carregador</string>
     <string name="more_dev_stock_charges" volt:src="3a1cfbf877af68f1759ff9cd471d6698f2a062cd">Carregamentos com carregador original</string>
     <string name="more_dev_fast_charges" volt:src="07b69a3f4666f8a8fc6f4f4de713e3316e3f660b">Carregamentos com carregador rápido</string>
@@ -390,7 +390,7 @@
     <string name="more_chip_paired" volt:src="c32c89db6c4de5e558d651dd642ab77a29c93279">Telemóvel emparelhado</string>
     <string name="more_chip_not_paired" volt:src="ad157a23d84cb9e78e6ecda65dc3f292f246b5be">Telemóvel não emparelhado</string>
     <string name="more_proximity_ut5_owner" volt:src="e7f5c077bfefe69621296f7163861e80733acbcb">Só o proprietário da UT5 MAX</string>
-    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Só o proprietário</string>
+    <string name="more_proximity_owner_only" volt:src="576b45edcb257e15764e4a77794c0821706cf33b">Só para o proprietário</string>
     <string name="more_proximity_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conecta a trotinete primeiro</string>
     <string name="more_proximity_waiting" volt:src="942afd9e6073c985d168400b607e9192a627b0cf">A aguardar a trotinete</string>
     <string name="more_proximity_not_reported" volt:src="38a71b74a61441f1175cc3d98f856acf0030653c">Sem dados do firmware</string>

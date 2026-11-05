@@ -42,7 +42,7 @@
     <string name="ble_connect_simulated_first" volt:src="2d67a27158efdcd7c7ef687459e6b672d04569b9">Conecta a trotinete simulada primeiro.</string>
     <string name="ble_scan_failed" volt:src="bdc93ce3c70f5f5611f29af5ed5cd28b88ada420">Falha na procura</string>
     <string name="ble_choose_scooter" volt:src="a2093a7720bc3fe1871ad6c1f8daef1a76fee71e">Escolhe a tua trotinete.</string>
-    <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">O Bluetooth ainda está a iniciar. Tenta novamente.</string>
+    <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">O Bluetooth ainda está a iniciar-se. Tenta novamente.</string>
     <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Ocupada. Tenta novamente daqui a pouco.</string>
     <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">ID do modelo capturado</string>
     <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">ID do modelo não capturado</string>
@@ -54,7 +54,7 @@
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Resolve o aviso %1$d da trotinete antes de bloquear.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Tens de parar a trotinete primeiro</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Não disponível de momento</string>
-    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">O valor está fora do domínio permitido pela app oficial</string>
+    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">O valor está fora das opções OEM desta funcionalidade</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: valor já definido.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Alteração recusada</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">Uma definição foi alterada durante a espera. Tenta novamente.</string>
@@ -64,7 +64,7 @@
     <string name="ble_label_confirmed" volt:src="325a0f3193927277664ecee26d74579db06e225e">%1$s: valor confirmado.</string>
     <string name="ble_clock_sent" volt:src="097d12b413dc1b59bd25d636980c8a0117c05241">Relógio enviado (não verificado)</string>
     <string name="ble_pair_read_pin" volt:src="352061815e96c45795372d1ec68fa1788b172952">Lê o estado do PIN e depois emparelha este telemóvel.</string>
-    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Configura e ativa o PIN do guiador antes de emparelhar para o desbloqueio por proximidade.</string>
+    <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Define e ativa o PIN do guiador antes de emparelhar para o desbloqueio por proximidade.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Este telemóvel já está emparelhado com a tua trotinete.</string>
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Aceita o pedido de emparelhamento Bluetooth no teu telemóvel.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Não foi possível iniciar o emparelhamento Bluetooth. Tenta novamente.</string>
@@ -73,7 +73,7 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">O estado do PIN não está disponível neste firmware.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">As definições do PIN requerem o perfil de proprietário.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Emparelha este telemóvel antes de ativar o desbloqueio por proximidade</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Ativa um PIN do guiador configurado antes de ativar o desbloqueio por proximidade</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Ativa um PIN do guiador já definido antes de ativar o desbloqueio por proximidade</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Lê o estado do PIN e depois aplica o desbloqueio por proximidade.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Conecta a trotinete como proprietário para ler as definições do PIN.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Desativa o desbloqueio por proximidade antes de desativar o PIN do guiador.</string>
@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Não foi possível repor. Nada foi alterado.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Termina primeiro o teste atual</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Teste não encontrado</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc" volt:attempt="2">Não foi possível iniciar o restauro. Nada foi alterado.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc" volt:attempt="2">Não foi possível iniciar a reposição. Nada foi alterado.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Confirmado</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Definição confirmada por releitura; luz emitida não medida</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Aceite; sem releitura do relógio</string>

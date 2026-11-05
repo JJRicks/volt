@@ -125,7 +125,7 @@
     <string name="backup_engine_backup_contains_unsupported_entry" volt:src="65f50d7583395adf34f7ed0544270519fcde4287">A cópia de segurança contém uma entrada não suportada.</string>
     <string name="backup_engine_backup_repeats_app_preference" volt:src="ce43394d429a5b542e3e01b2d4936d91ce3934d8">A cópia de segurança repete uma preferência da app.</string>
     <string name="backup_engine_backup_contains_unsupported_out" volt:src="c7d71bc8b5a8c7039f1e01633bcd1b8cb9646599">A cópia de segurança contém um ficheiro não suportado ou fora de categoria.</string>
-    <string name="backup_engine_not_dashboard_layout_file" volt:src="91840a66839c774c6358c2f10f3a5600f0923c33">Não é um ficheiro de disposição de painel.</string>
+    <string name="backup_engine_not_dashboard_layout_file" volt:src="91840a66839c774c6358c2f10f3a5600f0923c33">Não é um ficheiro de esquema do painel.</string>
     <string name="backup_engine_pairing_file_too_large" volt:src="ed4280e8a0615a882cb5ab46ab5e59827d7a34a1">O ficheiro de emparelhamento é demasiado grande.</string>
     <string name="backup_engine_pairing_file_contains_unsupported" volt:src="0e1f5a7538678ae8c8b4b794449e00d92d1acddf">O ficheiro de emparelhamento contém campos não suportados.</string>
     <string name="backup_engine_pairing_file_invalid_owner_identity" volt:src="94c7606ad543340c262a6bab35ac3af3d1a8f9bb">O ficheiro de emparelhamento tem uma chave de proprietário inválida.</string>

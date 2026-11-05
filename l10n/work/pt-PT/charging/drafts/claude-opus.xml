@@ -8,11 +8,11 @@
     <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Bateria fraca</string>
     <string name="charging_alert_title_charged" volt:src="fb0b84b30c107175947bb29691f29ce463b78fb6">Carregada até %1$s%%</string>
     <string name="charging_alert_title_paused" volt:src="c0f5087cc1f2f76881eb4df511f993c66f34f372">Alerta de carga em pausa</string>
-    <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">A Volt perdeu a ligação: %1$s. Abre a Volt para continuar a acompanhar este carregamento.</string>
+    <string name="charging_alert_text_paused" volt:src="49da9a7b4adc3e90bae8f19bcce9a4d19e0e0bf8">A Volt perdeu a ligação: %1$s. Abre a Volt para continuar a monitorizar este carregamento.</string>
     <plurals name="charging_alert_text_time_limit" volt:src="5169df0edfed2dda16e37a24f58c081c7a92fb95">
-        <item quantity="one">A Volt deixou de acompanhar ao fim de %1$d hora. Abre a Volt para continuar a acompanhar este carregamento.</item>
-        <item quantity="many">A Volt deixou de acompanhar ao fim de %1$d de horas. Abre a Volt para continuar a acompanhar este carregamento.</item>
-        <item quantity="other">A Volt deixou de acompanhar ao fim de %1$d horas. Abre a Volt para continuar a acompanhar este carregamento.</item>
+        <item quantity="one">A Volt deixou de monitorizar ao fim de %1$d hora. Abre a Volt para continuar a monitorizar este carregamento.</item>
+        <item quantity="many">A Volt deixou de monitorizar ao fim de %1$d de horas. Abre a Volt para continuar a monitorizar este carregamento.</item>
+        <item quantity="other">A Volt deixou de monitorizar ao fim de %1$d horas. Abre a Volt para continuar a monitorizar este carregamento.</item>
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s está a %2$s%%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">A aguardar dados</string>
