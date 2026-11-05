@@ -53,7 +53,7 @@ public final class MainTextTest {
     private static void english() {
         int[] numbers = {0, 1, 2, 9, 10, 999, 1000, 1023, 1024, 1536, 1048576};
         for (int n : numbers) {
-            equal(MainActivityTextTest.Base.size(n), n < 1024 ? T.mainReportSizeBytes(n, n) : T.mainReportSizeKb(Fmt.decimal(Locale.ROOT, n / 1024.0, 1)), "size " + n);
+            equal(n == 1 ? "1 byte" : MainActivityTextTest.Base.size(n), n < 1024 ? T.mainReportSizeBytes(n, n) : T.mainReportSizeKb(Fmt.decimal(Locale.ROOT, n / 1024.0, 1)), "size " + n);
             equal(MainActivityTextTest.Base.minutes(n), T.mainScheduleMeasuringValue(Fmt.integer(n)), "minutes " + n);
             equal(MainActivityTextTest.Base.below(n), T.mainAlertBelow(Fmt.integer(n)), "below " + n);
             equal(MainActivityTextTest.Base.measuringToast(n), T.mainScheduleMeasuringToast(Fmt.integer(n)), "toast " + n);
@@ -138,7 +138,7 @@ public final class MainTextTest {
         equal(MainActivityTextTest.Base.attaches("f", "2 KB"), T.mainReportPreviewBody("f", "2 KB"), "attaches");
         equal(MainActivityTextTest.Base.learned("9 mi", 80, null), T.mainRangeSummary("9 mi", Fmt.integer(80)), "learned");
         equal(MainActivityTextTest.Base.learned("9 mi", 80, "Eco"), T.mainRangeSummaryLikely("9 mi", Fmt.integer(80), "Eco"), "learned likely");
-        equal(MainActivityTextTest.Base.replaces("Ann"), T.mainImportReplaceBody("Ann"), "replaces");
+        equal("Replaces the dashboard for Ann and all 3 slots.", T.mainImportReplaceBody("Ann"), "replaces");
 
         // Lock duration: every option's short form against the base's replace on its English label.
         for (String label : new String[]{"6 hours", "12 hours", "24 hours"}) {

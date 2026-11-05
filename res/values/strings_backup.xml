@@ -140,7 +140,7 @@
 
     <string name="backup_restore_title" volt:screen="Restore" volt:purpose="heading">Restore</string>
     <string name="backup_restore_intro" volt:screen="Restore" volt:purpose="note"
-        volt:dnt="Volt">Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you’ll see exactly what they contain before restoring.</string>
+        volt:dnt="Volt">Choose a Volt backup to recover your saved app data. Older owner setup, ride and layout files also work; you\'ll see exactly what they contain before restoring.</string>
     <string name="backup_not_included" volt:screen="Restore" volt:purpose="note"
         volt:dnt="Bluetooth">Permissions and Bluetooth pairing aren\'t included.</string>
     <string name="backup_choose_file" volt:screen="Restore" volt:purpose="button">Choose file</string>

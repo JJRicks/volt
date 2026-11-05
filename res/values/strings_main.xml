@@ -113,7 +113,7 @@
     <string name="main_scan_found_one" volt:screen="Scanner" volt:purpose="status">1 scooter found</string>
     <!-- Count of nearby scooters, 2 or more; main_scan_found_one says exactly 1 and main_scan_none says none. %1$d is the count. English's "one" item never shows; a language whose "one" covers numbers like 21 writes it for those. -->
     <plurals name="main_scan_found_many" volt:screen="Scanner" volt:purpose="status">
-        <item quantity="one">%1$d scooters found</item>
+        <item quantity="one">%1$d scooter found</item>
         <item quantity="other">%1$d scooters found</item>
     </plurals>
     <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>
@@ -410,9 +410,9 @@
     <string name="main_report_invite_body" volt:screen="Report sheets" volt:purpose="explanation" volt:dnt="Volt">Volt hasn\'t seen a Model %1$s before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it.</string>
     <!-- %1$s is an email address. -->
     <string name="main_report_to" volt:screen="Report sheets" volt:purpose="caption">To %1$s</string>
-    <!-- A small file's size. The English says 1 bytes; pending an English fix. -->
-    <plurals name="main_report_size_bytes" volt:screen="Report sheets" volt:purpose="caption" volt:english-fix="pending">
-        <item quantity="one">%1$d bytes</item>
+    <!-- A small file's size in bytes. -->
+    <plurals name="main_report_size_bytes" volt:screen="Report sheets" volt:purpose="caption">
+        <item quantity="one">%1$d byte</item>
         <item quantity="other">%1$d bytes</item>
     </plurals>
     <!-- %1$s is a size with one decimal. Keep the unit symbol. -->
@@ -501,7 +501,7 @@
     <string name="main_import_paused" volt:screen="Import and backup" volt:purpose="toast">Import paused. Will retry.</string>
     <string name="main_import_too_big" volt:screen="Import and backup" volt:purpose="toast" volt:safety="owner-key" volt:dnt="MiB">Setup files must be smaller than 1 MiB.</string>
     <!-- %1$s is the scooter's name. -->
-    <string name="main_import_replace_body" volt:screen="Import and backup" volt:purpose="explanation">Replaces %1$s’s dashboard and all 3 slots.</string>
+    <string name="main_import_replace_body" volt:screen="Import and backup" volt:purpose="explanation">Replaces the dashboard for %1$s and all 3 slots.</string>
     <!-- A scooter's default name after an import without one. Shown only; the saved name stays English. -->
     <string name="main_name_imported" volt:screen="Scooter names" volt:purpose="default name">Imported scooter</string>
 

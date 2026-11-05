@@ -33,7 +33,7 @@
     <!-- The read-only compatibility check is running. -->
     <string name="ble_status_checking_compatibility" volt:screen="Connection state" volt:purpose="status">Checking compatibility…</string>
     <!-- Volt is setting the scooter's clock to this phone's time. -->
-    <string name="ble_status_setting_clock" volt:screen="Connection state" volt:purpose="status">Setting the scooter’s clock from this phone…</string>
+    <string name="ble_status_setting_clock" volt:screen="Connection state" volt:purpose="status">Setting the scooter\'s clock from this phone…</string>
     <!-- An Experimental controls try reads the control's current value first. %1$s is the control's
          name in lower case, in English until the controls batch gives control names their translation
          (for example "headlight"); a language that cannot use it mid-sentence may write
@@ -164,11 +164,11 @@
     <!-- The scooter is moving (or has not reported that it is still), so the change was refused and not
          sent. Nothing waits or retries: the rider stops the scooter and tries again. -->
     <string name="ble_stop_scooter_first" volt:screen="Scooter controls" volt:purpose="reason"
-        volt:safety="ride,lock">Stop the scooter first</string>
+        volt:safety="ride,lock">Bring the scooter to a stop first</string>
     <!-- The control is not available at the moment (for example, the scooter has not reported it). -->
     <string name="ble_not_available_now" volt:screen="Scooter controls" volt:purpose="reason">Not available now</string>
     <!-- The value is not one the official app allows for this control. -->
-    <string name="ble_outside_domain" volt:screen="Scooter controls" volt:purpose="reason">Value is outside the OEM feature domain</string>
+    <string name="ble_outside_domain" volt:screen="Scooter controls" volt:purpose="reason">The official app doesn\'t offer this value</string>
     <!-- The control already has the value asked for, so nothing was sent. %1$s is the control's name,
          in English until the controls batch gives control names their translation. A language whose
          participle would have to agree with the name may write "%1$s: already set." -->
@@ -224,7 +224,7 @@
         volt:safety="lock">Bond this phone before enabling proximity unlock</string>
     <!-- Proximity unlock needs the handlebar PIN set up and enabled first; the change was not sent. -->
     <string name="ble_needs_pin" volt:screen="Proximity unlock" volt:purpose="reason"
-        volt:safety="lock,pin">Enable a configured handlebar PIN before proximity unlock</string>
+        volt:safety="lock,pin">Set up and turn on the handlebar PIN before turning on proximity unlock</string>
     <!-- Turning proximity unlock on needs a fresh PIN state; Volt just asked the scooter. -->
     <string name="ble_proximity_read_pin" volt:screen="Proximity unlock" volt:purpose="instruction"
         volt:safety="lock,pin">Read the PIN state, then apply proximity unlock.</string>

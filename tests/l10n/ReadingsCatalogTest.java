@@ -111,7 +111,7 @@ public final class ReadingsCatalogTest {
         equal(null, ScooterReadingLabels.shown("charge_cycles", "-1 charges", -1.0, de), "nor a negative count");
         // The unknown history format note, exactly as Telemetry writes it, and text that only resembles it.
         String note = Telemetry.UNKNOWN_FORMAT + 7 + Telemetry.UNKNOWN_FORMAT_SEPARATOR + 1 + Telemetry.UNKNOWN_FORMAT_RECORDS;
-        equal("Unknown format 7 \u00b7 1 records", ScooterReadingLabels.shown("stored_trips", note, null, de), "the note, 1 record (English keeps \"records\")");
+        equal("Unknown format 7 \u00b7 1 record", ScooterReadingLabels.shown("stored_trips", note, null, de), "the note, 1 record");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("7;", "07;"), null, de), "a padded format number");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("; 1", "; -1"), null, de), "a negative record count");
         equal(null, ScooterReadingLabels.shown("stored_trips", note.replace("7;", "7; 2;"), null, de), "a third number");

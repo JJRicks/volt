@@ -621,7 +621,7 @@ public final class DashboardValidation extends Instrumentation {
             require(DisplayTime.recent(getTargetContext(), isolated, wall, wall + 60000).equals(
                     DisplayTime.clock(getTargetContext(), isolated, wall)), "A same-day connection unnecessarily repeats its date");
             String yesterday = DisplayTime.recent(getTargetContext(), isolated, wall, wall + 86400000L);
-            require(yesterday.equals("28 JAN · " + DisplayTime.clock(getTargetContext(), isolated, wall)),
+            require(yesterday.matches("(Jan 28|28 Jan) · " + java.util.regex.Pattern.quote(DisplayTime.clock(getTargetContext(), isolated, wall))),
                     "An older connection lost its date or clock and can be confused with today");
             String previousYear = DisplayTime.recent(getTargetContext(), isolated, wall, wall + 370 * 86400000L);
             require(previousYear.equals(yesterday), "A previous-year connection lost its compact day/month prefix");

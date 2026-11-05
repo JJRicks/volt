@@ -33,7 +33,7 @@
     <string name="service_finish_charge_export" volt:screen="Backup" volt:purpose="reason">Finish the current charge export first</string>
     <!-- Volt is still writing a charging schedule to the scooter. -->
     <string name="service_wait_charging_schedule" volt:screen="Backup" volt:purpose="reason"
-        volt:safety="charge">Wait for the charging schedule to finish</string>
+        volt:safety="charge">Wait for Volt to finish setting the charging schedule</string>
     <!-- Charge done by is measuring the charge for up to ten minutes. "Charge done by" is the feature's name. -->
     <string name="service_wait_measuring" volt:screen="Backup, simulation, schedule test" volt:purpose="reason"
         volt:safety="charge">Wait for Charge done by to finish measuring</string>
@@ -121,7 +121,7 @@
     <!-- Volt lost its Bluetooth permission. -->
     <string name="service_charge_stop_permission_lost" volt:screen="More › Developer › Charge recording" volt:purpose="status part">permission lost</string>
     <!-- The scooter answered with another identity than the one recorded. -->
-    <string name="service_charge_stop_identity_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">identity changed</string>
+    <string name="service_charge_stop_identity_changed" volt:screen="More › Developer › Charge recording" volt:purpose="status part">different scooter</string>
     <string name="service_charge_not_finalized" volt:screen="More › Developer › Charge recording" volt:purpose="error">Recording stopped; charge file could not be finalized</string>
     <!-- Charge done by waits until Volt knows which charger is attached. -->
     <string name="service_charger_detection" volt:screen="Scooter › Battery › Charge done by" volt:purpose="reason"

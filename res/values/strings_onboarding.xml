@@ -184,7 +184,7 @@
     <!-- Dialog title after tapping Skip. -->
     <string name="onboarding_skip_title" volt:screen="Skip dialog" volt:purpose="title">Skip setup for now?</string>
     <!-- Dialog message: the scooter can be added later from the More tab. "More" is the name of Volt's tab. -->
-    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add it later in More.</string>
+    <string name="onboarding_skip_message" volt:screen="Skip dialog" volt:purpose="message">Add your scooter later in More.</string>
     <!-- Dialog button: stay in setup. -->
     <string name="onboarding_skip_keep_going" volt:screen="Skip dialog" volt:purpose="button">Keep going</string>
 
@@ -367,9 +367,9 @@
     <!-- Keep the cable plugged in until the website has finished cleaning up (it turns logging back off). -->
     <string name="onboarding_browser_keep_cable" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:safety="privacy">Keep the cable in until cleanup finishes.</string>
-    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep **Start** exactly as written, in English: the website is English only and shows its button in English. -->
+    <!-- Instruction 1: read the website's explanation, then press its Start button. Keep **Start capture** exactly as written, in English: the website is English only and shows its button in English. -->
     <string name="onboarding_browser_start" volt:screen="Approve the capture" volt:purpose="instruction"
-        volt:dnt="**Start**">Read the capture explanation and choose **Start**</string>
+        volt:dnt="**Start capture**">Read the capture explanation and choose **Start capture**</string>
     <!-- Instruction 2: in NAVEE's app, select the scooter and connect. -->
     <string name="onboarding_browser_select_scooter" volt:screen="Approve the capture" volt:purpose="instruction"
         volt:dnt="NAVEE">Select your scooter in NAVEE and connect</string>
@@ -516,7 +516,7 @@
     <!-- Main button: connect to the scooter. -->
     <string name="onboarding_connect_button" volt:screen="Find your scooter" volt:purpose="button">Connect</string>
     <!-- Heading while connecting: %1$s is the scooter's name (as the owner typed it). -->
-    <string name="onboarding_connect_connecting" volt:screen="Find your scooter" volt:purpose="title">Connecting to %1$s</string>
+    <string name="onboarding_connect_connecting" volt:screen="Find your scooter" volt:purpose="title">Connecting to %1$s…</string>
     <!-- Checklist row 1 while the scan runs. -->
     <string name="onboarding_connect_looking" volt:screen="Find your scooter" volt:purpose="checklist item">Looking for your scooter</string>
     <!-- Spoken description of a finished checklist row: %1$s is the row's text. -->
@@ -532,7 +532,7 @@
         volt:safety="owner-key">Waiting for your owner profile…</string>
     <!-- Status line when no scooter was found: is the scooter switched on, and is NAVEE's app closed (it would hold the connection)? -->
     <string name="onboarding_connect_is_it_on" volt:screen="Find your scooter" volt:purpose="status"
-        volt:dnt="NAVEE">Is it on? Is NAVEE closed?</string>
+        volt:dnt="NAVEE">Is it on? Is the NAVEE app closed?</string>
     <!-- Main button when the service cannot start yet: ask for Android's Nearby devices permission. -->
     <string name="onboarding_connect_allow_nearby" volt:screen="Find your scooter" volt:purpose="button">Allow Nearby devices</string>
 
@@ -576,7 +576,7 @@
         volt:dnt="NAVEE">NAVEE didn\'t connect</string>
     <!-- Fix: check that NAVEE's app connects on its own. -->
     <string name="onboarding_fix_navee_detail" volt:screen="Capture didn\'t work" volt:purpose="fix"
-        volt:dnt="NAVEE">Check NAVEE connects alone</string>
+        volt:dnt="NAVEE">Check NAVEE connects without the helper</string>
     <!-- Problem: the helper waited too long. -->
     <string name="onboarding_fix_timeout" volt:screen="Capture didn\'t work" volt:purpose="problem">Helper timed out</string>
     <!-- Fix: close other apps and run the helper again. -->

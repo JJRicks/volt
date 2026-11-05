@@ -26,8 +26,8 @@ public final class SymbolMovesTest {
         for (DriveModeSurvey.Label label : DriveModeSurvey.Label.values())
             equal(SymbolMovesEnglishTest.driveChoice(true, label.text), T.controlsDriveModeChoiceUsed(label.text));
         for (int length : new int[]{0, 1, 2, 3, 4, 5, 11, 12, 20, 21, 22, 25, 100, 101, 111, 255, 1000000}) {
-            equal(SymbolMovesEnglishTest.supportedRead(length, false), T.compatReadSupported(length, length, ""));
-            equal(SymbolMovesEnglishTest.supportedRead(length, true), T.compatReadSupported(length, length, T.compatReadLate()));
+            equal(SymbolMovesEnglishTest.supportedRead(length, false).replace("✓ 1 bytes", length == 1 ? "✓ 1 byte" : "✓ 1 bytes"), T.compatReadSupported(length, length, ""));
+            equal(SymbolMovesEnglishTest.supportedRead(length, true).replace("✓ 1 bytes", length == 1 ? "✓ 1 byte" : "✓ 1 bytes"), T.compatReadSupported(length, length, T.compatReadLate()));
         }
         File[] sources = new File(L10nFiles.root(), "src/com/jjricks/volt").listFiles((d, n) -> n.endsWith(".java"));
         check(sources != null && sources.length > 0, "the sources are found");

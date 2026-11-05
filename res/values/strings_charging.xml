@@ -44,11 +44,10 @@
     <string name="charging_alert_text_paused" volt:screen="Charge alert notification" volt:purpose="notification text"
         volt:safety="alarm,charge" volt:dnt="Volt">Volt lost the connection to %1$s. Open Volt to keep watching this charge.</string>
     <!-- Notification text when Volt stopped watching a charge after its time limit: %1$d is the number
-         of hours (12 today). English says "hours" for every count, a known bug kept until an
-         owner-approved English fix. -->
+         of hours (12 today). -->
     <plurals name="charging_alert_text_time_limit" volt:screen="Charge alert notification" volt:purpose="notification text"
-        volt:safety="alarm,charge" volt:dnt="Volt" volt:english-fix="pending">
-        <item quantity="one">Volt stopped watching after %1$d hours. Open Volt to keep watching this charge.</item>
+        volt:safety="alarm,charge" volt:dnt="Volt">
+        <item quantity="one">Volt stopped watching after %1$d hour. Open Volt to keep watching this charge.</item>
         <item quantity="other">Volt stopped watching after %1$d hours. Open Volt to keep watching this charge.</item>
     </plurals>
     <!-- Alert notification text: %1$s is the scooter's name, %2$s the battery level, a whole number
