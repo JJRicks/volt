@@ -11,6 +11,24 @@ public final class DisplayUnits {
     private DisplayUnits() {}
 
     /**
+     * Button labels: the shown km/h unit kept on one line when large text wraps the label, with a word joiner after
+     * each mark inside it ("km/\u2060h" in English). The unit is the language's units_kmh, so the joiner follows the
+     * wording a language shows, never a fixed English spelling. Display only: a report or log never holds a joiner.
+     */
+    public static String unbroken(String text) {
+        String unit = T.unitsKmh();
+        StringBuilder joined = new StringBuilder(unit.length() + 2);
+        for (int i = 0; i < unit.length(); i++) {
+            char c = unit.charAt(i);
+            joined.append(c);
+            if (i + 1 < unit.length() && !Character.isLetterOrDigit(c)) joined.append(WORD_JOINER);
+        }
+        return unit.isEmpty() ? text : text.replace(unit, joined);
+    }
+    /** U+2060 WORD JOINER, built from its code point: it is not catalog text (GlyphCoverageTest: Saira has no glyph for it). */
+    private static final char WORD_JOINER = (char) 0x2060;
+
+    /**
      * The value with speeds in the rider's units, other values as their English label (feature.valueLabel): callers
      * compare and trim this text as English (MoreScreen's labValue into CompatibilityPanel.question, MainActivity's
      * " hours" shortening and shared-unit trim), so it stays English. Show {@link #featureValueText} instead.

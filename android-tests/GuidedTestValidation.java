@@ -1342,7 +1342,7 @@ public final class GuidedTestValidation extends Instrumentation {
         if (view instanceof ViewGroup) for (int i = 0; i < ((ViewGroup)view).getChildCount(); i++) { View found = byDescription(((ViewGroup)view).getChildAt(i), description); if (found != null) return found; }
         return null;
     }
-    /** Shown text without word joiners (CompatibilityPanel.unbroken). */
+    /** Shown text without word joiners (DisplayUnits.unbroken). */
     private static String plain(CharSequence text) { return text.toString().replace("\u2060", ""); }
     private View clickable(View view) { for (View v = view; v != null; v = v.getParent() instanceof View ? (View)v.getParent() : null) if (v.isClickable()) return v; return null; }
     private String texts(View view) {

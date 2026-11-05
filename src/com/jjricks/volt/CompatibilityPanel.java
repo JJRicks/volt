@@ -211,10 +211,10 @@ final class CompatibilityPanel {
             case RESTORE_NEEDED:
                 if(restore)addRestore(card,ble,e,d,T.compatRestoreTo(d.labelText(e.baseline)));
                 // A try may have worked: the owner can keep the value tried, as it would have stayed.
-                if(e.isTry())card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.labelText(e.target))),()->{ble.keepTest(e.testId);refresh();}));
+                if(e.isTry())card.addView(ui.secondaryButton(DisplayUnits.unbroken(T.compatKeepValue(d.labelText(e.target))),()->{ble.keepTest(e.testId);refresh();}));
                 break;
             case CHANGED_OUTSIDE:
-                if(r.current!=null)card.addView(ui.secondaryButton(unbroken(T.compatKeepValue(d.labelText(r.current))),()->{ble.keepTest(e.testId);refresh();}));
+                if(r.current!=null)card.addView(ui.secondaryButton(DisplayUnits.unbroken(T.compatKeepValue(d.labelText(r.current))),()->{ble.keepTest(e.testId);refresh();}));
                 if(restore)addRestore(card,ble,e,d,T.compatSetValue(d.labelText(e.baseline)));
                 break;
             default: break;
@@ -233,10 +233,8 @@ final class CompatibilityPanel {
         dismiss.setContentDescription(T.compatDismissOrphanDescription(label));card.addView(dismiss);
     }
     private void addRestore(LinearLayout card,BleController ble,TestJournal.Entry e,CapabilityResolver.Decision d,String text){
-        TextView b=ui.button(unbroken(text),()->{ble.restoreTest(e.testId);if(!ble.testing())host.toast(ble.displayText());refresh();});b.setEnabled(d.available());card.addView(b);
+        TextView b=ui.button(DisplayUnits.unbroken(text),()->{ble.restoreTest(e.testId);if(!ble.testing())host.toast(ble.displayText());refresh();});b.setEnabled(d.available());card.addView(b);
     }
-    /** Button labels: a word joiner keeps "km/h" on one line when large text wraps the label. */
-    static String unbroken(String text){return text.replace("km/h","km/\u2060h");}
     private static String join(List<String> parts){StringBuilder b=new StringBuilder();for(String p:parts)b.append(b.length()==0?"":" · ").append(p);return b.toString();}
 
     // ---- Running --------------------------------------------------------------------------
