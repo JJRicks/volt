@@ -2,15 +2,21 @@ package com.jjricks.volt;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.function.Consumer;
+import java.util.function.Function;
 
 /**
  * F6's own suite. With English installed it compares what the dashboard now shows with the base's expressions, kept in
  * tests/l10n/characterization/DashboardFollowupsEnglishTest.java, over many inputs and five phone locales (the header
  * status, windowName and the recording text are new members that G1 does not prove: this comparison is their proof).
  * With other sources installed it checks that the text comes from the catalog, that a no-break space or a unit-first
- * language keeps the small unit, that search folds, and that the charge schedule's reasons stay English ids.
+ * language keeps the small unit, that search folds, that the charge schedule's reasons stay English ids, and that
+ * what its operations answer comes from the catalog while its saved state and status stay English.
  */
 public final class DashboardFollowupsTest {
     private static int checks;
@@ -38,8 +44,10 @@ public final class DashboardFollowupsTest {
         folds();
         exampleCopies();
         reasons();
+        completions();
+        englishNamesInTurkish();
         System.out.println("DashboardFollowupsTest: " + checks + " checks passed (status sentences, counts, "
-                + "formats, search folding, reading parts, example copies, charge reasons)");
+                + "formats, search folding, reading parts, example copies, charge reasons and answers)");
     }
 
     private static void sentences() {
@@ -298,6 +306,132 @@ public final class DashboardFollowupsTest {
         } finally {
             T.install(null);
         }
+    }
+
+    /** A controller whose scooter answers each step by hand, as in tests/ChargeScheduleControllerTest. */
+    private static final class Rig implements ChargeScheduleController.Store, ChargeScheduleController.Driver {
+        final Map<String, String> saved = new HashMap<>();
+        final ChargeScheduleController.Context c = new ChargeScheduleController.Context();
+        final List<String> results = new ArrayList<>();
+        final ChargeScheduleController controller;
+        Consumer<Boolean> pending;
+        ChargeScheduleController.TestResult tested;
+
+        Rig() {
+            c.scope = "owner"; c.ready = true; c.generation = 1; c.now = 1792472400000L; // 2026-10-20T05:00:00Z
+            c.zone = TimeZone.getTimeZone("America/Boise"); c.charging = 1; c.enabled = 0; c.soc = 79d; c.target = 100d;
+            c.estimateMinutes = 90d; c.sampleMs = 100000;
+            controller = new ChargeScheduleController(this, this);
+        }
+        public String read(String key) { return saved.get(key); }
+        public void write(String key, String value) { saved.put(key, value); }
+        public ChargeScheduleController.Context context() { return c; }
+        public void clock(Consumer<Boolean> done) { pending = done; }
+        public void time(long wall, int offset, Consumer<Boolean> done) { pending = done; }
+        public void enabled(boolean on, Consumer<Boolean> done) { pending = done; }
+        void reply(boolean ok) { Consumer<Boolean> done = pending; pending = null; done.accept(ok); }
+        void enable() { controller.setDoneEnabled(true, results::add); }
+        Rig armed() { enable(); reply(true); reply(true); reply(true); check(controller.view().doneByEnabled, "armed"); results.clear(); return this; }
+        Rig pausedAgain() { armed(); c.charging = 0; enable(); return this; }
+        String last() { return results.get(results.size() - 1); }
+    }
+
+    /** Runs a scenario under English and under a language that shows each key. english is the base's literal. */
+    private static void answer(String english, String key, Function<Rig, String> scenario) {
+        same(english, scenario.apply(new Rig()));
+        T.install(new T.Source() {
+            public String string(int id) { return "‹" + T.key(id) + "›"; }
+            public String plural(int id, long quantity) { return null; }
+            public String language() { return "de"; }
+        });
+        try {
+            Rig rig = new Rig();
+            same("‹" + key + "›", scenario.apply(rig));
+            for (String value : rig.saved.values()) check(value.indexOf('‹') < 0, "saved state stays free of shown text: " + value);
+        } finally {
+            T.install(null);
+        }
+    }
+
+    private static void completions() {
+        String connect = "Connect the scooter first", connectKey = "charging_schedule_connect_scooter";
+        String wait = "Wait for the current change to finish", waitKey = "common_wait_current_change";
+        Function<Rig, Rig> away = rig -> { rig.c.ready = false; rig.c.charging = null; return rig; };
+        answer("Connect a charger first", "common_connect_charger_first", rig -> { away.apply(rig).enable(); return rig.last(); });
+        answer(connect, connectKey, rig -> { away.apply(rig).controller.setManualEnabled(true, rig.results::add); return rig.last(); });
+        answer(connect, connectKey, rig -> { away.apply(rig).controller.setManualStart(rig.c.now + 3600000L, rig.results::add); return rig.last(); });
+        answer(connect, connectKey, rig -> away.apply(rig).controller.startTest(done -> { }));
+        answer(connect, connectKey, rig -> { away.apply(rig).controller.turnOffMissed(rig.results::add); return rig.last(); });
+        answer("Choose a scooter first", "charging_schedule_choose_scooter", rig -> {
+            rig.c.scope = ""; rig.controller.setDoneTime(1, 0, rig.results::add); return rig.last(); });
+        answer(wait, waitKey, rig -> { rig.enable(); rig.controller.setDoneTime(1, 0, rig.results::add); return rig.last(); });
+        answer(wait, waitKey, rig -> { rig.enable(); rig.controller.setManualEnabled(true, rig.results::add); return rig.last(); });
+        answer(wait, waitKey, rig -> { rig.enable(); rig.controller.setManualStart(rig.c.now + 3600000L, rig.results::add); return rig.last(); });
+        answer(wait, waitKey, rig -> { rig.enable(); return rig.controller.startTest(done -> { }); });
+        answer("Not available on this model", "charging_schedule_not_on_model", rig -> { rig.c.wholeHours = true; return rig.controller.startTest(done -> { }); });
+
+        answer("Could not set the scooter clock; schedule unchanged", "charging_schedule_clock_failed", rig -> { rig.enable(); rig.reply(false); return rig.last(); });
+        answer("Charge start was not confirmed; check the scooter schedule", "charging_schedule_start_not_confirmed", rig -> {
+            rig.enable(); rig.reply(true); rig.reply(false); return rig.last(); });
+        answer("Charge limit changed; check the schedule and try again", "charging_schedule_limit_changed", rig -> {
+            rig.enable(); rig.reply(true); rig.c.target = 90d; rig.reply(true); return rig.last(); });
+        answer("Charge limit changed; the charge start is saved without a finish estimate", "charging_schedule_limit_saved_no_estimate", rig -> {
+            rig.enable(); rig.reply(true); rig.reply(true); rig.c.target = 90d; rig.reply(true); return rig.last(); });
+        answer("Charge start changed, but enabling the schedule was not confirmed", "charging_schedule_enable_not_confirmed", rig -> {
+            rig.enable(); rig.reply(true); rig.reply(true); rig.reply(false); return rig.last(); });
+        answer("Charging now — the calculated start time has passed", "charging_schedule_start_passed", rig -> {
+            rig.enable(); rig.reply(true); rig.c.now += 86400000L; rig.reply(true); rig.reply(true); return rig.last(); });
+        answer("Start time passed, but schedule cancellation was not confirmed", "charging_schedule_passed_not_cancelled", rig -> {
+            rig.enable(); rig.reply(true); rig.c.now += 86400000L; rig.reply(true); rig.reply(false); return rig.last(); });
+        answer("Battery level changed; a fresh charging estimate is needed", "charging_schedule_battery_changed", rig -> {
+            rig.pausedAgain(); rig.c.soc = 80d; rig.reply(true); return rig.last(); });
+        answer("Charge start changed, but a fresh charging estimate is needed", "charging_schedule_start_changed_estimate", rig -> {
+            rig.pausedAgain(); rig.reply(true); rig.c.soc = 80d; rig.reply(true); return rig.last(); });
+        answer("Battery level changed; the charge start is saved without a finish estimate", "charging_schedule_battery_saved_no_estimate", rig -> {
+            rig.pausedAgain(); rig.reply(true); rig.reply(true); rig.c.soc = 80d; rig.reply(true); return rig.last(); });
+        answer("Schedule cancellation was not confirmed; reconnect and try again", "charging_schedule_cancel_not_confirmed", rig -> {
+            rig.armed().controller.setDoneEnabled(false, rig.results::add); rig.reply(false); return rig.last(); });
+        answer("Connection changed; check the scooter schedule before trying again", "charging_schedule_connection_changed", rig -> {
+            rig.enable(); rig.c.generation++; rig.reply(true); return rig.last(); });
+
+        // The schedule test's own result is shown too.
+        answer("Could not set the scooter clock; schedule unchanged", "charging_schedule_clock_failed", rig -> {
+            rig.controller.startTest(done -> rig.tested = done); rig.reply(false); return rig.tested.failure; });
+        answer("Volt stopped before it finished; check that Scheduled charging is off", "charging_schedule_stopped_before_finish", rig -> {
+            rig.controller.startTest(done -> rig.tested = done);
+            rig.reply(true); rig.reply(true); rig.reply(true);
+            rig.controller.cancelTest(); rig.controller.cancel(); return rig.tested.cleanup; });
+
+        // State.status stays English in any language, and a failed restore answers with it.
+        String restore = "Charge done by is off; the scooter clock could not be confirmed";
+        T.install(new T.Source() {
+            public String string(int id) { return "‹" + T.key(id) + "›"; }
+            public String plural(int id, long quantity) { return null; }
+            public String language() { return "de"; }
+        });
+        try {
+            Rig rig = new Rig();
+            rig.controller.setManualStart(rig.c.now + 3600000L, rig.results::add); rig.reply(true); rig.reply(true);
+            rig.armed();
+            rig.controller.setDoneEnabled(false, rig.results::add); rig.reply(true); rig.reply(false);
+            same(restore, rig.last());
+            same(restore, rig.controller.view().status);
+        } finally {
+            T.install(null);
+        }
+    }
+
+    private static void englishNamesInTurkish() {
+        Locale turkish = new Locale("tr", "TR");
+        for (String name : new String[]{"Handlebar PIN", "PIN & proximity"}) {
+            String typed = name.substring(0, 3).equals("PIN") ? "pin" : "handlebar pin";
+            check(SearchFold.holds(name, SearchFold.fold(typed, turkish, false), turkish, false), typed + " finds " + name);
+            check(SearchFold.holds(name, SearchFold.fold(typed.toUpperCase(Locale.ROOT), turkish, false), turkish, false), "capitals find " + name);
+        }
+        check(!SearchFold.holds("Handlebar PIN", SearchFold.fold("proximity", turkish, false), turkish, false), "nothing extra");
+        // English has one reading, the base's.
+        check(!SearchFold.holds("Café", "cafe", Locale.ROOT, true), "English keeps the accent");
+        check(SearchFold.holds("Handlebar PIN", "bar pin", Locale.ROOT, true), "English lowercases by ROOT");
     }
 
     private static void same(Object expected, Object actual) {

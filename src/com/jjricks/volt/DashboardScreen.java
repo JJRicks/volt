@@ -3911,7 +3911,7 @@ public final class DashboardScreen implements AppScreen {
                 String window = DashboardWords.windowName(widget.windowMs);
                 boolean named = !reportedRange && widget.title.equalsIgnoreCase(englishLabel(key));
                 String normal = (named ? "" : (reportedRange ? T.dashboardScooterRange() : ScooterReadingLabels.label(key, metricLabel)) + " · ") + window;
-                String compact = (named ? "" : (reportedRange ? T.dashboardScooterRange() : ScooterReadingLabels.compact(key, metricLabel)) + " · ") + window;
+                String compact = (named ? "" : (reportedRange ? T.dashboardScooterRangeCompact() : ScooterReadingLabels.compact(key, metricLabel)) + " · ") + window;
                 ((DashboardCaption) subtitle).setLabels(metricLabel + " · " + window, normal, compact);
             }
         }
@@ -6003,9 +6003,8 @@ public final class DashboardScreen implements AppScreen {
             int matches = 0;
             for (int i = 0; i < metrics.size(); i++) {
                 Telemetry.Metric metric = metrics.get(i);
-                boolean visible = (metric.label + " " + metric.group + " " + metric.key
-                        + " " + ScooterReadingLabels.label(metric.key, metric.label))
-                        .toLowerCase(Locale.ROOT).contains(query);
+                boolean visible = SearchFold.holds(metric.label + " " + metric.group + " " + metric.key
+                        + " " + ScooterReadingLabels.label(metric.key, metric.label), query);
                 // The shown names match too, folded as the query is.
                 if (!visible)
                     visible = SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)

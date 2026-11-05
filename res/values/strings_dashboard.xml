@@ -29,12 +29,18 @@
     options and Choose readings buttons have translated spoken names (dashboard_save_widget_options,
     dashboard_save_readings); the quick settings one is read as shown;
   - the scale dialog's own number field (GaugeScaleInput) keeps US digits, so what is typed parses;
+  - the chart's unit: chartUnit is a data unit that Ui.ChartView matches against UnitCode data codes
+    and also draws and speaks (see chartUnit's javadoc), so it waits for ChartView to take a data
+    unit and a shown symbol apart;
   - two big percents that put the sign after the digits in Java, as English does, with US digits:
     the charging hero's (number + "%") and the Overview widget's (amount + "%"). A language's percent
     order (Fmt.percent) does not reach them yet; the battery cell's does (36e1eb6), and these wait for
     the same change, which also places the sign's smaller span;
   - text other files still build in English, shown as it is wherever the screen shows or speaks it:
-    ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
+    ChargeScheduleController's status (State.status, and a failed Charge start restore's answer,
+    which is that status) and the Context's reasons from ScooterService (toggleReason, timeReason):
+    both stay English where the controller holds them, and a screen maps them when it shows them
+    (batch B19); ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
     and in the Charging and Battery widgets' time cell, spoken and as the tile's tooltip
     (describeCharging); BatteryCapacityEstimate.Result's label (the capacity widget's chip, summary
     and bar description, and the details caveat); ScooterService's unavailable reason (the capacity
@@ -559,6 +565,7 @@
     <string name="dashboard_close_widget_options" volt:screen="Widget options" volt:purpose="accessibility description">Close widget options</string>
     <!-- The reported range's chart caption: the range the scooter itself reports. -->
     <string name="dashboard_scooter_range" volt:screen="Home chart widgets" volt:purpose="caption">Scooter range</string>
+    <string name="dashboard_scooter_range_compact" volt:screen="Narrow Home chart widgets" volt:purpose="caption" volt:ladder="compact">Scooter range</string>
     <!-- A chart window's long name, in the chart and sample captions. -->
     <plurals name="dashboard_window_name_minutes" volt:screen="Home chart widgets" volt:purpose="value">
         <item quantity="one">%1$d minute</item>

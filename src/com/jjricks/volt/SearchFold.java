@@ -33,9 +33,17 @@ final class SearchFold {
         return folded.toString();
     }
 
-    /** True when text, folded, holds the query, which {@link #fold} already folded. */
+    /** True when text, an English name, holds the query, which {@link #fold} already folded. */
     static boolean holds(String text, String foldedQuery) {
-        return fold(text).contains(foldedQuery);
+        return holds(text, foldedQuery, Fmt.locale(Locale.ROOT), Fmt.legacy());
+    }
+
+    /**
+     * With the choices spelled out, for a test. An English name also keeps its own reading: Turkish lowercases "PIN"
+     * to "pın", and the "pin" someone types there still finds it. While Volt is English both readings are one.
+     */
+    static boolean holds(String text, String foldedQuery, Locale locale, boolean legacy) {
+        return fold(text, locale, legacy).contains(foldedQuery) || fold(text, Locale.ROOT, legacy).contains(foldedQuery);
     }
 
     /** A name and its group, with a space between them so a query can span both. */
@@ -48,6 +56,6 @@ final class SearchFold {
      * has only those, so this finds nothing more and what a search finds there does not change.
      */
     static boolean holdsShown(String name, String group, String foldedQuery) {
-        return !Fmt.legacy() && holds(name, group, foldedQuery);
+        return !Fmt.legacy() && fold(name + " " + group).contains(foldedQuery);
     }
 }

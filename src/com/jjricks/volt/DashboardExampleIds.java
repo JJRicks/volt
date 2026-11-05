@@ -59,7 +59,9 @@ final class DashboardExampleIds {
      * DashboardConfig.TYPES here, so validateSlot refuses the slot and it does not read at all. This check
      * does not compare types with TYPES itself; validateSlot does that first. An owner's own widget (a
      * random id) in it, or an example saved by an older version (random ids), makes the name the owner's,
-     * shown as saved.
+     * shown as saved. A duplicate of an example widget has an example id too (AllWidgetsDashboard.emptyCopy):
+     * beside its original its type is there twice, so the name is the owner's; saved without its original, it
+     * counts as that widget and the name stays Volt's.
      */
     static boolean exampleSlot(int index, boolean exampleName, String[] ids, String[] types) {
         if (index != 2 || !exampleName || ids.length == 0 || ids.length != types.length) return false;

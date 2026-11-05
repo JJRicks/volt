@@ -16,9 +16,10 @@ public final class AllWidgetsDashboard {
     private AllWidgetsDashboard() {}
 
     /**
-     * True when widget is one of the example's own: create() gave it an example id (DashboardExampleIds),
-     * which saves, exports and imports keep and no other widget gets. Only on those are the titles and
-     * note below Volt's; the same words on any other widget are the owner's.
+     * True when widget is one of the example's own: create() or a duplicate that still shows the example's
+     * words (emptyCopy) gave it an example id (DashboardExampleIds), which saves, exports and imports keep
+     * and no other widget gets. Only on those are the titles and note below Volt's; the same words on any
+     * other widget are the owner's.
      */
     public static boolean isExample(DashboardConfig.Widget widget) {
         return widget != null && DashboardExampleIds.is(widget.id);
@@ -171,7 +172,7 @@ public final class AllWidgetsDashboard {
     }
 
     private static DashboardConfig.Widget add(ArrayList<DashboardConfig.Widget> result, String type) {
-        // The example's ids mark its widgets as Volt's (isExample); every other widget's id is random.
+        // The example's ids mark its widgets as Volt's (isExample); a widget not from the example or a copy of its words has a random id.
         DashboardConfig.Widget widget = new DashboardConfig.Widget(DashboardExampleIds.create(), type);
         result.add(widget);
         return widget;
