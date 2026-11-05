@@ -6003,11 +6003,13 @@ public final class DashboardScreen implements AppScreen {
             int matches = 0;
             for (int i = 0; i < metrics.size(); i++) {
                 Telemetry.Metric metric = metrics.get(i);
-                boolean visible = SearchFold.holds(metric.label + " " + metric.group + " " + metric.key
-                        + " " + ScooterReadingLabels.label(metric.key, metric.label), query);
-                // The shown names match too, folded as the query is.
+                boolean visible = (metric.label + " " + metric.group + " " + metric.key
+                        + " " + ScooterReadingLabels.label(metric.key, metric.label))
+                        .toLowerCase(Locale.ROOT).contains(query);
+                // The shown names match too, folded as the query is, and so do the English ones. In English that finds nothing more.
                 if (!visible)
-                    visible = SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
+                    visible = SearchFold.holds(metric.label, metric.group, query)
+                            || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
                             || SearchFold.holdsShown(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query);
                 items.get(i).setVisibility(visible ? View.VISIBLE : View.GONE);
                 if (visible) matches++;

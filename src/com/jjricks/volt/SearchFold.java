@@ -48,7 +48,7 @@ final class SearchFold {
 
     /** A name and its group, with a space between them so a query can span both. */
     static boolean holds(String name, String group, String foldedQuery) {
-        return holds(name + " " + group, foldedQuery);
+        return holds(joined(name, group), foldedQuery);
     }
 
     /**
@@ -56,6 +56,10 @@ final class SearchFold {
      * has only those, so this finds nothing more and what a search finds there does not change.
      */
     static boolean holdsShown(String name, String group, String foldedQuery) {
-        return !Fmt.legacy() && fold(name + " " + group).contains(foldedQuery);
+        return !Fmt.legacy() && fold(joined(name, group)).contains(foldedQuery);
+    }
+
+    private static String joined(String name, String group) {
+        return name + " " + group;
     }
 }
