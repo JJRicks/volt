@@ -4,7 +4,7 @@
 
 The owner reported a standard-charger session finishing around 08:10 for a 09:10 deadline and approved using the displayed estimate plus the existing twenty-minute buffer. Previously, the UT5 MAX standard-charger bulk model supplied a second, pessimistic duration and the scheduler subtracted twenty additional minutes. Its replay already showed up to 39.75 + 20 minutes early.
 
-Newly programmed plans now use `remainingMinutesToLimit` as their planning duration, followed by the scheduler's unchanged twenty-minute reserve and rounding down to a minute. For example, a 09:10 deadline with a 90-minute displayed estimate starts at 07:20, aiming to reach the target at 08:50. This is a scheduling-policy change, not a recalibration of the displayed estimate.
+Newly programmed plans now use `remainingMinutesToLimit` as their planning duration, followed by the scheduler's unchanged twenty-minute reserve and rounding down to a minute. For example, a 09:10 deadline with a 90-minute displayed estimate starts at 07:20, aiming to reach the target at 08:50. This is a scheduling-policy change, not a recalibration of the displayed estimate. One later exception, for UT5 MAX high-speed charges only: [Charge done by under the own taper](fast-charge-taper.md#charge-done-by-under-the-own-taper).
 
 The change is at the stock-pack-model composition boundary in `ChargingEstimate`, so schedule previews, direct enable, connected edits and the optional measurement flow all receive the same duration. High-speed charging, other models, the finishing reference from 89%, fitted constants and displayed estimator version remain unchanged. The internal historical cautious estimates remain reproducible for comparison.
 

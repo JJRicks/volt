@@ -9,8 +9,9 @@ import java.util.*;
 /**
  * Replays docs/validation/data/fast-charge-taper-v7/sessions.csv through the production store and
  * estimator. Each charge learns only from the charges before it. Reflection keeps this compiling
- * against the ut5-stock-pack-v6 baseline (b21d3f6) too, which regenerates expected-v6.csv:
- * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv > expected-v6.csv
+ * against earlier releases too, which regenerate their baselines: ut5-stock-pack-v6 (b21d3f6)
+ * expected-v6.csv and ut5-fast-taper-v7 (f529f43) expected-v7.csv, as
+ * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv > expected-vN.csv
  */
 final class FastChargeTaperReplay {
     static final double RATED_AH = 15.3;
@@ -22,6 +23,12 @@ final class FastChargeTaperReplay {
     }
     static final class Row {
         Sample sample; double minutes; Double actual; Double full; String source; int learned;
+        /** The charge's own taper was established and recent (FastChargeTaper.ownTaper) at this sample's live reading. */
+        boolean ownTaper;
+        /** The time to the replayed charge limit, its source and Charge done by's minutes before the buffer. */
+        Double limit, planningLimit; String limitSource, label;
+        /** Past charges' time to that limit (ChargingEstimate.withObservedCurve) at this sample, or null without one. */
+        Double personalLimit;
     }
 
     static List<List<Sample>> read(Path csv) throws IOException {
@@ -64,17 +71,26 @@ final class FastChargeTaperReplay {
                 ? (r.referenceCharger == ChargeSessionStore.Charger.STOCK ? "STOCK_REFERENCE" : "FAST_REFERENCE") : "CURRENT_RATE";
     }
 
-    static List<Row> replay(Path csv) throws Exception {
+    static String limitSource(ChargingEstimate.Result r) {
+        return r.remainingMinutesToLimit == null ? "" : r.learnedToLimit ? "PERSONAL" : r.referenceToLimit
+                ? (r.referenceCharger == ChargeSessionStore.Charger.STOCK ? "STOCK_REFERENCE" : "FAST_REFERENCE") : "CURRENT_RATE";
+    }
+
+    static List<Row> replay(Path csv) throws Exception { return replay(csv, 100); }
+
+    /** Replays with the given charge limit (100 for the committed baselines). */
+    static List<Row> replay(Path csv, double target) throws Exception {
         List<List<Sample>> sessions = read(csv);
         Class<?> taperClass = null;
         try { taperClass = Class.forName("com.jjricks.volt.FastChargeTaper"); } catch (ClassNotFoundException baseline) {}
-        Method withTaper = null, observe = null, tracking = null;
+        Method withTaper = null, observe = null, tracking = null, ownTaper = null;
         if (taperClass != null) {
             withTaper = ChargingEstimate.class.getMethod("forScooter", ChargingEstimate.Result.class, ChargingEstimate.Value.class,
                     ChargingEstimate.Value.class, int.class, ChargeSessionStore.Charger.class, ChargeSessionStore.Curve.class,
                     ChargeReferenceGate.class, String.class, long.class, long.class, ChargeProgressTracker.Progress.class, taperClass);
             observe = taperClass.getMethod("observe", String.class, Boolean.class, Double.class, Double.class, long.class);
             tracking = taperClass.getMethod("tracking", String.class);
+            try { ownTaper = taperClass.getDeclaredMethod("ownTaper", double.class, double.class, long.class); } catch (NoSuchMethodException v7) {}
         }
         Path tmp = Files.createTempDirectory("fast-taper-replay-");
         List<Row> rows = new ArrayList<>();
@@ -103,7 +119,7 @@ final class FastChargeTaperReplay {
                         progress.observe("fixture", true, s.soc, s.amps, t);
                         if (taper != null) observe.invoke(taper, "fixture", true, s.volts, s.amps, t);
                         ChargingEstimate.Result base = ChargingEstimate.calculate(live(1, t), live(s.volts, t), live(s.amps, t),
-                                live(s.soc, t), live(RATED_AH, t), live(100, t));
+                                live(s.soc, t), live(RATED_AH, t), live(target, t));
                         ChargingEstimate.Result r = taper == null
                                 ? ChargingEstimate.forScooter(base, live(s.soc, t), live(RATED_AH, t), 2538, charger, curve, gate, "fixture:serial", t, t, progress.progress("fixture", t))
                                 : (ChargingEstimate.Result) withTaper.invoke(null, base, live(s.soc, t), live(RATED_AH, t), 2538, charger, curve, gate, "fixture:serial", t, t,
@@ -111,6 +127,12 @@ final class FastChargeTaperReplay {
                         Row row = new Row();
                         row.sample = s; row.minutes = (t - start) / 60000d; row.actual = complete == null ? null : (complete - t) / 60000d;
                         row.full = r.remainingMinutesToFull; row.source = source(r); row.learned = r.learnedSessions;
+                        row.ownTaper = ownTaper != null && base.inputWatts != null && base.inputAmps != null && base.inputAmps > 0
+                                && (Boolean) ownTaper.invoke(taper, base.inputWatts / base.inputAmps, base.inputAmps, t);
+                        row.limit = r.remainingMinutesToLimit; row.planningLimit = r.planningMinutesToLimit;
+                        row.limitSource = limitSource(r); row.label = r.label;
+                        ChargingEstimate.Result learned = curve == null ? null : ChargingEstimate.withObservedCurve(base, live(s.soc, t), curve);
+                        row.personalLimit = learned != null && learned.learnedToLimit ? learned.remainingMinutesToLimit : null;
                         rows.add(row);
                     }
                 } finally { clear(history); clear(alone); }
@@ -125,11 +147,42 @@ final class FastChargeTaperReplay {
         return null;
     }
 
+    /** The lower charge limits pinned by expected-v7-limits.csv. */
+    static final double[] LIMITS = {95, 80};
+
+    /**
+     * java -cp CLASSES com.jjricks.volt.FastChargeTaperReplay sessions.csv [--limits]. With --limits,
+     * each sample's time to each of LIMITS, its source, Charge done by's minutes before the buffer and
+     * the past charges counted (regen-expected-v7-limits.sh writes expected-v7-limits.csv this way).
+     */
     public static void main(String[] args) throws Exception {
         PrintStream out = System.out;
+        if (args.length > 1 && args[1].equals("--limits")) {
+            List<List<Row>> byLimit = new ArrayList<>();
+            StringBuilder header = new StringBuilder("session,minutes");
+            for (double limit : LIMITS) {
+                byLimit.add(replay(Paths.get(args[0]), limit));
+                int l = (int) limit;
+                header.append(",limit").append(l).append(",source").append(l).append(",planning").append(l).append(",learned").append(l);
+            }
+            out.println(header);
+            for (int i = 0; i < byLimit.get(0).size(); i++) {
+                Row first = byLimit.get(0).get(i);
+                StringBuilder line = new StringBuilder(first.sample.session + "," + String.format(Locale.ROOT, "%.4f", first.minutes));
+                for (List<Row> rows : byLimit) {
+                    Row row = rows.get(i);
+                    line.append(',').append(minutes(row.limit)).append(',').append(row.limitSource).append(',')
+                            .append(minutes(row.planningLimit)).append(',').append(row.learned);
+                }
+                out.println(line);
+            }
+            return;
+        }
         out.println("session,minutes,full,source,learned");
         for (Row row : replay(Paths.get(args[0])))
             out.println(row.sample.session + "," + String.format(Locale.ROOT, "%.4f", row.minutes) + ","
-                    + (row.full == null ? "" : String.format(Locale.ROOT, "%.6f", row.full)) + "," + row.source + "," + row.learned);
+                    + minutes(row.full) + "," + row.source + "," + row.learned);
     }
+
+    private static String minutes(Double value) { return value == null ? "" : String.format(Locale.ROOT, "%.6f", value); }
 }
