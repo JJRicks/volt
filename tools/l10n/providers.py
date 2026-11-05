@@ -24,6 +24,8 @@ import urllib.request
 KEY_ENV = {"openai": "OPENAI_API_KEY", "google": "GEMINI_API_KEY"}
 OPENAI_BASE = "https://api.openai.com/v1"
 GOOGLE_BASE = "https://generativelanguage.googleapis.com/v1beta"
+# Leads every Responses API input (see generate).
+OPENAI_JSON_NOTE = "Reply with the one JSON object the instructions describe.\n\n"
 CONFIG = os.path.join(os.path.dirname(os.path.abspath(__file__)), "council_models.json")
 REDACTED = "[redacted]"
 TIMEOUT = 300
@@ -248,6 +250,10 @@ def generate(provider, model, instructions, prompt, config=None):
             choices = value.get("choices") or []
             text = choices[0].get("message", {}).get("content") if choices else None
         else:
+            # The Responses API takes text.format json_object only when the input itself mentions JSON (HTTP 400
+            # otherwise); it does not count the instructions, where every caller asks for one JSON object. Always
+            # lead with the note, so the request never depends on a string that happens to contain ".json".
+            prompt = OPENAI_JSON_NOTE + prompt
             value = call("openai", "POST", OPENAI_BASE + "/responses", {
                 "model": model, "instructions": instructions, "input": prompt,
                 "text": {"format": {"type": "json_object"}}, "store": False})

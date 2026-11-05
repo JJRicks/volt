@@ -320,6 +320,7 @@ class DraftingTest(Base):
         self.assertEqual(len(posts), 2)
         responses = [p for u, p in posts if u.endswith("/responses")][0]
         self.assertEqual(responses["text"], {"format": {"type": "json_object"}})
+        self.assertTrue(responses["input"].startswith(providers.OPENAI_JSON_NOTE), responses["input"][:120])
         self.assertFalse(responses["store"])
         self.assertIn("tú", responses["instructions"])
         self.assertIn("Bloq.", responses["instructions"])  # the style guide
@@ -331,6 +332,15 @@ class DraftingTest(Base):
         self.assertEqual([(r["provider"], r["model"], r["model_reported"]) for r in runs],
                          [("openai", "gpt-6.1-terra", "gpt-6.1-terra-2026-10-01"), ("google", "gemini-3.8-flash", "gemini-3.8-flash-001")])
         self.assert_no_secret()
+
+    def test_openai_input_always_mentions_json(self):
+        """The Responses API refuses json_object mode unless the input says JSON; the instructions don't count."""
+        fake = self.transport(**{"gpt-6.1-terra": lambda prompt: {"ok": True}})
+        text, _ = providers.generate("openai", "gpt-6.1-terra", "Reply with one JSON object.", "Translate: Cancel")
+        self.assertEqual(json.loads(text), {"ok": True})
+        text, _ = providers.generate("openai", "gpt-6.1-terra", "Reply with one JSON object.", "Rows (JSON):\n[]")
+        sent = [p["input"] for m, u, _, p in fake.requests if u.endswith("/responses")]
+        self.assertEqual(sent, [providers.OPENAI_JSON_NOTE + "Translate: Cancel", providers.OPENAI_JSON_NOTE + "Rows (JSON):\n[]"])
 
     def test_only_changed_strings_are_drafted_with_their_ladder(self):
         def current(key, english, text):
