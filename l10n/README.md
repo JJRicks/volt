@@ -355,10 +355,10 @@ How `ledger_check.py` (G1) reads it:
   and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
   "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
   exactly so, and the helper call in the base expression to pass the row's arguments; the call's
-  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row
-  with `one` and `other` forms, each the same base expression, whose count argument is the row's
-  one quantity hole (`"quantity": true`), so the call's quantity argument is checked too; anything
-  else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
+  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row,
+  or a plural branch of a `choice` row (below), with `one` and `other` forms, each the same base
+  expression, whose count argument is the row's one quantity hole (`"quantity": true`), so the call's
+  quantity argument is checked too; anything else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
   the model with the sentinels, so `one` is checked at 1 and `other` at 0, 2 and 21 against what the
   helper really printed. Each modelled call is listed with the key, its quantity and what the base
   prints for each form. A helper with any other body (`count()` in
@@ -384,24 +384,35 @@ How `ledger_check.py` (G1) reads it:
   - The `if` and `else` around the sentence: under `if (connecting) ...; else status.setText(...)`
     `connecting` is false, when the condition is stable from that test on. An `else` counts only when
     its `if` runs its own block or one plain statement: in `if (a) while (b) if (c) x(); else y();` the
-    `else` is the inner `if`'s, and nothing is settled.
+    `else` is the inner `if`'s, and nothing is settled; a label counts the same, `if (a) lbl: if (c) ...`.
+    A sentence inside an `if`'s own parentheses runs before that condition is known, so that `if` settles
+    nothing for it, however its parts are ordered: `if (show(sentence) && a)`.
   - `String mode = null;` assigned only inside `if (ready && ...)`: where `ready` is false,
     `mode != null` is false. Only conjuncts of an `if` around every assignment count, stable from the
-    declaration of `mode` on (in a loop, `ready` set again after `mode` was assigned says nothing).
+    declaration of `mode` on (in a loop, `ready` set again after `mode` was assigned says nothing), and
+    declared before it: a foreach variable changes each pass with no `=` to see. An assignment inside the
+    `if`'s parentheses, as in `(mode = read()) != null && ready`, is under no fact of that `if`.
+
+  A condition has conjuncts only with no `||` or `?:` beside its `&&`: `a && b || c` holds with `a`
+  false, and `a ? b : c && d` with `d` false. Each is then one fact, true or false as a whole.
+  `a && (b || c)` still gives `a`.
 
   A stable condition reads only these, and any other name or call settles nothing: a `static final`
-  of the same file; `Class.CONSTANT` (a capitalised class, an all-caps name the file never assigns; a
+  of a class around the sentence, when the file declares that name no other way (a nested class's
+  constant says nothing of a field of its name outside it); `Class.CONSTANT` (a capitalised class, an all-caps name the file never assigns; a
   test keeps every all-caps static field in `src/` final, since G1 reads one file); parameters and
-  locals in scope where it is tested, not assigned after that (a field is not one, even with a local
-  of its name in a closed block); and `equals` on a String: `"eco".equals(id)` or a String local or
+  locals in scope where it is tested, not assigned after that, `(a) = x` included (a field is not one,
+  even with a local of its name in a closed block, or after a `>`: `n > limit;` declares nothing); and `equals` on a String: `"eco".equals(id)` or a String local or
   constant's. A list or a builder can change through a call, so `equals` on one settles nothing.
 
   The row's conditions must still be the head ternary's, token for token, and each branch must be
   exactly the sentence with those facts in. Anything else stays a hole, so the branch fails and shows
   the difference. The first check is the old one, with no facts: a row it passes never reaches this.
   A row with conditions the sentence does not read (nothing local, around it or null) still fails.
-  BackupArchive's `what` line needs one ordinary commit first: its `String.join(", ", labels)` would be
-  in two branches, and a literal repeated in a hole is a new literal. With the join on a local it passes.
+  BackupArchive's `what` line needs an ordinary pull request merged first, moving
+  `String.join(", ", labels)` to a local. A commit in the batch's own pull request does not do: G1
+  compares with the merge base. The join would be in two branches, and a literal repeated in a hole is
+  a new literal. With the join on a local it passes.
 - A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
   one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
   own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
@@ -409,7 +420,7 @@ How `ledger_check.py` (G1) reads it:
   "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
   Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
   the same both times (no `it.next()`; plain reads such as `rides.size()` or `Math.round(x)` are fine).
-  Set anything else on a local in a commit first. The same holds for a `format` row's quantity below.
+  Set anything else on a local in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
 - A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
   count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
   a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
@@ -417,13 +428,13 @@ How `ledger_check.py` (G1) reads it:
   argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
   the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
 - A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
-  string with a `removed` row, no call inside).
-- A manual row takes the `;` of one append it folds into its template: `state += " • " + clock(t);`,
-  right after the statement that sets the String local `state` with no condition and holds one of the
-  row's literals, with operands that are the row's own literals and holes, in the row's order. It is
-  listed as "deletes the whole statement". Nothing else goes this way: not an `if`, a `return` or a
-  call, so `if (charging) state += ...` stays. That is the real shape at QuickAccessGrid.java's manual
-  charge tile (B12), so it keeps `"On"` and `" • %1$s"` as two keys.
+  string with a `removed` row). The statement must be one declarator, with only literals, numbers,
+  names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
+  its `;` and the row fails.
+- A manual row covers one statement. It cannot fold `state += " • " + clock(t);` into the template of
+  the statement before: G1 cannot show that the call prints what the two statements did. No line in
+  `src/` needs that today: QuickAccessGrid.java's manual charge tile (B12) has an `if`, so it keeps
+  `"On"` and `" • %1$s"` as two keys.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming

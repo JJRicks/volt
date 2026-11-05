@@ -391,7 +391,7 @@ def _check_split(split, where):
                                   "%s" % (where, item["spec"]))
             if "quantity" in item and isinstance(item.get("value"), str) and not repeatable_quantity(item["value"]):
                 raise LedgerError("%s: the quantity %s is read twice at head (to pick the item, then to print it), and "
-                                  "each read could differ; set it on a local in a commit before this one" % (where, item["value"]))
+                                  "each read could differ; set it on a local in an ordinary pull request merged first" % (where, item["value"]))
             for field in ("value", "as"):
                 if not isinstance(item[field], str) or not item[field].strip():
                     raise LedgerError("%s: a spec item's %r is Java source" % (where, field))
@@ -478,7 +478,7 @@ def _check_choice(node, where, depth=0):
         for count in holes(node):
             if count.get("quantity") and not repeatable_quantity(count["hole"]):
                 raise LedgerError("%s: the quantity %s is read twice at head (to pick the item, then to print it), and "
-                                  "each read could differ; set it on a local in a commit before this one" % (where, count["hole"]))
+                                  "each read could differ; set it on a local in an ordinary pull request merged first" % (where, count["hole"]))
         return
     if not isinstance(node, dict) or set(node) != {"if", "then", "else"} or not isinstance(node["if"], str) or \
             not node["if"].strip():
