@@ -15,6 +15,8 @@
 # G7 (the emulator text census) never runs here: run android-tests/run-release-sweep.py --census twice
 # for base and once for head on an English-pinned emulator, then tools/l10n/census_diff.py --base A
 # --base A2 HEAD, and paste its last lines (l10n/README.md, step 7).
+#
+# Each kind gets the rules ci_gates.py gives it. On an ordinary change G1 reads "not applied".
 set -uo pipefail
 umask 077
 
@@ -22,7 +24,7 @@ TOOLS_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(git -C "$TOOLS_DIR" rev-parse --show-toplevel)"
 cd "$ROOT" || exit 2
 
-usage() { sed -n '2,17p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
+usage() { sed -n '2,19p' "$TOOLS_DIR/prove-english.sh" | sed 's/^# \{0,1\}//'; exit 2; }
 [[ $# -ge 1 ]] || usage
 BASE_ARG="$1"; shift
 SAME_APK=0; PSEUDO=0; SKIP_BUILD=0; SKIP_TESTS=0
@@ -89,7 +91,15 @@ else
 fi
 
 # G1, G4, G5.
-gate "G1 ledger of moved literals" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --base "$BASE"
+# The same rule as ci_gates.py (plan): G1 binds a batch and an English change, and a kind ci_gates could not
+# tell. An ordinary change may change English, so its report says G1 was not applied, never PASS, and only
+# the ledger check CI holds it to runs.
+if [[ "$KIND" == ordinary ]]; then
+    record "G1 ledger of moved literals" "not applied" "an ordinary change may change a literal, so this run does not show English is unchanged"
+    gate "Ledgers agree with the catalog" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --catalog-only
+else
+    gate "G1 ledger of moved literals" "$WORK/g1.log" python3 tools/l10n/ledger_check.py --base "$BASE"
+fi
 if [[ -f tests/l10n/LedgerTest.java ]]; then
     record "G2 template equivalence" "in G6" "tests/l10n/LedgerTest runs inside tests/run.sh"
 else
@@ -165,12 +175,21 @@ fi
 record "G7 screen text census" "not run" "emulator: run-release-sweep.py --census, then census_diff.py"
 
 # G8, G9, G10.
-gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+# The same rule as ci_gates.py: an ordinary change may record new text (or findings a stronger lint now
+# sees) with --write-baselines, so every finding must be listed; a batch or an English change may only shrink.
+if [[ "$KIND" == ordinary ]]; then
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check
+else
+    gate "G8 hard-coded text lint" "$WORK/g8.log" python3 tools/l10n/hardcoded_lint.py --check --base "$BASE" --tight
+fi
 log="$WORK/g9.log"
 if bash tests/l10n/golden.sh >"$log" 2>&1; then
     if git cat-file -e "$MERGE:tests/l10n/golden" 2>/dev/null && ! git diff --quiet "$MERGE" HEAD -- tests/l10n/golden; then
         if [[ "$KIND" == english-change ]]; then
             record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base (owner-approved change)"
+        elif [[ "$KIND" == ordinary ]]; then
+            # As in CI: an ordinary change may change a report format and update its goldens. Say so, never PASS.
+            record "G9 reports stay English (goldens)" REPORT "tests/l10n/golden changed since the merge base; not enforced on an ordinary change, so name it in the PR"
         else
             record "G9 reports stay English (goldens)" FAIL "tests/l10n/golden changed since the merge base"
         fi
@@ -264,6 +283,12 @@ fi
     echo "|---|---|---|"
     printf '%s\n' "${ROWS[@]}"
     echo
-    if [[ "$FAILED" == 0 ]]; then echo "Result: every gate that runs locally passed."; else echo "Result: FAILED (see above)."; fi
+    if [[ "$FAILED" != 0 ]]; then
+        echo "Result: FAILED (see above)."
+    elif [[ "$KIND" == ordinary ]]; then
+        echo "Result: every gate an ordinary change is held to passed. G1 was not applied, so this is not a proof that English is unchanged."
+    else
+        echo "Result: every gate that runs locally passed."
+    fi
 }
 exit "$FAILED"

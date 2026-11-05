@@ -356,10 +356,10 @@ How `ledger_check.py` (G1) reads it:
   and its body token for token (`count_noun`: `(int|long, String)`, `return c + " " + w + (c == 1 ?
   "" : "s");`); G1 requires the file at the merge base to declare that helper once with that arity,
   exactly so, and the helper call in the base expression to pass the row's arguments; the call's
-  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row
-  with `one` and `other` forms, each the same base expression, whose count argument is the row's
-  one quantity hole (`"quantity": true`), so the call's quantity argument is checked too; anything
-  else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
+  literal arguments (`"scooter"`) belong to the row. A helper piece belongs only in a `plural` row,
+  or a plural branch of a `choice` row (below), with `one` and `other` forms, each the same base
+  expression, whose count argument is the row's one quantity hole (`"quantity": true`), so the call's
+  quantity argument is checked too; anything else fails. G1 (for `%n$s` and `%n$d`) and G2 (`LedgerTest.helper`, every placeholder) evaluate
   the model with the sentinels, so `one` is checked at 1 and `other` at 0, 2 and 21 against what the
   helper really printed. Each modelled call is listed with the key, its quantity and what the base
   prints for each form. A helper with any other body (`count()` in
@@ -374,23 +374,46 @@ How `ledger_check.py` (G1) reads it:
   `tools/l10n/gen_catalog.py` declares that with `PLURAL_ITEMS_FOLLOW_SERVED_TEXT = True`.
   G1 accepts a `plural` row whose key's English `one` and `other` items differ (every helper row, and
   a `manual:` row for `n + (n == 1 ? " ride" : " rides")`) only while that flag is exactly True.
-- **Still blocked: a helper argument or a choice set on an earlier line.** BackupArchive's restore
-  summary picks words in a local and uses it later. For a merge, `perScooter` sets
-  `String what = ... ? "layouts" : "settings";` then adds the Dashboards and Scooter preferences
-  lines, `label + ": " + (labels.isEmpty() ? "nothing to replace" : "replaces " + what + " for " + ...)`
-  (BackupArchive.java lines 667-668 since B10, 656-657 before), and `recordings` sets
-  `String noun = charges ? "charge" : "ride";` then adds the rides and charges lines for what is
-  skipped: `plural(full, noun) + " skipped · " + ...`,
-  `plural(notRestored, noun) + " skipped · scooter not restored"` and
-  `plural(unreadable, noun) + " skipped · unreadable"` (lines 721-725 since B10, 710-714 before).
-  The Review page (B11) shows these lines in English. A choice row's condition must sit in the
-  row's expression, and a helper's text argument is a literal or a hole, so a hole for `noun`
-  renders a fragment, not a sentence: the whole-sentence conversion
-  `charges ? T.chargesNotRestored(n, n) : T.ridesNotRestored(n, n)` has no row and fails G1. Inlining
-  the local in an ordinary prep pull request is not enough on its own: a choice row's branches are
-  piece arrays of string keys, and a helper piece is allowed only in a plural row, so that sentence
-  still has no row form. These lines stay English until a tooling pull request both models a local
-  whose initializer is a ternary of literals and lets a choice row's branches be plural rows.
+- **A choice set on an earlier line is refused.** A choice row's conditions must sit in the row's own
+  expression. G1 reads nothing from a line above or from around the sentence: not a local holding a
+  ternary, not the `if` or `else` around it, not a local that stays null unless something held. Such a
+  row fails with "neither a choice of the base expression on this branch nor a test of a data id".
+  G1 tried this in round T1 and took it out: each review found a new way to pass an English change
+  through a home-grown data-flow analysis, which is the wrong thing to base this proof on.
+  BackupArchive's restore summary is the live case. `perScooter` sets
+  `String what = ... ? "layouts" : "settings";` and `recordings` sets
+  `String noun = charges ? "charge" : "ride";`, and later lines read them. These lines stay English
+  until an ordinary pull request, merged first, writes each choice in its sentence:
+  `(charges ? plural(full, "charge") : plural(full, "ride")) + " skipped · " + ...`. G1 compares with the
+  merge base, so a commit in the batch's own pull request does not do. For `what`, the same pull
+  request moves `String.join(", ", labels)` to a local, because the join would otherwise be in two
+  branches, and a literal repeated in a hole is a new literal. A choice row with plural branches
+  (below) then converts them. An ordinary change can also convert such a sentence whole, as F6 did
+  for the Dashboard header status, with `removed` rows for the whole block.
+- A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
+  one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
+  own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
+  branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
+  "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
+  Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
+  the same both times: names, fields, array elements and `ids.length`, joined by operators. Any call
+  fails, whatever its name (`size()` may be the class's own method that counts its calls, and G1 does
+  not resolve the receiver of `rides.size()` or `Math.round(x)`). Set a count from a call on a local
+  in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
+- A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
+  count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
+  a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
+- A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
+  argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
+  the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
+- A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
+  string with a `removed` row). The statement must be one declarator, with only literals, numbers,
+  names, dots and commas between the braces: a call, an assignment or a step could run, so it keeps
+  its `;` and the row fails.
+- A manual row covers one statement. It cannot fold `state += " • " + clock(t);` into the template of
+  the statement before: G1 cannot show that the call prints what the two statements did. No line in
+  `src/` needs that today: QuickAccessGrid.java's manual charge tile (B12) has an `if`, so it keeps
+  `"On"` and `" • %1$s"` as two keys.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -627,7 +650,14 @@ looks like any other method, so CI could not tell a conversion from ordinary cod
   to `src/`, `hardcoded_lint.py --check` fails until the baselines list it: run
   `python3 tools/l10n/hardcoded_lint.py --write-baselines` and commit the result (from B0b on,
   prefer putting new text in the catalog). If it changes a report format, update the goldens with
-  `bash tests/l10n/golden.sh --update` and say so in the PR.
+  `bash tests/l10n/golden.sh --update` and say so in the PR. Before opening it, run CI's localization steps
+  (`python3 -m unittest discover -s tools/l10n`, `python3 tools/l10n/gen_catalog.py --check`,
+  `bash tests/l10n/golden.sh`, `python3 tools/l10n/ci_gates.py --base origin/main`), then, as for any
+  change, `bash tests/run.sh` and `bash build.sh`. CI does not run `prove-english.sh`, and an ordinary
+  pull request does not need it.
+  If you do run it, it applies the same rules: G1 reads `not applied`, never PASS, because such a
+  change may change a literal, and a golden change reads REPORT, so its report is not a proof that
+  English is unchanged.
 - **An owner-approved English change** (plan part D, after the migration) edits the catalog text,
   adds one row per changed key to `l10n/english-changes.tsv`
   (`key	quantity	old	new	note`, quantity `-` for a string, the note naming the owner's
@@ -708,7 +738,7 @@ Known limits:
 
 | Gate | Tool | Runs in |
 |---|---|---|
-| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches), prove-english |
+| G1 ledger | `tools/l10n/ledger_check.py --base origin/main` (drafts: `extract.py`) | CI (batches and English changes), prove-english (the same kinds; an ordinary change reads `not applied`) |
 | G2 template equivalence | `tests/l10n/LedgerTest.java` (B0b) | CI via `tests/run.sh` |
 | G3 aapt round-trip | `tools/l10n/roundtrip.py`, run by `build.sh` | every local build |
 | G4 frozen test statements | `tools/l10n/frozen_literals.py --base origin/main` | CI (batches; English changes: `--report`), prove-english (batches; other kinds: listed as REPORT, never FAIL) |
@@ -716,7 +746,7 @@ Known limits:
 | G6 existing suites | `tests/run.sh` and the sweep's `--only` steps | CI, emulator |
 | G7 screen text census | `android-tests/TextCensus.java` (B0b), `tools/l10n/census_diff.py` | emulator |
 | G8 hard-coded text lint | `tools/l10n/hardcoded_lint.py --check --base origin/main --tight` | CI (batches; others: `--check`), prove-english |
-| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english |
+| G9 reports stay English | `bash tests/l10n/golden.sh`, goldens unchanged since the merge base (and `ReportsStayEnglishTest`, B0b) | CI (the diff: batches), prove-english (other kinds: a golden change is REPORT, never FAIL) |
 | G10 format legacy parity | `tests/l10n/FmtLegacyTest.java` (B1); G1 requires a compiled `tests/l10n/` test calling each `Fmt` method a `format` row passes | CI via `tests/run.sh` |
 
 The tools' own tests: `python3 -m unittest discover -s tools/l10n` (standard library only). CI
@@ -829,6 +859,9 @@ closing bracket. aapt refuses a `values-en-rXA` folder next to `--pseudo-localiz
 build runs `tools/l10n/pseudo_fix.py` on its output, which rewrites those strings in place as the
 text aapt meant (`[βåţţéŕý % one two]`) and fails if any text still holds a NUL. A letter soon after
 the `%` is not cut, only marked: `90% range` becomes `[90»% ra«ñĝé one]`, which the repair leaves alone.
+After the repair, the pseudo build's round trip still names any en-XA text that opens with `[` and has
+no closing `]` as a `roundtrip: note:` line, so a bracket the repair missed, or one lost for another
+reason, shows up in the build log. None is expected.
 
 ## Census format (G7)
 
@@ -1157,12 +1190,10 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
    words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
-   the U+FE0E after ⚠, exactly as the English has them. `check.py` and `council.py` do not know that
-   list yet. `check.py` reports each of those symbols, and U+FE0E itself (category Mn, so not the
-   warning it gives spaces and format characters), as a missing-glyph ERROR. The drafting prompt's
-   "Keep unchanged" rule names neither the symbols nor the invisible U+FE0E, which a drafter may
-   drop. Both need the list, in a tooling pull request, before a language translates a key that has
-   one. Glossary terms match as whole words ("bloquear" is not found
+   the U+FE0E after ⚠, exactly as the English has them: `check.py` (`FALLBACK_SYMBOLS`, which a test
+   keeps equal to the Java list) lets those symbols past Saira's cmap and fails a draft that changes
+   their count, drops the U+FE0E or puts one anywhere else, and the drafting prompt's "Keep
+   unchanged" rule names them. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
