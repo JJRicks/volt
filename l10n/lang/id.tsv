@@ -1,0 +1,18 @@
+# Indonesian (id). Claude-only proposal, drafted 2026-11-05, pending the three-vendor debate; not final.
+# percent_style has no space, as Indonesian writes 85%. decimal_style is an example of the separators. folder is the legacy Android code values-in; localeConfig says id.
+field	value
+tag	id
+folder	values-in
+endonym	Bahasa Indonesia
+wave	1
+status	draft
+formality	Anda
+plurals	other
+quote_style	“…” ‘…’
+percent_style	%1$s%%
+decimal_style	1.234,5
+script	Latn
+font	saira
+rtl	false
+unit_symbols	si
+drive_mode_names	english
