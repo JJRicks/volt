@@ -1,0 +1,12 @@
+shared-rider	delad förare | delade förare | delade föraren | delad	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal; REVIEW delad förare
+owner-file	ägarfil | ägarfilen	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	claude-only claude-opus-5-5; proposal
+pin-unlock	PIN-upplåsning | PIN-upplåsningen	The toggle that enables the handlebar PIN.	noun phrase	no	pin	claude-only claude-opus-5-5; proposal
+controls-to-try	reglage att prova	The card of untried controls in Experimental controls.	noun phrase	no	experimental	claude-only claude-opus-5-5; proposal
+lab-badge	LABB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	claude-only claude-opus-5-5; proposal; D3 allows a short word
+eco-estimate	Eco-beräkning | Eco-beräkningen	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
+custom-speed-limit	egen hastighetsgräns | egna hastighetsgränser	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
+drive-mode-speed-limit	hastighetsgräns för körläge | hastighetsgränser för körlägen | körlägets hastighetsgräns	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
+maximum-speed-short	maxhast. | maxhastighet | max. hastighet	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	claude-only claude-opus-5-5; proposal
+speed-limit	hastighetsgräns | hastighetsgränsen | hastighetsgränser	A limit below Maximum speed; the general word for the two rows above.	noun phrase	no	ride	claude-only claude-opus-5-5; proposal
+scooter-display	elscooterns display | displayen | display	The screen on the scooter itself.	noun phrase	no	-	claude-only claude-opus-5-5; Inet, M3 display
+display-sound	display och ljud | display & ljud	The settings group for the scooter's display and sounds. Display here is the scooter's, not Volt's Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5; proposal
