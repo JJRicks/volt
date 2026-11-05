@@ -6,7 +6,7 @@
   merge.py --tag es --check                validate res/<folder>/ and compare it with what the
                                            decisions would write; write nothing
 
-For each key whose decision is translated (agreed, judged or safety-agreed) and whose source_sha1
+For each key whose decision is translated (agreed, judged, safety-agreed or safety-judged) and whose source_sha1
 still matches the English, it writes the string with a <!-- src:<sha1> --> comment (translib's
 source hash). Keys that fall back, whose English changed since the decision, or whose text is blank,
 the wrong shape or missing a plural form (translib.why_english) are left out, so Android shows

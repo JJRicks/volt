@@ -703,7 +703,7 @@ def items_of(kind, value):
     return collections.OrderedDict((q, value[q]) for q in QUANTITIES if q in value)
 
 
-TRANSLATED = ("agreed", "judged", "safety-agreed")
+TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged")
 
 
 def why_english(source, decision, categories):

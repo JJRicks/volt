@@ -1154,9 +1154,11 @@ python3 tools/l10n/council.py check --tag $T --area $A               # 3. automa
 ( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py redraft openai --tag $T --area $A )
 python3 tools/l10n/council.py prompt --tag $T --area $A --name opus-context --redraft   # Claude's redraft
 python3 tools/l10n/council.py check --tag $T --area $A
-( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate google --tag $T --area $A )
+( set -a && . ~/.config/volt-council/keys.env && set +a && python3 tools/l10n/council.py backtranslate openai --tag $T --area $A )
 python3 tools/l10n/council.py judge-requests --tag $T --area $A      # 4-5. then a separate Opus judge session
-python3 tools/l10n/council.py decide --tag $T --area $A              #      writes judge.jsonl; then decide
+#      writes judge.jsonl; for a safety key whose drafts disagree, back-translate the judge's text
+#      (backtranslate openai again) and run judge-requests again for the judge's confirm
+python3 tools/l10n/council.py decide --tag $T --area $A
 python3 tools/l10n/merge.py --tag $T --area $A                       # 6. res/values-<qual>/ and validation
 python3 tools/l10n/council.py beta --tag $T                          # the owner's beta bar
 ```
@@ -1170,7 +1172,11 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    `volt:safety` takes its full key's.
 2. **Drafts**, independently. `council.py draft openai|google` asks each provider's model-list
    endpoint which models exist and picks one per `tools/l10n/council_models.json` (first matching
-   pattern, newest version; `--model` or `--prefer` overrides), then drafts in JSON mode
+   pattern, newest version; `--model` or `--prefer` overrides). The owner chose modest current
+   models, not the top end (2026-11-05): drafts come from `gpt-6.1-terra` and `gemini-3.8-flash`,
+   and back-translation from `gpt-6.1-sol`, which drafts nothing (with Google, the newest plain
+   flash that did not draft, then flash-lite). The patterns name each line, so a newer version
+   of the same line is picked when it appears, and never a top-end line (pro, argon). It then drafts in JSON mode
    (OpenAI's Responses API, `"store": false`; Gemini's `generateContent`). Each draft records the
    exact model id, and the id the API reported. Claude drafts come from Claude Code agents, each
    in its own session with a different configuration (`--style` `context-first`,
@@ -1209,16 +1215,30 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    candidate needs a new ruling and falls back until it has one. A `fallback` ruling is not bound
    to the drafts it saw (it keeps English, so it can never ship a wrong text): after redrafting a
    key the judge sent to English, delete that ruling or judge the key again, or it stays English.
-5. **Safety keys** (any `volt:safety`): **every drafter must agree**, with drafts from all three
-   providers that all pass the checks; a model that **drafted nothing** back-translates the agreed
-   text (`backtranslate`, or `prompt --role backtranslate` and `import-backtranslation` for a
-   Claude agent on a model that did not draft: each such prompt gets a request id, the hash of
-   exactly what it showed, recorded in `prompts/backtranslation.request.<id>.json` and never
-   overwritten; the agent copies the id and each text's `target_sha1` into its reply, and
-   `import-backtranslation` refuses a reply without a known id or with a text hash its request
-   did not show, and drops a key whose English or agreed text changed since that request, so a
-   later prompt cannot adopt an earlier agent's answer); and the judge, shown that text and its
-   back-translation and naming both in its ruling, confirms every item: locked and
+5. **Safety keys** (any `volt:safety`): a safety key is translated in one of two ways. **When
+   every drafter agrees**, with drafts from all three providers that all pass the checks, a model
+   that **drafted nothing** back-translates the agreed text and the judge confirms it, as below
+   (`safety-agreed`). **When the drafts disagree** (the owner's decision of 2026-11-05; before it,
+   such a key always fell back), with drafts from all three providers and at least one passing,
+   `judge-requests` lists the key as `safety-disagreement` and the judge may pick a passing draft
+   or merge a better text from them (a merge must pass the checks again), or rule `fallback`.
+   That judged text is not used yet: `backtranslate` (and the Claude back-translation prompt)
+   then covers each judged text that has no back-translation of exactly that text, by a model
+   that drafted nothing; the next `judge-requests` lists the key as `safety-judged-confirmation`
+   with the judged text and its back-translation, and the judge confirms it on a later line of
+   `judge.jsonl` exactly as for an agreed text (`safety-judged`). The latest pick or merge is the
+   judged text: a new one, or a picked draft that changed, needs a new back-translation and a new
+   confirm, and the judge can never confirm a text it has not seen back-translated. A key with a
+   provider's draft missing, or no passing draft, still falls back. Either way the back-translation
+   is of the current English and of exactly the confirmed text (`backtranslate`, or `prompt --role
+   backtranslate` and `import-backtranslation` for a Claude agent on a model that did not draft:
+   each such prompt gets a request id, the hash of exactly what it showed, recorded in
+   `prompts/backtranslation.request.<id>.json` and never overwritten; the agent copies the id and
+   each text's `target_sha1` into its reply, and `import-backtranslation` refuses a reply without
+   a known id or with a text hash its request did not show, and drops a key whose English or
+   agreed or judged text changed since that request, so a later prompt cannot adopt an earlier
+   agent's answer); and the judge, shown that text and its back-translation and naming both in
+   its ruling, confirms every item: locked and
    unlocked stay distinct, on/off and never/always are not inverted, "unverified" or "unknown"
    never reads as confirmed, numbers, units and the named action are unchanged, "not affiliated
    with NAVEE" is not softened, and the back-translation keeps the meaning. Anything less **falls
@@ -1235,7 +1255,7 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    its keys fall back to English and **no lock or alarm** key falls back. `council.py beta` checks
    it across every area. It counts what `merge.py` writes, so a key whose English changed after its
    decision, or whose text is blank, the wrong shape or missing a plural form, is a fallback. A lock
-   or alarm key must also be `safety-agreed`, which Claude's drafts alone never reach.
+   or alarm key must also be `safety-agreed` or `safety-judged`, which Claude's drafts alone never reach.
    Releases still need the owner's explicit authorization.
 
 The language pull request then runs the local build, LocaleValidation in that language at both
@@ -1472,9 +1492,9 @@ Text still in Java, such as the bottom bar's labels, stays English whatever the 
 `check.py` and `lexicon.py` are a **first filter**. They reject the common ways a draft goes wrong
 cheaply, before anyone pays for a judge, but word lists cannot read a sentence, so they are not
 the guarantee that a lock, alarm, power or speed key means what the English means. That guarantee
-is step 5: every drafter agrees, a model that drafted nothing back-translates the agreed text,
-the judge rules on that exact text and its back-translation, and anything less falls back to
-English. The checks' job for a safety key is to fail closed: a false alarm sends a correct key
+is step 5: every drafter agrees, or (owner, 2026-11-05) the judge picks or merges a text from
+drafts that disagree; a model that drafted nothing back-translates that exact text; the judge
+rules on that exact text and its back-translation; and anything less falls back to English. The checks' job for a safety key is to fail closed: a false alarm sends a correct key
 back to English (a coverage cost), and a miss is left to step 5.
 
 What they catch reliably: broken placeholders, numbers, plural categories, escapes, markup,
@@ -1598,7 +1618,7 @@ change a check inside a language or batch pull request.
   prompt. `import-backtranslation` loads the request by that id and checks it against its id;
   it refuses the whole reply (nothing stored) when the id is missing or unknown, or a key is not
   in that request or its `target_sha1` is not that request's, and stores a key only while the
-  request's `source_sha1` and `target` are still the current English and agreed text.
+  request's `source_sha1` and `target` are still the current English and agreed (or judged) text.
 - **`judge.jsonl`** (written by the judge): `{"key", "source_sha1", "model", "verdict", "pick",
   "text", "back", "reason", "confirm", "backtranslation_meaning_kept"}`, verdict `pick`, `merge`,
   `confirm` (safety keys) or `fallback`; `confirm` maps each of `lock_states_distinct`,
@@ -1606,16 +1626,19 @@ change a check inside a language or batch pull request.
   `numbers_units_action_unchanged` and `disclaimer_not_softened` to `true`. A pick copies the
   picked candidate's text into `text` and counts only while that draft still has it (after
   normalizing); a pick without it, or of a changed draft, waits for a new ruling. A confirm also copies
-  the request's `text` (the agreed text) and `backtranslation.back` into `text` and `back`; it
-  counts only while both still match the current agreed text and back-translation, so a changed
-  draft needs a new ruling. A safety key reaches `judge-requests` only after a current
-  back-translation exists. A ruling whose `source_sha1` is not the current English is ignored.
+  the request's `text` (the agreed or judged text) and `backtranslation.back` into `text` and `back`; it
+  counts only while both still match the current agreed or judged text and back-translation, so a changed
+  draft needs a new ruling. A safety key reaches `judge-requests` for a confirm only after a current
+  back-translation exists. For a safety key whose drafts disagree, the latest `pick` or `merge`
+  line is the judged text and the latest line must be the `confirm` (a later `fallback` keeps
+  English). A ruling whose `source_sha1` is not the current English is ignored.
   A ruling carries what it is bound to (English hash, picked or confirmed text, back-translation),
   and `decide` checks those against the current drafts, never against `judge-requests.jsonl`,
   so rewriting the requests while a judge works cannot rebind an earlier ruling.
 - **`decisions/<tag>/<area>.jsonl`**: one line per key: `format`
   (`volt-l10n-decision-v1`), `key`, `kind`, `source_sha1`, `english`, `safety`, `outcome`
-  (`agreed`, `judged`, `safety-agreed` or `fallback-english`), `text`, `reason`, `alternatives`
+  (`agreed`, `judged`, `safety-agreed`, `safety-judged` or `fallback-english`; the first four are
+  translated, for `merge.py` and the beta bar), `text`, `reason`, `alternatives`
   (every current draft with its model ids, attempt, text and findings), `stale_drafts` (each
   ignored entry: `draft`, `provider`, `model`, `src`, `why`), `models` (`drafters`, `judge`,
   `backtranslator`), `checks`, `judge` and `backtranslation`.
