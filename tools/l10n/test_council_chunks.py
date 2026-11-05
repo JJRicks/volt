@@ -125,6 +125,16 @@ class ChunkPromptTest(ChunkBase):
         self.prompts(code=2)
         self.assertIn("the glossary changed: scooter", self.err.getvalue())
 
+    def test_refuses_a_pack_that_never_matched_a_new_glossary_term(self):
+        self.repo.write("l10n/glossary/en.tsv", self.repo.read("l10n/glossary/en.tsv") +
+                        "waiting\tWaiting\tWaiting.\tverb\tno\t-\tfixture\n")
+        self.repo.write("l10n/glossary/es.tsv", self.repo.read("l10n/glossary/es.tsv") +
+                        "waiting\tEsperando\tWaiting.\tverb\tno\t-\tfixture\n")
+        self.prompts(code=2)
+        self.assertIn("the glossary changed: waiting", self.err.getvalue())
+        self.repack()
+        self.assertIn("Esperando", self.body(self.prompts(keys="100")[0])[0])
+
     def test_refuses_a_pack_older_than_the_language_settings(self):
         path = "l10n/lang/es.tsv"
         self.repo.write(path, self.repo.read(path).replace("one,many,other", "one,other"))
@@ -396,6 +406,83 @@ class ChunkImportTest(ChunkBase):
         self.assertEqual(sorted(draft.entries), sorted(self.sha()))
         self.assertEqual(self.do_import("--redraft"), 0)  # safe twice
 
+    def test_a_key_gets_one_redraft_even_if_check_has_not_run_since(self):
+        self.answer_all(self.prompts(keys="100"), overrides={"common_not_reported": "Informado %1$s"})
+        self.assertEqual(self.do_import(), 0)
+        self.main("check", "--tag", "es", "--area", "common")
+        self.answer_all(self.prompts("--redraft"))
+        self.assertEqual(self.do_import("--redraft"), 0)
+        self.prompts("--redraft", code=2)
+        self.assertIn("no failed first attempts", self.err.getvalue())
+
+    def test_a_lone_surrogate_is_left_out(self):
+        for reply in self.answer_all(self.prompts(keys="100")):
+            self.repo.write(reply, self.repo.read(reply).replace("Alarma activada", "Alarma \\ud83d activada"))
+        self.assertEqual(self.do_import(), 1)
+        self.assertIn("common_alarm_on: a lone surrogate", self.out.getvalue())
+        self.assertNotIn("common_alarm_on", self.draft().entries)
+        self.assertIn("common_cancel", self.draft().entries)
+        got, problems = council.replies_to_entries(pack.load_pack(self.paths, "es", "common"),
+                                                   {"common_cancel": "Can\ud83d"}, ["common_cancel"])
+        self.assertEqual(got, [])
+        self.assertIn("a lone surrogate", problems[0])
+
+    def test_a_whole_set_in_another_style_relabels_the_draft(self):
+        self.answer_all(self.prompts(keys="100"))
+        self.assertEqual(self.do_import(), 0)
+        self.assertEqual(self.draft().prompt, "standard")
+        self.answer_all(self.prompts("--style", "context-first", keys="100"))
+        self.assertEqual(self.do_import(), 0)
+        self.assertEqual(self.draft().prompt, "context-first")
+
+    def test_a_draft_does_not_mix_styles(self):
+        self.answer_all(self.prompts(keys="4"))
+        self.assertEqual(self.do_import(), 0)
+        before = self.repo.read("l10n/work/es/common/drafts/claude-opus.xml")
+        paths = self.prompts("--style", "context-first", keys="4")
+        self.answer(paths[0])
+        self.assertEqual(self.do_import("--partial"), 2)
+        self.assertIn("records the style standard, this set is in context-first", self.err.getvalue())
+        self.assertEqual(self.repo.read("l10n/work/es/common/drafts/claude-opus.xml"), before)
+        for extra in ("--top-up", "--redraft"):
+            self.err.truncate(0)
+            self.err.seek(0)
+            self.prompts(extra, "--style", "context-first", code=2)
+            self.assertIn("a draft records one", self.err.getvalue())
+
+    def test_a_claude_only_glossary_gives_way_to_the_councils(self):
+        path = "l10n/glossary/es.tsv"
+        council_glossary = self.repo.read(path)
+        self.repo.write(path, council_glossary.replace("\tfixture", "\tclaude-only " + MODEL))
+        self.repack()
+        self.answer_all(self.prompts(keys="100"))
+        self.assertEqual(self.do_import(), 0)
+        draft = self.draft()
+        self.assertEqual(self.main("glossary-check", "--tag", "es"), 0)
+        self.assertIn("3 rows are claude-only", self.out.getvalue())
+        self.assertEqual(self.main("draft", "openai", "--tag", "es", "--area", "common", "--model", "gpt-5.1"), 2)
+        self.assertIn("3 claude-only rows", self.err.getvalue())
+        self.assertFalse(os.path.exists(self.paths.work("es", "common", "drafts", "openai.xml")))
+        # The judged glossary differs on a safety term and on an ordinary one.
+        self.repo.write(path, council_glossary.replace("no está afiliada a NAVEE", "sin afiliación a NAVEE")
+                        .replace("patinete | patinetes", "monopatín | monopatines"))
+        self.prompts(code=2)
+        self.assertIn("the pack is out of date", self.err.getvalue())
+        self.repack()
+        self.assertEqual(self.main("check", "--tag", "es", "--area", "common"), 1)
+        self.assertEqual(self.draft().entries, draft.entries)  # the draft itself is untouched, and still current
+        self.assertEqual(dict((k, e.src) for k, e in draft.entries.items()), self.sha())
+        # Only the safety key that used the old word is redrafted, in the same file under the same model.
+        paths = self.prompts("--redraft", keys="100")
+        self.assertEqual([e["key"] for e in self.body(paths[0])[1]], ["common_disclaimer"])
+        self.answer_all(paths, overrides={"common_disclaimer": "Volt sin afiliación a NAVEE"})
+        self.assertEqual(self.do_import("--redraft"), 0)
+        after = self.draft()
+        self.assertEqual((after.model, after.name), (draft.model, draft.name))
+        self.assertEqual(after.entries["common_disclaimer"].attempt, 2)
+        self.assertEqual([k for k in draft.entries if after.entries[k].items != draft.entries[k].items],
+                         ["common_disclaimer"])
+
     def test_a_redraft_flag_on_a_first_pass_refuses(self):
         self.answer_all(self.prompts())
         self.assertEqual(self.do_import("--redraft"), 2)
@@ -435,6 +522,7 @@ class ChunkImportTest(ChunkBase):
         # One draft names one model, so another model's text does not join under it.
         self.assertEqual(self.do_import(model="claude-sonnet-5"), 2)
         self.assertIn("was drafted by claude-opus-5-5", self.err.getvalue())
+        self.assertIn("two claude-* drafts that agree", self.err.getvalue())  # what the next --name risks
         self.assertEqual(self.draft().model, MODEL)
 
     def test_from_and_from_chunks_are_alternatives(self):

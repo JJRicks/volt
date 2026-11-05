@@ -87,6 +87,22 @@ class GlossaryCheckTest(unittest.TestCase):
         self.assertFalse(font.covers(" "))
         self.assertTrue(font.covers(" "))
 
+    def test_narrow_no_break_space_at_either_end_of_a_form(self):
+        for form in ("trottinette\u202f", "\u202ftrottinette", "a | b\u202f"):
+            self.assert_invalid(HEAD + "scooter\t%s\tX.\tnoun\tno\t-\tfixture\n" % form + AFFILIATED + LOCK, "U+202F")
+
+    def test_a_glossary_not_in_utf8_is_named_not_a_traceback(self):
+        with open(self.repo.path("l10n/glossary/es.tsv"), "ab") as handle:
+            handle.write(b"\xff\n")
+        code, output = self.run_check("--tag", "es")
+        self.assertEqual(code, 1)
+        self.assertIn("es.tsv: not UTF-8", output)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = pack.main(["--root", self.repo.root, "--tag", "es", "--area", "common", "--no-java"])
+        self.assertEqual(code, 1)
+        self.assertIn("es.tsv: not UTF-8", err.getvalue())
+
     def test_blank_columns_and_shapes_ci_would_refuse(self):
         for row, message in (
                 ("scooter\tpatinete\t\tnoun\tno\t-\tfixture\n", "scooter has an empty definition"),
@@ -218,12 +234,22 @@ class StyleGuideRequiredTest(unittest.TestCase):
         self.assertEqual(code, 2)
         self.assertIn("changed after the pack was built", err)
 
-    def test_the_judge_needs_it_and_the_back_translator_does_not(self):
+    def test_only_a_translator_needs_it(self):
         os.remove(self.paths.style("es"))
         self.build()
-        self.assertEqual(self.prompt("--role", "judge")[0], 2)
-        self.assertEqual(self.prompt("--role", "judge", "--no-style-guide")[0], 0)
+        self.assertEqual(self.prompt("--role", "draft", "--name", "opus")[0], 2)
+        self.assertEqual(self.prompt("--role", "judge")[0], 0)
         self.assertEqual(self.prompt("--role", "backtranslate")[0], 0)
+
+    def test_a_judge_prompt_is_gated_no_more_than_judge_requests(self):
+        self.build()
+        self.repo.write("l10n/style/es.md", self.repo.read("l10n/style/es.md") + "\nOne more line.\n")
+        self.assertEqual(self.prompt("--role", "draft", "--name", "opus")[0], 2)
+        self.assertEqual(self.prompt("--role", "judge")[0], 0)
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err), contextlib.redirect_stdout(io.StringIO()):
+            code = council.main(["--root", self.repo.root, "--no-java", "judge-requests", "--tag", "es", "--area", "common"])
+        self.assertEqual(code, 0, err.getvalue())
 
     def test_the_readme_names_the_required_sections(self):
         text = translib.l10nlib.read_text(os.path.join(translib.REPO_ROOT, "l10n", "style", "README.md"))

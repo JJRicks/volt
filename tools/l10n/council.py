@@ -229,6 +229,11 @@ def reply_strings(value):
     return strings
 
 
+def has_lone_surrogate(items):
+    """JSON can spell half a character (\\ud83d). No file can hold it, and no font can draw it."""
+    return any(0xD800 <= ord(ch) <= 0xDFFF for text in items.values() for ch in text)
+
+
 def replies_to_entries(pack, strings, keys, srcs=None):
     """[(key, kind, items, attempt, src)] for the requested keys; unknown keys and bad shapes are reported.
 
@@ -247,6 +252,9 @@ def replies_to_entries(pack, strings, keys, srcs=None):
         if items is None:
             problems.append("%s: expected %s" % (key, "a string" if entry["kind"] == "string" else
                                                  "an object of plural categories"))
+            continue
+        if has_lone_surrogate(items):
+            problems.append("%s: a lone surrogate in the reply; left out" % key)
             continue
         if srcs is None:
             src = entry["source_sha1"]
@@ -305,6 +313,12 @@ def api_draft(paths, provider, tag, area, model=None, prefer=None, style="standa
     name = name or provider
     if translib.draft_provider(name) != provider:
         raise translib.L10nError("draft name %s does not belong to %s" % (name, provider))
+    unjudged = translib.claude_only_glossary_rows(paths, tag)
+    if unjudged:
+        raise translib.L10nError(
+            "l10n/glossary/%s.tsv has %d claude-only rows (%s): the check would hold %s's safety keys to Claude's "
+            "word. The council replaces that glossary first (l10n/README.md, Drafting a whole language with Claude "
+            "alone)" % (tag, len(unjudged), ", ".join(unjudged[:5]), provider))
     entries = needed_entries(pack, include_current)
     if not entries:
         out.write("%s/%s: nothing to draft (every key is current)\n" % (tag, area))
@@ -372,7 +386,7 @@ def api_redraft(paths, provider, tag, area, name=None, out=None):
 # ---------------------------------------------------------------------------
 
 def prompt_gate(paths, tag, area, no_style_guide=False):
-    """What a translator's prompt needs: a valid glossary, and a style guide unless waived.
+    """What a translator's prompt needs (not a judge's): a valid glossary, and a style guide unless waived.
 
     The pack holds the guide the prompt quotes, so a guide written, changed or deleted after pack.py
     also refuses: the prompt would tell the translator about a guide it does not show, or quote one
@@ -523,10 +537,15 @@ def pack_out_of_date(paths, pack):
     changed = sorted(f for f in settings if settings[f] != pack["language"].get(f))
     if changed:
         return "the language settings changed: %s" % ", ".join(changed)
-    targets = dict((t.id, t.targets) for t in translib.load_glossary(paths, pack["tag"]))
-    changed = sorted(set(g["id"] for e in pack["entries"] for g in e["glossary"]
-                         if targets.get(g["id"]) != g.get("target")))
-    return "the glossary changed: %s" % ", ".join(changed[:5]) if changed else None
+    terms = translib.load_glossary(paths, pack["tag"])
+    changed = set()
+    source_of = dict((s.key, s) for s in sources[pack["area"]])
+    for entry in pack["entries"]:
+        text = " ".join(source_of[entry["key"]].items.values())
+        now = dict((g["id"], g) for g in packlib.glossary_hits(terms, text))
+        was = dict((g["id"], g) for g in entry["glossary"])
+        changed.update(i for i in set(now) | set(was) if now.get(i) != was.get(i))
+    return "the glossary changed: %s" % ", ".join(sorted(changed)[:5]) if changed else None
 
 
 def draft_file(paths, tag, area, draft_name):
@@ -597,11 +616,20 @@ def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, to
     draft_name = "claude-" + name
     path = draft_file(paths, tag, area, draft_name)
     draft = translib.read_draft(path) if os.path.exists(path) else None
+    if draft and draft.prompt and style and style != draft.prompt and (redraft or top_up):
+        raise translib.L10nError("%s records the style %s, and a draft records one: a %s in %s would mix them. Leave "
+                                 "out --style, or prompt every key without %s" % (
+                                     draft_name, draft.prompt, "redraft" if redraft else "top-up", style,
+                                     "--redraft" if redraft else "--top-up"))
     style = style or (draft.prompt if draft else None) or "standard"
     by_key = dict((e["key"], e) for e in pack["entries"])
     findings = {}
     if redraft:
-        findings = failed_keys(paths, tag, area, draft_name)
+        # checks.jsonl can be older than the draft: a key that has had its redraft gets no other.
+        findings = collections.OrderedDict(
+            (k, v) for k, v in failed_keys(paths, tag, area, draft_name).items()
+            if not (draft and k in by_key and k in draft.entries and draft.entries[k].attempt >= MAX_ATTEMPTS
+                    and not checklib.stale_source(draft.entries[k].src, by_key[k]["source_sha1"])))
         if not findings:
             raise translib.L10nError("%s has no failed first attempts to redraft" % draft_name)
         entries = [by_key[k] for k in findings if k in by_key]
@@ -728,8 +756,11 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
     path = draft_file(paths, tag, area, draft_name)
     previous = translib.read_draft(path) if os.path.exists(path) else None
     if previous is not None and previous.model != model:
-        raise translib.L10nError("%s was drafted by %s, not %s; a draft names one model, so use another --name" % (
-            paths.rel(path), previous.model, model))
+        raise translib.L10nError(
+            "%s was drafted by %s, not %s, and a draft names one model. Another --name takes another model, but two "
+            "claude-* drafts that agree are enough for decide to write agreed, and merge.py then writes res/: read "
+            "\"Drafting a whole language with Claude alone\" in l10n/README.md first" % (
+                paths.rel(path), previous.model, model))
     if redraft and previous is None:
         raise translib.L10nError("%s does not exist; a redraft replaces keys of an existing draft" % paths.rel(path))
     count = len(fields["chunks"])
@@ -763,6 +794,8 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
                 if items is None:
                     problems.append("%s: expected %s" % (key, "a string" if english[key][0] == "string" else
                                                          "an object of plural categories"))
+                elif has_lone_surrogate(items):
+                    problems.append("%s: a lone surrogate in the reply; left out" % key)
                 else:
                     before = merged.get(key)
                     attempt = MAX_ATTEMPTS if redraft or (before and before[4] == src and before[3] >= MAX_ATTEMPTS) else 1
@@ -770,10 +803,17 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
     for key in merged:
         if key not in english:
             problems.append("%s: no longer in the English; dropped from the draft" % key)
+    # A draft records one style: this set's only if it holds the whole draft from now on.
+    others = [k for k in merged if k in english and k not in collected]
+    if previous is not None and previous.prompt and previous.prompt != fields["style"] and others:
+        raise translib.L10nError(
+            "%s records the style %s, this set is in %s, and %d keys would keep the old one (%s); nothing was written. "
+            "Answer every key of the set, or prompt again with --style %s" % (
+                paths.rel(path), previous.prompt, fields["style"], len(others), ", ".join(others[:5]), previous.prompt))
     merged.update(collected)
     if merged:
         reported = previous.model_reported if previous is not None else model
-        prompt = previous.prompt if previous is not None else fields["style"]
+        prompt = previous.prompt if previous is not None and others else fields["style"]
         translib.write_draft(path, draft_name, model, [merged[k] for k in english if k in merged], reported, prompt)
     for problem in problems:
         out.write("  %s\n" % problem)
@@ -800,10 +840,14 @@ AUDIT_COMPARE_HEADER = ("key", "english", "translation", "back-translation", "dr
 AUDIT_VERDICT_HEADER = ("key", "ok", "problem", "draft", "reader", "source_sha1", "target_sha1", "back_sha1")
 
 
+def cell_text(value):
+    """A cell's text: a row just built holds a plural as a dict, one read back from a file as this JSON."""
+    return value if isinstance(value, str) else translib.dump_json_line(value)
+
+
 def tsv_cell(value):
     """One TSV cell: a plural as compact JSON, tabs and line breaks escaped so a row stays one line."""
-    text = value if isinstance(value, str) else translib.dump_json_line(value)
-    return text.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+    return cell_text(value).replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
 
 
 def tsv_uncell(text):
@@ -841,7 +885,7 @@ def audit_row_is_current(row, entry, draft_entry):
 
 def back_sha1(compare_row):
     """The hash of the back-translation a compare.tsv row shows, which a verdict is a verdict on."""
-    return hashlib.sha1(compare_row["back-translation"].encode("utf-8")).hexdigest()
+    return hashlib.sha1(cell_text(compare_row["back-translation"]).encode("utf-8")).hexdigest()
 
 
 def compared_sha1(compared, draft_name):
@@ -1028,8 +1072,13 @@ def audit_compare(paths, tag, area, name, model, partial=False, out=None):
             elif back is None:
                 problems.append("%s (%s): expected %s" % (key, item_id, "a string" if item["kind"] == "string" else
                                                           "an object of plural categories"))
-            elif any(0xD800 <= ord(ch) <= 0xDFFF for text in back.values() for ch in text):
+            elif has_lone_surrogate(back):
                 problems.append("%s (%s): a lone surrogate in the reply; left out" % (key, item_id))
+            elif not all(text.strip() for text in back.values()):
+                problems.append("%s (%s): an empty back-translation; left out" % (key, item_id))
+            elif item["kind"] != "string" and set(back) != set(item["target"]):
+                problems.append("%s (%s): the reply covers %s and the text has %s; left out" % (
+                    key, item_id, ", ".join(back), ", ".join(item["target"])))
             elif source is None or translib.source_sha1(source.kind, source.items) != item["source_sha1"]:
                 problems.append("%s: the English changed since the prompt; left out" % key)
             elif have is None or text_sha1(item["kind"], have.items) != item["target_sha1"]:
@@ -1876,6 +1925,10 @@ def glossary_check(paths, tag, out=None):
         out.write("information: %d rows match no English string\n" % len(orphans))
         for term in orphans:
             out.write("  %s (%s)\n" % (term.id, term.term))
+    unjudged = translib.claude_only_glossary_rows(paths, tag) if tag != "en" and not problems else []
+    if unjudged:
+        out.write("information: %d rows are claude-only: no council has judged them, and draft openai|google refuses "
+                  "until one has\n" % len(unjudged))
     out.write("%s glossary: %s\n" % (tag, "%d problems" % len(problems) if problems else "valid"))
     return 1 if problems else 0
 
@@ -1987,9 +2040,8 @@ def main(argv=None):
         if args.command == "prompt":
             if args.chunk_keys and (args.role != "draft" or (args.redraft and args.top_up)):
                 raise translib.L10nError("--chunk-keys is for a draft or a redraft, and --top-up is not a redraft")
-            if args.role != "backtranslate":  # a back-translator sees neither the rules nor the glossary
+            if args.role == "draft":  # like judge-requests, a judge's prompt shows what the pack holds
                 prompt_gate(paths, args.tag, args.area, args.no_style_guide)
-            if args.role == "draft":
                 if not args.name or not translib.DRAFT_NAME.match(args.name):
                     raise translib.L10nError("--name is required: lower-case letters, digits and dashes")
                 if args.chunk_keys:

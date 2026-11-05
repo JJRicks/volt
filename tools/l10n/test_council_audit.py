@@ -24,6 +24,7 @@ BACKS = {
     "common_alarm_on": "Alarm activated",
 }
 SAFETY = sorted(BACKS)
+PLURAL_BACK = {"one": "%1$d scooter skipped", "many": "%1$d of scooters skipped", "other": "%1$d scooters skipped"}
 
 
 def tree(root):
@@ -61,7 +62,7 @@ class AuditBase(chunks.ChunkBase):
             text = handle.read()
         body = json.loads(text.split("## Texts\n\n", 1)[1])
         items = self.sidecar()["items"]
-        strings = dict((e["id"], (overrides or {}).get(items[e["id"]]["key"], BACKS[items[e["id"]]["key"]])) for e in body)
+        strings = dict((e["id"], (overrides or {}).get(items[e["id"]]["key"], BACKS.get(items[e["id"]]["key"]))) for e in body)
         reply = re.search(r"Write the JSON object to `([^`]+)`", text).group(1)
         self.repo.write(reply, json.dumps({"strings": strings}))
         return reply
@@ -325,6 +326,43 @@ class AuditTest(AuditBase):
         self.assertIn("common_alarm_on", self.out.getvalue())
         status = self.status()["areas"]["common"]
         self.assertEqual((status["audited"], status["flagged"]), (3, 0))
+
+    def plural_safety_key(self):
+        self.change_english('<plurals name="common_scooters_skipped"',
+                            '<plurals name="common_scooters_skipped" volt:safety="lock"')
+        self.repack()
+        self.drafted()
+
+    def test_a_plural_safety_key_keeps_its_verdict(self):
+        self.plural_safety_key()
+        self.audited({"common_scooters_skipped": PLURAL_BACK})
+        keys = SAFETY + ["common_scooters_skipped"]
+        self.assertEqual(self.record({"verdicts": [{"key": k, "ok": True} for k in keys]}), 0)
+        self.assertEqual(self.status()["areas"]["common"]["audited"], 5)
+        # Filing the same reply again and filing another reader's: both rows are new, one reads the same.
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.assertEqual(self.compare(), 0, self.err.getvalue())
+        self.assertIn("compare_sha1:", self.out.getvalue())
+        self.assertNotIn("verdicts judged another", self.out.getvalue())
+        self.assertEqual(self.status()["areas"]["common"]["audited"], 5)
+        self.back(self.audit_prompts()[0], {"common_scooters_skipped": dict(PLURAL_BACK, one="1 scooter kept")})
+        self.out.truncate(0)
+        self.out.seek(0)
+        self.assertEqual(self.compare(model=READER), 0, self.err.getvalue())
+        self.assertIn("1 verdicts judged another back-translation", self.out.getvalue())
+        self.assertIn("common_scooters_skipped", self.out.getvalue())
+        self.assertEqual(self.status()["areas"]["common"]["audited"], 4)
+
+    def test_an_incomplete_back_translation_is_left_out(self):
+        self.plural_safety_key()
+        self.audit_prompts()
+        self.back(self.audit_prompts()[0], {"common_scooters_skipped": {"other": "others"}, "common_lock_waiting": " "})
+        self.assertEqual(self.compare(), 1)
+        self.assertIn("the reply covers other and the text has one, many, other", self.out.getvalue())
+        self.assertIn("common_lock_waiting (s", self.out.getvalue())
+        self.assertIn("an empty back-translation", self.out.getvalue())
+        self.assertEqual(sorted(k for _, k in self.compared()), sorted(set(SAFETY) - {"common_lock_waiting"}))
 
     def test_never_the_councils_back_translation(self):
         self.transport(**{"gpt-5.1": cf.drafting_reply(cf.SPANISH), "gemini-3-pro": cf.drafting_reply(cf.SPANISH)})

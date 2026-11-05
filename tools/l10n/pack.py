@@ -79,6 +79,14 @@ def read_current(paths, lang, area):
     return current
 
 
+def glossary_hits(terms, text):
+    """The glossary terms a text uses, as a pack entry shows them."""
+    return [collections.OrderedDict([
+        ("id", term.id), ("term", term.term), ("definition", term.definition),
+        ("dnt", term.dnt), ("safety", term.safety or None), ("target", term.targets)])
+        for term in translib.glossary_hits(terms, text)]
+
+
 def build_pack(paths, tag, area, measurer=None, sources=None):
     """The pack for one language and area, as an ordered dict ready for JSON."""
     translib.check_tag_area(tag, area)
@@ -116,11 +124,7 @@ def build_pack(paths, tag, area, measurer=None, sources=None):
         budget = translib.parse_max(s.meta.get("max"))
         sha = translib.source_sha1(s.kind, s.items)
         text = " ".join(s.items.values())
-        hits = []
-        for term in translib.glossary_hits(terms, text):
-            hits.append(collections.OrderedDict([
-                ("id", term.id), ("term", term.term), ("definition", term.definition),
-                ("dnt", term.dnt), ("safety", term.safety or None), ("target", term.targets)]))
+        hits = glossary_hits(terms, text)
         neighbours = []
         for other in rows[max(0, index - NEIGHBOURS):index] + rows[index + 1:index + 1 + NEIGHBOURS]:
             neighbours.append(collections.OrderedDict([

@@ -226,6 +226,7 @@ def plural_categories(lang):
 
 
 Term = collections.namedtuple("Term", "id term definition pos dnt safety targets")
+CLAUDE_ONLY_SOURCE = "claude-only"  # how a glossary row's source starts until the council has judged it
 
 
 def _read_glossary(path):
@@ -261,7 +262,11 @@ def _glossary_rows(path, where):
     """([(line, fields)], problems), reading on past a row with the wrong column count."""
     rows, problems = [], []
     header = None
-    for number, line in enumerate(l10nlib.read_text(path).split("\n"), 1):
+    try:
+        text = l10nlib.read_text(path)
+    except UnicodeDecodeError as error:
+        return [], ["%s: not UTF-8: %s" % (where, error)]
+    for number, line in enumerate(text.split("\n"), 1):
         line = line[:-1] if line.endswith("\r") else line
         if not line.strip() or line.startswith("#"):
             continue
@@ -292,9 +297,10 @@ def _form_problems(where, term_id, column):
     for form in forms:
         if gen_catalog.PLACEHOLDER.search(form):
             out.append("%s: %s: the term %r has a placeholder" % (where, term_id, form))
+    for form in column.split("|"):  # not stripped: strip() takes a U+202F at either end of a form too
         if "\u202f" in form:
             out.append("%s: %s: the term %r has U+202F, which Saira has no glyph for; use U+00A0" % (
-                where, term_id, form))
+                where, term_id, form.strip(" ")))
     return out
 
 
@@ -383,6 +389,14 @@ def committed_glossary_problems(paths):
             if problems:
                 out[name] = problems
     return out
+
+
+def claude_only_glossary_rows(paths, tag):
+    """The ids of l10n/glossary/<tag>.tsv rows no council judged: their source says claude-only."""
+    path = os.path.join(paths.glossary_dir(), tag + ".tsv")
+    if not os.path.exists(path):
+        return []
+    return [fields[0] for _, fields in _glossary_rows(path, path)[0] if fields[6].startswith(CLAUDE_ONLY_SOURCE)]
 
 
 def require_valid_glossary(paths, tag):
