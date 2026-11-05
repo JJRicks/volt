@@ -612,6 +612,67 @@ class PluralBranchNearMissTest(ShapeCase):
             ledger_check.parse_ledger(HEADER + row + "\n")
 
 
+class ChoiceHeldOnAnEarlierLineTest(ShapeCase):
+    """G1 settles only the conditions the sentence's own expression holds, as a row's base expression has them. What
+    a line above or an `if` around the sentence says is for an ordinary pull request to change first."""
+    STRINGS = strings_xml(s_on="On", s_off="Off", s_on_x="On x", s_off_x="Off x", s_x="x")
+
+    def refused(self, body, sentence, head, pieces, keys):
+        row = choice_row(self.line_of(body, sentence), pieces, keys, GRID)
+        problems = self.attempt(body, [(sentence, head)], [row], self.STRINGS)[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+    def test_a_local_set_on_the_line_above_is_refused(self):
+        self.refused("""    static String f(boolean a) {
+        String word = a ? "On" : "Off";
+        return word + " x";
+    }""", 'word + " x"', "a ? T.sOnX() : T.sOffX()",
+                     {"if": "a", "then": ["On", " x"], "else": ["Off", " x"]}, ("s_on_x", "s_off_x"))
+
+    def test_an_if_around_the_sentence_settles_nothing(self):
+        self.refused("""    static String f(boolean a, boolean b) {
+        if (a) return (a ? "On" : "Off") + (b ? " x" : "");
+        return "";
+    }""", '(a ? "On" : "Off") + (b ? " x" : "")', "b ? T.sOnX() : T.sOn()",
+                     {"if": "b", "then": ["On", " x"], "else": ["On"]}, ("s_on_x", "s_on"))
+
+    def test_an_else_around_the_sentence_settles_nothing(self):
+        self.refused("""    static String f(boolean a, boolean b) {
+        if (a) return "";
+        else return (a ? "On" : "Off") + (b ? " x" : "");
+    }""", '(a ? "On" : "Off") + (b ? " x" : "")', "b ? T.sOffX() : T.sOff()",
+                     {"if": "b", "then": ["Off", " x"], "else": ["Off"]}, ("s_off_x", "s_off"))
+
+    def test_a_null_local_settles_nothing(self):
+        self.refused("""    static String f(boolean a, String v) {
+        String m = null;
+        if (a) m = v;
+        return (a ? "On" : "Off") + (m != null ? " x" : "");
+    }""", '(a ? "On" : "Off") + (m != null ? " x" : "")', "a ? (m != null ? T.sOnX() : T.sOn()) : T.sOff()",
+                     {"if": "a", "then": {"if": "m != null", "then": ["On", " x"], "else": ["On"]}, "else": ["Off"]},
+                     ("s_on_x", "s_on", "s_off"))
+
+    def test_a_helper_noun_on_the_line_above_is_refused(self):
+        body = """    static String f(boolean c, int n) {
+        String noun = c ? "charge" : "ride";
+        return plural(n, noun) + " x";
+    }
+    """ + HELPER_BODY
+        strings = """<resources>
+<plurals name="c_x"><item quantity="one">%1$d charge x</item><item quantity="other">%1$d charges x</item></plurals>
+<plurals name="r_x"><item quantity="one">%1$d ride x</item><item quantity="other">%1$d rides x</item></plurals>
+</resources>
+"""
+
+        def form(noun):
+            piece = [{"helper": "plural", "model": "count_noun", "args": [count(), noun]}, " x"]
+            return {"one": piece, "other": piece}
+        row = choice_row(self.line_of(body, "plural(n, noun)"), {"if": "c", "then": form("charge"), "else": form("ride")},
+                         ("c_x", "r_x"), GRID)
+        problems = self.attempt(body, [('plural(n, noun) + " x"', "c ? T.cX(n, n) : T.rX(n, n)")], [row], strings)[0]
+        self.assertTrue(any("choice row at" in p for p in problems), problems)
+
+
 class RepeatableQuantityTest(unittest.TestCase):
     def test_plain_reads_repeat(self):
         for source in ("n", "rides.size()", "stats.count", "n + 1", "Math.round(x)", "a[i]", "a == b ? 1 : 2"):
