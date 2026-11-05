@@ -748,5 +748,69 @@ class FirstWaveRealGlossaryTest(unittest.TestCase):
                                   ("es", "Bloqueo: activado", "bloqueo")):
             self.assertTrue(lexicon.term_found(tag, "Latn", target, text), (tag, text))
 
+class CroatianWordListTest(unittest.TestCase):
+    """hr negation, state and removal lists, and the lock forms that must not match "conclude"."""
+
+    LOCK = "zaključaj | zaključati | zaključan | zaključani | zaključano"
+
+    @staticmethod
+    def _errors(english, text, term, target):
+        entry = {"key": "k", "kind": "string", "english": english, "safety": "lock", "dnt": [], "formatted": True,
+                 "glossary": [{"id": "t", "term": term, "dnt": False, "safety": "lock",
+                               "target": [t.strip() for t in target.split("|")]}]}
+        language = {"tag": "hr", "plurals": ["one", "few", "other"], "script": "Latn", "font": "system"}
+        return sorted(set(f["check"] for f in check.check_key(entry, language, "string", {"other": text})
+                          if f["severity"] == check.ERROR))
+
+    def test_added_negation_on_a_positive_key_fails(self):
+        for text in ("Romobili nisu zaključani", "Neće se zaključati", "Nemoj zaključati romobil",
+                     "Nitko nije zaključan", "Romobil nikako zaključati"):
+            self.assertIn("polarity", self._errors("The scooters are locked", text, "Locked", self.LOCK), text)
+        self.assertNotIn("polarity", self._errors("The scooters are locked", "Romobili su zaključani", "Locked", self.LOCK))
+
+    def test_kept_negation_on_a_negative_key_passes(self):
+        target = "nije potvrđeno | nije potvrđen | nije potvrđena | nisu potvrđene"
+        self.assertNotIn("polarity", self._errors("Values not confirmed", "Vrijednosti nisu potvrđene", "not confirmed", target))
+        self.assertIn("polarity", self._errors("Values not confirmed", "Vrijednosti su potvrđene", "not confirmed", "potvrđene"))
+
+    def test_every_common_negation_word_counts(self):
+        for word in ("nisu", "nisam", "nisi", "nismo", "niste", "neće", "nećeš", "nećemo", "nemoj", "nemojte", "nemam",
+                     "nemaš", "nemaju", "ni", "niti", "nitko", "nikakav", "nikakva", "nikakvo", "nikako", "nigdje"):
+            self.assertEqual(check.target_negation("hr", word)[0], [word])
+
+    def test_ordinary_words_are_not_native_negation(self):
+        for word in ("negdje", "negativan", "neutralan", "neto", "nekad", "bezbroj", "bezbjedan"):
+            self.assertEqual(check.target_negation("hr", word)[2], [], word)
+        for word in ("neprovjereno", "nepoznato", "netočno", "nekompatibilan", "nekorišten"):
+            self.assertEqual(check.target_negation("hr", word)[2], [word])
+
+    def test_on_and_off_inversion_fails(self):
+        for english, text in (("Alarm sound on", "Zvuk alarma: isključeno"), ("Alarm sound off", "Zvuk alarma: uključeno"),
+                              ("Alarm sound on", "Zvuk alarma nije uključen"),
+                              ("Alarm stays on", "Alarm više neće biti uključen")):
+            self.assertIn("polarity", self._errors(english, text, "Alarm", "alarm"), text)
+        for english, text in (("Alarm sound on", "Zvuk alarma: uključeno"), ("Alarm sound off", "Zvuk alarma: isključeno"),
+                              ("Alarm sound off", "Zvuk alarma nije uključen")):
+            self.assertNotIn("polarity", self._errors(english, text, "Alarm", "alarm"), text)
+        # "including" and "exclusively" are not states.
+        self.assertEqual(lexicon.state_words("hr", "uključujući romobil, isključivo ovdje"), ([], []))
+
+    def test_removing_the_lock_is_not_the_lock_term(self):
+        for text in ("Ukloni zaključavanje", "Isključi zaključavanje", "Uklanjanje zaključavanja",
+                     "Poništi zaključavanje", "Zaključavanje je isključeno", "Zaključavanje romobila je uklonjeno"):
+            self.assertFalse(lexicon.term_found("hr", "Latn", "zaključavanje", text), text)
+        self.assertTrue(lexicon.term_found("hr", "Latn", "zaključavanje", "Zaključavanje romobila"))
+        self.assertTrue(lexicon.term_found("hr", "Latn", "zaključavanje", "Isključi zaključavanje", removal=False))
+
+    def test_lock_forms_match_but_conclude_does_not(self):
+        for target, text in (("zaključa", "Romobil se zaključa"), ("zaključao", "Romobil se nije zaključao"),
+                             ("zaključaš", "prije nego što zaključaš"), ("otključa", "Romobil se otključa"),
+                             ("otključao", "Romobil se nije otključao"), ("zaključala", "nije se zaključala")):
+            self.assertTrue(lexicon.term_found("hr", "Latn", target, text), text)
+        for target in ("zaključa", "zaključao", "zaključaj", "zaključaju", "zaključala", "zaključalo", "zaključaš"):
+            for text in ("Zaključi romobil", "Zaključak", "Zaključuje", "Zaključio", "Zaključajte romobil"):
+                self.assertFalse(lexicon.term_found("hr", "Latn", target, text), (target, text))
+
+
 if __name__ == "__main__":
     unittest.main()

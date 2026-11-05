@@ -54,7 +54,10 @@ NEGATION = {
     "sk": ({"nie", "nikdy", "žiadny", "žiadna", "žiadne", "bez", "nič"}, ("ne", "bez")),
     "ro": ({"nu", "niciodată", "fără", "niciun", "nicio", "nimic"}, ("ne",)),
     "hu": ({"nem", "ne", "soha", "nincs", "sincs", "nélkül", "semmi"}, ()),
-    "hr": ({"ne", "nije", "nikad", "nikada", "bez", "nema", "ništa"}, ("ne", "bez")),
+    "hr": ({"ne", "nije", "nisu", "nisam", "nisi", "nismo", "niste", "neću", "nećeš", "neće", "nećemo", "nećete",
+            "nemoj", "nemojmo", "nemojte", "nemam", "nemaš", "nema", "nemamo", "nemate", "nemaju", "ni", "niti", "nikad",
+            "nikada", "nikako", "nigdje", "nitko", "nikoga", "ništa", "ničega", "nikakav", "nikakva", "nikakvo", "nikakvi",
+            "nikakve", "nikakvih", "nijedan", "nijedna", "nijedno", "bez"}, ("ne", "bez")),
     "tr": ({"değil", "yok", "asla", "hiç", "olmadan", "hayır"}, ()),
     "ru": ({"не", "нет", "никогда", "без", "ни", "ничего", "нельзя"}, ("не", "без")),
     "uk": ({"не", "ні", "немає", "ніколи", "без", "нічого", "неможна"}, ("не", "без")),
@@ -92,7 +95,7 @@ NATIVE_PREFIXES = {
                           "bezpeč", "bezdrát")),
     "sk": (("ne", "bez"), ("nej", "nebo", "než", "nedeľ", "nech", "nedávn", "nevyhnut", "bezpeč", "bezdrôt")),
     "hr": (("ne", "bez"), ("nego", "nešto", "netko", "nekol", "neki", "neka", "neke", "neko", "nedjelj", "nedavn",
-                          "neposredn", "bežič")),
+                          "neposredn", "bežič", "negdje", "negativ", "neutral", "bezbroj", "bezbjed")),
     "de": (("un",), ("unter", "und", "uns", "unser", "unbedingt", "ungefähr", "unten", "union", "univers",
                      "unmittelbar", "unix", "unfall")),
     "nl": (("on",), ("onder", "ons", "onze", "ont", "ongeveer", "onmiddellijk", "online", "ongeacht", "onlangs")),
@@ -128,6 +131,8 @@ NATIVE_STEMS = {
     # Arabic "unable" and "unknown" are often single words with no negation particle.
     "ar": ("تعذر", "يتعذر", "مستحيل", "مجهول"),
     "bn": ("অজানা", "অসম্ভব", "অবৈধ", "অনুপলব্ধ", "অক্ষম", "অসম্পূর্ণ", "নিষ্ক্রিয়", "অসঙ্গত", "অযাচাই"),
+    # Croatian "neko" (some) is an ordinary-word prefix, and these negated words start with it.
+    "hr": ("nekompatib", "nekontrolir", "nekorišt"),
 }
 NATIVE_STEMS = dict((k, _nfc(v)) for k, v in NATIVE_STEMS.items())
 # The deactivate, disconnect and disable verbs (es "desactivar", fr "déconnecter", el "απενεργοποίηση")
@@ -164,6 +169,11 @@ SUFFIXING = {"tr", "fi", "hu", "et", "ko", "az", "kk", "uz"}
 INFLECTING = {"es", "pt", "fr", "it", "ro", "ca", "ru", "uk", "be", "pl", "cs", "sk", "sl", "hr", "sr", "bs",
               "bg", "mk", "el"}
 _ENDING_LETTERS = "aeiouyáéíóúàèìòùâêîôûãõăаеёиоуыэюяьйъіїєαεηιουωάέήίόύώ"
+# Target words that match only as written. Their stem is too short to inflect safely: Croatian
+# "zaključa" (locks) would otherwise also match "zaključi" (conclude) and "zaključak" (conclusion).
+# "zaključaju" would match the vi imperative "zaključajte", which a ti language does not approve.
+EXACT_WORDS = {"hr": {"zaključa", "zaključao", "zaključaju", "otključa", "otključao", "otključaju"}}
+EXACT_WORDS = dict((k, _nfc(v)) for k, v in EXACT_WORDS.items())
 # Languages that write a noun phrase as one compound word ("Sperrdauer", "Vergrendelstatus",
 # "Låstid"), with the endings dropped from a lock target before it joins one (longest first). Only
 # the lock terms match this way, and only at the start of a word, so the unlock words (ent-, ont-,
@@ -219,6 +229,10 @@ STATE_WORDS = {
            "nonaktif|dinonaktifkan|nonaktifkan(?:nya)?|menonaktifkan(?:nya)?|mati|dimatikan|matikan(?:nya)?|"
            "mematikan(?:nya)?|padam|dilepas|"
            "dihapus"),
+    # Explicit verb forms: "uključujući" (including) and "isključivo" (exclusively) are not states.
+    "hr": ("uključen\\w*|uključi|uključiti|uključit|uključuje|uključivanj\\w*|aktivn\\w*|aktiviran\\w*|aktiviraj|aktivirati",
+           "isključen\\w*|isključi|isključiti|isključit|isključuje|isključivanj\\w*|neaktivn\\w*|deaktiviran\\w*|deaktiviraj|"
+           "deaktivirati|uklonjen\\w*"),
 }
 STATE_WORDS = dict((k, tuple(re.compile("(?<![^\\W_])(?:%s)(?![^\\W_])" % unicodedata.normalize("NFC", p))
                              for p in v)) for k, v in STATE_WORDS.items())
@@ -241,6 +255,7 @@ STATE_NEGATION_GAP = {
     "pl": {"jest", "będzie", "są", "się"},
     "sv": {"är", "blir", "längre"},
     "id": {"sedang", "akan", "lagi"},
+    "hr": {"je", "su", "će", "se", "biti", "bit", "bi", "više"},
 }
 STATE_NEGATION_GAP = dict((k, _nfc(v)) for k, v in STATE_NEGATION_GAP.items())
 # French "ne ... que" says only, not not ("ne s'active que si"): a "ne" whose clause goes on to
@@ -445,6 +460,10 @@ REMOVAL_CONTEXT = {
                    "του|της|το|την|τα|των|τον|η|ο"),
            _after("απενεργοποιη|αφαιρεθ|αφαιρεμεν|ακυρωθ|ακυρωμεν|ανοιχτ|ανοιξ", _GAP_WORD,
                   "εχει|ειναι|θα")),
+    "hr": (_before("ukloni|ukloniti|uklanjanje|uklanjanja|uklanjanjem|isključi|isključiti|isključivanje|"
+                   "isključivanja|deaktiviraj|deaktivirati|deaktivacija|deaktivaciju|poništi|poništiti|poništavanje|"
+                   "poništavanja|skini|skinuti|skidanje|skidanja", "to|ovo|svoje"),
+           _after("isključen|uklonjen|deaktiviran|poništen|skinut", _GAP_WORD, "je|su|će\\s+biti|bit\\s+će|bi")),
     "ja": ("", "^\\s*(?:を|が|は|も|の)?\\s*(?:オフ|無効)"),
     "zh": ("(?:关闭|關閉|停用|禁用)\\s*$", "^\\s*(?:定|住)?\\s*(?:已|被|已被)?\\s*(?:关闭|關閉|停用|禁用|取消)"),
 }
@@ -574,7 +593,7 @@ def _strip_accents(text):
 def _inflected(primary, word):
     """A pattern for one word of a target: the word, or in an inflecting language its stem plus
     any ending of up to four letters."""
-    if primary in INFLECTING:
+    if primary in INFLECTING and word not in EXACT_WORDS.get(primary, ()):
         stem = word.rstrip(_ENDING_LETTERS)
         if stem != word and len(stem) >= 5:
             return re.escape(stem) + r"[^\W\d_]{0,4}"

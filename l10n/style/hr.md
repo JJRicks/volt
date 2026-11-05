@@ -24,7 +24,7 @@ Prefer an infinitive to *da* + present: *Možeš promijeniti*, not *Možeš da p
 | Text type | Form | English | Croatian |
 |---|---|---|---|
 | Button, toggle, one-tap action | imperative, ti (the Microsoft guide's rule for a direct command, and Android's own: *Upari*, *Zaboravi*) | Save, Lock | Spremi, Zaključaj |
-| Button that opens a flow (English has `…`) | verbal noun | Restore… | Vraćanje… |
+| Button that opens a flow (English has `…`) | imperative, ti; a verbal noun with `…` reads as progress | Restore… | Vrati… |
 | Instruction in a sentence | imperative, ti | Reconnect to verify. | Ponovno poveži romobil za provjeru. |
 | Title, section header, tab | noun | Backup & restore | Sigurnosno kopiranje i vraćanje |
 | What happened | participle or impersonal, with the thing as subject | Nothing was changed. | Ništa nije promijenjeno. |
@@ -75,9 +75,11 @@ Give all three categories, and agree the adjective and verb too. **Keep `%1$d` i
 |---|---|---|
 | one | 1, 21, 31, 101… not 11 | 1 romobil, 1 minuta, 1 vožnja, 1 sat, 1 datoteka |
 | few | 2–4, 22–24, 32–34… not 12–14 | 2 romobila, 2 minute, 2 vožnje, 2 sata, 2 datoteke |
-| other | 0, 5–20, 25–30, 100, fractions | 5 romobila, 5 minuta, 5 vožnji, 5 sati, 5 datoteka |
+| other | 0, 5–20, 25–30, 100… (integers; Android plurals take only integers) | 5 romobila, 5 minuta, 5 vožnji, 5 sati, 5 datoteka |
 
-More: *putovanje, putovanja, putovanja*; *postavka, postavke, postavki*; *widget, widgeta, widgeta*; *dan, dana, dana*; *sekunda, sekunde, sekundi*; *put, puta, puta*.
+More: *putovanje, putovanja, putovanja*; *postavka, postavke, postavki*; *widget, widgeta, widgeta*; *dan, dana, dana*; *sekunda, sekunde, sekundi*.
+
+Never count trips with *put*: *2 puta* means "twice". Count with *putovanje*: *2 putovanja*.
 
 - Agreement changes with the count: *Preskočen je 1 romobil*, *Preskočena su 2 romobila*, *Preskočeno je 5 romobila*. Prefer a label that avoids it when the string is not a plural resource: *Romobili: %1$d*.
 - Never copy "1 minutes" shapes from the English. `one` is grammatical even where a note says it can't be reached.
@@ -118,24 +120,22 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way, ne
 | **Prosj.** | prosječna | *Prosj. brzina* 72 | |
 | **Procj.** | procijenjeni, procijenjena | *Procj. domet* 72 | With a following noun |
 | **Temp.** | temperatura | 35 | |
-| **Ogr.** | ograničenje | *Ogr. punjenja* 77 | Only with a following noun |
-| **Zak.** | zakazano | *Zak. punjenje* 78 | Only in *Zak. punjenje*, for the 90dp `dashboard_model_tile_charge_schedule` tile |
-| **Eksperim.** | eksperimentalno | 57 | *Eksperimentalno* is 98, over the 90dp tile. No plain shortening fits |
+| **Ogr.** | ograničenje | *Ogr. punjenja* 77 | Only in *Ogr. punjenja*, the one short form of *Ograničenje punjenja*. Bare *Ograničenje* is the compact rung only |
+| **Eksperim.** | eksperimentalno | 57 | The one short form of *Eksperimentalno*, which is 98, over the 90dp tile. No plain shortening fits |
 | **pribl.** | približno | | |
 | **br.** | broj | | |
-| **Info** | informacije, o aplikaciji | *Info i dozvole* 77 | A short word, no period |
 
-**Refused:** *Zaklj.*, *Otklj.*, *Isklj.*, *Uklj.* (reads as *uključujući*), *Post.* (reads as post), *Bat.*, *Rom.*, *Min.* for minimum (clashes with `min`), *Vlasn.*, *Neprov.*, *Nepotv.*. If a word has no row here, don't invent one.
+**Refused:** *Zak.* (reads as *zakon* or *zaključano*), *Zaklj.*, *Otklj.*, *Isklj.*, *Uklj.* (reads as *uključujući*), *Post.* (reads as post), *Bat.*, *Rom.*, *Min.* for minimum (clashes with `min`), *Vlasn.*, *Neprov.*, *Nepotv.*. If a word has no row here, don't invent one.
 
 **Measured words that fit (12.5sp):**
 
 - Under the 62dp tile: *Postavke* 53, *Baterija* 46, *Vožnje* 39, *Zaključaj* 51.
-- Under the 90dp tile: *Moji romobili* 75, *Statistika uživo* 89, *Naziv romobila* 87, *Linijska svjetla* 86, *Zaslon i zvuk* 76, *PIN i blizina* 68, *Kraj punjenja* 77, *Vrijeme kraja* 77, *Vršna brzina* 73, *Maks. brzina* 74.
-- Over 90dp, so take the listed short form: *Zvjezdana svjetla* 101 → *Zvjezdana*; *Postavke vožnje* 94 → *Vožnja*; *Postavke aplikacije* 110 → *Aplikacija*; *O aplikaciji i dozvole* 117 → *Info i dozvole*; *Maksimalna brzina* 110 → *Maks. brzina*; *Zakazano punjenje* 110 → *Zak. punjenje*.
+- Under the 90dp tile: *Moji romobili* 75, *Statistika uživo* 89, *Naziv romobila* 87, *Linijska svjetla* 86, *Zaslon i zvuk* 76, *PIN i blizina* 68, *Rok punjenja* 76, *Vrijeme roka* 73, *Plan punjenja* 79, *Dopuštenja* 66, *Vršna brzina* 73, *Maks. brzina* 74.
+- Over 90dp, so take the listed short form: *Zvjezdana svjetla* 101 → *Zvjezdana*; *Postavke vožnje* 94 → *Vožnja*; *Postavke aplikacije* 110 → *Aplikacija*; *O aplikaciji i dopuštenja* 137 → *Dopuštenja* (*Info i dopuštenja* is 97, also over); *Maksimalna brzina* 110 → *Maks. brzina*. *Zakazano punjenje* is 110, so it has no 90dp form; the English of that tile says Charge schedule, which is *Plan punjenja*.
 - `onboarding_welcome_tile_lock` (62dp): *Zaključavanje* is 79, so this tile alone uses **Zaključaj** (51). Debate item: a verb on a feature tile, with *Brava* 34 and *Blokada* 47 as the alternatives; both add a second lock word, and *Brava* reads as a physical lock.
 - `owner_shizuku_install` (48dp at 14sp): *Instaliraj* is 57 and there is no acceptable shorter word. Write it and report the overflow.
 
-**Never abbreviate:** *Zaključaj, Otključaj, Zaključano, Otključano, Neprovjereno, Nepoznato, Nikad, Uvijek, Uključeno, Isključeno, Alarm, PIN, vlasnički ključ*. If one doesn't fit, write the whole word and report it.
+**Never abbreviate:** *Zaključaj, Otključaj, Zaključano, Otključano, Stanje zaključavanja, Neprovjereno, Neisprobano, Nepotvrđeno, Nepoznato, Nikad, Uvijek, Uključeno, Isključeno, Alarm, PIN, vlasnički ključ*. If one doesn't fit, write the whole word and report it. *Ograničenje punjenja* and *Eksperimentalno* have one approved short form each (the table above) and no other.
 
 ## 8. Safety wording
 
@@ -179,17 +179,17 @@ Use exactly these words. They match the glossary; don't use synonyms.
 - *Neprovjereno* (not checked), *Neisprobano* (not tried) and *Nepotvrđeno* (no readback) are three different words. *Nepoznato* says nothing was learned. Don't swap them.
 - *Provjereno* and *Potvrđeno* are claims. *Provjeri* is a command to check. Don't let an unverified state turn into one of them by dropping *ne-* or *nije*.
 - *Ne-* words are written together (*neprovjereno*), and *nije* is separate.
-- Keep every negation. *ne, nije, nikad, nikada, bez, nema, ništa* count for the checks; the prefixes *ne-* and *bez-* count for a listed safety word. There is no removal list for Croatian, so the checks won't catch *Ukloni zaključavanje*. You must.
+- Keep every negation. These count for the checks: *ne, ni, niti, bez, nije, nisu, nisam, nisi, nismo, niste, neću, nećeš, neće, nećemo, nećete, nemoj, nemojmo, nemojte, nemam, nemaš, nema, nemamo, nemate, nemaju, nikad, nikada, nikako, nigdje, nitko, nikoga, ništa, ničega, nikakav* and its forms, *nijedan, nijedna, nijedno*. The prefixes *ne-* and *bez-* count for a listed safety word. The checks list the common removal phrasings (*Ukloni zaključavanje*) and on/off words (*uključeno*, *isključeno*, *aktivno*, *neaktivno*), but a word list misses other phrasings, so read for them yourself.
 - Don't add reassurance the English lacks (*sigurno*, *zajamčeno*), and don't add warnings it doesn't have.
 
 ## 9. Scooter vocabulary
 
 The glossary is authoritative; this explains the distinctions it can't. *Romobil* is masculine and inanimate: *romobil, romobila, romobilu, romobil, romobilom*. Plain *romobil* alone is the app's word; *električni romobil* only where the English says electric. *Skuter* is a motorbike-style vehicle, so never use it.
 
-- **Three speeds:** the setting is **Maksimalna brzina**. A limit below it is **Ograničenje brzine**. The measured value on a trip or ride is **Vršna brzina**. Never swap them. *Najveća brzina* isn't used, because it could mean either. **Debate item:** *vršna* is established for power (*vršna snaga*) and less so for speed; *Najveća postignuta brzina* is the long alternative.
-- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. The rows `top-speed` and `maximum-speed` already carry D3's meaning, and these named strings still follow today's English meaning until D3 lands. Flag them in your notes; a judge answers fallback.
+- **Three speeds:** the setting is **Maksimalna brzina**. A limit below it is **Ograničenje brzine**. The measured value on a trip or ride is **Vršna brzina**. Never swap them. Where a full rung has room, the measured value is **Najveća postignuta brzina** (151dp), which can't read as a rating; narrow rungs use *Vršna brzina*. *Najveća brzina* alone isn't used, because it could mean either. **Debate item:** *vršna* is established for power (*vršna snaga*) and in car writing can mean the rated top speed, so it isn't self-evidently measured.
+- **Held until the English terminology fix (D3) merges:** the English of `dashboard_model_tile_top_speed` and `controls_experimental_speed_limit` says Top speed for the setting, and the `readings_maximum_speed_kmh` full rung says maximum speed for the measured value. Those words have the opposite meaning here, so these keys, the whole `readings_maximum_speed_kmh` ladder and any `main_speed_*` key stay in English until then. The rows `top-speed` and `maximum-speed` already carry D3's meaning, and these named strings still follow today's English meaning until D3 lands. Flag them in your notes; a judge answers fallback. **Not held, translate now:** `rides_tile_max_speed` (English *Max speed*, D3 *Top speed*) is the measured value today and after D3, so it is **Vršna brzina**, never *Maks. brzina*.
 - **Rows held with D3:** the rows for D3's new terms (`pin-unlock`, `shared-rider`, `owner-file`, `controls-to-try`, `lab-badge`, `eco-estimate`, `speed-limit`, `custom-speed-limit`, `drive-mode-speed-limit`, `maximum-speed-short`, `scooter-display`, `display-sound`) wait in `l10n/pending/glossary-d3/hr.tsv`. Use their words anyway.
-- **Rides vs trips:** a recorded ride is a **vožnja** (tab: *Vožnje*). *Trip* (the scooter's own distance since a reset) is **putovanje**, shortened to **put** in narrow rungs: *Duljina puta*, *Vrijeme puta*. A path on the map is a **ruta**.
+- **Rides vs trips:** a recorded ride is a **vožnja** (tab: *Vožnje*). *Trip* (the scooter's own distance since a reset) is **putovanje**, shortened to **put** in narrow rungs: *Duljina puta*, *Vrijeme puta*. A path on the map is a **ruta**. **Debate item:** *putovanje* suggests a journey and gives one concept two words; *put* everywhere fails on counts (*2 puta* is "twice", section 5), and *TRIP* is what the Audi manual shows.
 - **Try vs retry vs test:** Trying a control is **Isprobaj**, noun **isprobavanje**. An ordinary retry is **Pokušaj ponovno**, never *Isprobaj*. A guided test is **test**, verb **testiraj**. *Test scheduled charging* is a check: **Provjeri zakazano punjenje**. A compatibility check is **provjera kompatibilnosti**.
 - **Dashboard vs display:** Volt's Home layout is the **Nadzorna ploča** (90.1dp, so it overflows a 90dp tile by a hair; use *Ploča* there). The scooter's own screen is the **zaslon romobila**. They never swap.
 - **Settings vs setup:** settings are **Postavke**. A one-time setup is **postavljanje**.
@@ -202,8 +202,8 @@ The glossary is authoritative; this explains the distinctions it can't. *Romobil
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Eco procjena** is a range option, translated.
 - **Drive mode:** **način vožnje**, with its name kept: *način Sport*. Never *stupanj vožnje* (one manual's word) or *brzina*.
 - **Roles:** owner is **vlasnik**, shared rider is **ovlašteni korisnik**. The compact role label (`more_role_shared`, English *Shared*) is **Ovlašteni** (55dp), never *Dijeljeno*, which reads as a shared scooter.
-- **Charge done by:** the feature name is **Kraj punjenja**, and its time setting **Vrijeme kraja punjenja**, short **Vrijeme kraja**. The feature only plans a start, so never word it as a charge that has finished. In a sentence, quote the name: *„Kraj punjenja” je isključen*.
-- **Scheduled charging:** **Zakazano punjenje**. The start is **Početak punjenja**.
+- **Charge done by:** the feature name is **Rok punjenja** (a deadline), and its time setting **Vrijeme roka punjenja**, short **Vrijeme roka**. The feature only plans a start, so never word it as a charge that has finished, and never as *Kraj punjenja*, which reads as the charge cutting off. In a sentence, quote the name: *„Rok punjenja” je isključen*. **Debate item:** *Napunjeno do* (81dp) is the alternative, but it claims a full battery and can read as a charge level.
+- **Scheduled charging:** **Zakazano punjenje**. The start is **Početak punjenja**. Where the English says *Charge schedule*, write **Plan punjenja**.
 - **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Brzi pristup**. Never *Brze postavke*: that is Android's panel.
 - **Controls:** the section is **Eksperimentalne funkcije**, the card **Funkcije za isprobavanje**. *Kontrola* is kept for *kontrola proklizavanja* and similar systems, so *Eksperimentalne kontrole* would read as tests.
 - **Motor and ride systems:** **tempomat**, **kontrola proklizavanja**, **rekuperacija energije**, **pomoć pri guranju** (Walk Assist), **pomoć motora** (Power Assist). The stored ids are not shown.
@@ -227,7 +227,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 2. **Subjectless English verbs.** Dialogs and hints such as "Removes…", "Replaces…", "Opens…" describe what will happen. They must not read as a command to the rider, and a destructive confirmation must never sound like an instruction to do it. Use the form the table below gives.
 3. **Unconfirmed clauses.** After a negated "confirm" or "verify" ("could not confirm that the schedule turned off"), use a form that does not presuppose the event happened: *Nije moguće potvrditi je li raspored isključen*, with *je li*, not *da je*. An unconfirmed state never reads as done.
 4. **Placeholders.** No grammar may depend on a value you can't see: no "at %1$s" that changes with the hour, no elision, article, gender or case that a value would have to agree with. Prefer a label form: *Početak: %1$s*. Numbers and units after a placeholder follow this guide's spacing.
-5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it brakes with the motor, so the brakes work harder (*koči motorom, pa kočnice više rade*).
+5. **Warnings keep the effect.** Where a feature's name replaced a word that explained the hazard (motor braking became energy recovery), a warning sentence still says what happens: it turns motor braking off, so the brakes do more of the stopping (*Isključuje kočenje motorom, pa kočnice više rade*).
 6. **Plurals.** Every category is grammatical, even where the English `one` is wrong or a note says it can't be reached. Never copy "1 minutes" into your language.
 7. **Drive modes and level names.** Keep the case the English string uses in that string (Sport, ECO, Drive). Don't change it, and don't translate them.
 8. **Fit.** Never swap in a different meaning, or a colloquial word, to fit a budget. Use this guide's accepted abbreviation. If none fits, write the correct word and say so in the reply's notes: an overflow is a design problem that gets fixed, a wrong word isn't noticed.
@@ -252,7 +252,7 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | gap (in a recording) | a stretch of a recording with no data | **prekid zapisa**. Means no data was recorded, not that power or the ride was cut |
 | elevation | height above sea level on a route | **nadmorska visina**; narrow *Visina* |
 | current direction | which way battery current flows | **smjer struje**. Never *trenutačni smjer* |
-| throughput | how much energy has passed through the battery | **protok energije**; *protok* once the screen has said energy. An amount that passed through, not a rate |
+| throughput | how much energy has passed through the battery | **prenesena energija**; in Ah **preneseni kapacitet**; narrow **Preneseno** (62dp): *Preneseno po udaljenosti*. An amount that passed through, not a rate, so never *protok*. A native editor should confirm this |
 | battery gauge | the scooter's own battery percentage reading | **prikaz baterije**; *prikaz* where the screen is about the battery. The scooter's own figure, not a measurement |
 | raw | an unprocessed value, also used as a short tag | **neobrađeno**; as a tag **SIROVO** (37dp at 10sp, under the 40dp `stats_raw_chip`) where the English writes RAW |
 | last seen | when Volt last had data from the scooter | **Zadnje očitanje**; with a value, *Zadnje očitanje: %1$s*. The data may be old, so never word it as current. Not *zadnje poznato*, which is the last known state |
@@ -268,10 +268,11 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 
 **NAVEE's official Croatian: nothing found.** Two searches aimed at NAVEE found no app, product page or manual in Croatian. NAVEE's public manuals that surfaced are in English or other languages. The official app's Croatian wording, if it has any, is unknown, so every term here is Claude's proposal and may differ from it. No APK was downloaded.
 
-- [Microsoft Croatian Localization Style Guide](https://download.microsoft.com/download/0/6/2/0626b4d3-ed24-4c11-8676-ec5aa03576c7/hrv-hrv-StyleGuide.pdf), read in full text for these points: quotes „…”, no inverted commas; no-break space before % (*50 %*); imperative second-person singular for direct commands, nouns for commands that open a flow; no English capitalization; truncation with a period (*maksimalno = maks.*); `&` is *i*; and it names [pravopis.hr](http://pravopis.hr/) as its norm. Where this guide differs (quotes on control names, `ti`), the section says so.
-- Android's own Croatian, read from AOSP: [SettingsLib hr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-hr/strings.xml) (*Otklanjanje pogrešaka putem USB-a*, *Opcije za razvojne programere*, *Upari*, *Uparivanje*, *Punjenje*, *Nije povezano*) and [Settings hr](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-hr/strings.xml) (*Postavke*, *Zaboravi*, *Obavijesti*, *Uparite novi uređaj*). *Broj međuverzije* and *O telefonu* weren't in the parts read. They come from memory and a search summary, and need a check on a phone.
+- [Microsoft Croatian Localization Style Guide](https://download.microsoft.com/download/0/6/2/0626b4d3-ed24-4c11-8676-ec5aa03576c7/hrv-hrv-StyleGuide.pdf), read in full text for these points: quotes „…”, no inverted commas; no-break space before % (*50 %*); imperative second-person singular for direct commands, nouns for commands that open a flow (not followed: section 1); no English capitalization; truncation with a period (*maksimalno = maks.*); `&` is *i*; and it names [pravopis.hr](http://pravopis.hr/) as its norm. Where this guide differs (quotes on control names, `ti`), the section says so.
+- Android's own Croatian, read from AOSP: [SettingsLib hr](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/main/packages/SettingsLib/res/values-hr/strings.xml) (*Otklanjanje pogrešaka putem USB-a*, *Opcije za razvojne programere*, *Upari*, *Uparivanje*, *Punjenje*, *Nije povezano*, *dopuštenje* for a permission) and [Settings hr](https://android.googlesource.com/platform/packages/apps/Settings/+/refs/heads/main/res/values-hr/strings.xml) (*Postavke*, *Zaboravi*, *Obavijesti*, *Uparite novi uređaj*). *Broj međuverzije* and *O telefonu* weren't in the parts read. They come from memory and a search summary, and need a check on a phone.
 - Croatian e-scooter manuals from other brands, as terminology only: [Audi Pro (Egret) manual, HR](https://my-egret.com/media/76/b9/a6/1664359730/Audi_Pro_Betriebsanleitung_HR_20220721.pdf) (*romobil*, *zaslon*, *upravljač*, *PIN*, *unesite PIN*, *način vožnje*, *pješački način rada*, *brojač ukupno prijeđenih kilometara (ODO)*, *dnevni brojač kilometara (TRIP)*, *Bluetooth uparivanje*, *originalni punjač*, *domet*, *ručica gasa*, *blokada s PIN kodom*); [Riley RS3 manual, HR](https://cdn.shopify.com/s/files/1/0473/9340/7134/files/RS3-Croatia.pdf) (*e-romobil*, *stražnje svjetlo*, *prednje svjetlo*, *način tempomata*, *zaključavanje … e-romobila* for the app feature).
 - Retail listings seen only as search summaries, weaker evidence: [Xiaomi 6 Ultra hr](https://www.mi.com/hr/product/xiaomi-electric-scooter-6-ultra/) (*rekuperacija energije*, TCS and *kontrola proklizavanja*; direct fetch refused, 403), [Trevi on mall.hr](https://www.mall.hr/romobili/trevi-velociptor-skill-2-es82w-elektricni-romobil-350w-led-svjetla-zmigavci-sklopivi-zaslon-do-20-km-crna) (*žmigavci*), [Alfa E-Power on nabava.net](https://www.nabava.net/elektricni-romobili/alfa-e-power-as60-elektricni-romobil-cijena-893408431) (*tempomat*).
+- **Spelling to confirm:** *teoretski* or *teorijski*, *ledeno plava* or *ledenoplava*. The glossary accepts both and leads with the first; a native editor or pravopis.hr decides.
 - **Pravopis not read.** pravopis.hr was not fetched. Dates, ordinal periods, *s/sa*, *k/ka* and the future spelling come from memory of Croatian orthography. CLDR number formats and plural rules for `hr` also come from memory; they match the plan's `one, few, other`.
-- **Judgment calls with no source:** *vršna brzina*, *ovlašteni korisnik*, *vlasnički ključ*, *putovanje* for Trip, *Eksperimentalne funkcije*, *pomoć pri guranju*, *pomoć motora*, *način slabe baterije*, *način velikog dometa*, *Kraj punjenja*, *nije povezan s tvrtkom NAVEE*, and all the Fixed words.
+- **Judgment calls with no source:** *vršna brzina*, *ovlašteni korisnik*, *vlasnički ključ*, *putovanje* for Trip, *Eksperimentalne funkcije*, *pomoć pri guranju*, *pomoć motora*, *način slabe baterije*, *način velikog dometa*, *Rok punjenja*, *Plan punjenja*, *otključavanje približavanjem*, *nije povezan s tvrtkom NAVEE*, and all the Fixed words.
 - Glyphs: `tools/l10n/fontmetrics.py` over all four `res/font/saira_*.ttf` weights found no missing glyph for č ć đ š ž, their capitals, „ ” ‚ ’, `…`, `·`, `–`, U+00A0, `°` and `›`. Widths: `fontmetrics.Measurer`, java.awt, `saira_medium.ttf`.
