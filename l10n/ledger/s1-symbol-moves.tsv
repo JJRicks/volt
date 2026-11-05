@@ -14,6 +14,6 @@ src/com/jjricks/volt/MoreScreen.java:2567	["PIN —"]	more_chip_pin_off_value	ex
 src/com/jjricks/volt/MoreScreen.java:2569	["Paired ✓"]	more_chip_paired_value	exact	its spoken text is more_chip_paired, unchanged
 src/com/jjricks/volt/MoreScreen.java:2569	["Paired —"]	more_chip_not_paired_value	exact	its spoken text is more_chip_not_paired, unchanged
 src/com/jjricks/volt/RidesScreen.java:619	["2 ✓"]	rides_compare_two_selected_value	exact	its spoken text is rides_compare_two_selected, unchanged
-src/com/jjricks/volt/RidesScreen.java:975	["Direction ✓"]	rides_direction_chip_confirmed	exact	read as shown
-src/com/jjricks/volt/RidesScreen.java:975	["Direction ?"]	rides_direction_chip_unconfirmed	exact	read as shown
+src/com/jjricks/volt/RidesScreen.java:975	["Direction ✓"]	rides_direction_chip_confirmed	exact	the battery current's direction; screen readers say rides_direction_confirmed instead
+src/com/jjricks/volt/RidesScreen.java:975	["Direction ?"]	rides_direction_chip_unconfirmed	exact	the battery current's direction; screen readers say rides_direction_unconfirmed instead
 src/com/jjricks/volt/StatsScreen.java:194	["☆ Star readings to pin here"]	stats_favourites_empty_hint	exact	read as shown

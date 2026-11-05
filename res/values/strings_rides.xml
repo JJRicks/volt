@@ -129,9 +129,9 @@
     <string name="rides_electrical_energy" volt:screen="Rides, ride details" volt:purpose="label">Electrical energy</string>
     <string name="rides_direction_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Current direction confirmed</string>
     <string name="rides_direction_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction not confirmed for the whole ride · values are absolute throughput</string>
-    <!-- Chip beside Electrical energy, read as shown; tapping it explains (rides_direction_confirmed): keep the check mark. -->
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_confirmed instead, and tapping the chip shows that text: keep the check mark. -->
     <string name="rides_direction_chip_confirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="✓">Direction ✓</string>
-    <!-- Chip beside Electrical energy, read as shown; tapping it explains (rides_direction_unconfirmed): keep the question mark. -->
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_unconfirmed instead, and tapping the chip shows that text: keep the question mark. -->
     <string name="rides_direction_chip_unconfirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="?">Direction ?</string>
     <!-- Short form of rides_draw, used where direction was confirmed only part of the time. -->
     <string name="rides_draw_short" volt:screen="Rides, ride details" volt:purpose="label">Draw</string>
