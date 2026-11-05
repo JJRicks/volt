@@ -1,0 +1,224 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="backup_engine_category_scooters" volt:src="f642dc870abc775b3705182e7bc0f49e9c3de8da">Skuter &amp; kode pemilik</string>
+    <string name="backup_engine_category_dashboards" volt:src="4e11f7f0cd3824adb2f8a91e4547d2a1b5c3dd58">Dasbor</string>
+    <string name="backup_engine_category_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Preferensi aplikasi</string>
+    <string name="backup_engine_category_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Perjalanan</string>
+    <string name="backup_engine_category_charges" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Pengisian daya</string>
+    <string name="backup_engine_category_history" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Riwayat pembacaan</string>
+    <string name="backup_engine_category_scooter_preferences" volt:src="0f02a808e448b696f8f3497274bc7b5fb262ca5d">Preferensi skuter</string>
+    <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Semua data di ponsel ini akan diganti</string>
+    <string name="backup_engine_plan_destination" volt:src="a134bd15453918d4853314810a6c3b42ec86cfa7">“%1$s” → %2$s</string>
+    <string name="backup_engine_plan_scooters" volt:src="eb15ccd27f523e9ca84e41294b320674e622968b">Skuter: %1$d akan ditambahkan · %2$d sudah ada di sini</string>
+    <plurals name="backup_engine_plan_scooters_skipped" volt:src="553dda243a5e013b4eea7526c95cedba2e508ec6">
+        <item quantity="other">%1$d skuter dilewati · tidak dipulihkan</item>
+    </plurals>
+    <string name="backup_engine_plan_kept" volt:src="e465c6015aa9b38a7c1075a5b117316a257f1ab8">%1$s dipertahankan untuk %2$s · dua skuter memilihnya</string>
+    <plurals name="backup_engine_plan_category_skipped" volt:src="52bc05bf997eb28dcc73b1e91d76622dce6c1a3b">
+        <item quantity="other">%1$s untuk %2$d skuter dilewati · tidak dipulihkan</item>
+    </plurals>
+    <plurals name="backup_engine_plan_preferences" volt:src="42f76202eb5d61bcc9268f7d20c6cf620ccdbc0a">
+        <item quantity="other">Preferensi aplikasi: %1$d setelan akan diganti</item>
+    </plurals>
+    <string name="backup_engine_plan_rides" volt:src="c449f5fa84a407dfc967b4955b93a95cf137c00f">Perjalanan: %1$d baru · %2$d sudah ada di sini · %3$d dipertahankan di sini</string>
+    <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Pengisian daya: %1$d baru · %2$d sudah ada di sini · %3$d dipertahankan di sini</string>
+    <plurals name="backup_engine_plan_phone_files_skipped" volt:src="a156c873d0ab30ceffaa8ecb2ab83e856a38f6f0">
+        <item quantity="other">%1$d file ponsel dilewati · tidak ada perjalanan</item>
+    </plurals>
+    <string name="backup_engine_plan_history_nothing" volt:src="57e06d0c138808b51c87815c46f137064a25f60b">Riwayat pembacaan: tidak ada yang perlu ditambahkan</string>
+    <plurals name="backup_engine_plan_history_adds" volt:src="f63b6dafb8363034444c698d0a29b702c0f5d35b">
+        <item quantity="other">Riwayat pembacaan: akan ditambahkan ke %1$d skuter</item>
+    </plurals>
+    <plurals name="backup_engine_plan_history_skipped" volt:src="40e580956630bb7460d5d50edf7f38c44a4dc2f6">
+        <item quantity="other">Data pembacaan untuk %1$d skuter dilewati · tidak dipulihkan</item>
+    </plurals>
+    <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Peta online: aktif</string>
+    <string name="backup_engine_restore_could_not_be_prepared" volt:src="a635201a3310fea6dff495449cf249c0438147fa">Pemulihan tidak dapat disiapkan.</string>
+    <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Pemulihan gagal; data Anda dipertahankan.</string>
+    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Data aplikasi berubah selama pencadangan. Coba lagi setelah perekaman dihentikan.</string>
+    <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">Tidak dapat menghapus data sementara cadangan terenkripsi.</string>
+    <string name="backup_engine_backup_could_not_opened" volt:src="cd3018aee5f19dde0d1cdf8462e735f8531610c7">Cadangan tidak dapat dibuka.</string>
+    <string name="backup_engine_not_supported_volt_app" volt:src="52c6c3b3d0d13b7ca3cfb9f4fddb7967de1ae1cf">Ini bukan cadangan aplikasi Volt yang didukung.</string>
+    <string name="backup_engine_unsupported_backup_format" volt:src="087dd7cdf91b2d9f65842a453ab409f0186c4fe4">Format cadangan tidak didukung.</string>
+    <string name="backup_engine_backup_needs_compatible_newer" volt:src="cc9d0bb0dd15cfb6f9ec19e767b19f7ac085838f">Cadangan memerlukan versi aplikasi yang kompatibel atau lebih baru, atau memiliki metadata yang tidak valid.</string>
+    <string name="backup_engine_backup_contains_unsupported_duplicate" volt:src="2852376fa3df0eec807087e866a61b6d9dcea797">Cadangan berisi entri yang tidak didukung atau duplikat.</string>
+    <string name="backup_engine_backup_contains_too_many" volt:src="eb0bd1e4defa36e486611068a157230cacf929c0">Cadangan berisi terlalu banyak file.</string>
+    <string name="backup_engine_backup_incomplete_inconsistent_contents" volt:src="d3dd0d01040f02c476bc11f2cee0dac2af005108">Cadangan tidak lengkap atau isinya tidak konsisten.</string>
+    <string name="backup_engine_choose_backup_again_before" volt:src="43f8f95b380e5cc1653f6e6a74d6aad0d3e219d0">Pilih cadangan lagi sebelum memulihkan.</string>
+    <string name="backup_engine_could_not_prepare_restore_transaction" volt:src="238bb18e5eade22e631ca2b9261d8ad2b3684e1e">Tidak dapat menyiapkan transaksi pemulihan.</string>
+    <string name="backup_engine_restore_was_interrupted_reopen" volt:src="8e6776bc26ce5d2cde4d088c3b2b552d223d606e">Pemulihan terhenti sebelum selesai. Buka kembali Volt untuk memulihkan data sebelumnya; jangan hapus penyimpanan aplikasi.</string>
+    <string name="backup_engine_restore_failed_previous_data" volt:src="015ae00cc99691167709a5a01f886612ac3e8a93">Pemulihan gagal; data sebelumnya dipertahankan.</string>
+    <string name="backup_engine_restore_recovery_folder_unavailable" volt:src="582e72c7a8e9aba68fd1a2f511f3068949f380de">Folder pemulihan tidak tersedia. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_restore_recovery_record_unavailable" volt:src="fd0950104316ecb4e033d1a3c0826c4f239db746">Catatan pemulihan tidak tersedia. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_restore_recovery_record_needs_app" volt:src="17233b55271ef59c18c86ca464be57f18d7f55a4">Catatan pemulihan memerlukan proses pemulihan versi aplikasi ini. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:src="acc1ed3e42ebf704e453a5c619e482c4a5733452">Catatan pemulihan tidak dapat dibaca. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_restore_recovery_folder_cannot_read" volt:src="eb724e900bb942d4ac4c18c46699a8b82e4dea0d">Folder pemulihan tidak dapat dibaca. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_unexpected_restore_recovery_file" volt:src="aa538362e404ce4932430d11546aebb390f6da45">Ada file pemulihan tidak terduga yang perlu ditangani. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">Riwayat masih terbuka. Tutup rekaman, lalu coba lagi pencadangan.</string>
+    <string name="backup_engine_reopen_volt_finish_recovering" volt:src="f9ea29e6786f3594a2c96a576755a0b93d68dea3">Buka kembali Volt untuk menyelesaikan pemulihan sebelumnya terlebih dahulu.</string>
+    <string name="backup_engine_could_not_save_restore" volt:src="3722a96664425428100fe50f4973a5fecfe12a06">Tidak dapat menyimpan status pemulihan.</string>
+    <string name="backup_engine_restore_storage_cannot_synchronized" volt:src="c576c13b5707dc4679409361f2088b9488ea3949">Penyimpanan pemulihan tidak dapat disinkronkan.</string>
+    <string name="backup_engine_unexpected_restore_storage_link" volt:src="84beb31a6ca58464e5557084e0c5fbc7aa9d4fae">Tautan penyimpanan pemulihan tidak terduga.</string>
+    <string name="backup_engine_restore_storage_cannot_read" volt:src="81aeae892641f8531845a15d17826a174a7389f5">Penyimpanan pemulihan tidak dapat dibaca.</string>
+    <string name="backup_engine_recording_folder_could_not_read" volt:src="6fb62ca928de36f8000cf7c96798b66a544b3fe4">Folder rekaman tidak dapat dibaca.</string>
+    <string name="backup_engine_unsupported_recording_file_needs_attention" volt:src="af608151377e1cbae406dca5c872cc3180723bca">File rekaman yang tidak didukung perlu ditangani sebelum pencadangan.</string>
+    <string name="backup_engine_unexpected_recording_file" volt:src="2ed0546023bbb49153197933b6e6afc633b83383">File rekaman tidak terduga.</string>
+    <string name="backup_engine_one_recording_too_large_backup_format" volt:src="b6aa3a91b7034949c837083a0fca15870567fe56">Satu rekaman terlalu besar untuk format cadangan ini.</string>
+    <string name="backup_engine_history_storage_not_supported" volt:src="739b8c35e5a603e4a475f1618a1072f849fb1ef7">Penyimpanan riwayat bukan database yang didukung.</string>
+    <string name="backup_engine_there_too_many_recording" volt:src="f24a312e4d327232482aca050f9502570954998b">Terlalu banyak file rekaman untuk format cadangan ini.</string>
+    <string name="backup_engine_invalid_archive_path" volt:src="ebd553e7005b9739201ac16007c37b6978e32610">Jalur arsip tidak valid.</string>
+    <string name="backup_engine_restore_file_unavailable" volt:src="35e9951f59b4a6cdd18f727d6358825ac16cc9b5">File pemulihan tidak tersedia.</string>
+    <string name="backup_engine_could_not_remove_temporary_data" volt:src="da4a8742e7da1a90a47b1a60862d91c37f67aaf9">Tidak dapat menghapus data sementara.</string>
+    <string name="backup_engine_could_not_read_temporary" volt:src="822c6a19932d9a0fb2767d633fe0268fffc2543c">Tidak dapat membaca data sementara.</string>
+    <string name="backup_engine_there_not_enough_available" volt:src="6f4a758fecb083e7858a382178df1f6220cd8777">Penyimpanan aplikasi yang tersedia tidak cukup.</string>
+    <string name="backup_engine_unexpected_storage_link" volt:src="764208daf192e543d8d5ac6a178c93419e771445">Tautan penyimpanan tidak terduga.</string>
+    <string name="backup_engine_backup_exceeds_supported_storage" volt:src="f4511addb858e6bc8f6c517c3a48786082d4a495">Cadangan melebihi batas penyimpanan yang didukung.</string>
+    <string name="backup_engine_unsupported_app_preference_group" volt:src="7b4d134c4c217eacdc0020352fdcb3e33f1dd8bd">Grup preferensi aplikasi tidak didukung.</string>
+    <string name="backup_engine_missing_app_preferences" volt:src="c5b0de3b22105806752a77bbc23adb39c6c93c26">Preferensi aplikasi tidak ada.</string>
+    <string name="backup_engine_too_many_app_preferences" volt:src="fc48e63a1274b6460da36b5189c66721b2b5e12e">Terlalu banyak preferensi aplikasi.</string>
+    <string name="backup_engine_app_preference_key_too_long" volt:src="63fdd2e603c26d8a0321dbd4a8628b490e2c169a">Nama preferensi aplikasi terlalu panjang.</string>
+    <string name="backup_engine_app_preference_set_too_large" volt:src="a71e7c16c2540b3945b430d36c8a8c362e0acb34">Kumpulan preferensi aplikasi terlalu besar.</string>
+    <string name="backup_engine_unsupported_app_preference" volt:src="064c50c6c16b116dfcf464875b753e2afb4a5baa">Preferensi aplikasi tidak didukung.</string>
+    <string name="backup_engine_unsupported_app_preference_type" volt:src="6c5ff79f3a2692197578e1698d6c3ca96976d031">Jenis preferensi aplikasi tidak didukung.</string>
+    <string name="backup_engine_app_preferences_exceed_backup" volt:src="40035f52fbd6009b7f193f9a9f8b1447a2ceb632">Preferensi aplikasi melebihi batas cadangan.</string>
+    <string name="backup_engine_unsupported_app_preference_inventory" volt:src="c52cc694b4543ea8e630d4c0b454ca48d15f2ff4">Daftar preferensi aplikasi tidak didukung.</string>
+    <string name="backup_engine_invalid_preference_count" volt:src="d8be0c104dc93615e2f69625aaada6eb4a4e6c18">Jumlah preferensi tidak valid.</string>
+    <string name="backup_engine_invalid_duplicate_preference_key" volt:src="034724a5fd8816268a01ae2ef4074fdc533661c3">Nama preferensi tidak valid atau duplikat.</string>
+    <string name="backup_engine_invalid_preference_boolean" volt:src="4314549544465b982cc1120e6cf3704de81127b3">Nilai boolean preferensi tidak valid.</string>
+    <string name="backup_engine_invalid_preference_set_size" volt:src="f4db9f18172be2e825a88ddba8874b8eb498a0c3">Ukuran kumpulan preferensi tidak valid.</string>
+    <string name="backup_engine_duplicate_preference_set_item" volt:src="022b4db3a85237bd8c1196a743518f5b1a12b036">Item kumpulan preferensi duplikat.</string>
+    <string name="backup_engine_unsupported_preference_type" volt:src="8440e73b61839ce3ffc6e52912e5ee580ad5e71c">Jenis preferensi tidak didukung.</string>
+    <string name="backup_engine_unexpected_preference_payload" volt:src="73417eb406e3a9df7a342c9061617ebd2eba79a6">Data preferensi tidak terduga.</string>
+    <string name="backup_engine_app_preference_too_large" volt:src="348e4acea71c3dbaa8602c3f64ffa80e1f4d7722">Preferensi aplikasi terlalu besar.</string>
+    <string name="backup_engine_invalid_preference_string" volt:src="76da887c794d343389c7f81c8db5f2eba3ea2475">String preferensi tidak valid.</string>
+    <string name="backup_engine_invalid_preference_text" volt:src="d373f43c9d2b463cfba899e548a09cb2a5645794">Teks preferensi tidak valid.</string>
+    <string name="backup_engine_use_backup_password_characters" volt:src="a70cc0889611db525c9484688ca3731905b99840">Gunakan sandi cadangan yang terdiri dari 8 hingga 1.024 karakter.</string>
+    <string name="backup_engine_backup_encryption_unavailable_device" volt:src="e8b0c99e17d1182da29168cbb170e630cb1fab14">Enkripsi cadangan tidak tersedia di perangkat ini.</string>
+    <string name="backup_engine_choose_volt_encrypted_app" volt:src="30da3d2438b9264a1b660eb0fb5020bdda7baa3a">Pilih cadangan aplikasi Volt terenkripsi.</string>
+    <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Catatan cadangan terenkripsi tidak valid.</string>
+    <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Cadangan memiliki data tambahan yang tidak terduga di bagian akhir.</string>
+    <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Pencadangan sudah selesai.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Pilih data yang akan dicadangkan.</string>
+    <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Terlalu banyak file untuk satu cadangan.</string>
+    <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Metadata cadangan terlalu besar.</string>
+    <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Data aplikasi berubah selama pencadangan. Coba lagi.</string>
+    <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">Satu rekaman terlalu besar untuk cadangan.</string>
+    <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Pilih file cadangan Volt.</string>
+    <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Tidak dapat menghapus data sementara cadangan.</string>
+    <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Cadangan memerlukan versi aplikasi yang lebih baru, atau memiliki metadata yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_metadata" volt:src="6f68482f72856b4a69891f453da13733a639915a">Cadangan memiliki metadata yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_categories" volt:src="3fce1ffce7fb2ab553fa975253ba2235248fef9a">Cadangan memiliki kategori yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooters" volt:src="f63a249f2fcbdbcbc550240fd67c82b15a9aa657">Cadangan memiliki data skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_contains_unsupported_entry" volt:src="65f50d7583395adf34f7ed0544270519fcde4287">Cadangan berisi entri yang tidak didukung.</string>
+    <string name="backup_engine_backup_repeats_app_preference" volt:src="ce43394d429a5b542e3e01b2d4936d91ce3934d8">Cadangan berisi preferensi aplikasi yang berulang.</string>
+    <string name="backup_engine_backup_contains_unsupported_out" volt:src="c7d71bc8b5a8c7039f1e01633bcd1b8cb9646599">Cadangan berisi file yang tidak didukung atau di luar kategori.</string>
+    <string name="backup_engine_not_dashboard_layout_file" volt:src="91840a66839c774c6358c2f10f3a5600f0923c33">Bukan file tata letak dasbor.</string>
+    <string name="backup_engine_pairing_file_too_large" volt:src="ed4280e8a0615a882cb5ab46ab5e59827d7a34a1">File penyiapan pemilik terlalu besar.</string>
+    <string name="backup_engine_pairing_file_contains_unsupported" volt:src="0e1f5a7538678ae8c8b4b794449e00d92d1acddf">File penyiapan pemilik berisi kolom yang tidak didukung.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_identity" volt:src="94c7606ad543340c262a6bab35ac3af3d1a8f9bb">File penyiapan pemilik memiliki kode pemilik yang tidak valid.</string>
+    <string name="backup_engine_pairing_file_invalid_owner_role" volt:src="1f5f05b36f10c9e635d21083d0e53c887436b84c">File penyiapan pemilik memiliki peran pemilik yang tidak valid.</string>
+    <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">File penyiapan pemilik memiliki alamat Bluetooth yang tidak valid.</string>
+    <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">Cadangan memiliki grup preferensi yang tidak didukung.</string>
+    <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Cadangan berisi rekaman pengisian daya yang berulang.</string>
+    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Pilih data yang akan dipulihkan.</string>
+    <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">“Ganti semua” memerlukan cadangan lengkap dengan setiap kategori.</string>
+    <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Pilih tujuan data setiap skuter.</string>
+    <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Pilih skuter yang menggunakan kode pemilik ini, atau tambahkan skuter lain.</string>
+    <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">Rekaman tersimpan tidak dapat dibaca.</string>
+    <string name="backup_engine_backup_contains_unreadable_ride" volt:src="37ad350868e18ca90d1b47d819161ba91b69bfb2">Cadangan berisi perjalanan yang tidak dapat dibaca.</string>
+    <string name="backup_engine_choose_backup_again" volt:src="023b32a1da855d4621616465419cfd3be9e72041">Pilih cadangan lagi.</string>
+    <string name="backup_engine_saved_scooters_phone_cant_read" volt:src="17581f8e0e56c2060bfd66a92e1878d0098d9a72">Skuter tersimpan di ponsel ini tidak dapat dibaca.</string>
+    <string name="backup_engine_expected_json_list" volt:src="19074071cc00768a20be2c229c3e1383bea80ba8">Seharusnya daftar JSON.</string>
+    <string name="backup_engine_expected_json_object" volt:src="33931b10aec105285b2a65fa9d0ca818efb7eaff">Seharusnya objek JSON.</string>
+    <string name="backup_engine_missing_json" volt:src="18853d7cb9b0244020b2cd88ba6e76698c492527">JSON tidak ada.</string>
+    <string name="backup_engine_unexpected_json_content" volt:src="505c147a23d092920706204de54b70c827da77f2">Konten JSON tidak terduga.</string>
+    <string name="backup_engine_incomplete_json" volt:src="980e9314d879d0633039d5d5e3ccddf9da612a17">JSON tidak lengkap.</string>
+    <string name="backup_engine_json_nested_too_deeply" volt:src="52266baa943f37e9bfd51a0b0c997734d1e8fd5e">JSON bersarang terlalu dalam.</string>
+    <string name="backup_engine_invalid_json_key" volt:src="6838061496546cb3fc715da9d2b6382ddf4e3264">Nama kolom JSON tidak valid.</string>
+    <string name="backup_engine_invalid_json_object" volt:src="327540ced4e3a1df2daf1c3cd42921b398ec8b87">Objek JSON tidak valid.</string>
+    <string name="backup_engine_duplicate_json_key" volt:src="cb377df87043c2b2fe9f9eb4f93a4552159183ca">Nama kolom JSON duplikat.</string>
+    <string name="backup_engine_invalid_json_list" volt:src="06d292a98046c49a953469aded9094608e0fee87">Daftar JSON tidak valid.</string>
+    <string name="backup_engine_unterminated_json_text" volt:src="e818b1b735acff06006f0211d4adae64c22e230d">Teks JSON tidak diakhiri dengan benar.</string>
+    <string name="backup_engine_invalid_json_text" volt:src="f70b6ddce2ffebb230e51b8cc78e3ed92ee92258">Teks JSON tidak valid.</string>
+    <string name="backup_engine_invalid_json_escape" volt:src="7b94cf707835211e886306dfd62572cea921e77c">Urutan escape JSON tidak valid.</string>
+    <string name="backup_engine_invalid_json_value" volt:src="c67116491acf831a85d15e1491b26592d903c16f">Nilai JSON tidak valid.</string>
+    <string name="backup_engine_invalid_json_number" volt:src="09098ae7f46b91b9d5840838ab97b9c0f1cbfc19">Angka JSON tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooter_profiles" volt:src="3df849b81a78026d066f245732bffe3909f2fe3a">Cadangan berisi profil skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_unreadable_scooter_profiles" volt:src="4d665c41bac64c6cd3a76be043ebebab1d711239">Cadangan berisi profil skuter yang tidak dapat dibaca.</string>
+    <string name="backup_engine_backup_too_many_scooter" volt:src="ce5ccd08a862448bb4422c28927889a241955efd">Cadangan berisi terlalu banyak profil skuter.</string>
+    <string name="backup_engine_backup_invalid_scooter_profile_identifiers" volt:src="f06c6beb813788e98467d4134c12c3b40699b5c4">Cadangan berisi pengenal profil skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooter_profile_fields" volt:src="dc79a80fa0f8066de2c6aab72c38b37f3830aac9">Cadangan berisi kolom profil skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooter_owner" volt:src="a5df0c1afd5aaeb4192aaf7e89aa38345242e72d">Cadangan berisi peran pemilik skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooter_connection" volt:src="5dee12f94f7b1a0b54185c7b760097ddd3324da1">Cadangan berisi tanggal koneksi skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_invalid_scooter_setup" volt:src="1efe4d4475bbd78ff690b9539a72ad8a70771394">Cadangan berisi kode pemilik skuter yang tidak valid.</string>
+    <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">Cadangan berisi jenis preferensi aplikasi yang tidak kompatibel.</string>
+    <string name="backup_engine_backup_invalid_display_text" volt:src="194fd5048e934d2fa854e7e693f332706da65c69">Cadangan berisi skala teks tampilan yang tidak valid.</string>
+    <string name="backup_engine_review_backup_first" volt:src="1dde6c2a50a1278db6941d64547da7196557199d">Tinjau cadangan terlebih dahulu.</string>
+    <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Data tersimpan berubah. Tinjau lagi.</string>
+    <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Ruang penyimpanan kosong tidak cukup</string>
+    <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Tidak dapat menyiapkan pemulihan.</string>
+    <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Penyimpanan rekaman berubah selama pemulihan.</string>
+    <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Catatan perbaikan pemulihan tidak dapat dibaca.</string>
+    <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Daftar perbaikan pemulihan tidak valid.</string>
+    <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Jalur perbaikan pemulihan tidak valid.</string>
+    <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:src="15228d6e90ee9f7bc024b957c52ec93c70c20218">Tidak dapat mengembalikan perubahan dari pemulihan yang terganggu.</string>
+    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">Cuplikan pemulihan tidak lengkap. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_ride_storage_cannot_read" volt:src="0ede1a82e6831be351b54891fc112668141e0d8c">Penyimpanan perjalanan tidak dapat dibaca.</string>
+    <string name="backup_engine_unsupported_ride_file" volt:src="b660f7cdb17159f2687838bd710010e444f8662a">File perjalanan tidak didukung.</string>
+    <string name="backup_engine_too_many_rides_one" volt:src="de8abfaaeda3958bde310f5911f556efdcc5e134">Terlalu banyak perjalanan untuk satu cadangan.</string>
+    <string name="backup_engine_invalid_scooter_association" volt:src="bbfe9e1677081a4918f47b7cabbf625a6f28f933">Keterkaitan skuter tidak valid.</string>
+    <string name="backup_engine_ride_file_too_large" volt:src="9da0b642b097aeda7736834adcd9c08c404a244d">Salah satu file perjalanan terlalu besar.</string>
+    <string name="backup_engine_there_no_saved_rides" volt:src="d6518209fce8771be2ce8f48237e7a64d1f33918">Tidak ada perjalanan tersimpan untuk dicadangkan.</string>
+    <string name="backup_engine_ride_manifest_too_large" volt:src="959a384d6eae2ad777d58c7a6de60f93d7487d71">Manifes perjalanan terlalu besar.</string>
+    <string name="backup_engine_ride_changed_during_backup" volt:src="7557ad818709e883d396d6ca5f64880157a3b5c3">Ada perjalanan yang berubah selama pencadangan. Coba lagi.</string>
+    <string name="backup_engine_choose_volt_ride_backup" volt:src="4d4c09099ce0ae99df92e3aa3957845b9e67c03e">Pilih cadangan perjalanan Volt.</string>
+    <string name="backup_engine_unsupported_ride_backup_version" volt:src="ebe0fd1d64e41a76d1f7148b59f5ab7eab871352">Versi cadangan perjalanan tidak didukung.</string>
+    <string name="backup_engine_invalid_backup_date" volt:src="8baffa0b3f383a0de743ecdf582356b0f5fa8a0d">Tanggal cadangan tidak valid.</string>
+    <string name="backup_engine_invalid_scooter_count" volt:src="95e35b5ec682617bb4b7c0806390d4f6f9aa3aaf">Jumlah skuter tidak valid.</string>
+    <string name="backup_engine_invalid_scooter_list" volt:src="4633c292e7a5c4807185f1688f8cc13fbde2c6a1">Daftar skuter tidak valid.</string>
+    <string name="backup_engine_ride_backup_too_large" volt:src="c25da53a175f0f2367c219d8c569e41ced2d5fd1">Cadangan perjalanan terlalu besar atau kosong.</string>
+    <string name="backup_engine_invalid_duplicate_recording_path" volt:src="043fba05788e3ec8ff483f6dc3be8e66fdc7e5ba">Jalur rekaman tidak valid atau duplikat.</string>
+    <string name="backup_engine_unexpected_backup_metadata" volt:src="c3d35b4d5f84e31d3dba714536ed9e964457da1b">Metadata cadangan tidak terduga.</string>
+    <string name="backup_engine_unexpected_duplicate_recording_file" volt:src="d954cbaeea199e679edaa694214550eb55cfa690">File rekaman tidak terduga atau duplikat.</string>
+    <string name="backup_engine_backup_incomplete_damaged" volt:src="7e46da3c18be9b99e94a03fc28b643bd97668283">Cadangan tidak lengkap atau rusak.</string>
+    <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">File rekaman hilang dari cadangan.</string>
+    <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Keterkaitan skuter hilang.</string>
+    <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">Daftar perjalanan tidak konsisten.</string>
+    <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Perjalanan milik sampel ponsel hilang.</string>
+    <string name="backup_engine_choose_destination_every_scooter" volt:src="9d0e8e7d2b492149ede88066de128fd38afc3b58">Pilih tujuan untuk setiap skuter.</string>
+    <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Perjalanan tersimpan berubah. Tinjau lagi cadangan.</string>
+    <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">Tidak dapat menyiapkan pemulihan perjalanan.</string>
+    <string name="backup_engine_restore_interrupted_reopen_volt" volt:src="b0d7118e39c2abebc697c5bd7f9d589e2a52b766">Pemulihan terganggu. Buka lagi Volt; jangan hapus penyimpanan.</string>
+    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">Perbaikan pemulihan perjalanan perlu diperhatikan. Biarkan penyimpanan aplikasi tetap utuh.</string>
+    <string name="backup_engine_ride_restore_storage_unavailable" volt:src="df81a76f4eb20ac8ad9dc094ce5553679048e3c1">Penyimpanan pemulihan perjalanan tidak tersedia.</string>
+    <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Data perbaikan pemulihan perjalanan tidak terduga.</string>
+    <string name="backup_engine_invalid_ride_recovery_list" volt:src="11f84a914e3636306f31de4a66b81bca505374a1">Daftar perbaikan pemulihan perjalanan tidak valid.</string>
+    <string name="backup_engine_invalid_ride_recovery_path" volt:src="d1c808d3e4ee2818cc3ab833b882fa7d2e05d3dd">Jalur perbaikan pemulihan perjalanan tidak valid.</string>
+    <string name="backup_engine_could_not_roll_back_interrupted_ride" volt:src="fcd91f15c3010658c11974c837fbea1118fef8df">Tidak dapat mengembalikan perubahan dari pemulihan perjalanan yang terganggu.</string>
+    <string name="backup_engine_could_not_save_ride" volt:src="ab71086748f05ffdc1b0286ff46f8525be94202b">Tidak dapat menyimpan data perbaikan pemulihan perjalanan.</string>
+    <string name="backup_engine_choose_ride_backup_again" volt:src="e4a70f54a6d8d960af72e9867719670d4b449418">Pilih lagi cadangan perjalanan.</string>
+    <string name="backup_engine_reopen_volt_finish_ride" volt:src="ee2f97eda88a2c6536962be6501eac22da93092a">Buka lagi Volt untuk menyelesaikan perbaikan pemulihan perjalanan terlebih dahulu.</string>
+    <string name="backup_engine_invalid_ride_path" volt:src="24f318c33e90e9a2aeec3c0c1431b0d6cef844a9">Jalur perjalanan tidak valid.</string>
+    <string name="backup_engine_unexpected_ride_storage_link" volt:src="299b93725ebe941afbd0c28cf486743ca720f79d">Tautan penyimpanan perjalanan tidak terduga.</string>
+    <string name="backup_engine_ride_record_too_large" volt:src="93a7d93c531a64a62fa68baf6daface912ce4887">Salah satu catatan perjalanan terlalu besar.</string>
+    <string name="backup_engine_unsupported_ride_journal_format" volt:src="7e22a8fde27b3e6c090d56071e482e755826c4be">Format jurnal perjalanan tidak didukung.</string>
+    <string name="backup_engine_incomplete_ride_record_was" volt:src="59cff835f0d7f0b66ccf132bf18c5da66b7f0a63">Ditemukan catatan perjalanan yang tidak lengkap.</string>
+    <string name="backup_engine_phone_sensor_record_invalid" volt:src="1079c5bf5005009fcd5e3dd7e89e222ab35f30e7">Salah satu catatan sensor ponsel tidak valid.</string>
+    <string name="backup_engine_ride_backup_exceeds_size" volt:src="c628fece13322d1ab371ce92a147a1f301cbdae0">Cadangan perjalanan melebihi batas ukurannya.</string>
+    <string name="backup_engine_recording_storage_does_not_support" volt:src="b69bf8718826d7c2d2bcfe2b2304949698d4c957">Penyimpanan rekaman tidak mendukung perbaikan pemulihan yang aman.</string>
+    <string name="backup_engine_ride_backup_storage_unavailable" volt:src="592e98a79a246965bc81e127145392c083701635">Penyimpanan cadangan perjalanan tidak tersedia.</string>
+    <string name="backup_engine_not_enough_available_storage" volt:src="b8b33850bfdea11ea4f55deb5272744d3ba87f1a">Ruang penyimpanan yang tersedia tidak cukup.</string>
+    <string name="backup_engine_ride_backup_could_not_processed" volt:src="2ba1f594fa284c0fcbe209a23feaa31b4850476a">Cadangan perjalanan tidak dapat diproses.</string>
+    <string name="backup_engine_backup_unsupported_preference_type" volt:src="51c2d879fd005c2f736f57d9d4a4e57cc7bb1547">Cadangan berisi jenis preferensi yang tidak didukung.</string>
+    <string name="backup_engine_app_preferences_could_not_written" volt:src="ec0e490b1556c9d2054b5695c29e4c31b8949633">Preferensi aplikasi tidak dapat ditulis. Data sebelumnya akan dipulihkan.</string>
+    <string name="backup_engine_backup_history_database_could_not_read" volt:src="0f827b42920e95a9414badc1a01c60476839e97e">Database riwayat cadangan tidak dapat dibaca.</string>
+    <string name="backup_engine_backup_history_too_many" volt:src="e616e0b35c9c428864a0c85d13f6e234b29222de">Riwayat cadangan berisi terlalu banyak skuter.</string>
+    <string name="backup_engine_readings_history_could_not_merged" volt:src="e319370010e49ee493d578301c04ddfa9f1bd3ee">Riwayat pembacaan tidak dapat digabungkan.</string>
+    <string name="backup_engine_readings_history_too_large" volt:src="7b213dbd5065c1c5c77747b6537440b9474476d6">Riwayat pembacaan terlalu besar untuk digabungkan.</string>
+    <string name="backup_engine_backup_history_database_invalid" volt:src="5de47c72cb4931ff685ded9888b63cb45c59a0ca">Database riwayat cadangan tidak valid.</string>
+    <string name="backup_engine_backup_history_database_damaged" volt:src="0e62418597a32c50c0c762289ae8ad6f62382c0a">Database riwayat cadangan rusak atau menggunakan format yang lebih baru.</string>
+    <string name="backup_engine_backup_history_database_unsupported" volt:src="492f272c4607a01c02cd3233c7e5278f8b41fd01">Database riwayat cadangan memiliki skema yang tidak didukung.</string>
+    <string name="backup_engine_backup_history_database_missing" volt:src="365900eec41aac92d8353980b533d31bc5d08875">Tabel pembacaan yang diperlukan hilang dari database riwayat cadangan.</string>
+    <string name="backup_engine_backup_history_database_could_not_verified" volt:src="69c8021b3894789204094f725d35eef0143bb97e">Database riwayat cadangan tidak dapat diverifikasi.</string>
+</resources>

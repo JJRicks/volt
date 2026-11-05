@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
+<resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
+    <string name="ui_metric_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
+    <string name="ui_metric_description_hint" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
+    <string name="ui_toggle_state_not_reported" volt:src="b7986bfb7c5424b486cd6292dc25e1a148c46879">%1$s, status: tidak ada data</string>
+    <string name="ui_battery_description" volt:src="19a80dd329bf1d36649b961bf2d7d0e5a8aa7e4d">Baterai %1$s</string>
+    <string name="ui_battery_description_caption" volt:src="016609de9934c14f95e1ee0ded24b1c5f68a731d">Baterai %1$s, %2$s</string>
+    <string name="ui_battery_description_charging" volt:src="530d0c75103c701c82bd48bec78a451d32dbe56c">Baterai %1$s, mengisi daya</string>
+    <string name="ui_battery_description_charging_caption" volt:src="98b1c731704dafa80704008a23689e08c2f4d6f5">Baterai %1$s, mengisi daya, %2$s</string>
+    <string name="ui_battery_description_last_seen" volt:src="61dbf3734e0e3d8e6874d11563a85c4e2541262b">Baterai %1$s, data terakhir</string>
+    <string name="ui_battery_description_last_seen_caption" volt:src="33f61bc012fded01ef4ec0808ddbb58b144e4243">Baterai %1$s, data terakhir, %2$s</string>
+    <string name="ui_battery_description_charging_last_seen" volt:src="c740a9063867b32606120e2d2b8170ca1d9805fb">Baterai %1$s, mengisi daya, data terakhir</string>
+    <string name="ui_battery_description_charging_last_seen_caption" volt:src="26be04c989d1c479e778ac49bcf2f240cba47300">Baterai %1$s, mengisi daya, data terakhir, %2$s</string>
+    <string name="ui_battery_not_reported" volt:src="50d5d339e3c4836e7857d9dfd067b5da129f15b0">tidak ada data</string>
+    <plurals name="ui_battery_percent" volt:src="ebc2b43c225316946adff277ee621916da7e230a">
+        <item quantity="other">%1$d persen</item>
+    </plurals>
+    <string name="ui_battery_ring_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Mengisi daya</string>
+    <string name="ui_battery_ring_charging_caption" volt:src="af80e1ac5bc1fd43b6352ff4f56dd2fcf74ef9aa">Mengisi daya · %1$s</string>
+    <string name="ui_chart_empty" volt:src="9d638e7987414b6895ac456836083f217479f241">Belum ada data terukur</string>
+    <plurals name="ui_chart_description" volt:src="39e0b87869dcc2b07d96c5a7eae61996c68449e8">
+        <item quantity="other">Grafik data terukur (%1$s), %2$d sampel. Sumbu yang ditampilkan %3$s hingga %4$s. Sentuh untuk memeriksa pembacaan.</item>
+    </plurals>
+    <string name="ui_chart_tooltip" volt:src="19e2f801b756022087ce6c171d4f9cc395f299b7">"%1$s %2$s  ·  %3$s"</string>
+    <string name="ui_chart_tooltip_unitless" volt:src="680ec86d6e253920d82049246e5acb8c39ac35e2">"%1$s  ·  %2$s"</string>
+    <string name="ui_chart_point_description" volt:src="6313cdad3481cbd566159577bc5819e647fba310">%1$s %2$s, waktu: %3$s</string>
+    <string name="ui_chart_thousands" volt:src="77e6d25f03aae0997933528ad407d470065019bf">%1$s %2$s</string>
+    <string name="ui_chart_thousands_suffix" volt:src="22701e4930a93932a81a8f0364d9f43020bdae94">rb</string>
+    <string name="ui_drive_mode_walk" volt:src="3d3deb53e35f87f97abfa11ce97215f57cb7b4ff">WALK</string>
+    <string name="ui_selector_choice" volt:src="ae4e38686fc86c01d1679a38a6c8dcb353bdf2bd">%1$s: %2$s</string>
+    <string name="ui_reorder_drag" volt:src="007b1367f62cee4f0622b48b0aff2fa1a0a5faa1">Seret untuk mengubah urutan %1$s</string>
+    <string name="ui_reorder_move_up" volt:src="a2bcff45a636ff3c848025f5f174f794559b0c2d">Pindahkan ke atas</string>
+    <string name="ui_reorder_move_down" volt:src="9c5e03a6e3d8702646d6007439d4fef41f53a1ec">Pindahkan ke bawah</string>
+    <string name="ui_reorder_moved" volt:src="026112d1ba878469be474b341e07b6f34e59cf5c">%1$s dipindahkan ke posisi %2$s dari %3$s</string>
+    <string name="ui_live_stats_title" volt:src="bb23aa4f975915a7d4cbdb71394b240d274edf8e">Statistik langsung</string>
+    <string name="ui_live_stats_connected" volt:src="df97b9a2493761c96f06724818610d0d0cd4bf5b">Statistik langsung, terhubung</string>
+    <string name="ui_live_stats_disconnected" volt:src="d4fe34e32132ec7178006f7ec0f2c3157b4a4ef1">Statistik langsung, tidak terhubung</string>
+    <string name="ui_stats_window_description" volt:src="9071108354cdd42f773487c913746bf8503a4727">Rentang waktu grafik: %1$s. Pilih rentang waktu</string>
+    <string name="ui_stats_window_title" volt:src="3e8c259a6998ce0ddacc723900b1c9a00ee5a15a">Rentang grafik</string>
+    <string name="ui_stats_window_close" volt:src="01147b84972511e429ca6cff9f907e6970c319a6">Tutup pilihan rentang grafik</string>
+    <string name="ui_stats_window_choice" volt:src="ed21b93ccdc509b509d88711a9c68db69b4c1968">Rentang waktu grafik: %1$s</string>
+    <string name="ui_model_search_hint" volt:src="b6cf78eb8a42bbb927778912ce3aee32991bb81d">Cari model</string>
+    <string name="ui_model_search_description" volt:src="43f70d2d031c9cef5c974068c150965ed578ab52">Cari model skuter</string>
+    <string name="ui_model_not_sure" volt:src="b7bf9a961d531294660e1d37e097a6365db0e558">Tidak yakin</string>
+    <string name="ui_model_not_listed" volt:src="bd99b08bd3910e7b0e64d3aee4722055d2208a76">Tidak tercantum</string>
+    <string name="ui_model_use_typed" volt:src="a6722a0d44de10d9ed5f3d45a04799139bd771be">Gunakan “%1$s”</string>
+    <string name="ui_model_no_match" volt:src="afeea9dfcf0ba5583633f846bfdb0cde83aa9636">Tidak ada model tercantum yang cocok dengan “%1$s”. Hapus pencarian untuk memilih model, atau pilih “Tidak yakin”.</string>
+    <string name="ui_model_series" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
+    <string name="ui_photo_model" volt:src="5f568b8b80cee964bfcce59d686ce2500dbddf77">Skuter NAVEE %1$s</string>
+    <string name="ui_photo_scooter" volt:src="4fbb60c4d92a76c9beb1e40041248793fe4bb75b">Skuter NAVEE</string>
+</resources>
