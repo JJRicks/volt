@@ -986,7 +986,7 @@ public final class OnboardingScreen implements AppScreen {
         }
         boolean applied = mode.equals("applied");
         ScooterProfiles.Profile p = applied ? find(profiles(), prefs.getString(KEY_PROFILE, "")) : null;
-        String[] summary = applied && p != null ? new String[] {p.name, p.role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()} : pendingSummary();
+        String[] summary = applied && p != null ? new String[] {p.displayName(), p.role == 1 ? T.onboardingRoleShared() : T.onboardingRoleOwner()} : pendingSummary();
         // One success card: the lock glyph says it is held privately on this phone.
         LinearLayout found = row(); found.setGravity(Gravity.CENTER_VERTICAL);
         found.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));

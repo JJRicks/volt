@@ -1206,7 +1206,7 @@ public final class MoreScreen implements AppScreen {
         ScooterProfiles.Profile profile = active();
         if (!all && profile == null) { host.toast(T.moreHistoryChooseScooter()); return; }
         final String profileId = all ? null : profile.id;
-        confirm(T.moreHistoryClearTitle(), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody(profile.name),
+        confirm(T.moreHistoryClearTitle(), all ? T.moreHistoryClearAllBody() : T.moreHistoryClearOneBody(profile.displayName()),
                 T.moreClear(), () -> {
                     if (service() == null || service().history == null) return;
                     service().clearHistory(profileId, () -> {
@@ -1568,7 +1568,7 @@ public final class MoreScreen implements AppScreen {
     /** The owner clears this scooter's finished tries: their results, report entries and Set back. Unfinished ones stay. */
     private void clearTries() {
         confirm(T.moreLabClearTitle(), T.moreLabClearBody(),
-                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : n == 1 ? T.moreLabClearedOne() : T.moreLabClearedMany(n)); refresh(); });
+                T.moreClear(), () -> { int n = service().ble.clearTries(); host.toast(n == 0 ? T.moreLabClearedNone() : T.moreLabCleared(n, n)); refresh(); });
     }
     private void refreshLab(ScooterService s) {
         BleController ble = s.ble; boolean ready = ble.ready();
@@ -2050,7 +2050,7 @@ public final class MoreScreen implements AppScreen {
     /** Where the official app offers this control instead (OEM tables), in plain words. */
     private static String labWhy(String key, DeviceDescriptor d) {
         int[] n = ModelRegistry.offeredElsewhere(key, d);
-        return n[2] > 0 ? (n[2] == 1 ? T.moreLabWhyOne(n[2]) : T.moreLabWhyMany(n[2]))
+        return n[2] > 0 ? T.moreLabWhyOffered(n[2], n[2])
                 : T.moreLabWhyNone();
     }
     private void commandEvidence() {
