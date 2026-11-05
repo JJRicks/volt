@@ -33,10 +33,10 @@
     <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Разрешения и сопряжение Bluetooth не входят в копию. Параметры самоката сохраняются в Volt; их восстановление не меняет настройки на самокате.</string>
     <string name="backup_new_password" volt:src="55ca3f080bae3e2a88947221e97fae338683f4c0">Новый пароль</string>
     <string name="backup_repeat_password" volt:src="ccf07f10a8f56a516ab8d33646fbc3c5922151cb">Повторите пароль</string>
-    <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c">Пароль невозможно восстановить.</string>
+    <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c" volt:attempt="2">Восстановить пароль не получится.</string>
     <string name="backup_create" volt:src="fcc5929fd0cee7267918047e7c2df70104754bf2">Создать резервную копию</string>
     <string name="backup_choose_what" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Выберите, что сохранить в резервной копии.</string>
-    <string name="backup_password_short" volt:src="1e4ea676900b346b48a8d089f7f56b06ec263d62">Используйте не менее 8 символов.</string>
+    <string name="backup_password_short" volt:src="1e4ea676900b346b48a8d089f7f56b06ec263d62" volt:attempt="2">Используйте минимум 8 символов.</string>
     <string name="backup_passwords_differ" volt:src="2e251a52265a62cd1f71dabbcd7eb4adee0d8bcc">Пароли не совпадают.</string>
     <string name="backup_encrypting" volt:src="fe87b5aeb0e4e887b8a3a1684bd88ade97b813ec">Шифрование резервной копии…</string>
     <string name="backup_failed" volt:src="946e8372d16017d03bd0d54682a44a993ef2bed9">Не удалось создать резервную копию. Проверьте свободное место.</string>

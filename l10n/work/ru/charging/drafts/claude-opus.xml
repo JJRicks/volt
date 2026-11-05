@@ -32,7 +32,7 @@
         <item quantity="many">По прошлым зарядкам: %1$d</item>
         <item quantity="other">По прошлым зарядкам: %1$d</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01">Зарядное устройство не совпадает · оценка по току</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Расхождение с зарядным устройством · оценка по скорости зарядки</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Оценка по текущему току</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Выбранный самокат сменился во время измерения</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Часы телефона изменились во время измерения</string>

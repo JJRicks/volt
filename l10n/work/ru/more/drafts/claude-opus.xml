@@ -24,10 +24,10 @@
     <string name="more_plain" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="more_step" volt:src="ffb72f603ac41befda416a94ce7c2f16821ec76e">Шаг %1$d</string>
     <string name="more_onboarding_title" volt:src="481273709dc4b3396f6168624d997dccac537c64">Ваш самокат. Ваши данные.</string>
-    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c">Импортировать файл владельца</string>
+    <string name="more_onboarding_import" volt:src="68902f110c6ceb3fb2e13ef0b9f9db54748fa67c" volt:attempt="2">Импортировать файл для получения ключа владельца</string>
     <string name="more_onboarding_nearby" volt:src="381a48efb984a66ccf853d22a6c9117cb5682bd4">Разрешить доступ к устройствам поблизости</string>
     <string name="more_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Подключить</string>
-    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c">Сначала импортируйте файл владельца</string>
+    <string name="more_onboarding_import_first" volt:src="ca93152295379f2a61b5ffe552b6204df6acee4c" volt:attempt="2">Сначала импортируйте файл для получения ключа владельца</string>
     <string name="more_onboarding_guide" volt:src="0d1d7161e799e8b1bf44f6126c1efd07a13fd81b">Инструкция по получению ключа владельца</string>
     <string name="more_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Запускается локальная служба самоката.</string>
     <string name="more_disconnect_first" volt:src="3632a33eb6bd747af0b3f51970e9c4fa89c65365">Сначала отключите самокат</string>
@@ -67,7 +67,7 @@
     <string name="more_prefs_awake" volt:src="83881e36841edbacf388110c732b3b73770b8f36">Держать экран включённым</string>
     <string name="more_prefs_awake_sub" volt:src="4b883a1e45fc80b5443cad2a0c4f2a8652ee1516">Во время записи</string>
     <string name="more_prefs_auto_stop" volt:src="252e24584359549aebc59583f35def2b5f1f9ad8">Завершать поездки на стоянке</string>
-    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a">Через 10 s после потери соединения Bluetooth на стоянке</string>
+    <string name="more_prefs_auto_stop_sub" volt:src="b834e86b7a0d549b9e452b472fa2dfa1ede4775a" volt:attempt="2">Через 10 s после потери соединения Bluetooth во время остановки</string>
     <string name="more_prefs_battery" volt:src="de937287934ead27c1cf8140ec073b47e06707fd">Фоновая запись</string>
     <string name="more_prefs_battery_unrestricted" volt:src="47890c2c2c12e6af1e4a730e464b6788e7c17cd8">Расход батареи без ограничений</string>
     <string name="more_prefs_battery_optimized" volt:src="2549696a08a97a290ccf8485ad2cb8e02a405f0d">Оптимизация батареи включена; долгие записи могут прерваться. Откроются настройки батареи</string>
@@ -153,7 +153,7 @@
     <string name="more_pin_diagram" volt:src="3485f8ced58988ac27332894343ce0ac775d9f7b">Руль: 1 — кнопка поворотника, 2 — рычаг тормоза, 3 — кнопка питания</string>
     <string name="more_lab_untested" volt:src="539ca4c1489199b013cd26574ba1f9e7528f8662">Неопробованные функции</string>
     <string name="more_lab_help_verify" volt:src="d176dc690a1b4bdbbd757d43cb22ba97bf134b3b">Помочь с проверкой</string>
-    <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38">Нечего попробовать</string>
+    <string name="more_lab_nothing" volt:src="24cb1c5c7e9842a8b0a8536aedf96cf789ccff38" volt:attempt="2">Нет функций, которые можно попробовать</string>
     <string name="more_lab_evidence" volt:src="ff64cf60c8d81e5d713fa02a7cac449a9bf66f48">Ответы самоката на команды</string>
     <string name="more_lab_clear_tries" volt:src="5100f425c85cd2eb884d7f18336f7a1ffd37b58e">Очистить результаты попыток</string>
     <string name="more_lab_clear_title" volt:src="5d8f05e3aa3f4c24b229b831347ea5f522dcd184">Очистить результаты попыток?</string>
@@ -175,7 +175,7 @@
     <string name="more_lab_absent" volt:src="30fa103803e2be4e3b15bfdaa5edafb739936f3e">Нет данных от этого самоката</string>
     <string name="more_lab_absent_note" volt:src="680874cbdcabe34a2ba2a217aeaaf52a9f177c87">Volt не может прочитать их значения с самоката, поэтому не предлагает их.</string>
     <string name="more_lab_empty_product" volt:src="8a1ea1801642efb3585de4dfa0381f5f5f56df0b">Volt не отправляет команды самоката этому устройству.</string>
-    <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9">На UT5 MAX попробовать нечего.</string>
+    <string name="more_lab_empty_ut5" volt:src="8845c7a77e90a9d0976d55cf8e88672d5268c5a9" volt:attempt="2">На UT5 MAX нет функций, которые можно попробовать.</string>
     <string name="more_lab_empty_conflict" volt:src="474f48898eb2fedd12b2c158a50c78f8b9f22f36">ID модели этого самоката не совпадает с его серийным номером, поэтому Volt ничего не предлагает попробовать.</string>
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">Этой модели нет в списке официального приложения, поэтому Volt не может определить, каких функций у неё нет. Пока попробовать нечего.</string>
     <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Сначала определите модель на странице «Самокат». После этого Volt покажет, что можно попробовать.</string>

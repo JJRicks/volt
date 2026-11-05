@@ -17,7 +17,7 @@
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">Самокат не найден</string>
     <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Ключ владельца отклонён</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">На этой модели доступны не все функции</string>
-    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Выберите целый час не позже чем через 48 часов</string>
+    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25" volt:attempt="2">Выберите время ровно в начале часа в пределах 48 часов</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">Не удалось подключиться</string>
     <string name="ble_failed_timed_out" volt:src="8c282885c8815225c681e23c7106459d5c4bdd97">Время ожидания истекло</string>
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Подключение прервано</string>
@@ -84,11 +84,11 @@
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Сначала завершите текущую попытку</string>
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Записи проверок недоступны</string>
     <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Сначала просмотрите незавершённую попытку</string>
-    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Нечего вернуть</string>
+    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b" volt:attempt="2">Нет значения для возврата</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Не удалось вернуть прежнее значение. Ничего не изменено.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Сначала завершите текущую проверку</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Проверка не найдена</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Не удалось начать возврат прежнего значения. Ничего не изменено.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc" volt:attempt="2">Не удалось начать восстановление прежнего значения. Ничего не изменено.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Подтверждено</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Настройка подтверждена контрольным считыванием; световой поток не измерялся</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Принято; контрольное считывание часов недоступно</string>

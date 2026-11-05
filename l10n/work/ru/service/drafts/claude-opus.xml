@@ -12,9 +12,9 @@
     <string name="service_wait_charging_schedule" volt:src="2d2b8853f136f79f30800085988045dc5264c0f8">Дождитесь, пока расписание зарядки будет передано на самокат</string>
     <string name="service_wait_measuring" volt:src="68e0a36c8d937dfddcaa476243afeb978841a435">Дождитесь, пока «Зарядка к сроку» закончит измерение</string>
     <string name="service_wait_history_cleanup" volt:src="cfe34c13bd0b4d6fd3da0a5447f5b7576d754ed3">Дождитесь окончания очистки истории</string>
-    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a">Сначала завершите получение ключа владельца и верните журнал отладки NAVEE в прежнее состояние</string>
+    <string name="service_finish_owner_setup" volt:src="1a4ffbad54745e7cd3400f0f48ced035c519d30a" volt:attempt="2">Сначала завершите получение ключа владельца и верните журнал отладки NAVEE в прежнее состояние</string>
     <string name="service_finish_export" volt:src="175fe362bdcdd02e7bd31d3fa05ec33ecba731ac">Сначала завершите текущий экспорт</string>
-    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048">Сначала завершите импорт файла с ключом владельца</string>
+    <string name="service_finish_owner_import" volt:src="2dfb51a7a5ac2b2e64115a7bf37f054a29620048" volt:attempt="2">Сначала завершите импорт файла для получения ключа владельца</string>
     <string name="service_maintenance_failed" volt:src="90709a45368c9ef81896745b86a6648b878c4575">Не удалось подготовить данные приложения. Откройте Volt снова.</string>
     <string name="service_simulation_finish_recording" volt:src="a79d501c9204ab124e0ae5ec895f24d9a2403dac">Завершите текущую запись, прежде чем запускать симуляцию</string>
     <string name="service_charge_none" volt:src="d73436e494c3080b4795117b51c42b9d6e26f009">Записи зарядки пока нет</string>
@@ -125,7 +125,7 @@
     <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Приложению Volt не удалось подтвердить выключение расписания. Выключите зарядку по расписанию, чтобы зарядка продолжилась."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Оповещения о заряде</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Оповещения об уровне заряда, полной зарядке и низком заряде, которые вы включаете в разделе «Самокат › Батарея»</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Оповещения о заряде, которые вы включаете в разделе «Самокат › Батарея»: уровень заряда, полный заряд и низкий заряд батареи</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Стоп</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Остановите запись зарядки, прежде чем начинать поездку</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Сначала выйдите из режима симуляции</string>

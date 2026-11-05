@@ -53,7 +53,7 @@
     <string name="compat_kept_set_back" volt:src="3448d6b18de35aaa38b3d8fbb3eb1733c184fa3f">Сохранено · «Вернуть» — в разделе «Экспериментальные функции»</string>
     <string name="compat_kept" volt:src="02ccbbcbc067fd9eb620171217c5eefade1299d3">Сохранено</string>
     <string name="compat_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Возврат подтверждён</string>
-    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b">Возврат не подтверждён · проверьте ниже</string>
+    <string name="compat_restoration_outstanding" volt:src="322a44b89fa9e89f32c49ab0d3bda52d8dabe17b" volt:attempt="2">Ожидается возврат значения · проверьте ниже</string>
     <string name="compat_unfinished_try_title" volt:src="cfd80477321e4079c1c4b8d2ceabbf06d68c596e">Незавершённая попытка · %1$s</string>
     <string name="compat_unfinished_test_title" volt:src="b6ac9355d567f37de6dcbb01a2d8d8c9967900e8">Незавершённая проверка · %1$s</string>
     <string name="compat_before_try" volt:src="7674ba2e2183bf0f962f772b38b589e246336fd9">До попытки</string>
@@ -64,7 +64,7 @@
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">В этом подключении ещё нет данных о движении.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Всё равно продолжить</string>
     <string name="compat_mark_restored" volt:src="fef3fa7ab74187873131d3eab91b99aa5ee96e8f">Отметить возврат</string>
-    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598">Вернуть значение: %1$s</string>
+    <string name="compat_restore_to" volt:src="213a822395704be6b5b0911c4f045209dc75f598" volt:attempt="2">Восстановить прежнее значение: %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Оставить значение: %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Задать значение: %1$s</string>
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Закрыть · оставить как есть</string>
@@ -210,11 +210,11 @@
     <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Отменено. Ничего не изменено.</string>
     <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef">Не удалось сохранить запись проверки, поэтому Volt не вернул прежнее значение.</string>
     <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde">Изменено вне проверки (сейчас: %1$s)</string>
-    <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2">Самокат отклонил возврат прежнего значения (код %1$d).</string>
+    <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2" volt:attempt="2">Возврат значения отклонён самокатом (код %1$d).</string>
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Новые показания не поступили.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Принято, но однозначных показаний не поступило.</string>
     <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Нет ответа от самоката.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Приложению Volt не удалось отправить команду возврата.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Приложению Volt не удалось отправить команду восстановления значения.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Не удалось получить новые исходные показания. Подключите самокат снова и повторите попытку. Ничего не изменено.</string>
     <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Не удалось проверить настройку. Подключите самокат снова и просмотрите незавершённую проверку.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Подключение прервалось во время проверки.</string>
@@ -225,7 +225,7 @@
     <string name="compat_note_value_unknown" volt:src="4236ae8d3fed48d67e438714cb64b48cdb8574b0">Текущее значение неизвестно, поэтому Volt не будет его проверять.</string>
     <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Самокат сейчас показывает: %1$s. Ничего не изменено.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Уже задано значение: %1$s.</string>
-    <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">Сейчас недоступно значение: %1$s.</string>
+    <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6" volt:attempt="2">Сейчас не предлагается: %1$s.</string>
     <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Текущее значение потом нельзя будет вернуть, поэтому Volt не будет проверять эту настройку.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">Во время проверки изменилась связанная настройка.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Самокат принял значение, но всё ещё показывает: %1$s.</string>

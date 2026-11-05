@@ -25,13 +25,13 @@
     <string name="owner_shizuku_stop" volt:src="8199d696907d4de73da38badcf2084c3bfd69630">Остановить настройку</string>
     <string name="owner_shizuku_cleanup_title" volt:src="997fc3fdbf165d34e966e670054dfd8c79b8c4e8">Сначала вернуть журнал отладки в прежнее состояние</string>
     <string name="owner_shizuku_cleanup_message" volt:src="f2e2b50ba849277623f884581e9fa452e825947b">Журнал отладки NAVEE, возможно, ещё включён.</string>
-    <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5">Вернуть журнал отладки NAVEE в прежнее состояние</string>
+    <string name="owner_shizuku_restore_logging" volt:src="f41b4dcce23c6a9a3b74b817b04a35a92e0cbcd5" volt:attempt="2">Восстановить прежнее состояние журнала отладки NAVEE</string>
     <string name="owner_shizuku_back" volt:src="74751380c16049562e7f6e38a0cc24eba5eea23f">Назад</string>
     <string name="owner_shizuku_ready_title" volt:src="adc2cbe92cb9c1b94b5ae74a4b2e0a69c179d92b">Готово к импорту</string>
     <string name="owner_shizuku_shared_identity_found" volt:src="63b50496073a59f99b2e4fe123f6b15ee59f394b">Найден ключ пользователя с общим доступом</string>
     <string name="owner_shizuku_owner_identity_found" volt:src="76cf9daea5c2a0ec5cba3556b49ddc3dd742ff6f">Найден ключ владельца</string>
     <string name="owner_shizuku_navee_restored" volt:src="a4afe40291ffd2d676be07f55554f85a3ec5ad7f">Журнал отладки NAVEE возвращён в прежнее состояние</string>
-    <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546">Импортировать ключ владельца</string>
+    <string name="owner_shizuku_import_owner_setup" volt:src="10eee90bea1c096a2d3a31a4297e7dd56632f546" volt:attempt="2">Завершить получение ключа владельца</string>
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Отбросить</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Запуск Shizuku</string>
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku установлен</string>
@@ -74,9 +74,9 @@
     <string name="owner_status_log_unreadable" volt:src="b33d0532221434f230d5a6f1bef55fdde99257d2">Приложению Volt не удалось прочитать журнал приложения NAVEE</string>
     <string name="owner_status_stopped" volt:src="cd0462a650a810a4aa3460aa9084d4c22fd574c4">Остановлено</string>
     <string name="owner_status_capture_failed" volt:src="36984b450e91d207efd90a21e2b7393a169726e6">Не удалось извлечь</string>
-    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc">Верните журнал отладки в прежнее состояние ещё раз</string>
+    <string name="owner_status_restore_again" volt:src="27939269fc1f69ffa439d5a04af0f27411c36bfc" volt:attempt="2">Снова восстановите прежнее состояние журнала отладки</string>
     <string name="owner_status_restoring" volt:src="11011fc05863866adda071172770c1ea2e973b65">Возврат журнала отладки NAVEE в прежнее состояние…</string>
-    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274">Shizuku недоступен. Верните журнал отладки в прежнее состояние.</string>
+    <string name="owner_status_lost" volt:src="5ed1aba5b9709301c7e7dc924d77347fd6014274" volt:attempt="2">Работа Shizuku прервана. Восстановите прежнее состояние журнала отладки.</string>
     <string name="owner_status_no_browser" volt:src="a6857b6933cdd78585f669f3d4e00dd4454236e3">Браузер не найден</string>
     <string name="owner_setup_empty_or_large" volt:src="4a200d2bd2318934b72355920a208152c5182530">Файл с ключом владельца пуст или слишком велик.</string>
     <string name="owner_setup_need_hex" volt:src="3d0468d6a6133ba2b2ba8b7db7153d10dec4be7a">Нужно 12 шестнадцатеричных символов</string>

@@ -24,8 +24,8 @@
     <string name="dashboard_estimated_range" volt:src="3cd0b7394ad38905d5bf8719e641c402a80f584c">Расчётный оставшийся запас хода</string>
     <string name="dashboard_drive_mode" volt:src="09197979bc4431ba371d1ccb80be6b4623f1d53d">Режим езды</string>
     <string name="dashboard_at_target" volt:src="bfe77cb8f5f6b49d12a329434929b912ff092d08">Цель достигнута</string>
-    <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60">≈ %1$s h %2$s min</string>
-    <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1">≈ %1$s min</string>
+    <string name="dashboard_duration_hours" volt:src="e70dad5ed71099f9155e397d97a0018215b65f60" volt:attempt="2">≈ %1$s ч %2$s мин</string>
+    <string name="dashboard_duration_minutes" volt:src="8b9cc956124d255f24e5b813b707af58689963d1" volt:attempt="2">≈ %1$s мин</string>
     <string name="dashboard_charge_to_limit" volt:src="8935eeb43bf670537f732e96d163a18604d9f110">До предела %1$s</string>
     <string name="dashboard_charge_time_to" volt:src="997683b2c79edb28a301f53ab374059836deb4f7">Время до %1$s</string>
     <string name="dashboard_charge_time_to_compact" volt:src="44910645e353f1bb828d0a6e26f6e2512d92d504">До %1$s</string>
@@ -33,7 +33,7 @@
     <string name="dashboard_charge_time_uncapped_short" volt:src="9718464e4fc10166c5f7a3eeffc595dd2bbfc5c0">До 100 % без предела</string>
     <string name="dashboard_charge_time_uncapped_compact" volt:src="ae80ff789fd1f7fd6ad8e31fcb3409bd684f605d">100 % без предела</string>
     <string name="dashboard_charge_time_full" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">Время до полной зарядки (оценка)</string>
-    <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea">До полной зарядки (оценка)</string>
+    <string name="dashboard_charge_time_full_short" volt:src="6ce29fe2bed21961a98fb5362182194135777bea" volt:attempt="2">Время до полной зарядки (оценка)</string>
     <string name="dashboard_charge_time_full_compact" volt:src="104f1b8044a4d523f27487314248cc247e0228e0">До полной зарядки (оценка)</string>
     <string name="dashboard_low_current" volt:src="385e0f9323fb53dce1ed558926f290b93a2eb2cd">Низкий ток</string>
     <string name="dashboard_charging_power" volt:src="79197b88289ffd23a43d5b1e15477b4ef590bfe0">Мощность зарядки</string>
@@ -54,9 +54,9 @@
     <string name="dashboard_hero_time_status" volt:src="a4f7b74c14e8f4a56bb616ed292e48b02ce3aa9b">%1$s, %2$s. %3$s</string>
     <string name="dashboard_hero_time_tag_status" volt:src="f5f890cf656f55df359eda425e26bd0923b1b81f">%1$s, %2$s, %3$s. %4$s</string>
     <string name="dashboard_hero_charge_not_reported" volt:src="bae5d367b7ef5a1b6b72b1e9a82d78879e77350a">Заряд: нет данных</string>
-    <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17">Заряд: нет данных, предел заряда: %1$s %%</string>
-    <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4">Заряд: %1$s %%</string>
-    <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418">Заряд: %1$s %%, предел заряда: %2$s %%</string>
+    <string name="dashboard_hero_charge_not_reported_limit" volt:src="965e0afe188b4a0839857e2b00f69286bd86ce17" volt:attempt="2">Заряд: нет данных, предел заряда в процентах: %1$s</string>
+    <string name="dashboard_hero_charge" volt:src="74f3be8b81332e1e05ae276a9088f3f715e38dd4" volt:attempt="2">Заряд в процентах: %1$s</string>
+    <string name="dashboard_hero_charge_limit" volt:src="9f261f893e46f1fbe5d406c8e0eab8edbfff6418" volt:attempt="2">Заряд в процентах: %1$s, предел заряда в процентах: %2$s</string>
     <string name="dashboard_battery_temperature" volt:src="e24f0b7b14c92cc5b078037e10b482158e1d1c09">Температура батареи</string>
     <string name="dashboard_battery_side_power" volt:src="1c77983746fcb1a42d82ceffd1a3d61720aed78e">Мощность со стороны батареи</string>
     <string name="dashboard_charging_time_tag" volt:src="03b47181996e70bcd965c93fb77f2b1d1af5e6ac">%1$s (%2$s)</string>
@@ -91,10 +91,10 @@
     <string name="dashboard_overview_not_reported_seen" volt:src="ea0748130f30c6687f41cc741f75eca549fa43c4">Заряд батареи: нет данных, последние данные: %1$s</string>
     <string name="dashboard_overview_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Заряд батареи: нет данных, %1$s</string>
     <string name="dashboard_overview_not_reported_line_seen" volt:src="484687dbd44e137c9ede6b4a74efe5b4d634dd39">Заряд батареи: нет данных, %1$s, последние данные: %2$s</string>
-    <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Заряд батареи: %1$s %%</string>
-    <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43">Заряд батареи: %1$s %%, последние данные: %2$s</string>
-    <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Заряд батареи: %1$s %%, %2$s</string>
-    <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa">Заряд батареи: %1$s %%, %2$s, последние данные: %3$s</string>
+    <string name="dashboard_overview_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Заряд батареи в процентах: %1$s</string>
+    <string name="dashboard_overview_percent_seen" volt:src="26333fe8295310980a1f863a9de2dcf6b0db8b43" volt:attempt="2">Заряд батареи в процентах: %1$s, последние данные: %2$s</string>
+    <string name="dashboard_overview_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s</string>
+    <string name="dashboard_overview_percent_line_seen" volt:src="5d78e2632aaac7b7fa5177798cd71173b3b44bfa" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s, последние данные: %3$s</string>
     <string name="dashboard_cell_not_reported_charging" volt:src="3a6ac5f0a1cfbd250c22329b2d5c20268e941bf1">Заряд батареи: нет данных, идёт зарядка</string>
     <string name="dashboard_cell_not_reported_charging_stale" volt:src="c32ad8abc4fe3f747fe55101ef5fbc1dcd17f10e">Заряд батареи: нет данных, идёт зарядка, показание из последних данных</string>
     <string name="dashboard_cell_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Заряд батареи: нет данных</string>
@@ -103,14 +103,14 @@
     <string name="dashboard_cell_not_reported_line_charging_stale" volt:src="9ebbd9e76e5a0777434190e9d22b191147f62364">Заряд батареи: нет данных, %1$s, идёт зарядка, показание из последних данных</string>
     <string name="dashboard_cell_not_reported_line" volt:src="f236a47bb6c769598d8ebba735cfd550557fd7f4">Заряд батареи: нет данных, %1$s</string>
     <string name="dashboard_cell_not_reported_line_stale" volt:src="8ca4a33a76f17e0d43b6643b1719b30d53eece6a">Заряд батареи: нет данных, %1$s, показание из последних данных</string>
-    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449">Заряд батареи: %1$s %%, идёт зарядка</string>
-    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1">Заряд батареи: %1$s %%, идёт зарядка, показание из последних данных</string>
-    <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba">Заряд батареи: %1$s %%</string>
-    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e">Заряд батареи: %1$s %%, показание из последних данных</string>
-    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab">Заряд батареи: %1$s %%, %2$s, идёт зарядка</string>
-    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526">Заряд батареи: %1$s %%, %2$s, идёт зарядка, показание из последних данных</string>
-    <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2">Заряд батареи: %1$s %%, %2$s</string>
-    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e">Заряд батареи: %1$s %%, %2$s, показание из последних данных</string>
+    <string name="dashboard_cell_percent_charging" volt:src="d3c8ed96cb2ba9de55f8513aa88a2d183275e449" volt:attempt="2">Заряд батареи в процентах: %1$s, идёт зарядка</string>
+    <string name="dashboard_cell_percent_charging_stale" volt:src="6bf5fefa793a95483966df74e563213430cdfaf1" volt:attempt="2">Заряд батареи в процентах: %1$s, идёт зарядка, последние полученные данные</string>
+    <string name="dashboard_cell_percent" volt:src="00c78ff7315502fa4c0dcdaf6633826cabcc90ba" volt:attempt="2">Заряд батареи в процентах: %1$s</string>
+    <string name="dashboard_cell_percent_stale" volt:src="cf39c007596ce4887c5d4cae42343a7c1a91664e" volt:attempt="2">Заряд батареи в процентах: %1$s, последние полученные данные</string>
+    <string name="dashboard_cell_percent_line_charging" volt:src="54e5751cd690577fb48b37c986f31a0028290bab" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s, идёт зарядка</string>
+    <string name="dashboard_cell_percent_line_charging_stale" volt:src="fed109679c0e18d0f49af1af9a27e57d4651b526" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s, идёт зарядка, последние полученные данные</string>
+    <string name="dashboard_cell_percent_line" volt:src="9ad61f28dbbec0147e222ea0dbb1ccc9b8770ec2" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s</string>
+    <string name="dashboard_cell_percent_line_stale" volt:src="d06151f96419e0b24d17b62ef8e91a81262a7c3e" volt:attempt="2">Заряд батареи в процентах: %1$s, %2$s, последние полученные данные</string>
     <string name="dashboard_reading" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_reading_seen" volt:src="42f0ac6687302f053c1dffef1169cfa94f26a4e0">%1$s, %2$s, последние данные: %3$s</string>
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
@@ -134,7 +134,7 @@
     <string name="dashboard_updating_rides" volt:src="e233704984291f18aa84122438832782cbf956b9">Обновление записанных поездок…</string>
     <string name="dashboard_refresh_unavailable" volt:src="1b46d6320b133fe2f8b70d4f19710c40e0942e58">Последняя оценка · обновление недоступно</string>
     <string name="dashboard_estimate_unavailable" volt:src="da61d946be62d41d2577a3d681001255d50deca5">Оценка недоступна</string>
-    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09">Недостаточно данных о поездках</string>
+    <string name="dashboard_not_enough_data" volt:src="cf2726b933a9c105902145c4c3fc36d36650aa09" volt:attempt="2">Не хватает данных о поездках</string>
     <string name="dashboard_rides_range" volt:src="f153d39c741f9fc0b215e748e2396a5dd374c839">Поездок: %1$s · %2$s–%3$s %4$s</string>
     <string name="dashboard_rides_points" volt:src="35423e9daf09bfd6b107ce1635a00c1a6531759a">Поездок: %1$s · процентных пунктов: %2$s</string>
     <string name="dashboard_percent_of" volt:src="8c96a8142ce57e623184df7797c312d41b8438dd">%1$s %% от %2$s %3$s</string>
@@ -143,11 +143,11 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Период</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Нужно поездок</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">Интервал 90 %</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Заряд на 100 % индикатора</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1" volt:attempt="2">Заряд на процент индикатора</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Проверка по зарядке</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Охват</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Темп. батареи</string>
-    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Не учтено в оценке</string>
+    <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd" volt:attempt="2">Отклонены при оценке</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Косвенная оценка: может быть завышена; не состояние батареи.</string>
     <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Энергия, которую ваши поездки израсходовали на полный индикатор заряда. Это не проверка состояния или ёмкости батареи.</string>
