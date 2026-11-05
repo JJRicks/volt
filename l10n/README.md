@@ -23,9 +23,10 @@ the working manual.
 | `tests/l10n/GoldenReports.java`, `golden.sh`, `golden/` | G9: report outputs that must stay byte-identical |
 | `tools/l10n/` | Generator, round-trip, gates, the CI driver (`ci_gates.py`), the translation tools and their unit tests |
 | `l10n/glossary/<tag>.tsv` | A language's approved glossary terms (same columns as `en.tsv`; see Running a language) |
-| `l10n/style/<tag>.md` | A language's punctuation, capitalization and abbreviation rules for ladder rungs |
+| `l10n/style/<tag>.md` | A language's style guide; `l10n/style/README.md` lists the sections every guide has |
 | `l10n/packs/<tag>/<area>.json` | Work packs from `pack.py` (generated, not committed) |
 | `l10n/work/<tag>/<area>/` | Translation staging: drafts, checks, back-translations, judge requests and rulings |
+| `l10n/work/<tag>/<area>/audit/` | The safety audit of a Claude-only draft, a QA record only (see Drafting a whole language with Claude alone) |
 | `l10n/decisions/<tag>/<area>.jsonl` | The audit trail of every translated or fallen-back key |
 | `res/values-<qual>/strings_<area>.xml` | A language's text, written only by `merge.py` |
 
@@ -1055,14 +1056,24 @@ translated; drive-mode names stay as the scooter shows them; ScooterSimulation t
    drive_mode_names	english
    ```
 
-2. `l10n/style/<tag>.md`: punctuation, capitalization and how to abbreviate ladder rungs.
+2. `l10n/style/<tag>.md`, with the sections `l10n/style/README.md` requires. `council.py prompt`
+   refuses without it (`--no-style-guide` waives that) and refuses a pack older than it, so write
+   the guide before `pack.py`, and pack again after editing it. `draft openai|google` does not
+   check this.
 3. `l10n/glossary/<tag>.tsv`, drafted by the three providers and judged before any screen: the same
    columns as `en.tsv`, where `id` names the `en.tsv` term and `term` holds the approved
    translation, with inflected forms separated by ` | ` (`patinete | patinetes`). List the nominal
    forms too where the language makes nouns from verbs (`bloquear | bloqueo`, `verrouiller |
    verrouillage`): only the listed forms count where the English has the exact term, and the
    automatic -ing matching covers few of them (Indonesian pe(N)-...-an nouns such as "penguncian").
-   Do-not-translate terms need no row.
+   Do-not-translate terms need no row, and may not have one. `council.py glossary-check --tag <tag>`
+   exits non-zero on an id en.tsv lacks (`load_glossary` ignores such a row, so the term would
+   quietly have no target), a missing row for a term that is not do-not-translate, a row for one
+   that is, a repeated id, a wrong column count, an empty term or form, a term with a placeholder,
+   and U+202F in a form (Saira has no glyph for it, so French writes U+00A0). `pack.py` and `prompt`
+   refuse the same problems when the file exists; with no file they go on without targets.
+   `glossary-check --english` validates `en.tsv` the same way, and lists the rows no English string
+   matches as information, which does not fail it.
 
 ### API keys
 
@@ -1186,6 +1197,96 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
 The language pull request then runs the local build, LocaleValidation in that language at both
 sizes, and a screenshot set for the owner (plan 7.2 step 6). Native spot-check edits go into the
 decisions (and merge again), never straight into `res/values-<qual>/`.
+
+### Drafting a whole language with Claude alone
+
+Until the OpenAI and Google keys arrive, a language can be drafted by Claude agents alone. **Such a
+draft stays a draft:** `l10n/lang/<tag>.tsv` keeps status `draft`, nothing here writes `res/`, and
+no key can pass the safety rule, since step 5 needs drafts from all three providers. The file is an
+ordinary `drafts/claude-<name>.xml` with `volt:provider="claude"` and the agent's exact model id.
+When the keys arrive, `draft openai|google` adds the other two drafts beside it, and the council
+runs from step 3 with this draft as Claude's. It is not redone or relabelled.
+
+```sh
+T=fr A=more
+python3 tools/l10n/council.py glossary-check --tag $T
+python3 tools/l10n/pack.py --tag $T --area $A
+python3 tools/l10n/council.py prompt --tag $T --area $A --name opus --style context-first --chunk-keys 80
+#   one fresh Claude Code agent per prompts/claude-opus.chunk-<i>-of-<n>.md; each writes its reply
+python3 tools/l10n/council.py import-claude --tag $T --area $A --name opus --model <exact model id> --from-chunks
+python3 tools/l10n/council.py check --tag $T --area $A
+python3 tools/l10n/council.py prompt --tag $T --area $A --name opus --redraft --chunk-keys 80   # failed keys, once
+python3 tools/l10n/council.py import-claude --tag $T --area $A --name opus --model <exact model id> --from-chunks --redraft
+python3 tools/l10n/council.py drafts-status --tag $T
+```
+
+**Chunked prompts.** `prompt --chunk-keys K` writes `prompts/claude-<name>.chunk-<i>-of-<n>.md`,
+keeping each ladder group in one chunk (a group larger than K makes a larger chunk). Each has the same
+rules as a single prompt, and says where its reply goes and the exact import command. The reply is
+`{"strings": ..., "notes": ...}`, with no `src`, which would only cost output and invite copy
+errors. The `notes` are not stored, as in the single-file flow.
+
+- **The sidecar** `prompts/claude-<name>.chunks.<set>.json` records each chunk's keys and the source
+  hash of the English it showed. `<set>` is a hash of all that, so the same prompts get the same
+  set. `prompts/claude-<name>.chunks.current` names the latest set. The prompt refuses a pack
+  older than the English or the glossary.
+- **Replies** go to `replies/claude-<name>.<set>/chunk-<i>-of-<n>.json`. The folder keeps a later
+  set's chunk 1 from adopting an earlier set's reply. New prompts delete the earlier set's prompt
+  files, but not its sidecar or replies: `--set <set>` still imports them.
+- **`import-claude --from-chunks`** takes each `volt:src` from the sidecar, whatever a reply says.
+  It compares that with `res/values/`, not with a pack, and a key whose English changed since its
+  prompt is reported and left out, so it can't be filed against the new English. A chunk with no
+  usable reply (none, not JSON, no `strings`) refuses the whole import with nothing written, unless
+  `--partial`. A key missing from a reply, in the wrong shape or changed exits 1, and the rest is still
+  written.
+- **It merges**: keys the set covers are replaced, the rest stay, including stale ones (`check` and
+  `drafts-status` show those), and the same import run twice writes the same file. A key no longer
+  in the English is dropped and reported. It refuses a model id that does not start with `claude`,
+  and a model other than the one the draft names, since a draft names one model; use another `--name`.
+- **Top-ups and redrafts.** `--top-up` prompts only the keys the draft lacks or has stale, with the
+  rest of their ladders, which is how a `--partial` import or an English change is finished. `--redraft`
+  prompts the keys `checks.jsonl` lists as failed first attempts and marks them `volt:attempt="2"`.
+  A redraft set must be imported with `--redraft` and only a redraft set may be. Without
+  `--style`, both use the style the draft records.
+
+**Status.** `drafts-status --tag <tag> [--name N] [--json]` prints, per area and in total: `total`
+keys, `drafted` (a `claude-*` draft has a text of the current English), `stale` (only of other
+English), `missing` (none, and no current translation in `res/`), `failing` (a current text fails
+`check.py`'s errors, recomputed rather than read from `checks.jsonl`), `safety` keys, `audited` and
+`flagged`. It writes nothing. Several `claude-*` drafts count together unless `--name` picks one.
+
+**Safety audit.** A Claude-only draft has no council back-translation, so an audit records what each
+safety key's text really says. It is a **QA record only**: it never counts as step 5's back-translation.
+`decide`, `beta` and the judge do not read `audit/`, and it writes nothing to `backtranslation.jsonl`
+or `judge.jsonl`. The later debate starts as if it did not exist.
+
+```sh
+python3 tools/l10n/council.py audit-prompt --tag $T --area $A --name opus --chunk-keys 80
+#   a fresh agent per audit/prompts/claude-opus.chunk-<i>-of-<n>.md
+python3 tools/l10n/council.py audit-compare --tag $T --area $A --name opus --from-chunks --model <its model id>
+#   a separate reader judges audit/compare.tsv and writes verdicts.json
+python3 tools/l10n/council.py audit-record --tag $T --area $A --name opus --from verdicts.json --model <its model id>
+```
+
+- `audit-prompt` holds only the texts of the keys `pack.py` marks safety, each with its `volt:screen`
+  (its ladder's, or else the area). There is no English, and keys appear under opaque ids, since a
+  name like `ble_lock_waiting` says what the English means. A safety key the draft lacks or has
+  stale is reported and not audited. `--top-up` lists only keys without a `compare.tsv` row of the
+  current text.
+- `audit-compare` writes `audit/compare.tsv`: `key`, `english`, `translation`, `back-translation`,
+  then `draft`, `model` and the two hashes. A key whose English or draft text changed since its prompt
+  is reported and left out. A back-translation by the model that drafted the text is noted, not
+  refused, and the `model` column shows it; a fresh session is the minimum, another model is
+  better. Tabs, line breaks and backslashes in a cell are escaped, and a plural is compact JSON.
+- `audit-record --from <json>` takes `{"verdicts": [{"key", "ok", "problem"}, ...]}` and stores
+  `audit/verdicts.tsv`: those, then `draft`, `reader` and the row's two hashes. An unknown key, a
+  repeated one, a non-boolean `ok`, or `ok: false` with no `problem` refuses the file whole.
+  Optional `compare_sha1`, which `audit-compare` prints, refuses verdicts on an older `compare.tsv`.
+  A verdict stops counting in `audited` and `flagged` once the English or the draft's text changes.
+
+**What git keeps:** `drafts/`, `audit/compare.tsv`, `audit/verdicts.tsv`, `checks.jsonl` and
+`runs.jsonl`. Prompts, replies and sidecars stay ignored, under `prompts/`, `replies/` and `audit/`
+(`l10n/.gitignore`), so a reply whose sidecar is gone means prompting again.
 
 ### Limits of the automated checks
 
