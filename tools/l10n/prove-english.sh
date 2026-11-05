@@ -200,7 +200,8 @@ else
     record "G9 reports stay English (goldens)" FAIL "$(tail -1 "$log")"; show_failure G9 "$log"
 fi
 # The same list CI uses (ci_gates.is_tooling): tools/l10n, workflows, tests/l10n outside
-# characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh.
+# characterization/, golden/ and *.sources, tests/run.sh, build.sh and android-tests/build.sh. An English
+# change's edits to existing non-gate tests/l10n/*Test.java files are left out and listed for review, as in CI.
 tooling_files=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-tooling))
 tooling="${#tooling_files[@]} file(s)"
 (( ${#tooling_files[@]} )) && tooling+=", e.g. ${tooling_files[0]}"
@@ -217,6 +218,10 @@ if [[ "$KIND" == english-change ]]; then
         record "No ledger rows in an English change" FAIL "an English change must not also extract text: ${ledger_files[*]}"
     else
         record "No ledger rows in an English change" PASS "l10n/ledger unchanged"
+    fi
+    english_tests=($(python3 tools/l10n/ci_gates.py --base "$BASE" --print-english-tests))
+    if (( ${#english_tests[@]} )); then
+        record "tests/l10n edits for review" REPORT "${#english_tests[@]} file(s): ${english_tests[*]}; check that each edit only follows a row of l10n/english-changes.tsv"
     fi
 fi
 if [[ -f tests/l10n/FmtLegacyTest.java ]]; then

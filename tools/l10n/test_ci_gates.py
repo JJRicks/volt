@@ -222,6 +222,108 @@ class GoldenRewriteTest(unittest.TestCase):
         self.assertIn("FAILED proof tooling unchanged", output)
 
 
+class EnglishChangeTestEditsTest(unittest.TestCase):
+    """An owner-approved English change updates the tests that assert the old English (l10n/README.md), so
+    an edit to an existing non-gate tests/l10n test is reported for the reviewer; the rest stays strict."""
+
+    CHARGING = "tests/l10n/ChargingTest.java"
+    LEDGER_TEST = "tests/l10n/LedgerTest.java"
+
+    def setUp(self):
+        self.repo = TempRepo()
+        self.addCleanup(self.repo.close)
+        self.repo.write("res/values/strings_common.xml",
+                        '<resources><string name="common_x">Old words</string></resources>\n')
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "Old words"; }'))
+        self.repo.write(self.LEDGER_TEST, java_class("LedgerTest", '    String s() { return "a"; }'))
+        self.repo.write("tests/l10n/XTest.java", java_class("XTest", '    String s() { return "a"; }'))
+        self.repo.write("tools/l10n/frozen_literals.py", "def run():\n    pass\n")
+        self.base = self.repo.commit("base")
+
+    def english_change(self):
+        self.repo.write("res/values/strings_common.xml",
+                        '<resources><string name="common_x">New words</string></resources>\n')
+        self.repo.write("l10n/english-changes.tsv", "key\tquantity\told\tnew\tnote\n"
+                        "common_x\t-\tOld words\tNew words\towner approved in #999\n")
+
+    def run_ci(self, *extra):
+        head = self.repo.commit("head")
+        here = os.getcwd()
+        os.chdir(self.repo.root)
+        out, err = io.StringIO(), io.StringIO()
+        try:
+            with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                code = ci_gates.main(["--base", self.base, "--head", head] + list(extra))
+        finally:
+            os.chdir(here)
+        return code, out.getvalue() + err.getvalue()
+
+    def print_tooling(self):
+        code, output = self.run_ci("--print-tooling")
+        self.assertEqual(code, 0, output)
+        return output.split()
+
+    def test_an_english_change_may_edit_a_test_that_asserts_the_old_english(self):
+        self.english_change()
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "New words"; }'))
+        code, output = self.run_ci()
+        self.assertIn("ci_gates: english-change change", output)
+        self.assertIn("PASS proof tooling unchanged (unchanged)", output)
+        self.assertRegex(output, r"REPORT tests/l10n edits follow l10n/english-changes.tsv \(tests/l10n/ChargingTest"
+                                 r"\.java; check that each edit only follows a row of l10n/english-changes.tsv\)")
+        self.assertEqual(code, 0, output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [])
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        code, output = self.run_ci("--print-english-tests")
+        self.assertEqual(output.split(), [self.CHARGING])
+
+    def test_an_english_change_may_not_edit_a_gate_test(self):
+        self.english_change()
+        self.repo.write(self.LEDGER_TEST, java_class("LedgerTest", '    String s() { return "b"; }'))
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/LedgerTest.java)", output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [self.LEDGER_TEST])
+
+    def test_an_english_change_may_not_edit_the_tools(self):
+        self.english_change()
+        self.repo.write("tools/l10n/frozen_literals.py", "def run():\n    return []\n")
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tools/l10n/frozen_literals.py)", output)
+
+    def test_an_english_change_may_not_delete_a_test(self):
+        self.english_change()
+        self.repo.remove("tests/l10n/XTest.java")
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/XTest.java)", output)
+
+    def test_a_batch_may_still_not_edit_a_test(self):
+        self.repo.write("res/values/strings_rides.xml", '<resources><string name="rides_x">X</string></resources>\n')
+        self.repo.write(self.CHARGING, java_class("ChargingTest", '    String s() { return "Old words"; }\n'
+                                                                  '    String t() { return "a"; }'))
+        code, output = self.run_ci()
+        self.assertEqual(code, 1, output)
+        self.assertIn("ci_gates: batch change", output)
+        self.assertIn("FAILED proof tooling unchanged (tests/l10n/ChargingTest.java)", output)
+        self.assertNotIn("tests/l10n edits follow", output)
+        self.repo.git("reset", "-q", "--soft", "HEAD~1")
+        self.assertEqual(self.print_tooling(), [self.CHARGING])
+
+    def test_only_existing_non_gate_tests_are_reported(self):
+        for path, reported in (("tests/l10n/ChargingTest.java", True), ("tests/l10n/MainTextTest.java", True),
+                               ("tests/l10n/LedgerTest.java", False), ("tests/l10n/FmtLegacyTest.java", False),
+                               ("tests/l10n/ReportsStayEnglishTest.java", False),
+                               ("tests/l10n/GlyphCoverageTest.java", False), ("tests/l10n/CatalogCheckTest.java", False),
+                               ("tests/l10n/CatalogUsageTest.java", False), ("tests/l10n/GoldenReports.java", False),
+                               ("tests/l10n/L10nFiles.java", False), ("tests/l10n/sub/ChargingTest.java", False),
+                               ("tests/l10n/golden.sh", False), ("tests/ChargingTest.java", False)):
+            self.assertEqual(ci_gates.english_test_file(path), reported, path)
+
+
 class ProveEnglishRuleTest(unittest.TestCase):
     def test_g8_follows_ci_gates_for_each_kind(self):
         here = os.path.dirname(os.path.abspath(__file__))
