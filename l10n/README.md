@@ -1378,6 +1378,63 @@ python3 tools/l10n/council.py audit-record --tag $T --area $A --name opus --from
 `runs.jsonl`. Prompts, replies and sidecars stay ignored, under `prompts/`, `replies/` and `audit/`
 (`l10n/.gitignore`), so a reply whose sidecar is gone means prompting again.
 
+### Seeing draft languages in a running app
+
+```sh
+python3 tools/l10n/draft_apk.py --tags es,de --workdir <scratch dir> --out <dir>
+```
+
+`draft_apk.py` builds `<out>/volt-draft-languages.apk` from the Claude drafts of `draft` languages,
+for a look on an emulator or test phone. Claude-only text stays `draft`, out of `res/` and out of
+every release; the drafts are only read, so they stay usable as the Claude provider's draft in the
+council.
+
+- **Where it works.** It exports HEAD into a fresh copy under `--workdir`, deleted at the end unless
+  `--keep`. Only that copy gets `res/values-<qual>/`, status `beta`, `locales_config.xml` and
+  `android:localeConfig`. Nothing else is written outside `--workdir` and `--out`, and it refuses
+  either path inside the worktree or another git checkout (its `.git` directory included), any `res/`
+  or `dist/` path, and a checkout whose `res/` has uncommitted changes (the build would not include
+  them). `--root` exports another checkout than the one the tool is in.
+- **Which text.** `l10n/work/<tag>/<area>/drafts/claude-<config>.xml`, chosen with `--name` (default:
+  the only one). `--drafts <root>` reads the drafts and the language's `l10n/` files from another
+  folder. Only keys whose `volt:src` still matches and that pass `check.py` are written, with
+  `merge.py`'s writer; every other key shows English, and a ladder goes whole or not at all. A language
+  with no drafts is an error, and so is one none of whose draft text can be shown.
+- **Safety terms.** No judge stands behind this tool, so a safety key shows English (state `unchecked`)
+  when `check.py` could not notice an inversion in it. One cause is a safety term with no approved
+  target in `l10n/glossary/<tag>.tsv` ("Unlocked" for "Locked"); a language with no glossary file gets a
+  warning and every such key in English. The other is a language without a word list in `lexicon.py`
+  that the key needs, since a glossary target alone does not catch these: `NEGATION` for any safety key
+  ("No bloquejat"), `REMOVAL_CONTEXT` for a key with a lock term ("Odstranit zámek", "remove lock", for
+  "Lock status": today da, nb, fi, cs, sk, ro, hu, hr and tr lack it), and `STATE_WORDS` where the
+  English says on or off. The run names the missing lists. Add the glossary or the list to see those
+  keys translated.
+- **What is still unchecked.** Passing these checks does not prove the meaning. A written safety key with
+  no safety term that has a target (a charge alarm's "Full" as "Empty"), and a key that names a lock word
+  but has no `volt:safety`, are counted as `unverified` and listed for a person to read.
+- **Checks.** `merge.py`'s validation, the catalog generator, `CatalogCheckTest` and
+  `GlyphCoverageTest` run on the copy. A failure means no APK. `--no-build` stops after the Python
+  checks and writes the report. Once a run has accepted its paths and found its drafts, it removes the
+  APK, its `.idsig` and the reports of an earlier run from `--out`, and a run that then fails leaves no
+  APK. A refusal before that (bad paths, `res/` with uncommitted changes, no drafts) leaves `--out` as
+  it was, so what is there still describes the earlier run.
+- **Not a release.** The versionName ends in `-draft-languages` (`1.11.1-dev-draft-languages`: the
+  app's version pattern has room for three suffix parts, so the commit is in the report instead), and
+  the copy's `build.sh` refuses `VOLT_RELEASE`. The APK is signed with a key made for that copy
+  and deleted with it, and the caller's `NAVEE_*` and `VOLT_*` settings are dropped. So it cannot update
+  an installed Volt: uninstall Volt first, which removes its data.
+- **Report.** `<out>/report.tsv` has one row per language and area and a `TOTAL` row: `translated`,
+  `english_fallback` (every key shown in English), `failing`, `stale` and `unchecked` (drafted keys
+  refused, also counted in `english_fallback`), `unknown` (unused draft keys: the English no longer has
+  them, has them in another area, or no longer has the area), `warned` (written keys with `check.py`
+  warnings, for a person to read, since no judge does), `unverified` (written keys whose meaning nothing
+  checked), the safety and lock or alarm counts with `safety_unverified` and `lock_alarm_unverified`,
+  and `commit`. `<out>/report-keys.tsv` gives the reason for each refused, unknown, warned or unverified
+  key.
+
+The app's own Language row appears (More > App preferences), since the copy's language is `beta`.
+Text still in Java, such as the bottom bar's labels, stays English whatever the draft says.
+
 ### Limits of the automated checks
 
 `check.py` and `lexicon.py` are a **first filter**. They reject the common ways a draft goes wrong
