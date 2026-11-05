@@ -6,7 +6,7 @@ src/com/jjricks/volt/CompatibilityPanel.java:309	{"one": ["✓ ", {"hole": "r.le
 src/com/jjricks/volt/DashboardScreen.java:5295	["✓ Save"]	dashboard_save_checked	exact	widget options Save
 src/com/jjricks/volt/DashboardScreen.java:5382	["✓ Save"]	dashboard_save_checked	exact	quick settings Save; read as shown
 src/com/jjricks/volt/DashboardScreen.java:6035	["✓ Save"]	dashboard_save_checked	exact	Choose readings Save
-src/com/jjricks/volt/DriveModeStep.java:153	[{"hole": "CHOICES[i].text", "arg": 1, "type": "s"}, " ✓"]	controls_drive_mode_choice_used	template	the name is the mode as the scooter shows it (CHOICES[i].text); the mark moves with it; read as shown
+src/com/jjricks/volt/DriveModeStep.java:153	[{"hole": "CHOICES[i].text", "arg": 1, "type": "s"}, " ✓"]	controls_drive_mode_choice_used	template	the name is the mode as the scooter shows it (CHOICES[i].text); the mark moves with it; screen readers say the plain mode name and common_selected instead
 src/com/jjricks/volt/MoreScreen.java:1038	["Unrestricted ✓"]	more_prefs_battery_value_unrestricted	exact	its spoken text is more_prefs_battery_unrestricted, unchanged
 src/com/jjricks/volt/MoreScreen.java:1038	["Optimized ⚠︎"]	more_prefs_battery_value_optimized	exact	with U+FE0E (S0); its spoken text is more_prefs_battery_optimized, unchanged
 src/com/jjricks/volt/MoreScreen.java:2567	["PIN ✓"]	more_chip_pin_on_value	exact	its spoken text is more_chip_pin_on, unchanged

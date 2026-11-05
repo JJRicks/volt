@@ -356,7 +356,7 @@
     <string name="controls_drive_mode_named" volt:screen="Report › Name your drive modes" volt:purpose="status">Named: %1$s</string>
     <!-- The owner does not know this mode's name. -->
     <string name="controls_drive_mode_unsure" volt:screen="Report › Name your drive modes" volt:purpose="button">Not sure</string>
-    <!-- A drive-mode button whose name the owner already used, read as shown: %1$s is the mode's name, kept as the scooter shows it. Keep the check mark. -->
+    <!-- A drive-mode button whose name the owner already used: %1$s is the mode's name, kept as the scooter shows it. Screen readers say the plain mode name and common_selected instead. Keep the check mark. -->
     <string name="controls_drive_mode_choice_used" volt:screen="Report › Name your drive modes" volt:purpose="status" volt:dnt="✓">%1$s ✓</string>
     <!-- Joins named modes in the order the scooter showed them: %1$s the modes so far, %2$s the next one. Use an arrow that points in your reading direction. -->
     <string name="controls_drive_mode_sequence" volt:screen="Report › Name your drive modes" volt:purpose="list">%1$s → %2$s</string>
