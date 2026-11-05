@@ -2,3 +2,8 @@
 # tests/l10n/*.sources and runs each tests/l10n/**Test.java from the repository root.
 # G5: the base's expressions F6 turns into templates, plurals and number parts, copied and pinned before the batch.
 tests/l10n/characterization/DashboardFollowupsEnglishTest.java
+# F6's own suite and the plain Java classes it calls.
+tests/l10n/DashboardFollowupsTest.java
+src/com/jjricks/volt/SearchFold.java
+src/com/jjricks/volt/ReadingUnits.java
+src/com/jjricks/volt/DashboardWords.java

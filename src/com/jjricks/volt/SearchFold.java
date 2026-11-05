@@ -14,8 +14,13 @@ final class SearchFold {
     private SearchFold() {}
 
     static String fold(String text) {
-        String lower = text.toLowerCase(Fmt.locale(Locale.ROOT));
-        if (Fmt.legacy()) return lower;
+        return fold(text, Fmt.locale(Locale.ROOT), Fmt.legacy());
+    }
+
+    /** With the choices fold makes spelled out, for a test: no language besides English ships yet. */
+    static String fold(String text, Locale locale, boolean legacy) {
+        String lower = text.toLowerCase(locale);
+        if (legacy) return lower;
         String split = Normalizer.normalize(lower, Normalizer.Form.NFD);
         StringBuilder folded = new StringBuilder(split.length());
         for (int i = 0; i < split.length(); ) {

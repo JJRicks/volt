@@ -7,70 +7,35 @@
   condition picks are checked against the original chain by tests/l10n/DashboardScreenTextTest.java,
   and the numbers and names by tests/l10n/characterization/DashboardScreenEnglishTest.java).
 
-  Stored values stay English: a widget's saved title and note, a saved slot's name, an export and an
-  import keep the English text. The title, note and slot name editors start at the text as shown;
-  saved unchanged, they keep what was saved. A slot name of Volt's is kept only where the save
-  leaves it Volt's (the example's name needs the example's own widgets); otherwise the field's text
-  is saved, the name as it was shown (DashboardConfig.slotNameToSave). Widget type names, default
-  titles and slot names come from strings_dashboard_model.xml.
+  Stored values stay English: a widget's saved title and note, and the shipped example's slot name
+  while it is Volt's. A slot name the owner saved stays as saved, and a slot name that does not stay
+  Volt's is saved as it was shown (DashboardConfig.slotNameToSave). Exports and imports carry what
+  was saved, so an export holds these English values, and anything the owner typed, as saved. The
+  title, note and slot name editors start at the text as shown; saved unchanged, they keep what was
+  saved. Widget type names, default titles and slot names come from strings_dashboard_model.xml.
 
-  What this screen still shows or speaks in English, and why (DashboardScreen.java lines):
-  - the header status line and its spoken form ("Connected · Sport", "Disconnected · last seen
-    14:05", "Connected, Sport mode. Connection details", :792-813): the state word is picked on the
-    line above, and G1 has no row for a choice set on an earlier line (l10n/README.md, "Still
-    blocked"); see the comment at :787;
-  - text with a mark the Saira font has no glyph for: GlyphCoverageTest refuses it in the catalog,
-    and keeping the mark in Java beside a key would be a new literal, which G1 refuses. It waits for
-    the font check, not for the G1 tooling round. The owner chose a reviewed GlyphCoverageTest
-    allow-list, not icons; the glyph tooling branch (claude/l10n-glyph-symbols) allows U+2713,
-    U+26A0 with U+FE0E, U+2606 and U+2605, as B16's star and B18's battery row need:
-    - the three "✓ Save" buttons (U+2713, on that list): widget options :5295, quick settings
-      :5382, Choose readings :6035. The widget options and Choose readings buttons have translated
-      spoken names (dashboard_save_widget_options, dashboard_save_readings); the quick settings one
-      is read as shown;
-    - the header's "Connecting…" while it connects (connectingLabel :819): the text ends in
-      U+FFFC, the place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is
-      not on that list, so the allow-list does not move it: it waits for a change that keeps only
-      "Connecting…" in the catalog and appends the placeholder in code where the span is set;
-  - count phrases whose plural ending shares an expression with a choice: a choice row's branches
-    cannot be plural rows, and a choice of fixed whole templates would keep English's two forms in
-    every language:
-    - the estimate details sheet's Window value ("7 days · live", :3803-3804);
-    - the column choices' spoken text ("2 columns, needs a wider screen", :6245-6246);
-    - a saved slot's summary line ("Empty", "Unreadable", "1 widget · 14:05", "3 widgets · 03 NOV ·
-      14:05", :6558-6562), one expression for all four. hardcoded_lint does not flag it (single
-      words and a count reach ui.caption through a String local), so
-      l10n/baseline/DashboardScreen.txt does not list it either;
-  - text inside String.format, which a format row cannot cover with a plural or a choice:
-    - the Charging check value ("12.4 Ah · 3 charges", :3795): the plural ending is a format
-      argument (a plural cannot replace a String.format line);
-    - the advertised capacity row's value ("716.04 Wh · model", ratingLabel :5726): " · model" is
-      a ternary passed to the format's %s;
-  - a window's long name in the chart and sample captions ("10 minutes", windowName :6055-6058):
-    the unit word is picked on the line above its plural ending ("a choice set on an earlier
-    line");
-  - the recording button's spoken text ("Recording 0:42, 1.2 mi, 15 Wh. Stop & save", :3560-3561):
-    the list separator of TextUtils.join sits inside the optional part, so a choice row would own
-    a literal that one of its holes needs;
-  - two literals beside a line this batch changes that is not a ledger row, so converting them
-    would put text and that change in one hunk, which G1 refuses in an extraction batch ("around
-    text"):
-    - the reported range's chart caption "Scooter range" (:3913-3914), beside the caption's title
-      test (:3912, now englishLabel(key));
-    - "Close widget options", spoken for the widget options sheet's close button (:5314), beside
-      the sheet title (:5313, now DashboardConfig.typeName);
-  - the scale rows' values and the scale dialog's spoken input ("25 mph", scaleSummary :6061;
-    "Scale maximum in mph", :6081-6082) and the chart's unit: chartUnit is a data unit that
-    Ui.ChartView matches against UnitCode data codes (see chartUnit's javadoc, :955), and the
-    number keeps US digits;
-  - the note widget's options row value, widget.note as saved, so the shipped example's note shows
-    its English there (:5216), and the quick settings search, which matches English shortcut names
-    and groups only (:5432): each statement holds text, and around text an extraction batch may
-    only replace a ledger row's expression (G1), so these wait for an ordinary change;
+  What this screen still shows or speaks in English, and why (DashboardScreen.java lines drift; find
+  the code by the words quoted):
+  - the Charging check value ("12.4 Ah · 3 charges"): the plural ending is an argument of a
+    String.format, and a plural row cannot replace a String.format line, so it waits for the gate
+    tooling (F6's report has the repro);
+  - the header's "Connecting…" while it connects (connectingLabel): the text ends in U+FFFC, the
+    place of the inline spinner's ImageSpan, which the font never draws. U+FFFC is not on
+    GlyphCoverageTest's allow-list (merged as #187, with U+2713, U+26A0 with U+FE0E, U+2606 and
+    U+2605), so it waits for a change that keeps only "Connecting…" in the catalog and appends the
+    placeholder in code where the span is set;
+  - the three "✓ Save" buttons (U+2713, on that list), which move with that same change. The widget
+    options and Choose readings buttons have translated spoken names (dashboard_save_widget_options,
+    dashboard_save_readings); the quick settings one is read as shown;
+  - the scale dialog's spoken input names the chart's data unit ("Scale maximum in mph"): chartUnit
+    is a data unit that Ui.ChartView matches against UnitCode data codes (see its javadoc), so it
+    stays data, and that statement cannot take shownUnit around text (G1). The dialog's unit beside
+    the field and the scale rows' values show the unit's symbol. In English they are the same text;
+  - the scale dialog's own number field (GaugeScaleInput) keeps US digits, so what is typed parses;
   - two big percents that put the sign after the digits in Java, as English does, with US digits:
-    the charging hero's (:1716, number + "%") and the Overview widget's (:2916, amount + "%"). A
-    language's percent order (Fmt.percent) does not reach them yet; the battery cell's does
-    (36e1eb6), and these wait for the same change, which also places the sign's smaller span;
+    the charging hero's (number + "%") and the Overview widget's (amount + "%"). A language's percent
+    order (Fmt.percent) does not reach them yet; the battery cell's does (36e1eb6), and these wait for
+    the same change, which also places the sign's smaller span;
   - text other files still build in English, shown as it is wherever the screen shows or speaks it:
     ChargingEstimate.Result.status, in the charging hero's spoken time and its long-press tooltip
     (:1729-1735) and in the Charging and Battery widgets' time cell, spoken and as the tile's
@@ -86,10 +51,12 @@
     reading cells and the gauge (:3452, :3466, :3469, :4232), the Overview's spoken text
     (:2930-2934) and a saved slot's summary (:6561); and reading values from format()
     (DisplayUnits.metricText's canonical English: US digits and Telemetry's unit symbols), which
-    withUnit and Gauge.set split at the last space (:923).
-  Translated with a limit: dashboard_rides_range and dashboard_rides_points are not plurals (a
-  plural cannot replace a String.format line, and rides_points holds two counts); their notes ask
-  for a form whose noun does not change with the number.
+    withUnit and Gauge.set read through ReadingUnits: speed and temperature by their number and unit
+    parts (Formatted), others by their space, a no-break space included.
+  The whole-sentence plurals of F6 (dashboard_capacity_rides, dashboard_capacity_points_used,
+  dashboard_selected_of_most) replaced dashboard_rides_range, dashboard_rides_points and
+  dashboard_count_of_selected. Those three stay in this file, unused, because B13's ledger rows name
+  them; a translator need not fill them.
 -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n"
     xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
@@ -346,13 +313,9 @@
     <string name="dashboard_refresh_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Last estimate · refresh unavailable</string>
     <string name="dashboard_estimate_unavailable" volt:screen="Home capacity widget" volt:purpose="status" volt:safety="experimental">Estimate unavailable</string>
     <string name="dashboard_not_enough_data" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">Not enough ride data</string>
-    <!-- The summary: %1$s is how many rides were used (English keeps "rides" for every number), %2$s and %3$s the low and high energy, %4$s the unit ("Wh").
-         Not a plural yet (a tooling round must let a plural replace a String.format line): where the
-         noun must agree with the number, use a form that does not, such as "rides: %1$s". -->
+    <!-- Unused since F6 (dashboard_capacity_summary): kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_rides_range" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s–%3$s %4$s</string>
-    <!-- The summary without a range: %1$s rides, %2$s battery percentage points (two counts, so not a
-         plural): where a noun must agree with its number, use a form that does not, such as
-         "rides: %1$s · points used: %2$s". -->
+    <!-- Unused since F6 (dashboard_capacity_summary): kept for B13's ledger row, no need to translate. -->
     <string name="dashboard_rides_points" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s rides · %2$s points used</string>
     <!-- How the estimate compares with the reference: %1$s is a whole percent, %2$s the reference energy, %3$s the unit ("Wh"). -->
     <string name="dashboard_percent_of" volt:screen="Home capacity widget" volt:purpose="value" volt:safety="experimental">%1$s%% of %2$s %3$s</string>
@@ -477,7 +440,7 @@
     <string name="dashboard_search_parameters" volt:screen="Choose parameter sheet" volt:purpose="hint">Search parameters</string>
     <string name="dashboard_choose_parameter" volt:screen="Choose parameter sheet" volt:purpose="title">Choose parameter</string>
     <string name="dashboard_search_readings" volt:screen="Choose readings sheet" volt:purpose="hint">Search readings</string>
-    <!-- How many readings are chosen: %1$s of at most %2$s (whole numbers). -->
+    <!-- Unused since F6 (dashboard_selected_of_most): kept for B13's ledger rows, no need to translate. -->
     <string name="dashboard_count_of_selected" volt:screen="Choose readings sheet" volt:purpose="value">%1$s of %2$s selected</string>
     <string name="dashboard_all_readings" volt:screen="Choose readings sheet" volt:purpose="section label">All readings</string>
     <!-- %1$s is a reading's name. -->

@@ -67,6 +67,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
             quickAccessPersistence();
             legacyFourColumnSlots();
             temporaryWidthConstraints();
+            exampleCopiesKeepTheirWords();
             editHistoryRestoresStructureOnly();
             editHistoryRestoresBothDisplays();
             editHistoryNoOpsAndBounds();
@@ -297,6 +298,30 @@ public final class DashboardSlotsValidation extends Instrumentation {
         checks.add("Injected example-builder failures leave valid/custom and fresh dashboards usable, preserve saved state, and allow a later retry without regenerating active widget IDs");
         checks.add("Every example type has sensible options and explicit nonoverlapping, gap-free 1–6-column layouts; measured sizing remains safe without rewriting the saved example");
     }
+
+    /** A duplicate of the example's widget shows its original's words in every language; its saved text stays English. */
+    private void exampleCopiesKeepTheirWords() {
+        for (DashboardConfig.Widget widget : AllWidgetsDashboard.create()) {
+            DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(widget);
+            copy.title = widget.title;
+            copy.note = widget.note;
+            require(copy.type.equals(widget.type) && !copy.id.equals(widget.id), "A copy is the same type with its own id");
+            require(java.util.Objects.equals(copy.title, widget.title) && java.util.Objects.equals(copy.note, widget.note),
+                    "A copy's saved text is its original's");
+            require(words(AllWidgetsDashboard.exampleTitle(copy)).equals(words(AllWidgetsDashboard.exampleTitle(widget)))
+                            && words(AllWidgetsDashboard.exampleNote(copy)).equals(words(AllWidgetsDashboard.exampleNote(widget))),
+                    "A copy of the example's " + widget.type + " does not show its original's words");
+        }
+        DashboardConfig.Widget mine = new DashboardConfig.Widget("note");
+        mine.note = AllWidgetsDashboard.NOTE_TEXT;
+        DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(mine);
+        copy.note = mine.note;
+        require(AllWidgetsDashboard.exampleNote(copy) == null && !AllWidgetsDashboard.isExample(copy),
+                "A copy of the owner's widget became the example's");
+        checks.add("A duplicate of an example widget shows its original's words with English saved text; an owner's stays the owner's");
+    }
+
+    private static String words(Msg message) { return message == null ? "" : message.english(); }
 
     private DashboardConfig withExampleFactory(String profile,
             java.util.function.Supplier<ArrayList<DashboardConfig.Widget>> factory) throws Exception {
