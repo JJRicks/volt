@@ -1,0 +1,17 @@
+# Greek. Claude-only proposal, not final; see l10n/style/el.md. Saira has no Greek, so font is system.
+field	value
+tag	el
+folder	values-el
+endonym	Ελληνικά
+wave	3
+status	draft
+formality	εσύ
+plurals	one,other
+quote_style	«…» “…”
+percent_style	%1$s%%
+decimal_style	1.234,5
+script	Grek
+font	system
+rtl	false
+unit_symbols	si
+drive_mode_names	english
