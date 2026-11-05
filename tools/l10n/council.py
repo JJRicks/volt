@@ -10,6 +10,10 @@ environment; see providers.py for how they are kept out of every output.
                                                         the prompt for a Claude Code drafting agent
   council.py import-claude --tag es --area common [--from reply.json --name N --model ID]
                                                         validate drafts/claude-*.xml (or convert JSON)
+  council.py prompt --tag es --area more --name opus [--style S] --chunk-keys 150 [--redraft | --top-up]
+                                                        one prompt per chunk, whose replies carry no src
+  council.py import-claude --tag es --area more --name opus --model ID --from-chunks [--partial] [--redraft]
+                                                        merge the chunks' replies into drafts/claude-opus.xml
   council.py draft openai|google --tag es --area common  draft with the provider's API
   council.py check --tag es --area common               checks.jsonl (tools/l10n/check.py)
   council.py redraft openai|google --tag es --area common
@@ -466,6 +470,273 @@ def import_claude(paths, tag, area, source=None, name=None, model=None, redraft=
             ("stage", "import"), ("draft", draft.name), ("provider", "claude"), ("model", draft.model),
             ("keys", len(draft.entries)), ("problems", len(problems))]))
     return errors
+
+
+# ---------------------------------------------------------------------------
+# Claude Code agents, in chunks (whole languages)
+# ---------------------------------------------------------------------------
+
+CHUNK_SET_FORMAT = "volt-l10n-chunk-set-v1"
+SET_ID = re.compile(r"^[0-9a-f]{12}$")
+
+
+def current_english(paths, area):
+    """{key: (kind, source hash)} of an area's translatable keys in file order, from res/values/, not a pack."""
+    sources, _ = translib.load_source(paths)
+    if area not in sources:
+        raise translib.L10nError("no res/values/strings_%s.xml" % area)
+    return collections.OrderedDict((s.key, (s.kind, translib.source_sha1(s.kind, s.items)))
+                                   for s in sources[area] if s.translatable)
+
+
+def pack_out_of_date(paths, pack):
+    """Why a pack no longer shows the current English or glossary, or None."""
+    english = dict((k, v[1]) for k, v in current_english(paths, pack["area"]).items())
+    shown = dict((e["key"], e["source_sha1"]) for e in pack["entries"])
+    if english != shown:
+        return "the English changed: %s" % ", ".join(sorted(k for k in set(english) | set(shown)
+                                                            if english.get(k) != shown.get(k))[:5])
+    targets = dict((t.id, t.targets) for t in translib.load_glossary(paths, pack["tag"]))
+    changed = sorted(set(g["id"] for e in pack["entries"] for g in e["glossary"]
+                         if targets.get(g["id"]) != g.get("target")))
+    return "the glossary changed: %s" % ", ".join(changed[:5]) if changed else None
+
+
+def draft_file(paths, tag, area, draft_name):
+    return os.path.join(paths.drafts(tag, area), draft_name + ".xml")
+
+
+def lacking_entries(pack, entries, draft):
+    """The entries a draft has no text of the current English for, with the rest of their ladders."""
+    lacking = set()
+    for e in entries:
+        have = draft.entries.get(e["key"]) if draft else None
+        if have is None or checklib.stale_source(have.src, e["source_sha1"]):
+            lacking.add(e["key"])
+            lacking.update(e.get("ladder_group") or [])
+    return [e for e in pack["entries"] if e["key"] in lacking]
+
+
+def chunk_set_id(fields):
+    """The id of a prompt set: the hash of what it showed, so the same prompts get the same id."""
+    shown = dict((f, fields[f]) for f in ("format", "tag", "area", "draft", "style", "redraft", "chunks"))
+    return hashlib.sha1(translib.dump_json_line(shown).encode("utf-8")).hexdigest()[:12]
+
+
+def chunk_sidecar_path(paths, tag, area, draft_name, set_id):
+    return paths.work(tag, area, "prompts", "%s.chunks.%s.json" % (draft_name, set_id))
+
+
+def chunk_pointer_path(paths, tag, area, draft_name):
+    return paths.work(tag, area, "prompts", "%s.chunks.current" % draft_name)
+
+
+def chunk_reply_path(paths, tag, area, draft_name, set_id, index, count):
+    return paths.work(tag, area, "replies", "%s.%s" % (draft_name, set_id), "chunk-%d-of-%d.json" % (index, count))
+
+
+def remove_chunk_prompts(directory, prefix):
+    """Delete an earlier set's prompt files, whose numbering may not match the new set's."""
+    pattern = re.compile(r"^%s\.chunk-\d+-of-\d+\.md$" % re.escape(prefix))
+    if os.path.isdir(directory):
+        for filename in os.listdir(directory):
+            if pattern.match(filename):
+                os.remove(os.path.join(directory, filename))
+
+
+def chunked_prompts(paths, tag, area, name, style, chunk_keys, redraft=False, top_up=False):
+    """Write prompts/claude-<name>.chunk-<i>-of-<n>.md, one per chunk, and the sidecar of the set.
+
+    A chunk gets the same rules as a single prompt, but its reply carries no src: the sidecar records
+    each key's source hash as the prompt showed it, and import-claude --from-chunks reads the hash
+    from there. Returns (set id, [prompt paths]); ([], None) when there is nothing to draft.
+    """
+    pack = packlib.load_pack(paths, tag, area)
+    stale = pack_out_of_date(paths, pack)
+    if stale:
+        raise translib.L10nError("the pack is out of date (%s); run tools/l10n/pack.py --tag %s --area %s" % (
+            stale, tag, area))
+    draft_name = "claude-" + name
+    path = draft_file(paths, tag, area, draft_name)
+    draft = translib.read_draft(path) if os.path.exists(path) else None
+    style = style or (draft.prompt if draft else None) or "standard"
+    by_key = dict((e["key"], e) for e in pack["entries"])
+    findings = {}
+    if redraft:
+        findings = failed_keys(paths, tag, area, draft_name)
+        if not findings:
+            raise translib.L10nError("%s has no failed first attempts to redraft" % draft_name)
+        entries = [by_key[k] for k in findings if k in by_key]
+    else:
+        entries = needed_entries(pack)
+        if top_up:
+            entries = lacking_entries(pack, entries, draft)
+    parts = chunks(pack, entries, chunk_keys)
+    if not parts:
+        return None, []
+    fields = collections.OrderedDict([
+        ("format", CHUNK_SET_FORMAT), ("tag", tag), ("area", area), ("draft", draft_name), ("style", style),
+        ("redraft", bool(redraft)),
+        ("chunks", [collections.OrderedDict((e["key"], e["source_sha1"]) for e in part) for part in parts])])
+    set_id = chunk_set_id(fields)
+    fields["id"] = set_id
+    translib.write_json(chunk_sidecar_path(paths, tag, area, draft_name, set_id), fields)
+    l10nlib.write_text(chunk_pointer_path(paths, tag, area, draft_name), set_id + "\n")
+    directory = paths.work(tag, area, "prompts")
+    remove_chunk_prompts(directory, draft_name)
+    command = "python3 tools/l10n/council.py import-claude --tag %s --area %s --name %s --model <your exact model id> " \
+              "--from-chunks%s" % (tag, area, name, " --redraft" if redraft else "")
+    written = []
+    for index, part in enumerate(parts, 1):
+        reply = chunk_reply_path(paths, tag, area, draft_name, set_id, index, len(parts))
+        os.makedirs(os.path.dirname(reply), exist_ok=True)
+        text = "\n\n".join([
+            "# Volt translation draft: %s, area %s, %s, chunk %d of %d (set %s)" % (
+                tag, area, draft_name, index, len(parts), set_id),
+            "Work alone: do not open other chunks, drafts, judge files or decisions under l10n/work/ or "
+            "l10n/decisions/.",
+            instructions(pack, style),
+            "Your object holds only `strings` and `notes`, with no hashes: the tools recorded which English this "
+            "chunk shows.",
+            "When done, write the JSON object to `%s`. Once every chunk of this set has its reply, this imports them "
+            "into `%s` (it refuses while a chunk is missing; --partial imports the ones that are there):\n\n    %s" % (
+                paths.rel(reply), paths.rel(path), command),
+            "## Strings\n\n" + user_prompt(pack, part, dict((k, findings[k]) for k in findings
+                                                            if k in set(e["key"] for e in part))),
+        ])
+        prompt = os.path.join(directory, "%s.chunk-%d-of-%d.md" % (draft_name, index, len(parts)))
+        l10nlib.write_text(prompt, text + "\n")
+        written.append(prompt)
+    return set_id, written
+
+
+def load_chunk_set(paths, tag, area, draft_name, set_id=None):
+    """A prompt set's sidecar, by id or the latest one, checked against its id."""
+    if set_id is None:
+        pointer = chunk_pointer_path(paths, tag, area, draft_name)
+        if not os.path.exists(pointer):
+            raise translib.L10nError("%s: no chunked prompts were written (prompt --chunk-keys)" % paths.rel(pointer))
+        set_id = l10nlib.read_text(pointer).strip()
+    if not SET_ID.match(set_id or ""):
+        raise translib.L10nError("%r is not a prompt set id" % set_id)
+    path = chunk_sidecar_path(paths, tag, area, draft_name, set_id)
+    if not os.path.exists(path):
+        raise translib.L10nError("%s does not exist; write the prompts again" % paths.rel(path))
+    fields = json.loads(l10nlib.read_text(path))
+    if (not isinstance(fields, dict) or fields.get("format") != CHUNK_SET_FORMAT or fields.get("id") != set_id
+            or (fields.get("tag"), fields.get("area"), fields.get("draft")) != (tag, area, draft_name)
+            or not isinstance(fields.get("chunks"), list) or chunk_set_id(fields) != set_id):
+        raise translib.L10nError("%s does not match its id; write the prompts again" % paths.rel(path))
+    return fields
+
+
+def read_chunk_replies(paths, tag, area, prefix, set_id, count):
+    """({1-based index: the reply's strings}, ["why a chunk has no usable reply"])."""
+    replies, missing = {}, []
+    for index in range(1, count + 1):
+        reply = chunk_reply_path(paths, tag, area, prefix, set_id, index, count)
+        where = paths.rel(reply)
+        if not os.path.exists(reply):
+            missing.append("chunk %d of %d: no reply at %s" % (index, count, where))
+            continue
+        try:
+            value = json.loads(l10nlib.read_text(reply))
+        except ValueError as error:
+            missing.append("chunk %d of %d: %s is not JSON: %s" % (index, count, where, error))
+            continue
+        strings = value.get("strings") if isinstance(value, dict) else None
+        if not isinstance(strings, dict):
+            missing.append("chunk %d of %d: %s has no \"strings\" object" % (index, count, where))
+            continue
+        replies[index] = strings
+    return replies, missing
+
+
+def other_reply_sets(paths, tag, area, prefix, set_id):
+    """Reply folders of other prompt sets, which an import does not read."""
+    directory = paths.work(tag, area, "replies")
+    if not os.path.isdir(directory):
+        return []
+    mine = "%s.%s" % (prefix, set_id)
+    pattern = re.compile(r"^%s\.[0-9a-f]{12}$" % re.escape(prefix))
+    return sorted(f for f in os.listdir(directory) if pattern.match(f) and f != mine and
+                  os.listdir(os.path.join(directory, f)))
+
+
+def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, set_id=None, out=None):
+    """Merge a chunk set's replies into drafts/claude-<name>.xml; returns the number of keys left out.
+
+    Each key's src is the one the sidecar recorded when its prompt was written, whatever a reply
+    says. A key whose English changed since then is reported and left out, so it can never be filed
+    against the new English. Keys the set does not cover stay as they are, and a second run of the
+    same set writes the same file.
+    """
+    out = out or sys.stdout
+    if not name or not model:
+        raise translib.L10nError("--from-chunks needs --name and --model")
+    if not model.startswith("claude"):
+        raise translib.L10nError("%r is not a Claude model id; a Claude draft is filed only under its own model" % model)
+    draft_name = "claude-" + name
+    fields = load_chunk_set(paths, tag, area, draft_name, set_id)
+    if bool(redraft) != fields["redraft"]:
+        raise translib.L10nError("prompt set %s is %sa redraft; %s --redraft" % (
+            fields["id"], "" if fields["redraft"] else "not ", "pass" if fields["redraft"] else "do not pass"))
+    path = draft_file(paths, tag, area, draft_name)
+    previous = translib.read_draft(path) if os.path.exists(path) else None
+    if previous is not None and previous.model != model:
+        raise translib.L10nError("%s was drafted by %s, not %s; a draft names one model, so use another --name" % (
+            paths.rel(path), previous.model, model))
+    if redraft and previous is None:
+        raise translib.L10nError("%s does not exist; a redraft replaces keys of an existing draft" % paths.rel(path))
+    count = len(fields["chunks"])
+    replies, missing = read_chunk_replies(paths, tag, area, draft_name, fields["id"], count)
+    if missing and not partial:
+        raise translib.L10nError("%d of %d chunks have no usable reply; nothing was written (--partial imports the "
+                                 "rest):\n  %s" % (len(missing), count, "\n  ".join(missing)))
+    for line in missing:
+        out.write("  %s\n" % line)
+    for other in other_reply_sets(paths, tag, area, draft_name, fields["id"]):
+        out.write("  note: replies/%s belongs to an earlier prompt set and was not read (--set)\n" % other)
+    english = current_english(paths, area)
+    collected, problems = {}, []
+    for index, strings in sorted(replies.items()):
+        shown = fields["chunks"][index - 1]
+        for key in strings:
+            if key not in shown:
+                problems.append("%s: not in chunk %d; ignored" % (key, index))
+        for key, src in shown.items():
+            if key not in strings:
+                problems.append("%s: missing from the reply of chunk %d" % (key, index))
+            elif key not in english:
+                problems.append("%s: no longer in the English; left out" % key)
+            elif english[key][1] != src:
+                problems.append("%s: the English changed since the prompt (was %s, now %s); left out, redraft it" % (
+                    key, src[:12], english[key][1][:12]))
+            else:
+                items = translib.items_of(english[key][0], strings[key])
+                if items is None:
+                    problems.append("%s: expected %s" % (key, "a string" if english[key][0] == "string" else
+                                                         "an object of plural categories"))
+                else:
+                    collected[key] = (key, english[key][0], items, MAX_ATTEMPTS if redraft else 1, src)
+    merged = existing_draft_entries(path) if previous is not None else collections.OrderedDict()
+    for key in merged:
+        if key not in english:
+            problems.append("%s: no longer in the English; dropped from the draft" % key)
+    merged.update(collected)
+    if merged:
+        reported = previous.model_reported if previous is not None else model
+        prompt = previous.prompt if previous is not None else fields["style"]
+        translib.write_draft(path, draft_name, model, [merged[k] for k in english if k in merged], reported, prompt)
+    for problem in problems:
+        out.write("  %s\n" % problem)
+    out.write("%s (%s): %d keys from %d of %d chunks, %d keys in the draft%s; run check\n" % (
+        paths.rel(path), model, len(collected), len(replies), count, sum(1 for k in merged if k in english),
+        ", %d problems" % len(problems) if problems else ""))
+    log_run(paths, tag, area, collections.OrderedDict([
+        ("stage", "import-chunks"), ("draft", draft_name), ("provider", "claude"), ("model", model),
+        ("set", fields["id"]), ("chunks", len(replies)), ("keys", len(collected)), ("problems", len(problems))]))
+    return len(problems)
 
 
 # ---------------------------------------------------------------------------
@@ -1153,6 +1424,13 @@ def glossary_check(paths, tag, out=None):
 # CLI
 # ---------------------------------------------------------------------------
 
+def positive_int(value):
+    number = int(value)
+    if number < 1:
+        raise argparse.ArgumentTypeError("%s is not a positive number" % value)
+    return number
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--root", help="repository root (default: this checkout)")
@@ -1169,8 +1447,10 @@ def main(argv=None):
     area_args(p)
     p.add_argument("--role", choices=("draft", "backtranslate", "judge"), default="draft")
     p.add_argument("--name", help="the draft's config name: drafts/claude-<name>.xml")
-    p.add_argument("--style", choices=sorted(STYLES), default="standard")
+    p.add_argument("--style", choices=sorted(STYLES), help="default standard (a chunked redraft or top-up: the draft's)")
     p.add_argument("--redraft", action="store_true", help="only the keys whose first attempt failed")
+    p.add_argument("--chunk-keys", type=positive_int, help="one prompt per chunk of about this many keys")
+    p.add_argument("--top-up", action="store_true", help="with --chunk-keys: only keys the draft lacks or has stale")
     p.add_argument("--no-style-guide", action="store_true", help="allow a prompt without l10n/style/<tag>.md")
     p = sub.add_parser("import-claude", help="validate drafts/claude-*.xml, or convert a JSON reply into one")
     area_args(p)
@@ -1178,6 +1458,9 @@ def main(argv=None):
     p.add_argument("--name")
     p.add_argument("--model")
     p.add_argument("--redraft", action="store_true")
+    p.add_argument("--from-chunks", action="store_true", help="read the replies of the prompts from --chunk-keys")
+    p.add_argument("--partial", action="store_true", help="with --from-chunks: import although chunks are missing")
+    p.add_argument("--set", dest="set_id", help="with --from-chunks: an earlier prompt set's id (default: the latest)")
     for command in ("draft", "redraft", "backtranslate"):
         p = sub.add_parser(command)
         p.add_argument("provider", choices=API_PROVIDERS)
@@ -1222,12 +1505,25 @@ def main(argv=None):
                     print("  %s: %s" % (role, error))
             return 0
         if args.command == "prompt":
+            if args.chunk_keys and (args.role != "draft" or (args.redraft and args.top_up)):
+                raise translib.L10nError("--chunk-keys is for a draft or a redraft, and --top-up is not a redraft")
             if args.role != "backtranslate":  # a back-translator sees neither the rules nor the glossary
                 prompt_gate(paths, args.tag, args.area, args.no_style_guide)
             if args.role == "draft":
                 if not args.name or not translib.DRAFT_NAME.match(args.name):
                     raise translib.L10nError("--name is required: lower-case letters, digits and dashes")
-                path = claude_prompt(paths, args.tag, args.area, args.name, args.style, args.redraft)
+                if args.chunk_keys:
+                    set_id, written = chunked_prompts(paths, args.tag, args.area, args.name, args.style,
+                                                      args.chunk_keys, args.redraft, args.top_up)
+                    if not written:
+                        print("%s/%s: nothing to draft" % (args.tag, args.area))
+                        return 0
+                    print("prompt set %s: %d chunks" % (set_id, len(written)))
+                    print("\n".join(paths.rel(p) for p in written))
+                    return 0
+                if args.top_up:
+                    raise translib.L10nError("--top-up needs --chunk-keys")
+                path = claude_prompt(paths, args.tag, args.area, args.name, args.style or "standard", args.redraft)
             elif args.role == "backtranslate":
                 path, count = backtranslation_prompt_file(paths, args.tag, args.area, use_java)
                 print("%d keys to back-translate" % count)
@@ -1236,6 +1532,11 @@ def main(argv=None):
                 print("%d judge requests" % len(rows))
             print(paths.rel(path))
             return 0
+        if args.command == "import-claude" and args.from_chunks:
+            if args.source:
+                raise translib.L10nError("--from and --from-chunks are alternatives")
+            return 1 if import_chunks(paths, args.tag, args.area, args.name, args.model, args.partial, args.redraft,
+                                      args.set_id) else 0
         if args.command == "import-claude":
             return 1 if import_claude(paths, args.tag, args.area, args.source, args.name, args.model,
                                       args.redraft) else 0
