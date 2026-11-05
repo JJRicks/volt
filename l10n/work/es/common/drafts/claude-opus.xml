@@ -8,8 +8,8 @@
     <string name="common_selected" volt:src="278db35a279ede48dd566d9eb0c4065b1b1e2d25">Seleccionado</string>
     <string name="common_on" volt:src="a84504c0e510dfc286d6a3b204ca352b95648266">Activado</string>
     <string name="common_off" volt:src="1a3a5312083d6e01b851e509937825a5aa74ef7b">Desactivado</string>
-    <string name="common_not_reported" volt:src="d4eb0bbd21fc68a85beb13021c0e481f43097c61">No informado</string>
-    <string name="common_try_again" volt:src="a028005df66fc7daa7ba1a91881535382a6d5df3">Volver a probar</string>
+    <string name="common_not_reported" volt:src="d4eb0bbd21fc68a85beb13021c0e481f43097c61">Sin datos</string>
+    <string name="common_try_again" volt:src="a028005df66fc7daa7ba1a91881535382a6d5df3">Reintentar</string>
     <string name="common_no_scooter" volt:src="5075c13384aa7eed9a12181d3fe593e84a34dee9">Sin patinete configurado</string>
     <string name="common_connect_charger_first" volt:src="5b031d6cb469e6bedcd3749c53369e3bb19f9c53">Conecta primero un cargador</string>
     <string name="common_wait_current_change" volt:src="f265acce1f963121bdd996fc77ce76c2e07a5bb5">Espera a que termine el cambio en curso</string>

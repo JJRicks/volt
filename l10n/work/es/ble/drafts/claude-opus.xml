@@ -17,7 +17,7 @@
     <string name="ble_nothing_found" volt:src="eea46e012d2fcf3b3e8767514d44b663c2d7b2cb">No se encontró ningún patinete</string>
     <string name="ble_owner_rejected" volt:src="994683b636ee2f3c70e06b45983393abce268fd8">Clave de propietario rechazada</string>
     <string name="ble_limited_model" volt:src="1c81540cff592d79e6c1a51e2de110d6209992a4">Controles limitados en este modelo</string>
-    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Elige una hora en punto dentro de las próximas 48 horas</string>
+    <string name="ble_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Elige una hora en punto en las próximas 48 horas</string>
     <string name="ble_failed_connection" volt:src="00ca36b13ce37fedd5af0bf3085879d1395e5ee1">No se pudo conectar</string>
     <string name="ble_failed_timed_out" volt:src="8c282885c8815225c681e23c7106459d5c4bdd97">Se agotó el tiempo de espera</string>
     <string name="ble_failed_connection_lost" volt:src="5ba698851bc903831c7d52fc19b46027034fb6cc">Se perdió la conexión</string>
@@ -27,7 +27,7 @@
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Firmware no compatible</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Patinete no reconocido</string>
     <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">No es el patinete guardado</string>
-    <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Este es %1$s. Selecciónalo en Mis patinetes o busca tu patinete nuevo.</string>
+    <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Este es %1$s. Selecciónalo en «Mis patinetes» o busca tu patinete nuevo.</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Se perdió la señal</string>
     <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Cambio no confirmado</string>
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · reintentando</string>
@@ -42,14 +42,14 @@
     <string name="ble_connect_simulated_first" volt:src="2d67a27158efdcd7c7ef687459e6b672d04569b9">Conecta primero el patinete simulado.</string>
     <string name="ble_scan_failed" volt:src="bdc93ce3c70f5f5611f29af5ed5cd28b88ada420">Falló la búsqueda</string>
     <string name="ble_choose_scooter" volt:src="a2093a7720bc3fe1871ad6c1f8daef1a76fee71e">Elige tu patinete.</string>
-    <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">El Bluetooth aún se está iniciando. Vuelve a probar.</string>
-    <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Ocupado. Vuelve a probar en un momento.</string>
+    <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">El Bluetooth aún se está iniciando. Inténtalo de nuevo.</string>
+    <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Ocupado. Inténtalo de nuevo en un momento.</string>
     <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">ID de modelo capturado</string>
     <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">ID de modelo no capturado</string>
     <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Detén primero la grabación</string>
     <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Espera a que termine el cambio actual.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Detén primero la comprobación de compatibilidad</string>
-    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conéctate primero</string>
+    <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conecta el patinete primero</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Espera a una nueva conexión con el patinete.</string>
     <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Resuelve la advertencia %1$d del patinete antes de bloquear.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Detén primero el patinete</string>
@@ -57,7 +57,7 @@
     <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">El valor está fuera del rango OEM de esta función</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s ya tiene este valor.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Cambio rechazado</string>
-    <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">El ajuste cambió durante la espera. Vuelve a probar.</string>
+    <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">El ajuste cambió durante la espera. Inténtalo de nuevo.</string>
     <string name="ble_pin_confirmed" volt:src="bd9e10962ab7cfbed73b75b2219b3387ddd2dc8c">Ajustes del PIN confirmados.</string>
     <string name="ble_charge_start_confirmed" volt:src="fedbcf711b90e26341bc2f742f7b85c7abdfefe2">Hora de inicio de carga confirmada.</string>
     <string name="ble_setting_confirmed" volt:src="3e509dc08ecbe51d4effef6fb4ba219cd323d95a">Ajuste de %1$s confirmado.</string>
@@ -67,15 +67,15 @@
     <string name="ble_pair_needs_pin" volt:src="45fdfc394562ee78cb6e8611457826fedb47b78b">Configura y activa el PIN del patinete antes de emparejar para el desbloqueo por proximidad.</string>
     <string name="ble_pair_already" volt:src="83d32645d988e4e1847135e850958d1b3daf32e6">Este teléfono ya está emparejado con tu patinete.</string>
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Acepta la solicitud de emparejamiento Bluetooth en tu teléfono.</string>
-    <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">No se pudo iniciar el emparejamiento Bluetooth. Vuelve a probar.</string>
+    <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">No se pudo iniciar el emparejamiento Bluetooth. Inténtalo de nuevo.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">El emparejamiento Bluetooth no está disponible.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">No llegó el estado del PIN. Toca «Leer estado del PIN» para volver a probar.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">No llegó el estado del PIN. Toca «Leer estado del PIN» para intentarlo de nuevo.</string>
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">El estado del PIN no está disponible en este firmware.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Los ajustes del PIN requieren el perfil de propietario.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Empareja este teléfono antes de activar el desbloqueo por proximidad</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Activa un PIN del patinete configurado antes de usar el desbloqueo por proximidad</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Activa un PIN del patinete ya configurado antes de activar el desbloqueo por proximidad</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Lee el estado del PIN y luego aplica el desbloqueo por proximidad.</string>
-    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Conéctate como propietario del patinete para leer los ajustes del PIN.</string>
+    <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Conecta el patinete como propietario para leer los ajustes del PIN.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Desactiva el desbloqueo por proximidad antes de desactivar el PIN del patinete, su respaldo.</string>
     <string name="ble_pin_read_first" volt:src="79a7db79685de279f7558362cbd02b99b35f8b07">Lee primero el estado actual del PIN.</string>
     <string name="ble_finish_guided_test" volt:src="a29003c8826a6c72d77e93428547f416a74f8d80">Termina primero la prueba guiada</string>
@@ -88,7 +88,7 @@
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">No se pudo revertir. No se cambió nada.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Termina primero la prueba actual</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Prueba no encontrada</string>
-    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">No se pudo iniciar la restauración. No se cambió nada.</string>
+    <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">No se pudo iniciar la reversión. No se cambió nada.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Confirmado</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Ajuste confirmado por relectura; no se midió la luz emitida</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Aceptado; relectura del reloj no disponible</string>
@@ -99,5 +99,5 @@
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Prueba guiada</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Se perdió la conexión antes de que cambiara el bloqueo</string>
     <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">El patinete no confirmó el cambio de bloqueo</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">El patinete no estaba listo para cambiar el bloqueo; vuelve a probar</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">El patinete no estaba listo para cambiar el bloqueo; inténtalo de nuevo</string>
 </resources>

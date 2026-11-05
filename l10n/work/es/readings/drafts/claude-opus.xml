@@ -31,9 +31,9 @@
     <string name="readings_energy_throughput_wh" volt:src="d70bc33e5a2a2af0d1a75d28304dd0d68ff6dd5b">Contador de energía (sin verificar)</string>
     <string name="readings_energy_throughput_wh_short" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energía (sin verificar)</string>
     <string name="readings_energy_throughput_wh_compact" volt:src="2f172e47eba582a3caff567d5b7d48bcd8d744f9">Energía (sin verificar)</string>
-    <string name="readings_capacity_throughput_ah" volt:src="e574c5b326c449e488c8b1669a43bf0be046f37c">Capacidad total transferida</string>
-    <string name="readings_capacity_throughput_ah_short" volt:src="38d80f95e53409e5289c559356b5ed7f56302636">Total transferido</string>
-    <string name="readings_capacity_throughput_ah_compact" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Transferido</string>
+    <string name="readings_capacity_throughput_ah" volt:src="e574c5b326c449e488c8b1669a43bf0be046f37c">Flujo de energía total</string>
+    <string name="readings_capacity_throughput_ah_short" volt:src="38d80f95e53409e5289c559356b5ed7f56302636">Flujo total</string>
+    <string name="readings_capacity_throughput_ah_compact" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Flujo</string>
     <string name="readings_deep_discharge" volt:src="6f355a919d6fd64e8b811e2db50ff6a27ed0e533">Contador de descargas profundas</string>
     <string name="readings_deep_discharge_short" volt:src="7fd29e819cc5d0da579dd62760f95b67d97d6969">Descargas profundas</string>
     <string name="readings_self_discharge_raw" volt:src="abf23b95e832d6a6c56e36e9d6aa6585318db818">Tasa de autodescarga (en bruto; unidad desconocida)</string>
@@ -49,7 +49,7 @@
     <string name="readings_high_temperature_duration" volt:src="20d2ad2e31f0ab7c4bf2b7b632d3f8ba792f5e2b">Exposición a altas temperaturas</string>
     <string name="readings_high_temperature_duration_short" volt:src="fc07b30fdf16d9e53f4781a4596ff0194a1ba8c0">Exposición a alta temp.</string>
     <string name="readings_extreme_temperature_charge_raw" volt:src="980e577c5189fcbfe7c002dfd6f7f509fab39620">Duración de la carga a temperatura extrema (en bruto; unidad desconocida)</string>
-    <string name="readings_extreme_temperature_charge_raw_short" volt:src="7ba90795b6bdac575ead0ffdb58e9ed6c43ef5ac">Tiempo de carga en calor/frío (en bruto)</string>
+    <string name="readings_extreme_temperature_charge_raw_short" volt:src="7ba90795b6bdac575ead0ffdb58e9ed6c43ef5ac">Tiempo de carga con calor/frío (en bruto)</string>
     <string name="readings_temperature_sign_state" volt:src="b58918def7ccbb9386060ccd7e1cc941bddf84ca">Estado del signo de temperatura (en bruto)</string>
     <string name="readings_temperature_sign_state_short" volt:src="b943e11006be09777c4a9efab18df2efa53aa62d">Signo de temp. (en bruto)</string>
     <string name="readings_current_sign_state" volt:src="bee4c9ce9c76bbce1ff6aeee0a28419666f93184">Estado del signo de corriente (en bruto)</string>
@@ -57,7 +57,7 @@
     <string name="readings_speed_kmh" volt:src="717d3dba3ed88598db4179355211b00433d144e5">Velocidad en vivo</string>
     <string name="readings_speed_kmh_short" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidad</string>
     <string name="readings_speed_kmh_compact" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidad</string>
-    <string name="readings_remaining_range_km" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Autonomía restante estimada del patinete</string>
+    <string name="readings_remaining_range_km" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Autonomía restante estimada por el patinete</string>
     <string name="readings_remaining_range_km_short" volt:src="d7669bae52f339f84800ff72f4ec92497b2834dd">Autonomía est.</string>
     <string name="readings_remaining_range_km_compact" volt:src="815eedafb99650341c770794f40e6488e59a3b3d">Autonomía</string>
     <string name="readings_trip_km" volt:src="2bbd79b5f048bebd076b1e89b5cf0b16b11b5777">Distancia del trayecto actual del patinete</string>
@@ -113,11 +113,11 @@
     <string name="readings_night_mode_short" volt:src="8d405b8d8cb5a4028020b0110c0e5cd716dea4d3">Modo nocturno (en bruto)</string>
     <string name="readings_range_algorithm_mode" volt:src="98b34e20d93a6e78c53c9d20e992b933f4abdc51">Modo del algoritmo de autonomía (en bruto)</string>
     <string name="readings_range_algorithm_mode_short" volt:src="3fdec013655b8c21f8b6da012adeb3e259ad0730">Modo de autonomía (en bruto)</string>
-    <string name="readings_eco_light" volt:src="a31b53e7c8895431826926ef893c28e1a0cb295d">Colores normal / Boost de línea (empaquetados en bruto)</string>
+    <string name="readings_eco_light" volt:src="a31b53e7c8895431826926ef893c28e1a0cb295d">Colores de línea normal / Boost (empaquetados, en bruto)</string>
     <string name="readings_eco_light_short" volt:src="cf72bc48c0ef9b243989bef457ed30ac900d6c55">Colores de línea (empaquetados)</string>
     <string name="readings_drive_light" volt:src="effffda37fb56bf29b39e5eeb28c2e1237891834">Estado / patrón de la luz de estrella (en bruto)</string>
     <string name="readings_drive_light_short" volt:src="ab80a96d36b2fca142b32430ba1b239a97d1631f">Patrón de estrella (en bruto)</string>
-    <string name="readings_sport_light" volt:src="743b08f0040fe6f50530cc057d3f0c2faeb70225">Colores normal / Boost de estrella (empaquetados en bruto)</string>
+    <string name="readings_sport_light" volt:src="743b08f0040fe6f50530cc057d3f0c2faeb70225">Colores de estrella normal / Boost (empaquetados, en bruto)</string>
     <string name="readings_sport_light_short" volt:src="e10c6914bf6d4c7590d66600821fc1b15e4b9fb8">Colores de estrella (empaquetados)</string>
     <string name="readings_start_speed" volt:src="934a539e2064d1442ae040ad25d913e990c1d60d">Ajuste de velocidad de arranque (en bruto)</string>
     <string name="readings_start_speed_short" volt:src="3f7f61cb61dc8055f67c4819c19f274b0fae6f44">Velocidad de arranque (en bruto)</string>
@@ -138,14 +138,14 @@
     <string name="readings_settings_mode_raw" volt:src="01f4009576a97db73500126d8ef5530989f62c2d">Byte de modo de la lectura de ajustes (en bruto)</string>
     <string name="readings_settings_mode_raw_short" volt:src="1c73bd75cd5878e31d8c90642197de9bf2cbb259">Byte de modo de ajustes (en bruto)</string>
     <string name="readings_scheduled_charge_time_raw" volt:src="8c4d528b4d51ce47baed4b58835d4f84813a923b">Hora de carga programada (marca de tiempo en bruto)</string>
-    <string name="readings_scheduled_charge_time_raw_short" volt:src="63e57e027da13c00e5de581e45276f2cc5aeb04b">Carga programada (en bruto)</string>
+    <string name="readings_scheduled_charge_time_raw_short" volt:src="63e57e027da13c00e5de581e45276f2cc5aeb04b">Hora de carga (en bruto)</string>
     <string name="readings_charge_limit_percent" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Límite de carga</string>
     <string name="readings_charge_limit_percent_short" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Límite de carga</string>
     <string name="readings_charge_limit_percent_compact" volt:src="38096fca13f5aed745ec8d7991e54190b85db2f7">Límite</string>
     <string name="readings_low_power" volt:src="7881449e2dc06e04e389d58646792a2df437aefa">Modo de batería baja (en bruto)</string>
     <string name="readings_low_power_short" volt:src="5f8f53a512f59f9b5a32f0de909a429efb755f22">Modo de batería baja (en bruto)</string>
-    <string name="readings_timed_charging" volt:src="3224cf77825996fa02b0e825cb646c85b3735594">Ajuste de carga temporizada (en bruto)</string>
-    <string name="readings_timed_charging_short" volt:src="624be85ffd671fc2e4711d223277765b99edbbb0">Carga temporizada (en bruto)</string>
+    <string name="readings_timed_charging" volt:src="3224cf77825996fa02b0e825cb646c85b3735594">Ajuste de carga programada (en bruto)</string>
+    <string name="readings_timed_charging_short" volt:src="624be85ffd671fc2e4711d223277765b99edbbb0">Carga programada (en bruto)</string>
     <string name="readings_auto_lock_time" volt:src="e51795b4cca6806e194b5fd04e42452e7d9dc79c">Ajuste de duración del bloqueo (en bruto)</string>
     <string name="readings_auto_lock_time_short" volt:src="75991588a8e054b4dea4bb029c14de82c57280f4">Duración del bloqueo (en bruto)</string>
     <string name="readings_speed_limit_eligibility" volt:src="0837e1828a5133506f19fbd8005781156aad3678">Indicador de elegibilidad del límite de velocidad (en bruto)</string>
@@ -154,14 +154,14 @@
     <string name="readings_weather_short" volt:src="e02e117eef631d0cfb727c38bf388bee8bcc4392">Clima (en bruto)</string>
     <string name="readings_slope_assist" volt:src="1bd7ac69fc33fb7acf518ec0594ae99b5a723b09">Ajuste de asistencia en pendientes (en bruto)</string>
     <string name="readings_slope_assist_short" volt:src="3dda87e7d2f324173b08643d637927da0c80d6d3">Asistencia en pendientes (en bruto)</string>
-    <string name="readings_long_range_mode" volt:src="0d07d515063510cb637bf967926c502cec829af9">Ajuste de gran autonomía (en bruto)</string>
-    <string name="readings_long_range_mode_short" volt:src="40189fb5c01dddf3c278f523edfb7a811afa6ec2">Gran autonomía (en bruto)</string>
+    <string name="readings_long_range_mode" volt:src="0d07d515063510cb637bf967926c502cec829af9">Ajuste de larga autonomía (en bruto)</string>
+    <string name="readings_long_range_mode_short" volt:src="40189fb5c01dddf3c278f523edfb7a811afa6ec2">Larga autonomía (en bruto)</string>
     <string name="readings_overspeed_control" volt:src="6cea63cae1d62672d0a980aa1a36dda0b669ba85">Ajuste de control de exceso de velocidad (en bruto)</string>
     <string name="readings_overspeed_control_short" volt:src="e9b69c7d0fb01ead4885b3e71326cc556d35018c">Control de exceso de velocidad (en bruto)</string>
     <string name="readings_overspeed_alert" volt:src="b0e0f9aecc25f0517ceef16e59dd4da31a61e763">Ajuste de alerta de exceso de velocidad (en bruto)</string>
     <string name="readings_overspeed_alert_short" volt:src="aa5cff7fa1bc47cc99d294f0fad3052164cfc344">Alerta de exceso de velocidad (en bruto)</string>
-    <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Ajuste de límite de velocidad de DRIVE (en bruto)</string>
-    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Límite de velocidad de DRIVE (en bruto)</string>
+    <string name="readings_drive_speed_limit" volt:src="b4cbd41d7cf3e50a942b8b34ceceeab62d0b3eaa">Ajuste de límite de velocidad de Drive (en bruto)</string>
+    <string name="readings_drive_speed_limit_short" volt:src="d4f66b8fce2ef70865fb489d2b29bc78a72f4114">Límite de velocidad de Drive (en bruto)</string>
     <string name="readings_meter_version" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware del medidor</string>
     <string name="readings_meter_version_short" volt:src="be3c4de1e5b9c15c51b246a98dc70ae59bfe901b">Firmware del medidor</string>
     <string name="readings_meter_version_compact" volt:src="3af54421c2b7f705dd57e0bcd6b26cb01806f0c9">FW medidor</string>
@@ -232,7 +232,7 @@
     <string name="readings_value_unlocked" volt:src="2b5c62e79ca9b79c8b8d286daecedcbb25d1a409">Desbloqueado</string>
     <string name="readings_value_locked" volt:src="ef86a799d35017977069c35386ac0e45e68a5f2d">Bloqueado</string>
     <string name="readings_value_acknowledged" volt:src="da60ce6ecf0605827f3bb0fc3b62434de10cbb0f">Acuse recibido</string>
-    <string name="readings_value_no_trips" volt:src="a62c020b8c9d61bc836a08748a0ff3c8e6441e24">No se informaron trayectos guardados</string>
+    <string name="readings_value_no_trips" volt:src="a62c020b8c9d61bc836a08748a0ff3c8e6441e24">El patinete no indicó trayectos guardados</string>
     <plurals name="readings_value_trips" volt:src="119c9aef102b50e75ee9c9d2808ed49bd5f720eb">
         <item quantity="one">%1$d trayecto</item>
         <item quantity="many">%1$d trayectos</item>
@@ -257,7 +257,7 @@
     <string name="readings_chart_wheel_speed" volt:src="ad073d8d3918f6d671481a6568ce083dfbc744f9">Velocidad de la rueda</string>
     <string name="readings_chart_gps_speed" volt:src="120edfd555ab87141e957658095e48f6e967efc3">Velocidad GPS</string>
     <string name="readings_chart_voltage" volt:src="2717fc28afb2e1380eda52484c3cb06cab73d6a9">Voltaje</string>
-    <string name="readings_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">Batería %</string>
+    <string name="readings_chart_battery" volt:src="ecf51c96723ef22ab8124d1d40985f4d08892cb8">% de batería</string>
     <string name="readings_chart_elevation" volt:src="43284f542b28a9aa8621fcbd297b8c18910c1602">Altitud</string>
     <string name="readings_chart_gps_acceleration" volt:src="c415bb6299c3269b5bed4e1c1a4c3ba44b429d95">Aceleración GPS</string>
     <string name="readings_chart_energy_distance" volt:src="5e03198574edc59e86a254a341205f8e62a6aa92">Energía / distancia</string>

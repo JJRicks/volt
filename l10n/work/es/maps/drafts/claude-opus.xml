@@ -39,10 +39,10 @@
     <string name="maps_custom_attribution_link" volt:src="9f1b264e9447d310a87508d82f7980ab7fe77bb0">Enlace HTTPS de atribución</string>
     <string name="maps_custom_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Guardar</string>
     <string name="maps_custom_error_url" volt:src="a68d38fa9a1fa27c5684e1d3918a580df10e27fb">Usa HTTPS con {z}, {x} y {y}.</string>
-    <string name="maps_custom_error_attribution" volt:src="6bd3b592a82c228aa9a379463c5f49e8045585ce">Añade la atribución que exige el proveedor.</string>
+    <string name="maps_custom_error_attribution" volt:src="6bd3b592a82c228aa9a379463c5f49e8045585ce">Agrega la atribución que exige el proveedor.</string>
     <string name="maps_custom_error_link" volt:src="561a6f76123adc88efc2b11c1d84eb08edd487e4">Usa un enlace HTTPS a la licencia o a los derechos de autor.</string>
     <string name="maps_tiles_blocked" volt:src="d57f3f6b0125c264465bf0f9c9db3a470e02c366">El proveedor del mapa bloqueó el acceso</string>
-    <string name="maps_tiles_rate_limited" volt:src="247a775a587a7c163f22dd0f99261d5ad06bd42e">Límite de solicitudes del proveedor · vuelve a probar más tarde</string>
+    <string name="maps_tiles_rate_limited" volt:src="247a775a587a7c163f22dd0f99261d5ad06bd42e">Límite de solicitudes del proveedor · inténtalo de nuevo más tarde</string>
     <string name="maps_tiles_http" volt:src="526d5906312da3d49194cf15bf319168d516afb8">Teselas del mapa no disponibles (HTTP %1$d)</string>
     <string name="maps_tiles_invalid_response" volt:src="3189fc3ff90ff9fee47ddf779fa0774439c48cd5">El proveedor del mapa devolvió una respuesta no válida</string>
     <string name="maps_tiles_offline" volt:src="762ec8b48ce22a2daaa0bd5c53c08d08278e4414">Teselas del mapa no disponibles · comprueba la conexión</string>

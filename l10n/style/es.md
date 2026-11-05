@@ -62,7 +62,7 @@ Order: full → `_short` → `_compact` → icon. Never break a word mid-way and
 | máximo, mínimo | **máx.**, **mín.** | | |
 | información | **info** | | A short word, no period: *Info y permisos* is 89.6dp, under the 90dp tile |
 
-Measured words that fit as they are: *Bloqueo* 48, *Ajustes* 43, *Batería* 42, *Viajes* 35 (all under the 62dp tab budget); *Mis patinetes* 78, *Conducción* 66 for Ride settings (under 90dp; 63.4 at 12sp, under the 64dp shortcut budget). *Ajustes de viaje* is 90.9dp, so it only fits wrapped at a space. *Recorridos* is 62.0dp, one reason *Viajes* was chosen. *Experimentales* is 90.3dp, so on the 90dp tile use *Experimental* (77) on one line or *Controles experimentales* wrapped at the space.
+Measured words that fit as they are: *Bloqueo* 48, *Ajustes* 43, *Batería* 42, *Viajes* 35 (all under the 62dp tab budget); *Mis patinetes* 78, *Conducción* 66 for Ride settings (under 90dp; 63.4 at 12sp, under the 64dp shortcut budget). *Ajustes de viaje* is 90.9dp, so it only fits wrapped at a space. *Recorridos* is 62.0dp, one reason *Viajes* was chosen. *Experimentales* is 90.3dp, so on the 90dp tile use *Experimental* (77) on one line or *Controles experimentales* wrapped at the space. No form fits the 64dp shortcut: *experimentales* is 86dp and *Experimental* 74dp, so it stays *Controles experimentales* and is reported as a design problem. *Luces de estrella* is 96.6dp on the 90dp tile, so that rung is *Estrella* unless the owner allows the wrap.
 
 An abbreviation ends in a period, and the period counts toward the width. A two-word label may wrap at a space where the English also wraps.
 
@@ -118,13 +118,13 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Rejected:** both *Rejected* and *Refused by scooter* use **Rechazado**.
 - **Pair vs bind vs connect:** Bluetooth pairing is **emparejar**. NAVEE account binding is **vincular** (*vincular la cuenta*). A live link is **conectar**.
 - **Owner key parts:** the file is the **archivo de configuración del propietario**, shortened to **archivo de propietario** on onboarding steps. `navee-owner-setup.json` stays as written. Website button names are English until the website changes, so quote them in English.
-- **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *recuperación*: *Baja, Media, Alta, Desactivada*. Elsewhere they agree with their own noun.
+- **Levels:** Energy recovery levels are ordinary words, translated, unlike the drive modes, and agree with *recuperación*: *Baja, Media, Alta, Desactivada*. A question that turns it off names the level: *¿Cambiar la recuperación de energía a Desactivada?* Never *Dejar desactivada*, which reads as if it is already off. Elsewhere they agree with their own noun.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Estimación Eco** is a range option, translated.
 - **Roles:** owner is **propietario**, shared rider is **usuario autorizado**. The compact role label (`more_role_shared`, English *Shared*) is **Autorizado** (64dp at 12.5sp), never *Compartido*, which reads as a shared scooter.
 - **Charge done by:** the feature name is **Fin de carga**, and its time setting **Hora de fin de carga**. The feature only plans a start, so never word it as a charge that has finished. In a sentence, quote the name: *«Fin de carga» está desactivado*, *desactiva «Fin de carga»*.
 - **Quick settings:** the Dashboard's shortcut row and its widget (*Quick access*, *Quick settings*) are **Acceso rápido**. Never *Ajustes rápidos*: that is Android's pull-down panel, and Settings is itself one of the shortcuts.
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does.
-- **Experimental LAB badge:** **LAB** stays (it also fits *laboratorio*). TalkBack speaks **Experimental**.
+- **Experimental LAB badge:** **LAB** stays (it also fits *laboratorio*). TalkBack speaks **Experimental**. *Laboratorio* as an evidence level on compatibility results is a different thing and stays.
 
 ## 8. Regional choices
 
@@ -201,6 +201,12 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **conecta el patinete**, *Conecta el patinete primero*, *Volver a conectar el patinete*. Never *conéctate*, which reads as going online. The button stays *Conectar*; plugging in says *conecta el cargador* |
 | set a value | one verb for setting a value on the scooter | **establecer**: *Establecer PIN*, *Establecer %1$s*. Never *fijar*. The noun stays *ajuste*, and setting something back stays *Revertir* |
 | "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | Future with *se*, in dialogs and hints alike: *Se eliminará este viaje*, *Se abrirá el mapa*. Never *Elimina…* or *Abre…*, which read as commands |
+| sign (+ or −) | whether a value is positive or negative | **signo**: *Signos de batería*. Never *señal*, which means a signal |
+| window (of time) | the span of time a chart or widget covers | **periodo**: *Periodo de tiempo*. Never *ventana*, which reads as a window on screen |
+| connected history | readings stored while connected, not a log of connections | **Historial de lecturas**. *Actividad de conexión* is the log |
+| app preferences | Volt's own settings section and its shortcut | **Ajustes de la app**, the same on the shortcut and the section. *Preferencias del patinete* stays for scooter preferences saved in Volt, which aren't the settings on the scooter |
+| a value you can't see | a question or sentence ending in an on, off or level word | Name it without agreement: *¿La luz trasera está en este estado: %1$s?* |
+| NAVEE, meaning the app | the English says NAVEE alone for the app | **la app de NAVEE**: *La app de NAVEE no se conectó*. Never *NAVEE* with feminine agreement |
 | screen and section titles | noun form or verb form, with one example | Noun form: *Copia de seguridad y restauración*. If the title is an action with no good noun, the infinitive: *Comprobar la carga programada*. Never the imperative |
 
 ## 10. Sources consulted

@@ -12,17 +12,17 @@
     <string name="backup_session_interrupted_title" volt:src="07551e29494f9343c5e7f2d19d655a995f9bb94d">Sesión de copia de seguridad interrumpida</string>
     <string name="backup_finishing_previous" volt:src="eda30632ff52e35c492cd4676da8f2583e01c80d">Terminando la operación anterior. Mantén Volt abierta.</string>
     <string name="backup_close_and_reopen" volt:src="5275db152f023bb44bb47ca54950c96e78f6a338">Cierra y vuelve a abrir Volt.</string>
-    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Recuperando tus datos de la aplicación</string>
+    <string name="backup_recovering_title" volt:src="a67ff679ad9e56c325c60f3c17f4b8e59545ce5a">Recuperando tus datos de la app</string>
     <string name="backup_recovering_keep_open" volt:src="64e43360685c1d1feb1b2dcc8cbef110b0f0f1fd">Mantén Volt abierta mientras se deshace la restauración anterior.</string>
-    <string name="backup_recovered" volt:src="c44e9ee1ae8c6bfa5b1f4a8a1f45803ac9751488">Se recuperaron tus datos anteriores de la aplicación. Cierra y vuelve a abrir Volt.</string>
+    <string name="backup_recovered" volt:src="c44e9ee1ae8c6bfa5b1f4a8a1f45803ac9751488">Se recuperaron tus datos anteriores de la app. Cierra y vuelve a abrir Volt.</string>
     <string name="backup_recovery_failed" volt:src="d868a70268395b7b44cf69d85f6bc1e13374dc5d">La recuperación falló. Libera espacio y vuelve a abrir. No borres el almacenamiento.</string>
     <string name="backup_session_ended_title" volt:src="09366ee78217a9a7ff7b03da5828f57c079380ae">Sesión de copia de seguridad finalizada</string>
     <string name="backup_reopen_to_continue" volt:src="439484865cde830a768daaa3f8e99af89ca86313">Vuelve a abrir Volt para continuar.</string>
-    <string name="backup_paused_title" volt:src="e51e466a3d1dcb08c9fac434fccb9b8d334bc890">Los datos de la aplicación están en pausa</string>
+    <string name="backup_paused_title" volt:src="e51e466a3d1dcb08c9fac434fccb9b8d334bc890">Los datos de la app están en pausa</string>
     <string name="backup_back_up_title" volt:src="4fffa00134241eb7ddb58107452158016eb5f864">Copia de seguridad</string>
     <string name="backup_counting" volt:src="56a196f6a0bedbea836f908d50681817eca2d9e5">Contando tus datos…</string>
-    <string name="backup_inventory_unreadable" volt:src="bd1e085ffe74e8205a40047b7688e6bfecf7de84">No se pueden leer los datos de la aplicación. Vuelve a abrir Volt.</string>
-    <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6">Copia completa · todos los datos guardados de la aplicación, incluido el acceso al patinete.</string>
+    <string name="backup_inventory_unreadable" volt:src="bd1e085ffe74e8205a40047b7688e6bfecf7de84">No se pueden leer los datos de la app. Vuelve a abrir Volt.</string>
+    <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6">Copia completa · todos los datos guardados de la app, incluido el acceso al patinete.</string>
     <plurals name="backup_scope_selected" volt:src="1e5b5f778deba54ed05cfe54310e60709177d9f9">
         <item quantity="one">Solo datos seleccionados · %1$d categoría excluida.</item>
         <item quantity="many">Solo datos seleccionados · %1$d categorías excluidas.</item>
@@ -42,12 +42,12 @@
     <string name="backup_unavailable" volt:src="6f885110be867c4e5f8e4ed38b075629bafc39db">La copia de seguridad no está disponible. Vuelve a crearla.</string>
     <string name="backup_save" volt:src="1aa587b7a7baa450914fcfc4040aa5fa05204d46">Guardar copia de seguridad</string>
     <string name="backup_save_short" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Guardar</string>
-    <string name="backup_picker_failed_save" volt:src="601581e9e3daad20ca9b6bd33fae76d4646ceb3f">No se pudo abrir un selector de archivos. Toca %1$s para probarlo de nuevo.</string>
+    <string name="backup_picker_failed_save" volt:src="601581e9e3daad20ca9b6bd33fae76d4646ceb3f">No se pudo abrir un selector de archivos. Toca %1$s para intentarlo de nuevo.</string>
     <string name="backup_saving" volt:src="60febe597604a2959f387165bcb44392beea8405">Guardando la copia de seguridad…</string>
-    <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">No se pudo guardar. Pruébalo en otro lugar.</string>
+    <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">No se pudo guardar. Inténtalo en otro lugar.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Copia de seguridad guardada.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restaurar</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Elige una copia de seguridad de Volt para recuperar los datos guardados de la aplicación. También sirven los archivos antiguos de configuración del propietario, de viajes y de diseño; verás exactamente qué contienen antes de restaurar.</string>
+    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Elige una copia de seguridad de Volt para recuperar los datos guardados de la app. También sirven los archivos antiguos de configuración del propietario, de viajes y de diseño; verás exactamente qué contienen antes de restaurar.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Los permisos y el emparejamiento Bluetooth no se incluyen.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Elegir archivo</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">No se pudo abrir un selector de archivos.</string>
@@ -69,8 +69,8 @@
     <string name="backup_file_full_from" volt:src="d032e126fc06e0647477e077c8ef000b7345ebe9">Copia completa del %1$s</string>
     <string name="backup_file_selected" volt:src="7116f9c4fdc74e6f2777716770403ea1642c1ff2">Copia de seguridad de datos seleccionados</string>
     <string name="backup_file_selected_from" volt:src="11fb85d0567cba743ca7411ea81ed5c24f078b5f">Copia de seguridad de datos seleccionados del %1$s</string>
-    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Este archivo no contiene viajes, cargas, historial, paneles ni ajustes de la aplicación. Solo restaura el acceso al patinete. Tus datos actuales se quedan en este teléfono.</string>
-    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Este archivo solo contiene las categorías que aparecen abajo. Los demás datos de la aplicación se quedan en este teléfono.</string>
+    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Este archivo no contiene viajes, cargas, historial, paneles ni ajustes de la app. Solo restaura el acceso al patinete. Tus datos actuales se quedan en este teléfono.</string>
+    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Este archivo solo contiene las categorías que aparecen abajo. Los demás datos de la app se quedan en este teléfono.</string>
     <string name="backup_replace_all" volt:src="5397909cf23d8ef5468811e7091c69fbf3b9d6a2">Reemplazar todo en este teléfono</string>
     <string name="backup_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Siguiente</string>
     <string name="backup_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Elige qué restaurar.</string>
@@ -79,10 +79,10 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">¿Para qué patinete es esta configuración?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">El diseño va a:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Los datos de «%1$s» van a:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Más de un patinete puede usar este archivo de configuración. Elige un patinete existente o añade otro.</string>
+    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Más de un patinete puede usar este archivo de configuración. Elige un patinete existente o agrega otro.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Elige un patinete…</string>
-    <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Añadir otro patinete</string>
-    <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Añadir desde la copia de seguridad</string>
+    <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Agregar otro patinete</string>
+    <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Agregar desde la copia de seguridad</string>
     <string name="backup_dont_restore" volt:src="aa72834ea3aa7fb1eb0d9430fd62719953d299d7">No restaurar</string>
     <string name="backup_destination_for" volt:src="768ae7cc3567bffc3fa26010330561376907b92b">Destino de %1$s</string>
     <string name="backup_destination_for_choice" volt:src="0763317957e339ab8499f8430c6de785990b7c45">Destino de %1$s: %2$s</string>

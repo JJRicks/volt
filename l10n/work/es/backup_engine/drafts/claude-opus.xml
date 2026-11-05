@@ -3,14 +3,14 @@
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="backup_engine_category_scooters" volt:src="f642dc870abc775b3705182e7bc0f49e9c3de8da">Patinetes y claves de propietario</string>
     <string name="backup_engine_category_dashboards" volt:src="4e11f7f0cd3824adb2f8a91e4547d2a1b5c3dd58">Paneles</string>
-    <string name="backup_engine_category_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Preferencias de la app</string>
+    <string name="backup_engine_category_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Ajustes de la app</string>
     <string name="backup_engine_category_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Viajes</string>
     <string name="backup_engine_category_charges" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Cargas</string>
     <string name="backup_engine_category_history" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Historial de lecturas</string>
     <string name="backup_engine_category_scooter_preferences" volt:src="0f02a808e448b696f8f3497274bc7b5fb262ca5d">Preferencias del patinete</string>
-    <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Reemplaza todo lo que hay en este teléfono</string>
+    <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Se reemplazará todo lo que hay en este teléfono</string>
     <string name="backup_engine_plan_destination" volt:src="a134bd15453918d4853314810a6c3b42ec86cfa7">«%1$s» → %2$s</string>
-    <string name="backup_engine_plan_scooters" volt:src="eb15ccd27f523e9ca84e41294b320674e622968b">Patinetes: añade %1$d · ya aquí %2$d</string>
+    <string name="backup_engine_plan_scooters" volt:src="eb15ccd27f523e9ca84e41294b320674e622968b">Patinetes: se agregarán %1$d · ya aquí %2$d</string>
     <plurals name="backup_engine_plan_scooters_skipped" volt:src="553dda243a5e013b4eea7526c95cedba2e508ec6">
         <item quantity="one">%1$d patinete omitido · sin restaurar</item>
         <item quantity="many">%1$d patinetes omitidos · sin restaurar</item>
@@ -23,9 +23,9 @@
         <item quantity="other">%1$s: %2$d patinetes omitidos · sin restaurar</item>
     </plurals>
     <plurals name="backup_engine_plan_preferences" volt:src="42f76202eb5d61bcc9268f7d20c6cf620ccdbc0a">
-        <item quantity="one">Preferencias de la app: reemplaza %1$d ajuste</item>
-        <item quantity="many">Preferencias de la app: reemplaza %1$d ajustes</item>
-        <item quantity="other">Preferencias de la app: reemplaza %1$d ajustes</item>
+        <item quantity="one">Ajustes de la app: se reemplazará %1$d ajuste</item>
+        <item quantity="many">Ajustes de la app: se reemplazarán %1$d ajustes</item>
+        <item quantity="other">Ajustes de la app: se reemplazarán %1$d ajustes</item>
     </plurals>
     <string name="backup_engine_plan_rides" volt:src="c449f5fa84a407dfc967b4955b93a95cf137c00f">Viajes: nuevos %1$d · ya aquí %2$d · conservados aquí %3$d</string>
     <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Cargas: nuevas %1$d · ya aquí %2$d · conservadas aquí %3$d</string>
@@ -34,11 +34,11 @@
         <item quantity="many">%1$d archivos del teléfono omitidos · sin viaje</item>
         <item quantity="other">%1$d archivos del teléfono omitidos · sin viaje</item>
     </plurals>
-    <string name="backup_engine_plan_history_nothing" volt:src="57e06d0c138808b51c87815c46f137064a25f60b">Historial de lecturas: nada que añadir</string>
+    <string name="backup_engine_plan_history_nothing" volt:src="57e06d0c138808b51c87815c46f137064a25f60b">Historial de lecturas: nada que agregar</string>
     <plurals name="backup_engine_plan_history_adds" volt:src="f63b6dafb8363034444c698d0a29b702c0f5d35b">
-        <item quantity="one">Historial de lecturas: se añade a %1$d patinete</item>
-        <item quantity="many">Historial de lecturas: se añade a %1$d patinetes</item>
-        <item quantity="other">Historial de lecturas: se añade a %1$d patinetes</item>
+        <item quantity="one">Historial de lecturas: se agregará a %1$d patinete</item>
+        <item quantity="many">Historial de lecturas: se agregará a %1$d patinetes</item>
+        <item quantity="other">Historial de lecturas: se agregará a %1$d patinetes</item>
     </plurals>
     <plurals name="backup_engine_plan_history_skipped" volt:src="40e580956630bb7460d5d50edf7f38c44a4dc2f6">
         <item quantity="one">Lecturas de %1$d patinete omitidas · sin restaurar</item>
@@ -48,7 +48,7 @@
     <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Mapa en línea: activado</string>
     <string name="backup_engine_restore_could_not_be_prepared" volt:src="a635201a3310fea6dff495449cf249c0438147fa">No se pudo preparar la restauración.</string>
     <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">La restauración falló; se conservaron tus datos.</string>
-    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Los datos de la app cambiaron durante la copia de seguridad. Haz otro intento con las grabaciones detenidas.</string>
+    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Los datos de la app cambiaron durante la copia de seguridad. Inténtalo de nuevo con las grabaciones detenidas.</string>
     <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">No se pudo eliminar el contenido temporal de la copia de seguridad cifrada.</string>
     <string name="backup_engine_backup_could_not_opened" volt:src="cd3018aee5f19dde0d1cdf8462e735f8531610c7">No se pudo abrir la copia de seguridad.</string>
     <string name="backup_engine_not_supported_volt_app" volt:src="52c6c3b3d0d13b7ca3cfb9f4fddb7967de1ae1cf">Esta no es una copia de seguridad compatible de la app Volt.</string>
@@ -67,7 +67,7 @@
     <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:src="acc1ed3e42ebf704e453a5c619e482c4a5733452">El registro de recuperación de la restauración no se puede leer. Mantén intacto el almacenamiento de la app.</string>
     <string name="backup_engine_restore_recovery_folder_cannot_read" volt:src="eb724e900bb942d4ac4c18c46699a8b82e4dea0d">La carpeta de recuperación de la restauración no se puede leer. Mantén intacto el almacenamiento de la app.</string>
     <string name="backup_engine_unexpected_restore_recovery_file" volt:src="aa538362e404ce4932430d11546aebb390f6da45">Un archivo inesperado de recuperación de la restauración requiere atención. Mantén intacto el almacenamiento de la app.</string>
-    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">El historial sigue abierto. Cierra las grabaciones y haz otro intento de copia de seguridad.</string>
+    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">El historial sigue abierto. Cierra las grabaciones e intenta de nuevo la copia de seguridad.</string>
     <string name="backup_engine_reopen_volt_finish_recovering" volt:src="f9ea29e6786f3594a2c96a576755a0b93d68dea3">Vuelve a abrir Volt para terminar primero de recuperar la restauración anterior.</string>
     <string name="backup_engine_could_not_save_restore" volt:src="3722a96664425428100fe50f4973a5fecfe12a06">No se pudo guardar el estado de recuperación de la restauración.</string>
     <string name="backup_engine_restore_storage_cannot_synchronized" volt:src="c576c13b5707dc4679409361f2088b9488ea3949">No se puede sincronizar el almacenamiento de la restauración.</string>
@@ -114,7 +114,7 @@
     <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Elige qué incluir en la copia de seguridad.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Hay demasiados archivos para una sola copia de seguridad.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Los metadatos de la copia de seguridad son demasiado grandes.</string>
-    <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Los datos de la app cambiaron durante la copia de seguridad. Haz otro intento.</string>
+    <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Los datos de la app cambiaron durante la copia de seguridad. Inténtalo de nuevo.</string>
     <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">Una grabación es demasiado grande para una copia de seguridad.</string>
     <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Elige un archivo de copia de seguridad de Volt.</string>
     <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">No se pudo eliminar el contenido temporal de la copia de seguridad.</string>
@@ -136,7 +136,7 @@
     <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Elige qué restaurar.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">«Reemplazar todo» requiere una copia de seguridad completa con todas las categorías.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Elige adónde van los datos de cada patinete.</string>
-    <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Elige un patinete que use esta clave de propietario o añade otro patinete.</string>
+    <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Elige un patinete que use esta clave de propietario o agrega otro patinete.</string>
     <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">No se pueden leer las grabaciones guardadas.</string>
     <string name="backup_engine_backup_contains_unreadable_ride" volt:src="37ad350868e18ca90d1b47d819161ba91b69bfb2">La copia de seguridad contiene un viaje que no se puede leer.</string>
     <string name="backup_engine_choose_backup_again" volt:src="023b32a1da855d4621616465419cfd3be9e72041">Vuelve a elegir la copia de seguridad.</string>
@@ -163,8 +163,8 @@
     <string name="backup_engine_backup_invalid_scooter_profile_fields" volt:src="dc79a80fa0f8066de2c6aab72c38b37f3830aac9">La copia de seguridad tiene campos de perfil de patinete no válidos.</string>
     <string name="backup_engine_backup_invalid_scooter_owner" volt:src="a5df0c1afd5aaeb4192aaf7e89aa38345242e72d">La copia de seguridad tiene un rol de propietario del patinete no válido.</string>
     <string name="backup_engine_backup_invalid_scooter_connection" volt:src="5dee12f94f7b1a0b54185c7b760097ddd3324da1">La copia de seguridad tiene una fecha de conexión del patinete no válida.</string>
-    <string name="backup_engine_backup_invalid_scooter_setup" volt:src="1efe4d4475bbd78ff690b9539a72ad8a70771394">La copia de seguridad tiene una identidad de configuración del patinete no válida.</string>
-    <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">La copia de seguridad tiene un tipo de preferencia de la aplicación incompatible.</string>
+    <string name="backup_engine_backup_invalid_scooter_setup" volt:src="1efe4d4475bbd78ff690b9539a72ad8a70771394">La copia de seguridad tiene una clave de propietario no válida.</string>
+    <string name="backup_engine_backup_incompatible_app_preference" volt:src="f0daa51aff4e76eceed2b71896190921f33554b5">La copia de seguridad tiene un tipo de preferencia de la app incompatible.</string>
     <string name="backup_engine_backup_invalid_display_text" volt:src="194fd5048e934d2fa854e7e693f332706da65c69">La copia de seguridad tiene una escala del texto en pantalla no válida.</string>
     <string name="backup_engine_review_backup_first" volt:src="1dde6c2a50a1278db6941d64547da7196557199d">Revisa primero la copia de seguridad.</string>
     <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Los datos guardados cambiaron. Vuelve a revisar.</string>
@@ -175,7 +175,7 @@
     <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Lista de recuperación de la restauración no válida.</string>
     <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Ruta de recuperación de la restauración no válida.</string>
     <string name="backup_engine_could_not_roll_back_interrupted_restore" volt:src="15228d6e90ee9f7bc024b957c52ec93c70c20218">No se pudo revertir una restauración interrumpida.</string>
-    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">La instantánea de la restauración está incompleta. Conserva intacto el almacenamiento de la aplicación.</string>
+    <string name="backup_engine_restore_snapshot_incomplete_keep" volt:src="37597b7fd0271691ad01daaf6b96309093493f26">La instantánea de la restauración está incompleta. Conserva intacto el almacenamiento de la app.</string>
     <string name="backup_engine_ride_storage_cannot_read" volt:src="0ede1a82e6831be351b54891fc112668141e0d8c">No se puede leer el almacenamiento de viajes.</string>
     <string name="backup_engine_unsupported_ride_file" volt:src="b660f7cdb17159f2687838bd710010e444f8662a">Archivo de viaje no compatible.</string>
     <string name="backup_engine_too_many_rides_one" volt:src="de8abfaaeda3958bde310f5911f556efdcc5e134">Demasiados viajes para una sola copia de seguridad.</string>
@@ -202,7 +202,7 @@
     <string name="backup_engine_saved_rides_changed_review" volt:src="cd85e1521cf53fa93c3a4b914d8b4bdb4a76ddb7">Los viajes guardados cambiaron. Vuelve a revisar la copia de seguridad.</string>
     <string name="backup_engine_could_not_prepare_ride" volt:src="89e0d5d7650c97ae27ee16b0a6f419aab6494f47">No se pudo preparar la restauración de viajes.</string>
     <string name="backup_engine_restore_interrupted_reopen_volt" volt:src="b0d7118e39c2abebc697c5bd7f9d589e2a52b766">Restauración interrumpida. Vuelve a abrir Volt; no borres el almacenamiento.</string>
-    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">La recuperación de la restauración de viajes requiere atención. Conserva intacto el almacenamiento de la aplicación.</string>
+    <string name="backup_engine_ride_restore_recovery_needs_attention" volt:src="8237ed9b83bce397d748a460dd045948b93d0fa6">La recuperación de la restauración de viajes requiere atención. Conserva intacto el almacenamiento de la app.</string>
     <string name="backup_engine_ride_restore_storage_unavailable" volt:src="df81a76f4eb20ac8ad9dc094ce5553679048e3c1">El almacenamiento de restauración de viajes no está disponible.</string>
     <string name="backup_engine_unexpected_ride_restore_recovery" volt:src="43cdb79e18fb5bb40c75202acd69458446a3c3b5">Datos inesperados de recuperación de la restauración de viajes.</string>
     <string name="backup_engine_invalid_ride_recovery_list" volt:src="11f84a914e3636306f31de4a66b81bca505374a1">Lista de recuperación de viajes no válida.</string>
@@ -223,7 +223,7 @@
     <string name="backup_engine_not_enough_available_storage" volt:src="b8b33850bfdea11ea4f55deb5272744d3ba87f1a">No hay suficiente almacenamiento disponible.</string>
     <string name="backup_engine_ride_backup_could_not_processed" volt:src="2ba1f594fa284c0fcbe209a23feaa31b4850476a">No se pudo procesar la copia de seguridad de viajes.</string>
     <string name="backup_engine_backup_unsupported_preference_type" volt:src="51c2d879fd005c2f736f57d9d4a4e57cc7bb1547">La copia de seguridad tiene un tipo de preferencia no compatible.</string>
-    <string name="backup_engine_app_preferences_could_not_written" volt:src="ec0e490b1556c9d2054b5695c29e4c31b8949633">No se pudieron escribir las preferencias de la aplicación. Se recuperarán los datos anteriores.</string>
+    <string name="backup_engine_app_preferences_could_not_written" volt:src="ec0e490b1556c9d2054b5695c29e4c31b8949633">No se pudieron escribir las preferencias de la app. Se recuperarán los datos anteriores.</string>
     <string name="backup_engine_backup_history_database_could_not_read" volt:src="0f827b42920e95a9414badc1a01c60476839e97e">No se pudo leer la base de datos del historial de la copia de seguridad.</string>
     <string name="backup_engine_backup_history_too_many" volt:src="e616e0b35c9c428864a0c85d13f6e234b29222de">El historial de la copia de seguridad tiene demasiados patinetes.</string>
     <string name="backup_engine_readings_history_could_not_merged" volt:src="e319370010e49ee493d578301c04ddfa9f1bd3ee">No se pudo combinar el historial de lecturas.</string>

@@ -2,7 +2,7 @@
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
     <string name="charging_alert_level_full" volt:src="ac212b9682a4291b8ed466a08e804878d7bcd02e">Completa</string>
-    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Cargando hasta completar</string>
+    <string name="charging_alert_watch_full" volt:src="6307c2b16d0a1578a2b594d66f41929fcf5c828e">Cargando hasta completarse</string>
     <string name="charging_alert_watch_title" volt:src="f5a8a98dee559c956440570b99faee4a54c3b681">Cargando hasta el %1$s %%</string>
     <string name="charging_alert_title_full" volt:src="80b5a6cc81051776ed3a4148c3cf69215d5f22c4">Carga completa</string>
     <string name="charging_alert_title_low" volt:src="ee6bb02c3fcf645c8f28edb1fca0992e3d97f7dc">Batería baja</string>
@@ -23,8 +23,8 @@
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Esperando % de batería</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Sin estimación</string>
     <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Ritmo actual</string>
-    <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Referencia de carga rápida</string>
-    <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Referencia de carga estándar</string>
+    <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Referencia de cargador rápido</string>
+    <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Referencia de cargador original</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
         <item quantity="one">Según %1$d carga anterior</item>
         <item quantity="many">Según %1$d cargas anteriores</item>
@@ -34,12 +34,12 @@
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimación por ritmo</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">El patinete seleccionado cambió durante la medición</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">El reloj del teléfono cambió durante la medición</string>
-    <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">La carga se detuvo antes de fijar la programación</string>
+    <string name="charging_measure_charging_stopped" volt:src="bb2e0424175be3ab19ad68a893291fc7466380c5">La carga se detuvo antes de establecer la programación</string>
     <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Las lecturas de carga se detuvieron durante la medición</string>
     <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">El patinete se desconectó durante la medición</string>
     <string name="charging_capacity_reason_clock" volt:src="bd0cbe1e6a34024c382e0a173b62a0a590da83ed">El reloj cambió</string>
-    <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Huecos en el registro</string>
-    <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Corriente invertida</string>
+    <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Cortes en la grabación</string>
+    <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Cambió el sentido de la corriente</string>
     <string name="charging_capacity_reason_short" volt:src="6720813ef194da35220a213f19c55b064d3c9c92">Menos de 1 minuto</string>
     <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Falta nivel inicial o final</string>
     <string name="charging_capacity_reason_drop" volt:src="23d901ac85e7f40738f439d9825f174a6a467477">Caída inferior al 5 %</string>
@@ -61,5 +61,5 @@
     <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Elige primero «Inicio de carga»</string>
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Elige un inicio de carga en las próximas 48 horas</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Elige una hora en punto en las próximas 48 horas</string>
-    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Espera a que termine la comprobación de la programación</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Espera a que termine la prueba de programación</string>
 </resources>

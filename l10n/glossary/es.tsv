@@ -5,8 +5,8 @@
 # So do not draft or merge these keys before D3: dashboard_model_tile_top_speed, controls_experimental_speed_limit, the readings_maximum_speed_kmh ladder (with _short and _compact), and main_speed_* if they arrive first. They stay English (council verdict fallback). pack.py has no per-key filter, so a run over those areas must rule them out by hand. Other keys with these terms already match D3.
 id	term	definition	pos	dnt	safety	source
 not-affiliated	sin afiliación con NAVEE | no afiliada a NAVEE | no afiliado a NAVEE | no está afiliada a NAVEE | no está afiliado a NAVEE	The only in-app disclaimer ("Volt <ver> · not affiliated with NAVEE"). A translation must not soften "not affiliated".	adjective phrase	no	disclaimer	MoreScreen.java:184, 2360
-official-app	app oficial | aplicación oficial	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
-navee-app	app de NAVEE | aplicación de NAVEE | app NAVEE | aplicación NAVEE	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
+official-app	app oficial	NAVEE's own app. Translate "official app" the same way everywhere.	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
+navee-app	app de NAVEE | app NAVEE	The official app named by its maker; keep "NAVEE".	noun phrase	no	-	ModelRegistry.java:834; MoreScreen.java:1547
 scooter	patinete | patinetes	The connected e-scooter. Pick one word and use it everywhere.	noun	no	-	throughout
 owner	propietario | propietaria | propietarios | propietarias	The account role the scooter grants to its owner, as opposed to a shared rider.	noun	no	owner-key	Protocol.java:79; MoreScreen.java:2441
 owner-profile	perfil de propietario | perfiles de propietario | perfil del propietario	The saved profile of the owner role.	noun phrase	no	owner-key	Protocol.java:79; MoreScreen.java:2441
@@ -39,7 +39,7 @@ fallback-pin	PIN del patinete	D3 retired the English 'fallback PIN' (handlebar P
 dashboard-pin	PIN del patinete	D3 retired the English 'dashboard PIN' (handlebar PIN chosen; dashboard means Volt's screen). Use the term shown.	noun phrase	no	pin	MoreScreen.java:1213, 1215; BleController.java:286
 proximity-unlock	desbloqueo por proximidad	Unlocking when the paired phone is near.	noun phrase	no	pin	ScooterCommands.java:153
 pair	emparejar | emparejamiento | emparejado | emparejada | emparejados	Bluetooth pairing of this phone with the scooter. Internal ids say bond. Keep distinct from NAVEE account binding and from connect.	verb	no	-	BleController.java:559
-connect	Conectar | conexión | conecta | conéctate | conectado	Start the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
+connect	Conectar | conexión | conecta | conectado	Start the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
 disconnect	Desconectar | desconexión | desconecta | desconectado	End the Bluetooth link to the scooter.	verb	no	-	MainActivity.java:969
 connection-details	Detalles de la conexión | detalles de conexión	The page that shows the Bluetooth link's state and events.	noun phrase	no	-	MainActivity.java:969
 signal-lost	Señal perdida | se perdió la señal	The Bluetooth link dropped.	clause	no	-	MainActivity.java:969
@@ -54,7 +54,7 @@ diagnostics	Diagnóstico | diagnósticos	The section that collects the informati
 diagnostics-file	archivo de diagnóstico | archivos de diagnóstico	The English attachment sent with a report.	noun phrase	no	privacy	MainActivity.java:2719
 experimental-controls	Controles experimentales | control experimental	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
 untested-controls	Controles por probar	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	MoreScreen.java:72-75, 1546
-try	Probar | intento | intentos | probarlo | probarla | probarlos | probarlas | pruébalo | pruébala	Attempt an experimental control on this scooter.	verb	no	experimental	MoreScreen.java:1666-1728
+try	Probar | intento | intentos | probarlo | probarla | probarlos | probarlas | pruébalo | pruébala | inténtalo de nuevo | intentarlo de nuevo	Attempt an experimental control on this scooter. An ordinary retry ("Try again") uses the retry forms at the end of this row, never Probar.	verb	no	experimental	MoreScreen.java:1666-1728
 set-back	Revertir | reversión | revierte | revertido | revertirlo	Restore the value a try changed.	verb phrase	no	experimental	MoreScreen.java:1666-1728
 help-verify	Ayudar a verificar | Ayuda a verificar	Ask the rider to confirm what a try did.	verb phrase	no	experimental	MoreScreen.java:1666-1728
 unverified	Sin verificar	Volt has not confirmed the control on this model.	adjective	no	experimental	MoreScreen.java:1666-1728
@@ -151,7 +151,7 @@ route	Ruta | rutas	The path of a ride on the map.	noun	no	-	RidesScreen.java:121
 backup	Copia de seguridad | copias de seguridad	A file of Volt's data.	noun	no	privacy	BackupActivity.java:176-414
 full-backup	Copia completa | copia de seguridad completa	A backup of everything.	noun phrase	no	privacy	BackupActivity.java:176-414
 selected-data	Datos seleccionados	A backup of the chosen parts.	noun phrase	no	privacy	BackupActivity.java:176-414
-restore	Restaurar | restauración | restaura | restáuralo | restáurala	Put a backup's data back.	verb	no	privacy	BackupActivity.java:176-414
+restore	Restaurar | restauración | restaura | restáuralo | restáurala | Revertir | reversión	Put a backup's data back. Putting back a test's earlier value is Revertir even where the English says restore.	verb	no	privacy	BackupActivity.java:176-414
 replace-everything	Reemplazar todo | Reemplaza todo	A restore that replaces all of Volt's data.	verb phrase	no	privacy	BackupActivity.java:176-414
 owner-setup-file-scooter-access	Archivo de configuración del propietario · solo acceso al patinete	A backup choice that holds only the owner key.	noun phrase	no	owner-key	BackupActivity.java:176-414
 simulated-scooter	Patinete simulado	Demo mode with no real scooter.	noun phrase	no	-	CompatibilityReport.java:246; IssueReport.java:18

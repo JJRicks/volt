@@ -5,7 +5,7 @@
     <string name="rides_live_disconnected" volt:src="4da5dcb5c386921855dc71ae2e6731c61443f203">Desconectado</string>
     <string name="rides_live_power_now" volt:src="9afa9d3c1e3f7ceba6c4539bcfc4697d7282adba">W ahora</string>
     <string name="rides_live_battery" volt:src="f837028fb81f56db8fce1193c854d72fff524222">batería</string>
-    <string name="rides_recovered_gap" volt:src="04ee1464bede6d1cd631c4262e63efc9143ba461">Recuperado · hueco excluido</string>
+    <string name="rides_recovered_gap" volt:src="04ee1464bede6d1cd631c4262e63efc9143ba461">Recuperado · corte excluido</string>
     <string name="rides_live_chart_title" volt:src="484564a71bc8b63d78393b7d4bf14457d3a3dc78">Gráfico de la grabación en vivo</string>
     <string name="rides_chart_power" volt:src="8b2207ff8309f3bed7f7d63387148ad0b14f48c9">Potencia</string>
     <string name="rides_chart_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidad</string>
@@ -31,7 +31,7 @@
     <string name="rides_toast_could_not_stop" volt:src="9bdba88e4808d891f709eb14db2484b10c7a814b">No se pudo detener · sigue grabando</string>
     <string name="rides_toast_finishing_previous" volt:src="19068315ac5ee3b46b95b3edd398a137793d4a01">Finalizando el viaje anterior…</string>
     <string name="rides_toast_storage_unavailable" volt:src="e0bea38ae0c3d0887c06c1662491e1866f04c0a1">El almacenamiento de viajes no está disponible.</string>
-    <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conéctate primero</string>
+    <string name="rides_toast_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Conecta el patinete primero</string>
     <string name="rides_notes_hint" volt:src="5b182063520bc5c1cad81d3a9cdf7bc8b1fadc8a">Modo, ruta, peso…</string>
     <string name="rides_notes_save" volt:src="4c22e443c2ace74760f89991e6a526078de026a7">Guardar notas</string>
     <string name="rides_toast_notes_not_saved" volt:src="40a3e37d436e3a7b9f8a7003b4ed6a787e435299">Viaje finalizado · notas sin guardar</string>
@@ -55,7 +55,7 @@
     <string name="rides_toast_saved_unreadable" volt:src="5be843407a8e7e6efedba3d282c47766afe4dfd7">No se pudieron leer los viajes guardados.</string>
     <string name="rides_toast_recording_unavailable" volt:src="77e257acc8ebd4e0ee12ee136578d4db82bcae2f">Esta grabación no está disponible.</string>
     <string name="rides_toast_recording_unreadable" volt:src="22a8d8dd40861a773c235b056112bf2c0bee4e21">No se pudo leer esta grabación.</string>
-    <string name="rides_rename" volt:src="3fb7329a941b0f7c39d6471159b120e4bb3a857f">Cambiar nombre del viaje</string>
+    <string name="rides_rename" volt:src="3fb7329a941b0f7c39d6471159b120e4bb3a857f">Cambiar el nombre del viaje</string>
     <string name="rides_rename_hint" volt:src="8bdeac0fdb38f7004e3cbb8bc0dd8b6f826f64ef">Nombre del viaje</string>
     <string name="rides_rename_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Guardar</string>
     <string name="rides_rename_empty" volt:src="3d7328db52cc5b0b00f7050421fa824c8bd9a873">Escribe un nombre</string>
@@ -67,7 +67,7 @@
     <string name="rides_tile_max_speed" volt:src="17ae76385b628a388d3faaab61116919201212b3">Vel. punta</string>
     <string name="rides_reason_odometer_reset" volt:src="d0627952bee838eaf46325575b5a50830674b41f">Odómetro reiniciado</string>
     <string name="rides_battery_energy" volt:src="212c96ac43105bc54ba5d9f1e4c48ae8c60f9722">Batería y energía</string>
-    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Batería ganada</string>
+    <string name="rides_tile_battery_gain" volt:src="b4fa7ba6f0445fe68eb76be51ff0365bcce818a5">Aumento de batería</string>
     <string name="rides_tile_battery_drop" volt:src="d3d93e34e90b305ccc959d189d4991eac89fc588">Caída de batería</string>
     <string name="rides_tile_per_distance" volt:src="07a0404d3d27d10505e3d4a66522e107b794162d">Por distancia</string>
     <string name="rides_tile_throughput" volt:src="4a842a3095a87fac0d579dbe4a97c4066ec88683">Flujo de energía</string>
@@ -105,10 +105,10 @@
     <string name="rides_measurement_quality" volt:src="bd0d651d0fd7877b9f4f0cf6e11d5a7d4ba104d6">Calidad de la medición</string>
     <string name="rides_observed_recorded" volt:src="7385027330c4173e11e1e956599de8741762e28c">Observado / registrado</string>
     <string name="rides_unobserved_power" volt:src="7e432ce9712eb77e8e857793b41d864a840b3724">Potencia sin observar</string>
-    <string name="rides_samples_gaps" volt:src="b589694e116ed9cdca7b77ac7452ba9ae2011746">Muestras / huecos</string>
+    <string name="rides_samples_gaps" volt:src="b589694e116ed9cdca7b77ac7452ba9ae2011746">Muestras / cortes</string>
     <string name="rides_moving_stationary" volt:src="869f1a4cf4a088eee18d95ceab397aff489c4148">En movimiento / detenido</string>
     <string name="rides_moving_throughput" volt:src="cde6e06e138c08c3253969fa62ec6def47783f9e">Flujo en movimiento</string>
-    <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Flujo estando detenido</string>
+    <string name="rides_stationary_throughput" volt:src="060330101a7d9ba49bbd9ac9f7a53ffc816695f7">Flujo con el patinete detenido</string>
     <string name="rides_unknown_motion" volt:src="9d42fbe10df03ea77092134efea93b70a144122f">Movimiento desconocido</string>
     <string name="rides_voltage_min_max" volt:src="055dee1660efd74878640000d22e62608f7a1a73">Voltaje mín. / máx.</string>
     <string name="rides_peak_power" volt:src="ba2c25e35603a64aba9071d8cb253c0aabc1c63e">Potencia máxima</string>
@@ -131,18 +131,18 @@
     <string name="rides_next_ride" volt:src="3d61cff56c377248dff08b74739a3cf39389dbdc">Próximo viaje</string>
     <string name="rides_gps_route" volt:src="bdd2ed9be744786f90642d0b92f5fcc8cefadd78">Ruta GPS</string>
     <string name="rides_gps_route_sub" volt:src="1fe8990a94c16dc5f360ff58d78bbd707fe5348e">Solo durante la grabación</string>
-    <string name="rides_barometer" volt:src="bfed743c0e5590ab6bf672ebf54f25e35b57fa6c">Elevación por barómetro</string>
-    <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Automático</string>
+    <string name="rides_barometer" volt:src="bfed743c0e5590ab6bf672ebf54f25e35b57fa6c">Altitud por barómetro</string>
+    <string name="rides_barometer_auto" volt:src="6d79ab6afa259b03c9f132d880b57dff62971b99">Auto</string>
     <string name="rides_barometer_gps" volt:src="37769f8228e7f6c822e91abf1b56a49cd1dce43a">Altitud GPS</string>
     <string name="rides_motion_sensors" volt:src="8337e6aef20a803da91fe49b791d096252c862c2">Sensores de movimiento</string>
-    <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Ubicación del teléfono</string>
-    <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">En soporte</string>
-    <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">En bolsillo</string>
+    <string name="rides_placement" volt:src="8873f4e013ee7c1631bbf61f7ab11077288e8259">Posición del teléfono</string>
+    <string name="rides_placement_mounted" volt:src="f928c0209b032c066f7f6ee1d2f36c9c333048f1">En el soporte</string>
+    <string name="rides_placement_pocket" volt:src="2ac8cb6061edf1343c371eb85db4343a6925e072">En el bolsillo</string>
     <string name="rides_lab_badge" volt:src="efd3a6bcca502f5a762556240783831388032412">LAB</string>
-    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Laboratorio, experimental</string>
+    <string name="rides_lab_description" volt:src="93be4e54bfa0ccdb51d647bbfe0adf4da23942c8">Experimental</string>
     <string name="rides_changes_next_ride" volt:src="9908a61c139cab58584cb05f0c3bb81a81d82ebb">Los cambios se aplican al próximo viaje</string>
     <string name="rides_toast_no_browser" volt:src="e9b43592d69052be6de3bb1549e6cff8103772c5">No hay ningún navegador disponible.</string>
-    <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Exportar archivos sin procesar</string>
+    <string name="rides_export_raw" volt:src="2395127d2eb5cf0f399c580db95b6eac55d36a22">Exportar archivos en bruto</string>
     <string name="rides_export_phone_journal" volt:src="3b542151a42402437727af6eab7139fb0c617406">CSV del diario del teléfono</string>
     <string name="rides_export_motion_csv" volt:src="f02bca6d002344576307241dcafef54b0c6daddb">CSV de movimiento</string>
     <string name="rides_toast_no_phone_data" volt:src="6092ad3f1a0ec1d62ad3ddec259c3ce1a79f8758">No se grabaron datos del teléfono en este viaje.</string>
@@ -161,15 +161,15 @@
     <string name="rides_route_color_speed" volt:src="9e272fa1e7e14f3dc5cb408212a703c17170b52d">Velocidad</string>
     <string name="rides_route_color_grade" volt:src="e54e37f023694e37242ae6f32c3d858abb02a52f">Pendiente</string>
     <string name="rides_route_color_accel" volt:src="c6476e8be4f1072761cb19b029e95dbc9be48c5b">Acel.</string>
-    <string name="rides_route_color_elevation" volt:src="23c8fabf225c50ef434ce0aa8b6ad6dd9525ce40">Elev.</string>
+    <string name="rides_route_color_elevation" volt:src="23c8fabf225c50ef434ce0aa8b6ad6dd9525ce40">Altitud</string>
     <string name="rides_map_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Acercar</string>
     <string name="rides_map_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Alejar</string>
     <string name="rides_map_fit" volt:src="2cb98030a1da8b08df854e194f0a893bd85bdf25">Encuadrar la ruta</string>
-    <string name="rides_map_expand" volt:src="bf370be18e383b67a9ecbabefe37165e625419a8">Expandir el mapa de la ruta</string>
+    <string name="rides_map_expand" volt:src="bf370be18e383b67a9ecbabefe37165e625419a8">Ampliar el mapa de la ruta</string>
     <string name="rides_legend_grade" volt:src="9027dd2b5e2c313c54fc75506ab5fd596db2c0f1">Pendiente · azul −12 % → gris 0 % → naranja +12 % · gris discontinuo: sin datos</string>
     <string name="rides_legend_accel" volt:src="61f530cee8ffaf8c006f91d262d27429294caef7">Aceleración GPS · azul −2 → gris 0 → naranja +2 m/s² · gris discontinuo: sin datos</string>
     <string name="rides_map_controls_description" volt:src="a88a7bf4507c48065d26c5e9c80e00471b165363">Lecturas y colores del mapa de la ruta</string>
-    <string name="rides_map_close_expanded" volt:src="8073836ff01a7dc0278b940a7e24922fabab561c">Cerrar el mapa de la ruta expandido</string>
+    <string name="rides_map_close_expanded" volt:src="8073836ff01a7dc0278b940a7e24922fabab561c">Cerrar el mapa ampliado de la ruta</string>
     <string name="rides_legend_speed_none" volt:src="725f7222e1bd583a348ec060099801233e771b60">Velocidad no registrada · gris discontinuo: sin datos</string>
     <string name="rides_point_time" volt:src="521f4da2ae5f346cbd86a916a614309848096146">Tiempo</string>
     <string name="rides_point_gps" volt:src="e75ff01c86d268fbda4fc6b26cbae87fd3f02aec">GPS</string>
@@ -182,15 +182,15 @@
     <string name="rides_point_not_measured" volt:src="32d8810cda3b35b00fbd339cda619742b45377cd">sin medir</string>
     <string name="rides_export_route_csv" volt:src="beec17fdc1fe1446e3888762337cfee92896b858">CSV de la ruta</string>
     <string name="rides_export_gpx" volt:src="b22dd3b2c7f3f9586f3d38170d49539dd3c1ee76">GPX</string>
-    <string name="rides_export_phone_raw" volt:src="3e861b036037534411fafc599c8341a177e26391">CSV sin procesar del teléfono</string>
-    <string name="rides_export_motion_raw" volt:src="144093e0848dfc41d9dd7dd6a7d2eefb9e9d31c5">CSV sin procesar de movimiento</string>
+    <string name="rides_export_phone_raw" volt:src="3e861b036037534411fafc599c8341a177e26391">CSV del teléfono en bruto</string>
+    <string name="rides_export_motion_raw" volt:src="144093e0848dfc41d9dd7dd6a7d2eefb9e9d31c5">CSV de movimiento en bruto</string>
     <string name="rides_export_all_json" volt:src="d591c3ad2a9ac82a4d446003594007fff087aee0">Todo (JSON)</string>
     <string name="rides_toast_export_failed" volt:src="aaa225c9739810f61b99b35a0b8b53c36d6870ed">No se pudo exportar este viaje.</string>
     <string name="rides_toast_export_csv_failed" volt:src="48d4ac38add95f760e03cd66b350736f1068401f">No se pudo exportar el CSV del viaje.</string>
     <string name="rides_delete_message" volt:src="3caa86deb9d63e9995515c51d407d3f50b5b0e76">Datos de la ruta y de los sensores. No se puede deshacer.</string>
     <string name="rides_delete_keep" volt:src="4d20ae693afdbf19356702263c029117d66d8cbc">Conservar viaje</string>
     <string name="rides_delete_action" volt:src="38543a07015caf3ffcb20c3fa8b9f67367348bb5">Eliminar</string>
-    <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Guardando… vuelve a probar</string>
+    <string name="rides_toast_saving_try_again" volt:src="9482127ded6156384ede30103f5774ee28a2ce8d">Guardando… inténtalo de nuevo</string>
     <string name="rides_toast_deleted" volt:src="9c5b61dadc62d3982483ba8f192e391b9e0cd0d3">Grabación eliminada.</string>
     <string name="rides_toast_delete_failed" volt:src="1fc6690281c2993706c97afbac0b4a7cdfd59910">No se pudo eliminar esta grabación.</string>
     <string name="rides_toast_select_two" volt:src="ce134f33d022481a58606227d02d9d2b3680b56e">Selecciona dos grabaciones disponibles.</string>
@@ -230,8 +230,8 @@
         <item quantity="many">%1$d viajes</item>
         <item quantity="other">%1$d viajes</item>
     </plurals>
-    <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. Muestra sus detalles junto a la lista.</string>
-    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Abre los detalles del viaje.</string>
+    <string name="rides_history_row_wide" volt:src="818acf241981323c99846e7252f0f2fc4cd1260d">%1$s. Se mostrarán sus detalles junto a la lista.</string>
+    <string name="rides_history_row" volt:src="619e243f400a4281dad994419811cbb55870ee9f">%1$s. Se abrirán los detalles del viaje.</string>
     <string name="rides_showing" volt:src="3b155b2ef7a92fd6a06dabf28667e75a6f6aff11">Mostrando %1$s</string>
     <string name="rides_unit_kilobyte" volt:src="45886c037746f5b96600e1d46c002f20df5f5c9b">KB</string>
     <string name="rides_unit_megabyte" volt:src="524c413d2ca2775c5d77a297c2cc28b406e14022">MB</string>
@@ -239,14 +239,14 @@
     <string name="rides_compare_chosen" volt:src="90b2f06f95c2842a3cded91eda32034311bef0b0">%1$d de 2 viajes elegidos</string>
     <string name="rides_battery_gain_description" volt:src="a2fd7ce14cbdbfb701a85f1dac84a9073a986037">Aumento de batería, %1$d puntos porcentuales</string>
     <string name="rides_battery_drop_description" volt:src="37e945858bdbf1baa3433ae959e03f54cb85d93a">Caída de batería, %1$d puntos porcentuales</string>
-    <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Confirmada durante %1$s</string>
+    <string name="rides_direction_confirmed_for" volt:src="6397385545235cfd0802d0d904d29ca00d4d4e48">Confirmado durante %1$s</string>
     <string name="rides_direction_unconfirmed_for" volt:src="9ce5d8f1683e985f7364a439ce1952f014406e06">Sin confirmar durante %1$s</string>
-    <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Dirección de la corriente confirmada durante %1$s, sin confirmar durante %2$s</string>
+    <string name="rides_direction_split_description" volt:src="61b0f5919b9f701c4db19c07d6d3df881e64c069">Sentido de la corriente confirmado durante %1$s, sin confirmar durante %2$s</string>
     <string name="rides_switch_experimental" volt:src="550602e28c6658e848285df423a96bb5370f3597">%1$s, experimental</string>
-    <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">En soporte · %1$s muestras</string>
-    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">En bolsillo · %1$s muestras</string>
+    <string name="rides_motion_note_mounted" volt:src="0da6397d66a04b55d5e92af104c32be6f65dfeb2">En el soporte · %1$s muestras</string>
+    <string name="rides_motion_note_pocket" volt:src="8676b714e0d2c5c6748cd6691ed92a60a436de5d">En el bolsillo · %1$s muestras</string>
     <string name="rides_legend_power" volt:src="5bd3d3ca67edf4ba3f19f2a3b03d7adda1a3be48">Magnitud de potencia · azul 0 → amarillo %1$s · gris: sin datos</string>
-    <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Elevación relativa · azul %1$s → amarillo %2$s · gris: sin datos</string>
+    <string name="rides_legend_elevation" volt:src="d2bbc7dc058d59c3937733aa1c71014ccaead1a6">Altitud relativa · azul %1$s → amarillo %2$s · gris: sin datos</string>
     <string name="rides_legend_speed_scooter" volt:src="18dafcf979154d29ec416641b5f877880308630e">Velocidad del patinete · azul 0 → amarillo %1$s o más · gris discontinuo: sin datos</string>
     <string name="rides_legend_speed_gps" volt:src="38605ba4ce2a9ff511fe6dcf1809e3e7e625c8e3">Velocidad GPS · azul 0 → amarillo %1$s o más · gris discontinuo: sin datos</string>
     <string name="rides_point_accuracy" volt:src="863066dc5335929907c89fbf677fbff9e51eee0e">, precisión ±%1$s</string>
@@ -276,7 +276,7 @@
     <string name="rides_sensor_status_signal_unavailable" volt:src="05f1bf581ffd97ab18638daae52e2b61bb4dcade">Señal de GPS no disponible</string>
     <string name="rides_sensor_status_barometer" volt:src="2957566839bc1b3438a1f9ee177477ee70a00315">%1$s · barómetro</string>
     <string name="rides_sensor_status_motion_experimental" volt:src="f1ba68b255978fee94ca1c84bd47c1084bf2b617">%1$s · movimiento experimental</string>
-    <string name="rides_sensor_status_motion_raw" volt:src="1c5e03f6bbd5f2391f9d37ef744895e4da28d564">%1$s · movimiento sin procesar</string>
+    <string name="rides_sensor_status_motion_raw" volt:src="1c5e03f6bbd5f2391f9d37ef744895e4da28d564">%1$s · movimiento en bruto</string>
     <string name="rides_sensor_status_motion_unavailable" volt:src="8ca1f87e12f25c1ba84fe8902b2a26e21b5fc853">%1$s · sensor de movimiento no disponible</string>
     <string name="rides_chart_chip_from_mph" volt:src="181819373c90e229f70a724588b6ceeb87ad1050">" · ≥2 mph"</string>
     <string name="rides_chart_chip_from_kmh" volt:src="2709d6f867db56f2b247afc593fe6e1aa9084b5b">" · ≥3 km/h"</string>
