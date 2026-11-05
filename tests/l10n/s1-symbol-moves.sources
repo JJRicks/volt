@@ -3,3 +3,5 @@
 # each tests/l10n/**Test.java from the repository root.
 # G5: the English of each moved expression, pinned before the batch.
 tests/l10n/characterization/SymbolMovesEnglishTest.java
+# S1's own suite: the catalog keys against SymbolMovesEnglishTest, and readValue stays out of the report.
+tests/l10n/SymbolMovesTest.java
