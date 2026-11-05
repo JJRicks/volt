@@ -784,34 +784,14 @@ public final class DashboardScreen implements AppScreen {
             if (value.matches("[A-Z]+"))
                 mode = value.charAt(0) + value.substring(1).toLowerCase(Locale.ROOT);
         }
-        // Still English: the header status and its spoken form. Whole-sentence templates need a choice
-        // row whose conditions sit in the sentence, but the state word is picked on the line above, so
-        // G1 wants all three words times mode and last seen (12 sentences, 8 never shown). It waits for
-        // the tooling round that models a local set from a ternary of literals (l10n/README "Still
-        // blocked: a helper argument or a choice set on an earlier line").
-        String word = ready ? "Connected" : connecting ? "Connecting" : "Disconnected";
         if (connecting) status.setText(connectingLabel());
-        else
-            status.setText(
-                    word
-                            + (mode != null ? " · " + mode : "")
-                            + (!ready && lastConnected > 0
-                                    ? " · last seen "
-                                            + DisplayTime.recent(
-                                                    host.activity(),
-                                                    preferences,
-                                                    lastConnected,
-                                                    System.currentTimeMillis())
-                                    : ""));
-        status.setContentDescription(
-                word
-                        + (mode != null ? ", " + mode + " mode" : "")
-                        + (!ready && !connecting && lastConnected > 0
-                                ? ", last seen "
-                                        + DisplayTime.dateTime(host.activity(), preferences, lastConnected)
-                                : "")
-                        + ". Connection details");
         status.setClickable(true);
+        boolean seen = !ready && lastConnected > 0;
+        if (!connecting)
+            status.setText(DashboardWords.statusLine(ready, mode, seen
+                    ? DisplayTime.recent(host.activity(), preferences, lastConnected, System.currentTimeMillis()) : null));
+        status.setContentDescription(DashboardWords.statusSpoken(ready, connecting, mode, seen && !connecting
+                ? DisplayTime.dateTime(host.activity(), preferences, lastConnected) : null));
     }
 
     /** An inline spinner keeps "Connecting…" on its single status line. */
@@ -902,7 +882,7 @@ public final class DashboardScreen implements AppScreen {
         if (r.number != null) {
             if (DisplayTemperature.isTemperature(r.key))
                 return DisplayTemperature.format(r.number, temperatureUnit(), 0);
-            if (r.key.endsWith("_kmh")) return DisplayUnits.speed(r.number, units());
+            if (r.key.endsWith(SPEED_KEY)) return DisplayUnits.speed(r.number, units());
             if (r.key.endsWith("_km"))
                 return DisplayUnits.metricText(
                         String.format(Locale.US, "%.2f km", r.number), units());
@@ -920,30 +900,6 @@ public final class DashboardScreen implements AppScreen {
         return T.dashboardAbout((units.equals("km") ? km : units.equals("dual") ? T.fmtDual(miles, km) : miles));
     }
 
-    /**
-     * Large value with its unit drawn smaller (and muted when live), e.g. 412 W. Its text comes from
-     * format(), which is DisplayUnits.metricText's canonical English (US digits, Telemetry's units), so
-     * the split at the last space still holds. It moves to Formatted ranges when format() returns one,
-     * with the metricText follow-up (F2's B1 deferral: numericValue plus UnitCode); so does Gauge.set.
-     */
-    private CharSequence withUnit(String value, boolean live) {
-        int space = value.lastIndexOf(' ');
-        if (space <= 0 || space >= value.length() - 1 || value.contains("/")) return value;
-        String unit = value.substring(space + 1);
-        char first = unit.charAt(0);
-        if (unit.length() > 5 || !(Character.isLetter(first) || first == '%' || first == '°'))
-            return value;
-        if (!Character.isDigit(value.charAt(space - 1))) return value;
-        android.text.SpannableString text = new android.text.SpannableString(value);
-        int end = value.length();
-        text.setSpan(new android.text.style.RelativeSizeSpan(.52f), space, end,
-                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        if (live)
-            text.setSpan(new android.text.style.ForegroundColorSpan(ui.muted), space, end,
-                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-        return text;
-    }
-
     private double chartNumber(String key, double value) {
         if (DisplayTemperature.isTemperature(key))
             return DisplayTemperature.fromCelsius(value, temperatureUnit());
@@ -952,11 +908,42 @@ public final class DashboardScreen implements AppScreen {
                 : value;
     }
 
+    /** How a speed reading's key ends. */
+    private static final String SPEED_KEY = "_kmh";
+
+    /**
+     * format(r) with number and unit parts where the reading has them (speed and temperature, whose text comes from a
+     * language's fmt_quantity), so withUnit need not search the text for them; else plain, its text split at a space.
+     */
+    private Formatted shown(TelemetryHistory.Reading r) {
+        Formatted parts = parts(r);
+        return parts != null ? parts : Formatted.plain(format(r));
+    }
+
+    private Formatted parts(TelemetryHistory.Reading r) {
+        if (r == null || r.value == null || r.number == null) return null;
+        if (DisplayTemperature.isTemperature(r.key)) return DisplayTemperature.quantity(r.number, temperatureUnit(), 0);
+        return r.key.endsWith(SPEED_KEY) ? DisplayUnits.speedQuantity(r.number, units()) : null;
+    }
+
+    /** Large value with its unit drawn smaller (and muted when live), e.g. 412 W: ReadingUnits.smallPart says where. */
+    private CharSequence withUnit(Formatted value, boolean live) {
+        String shown = value.toString();
+        int[] small = ReadingUnits.smallPart(shown, value.numbers() == 0 && value.units() == 0 ? null : value);
+        if (small == null) return shown;
+        android.text.SpannableString text = new android.text.SpannableString(shown);
+        text.setSpan(new android.text.style.RelativeSizeSpan(.52f), small[0], small[1],
+                android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        if (live)
+            text.setSpan(new android.text.style.ForegroundColorSpan(ui.muted), small[0], small[1],
+                    android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return text;
+    }
+
     /**
      * The chart's unit as data ("°C", "km/h"): Ui.ChartView passes it to ChartScale.range, which matches
      * UnitCode data codes, and also draws it. So it stays data (not DisplayTemperature.symbol()) until
-     * Ui.ChartView takes a data unit and a shown symbol apart; the scale summary and scale input
-     * description that read it are still English too.
+     * Ui.ChartView takes a data unit and a shown symbol apart. The scale rows show {@link #shownUnit}.
      */
     private String chartUnit(String key, Map<String, TelemetryHistory.Reading> values) {
         if (DisplayTemperature.isTemperature(key)) return DisplayTemperature.unit(temperatureUnit());
@@ -964,6 +951,18 @@ public final class DashboardScreen implements AppScreen {
         if (key.endsWith("_km")) return units().equals("km") ? "km" : "mi";
         TelemetryHistory.Reading r = values.get(key);
         return r == null ? "" : r.unit;
+    }
+
+    /** chartUnit's unit as a person reads it: a known data unit's symbol in the current language, else as reported. */
+    private static String shownUnit(String data) {
+        for (UnitCode code : UnitCode.values()) if (code.matches(data)) return code.symbol();
+        return data;
+    }
+
+    /** The capacity widget's summary without a range: how many rides and how many battery points they used. */
+    private static String capacityPoints(int rides, double points) {
+        return T.dashboardCapacitySummary(T.dashboardCapacityRides(rides, Fmt.integer(rides)),
+                T.dashboardCapacityPointsUsed(Math.round(points), Fmt.decimal(Locale.US, points, 0)));
     }
 
     private String label(String key) {
@@ -3442,7 +3441,7 @@ public final class DashboardScreen implements AppScreen {
                 if (r != null && r.value != null && !live) oldest = Math.min(oldest, r.capturedWallMs);
                 TextView amount = amounts.get(key);
                 if (amount != null) {
-                    String text = format(r);
+                    Formatted text = shown(r);
                     amount.setText(styled && !key.equals("driving_mode") ? withUnit(text, live) : text);
                     amount.setTextColor(live ? ui.text : ui.muted);
                     if (widget.type.equals("battery") && key.equals("power_w") && live && r.number != null)
@@ -3454,20 +3453,20 @@ public final class DashboardScreen implements AppScreen {
                     if (batteryData != null && amount.getParent() instanceof View)
                         ((View) amount.getParent()).setTooltipText(amount.getContentDescription());
                     if (key.equals("driving_mode"))
-                        ui.styleDriveMode(amount, text, live);
+                        ui.styleDriveMode(amount, text.toString(), live);
                 }
             }
             TelemetryHistory.Reading selected = values.get(widget.metric);
             boolean selectedLive = selected != null && selected.live;
             if (big != null) {
-                String text = format(selected);
+                Formatted text = shown(selected);
                 big.setText(widget.metric.equals("driving_mode") ? text : withUnit(text, selectedLive));
                 big.setTextColor(selectedLive ? ui.text : ui.muted);
                 big.setContentDescription(selected != null && !selectedLive ? T.dashboardReadingSeen(label(widget.metric), text, when(selected.capturedWallMs)) : T.dashboardReading(label(widget.metric), text));
                 if (widget.metric.equals("driving_mode")) {
                     big.setContentDescription(selected != null && !selectedLive
                                     ? T.dashboardDriveModeReadingSeen(text, when(selected.capturedWallMs)) : T.dashboardDriveModeReading(text));
-                    ui.styleDriveMode(big, text, selectedLive);
+                    ui.styleDriveMode(big, text.toString(), selectedLive);
                 }
                 if (subtitle != null && widget.type.equals("metric"))
                     subtitle.setVisibility(widget.title.equalsIgnoreCase(englishLabel(widget.metric))
@@ -3547,8 +3546,8 @@ public final class DashboardScreen implements AppScreen {
             if (recording) {
                 long seconds = summary == null ? 0 : summary.elapsedMs / 1000;
                 String clock = seconds >= 3600
-                        ? String.format(Locale.US, "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
-                        : String.format(Locale.US, "%d:%02d", seconds / 60, seconds % 60);
+                        ? String.format(Fmt.locale(Locale.US), "%d:%02d:%02d", seconds / 3600, seconds / 60 % 60, seconds % 60)
+                        : String.format(Fmt.locale(Locale.US), "%d:%02d", seconds / 60, seconds % 60);
                 rideTitle.setText(T.dashboardRecordingClock(clock));
                 rideTitle.setTextColor(ui.danger);
                 rideTitle.setTypeface(ui.semibold());
@@ -3556,9 +3555,8 @@ public final class DashboardScreen implements AppScreen {
                 if (summary != null && summary.distanceKm != null) parts.add(distance(summary.distanceKm));
                 if (summary != null && summary.measuredThroughputWh != null)
                     parts.add(T.fmtQuantity(Fmt.decimal(Locale.US, summary.measuredThroughputWh, 0), T.unitsWattHour()));
+                rideButton.setContentDescription(DashboardWords.recordingSpoken(clock, parts));
                 rideDetail.setText(parts.isEmpty() ? T.dashboardMeasuring() : android.text.TextUtils.join(" · ", parts));
-                rideButton.setContentDescription("Recording " + clock
-                        + (parts.isEmpty() ? "" : ", " + android.text.TextUtils.join(", ", parts)) + ". Stop & save");
             } else {
                 rideTitle.setText(T.dashboardRecordRide());
                 rideTitle.setTextColor(enabled ? ui.text : ui.muted);
@@ -3724,8 +3722,8 @@ public final class DashboardScreen implements AppScreen {
                         Double low = estimated ? result.estimatedLowWh : result.throughputLowWh;
                         Double high = estimated ? result.estimatedHighWh : result.throughputHighWh;
                         capacitySummary.setText(low != null && high != null
-                                ? T.dashboardRidesRange(Fmt.integer(rides), Fmt.decimal(Locale.US, low, 0), Fmt.decimal(Locale.US, high, 0), T.unitsWattHour())
-                                : T.dashboardRidesPoints(Fmt.integer(rides), Fmt.decimal(Locale.US, estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints, 0)));
+                                ? T.dashboardCapacitySummary(T.dashboardCapacityRides(rides, Fmt.integer(rides)), T.fmtRange(Fmt.decimal(Locale.US, low, 0), Fmt.decimal(Locale.US, high, 0), T.unitsWattHour()))
+                                : capacityPoints(rides, estimated ? result.batteryDropPoints : result.proxyBatteryDropPoints));
                         showComparison(percent, result.advertisedWh, proxy, false);
                     });
         }
@@ -3778,8 +3776,8 @@ public final class DashboardScreen implements AppScreen {
                 double points = confirmedGroup ? r.batteryDropPoints : r.proxyBatteryDropPoints;
                 details.addView(detailRow(T.dashboardRides(), Integer.toString(rides)));
                 details.addView(detailRow(T.dashboardPoints(), estimated || proxy
-                        ? String.format(Locale.US, "%.0f", points)
-                        : String.format(Locale.US, "%.0f / %.0f", Math.floor(r.progressPoints),
+                        ? String.format(Fmt.locale(Locale.US), "%.0f", points)
+                        : String.format(Fmt.locale(Locale.US), "%.0f / %.0f", Math.floor(r.progressPoints),
                                 BatteryCapacityEstimate.MIN_TOTAL_DROP)));
                 if (!estimated && !proxy && rides > 0 && rides < BatteryCapacityEstimate.MIN_RIDES)
                     details.addView(detailRow(T.dashboardRidesNeeded(), Integer.toString(BatteryCapacityEstimate.MIN_RIDES)));
@@ -3800,11 +3798,13 @@ public final class DashboardScreen implements AppScreen {
                 if (r.minimumTemperatureC != null && r.maximumTemperatureC != null)
                     details.addView(detailRow(T.dashboardPackTemp(), DisplayTemperature.range(
                             r.minimumTemperatureC, r.maximumTemperatureC, temperatureUnit(), 0)));
-                details.addView(detailRow(T.dashboardWindow(), r.windowDays + (r.windowDays == 1 ? " day" : " days")
-                        + (r.includesActive ? " · live" : "")));
+                details.addView(detailRow(T.dashboardWindow(), !r.includesActive
+                        ? T.dashboardEstimateWindowDays(r.windowDays, r.windowDays)
+                        : T.dashboardEstimateWindowLive(T.dashboardEstimateWindowDays(r.windowDays, r.windowDays))));
                 if (r.rejectedRides > 0)
-                    details.addView(detailRow(T.dashboardRejected(), r.rejectedRides
-                            + (r.reason == null ? "" : " · " + r.reason)));
+                    details.addView(detailRow(T.dashboardRejected(), r.reason == null
+                            ? Fmt.integer(r.rejectedRides)
+                            : T.dashboardRejectedReason(Fmt.integer(r.rejectedRides), r.reasonMsg)));
                 if (!estimated && !proxy && r.qualifiedRides + r.proxyRides == 0 && r.rejectedRides == 0)
                     details.addView(caveat(r.label));
                 details.addView(caveat(proxy ? T.dashboardProxyCaveat()
@@ -3845,7 +3845,7 @@ public final class DashboardScreen implements AppScreen {
                 livePoints.clear(); wasLive = service.ble.connected();
                 drawChart(values, key);
                 if (!widget.type.equals("health")) {
-                    String sample = T.dashboardSampleWindow(windowName(widget.windowMs));
+                    String sample = T.dashboardSampleWindow(DashboardWords.windowName(widget.windowMs));
                     ((DashboardCaption) subtitle).setLabels(label(key) + " · " + sample, sample, sample);
                 }
                 return;
@@ -3908,10 +3908,10 @@ public final class DashboardScreen implements AppScreen {
             if (!widget.type.equals("health")) {
                 boolean reportedRange = key.equals("remaining_range_km");
                 String metricLabel = reportedRange ? T.dashboardRangeReported() : label(key);
-                String window = windowName(widget.windowMs);
+                String window = DashboardWords.windowName(widget.windowMs);
                 boolean named = !reportedRange && widget.title.equalsIgnoreCase(englishLabel(key));
-                String normal = (named ? "" : (reportedRange ? "Scooter range" : ScooterReadingLabels.label(key, metricLabel)) + " · ") + window;
-                String compact = (named ? "" : (reportedRange ? "Scooter range" : ScooterReadingLabels.compact(key, metricLabel)) + " · ") + window;
+                String normal = (named ? "" : (reportedRange ? T.dashboardScooterRange() : ScooterReadingLabels.label(key, metricLabel)) + " · ") + window;
+                String compact = (named ? "" : (reportedRange ? T.dashboardScooterRangeCompact() : ScooterReadingLabels.compact(key, metricLabel)) + " · ") + window;
                 ((DashboardCaption) subtitle).setLabels(metricLabel + " · " + window, normal, compact);
             }
         }
@@ -4215,22 +4215,20 @@ public final class DashboardScreen implements AppScreen {
             String formatted = format(reading);
             amount = formatted;
             unit = secondary = "";
-            // Preserve the app's value precision and unit preference, including
-            // both readings in dual-unit mode, rather than rounding gauge values.
-            int split = formatted.indexOf(' ');
-            if (reading != null && reading.number != null && split > 0
-                    && Character.isDigit(formatted.charAt(split - 1))) {
-                amount = formatted.substring(0, split);
-                unit = formatted.substring(split + 1).trim();
-                int dual = unit.indexOf(" / ");
-                if (dual >= 0) {
-                    secondary = unit.substring(dual + 3);
-                    unit = unit.substring(0, dual);
-                }
-            }
             setContentDescription(reading != null && !reading.live
                             ? T.dashboardReadingSeen(label(widget.metric), formatted, when(reading.capturedWallMs)) : T.dashboardReading(label(widget.metric), formatted));
+            splitReading(formatted);
             invalidate();
+        }
+
+        // Preserve the app's value precision and unit preference, including
+        // both readings in dual-unit mode, rather than rounding gauge values.
+        private void splitReading(String formatted) {
+            if (reading == null || reading.number == null) return;
+            String[] shown = ReadingUnits.gaugeParts(formatted, parts(reading));
+            amount = shown[0];
+            unit = shown[1];
+            secondary = shown[2];
         }
 
         @Override
@@ -5213,13 +5211,11 @@ public final class DashboardScreen implements AppScreen {
                             T.dashboardReadings(),
                             T.dashboardSelectedCount(widget.keys.size(), widget.keys.size()),
                             () -> chooseReadings(widget)), "stats");
-        // The value shows widget.note as saved, not DashboardConfig.displayNote: G1 refuses changing
-        // an argument of a statement that holds converted text, so it waits for an ordinary change.
         if (widget.type.equals("note"))
             addSettingRow(settings,
                     ui.settingRow(
                             T.dashboardNote(),
-                            widget.note,
+                            DashboardConfig.displayNote(widget),
                             () ->
                                     editText(
                                             widget,
@@ -5292,7 +5288,7 @@ public final class DashboardScreen implements AppScreen {
             swatches.addView(swatch, new ViewGroup.LayoutParams(ui.dp(48), ui.dp(48)));
         }
         list.addView(swatches, new LinearLayout.LayoutParams(-1, -2));
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> {
             applyTitle.run();
             if (!config.widgets.contains(widget)) {
                 DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
@@ -5311,7 +5307,7 @@ public final class DashboardScreen implements AppScreen {
         buttons.setPadding(0, ui.dp(12), 0, 0);
         buttons.addView(save, new LinearLayout.LayoutParams(-1, -2));
         String index = DashboardConfig.typeName(Math.max(0, Arrays.asList(DashboardConfig.TYPES).indexOf(widget.type)));
-        showSheet(index, list, buttons, "Close widget options", applyTitle);
+        showSheet(index, list, buttons, T.dashboardCloseWidgetOptions(), applyTitle);
     }
 
     /** Ordered, named actions. Configuration never executes a scooter command. */
@@ -5379,7 +5375,7 @@ public final class DashboardScreen implements AppScreen {
             animateRows(rows, old);
         };
         fill[0].run();
-        TextView save = ui.button("✓ Save", () -> options(widget));
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> options(widget));
         showSheet(T.dashboardQuickSettings(), list, save, T.dashboardCloseQuickSettings(), null);
     }
 
@@ -5427,13 +5423,13 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout choices = column(); content.addView(choices);
         Runnable filter = () -> {
             choices.removeAllViews();
-            String query = search.getText().toString().toLowerCase(Locale.ROOT).trim();
+            String query = SearchFold.fold(search.getText().toString()).trim();
             for (QuickAccessActions.Entry entry : QuickAccessActions.catalog()) {
-                // Matches the English label and group only: adding the shown ones to this line holding
-                // text fails G1 in an extraction batch (the Choose sheets match both).
-                if (!query.isEmpty() && !(entry.label + " " + entry.group).toLowerCase(Locale.ROOT).contains(query)) continue;
                 boolean selected = widget.quickActions.contains(entry.id);
                 boolean current = index >= 0 && widget.quickActions.get(index).equals(entry.id);
+                // The English name and group still match, beside the shown ones.
+                if (!query.isEmpty() && !SearchFold.holds(entry.label, entry.group, query)
+                        && !SearchFold.holdsShown(entry.label().render(), entry.groupLabel().render(), query)) continue;
                 LinearLayout item = row(); item.setGravity(Gravity.CENTER_VERTICAL);
                 item.setMinimumHeight(ui.dp(60)); item.setPadding(ui.dp(4), ui.dp(8), ui.dp(4), ui.dp(8));
                 item.addView(new GlyphView(entry.icon, ui.accent), new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20)));
@@ -5485,7 +5481,7 @@ public final class DashboardScreen implements AppScreen {
         // Unreachable from the disabled Duplicate control, whose tooltip gives the reason.
         if (lockType(widget.type) || config.widgets.size() >= WIDGET_LIMIT) return;
         DashboardEditHistory.Snapshot before = DashboardEditHistory.capture(config);
-        DashboardConfig.Widget copy = new DashboardConfig.Widget(widget.type);
+        DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(widget);
         copy.title = widget.title;
         copy.metric = widget.metric;
         copy.note = widget.note;
@@ -5722,8 +5718,7 @@ public final class DashboardScreen implements AppScreen {
         Double value = rating(widget);
         return value == null
                 ? T.dashboardSetComparison()
-                : String.format(
-                        Locale.US, "%.2f Wh%s", value, widget.advertisedWh == 0 ? " · model" : "");
+                : T.dashboardRatingValue(Fmt.decimal(Locale.US, value, 2), T.unitsWattHour(), widget.advertisedWh == 0 ? T.dashboardRatingModel() : "");
     }
 
     private void advertisedCapacity(DashboardConfig.Widget widget) {
@@ -5823,16 +5818,12 @@ public final class DashboardScreen implements AppScreen {
         Runnable fill =
                 () -> {
                     rows.removeAllViews();
-                    String q = search.getText().toString().toLowerCase(Locale.ROOT);
+                    String q = SearchFold.fold(search.getText().toString());
                     for (Telemetry.Metric metric : metrics)
                         // The English name and group still match, beside the shown ones.
-                        if ((metric.label + metric.group + metric.key)
-                                        .toLowerCase(Locale.ROOT)
-                                        .contains(q)
-                                || (ScooterReadingLabels.full(metric.key, metric.label)
-                                        + ScooterReadingLabels.group(metric.group) + metric.key)
-                                .toLowerCase(Locale.ROOT)
-                                .contains(q)) {
+                        if (SearchFold.holds(metric.label + metric.group + metric.key, q)
+                                || SearchFold.holds(ScooterReadingLabels.full(metric.key, metric.label)
+                                        + ScooterReadingLabels.group(metric.group) + metric.key, q)) {
                             LinearLayout row =
                                     ui.settingRow(
                                             ScooterReadingLabels.full(metric.key, metric.label),
@@ -5876,7 +5867,7 @@ public final class DashboardScreen implements AppScreen {
         ui.styleSearch(search);
         search.setBackground(ui.shape(ui.dark ? ui.bg : ui.raised, 14, ui.outline));
         header.addView(search, ui.searchLayout());
-        TextView count = ui.caption(T.dashboardCountOfSelected(Fmt.integer(chosen.size()), Fmt.integer(most)));
+        TextView count = ui.caption(T.dashboardSelectedOfMost(chosen.size(), Fmt.integer(chosen.size()), Fmt.integer(most)));
         count.setPadding(ui.dp(2), 0, ui.dp(2), ui.dp(10));
         count.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         header.addView(count);
@@ -5944,7 +5935,7 @@ public final class DashboardScreen implements AppScreen {
                 else if (chosen.size() < most) chosen.add(metric.key);
                 else return;
                 style.run();
-                count.setText(T.dashboardCountOfSelected(Fmt.integer(chosen.size()), Fmt.integer(most)));
+                count.setText(T.dashboardSelectedOfMost(chosen.size(), Fmt.integer(chosen.size()), Fmt.integer(most)));
                 refreshSelected[0].run();
             });
             style.run();
@@ -6008,17 +5999,18 @@ public final class DashboardScreen implements AppScreen {
         empty.setPadding(ui.dp(12), ui.dp(24), ui.dp(12), ui.dp(24));
         choices.addView(empty, new LinearLayout.LayoutParams(-1, -2));
         Runnable filter = () -> {
-            String query = search.getText().toString().trim().toLowerCase(Locale.ROOT);
+            String query = SearchFold.fold(search.getText().toString().trim());
             int matches = 0;
             for (int i = 0; i < metrics.size(); i++) {
                 Telemetry.Metric metric = metrics.get(i);
                 boolean visible = (metric.label + " " + metric.group + " " + metric.key
                         + " " + ScooterReadingLabels.label(metric.key, metric.label))
                         .toLowerCase(Locale.ROOT).contains(query);
-                // The shown name and group match too (in English they are the names above).
+                // The shown names match too, folded as the query is, and so do the English ones. In English that finds nothing more.
                 if (!visible)
-                    visible = ScooterReadingLabels.full(metric.key, metric.label).toLowerCase(Locale.ROOT).contains(query)
-                            || ScooterReadingLabels.group(metric.group).toLowerCase(Locale.ROOT).contains(query);
+                    visible = SearchFold.holds(metric.label, metric.group, query)
+                            || SearchFold.holdsShown(ScooterReadingLabels.label(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query)
+                            || SearchFold.holdsShown(ScooterReadingLabels.full(metric.key, metric.label), ScooterReadingLabels.group(metric.group), query);
                 items.get(i).setVisibility(visible ? View.VISIBLE : View.GONE);
                 if (visible) matches++;
             }
@@ -6032,7 +6024,7 @@ public final class DashboardScreen implements AppScreen {
             public void afterTextChanged(android.text.Editable text) {}
         });
         filter.run();
-        TextView save = ui.button("✓ Save", () -> {
+        TextView save = ui.button(T.dashboardSaveChecked(), () -> {
             if (chosen.size() > most) return;
             if (chosen.size() < least) {
                 host.toast(T.dashboardChooseOneReading());
@@ -6052,18 +6044,12 @@ public final class DashboardScreen implements AppScreen {
         if (dialog != null) SearchFocus.bind(search, dialog.getWindow());
     }
 
-    private String windowName(long ms) {
-        long count = ms / (ms < 3600000 ? 60000 : ms < 86400000 ? 3600000 : 86400000);
-        String unit = ms < 3600000 ? "minute" : ms < 86400000 ? "hour" : "day";
-        return count + " " + unit + (count == 1 ? "" : "s");
-    }
-
     private String scaleSummary(DashboardConfig.Widget widget, double value) {
         double displayed = chartNumber(widget.metric, value);
         String amount = widget.metric.endsWith("_kmh")
                 ? new GaugeScaleInput(value, displayed, 1).text
-                : String.format(Locale.US, "%.2f", displayed);
-        return amount + " " + chartUnit(widget.metric, readings());
+                : String.format(Fmt.locale(Locale.US), "%.2f", displayed);
+        return T.fmtQuantity(amount, shownUnit(chartUnit(widget.metric, readings())));
     }
 
     private void scale(DashboardConfig.Widget widget, boolean maximum) {
@@ -6078,14 +6064,16 @@ public final class DashboardScreen implements AppScreen {
                 widget.metric.endsWith("_kmh") ? 1 : 6);
         input.setText(scaleInput.text);
         String unitName = chartUnit(widget.metric, readings());
-        input.setContentDescription((maximum ? "Scale maximum" : "Scale minimum")
-                + (unitName.isEmpty() ? "" : " in " + unitName));
+        input.setContentDescription(maximum ? (unitName.isEmpty() ? T.dashboardScaleMaximum() : T.dashboardScaleMaximumIn(unitName))
+                : unitName.isEmpty() ? T.dashboardScaleMinimum() : T.dashboardScaleMinimumIn(unitName));
         LinearLayout content = row();
         content.setGravity(Gravity.CENTER_VERTICAL);
         content.setPadding(ui.dp(24), ui.dp(8), ui.dp(24), 0);
         content.addView(input, new LinearLayout.LayoutParams(0, -2, 1));
         if (!unitName.isEmpty()) {
-            TextView unit = ui.text(unitName, 15, false);
+            // Said with the unit's shown symbol, as beside the field; G1's choice row above holds the data unit.
+            input.setContentDescription(maximum ? T.dashboardScaleMaximumIn(shownUnit(unitName)) : T.dashboardScaleMinimumIn(shownUnit(unitName)));
+            TextView unit = ui.text(shownUnit(unitName), 15, false);
             unit.setTextColor(ui.muted);
             unit.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
             LinearLayout.LayoutParams unitSpace = new LinearLayout.LayoutParams(-2, -2);
@@ -6242,8 +6230,7 @@ public final class DashboardScreen implements AppScreen {
                     final boolean available = i == 0 || i <= usable;
                     button.setAlpha(available ? 1f : .4f);
                     button.setContentDescription(i == 0 ? T.dashboardAdaptiveColumns()
-                            : i + (i == 1 ? " column" : " columns")
-                                    + (available ? "" : ", needs a wider screen"));
+                            : available ? T.dashboardColumnCount(i, i) : T.dashboardColumnCountNeedsWider(T.dashboardColumnCount(i, i)));
                     button.setOnClickListener(v -> {
                         if (!available) {
                             showNotice(button, T.dashboardNeedsWiderScreen(), null, null);
@@ -6556,10 +6543,9 @@ public final class DashboardScreen implements AppScreen {
         if (android.os.Build.VERSION.SDK_INT >= 28) heading.setAccessibilityHeading(true);
         card.addView(heading);
         String detail = saved == null
-                ? (occupied ? "Unreadable" : "Empty")
-                : (saved.widgetCount == 1 ? "1 widget" : saved.widgetCount + " widgets")
-                        + " · " + DisplayTime.recent(host.activity(), preferences,
-                                saved.savedAtMs, System.currentTimeMillis());
+                ? (occupied ? T.dashboardSlotUnreadable() : T.dashboardSlotEmpty())
+                : T.dashboardSlotSummary(saved.widgetCount, saved.widgetCount, DisplayTime.recent(host.activity(), preferences,
+                                saved.savedAtMs, System.currentTimeMillis()));
         TextView summary = ui.caption(detail);
         summary.setPadding(0, ui.dp(3), 0, ui.dp(8));
         card.addView(summary);

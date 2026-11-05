@@ -62,7 +62,7 @@
     <string name="rides_sensors_gps" volt:screen="Rides, live recording" volt:purpose="label" volt:dnt="GPS">GPS</string>
     <!-- Part of the phone sensors summary, joined with ' · ': elevation is recorded (lower case, after GPS). -->
     <string name="rides_sensors_elevation" volt:screen="Rides, live recording" volt:purpose="label">elevation</string>
-    <!-- Part of the phone sensors summary, joined with ' · ': motion sensors are on (lower case; the first part is capitalized by the app). -->
+    <!-- Part of the phone sensors summary, joined with ' · ': motion sensors are on, after GPS and elevation (lower case). -->
     <string name="rides_sensors_motion" volt:screen="Rides, live recording" volt:purpose="label">motion</string>
     <string name="rides_sensors_scooter_only" volt:screen="Rides, live recording" volt:purpose="label">Scooter readings only</string>
     <!-- Shown for a saved ride the owner has not named. Never saved as the ride's name. -->
@@ -77,6 +77,8 @@
     <string name="rides_no_rides_yet" volt:screen="Rides, history" volt:purpose="label">No rides yet</string>
     <string name="rides_history_unreadable" volt:screen="Rides, history" volt:purpose="label">Could not read saved rides</string>
     <string name="rides_compare_two_selected" volt:screen="Rides, history" volt:purpose="label">Compare two rides, 2 rides selected</string>
+    <!-- The compare row's value when two rides are chosen, "2" being the count: keep the check mark. Screen readers say rides_compare_two_selected instead. -->
+    <string name="rides_compare_two_selected_value" volt:screen="Rides, history" volt:purpose="status" volt:dnt="✓">2 ✓</string>
     <string name="rides_toast_compare_needs_two" volt:screen="Rides, history" volt:purpose="message">Save two rides to compare them.</string>
     <string name="rides_compare_title" volt:screen="Rides, history" volt:purpose="label">Compare rides</string>
     <!-- Button that opens the comparison of the two chosen rides. -->
@@ -127,6 +129,10 @@
     <string name="rides_electrical_energy" volt:screen="Rides, ride details" volt:purpose="label">Electrical energy</string>
     <string name="rides_direction_confirmed" volt:screen="Rides, ride details" volt:purpose="label">Current direction confirmed</string>
     <string name="rides_direction_unconfirmed" volt:screen="Rides, ride details" volt:purpose="label">Direction not confirmed for the whole ride · values are absolute throughput</string>
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_confirmed instead, and tapping the chip shows that text: keep the check mark. -->
+    <string name="rides_direction_chip_confirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="✓">Direction ✓</string>
+    <!-- Chip beside Electrical energy. "Direction" is the direction of the battery current, not of travel. Screen readers say rides_direction_unconfirmed instead, and tapping the chip shows that text: keep the question mark. -->
+    <string name="rides_direction_chip_unconfirmed" volt:screen="Rides, ride details" volt:purpose="status" volt:dnt="?">Direction ?</string>
     <!-- Short form of rides_draw, used where direction was confirmed only part of the time. -->
     <string name="rides_draw_short" volt:screen="Rides, ride details" volt:purpose="label">Draw</string>
     <string name="rides_draw" volt:screen="Rides, ride details" volt:purpose="label">Battery draw</string>
@@ -419,5 +425,34 @@
     <string name="rides_chart_series_no_samples" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s, no samples recorded</string>
     <!-- %1$s is the series name; %2$s is its reading and time, or "no recorded sample". -->
     <string name="rides_chart_cell_description" volt:screen="Rides, ride details" volt:purpose="accessibility description">%1$s: %2$s</string>
+
+    <!-- ===== F5: forms the screen used to build by re-casing or joining ===== -->
+
+    <!-- The phone sensors summary when motion is all that is on: rides_sensors_motion at the start of a line. -->
+    <string name="rides_sensors_motion_start" volt:screen="Rides, live recording" volt:purpose="label">Motion</string>
+    <!-- Spoken for the route point's GPS cell: %1$s the cell's label ("GPS"), %2$s the speed ("12.3 mph"), %3$s the fix's accuracy as a height ("12 ft"). -->
+    <string name="rides_point_gps_accuracy" volt:screen="Rides, phone and route" volt:purpose="accessibility description">%1$s, %2$s, accuracy ±%3$s</string>
+    <!-- Spoken for the compare row before two rides exist: %1$d rides are saved (0 or 1) of the 2 it needs. -->
+    <plurals name="rides_compare_two_saved_count" volt:screen="Rides, history" volt:purpose="accessibility description">
+        <item quantity="one">Compare two rides, %1$d of 2 saved rides</item>
+        <item quantity="other">Compare two rides, %1$d of 2 saved rides</item>
+    </plurals>
+    <!-- Spoken count in the compare picker: %1$d of the two rides are chosen (0 to 2). -->
+    <plurals name="rides_compare_chosen_count" volt:screen="Rides, compare" volt:purpose="accessibility description">
+        <item quantity="one">%1$d of 2 rides chosen</item>
+        <item quantity="other">%1$d of 2 rides chosen</item>
+    </plurals>
+    <!-- Drawn title of the route legend when the speed title does not fit. Keep it short; the bar starts after it. -->
+    <string name="rides_legend_title_speed" volt:screen="Rides, phone and route" volt:purpose="legend">Speed</string>
+    <!-- Drawn title of the route legend: road grade. Keep it short; the bar starts after it. -->
+    <string name="rides_legend_title_grade" volt:screen="Rides, phone and route" volt:purpose="legend">Grade</string>
+    <!-- Drawn title of the route legend: acceleration, abbreviated. Keep it short; the bar starts after it. -->
+    <string name="rides_legend_title_accel" volt:screen="Rides, phone and route" volt:purpose="legend">Accel</string>
+    <!-- Drawn title of the route legend: elevation, abbreviated. Keep it short; the bar starts after it. -->
+    <string name="rides_legend_title_elev" volt:screen="Rides, phone and route" volt:purpose="legend">Elev.</string>
+    <!-- Drawn title of the route legend: electrical power. Keep it short; the bar starts after it. -->
+    <string name="rides_legend_title_power" volt:screen="Rides, phone and route" volt:purpose="legend">Power</string>
+    <!-- Beside the route legend's dashed line: parts of the route with no reading. -->
+    <string name="rides_legend_missing" volt:screen="Rides, phone and route" volt:purpose="legend">missing</string>
 
 </resources>

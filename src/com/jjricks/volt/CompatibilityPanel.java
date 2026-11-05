@@ -307,10 +307,9 @@ final class CompatibilityPanel {
         }
     }
     static String readValue(DiscoveryCoordinator.Read r){
-        // Deferred (B9): the supported read stays English; the font (Saira) has no U+2713 for the catalog.
-        String late=r.late?" (late)":"";
+        String late=r.late?T.compatReadLate():"";
         switch(r.outcome){
-            case READ_SUPPORTED: return "✓ "+r.length+" bytes"+late;
+            case READ_SUPPORTED: return T.compatReadSupported(r.length,r.length,late);
             case REJECTED: return T.compatReadRejected(r.status);
             case MALFORMED: return T.compatReadTooShort(r.length,r.length);
             case EMPTY_REPLY: return T.compatReadEmpty();
