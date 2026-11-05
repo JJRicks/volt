@@ -26,13 +26,13 @@
     <string name="ble_failed_owner_check" volt:src="25cdbb5305350402462da1d4c3694753ffe9987c">Kontrola vlastníka se nezdařila</string>
     <string name="ble_failed_unsupported_firmware" volt:src="38c38ec074bc7b1c866743ba8fc26da1fd219c59">Nepodporovaný firmware</string>
     <string name="ble_failed_unrecognised" volt:src="e41886121cecc6a116ef2a8acfeebba7282cc674">Nerozpoznaná koloběžka</string>
-    <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c">Není to uložená koloběžka</string>
+    <string name="ble_failed_not_saved" volt:src="233edf84a6171e33431c9a9c6ecd581d5c96021c" volt:attempt="2">Koloběžka neodpovídá uložené</string>
     <string name="ble_failed_other_saved" volt:src="0b4b8c62d1732ffe5ff49209dd9489c809d02aab">Toto je %1$s. Vyberte ji v části „Vaše koloběžky“ nebo vyhledejte svou novou koloběžku.</string>
     <string name="ble_failed_signal_lost" volt:src="1f23751172e9878adc6da281e6fe1b838304f246">Signál ztracen</string>
-    <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Nepotvrzená změna</string>
+    <string name="ble_failed_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3" volt:attempt="2">Nepotvrzená změna</string>
     <string name="ble_drop_retrying" volt:src="ba92d43fd92d6e1c1e8d883fcbf6d1f270ee7107">%1$s · opakování připojení</string>
     <string name="ble_drop_change_cancelled" volt:src="2bd234364dd6143795d7a3766883e5ba95d82368">%1$s · změna zrušena</string>
-    <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082">%1$s · nepotvrzená změna</string>
+    <string name="ble_drop_not_confirmed" volt:src="611b2fa429eaf94aa7e213c4fc648ed293784082" volt:attempt="2">%1$s · nepotvrzená změna</string>
     <string name="ble_drop_reconnecting" volt:src="da7eefd7d61d6f1b1c55ebcce6381956259ee135">%1$s · opětovné připojování kvůli potvrzení</string>
     <string name="ble_drop_native" volt:src="162b6c9e6f67a18bbe3374ec615fdfa9c90c27d1">Koloběžka možná restartovala Bluetooth · opětovné připojování kvůli potvrzení</string>
     <string name="ble_simulation_on" volt:src="9a071404250fdeb0dc8b004b7dddf5ca3007f4a6">Simulace zapnuta</string>
@@ -69,8 +69,8 @@
     <string name="ble_pair_approve" volt:src="4acee788b8f9af56490d16c18ac89b70fc643cb8">Přijměte v telefonu žádost o párování přes Bluetooth.</string>
     <string name="ble_pair_not_started" volt:src="2e3c88a5c5a9e74430b2ce7241db5c4019e9ac3b">Párování přes Bluetooth se nepodařilo spustit. Zkuste to znovu.</string>
     <string name="ble_pair_unavailable" volt:src="66181e00c2a269d58d6f52ee72aa74c4ae706e37">Párování přes Bluetooth není k dispozici.</string>
-    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5">Stav kódu PIN nedorazil. Klepněte na „Načíst stav kódu PIN“ a zkuste to znovu.</string>
-    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">Stav kódu PIN není v tomto firmwaru k dispozici.</string>
+    <string name="ble_pin_status_missing" volt:src="0c9b7f4e1a264798d301be59963aa289798d80e5" volt:attempt="2">Stav kódu PIN nedorazil. Zkuste to znovu klepnutím na „Přečíst stav kódu PIN“.</string>
+    <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f" volt:attempt="2">Stav kódu PIN je v tomto firmwaru nedostupný.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">Nastavení kódu PIN vyžaduje profil vlastníka.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Před zapnutím odemknutí při přiblížení spárujte tento telefon</string>
     <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Před zapnutím odemknutí při přiblížení zapněte nastavený PIN na řídítkách</string>
@@ -82,9 +82,9 @@
     <string name="ble_check_stopped" volt:src="d21cc78675816b846e655e27882b3a1857726759">Kontrola kompatibility zastavena</string>
     <string name="ble_check_finished" volt:src="24b295a0f47ff2bfa3178588b2ade1a0d2cfd781">Kontrola kompatibility dokončena</string>
     <string name="ble_finish_try" volt:src="c63408804db3976a0fa25a8c7f1048cc445ddc62">Nejprve dokončete aktuální pokus</string>
-    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Záznamy testů nejsou k dispozici</string>
+    <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5" volt:attempt="2">Záznamy testů jsou nedostupné</string>
     <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34">Nejprve zkontrolujte nedokončený pokus</string>
-    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b">Není co vrátit zpět</string>
+    <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b" volt:attempt="2">Nic k vrácení zpět</string>
     <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Nepodařilo se to vrátit zpět. Nic se nezměnilo.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Nejprve dokončete aktuální test</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Test nenalezen</string>
@@ -92,12 +92,12 @@
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Potvrzeno</string>
     <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Nastavení potvrzeno zpětným načtením; svítivost nebyla změřena</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Přijato; zpětné načtení hodin není k dispozici</string>
-    <string name="ble_result_accepted_unreadable" volt:src="2d1dae8ae4efd5313b9ce3b2421c87b0b468b13c">Přijato; firmware tento stav nehlásí</string>
-    <string name="ble_result_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Nepotvrzená změna</string>
+    <string name="ble_result_accepted_unreadable" volt:src="2d1dae8ae4efd5313b9ce3b2421c87b0b468b13c" volt:attempt="2">Přijato; firmware tento stav nehlásí</string>
+    <string name="ble_result_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3" volt:attempt="2">Nepotvrzená změna</string>
     <string name="ble_result_rejected" volt:src="3909a6b37661b392ed8c7b99dff3f45cbb7fff43">Odmítnuto (%1$s)</string>
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Zrušeno před odesláním</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Řízený test</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Připojení ztraceno před změnou zámku</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Koloběžka nepotvrdila změnu zámku</string>
-    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Koloběžka nebyla připravena na změnu zámku; zkuste to znovu</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097" volt:attempt="2">Koloběžka nepotvrdila změnu zámku</string>
+    <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda" volt:attempt="2">Koloběžka nebyla připravena na změnu zámku; zkuste to znovu</string>
 </resources>

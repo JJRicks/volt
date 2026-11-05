@@ -46,7 +46,7 @@
     <string name="owner_shizuku_open_shizuku_description" volt:src="b53379f5934b58dddb10b4ba9fa0765656d0e5a1">Otevřít Shizuku a povolit aplikaci Volt</string>
     <string name="owner_shizuku_help" volt:src="f1bdb02d6ec6dd8b8ab16ef3a60fc1537313f6b3">Nápověda k Shizuku</string>
     <string name="owner_shizuku_allow_access" volt:src="eb0418c06e6a6d9058b66457924a77e08cab566a">Povolit přístup přes Shizuku</string>
-    <string name="owner_shizuku_allow_access_description" volt:src="2e88ad03a09b6fd7198a9230da461005cc510e9f">Požádat Shizuku o široký přístup k ladění; zachycení se tím nespustí</string>
+    <string name="owner_shizuku_allow_access_description" volt:src="2e88ad03a09b6fd7198a9230da461005cc510e9f" volt:attempt="2">Vyžádá se od Shizuku široký přístup k ladění; zachycení se tím nespustí</string>
     <string name="owner_shizuku_check_connection" volt:src="bd2614781f6fbfa419b48bec35c490bf0b09a49b">Zkontrolovat připojení Shizuku</string>
     <string name="owner_shizuku_check_connection_description" volt:src="1a94a6432c6bd96ec7b635214725dc0749629e3d">Zkontrolovat, zda Shizuku běží</string>
     <string name="owner_shizuku_capture_title" volt:src="33351d51d2c8a4f6312f1f8dae225b768cdd3a8d">Zachycení z vaší koloběžky</string>

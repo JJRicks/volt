@@ -113,7 +113,7 @@
     <string name="stats_charge_history_back" volt:src="accd0957cdef2eb20859915e24c1137e3302eaac">Zpět na záznamy nabíjení</string>
     <string name="stats_charge_history_close" volt:src="5cca0e2e6496885f9ef22a318cc2d4355b2aebd1">Zavřít záznamy nabíjení</string>
     <string name="stats_charge_row_description" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="stats_charge_finish_not_observed" volt:src="9041b739b1b5ece945f8e0e229a84f9af2093968">Dokončení nezaznamenáno</string>
+    <string name="stats_charge_finish_not_observed" volt:src="9041b739b1b5ece945f8e0e229a84f9af2093968" volt:attempt="2">Dokončení nezaznamenáno</string>
     <string name="stats_charge_full_observed" volt:src="88b2405e1fbc60f57f292500f7355c2cf504cadc">Zaznamenáno 100 %</string>
     <string name="stats_charge_paused_schedule" volt:src="5fe12fa5912fa93fcbd7acd836b52fd480aaec57">" · pozastaveno kvůli plánu: %1$s"</string>
     <plurals name="stats_charge_charger_stopped" volt:src="d84328903fbcc2b3a708b6e7ecadeff4524e5a58">
@@ -148,7 +148,7 @@
     <string name="stats_charge_fit" volt:src="7050145e177c601c4ad8cea93d227623822831bf">Celé</string>
     <string name="stats_charge_zoom_out" volt:src="56cbe1d499420929a144d0a898a2c5fc582d5615">Oddálit graf nabíjení</string>
     <string name="stats_charge_zoom_in" volt:src="442618022a01ba69470f2aa260aa464e496c163b">Přiblížit graf nabíjení</string>
-    <string name="stats_charge_no_comparison" volt:src="18d4847d9dc74e8c6eecb6daf6a07f3c53ea65c1">Dokončení nabíjení nebylo zaznamenáno; srovnání se skutečností není k dispozici.</string>
+    <string name="stats_charge_no_comparison" volt:src="18d4847d9dc74e8c6eecb6daf6a07f3c53ea65c1" volt:attempt="2">Dokončení nezaznamenáno; bez srovnání se skutečností.</string>
     <string name="stats_charge_observed_full" volt:src="e9755d913dfb71036b40c6136a47b1516f6b6dc8">Zaznamenáno 100 %% · %1$s</string>
     <string name="stats_charge_estimates_not_saved" volt:src="34621739e8117bbf37eec583aa9d1f547b0b5e5f">Odhady se v tomto záznamu neuložily.\n%1$s</string>
     <string name="stats_charge_series_no_data" volt:src="ef89f5adbf19dfcbb9869273528971b9b8ff0d48">%1$s · bez údajů</string>

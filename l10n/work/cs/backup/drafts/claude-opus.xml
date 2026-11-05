@@ -33,11 +33,11 @@
     <string name="backup_not_included_preferences" volt:src="bfdcea48fa8f8b1c3448e916c2de7613b5bcc55e">Oprávnění a párování přes Bluetooth nejsou zahrnuta. Předvolby koloběžky jsou uloženy v aplikaci Volt; jejich obnovení nezmění nastavení na koloběžce.</string>
     <string name="backup_new_password" volt:src="55ca3f080bae3e2a88947221e97fae338683f4c0">Nové heslo</string>
     <string name="backup_repeat_password" volt:src="ccf07f10a8f56a516ab8d33646fbc3c5922151cb">Zopakujte heslo</string>
-    <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c">Heslo nelze obnovit.</string>
+    <string name="backup_password_unrecoverable" volt:src="b8dfe6bd1cf7e27799049ce12fa6642efac6ff8c" volt:attempt="2">Heslo nepůjde obnovit.</string>
     <string name="backup_create" volt:src="fcc5929fd0cee7267918047e7c2df70104754bf2">Vytvořit zálohu</string>
     <string name="backup_choose_what" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Vyberte, co chcete zálohovat.</string>
     <string name="backup_password_short" volt:src="1e4ea676900b346b48a8d089f7f56b06ec263d62">Použijte alespoň 8 znaků.</string>
-    <string name="backup_passwords_differ" volt:src="2e251a52265a62cd1f71dabbcd7eb4adee0d8bcc">Hesla se neshodují.</string>
+    <string name="backup_passwords_differ" volt:src="2e251a52265a62cd1f71dabbcd7eb4adee0d8bcc" volt:attempt="2">Hesla se neshodují.</string>
     <string name="backup_encrypting" volt:src="fe87b5aeb0e4e887b8a3a1684bd88ade97b813ec">Šifrování vaší zálohy…</string>
     <string name="backup_failed" volt:src="946e8372d16017d03bd0d54682a44a993ef2bed9">Zálohování se nezdařilo. Zkontrolujte volné místo.</string>
     <string name="backup_unavailable" volt:src="6f885110be867c4e5f8e4ed38b075629bafc39db">Záloha není k dispozici. Vytvořte ji znovu.</string>
@@ -70,7 +70,7 @@
     <string name="backup_file_full_from" volt:src="d032e126fc06e0647477e077c8ef000b7345ebe9">Úplná záloha: %1$s</string>
     <string name="backup_file_selected" volt:src="7116f9c4fdc74e6f2777716770403ea1642c1ff2">Záloha vybraných dat</string>
     <string name="backup_file_selected_from" volt:src="11fb85d0567cba743ca7411ea81ed5c24f078b5f">Záloha vybraných dat: %1$s</string>
-    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Tento soubor neobsahuje jízdy, nabíjení, historii, přehledy ani nastavení aplikace. Obnoví se jen přístup ke koloběžce. Vaše stávající data zůstanou v tomto telefonu.</string>
+    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653" volt:attempt="2">Tento soubor neobsahuje jízdy, nabíjení, historii, přehledy ani nastavení aplikace. Obnoví pouze přístup ke koloběžce. Vaše stávající data zůstanou v tomto telefonu.</string>
     <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">V tomto souboru jsou jen níže uvedené kategorie. Ostatní data aplikace zůstanou v tomto telefonu.</string>
     <string name="backup_replace_all" volt:src="5397909cf23d8ef5468811e7091c69fbf3b9d6a2">Nahradit vše v tomto telefonu</string>
     <string name="backup_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Další</string>

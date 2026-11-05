@@ -118,9 +118,9 @@
     <string name="controls_refusal_proximity_owner" volt:src="7b2b4710e6bf1dd080272c7e3b57c5080c37f2cd">Změny odemknutí při přiblížení vyžadují ověřeného vlastníka</string>
     <string name="controls_refusal_proximity_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Před zapnutím odemknutí při přiblížení spárujte tento telefon</string>
     <string name="controls_refusal_proximity_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Před zapnutím odemknutí při přiblížení zapněte nastavený PIN na řídítkách</string>
-    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f">Oficiální aplikace se před touto změnou ptá. Volt tuto změnu na tomto modelu nevyzkoušel.</string>
-    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be">Volt tuto změnu na tomto modelu nevyzkoušel.</string>
-    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f">Oficiální aplikace u této změny zobrazuje varování. Volt tuto změnu na tomto modelu nevyzkoušel.</string>
+    <string name="controls_caution_asks" volt:src="a302a37076cb98db4ccc65243fa92f597736d25f" volt:attempt="2">Oficiální aplikace se před touto změnou ptá. Volt to na tomto modelu nevyzkoušel.</string>
+    <string name="controls_caution_untested" volt:src="bc725850d341ca0a7beca147cf4cc154219e83be" volt:attempt="2">Volt to na tomto modelu nevyzkoušel.</string>
+    <string name="controls_caution_shows" volt:src="a2bfe3bf6cf134d338cc088a8f76863d2ba8225f" volt:attempt="2">Oficiální aplikace u této změny zobrazuje varování. Volt to na tomto modelu nevyzkoušel.</string>
     <string name="controls_caution_traction_control" volt:src="23b20de27ff343f6cf6f03506bf17dd3fe637e36">Vypnout kontrolu trakce? %1$s</string>
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">Vypnout režim slabé baterie? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">Přepnout na jeden motor? %1$s</string>
@@ -130,7 +130,7 @@
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Vypne se kontrola trakce. Na mokrém nebo sypkém povrchu jezděte opatrně, dokud nepoznáte, jak se koloběžka chová.</string>
     <string name="controls_experimental_start_speed" volt:src="56ed0feeb5e4772f960a483e50504dc55acfe4aa">Pod 3 km/h může motor rozjet koloběžku z místa hned, jak přidáte plyn.</string>
     <string name="controls_experimental_energy_recovery" volt:src="e13fdcdd387886a759745c07cfcba45c103c0ef0">Vypne se rekuperace energie, tedy brzdění motorem, takže při zastavování budou víc pracovat vaše brzdy.</string>
-    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
+    <string name="controls_experimental_speed_limit" volt:src="dc4e60e6c8357a9e8f381022cb1716f588fdeb09" volt:attempt="2">Caps your speed while riding, below your Top speed setting. Set back restores your previous setting.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Model %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Model %1$s (nepotvrzeno)</string>
     <string name="controls_series_ut" volt:src="87ceb645bfccc926691e6f1e265fa35e78f3e1f8">Vysoký výkon</string>

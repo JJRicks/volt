@@ -40,7 +40,7 @@
         <item quantity="many">%1$d nedokončeného testu na jiných koloběžkách. Vyberte jednu a testy zkontrolujte.</item>
         <item quantity="other">%1$d nedokončených testů na jiných koloběžkách. Vyberte jednu a testy zkontrolujte.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Záznamy testů nejsou k dispozici. U předchozího testu možná nedošlo k vrácení zpět; zkontrolujte nastavení koloběžky.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a" volt:attempt="2">Záznamy testů nejsou k dispozici. U předchozího testu možná nedošlo k vrácení zpět; zkontrolujte nastavení koloběžky.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Pokus · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Čtení aktuální hodnoty…</string>
@@ -70,7 +70,7 @@
     <string name="compat_dismiss_leave" volt:src="5361ee18efb545d6ee7506df19a8b2899326653b">Zavřít · ponechat beze změny</string>
     <string name="compat_dismiss_try_description" volt:src="a5e845631243bbf711d318a41ee032a78feca8df">Zavřít nedokončený pokus (%1$s) bez vrácení zpět</string>
     <string name="compat_dismiss_test_description" volt:src="a74a9054ff1935b6aafa3eaaf32835c7dedcba28">Zavřít nedokončený test (%1$s) bez vrácení zpět</string>
-    <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef">Koloběžka tohoto testu byla z aplikace Volt odebrána, takže Volt nemůže toto nastavení zkontrolovat ani vrátit zpět. Zkontrolujte ho přímo na koloběžce.</string>
+    <string name="compat_orphan_body" volt:src="2124c76cd465bdc65e2281ef1113e3e27fcd37ef" volt:attempt="2">Koloběžka tohoto testu byla zapomenuta, takže Volt nemůže toto nastavení zkontrolovat ani vrátit zpět. Zkontrolujte ho přímo na koloběžce.</string>
     <string name="compat_dismiss" volt:src="2f05b359cebb7fdbdd7e576511561f1de4f382a7">Zavřít</string>
     <string name="compat_dismiss_orphan_description" volt:src="5a9e7a0e01672b9b9db34670712b9d07158567a9">Zavřít nedokončený test (%1$s) odebrané koloběžky</string>
     <string name="compat_question_units_mph" volt:src="019f4ffd7b3fece0995c4e05ea22dc0655ba83e6">Zobrazuje displej koloběžky mph?</string>
@@ -199,51 +199,51 @@
     <string name="compat_outcome_read_supported" volt:src="d3701400dc6e3d9300121aa4159ee488c3c4d803">Čtení podporováno</string>
     <string name="compat_outcome_rejected" volt:src="5580eacbd9bfd67c1ad1eb1189b72f91a20679ab">Odmítnuto, kód %1$d</string>
     <string name="compat_outcome_ack_unconfirmed" volt:src="0dd7f98d28a8a74453cd48c5bc3a89520390ce21">Přijato, nepotvrzeno</string>
-    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1">Zpětné načtení beze změny, hodnota %1$d</string>
+    <string name="compat_outcome_readback_unchanged" volt:src="4423bcc0a9342a29de43933e7f46026ba14ee0a1" volt:attempt="2">Zpětné načtení bez změny, hodnota %1$d</string>
     <string name="compat_outcome_readback_different" volt:src="9263e7cba94f3384e914f36e3059f2a2ed932dd5">Zpětné načtení se liší, hodnota %1$d</string>
     <string name="compat_outcome_setting_confirmed" volt:src="966643fdecdfcde01ef15f21b9ed1e600be06f1e">Nastavení potvrzeno</string>
     <string name="compat_outcome_effect_observed" volt:src="b3767b1b153230136f3b8f394e0484b0b3f9e670">Účinek pozorován</string>
     <string name="compat_outcome_restoration_confirmed" volt:src="2e479391f605b98ec917977a9e0b9695f8b4d342">Vrácení zpět potvrzeno</string>
     <string name="compat_outcome_interrupted" volt:src="4d9f8a7d9542ee7781967ffd2dcedeaef5ebd87e">Přerušeno/bez odpovědi</string>
-    <string name="compat_outcome_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b">Neodesláno</string>
+    <string name="compat_outcome_not_sent" volt:src="ad1162ca05cdcd89ac827288157a755f5b66725b" volt:attempt="2">Neodesláno</string>
     <string name="compat_note_not_saved" volt:src="ddf7520a51a6663ee26cf5a8e4860994741ed9f2">Záznam testu se nepodařilo uložit. Nic se nezměnilo.</string>
     <string name="compat_note_cancelled" volt:src="8faa30fe747a84d754d93326cb091e17fff77d80">Zrušeno. Nic se nezměnilo.</string>
-    <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef">Záznam testu se nepodařilo uložit, proto Volt nastavení nevrátil zpět.</string>
+    <string name="compat_note_not_saved_not_set_back" volt:src="905d88f3d7468856a330ce61079115db0fc93bef" volt:attempt="2">Záznam testu se nepodařilo uložit, a proto Volt nastavení nevrátil zpět.</string>
     <string name="compat_note_changed_outside" volt:src="8eb19c9951989c66cde54773c7cf975845453dde">Změněno mimo test (nyní %1$s)</string>
     <string name="compat_note_restore_rejected" volt:src="9d8e83c2fc9a9f10e884d87c6db588509798e6f2">Vrácení zpět odmítnuto koloběžkou (kód %1$d).</string>
     <string name="compat_note_no_fresh_reading" volt:src="cb22ab3f601c002bee00023d8cc511bdb33796c2">Nepřišel žádný nový údaj.</string>
     <string name="compat_note_accepted_unconfirmed" volt:src="cb4f7111b294385ec77a065406e063e92ab4b1ae">Přijato, ale nepřišel žádný průkazný údaj.</string>
-    <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc">Koloběžka neodpověděla.</string>
-    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b">Volt nemohl odeslat příkaz k vrácení zpět.</string>
+    <string name="compat_note_no_reply" volt:src="141f1098a4bc53a95867f491f98a75d13d8940cc" volt:attempt="2">Koloběžka neodpověděla.</string>
+    <string name="compat_note_restore_not_sent" volt:src="0b9b906cb0cbcba0b706216f8df3a6efc63e3f5b" volt:attempt="2">Volt nemohl odeslat vrácení zpět.</string>
     <string name="compat_note_no_baseline" volt:src="86611dbb38c4dc01036c14328ff31b4a7bfce2c3">Nepodařilo se získat novou výchozí hodnotu. Znovu připojte koloběžku a zkuste to znovu. Nic se nezměnilo.</string>
-    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05">Nastavení se nepodařilo ověřit. Znovu připojte koloběžku a zkontrolujte nedokončený test.</string>
+    <string name="compat_note_not_verified" volt:src="bae38639fa38d7044c98b5190d9fd8a40e979f05" volt:attempt="2">Nastavení se nepodařilo ověřit. Znovu připojte koloběžku a zkontrolujte nedokončený test.</string>
     <string name="compat_note_disconnected" volt:src="a04e914e035109acd4cb8a26623d9c6af9c04043">Připojení bylo během testu ukončeno.</string>
     <string name="compat_note_profile_switched" volt:src="7f260518c2f3b543672da628b46adb47f0d581e5">Během testu byl vybrán jiný profil koloběžky.</string>
     <string name="compat_note_restarted" volt:src="cb6020286262dba4b68518e42aa35c280840d9b3">Volt se během testu restartoval.</string>
     <string name="compat_note_changed_waiting" volt:src="cbd323aee2df608a6afb0a4211a7a5f1712dfc9f">Během čekání testu se změnilo nastavení. Před vrácením zpět ho zkontrolujte.</string>
-    <string name="compat_note_not_reported" volt:src="cb03426a5c1e6360a676a7612a9a5f0e459af812">Tato koloběžka toto nastavení nehlásí.</string>
-    <string name="compat_note_value_unknown" volt:src="4236ae8d3fed48d67e438714cb64b48cdb8574b0">Aktuální hodnota je neznámá, proto ji Volt nebude testovat.</string>
+    <string name="compat_note_not_reported" volt:src="cb03426a5c1e6360a676a7612a9a5f0e459af812" volt:attempt="2">Tato koloběžka toto nastavení nehlásí.</string>
+    <string name="compat_note_value_unknown" volt:src="4236ae8d3fed48d67e438714cb64b48cdb8574b0" volt:attempt="2">Aktuální hodnota je neznámá, a proto ji Volt nebude testovat.</string>
     <string name="compat_note_baseline_moved" volt:src="cf2bf7c7d1c1c04de1088aa0452704d71ec46626">Koloběžka nyní ukazuje: %1$s. Nic se nezměnilo.</string>
     <string name="compat_note_already_set" volt:src="5d6d6c68e8f7933f209a9392264c84cde1ae0bb3">Už je nastaveno: %1$s.</string>
-    <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6">%1$s se teď nenabízí.</string>
-    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2">Aktuální hodnotu nelze vrátit zpět, proto ji Volt nebude testovat.</string>
+    <string name="compat_note_target_not_offered" volt:src="3d92788450e92569816eea1377c3231bb7c427d6" volt:attempt="2">%1$s se teď nenabízí.</string>
+    <string name="compat_note_cannot_set_back" volt:src="463c12aef584ce8a492e4c55ad988b9105970dd2" volt:attempt="2">Aktuální hodnotu nelze vrátit zpět, a proto ji Volt nebude testovat.</string>
     <string name="compat_note_related_changed" volt:src="7dc117f550d32d5da48168217281b38a475866af">Během testu se změnilo související nastavení.</string>
     <string name="compat_note_unchanged" volt:src="5545f912751474eeb731c438019a2a51aecbfdcf">Koloběžka to přijala, ale stále ukazuje: %1$s.</string>
     <string name="compat_note_now_shows" volt:src="a20fb95e0924186a3d0ef344379986fdb543c187">Koloběžka nyní ukazuje: %1$s.</string>
     <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Stále ukazuje: %1$s.</string>
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">Ukazuje testovací hodnotu: %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Zastaveno před jakoukoli změnou. Nic se nezměnilo.</string>
-    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Vrácení zpět potvrzeno, ale záznam se nepodařilo uložit.</string>
-    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Ponecháno, ale záznam se nepodařilo uložit. Zobrazí se jako nedokončený.</string>
+    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab" volt:attempt="2">Vrácení zpět je potvrzeno, ale záznam se nepodařilo uložit.</string>
+    <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550" volt:attempt="2">Ponecháno, ale záznam se nepodařilo uložit. Zobrazí se jako nedokončený.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Pro kontrolu připojte tuto koloběžku.</string>
-    <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">ID modelu se liší od testu. Volt nastavení nezmění.</string>
-    <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c">Pravidla aplikace Volt pro toto nastavení se změnila. Volt ho nezmění.</string>
+    <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25" volt:attempt="2">ID modelu je jiné než při testu. Volt nastavení nezmění.</string>
+    <string name="compat_review_rules_changed" volt:src="883311adeec137ca4ce1e8ed9d69d0be3ecbe40c" volt:attempt="2">Pravidla aplikace Volt pro toto nastavení se změnila. Volt ho nezmění.</string>
     <string name="compat_review_firmware_changed" volt:src="5e66c29434a4e9902874eb847c4eaa47eb8aa3fe">Firmware se od testu změnil.</string>
-    <string name="compat_review_firmware_not_read" volt:src="d360bc2777b2388b2269e08774878cc8070fb382">Firmware od testu nepřečten.</string>
+    <string name="compat_review_firmware_not_read" volt:src="d360bc2777b2388b2269e08774878cc8070fb382" volt:attempt="2">Firmware se od testu nenačetl.</string>
     <string name="compat_review_waiting" volt:src="baec425bd1ca125552d1b38f8d3ddf815f913d2a">Čeká se na nový údaj.</string>
     <string name="compat_review_not_reported" volt:src="8b2223503abf6a6ba52fada12dd625e355ffff0f">Koloběžka toto nastavení teď nehlásí.</string>
     <string name="compat_review_related_not_reported" volt:src="56c764cfc48dde756cdb4c5188ccdc611c3fb356">Koloběžka teď nehlásí související nastavení.</string>
-    <string name="compat_review_related_changed" volt:src="4a706072880d20d481ff4350e76574682556b956">Související nastavení se od testu změnilo. Volt ho nevrátí zpět.</string>
+    <string name="compat_review_related_changed" volt:src="4a706072880d20d481ff4350e76574682556b956" volt:attempt="2">Související nastavení se od testu změnilo. Volt testované nastavení nevrátí zpět.</string>
     <string name="compat_review_changed_outside" volt:src="e13568a728f7699fb6c2bcca1d5737341d9718ca">Změněno mimo test (nyní %1$s).</string>
     <string name="compat_review_already_back" volt:src="7352e279e951744eeb98dafb12be21ae77a72e3e">Hodnota je už zpět: %1$s.</string>
     <string name="compat_review_still_test_value" volt:src="1f358820165cc7f4ef99565aa50af30a64cb60e1">Stále testovací hodnota: %1$s.</string>

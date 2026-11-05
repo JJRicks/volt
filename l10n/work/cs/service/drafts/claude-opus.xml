@@ -66,8 +66,8 @@
     <string name="service_charge_stop_identity_changed" volt:src="97c5b36d495cfb24bd486d2a8364c7b83411f008">identita koloběžky se změnila</string>
     <string name="service_charge_not_finalized" volt:src="001b686ded7d4bb74fa35d664468f21d42351a47">Záznam se zastavil; soubor záznamu nabíjení se nepodařilo dokončit</string>
     <string name="service_charger_detection" volt:src="a63edbcaafb4d6f8ef1fb7fe4d61f973612f4927">Počkejte na rozpoznání nabíječky nebo nabíječku vyberte</string>
-    <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc">„Nabít včas“ nespustilo nabíjení</string>
-    <string name="service_missed_title_schedule" volt:src="bee23b65a6abd7239871dcf29f238f045ab35407">Plánované nabíjení se nespustilo</string>
+    <string name="service_missed_title_done_by" volt:src="8f039ec56d1269027e77926e737c70f049ac72fc" volt:attempt="2">„Nabít včas“ nespustilo nabíjení</string>
+    <string name="service_missed_title_schedule" volt:src="bee23b65a6abd7239871dcf29f238f045ab35407" volt:attempt="2">Plánované nabíjení se nespustilo</string>
     <string name="service_missed_done_by_dialog" volt:src="9f6666bdc6b0ddd647793012a35705ed13da556e">Začátek nabíjení byl nastaven na %1$s a baterie má stále %2$s %% (%3$s %% při nastavení). Zkontrolujte, zda je nabíječka připojena a zda se její kontrolka v čase začátku změní na červenou. Volt může plán vypnout, aby se nabíjení spustilo hned.</string>
     <string name="service_missed_done_by_notice" volt:src="b4fb37e435cd9ea4df255ae0d3fdc0116ff23076">Začátek nabíjení byl nastaven na %1$s a baterie má stále %2$s %% (%3$s %% při nastavení). Zkontrolujte, zda je nabíječka připojena a zda se její kontrolka v čase začátku změní na červenou. Otevřete aplikaci Volt a vypněte plán, aby se nabíjení spustilo hned.</string>
     <string name="service_missed_done_by_test_dialog" volt:src="edd810cfc2724c7ac74b171ed437150378970c94">Začátek nabíjení byl nastaven na %1$s a baterie má stále %2$s %% (%3$s %% při testu). Zkontrolujte, zda je nabíječka připojena a zda se její kontrolka v čase začátku změní na červenou. Volt může plán vypnout, aby se nabíjení spustilo hned.</string>
@@ -84,9 +84,9 @@
     <string name="service_measure_bluetooth_removed" volt:src="8a9b70f283556bd2cb83e3ebb4c9f42b693da696">Během měření bylo odebráno oprávnění Bluetooth</string>
     <string name="service_measure_closed" volt:src="2960c0ef89803ad1a88d53e7c809471ff27e3228">Volt se během měření zavřel. „Nabít včas“ je vypnuto.</string>
     <string name="service_done_toast_set" volt:src="e809e6714238912610271419bbecb5fb77e6c4cc">„Nabít včas“ je nastaveno. %1$s</string>
-    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696">„Nabít včas“ nebylo nastaveno. %1$s</string>
+    <string name="service_done_toast_not_set" volt:src="517320e1cc539bd56bda110ccef090c3753f9696" volt:attempt="2">„Nabít včas“ nebylo nastaveno. %1$s</string>
     <string name="service_done_title_set" volt:src="5e0b4a55528deef11f9b4665d56dfba452a6adec">„Nabít včas“ je nastaveno</string>
-    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc">„Nabít včas“ nebylo nastaveno</string>
+    <string name="service_done_title_not_set" volt:src="c2036cdbcdd740f5d6907d4c57d65a7db56efbcc" volt:attempt="2">„Nabít včas“ nebylo nastaveno</string>
     <string name="service_test_reopen" volt:src="6cf598cd570a9af339169c3a2f965180824e47df">Znovu otevřete aplikaci Volt</string>
     <string name="service_test_cancelled_toast" volt:src="d467e03dc66472d1f8f26723f3f2e325ae02ad5c">Test byl zrušen. Plánované nabíjení je vypnuto.</string>
     <string name="service_test_arming" volt:src="7522b0bc28c70b69d1e3d1df44fd536302e7ddae">Nastavování plánu…</string>
@@ -97,11 +97,11 @@
     <string name="service_test_title_passed" volt:src="dcb571d9de7df16c36f00b66a878a9c20f575f6c">Plánované nabíjení funguje</string>
     <string name="service_test_title_early" volt:src="0bf33921dfad57049c36e900b7ea95b1fe7e1f1b">Nabíjení se obnovilo předčasně</string>
     <string name="service_test_title_late" volt:src="00092ee4187b5180e78141563e71e7883e41eb5f">Nabíjení se obnovilo pozdě</string>
-    <string name="service_test_title_no_pause" volt:src="ec6fc3ed1b0292c043cf2893873103d2cc1be8a9">Koloběžka nepozastavila nabíjení</string>
-    <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72">Nabíjení se neobnovilo</string>
+    <string name="service_test_title_no_pause" volt:src="ec6fc3ed1b0292c043cf2893873103d2cc1be8a9" volt:attempt="2">Koloběžka nepozastavila nabíjení</string>
+    <string name="service_test_title_no_resume" volt:src="531fef3983fef41fbbeb422eb8efc30ed6151f72" volt:attempt="2">Nabíjení se neobnovilo</string>
     <string name="service_test_title_interrupted" volt:src="e0d0085eae8397b0ebec58ee1d990a1a0e1dc9b8">Test plánovaného nabíjení byl přerušen</string>
     <string name="service_test_title_cancelled" volt:src="15fa5cbf30ca570bf2255d398f3cd9927f22207a">Test byl zrušen</string>
-    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093">Test se nedokončil</string>
+    <string name="service_test_title_failed" volt:src="931d390af05a3113ea453692544904d61a895093" volt:attempt="2">Test se nedokončil</string>
     <string name="service_test_passed_on_time" volt:src="0dafb048ea96a47f02073efff7fb1a02dea7cffc">Hodiny a plán koloběžky fungují. Nabíjení se obnovilo v čase začátku.</string>
     <string name="service_test_passed_second_before" volt:src="06371203be3d07078cc0c3f52a4534381ed26cc5">Hodiny a plán koloběžky fungují. Nabíjení se obnovilo %1$s sekundu před začátkem.</string>
     <string name="service_test_passed_second_after" volt:src="37729e01498895779671ee1c122c6d9a3caa0e4a">Hodiny a plán koloběžky fungují. Nabíjení se obnovilo %1$s sekundu po začátku.</string>
@@ -115,17 +115,17 @@
     </plurals>
     <string name="service_test_early" volt:src="2b30b83768bc265de13e7df7c6980ae5d0104e4f">Nabíjení se obnovilo %1$s před začátkem, takže hodiny koloběžky mohou jít %2$s napřed.%3$s</string>
     <string name="service_test_late" volt:src="407a2821ce569845ad83bdc5cf38bdda1fb1f5ca">Nabíjení se obnovilo %1$s po začátku, takže hodiny koloběžky mohou jít %2$s pozadu.%3$s</string>
-    <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17">Koloběžka nepozastavila nabíjení. Její hodiny mohou jít napřed nebo koloběžka plán ignorovala.%1$s</string>
-    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553">Nabíjení bylo 5 minut po začátku stále pozastaveno. Hodiny koloběžky mohou jít více než 5 minut pozadu nebo její plán nabíjení neuvolnil. Pokud byla nabíječka odpojena, otestujte to znovu.%1$s</string>
-    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4">" Volt nastavil hodiny koloběžky těsně před tímto testem, takže koloběžka možná neudržuje nastavený čas. Dokud se to nevyřeší, je bezpečnějším časovačem chytrá zásuvka. Nahlaste problém s diagnostikou, aby se to dalo prošetřit."</string>
-    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109">Baterie během testu dosáhla limitu nabití, takže test nemohl určit výsledek. Otestujte to znovu, až bude baterie dál pod limitem.</string>
+    <string name="service_test_no_pause" volt:src="f7d69931d5eb1651c3b82390a950c23791cb7e17" volt:attempt="2">Koloběžka nepozastavila nabíjení. Její hodiny možná jdou napřed nebo koloběžka plán ignorovala.%1$s</string>
+    <string name="service_test_no_resume" volt:src="1869609161629d9da60e91604c242ab31429d553" volt:attempt="2">Nabíjení bylo 5 minut po plánovaném začátku stále pozastaveno. Hodiny koloběžky možná jdou o více než 5 minut pozadu nebo její plán neuvolnil nabíjení. Pokud byla nabíječka odpojena, otestujte to znovu.%1$s</string>
+    <string name="service_test_set_clock" volt:src="0e7211696c5f116de0c56cd2bd90675cbb37eac4" volt:attempt="2">" Volt nastavil hodiny koloběžky těsně před tímto testem, takže koloběžka možná neudržuje čas, který dostane. Dokud se to nevyřeší, je chytrá zásuvka bezpečnější časovač. Nahlaste problém s diagnostikou, aby se to dalo prověřit."</string>
+    <string name="service_test_limit" volt:src="74757abae9a57f9ad9fd8898de5eb5a3f8d89109" volt:attempt="2">Baterie během testu dosáhla limitu nabití, takže test nemohl nic zjistit. Otestujte to znovu, až bude baterie dál pod limitem.</string>
     <string name="service_test_interrupted" volt:src="fc119dde8667ac416166f973676a0d1ce419fc33">Test byl přerušen. Zkontrolujte, zda se nabíjení obnovilo. Pokud ne, vypněte plánované nabíjení.</string>
-    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49">Test se nepodařilo spustit.</string>
-    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b">Test se nepodařilo spustit: %1$s.</string>
-    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4">" Volt nemohl potvrdit vypnutí plánu. Vypněte plánované nabíjení, aby nabíjení pokračovalo."</string>
+    <string name="service_test_not_started" volt:src="9a45fa71a46561586a64ec8f4198921383325d49" volt:attempt="2">Test se nepodařilo spustit.</string>
+    <string name="service_test_not_started_reason" volt:src="5f5f8251d364cc83ae83d0879ab30a3da7819f6b" volt:attempt="2">Test se nepodařilo spustit: %1$s.</string>
+    <string name="service_test_off_unconfirmed" volt:src="89275c7d58184b7dd0e3e8999175eade9f5b7df4" volt:attempt="2">" Volt nemohl potvrdit vypnutí plánu. Vypněte plánované nabíjení, aby nabíjení pokračovalo."</string>
     <string name="service_test_cleanup" volt:src="61f0edde8864acae0a9604ccb2885354c98d1ca3">" %1$s."</string>
     <string name="service_channel_alerts" volt:src="a3e5ebbd7d27387561d5b73e97446892da8aee4e">Upozornění na baterii</string>
-    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce">Upozornění na úroveň nabití, plnou baterii a nízký stav baterie, která zapnete v části „Koloběžka › Baterie“</string>
+    <string name="service_channel_alerts_description" volt:src="f5d3ac76cded0b44e75fe7fc3e1a305dcbcf3bce" volt:attempt="2">Upozornění na baterii, která si zapnete v části „Koloběžka › Baterie“: úroveň nabití, plné nabití a nízký stav baterie</string>
     <string name="service_action_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Zastavit</string>
     <string name="service_ride_charge_recording" volt:src="28f11e8edd810dcb6ac156d1c6fa6f8579df390f">Před zahájením jízdy zastavte záznam nabíjení</string>
     <string name="service_ride_exit_simulation" volt:src="42e325266e29b9b5567ed9aa13d92b17a1e60905">Nejprve ukončete simulaci</string>
@@ -145,7 +145,7 @@
     <string name="service_notice_measuring_text" volt:src="d79175a5f08f594f3f8a698b448e4114774532e2">Plán se nastaví do %1$s min · nechte nabíječku připojenou</string>
     <string name="service_notice_testing_text" volt:src="e7bbbd9e4213b449946bb95966bbca9d54b8666f">%1$s · nechte telefon poblíž koloběžky</string>
     <string name="service_notice_sensors_attention" volt:src="0f5e4d57c763b190532e02bab0180945bc223b12">Záznam jízdy vyžaduje pozornost</string>
-    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308">Data ze senzorů telefonu se neukládají</string>
+    <string name="service_notice_sensors_not_saving" volt:src="97674a31e2532abc5d757874872c5c67943a5308" volt:attempt="2">Data ze senzorů telefonu se neukládají</string>
     <string name="service_action_stop_watching" volt:src="f3ef460346f58b43ca75ab3a636ca245a214fadc">Ukončit sledování</string>
     <string name="service_action_schedule_now" volt:src="9a27ffbe0242cb51a9881d6f28a065ffc626d810">Naplánovat nyní</string>
     <string name="service_action_cancel_test" volt:src="499ecd939fea24e6f04ecdc7dbf62f4c08eedc79">Zrušit test</string>

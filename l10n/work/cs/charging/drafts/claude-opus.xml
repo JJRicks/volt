@@ -17,7 +17,7 @@
     </plurals>
     <string name="charging_alert_text_level" volt:src="8fc64c3539a6d77457519d7b2b8beecd2fa6287f">%1$s: baterie na %2$s %%.</string>
     <string name="charging_estimate_waiting_data" volt:src="6b9269943b9f3ab3f70f22e00f59b35b2ba42ce6">Čekání na data</string>
-    <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792">Nenabíjí se</string>
+    <string name="charging_estimate_not_charging" volt:src="f8b39f35e6840be9c07be56a9b06967254904792" volt:attempt="2">Nenabíjí se</string>
     <string name="charging_estimate_waiting_readings" volt:src="da378dccc19e738b3d17c96e8abdac450bdca4df">Čekání na údaje</string>
     <string name="charging_estimate_out_of_range" volt:src="c57affcd338bb5dce1fe4daca90b62bac125e5e3">Údaje mimo rozsah</string>
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapacita neznámá</string>
@@ -59,7 +59,7 @@
     <string name="charging_schedule_at_limit" volt:src="8eaa52fc69b91c9c53d11c2de49a998831fc66c3">Baterie už dosáhla limitu nabití</string>
     <string name="charging_schedule_wait_estimate" volt:src="7859255353edf8f843e51bdf85160a78ffdc05cb">Počkejte na odhad doby nabíjení</string>
     <string name="charging_schedule_outside_range" volt:src="56cf564bb7aded708bbeecb06b25382d1e9f3363">Doba nabíjení je mimo použitelný rozsah</string>
-    <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137">Nabíjí se teď – do času dokončení nabití nezbývá dost času na čekání</string>
+    <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137" volt:attempt="2">Nabíjí se nyní – do času dokončení nezbývá dost času na čekání</string>
     <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Nejprve zvolte „Začátek nabíjení“</string>
     <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Zvolte začátek nabíjení do 48 hodin</string>
     <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Zvolte celou hodinu do 48 hodin</string>

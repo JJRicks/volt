@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN a přiblížení	PIN and approach	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	9dde4fcea2cf9dc886c6807b69def01e0c3d9487
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN a přiblížení	PIN and approach	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	9dde4fcea2cf9dc886c6807b69def01e0c3d9487
+dashboard_model_qa_experimental	Experimental controls	Experim. funkce	Experim. functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	ec504846269d41780a151c09ea6dfbf185032627
+dashboard_model_qa_experimental_short	Experimental controls	Experimentální funkce	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	b4dc66f2fc3a4c004ce2030bf3d72e6a44335ad7
+dashboard_model_qa_charge_done_by	Charge done by	Nabít včas	Charge on time	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	0a389c92ea8766813fa9c83ad431782c0e4f2ac0
+dashboard_model_qa_charge_done_by_short	Charge done by	Nabít včas	Charge on time	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	0a389c92ea8766813fa9c83ad431782c0e4f2ac0
+dashboard_model_qa_charge_done_time	Charge done by time	Nabít včas: čas	Charge on time: time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	c29e8df7302c24fcd0cfed21d28b2b686689eb8f
+dashboard_model_qa_charge_done_time_short	Charge done by time	Nabít včas: čas	Charge on time: time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	c29e8df7302c24fcd0cfed21d28b2b686689eb8f
+dashboard_model_qa_group_experimental	Experimental controls	Experimentální funkce	Experimental functions	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	b4dc66f2fc3a4c004ce2030bf3d72e6a44335ad7
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Plán nabíjení	Charging plan	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	e0f2864b63c83cc06017f8509fbe8edc83f53dc9
+dashboard_model_tile_measuring	Measuring	Měření	Measuring	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	73b5551295ecf25f5b642acde19ecd4868ddfeec
+dashboard_model_tile_on_at	On • %1$s	Zapnuto • %1$s	On • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	ef1cbbe9c3bee2e457206063f35695ac925cf1a8
+dashboard_model_tile_not_scheduled	Not scheduled	Nenaplánováno	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	8f703c7b9c036b4db8e4204c2b9abd41e5f482fd
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Nejprve vyberte koloběžku	First select a scooter	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	f7ecad27d4c16299b535146a771cfda571e309da
+dashboard_model_tile_connect_scooter	Connect your scooter first	Nejprve připojte koloběžku	First connect a scooter	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	5c04880351316a7ce796ed126a520506be107448
+dashboard_model_type_lock	Lock & connection	Zámek a připojení	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	ff7cb5fad59ec4c8a44af59c4d52540bdbd5f419
+dashboard_model_type_charging	Charging	Nabíjení	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	6cf3ca25a32ecf57c54d85aee067968024c7820e
+dashboard_model_type_lockbar	Lock bar	Lišta zámku	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	a150a557a3abb63b0251e1787f62a2b523d4181d
