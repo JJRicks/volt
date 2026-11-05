@@ -98,7 +98,7 @@ src/com/jjricks/volt/MainActivity.java:1164	["This phone does not support Blueto
 src/com/jjricks/volt/MainActivity.java:1169	["Choose your scooter"]	main_scan_title	exact	
 src/com/jjricks/volt/MainActivity.java:1177	["Scan again"]	main_scan_again	exact	
 src/com/jjricks/volt/MainActivity.java:1178	["Connect"]	main_action_connect	exact	
-src/com/jjricks/volt/MainActivity.java:1199	{"one": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooter found"], "other": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooters found"]}	main_scan_found	plural	manual: scanResults.size()==1?"1 scooter found":scanResults.size()+" scooters found" became T.mainScanFound(scanResults.size(),scanResults.size())
+src/com/jjricks/volt/MainActivity.java:1199	{"one": ["1 scooter found"], "other": [{"hole": "scanResults.size()", "arg": 1, "type": "d", "quantity": true}, " scooters found"]}	main_scan_found	plural	manual: scanResults.size()==1?"1 scooter found":scanResults.size()+" scooters found" became T.mainScanFound(scanResults.size(),scanResults.size())
 src/com/jjricks/volt/MainActivity.java:1199	["Searching…"]	ble_status_searching	exact	
 src/com/jjricks/volt/MainActivity.java:1199	["No scooter found. Is it on?"]	main_scan_none	exact	
 src/com/jjricks/volt/MainActivity.java:1214	["Navee scooter"]	main_scan_navee	exact	

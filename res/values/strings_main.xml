@@ -106,9 +106,9 @@
     <string name="main_scan_weak" volt:screen="Scanner" volt:purpose="signal">Weak signal</string>
     <string name="main_scan_yours" volt:screen="Scanner" volt:purpose="chip">Yours</string>
     <string name="main_scan_saved" volt:screen="Scanner" volt:purpose="chip">Saved</string>
-    <!-- Count of nearby scooters. %1$d is the count. -->
+    <!-- Count of nearby scooters. %1$d is the count. English's "one" is exactly 1; where your language's "one" also covers other numbers (Russian 21), write %1$d in that item too. -->
     <plurals name="main_scan_found" volt:screen="Scanner" volt:purpose="status">
-        <item quantity="one">%1$d scooter found</item>
+        <item quantity="one">1 scooter found</item>
         <item quantity="other">%1$d scooters found</item>
     </plurals>
     <string name="main_scan_option" volt:screen="Scanner" volt:purpose="screen reader">%1$s, %2$s%3$s, address ending %4$s</string>

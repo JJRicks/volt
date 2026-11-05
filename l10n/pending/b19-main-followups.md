@@ -20,3 +20,14 @@ today. Delete an entry when it is done. Line numbers are on B19's head.
    outside 1-3. `lockHours` answers 1-3, and every table (ScooterCommands, ModelRegistry) holds only those,
    so the line cannot run today. Delete it, with a test that English stays the same, if a table ever
    grows or when the rest of F3's read-backs go.
+
+## Dead code G1 keeps while B19 is open, owner: an ordinary follow-up after B19 merges
+
+G1 refuses both in an extraction batch ("around text, an extraction batch only replaces a ledger row's
+expression with the call that serves it"). Neither changes what the app shows.
+
+4. **`new ApplyCheck(apply,"Apply")`**: the constructor ignores its second parameter and always uses
+   `M.mainEditApply()`. Drop the parameter and the literal.
+5. **The owner import's catch** still has `e instanceof IllegalArgumentException?e.getMessage():...`, but the
+   line before it returns for that exception when `onboarding==null`, so the arm cannot run. Reduce it to
+   `toast(T.mainImportSetupUnreadable())`.
