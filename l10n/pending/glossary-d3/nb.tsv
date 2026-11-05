@@ -1,0 +1,12 @@
+shared-rider	medbruker | medbrukeren | medbrukere | medbrukerne	An account the owner has granted use of the scooter. Its credential is still an owner key in kind; Volt calls it a shared-rider key where it matters.	noun phrase	no	owner-key	claude-only claude-opus-5-5; nothing official found
+owner-file	eierfil | eierfilen | eierfiler | eierfilene	Short form of owner setup file, on onboarding steps and buttons.	noun phrase	no	owner-key	claude-only claude-opus-5-5; nothing official found
+pin-unlock	Opplåsing med PIN | opplåsing med PIN-kode	The toggle that enables the handlebar PIN.	noun phrase	no	pin	claude-only claude-opus-5-5; nothing official found
+controls-to-try	Kontroller du kan prøve | Kontroller å prøve	The card of untried controls in Experimental controls.	noun phrase	no	experimental	claude-only claude-opus-5-5; nothing official found
+lab-badge	LAB	Compact badge meaning Experimental. Its spoken form is Experimental. A language may use its own short word.	abbreviation	no	experimental	claude-only claude-opus-5-5; nothing official found
+eco-estimate	Eco-estimat | Eco-estimatet	A range estimate option, not the Eco acceleration profile. Translate; its own row keeps Eco's do-not-translate from applying.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
+maximum-speed-short	Maksfart | maksfarten	The abbreviated rung of Maximum speed, for narrow tiles.	abbreviation	no	ride	claude-only claude-opus-5-5; nothing official found
+speed-limit	Fartsgrense | fartsgrensen | fartsgrenser | fartsgrensene	A limit below Maximum speed; the general word for the two rows above.	noun phrase	no	ride	claude-only claude-opus-5-5; nothing official found
+scooter-display	skjermen på sparkesykkelen | sparkesykkelens skjerm	The screen on the scooter itself.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
+display-sound	Skjerm og lyd	The settings group for the scooter's display and sounds. Display here is the scooter's, not Volt's Dashboard.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
+custom-speed-limit	Egendefinert fartsgrense | egendefinerte fartsgrenser | egendefinerte fartsgrensen | den egendefinerte fartsgrensen	A rider-set speed limit below Maximum speed.	noun phrase	no	ride	claude-only claude-opus-5-5; nothing official found
+drive-mode-speed-limit	Fartsgrense for kjøremodus | fartsgrenser for kjøremodus | fartsgrensen for kjøremodusen	The speed limit of one drive mode.	noun phrase	no	ride	claude-only claude-opus-5-5; nothing official found
