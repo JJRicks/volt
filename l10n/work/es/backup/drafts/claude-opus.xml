@@ -47,7 +47,7 @@
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">No se pudo guardar. Inténtalo en otro lugar.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Copia de seguridad guardada.</string>
     <string name="backup_restore_title" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Restaurar</string>
-    <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Elige una copia de seguridad de Volt para recuperar los datos guardados de la app. También sirven los archivos antiguos de configuración del propietario, de viajes y de diseño; verás exactamente qué contienen antes de restaurar.</string>
+    <string name="backup_restore_intro" volt:src="3edbbca81c00f0869ecd161d0877696640456cf8">Elige una copia de seguridad de Volt para recuperar los datos guardados de la app. También sirven los archivos antiguos de configuración de propietario, de viajes y de diseño; verás exactamente qué contienen antes de restaurar.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Los permisos y el emparejamiento Bluetooth no se incluyen.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Elegir archivo</string>
     <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">No se pudo abrir un selector de archivos.</string>
@@ -79,7 +79,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">¿Para qué patinete es esta configuración?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">El diseño va a:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Los datos de «%1$s» van a:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Más de un patinete puede usar este archivo de configuración. Elige un patinete existente o agrega otro.</string>
+    <string name="backup_owner_choice" volt:src="deece19b3157d087723c77b3e5938e54cf6160d0">Más de un patinete puede usar este archivo de configuración del propietario. Elige un patinete existente o agrega otro.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Elige un patinete…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Agregar otro patinete</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Agregar desde la copia de seguridad</string>
