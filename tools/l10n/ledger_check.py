@@ -495,11 +495,14 @@ def _check_choice(node, where, depth=0):
     _check_choice(node["else"], where, depth + 1)
 
 
-QUANTITY_READS = frozenset(("size", "length", "round", "abs", "min", "max", "intValue", "longValue"))
-
-
 def repeatable_quantity(source):
-    """True when reading the Java expression twice gives the same number: no assignment and no call but plain reads."""
+    """True when reading the Java expression twice gives the same number: plain reads only.
+
+    Names, fields, array elements and an array's length, joined by operators, read the same twice. Any call is
+    refused, whatever its name: `size()` may be a method of the class that counts its own calls, and the receiver
+    of `x.size()` is not resolved here. A count that comes from a call is set on a local in an ordinary pull request
+    merged first, and the plural reads that local.
+    """
     try:
         lexed = l10nlib.lex_java(source)
     except l10nlib.LexError:
@@ -507,7 +510,9 @@ def repeatable_quantity(source):
     for j, t in enumerate(lexed):
         if t.kind == "op" and (t.value in ("++", "--", "=") or (t.value.endswith("=") and t.value not in ("==", "!=", "<=", ">="))):
             return False
-        if t.kind == "op" and t.value == "(" and j > 0 and lexed[j - 1].kind == "ident" and lexed[j - 1].value not in QUANTITY_READS:
+        if t.kind == "op" and t.value == "(" and j > 0 and lexed[j - 1].kind == "ident":
+            return False
+        if t.kind == "ident" and t.value == "new":
             return False
     return True
 

@@ -673,13 +673,50 @@ class ChoiceHeldOnAnEarlierLineTest(ShapeCase):
         self.assertTrue(any("choice row at" in p for p in problems), problems)
 
 
+class QuantityCallTest(PluralFlagCase):
+    """Codex on PR #200: a getter-like name proves nothing. `size()` here counts its own calls, so the head's two
+    reads (pick the item, then print it) say "2 rides" where the base's one read said "1 rides"."""
+    FILES = {GRID: java_class("Grid", """    static int calls;
+    static int size() { return ++calls; }
+    static String rides() { return String.format(Locale.US, "%d rides", size()); }
+    static String held(Stats stats) { return String.format(Locale.US, "%d rides", stats.size()); }
+    static String listed(int[] ids) { return String.format(Locale.US, "%d rides", ids.length); }""")}
+    STRINGS = FormatPluralTest.STRINGS
+
+    def setUp(self):
+        super().setUp()
+        self.repo.write("tests/l10n/FmtLegacyTest.java", java_class(
+            "FmtLegacyTest", "    static void run() { Grid.rides(); Grid.held(null); Grid.listed(null); Fmt.integer(1); }"))
+        self.repo.write("tests/l10n/b1.sources", "# G10\ntests/l10n/FmtLegacyTest.java  # parity\n")
+
+    def attempt(self, line, value):
+        self.edit(GRID, 'String.format(Locale.US, "%%d rides", %s)' % value,
+                  "T.sRides(%s, Fmt.integer(%s))" % (value, value))
+        item = dict(FormatPluralTest.ITEM, value=value, **{"as": "Fmt.integer(%s)" % value})
+        return self.check(["%s:%d\t%s\ts_rides\tformat\t" % (GRID, line, json.dumps([item, " rides"]))])
+
+    def test_a_side_effecting_size_fails_the_whole_ledger(self):
+        problems = self.attempt(6, "size()")[0]
+        self.assertTrue(any("size()" in p and "read twice" in p and "local" in p for p in problems), problems)
+
+    def test_a_call_on_an_unresolved_receiver_fails(self):
+        problems = self.attempt(7, "stats.size()")[0]
+        self.assertTrue(any("stats.size()" in p and "read twice" in p for p in problems), problems)
+
+    def test_an_array_length_passes(self):
+        problems, warnings, _ = self.attempt(8, "ids.length")
+        self.assertEqual(problems, [])
+        self.assertTrue(any("plural on ids.length" in w for w in warnings), warnings)
+
+
 class RepeatableQuantityTest(unittest.TestCase):
     def test_plain_reads_repeat(self):
-        for source in ("n", "rides.size()", "stats.count", "n + 1", "Math.round(x)", "a[i]", "a == b ? 1 : 2"):
+        for source in ("n", "stats.count", "ids.length", "n + 1", "(int) (n / 2)", "a[i]", "a == b ? 1 : 2"):
             self.assertTrue(ledger_check.repeatable_quantity(source), source)
 
     def test_anything_with_an_effect_or_an_unknown_call_does_not(self):
-        for source in ("it.next()", "n++", "--n", "n += 1", "n = 2", "bump()", "a.b().size()"):
+        for source in ("it.next()", "n++", "--n", "n += 1", "n = 2", "bump()", "a.b().size()", "size()",
+                       "rides.size()", "name.length()", "Math.round(x)", "boxed.intValue()", "new int[n].length"):
             self.assertFalse(ledger_check.repeatable_quantity(source), source)
 
 

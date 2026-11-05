@@ -396,8 +396,10 @@ How `ledger_check.py` (G1) reads it:
   branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
   "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
   Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
-  the same both times (no `it.next()`; plain reads such as `rides.size()` or `Math.round(x)` are fine).
-  Set anything else on a local in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
+  the same both times: names, fields, array elements and `ids.length`, joined by operators. Any call
+  fails, whatever its name (`size()` may be the class's own method that counts its calls, and G1 does
+  not resolve the receiver of `rides.size()` or `Math.round(x)`). Set a count from a call on a local
+  in an ordinary pull request merged first. The same holds for a `format` row's quantity below.
 - A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
   count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
   a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
