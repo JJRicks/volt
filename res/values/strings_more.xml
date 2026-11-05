@@ -364,10 +364,10 @@
         <item quantity="one">Cleared %1$d try</item>
         <item quantity="other">Cleared %1$d tries</item>
     </plurals>
-    <!-- No screen shows this since more_lab_cleared replaced it; do not translate. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
-    <string name="more_lab_cleared_one" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
-    <!-- No screen shows this since more_lab_cleared replaced it; do not translate. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
-    <string name="more_lab_cleared_many" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
+    <!-- No screen shows this since more_lab_cleared replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_cleared_one" translatable="false" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared 1 try</string>
+    <!-- No screen shows this since more_lab_cleared replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_cleared_many" translatable="false" volt:screen="Experimental controls" volt:purpose="toast" volt:safety="experimental">Cleared %1$d tries</string>
     <!-- Added after the footnote (more_lab_foot, _oem, _elsewhere) when there are rows to try; it starts with a space because it follows that sentence. Drop the space if your language joins sentences without one. -->
     <string name="more_lab_kept" volt:screen="Experimental controls" volt:purpose="caption" volt:safety="privacy">" Try results stay on this phone until a compatibility report you send includes them, or until you clear them."</string>
     <!-- Footnote for a model whose controls the official app lists. -->
@@ -551,10 +551,10 @@
         <item quantity="one">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</item>
         <item quantity="other">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</item>
     </plurals>
-    <!-- No screen shows this since more_lab_why_offered replaced it; do not translate. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
-    <string name="more_lab_why_one" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</string>
-    <!-- No screen shows this since more_lab_why_offered replaced it; do not translate. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
-    <string name="more_lab_why_many" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- No screen shows this since more_lab_why_offered replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_why_one" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other model, but not on yours. It may do nothing here, or work differently.</string>
+    <!-- No screen shows this since more_lab_why_offered replaced it, so it is not translated. Only B18's ledger and its tests still read it (l10n/pending/b18-more-followups.md). -->
+    <string name="more_lab_why_many" translatable="false" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app offers this on %1$d other models, but not on yours. It may do nothing here, or work differently.</string>
     <!-- Try sheet caution when no other model has it in the official app. -->
     <string name="more_lab_why_none" volt:screen="Try sheet" volt:purpose="body" volt:safety="experimental">The official app doesn\'t offer this on your model. It may do nothing here, or work differently.</string>
     <!-- Under the Command evidence title. -->

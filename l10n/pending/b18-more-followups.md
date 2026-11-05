@@ -3,8 +3,9 @@
 B18 (MoreScreen, LanguageSheet) leaves these shown strings in English. Each one is either blocked by
 G1 in an extraction batch, blocked by GlyphCoverageTest (item 7), or kept English on purpose. F4 did
 items 1-5 (the submenu titles, the PIN, pairing and proximity toasts, the scooter names, and the two
-count plurals). Item 6 stays blocked; item 7 needs a tooling pull request. The B4 consumer reads that
-stay are in `l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an entry when it is done.
+count plurals). Item 6 needs a prep pull request first; item 7 needs a tooling pull request. The B4
+consumer reads that stay are in `l10n/pending/b4-controls-consumers.tsv` (MoreScreen rows). Delete an
+entry when it is done.
 
 Repro for each G1 block: make the change in a scratch worktree of the B18 head, then run
 `python3 tools/l10n/ledger_check.py --base f529f43 --head WORKTREE --ledger l10n/ledger/b18-more.tsv`.
@@ -22,15 +23,20 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
    morePrefsUnitsSummary in head lines 1055-1056 of src/com/jjricks/volt/MoreScreen.java is already
    used by another row, or comes before the call of an earlier row; each converted site needs its
    own call, in the base order". A `format` row refuses the holes' `as` ("a format row's "as" must be
-   Fmt.<method>(...)"), and a `choice` row would need twelve whole sentences. Follow-up: a tooling PR
-   that orders a template row by its expression's start (or lets a template hole's `as` hold the
-   calls of its own exact rows), then the template. Repro on 811d1c9: return
-   `T.morePrefsUnitsSummary("km".equals(units) ? T.unitsKm() : "dual".equals(units) ?
-   T.morePrefsUnitsDual(T.unitsMi(), T.unitsKm()) : T.unitsMi(), "f".equals(temperature) ?
-   T.unitsFahrenheit() : T.unitsCelsius(), hours24 ? T.morePrefsUnits24h() : T.morePrefsUnits12h())`,
-   add the four keys, a `manual:` template row whose three holes carry those ternaries as `as`, a
-   `manual:` exact row for each unit literal and a `format` row for "mi + km", then run
-   `ledger_check.py --base 811d1c9 --head WORKTREE --ledger l10n/ledger/f4.tsv`.
+   Fmt.<method>(...)"), and a `choice` row would need twelve whole sentences. Moving the pieces into
+   locals in the same pull request fails too ("adds String distance = ...; around text").
+   Follow-up, no tooling change needed: an ordinary prep pull request first, which only moves the
+   summary into locals, id tests included (keeping them beside the literals fails with "adds "km" and
+   drops "km""):
+   `boolean km = "km".equals(units), dual = "dual".equals(units), fahrenheit = "f".equals(temperature);`
+   `String distance = km ? "km" : dual ? "mi + km" : "mi";`
+   `String degrees = fahrenheit ? "°F" : "°C";` `String clock = hours24 ? "24h" : "12h";`
+   `return distance + " · " + degrees + " · " + clock;`
+   Then a second pull request replaces the literals with T calls, ends in
+   `T.morePrefsUnitsSummary(distance, degrees, clock)`, and adds the four keys and 8 ledger rows.
+   Checked for G1 only, on 811d1c9 plus such a prep commit:
+   `ledger_check.py --base <prep commit> --head WORKTREE --ledger l10n/ledger/f4.tsv` passes. The other
+   gates have not run on this route.
 
 ## Blocked by GlyphCoverageTest
 
@@ -56,8 +62,8 @@ Repro for each G1 block: make the change in a scratch worktree of the B18 head, 
 ## Keys no screen shows since F4
 
 `more_lab_cleared_one`, `more_lab_cleared_many`, `more_lab_why_one` and `more_lab_why_many` were replaced
-by the plurals `more_lab_cleared` and `more_lab_why_offered`. They stay in the catalog, with comments
-telling translators to skip them, because deleting them fails two gates:
+by the plurals `more_lab_cleared` and `more_lab_why_offered`. They stay in the catalog, marked
+`translatable="false"` so no language is asked for them, because deleting them fails two gates:
 
 - `ledger_check.py --catalog-only`: "l10n/ledger/b18-more.tsv:179: key more_lab_cleared_one is not in
   res/values/strings*.xml" (also :180 and :279);
