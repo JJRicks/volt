@@ -1,0 +1,5 @@
+# S1, the symbol moves: text carrying a check mark, warning sign or star moves to the catalog with the mark
+# (l10n/README.md, "Glyph coverage"). tests/run.sh compiles every path listed in tests/l10n/*.sources and runs
+# each tests/l10n/**Test.java from the repository root.
+# G5: the English of each moved expression, pinned before the batch.
+tests/l10n/characterization/SymbolMovesEnglishTest.java
