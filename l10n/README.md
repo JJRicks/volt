@@ -378,34 +378,52 @@ How `ledger_check.py` (G1) reads it:
   conditions do not, and each thing it uses is listed in the row's warning:
   - `String word = ready ? "Connected" : "Off";` before the sentence: `word`, or the noun of
     `plural(n, noun)`, reads as that choice. The local must be declared once, as one declarator, in a
-    block around the sentence and never assigned again, and its conditions may read only constants and
-    parameters or locals that never change after it (`x.equals(y)` is the one call). Its strings
-    leave only with the whole statement, and several rows may read them; while another sentence still
-    reads the local, it stays, with its strings.
+    block around the sentence and never assigned again, and its conditions must be stable (below).
+    Its strings leave only with the whole statement, and several rows may read them; while another
+    sentence still reads the local, it stays, with its strings.
   - The `if` and `else` around the sentence: under `if (connecting) ...; else status.setText(...)`
-    `connecting` is false, when its names are locals not assigned after that test.
+    `connecting` is false, when the condition is stable from that test on. An `else` counts only when
+    its `if` runs its own block or one plain statement: in `if (a) while (b) if (c) x(); else y();` the
+    `else` is the inner `if`'s, and nothing is settled.
   - `String mode = null;` assigned only inside `if (ready && ...)`: where `ready` is false,
-    `mode != null` is false. Only conjuncts of an `if` around every assignment count.
+    `mode != null` is false. Only conjuncts of an `if` around every assignment count, stable from the
+    declaration of `mode` on (in a loop, `ready` set again after `mode` was assigned says nothing).
+
+  A stable condition reads only these, and any other name or call settles nothing: a `static final`
+  of the same file; `Class.CONSTANT` (a capitalised class, an all-caps name the file never assigns; a
+  test keeps every all-caps static field in `src/` final, since G1 reads one file); parameters and
+  locals in scope where it is tested, not assigned after that (a field is not one, even with a local
+  of its name in a closed block); and `equals` on a String: `"eco".equals(id)` or a String local or
+  constant's. A list or a builder can change through a call, so `equals` on one settles nothing.
 
   The row's conditions must still be the head ternary's, token for token, and each branch must be
   exactly the sentence with those facts in. Anything else stays a hole, so the branch fails and shows
   the difference. The first check is the old one, with no facts: a row it passes never reaches this.
   A row with conditions the sentence does not read (nothing local, around it or null) still fails.
+  BackupArchive's `what` line needs one ordinary commit first: its `String.join(", ", labels)` would be
+  in two branches, and a literal repeated in a hole is a new literal. With the join on a local it passes.
 - A choice branch may be a plural: `{"one": [...], "other": [...]}` in place of a pieces array, with
   one quantity. `plural(n, "charge")` is a helper piece in both forms (held to its model). The base's
   own `n == 1 ? ... : ...` is settled by the form: `one` at 1, `other` otherwise, and an `other`-only
   branch at every count. Forms the base does not print fail, so a correction of `n + " rides"` to
   "1 ride" through a branch fails: that is an English change. G2 renders the forms like a plural row.
+  Head reads the quantity twice, to pick the item and to print it, so a new row's quantity must read
+  the same both times (no `it.next()`; plain reads such as `rides.size()` or `Math.round(x)` are fine).
+  Set anything else on a local in a commit first. The same holds for a `format` row's quantity below.
 - A `one` form that spells its count (`"Cleared 1 try"`, the base's own branch for 1) may print that
   count through the quantity's placeholder (`Cleared %1$d try`), which is what CatalogCheckTest wants of
   a formatted plural. G1 and G2 fill only the row's own quantity hole, only in that form.
 - A `format` row's `%d` may carry `"quantity": true` when its key is a plural: head passes the base
   argument first (`T.ridesRange(rides, Fmt.integer(rides), ...)`), and every English item must print
   the one sentence `String.format` printed at every count, so `one` cannot say "1 ride" here either.
-- A manual row or `removed` row takes the `;` of a statement it deletes whole: an array table
-  (`String[] LABELS = {...};`, every string with a `removed` row) or a second statement a manual row
-  folds into its template (`state += " • " + t;`, listed as "deletes the whole statement"). Other
-  statements beside them stay outside the row.
+- A `removed` row takes the `;` of an array table it deletes whole (`String[] LABELS = {...};`, every
+  string with a `removed` row, no call inside).
+- A manual row takes the `;` of one append it folds into its template: `state += " • " + clock(t);`,
+  right after the statement that sets the String local `state` with no condition and holds one of the
+  row's literals, with operands that are the row's own literals and holes, in the row's order. It is
+  listed as "deletes the whole statement". Nothing else goes this way: not an `if`, a `return` or a
+  call, so `if (charging) state += ...` stays. That is the real shape at QuickAccessGrid.java's manual
+  charge tile (B12), so it keeps `"On"` and `" • %1$s"` as two keys.
 - `format`: a literal that mixes numbers and unit text, either a `String.format` format string or a
   `+` chain, moved into a number template (`fmt_quantity`, `fmt_range`) whose unit text comes from
   catalog keys. For `String.format(Locale.US, "%.1f mph", kmh / KM_PER_MILE)` becoming
@@ -849,7 +867,8 @@ non-locale configuration.
 
 Known aapt quirk, en-XA only: the pseudo-localizer reads a `%` that opens no format specifier as if
 one ran to the end of the text, so `Battery %` compiles to `[βåţţéŕý »%` with no closing `]` (seven
-keys, `rides_chart_battery` among them; the default English and ar-XB are not touched). It is the
+keys, `rides_chart_battery` among them; the default English and ar-XB are not touched). The compiled
+text of those keys also ends in a run of U+0000, so a layout check reading en-XA sees those too. It is the
 compiler's output, with no flag to change it, so the pseudo build names each key as a
 `roundtrip: note:` line with this cause, and any bracket lost for another reason as its own note.
 
