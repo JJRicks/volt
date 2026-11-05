@@ -11,11 +11,11 @@
     <string name="controls_feature_turn_sound" volt:src="19860ddd145bce9bd14f3e4eb17684670f0d812e">Sonido del indicador de giro</string>
     <string name="controls_feature_display_units" volt:src="2ff1c881310d89d6b6570ba47432ef99c788d66b">Unidades de la pantalla del patinete</string>
     <string name="controls_feature_range_algorithm" volt:src="5e8878e318a80c02005de3c926acef4dbfb7c600">Estimación de autonomía</string>
-    <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705">Velocidad de arranque</string>
+    <string name="controls_feature_start_speed" volt:src="9405735ed4961b5517452a22e672488228e9a705" volt:attempt="2">Velocidad de arranque por impulso</string>
     <string name="controls_feature_speed_limit" volt:src="4790622900ea5816a4b27925c7cad468f98740a6">Límite de velocidad personalizado</string>
     <string name="controls_feature_maximum_speed" volt:src="f8ade37947e2a8d48c0c0f611caf211f310f9289">Velocidad máxima</string>
-    <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6">Doble motor</string>
-    <string name="controls_feature_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90">Límite de velocidad del modo Drive</string>
+    <string name="controls_feature_dual_drive" volt:src="d9d506ad125267838efebe6e98165aa3290c37e6" volt:attempt="2">Tracción con dos motores</string>
+    <string name="controls_feature_drive_speed_limit" volt:src="3fe5f3c90e71a367347eea8875268efd19912d90" volt:attempt="2">Límite de velocidad del modo de conducción Drive</string>
     <string name="controls_feature_charge_limit" volt:src="7a09777ec3485391cc54adc948dc7f767d7c55e8">Límite de carga</string>
     <string name="controls_feature_timed_charging" volt:src="695a1f5078ebc9b87ca2ff1c9858d49b8ce13821">Carga programada</string>
     <string name="controls_feature_charge_start" volt:src="b1e5891f6e9165e0906dc5cb61caaaaa8a51395e">Hora de inicio de carga</string>
@@ -24,7 +24,7 @@
     <string name="controls_feature_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modo de larga autonomía</string>
     <string name="controls_feature_hill_start_assist" volt:src="e186f5cd41697fa57ffb78747d01c02a538b81ec">Asistencia al caminar</string>
     <string name="controls_feature_parking_assist" volt:src="e143dc46cc0f3d598a9d06a21319aa4063756882">Asistencia de potencia</string>
-    <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698">Control de descenso</string>
+    <string name="controls_feature_hill_descent_control" volt:src="7b16f05bbf54a8bc36445c39606bc5f99db97698" volt:attempt="2">Control de descenso en pendiente</string>
     <string name="controls_feature_overspeed_control" volt:src="62129dd7be5c7491da7c0e3dd74368ed8b8bb65d">Control activo de exceso de velocidad</string>
     <string name="controls_feature_prompt_tone" volt:src="1aa3e25dd0ca7640deef3de5698158c98f2a73a2">Sonido de aviso</string>
     <string name="controls_feature_line_lights" volt:src="7ead6a1dc590502574f25db8aac9be53a48decb6">Luces de línea</string>
@@ -124,11 +124,11 @@
     <string name="controls_caution_low_power" volt:src="5fc0d9cd0dcae1e2195b91a04a4374dedff1834f">¿Desactivar el modo de batería baja? %1$s</string>
     <string name="controls_caution_dual_drive" volt:src="560446ec4145f9a8045f1c03fb577f5611e729a9">¿Cambiar a un solo motor? %1$s</string>
     <string name="controls_caution_energy_recovery" volt:src="eb0286a69d089d58a28bcb676bc77188958557f7" volt:attempt="2">¿Cambiar la recuperación de energía a Desactivada? %1$s</string>
-    <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee">Velocidad de arranque inferior a 3 km/h. %1$s</string>
+    <string name="controls_caution_start_speed" volt:src="e4526ecbcd6ff5b2fabb9a16c15ff52c39fc4fee" volt:attempt="2">Velocidad de arranque por impulso inferior a 3 km/h. %1$s</string>
     <string name="controls_caution_maximum_speed" volt:src="aacc93758ba088a28434fadffd9dbb68079f11b4">Por encima de 32 km/h: comprueba las normas del lugar donde conduces. %1$s</string>
     <string name="controls_experimental_traction_control" volt:src="2c3729b07e5f91c71633a965816445d68aa44373">Se desactivará el control de tracción. Conduce con suavidad sobre suelo mojado o suelto hasta que sepas cómo se comporta.</string>
     <string name="controls_experimental_start_speed" volt:src="1dde06a75fcf7f5479f0e10b9ebb4cd9af0c91e8">Una velocidad de arranque por impulso inferior a 3 km/h permite que el motor tire desde parado en cuanto uses el acelerador.</string>
-    <string name="controls_experimental_energy_recovery" volt:src="7f7b50de012785a2ff6e1bff2a886f3b848c6b80">Se desactivará la recuperación de energía, así que tus frenos harán más parte del frenado.</string>
+    <string name="controls_experimental_energy_recovery" volt:src="7f7b50de012785a2ff6e1bff2a886f3b848c6b80" volt:attempt="2">La recuperación de energía quedará desactivada, así que tus frenos harán más trabajo al detenerte.</string>
     <string name="controls_experimental_speed_limit" volt:src="fc6fd13ec7ff4620a356431586574897b470778c">Se limitará tu velocidad al conducir, por debajo de tu ajuste de velocidad máxima. «Revertir» vuelve a poner tu ajuste anterior.</string>
     <string name="controls_model_line" volt:src="aa38630dbef7eb71426a6d9f0671fe92045ce206">Modelo %1$s</string>
     <string name="controls_model_line_unconfirmed" volt:src="c13139f93082defaaae73bafbce5120b271ff109">Modelo %1$s (sin confirmar)</string>

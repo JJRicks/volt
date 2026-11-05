@@ -181,7 +181,7 @@
     <string name="more_lab_empty_unlisted" volt:src="e101b8215127670be192f6a22ca39547a7a1d38e">La app oficial no incluye este modelo, así que Volt no puede saber qué controles le faltan. Por ahora no hay nada que probar.</string>
     <string name="more_lab_empty_identify" volt:src="74eddd21a1f2d66bc4f30d73b694019e8d9e8770">Primero identifica tu modelo en la página «Patinete». Luego Volt mostrará lo que puedes probar.</string>
     <string name="more_lab_empty_connect" volt:src="a07ef4a149b4163296fd76d62d131ad688add832">Conecta tu patinete para ver lo que puedes probar.</string>
-    <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2">Arranque desde cero</string>
+    <string name="more_lab_standing_start" volt:src="cbfda571f17c2852b0a76bbaedf03778c84eb3e2" volt:attempt="2">Arranque desde parado</string>
     <string name="more_lab_absent_row" volt:src="e939b5be3ef1f3e83459f90bab1a2efff924bf74">%1$s, este patinete no lo indica</string>
     <string name="more_lab_try" volt:src="80f658bce3e5bb3db938f0ebe5bb4cc333de3c60">Probar</string>
     <string name="more_lab_now" volt:src="bd968a28ea0e785e29e0775c79e573467289ccf8">Ahora %1$s</string>
@@ -194,16 +194,16 @@
     <string name="more_lab_try_row" volt:src="915569259225e0201705fe1948eb239012a3800c">Probar %1$s</string>
     <string name="more_lab_row" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="more_lab_row_value" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
-    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d">Conecta el patinete para probarlos.</string>
+    <string name="more_lab_held_connect" volt:src="e6040d35813074efdc7d5bbad853d86e7492fe9d" volt:attempt="2">Conecta el patinete para probar estos controles.</string>
     <string name="more_lab_held_stale" volt:src="93ea6e97022298fb420f544a8fe862210653bde2">Esperando un estado actualizado del patinete.</string>
-    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17">Detén el patinete para probarlos.</string>
+    <string name="more_lab_held_moving" volt:src="48b4a309916228287815630a6728a140fb6fdd17" volt:attempt="2">Detén el patinete para probar estos controles.</string>
     <string name="more_lab_held_parked" volt:src="dded465fb578d2209d143c24e95b37a8870d63a3">Esperando a que el patinete indique que está detenido.</string>
-    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d">Resuelve la advertencia del patinete para probarlos.</string>
-    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5">Desbloquea el patinete para probarlos.</string>
-    <string name="more_lab_held_owner" volt:src="c8b4107bef41bd413e5f8cff598c8cccd2706ce9">Solo el propietario del patinete puede probarlos.</string>
+    <string name="more_lab_held_warning" volt:src="09238fc37efd64dde3335073d22ed3eccada162d" volt:attempt="2">Resuelve el aviso del patinete para probar estos controles.</string>
+    <string name="more_lab_held_locked" volt:src="5d00f644d63eae49f6bd826d322f3f4d0fd1e4a5" volt:attempt="2">Desbloquea el patinete para probar estos controles.</string>
+    <string name="more_lab_held_owner" volt:src="c8b4107bef41bd413e5f8cff598c8cccd2706ce9" volt:attempt="2">Solo el propietario del patinete puede probar estos controles.</string>
     <string name="more_lab_held_discovery" volt:src="ac3ad8be4e1d267653e409113c16ea9768d80a22">Espera a que termine la comprobación de compatibilidad.</string>
     <string name="more_lab_held_test" volt:src="967ad77528fecb77c5e746cd60ac60bf735e50cc">Primero termina el intento actual.</string>
-    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7">Detén la grabación para probarlos.</string>
+    <string name="more_lab_held_recording" volt:src="ed3e5bb2f8c5a85d460e1bd0b8318b52502672c7" volt:attempt="2">Detén la grabación para probar estos controles.</string>
     <string name="more_lab_status_waiting" volt:src="ef33051eab73d005c1331b3ea3eb6c2ff4f9ae91">Esperando tu respuesta</string>
     <string name="more_lab_status_waiting_short" volt:src="fb438cab8c7f1c2da0d65daaf34f2a2942052526">Tu respuesta</string>
     <string name="more_lab_status_ask" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">¿Viste el cambio?</string>

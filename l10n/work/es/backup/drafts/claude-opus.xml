@@ -22,7 +22,7 @@
     <string name="backup_back_up_title" volt:src="4fffa00134241eb7ddb58107452158016eb5f864">Copia de seguridad</string>
     <string name="backup_counting" volt:src="56a196f6a0bedbea836f908d50681817eca2d9e5">Contando tus datos…</string>
     <string name="backup_inventory_unreadable" volt:src="bd1e085ffe74e8205a40047b7688e6bfecf7de84">No se pueden leer los datos de la app. Vuelve a abrir Volt.</string>
-    <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6">Copia completa · todos los datos guardados de la app, incluido el acceso al patinete.</string>
+    <string name="backup_scope_full" volt:src="c9497d75189b9d8ec66a01df485c1fa187f8bae6" volt:attempt="2">Copia de seguridad completa · todos los datos guardados de la app, incluido el acceso a los patinetes.</string>
     <plurals name="backup_scope_selected" volt:src="1e5b5f778deba54ed05cfe54310e60709177d9f9">
         <item quantity="one">Solo datos seleccionados · %1$d categoría excluida.</item>
         <item quantity="many">Solo datos seleccionados · %1$d categorías excluidas.</item>

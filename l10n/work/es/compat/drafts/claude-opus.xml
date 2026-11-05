@@ -39,7 +39,7 @@
         <item quantity="many">%1$d pruebas sin terminar en otros patinetes. Selecciona una para revisarla.</item>
         <item quantity="other">%1$d pruebas sin terminar en otros patinetes. Selecciona una para revisarla.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Registros de pruebas no disponibles. Puede que una prueba anterior no se haya revertido; comprueba los ajustes del patinete.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a" volt:attempt="2">Registros de pruebas no disponibles. Puede que falte revertir una prueba anterior; comprueba los ajustes del patinete.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Intento · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Prueba · %1$s</string>
     <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Leyendo el valor actual…</string>
@@ -62,7 +62,7 @@
     <string name="compat_parked" volt:src="affd4fdaffbaf3af094ff27267aa162d101a2d40">El patinete está detenido</string>
     <string name="compat_parked_no_motion" volt:src="64ba465afb054d576ecd04289a4eb8a143f94ea0">Aún no hay informe de movimiento en esta conexión.</string>
     <string name="compat_continue_anyway" volt:src="612c47daf009c8a4bd5dce63257ac9e8a3f6079d">Continuar de todos modos</string>
-    <string name="compat_mark_restored" volt:src="2f53d33eed238cc3cefd72ac1b1c2816ee7d4e9c">Marcar como revertido</string>
+    <string name="compat_mark_restored" volt:src="2f53d33eed238cc3cefd72ac1b1c2816ee7d4e9c" volt:attempt="2">Marcar reversión completa</string>
     <string name="compat_restore_to" volt:src="c9b3aa7166125f88a8c6d89768d6fe45dd8cfd9e">Revertir a %1$s</string>
     <string name="compat_keep_value" volt:src="2eb1bf06890272b254b825e89273df24f3d65ad6">Mantener %1$s</string>
     <string name="compat_set_value" volt:src="c00798c4167aa6188a381289dcf98bd4832d7dd9">Establecer %1$s</string>
@@ -236,7 +236,7 @@
     <string name="compat_note_still_shows" volt:src="5dd827219293699b625f6acc867514acda839a93">Sigue mostrando %1$s.</string>
     <string name="compat_note_shows_test_value" volt:src="38f770b717cd2277c30183682a7a2b0fe6b90669">El ajuste muestra el valor de la prueba, %1$s.</string>
     <string name="compat_note_stopped" volt:src="01240223867612b5ead511ec40876b94e41a991d">Detenido antes de cualquier cambio. No se cambió nada.</string>
-    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab">Revertido y confirmado, pero no se pudo guardar el registro.</string>
+    <string name="compat_note_restored_not_saved" volt:src="c5072b095281d540f8a1d7eea0bf9280ff5338ab" volt:attempt="2">Reversión hecha y confirmada, pero no se pudo guardar el registro.</string>
     <string name="compat_note_kept_not_saved" volt:src="015470fedbbd4eaa26f499dad206399546022550">Se mantuvo, pero no se pudo guardar el registro. Aparecerá como sin terminar.</string>
     <string name="compat_review_connect" volt:src="19157e24b4426b858745ad777c53b9f513f1b15e">Conecta este patinete para revisar.</string>
     <string name="compat_review_model_changed" volt:src="1a998792b13c4d1fe37f24ddc2081c4c9e37af25">El ID de modelo difiere del de la prueba. Volt no lo cambiará.</string>
