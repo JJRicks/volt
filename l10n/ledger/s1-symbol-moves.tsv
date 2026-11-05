@@ -3,9 +3,9 @@
 location	pieces	key	kind	note
 src/com/jjricks/volt/CompatibilityPanel.java:311	[" (late)"]	compat_read_late	exact	the words added to a supported read when the reply came late; set a line before the sentence, so G1 has no whole-template row for it (l10n/README "Still blocked"); screen only, the report never reads readValue
 src/com/jjricks/volt/CompatibilityPanel.java:313	{"one": ["✓ ", {"hole": "r.length", "arg": 1, "type": "d", "quantity": true}, " bytes", {"hole": "late", "arg": 2, "type": "s"}], "other": ["✓ ", {"hole": "r.length", "arg": 1, "type": "d", "quantity": true}, " bytes", {"hole": "late", "arg": 2, "type": "s"}]}	compat_read_supported	plural	English keeps "1 bytes" (english-fix pending); late is the compat_read_late row above; screen only, the report never reads readValue
-src/com/jjricks/volt/DashboardScreen.java:5295	["✓ Save"]	dashboard_save_checked	exact	widget options Save
-src/com/jjricks/volt/DashboardScreen.java:5382	["✓ Save"]	dashboard_save_checked	exact	quick settings Save; read as shown
-src/com/jjricks/volt/DashboardScreen.java:6035	["✓ Save"]	dashboard_save_checked	exact	Choose readings Save
+src/com/jjricks/volt/DashboardScreen.java:5291	["✓ Save"]	dashboard_save_checked	exact	widget options Save
+src/com/jjricks/volt/DashboardScreen.java:5378	["✓ Save"]	dashboard_save_checked	exact	quick settings Save; read as shown
+src/com/jjricks/volt/DashboardScreen.java:6027	["✓ Save"]	dashboard_save_checked	exact	Choose readings Save
 src/com/jjricks/volt/DriveModeStep.java:153	[{"hole": "CHOICES[i].text", "arg": 1, "type": "s"}, " ✓"]	controls_drive_mode_choice_used	template	the name is the mode as the scooter shows it (CHOICES[i].text); the mark moves with it; screen readers say the plain mode name and common_selected instead
 src/com/jjricks/volt/MoreScreen.java:1030	["Unrestricted ✓"]	more_prefs_battery_value_unrestricted	exact	its spoken text is more_prefs_battery_unrestricted, unchanged
 src/com/jjricks/volt/MoreScreen.java:1030	["Optimized ⚠︎"]	more_prefs_battery_value_optimized	exact	with U+FE0E (S0); its spoken text is more_prefs_battery_optimized, unchanged
@@ -13,7 +13,7 @@ src/com/jjricks/volt/MoreScreen.java:2564	["PIN ✓"]	more_chip_pin_on_value	exa
 src/com/jjricks/volt/MoreScreen.java:2564	["PIN —"]	more_chip_pin_off_value	exact	its spoken text is more_chip_pin_off, unchanged
 src/com/jjricks/volt/MoreScreen.java:2566	["Paired ✓"]	more_chip_paired_value	exact	its spoken text is more_chip_paired, unchanged
 src/com/jjricks/volt/MoreScreen.java:2566	["Paired —"]	more_chip_not_paired_value	exact	its spoken text is more_chip_not_paired, unchanged
-src/com/jjricks/volt/RidesScreen.java:619	["2 ✓"]	rides_compare_two_selected_value	exact	its spoken text is rides_compare_two_selected, unchanged
-src/com/jjricks/volt/RidesScreen.java:975	["Direction ✓"]	rides_direction_chip_confirmed	exact	the battery current's direction; screen readers say rides_direction_confirmed instead
-src/com/jjricks/volt/RidesScreen.java:975	["Direction ?"]	rides_direction_chip_unconfirmed	exact	the battery current's direction; screen readers say rides_direction_unconfirmed instead
+src/com/jjricks/volt/RidesScreen.java:610	["2 ✓"]	rides_compare_two_selected_value	exact	its spoken text is rides_compare_two_selected, unchanged
+src/com/jjricks/volt/RidesScreen.java:970	["Direction ✓"]	rides_direction_chip_confirmed	exact	the battery current's direction; screen readers say rides_direction_confirmed instead
+src/com/jjricks/volt/RidesScreen.java:970	["Direction ?"]	rides_direction_chip_unconfirmed	exact	the battery current's direction; screen readers say rides_direction_unconfirmed instead
 src/com/jjricks/volt/StatsScreen.java:194	["☆ Star readings to pin here"]	stats_favourites_empty_hint	exact	read as shown
