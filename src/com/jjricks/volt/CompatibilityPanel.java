@@ -203,7 +203,7 @@ final class CompatibilityPanel {
         if(r==null)return;
         card.addView(ui.text(r.message,14,false));
         boolean restore=(r.state==GuidedTest.ReviewState.RESTORE_NEEDED||r.state==GuidedTest.ReviewState.CHANGED_OUTSIDE)&&r.restorable;
-        if(restore&&d.reason==CapabilityResolver.Reason.PARKED_UNCONFIRMED)card.addView(ui.toggleRow(T.compatParked(),T.compatParkedNoMotion(),ble.testParked(),true,ble::setTestParked));
+        if(restore&&d.reason==CapabilityResolver.Reason.PARKED_UNCONFIRMED)card.addView(ui.toggleRow(T.compatParked(),Ui.NO_ICON,T.compatParkedNoMotion(),ble.testParked(),true,ble::setTestParked));
         else if(restore&&!d.available())card.addView(muted(d.reasonText()));
         switch(r.state){
             case FIRMWARE_CHANGED: card.addView(ui.secondaryButton(T.compatContinueAnyway(),()->{ble.confirmTestFirmware(e.testId);refresh();}));break;

@@ -733,17 +733,6 @@ public final class MoreScreen implements AppScreen {
     private void note(LinearLayout box, String value) {
         TextView text = ui.caption(value); text.setPadding(0, ui.dp(7), 0, ui.dp(7)); box.addView(text);
     }
-    private TextView button(LinearLayout box, String label, Runnable action, boolean primary) {
-        TextView view = primary ? ui.button(label, action) : ui.text(label, 15, false);
-        if (!primary) {
-            view.setTextColor(new ColorStateList(new int[][] {new int[] {-android.R.attr.state_enabled}, new int[] {}}, new int[] {ui.muted, ui.text})); view.setGravity(Gravity.CENTER_VERTICAL); view.setMinHeight(ui.dp(52));
-            view.setPadding(ui.dp(2), ui.dp(10), ui.dp(2), ui.dp(10)); view.setFocusable(true);
-            view.setBackground(new RippleDrawable(ColorStateList.valueOf(Ui.withAlpha(ui.accent, 24)), ui.shape(Color.TRANSPARENT, 10, 0), null));
-            view.setOnClickListener(v -> { if (action != null) action.run(); });
-            if (box.getChildCount() > 0) ui.divider(box);
-        }
-        ui.decorate(view, ui.labelIcon(label)); box.addView(view); return view;
-    }
     private TextView value(LinearLayout box, String label) {
         TextView text = ui.text(label, 15, true); text.setTextColor(ui.accent);
         text.setPadding(0, ui.dp(10), 0, ui.dp(10)); box.addView(text); return text;
