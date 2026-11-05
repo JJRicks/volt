@@ -10,7 +10,7 @@ import java.util.Map;
  *     (TextLogicEnglishTest.SLIDER_ENDS and its baseEnds), for every slider control and units setting, and in a
  *     language that words the units another way the low end is still the bare number (no unit is cut off it);
  *   - DisplayUnits.unbroken writes the same bytes CompatibilityPanel.unbroken wrote in English, and joins a
- *     language's own km/h wording;
+ *     language's own km/h and mph wording after its punctuation and symbols, never inside a letter or its marks;
  *   - StatsLabels.RAW_MARK is the marker StatsScreen's row name used to cut off the shown name.
  * The phone is set to en-US, tr-TR, de-DE and ar-EG in turn.
  */
@@ -76,6 +76,19 @@ public final class TextLogicTest {
         try {
             equal("Keep 25 км/" + WJ + "ч", DisplayUnits.unbroken("Keep 25 км/ч"), phone + " a language's own km/h is joined");
             equal("Keep 25 km/h", DisplayUnits.unbroken("Keep 25 km/h"), phone + " the English spelling is not that language's unit");
+            equal("Keep 15 миль/" + WJ + "ч", DisplayUnits.unbroken("Keep 15 миль/ч"), phone + " a language's own mph is joined");
+            equal("25 км/" + WJ + "ч / 15 миль/" + WJ + "ч", DisplayUnits.unbroken("25 км/ч / 15 миль/ч"), phone + " both units in dual, not the dual slash");
+            joinedUnit("किमी/घंटा", "किमी/" + WJ + "घंटा", phone + " vowel signs stay with their letters");
+            joinedUnit("क्/ख", "क्/" + WJ + "ख", phone + " a virama stays in its conjunct");
+            joinedUnit("കി.മീ/മ", "കി." + WJ + "മീ/" + WJ + "മ", phone + " after the dot and the slash only");
+            joinedUnit("\uD835\uDC00/h", "\uD835\uDC00/" + WJ + "h", phone + " a character outside the BMP is not split");
+            joinedUnit("a\u200D/b", "a\u200D/" + WJ + "b", phone + " nothing after a zero-width joiner");
+            joinedUnit("km / h", "km " + WJ + "/" + WJ + " " + WJ + "h", phone + " a unit with spaces stays on one line");
+            text.put(T.UNITS_KMH, "km/h");
+            text.put(T.UNITS_MPH, "m/h");
+            equal("km/" + WJ + "h, m/" + WJ + "h", DisplayUnits.unbroken("km/h, m/h"), phone + " one unit inside the other is joined once");
+            text.put(T.UNITS_KMH, "км/ч");
+            text.put(T.UNITS_MPH, "миль/ч");
             ScooterCommands.Feature start = ScooterCommands.find("start_speed");
             String[] km = DisplayUnits.sliderEnds(start, "km"), mi = DisplayUnits.sliderEnds(start, "mi"), dual = DisplayUnits.sliderEnds(start, "dual");
             equal("0", km[0], phone + " km low end is the bare number with the unit first");
@@ -86,6 +99,21 @@ public final class TextLogicTest {
         } finally {
             T.install(null);
         }
+    }
+
+    /** Reads the unit through the language installed by {@link #translated}, whose map holds it for this one check. */
+    private static void joinedUnit(String unit, String joined, String what) {
+        Map<Integer, String> text = new HashMap<>();
+        text.put(T.UNITS_KMH, unit);
+        text.put(T.UNITS_MPH, "mph");
+        T.Source outer = T.source();
+        T.install(new T.Source() {
+            public String string(int id) { return text.get(id); }
+            public String plural(int id, long quantity) { return null; }
+            public String language() { return "xx"; }
+        });
+        equal("Keep " + joined, DisplayUnits.unbroken("Keep " + unit), what);
+        T.install(outer);
     }
 
     static void equal(String expected, String actual, String what) {

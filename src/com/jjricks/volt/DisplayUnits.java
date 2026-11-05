@@ -11,27 +11,46 @@ public final class DisplayUnits {
     private DisplayUnits() {}
 
     /**
-     * Button labels: the shown km/h unit kept on one line when large text wraps the label, with a word joiner after
-     * each mark inside it ("km/\u2060h" in English). The unit is the language's units_kmh, so the joiner follows the
-     * wording a language shows, never a fixed English spelling. Display only: a report or log never holds a joiner.
+     * Button labels: the shown km/h and mph units each kept on one line when large text wraps the label, with a word
+     * joiner after each punctuation mark, symbol or space inside the unit ("km/\u2060h" in English; "mph" has none, so
+     * it stays as it is). The units are the language's units_kmh and units_mph, so the joiner follows the wording a
+     * language shows, never a fixed English spelling. Display only: a report or log never holds a joiner.
      */
     public static String unbroken(String text) {
-        String unit = T.unitsKmh();
+        return unbroken(unbroken(text, T.unitsKmh()), T.unitsMph());
+    }
+
+    private static String unbroken(String text, String unit) {
         StringBuilder joined = new StringBuilder(unit.length() + 2);
-        for (int i = 0; i < unit.length(); i++) {
-            char c = unit.charAt(i);
-            joined.append(c);
-            if (i + 1 < unit.length() && !Character.isLetterOrDigit(c)) joined.append(WORD_JOINER);
+        for (int i = 0; i < unit.length(); ) {
+            int c = unit.codePointAt(i);
+            joined.appendCodePoint(c);
+            i += Character.charCount(c);
+            if (i < unit.length() && breaksAfter(c)) joined.append(WORD_JOINER);
         }
         return unit.isEmpty() ? text : text.replace(unit, joined);
     }
+
+    /** Punctuation, symbols and spaces: never a combining mark or a joiner, which belong to the letter they follow. */
+    private static boolean breaksAfter(int codePoint) {
+        switch (Character.getType(codePoint)) {
+            case Character.CONNECTOR_PUNCTUATION: case Character.DASH_PUNCTUATION: case Character.START_PUNCTUATION:
+            case Character.END_PUNCTUATION: case Character.INITIAL_QUOTE_PUNCTUATION: case Character.FINAL_QUOTE_PUNCTUATION:
+            case Character.OTHER_PUNCTUATION: case Character.MATH_SYMBOL: case Character.CURRENCY_SYMBOL:
+            case Character.MODIFIER_SYMBOL: case Character.OTHER_SYMBOL: case Character.SPACE_SEPARATOR:
+                return true;
+            default:
+                return false;
+        }
+    }
+
     /** U+2060 WORD JOINER, built from its code point: it is not catalog text (GlyphCoverageTest: Saira has no glyph for it). */
     private static final char WORD_JOINER = (char) 0x2060;
 
     /**
      * The value with speeds in the rider's units, other values as their English label (feature.valueLabel): callers
-     * compare and trim this text as English (MoreScreen's labValue into CompatibilityPanel.question, MainActivity's
-     * " hours" shortening and shared-unit trim), so it stays English. Show {@link #featureValueText} instead.
+     * compare and trim this text as English (MoreScreen's labId into CompatibilityPanel.question, MainActivity's
+     * " hours" shortening), so it stays English. Show {@link #featureValueText} instead.
      */
     public static String featureValue(ScooterCommands.Feature feature, int value, String units) {
         if (!UnitCode.KMH.matches(feature.unit) || (value == 0 && feature.zeroIsOff())) return feature.valueLabel(value);
