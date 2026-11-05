@@ -30,6 +30,8 @@ sources+=("$APP_DIR/src/com/jjricks/volt/RouteSpeedScale.java" "$TEST_DIR/RouteS
 sources+=("$APP_DIR/src/com/jjricks/volt/LockSliderTrail.java" "$TEST_DIR/LockSliderTrailTest.java")
 # Lock taps held from the connection haptic until the scooter takes writes.
 sources+=("$APP_DIR/src/com/jjricks/volt/LockTapQueue.java" "$TEST_DIR/LockTapQueueTest.java")
+# Ride recorder card: the whole card starts a ride; only the disc stops one.
+sources+=("$APP_DIR/src/com/jjricks/volt/RecorderTap.java" "$TEST_DIR/RecorderTapTest.java")
 # Ride auto-end policy and its journal/learned-range effects.
 for name in RideAutoStopPolicy; do
     sources+=("$APP_DIR/src/com/jjricks/volt/$name.java" "$TEST_DIR/${name}Test.java")
@@ -101,6 +103,7 @@ java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.ShizukuCaptureClientTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RouteSpeedScaleTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockSliderTrailTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.LockTapQueueTest
+java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RecorderTapTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopPolicyTest
 java -cp "$TEST_BUILD_DIR/classes" com.jjricks.volt.RideAutoStopStoreTest
 

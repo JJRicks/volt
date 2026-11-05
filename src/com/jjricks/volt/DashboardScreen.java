@@ -1901,6 +1901,8 @@ public final class DashboardScreen implements AppScreen {
         LinearLayout scooterRow, scooterInfo;
         RecordLead recorder;
         boolean compactRecorder;
+        /** The recorder card's own start target is installed (not editing) and currently live. */
+        boolean recorderCard, wideTap;
         FrameLayout photoPane;
         final ArrayList<LinearLayout> scooterStats = new ArrayList<>();
         int scooterColumns;
@@ -1942,7 +1944,13 @@ public final class DashboardScreen implements AppScreen {
             }
             heading.setVisibility(untitled(widget.type) ? View.GONE : View.VISIBLE);
             content.addView(heading, new LinearLayout.LayoutParams(-1, -2));
-            body = column();
+            body = new LinearLayout(host.activity()) {
+                @Override protected void dispatchSetPressed(boolean pressed) {
+                    super.dispatchSetPressed(pressed);
+                    pressRecorder(pressed);
+                }
+            };
+            body.setOrientation(LinearLayout.VERTICAL);
             if (lockType(widget.type) || widget.type.equals("metric")
                     || widget.type.equals("gauge") || widget.type.equals("ride"))
                 body.setGravity(Gravity.CENTER_VERTICAL);
@@ -2441,14 +2449,9 @@ public final class DashboardScreen implements AppScreen {
             RecordLead lead = new RecordLead(disc, words);
             recorder = lead;
             rideButton = lead;
-            lead.setOnClickListener(
-                    v -> {
-                        if (service != null && service.isRecording()) service.stopRide();
-                        // The grey disc starts a connection instead of explaining that one is needed.
-                        else if (service != null && !service.ble.ready()) host.connect();
-                        else actions.startRide();
-                        host.redraw();
-                    });
+            // The grey disc starts a connection instead of explaining that one is needed.
+            lead.setOnClickListener(v -> recorderAction(RecorderTap.lead(
+                    service != null && service.isRecording(), service == null || service.ble.ready())));
             line.addView(lead, new LinearLayout.LayoutParams(0, -2, 1));
             FrameLayout more = new FrameLayout(host.activity());
             more.addView(new GlyphView("chevron", ui.muted),
@@ -2460,6 +2463,35 @@ public final class DashboardScreen implements AppScreen {
             more.setOnClickListener(v -> actions.navigate("rides"));
             line.addView(more, new LinearLayout.LayoutParams(ui.dp(48), ui.dp(48)));
             body.addView(line, new LinearLayout.LayoutParams(-1, -2));
+            if (!editing) {
+                // Like the Lock bar, the whole card is the start target: the card covers its padding
+                // and the body covers the empty space inside the scroll viewport, which takes its own
+                // touches. The disc and the arrow keep theirs. refreshRecorder decides when it is live.
+                View.OnClickListener wide = v -> recorderAction(RecorderTap.card(editing, rideButton.isEnabled(),
+                        service != null && service.isRecording(), service == null || service.ble.ready()));
+                setOnClickListener(wide);
+                body.setOnClickListener(wide);
+                body.setImportantForAccessibility(IMPORTANT_FOR_ACCESSIBILITY_NO);
+                recorderCard = true;
+            }
+        }
+
+        /** A press anywhere on a live recorder card lights the disc, the control it stands for. */
+        private void pressRecorder(boolean pressed) {
+            if (recorder != null && (wideTap || !pressed)) recorder.setPressed(pressed);
+        }
+
+        @Override protected void dispatchSetPressed(boolean pressed) {
+            super.dispatchSetPressed(pressed);
+            pressRecorder(pressed);
+        }
+
+        private void recorderAction(int action) {
+            if (action == RecorderTap.STOP) service.stopRide();
+            else if (action == RecorderTap.CONNECT) host.connect();
+            else if (action == RecorderTap.START) actions.startRide();
+            else return;
+            host.redraw();
         }
 
         /** Disc and words side by side, stacking on narrow cards so the words stay readable. */
@@ -3569,6 +3601,20 @@ public final class DashboardScreen implements AppScreen {
             // A hidden caption is never re-measured by setText alone; show it when it has words.
             int detail = rideDetail.length() > 0 && !compactRecorder ? View.VISIBLE : View.GONE;
             if (rideDetail.getVisibility() != detail) rideDetail.setVisibility(detail);
+            // While a card tap would start (or connect), the card is the one spoken control with the
+            // disc's label, and the disc steps out of focus so it is not announced twice. Recording,
+            // saving or editing, the card goes inert and the disc is the control again.
+            boolean wide = recorderCard && RecorderTap.card(editing, rideButton.isEnabled(), recording,
+                    service == null || ready) != RecorderTap.NONE;
+            if (wideTap && !wide) recorder.setPressed(false);
+            wideTap = wide;
+            setClickable(wide);
+            body.setClickable(wide);
+            setFocusable(wide);
+            setImportantForAccessibility(wide ? IMPORTANT_FOR_ACCESSIBILITY_YES : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
+            setContentDescription(wide ? rideButton.getContentDescription() : null);
+            rideButton.setFocusable(!wide);
+            rideButton.setImportantForAccessibility(wide ? IMPORTANT_FOR_ACCESSIBILITY_NO : IMPORTANT_FOR_ACCESSIBILITY_AUTO);
         }
 
         private GradientDrawable oval(int fill) {
