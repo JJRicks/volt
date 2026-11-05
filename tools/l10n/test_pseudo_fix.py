@@ -15,6 +15,7 @@ import roundtrip  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 FIXTURE = os.path.join(HERE, "fixtures", "aapt-pseudo-percent", "resources-pseudo.arsc")
+SHARED = os.path.join(HERE, "fixtures", "aapt-pseudo-percent-shared", "resources-pseudo.arsc")
 
 
 def values(entries):
@@ -114,6 +115,21 @@ class PseudoFixTest(unittest.TestCase):
         code, out = self.run_main(self.apk(self.raw.replace(start, b"(" + start[1:])))
         self.assertEqual(code, 1, out)
         self.assertIn("en-rXA/trailing still holds a NUL character", out)
+
+    def test_no_damage_on_the_texts_it_repairs(self):
+        self.assertEqual(pseudo_fix.repair_damage(roundtrip.read_arsc(self.raw), roundtrip.read_arsc(self.fixed)), [])
+
+    def test_english_sharing_a_pool_slot_and_text_cut_short_fail(self):
+        with open(SHARED, "rb") as handle:
+            raw = handle.read()
+        before = values(roundtrip.read_arsc(raw))
+        self.assertEqual(before[("default", "cut_short", "other")], "%{x}%")
+        self.assertTrue(before[("default", "shares_the_slot", "other")].endswith("\0"), "aapt shares the slot")
+        self.assertEqual(before[("en-rXA", "cut_short", "other")], before[("default", "shares_the_slot", "other")])
+        code, out = self.run_main(self.apk(raw))
+        self.assertEqual(code, 1, out)
+        self.assertIn("default/shares_the_slot[other]: the repair changed a text outside en-XA", out)
+        self.assertIn("en-rXA/cut_short[other]: aapt cut the text before its end", out)
 
     def test_a_table_that_is_not_one_is_refused(self):
         self.assertEqual(self.run_main(self.apk(b"\x03\x00\x08\x00\x08\x00\x00\x00"))[0], 2)

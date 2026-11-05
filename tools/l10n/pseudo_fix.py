@@ -13,8 +13,10 @@ aapt is a binary and refuses a values-en-rXA folder next to --pseudo-localize, a
 res/ must not change, so the repair happens on its output. Each such string is rewritten in its own
 slot of resources.arsc as the text aapt meant, without the mark, since this % is not a placeholder:
 "[βåţţéŕý % one two]". The length of the NUL run gives the length of aapt's filler words. The file
-keeps its size and every other byte, the release APK is never touched, and any NUL left in any
-configuration fails the build.
+keeps its size and every other byte, and the release APK is never touched. The build fails on any NUL
+left in any configuration, any change to the text of another configuration (aapt can share one pool
+slot between en-XA and an English text it matches up to the NULs), and any en-XA text aapt cut before
+its end, which the repair cannot bring back.
 """
 
 import argparse
@@ -28,6 +30,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import roundtrip  # noqa: E402
 
 ARSC = "resources.arsc"
+EN_XA = "en-rXA"
 OPEN_MARK = "»".encode("utf-8")
 CLOSE_MARK = "«".encode("utf-8")
 # aapt's k_expansion_string, which it cuts at a word end to lengthen short text.
@@ -99,6 +102,37 @@ def nul_texts(entries):
     return found
 
 
+def _texts(entries):
+    """{(config, name, quantity): text} of a compiled table."""
+    out = {}
+    for entry in entries:
+        values = [("other", entry.value)] if entry.value is not None else sorted((entry.bag or {}).items())
+        for quantity, value in values:
+            out[(entry.config, entry.name, quantity)] = value.text
+    return out
+
+
+def repair_damage(before, after):
+    """Texts the repair must not leave: [(config/name[quantity], what is wrong)], from read_arsc's entries."""
+    before, after = _texts(before), _texts(after)
+    damage = []
+    for key in sorted(before):
+        config, name, quantity = key
+        where = "%s/%s[%s]" % key
+        if config != EN_XA:
+            if before[key] != after[key]:
+                damage.append((where, "the repair changed a text outside en-XA"))
+            continue
+        cut = before[key] or ""
+        english = before.get(("default", name, quantity))
+        if "\0" in cut and english is not None:
+            # The pseudo-localizer maps character to character; only its [ and marks are added.
+            kept = cut.rstrip("\0")[1:].replace("\u00bb", "").replace("\u00ab", "")
+            if len(kept) != len(english.rstrip("\0")):
+                damage.append((where, "aapt cut the text before its end, and the repair cannot bring it back"))
+    return damage
+
+
 def repair_apk(path):
     """Rewrite the APK at path with a repaired table, keeping every entry's order and compression."""
     with zipfile.ZipFile(path) as archive:
@@ -117,7 +151,8 @@ def repair_apk(path):
     finally:
         if os.path.exists(temporary):
             os.remove(temporary)
-    return repaired, nul_texts(roundtrip.read_arsc(fixed))
+    after = roundtrip.read_arsc(fixed)
+    return repaired, nul_texts(after), repair_damage(roundtrip.read_arsc(table[0]), after)
 
 
 def main(argv=None):
@@ -125,14 +160,16 @@ def main(argv=None):
     parser.add_argument("--apk", required=True)
     args = parser.parse_args(argv)
     try:
-        repaired, left = repair_apk(args.apk)
+        repaired, left, damage = repair_apk(args.apk)
     except (OSError, zipfile.BadZipFile, roundtrip.ArscError, struct.error) as error:
         print("pseudo_fix.py: %s" % error, file=sys.stderr)
         return 2
     print("pseudo_fix: repaired %d en-XA text(s) aapt cut at a bare %%" % len(repaired))
     for name in left:
         print("pseudo_fix: %s still holds a NUL character" % name, file=sys.stderr)
-    return 1 if left else 0
+    for name, why in damage:
+        print("pseudo_fix: %s: %s" % (name, why), file=sys.stderr)
+    return 1 if left or damage else 0
 
 
 if __name__ == "__main__":

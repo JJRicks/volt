@@ -3,7 +3,8 @@
 # Writes resources.arsc (aapt's compiled table), dump.txt (aapt dump --values resources) and
 # resources-pseudo.arsc (the same package step with --pseudo-localize) here, and
 # ../aapt-qualified/resources.arsc (text in values-en, values-v31, values-night and two translations) and
-# ../aapt-pseudo-percent/resources-pseudo.arsc (aapt's NUL-mangled en-XA text, which pseudo_fix.py repairs).
+# ../aapt-pseudo-percent/resources-pseudo.arsc (aapt's NUL-mangled en-XA text, which pseudo_fix.py repairs) and
+# ../aapt-pseudo-percent-shared/resources-pseudo.arsc (text the repair must refuse).
 set -euo pipefail
 HERE="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
 SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-$HOME/Library/Android/sdk}}"
@@ -27,5 +28,9 @@ PERCENT="$HERE/../aapt-pseudo-percent"
 "$AAPT" package -f --pseudo-localize -M "$PERCENT/AndroidManifest.xml" -S "$PERCENT/res" -I "$ANDROID_JAR" -F "$WORK/percent.apk"
 (cd "$WORK" && mkdir percent && cd percent && unzip -q -o ../percent.apk resources.arsc)
 cp "$WORK/percent/resources.arsc" "$PERCENT/resources-pseudo.arsc"
+SHARED="$HERE/../aapt-pseudo-percent-shared"
+"$AAPT" package -f --pseudo-localize -M "$SHARED/AndroidManifest.xml" -S "$SHARED/res" -I "$ANDROID_JAR" -F "$WORK/shared.apk"
+(cd "$WORK" && mkdir shared && cd shared && unzip -q -o ../shared.apk resources.arsc)
+cp "$WORK/shared/resources.arsc" "$SHARED/resources-pseudo.arsc"
 "$AAPT" version > "$HERE/aapt-version.txt"
 echo "Captured $HERE/resources.arsc and dump.txt with $(cat "$HERE/aapt-version.txt")"
