@@ -159,7 +159,7 @@ public final class TextLogicEnglishTest {
         String unit = T.unitsKmh();
         equal("km/h", unit, phone + " km/h symbol");
         equal("Keep 25 km/⁠h", T.compatKeepValue("25 km/h").replace("km/h", "km/⁠h"), phone + " keep button");
-        equal("Restore to 15.5 mph", T.compatRestoreTo("15.5 mph").replace("km/h", "km/⁠h"), phone + " restore button in mph");
+        equal("Set back to 15.5 mph", T.compatRestoreTo("15.5 mph").replace("km/h", "km/⁠h"), phone + " restore button in mph");
     }
 
     /**

@@ -111,12 +111,12 @@ public final class MainActivityTextTest {
         equal("Note", Base.joinNote("", "Note"), phone, "join, no text");
         equal("Note", Base.joinNote(null, "Note"), phone, "join, null text");
         equal("Sport", Base.joinNote("Sport", null), phone, "join, no note");
-        equal("25 kilometres per hour", Base.spoken(25, "km"), phone, "spoken km");
-        equal("16 miles per hour, 25 kilometres per hour", Base.spoken(25, "mi"), phone, "spoken mi");
+        equal("25 kilometers per hour", Base.spoken(25, "km"), phone, "spoken km");
+        equal("16 miles per hour, 25 kilometers per hour", Base.spoken(25, "mi"), phone, "spoken mi");
         equal("mph · 25 km/h", Base.dualUnit(25), phone, "dual unit");
-        equal("Top speed, Sport mode maximum, not reported, last seen setting", Base.topSpeed(null, "mi", false), phone, "top unknown");
-        equal("Top speed, Sport mode maximum, 25 kilometres per hour", Base.topSpeed(25, "km", true), phone, "top km");
-        equal("Set top speed to 25 kilometres per hour", Base.setTop(25, "km"), phone, "set top");
+        equal("Maximum speed, Sport mode, not reported, last seen setting", Base.topSpeed(null, "mi", false), phone, "top unknown");
+        equal("Maximum speed, Sport mode, 25 kilometers per hour", Base.topSpeed(25, "km", true), phone, "top km");
+        equal("Set maximum speed to 25 kilometers per hour", Base.setTop(25, "km"), phone, "set top");
         equal("Volt hasn't seen a Model X before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it.",
                 Base.invite("X"), phone, "invite");
         equal("To help@x", Base.to("help@x"), phone, "address");
@@ -181,10 +181,10 @@ public final class MainActivityTextTest {
         static String schedule(String label, String shown, String blocked, String note) {return label+", "+shown+(blocked==null?"":", "+blocked)+(note==null||note.equals(blocked)?"":", "+note);} // :2299
         static String joinNote(String text, String note) {return note==null?text:text==null||text.isEmpty()?note:text+" · "+note;} // :2335
         static String number(int kmh, String units) {return "km".equals(units)?Integer.toString(kmh):Long.toString(Math.round(kmh/1.609344));} // :2427
-        static String spoken(int kmh, String units) {return "km".equals(units)?kmh+" kilometres per hour":number(kmh,units)+" miles per hour, "+kmh+" kilometres per hour";} // :2429
+        static String spoken(int kmh, String units) {return "km".equals(units)?kmh+" kilometers per hour":number(kmh,units)+" miles per hour, "+kmh+" kilometers per hour";} // :2429
         static String dualUnit(int actual) {return "mph · "+actual+" km/h";} // :2444
-        static String topSpeed(Integer actual, String units, boolean ready) {return "Top speed, Sport mode maximum, "+(actual==null?"not reported":spoken(actual,units))+(ready?"":", last seen setting");} // :2445
-        static String setTop(int kmh, String units) {return "Set top speed to "+spoken(kmh,units);} // :2450
+        static String topSpeed(Integer actual, String units, boolean ready) {return "Maximum speed, Sport mode, "+(actual==null?"not reported":spoken(actual,units))+(ready?"":", last seen setting");} // :2445
+        static String setTop(int kmh, String units) {return "Set maximum speed to "+spoken(kmh,units);} // :2450
         static String invite(String model) {return "Volt hasn't seen a Model "+model+" before. A 30-second check reads the scooter without changing anything. Then your email app opens a short report you can read before you send it.";} // :2524
         static String to(String address) {return "To "+address;} // :2709
         static String attaches(String name, String size) {return name+" · "+size+". This is exactly what Volt attaches.";} // :2781
