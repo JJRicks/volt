@@ -79,6 +79,8 @@ Generated files (`T.java`, `M.java`, `EnglishText.java`, `AndroidText.java`, `Ap
   - markup other than `<xliff:g>` (styled spans are not supported).
   `\uXXXX` escapes are kept as written, including spaces. `tools/l10n/fixtures/aapt/` shows every
   case with what aapt 36.1.0 actually stored.
+- **Symbols Saira lacks** may appear only from the list in "Glyph coverage" (below): ✓, ☆ and ★
+  as they are, and ⚠ only as `⚠\uFE0E`. Any other character Saira lacks fails `GlyphCoverageTest`.
 - **Only `res/values/` holds English.** Text (`string`, `plurals`, `string-array`) in any other
   `res/values-*` folder must be a non-English language folder listed in `l10n/lang/*.tsv`.
   `values-en`, `values-en-rGB`, `values-night` or `values-v31` text would replace the catalog
@@ -940,6 +942,41 @@ and clears any per-app language after each fresh install.
 `quote_style`, `percent_style`, `decimal_style`, `script`, `font` (`saira` or `system`), `rtl`,
 `unit_symbols`, `drive_mode_names`.
 
+### Glyph coverage
+
+`tests/l10n/GlyphCoverageTest` (B0b) reads the cmap tables of the four `res/font/saira_*.ttf`
+weights. Every character of every string and plural item (decoded as aapt reads it) of a
+`font=saira` language, English included, must be in all four. A language whose letters Saira lacks
+(Cyrillic Ж, for one) uses `font=system`. Line breaks, tabs and the pseudo-locales are not checked.
+
+The exception is `GlyphCoverageTest.FALLBACK_SYMBOLS`, a short reviewed list of symbols that no
+Saira weight has but Android's own fallback font draws as plain text. Volt already shows each of
+them from Java literals. The owner chose this list on 2026-11-04 over two alternatives: bundling a
+symbol font (`Typeface.CustomFallbackBuilder` needs API 29, and Volt supports API 26) and replacing
+the marks with icons (a visible design change).
+
+| Symbol | Code point | Where Volt shows it | `emoji-data.txt` | Catalog text |
+|---|---|---|---|---|
+| ✓ | U+2713 CHECK MARK | "PIN ✓", "Paired ✓", "✓ Save", "Direction ✓", "Check finished ✓", step pills | not an emoji (U+2714 ✔ is) | `✓` |
+| ⚠ | U+26A0 WARNING SIGN | "Optimized ⚠" (More > App preferences > Background recording) | `Emoji`, not `Emoji_Presentation` | `⚠\uFE0E` |
+| ☆ | U+2606 WHITE STAR | Live Stats: a reading that is not starred, "☆ Star readings to pin here" | not an emoji | `☆` |
+| ★ | U+2605 BLACK STAR | Live Stats: a starred reading | not an emoji (U+2B50 ⭐ is) | `★` |
+
+- **U+FE0E after an emoji-capable symbol.** A symbol with `Emoji=Yes` and `Emoji_Presentation=No`
+  is text by default, but a phone may still draw it as a colour emoji. VARIATION SELECTOR-15
+  (U+FE0E) directly after it asks for the text form (the standardized sequence `26A0 FE0E`, "text
+  style"). The test requires U+FE0E directly after ⚠ and refuses it anywhere else, in every
+  language, `font=system` included. Write it as the escape `\uFE0E`: the raw character is
+  invisible in review.
+- **The list stays short.** An entry that every Saira weight covers fails the test (delete it), and
+  letters never go on it. Adding a symbol is a tooling pull request with review and evidence:
+  - a screenshot of Volt showing it as text, drawn by Android's fallback font;
+  - its `emoji-data.txt` properties, with U+FE0E required if it is emoji-capable;
+  - its absence from the four Saira cmaps.
+
+  Other symbols in Volt's Java literals (▾, ⤢, the chart legend's ━ ┄ ⋯) are not on the list yet and
+  stay in Java until they are.
+
 ## Running a language
 
 The translation tools follow plan 7.1-7.4. Drafts come from **three providers**: Claude (Claude Code
@@ -1074,7 +1111,10 @@ python3 tools/l10n/council.py beta --tag $T                          # the owner
    escapes, dnt tokens and markup, glossary, whitespace, Saira glyph coverage, ladder rungs and width
    budgets (`java.awt` with `res/font/saira_medium.ttf`, headless, kerning on; without a Java
    runtime, the summed advance widths from the font's `hmtx` table, which errs a little wide), polarity
-   words and mixed-script leakage. Glossary terms match as whole words ("bloquear" is not found
+   words and mixed-script leakage. A translation keeps each fallback symbol of "Glyph coverage", and
+   the U+FE0E after ⚠, exactly as the English has them. `check.py` does not know that list yet: it
+   reports those symbols as missing glyphs, so it needs the same list before a language translates a
+   key that has one. Glossary terms match as whole words ("bloquear" is not found
    in "desbloquear"), with the endings an inflecting language adds; a lock term next to words that
    make it unlock ("lås upp", 解除锁定) or remove the lock ("Quitar el bloqueo") is not found. A plural category that covers more than one number (Russian "one" also
    covers 21; Brazilian "one" covers 0) keeps the count placeholder. Polarity runs both ways: a
