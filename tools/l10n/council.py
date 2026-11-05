@@ -27,6 +27,16 @@ environment; see providers.py for how they are kept out of every output.
   council.py judge-requests --tag es --area common      judge-requests.jsonl and the judge's prompt
   council.py decide --tag es --area common [--final]    decisions/<tag>/<area>.jsonl
   council.py beta --tag es                              the owner's beta bar
+  council.py drafts-status --tag es [--name N] [--json]  per area: keys, drafted, stale, missing, failing checks,
+                                                        safety, audited, flagged (reads; never writes)
+  council.py audit-prompt --tag es --area common --name N [--chunk-keys K] [--top-up]
+                                                        a blind back-translation prompt of the safety keys
+                                                        (a QA record of a Claude-only draft; never read by
+                                                        decide or beta, and no council back-translation)
+  council.py audit-compare --tag es --area common --name N --from-chunks --model ID [--partial]
+                                                        audit/compare.tsv: English beside each back-translation
+  council.py audit-record --tag es --area common --name N --from verdicts.json [--model ID]
+                                                        audit/verdicts.tsv: an independent reader's verdicts
   council.py glossary-check --tag es | --english        validate a glossary (exit 1 on a problem); --english
                                                         validates en.tsv and lists terms no string uses
 
@@ -57,6 +67,9 @@ Files, under l10n/work/<tag>/<area>/ (committed, staging only; never compiled):
                            text the confirmed text and back the back-translation the judge saw,
                            both copied from the request; they must match the current ones.
   runs.jsonl               one line per provider call or import: stage, provider, model ids, keys.
+  audit/compare.tsv, audit/verdicts.tsv
+                           the safety audit's QA record of a Claude-only draft (see audit_prompt());
+                           only drafts-status reads them.
 
 decisions/<tag>/<area>.jsonl: one line per key, the audit trail (see decide()).
 """
@@ -737,6 +750,382 @@ def import_chunks(paths, tag, area, name, model, partial=False, redraft=False, s
         ("stage", "import-chunks"), ("draft", draft_name), ("provider", "claude"), ("model", model),
         ("set", fields["id"]), ("chunks", len(replies)), ("keys", len(collected)), ("problems", len(problems))]))
     return len(problems)
+
+
+# ---------------------------------------------------------------------------
+# Safety audit of Claude-only drafts: a QA record, never the council's back-translation
+#
+# Nothing else reads l10n/work/<tag>/<area>/audit/ except drafts-status. backtranslation.jsonl,
+# judge.jsonl, decide and beta know nothing of it, and it takes the place of none of their rules.
+# ---------------------------------------------------------------------------
+
+AUDIT_SET_FORMAT = "volt-l10n-audit-set-v1"
+AUDIT_NOTE = "# Safety audit of a Claude-only draft: a QA record, not the council's back-translation."
+AUDIT_COMPARE_HEADER = ("key", "english", "translation", "back-translation", "draft", "model", "source_sha1",
+                        "target_sha1")
+AUDIT_VERDICT_HEADER = ("key", "ok", "problem", "draft", "reader", "source_sha1", "target_sha1")
+
+
+def tsv_cell(value):
+    """One TSV cell: a plural as compact JSON, tabs and line breaks escaped so a row stays one line."""
+    text = value if isinstance(value, str) else translib.dump_json_line(value)
+    return text.replace("\\", "\\\\").replace("\t", "\\t").replace("\n", "\\n").replace("\r", "\\r")
+
+
+def tsv_uncell(text):
+    return re.sub(r"\\(.)", lambda m: {"t": "\t", "n": "\n", "r": "\r"}.get(m.group(1), m.group(1)), text)
+
+
+def read_audit_table(path, header):
+    """{(draft, key): {column: cell}} of a compare.tsv or verdicts.tsv; empty when it does not exist."""
+    if not os.path.exists(path):
+        return collections.OrderedDict()
+    try:
+        _, rows = l10nlib.read_tsv(l10nlib.read_text(path), header)
+    except ValueError as error:
+        raise translib.L10nError("%s: %s" % (path, error))
+    table = collections.OrderedDict()
+    for _, fields in rows:
+        row = dict(zip(header, (tsv_uncell(f) for f in fields)))
+        table[(row["draft"], row["key"])] = row
+    return table
+
+
+def write_audit_table(path, header, table, order):
+    """Rows in English key order, so a rerun with the same content writes the same bytes."""
+    position = dict((k, i) for i, k in enumerate(order))
+    rows = sorted(table.values(), key=lambda r: (position.get(r["key"], len(position)), r["key"], r["draft"]))
+    lines = [AUDIT_NOTE, "\t".join(header)] + ["\t".join(tsv_cell(r[c]) for c in header) for r in rows]
+    l10nlib.write_text(path, "\n".join(lines) + "\n")
+
+
+def audit_row_is_current(row, entry, draft_entry):
+    """Whether a compare or verdict row is of this draft text of this English: a redraft needs a new one."""
+    return (row is not None and row["source_sha1"] == entry["source_sha1"]
+            and row["target_sha1"] == text_sha1(entry["kind"], draft_entry.items))
+
+
+def audit_set_id(fields):
+    shown = dict((f, fields[f]) for f in ("format", "tag", "area", "draft", "items", "chunks"))
+    return hashlib.sha1(translib.dump_json_line(shown).encode("utf-8")).hexdigest()[:12]
+
+
+def audit_paths(paths, tag, area, draft_name, set_id):
+    base = paths.work(tag, area, "audit")
+    return (os.path.join(base, "prompts"), os.path.join(base, "prompts", "%s.%s.json" % (draft_name, set_id)),
+            os.path.join(base, "prompts", "%s.current" % draft_name), os.path.join(base, "replies"))
+
+
+def audit_screen(entry, by_key, area):
+    """The only context a back-translator gets: the key's screen, its ladder's, or else the area."""
+    group = entry.get("ladder_group") or []
+    return entry.get("screen") or (by_key[group[0]].get("screen") if group and group[0] in by_key else None) or area
+
+
+def audit_prompt(paths, tag, area, name, chunk_keys=None, top_up=False, out=None):
+    """Write audit/prompts/claude-<name>.chunk-<i>-of-<n>.md: the draft's safety texts and nothing else.
+
+    Keys are shown under opaque ids, because a key name such as ble_lock_waiting says what the
+    English means. The sidecar next to the prompts maps them back; the agent never opens it.
+    """
+    out = out or sys.stdout
+    pack = packlib.load_pack(paths, tag, area)
+    draft_name = "claude-" + name
+    path = draft_file(paths, tag, area, draft_name)
+    if not os.path.exists(path):
+        raise translib.L10nError("%s does not exist" % paths.rel(path))
+    draft = translib.read_draft(path)
+    english = current_english(paths, area)
+    compared = read_audit_table(paths.work(tag, area, "audit", "compare.tsv"), AUDIT_COMPARE_HEADER)
+    by_key = dict((e["key"], e) for e in pack["entries"])
+    entries = []
+    for entry in pack["entries"]:
+        key = entry["key"]
+        if not entry.get("safety"):
+            continue
+        have = draft.entries.get(key)
+        if have is None:
+            out.write("  %s: a safety key the draft lacks; not audited\n" % key)
+        elif key not in english or checklib.stale_source(have.src, english[key][1]):
+            out.write("  %s: the draft's text is of other English; redraft it, then audit it\n" % key)
+        elif not (top_up and audit_row_is_current(compared.get((draft_name, key)), entry, have)):
+            entries.append(entry)
+    if not entries:
+        return None, []
+    parts = chunks(pack, entries, chunk_keys or len(entries))
+    items, ordered, number = collections.OrderedDict(), [], 0
+    for part in parts:
+        ids = []
+        for entry in part:
+            number += 1
+            item_id = "s%04d" % number
+            ids.append(item_id)
+            items[item_id] = collections.OrderedDict([
+                ("key", entry["key"]), ("kind", entry["kind"]), ("source_sha1", english[entry["key"]][1]),
+                ("screen", audit_screen(entry, by_key, area)),
+                ("target", translib.text_value(entry["kind"], draft.entries[entry["key"]].items)),
+                ("target_sha1", text_sha1(entry["kind"], draft.entries[entry["key"]].items))])
+        ordered.append(ids)
+    fields = collections.OrderedDict([("format", AUDIT_SET_FORMAT), ("tag", tag), ("area", area), ("draft", draft_name),
+                                      ("items", items), ("chunks", ordered)])
+    set_id = audit_set_id(fields)
+    fields["id"] = set_id
+    directory, sidecar, pointer, replies = audit_paths(paths, tag, area, draft_name, set_id)
+    translib.write_json(sidecar, fields)
+    l10nlib.write_text(pointer, set_id + "\n")
+    remove_chunk_prompts(directory, draft_name)
+    written = []
+    for index, ids in enumerate(ordered, 1):
+        reply = os.path.join(replies, "%s.%s" % (draft_name, set_id), "chunk-%d-of-%d.json" % (index, len(ordered)))
+        os.makedirs(os.path.dirname(reply), exist_ok=True)
+        body = [collections.OrderedDict([("id", i), ("kind", items[i]["kind"]), ("screen", items[i]["screen"]),
+                                         ("text", items[i]["target"])]) for i in ids]
+        text = "\n\n".join([
+            "# Volt safety audit: %s, area %s, part %d of %d" % (tag, area, index, len(ordered)),
+            "You are checking what these %s texts from a scooter app really say. Work alone, and open no other file "
+            "under this repository: not the English source, the packs, the drafts, or anything else in this folder." %
+            pack["language"]["endonym"],
+            "Translate each text into English as literally as you can, even where it reads badly or seems wrong. Do "
+            "not guess what the original was, and do not repair anything: if a text says the opposite of what you "
+            "would expect, write what it says. Keep every negation, number and unit. Keep placeholders such as %1$s "
+            "and %% exactly. `screen` only says where the text appears.",
+            "Answer with one JSON object only: {\"strings\": {\"<id>\": \"<English>\" or {\"<category>\": "
+            "\"<English>\", ...}}}. Include every id.",
+            "Write the JSON object to `%s`. Once every part has its reply, this files them (it refuses while a part "
+            "is missing; --partial files the ones that are there):\n\n    python3 tools/l10n/council.py audit-compare "
+            "--tag %s --area %s --name %s --from-chunks --model <your exact model id>" % (
+                paths.rel(reply), tag, area, name),
+            "## Texts\n\n" + json.dumps(body, ensure_ascii=False, indent=1)])
+        prompt = os.path.join(directory, "%s.chunk-%d-of-%d.md" % (draft_name, index, len(ordered)))
+        l10nlib.write_text(prompt, text + "\n")
+        written.append(prompt)
+    return set_id, written
+
+
+def load_audit_set(paths, tag, area, draft_name):
+    _, _, pointer, _ = audit_paths(paths, tag, area, draft_name, "")
+    if not os.path.exists(pointer):
+        raise translib.L10nError("%s: run audit-prompt first" % paths.rel(pointer))
+    set_id = l10nlib.read_text(pointer).strip()
+    sidecar = audit_paths(paths, tag, area, draft_name, set_id)[1]
+    if not os.path.exists(sidecar):
+        raise translib.L10nError("%s does not exist; run audit-prompt again" % paths.rel(sidecar))
+    fields = json.loads(l10nlib.read_text(sidecar))
+    if (not isinstance(fields, dict) or fields.get("format") != AUDIT_SET_FORMAT or fields.get("id") != set_id
+            or (fields.get("tag"), fields.get("area"), fields.get("draft")) != (tag, area, draft_name)
+            or audit_set_id(fields) != set_id):
+        raise translib.L10nError("%s does not match its id; run audit-prompt again" % paths.rel(sidecar))
+    return fields
+
+
+def compare_sha1(path):
+    return hashlib.sha1(l10nlib.read_text(path).encode("utf-8")).hexdigest()
+
+
+def audit_compare(paths, tag, area, name, model, partial=False, out=None):
+    """Join each back-translation with the English into audit/compare.tsv; returns the keys left out.
+
+    A row is written only while the English and the draft's text are still the ones the prompt
+    showed, so a back-translation is never set beside a text it did not read. Rows of other keys stay.
+    """
+    out = out or sys.stdout
+    draft_name = "claude-" + name
+    fields = load_audit_set(paths, tag, area, draft_name)
+    replies_dir = audit_paths(paths, tag, area, draft_name, fields["id"])[3]
+    count = len(fields["chunks"])
+    replies, missing = {}, []
+    for index in range(1, count + 1):
+        reply = os.path.join(replies_dir, "%s.%s" % (draft_name, fields["id"]), "chunk-%d-of-%d.json" % (index, count))
+        where = paths.rel(reply)
+        try:
+            value = json.loads(l10nlib.read_text(reply))
+            strings = value.get("strings") if isinstance(value, dict) else None
+        except OSError:
+            missing.append("part %d of %d: no reply at %s" % (index, count, where))
+            continue
+        except ValueError as error:
+            missing.append("part %d of %d: %s is not JSON: %s" % (index, count, where, error))
+            continue
+        if not isinstance(strings, dict):
+            missing.append("part %d of %d: %s has no \"strings\" object" % (index, count, where))
+            continue
+        replies[index] = strings
+    if missing and not partial:
+        raise translib.L10nError("%d of %d parts have no usable reply; nothing was written (--partial files the "
+                                 "rest):\n  %s" % (len(missing), count, "\n  ".join(missing)))
+    for line in missing:
+        out.write("  %s\n" % line)
+    if not os.path.exists(draft_file(paths, tag, area, draft_name)):
+        raise translib.L10nError("%s does not exist" % paths.rel(draft_file(paths, tag, area, draft_name)))
+    draft = translib.read_draft(draft_file(paths, tag, area, draft_name))
+    if model in (draft.model, draft.model_reported):
+        out.write("  note: %s also drafted this text; this record shows that\n" % model)
+    sources, _ = translib.load_source(paths)
+    english = dict((s.key, s) for s in sources.get(area, []) if s.translatable)
+    path = paths.work(tag, area, "audit", "compare.tsv")
+    table = read_audit_table(path, AUDIT_COMPARE_HEADER)
+    problems, stored = [], 0
+    for index, strings in sorted(replies.items()):
+        ids = fields["chunks"][index - 1]
+        for item_id in strings:
+            if item_id not in ids:
+                problems.append("%s: not in part %d; ignored" % (item_id, index))
+        for item_id in ids:
+            item = fields["items"][item_id]
+            key, source = item["key"], english.get(item["key"])
+            have = draft.entries.get(key)
+            back = translib.items_of(item["kind"], strings[item_id]) if item_id in strings else None
+            if item_id not in strings:
+                problems.append("%s (%s): missing from the reply of part %d" % (key, item_id, index))
+            elif back is None:
+                problems.append("%s (%s): expected %s" % (key, item_id, "a string" if item["kind"] == "string" else
+                                                          "an object of plural categories"))
+            elif source is None or translib.source_sha1(source.kind, source.items) != item["source_sha1"]:
+                problems.append("%s: the English changed since the prompt; left out" % key)
+            elif have is None or text_sha1(item["kind"], have.items) != item["target_sha1"]:
+                problems.append("%s: the draft's text changed since the prompt; left out, audit it again" % key)
+            else:
+                table[(draft_name, key)] = {
+                    "key": key, "english": translib.text_value(source.kind, source.items), "translation": item["target"],
+                    "back-translation": translib.text_value(item["kind"], back), "draft": draft_name, "model": model,
+                    "source_sha1": item["source_sha1"], "target_sha1": item["target_sha1"]}
+                stored += 1
+    if table:
+        write_audit_table(path, AUDIT_COMPARE_HEADER, table, list(english))
+    for problem in problems:
+        out.write("  %s\n" % problem)
+    out.write("%s: %d rows from %d of %d parts%s\n" % (
+        paths.rel(path), stored, len(replies), count, ", %d problems" % len(problems) if problems else ""))
+    if table:
+        out.write("compare_sha1: %s\n" % compare_sha1(path))
+    log_run(paths, tag, area, collections.OrderedDict([
+        ("stage", "audit-compare"), ("draft", draft_name), ("provider", "claude"), ("model", model),
+        ("set", fields["id"]), ("keys", stored), ("problems", len(problems))]))
+    return len(problems)
+
+
+def audit_record(paths, tag, area, name, source, reader=None, out=None):
+    """Store an independent reader's verdicts in audit/verdicts.tsv; refuses a bad file whole.
+
+    The reply is {"verdicts": [{"key", "ok", "problem"}, ...]}, optionally with "compare_sha1" (what
+    audit-compare printed) and "model". Each verdict takes the English and text hashes of its
+    compare.tsv row, so drafts-status stops counting it once either changes.
+    """
+    out = out or sys.stdout
+    draft_name = "claude-" + name
+    value = json.loads(l10nlib.read_text(source))
+    verdicts = value.get("verdicts") if isinstance(value, dict) else value
+    if not isinstance(verdicts, list):
+        raise translib.L10nError("%s: expected {\"verdicts\": [{\"key\", \"ok\", \"problem\"}, ...]}" % source)
+    compare_path = paths.work(tag, area, "audit", "compare.tsv")
+    compared = read_audit_table(compare_path, AUDIT_COMPARE_HEADER)
+    copied = value.get("compare_sha1") if isinstance(value, dict) else None
+    if copied is not None and (not compared or copied != compare_sha1(compare_path)):
+        raise translib.L10nError("compare.tsv changed since the reader read it (compare_sha1); nothing was stored")
+    problems, seen = [], set()
+    for verdict in verdicts:
+        key = verdict.get("key") if isinstance(verdict, dict) else None
+        if not isinstance(key, str):
+            problems.append("%r: a verdict needs a key" % (verdict,))
+            continue
+        if key in seen:
+            problems.append("%s: two verdicts" % key)
+        seen.add(key)
+        if (draft_name, key) not in compared:
+            problems.append("%s: no row of %s in compare.tsv" % (key, draft_name))
+        if not isinstance(verdict.get("ok"), bool):
+            problems.append("%s: ok must be true or false" % key)
+        elif not verdict["ok"] and not (isinstance(verdict.get("problem"), str) and verdict["problem"].strip()):
+            problems.append("%s: a false verdict needs a problem" % key)
+    if problems:
+        raise translib.L10nError("the verdicts do not match compare.tsv; nothing was stored:\n  " + "\n  ".join(problems))
+    reader = reader or (value.get("model") if isinstance(value, dict) else None) or "-"
+    path = paths.work(tag, area, "audit", "verdicts.tsv")
+    table = read_audit_table(path, AUDIT_VERDICT_HEADER)
+    for verdict in verdicts:
+        row = compared[(draft_name, verdict["key"])]
+        table[(draft_name, verdict["key"])] = {
+            "key": verdict["key"], "ok": "yes" if verdict["ok"] else "no", "problem": verdict.get("problem") or "",
+            "draft": draft_name, "reader": reader, "source_sha1": row["source_sha1"], "target_sha1": row["target_sha1"]}
+    write_audit_table(path, AUDIT_VERDICT_HEADER, table, list(current_english(paths, area)))
+    flagged = sum(1 for v in verdicts if not v["ok"])
+    out.write("%s: %d verdicts, %d flagged\n" % (paths.rel(path), len(verdicts), flagged))
+    log_run(paths, tag, area, collections.OrderedDict([
+        ("stage", "audit-record"), ("draft", draft_name), ("reader", reader), ("keys", len(verdicts)),
+        ("flagged", flagged)]))
+    return flagged
+
+
+# ---------------------------------------------------------------------------
+# Draft status (reads; never writes)
+# ---------------------------------------------------------------------------
+
+STATUS_COUNTS = ("total", "drafted", "stale", "missing", "failing", "safety", "audited", "flagged")
+
+
+def area_status(paths, tag, area, sources, names, font, measurer, approx):
+    """One area's counts for the claude-* drafts (or the named ones). Writes nothing.
+
+    A key is drafted when a draft has a text of the current English, stale when it has only texts of
+    other English, missing when it has none and no current translation, and failing when a current
+    text fails check.py (recomputed, so checks.jsonl need not be up to date). audited and flagged
+    count safety keys with a verdict on the draft's current text.
+    """
+    directory = paths.drafts(tag, area)
+    wanted = ["claude-%s.xml" % n for n in names] if names else [
+        f for f in sorted(os.listdir(directory)) if f.startswith("claude-") and f.endswith(".xml")
+    ] if os.path.isdir(directory) else []
+    drafts = [translib.read_draft(os.path.join(directory, f)) for f in wanted
+              if os.path.exists(os.path.join(directory, f))]
+    pack = packlib.build_pack(paths, tag, area, measurer if drafts else approx, sources)
+    failing, verdicts = set(), read_audit_table(paths.work(tag, area, "audit", "verdicts.tsv"), AUDIT_VERDICT_HEADER)
+    for draft in drafts:
+        results = checklib.check_targets(pack, checklib.draft_targets(draft, pack), font, measurer)
+        failing.update(k for k, findings in results.items() if not checklib.is_ok(findings))
+    row = collections.OrderedDict((c, 0) for c in STATUS_COUNTS)
+    for entry in pack["entries"]:
+        key = entry["key"]
+        row["total"] += 1
+        row["safety"] += 1 if entry.get("safety") else 0
+        have = [d for d in drafts if key in d.entries]
+        current = [d for d in have if not checklib.stale_source(d.entries[key].src, entry["source_sha1"])]
+        if current:
+            row["drafted"] += 1
+            row["failing"] += 1 if key in failing else 0
+        elif have:
+            row["stale"] += 1
+        elif entry["status"] != "current":
+            row["missing"] += 1
+        if entry.get("safety"):
+            judged = [verdicts[(d.name, key)] for d in current
+                      if audit_row_is_current(verdicts.get((d.name, key)), entry, d.entries[key])]
+            row["audited"] += 1 if judged else 0
+            row["flagged"] += 1 if any(v["ok"] != "yes" for v in judged) else 0
+    return row
+
+
+def drafts_status(paths, tag, names=None, use_java=True):
+    translib.load_language(paths, tag)
+    sources, _ = translib.load_source(paths)
+    font = fontmetrics.Font(paths.font())
+    measurer = fontmetrics.Measurer(paths.font(), use_java=use_java)
+    approx = fontmetrics.Measurer(paths.font(), use_java=False)
+    areas = collections.OrderedDict((a, area_status(paths, tag, a, sources, names, font, measurer, approx))
+                                    for a in sources)
+    totals = collections.OrderedDict((c, sum(r[c] for r in areas.values())) for c in STATUS_COUNTS)
+    return collections.OrderedDict([("tag", tag), ("names", list(names or [])), ("areas", areas), ("totals", totals),
+                                    ("glossary_problems", translib.glossary_problems(paths, tag))])
+
+
+def print_drafts_status(status, out=None):
+    out = out or sys.stdout
+    width = max([len(a) for a in status["areas"]] + [len("total")])
+    head = " ".join("%7s" % c for c in STATUS_COUNTS)
+    out.write("%-*s %s\n" % (width, "area", head))
+    for area, row in list(status["areas"].items()) + [("total", status["totals"])]:
+        out.write("%-*s %s\n" % (width, area, " ".join("%7d" % row[c] for c in STATUS_COUNTS)))
+    if status["glossary_problems"]:
+        out.write("glossary: %d problems (glossary-check --tag %s)\n" % (len(status["glossary_problems"]), status["tag"]))
 
 
 # ---------------------------------------------------------------------------
@@ -1485,6 +1874,26 @@ def main(argv=None):
     p.add_argument("--final", action="store_true", help="keys still waiting fall back to English")
     p = sub.add_parser("beta")
     p.add_argument("--tag", required=True)
+    p = sub.add_parser("audit-prompt", help="a blind back-translation prompt of a draft's safety keys (QA record)")
+    area_args(p)
+    p.add_argument("--name", required=True)
+    p.add_argument("--chunk-keys", type=positive_int)
+    p.add_argument("--top-up", action="store_true", help="only keys without a compare.tsv row of the current text")
+    p = sub.add_parser("audit-compare", help="join the audit's back-translations with the English: audit/compare.tsv")
+    area_args(p)
+    p.add_argument("--name", required=True)
+    p.add_argument("--from-chunks", action="store_true", required=True)
+    p.add_argument("--model", required=True)
+    p.add_argument("--partial", action="store_true")
+    p = sub.add_parser("audit-record", help="store an independent reader's verdicts: audit/verdicts.tsv")
+    area_args(p)
+    p.add_argument("--name", required=True)
+    p.add_argument("--from", dest="source", required=True)
+    p.add_argument("--model", help="the reader's model id")
+    p = sub.add_parser("drafts-status", help="per area, how far the Claude drafts have come (never writes)")
+    p.add_argument("--tag", required=True)
+    p.add_argument("--name", action="append", help="only drafts/claude-<name>.xml (default: every claude-* draft)")
+    p.add_argument("--json", action="store_true")
     p = sub.add_parser("glossary-check", help="validate l10n/glossary/<tag>.tsv against en.tsv, or en.tsv itself")
     group = p.add_mutually_exclusive_group(required=True)
     group.add_argument("--tag")
@@ -1566,12 +1975,32 @@ def main(argv=None):
             passes, lines = beta_report(paths, args.tag)
             print("\n".join(lines))
             return 0 if passes else 1
+        if args.command == "audit-prompt":
+            set_id, written = audit_prompt(paths, args.tag, args.area, args.name, args.chunk_keys, args.top_up)
+            if written:
+                print("audit set %s: %d parts" % (set_id, len(written)))
+                print("\n".join(paths.rel(p) for p in written))
+            else:
+                print("%s/%s: no safety keys to audit" % (args.tag, args.area))
+            return 0
+        if args.command == "audit-compare":
+            return 1 if audit_compare(paths, args.tag, args.area, args.name, args.model, args.partial) else 0
+        if args.command == "audit-record":
+            audit_record(paths, args.tag, args.area, args.name, args.source, args.model)
+            return 0
+        if args.command == "drafts-status":
+            status = drafts_status(paths, args.tag, args.name, use_java)
+            if args.json:
+                print(json.dumps(status, ensure_ascii=False, indent=1))
+            else:
+                print_drafts_status(status)
+            return 0
         if args.command == "glossary-check":
             return glossary_check(paths, "en" if args.english else args.tag)
     except providers.ProviderError as error:
         print("council.py: %s" % providers.redact(error), file=sys.stderr)
         return 2
-    except (translib.L10nError, gen_catalog.CatalogError, fontmetrics.FontError, ValueError) as error:
+    except (translib.L10nError, gen_catalog.CatalogError, fontmetrics.FontError, ValueError, OSError) as error:
         print("council.py: %s" % providers.redact(error), file=sys.stderr)
         return 2
     return 0
