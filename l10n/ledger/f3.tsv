@@ -1,0 +1,2 @@
+location	pieces	key	kind	note
+src/com/jjricks/volt/StatsScreen.java:782	[" (raw)"]	-	stays-english	Telemetry's raw marker, data: the row name now drops it from the reading's English fallback label (StatsLabels.RAW_MARK) before the catalogue name is chosen, never from the shown name, so a language need not spell "(raw)"; English is the same (TextLogicEnglishTest.rowNames)
