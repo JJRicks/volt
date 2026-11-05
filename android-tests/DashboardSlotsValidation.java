@@ -313,7 +313,7 @@ public final class DashboardSlotsValidation extends Instrumentation {
                     "A copy of the example's " + widget.type + " does not show its original's words");
         }
         DashboardConfig.Widget mine = new DashboardConfig.Widget("note");
-        mine.note = AllWidgetsDashboard.NOTE_TEXT;
+        mine.note = "Check tyre pressure";
         DashboardConfig.Widget copy = AllWidgetsDashboard.emptyCopy(mine);
         copy.note = mine.note;
         require(AllWidgetsDashboard.exampleNote(copy) == null && !AllWidgetsDashboard.isExample(copy),

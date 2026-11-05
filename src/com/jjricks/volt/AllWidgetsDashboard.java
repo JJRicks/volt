@@ -9,7 +9,7 @@ public final class AllWidgetsDashboard {
     private static final long DAY = 86400000L;
     /** The example's own titles and note, saved in English like any widget's (data); exampleTitle and
      * exampleNote say what they show. */
-    public static final String SPEED_TITLE = "Speed", BATTERY_CHARGE_TITLE = "Battery charge",
+    static final String SPEED_TITLE = "Speed", BATTERY_CHARGE_TITLE = "Battery charge",
             ELECTRICAL_TITLE = "Electrical readings", BATTERY_POWER_TITLE = "Battery power",
             CHARGE_HISTORY_TITLE = "Charge history", NOTE_TEXT = "Check tyre pressure";
 
