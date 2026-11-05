@@ -1,0 +1,22 @@
+# Safety audit of a Claude-only draft: a QA record, not the council's back-translation.
+key	english	translation	back-translation	draft	model	source_sha1	target_sha1
+dashboard_model_qa_pin_proximity	PIN & proximity	PIN e proximidade	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	996eda6e86967aaabf5822e27a28b281b010b380
+dashboard_model_qa_pin_proximity_short	PIN & proximity	PIN e proximidade	PIN and proximity	claude-opus	claude-opus-5-5	e609bc77142913722bef73d1892af098967f960d	996eda6e86967aaabf5822e27a28b281b010b380
+dashboard_model_qa_experimental	Experimental controls	Controlos experimentais	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	96aadd5ef3f3297ab7bf01ade91d68ea3380ae18
+dashboard_model_qa_experimental_short	Experimental controls	Controlos experimentais	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	96aadd5ef3f3297ab7bf01ade91d68ea3380ae18
+dashboard_model_qa_charge_done_by	Charge done by	Carga pronta até	Charge ready by	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	cb384d1f7df6635826ee767d140b01e5ab62d088
+dashboard_model_qa_charge_done_by_short	Charge done by	Carga pronta até	Charge ready by	claude-opus	claude-opus-5-5	8b94ea18cd9613195d80e65a6eb505dca980c89c	cb384d1f7df6635826ee767d140b01e5ab62d088
+dashboard_model_qa_charge_done_time	Charge done by time	Hora de carga pronta	Charge-ready time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	81be195a40dc98e990cbb2c123727a2f43a2b03d
+dashboard_model_qa_charge_done_time_short	Charge done by time	Hora de carga pronta	Charge-ready time	claude-opus	claude-opus-5-5	5e8ef4566f297b6db0e662bca61dc57c4f3c167b	81be195a40dc98e990cbb2c123727a2f43a2b03d
+dashboard_model_qa_group_experimental	Experimental controls	Controlos experimentais	Experimental controls	claude-opus	claude-opus-5-5	fe834ab52a00109da8d8f3077a7229f92735c9a2	96aadd5ef3f3297ab7bf01ade91d68ea3380ae18
+dashboard_model_tile_top_speed	Top speed	Top speed	Top speed	claude-opus	claude-opus-5-5	bd5454ada3dd47ff513fe2425116d98bcc142545	9d52fa5f46cf8324a48b0f8c559ae0b9a7c92107
+dashboard_model_tile_charge_schedule	Charge schedule	Carregamento programado	Scheduled charging	claude-opus	claude-opus-5-5	be989e0ff6f15c4ace058c5c42d78af73188cd49	3205a04dfa7c00fa8cad07b2e4bd771cb3ce27da
+dashboard_model_tile_measuring	Measuring	A medir	Measuring	claude-opus	claude-opus-5-5	a7bc4f8672d17e6bda47b74ab5c9707777e3b738	fe31c96fbc0f9726d91573fc11f1e312f3f05e4d
+dashboard_model_tile_on_at	On • %1$s	Ativada • %1$s	Enabled • %1$s	claude-opus	claude-opus-5-5	36bb83c10ec32db86dc71f331a909921f5587794	af9d7791c6fbaf3a73af8ea7f4e0ebdba1005988
+dashboard_model_tile_not_scheduled	Not scheduled	Não programado	Not scheduled	claude-opus	claude-opus-5-5	762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0	34a6676048deac8902cf016887145addd5057551
+dashboard_model_tile_at_time	 • %1$s	 • %1$s	 • %1$s	claude-opus	claude-opus-5-5	bf2c1d9211787ac67f4d9a7a67895abba193869e	45a447ef43a591cee0efe60d00bbb14c4472f984
+dashboard_model_tile_select_scooter	Select a scooter first	Seleciona uma trotinete primeiro	Select a scooter first	claude-opus	claude-opus-5-5	0bdc879ede74c25ac4b6035f02786961ef730f91	c200cdfec3a87f50d2c5dff49dfb4b4082e01d9b
+dashboard_model_tile_connect_scooter	Connect your scooter first	Conecta a trotinete primeiro	Connect the scooter first	claude-opus	claude-opus-5-5	fbc9bb6baff246c2834f064cbd71cbe77243f7c0	ea8e30e552a06a7128171b6a35a780fdeb91d644
+dashboard_model_type_lock	Lock & connection	Bloqueio e ligação	Lock and connection	claude-opus	claude-opus-5-5	82a0196a396baea9ea97de4d9f644f07770d41a9	c2f1edfb05ba2c5e5a67318c7a0234982dd20da4
+dashboard_model_type_charging	Charging	Carregamento	Charging	claude-opus	claude-opus-5-5	7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74	6defe85d356714a4f283d7c90b01094d3c2ab453
+dashboard_model_type_lockbar	Lock bar	Barra de bloqueio	Lock bar	claude-opus	claude-opus-5-5	02d2f80d03759b90639b3d316a491d5d2d53477a	69e553725c65e9dfe1af68571a5427b7b84f44f3
