@@ -33,14 +33,14 @@
     <string name="owner_shizuku_discard" volt:src="987a4226592e790cf147a0b2f78ea6837473612a">Forkast</string>
     <string name="owner_shizuku_start_title" volt:src="eaed4ac8e6e545dc9a3633120bd48ca1812683ab">Start Shizuku</string>
     <string name="owner_shizuku_installed" volt:src="0bf865c48783bf88cc2e443b6340fd43f218af85">Shizuku installert</string>
-    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1" volt:attempt="2">Hent</string>
+    <string name="owner_shizuku_install" volt:src="25bf8121e28841c9c85a6220fcda6e280ab698b1" volt:attempt="2">Installer</string>
     <string name="owner_shizuku_running" volt:src="95edb635c6a1e52241514201596f24fdbfee39e8">Shizuku kjører</string>
     <string name="owner_shizuku_open" volt:src="08ad17fc8c649019f767521968a455c88df1434e">Åpne</string>
     <string name="owner_shizuku_setup_guide" volt:src="a7d9140e980c3ea35d0172716f309744b04d6448">Oppsettguide for Shizuku</string>
     <string name="owner_shizuku_install_shizuku" volt:src="a2db2fcdc51a887f9971593d7640c055a52e6e4b">Installer Shizuku</string>
     <string name="owner_shizuku_open_shizuku" volt:src="0fc3df1d6531b2302f9dd23d2e393eb4261515be">Åpne Shizuku</string>
     <string name="owner_shizuku_allow_title" volt:src="c00593b9bca561d4085d06dea7aa4c4d6199c8ce">Tillat midlertidig tilgang</string>
-    <string name="owner_shizuku_allow_warning" volt:src="20d3857731639b5a4a00b50f6a7df0a8a5821e27" volt:attempt="2">Dette gir bred feilsøkingstilgang. Brukes bare her. Ingen data blir lastet opp.</string>
+    <string name="owner_shizuku_allow_warning" volt:src="20d3857731639b5a4a00b50f6a7df0a8a5821e27" volt:attempt="2">Dette gir omfattende feilsøkingstilgang. Brukes bare her. Ingen data blir lastet opp.</string>
     <string name="owner_shizuku_open_shizuku_description" volt:src="b53379f5934b58dddb10b4ba9fa0765656d0e5a1">Åpne Shizuku for å tillate Volt</string>
     <string name="owner_shizuku_help" volt:src="f1bdb02d6ec6dd8b8ab16ef3a60fc1537313f6b3">Hjelp for Shizuku</string>
     <string name="owner_shizuku_allow_access" volt:src="eb0418c06e6a6d9058b66457924a77e08cab566a">Tillat Shizuku-tilgang</string>
@@ -65,7 +65,7 @@
     <string name="owner_status_cleanup_unknown" volt:src="2bafa64f4d9a677fb209da6018d85a251d3c5dd3">Status for opprydding er ukjent. Bruk gjenoppretting fra datamaskin.</string>
     <string name="owner_status_start_failed" volt:src="17ba993d964145b7ca83ee20ca36f1820161ce28">Kunne ikke starte. Ingenting ble endret.</string>
     <string name="owner_status_helper_not_started" volt:src="e78cce6d8b40f42c0b520db4690e584fb03dcae1">Volt-hjelperen startet ikke</string>
-    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Opprydding av logging ubekreftet</string>
+    <string name="owner_status_cleanup_unconfirmed" volt:src="5e4c5cd92e03efe0b8e86559a9ca554358043567">Opprydding av aktivitetslogging ubekreftet</string>
     <string name="owner_status_nothing_found" volt:src="59f6faafc6f1a0d2903aafab51e5ad815688136a">Ingenting funnet på 90 s</string>
     <string name="owner_status_several_scooters" volt:src="98df51c11c7e891a1fcbb3032f963426a41e7240">Flere sparkesykler. Koble til én.</string>
     <string name="owner_status_capture_busy" volt:src="7541060ec457be0b459492985587055edebc2e89">En annen henting pågår</string>

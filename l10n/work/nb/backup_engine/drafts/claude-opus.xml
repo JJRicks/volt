@@ -5,7 +5,7 @@
     <string name="backup_engine_category_dashboards" volt:src="4e11f7f0cd3824adb2f8a91e4547d2a1b5c3dd58">Dashbord</string>
     <string name="backup_engine_category_preferences" volt:src="9e0ad7d0b81125f15762b8855e3eaf999bd8a25b">Appinnstillinger</string>
     <string name="backup_engine_category_rides" volt:src="b15ad38c4044c332f5a2ac4e2ecf847a5d62fe11">Turer</string>
-    <string name="backup_engine_category_charges" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Ladeopptak</string>
+    <string name="backup_engine_category_charges" volt:src="6c9905a60d53d04bcd45ca0b047e4b3f7f3df925">Ladelogger</string>
     <string name="backup_engine_category_history" volt:src="77f82a990100f34ce560433c0c929c84c3c851af">Avlesningshistorikk</string>
     <string name="backup_engine_category_scooter_preferences" volt:src="0f02a808e448b696f8f3497274bc7b5fb262ca5d">Sparkesykkelinnstillinger</string>
     <string name="backup_engine_plan_replace_everything" volt:src="5ed015af4f468642bd2085bb7d22ef2ac8ce1419">Alt på denne telefonen blir erstattet</string>
@@ -25,7 +25,7 @@
         <item quantity="other">Appinnstillinger: %1$d innstillinger blir erstattet</item>
     </plurals>
     <string name="backup_engine_plan_rides" volt:src="c449f5fa84a407dfc967b4955b93a95cf137c00f">Turer – nye: %1$d · allerede her: %2$d · beholdes her: %3$d</string>
-    <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Ladeopptak – nye: %1$d · allerede her: %2$d · beholdes her: %3$d</string>
+    <string name="backup_engine_plan_charges" volt:src="b135cc91845c657370bf11e0e00301396539d05c">Ladelogger – nye: %1$d · allerede her: %2$d · beholdes her: %3$d</string>
     <plurals name="backup_engine_plan_phone_files_skipped" volt:src="a156c873d0ab30ceffaa8ecb2ab83e856a38f6f0">
         <item quantity="one">%1$d telefonfil hoppet over · ingen tur</item>
         <item quantity="other">%1$d telefonfiler hoppet over · ingen tur</item>
@@ -42,7 +42,7 @@
     <string name="backup_engine_plan_online_map" volt:src="5371ca8f4216ad20dbc2ceaed45fb33baeac53d7">Nettkart: på</string>
     <string name="backup_engine_restore_could_not_be_prepared" volt:src="a635201a3310fea6dff495449cf249c0438147fa">Gjenopprettingen kunne ikke forberedes.</string>
     <string name="backup_engine_restore_failed_data_kept" volt:src="b7cf65396073a08a600ce4eef25c9add9d6ac61e">Gjenopprettingen mislyktes; dataene dine ble beholdt.</string>
-    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Appdataene ble endret under sikkerhetskopieringen. Prøv igjen med opptakene stoppet.</string>
+    <string name="backup_engine_app_data_changed_during_backup_try_again_recordings" volt:src="f69758de4c5cf30c47d1d3a877ed4f37790034fa">Appdataene ble endret under sikkerhetskopieringen. Prøv igjen med loggingen stoppet.</string>
     <string name="backup_engine_could_not_remove_temporary_encrypted" volt:src="c34c64a7795a7458732ef480a9ab6115c513b86d">Kunne ikke fjerne de midlertidige dataene fra den krypterte sikkerhetskopien.</string>
     <string name="backup_engine_backup_could_not_opened" volt:src="cd3018aee5f19dde0d1cdf8462e735f8531610c7">Sikkerhetskopien kunne ikke åpnes.</string>
     <string name="backup_engine_not_supported_volt_app" volt:src="52c6c3b3d0d13b7ca3cfb9f4fddb7967de1ae1cf">Dette er ikke en støttet sikkerhetskopi fra Volt-appen.</string>
@@ -61,18 +61,18 @@
     <string name="backup_engine_restore_recovery_record_unreadable_keep" volt:src="acc1ed3e42ebf704e453a5c619e482c4a5733452">Tilbakeføringsposten for gjenopprettingen kan ikke leses. La lagringsplassen til appen være urørt.</string>
     <string name="backup_engine_restore_recovery_folder_cannot_read" volt:src="eb724e900bb942d4ac4c18c46699a8b82e4dea0d">Tilbakeføringsmappen for gjenopprettingen kan ikke leses. La lagringsplassen til appen være urørt.</string>
     <string name="backup_engine_unexpected_restore_recovery_file" volt:src="aa538362e404ce4932430d11546aebb390f6da45">En uventet tilbakeføringsfil for gjenopprettingen krever oppmerksomhet. La lagringsplassen til appen være urørt.</string>
-    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">Historikken er fortsatt åpen. Lukk opptakene, og prøv sikkerhetskopieringen igjen.</string>
+    <string name="backup_engine_history_still_open_close" volt:src="f22c74839d0a67a8c97476633a4d90a7f6430f23">Historikken er fortsatt åpen. Lukk loggene, og prøv sikkerhetskopieringen igjen.</string>
     <string name="backup_engine_reopen_volt_finish_recovering" volt:src="f9ea29e6786f3594a2c96a576755a0b93d68dea3">Åpne Volt på nytt for å fullføre tilbakeføringen etter forrige gjenoppretting først.</string>
     <string name="backup_engine_could_not_save_restore" volt:src="3722a96664425428100fe50f4973a5fecfe12a06">Kunne ikke lagre tilbakeføringsstatusen for gjenopprettingen.</string>
     <string name="backup_engine_restore_storage_cannot_synchronized" volt:src="c576c13b5707dc4679409361f2088b9488ea3949">Lagringsplassen for gjenopprettingen kan ikke synkroniseres.</string>
     <string name="backup_engine_unexpected_restore_storage_link" volt:src="84beb31a6ca58464e5557084e0c5fbc7aa9d4fae">Uventet lagringslenke for gjenopprettingen.</string>
     <string name="backup_engine_restore_storage_cannot_read" volt:src="81aeae892641f8531845a15d17826a174a7389f5">Lagringsplassen for gjenopprettingen kan ikke leses.</string>
-    <string name="backup_engine_recording_folder_could_not_read" volt:src="6fb62ca928de36f8000cf7c96798b66a544b3fe4">En opptaksmappe kunne ikke leses.</string>
-    <string name="backup_engine_unsupported_recording_file_needs_attention" volt:src="af608151377e1cbae406dca5c872cc3180723bca">En opptaksfil som ikke støttes, krever oppmerksomhet før sikkerhetskopiering.</string>
-    <string name="backup_engine_unexpected_recording_file" volt:src="2ed0546023bbb49153197933b6e6afc633b83383">Uventet opptaksfil.</string>
-    <string name="backup_engine_one_recording_too_large_backup_format" volt:src="b6aa3a91b7034949c837083a0fca15870567fe56">Ett opptak er for stort for dette sikkerhetskopiformatet.</string>
+    <string name="backup_engine_recording_folder_could_not_read" volt:src="6fb62ca928de36f8000cf7c96798b66a544b3fe4">En loggmappe kunne ikke leses.</string>
+    <string name="backup_engine_unsupported_recording_file_needs_attention" volt:src="af608151377e1cbae406dca5c872cc3180723bca">En loggfil som ikke støttes, må sjekkes før sikkerhetskopiering.</string>
+    <string name="backup_engine_unexpected_recording_file" volt:src="2ed0546023bbb49153197933b6e6afc633b83383">Uventet loggfil.</string>
+    <string name="backup_engine_one_recording_too_large_backup_format" volt:src="b6aa3a91b7034949c837083a0fca15870567fe56">Én logg er for stor for dette sikkerhetskopiformatet.</string>
     <string name="backup_engine_history_storage_not_supported" volt:src="739b8c35e5a603e4a475f1618a1072f849fb1ef7">Historikklageret er ikke en støttet database.</string>
-    <string name="backup_engine_there_too_many_recording" volt:src="f24a312e4d327232482aca050f9502570954998b">Det er for mange opptaksfiler for dette sikkerhetskopiformatet.</string>
+    <string name="backup_engine_there_too_many_recording" volt:src="f24a312e4d327232482aca050f9502570954998b">Det er for mange loggfiler for dette sikkerhetskopiformatet.</string>
     <string name="backup_engine_invalid_archive_path" volt:src="ebd553e7005b9739201ac16007c37b6978e32610">Ugyldig arkivbane.</string>
     <string name="backup_engine_restore_file_unavailable" volt:src="35e9951f59b4a6cdd18f727d6358825ac16cc9b5">En gjenopprettingsfil er ikke tilgjengelig.</string>
     <string name="backup_engine_could_not_remove_temporary_data" volt:src="da4a8742e7da1a90a47b1a60862d91c37f67aaf9">Kunne ikke fjerne midlertidige data.</string>
@@ -105,11 +105,11 @@
     <string name="backup_engine_invalid_encrypted_backup_record" volt:src="79c260060e2695fadf46847e915f18c5ab995ae9">Ugyldig post i den krypterte sikkerhetskopien.</string>
     <string name="backup_engine_backup_unexpected_trailing_data" volt:src="daa59708233f9c895b10553fd176ee73ee50b84a">Sikkerhetskopien har uventede data på slutten.</string>
     <string name="backup_engine_backup_already_completed" volt:src="d6418127e0fe7726d748591cdfa64a064ecaa086">Sikkerhetskopien er allerede fullført.</string>
-    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Velg hva som skal sikkerhetskopieres.</string>
+    <string name="backup_engine_choose_what_back_up" volt:src="b0fd505bb474e7ec5f5c9dff397d9bbd2907e070">Velg hva du vil sikkerhetskopiere.</string>
     <string name="backup_engine_there_too_many_files" volt:src="f32523d7c93920dc71620b6bf66d7cbdfca01062">Det er for mange filer for én sikkerhetskopi.</string>
     <string name="backup_engine_backup_metadata_too_large" volt:src="c1f3f282c7125c96aec01dcbc15e0b241cd5dc74">Metadataene for sikkerhetskopien er for store.</string>
     <string name="backup_engine_app_data_changed_during_backup_try_again" volt:src="15cb9920cd99810c28362b35f1a8f6f0417a049d">Appdataene ble endret under sikkerhetskopieringen. Prøv igjen.</string>
-    <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">Ett opptak er for stort for en sikkerhetskopi.</string>
+    <string name="backup_engine_one_recording_too_large_backup" volt:src="94f50b42e14af7f1eb42e2bc882fbb79e4316fd6">Én logg er for stor for en sikkerhetskopi.</string>
     <string name="backup_engine_choose_volt_backup_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Velg en sikkerhetskopifil fra Volt.</string>
     <string name="backup_engine_could_not_remove_temporary_backup" volt:src="d4911f538360c04670cc41ecaa53eff1a67c3319">Kunne ikke fjerne de midlertidige dataene fra sikkerhetskopien.</string>
     <string name="backup_engine_backup_needs_newer_app" volt:src="435d17a142788de1b9d71a5f45b6d8bfb12551cd">Sikkerhetskopien krever en nyere appversjon, eller den har ugyldige metadata.</string>
@@ -126,12 +126,12 @@
     <string name="backup_engine_pairing_file_invalid_owner_role" volt:src="1f5f05b36f10c9e635d21083d0e53c887436b84c">Eieroppsettfilen har en ugyldig eierrolle.</string>
     <string name="backup_engine_pairing_file_invalid_bluetooth" volt:src="0cb6415f653842d90b0ab7e8cf6c3b8a72704ddb">Eieroppsettfilen har en ugyldig Bluetooth-adresse.</string>
     <string name="backup_engine_backup_unsupported_preference_group" volt:src="d9bb8f102a876868486623bb53717c28e3881b6c">Sikkerhetskopien har en innstillingsgruppe som ikke støttes.</string>
-    <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Sikkerhetskopien har samme ladeopptak flere ganger.</string>
-    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Velg hva som skal gjenopprettes.</string>
+    <string name="backup_engine_backup_repeats_charge_recording" volt:src="790d9cd76cedf6bd019a38f0fa99c9aee90eb1ab">Sikkerhetskopien har samme ladelogg flere ganger.</string>
+    <string name="backup_engine_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Velg hva du vil gjenopprette.</string>
     <string name="backup_engine_replace_everything_needs_complete" volt:src="e6042bafa59135e0ce24a1dc2f8188c1c23b1f7e">«Erstatt alt» krever en fullstendig sikkerhetskopi med alle kategorier.</string>
     <string name="backup_engine_choose_where_each_scooters" volt:src="d1d0d37a81f3fa72fb318efe8ef837302d4b4599">Velg hvor dataene til hver sparkesykkel skal lagres.</string>
     <string name="backup_engine_choose_scooter_using_setup" volt:src="ecba773af967a0760677f47e238a5d98a6553dbb">Velg en sparkesykkel som bruker denne eiernøkkelen, eller legg til enda en sparkesykkel.</string>
-    <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">Lagrede opptak kan ikke leses.</string>
+    <string name="backup_engine_saved_recordings_cannot_read" volt:src="351112d2c8cee312d82ec6ef5f79f1c5f14d4c80">Lagrede logger kan ikke leses.</string>
     <string name="backup_engine_backup_contains_unreadable_ride" volt:src="37ad350868e18ca90d1b47d819161ba91b69bfb2">Sikkerhetskopien inneholder en tur som ikke kan leses.</string>
     <string name="backup_engine_choose_backup_again" volt:src="023b32a1da855d4621616465419cfd3be9e72041">Velg sikkerhetskopien på nytt.</string>
     <string name="backup_engine_saved_scooters_phone_cant_read" volt:src="17581f8e0e56c2060bfd66a92e1878d0098d9a72">Lagrede sparkesykler på denne telefonen kan ikke leses.</string>
@@ -164,7 +164,7 @@
     <string name="backup_engine_saved_data_changed_review" volt:src="007a552fe5f763cce6771c435d99550db7874b38">Lagrede data er endret. Se gjennom igjen.</string>
     <string name="backup_engine_not_enough_free_storage" volt:src="306c7bd2aa8fbb52d856d1c32d382595e8a864f3">Ikke nok ledig lagringsplass</string>
     <string name="backup_engine_could_not_prepare_restore" volt:src="ecd243e6c7b799e30f329472e26645780f0715e7">Kunne ikke forberede gjenopprettingen.</string>
-    <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Opptakslagringen ble endret under gjenopprettingen.</string>
+    <string name="backup_engine_recording_storage_changed_during" volt:src="1d115709452a39365a3878b3de760e51d031814e">Logglagringen ble endret under gjenopprettingen.</string>
     <string name="backup_engine_restore_recovery_record_unreadable" volt:src="c93edc0fa23ca4d8e841adae09b9cfa846b6116c">Bergingsposten for gjenopprettingen kan ikke leses.</string>
     <string name="backup_engine_invalid_restore_recovery_list" volt:src="cd38eec00500d0c4cc643113de484a16a7f000d6">Ugyldig bergingsliste for gjenoppretting.</string>
     <string name="backup_engine_invalid_restore_recovery_path" volt:src="3794e861785eaec8888337635fde64f5521d1b6b">Ugyldig filbane for berging av gjenoppretting.</string>
@@ -184,11 +184,11 @@
     <string name="backup_engine_invalid_scooter_count" volt:src="95e35b5ec682617bb4b7c0806390d4f6f9aa3aaf">Ugyldig antall sparkesykler.</string>
     <string name="backup_engine_invalid_scooter_list" volt:src="4633c292e7a5c4807185f1688f8cc13fbde2c6a1">Ugyldig liste over sparkesykler.</string>
     <string name="backup_engine_ride_backup_too_large" volt:src="c25da53a175f0f2367c219d8c569e41ced2d5fd1">Sikkerhetskopien av turer er for stor eller tom.</string>
-    <string name="backup_engine_invalid_duplicate_recording_path" volt:src="043fba05788e3ec8ff483f6dc3be8e66fdc7e5ba">Ugyldig eller duplisert filbane for opptak.</string>
+    <string name="backup_engine_invalid_duplicate_recording_path" volt:src="043fba05788e3ec8ff483f6dc3be8e66fdc7e5ba">Ugyldig eller duplisert filbane for logg.</string>
     <string name="backup_engine_unexpected_backup_metadata" volt:src="c3d35b4d5f84e31d3dba714536ed9e964457da1b">Uventede metadata i sikkerhetskopien.</string>
-    <string name="backup_engine_unexpected_duplicate_recording_file" volt:src="d954cbaeea199e679edaa694214550eb55cfa690">Uventet eller duplisert opptaksfil.</string>
+    <string name="backup_engine_unexpected_duplicate_recording_file" volt:src="d954cbaeea199e679edaa694214550eb55cfa690">Uventet eller duplisert loggfil.</string>
     <string name="backup_engine_backup_incomplete_damaged" volt:src="7e46da3c18be9b99e94a03fc28b643bd97668283">Sikkerhetskopien er ufullstendig eller skadet.</string>
-    <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">Sikkerhetskopien mangler opptaksfiler.</string>
+    <string name="backup_engine_backup_missing_recording_files" volt:src="725d87aaf83341b67e323a046c4c71804c25a6ce">Sikkerhetskopien mangler loggfiler.</string>
     <string name="backup_engine_missing_scooter_association" volt:src="9db1271678133b664aa012e37805b67ab7f37663">Mangler kobling til sparkesykkel.</string>
     <string name="backup_engine_ride_list_inconsistent" volt:src="7b6d9e7a8cecedba308d98086bcbd5e98efe29e5">Turlisten er ikke konsistent.</string>
     <string name="backup_engine_phone_samples_missing_their" volt:src="aef7d985c992cdf5c4ea39c3929897d31fb3c264">Målinger fra telefonen mangler turen sin.</string>
@@ -212,7 +212,7 @@
     <string name="backup_engine_incomplete_ride_record_was" volt:src="59cff835f0d7f0b66ccf132bf18c5da66b7f0a63">Fant en ufullstendig turpost.</string>
     <string name="backup_engine_phone_sensor_record_invalid" volt:src="1079c5bf5005009fcd5e3dd7e89e222ab35f30e7">En post med sensordata fra telefonen er ugyldig.</string>
     <string name="backup_engine_ride_backup_exceeds_size" volt:src="c628fece13322d1ab371ce92a147a1f301cbdae0">Sikkerhetskopien av turer overskrider størrelsesgrensen.</string>
-    <string name="backup_engine_recording_storage_does_not_support" volt:src="b69bf8718826d7c2d2bcfe2b2304949698d4c957">Opptakslagringen støtter ikke sikker berging av en gjenoppretting.</string>
+    <string name="backup_engine_recording_storage_does_not_support" volt:src="b69bf8718826d7c2d2bcfe2b2304949698d4c957">Logglagringen støtter ikke sikker berging av en gjenoppretting.</string>
     <string name="backup_engine_ride_backup_storage_unavailable" volt:src="592e98a79a246965bc81e127145392c083701635">Lagringen for sikkerhetskopier av turer er ikke tilgjengelig.</string>
     <string name="backup_engine_not_enough_available_storage" volt:src="b8b33850bfdea11ea4f55deb5272744d3ba87f1a">Ikke nok ledig lagringsplass.</string>
     <string name="backup_engine_ride_backup_could_not_processed" volt:src="2ba1f594fa284c0fcbe209a23feaa31b4850476a">Sikkerhetskopien av turer kunne ikke behandles.</string>

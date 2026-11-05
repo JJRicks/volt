@@ -44,17 +44,17 @@
     <string name="ble_choose_scooter" volt:src="a2093a7720bc3fe1871ad6c1f8daef1a76fee71e">Velg sparkesykkelen din.</string>
     <string name="ble_bluetooth_starting" volt:src="d2a34954c1dc51c21d11e73d3d38c4285d8f4720">Bluetooth starter fortsatt. Prøv igjen.</string>
     <string name="ble_busy" volt:src="0143952b1933f83e76853478311862461f65b710">Opptatt. Prøv igjen snart.</string>
-    <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">Modell-ID hentet</string>
-    <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID ikke hentet</string>
-    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Stopp opptaket først</string>
+    <string name="ble_model_id_captured" volt:src="ecbaa7e3348e94d03edbe4aa0ee1729629000f2d">Modell-ID fanget opp</string>
+    <string name="ble_model_id_not_captured" volt:src="dba08d09f91ad6e2257006954ea15fc634a57b8c">Modell-ID ikke fanget opp</string>
+    <string name="ble_stop_recording_first" volt:src="bbfd4e2ebace2075a9a264ed278320d87fbfa1fb">Stopp loggingen først</string>
     <string name="ble_wait_current_change" volt:src="26359e34aa40c08464af6ded348ad209cb6f2ff3">Vent til den pågående endringen er ferdig.</string>
     <string name="ble_stop_check_first" volt:src="a26521eb4738620bfc3877815ed45c39ac452bb5">Stopp kompatibilitetssjekken først</string>
     <string name="ble_connect_first" volt:src="cde31fdf21977ff90adca8798e2d30fecaed036c">Koble til sparkesykkelen først</string>
     <string name="ble_wait_fresh_connection" volt:src="241a86c4c999840f1cbb3e3ed998e60c2fd69232">Vent på en ny tilkobling til sparkesykkelen.</string>
-    <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Rett opp advarsel %1$d fra sparkesykkelen før du låser.</string>
+    <string name="ble_resolve_warning" volt:src="650960e2658beae93355ff6eb32ebb30c8928f82">Håndter advarsel %1$d fra sparkesykkelen før du låser.</string>
     <string name="ble_stop_scooter_first" volt:src="0b466cc906c09c00d8097ffcad29ee8b5917f03a">Stopp sparkesykkelen først</string>
     <string name="ble_not_available_now" volt:src="6c9df4e71ecc71e079b6f5d8555721a04d4e55ed">Ikke tilgjengelig nå</string>
-    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Verdien er utenfor området den offisielle appen tillater</string>
+    <string name="ble_outside_domain" volt:src="bce60fe2cdc5e5c626c68030347cc2c70e06fbee">Verdien er utenfor området den offisielle appen (OEM) tillater</string>
     <string name="ble_already_set" volt:src="f5e2a6f5ccef9f99c3322f7b0b6b41d9aadb2e47">%1$s: allerede angitt.</string>
     <string name="ble_change_rejected" volt:src="846533dc59ea93596e772fdd621747da6b417ab7">Endringen ble avvist</string>
     <string name="ble_setting_changed_waiting" volt:src="219b87beceb4366c3dda3aab6688ab2a08a59e76">En innstilling endret seg under ventingen. Prøv igjen.</string>
@@ -73,7 +73,7 @@
     <string name="ble_pin_state_unavailable" volt:src="9cc7a301d7f853d37cba27aeb042d06ec1248f3f">PIN-statusen er ikke tilgjengelig på denne fastvaren.</string>
     <string name="ble_pin_owner_only" volt:src="c38e3af93db17f4166a08c86eca521ff76d69442">PIN-innstillinger krever eierprofilen.</string>
     <string name="ble_needs_bond" volt:src="f14b3e09197ebc88fe8c000cd8a9fe16f18ba66b">Koble sammen denne telefonen med sparkesykkelen før du slår på nærhetsopplåsing</string>
-    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Slå på en angitt PIN-kode på styret før nærhetsopplåsing</string>
+    <string name="ble_needs_pin" volt:src="e201d3632eaedec7907261bc27c8744c2e6c9b3e">Angi og slå på PIN-koden på styret før du slår på nærhetsopplåsing</string>
     <string name="ble_proximity_read_pin" volt:src="afa9dcc856f5a1137cd159cefcf40c4ab34f8d68">Les av PIN-statusen, og slå deretter på nærhetsopplåsing.</string>
     <string name="ble_pin_connect_owner" volt:src="dae36c211eb682e460d13a7c45e37d78c513a97b">Koble til som eier av sparkesykkelen for å lese av PIN-innstillingene.</string>
     <string name="ble_pin_proximity_first" volt:src="1f64c238c21ffe359a62d77bdc452d504216fa6b">Slå av nærhetsopplåsing før du slår av PIN-koden på styret.</string>
@@ -85,12 +85,12 @@
     <string name="ble_test_records_unavailable" volt:src="15bc5b3cf666f2a0c7ab3849d9322189255bb1e5">Testoppføringene er ikke tilgjengelige</string>
     <string name="ble_review_try" volt:src="2fd2b09ccd946b8d62f2d81cf6cea0b12140ca34" volt:attempt="2">Se først gjennom forsøket som ikke ble fullført</string>
     <string name="ble_nothing_to_set_back" volt:src="6a46c7246b6307706a1f54ff3505ed60f161f16b" volt:attempt="2">Det er ikke noe å sette tilbake</string>
-    <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Kunne ikke sette tilbake. Ingenting ble endret.</string>
+    <string name="ble_set_back_failed" volt:src="869a53ed8e45735592a13d1233684955f65e99d9">Kunne ikke sette tilbake verdien. Ingenting ble endret.</string>
     <string name="ble_finish_test" volt:src="ef8f4efa993b203cf40a6c41b675e10c2eeb6945">Fullfør den pågående testen først</string>
     <string name="ble_test_not_found" volt:src="432ac534cf2b242877bbf1f0103551af0a6cd201">Fant ikke testen</string>
     <string name="ble_restore_failed" volt:src="977737fe6ce14e638352e8e74956f795496b2ffc">Kunne ikke starte tilbakesettingen. Ingenting ble endret.</string>
     <string name="ble_result_confirmed" volt:src="e795fb16da911960f7ee84cdefac4c390da63ef4">Bekreftet</string>
-    <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Innstillingen er bekreftet ved tilbakelesing; lysstyrken er ikke målt</string>
+    <string name="ble_result_setting_confirmed" volt:src="ef4b3e6daa0910a3bb304757aca26a8ef46bfaca">Innstillingen er bekreftet ved tilbakelesing; selve lyset er ikke målt</string>
     <string name="ble_result_clock_accepted" volt:src="af575fc3cc5ecab868373795208b13193a677897">Godtatt; tilbakelesing av klokken er ikke tilgjengelig</string>
     <string name="ble_result_accepted_unreadable" volt:src="2d1dae8ae4efd5313b9ce3b2421c87b0b468b13c">Godtatt; fastvaren oppgir ikke statusen</string>
     <string name="ble_result_not_confirmed" volt:src="4c195e7bcd1298d452edb1bb8278469fa48ea9e3">Endringen er ikke bekreftet</string>
@@ -98,6 +98,6 @@
     <string name="ble_result_cancelled" volt:src="924de54c914733302b8a20056fcf5a0afd8be523">Avbrutt før sending</string>
     <string name="ble_result_guided_test" volt:src="cd4ceaf617dc5afd96f176af6be45b6b944403ad">Veiledet test</string>
     <string name="ble_lock_connection_lost" volt:src="6b56f848b8f9ee59104500667c9d03c7129ad658">Mistet tilkoblingen før låsen endret seg</string>
-    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Sparkesykkelen bekreftet ikke endringen av låsen</string>
+    <string name="ble_lock_not_confirmed" volt:src="7c224b15688117369ba8dc6bbc878efd59250097">Sparkesykkelen bekreftet ikke om låsen ble endret</string>
     <string name="ble_lock_not_ready" volt:src="6686af627be79648824f92eba3db8e3588650dda">Sparkesykkelen var ikke klar til å endre låsen; prøv igjen</string>
 </resources>

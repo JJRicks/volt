@@ -28,15 +28,15 @@
     <string name="dashboard_model_qa_my_scooters" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc">Mine sparkesykler</string>
     <string name="dashboard_model_qa_my_scooters_short" volt:src="a2594e2a17ba4e38abaaf9c6ecf5e41fadd0d2fc" volt:attempt="2">Sparkesykler</string>
     <string name="dashboard_model_qa_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Eksperimentelle funksjoner</string>
-    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Eksperimentell funksjon</string>
+    <string name="dashboard_model_qa_experimental_short" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2" volt:attempt="2">Eksperimentell</string>
     <string name="dashboard_model_qa_data_history" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0">Data og historikk</string>
     <string name="dashboard_model_qa_data_history_short" volt:src="93f57e741f48415190a8c8fcfe6d71efab3c8ae0" volt:attempt="2">Historikk</string>
-    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om og tillatelser</string>
-    <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Om appen og tillatelser</string>
+    <string name="dashboard_model_qa_about_permissions" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Appinfo og tillatelser</string>
+    <string name="dashboard_model_qa_about_permissions_short" volt:src="e678ca5bd9117242042fef0437b0d9f16be92140">Appinfo</string>
     <string name="dashboard_model_qa_charge_done_by" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Ferdigladet innen</string>
-    <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Ferdigladet innen</string>
+    <string name="dashboard_model_qa_charge_done_by_short" volt:src="8b94ea18cd9613195d80e65a6eb505dca980c89c">Ladet innen</string>
     <string name="dashboard_model_qa_charge_done_time" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Ferdigladet innen kl.</string>
-    <string name="dashboard_model_qa_charge_done_time_short" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Ferdigladet innen kl.</string>
+    <string name="dashboard_model_qa_charge_done_time_short" volt:src="5e8ef4566f297b6db0e662bca61dc57c4f3c167b">Ladet innen kl.</string>
     <string name="dashboard_model_qa_group_menus" volt:src="9d025559fab6ea97c5d3dbe9946bea4df41d449d">Menyer</string>
     <string name="dashboard_model_qa_group_pages" volt:src="1846969941ff2b0d71f50a727e056ac63712e621">Sider</string>
     <string name="dashboard_model_qa_group_experimental" volt:src="fe834ab52a00109da8d8f3077a7229f92735c9a2">Eksperimentelle funksjoner</string>
@@ -44,7 +44,7 @@
     <string name="dashboard_model_tile_charge_schedule" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Ladeplan</string>
     <string name="dashboard_model_tile_updating" volt:src="dc6742d6d9ee09ea554a81f62fada24d6c4b1562">Oppdaterer…</string>
     <string name="dashboard_model_tile_range_learned" volt:src="cfbf195febe31a997f31b2d239cbe5a20868290e">Volt (lært)</string>
-    <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Sparkesykkelen</string>
+    <string name="dashboard_model_tile_range_scooter" volt:src="3afd529b252b9766dcbd01f260759a2ad64319f0">Sparkesykkel</string>
     <string name="dashboard_model_tile_measuring" volt:src="a7bc4f8672d17e6bda47b74ab5c9707777e3b738">Måler</string>
     <string name="dashboard_model_tile_on_at" volt:src="36bb83c10ec32db86dc71f331a909921f5587794">På • %1$s</string>
     <string name="dashboard_model_tile_not_scheduled" volt:src="762a64e7a2eb16f401f9eeb50c3b2c9a76d026b0">Ikke planlagt</string>
@@ -63,15 +63,15 @@
     <string name="dashboard_model_type_battery" volt:src="d13a864d0e7b3a0e22bf742edbe9279b62770794">Batterioversikt</string>
     <string name="dashboard_model_type_metric" volt:src="0b439eb438e50b802e90a213d377bb188e1c4b46">Enkeltavlesning</string>
     <string name="dashboard_model_type_gauge" volt:src="c01b9c12acf940b5558e24cf251dc96b3c9fd490">Instrument</string>
-    <string name="dashboard_model_type_live" volt:src="c7464659b572ef8fabb68421a8d20ff788de9c72">Sanntidsgraf</string>
-    <string name="dashboard_model_type_history" volt:src="c4f859fb6feff86693b846f5eb609afd0b29356d">Historikkgraf</string>
+    <string name="dashboard_model_type_live" volt:src="c7464659b572ef8fabb68421a8d20ff788de9c72">Sanntidsdiagram</string>
+    <string name="dashboard_model_type_history" volt:src="c4f859fb6feff86693b846f5eb609afd0b29356d">Historikkdiagram</string>
     <string name="dashboard_model_type_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Avlesninger</string>
     <string name="dashboard_model_type_trip" volt:src="22238fa2b3847217534642265c3fbf6fd0244169">Trippoversikt</string>
     <string name="dashboard_model_type_health" volt:src="b0b4022b3fd5ce69b2a6178637e78e58a7e9903f">Oppgitt batterihelse</string>
-    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Brukbar kjøreenergi</string>
+    <string name="dashboard_model_type_capacity" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Nyttbar energi til kjøring</string>
     <string name="dashboard_model_type_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Lading</string>
     <string name="dashboard_model_type_quick" volt:src="558fd0a4fa154c2e4a8eec1fb009fa472b189666">Snarveier</string>
-    <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Turopptak</string>
+    <string name="dashboard_model_type_ride" volt:src="3d626537c7dc03a7425fb3ab29f6e1b7aa35804e">Turlogging</string>
     <string name="dashboard_model_type_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Notat</string>
     <string name="dashboard_model_type_lockbar" volt:src="02d2f80d03759b90639b3d316a491d5d2d53477a">Låsefelt</string>
     <string name="dashboard_model_type_overview" volt:src="9d6911af641123c82fada2174893c2d4a14caec0">Sparkesykkeloversikt</string>
@@ -83,6 +83,6 @@
     <string name="dashboard_model_example_battery_power" volt:src="4cf2ca4c83ab84b80bb85a0b328be5c34e0b4f9b">Batterieffekt</string>
     <string name="dashboard_model_example_charge_history" volt:src="49e4226b880f838ef8bcfcd1dfa7d282a5c3adb3">Ladehistorikk</string>
     <string name="dashboard_model_example_note" volt:src="0348b8f6a81497ac28d044e5fef53009c1222dde">Sjekk dekktrykket</string>
-    <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Plass %1$s</string>
+    <string name="dashboard_model_slot_default" volt:src="74fe936f228f0810901ed7fdb58b004a2da9aa1f">Lagringsplass %1$s</string>
     <string name="dashboard_model_slot_example" volt:src="0740b63c52f763156abb78cc674a59a536f7eb7e">Alle moduler</string>
 </resources>

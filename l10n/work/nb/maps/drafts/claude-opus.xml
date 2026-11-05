@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
-    <string name="maps_track_no_fixes" volt:src="c96f7977cd44d70f62166a13431905fd5b605455">Ingen brukbare GPS-punkter ble tatt opp</string>
+    <string name="maps_track_no_fixes" volt:src="c96f7977cd44d70f62166a13431905fd5b605455">Ingen brukbare GPS-punkter ble registrert</string>
     <plurals name="maps_track_fixes" volt:src="a38c4d8085459c95a918745e2adef25b32b5fb46">
         <item quantity="one">%1$d GPS-punkt</item>
         <item quantity="other">%1$d GPS-punkter</item>
@@ -21,7 +21,7 @@
     <string name="maps_source_provider_fallback" volt:src="192685dbfb774ae069bdc4016c687754c075f7f4">Kartleverandør</string>
     <string name="maps_basemap" volt:src="8f7de53fbe2c14e7b08b43e94bfce7c4c0de4e3d">Bakgrunnskart</string>
     <string name="maps_consent_title" volt:src="9d5d38d3390d33f87884334bad629831625fab66">Vil du vise nettkart?</string>
-    <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">Leverandøren ser IP-adressen din og kartområdet. Turene blir værende på telefonen.</string>
+    <string name="maps_consent_message" volt:src="b826270566cbba2f841d30cf31ced27900e91af0">Leverandøren ser IP-adressen din og kartområdet. Turene blir på telefonen.</string>
     <string name="maps_consent_enable" volt:src="bb9ac0845ace7f8b7f2e08bf11f66831ce335172">Slå på bakgrunnskart</string>
     <string name="maps_online_map" volt:src="1a751189b102df124580ebe64eaae2545a1cd4e0">Nettkart</string>
     <string name="maps_provider_usgs" volt:src="8313b012a080d4dcd5f6c9669f3f1c6faeb4a920">USGS (USA)</string>
@@ -48,7 +48,7 @@
     <string name="maps_route_description" volt:src="057f8f6689002a30a5a9eb3e3f279008c9956e21">Rutekart for turen</string>
     <string name="maps_route_marker_start" volt:src="cd0cf01eb6fc18ae7c71961c181d4c18f31436ac">S</string>
     <string name="maps_route_marker_end" volt:src="2adbdbc935090c1a163d5373840fdb69158424ae">M</string>
-    <string name="maps_route_no_gps" volt:src="a2dfc02ed3c15aa7f5dc9a9a5c16d43e21630e4e">Ingen GPS-rute ble tatt opp</string>
+    <string name="maps_route_no_gps" volt:src="a2dfc02ed3c15aa7f5dc9a9a5c16d43e21630e4e">Ingen GPS-rute ble registrert</string>
     <string name="maps_unit_kilowatt" volt:src="15fbbe5af5213ca7d510cf4b2824a448a48bc180">kW</string>
     <string name="maps_route_speed_dual" volt:src="9257d10c55c65d555bf81865872fdf9ffe77b927">%1$s %2$s / %3$s %4$s</string>
     <string name="maps_route_speed_source" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
@@ -63,8 +63,8 @@
     <string name="maps_route_power_not_measured" volt:src="528749ecef0162ba9996ea389dbd583dad8411bb">Effekt ikke målt</string>
     <string name="maps_chart_ride" volt:src="80f8e4d2f628fd326d5d54d8ee765c17d74e1f3a">Diagram for turen</string>
     <string name="maps_chart_fit_ride" volt:src="b77c503c54be648b7df6a02be88206ec789e2829">Vis hele turen</string>
-    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Diagram for opptaket</string>
-    <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Vis hele opptaket</string>
+    <string name="maps_chart_recording" volt:src="2dbac0bfa8630dd8cc3a027f61826599ae172955">Diagram for loggen</string>
+    <string name="maps_chart_fit_recording" volt:src="8d1366600c4b238abaea89558c52b9078881c550">Vis hele loggen</string>
     <string name="maps_chart_zoom_in" volt:src="6fe9d27ca43525676ecc3c397736aa0bc1a14055">Zoom inn</string>
     <string name="maps_chart_zoom_out" volt:src="b05d364422c66b8c38f44c9ff14c1a8357005ee2">Zoom ut</string>
     <string name="maps_chart_previous_sample" volt:src="e783b197e8874c0ea7622c1e59d00e5185e27fd1">Forrige registrerte måling</string>

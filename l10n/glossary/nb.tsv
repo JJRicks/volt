@@ -52,7 +52,7 @@ compatibility-report	kompatibilitetsrapport | kompatibilitetsrapporten | kompati
 report-an-issue	Rapporter et problem	Send an email to Volt with an English attachment.	verb phrase	no	privacy	claude-only claude-opus-5-5; nothing official found
 diagnostics	Diagnostikk | diagnostikken	The section that collects the information a report sends.	noun	no	privacy	claude-only claude-opus-5-5; nothing official found
 diagnostics-file	diagnostikkfil | diagnostikkfilen | diagnostikkfiler	The English attachment sent with a report.	noun phrase	no	privacy	claude-only claude-opus-5-5; nothing official found
-experimental-controls	Eksperimentelle funksjoner | eksperimentell funksjon	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; nothing official found
+experimental-controls	Eksperimentelle funksjoner | eksperimentell funksjon | Eksperimentell	Controls the official app does not offer, or that Volt has not verified on this model. The internal id is Lab; that id is not shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; nothing official found
 untested-controls	Funksjoner du kan prøve | funksjonene du kan prøve	D3 retired the English 'Untested controls' (card title becomes Controls to try). Use the term shown.	noun phrase	no	experimental	claude-only claude-opus-5-5; nothing official found
 try	Prøv | prøve | prøver | prøvd | prøvde | prøving | forsøk | forsøket | forsøkene	Attempt an experimental control on this scooter.	verb	no	experimental	claude-only claude-opus-5-5; nothing official found
 set-back	Sett tilbake | sette tilbake | setter tilbake | satt tilbake | settes tilbake	Restore the value a try changed.	verb phrase	no	experimental	claude-only claude-opus-5-5; nothing official found
@@ -126,10 +126,10 @@ actual-riding	Faktisk kjøring	A range basis: how this scooter has really been r
 charge-limit	Ladegrense | ladegrensen | ladegrenser | ladegrensene	The maximum charge percentage.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 charge-ceiling	Ladegrense | ladegrensen	D3 retired the English 'charge ceiling' (charge limit chosen; ceiling stays only as a search keyword). Use the term shown.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 scheduled-charging	Planlagt lading | planlagte ladingen | den planlagte ladingen	The scooter-side delayed start (on the hour). The reading's raw key is timed_charging; not shown.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
-charge-start	Ladestart | ladestarten	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
+charge-start	Ladestart | ladestarten | starttid for lading | Starttid for lading	When scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 charging-start-time	Starttid for lading | starttiden for lading | starttiden for ladingen	The setting for when scheduled charging begins.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 next-charge-start	Neste ladestart	When the next scheduled charge begins.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
-charge-done-by	Ferdigladet innen | Ferdigladet innen kl.	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
+charge-done-by	Ferdigladet innen | Ferdigladet innen kl. | Ladet innen | Ladet innen kl.	Volt's finish-by-deadline feature; it plans the start with a 20-minute buffer. A feature name: keep it consistent everywhere.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 test-scheduled-charging	Test planlagt lading | teste planlagt lading	A check of the scooter's clock and schedule.	verb phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 measure	Mål | måle | måler | måles | måling | målingen | målte	Watch the charger for about 10 minutes before planning.	verb	no	charge	claude-only claude-opus-5-5; nothing official found
 measuring	måler | måling | målingen | måle | målte	The state while Volt measures the charger.	verb	no	charge	claude-only claude-opus-5-5; nothing official found
@@ -140,12 +140,12 @@ notify-me	Varsle meg	Choose a notification for an alert.	verb phrase	no	alarm	cl
 alarm-sound	Alarmlyd | alarmlyden	Choose a sounding alarm for an alert.	noun phrase	no	alarm	claude-only claude-opus-5-5; nothing official found
 stop	Stopp | stoppe | stopper | stoppet	Silence a sounding alarm.	verb	no	alarm	claude-only claude-opus-5-5; nothing official found
 stop-watching	Stopp overvåkingen | stoppe overvåkingen	End an alert's watch.	verb phrase	no	alarm	claude-only claude-opus-5-5; nothing official found
-charge-recording	Ladeopptak | ladeopptaket | ladeopptakene	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
+charge-recording	Ladelogg | ladeloggen | ladelogger | ladeloggene | ladelogging | ladeloggingen	A recorded charging session.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 charger-profile	laderprofil | laderprofilen | laderprofiler	What Volt has learned about a charger, for estimates.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 time-to-full	Tid til full lading | til full lading	The estimated time until the battery is full.	noun phrase	no	charge	claude-only claude-opus-5-5; nothing official found
 rides	Turer | tur | turen | turene	Recorded ride data and its screen.	noun	no	-	claude-only claude-opus-5-5; nothing official found
-ride-recording	turopptak | turopptaket | turopptakene	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
-phone-journal	GPS-logg fra telefonen | GPS-loggen fra telefonen | Turlogg fra telefonen	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
+ride-recording	turlogging | turloggingen | turlogg | turloggen | turlogger | turloggene	Recording a ride.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
+phone-journal	GPS-logg fra telefonen | GPS-loggen fra telefonen	Rides recorded by the phone's GPS.	noun phrase	no	-	claude-only claude-opus-5-5; nothing official found
 motion	Bevegelse | bevegelsen | bevegelser | bevegelsesdata	Movement data of a ride.	noun	no	-	claude-only claude-opus-5-5; nothing official found
 route	Rute | ruten | ruter | rutene	The path of a ride on the map.	noun	no	-	claude-only claude-opus-5-5; nothing official found
 backup	Sikkerhetskopi | sikkerhetskopien | sikkerhetskopier | sikkerhetskopiene | sikkerhetskopiering | sikkerhetskopieringen	A file of Volt's data.	noun	no	privacy	claude-only claude-opus-5-5; nothing official found

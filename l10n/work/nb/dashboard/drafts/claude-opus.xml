@@ -41,7 +41,7 @@
     <string name="dashboard_time_to_full" volt:src="1a76cb171cd4d63a4a327ac585d934deaf196ee7">Tid til full lading</string>
     <string name="dashboard_charging" volt:src="7e8a4b2b57f741f7ce0c039a0f6523727f3f5a74">Lader</string>
     <string name="dashboard_charging_limit" volt:src="4f972de5efa07ee8e3dad328a3f252a83153e788">Lader · grense %1$s %%</string>
-    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">NAVEE UT5 MAX-sparkesykkel</string>
+    <string name="dashboard_hero_photo" volt:src="ac9d30c02516108c170cc923800e5814ebf9193a">Sparkesykkelen NAVEE UT5 MAX</string>
     <string name="dashboard_battery_not_reported" volt:src="43dd6778ce24b90d06842f406e1e4939192ea7db">Batteri, ingen data</string>
     <plurals name="dashboard_battery_percent" volt:src="21e6548a6be185083ae0d3120873b28161e852d0">
         <item quantity="one">Batteri %1$d prosent</item>
@@ -74,13 +74,13 @@
     <string name="dashboard_processing" volt:src="85bc4e97f7c896f48ed0ffbc7dc83497622e88cb">Beregner…</string>
     <string name="dashboard_set_reference" volt:src="2b10235c7730df0326a6e64026eefe46cb3f6f55">Angi referanse</string>
     <string name="dashboard_set_reference_capacity" volt:src="f8696a3af27dfe136b4ad028d598754a5ef7c62b">Angi referansekapasitet</string>
-    <string name="dashboard_checking_rides" volt:src="4183a0a9f7eb80fe3ab2d3bb27f3f93edd8b80f5">Sjekker turene som er tatt opp…</string>
+    <string name="dashboard_checking_rides" volt:src="4183a0a9f7eb80fe3ab2d3bb27f3f93edd8b80f5">Sjekker lagrede turer…</string>
     <string name="dashboard_estimate_details" volt:src="286f8f1308f77e08d22ce6c8707038565ca4af1e">Detaljer om estimatet</string>
     <string name="dashboard_empty_note" volt:src="9589460b611572a3430492d405cb7cde87f77cd3">Tomt notat</string>
     <string name="dashboard_edit_note" volt:src="eb6b6c906d5b94162312606a589e8152c27ecbfe">%1$s. Rediger notat</string>
     <string name="dashboard_empty_note_edit" volt:src="ac32f80e65fb5b6aeb1f0ba720afdae49c6ae100">Tomt notat. Rediger notat</string>
     <string name="dashboard_note" volt:src="1c5ead45ddd9901e901de9a69f2fe1e832fd1722">Notat</string>
-    <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Ta opp tur</string>
+    <string name="dashboard_record_ride" volt:src="0d35bf99aae2fa01120b19e154eb9269700fa88c">Logg tur</string>
     <string name="dashboard_view_rides" volt:src="bf7d6037a77513aa61fdad22802699ac81217301">Vis turer</string>
     <string name="dashboard_not_reported_named" volt:src="8fb7af53b328571c2311cd484454b4e903828707">%1$s, ingen data</string>
     <string name="dashboard_battery" volt:src="3f1ed8549e5a3d749ad7ba328fe656ea920b727f">Batteri</string>
@@ -114,17 +114,17 @@
     <string name="dashboard_reading_group" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_drive_mode_reading" volt:src="96ab25bcaaf0dcc19d3a4bb2e9c61659adebe9e3">Kjøremodus, %1$s</string>
     <string name="dashboard_drive_mode_reading_seen" volt:src="f438cc08677ac0bcc166fc6cccc34eb97f68bb07">Kjøremodus, %1$s, sist avlest: %2$s</string>
-    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Oppgitte ladinger: %1$s</string>
+    <string name="dashboard_reported_charges" volt:src="de047d1d50fb4ddc85ba86374172b5b2bebf4a81">Ladinger ifølge sparkesykkelen: %1$s</string>
     <string name="dashboard_rated" volt:src="5f60bef01ed24f9193276e39126566dcb4b5c8ed">%1$s nominelt</string>
     <string name="dashboard_last_seen" volt:src="9dbd41660432bec5fe06998ae3eb548cc10b2ba0">Sist avlest: %1$s</string>
-    <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Tar opp · %1$s</string>
+    <string name="dashboard_recording_clock" volt:src="60d167e39e9274eb81a1eea40badaf3b0ca79403">Logger · %1$s</string>
     <string name="dashboard_measuring" volt:src="0b58bf857ad1cc8c20da48018858cdcc84fd3cee">Måler…</string>
     <string name="dashboard_saving_ride" volt:src="5a53b1f61c086b2b483296cd549e52a321b89f58">Lagrer den siste turen…</string>
     <string name="dashboard_connecting" volt:src="b4c0a438574c095b4ede900ca9521fc63e577840">Kobler til…</string>
-    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Ta opp tur. Lagrer den siste turen</string>
-    <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Start opptak</string>
-    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Ta opp tur. Kobler til</string>
-    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Ta opp tur. Koble til sparkesykkelen</string>
+    <string name="dashboard_record_saving" volt:src="bb9a53bfcf39450d7d64dd6696400d5539a912c8">Logg tur. Lagrer den siste turen</string>
+    <string name="dashboard_start_recording" volt:src="cb17bb7ee189b7909947a39cb484f156046f8b9a">Start logging</string>
+    <string name="dashboard_record_connecting" volt:src="cee2730783af1f14eaf7fc55f8653fc77771837a">Logg tur. Kobler til</string>
+    <string name="dashboard_record_connect" volt:src="e218e11fc993158560c0cc40906a003327dff743">Logg tur. Koble til sparkesykkelen</string>
     <string name="dashboard_approx_energy" volt:src="9b6999e9523fa4b6bf6cef7d121dba2ad60b819e">≈ %1$s %2$s</string>
     <string name="dashboard_sample" volt:src="4f03a363e2d22a827e6f6143b199ac60aa22fe37">Eksempel</string>
     <string name="dashboard_sample_rides" volt:src="fe42c072033861d2242f8b817b443b594c2364aa">8 turer · %1$s–%2$s %3$s</string>
@@ -141,18 +141,18 @@
     <string name="dashboard_window" volt:src="6fe503ede88a86b8b05ab16bbf6aa0a12ee42c4a">Periode</string>
     <string name="dashboard_rides_needed" volt:src="c0c30c2fc166d3464de08c242aa8847ecbbba157">Turer som trengs</string>
     <string name="dashboard_range_90" volt:src="c398a3ad5cf8ee04f1b4edb8948b897d38bad694">90 %-intervall</string>
-    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Uttak per full batterimåler</string>
+    <string name="dashboard_charge_per_gauge" volt:src="8c9a34877bc490715641955ed27c36d630dde5c1">Uttak per 100 % på batterimåleren</string>
     <string name="dashboard_charging_check" volt:src="878288be708cda5e543f51ba06c20d37baba81c3">Ladesjekk</string>
     <string name="dashboard_coverage" volt:src="12cf39ec498eee4697c5d8d20bc9a67b6dee8383">Dekning</string>
     <string name="dashboard_pack_temp" volt:src="76c4577c64156df26e524c10a7d6c50aeaaf6214">Batteritemperatur</string>
     <string name="dashboard_rejected" volt:src="475286e441499e4faa110c3c46dff76485f506cd">Avvist</string>
     <string name="dashboard_ah_range" volt:src="47734a97893a95d42a815b6b7eff061a4a96a5bd">%1$s %2$s (%3$s–%4$s)</string>
     <string name="dashboard_proxy_caveat" volt:src="b17b31960130bea442230c84e9542e7d6100bde3">Indirekte mål: kan vise for høyt. Ikke batterihelse.</string>
-    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi turene dine brukte per full batterimåler. Ikke en test av batterihelse eller kapasitet.</string>
-    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Brukbar turenergi</string>
+    <string name="dashboard_energy_caveat" volt:src="98341d8bc7ae87079e2dff24022f211b51991a07">Energi turene dine brukte per 100 % på batterimåleren. Ikke en test av batterihelse eller kapasitet.</string>
+    <string name="dashboard_usable_energy" volt:src="e8309d0037a99433010a949b1fc44d8bf78913f1">Nyttbar energi til kjøring</string>
     <string name="dashboard_sample_window" volt:src="2b4cad7b2e4ccc435f60edbdd95147db3c845611">Eksempel · %1$s</string>
     <string name="dashboard_no_readings" volt:src="8402cf6c7693e12c7ed5cdf273323afd1a67fbe3">Ingen lagrede avlesninger ennå</string>
-    <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Gjenværende rekkevidde estimert av sparkesykkelen</string>
+    <string name="dashboard_range_reported" volt:src="6905e0397b016539e5895db993c1a11719fdda9d">Sparkesykkelens estimerte gjenværende rekkevidde</string>
     <string name="dashboard_add_type" volt:src="38f3ffbf3b0b0c89facdd38cb762f9d001e33e8d">Legg til %1$s</string>
     <string name="dashboard_add_type_experimental" volt:src="331b04e3ce64e4c624219af8be6fdd86b5303316">Legg til %1$s, eksperimentell</string>
     <string name="dashboard_experimental" volt:src="0994f6a9797bdd25261ae70f05536de724a83b9e">Eksperimentell</string>
@@ -167,7 +167,7 @@
     <string name="dashboard_scooter_name" volt:src="327357b0c57818f2182c9e95ae57ac879cbc99ac">Sparkesykkelnavn</string>
     <string name="dashboard_parameter" volt:src="7e3362da027805cd737ba5112c124a578d8de639">Parameter</string>
     <string name="dashboard_readings" volt:src="5e51ba97be3ff55080214c097129578ee0f0947d">Avlesninger</string>
-    <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Annonsert kapasitet</string>
+    <string name="dashboard_advertised_capacity" volt:src="12ed9ad3668c751d2ac68b040ce354415c9c7a9b">Kapasitet ifølge produsenten</string>
     <string name="dashboard_scale_minimum" volt:src="244275a26532117e7a781d7483863834f2e229d8">Skalaminimum</string>
     <string name="dashboard_scale_maximum" volt:src="86783d8d1c10d0b825f8206d8fd35d72882ccd81">Skalamaksimum</string>
     <string name="dashboard_ride_data_window" volt:src="a7ffaab32066799bdf2bf492993767752c6008f7">Periode for turdata</string>
@@ -194,14 +194,14 @@
     <string name="dashboard_move_earlier" volt:src="d45a2e4d77b7af166f3af30aa8e930d7f7f3fc88">Flytt %1$s lenger frem</string>
     <string name="dashboard_remove_shortcut" volt:src="a0fa5dc9717f24a09c80391494fbbf46fcd9fcf6">Fjern snarveien %1$s</string>
     <string name="dashboard_add_shortcut" volt:src="824ff298b4221456b34b069c13c1a5bedb1ad968">Legg til snarvei</string>
-    <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Legg til hurtigsnarvei</string>
+    <string name="dashboard_add_quick_shortcut" volt:src="259ff3867d281ad063dff422e70711581f0f47a1">Legg til snarvei i hurtiginnstillinger</string>
     <string name="dashboard_close_quick_settings" volt:src="1e16a34057e43a7e9b6fae057d32a201cb9bdeb8">Lukk hurtiginnstillinger</string>
     <string name="dashboard_search_settings" volt:src="ee643c7c7cb7e105854fc4dac61639bf9efe1752">Søk i innstillinger</string>
     <string name="dashboard_search_quick_settings" volt:src="e991cbd96e4f033d9294152e80b808db45e14a7f">Søk i hurtiginnstillinger</string>
     <string name="dashboard_shortcut" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
     <string name="dashboard_shortcut_selected" volt:src="d402d676908fb25f990be350c72f2b72a5e471e2">%1$s, %2$s, valgt</string>
     <string name="dashboard_shortcut_toggle" volt:src="90915c6200c3a00184f2c6ab58e8d7ab70bab9f7">%1$s, %2$s, bryter</string>
-    <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Ingen samsvarende innstillinger</string>
+    <string name="dashboard_no_matching_settings" volt:src="663016e428123b11a4efc85ffed72755cbeaa6ed">Ingen treff blant innstillingene</string>
     <string name="dashboard_choose_shortcut" volt:src="2e358bf603243f31fee0799b8b0e24201169c2e6">Velg snarvei</string>
     <string name="dashboard_close_shortcut_picker" volt:src="c7755a6119eae598ffe1a9382a2098e74f6e2856">Lukk snarveivelgeren</string>
     <string name="dashboard_save" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Lagre</string>
@@ -216,7 +216,7 @@
     <string name="dashboard_window_two_years" volt:src="8ee0624b75aa2575acbce3a213e511d9e4d64777">2 år</string>
     <string name="dashboard_set_comparison" volt:src="8f2ce90b3077f4e92315c71c9dcdfbde07024b34">Angi sammenligningsverdi</string>
     <string name="dashboard_capacity_hint" volt:src="25459a0f7901eb1174287e90b1c178cecc4f112e">716 Wh · UT5 MAX</string>
-    <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Annonsert kapasitet i wattimer</string>
+    <string name="dashboard_capacity_input" volt:src="c34bfe73572c0082c8a8deabbd908436685f0313">Kapasitet ifølge produsenten i wattimer</string>
     <string name="dashboard_use_model_rating" volt:src="39146bda0b352abf65da00f801cd37753ea412d1">Bruk modellens verdi</string>
     <string name="dashboard_capacity_limit" volt:src="e950ce1d44324dbddf531e00ddfb58ba4b0603f5">0–10 000 Wh</string>
     <string name="dashboard_search_parameters" volt:src="a0d40f931c452fcc977d655b79ae45ec2e945478">Søk i parametere</string>
@@ -225,7 +225,7 @@
     <string name="dashboard_count_of_selected" volt:src="3fe59a55d689fb3e35fcb68600edf1cd9fcce901">%1$s av %2$s valgt</string>
     <string name="dashboard_all_readings" volt:src="2eebe68cde6c67da287eb233eb159616c2629193">Alle avlesninger</string>
     <string name="dashboard_reading_uncheck" volt:src="7e0530ef7a5d8f8793db0d827fb8f6a7dbb69f89">%1$s, valgt, fjern merket</string>
-    <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Ingen samsvarende avlesninger</string>
+    <string name="dashboard_no_matching_readings" volt:src="6370569e9d3e4add839e73e01a189a0d8e7113fb">Ingen treff blant avlesningene</string>
     <string name="dashboard_choose_one_reading" volt:src="020ca0df31d814c9399faf2d946bccfb1f84e3c0">Velg minst én avlesning.</string>
     <string name="dashboard_save_readings" volt:src="d0e01a05386bd4feee0606f5ac2e68b046b3e1f0">Lagre valgte avlesninger</string>
     <string name="dashboard_choose_readings" volt:src="8f939704d75aef429aab70381b965a34bd61d8f9">Velg avlesninger</string>
@@ -251,18 +251,18 @@
     <string name="dashboard_close_layout" volt:src="8053a81e4c988b26fc66b0eabae52075491d7c47">Lukk dashbordoppsett</string>
     <string name="dashboard_defaults_restored" volt:src="a94ed68c845a5314fabfa98342596d450f0ecaf7">Standardmoduler gjenopprettet</string>
     <string name="dashboard_slot_title" volt:src="67bd926cb6c9d0ec7c4153685f41d07a36cee715">%1$s · %2$s</string>
-    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Lagre gjeldende dashbord på plass %1$s</string>
+    <string name="dashboard_save_to_slot_description" volt:src="13d66295257d2adcfffffd827824f3ef1976adba">Lagre gjeldende dashbord på lagringsplass %1$s</string>
     <string name="dashboard_restore" volt:src="fc408ea6948516eb021bacde18ce5b83fa08254e">Gjenopprett</string>
-    <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Gjenopprett plass %1$s</string>
-    <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Gjenopprett plass %1$s, %2$s</string>
+    <string name="dashboard_restore_slot" volt:src="2e309113ac9ba3720a44b835b9e794d9b147b6ec">Gjenopprett lagringsplass %1$s</string>
+    <string name="dashboard_restore_slot_named" volt:src="40d6dde80b009b953a6e5acf047684bd6430331a">Gjenopprett lagringsplass %1$s, %2$s</string>
     <string name="dashboard_layout_name" volt:src="1511f633afa568e0f73e0bb2de30e3e26f2ad48f">Navn på oppsett</string>
     <string name="dashboard_saved_layout_name" volt:src="b9be13ba1d584b9c898f0251f11a07da9cfad3a7">Navn på lagret oppsett</string>
-    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Erstatte plass %1$s?</string>
-    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Lagre på plass %1$s?</string>
+    <string name="dashboard_replace_slot_title" volt:src="04f94e81a34104e614d32f6121dbf399b82e55de">Vil du erstatte lagringsplass %1$s?</string>
+    <string name="dashboard_save_slot_title" volt:src="d40b10e97d348c3e5d0be514b52f459febbec323">Vil du lagre på lagringsplass %1$s?</string>
     <string name="dashboard_replace" volt:src="ebb15fa987c807b1c7b6bf66f887332227004428">Erstatt</string>
     <string name="dashboard_save_layout_failed" volt:src="f5a2348668119a78bb384ad813ddf40912bbe45a">Kunne ikke lagre oppsettet. Prøv igjen.</string>
-    <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Lagret på plass %1$s</string>
-    <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Gjenopprette «%1$s»?</string>
+    <string name="dashboard_saved_to_slot" volt:src="0b1c2c01ae266914dfc316e5b06eb44dae2f8e08">Lagret på lagringsplass %1$s</string>
+    <string name="dashboard_restore_title" volt:src="f850c19b32e68bb1f94b09f4fe4b957f87f84c8e">Vil du gjenopprette «%1$s»?</string>
     <string name="dashboard_restore_message" volt:src="477aff2278ae454a0486c25446fb810267156aaf">Oppsettet ditt og kolonneinnstillingen på alle sparkesykler blir erstattet.</string>
     <string name="dashboard_restore_failed" volt:src="fe740cc8098fa7f088fc2831f940fa9d35d7f8e2">Kunne ikke gjenopprette. Ingenting ble endret.</string>
     <string name="dashboard_restored" volt:src="bf009136f79a7acd257a0cc0fd721eba2522290f">Gjenopprettet «%1$s»</string>

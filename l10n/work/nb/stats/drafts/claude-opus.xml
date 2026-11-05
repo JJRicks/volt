@@ -15,10 +15,10 @@
     <string name="stats_health_chip" volt:src="e5330657ca46d0337bca7f1ed58500e45222aeb4">ca.</string>
     <string name="stats_health_chip_said" volt:src="44ab1cf14452bf9ba80cfa2a8194beda700d1c57">" estimert"</string>
     <string name="stats_favourites_title" volt:src="d4adb3c8ac0b45970de22039d41968711bf538b8">Favoritter</string>
-    <string name="stats_favourites_reorder_description" volt:src="dcff5ff66b1bd4e3fa31449d4dbbae56fd9db84a">Endre rekkefølgen på favorittavlesninger og favorittgrafer</string>
+    <string name="stats_favourites_reorder_description" volt:src="dcff5ff66b1bd4e3fa31449d4dbbae56fd9db84a">Endre rekkefølgen på favorittavlesninger og favorittdiagrammer</string>
     <string name="stats_favourites_reorder" volt:src="5c51479fcc41fc0f37144c9baffa7f900ef2c69b">Endre rekkefølgen på favoritter</string>
-    <string name="stats_order_chart" volt:src="6292f1f9deb066cc6806366a337b86406679e9df">%1$s · Graf</string>
-    <string name="stats_order_chart_said" volt:src="136d9d61982c0357d07adaa693c5d11fcbfb79da">Graf: %1$s</string>
+    <string name="stats_order_chart" volt:src="6292f1f9deb066cc6806366a337b86406679e9df">%1$s · Diagram</string>
+    <string name="stats_order_chart_said" volt:src="136d9d61982c0357d07adaa693c5d11fcbfb79da">Diagram: %1$s</string>
     <string name="stats_order_reading_said" volt:src="21a658c09b0c763af5a494add8feefc603190eb2">Avlesning: %1$s</string>
     <string name="stats_search_hint" volt:src="3f3dacec55518e55832c230ba1007f8e0ae1fc27">Søk</string>
     <string name="stats_readings_search_description" volt:src="a88cfa2eb4042e813a09dfc16a907ea63913d1da">Søk i målinger fra sparkesykkelen</string>
@@ -57,28 +57,28 @@
     <string name="stats_detail_seen" volt:src="f20c6dbe179c5434035bdba5908d7199bc7769b1">%1$s · Sist avlest</string>
     <string name="stats_detail_seen_when" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Sist avlest: %2$s</string>
     <string name="stats_detail_health_note" volt:src="74b89e1881f6649a499984abec613ac9d52bf1f8">\n\nOppgitt helse er et estimat fra kontrolleren, ikke en målt kapasitetstest.</string>
-    <string name="stats_detail_energy_note" volt:src="e47d7bc5280e2ff4869940b23642e710043f6eb1">\n\nBrukes ikke til turenergi.</string>
+    <string name="stats_detail_energy_note" volt:src="e47d7bc5280e2ff4869940b23642e710043f6eb1">\n\nBrukes ikke til å beregne energi til kjøring.</string>
     <string name="stats_detail_add_favourite" volt:src="c87285177a18c7761e41ade416b0ff60ec43e6f1">Legg til favoritt</string>
     <string name="stats_detail_remove_favourite" volt:src="ee946f85949bd5ec3d77fd9bced2bc8ff4617f55">Fjern favoritt</string>
-    <string name="stats_charts_search_description" volt:src="92bfab0769d5a09dd6b8ca7551e32e13ab15edac">Søk i lagrede grafer</string>
-    <string name="stats_charts_empty" volt:src="25b6dac3482b72fcaea28e69c6fe04ecd85515cf">Ingen grafdata ennå</string>
-    <string name="stats_charts_no_matches" volt:src="25e54026bfde6f1148cf65603d6118fa49ed6edd">Ingen treff blant grafene</string>
+    <string name="stats_charts_search_description" volt:src="92bfab0769d5a09dd6b8ca7551e32e13ab15edac">Søk i lagrede diagrammer</string>
+    <string name="stats_charts_empty" volt:src="25b6dac3482b72fcaea28e69c6fe04ecd85515cf">Ingen diagramdata ennå</string>
+    <string name="stats_charts_no_matches" volt:src="25e54026bfde6f1148cf65603d6118fa49ed6edd">Ingen treff blant diagrammene</string>
     <plurals name="stats_charts_count" volt:src="a5a59a742f9e84ed999229949898d78cafdcb1f9">
-        <item quantity="one">%1$d graf</item>
-        <item quantity="other">%1$d grafer</item>
+        <item quantity="one">%1$d diagram</item>
+        <item quantity="other">%1$d diagrammer</item>
     </plurals>
-    <string name="stats_chart_group_state" volt:src="20f4bee7f4190f58d033fff8548212e7bf6d5138">Grafer: %1$s, %2$s</string>
+    <string name="stats_chart_group_state" volt:src="20f4bee7f4190f58d033fff8548212e7bf6d5138">Diagrammer: %1$s, %2$s</string>
     <string name="stats_chart_group_expanded_said" volt:src="6d384e154d2b379f6c806080adbbda34f490a667">utvidet</string>
     <string name="stats_chart_group_collapsed_said" volt:src="ceb79587df7a6dd941b87afabd6377327d16c405">skjult</string>
-    <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">Utvid graf: %1$s</string>
-    <string name="stats_chart_favourite_add" volt:src="38dd597256a1bdd3203b5d1ecef1a07389cce896">Legg til graf i favoritter: %1$s</string>
-    <string name="stats_chart_favourite_remove" volt:src="4799f63275652c76f2428845c9b77a6b2748f643">Fjern graf fra favoritter: %1$s</string>
+    <string name="stats_chart_expand" volt:src="87978d95bec96b4248d3207e4f1ce029605b138f">Utvid diagram: %1$s</string>
+    <string name="stats_chart_favourite_add" volt:src="38dd597256a1bdd3203b5d1ecef1a07389cce896">Legg til diagram i favoritter: %1$s</string>
+    <string name="stats_chart_favourite_remove" volt:src="4799f63275652c76f2428845c9b77a6b2748f643">Fjern diagram fra favoritter: %1$s</string>
     <string name="stats_chart_live" volt:src="7adc8e48bf95d7c0ba873add49f183c50b3f71d4">%1$s</string>
     <string name="stats_chart_sample" volt:src="a5b35279430d09a040e5014d4041977af7a7e0c4">%1$s · Målepunkt</string>
     <string name="stats_chart_last_seen" volt:src="7d5ba984af99b84b897b8241deebfe5474792a22">%1$s · Sist avlest: %2$s</string>
-    <string name="stats_chart_no_data" volt:src="368ef449b24b92884d5696983fc2de64f3cff670">Ingen data i dette tidsrommet</string>
-    <string name="stats_chart_loading" volt:src="8ed194dd56ac0842cd5257f3bac3e72232c26669">Laster inn graf</string>
-    <string name="stats_chart_close" volt:src="a8cb29259fe3efe192a0f1e63e1079e5a27e7ff4">Lukk utvidet graf</string>
+    <string name="stats_chart_no_data" volt:src="368ef449b24b92884d5696983fc2de64f3cff670">Ingen data i dette tidsvinduet</string>
+    <string name="stats_chart_loading" volt:src="8ed194dd56ac0842cd5257f3bac3e72232c26669">Laster inn diagram</string>
+    <string name="stats_chart_close" volt:src="a8cb29259fe3efe192a0f1e63e1079e5a27e7ff4">Lukk utvidet diagram</string>
     <string name="stats_window_2_min" volt:src="f4b4a7befc8b71487aa484f6662f0f268dce7d60">2 min</string>
     <string name="stats_window_10_min" volt:src="1c0a9e51a1ff3c9e497ce5bffefaf333a86fd593">10 min</string>
     <string name="stats_window_1_hour" volt:src="65adf4d048d8ba9ff6f37c54a45fcf0074ddc7d8">1 time</string>
@@ -99,15 +99,15 @@
     <string name="stats_diagnostics_payloads" volt:src="1319991bbf5982e3be3a0d91002ae118c8783599">Rådata fra avlesninger</string>
     <string name="stats_none_yet" volt:src="8fd5b8ee0205b52b81e3b75d609f71e16791159c">Ingen ennå</string>
     <string name="stats_event_description" volt:src="e29978a9db24183f719bcc7565e8038070e03695">%1$s, %2$s</string>
-    <string name="stats_charge_history_title" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Ladeopptak</string>
-    <string name="stats_charge_recording_title" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Ladeopptak</string>
-    <string name="stats_charge_history_loading" volt:src="2623443eae468af22647be27d95086815e93817f">Laster inn opptak…</string>
-    <string name="stats_charge_history_failed" volt:src="3fb56a961a17c614181d1655eea5deeb4fce567c">Kunne ikke laste inn opptak.</string>
+    <string name="stats_charge_history_title" volt:src="96960bb4f69e6584734e68c56d1c7c2a5af9f3e4">Ladelogger</string>
+    <string name="stats_charge_recording_title" volt:src="9f2e4bf7739dadd3e8261f79531b8505c4ff48fb">Ladelogg</string>
+    <string name="stats_charge_history_loading" volt:src="2623443eae468af22647be27d95086815e93817f">Laster inn logger…</string>
+    <string name="stats_charge_history_failed" volt:src="3fb56a961a17c614181d1655eea5deeb4fce567c">Kunne ikke laste inn logger.</string>
     <string name="stats_charge_history_retry" volt:src="f667cf687a057be2ab3a8277e65dcb88a6918ae7">Prøv igjen</string>
-    <string name="stats_charge_history_empty" volt:src="74f937cd3cfc2f2c1325c9dd2a335dcbab10c784">Ingen lagrede ladeopptak ennå.</string>
-    <string name="stats_charge_history_current" volt:src="e8c1a7d0fbaa4f6f734ae211bd7734cac196859f">Det pågående opptaket vises her etter at det stopper.</string>
-    <string name="stats_charge_history_back" volt:src="accd0957cdef2eb20859915e24c1137e3302eaac">Tilbake til ladeopptak</string>
-    <string name="stats_charge_history_close" volt:src="5cca0e2e6496885f9ef22a318cc2d4355b2aebd1">Lukk ladeopptak</string>
+    <string name="stats_charge_history_empty" volt:src="74f937cd3cfc2f2c1325c9dd2a335dcbab10c784">Ingen lagrede ladelogger ennå.</string>
+    <string name="stats_charge_history_current" volt:src="e8c1a7d0fbaa4f6f734ae211bd7734cac196859f">Den pågående loggen vises her etter at loggingen stopper.</string>
+    <string name="stats_charge_history_back" volt:src="accd0957cdef2eb20859915e24c1137e3302eaac">Tilbake til ladelogger</string>
+    <string name="stats_charge_history_close" volt:src="5cca0e2e6496885f9ef22a318cc2d4355b2aebd1">Lukk ladelogger</string>
     <string name="stats_charge_row_description" volt:src="e57f64fce437a3e389defdb910d5ee0b615528b2">%1$s, %2$s, %3$s</string>
     <string name="stats_charge_finish_not_observed" volt:src="9041b739b1b5ece945f8e0e229a84f9af2093968">Slutten ble ikke observert</string>
     <string name="stats_charge_full_observed" volt:src="88b2405e1fbc60f57f292500f7355c2cf504cadc">100 % observert</string>
@@ -142,7 +142,7 @@
     <string name="stats_charge_zoom_in" volt:src="442618022a01ba69470f2aa260aa464e496c163b">Zoom inn i ladediagrammet</string>
     <string name="stats_charge_no_comparison" volt:src="18d4847d9dc74e8c6eecb6daf6a07f3c53ea65c1">Slutten av ladingen ble ikke observert; ingen sammenligning med faktisk slutt.</string>
     <string name="stats_charge_observed_full" volt:src="e9755d913dfb71036b40c6136a47b1516f6b6dc8">Observert 100 %% · %1$s</string>
-    <string name="stats_charge_estimates_not_saved" volt:src="34621739e8117bbf37eec583aa9d1f547b0b5e5f">Estimatene ble ikke lagret i dette opptaket.\n%1$s</string>
+    <string name="stats_charge_estimates_not_saved" volt:src="34621739e8117bbf37eec583aa9d1f547b0b5e5f">Estimatene ble ikke lagret i denne loggen.\n%1$s</string>
     <string name="stats_charge_series_no_data" volt:src="ef89f5adbf19dfcbb9869273528971b9b8ff0d48">%1$s · ingen data</string>
     <string name="stats_charge_series_no_samples" volt:src="1ecb50fd2937f1560eb48c68c36c7727473a52b7">%1$s, ingen målinger registrert</string>
     <string name="stats_charge_sample_at" volt:src="7b83322ed2cfb56f536aa57377b28041ca4fa864">Kl. %1$s</string>
@@ -173,10 +173,10 @@
     <string name="stats_row_volume" volt:src="49c26a1170a87fab1c4d8970b76c3666329b250e">Lyd</string>
     <string name="stats_row_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Talespråk</string>
     <string name="stats_row_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Logolys</string>
-    <string name="stats_row_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Dagkjørelys</string>
+    <string name="stats_row_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Kjørelys</string>
     <string name="stats_row_maximum_speed_setting" volt:src="6c84403a8d738cc045c51c7643ef0e9abf64f46a">Innstilling for maksimal fart</string>
     <string name="stats_row_drive_mode_setting" volt:src="2b0082366c3c74afdd2d39896eeb2bf870e21766">Modusinnstilling</string>
-    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Byte for innstillingsmodus</string>
+    <string name="stats_row_settings_mode_raw" volt:src="de945eba6ab7b523881752dcac9f8e05a47049df">Modusbyte i innstillinger</string>
     <string name="stats_row_scheduled_charge_time_raw" volt:src="be989e0ff6f15c4ace058c5c42d78af73188cd49">Ladeplan</string>
     <string name="stats_row_low_power" volt:src="0c6b1c731decb0322088608a6ed7366fb16d6e56">Lavbatterimodus</string>
     <string name="stats_row_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Planlagt lading</string>
@@ -186,10 +186,10 @@
     <string name="stats_row_slope_assist" volt:src="43d7ae0b1a79c51fd217f63bb2f66ece663f8bfb">Bakkehjelp</string>
     <string name="stats_row_long_range_mode" volt:src="e01f9a5d1d632caa90d9a99ee75ad2af33253600">Lang rekkevidde</string>
     <string name="stats_row_overspeed_control" volt:src="12f7522f1aa8b9bda63ba4de2dbb3379e11a6d10">Kontroll ved for høy fart</string>
-    <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Varsel ved for høy fart</string>
+    <string name="stats_row_overspeed_alert" volt:src="c16df43ab747ce9e4402842d480e6e663467b3e3">Varsel om for høy fart</string>
     <string name="stats_row_drive_speed_limit" volt:src="0e73ba50b8254a7c0f4d7bc242f386ac344b3605">Fartsgrense i Drive</string>
     <string name="stats_row_battery_serial_raw" volt:src="e019db8b162ae9c1f54809c6493beed2765122ab">Batteriserienummer</string>
-    <string name="stats_row_lock_push_warning" volt:src="24bfcde62ec3c5dbc262ae60c12b6374c266f477">Låsebevegelse</string>
+    <string name="stats_row_lock_push_warning" volt:src="24bfcde62ec3c5dbc262ae60c12b6374c266f477">Bevegelse i låst tilstand</string>
     <string name="stats_row_hide_e9" volt:src="61fb804227518b96a7c4a5a058631345f44d7c61">E9-flagg</string>
     <string name="stats_row_ride_read_raw" volt:src="bab776f9b8250b35ffc43c0c10547745cc61e4ab">Turavlesning</string>
     <string name="stats_row_fault_history_raw" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Feilhistorikk</string>

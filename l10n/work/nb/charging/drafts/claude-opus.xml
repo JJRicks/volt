@@ -21,14 +21,14 @@
     <string name="charging_estimate_capacity_unknown" volt:src="9955ebd969baab882a06252897c92adcde9c36a7">Kapasitet ukjent</string>
     <string name="charging_estimate_waiting_battery" volt:src="778a8b81b0439fa1abd83f095fb12575c440a4db">Venter på batteriprosent</string>
     <string name="charging_estimate_no_estimate" volt:src="f6d5e21815c378bc0bb8cc1d0ff26ae7f1d96684">Ikke noe estimat</string>
-    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Nåværende ladetempo</string>
+    <string name="charging_estimate_current_rate" volt:src="a3bde74b0c56a42264d0d297dd097df688de820e">Gjeldende ladetempo</string>
     <string name="charging_estimate_high_speed_reference" volt:src="6d01f0bd97621f1c9d20c903f9a7bb71aa5159fc">Referanse for hurtiglader</string>
     <string name="charging_estimate_stock_reference" volt:src="314a5bbf17308388ba67df26e3baa9649e1d6461">Referanse for originallader</string>
     <plurals name="charging_estimate_past_charges" volt:src="9ba87f1600204d86382fa4857f6a2daa852d7eea">
         <item quantity="one">Fra %1$d tidligere lading</item>
         <item quantity="other">Fra %1$d tidligere ladinger</item>
     </plurals>
-    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Laderen avviker · estimat fra ladehastighet</string>
+    <string name="charging_estimate_charger_mismatch" volt:src="ba8be28eba282584ad7932fd7412dbb78cfe1b01" volt:attempt="2">Laderen avviker · estimat fra ladetempo</string>
     <string name="charging_estimate_rate_based" volt:src="ffb155676cd7db2143adb147f10b1af5665fad40">Estimat basert på ladetempo</string>
     <string name="charging_measure_scooter_changed" volt:src="14e08d4cbda8ddc0640296679fa33039864e3aa4">Den valgte sparkesykkelen ble byttet under målingen</string>
     <string name="charging_measure_clock_changed" volt:src="bb18fba1e8b464669eefdb6d39cb35386ba212a3">Telefonklokken ble endret under målingen</string>
@@ -36,7 +36,7 @@
     <string name="charging_measure_readings_stopped" volt:src="f6c0b3d14d6b475adca7839ba715c7513d4e6cc5">Avlesningene av ladingen stoppet under målingen</string>
     <string name="charging_measure_disconnected" volt:src="3d636e9129438647d71518b3437faf7a7114cbee">Sparkesykkelen ble koblet fra under målingen</string>
     <string name="charging_capacity_reason_clock" volt:src="bd0cbe1e6a34024c382e0a173b62a0a590da83ed">Klokken ble endret</string>
-    <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Opphold i opptaket</string>
+    <string name="charging_capacity_reason_gaps" volt:src="f692317ffb91f01a18495f510f7ab497a88b5add">Datahull i loggen</string>
     <string name="charging_capacity_reason_direction" volt:src="c4a0a25cb635e88bbeb7dc55e4b0b4ea3407d05d">Strømretningen endret seg</string>
     <string name="charging_capacity_reason_short" volt:src="6720813ef194da35220a213f19c55b064d3c9c92">Under 1 minutt</string>
     <string name="charging_capacity_reason_battery_ends" volt:src="556dfd25f3aa7effa03c4c945d129e8a7a3408ea">Batterinivå start/slutt mangler</string>
@@ -56,8 +56,8 @@
     <string name="charging_schedule_wait_estimate" volt:src="7859255353edf8f843e51bdf85160a78ffdc05cb">Vent på et estimat for ladetiden</string>
     <string name="charging_schedule_outside_range" volt:src="56cf564bb7aded708bbeecb06b25382d1e9f3363">Ladetiden er utenfor et brukbart område</string>
     <string name="charging_schedule_charging_now" volt:src="f94515fc23f4600e831ba57666a778860735c137">Lader nå – ikke nok tid til å vente før fristen</string>
-    <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Velg «Ladestart» først</string>
-    <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Velg en ladestart innen 48 timer</string>
-    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Velg en hel time innen 48 timer</string>
-    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Vent til testen av planlagt lading er ferdig</string>
+    <string name="charging_schedule_choose_start_first" volt:src="8259fd5f327eb9572709601e5c50f3796a129e38">Velg «Starttid for lading» først</string>
+    <string name="charging_schedule_start_within_48h" volt:src="85993f240aad2b10a3bdb2fb0bd338a249afe8ad">Velg en ladestart innen 48 timer</string>
+    <string name="charging_schedule_whole_hour" volt:src="898dbebe1c815d85677e76b05120c4f50fe27c25">Velg en hel time innen 48 timer</string>
+    <string name="charging_schedule_wait_test" volt:src="d349f01107378859bae64b27af30868ef468fe9b">Vent til testen av ladeplanen er ferdig</string>
 </resources>

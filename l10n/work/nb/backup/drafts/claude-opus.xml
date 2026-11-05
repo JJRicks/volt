@@ -41,7 +41,7 @@
     <string name="backup_unavailable" volt:src="6f885110be867c4e5f8e4ed38b075629bafc39db">Sikkerhetskopien er ikke tilgjengelig. Opprett den på nytt.</string>
     <string name="backup_save" volt:src="1aa587b7a7baa450914fcfc4040aa5fa05204d46">Lagre sikkerhetskopi</string>
     <string name="backup_save_short" volt:src="6e7df924b7fbadb647ad83fce0565824089d8ac7">Lagre</string>
-    <string name="backup_picker_failed_save" volt:src="601581e9e3daad20ca9b6bd33fae76d4646ceb3f">Kunne ikke åpne en filvelger. Trykk på «%1$s» for å prøve igjen.</string>
+    <string name="backup_picker_failed_save" volt:src="601581e9e3daad20ca9b6bd33fae76d4646ceb3f">Kunne ikke åpne filvelgeren. Trykk på «%1$s» for å prøve igjen.</string>
     <string name="backup_saving" volt:src="60febe597604a2959f387165bcb44392beea8405">Lagrer sikkerhetskopien…</string>
     <string name="backup_save_failed" volt:src="d4baa2ae4b9958766f6644b44d0201fcb480e7ef">Lagringen mislyktes. Prøv et annet sted.</string>
     <string name="backup_saved" volt:src="4b3b36c1ba114244543783cb5de4c42690b0ead1">Sikkerhetskopien er lagret.</string>
@@ -49,11 +49,11 @@
     <string name="backup_restore_intro" volt:src="59e0c8ed44b79e32277f613fb5830a0fa8dacef7">Velg en Volt-sikkerhetskopi for å få tilbake de lagrede appdataene dine. Eldre eieroppsettfiler, turfiler og layoutfiler fungerer også, og du får se nøyaktig hva de inneholder før du gjenoppretter.</string>
     <string name="backup_not_included" volt:src="8c9d4d0b988fb099efc22ba73dff5d3e84ffbe48">Tillatelser og Bluetooth-sammenkobling er ikke inkludert.</string>
     <string name="backup_choose_file" volt:src="c9853405b416af16cbd3cadf1025f41cb65c78cc">Velg fil</string>
-    <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Kunne ikke åpne en filvelger.</string>
+    <string name="backup_picker_failed" volt:src="20d6436414f3a3f4eb4edf070a6a43da4c620dee">Kunne ikke åpne filvelgeren.</string>
     <string name="backup_no_file" volt:src="ae23e6189469418f78060eab5de98114b90f1528">Ingen fil er valgt</string>
     <string name="backup_checking_file" volt:src="c3429af13afba72b8de0a2fbd7b6c61dc9ea877c">Sjekker filen…</string>
     <string name="backup_file_unopenable" volt:src="8563b50e04484088c12748ae3eb43035f6065574">Kunne ikke åpne filen.</string>
-    <string name="backup_choose_volt_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Velg en Volt-sikkerhetskopifil.</string>
+    <string name="backup_choose_volt_file" volt:src="f9cb4e42c11657f28044e53481a78ea69c86d71c">Velg en sikkerhetskopifil fra Volt.</string>
     <string name="backup_file_unreadable" volt:src="a04601faf87de5710e9443aa5062b0fc3bfeabae">Kunne ikke lese filen.</string>
     <string name="backup_password_hint" volt:src="54ade88713b9daaf392cc9a49449ad89b95d61ea">Passord for sikkerhetskopien</string>
     <string name="backup_open" volt:src="f09532e0a665a896a47df3792a42214ab8057ff2">Åpne sikkerhetskopi</string>
@@ -68,8 +68,8 @@
     <string name="backup_file_full_from" volt:src="d032e126fc06e0647477e077c8ef000b7345ebe9">Full sikkerhetskopi fra %1$s</string>
     <string name="backup_file_selected" volt:src="7116f9c4fdc74e6f2777716770403ea1642c1ff2">Sikkerhetskopi av valgte data</string>
     <string name="backup_file_selected_from" volt:src="11fb85d0567cba743ca7411ea81ed5c24f078b5f">Sikkerhetskopi av valgte data fra %1$s</string>
-    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Denne filen har ingen turer, ladeopptak, historikk, dashbord eller appinnstillinger. Den gjenoppretter bare tilgang til sparkesykkelen. Dataene du allerede har, blir værende på denne telefonen.</string>
-    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Bare kategoriene nedenfor finnes i denne filen. Andre appdata blir værende på denne telefonen.</string>
+    <string name="backup_owner_only_detail" volt:src="78336cfe3b69b718a38790f74ba1ba5ae3214653">Denne filen har ingen turer, ladelogger, historikk, dashbord eller appinnstillinger. Den gjenoppretter bare tilgang til sparkesykkelen. Dataene du allerede har, blir på denne telefonen.</string>
+    <string name="backup_partial_file" volt:src="deef9e4ba9e5d65a4e79a8a33148799b4dc0deff">Bare kategoriene nedenfor finnes i denne filen. Andre appdata blir på denne telefonen.</string>
     <string name="backup_replace_all" volt:src="5397909cf23d8ef5468811e7091c69fbf3b9d6a2">Erstatt alt på denne telefonen</string>
     <string name="backup_next" volt:src="65ccb71713f23b6e52abfc8352603f8b1b887977">Neste</string>
     <string name="backup_choose_what_restore" volt:src="13d5cb978f836661c788f4f5c390faaa77014916">Velg hva du vil gjenopprette.</string>
@@ -78,7 +78,7 @@
     <string name="backup_destination_setup" volt:src="8676d8627bb57e0a6189625c7d1b4fad973bca25">Hvilken sparkesykkel er dette eieroppsettet for?</string>
     <string name="backup_destination_layout" volt:src="4a0d35c0040ea437ebb8535580447159a3b50517">Layouten går til:</string>
     <string name="backup_destination_data" volt:src="0028af3786d633c60899dea176aa09f55be10774">Data fra «%1$s» går til:</string>
-    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Flere sparkesykler kan bruke denne eieroppsettfilen. Velg en eksisterende sparkesykkel, eller legg til en annen.</string>
+    <string name="backup_owner_choice" volt:src="7f9ed8e431b27b1d2e61923a5d82330c86342b7f">Flere sparkesykler kan bruke denne eieroppsettfilen. Velg en eksisterende sparkesykkel, eller legg til enda en.</string>
     <string name="backup_choose_scooter_item" volt:src="0faa81c5d2fe8ea89541392a6d593c177548ff6a">Velg en sparkesykkel…</string>
     <string name="backup_add_another_scooter" volt:src="18c20c45909c32aeb9bcfd98cd553f7b5f9f9f72">Legg til enda en sparkesykkel</string>
     <string name="backup_add_from_backup" volt:src="8e52bb858b54ea1ff15e6a0e1f3acb3af14d0e02">Legg til fra sikkerhetskopien</string>

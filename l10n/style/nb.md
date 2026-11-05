@@ -50,7 +50,7 @@ Rule of thumb: write what a Norwegian phone would say. Android's Norwegian comes
 Order: full → `_short` → `_compact` → icon. Never break a word mid-way and never shrink the text. Measure with Saira; don't count letters. Compounds run long, and a compound counts as one unbreakable block: there is no hyphenating it. Try these in order:
 
 1. **Drop the part the screen already supplies.** On a battery screen *Batteriinnstillinger* → *Batteri*. On a scooter screen *Sparkesykkelnavn* → *Navn*.
-2. **Split a noun phrase at a real space.** Wrapping at a space is allowed where the English can also wrap: *Maksimal fart*, *Ferdigladet innen*.
+2. **Split a noun phrase at a real space, on a rung that can wrap.** Quick access cells (the 64dp full rung at 12sp) wrap at spaces, and a word wider than the cell breaks mid-word, so every single word must fit. Setting tiles (the `_short` rung, 90dp at 12.5sp) are **one line with end ellipsis** (`QuickAccessGrid`: `setMaxLines(1)`, `TruncateAt.END`): the whole label must fit, because nothing wraps. Don't rely on a wrap there.
 3. **Use a shorter real compound**, not a cut one: *Gjennomsnittsfart* → *Snittfart*, *Kilometerteller* → *Km-teller*, *Maksimal fart* → *Maksfart*.
 4. **Cut the last member of a compound at a syllable, from the table only**, and mark it with a period: *Batteriinnstillinger* → *Batteriinnst.* The first member stays whole, so it still says what it is.
 
@@ -74,14 +74,16 @@ Abbreviations this guide accepts. Nothing else: no invented cuts such as *Eksp.*
 Worked ladders, full → short → compact:
 
 - Time to full (est.): *Tid til full lading (ca.)* → *Til full lading (ca.)* → *Til full (ca.)*
-- Charge done by time: *Ferdigladet innen kl.* on both rungs. It wraps at spaces: *Ferdigladet* is 63dp at 12sp, under 64dp, and the `_short` rung has 90dp. There is no shorter form; if it doesn't fit, report the overflow (rule 8). Never *Ferdig kl.*, which states a finish.
+- Charge done by: *Ferdigladet innen* on the wrapping 64dp rung (*Ferdigladet* is 63dp at 12sp), **Ladet innen** on the one-line 90dp tile (68dp). Charge done by time: *Ferdigladet innen kl.* → **Ladet innen kl.** (84dp). *Ferdigladet innen* is 102dp at 12.5sp and would truncate to *Ferdigladet…*, which says the charge has finished. *innen* always stays. Never *Ferdig kl.*, which states a finish.
+- About & permissions: *Appinfo og tillatelser* on the wrapping rung, **Appinfo** on the one-line tile, which still speaks the full label.
+- Firmware versions, compact rung: *Kontroller FW*, *Nærhet FW*, *Skjerm FW*, *Batteri FW*, *Måler FW*. FW is the accepted initialism on `_compact` firmware rungs only, as in the English. *Batteri* alone collides with the battery charge rung.
 - Ride settings: *Kjøreinnstillinger* → *Kjøreinnst.* → *Kjøring*
 - Live Stats: *Sanntidsdata* (77dp, fits the 90dp tile; over 64dp at 12sp) → *Sanntid*
 - Scooter name: *Sparkesykkelnavn* → *Navn*
 
-Measured words that fit the 62dp tiles as they are: *Lås* 20, *Batteri* 40, *Turer* 31. At 90dp: *Hurtigtilgang* 77, *Sikkerhetskopi* 85, *Ladeplan* 53, *Skjerm og lyd* 79, *PIN og nærhet* 84, *Rekkevidde* 67. *Eksperimentell* is 86dp, so it fits 90dp alone; *Eksperimentelle* is 93dp and doesn't, so *Eksperimentelle funksjoner* becomes the singular *Eksperimentell* on that tile.
+Measured words that fit the 62dp tiles as they are: *Lås* 20, *Batteri* 40, *Turer* 31. At 90dp: *Hurtigtilgang* 77, *Sikkerhetskopi* 85, *Ladeplan* 53, *Skjerm og lyd* 79, *PIN og nærhet* 84, *Rekkevidde* 67. *Eksperimentell* is 86dp, so it fits 90dp alone; *Eksperimentelle* is 93dp and doesn't, so *Eksperimentelle funksjoner* becomes the bare *Eksperimentell* on that one-line tile, never *Eksperimentell funksjon* (140dp, and singular for a page of several). In the 64dp cell *Eksperimentelle* is 90dp and breaks mid-word; the word stands and the overflow is reported (rule 8).
 
-**No accepted short form exists for *sparkesykkel*.** *Sparkesykkel* is 77dp and *Sparkesykler* 75dp, over the 64dp shortcut budget (the English *My scooters* is 68dp at 12sp and is over it as well). Don't invent *S-sykkel* or *Elspark*, the latter being Swedish and slang. Write *Mine sparkesykler*, and say so in your notes. Never *Sykler*, which reads as bicycles.
+**No accepted short form exists for *sparkesykkel*.** *Sparkesykkel* is 77dp and *Sparkesykler* 75dp, over the 64dp shortcut budget (the English *My scooters* is 68dp at 12sp and is over it as well). Don't invent *S-sykkel* or *Elspark*, the latter being Swedish and slang. Write *Mine sparkesykler*, and say so in your notes: it is a layout problem, not a wording one. Never *Sykler*, which reads as bicycles.
 
 An abbreviation ends in a period, and the period counts toward the width. Initialisms and unit symbols take none.
 
@@ -123,7 +125,7 @@ Words that look right and mean something else:
 - **`Låst opp` starts with `Låst`.** That is why the state is *Ulåst*: a label cut or wrapped after the first word would say the opposite. Keep *låst opp* to full sentences, where *ble* or *er* comes before it and nothing can cut it.
 - **`Lås opp` versus `Last opp`.** *Last opp* means upload, and *lade* (charge) is not *laste* (load): *lading* is charging, *lasting* is loading. The *å* and the *d* have to be right.
 - **`Ulåst` and `Låst` differ only by `U`.** Never shrink, never truncate. In a sentence the full word stays.
-- **Exact labels, for the judge.** The glossary accepts *låst*, *låste* and *låst opp* because sentences need them, so it would also pass the wrong label. Check these by hand: `onboarding_welcome_tile_lock`, its `_short` rung and `readings_lock_status_compact` must be exactly *Lås*; `readings_value_unlocked` must be exactly *Ulåst*.
+- **Exact labels, for the judge.** The glossary accepts *låst*, *låste* and *låst opp* because sentences need them, so it would also pass the wrong label. Check these by hand: `onboarding_welcome_tile_lock`, its `_short` rung and `readings_lock_status_compact` must be exactly *Lås*; `readings_value_unlocked` must be exactly *Ulåst*. A pronoun with no antecedent on a lock row (*Forblir låst når den er av*) can read as the lock being off: name the sparkesykkel. A label quoted in «…» must match a real key's translation.
 - **`Av` and `På`.** On and off are **På** and **Av**, for settings and lights alike, as on Android. Verbs: *slå på*, *slå av*. Never use *Ja/Nei* in their place, and never *Aktiv* for a setting that was merely asked for.
 - **`Koble til` and `Koble fra`** differ only in the particle: connect and disconnect. Never drop it.
 - **Negation moves.** In a main clause *ikke* follows the verb: *Sparkesykkelen er ikke låst*. In a subordinate clause it goes before: *hvis sparkesykkelen ikke er låst*. Keep every negation; *ikke*, *ingen*, *aldri* and *uten* count as negation words for the checks.
@@ -152,13 +154,13 @@ The glossary is authoritative; this explains the distinctions it can't.
 - **Levels:** Energy recovery levels are translated, unlike the drive modes, and agree with *energigjenvinning*: *Av, Lav, Middels, Høy*. Elsewhere they agree with their own noun: *lavt batteri*.
 - **Eco, Turbo, Boost:** the *Eco* and *Turbo* acceleration profiles and the *Boost* mode stay in English, as the scooter shows them. **Eco-estimat** is a range option, translated.
 - **Roles:** owner is **eier**, shared rider is **medbruker**. The compact role label (`more_role_shared`, English *Shared*) is also **Medbruker** (63dp at 12.5sp), never *Delt*, which also reads as "split".
-- **Charge done by:** the feature name is **Ferdigladet innen**, its time setting **Ferdigladet innen kl.** The feature only plans a start, so *innen* always stays: *Ferdigladet* alone says the charge has finished. In a sentence, quote the name: *«Ferdigladet innen» er av*, *slå av «Ferdigladet innen»*.
+- **Charge done by:** the feature name is **Ferdigladet innen**, its time setting **Ferdigladet innen kl.**, and on one-line tiles **Ladet innen**, **Ladet innen kl.** (section 5). The feature only plans a start, so *innen* always stays: *Ferdigladet* alone says the charge has finished. In a sentence, quote the name: *«Ferdigladet innen» er av*, *slå av «Ferdigladet innen»*.
 - **Charging vs charger:** the status is **Lader** (`ui_battery_ring_charging`, `dashboard_charging`). A widget or reading name is **Lading** (`dashboard_model_type_charging`, `stats_row_charging_state`). The device always comes in a phrase or with a qualifier, such as *originallader*, *tilkoblet lader* or *koble til laderen*, never as a bare *Lader* label.
 - **Gauge:** the battery reading is always **batterimåler**, *batterimåleren*: *Batterimåleren hoppet*. *Måler* and *Måler…* alone are only the measuring state. The widget type `dashboard_model_type_gauge` shows one reading as a dial and is not a battery word: it is **Instrument**.
 - **Alerts:** an alert is **varsel**, plural *varsler*; *Varsle meg* is notify me. The scooter's beeps are **Pipelyd**, never *Varsellyd*.
 - **Parts:** handlebar **styre**, brake **brems**, motor brake **motorbrems**, throttle **gass**, tyre **dekk**, charger **lader**, kickstand **støtteben**, headlight **frontlys**, tail light **baklys**, turn signal **blinklys**, range **rekkevidde**, uphill **oppoverbakke**, downhill **nedoverbakke**.
 - **Touch words:** tap is **trykk** (*Trykk på*), double-tap **dobbelttrykk**, slide **skyv**. *Dobbelttrykk eller skyv for å låse opp.*
-- **Recording:** a charging session is **ladeopptak**, recording a ride **turopptak**, and *ta opp* the verb. The phone journal is **GPS-logg fra telefonen**; the CSV option reads *GPS-logg fra telefonen (CSV)*. Never *Telefonlogg*, which reads as a call log.
+- **Recording:** *ta opp* and *opptak* mean audio and video in Norwegian, so sensor data is **logget**. Verb **logge** (*Logg tur*, status *Logger*), the act **logging** (*Stopp loggingen*), the saved result **logg** (*Loggen ble slettet*), and **turlogging**/**turlogg**, **ladelogging**/**ladelogg** where the kind matters. In a passive with no recording in view, **registrert** (*Fart ikke registrert*). Where NAVEE's logging could also be in view (owner setup, onboarding), name the kind: *Stopp turloggingen først*. The phone journal is **GPS-logg fra telefonen**; the CSV option reads *GPS-logg fra telefonen (CSV)*. Never *Telefonlogg*, which reads as a call log.
 - **Widget:** **modul**, as Android's launcher says. *Tile* isn't *rute*, which means route.
 - **Keep in English:** report contents, file names, Telemetry names, model names. Say the content is in English when the source does.
 - **Experimental LAB badge:** **LAB** stays. TalkBack speaks **Eksperimentell**.
@@ -177,6 +179,11 @@ The glossary is authoritative; this explains the distinctions it can't.
 | Experimental controls, Controls to try | **Eksperimentelle funksjoner**, **Funksjoner du kan prøve** | *Eksperimentelle kontroller*, *Kontroller å prøve* | *Kontroller* reads as checks, and the app's read-only check would then seem to include the tries. NAVEE's English says Lab Features. A native reader should confirm |
 | Speed limit | **Fartsgrense** | *Fartsbegrensning*, *Fartssperre* | *Fartsgrense* first means the legal road limit but matches NAVEE's Speed Limit; a device setting is more naturally *fartsbegrensning* |
 | Gauge widget (a dial) | **Instrument** | *Måleinstrument*, *Viser* | Must not be *Måler*, the measuring state. *Viser* also reads as "shows" |
+| Recording | **logge**, **logg**, **logging** | *ta opp*, *opptak*, *registrere* | *opptak* suggests sound or video. *registrering* reads as signing up. *logg* sits near NAVEE's *aktivitetslogging*, so owner-setup strings name the kind. A native reader should confirm |
+| Usable energy | **Nyttbar energi til kjøring** | *Brukbar energi*, *Tilgjengelig energi* | *brukbar* also means passable. *nyttbar* is the battery trade's word, and may be too technical |
+| Standalone hour and day | **h**, **d** | *t*, *d.* | Natives write *3 t*. *km/h* can stay protected without forcing standalone *h*; section 4 ties them together only for the moment |
+| Scooter name | **Sparkesykkelnavn** | *Navn på sparkesykkelen* | Correct but clunky. The one-word compound rule shouldn't push long coinages where natives write a phrase |
+| Experimental in a 64dp cell | **Eksperimentelle funksjoner** | *Lab-funksjoner* | The first breaks mid-word in the cell; the second wraps at its hyphen but drops the established word |
 | Maximum speed, Top speed | **Maksimal fart**, **Toppfart** | *Makshastighet* | Norwegian shops use *toppfart* for the maximum as well, so the distinction rests on Volt's labels; *Oppnådd toppfart* is the longer reading if needed |
 
 ## 9. Android's own wording
@@ -207,13 +214,14 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 |---|---|---|
 | Try again, Try shortly | an ordinary retry after a failure; not the experimental "try" | **Prøv igjen**; *Prøv igjen snart*. It is Android's idiom and doesn't read as testing. Never *Test igjen* or *Gjør et nytt forsøk*: *forsøk* belongs to Experimental |
 | not reported | the scooter gave no value; never reads as confirmed, and not a calque of "reported" | **ingen data**. Says only that no value came, not that anything is off or fine. Never *ikke rapportert* |
-| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **oppgitt**; verb **oppgi**: *sparkesykkelen oppgir*, *Oppgitt av sparkesykkelen*. A claim, not a measurement. Never *rapportert* or *bekreftet*. *rapport* stays the word for a document |
+| reported (by the scooter) | a value the scooter or controller says, not one that was measured or proven | **oppgitt**; verb **oppgi**: *sparkesykkelen oppgir*, *Oppgitt av sparkesykkelen*, *Oppgitt batterihelse*. On a countable noun use **ifølge**: *Ladinger ifølge sparkesykkelen*, not *Oppgitte ladinger*. A claim, not a measurement. Never *rapportert* or *bekreftet*. *rapport* stays the word for a document |
+| advertised (capacity) | the maker's figure, not the scooter's | **ifølge produsenten**: *Kapasitet ifølge produsenten*. Never *annonsert* |
 | NAVEE logging | debug logging on the phone (activity log), never account registration | **aktivitetslogging for NAVEE**; *aktivitetsloggen* for the log. Never *registrering*, which reads as signing up |
 | restore logging | turning that logging back to how it was (usually off) | **gjenopprett logginnstillingen**, *for NAVEE* where needed: *Gjenopprett logginnstillingen for NAVEE*, *Gjenopprett logginnstillingen igjen*, *Shizuku ble borte. Gjenopprett logginnstillingen.* It names the setting, so it reads as that setting going back to its old value, usually off. It brings back no file or backup. Never *gjenopprett aktivitetsloggingen*, which reads as turning logging back on |
 | Volt's helper | the small helper Volt starts inside Shizuku | **Volt-hjelperen**; *hjelperen* once the screen makes clear which. Never *assistent*. The script on the computer is the different **henteskript** |
 | stock charger | the charger that came with the scooter | **originallader**. Never *standardlader* |
 | high-speed charger | a faster charger the rider may own | **hurtiglader**; alone, *Hurtig*. This is about charging, not riding speed |
-| gap (in a recording) | a stretch of a recording with no data | **opphold**. Means no data was recorded, not that power or the ride stopped. Never *hull* |
+| gap (in a recording) | a stretch of a recording with no data | **datahull**, the same in the plural; *Datahull i loggen*. Means no data was recorded, not that power or the ride stopped. Never *opphold*, which means a stop or a stay |
 | elevation | height above sea level on a route | **høyde**; *høyde over havet* where the screen doesn't make it clear |
 | current direction | which way battery current flows | **strømretning**. Never *retning* alone, which reads as a route |
 | throughput | how much energy has passed through the battery | **energigjennomstrømning**; *gjennomstrømning* once the screen has said energy. An amount of energy that passed through, not a rate |
@@ -225,7 +233,22 @@ These came from the independent review of the first full draft (Spanish, 2026-11
 | the app | one word for "app" used everywhere; name when "application" is allowed, if ever | **app**, *appen*, plural *apper*: *NAVEE-appen*, *den offisielle appen*. *applikasjon* only when quoting Android's own label |
 | connect the scooter vs connect yourself | connecting to the scooter is one verb form; state which | The scooter is the object: **koble til sparkesykkelen**, *Koble til sparkesykkelen først*. Never *koble deg til*, which reads as going online. The button stays *Koble til*; plugging in is *koble til laderen* |
 | set a value | one verb for setting a value on the scooter | **angi**: *Angi PIN-kode*, *Angi %1$s*. With a value use a label form: *Angi maksimal fart: %1$s*, never *angi … til*. Never *sett*, which collides with *Sett tilbake*. The noun stays *innstilling* |
-| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **blir** with a participle, in dialogs and hints alike: *Denne turen blir slettet*, *Kartet blir åpnet*. Never *Sletter…* alone or *Slett…*, which read as an act under way or a command |
+| "Removes…", "Replaces…" in dialogs | the form of rule 2, with one example | **blir** with a participle for anything that changes or destroys: *Denne turen blir slettet*. Never *Sletter…* alone or *Slett…*, which read as an act under way or a command |
+| "Opens…", "Shows…" in hints | says where a tap leads; nothing changes | Present tense, as Android's Norwegian: **Åpner** *turdetaljene*, **Viser** *detaljene*. It can't read as a command, because the imperative is *Åpne*. Not *blir åpnet*, which reports an event |
+| confirmation dialog titles | a question before an action | **Vil du …?**: *Vil du slette denne turen?*, *Vil du slå av antispinn?*. Never a bare imperative or infinitive with a question mark (*Slå av antispinn?*, *Erstatte …?*), which reads as an instruction |
+| clear (data) | removing stored results | **Slett**, *slette*. Not *Fjern* or *tøm* for stored data |
+| stays (data, a location) | kept data, or something still found somewhere | **beholdes**: *Turene beholdes*. Where the place matters **blir på**: *Turene blir på telefonen*. A control still in a menu: **finner du fortsatt i**. Never *blir værende* |
+| read back, as rider text | the scooter's value read again | Technical noun **tilbakelesing**. Verb **lese av**: *leser av verdien*. Never *lese tilbake* in rider text |
+| review (a try, a test, a backup) | look through before deciding | **Se gjennom**. Never *Gå gjennom* for the same action |
+| resolve a scooter warning | deal with its cause | **håndter**: *Håndter advarselen fra sparkesykkelen først*. Never *Rett opp* or *Løs* |
+| broad debugging access | what Shizuku grants | **omfattende feilsøkingstilgang**. Never *bred* |
+| accepted (a command) | the scooter took it but didn't read it back; not confirmed | **Godtatt**; *sparkesykkelen godtok*. Never *Bekreftet* |
+| charging schedule | what scheduled charging follows | **ladeplan**, *ladeplanen*. Keep *Planlagt lading* for the feature name |
+| shared-user identity | a shared rider's counterpart of the owner key | **medbrukernøkkel**. Never *identitet* |
+| chart, graph | a plotted reading | **diagram**, plural *diagrammer*, in every compound: *Sanntidsdiagram*, *ladediagram*. Never *graf* |
+| sign (plus or minus) | whether a value is positive or negative | **fortegn**: *Batterifortegn*. Never *tegn*, which reads as a character or a symptom |
+| first, second (of two rides) | which of two compared rides | **tur 1**, **tur 2**. *Andre* alone also means others, so never a bare ordinal on a short label |
+| sample | one recorded measurement | **måling**, *målinger*. A value shown for a reading stays *avlesning* |
 | screen and section titles | noun form or verb form, with one example | Noun form: *Sikkerhetskopi og gjenoppretting*. If the title is an action with no good noun, the imperative: *Test planlagt lading* |
 
 ## 10. Sources consulted

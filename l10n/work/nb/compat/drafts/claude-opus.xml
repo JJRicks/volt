@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Draft claude-opus: written by tools/l10n/council.py; staging only, never compiled. -->
 <resources xmlns:volt="https://volt.jjricks.com/ns/l10n" volt:provider="claude" volt:model="claude-opus-5-5" volt:prompt="context-first">
-    <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Den lokale tjenesten for sparkesykkelen din starter.</string>
+    <string name="compat_service_starting" volt:src="f02e59b2d6ca158ac1a2ef1c61091f343ca223ed">Den lokale sparkesykkeltjenesten din starter.</string>
     <string name="compat_connect" volt:src="d6fbe7f4cf5153590b0314db75b88ea19238461f">Koble til</string>
     <string name="compat_no_unfinished_tests" volt:src="592ae86c83d1a896e33d5d62c2f4a9dea3a30207">Ingen uferdige tester.</string>
     <string name="compat_run_check" volt:src="8908fbf7457a4fe529bb9649e73cecde12a253d4">Kjør sjekk</string>
@@ -33,18 +33,18 @@
     <string name="compat_layer_oem" volt:src="3a2b7d48aed261705978c3f47ed6e4c1e91a2bde">OEM-kartlagt (ikke testet)</string>
     <string name="compat_layer_shared" volt:src="b42644785dd9cfcf0f3d8e5d5dca26704060de1e">Lås og avlesninger</string>
     <string name="compat_layer_none" volt:src="804e37ebea7b8b5bb189c7924a95e592ff7683c7">Støttes ikke</string>
-    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">En annen sparkesykkel har 1 test som ikke er fullført. Velg den for å gå gjennom testen.</string>
+    <string name="compat_test_elsewhere_one" volt:src="afb89f757c77b07a913ae2df91d6fa4fc0a68285" volt:attempt="2">1 uferdig test på en annen sparkesykkel. Velg den for å se gjennom testen.</string>
     <plurals name="compat_tests_elsewhere" volt:src="a575f4171f4e9b9f625eb617b6bf8175b3e4b415" volt:attempt="2">
-        <item quantity="one">En annen sparkesykkel har %1$d test som ikke er fullført. Velg den for å gå gjennom testen.</item>
-        <item quantity="other">Andre sparkesykler har %1$d tester som ikke er fullført. Velg en for å gå gjennom testen.</item>
+        <item quantity="one">%1$d uferdig test på en annen sparkesykkel. Velg den for å se gjennom testen.</item>
+        <item quantity="other">%1$d uferdige tester på andre sparkesykler. Velg en sparkesykkel for å se gjennom testene der.</item>
     </plurals>
-    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testloggen er ikke tilgjengelig. En tidligere test er kanskje ikke satt tilbake; sjekk innstillingene på sparkesykkelen.</string>
+    <string name="compat_test_records_unavailable" volt:src="beb9681479d45b00b0682a2f1f09109b334a154a">Testoppføringene er ikke tilgjengelige. En tidligere test er kanskje ikke satt tilbake; sjekk innstillingene på sparkesykkelen.</string>
     <string name="compat_try_title" volt:src="d1000450ca454dbe8ee7d8c89d1235b7a4277a4a">Forsøk · %1$s</string>
     <string name="compat_test_title" volt:src="111994a6515db82c7dd8b7d51876abec2d4bcab4">Test · %1$s</string>
-    <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Leser gjeldende verdi…</string>
+    <string name="compat_reading_current" volt:src="33e89716d4ed0c3c1d0375972636c6205fb93ece">Leser av gjeldende verdi…</string>
     <string name="compat_changing_to" volt:src="9bec115f0e47eeddd3c423a65f5079c00b83fa3f">Endrer til %1$s…</string>
     <string name="compat_checking_unchanged" volt:src="8fe89d4e5ecc67b1403243c7e47f7b0a39e4be82" volt:attempt="2">Sjekker at verdien ikke er endret…</string>
-    <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Setter tilbake til %1$s…</string>
+    <string name="compat_setting_back" volt:src="45177b34ac992f9f9df6a36f46e7dd47cf2f9ac9">Setter den tilbake til %1$s…</string>
     <string name="compat_yes" volt:src="32d3dd8922307c3d79510f526911181f77546679">Ja</string>
     <string name="compat_no" volt:src="c367257391fe5ca3e9bfcb4e88dc2fd58419ccd1">Nei</string>
     <string name="compat_skip" volt:src="a94aa8bac1e5255c9942f4bf365dc1cad9b30f5b">Hopp over</string>
@@ -75,15 +75,15 @@
     <string name="compat_question_units_kmh" volt:src="4a1d028262b4d78b0c69b5fd135029c52d05ca93">Viser skjermen på sparkesykkelen km/h?</string>
     <string name="compat_question_tail_light_on" volt:src="b84549856bb8e366237dfe250243c94d91d85476">Er baklyset på?</string>
     <string name="compat_question_tail_light_off" volt:src="42b4e5f05ad39053e9227d5959fa8a25a1045af9">Er baklyset av?</string>
-    <string name="compat_question_tail_light" volt:src="82f1cf7909e08443eebe51f0542eb7c905ecb463">Står baklyset på %1$s?</string>
+    <string name="compat_question_tail_light" volt:src="82f1cf7909e08443eebe51f0542eb7c905ecb463">Baklys: %1$s. Stemmer det?</string>
     <string name="compat_question_turn_sound_on" volt:src="21dfb23b3079ca0a26f7759adeeb0fe01e2fcb19">Er lyden på når blinklyset står på?</string>
     <string name="compat_question_turn_sound_off" volt:src="962e3a6ef7285efd32cca8afd56efce2ceab0d4b">Er lyden av når blinklyset står på?</string>
-    <string name="compat_question_turn_sound" volt:src="148d8c47ea80f5c4c5dfb86f8d5bbb907701d925">Står lyden på %1$s når blinklyset står på?</string>
+    <string name="compat_question_turn_sound" volt:src="148d8c47ea80f5c4c5dfb86f8d5bbb907701d925">Når blinklyset står på – lyd: %1$s. Stemmer det?</string>
     <string name="compat_question_auto_lights_on" volt:src="fcf9aa81b7bd0f338236a8ecadbc18fd115af508">Er automatiske lys på?</string>
     <string name="compat_question_auto_lights_off" volt:src="9ade8ff6ac5abee6746daff90e32fa8a12534f9c">Er automatiske lys av?</string>
-    <string name="compat_question_auto_lights" volt:src="dbdbb16b1d09b025c154ba879981f2e5549ea097">Står automatiske lys på %1$s?</string>
+    <string name="compat_question_auto_lights" volt:src="dbdbb16b1d09b025c154ba879981f2e5549ea097">Automatiske lys: %1$s. Stemmer det?</string>
     <string name="compat_question_range" volt:src="29869335b8d009a1dffff67f95517d4d613411f9">Endret rekkeviddeestimatet seg på skjermen på sparkesykkelen?</string>
-    <string name="compat_question_default" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Så du at det endret seg?</string>
+    <string name="compat_question_default" volt:src="af3165d06795a6cec9e6779fd66155e093965a63">Så du en endring?</string>
     <string name="compat_stop" volt:src="08b811ccbec2a1eed9974ec0432d24dec7024caa">Stopp</string>
     <string name="compat_listening" volt:src="7dfd8290394db694f09ee2c5a4254f728b582eed">Lytter etter meldinger fra sparkesykkelen…</string>
     <string name="compat_reading_progress" volt:src="249b306ba159ce3668c3b9808cd392134126a43f">Leser %1$s av %2$s…</string>
@@ -118,7 +118,7 @@
     <string name="compat_read_fault_history" volt:src="61a2f53254e8fd1070ded9d5d86f4438c6ea7b30">Feilhistorikk</string>
     <string name="compat_read_driving" volt:src="61cf18ac32b684052b3979d0da94c7401b89c32d">Kjøredata (sondering)</string>
     <string name="compat_read_battery_id" volt:src="190ae1c24e429def9ad49db06004030f2de1bebc">Batteri-ID (sondering)</string>
-    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Batteritegn (sondering)</string>
+    <string name="compat_read_battery_signs" volt:src="0103337d93b43aeb10c4c5f3b930b448d5bfa073">Batterifortegn (sondering)</string>
     <string name="compat_read_other" volt:src="679c22caa0b35af6a832ed94aa2af9928e3754a6">Avlesning</string>
     <string name="compat_read_rejected" volt:src="ee98b94190e45668cba422a39312bb9e63e1bff2">Avvist %1$d</string>
     <plurals name="compat_read_too_short" volt:src="7745dc0659fdff73d44a35ee36a86959b4ba2ef2">
@@ -156,7 +156,7 @@
     <string name="compat_field_energy_recovery" volt:src="ca8a0daa1f22211f7cd797a5f7f2be3b62b6ab0b">Energigjenvinning</string>
     <string name="compat_field_range_algorithm" volt:src="e0974159ab86ac1ddd5367f2d15315eb8af899ed">Rekkeviddealgoritme</string>
     <string name="compat_field_display_units" volt:src="85c74554346630bde3e49f368ba26aaa36a8f84f">Måleenheter på sparkesykkelen</string>
-    <string name="compat_field_auto_sensor" volt:src="7e1e9cd93c53f308df6537afa3f2d470ec12b48c">Automatisk sensor</string>
+    <string name="compat_field_auto_sensor" volt:src="7e1e9cd93c53f308df6537afa3f2d470ec12b48c">Automatisk lyssensor</string>
     <string name="compat_field_tyre_reminder" volt:src="830d3b729d73aaae184b90a147c9f09e190d76fb">Dekkpåminnelse</string>
     <string name="compat_field_ambient_light" volt:src="b5d7c85febfcabf7d1d5c6761e480e10236fbd3b">Stemningslys</string>
     <string name="compat_field_traction_control" volt:src="e59328d84c8efacbfaf74c80c1ab64c2e07c5c79">Antispinn</string>
@@ -172,14 +172,14 @@
     <string name="compat_field_volume" volt:src="caea7e83ed3ad8e36236a8fbe532819f12d5db10">Volum</string>
     <string name="compat_field_voice_language" volt:src="570075a01de838cac72684269e4058d3b91ec696">Talespråk</string>
     <string name="compat_field_logo_light" volt:src="9a2cd4770b79281e8e48c250f0a52572afe9dfd7">Logolys</string>
-    <string name="compat_field_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Dagkjørelys</string>
+    <string name="compat_field_daytime_light" volt:src="6f2fdcf1fa62ccecbaa98150f02534e5719bed8f">Kjørelys</string>
     <string name="compat_field_maximum_speed_setting" volt:src="2ca9795c0e0aed9b105f45e8b2328f7162b6b90b">Innstilling for maksimal fart</string>
     <string name="compat_field_drive_mode_setting" volt:src="313541a018a1a327cd3eb84e68ce2ab4bb977ef4">Innstilling for kjøremodus</string>
     <string name="compat_field_charge_limit_percent" volt:src="3fb2ccac0699d8546fc4a9934efba0aa96fa47fa">Ladegrense i prosent</string>
-    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Lav effekt</string>
+    <string name="compat_field_low_power" volt:src="1396b37a4f85a2b237c92a2d46d14d493ef6f85f">Lavbatterimodus</string>
     <string name="compat_field_timed_charging" volt:src="87655dcab8da1b706dd0b61b3c2171881ed8e40f">Planlagt lading</string>
-    <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Tid for automatisk låsing</string>
-    <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Kvalifisert for fartsgrense</string>
+    <string name="compat_field_auto_lock_time" volt:src="74ecac369dbc72a7b5a453640e70cea21c207236">Låsetid</string>
+    <string name="compat_field_speed_limit_eligibility" volt:src="18513836774cdbe04cc7cef36b0d81dda5702001">Fartsgrensetilgang</string>
     <string name="compat_field_weather" volt:src="97044f9b51d52823d932f134ddecd4157d3a4424">Vær</string>
     <string name="compat_field_slope_assist" volt:src="479e6e8a2f1784f6c491d2ed163f8eded19c2897">Bakkehjelp</string>
     <string name="compat_field_long_range_mode" volt:src="f62b14e6b2e31bbfde1b1a1b5a84dd6305ff5cad">Modus for lang rekkevidde</string>
