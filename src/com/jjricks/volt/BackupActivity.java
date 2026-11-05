@@ -196,8 +196,9 @@ public final class BackupActivity extends Activity {
             catch(Exception failure){show(()->done(M.backupInventoryUnreadable()));}});
     }
     /** A destination's name in its spoken labels: the layout file's display name, else the scooter's name as the backup has it.
-     * The engine keeps its English "Layout file" in d.name (data, BackupArchive); backup_file_layout shows it. */
-    private static CharSequence destinationName(AppDataBackup.Destination d){return d.source.equals(BackupArchive.LAYOUT_SOURCE)?M.backupFileLayout():d.name;}
+     * The engine keeps its English "Layout file" in d.name (data, BackupArchive); backup_file_layout shows it. A backup's scooter
+     * may have that source id under another name (BackupProfiles takes any id), so the name must match too. */
+    private static CharSequence destinationName(AppDataBackup.Destination d){return d.source.equals(BackupArchive.LAYOUT_SOURCE)&&d.name.equals(M.backupFileLayout().english())?M.backupFileLayout():d.name;}
     private boolean hasItems(String id){return inventory.get(id)[0]>0||inventory.get(id)[1]>0;}
     private void backupCategories(){
         reset(M.backupBackUpTitle());
