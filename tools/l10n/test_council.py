@@ -1048,6 +1048,11 @@ class SafetyJudgedTest(Base):
         self.assertEqual(self.decisions()["common_disclaimer"]["outcome"], "safety-agreed")
 
 
+def spanish_shaped(s):
+    """The English as decision text with every plural form Spanish needs, which merge.py requires."""
+    return s.items["other"] if s.kind == "string" else dict(s.items, many=s.items["other"])
+
+
 class BetaBarTest(Base):
     def write_bulk(self, count):
         lines = ['<resources xmlns:volt="https://volt.jjricks.com/ns/l10n">']
@@ -1061,12 +1066,15 @@ class BetaBarTest(Base):
             if area in area_skip:
                 continue
             out = []
+            safety = translib.effective_safety(rows)
             for s in rows:
                 if not s.translatable:
                     continue
-                outcome = "fallback-english" if s.key in fallback else "agreed"
+                blocking = set(safety[s.key]) & set(translib.SAFETY_BLOCKING)
+                translated = s.key not in fallback
+                outcome = "fallback-english" if not translated else "safety-agreed" if blocking else "agreed"
                 out.append({"key": s.key, "source_sha1": translib.source_sha1(s.kind, s.items), "outcome": outcome,
-                            "text": None if outcome != "agreed" else translib.text_value(s.kind, s.items)})
+                            "text": spanish_shaped(s) if translated else None})
             translib.write_jsonl(self.paths.decisions("es", area), out)
 
     def test_two_percent_and_no_lock_or_alarm(self):

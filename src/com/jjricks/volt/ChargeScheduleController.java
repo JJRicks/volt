@@ -30,7 +30,8 @@ public final class ChargeScheduleController {
         void enabled(boolean enabled, Consumer<Boolean> completion);
     }
     // Why the View's controls are blocked, in English: the View keeps these as ids (it is checked for null and compared
-    // in tests), and reasonText shows them. A reason from the Context (toggleReason, timeReason) has no id here yet.
+    // in tests), and reasonText shows them through ChargeScheduleText, which also knows the Context's reasons (toggleReason,
+    // timeReason) and a failed restore's status.
     // What a completion or a test result answers is only ever shown, so it is in the current language. State.status
     // stays English, and so does a failed restore's answer, which is that status (restoreFailed).
     private static final String WAIT_CHANGE="Wait for the current change to finish",WAIT_TEST="Wait for the schedule test to finish",
@@ -38,23 +39,7 @@ public final class ChargeScheduleController {
             CONNECT_SCOOTER="Connect the scooter first",NOT_ON_MODEL="Not available on this model",TURN_OFF_DONE_BY="Turn off Charge done by first",
             TURN_OFF_SCHEDULED="Turn off Scheduled charging first",WAIT_READINGS="Wait for fresh charging readings",AT_LIMIT="Battery is already at its charge limit";
     /** A blocked reason as a person reads it, in the current language; null stays null, and text with no id here shows as it is. Display only. */
-    public static String reasonText(String reason){
-        if(reason==null)return null;
-        switch(reason){
-            case WAIT_CHANGE:return T.commonWaitCurrentChange();
-            case WAIT_TEST:return T.chargingScheduleWaitTest();
-            case DISABLE_DONE_BY:return T.chargingScheduleDisableDoneBy();
-            case CONNECT_CHARGER:return T.commonConnectChargerFirst();
-            case CHOOSE_SCOOTER:return T.chargingScheduleChooseScooter();
-            case CONNECT_SCOOTER:return T.chargingScheduleConnectScooter();
-            case NOT_ON_MODEL:return T.chargingScheduleNotOnModel();
-            case TURN_OFF_DONE_BY:return T.chargingScheduleTurnOffDoneBy();
-            case TURN_OFF_SCHEDULED:return T.chargingScheduleTurnOffScheduled();
-            case WAIT_READINGS:return T.chargingScheduleWaitReadings();
-            case AT_LIMIT:return T.chargingScheduleAtLimit();
-            default:return reason;
-        }
-    }
+    public static String reasonText(String reason){return ChargeScheduleText.shown(reason);}
     /** All readings must come from the current authenticated transport, never a display cache. */
     public static final class Context {
         public String scope = "", timeReason, toggleReason, estimateUnavailableReason;

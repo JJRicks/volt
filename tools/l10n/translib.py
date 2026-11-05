@@ -703,6 +703,34 @@ def items_of(kind, value):
     return collections.OrderedDict((q, value[q]) for q in QUANTITIES if q in value)
 
 
+TRANSLATED = ("agreed", "judged", "safety-agreed", "safety-judged")
+
+
+def why_english(source, decision, categories):
+    """Why merge.py leaves this key to English (a short reason), or None when it writes the decision.
+
+    The one definition of a translated key: merge.py's render_file writes by it and the beta bar counts by it.
+    categories are the language's plural categories.
+    """
+    if decision is None:
+        return "no decision"
+    if decision.get("outcome") not in TRANSLATED:
+        return "falls back to English"
+    if decision.get("source_sha1") != source_sha1(source.kind, source.items):
+        return "the English changed since the decision"
+    items = items_of(source.kind, decision.get("text"))
+    if items is None:
+        return "the decision's text has the wrong shape"
+    needed = categories if source.kind == "plural" else ["other"]
+    missing = [q for q in needed if q not in items]
+    if missing:
+        return "missing plural forms %s" % ", ".join(missing)
+    blank = [q for q in needed if not items[q].strip() and source.items.get(q, source.items["other"]).strip()]
+    if blank:
+        return "the decision's text is blank"
+    return None
+
+
 QUOTES = {"“": '"', "”": '"', "„": '"', "«": '"', "»": '"', "‹": "'",
           "›": "'", "‘": "'", "’": "'", "‚": "'", "`": "'"}
 

@@ -63,8 +63,8 @@ public final class GlyphCoverageTest {
             new Fallback(0x2713, false, "done marks: Save buttons, PIN, Paired and drive-mode chips, step pills, Background "
                     + "recording's Unrestricted state, Direction, Check finished, a compatibility read's byte count, Rides' "
                     + "compare row; not an emoji (U+2714 is)"),
-            new Fallback(0x26A0, true, "Background recording's Optimized state, whose Java literal has no U+FE0E yet; "
-                    + "Emoji=Yes, Emoji_Presentation=No, with the text-style sequence 26A0 FE0E"),
+            new Fallback(0x26A0, true, "Background recording's Optimized state; catalog text must use the text-style sequence; "
+                    + "Emoji=Yes, Emoji_Presentation=No, so 26A0 is followed by FE0E"),
             new Fallback(0x2606, false, "a Live Stats reading that is not starred, and the Star readings to pin here hint; not an emoji"),
             new Fallback(0x2605, false, "a starred Live Stats reading; not an emoji (U+2B50 is)")));
 
